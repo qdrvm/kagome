@@ -9,9 +9,9 @@
 #include <array>
 
 #include <boost/multiprecision/cpp_int.hpp>
-#include <boost/optional.hpp>
 #include <boost/variant.hpp>
 #include <gsl/span>
+#include <optional>
 
 #include "common/outcome_throw.hpp"
 #include "scale/detail/fixed_witdh_integer.hpp"
@@ -137,7 +137,7 @@ namespace kagome::scale {
      * @return reference to stream
      */
     template <class T>
-    ScaleDecoderStream &operator>>(boost::optional<T> &v) {
+    ScaleDecoderStream &operator>>(std::optional<T> &v) {
       using mutableT = std::remove_const_t<T>;
 
       static_assert(std::is_default_constructible_v<mutableT>);
@@ -300,9 +300,9 @@ namespace kagome::scale {
     bool decodeBool();
     /**
      * @brief special case of optional values as described in specification
-     * @return boost::optional<bool> value
+     * @return std::optional<bool> value
      */
-    boost::optional<bool> decodeOptionalBool();
+    std::optional<bool> decodeOptionalBool();
 
     template <size_t I, class... Ts>
     void decodeElementOfTuple(std::tuple<Ts...> &v) {

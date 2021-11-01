@@ -6,7 +6,7 @@
 #ifndef KAGOME_BABE_LOTTERY_HPP
 #define KAGOME_BABE_LOTTERY_HPP
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "consensus/babe/types/epoch_descriptor.hpp"
 #include "crypto/sr25519_types.hpp"
@@ -53,7 +53,7 @@ namespace kagome::consensus {
      * @return none means the peer was not chosen as a leader
      * for that slot, value contains VRF value and proof
      */
-    virtual boost::optional<crypto::VRFOutput> getSlotLeadership(
+    virtual std::optional<crypto::VRFOutput> getSlotLeadership(
         primitives::BabeSlotNumber slot) const = 0;
 
     /**

@@ -28,9 +28,9 @@ namespace kagome::api::state::request {
         auto &&at_str = param1.AsString();
         OUTCOME_TRY(at_span, common::unhexWith0x(at_str));
         OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
-        at_.reset(at);
+        at_.emplace(at);
       } else if (param1.IsNil()) {
-        at_ = boost::none;
+        at_ = std::nullopt;
       } else {
         throw jsonrpc::InvalidParametersFault(
             "Parameter 'at' must be a hex string or null");
@@ -41,7 +41,7 @@ namespace kagome::api::state::request {
     return outcome::success();
   }
 
-  outcome::result<boost::optional<common::Buffer>> GetStorage::execute() {
+  outcome::result<std::optional<common::Buffer>> GetStorage::execute() {
     return at_ ? api_->getStorageAt(key_, at_.value()) : api_->getStorage(key_);
   }
 

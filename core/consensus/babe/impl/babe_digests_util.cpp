@@ -31,18 +31,19 @@ namespace kagome::consensus {
     const auto &digests = block_header.digest;
 
     // last digest of the block must be a seal - signature
-    auto seal_res = getFromVariant<primitives::Seal>(digests.back());
-    if (!seal_res) {
+    auto seal_opt = getFromVariant<primitives::Seal>(digests.back());
+    if (not seal_opt.has_value()) {
       return DigestError::INVALID_DIGESTS;
     }
 
-    OUTCOME_TRY(babe_seal_res, scale::decode<Seal>(seal_res.value().data));
+    OUTCOME_TRY(babe_seal_res, scale::decode<Seal>(seal_opt->get().data));
 
     for (const auto &digest :
          gsl::make_span(digests).subspan(0, digests.size() - 1)) {
-      if (auto pre_runtime = getFromVariant<primitives::PreRuntime>(digest);
-          pre_runtime) {
-        if (auto header = scale::decode<BabeBlockHeader>(pre_runtime->data);
+      if (auto pre_runtime_opt = getFromVariant<primitives::PreRuntime>(digest);
+          pre_runtime_opt.has_value()) {
+        if (auto header =
+                scale::decode<BabeBlockHeader>(pre_runtime_opt->get().data);
             header) {
           // found the BabeBlockHeader digest; return
           return {babe_seal_res, header.value()};
@@ -65,7 +66,8 @@ namespace kagome::consensus {
           [&epoch_digest](const primitives::Consensus &consensus) {
             if (consensus.consensus_engine_id == primitives::kBabeEngineId) {
               auto consensus_log_res =
-                scale::decode<primitives::Consensus::BabeDigest>(consensus.data);
+                  scale::decode<primitives::Consensus::BabeDigest>(
+                      consensus.data);
               if (not consensus_log_res) {
                 return;
               }

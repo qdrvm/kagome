@@ -6,7 +6,7 @@
 #ifndef KAGOME_STORAGE_MAP_CURSOR_HPP
 #define KAGOME_STORAGE_MAP_CURSOR_HPP
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "outcome/outcome.hpp"
 
@@ -41,7 +41,8 @@ namespace kagome::storage::face {
 
     /**
      * @brief Is the cursor in a valid state?
-     * @return true if the cursor points to an element of the map, false otherwise
+     * @return true if the cursor points to an element of the map, false
+     * otherwise
      */
     virtual bool isValid() const = 0;
 
@@ -54,15 +55,15 @@ namespace kagome::storage::face {
      * @brief Getter for the key of the element currently pointed at.
      * @return key if isValid()
      */
-    virtual boost::optional<K> key() const = 0;
+    virtual std::optional<K> key() const = 0;
 
     /**
      * @brief Getter for value of the element currently pointed at.
      * @return value if isValid()
      */
-    virtual boost::optional<V> value() const = 0;
+    virtual std::optional<V> value() const = 0;
   };
 
 }  // namespace kagome::storage::face
 
-#endif  //KAGOME_STORAGE_MAP_CURSOR_HPP
+#endif  // KAGOME_STORAGE_MAP_CURSOR_HPP

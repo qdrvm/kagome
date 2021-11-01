@@ -7,8 +7,8 @@
 #define KAGOME_CHAIN_BASE_REQUEST_HPP
 
 #include <jsonrpc-lean/request.h>
-#include <boost/optional.hpp>
 #include <functional>
+#include <optional>
 #include <tuple>
 
 #include "outcome/outcome.hpp"
@@ -71,13 +71,13 @@ namespace kagome::api::details {
 
    private:
     template <typename T>
-    void loadValue(boost::optional<T> &dst, const jsonrpc::Value &src) {
+    void loadValue(std::optional<T> &dst, const jsonrpc::Value &src) {
       if (!src.IsNil()) {
         T t;
         loadValue(t, src);
         dst = std::move(t);
       } else {
-        dst = boost::none;
+        dst = std::nullopt;
       }
     }
 

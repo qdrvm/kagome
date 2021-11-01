@@ -33,7 +33,7 @@ namespace kagome::storage::trie {
     return storage_->get(prefixKey(key));
   }
 
-  outcome::result<boost::optional<Buffer>> TrieStorageBackendImpl::tryGet(
+  outcome::result<std::optional<Buffer>> TrieStorageBackendImpl::tryGet(
       const Buffer &key) const {
     return storage_->tryGet(prefixKey(key));
   }

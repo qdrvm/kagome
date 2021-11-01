@@ -85,7 +85,7 @@ namespace {
     roles.flags.full = 1;
     roles.flags.authority = 1;
     EXPECT_CALL(config_mock, roles()).WillRepeatedly(testing::Return(roles));
-    static auto key = boost::make_optional(kagome::crypto::Ed25519PrivateKey{});
+    static auto key = std::make_optional(kagome::crypto::Ed25519PrivateKey{});
     EXPECT_CALL(config_mock, nodeKey()).WillRepeatedly(testing::ReturnRef(key));
     EXPECT_CALL(config_mock, listenAddresses())
         .WillRepeatedly(

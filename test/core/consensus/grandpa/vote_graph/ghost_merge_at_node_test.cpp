@@ -221,7 +221,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
 })");
   }
 
-  auto check = [&](const boost::optional<BlockInfo> &block) {
+  auto check = [&](const std::optional<BlockInfo> &block) {
     auto ghostOpt =
         graph->findGhost(block, [](auto &&x) { return x.sum >= 7; });
     ASSERT_TRUE(ghostOpt);
@@ -229,7 +229,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
     ASSERT_EQ(*ghostOpt, EXPECTED);
   };
 
-  check(boost::none);
+  check(std::nullopt);
   check(BlockInfo(3, "C"_H));
   check(BlockInfo(2, "B"_H));
 }

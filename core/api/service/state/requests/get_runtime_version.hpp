@@ -31,7 +31,7 @@ namespace kagome::api::state::request {
 
    private:
     std::shared_ptr<StateApi> api_;
-    boost::optional<primitives::BlockHash> at_;
+    std::optional<primitives::BlockHash> at_;
   };
 
 }  // namespace kagome::api::state::request

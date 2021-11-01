@@ -29,11 +29,11 @@ namespace kagome::consensus::grandpa {
                                        const VoteWeight &vote));
 
     MOCK_METHOD2(findAncestor,
-                 boost::optional<BlockInfo>(const BlockInfo &,
-                                            const Condition &));
+                 std::optional<BlockInfo>(const BlockInfo &,
+                                          const Condition &));
     MOCK_METHOD2(findGhost,
-                 boost::optional<BlockInfo>(const boost::optional<BlockInfo> &,
-                                            const Condition &));
+                 std::optional<BlockInfo>(const std::optional<BlockInfo> &,
+                                          const Condition &));
   };
 
 }  // namespace kagome::consensus::grandpa

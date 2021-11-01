@@ -292,18 +292,18 @@ namespace kagome::storage::trie {
     return Codec::nibblesToKey(key_nibbles);
   }
 
-  boost::optional<common::Buffer> PolkadotTrieCursorImpl::key() const {
+  std::optional<common::Buffer> PolkadotTrieCursorImpl::key() const {
     if (current_ != nullptr) {
       return collectKey();
     }
-    return boost::none;
+    return std::nullopt;
   }
 
-  boost::optional<common::Buffer> PolkadotTrieCursorImpl::value() const {
+  std::optional<common::Buffer> PolkadotTrieCursorImpl::value() const {
     if (current_ != nullptr) {
       return current_->value.value();
     }
-    return boost::none;
+    return std::nullopt;
   }
 
   auto PolkadotTrieCursorImpl::constructLastVisitedChildPath(

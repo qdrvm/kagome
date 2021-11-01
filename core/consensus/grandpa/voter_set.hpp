@@ -6,10 +6,10 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_VOTER_SET_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_VOTER_SET_HPP
 
-#include <boost/optional.hpp>
+#include <optional>
 
-#include "consensus/grandpa/common.hpp"
 #include "common/outcome_throw.hpp"
+#include "consensus/grandpa/common.hpp"
 
 namespace kagome::consensus::grandpa {
 

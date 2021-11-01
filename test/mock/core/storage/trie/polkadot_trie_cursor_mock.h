@@ -19,8 +19,8 @@ namespace kagome::storage::trie {
     MOCK_METHOD0(seekLast, outcome::result<bool>());
     MOCK_CONST_METHOD0(isValid, bool());
     MOCK_METHOD0(next, outcome::result<void>());
-    MOCK_CONST_METHOD0(key, boost::optional<common::Buffer>());
-    MOCK_CONST_METHOD0(value, boost::optional<common::Buffer>());
+    MOCK_CONST_METHOD0(key, std::optional<common::Buffer>());
+    MOCK_CONST_METHOD0(value, std::optional<common::Buffer>());
   };
 }  // namespace kagome::storage::trie
 

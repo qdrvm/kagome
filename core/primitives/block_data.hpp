@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP
 #define KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "primitives/block.hpp"
 #include "primitives/justification.hpp"
@@ -19,11 +19,11 @@ namespace kagome::primitives {
    */
   struct BlockData {
     primitives::BlockHash hash;
-    boost::optional<primitives::BlockHeader> header{};
-    boost::optional<primitives::BlockBody> body{};
-    boost::optional<common::Buffer> receipt{};
-    boost::optional<common::Buffer> message_queue{};
-    boost::optional<primitives::Justification> justification{};
+    std::optional<primitives::BlockHeader> header{};
+    std::optional<primitives::BlockBody> body{};
+    std::optional<common::Buffer> receipt{};
+    std::optional<common::Buffer> message_queue{};
+    std::optional<primitives::Justification> justification{};
   };
 
   /**

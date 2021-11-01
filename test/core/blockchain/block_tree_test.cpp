@@ -136,7 +136,7 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<runtime::CoreMock> runtime_core_ =
       std::make_shared<runtime::CoreMock>();
-  
+
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
       std::make_shared<storage::changes_trie::ChangesTrackerMock>();
 
@@ -389,7 +389,7 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
       .WillRepeatedly(Return(target_hash));
 
   EXPECT_OUTCOME_FALSE(
-      best_info, block_tree_->getBestContaining(target_hash, boost::none));
+      best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
   ASSERT_EQ(best_info, BlockTreeImpl::Error::BLOCK_NOT_FOUND);
 }
 
@@ -404,8 +404,8 @@ TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
 
   auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
 
-  EXPECT_OUTCOME_TRUE(best_info,
-                      block_tree_->getBestContaining(target_hash, boost::none));
+  EXPECT_OUTCOME_TRUE(
+      best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
   ASSERT_EQ(best_info.hash, target_hash);
 }
 
@@ -427,8 +427,8 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
   auto header11_hash = addHeaderToRepository(header10_hash, 1340);
   auto header12_hash = addHeaderToRepository(header11_hash, 1341);
 
-  EXPECT_OUTCOME_TRUE(best_info,
-                      block_tree_->getBestContaining(target_hash, boost::none));
+  EXPECT_OUTCOME_TRUE(
+      best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
   ASSERT_EQ(best_info.hash, header12_hash);
 }
 

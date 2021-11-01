@@ -36,26 +36,26 @@ namespace kagome::api {
         std::shared_ptr<api::ApiService> const &api_service) override;
 
     outcome::result<std::vector<common::Buffer>> getKeysPaged(
-        const boost::optional<common::Buffer> &prefix,
+        const std::optional<common::Buffer> &prefix,
         uint32_t keys_amount,
-        const boost::optional<common::Buffer> &prev_key,
-        const boost::optional<primitives::BlockHash> &block_hash_opt)
+        const std::optional<common::Buffer> &prev_key,
+        const std::optional<primitives::BlockHash> &block_hash_opt)
         const override;
 
-    outcome::result<boost::optional<common::Buffer>> getStorage(
+    outcome::result<std::optional<common::Buffer>> getStorage(
         const common::Buffer &key) const override;
-    outcome::result<boost::optional<common::Buffer>> getStorageAt(
+    outcome::result<std::optional<common::Buffer>> getStorageAt(
         const common::Buffer &key,
         const primitives::BlockHash &at) const override;
 
     outcome::result<std::vector<StorageChangeSet>> queryStorage(
         gsl::span<const common::Buffer> keys,
         const primitives::BlockHash &from,
-        boost::optional<primitives::BlockHash> to) const override;
+        std::optional<primitives::BlockHash> to) const override;
 
     outcome::result<std::vector<StorageChangeSet>> queryStorageAt(
         gsl::span<const common::Buffer> keys,
-        boost::optional<primitives::BlockHash> at) const override;
+        std::optional<primitives::BlockHash> at) const override;
 
     outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) override;
@@ -63,7 +63,7 @@ namespace kagome::api {
         const std::vector<uint32_t> &subscription_id) override;
 
     outcome::result<primitives::Version> getRuntimeVersion(
-        const boost::optional<primitives::BlockHash> &at) const override;
+        const std::optional<primitives::BlockHash> &at) const override;
 
     outcome::result<uint32_t> subscribeRuntimeVersion() override;
     outcome::result<void> unsubscribeRuntimeVersion(

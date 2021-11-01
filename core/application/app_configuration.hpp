@@ -11,8 +11,8 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/optional.hpp>
 #include <libp2p/multi/multiaddress.hpp>
+#include <optional>
 
 #include "crypto/ed25519_types.hpp"
 #include "log/logger.hpp"
@@ -66,13 +66,12 @@ namespace kagome::application {
     /**
      * @return the secret key to use for libp2p networking
      */
-    virtual const boost::optional<crypto::Ed25519PrivateKey> &nodeKey()
-        const = 0;
+    virtual const std::optional<crypto::Ed25519PrivateKey> &nodeKey() const = 0;
 
     /**
      * @return the path to key used for libp2p networking
      */
-    virtual const boost::optional<std::string> &nodeKeyFile() const = 0;
+    virtual const std::optional<std::string> &nodeKeyFile() const = 0;
 
     /**
      * @return port for peer to peer interactions.

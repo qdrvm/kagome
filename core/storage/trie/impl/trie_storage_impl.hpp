@@ -23,13 +23,13 @@ namespace kagome::storage::trie {
         const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
+        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
 
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createFromStorage(
         const RootHash &root_hash,
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
+        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
 
     TrieStorageImpl(TrieStorageImpl const &) = delete;
     void operator=(const TrieStorageImpl &) = delete;
@@ -55,13 +55,13 @@ namespace kagome::storage::trie {
         RootHash root_hash,
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
+        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
 
    private:
     RootHash root_hash_;
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
-    boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
+    std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
     log::Logger logger_;
   };
 

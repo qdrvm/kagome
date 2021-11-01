@@ -43,7 +43,7 @@ namespace kagome::storage::trie {
      */
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
         const common::Buffer &prefix,
-        boost::optional<uint64_t> limit,
+        std::optional<uint64_t> limit,
         const OnDetachCallback &callback) override;
 
     // value will be copied
@@ -58,7 +58,7 @@ namespace kagome::storage::trie {
     outcome::result<common::Buffer> get(
         const common::Buffer &key) const override;
 
-    outcome::result<boost::optional<common::Buffer>> tryGet(
+    outcome::result<std::optional<common::Buffer>> tryGet(
         const common::Buffer &key) const override;
 
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;

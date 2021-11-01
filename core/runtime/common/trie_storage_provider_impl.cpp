@@ -47,9 +47,10 @@ namespace kagome::runtime {
       OUTCOME_TRY(batch, trie_storage_->getPersistentBatch());
       persistent_batch_ = std::move(batch);
     }
-    SL_DEBUG(logger_,
-             "Setting storage provider to existing persistent batch with root {}",
-             trie_storage_->getRootHash().toHex());
+    SL_DEBUG(
+        logger_,
+        "Setting storage provider to existing persistent batch with root {}",
+        trie_storage_->getRootHash().toHex());
     current_batch_ = persistent_batch_;
     return outcome::success();
   }
@@ -70,10 +71,10 @@ namespace kagome::runtime {
     return current_batch_;
   }
 
-  boost::optional<std::shared_ptr<TrieStorageProviderImpl::PersistentBatch>>
+  std::optional<std::shared_ptr<TrieStorageProviderImpl::PersistentBatch>>
   TrieStorageProviderImpl::tryGetPersistentBatch() const {
-    return isCurrentlyPersistent() ? boost::make_optional(persistent_batch_)
-                                   : boost::none;
+    return isCurrentlyPersistent() ? std::make_optional(persistent_batch_)
+                                   : std::nullopt;
   }
 
   bool TrieStorageProviderImpl::isCurrentlyPersistent() const {

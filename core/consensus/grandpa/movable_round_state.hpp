@@ -6,7 +6,7 @@
 #ifndef KAGOME_CONSENSUS_GRANDPA_MOVABLEROUNDSTATE
 #define KAGOME_CONSENSUS_GRANDPA_MOVABLEROUNDSTATE
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "consensus/grandpa/structs.hpp"
 
@@ -17,7 +17,7 @@ namespace kagome::consensus::grandpa {
     RoundNumber round_number;
     BlockInfo last_finalized_block;
     std::vector<VoteVariant> votes;
-    boost::optional<BlockInfo> finalized;
+    std::optional<BlockInfo> finalized;
 
     inline bool operator==(const MovableRoundState &round_state) const {
       return std::tie(round_number, last_finalized_block, votes, finalized)

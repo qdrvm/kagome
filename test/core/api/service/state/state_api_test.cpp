@@ -145,7 +145,7 @@ namespace kagome::api {
    */
   TEST_F(GetKeysPagedTest, EmptyParamsTest) {
     EXPECT_OUTCOME_TRUE(
-        val, api_->getKeysPaged(boost::none, 2, boost::none, boost::none));
+        val, api_->getKeysPaged(std::nullopt, 2, std::nullopt, std::nullopt));
     ASSERT_THAT(val, ElementsAre("0102"_hex2buf, "0103"_hex2buf));
   }
 
@@ -156,7 +156,7 @@ namespace kagome::api {
    */
   TEST_F(GetKeysPagedTest, NonEmptyPrefixTest) {
     EXPECT_OUTCOME_TRUE(
-        val, api_->getKeysPaged("0607"_hex2buf, 3, boost::none, boost::none));
+        val, api_->getKeysPaged("0607"_hex2buf, 3, std::nullopt, std::nullopt));
     ASSERT_THAT(
         val, ElementsAre("0607"_hex2buf, "060708"_hex2buf, "06070801"_hex2buf));
   }
@@ -168,7 +168,7 @@ namespace kagome::api {
    */
   TEST_F(GetKeysPagedTest, NonEmptyPrevKeyTest) {
     EXPECT_OUTCOME_TRUE(
-        val, api_->getKeysPaged("06"_hex2buf, 3, "0607"_hex2buf, boost::none));
+        val, api_->getKeysPaged("06"_hex2buf, 3, "0607"_hex2buf, std::nullopt));
     ASSERT_THAT(
         val,
         ElementsAre("060708"_hex2buf, "06070801"_hex2buf, "06070802"_hex2buf));
@@ -184,7 +184,7 @@ namespace kagome::api {
   TEST_F(GetKeysPagedTest, PrefixBiggerThanPrevkey) {
     EXPECT_OUTCOME_TRUE(
         val,
-        api_->getKeysPaged("060708"_hex2buf, 5, "06"_hex2buf, boost::none));
+        api_->getKeysPaged("060708"_hex2buf, 5, "06"_hex2buf, std::nullopt));
     ASSERT_THAT(val,
                 ElementsAre("060708"_hex2buf,
                             "06070801"_hex2buf,
@@ -210,7 +210,7 @@ namespace kagome::api {
         .WillOnce(testing::Return(test_version));
 
     {
-      EXPECT_OUTCOME_TRUE(result, api_->getRuntimeVersion(boost::none));
+      EXPECT_OUTCOME_TRUE(result, api_->getRuntimeVersion(std::nullopt));
       ASSERT_EQ(result, test_version);
     }
 
@@ -345,11 +345,9 @@ namespace kagome::api {
     std::vector block_range{from, "block2"_hash256, "block3"_hash256, to};
     EXPECT_CALL(*block_tree_, getChainByBlocks(from, to))
         .WillOnce(testing::Return(block_range));
-    EXPECT_CALL(*block_header_repo_,
-                getNumberByHash(from))
+    EXPECT_CALL(*block_header_repo_, getNumberByHash(from))
         .WillOnce(testing::Return(1));
-    EXPECT_CALL(*block_header_repo_,
-                getNumberByHash(to))
+    EXPECT_CALL(*block_header_repo_, getNumberByHash(to))
         .WillOnce(testing::Return(4));
     for (auto &block_hash : block_range) {
       primitives::BlockHash state_root;
@@ -375,7 +373,7 @@ namespace kagome::api {
     // WHEN
     EXPECT_OUTCOME_TRUE(changes, api_->queryStorage(keys, from, to))
 
-    //THEN
+    // THEN
     auto current_block = block_range.begin();
     for (auto &block_changes : changes) {
       ASSERT_EQ(*current_block, block_changes.block);
@@ -394,10 +392,12 @@ namespace kagome::api {
    */
   TEST_F(StateApiTest, HitsBlockRangeLimits) {
     primitives::BlockHash from{"from"_hash256}, to{"to"_hash256};
-    EXPECT_CALL(*block_header_repo_, getNumberByHash(from)).WillOnce(Return(42));
+    EXPECT_CALL(*block_header_repo_, getNumberByHash(from))
+        .WillOnce(Return(42));
     EXPECT_CALL(*block_header_repo_, getNumberByHash(to))
         .WillOnce(Return(42 + StateApiImpl::kMaxBlockRange + 1));
-    EXPECT_OUTCOME_FALSE(error, api_->queryStorage(std::vector{"some_key"_buf}, from, to));
+    EXPECT_OUTCOME_FALSE(
+        error, api_->queryStorage(std::vector{"some_key"_buf}, from, to));
     ASSERT_EQ(error, StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED);
   }
 
@@ -428,10 +428,9 @@ namespace kagome::api {
         .WillOnce(testing::Return(block_range));
 
     primitives::BlockHash state_root = "at_state"_hash256;
-    EXPECT_CALL(*block_header_repo_,
-                getBlockHeader(primitives::BlockId{at}))
-        .WillOnce(testing::Return(
-            primitives::BlockHeader{.state_root = state_root}));
+    EXPECT_CALL(*block_header_repo_, getBlockHeader(primitives::BlockId{at}))
+        .WillOnce(
+            testing::Return(primitives::BlockHeader{.state_root = state_root}));
     EXPECT_CALL(*storage_, getEphemeralBatchAt(state_root))
         .WillOnce(testing::Invoke([&keys](auto &root) {
           auto batch =
@@ -449,10 +448,10 @@ namespace kagome::api {
     // THEN
     ASSERT_EQ(changes.size(), 1);
     ASSERT_EQ(changes[0].block, at);
-    ASSERT_THAT(changes[0].changes,
-                ::testing::Each(::testing::Field(
-                    &StateApiImpl::StorageChangeSet::Change::key,
-                    ContainedIn(keys))));
+    ASSERT_THAT(
+        changes[0].changes,
+        ::testing::Each(::testing::Field(
+            &StateApiImpl::StorageChangeSet::Change::key, ContainedIn(keys))));
   }
 
 }  // namespace kagome::api

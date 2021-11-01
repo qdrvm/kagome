@@ -32,7 +32,7 @@ namespace kagome::storage::trie {
   std::unique_ptr<PersistentTrieBatchImpl> PersistentTrieBatchImpl::create(
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
-      boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+      std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
       std::shared_ptr<PolkadotTrie> trie,
       RootChangedEventHandler &&handler) {
     std::unique_ptr<PersistentTrieBatchImpl> ptr(
@@ -47,7 +47,7 @@ namespace kagome::storage::trie {
   PersistentTrieBatchImpl::PersistentTrieBatchImpl(
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
-      boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+      std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
       std::shared_ptr<PolkadotTrie> trie,
       RootChangedEventHandler &&handler)
       : codec_{std::move(codec)},
@@ -87,7 +87,7 @@ namespace kagome::storage::trie {
     return trie_->get(key);
   }
 
-  outcome::result<boost::optional<Buffer>> PersistentTrieBatchImpl::tryGet(
+  outcome::result<std::optional<Buffer>> PersistentTrieBatchImpl::tryGet(
       const Buffer &key) const {
     return trie_->tryGet(key);
   }
@@ -106,7 +106,7 @@ namespace kagome::storage::trie {
 
   outcome::result<std::tuple<bool, uint32_t>>
   PersistentTrieBatchImpl::clearPrefix(const Buffer &prefix,
-                                       boost::optional<uint64_t> limit) {
+                                       std::optional<uint64_t> limit) {
     if (changes_.has_value()) changes_.value()->onClearPrefix(prefix);
     SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
     OUTCOME_TRY(ext_idx, getExtrinsicIndex());

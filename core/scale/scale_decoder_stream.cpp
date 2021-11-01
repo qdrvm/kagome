@@ -82,11 +82,11 @@ namespace kagome::scale {
   ScaleDecoderStream::ScaleDecoderStream(gsl::span<const uint8_t> span)
       : span_{span}, current_iterator_{span_.begin()}, current_index_{0} {}
 
-  boost::optional<bool> ScaleDecoderStream::decodeOptionalBool() {
+  std::optional<bool> ScaleDecoderStream::decodeOptionalBool() {
     auto byte = nextByte();
     switch (byte) {
       case static_cast<uint8_t>(OptionalBool::NONE):
-        return boost::none;
+        return std::nullopt;
         break;
       case static_cast<uint8_t>(OptionalBool::FALSE):
         return false;

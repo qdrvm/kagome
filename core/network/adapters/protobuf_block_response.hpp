@@ -84,7 +84,7 @@ namespace kagome::network {
                       return src_block_data.header();
                     }));
 
-        boost::optional<primitives::BlockBody> bodies;
+        std::optional<primitives::BlockBody> bodies;
         for (const auto &b : src_block_data.body()) {
           if (!bodies) bodies = primitives::BlockBody{};
 
@@ -99,16 +99,14 @@ namespace kagome::network {
         OUTCOME_TRY(message_queue,
                     common::Buffer::fromString(src_block_data.message_queue()));
 
-
-        boost::optional<primitives::Justification> justification;
+        std::optional<primitives::Justification> justification;
 
         if (not src_block_data.justification().empty()
             || src_block_data.is_empty_justification()) {
-          OUTCOME_TRY(data,
-                      common::Buffer::fromString(src_block_data.justification()));
+          OUTCOME_TRY(
+              data, common::Buffer::fromString(src_block_data.justification()));
 
-          justification.emplace(
-              primitives::Justification{std::move(data)});
+          justification.emplace(primitives::Justification{std::move(data)});
         }
 
         dst_blocks.emplace_back(
