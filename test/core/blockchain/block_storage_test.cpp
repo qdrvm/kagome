@@ -23,7 +23,7 @@ using kagome::primitives::BlockData;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
-using kagome::scale::encode;
+using   scale::encode;
 using kagome::storage::face::GenericStorageMock;
 using kagome::storage::trie::RootHash;
 using testing::_;
@@ -59,8 +59,8 @@ class BlockStorageTest : public testing::Test {
         // trying to get last finalized block hash which not exists yet
         .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND))
         // check of block data during block insertion
-        .WillOnce(Return(boost::none))
-        .WillOnce(Return(boost::none));
+        .WillOnce(Return(std::nullopt))
+        .WillOnce(Return(std::nullopt));
 
     EXPECT_CALL(*storage, put(_, _))
         // put key-value for lookup data
@@ -118,7 +118,7 @@ TEST_F(BlockStorageTest, LoadFromExistingStorage) {
       .WillOnce(Return(Buffer{genesis_block_hash}))
       // getting header of last finalized block
       .WillOnce(Return(Buffer{}))
-      .WillOnce(Return(Buffer{kagome::scale::encode(BlockHeader{}).value()}));
+      .WillOnce(Return(Buffer{  scale::encode(BlockHeader{}).value()}));
 
   auto new_block_storage_res =
       KeyValueBlockStorage::loadExisting(storage, hasher, block_handler);
@@ -195,8 +195,8 @@ TEST_F(BlockStorageTest, PutExistingBlock) {
   EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_block_hash));
 
   EXPECT_CALL(*storage, tryGet(_))
-      .WillOnce(Return(Buffer{kagome::scale::encode(BlockHeader{}).value()}))
-      .WillOnce(Return(Buffer{kagome::scale::encode(BlockBody{}).value()}));
+      .WillOnce(Return(Buffer{  scale::encode(BlockHeader{}).value()}))
+      .WillOnce(Return(Buffer{  scale::encode(BlockBody{}).value()}));
 
   Block block;
 

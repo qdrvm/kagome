@@ -20,11 +20,10 @@ namespace kagome::runtime {
 
     MOCK_CONST_METHOD1(
         getGlobal,
-        outcome::result<boost::optional<WasmValue>>(std::string_view name));
+        outcome::result<std::optional<WasmValue>>(std::string_view name));
 
     MOCK_CONST_METHOD0(getEnvironment, InstanceEnvironment const &());
     MOCK_METHOD0(resetEnvironment, outcome::result<void>());
-
   };
 }  // namespace kagome::runtime
 

@@ -327,6 +327,19 @@ namespace kagome::network {
                                               std::move(shared_msg));
   }
 
+  void GrandpaProtocol::neighbor(GrandpaNeighborMessage &&msg) {
+    SL_DEBUG(log_,
+             "Send neighbor message: grandpa round number {}",
+             msg.round_number);
+
+    auto shared_msg =
+        KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+    (*shared_msg) = GrandpaMessage(std::move(msg));
+
+    stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
+                                              std::move(shared_msg));
+  }
+
   void GrandpaProtocol::finalize(FullCommitMessage &&msg) {
     SL_DEBUG(log_, "Send fin message: grandpa round number {}", msg.round);
 

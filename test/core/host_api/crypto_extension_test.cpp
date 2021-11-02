@@ -56,11 +56,11 @@ using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519SecretKey;
 using kagome::crypto::Sr25519Signature;
 using kagome::crypto::secp256k1::EcdsaVerifyError;
+using kagome::runtime::Memory;
 using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
-using kagome::runtime::Memory;
-using kagome::runtime::WasmPointer;
 using kagome::runtime::PtrSize;
+using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
 
@@ -98,7 +98,8 @@ class CryptoExtensionTest : public ::testing::Test {
     memory_ = std::make_shared<MemoryMock>();
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
+        .WillRepeatedly(
+            Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
 
     random_generator_ = std::make_shared<BoostRandomGenerator>();
     sr25519_provider_ =
@@ -124,10 +125,10 @@ class CryptoExtensionTest : public ::testing::Test {
     std::copy_n(seed_tmp.begin(), Blob<32>::size(), seed.begin());
 
     // scale-encoded string
-    boost::optional<gsl::span<uint8_t>> optional_seed(seed);
-    seed_buffer.put(kagome::scale::encode(optional_seed).value());
-    boost::optional<std::string> optional_mnemonic(mnemonic);
-    mnemonic_buffer.put(kagome::scale::encode(optional_mnemonic).value());
+    std::optional<gsl::span<uint8_t>> optional_seed(seed);
+    seed_buffer.put(  scale::encode(optional_seed).value());
+    std::optional<std::string> optional_mnemonic(mnemonic);
+    mnemonic_buffer.put(  scale::encode(optional_mnemonic).value());
 
     sr25519_keypair = sr25519_provider_->generateKeypair(seed);
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
@@ -152,18 +153,18 @@ class CryptoExtensionTest : public ::testing::Test {
         ecdsa::RSVSignature::fromSpan(secp_signature_bytes).value();
 
     scale_encoded_secp_truncated_public_key =
-        Buffer(kagome::scale::encode(RecoverUncompressedPublicKeyReturnValue(
+        Buffer(  scale::encode(RecoverUncompressedPublicKeyReturnValue(
                                          secp_truncated_public_key))
                    .value());
 
     scale_encoded_secp_compressed_public_key =
-        Buffer(kagome::scale::encode(RecoverCompressedPublicKeyReturnValue(
+        Buffer(  scale::encode(RecoverCompressedPublicKeyReturnValue(
                                          secp_compressed_pyblic_key))
                    .value());
 
     // this value suits both compressed & uncompressed failure tests
     secp_invalid_signature_error = Buffer(
-        kagome::scale::encode(RecoverCompressedPublicKeyReturnValue(
+          scale::encode(RecoverCompressedPublicKeyReturnValue(
                                   kagome::crypto::secp256k1::
                                       ecdsa_verify_error::kInvalidSignature))
             .value());
@@ -291,9 +292,8 @@ TEST_F(CryptoExtensionTest, Blake2_128Valid) {
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(
-      *memory_,
-      storeBuffer(gsl::span<const uint8_t>(blake2b_128_result)))
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(blake2b_128_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
@@ -313,9 +313,8 @@ TEST_F(CryptoExtensionTest, Blake2_256Valid) {
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(
-      *memory_,
-      storeBuffer(gsl::span<const uint8_t>(blake2b_256_result)))
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(blake2b_256_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_blake2_256_version_1(
@@ -334,8 +333,7 @@ TEST_F(CryptoExtensionTest, KeccakValid) {
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(keccak_result)))
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(keccak_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
@@ -472,7 +470,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
  * @then exception is thrown
  */
 // TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
-//TEST_F(CryptoExtensionTest, VerificationBatching_FinishWithoutStart) {
+// TEST_F(CryptoExtensionTest, VerificationBatching_FinishWithoutStart) {
 //}
 
 /**
@@ -481,7 +479,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
  * @then exception is thrown at second call
  */
 // TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
-//TEST_F(CryptoExtensionTest, VerificationBatching_StartAgainWithoutFinish) {
+// TEST_F(CryptoExtensionTest, VerificationBatching_StartAgainWithoutFinish) {
 //}
 
 /**
@@ -490,7 +488,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
  * @then verification returns positive, batch result is positive too
  */
 // TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
-//TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndSuccess) {
+// TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndSuccess) {
 //}
 
 /**
@@ -499,7 +497,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
  * @then verification returns positive, but batch returns negative result
  */
 // TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
-//TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndInvalid) {
+// TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndInvalid) {
 //}
 
 /**
@@ -514,8 +512,7 @@ TEST_F(CryptoExtensionTest, Twox128) {
 
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(twox128_result)))
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox128_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
@@ -535,8 +532,7 @@ TEST_F(CryptoExtensionTest, Twox256) {
 
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(twox256_result)))
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox256_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,

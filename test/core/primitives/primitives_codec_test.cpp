@@ -45,12 +45,12 @@ using kagome::primitives::TransactionValidity;
 using kagome::primitives::UnknownTransaction;
 using kagome::primitives::ValidTransaction;
 using kagome::primitives::Version;
-using kagome::scale::ByteArray;
-using kagome::scale::ScaleDecoderStream;
-using kagome::scale::ScaleEncoderStream;
+using   scale::ByteArray;
+using   scale::ScaleDecoderStream;
+using   scale::ScaleEncoderStream;
 
-using kagome::scale::decode;
-using kagome::scale::encode;
+using   scale::decode;
+using   scale::encode;
 
 using testutil::createHash256;
 

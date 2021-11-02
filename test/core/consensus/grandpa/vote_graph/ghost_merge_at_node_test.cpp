@@ -6,7 +6,7 @@
 
 TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
   BlockInfo base{0, GENESIS_HASH};
-  graph = std::make_shared<VoteGraphImpl>(base, chain);
+  graph = std::make_shared<VoteGraphImpl>(base, voter_set, chain);
 
   {  // insert nodes
     AssertGraphCorrect(*graph,
@@ -27,7 +27,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
 })");
 
     expect_getAncestry(GENESIS_HASH, "B"_H, vec("B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{2, "B"_H}, 0_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert({2, "B"_H}, "w0_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -59,7 +59,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
 
     expect_getAncestry(
         GENESIS_HASH, "C"_H, vec("C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{3, "C"_H}, 100_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert({3, "C"_H}, "w5_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -70,7 +70,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
       "descendants": [
         "B"
       ],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     },
     "B": {
       "number": 2,
@@ -81,7 +81,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
       "descendants": [
         "C"
       ],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     },
     "C": {
       "number": 3,
@@ -89,7 +89,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "B"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     }
   },
   "heads": [
@@ -102,7 +102,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
     expect_getAncestry(GENESIS_HASH,
                        "E1"_H,
                        vec("E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{5, "E1"_H}, 100_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert({5, "E1"_H}, "w5_b"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -115,7 +115,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
       "descendants": [
         "E1"
       ],
-      "cumulative_vote": 200
+      "cumulative_vote": 10
     },
     "B": {
       "number": 2,
@@ -126,7 +126,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
       "descendants": [
         "C"
       ],
-      "cumulative_vote": 200
+      "cumulative_vote": 10
     },
     "genesis": {
       "number": 0,
@@ -134,7 +134,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
       "descendants": [
         "B"
       ],
-      "cumulative_vote": 200
+      "cumulative_vote": 10
     },
     "E1": {
       "number": 5,
@@ -143,7 +143,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "C"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     }
   },
   "heads": [
@@ -157,7 +157,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         GENESIS_HASH,
         "F2"_H,
         vec("F2"_H, "E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{6, "F2"_H}, 100_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert({6, "F2"_H}, "w5_c"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -171,7 +171,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "E1",
         "F2"
       ],
-      "cumulative_vote": 300
+      "cumulative_vote": 15
     },
     "B": {
       "number": 2,
@@ -182,7 +182,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
       "descendants": [
         "C"
       ],
-      "cumulative_vote": 300
+      "cumulative_vote": 15
     },
     "genesis": {
       "number": 0,
@@ -190,7 +190,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
       "descendants": [
         "B"
       ],
-      "cumulative_vote": 300
+      "cumulative_vote": 15
     },
     "E1": {
       "number": 5,
@@ -199,7 +199,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "C"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     },
     "F2": {
       "number": 6,
@@ -209,7 +209,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "C"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     }
   },
   "heads": [
@@ -221,17 +221,15 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
 })");
   }
 
-  auto check = [&](const boost::optional<BlockInfo> &block) {
-    auto ghostOpt = graph->findGhost(
-        block,
-        [](auto &&x) { return x.prevotes_sum >= (250_W).prevotes_sum; },
-        comparator);
+  auto check = [&](const std::optional<BlockInfo> &block) {
+    auto ghostOpt =
+        graph->findGhost(block, [](auto &&x) { return x.sum >= 7; });
     ASSERT_TRUE(ghostOpt);
     BlockInfo EXPECTED(3, "C"_H);
     ASSERT_EQ(*ghostOpt, EXPECTED);
   };
 
-  check(boost::none);
+  check(std::nullopt);
   check(BlockInfo(3, "C"_H));
   check(BlockInfo(2, "B"_H));
 }

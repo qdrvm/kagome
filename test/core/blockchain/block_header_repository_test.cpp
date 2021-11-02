@@ -52,7 +52,7 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
   outcome::result<Hash256> storeHeader(BlockNumber num, BlockHeader h) {
     BlockHeader header = std::move(h);
     header.number = num;
-    OUTCOME_TRY(enc_header, kagome::scale::encode(header));
+    OUTCOME_TRY(enc_header,   scale::encode(header));
     auto hash = hasher_->blake2b_256(enc_header);
     OUTCOME_TRY(putWithPrefix(
         *db_, Prefix::HEADER, header.number, hash, Buffer{enc_header}));
@@ -92,7 +92,7 @@ TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
   }
   BlockHeader not_in_storage = getDefaultHeader();
   not_in_storage.number = chosen_number;
-  EXPECT_OUTCOME_TRUE(enc_header, kagome::scale::encode(not_in_storage));
+  EXPECT_OUTCOME_TRUE(enc_header,   scale::encode(not_in_storage));
   auto hash = hasher_->blake2b_256(enc_header);
   EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(chosen_number));
   EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(hash));

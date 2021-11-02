@@ -22,7 +22,7 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD0(bestPrevoteCandidate, BlockInfo());
     MOCK_METHOD0(bestPrecommitCandidate, BlockInfo());
     MOCK_METHOD0(bestFinalCandidate, BlockInfo());
-    MOCK_CONST_METHOD0(finalizedBlock, boost::optional<BlockInfo>());
+    MOCK_CONST_METHOD0(finalizedBlock, std::optional<BlockInfo>());
     MOCK_CONST_METHOD0(state, MovableRoundState());
     MOCK_METHOD0(play, void());
     MOCK_METHOD0(end, void());

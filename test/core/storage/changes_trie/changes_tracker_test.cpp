@@ -36,7 +36,7 @@ using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
-namespace scale = kagome::scale;
+namespace scale =  scale::;
 using testing::_;
 using testing::AnyOf;
 using testing::Return;
@@ -64,11 +64,12 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
                                                   codec,
                                                   storage_subscription_engine,
                                                   chain_subscription_engine);
-  EXPECT_OUTCOME_TRUE_1(changes_tracker->onBlockExecutionStart("aaa"_hash256, 42));
+  EXPECT_OUTCOME_TRUE_1(
+      changes_tracker->onBlockExecutionStart("aaa"_hash256, 42));
   auto batch = PersistentTrieBatchImpl::create(
       codec,
       serializer,
-      boost::make_optional(changes_tracker),
+      std::make_optional(changes_tracker),
       factory->createEmpty([](auto &) { return outcome::success(); }),
       [](auto &buf) {});
 

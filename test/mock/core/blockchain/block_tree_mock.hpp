@@ -24,7 +24,7 @@ namespace kagome::blockchain {
                        outcome::result<primitives::Justification>(
                            const primitives::BlockId &));
 
-    MOCK_CONST_METHOD0(runtimeVersion, boost::optional<primitives::Version>());
+    MOCK_CONST_METHOD0(runtimeVersion, std::optional<primitives::Version>());
 
     MOCK_METHOD1(addBlockHeader,
                  outcome::result<void>(const primitives::BlockHeader &));
@@ -69,7 +69,7 @@ namespace kagome::blockchain {
     MOCK_CONST_METHOD2(getBestContaining,
                        outcome::result<primitives::BlockInfo>(
                            const primitives::BlockHash &,
-                           const boost::optional<primitives::BlockNumber> &));
+                           const std::optional<primitives::BlockNumber> &));
 
     MOCK_CONST_METHOD0(longestPath, BlockHashVecRes());
 

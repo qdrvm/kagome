@@ -24,6 +24,6 @@ namespace scale {
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                  libp2p::peer::PeerInfo &peer_info);
 
-}  // namespace kagome::scale_ext
+}  // namespace scale
 
 #endif  // KAGOME_CORE_SCALE_LIBP2P_TYPES_HPP

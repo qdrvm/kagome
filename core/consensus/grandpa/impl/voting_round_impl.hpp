@@ -35,7 +35,8 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
         std::shared_ptr<VoteTracker> prevotes,
         std::shared_ptr<VoteTracker> precommits,
-        std::shared_ptr<VoteGraph> graph,
+        std::shared_ptr<VoteGraph> prevote_graph,
+        std::shared_ptr<VoteGraph> precommit_graph,
         std::shared_ptr<Clock> clock,
         std::shared_ptr<boost::asio::io_context> io_context);
 
@@ -48,7 +49,8 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
-        const std::shared_ptr<VoteGraph> &graph,
+        const std::shared_ptr<VoteGraph> &prevote_graph,
+        const std::shared_ptr<VoteGraph> &precommit_graph,
         const std::shared_ptr<Clock> &clock,
         const std::shared_ptr<boost::asio::io_context> &io_context,
         const MovableRoundState &round_state);
@@ -61,7 +63,8 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
-        const std::shared_ptr<VoteGraph> &graph,
+        const std::shared_ptr<VoteGraph> &prevote_graph,
+        const std::shared_ptr<VoteGraph> &precommit_graph,
         const std::shared_ptr<Clock> &clock,
         const std::shared_ptr<boost::asio::io_context> &io_context,
         const std::shared_ptr<VotingRound> &previous_round);
@@ -177,7 +180,7 @@ namespace kagome::consensus::grandpa {
     BlockInfo bestPrevoteCandidate() override;
     BlockInfo bestPrecommitCandidate() override;
     BlockInfo bestFinalCandidate() override;
-    boost::optional<BlockInfo> finalizedBlock() const override {
+    std::optional<BlockInfo> finalizedBlock() const override {
       return finalized_;
     };
 
@@ -187,12 +190,9 @@ namespace kagome::consensus::grandpa {
     /// Check if peer \param id is primary
     bool isPrimary(const Id &id) const;
 
-    /// Triggered when we receive \param signed_prevote for the current peer
-    outcome::result<void> onSignedPrevote(const SignedMessage &signed_prevote);
-
-    /// Triggered when we receive \param signed_precommit for the current peer
-    outcome::result<void> onSignedPrecommit(
-        const SignedMessage &signed_precommit);
+    /// Triggered when we receive {@param vote} for the current peer
+    template <typename T>
+    outcome::result<void> onSigned(const SignedMessage &vote);
 
     /**
      * Invoked during each onSingedPrevote.
@@ -241,16 +241,17 @@ namespace kagome::consensus::grandpa {
 
     const Duration duration_;  // length of round
     bool isPrimary_ = false;
-    size_t threshold_;              // supermajority threshold
-    const boost::optional<Id> id_;  // id of current peer
-    TimePoint start_time_;          // time when round was started to play
+    size_t threshold_;            // supermajority threshold
+    const std::optional<Id> id_;  // id of current peer
+    TimePoint start_time_;        // time when round was started to play
 
     std::weak_ptr<Grandpa> grandpa_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
     std::shared_ptr<const primitives::AuthorityList> authorities_;
     std::shared_ptr<Environment> env_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
-    std::shared_ptr<VoteGraph> graph_;
+    std::shared_ptr<VoteGraph> prevote_graph_;
+    std::shared_ptr<VoteGraph> precommit_graph_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
 
@@ -268,16 +269,16 @@ namespace kagome::consensus::grandpa {
 
     // Proposed primary vote.
     // It's best final candidate of previous round
-    boost::optional<BlockInfo> primary_vote_;
+    std::optional<BlockInfo> primary_vote_;
 
     // Our vote at prevote stage.
     // It's deepest descendant of primary vote (or last finalized)
-    boost::optional<BlockInfo> prevote_;
+    std::optional<BlockInfo> prevote_;
 
     // Our vote at precommit stage. Setting once.
     // It's deepest descendant of best prevote candidate with prevote
     // supermajority
-    boost::optional<BlockInfo> precommit_;
+    std::optional<BlockInfo> precommit_;
 
     // Last finalized block at the moment of round is cteated
     BlockInfo last_finalized_block_;
@@ -285,15 +286,15 @@ namespace kagome::consensus::grandpa {
     // Prevote ghost. Updating by each prevote.
     // It's deepest descendant of primary vote (or last finalized) with prevote
     // supermajority Is't also the best prevote candidate
-    boost::optional<BlockInfo> prevote_ghost_;
+    std::optional<BlockInfo> prevote_ghost_;
 
     // Precommit ghost. Updating by each prevote and precommit.
     // It's deepest descendant of best prevote candidate with precommit
     // supermajority Is't also the best final candidate
-    boost::optional<BlockInfo> precommit_ghost_;
+    std::optional<BlockInfo> precommit_ghost_;
 
-    boost::optional<BlockInfo> best_final_candidate_;
-    boost::optional<BlockInfo> finalized_;
+    std::optional<BlockInfo> best_final_candidate_;
+    std::optional<BlockInfo> finalized_;
 
     Timer timer_;
     Timer pending_timer_;

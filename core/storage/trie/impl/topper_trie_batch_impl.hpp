@@ -25,7 +25,7 @@ namespace kagome::storage::trie {
     explicit TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent);
 
     outcome::result<Buffer> get(const Buffer &key) const override;
-    outcome::result<boost::optional<Buffer>> tryGet(
+    outcome::result<std::optional<Buffer>> tryGet(
         const Buffer &key) const override;
 
     /**
@@ -39,14 +39,14 @@ namespace kagome::storage::trie {
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;
     outcome::result<void> remove(const Buffer &key) override;
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
-        const Buffer &prefix, boost::optional<uint64_t> limit) override;
+        const Buffer &prefix, std::optional<uint64_t> limit) override;
 
     outcome::result<void> writeBack() override;
 
    private:
     bool wasClearedByPrefix(const Buffer &key) const;
 
-    std::map<Buffer, boost::optional<Buffer>> cache_;
+    std::map<Buffer, std::optional<Buffer>> cache_;
     std::deque<Buffer> cleared_prefixes_;
     std::weak_ptr<TrieBatch> parent_;
   };

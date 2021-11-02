@@ -22,7 +22,7 @@ namespace kagome::consensus {
 
     MOCK_CONST_METHOD1(
         getSlotLeadership,
-        boost::optional<crypto::VRFOutput>(primitives::BabeSlotNumber));
+        std::optional<crypto::VRFOutput>(primitives::BabeSlotNumber));
 
     MOCK_METHOD2(computeRandomness,
                  Randomness(const Randomness &, EpochNumber));

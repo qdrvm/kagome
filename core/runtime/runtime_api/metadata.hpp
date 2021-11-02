@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_METADATA_HPP
 #define KAGOME_CORE_RUNTIME_METADATA_HPP
 
-#include <boost/optional.hpp>
+#include <optional>
 #include <outcome/outcome.hpp>
 #include "primitives/common.hpp"
 #include "primitives/opaque_metadata.hpp"

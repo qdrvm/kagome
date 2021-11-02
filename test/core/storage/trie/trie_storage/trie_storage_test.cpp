@@ -24,10 +24,10 @@ using kagome::primitives::BlockHash;
 using kagome::storage::LevelDB;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
+using kagome::storage::trie::RootHash;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
 using kagome::storage::trie::TrieStorageImpl;
-using kagome::storage::trie::RootHash;
 using kagome::subscription::SubscriptionEngine;
 
 static Buffer kNodePrefix = "\1"_buf;
@@ -57,7 +57,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
                                                  kNodePrefix));
 
     auto storage =
-        TrieStorageImpl::createEmpty(factory, codec, serializer, boost::none)
+        TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
             .value();
 
     auto batch = storage->getPersistentBatch().value();
@@ -75,7 +75,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
       std::make_shared<TrieStorageBackendImpl>(std::move(new_level_db),
                                                kNodePrefix));
   auto storage =
-      TrieStorageImpl::createFromStorage(root, codec, serializer, boost::none)
+      TrieStorageImpl::createFromStorage(root, codec, serializer, std::nullopt)
           .value();
   auto batch = storage->getPersistentBatch().value();
   EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));

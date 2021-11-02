@@ -13,6 +13,12 @@ namespace kagome::network {
       std::shared_ptr<network::Router> router)
       : router_(std::move(router)) {}
 
+  void GrandpaTransmitterImpl::neighbor(GrandpaNeighborMessage &&message) {
+    auto protocol = router_->getGrandpaProtocol();
+    BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
+    protocol->neighbor(std::move(message));
+  }
+
   void GrandpaTransmitterImpl::vote(GrandpaVote &&message) {
     auto protocol = router_->getGrandpaProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");

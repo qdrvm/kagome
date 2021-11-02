@@ -55,11 +55,11 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
 
-    boost::optional<common::Buffer> key() const override {
+    std::optional<common::Buffer> key() const override {
       return current_->first;
     }
 
-    boost::optional<common::Buffer> value() const override {
+    std::optional<common::Buffer> value() const override {
       return current_->second;
     }
   };

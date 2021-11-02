@@ -46,7 +46,8 @@ namespace kagome::runtime {
     BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
     if (Memory::kMaxMemorySize - offset_ < size) {  // overflow
       logger_->error(
-          "overflow occurred while trying to allocate {} bytes at offset 0x{:x}",
+          "overflow occurred while trying to allocate {} bytes at offset "
+          "0x{:x}",
           size,
           offset_);
       return 0;
@@ -63,10 +64,10 @@ namespace kagome::runtime {
     return res;
   }
 
-  boost::optional<WasmSize> MemoryAllocator::deallocate(WasmPointer ptr) {
+  std::optional<WasmSize> MemoryAllocator::deallocate(WasmPointer ptr) {
     auto a_it = allocated_.find(ptr);
     if (a_it == allocated_.end()) {
-      return boost::none;
+      return std::nullopt;
     }
 
     auto a_node = allocated_.extract(a_it);
@@ -180,18 +181,18 @@ namespace kagome::runtime {
     }
   }
 
-  boost::optional<WasmSize> MemoryAllocator::getDeallocatedChunkSize(
+  std::optional<WasmSize> MemoryAllocator::getDeallocatedChunkSize(
       WasmPointer ptr) const {
     auto it = deallocated_.find(ptr);
-    return it != deallocated_.cend() ? boost::make_optional(it->second)
-                                     : boost::none;
+    return it != deallocated_.cend() ? std::make_optional(it->second)
+                                     : std::nullopt;
   }
 
-  boost::optional<WasmSize> MemoryAllocator::getAllocatedChunkSize(
+  std::optional<WasmSize> MemoryAllocator::getAllocatedChunkSize(
       WasmPointer ptr) const {
     auto it = allocated_.find(ptr);
-    return it != allocated_.cend() ? boost::make_optional(it->second)
-                                   : boost::none;
+    return it != allocated_.cend() ? std::make_optional(it->second)
+                                   : std::nullopt;
   }
 
   size_t MemoryAllocator::getAllocatedChunksNum() const {

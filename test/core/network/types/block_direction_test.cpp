@@ -12,8 +12,8 @@
 
 using kagome::network::Direction;
 
-using kagome::scale::decode;
-using kagome::scale::encode;
+using scale::decode;
+using scale::encode;
 
 using DirectionTestParam = testutil::TestParam<Direction>;
 
@@ -32,7 +32,7 @@ TEST_P(DirectionTest, DecodeDirection) {
   if (should_fail) {
     EXPECT_OUTCOME_FALSE(err, decode<Direction>(encoded_value));
     ASSERT_EQ(err.value(),
-              static_cast<int>(kagome::scale::DecodeError::UNEXPECTED_VALUE));
+              static_cast<int>(  scale::DecodeError::UNEXPECTED_VALUE));
   } else {
     EXPECT_OUTCOME_TRUE(val, decode<Direction>(encoded_value));
     ASSERT_EQ(val, value);

@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_TRIE_STORAGE_PROVIDER
 #define KAGOME_CORE_RUNTIME_TRIE_STORAGE_PROVIDER
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "common/blob.hpp"
 #include "outcome/outcome.hpp"
@@ -61,7 +61,7 @@ namespace kagome::runtime {
      * @returns current persistent batch, if the current batch is persistent,
      * none otherwise
      */
-    virtual boost::optional<std::shared_ptr<PersistentBatch>>
+    virtual std::optional<std::shared_ptr<PersistentBatch>>
     tryGetPersistentBatch() const = 0;
 
     /**

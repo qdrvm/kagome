@@ -168,7 +168,7 @@ namespace kagome::host_api {
     common::Blob<32> deriveSeed(std::string_view content);
 
     runtime::Memory &getMemory() const {
-      return memory_provider_->getCurrentMemory().value();
+      return memory_provider_->getCurrentMemory()->get();
     }
 
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;

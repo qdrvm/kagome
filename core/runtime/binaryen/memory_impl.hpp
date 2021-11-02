@@ -13,7 +13,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "common/literals.hpp"
 #include "log/logger.hpp"
@@ -36,7 +36,7 @@ namespace kagome::runtime::binaryen {
   class MemoryImpl final : public Memory {
    public:
     MemoryImpl(wasm::ShellExternalInterface::Memory *memory,
-               std::unique_ptr<MemoryAllocator>&& allocator);
+               std::unique_ptr<MemoryAllocator> &&allocator);
     MemoryImpl(wasm::ShellExternalInterface::Memory *memory,
                WasmSize heap_base);
     MemoryImpl(const MemoryImpl &copy) = delete;
@@ -46,7 +46,7 @@ namespace kagome::runtime::binaryen {
     ~MemoryImpl() override = default;
 
     WasmPointer allocate(WasmSize size) override;
-    boost::optional<WasmSize> deallocate(WasmPointer ptr) override;
+    std::optional<WasmSize> deallocate(WasmPointer ptr) override;
 
     int8_t load8s(WasmPointer addr) const override;
     uint8_t load8u(WasmPointer addr) const override;

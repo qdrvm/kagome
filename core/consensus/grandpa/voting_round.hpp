@@ -56,7 +56,7 @@ namespace kagome::consensus::grandpa {
     virtual BlockInfo bestFinalCandidate() = 0;
 
     /// Block is finalized at the round
-    virtual boost::optional<BlockInfo> finalizedBlock() const = 0;
+    virtual std::optional<BlockInfo> finalizedBlock() const = 0;
 
     virtual MovableRoundState state() const = 0;
 

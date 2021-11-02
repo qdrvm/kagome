@@ -23,7 +23,7 @@ namespace kagome::api::state::request {
     auto const have_str_arg = (!no_args && params[0].IsString());
 
     if (no_args || have_nil_arg) {
-      at_ = boost::none;
+      at_ = std::nullopt;
     } else if (have_str_arg) {
       auto &&at_str = params[0].AsString();
       OUTCOME_TRY(at_span, common::unhexWith0x(at_str));

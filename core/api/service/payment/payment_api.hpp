@@ -6,8 +6,8 @@
 #ifndef KAGOME_PAYMENT_API_HPP
 #define KAGOME_PAYMENT_API_HPP
 
-#include <boost/optional.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <optional>
 
 #include "common/blob.hpp"
 #include "primitives/extrinsic.hpp"
@@ -17,17 +17,17 @@ namespace kagome::api {
 
   class PaymentApi {
    public:
-    using OptionalHashRef = boost::optional<std::reference_wrapper<const common::Hash256>>;
+    using OptionalHashRef =
+        std::optional<std::reference_wrapper<const common::Hash256>>;
 
     virtual ~PaymentApi() = default;
 
     virtual outcome::result<primitives::RuntimeDispatchInfo> queryInfo(
         const primitives::Extrinsic &extrinsic,
         uint32_t len,
-        OptionalHashRef at)
-        const = 0;
+        OptionalHashRef at) const = 0;
   };
 
-}  // namespace kagome::service
+}  // namespace kagome::api
 
 #endif  // KAGOME_PAYMENT_API_HPP

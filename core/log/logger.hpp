@@ -9,7 +9,7 @@
 #include <sstream>
 
 #include <boost/assert.hpp>
-#include <boost/optional.hpp>
+#include <optional>
 #include <soralog/level.hpp>
 #include <soralog/logger.hpp>
 #include <soralog/logging_system.hpp>
@@ -54,7 +54,7 @@ namespace kagome::log {
   }
 
   template <typename T>
-  auto format_arg(const boost::optional<T> &t) {
+  auto format_arg(const std::optional<T> &t) {
     return t ? format_arg(t.value()) : "none";
   }
 

@@ -150,7 +150,7 @@ namespace {
       sptr<api::RpcContext> context,
       api::HttpSession::Configuration http_session_config) {
     static auto initialized =
-        boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
+        std::optional<sptr<api::HttpListenerImpl>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -173,7 +173,7 @@ namespace {
       sptr<api::RpcContext> context,
       sptr<application::AppStateManager> app_state_manager) {
     static auto initialized =
-        boost::optional<sptr<api::WsListenerImpl>>(boost::none);
+        std::optional<sptr<api::WsListenerImpl>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -198,7 +198,7 @@ namespace {
       sptr<storage::trie::TrieStorage> trie_storage,
       sptr<runtime::GrandpaApi> grandpa_api) {
     static auto initialized =
-        boost::optional<sptr<blockchain::BlockStorage>>(boost::none);
+        std::optional<sptr<blockchain::BlockStorage>>(std::nullopt);
 
     if (initialized) {
       return initialized.value();
@@ -266,8 +266,8 @@ namespace {
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
       sptr<storage::BufferStorage> storage) {
     static auto initialized =
-        boost::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
-            boost::none);
+        std::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
+            std::nullopt);
 
     if (initialized) {
       return initialized.value();
@@ -286,7 +286,7 @@ namespace {
       sptr<storage::trie::TrieSerializer> serializer,
       sptr<storage::changes_trie::ChangesTracker> tracker) {
     static auto initialized =
-        boost::optional<sptr<storage::trie::TrieStorageImpl>>(boost::none);
+        std::optional<sptr<storage::trie::TrieStorageImpl>>(std::nullopt);
 
     if (initialized) {
       return initialized.value();
@@ -308,7 +308,7 @@ namespace {
       sptr<application::ChainSpec> configuration_storage,
       sptr<storage::trie::TrieStorageImpl> trie_storage) {
     static auto initialized =
-        boost::optional<sptr<storage::trie::TrieStorage>>(boost::none);
+        std::optional<sptr<storage::trie::TrieStorage>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -343,7 +343,7 @@ namespace {
       application::AppConfiguration const &app_config,
       sptr<application::ChainSpec> chain_spec) {
     static auto initialized =
-        boost::optional<sptr<storage::BufferStorage>>(boost::none);
+        std::optional<sptr<storage::BufferStorage>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -369,7 +369,7 @@ namespace {
   std::shared_ptr<application::ChainSpec> get_chain_spec(
       application::AppConfiguration const &config) {
     static auto initialized =
-        boost::optional<sptr<application::ChainSpec>>(boost::none);
+        std::optional<sptr<application::ChainSpec>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -395,7 +395,7 @@ namespace {
       primitives::BlockHash const &block_hash,
       sptr<runtime::BabeApi> babe_api) {
     static auto initialized =
-        boost::optional<sptr<primitives::BabeConfiguration>>(boost::none);
+        std::optional<sptr<primitives::BabeConfiguration>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -419,9 +419,9 @@ namespace {
   sptr<crypto::KeyFileStorage> get_key_file_storage(
       application::AppConfiguration const &config,
       sptr<application::ChainSpec> chain_spec) {
-    static boost::optional<sptr<crypto::KeyFileStorage>> initialized =
-        boost::none;
-    static boost::optional<fs::path> initialized_path = boost::none;
+    static std::optional<sptr<crypto::KeyFileStorage>> initialized =
+        std::nullopt;
+    static std::optional<fs::path> initialized_path = std::nullopt;
 
     auto path = config.keystorePath(chain_spec->id());
     if (initialized and initialized_path and initialized_path.value() == path) {
@@ -443,7 +443,7 @@ namespace {
       const crypto::Ed25519Provider &crypto_provider,
       const crypto::CryptoStore &crypto_store) {
     static auto initialized =
-        boost::optional<sptr<libp2p::crypto::KeyPair>>(boost::none);
+        std::optional<sptr<libp2p::crypto::KeyPair>>(std::nullopt);
 
     if (initialized) {
       return initialized.value();
@@ -526,7 +526,7 @@ namespace {
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
       const application::ChainSpec &chain_spec) {
     static auto initialized =
-        boost::optional<sptr<libp2p::protocol::kademlia::Config>>(boost::none);
+        std::optional<sptr<libp2p::protocol::kademlia::Config>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -544,7 +544,7 @@ namespace {
   template <typename Injector>
   sptr<api::ApiServiceImpl> get_jrpc_api_service(const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<api::ApiServiceImpl>>(boost::none);
+        std::optional<sptr<api::ApiServiceImpl>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -602,7 +602,7 @@ namespace {
   template <typename Injector>
   sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<blockchain::BlockTree>>(boost::none);
+        std::optional<sptr<blockchain::BlockTree>>(std::nullopt);
 
     if (initialized) {
       return initialized.value();
@@ -681,7 +681,7 @@ namespace {
   template <class Injector>
   sptr<network::PeerManager> get_peer_manager(const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<network::PeerManager>>(boost::none);
+        std::optional<sptr<network::PeerManager>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -713,7 +713,7 @@ namespace {
   sptr<consensus::BlockExecutorImpl> get_block_executor(
       const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<consensus::BlockExecutorImpl>>(boost::none);
+        std::optional<sptr<consensus::BlockExecutorImpl>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -737,7 +737,7 @@ namespace {
   sptr<network::SyncProtocolObserverImpl> get_sync_observer_impl(
       const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<network::SyncProtocolObserverImpl>>(boost::none);
+        std::optional<sptr<network::SyncProtocolObserverImpl>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -900,8 +900,7 @@ namespace {
                   runtime::wavm::ModuleFactoryImpl>(injector, method);
             }),
         di::bind<runtime::Executor>.template to([](const auto &injector) {
-          static boost::optional<std::shared_ptr<runtime::Executor>>
-              initialized;
+          static std::optional<std::shared_ptr<runtime::Executor>> initialized;
           if (!initialized) {
             auto env_factory = injector.template create<
                 std::shared_ptr<runtime::RuntimeEnvironmentFactory>>();
@@ -1190,7 +1189,7 @@ namespace {
 
   template <typename Injector>
   sptr<network::OwnPeerInfo> get_own_peer_info(const Injector &injector) {
-    static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
+    static std::optional<sptr<network::OwnPeerInfo>> initialized{std::nullopt};
     if (initialized) {
       return initialized.value();
     }
@@ -1244,7 +1243,7 @@ namespace {
   template <typename Injector>
   sptr<consensus::babe::Babe> get_babe(const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<consensus::babe::Babe>>(boost::none);
+        std::optional<sptr<consensus::babe::Babe>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -1280,7 +1279,7 @@ namespace {
   sptr<network::ExtrinsicObserverImpl> get_extrinsic_observer_impl(
       const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<network::ExtrinsicObserverImpl>>(boost::none);
+        std::optional<sptr<network::ExtrinsicObserverImpl>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -1300,7 +1299,7 @@ namespace {
   sptr<consensus::grandpa::GrandpaImpl> get_grandpa_impl(
       const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<consensus::grandpa::GrandpaImpl>>(boost::none);
+        std::optional<sptr<consensus::grandpa::GrandpaImpl>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }

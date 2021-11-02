@@ -22,8 +22,8 @@ using kagome::primitives::PreRuntime;
 
 using testutil::createHash256;
 
-using kagome::scale::decode;
-using kagome::scale::encode;
+using   scale::decode;
+using   scale::encode;
 
 struct BlockAnnounceTest : public ::testing::Test {
   void SetUp() {

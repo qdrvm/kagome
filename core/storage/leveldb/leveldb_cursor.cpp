@@ -41,14 +41,14 @@ namespace kagome::storage {
     return outcome::success();
   }
 
-  boost::optional<Buffer> LevelDB::Cursor::key() const {
-    return isValid() ? boost::make_optional(make_buffer(i_->key()))
-                     : boost::none;
+  std::optional<Buffer> LevelDB::Cursor::key() const {
+    return isValid() ? std::make_optional(make_buffer(i_->key()))
+                     : std::nullopt;
   }
 
-  boost::optional<Buffer> LevelDB::Cursor::value() const {
-    return isValid() ? boost::make_optional(make_buffer(i_->value()))
-                     : boost::none;
+  std::optional<Buffer> LevelDB::Cursor::value() const {
+    return isValid() ? std::make_optional(make_buffer(i_->value()))
+                     : std::nullopt;
   }
 
 }  // namespace kagome::storage

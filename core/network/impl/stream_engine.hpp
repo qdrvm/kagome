@@ -319,20 +319,20 @@ namespace kagome::network {
       }
     }
 
-    boost::optional<std::reference_wrapper<ProtocolMap>> findPeer(
+    std::optional<std::reference_wrapper<ProtocolMap>> findPeer(
         const PeerId &peer_id) {
       auto find_if_exists = [&](auto &peer_map)
-          -> boost::optional<std::reference_wrapper<ProtocolMap>> {
+          -> std::optional<std::reference_wrapper<ProtocolMap>> {
         if (auto it = peer_map.find(peer_id); it != peer_map.end()) {
           return std::ref(it->second);
         }
-        return boost::none;
+        return std::nullopt;
       };
 
       if (auto proto_map = find_if_exists(streams_)) {
         return proto_map.value();
       }
-      return boost::none;
+      return std::nullopt;
     }
 
     template <typename F>
