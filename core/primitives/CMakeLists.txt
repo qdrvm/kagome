@@ -27,7 +27,8 @@ add_library(primitives
 
 target_link_libraries(primitives
     buffer
-    scale::scale   blob
+    scale::scale
+    blob
     )
 kagome_install(primitives)
 

@@ -13,7 +13,8 @@ add_library(polkadot_codec
     polkadot_codec.cpp
     )
 target_link_libraries(polkadot_codec
-    scale::scale   blake2
+    scale::scale
+    blake2
     blob
     polkadot_node
     )
@@ -23,5 +24,6 @@ add_library(ordered_trie_hash INTERFACE)
 target_link_libraries(ordered_trie_hash INTERFACE
     polkadot_trie
     polkadot_codec
-    scale::scale   )
+    scale::scale
+    )
 kagome_install(ordered_trie_hash)

@@ -38,17 +38,3 @@ hunter_config(
     CMAKE_ARGS TESTING=OFF EXAMPLES=OFF EXPOSE_MOCKS=ON
     KEEP_PACKAGE_SOURCES
 )
-
-hunter_config(
-    wavm
-    URL
-        "https://github.com/soramitsu/WAVM/archive/7efbcced0d41d5f7bc6cd254d624e5f7174b54fc.tar.gz"
-    SHA1
-        dd22c11c5faf95a6f6b05ecff18f0e8cab475771
-    CMAKE_ARGS
-        WAVM_ENABLE_FUZZ_TARGETS=OFF
-        WAVM_BUILD_EXAMPLES=OFF
-        WAVM_BUILD_TESTS=OFF
-
-    KEEP_PACKAGE_SOURCES
-)

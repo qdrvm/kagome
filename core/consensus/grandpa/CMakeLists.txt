@@ -10,7 +10,8 @@ add_library(environment
     )
 
 target_link_libraries(environment
-    scale::scale   logger
+    scale::scale
+    logger
     blob
     )
 

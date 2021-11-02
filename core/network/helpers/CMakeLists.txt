@@ -9,4 +9,5 @@ add_library(scale_message_read_writer
     )
 target_link_libraries(scale_message_read_writer
     p2p::p2p_message_read_writer
-    scale::scale   )
+    scale::scale
+    )
