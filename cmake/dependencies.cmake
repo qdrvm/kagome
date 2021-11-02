@@ -81,6 +81,7 @@ hunter_add_package(yaml-cpp)
 find_package(yaml-cpp CONFIG REQUIRED)
 
 hunter_add_package(wavm)
+find_package(LLVM CONFIG REQUIRED)
 find_package(WAVM CONFIG REQUIRED)
 
 hunter_add_package(zstd)
