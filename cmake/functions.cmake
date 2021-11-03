@@ -9,8 +9,7 @@ function(addtest test_name)
   add_executable(${test_name} ${ARGN})
   addtest_part(${test_name} ${ARGN})
   target_link_libraries(${test_name}
-      GTest::main
-      GMock::main
+      GTest::gmock_main
       )
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/xunit)
   set(xml_output "--gtest_output=xml:${CMAKE_BINARY_DIR}/xunit/xunit-${test_name}.xml")
