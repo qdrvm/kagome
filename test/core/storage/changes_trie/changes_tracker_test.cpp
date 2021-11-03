@@ -36,7 +36,6 @@ using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
-namespace scale = scale::;
 using testing::_;
 using testing::AnyOf;
 using testing::Return;
