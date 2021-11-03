@@ -209,7 +209,7 @@ namespace kagome::runtime::binaryen {
         auto res = host_api_->ext_logging_max_level_version_1();
         return wasm::Literal(res);
       }
-      // ----------------------- crypto functions ------------------------
+      // -------------------------- crypto functions ---------------------------
 
       // ext_crypto_start_batch_verify_version_1
       if (import->base == ext_crypto_start_batch_verify_version_1) {
@@ -337,7 +337,7 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
-      // ----------------------- hashing functions ------------------------
+      // -------------------------- hashing functions --------------------------
 
       /// ext_hashing_keccak_256_version_1
       if (import->base == ext_hashing_keccak_256_version_1) {
@@ -403,7 +403,7 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
-      // ----------------------- memory functions ------------------------
+      // -------------------------- memory functions ---------------------------
 
       /// ext_allocator_malloc_version_1
       if (import->base == ext_allocator_malloc_version_1) {
@@ -420,7 +420,7 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal();
       }
 
-      // ----------------------- storage functions ------------------------
+      // -------------------------- storage functions --------------------------
       /// ext_storage_set_version_1
       if (import->base == ext_storage_set_version_1) {
         checkArguments(import->base.c_str(), 2, arguments.size());
