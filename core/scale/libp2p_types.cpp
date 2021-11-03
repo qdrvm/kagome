@@ -20,7 +20,7 @@ namespace scale {
     return res.value();
   }
 
-  scale::ScaleEncoderStream &operator<<(
+ scale::ScaleEncoderStream &operator<<(
       scale::ScaleEncoderStream &s, const libp2p::peer::PeerInfo &peer_info) {
     std::vector<std::string> addresses;
     for (const auto &addr : peer_info.addresses) {
@@ -29,7 +29,7 @@ namespace scale {
     return s << peer_info.id.toBase58() << addresses;
   }
 
-  scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+ scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
                                         libp2p::peer::PeerInfo &peer_info) {
     std::string peer_id_base58;
     std::vector<std::string> addresses;
