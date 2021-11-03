@@ -689,8 +689,9 @@ namespace kagome::consensus::grandpa {
 
     update(isPrevotesChanged, isPrecommitsChanged);
 
-    // NOTE: Perhaps it's needless or needs to replace by condition
-    BOOST_ASSERT(finalizable());
+    if (not finalizable()) {
+      return VotingRoundError::ROUND_IS_NOT_FINALIZABLE;
+    }
     BOOST_ASSERT(
         env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
 
@@ -845,7 +846,7 @@ namespace kagome::consensus::grandpa {
       propagation = Propagation::NEEDLESS;
     }
 
-    primary_vote_ = {{proposal.getBlockNumber(), proposal.getBlockHash()}};
+    primary_vote_.emplace(proposal.getBlockInfo());
 
     if (propagation == Propagation::REQUESTED) {
       sendProposal(convertToPrimaryPropose(proposal.getBlockInfo()));
@@ -884,7 +885,7 @@ namespace kagome::consensus::grandpa {
              prevote.id.toHex());
 
     if (not prevote_.has_value() && id_ == prevote.id) {
-      prevote_ = {{prevote.getBlockNumber(), prevote.getBlockHash()}};
+      prevote_.emplace(prevote.getBlockInfo());
       SL_DEBUG(logger_, "Round #{}: Own prevote was restored", round_number_);
     }
 
@@ -911,7 +912,8 @@ namespace kagome::consensus::grandpa {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
-      env_->onCompleted(result.as_failure());
+      // TODO(xDimon): Check if it is really needed
+      // env_->onCompleted(result.as_failure());
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
         logger_->warn("Round #{}: Precommit received from {} was rejected: {}",
                       round_number_,
@@ -929,7 +931,7 @@ namespace kagome::consensus::grandpa {
              precommit.id.toHex());
 
     if (not precommit_.has_value() && id_ == precommit.id) {
-      precommit_ = {{precommit.getBlockNumber(), precommit.getBlockHash()}};
+      precommit_.emplace(precommit.getBlockInfo());
       SL_DEBUG(logger_, "Round #{}: Own precommit was restored", round_number_);
     }
 
@@ -995,10 +997,11 @@ namespace kagome::consensus::grandpa {
       return VotingRoundError::ZERO_WEIGHT_VOTER;
     }
 
-    switch (tracker.push(vote, weight)) {
+    auto push_res = tracker.push(vote, weight);
+    switch (push_res) {
       case VoteTracker::PushResult::SUCCESS: {
         auto result = graph.insert(vote.getBlockInfo(), vote.id);
-        if (not result.has_value()) {
+        if (result.has_error()) {
           tracker.unpush(vote, weight);
           logger_->warn(
               "{} for block #{} hash={} was not inserted with error: {}",
@@ -1018,8 +1021,9 @@ namespace kagome::consensus::grandpa {
         graph.remove(vote.id);
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
+      default:
+        BOOST_UNREACHABLE_RETURN({});
     }
-    BOOST_UNREACHABLE_RETURN({});
   }
 
   template outcome::result<void> VotingRoundImpl::onSigned<Prevote>(

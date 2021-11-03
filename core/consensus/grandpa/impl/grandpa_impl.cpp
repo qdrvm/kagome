@@ -407,10 +407,6 @@ namespace kagome::consensus::grandpa {
     }
 
     auto round = makeInitialRound(round_state, std::move(voters));
-    if (round == nullptr) {
-      // Can't make round
-      return;
-    }
 
     // TODO(xDimon): Ensure if this ckecking is really needed
     // if (current_round_->bestPrevoteCandidate().number
@@ -457,33 +453,29 @@ namespace kagome::consensus::grandpa {
     }
 
     // get block info
-    auto blockInfo = visit_in_place(msg.vote.message, [](const auto &vote) {
+    auto block_info = visit_in_place(msg.vote.message, [](const auto &vote) {
       return BlockInfo(vote.number, vote.hash);
     });
 
-    // get authorities
-    // TODO (xdimon) reduce number of call to this runtime function
-    const auto &weighted_authorities_res =
-        grandpa_api_->authorities(primitives::BlockId(blockInfo.hash));
-    if (!weighted_authorities_res.has_value()) {
+    /* TODO(xDimon): Ensure if it is really needed
+    auto authorities_res = authority_manager_->authorities(block_info, false);
+    if (authorities_res.has_error()) {
       logger_->error("Can't get authorities: {}",
-                     weighted_authorities_res.error().message());
-      return;
-    };
-    auto &weighted_authorities = weighted_authorities_res.value();
+                     authorities_res.error().message());
+    }
+    auto &authorities = authorities_res.value();
 
     // find signer in authorities
-    auto weighted_authority_it =
-        std::find_if(weighted_authorities.begin(),
-                     weighted_authorities.end(),
+    if (std::find_if(authorities->begin(),
+                     authorities->end(),
                      [&id = msg.vote.id](const auto &weighted_authority) {
                        return weighted_authority.id.id == id;
-                     });
-
-    if (weighted_authority_it == weighted_authorities.end()) {
+                     })
+        == authorities->end()) {
       logger_->warn("Vote signed by unknown validator");
       return;
-    };
+    }
+    */
 
     bool isPrevotesChanged = false;
     bool isPrecommitsChanged = false;
