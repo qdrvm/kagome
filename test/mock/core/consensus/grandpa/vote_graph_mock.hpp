@@ -14,26 +14,34 @@ namespace kagome::consensus::grandpa {
 
   class VoteGraphMock : public VoteGraph {
    public:
-    MOCK_CONST_METHOD0(getBase, const BlockInfo &());
-    MOCK_METHOD1(adjustBase, void(const std::vector<BlockHash> &));
-    MOCK_METHOD2(insert,
-                 outcome::result<void>(const BlockInfo &block,
-                                       const VoteWeight &vote));
+    MOCK_METHOD(const BlockInfo &, getBase, (), (const, override));
 
-    MOCK_METHOD2(insert,
-                 outcome::result<void>(const Prevote &prevote,
-                                       const VoteWeight &vote));
+    MOCK_METHOD(void, adjustBase, (const std::vector<BlockHash> &), (override));
 
-    MOCK_METHOD2(insert,
-                 outcome::result<void>(const Precommit &precommit,
-                                       const VoteWeight &vote));
+    MOCK_METHOD(outcome::result<void>,
+                insert,
+                (const BlockInfo &block, const VoteWeight &vote),
+                (override));
 
-    MOCK_METHOD2(findAncestor,
-                 std::optional<BlockInfo>(const BlockInfo &,
-                                          const Condition &));
-    MOCK_METHOD2(findGhost,
-                 std::optional<BlockInfo>(const std::optional<BlockInfo> &,
-                                          const Condition &));
+    MOCK_METHOD(outcome::result<void>,
+                insert,
+                (const Prevote &prevote, const VoteWeight &vote),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                insert,
+                (const Precommit &precommit, const VoteWeight &vote),
+                (override));
+
+    MOCK_METHOD(std::optional<BlockInfo>,
+                findAncestor,
+                (const BlockInfo &, const Condition &),
+                (override));
+
+    MOCK_METHOD(std::optional<BlockInfo>,
+                findGhost,
+                (const std::optional<BlockInfo> &, const Condition &),
+                (override));
   };
 
 }  // namespace kagome::consensus::grandpa

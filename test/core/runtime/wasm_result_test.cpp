@@ -38,12 +38,13 @@ TEST_P(WasmResultTest, DecomposeSuccess) {
   ASSERT_EQ(r.size, length);
 }
 
-INSTANTIATE_TEST_CASE_P(WasmResultTestCases, WasmResultTest,
-                        ::testing::Values(TestCase{0, {0, 0}},
-                                          TestCase{1, {1, 0}},
-                                          TestCase{4294967297, {1, 1}},
-                                          TestCase{4294967296, {0, 1}},
-                                          TestCase{9223372036854775807ll,
-                                                   {4294967295, 2147483647}}));
+INSTANTIATE_TEST_SUITE_P(WasmResultTestCases,
+                         WasmResultTest,
+                         ::testing::Values(TestCase{0, {0, 0}},
+                                           TestCase{1, {1, 0}},
+                                           TestCase{4294967297, {1, 1}},
+                                           TestCase{4294967296, {0, 1}},
+                                           TestCase{9223372036854775807ll,
+                                                    {4294967295, 2147483647}}));
 
 #endif  // KAGOME_TEST_CORE_RUNTIME_WASM_RESULT_TEST_CPP

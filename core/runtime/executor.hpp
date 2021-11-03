@@ -78,6 +78,30 @@ namespace kagome::runtime {
      * The call will be done on the \param block_info state
      */
     template <typename Result, typename... Args>
+    outcome::result<PersistentResult<Result>> persistentCallAtGenesis(
+        std::string_view name,
+        Args &&...args) {
+      OUTCOME_TRY(env_template, env_factory_->start());
+      OUTCOME_TRY(env, env_template->persistent().make());
+      auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
+      if (res) {
+        OUTCOME_TRY(new_state_root, commitState(*env));
+        if constexpr (std::is_void_v<Result>) {
+          return PersistentResult<Result>{new_state_root};
+        } else {
+          return PersistentResult<Result>{std::move(res.value()),
+                                          new_state_root};
+        }
+      }
+      return res.error();
+    }
+
+    /**
+     * Call a runtime method in a persistent environment, e. g. the storage
+     * changes, made by this call, will persist in the node's Trie storage
+     * The call will be done on the \param block_info state
+     */
+    template <typename Result, typename... Args>
     outcome::result<PersistentResult<Result>> persistentCallAt(
         primitives::BlockHash const &block_hash,
         std::string_view name,

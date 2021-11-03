@@ -41,7 +41,7 @@ TEST_P(DirectionTest, DecodeDirection) {
 
 using testutil::make_param;
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     DirectionTestCases,
     DirectionTest,
     ::testing::Values(

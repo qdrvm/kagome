@@ -66,7 +66,7 @@ class BlockStorageTest : public testing::Test {
         // put key-value for lookup data
         .WillRepeatedly(Return(outcome::success()));
 
-    EXPECT_CALL(*storage, put_rv(_, _))
+    EXPECT_CALL(*storage, put(_, _))
         // put key-value for lookup data
         .WillRepeatedly(Return(outcome::success()));
 

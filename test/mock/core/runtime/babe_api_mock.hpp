@@ -14,8 +14,10 @@ namespace kagome::runtime {
 
   class BabeApiMock : public BabeApi {
    public:
-    MOCK_METHOD0(configuration,
-                 outcome::result<primitives::BabeConfiguration>());
+    MOCK_METHOD(outcome::result<primitives::BabeConfiguration>,
+                configuration,
+                (),
+                (override));
   };
 
 }  // namespace kagome::runtime

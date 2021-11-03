@@ -14,35 +14,38 @@ namespace kagome::network {
 
   class GrandpaTransmitterMock : public GrandpaTransmitter {
    public:
-    void vote(network::GrandpaVote &&msg) {
-      vote_rv(msg);
+    MOCK_METHOD(void, vote, (network::GrandpaVote &), ());
+    void vote(network::GrandpaVote &&msg) override {
+      vote(msg);
     }
-    MOCK_METHOD1(vote_rv, void(network::GrandpaVote &));
 
-    void neighbor(network::GrandpaNeighborMessage &&msg) {
-      neighbor_rv(msg);
+    MOCK_METHOD(void, neighbor, (network::GrandpaNeighborMessage &), ());
+    void neighbor(network::GrandpaNeighborMessage &&msg) override {
+      neighbor(msg);
     }
-    MOCK_METHOD1(neighbor_rv, void(network::GrandpaNeighborMessage &));
 
-    void finalize(network::FullCommitMessage &&msg) {
-      finalize_rv(msg);
+    MOCK_METHOD(void, finalize, (network::FullCommitMessage &), ());
+    void finalize(network::FullCommitMessage &&msg) override {
+      finalize(msg);
     }
-    MOCK_METHOD1(finalize_rv, void(network::FullCommitMessage &));
 
+    MOCK_METHOD(void,
+                catchUpRequest,
+                (const libp2p::peer::PeerId &, network::CatchUpRequest &),
+                ());
     void catchUpRequest(const libp2p::peer::PeerId &pi,
-                        network::CatchUpRequest &&msg) {
-      catchUpRequest_rv(pi, msg);
+                        network::CatchUpRequest &&msg) override {
+      catchUpRequest(pi, msg);
     }
-    MOCK_METHOD2(catchUpRequest_rv,
-                 void(const libp2p::peer::PeerId &, network::CatchUpRequest &));
 
+    MOCK_METHOD(void,
+                catchUpResponse,
+                (const libp2p::peer::PeerId &, network::CatchUpResponse &),
+                ());
     void catchUpResponse(const libp2p::peer::PeerId &pi,
-                         network::CatchUpResponse &&msg) {
-      catchUpResponse_rv(pi, msg);
+                         network::CatchUpResponse &&msg) override {
+      catchUpResponse(pi, msg);
     }
-    MOCK_METHOD2(catchUpResponse_rv,
-                 void(const libp2p::peer::PeerId &,
-                      network::CatchUpResponse &));
   };
 
 }  // namespace kagome::network

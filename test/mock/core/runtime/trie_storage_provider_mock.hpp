@@ -14,24 +14,44 @@ namespace kagome::runtime {
 
   class TrieStorageProviderMock : public TrieStorageProvider {
    public:
-    MOCK_METHOD0(setToEphemeral, outcome::result<void>());
-    MOCK_METHOD1(setToEphemeralAt,
-                 outcome::result<void>(const storage::trie::RootHash &));
-    MOCK_METHOD0(setToPersistent, outcome::result<void>());
-    MOCK_METHOD1(setToPersistentAt,
-                 outcome::result<void>(const storage::trie::RootHash &));
-    MOCK_CONST_METHOD0(getCurrentBatch, std::shared_ptr<Batch>());
-    MOCK_CONST_METHOD0(tryGetPersistentBatch,
-                       std::optional<std::shared_ptr<PersistentBatch>>());
-    MOCK_CONST_METHOD0(isCurrentlyPersistent, bool());
-    MOCK_METHOD0(forceCommit, outcome::result<storage::trie::RootHash>());
-    MOCK_METHOD0(startTransaction, outcome::result<void>());
-    MOCK_METHOD0(rollbackTransaction, outcome::result<void>());
-    MOCK_METHOD0(commitTransaction, outcome::result<void>());
-    MOCK_CONST_METHOD0(getLatestRootMock, storage::trie::RootHash());
-    storage::trie::RootHash getLatestRoot() const noexcept override {
-      return getLatestRootMock();
-    }
+    MOCK_METHOD(outcome::result<void>, setToEphemeral, (), (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                setToEphemeralAt,
+                (const storage::trie::RootHash &),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>, setToPersistent, (), (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                setToPersistentAt,
+                (const storage::trie::RootHash &),
+                (override));
+
+    MOCK_METHOD(std::shared_ptr<Batch>, getCurrentBatch, (), (const, override));
+
+    MOCK_METHOD(std::optional<std::shared_ptr<PersistentBatch>>,
+                tryGetPersistentBatch,
+                (),
+                (const, override));
+
+    MOCK_METHOD(bool, isCurrentlyPersistent, (), (const, override));
+
+    MOCK_METHOD(outcome::result<storage::trie::RootHash>,
+                forceCommit,
+                (),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>, startTransaction, (), (override));
+
+    MOCK_METHOD(outcome::result<void>, rollbackTransaction, (), (override));
+
+    MOCK_METHOD(outcome::result<void>, commitTransaction, (), (override));
+
+    MOCK_METHOD(storage::trie::RootHash,
+                getLatestRoot,
+                (),
+                (const, noexcept, override));
   };
 
 }  // namespace kagome::runtime

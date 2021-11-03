@@ -12,22 +12,30 @@
 
 namespace kagome::consensus {
   struct BabeLotteryMock : public BabeLottery {
-    MOCK_METHOD4(changeEpoch,
-                 void(const EpochDescriptor &,
-                      const Randomness &,
-                      const Threshold &,
-                      const crypto::Sr25519Keypair &));
+    MOCK_METHOD(void,
+                changeEpoch,
+                (const EpochDescriptor &,
+                 const Randomness &,
+                 const Threshold &,
+                 const crypto::Sr25519Keypair &),
+                (override));
 
-    MOCK_CONST_METHOD0(getEpoch, EpochDescriptor());
+    MOCK_METHOD(EpochDescriptor, getEpoch, (), (const, override));
 
-    MOCK_CONST_METHOD1(
-        getSlotLeadership,
-        std::optional<crypto::VRFOutput>(primitives::BabeSlotNumber));
+    MOCK_METHOD(std::optional<crypto::VRFOutput>,
+                getSlotLeadership,
+                (primitives::BabeSlotNumber),
+                (const, override));
 
-    MOCK_METHOD2(computeRandomness,
-                 Randomness(const Randomness &, EpochNumber));
+    MOCK_METHOD(Randomness,
+                computeRandomness,
+                (const Randomness &, EpochNumber),
+                (override));
 
-    MOCK_METHOD1(submitVRFValue, void(const crypto::VRFPreOutput &));
+    MOCK_METHOD(void,
+                submitVRFValue,
+                (const crypto::VRFPreOutput &),
+                (override));
   };
 }  // namespace kagome::consensus
 

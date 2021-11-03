@@ -69,5 +69,4 @@ addtest(small_lru_cache_test
 target_link_libraries(small_lru_cache_test
         module_repository
         blob
-        WAVM::libWAVM
         )

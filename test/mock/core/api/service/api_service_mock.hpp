@@ -14,32 +14,61 @@ namespace kagome::api {
 
   class ApiServiceMock : public ApiService {
    public:
-    MOCK_METHOD0(prepare, bool());
-    MOCK_METHOD0(start, bool());
-    MOCK_METHOD0(stop, void());
+    MOCK_METHOD(bool, prepare, (), (override));
 
-    MOCK_METHOD1(
-        subscribeSessionToKeys,
-        outcome::result<uint32_t>(const std::vector<common::Buffer> &));
-    MOCK_METHOD1(unsubscribeSessionFromIds,
-                 outcome::result<bool>(
-                     const std::vector<PubsubSubscriptionId> &));
-    MOCK_METHOD0(subscribeFinalizedHeads,
-                 outcome::result<PubsubSubscriptionId>());
-    MOCK_METHOD1(unsubscribeFinalizedHeads,
-                 outcome::result<bool>(PubsubSubscriptionId));
-    MOCK_METHOD0(subscribeNewHeads, outcome::result<PubsubSubscriptionId>());
-    MOCK_METHOD1(unsubscribeNewHeads,
-                 outcome::result<bool>(PubsubSubscriptionId));
-    MOCK_METHOD0(subscribeRuntimeVersion,
-                 outcome::result<PubsubSubscriptionId>());
-    MOCK_METHOD1(unsubscribeRuntimeVersion,
-                 outcome::result<bool>(PubsubSubscriptionId));
-    MOCK_METHOD1(subscribeForExtrinsicLifecycle,
-                 outcome::result<PubsubSubscriptionId>(
-                     const primitives::Transaction &));
-    MOCK_METHOD1(unsubscribeFromExtrinsicLifecycle,
-                 outcome::result<bool>(PubsubSubscriptionId));
+    MOCK_METHOD(bool, start, (), (override));
+
+    MOCK_METHOD(void, stop, (), (override));
+
+    MOCK_METHOD(outcome::result<uint32_t>,
+                subscribeSessionToKeys,
+                (const std::vector<common::Buffer> &),
+                (override));
+
+    MOCK_METHOD(outcome::result<bool>,
+                unsubscribeSessionFromIds,
+                (const std::vector<PubsubSubscriptionId> &),
+                (override));
+
+    MOCK_METHOD(outcome::result<PubsubSubscriptionId>,
+                subscribeFinalizedHeads,
+                (),
+                (override));
+
+    MOCK_METHOD(outcome::result<bool>,
+                unsubscribeFinalizedHeads,
+                (PubsubSubscriptionId),
+                (override));
+
+    MOCK_METHOD(outcome::result<PubsubSubscriptionId>,
+                subscribeNewHeads,
+                (),
+                (override));
+
+    MOCK_METHOD(outcome::result<bool>,
+                unsubscribeNewHeads,
+                (PubsubSubscriptionId),
+                (override));
+
+    MOCK_METHOD(outcome::result<PubsubSubscriptionId>,
+                subscribeRuntimeVersion,
+                (),
+                (override));
+
+    MOCK_METHOD(outcome::result<bool>,
+                unsubscribeRuntimeVersion,
+                (PubsubSubscriptionId),
+                (override));
+
+    MOCK_METHOD(outcome::result<PubsubSubscriptionId>,
+                subscribeForExtrinsicLifecycle,
+                (const primitives::Transaction &),
+                (override));
+
+    MOCK_METHOD(outcome::result<bool>,
+                unsubscribeFromExtrinsicLifecycle,
+                (PubsubSubscriptionId),
+                (override));
   };
 
 }  // namespace kagome::api

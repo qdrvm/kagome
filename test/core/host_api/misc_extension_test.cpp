@@ -94,11 +94,12 @@ TEST_F(MiscExtensionTest, CoreVersion) {
           Return(std::optional<std::reference_wrapper<Memory>>(*memory)));
   auto core_factory = std::make_shared<CoreApiFactoryMock>();
 
-  EXPECT_CALL(*core_factory, make(_, _)).WillOnce(Invoke([v1](auto &, auto &) {
-    auto core = std::make_unique<kagome::runtime::CoreMock>();
-    EXPECT_CALL(*core, version()).WillOnce(Return(v1));
-    return core;
-  }));
+  EXPECT_CALL(*core_factory, make(_, _))
+      .WillOnce(Invoke([v1](auto &&, auto &&) {
+        auto core = std::make_unique<kagome::runtime::CoreMock>();
+        EXPECT_CALL(*core, version()).WillOnce(Return(v1));
+        return core;
+      }));
 
   using namespace std::placeholders;
 
@@ -109,11 +110,12 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   ASSERT_EQ(m.ext_misc_runtime_version_version_1(state_code1.combine()),
             res1.combine());
 
-  EXPECT_CALL(*core_factory, make(_, _)).WillOnce(Invoke([v2](auto &, auto &) {
-    auto core = std::make_unique<kagome::runtime::CoreMock>();
-    EXPECT_CALL(*core, version()).WillOnce(Return(v2));
-    return core;
-  }));
+  EXPECT_CALL(*core_factory, make(_, _))
+      .WillOnce(Invoke([v2](auto &&, auto &&) {
+        auto core = std::make_unique<kagome::runtime::CoreMock>();
+        EXPECT_CALL(*core, version()).WillOnce(Return(v2));
+        return core;
+      }));
 
   EXPECT_CALL(*memory, storeBuffer(gsl::span<const uint8_t>(v2_enc)))
       .WillOnce(Return(res2.combine()));

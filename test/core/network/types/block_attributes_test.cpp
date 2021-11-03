@@ -47,7 +47,7 @@ using Attr = BlockAttribute;
 
 auto P = testutil::make_param<BlockAttributes>;
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     BlockAttributesTestCases,
     BlockAttributesTest,
     ::testing::Values(P({0}, false, {}),

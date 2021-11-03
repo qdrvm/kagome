@@ -14,37 +14,55 @@ namespace kagome::application {
 
   class ChainSpecMock : public ChainSpec {
    public:
-    MOCK_CONST_METHOD0(name, const std::string &());
+    MOCK_METHOD(const std::string &, name, (), (const, override));
 
-    MOCK_CONST_METHOD0(id, const std::string &());
+    MOCK_METHOD(const std::string &, id, (), (const, override));
 
-    MOCK_CONST_METHOD0(chainType, const std::string &());
+    MOCK_METHOD(const std::string &, chainType, (), (const, override));
 
-    MOCK_CONST_METHOD0(bootNodes,
-                       const std::vector<libp2p::multi::Multiaddress> &());
+    MOCK_METHOD(const std::vector<libp2p::multi::Multiaddress> &,
+                bootNodes,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(telemetryEndpoints,
-                       const std::vector<std::pair<std::string, size_t>> &());
+    MOCK_METHOD((const std::vector<std::pair<std::string, size_t>> &),
+                telemetryEndpoints,
+                (),
+                (const));
 
-    MOCK_CONST_METHOD0(protocolId, const std::string &());
+    MOCK_METHOD(const std::string &, protocolId, (), (const, override));
 
-    MOCK_CONST_METHOD0(properties,
-                       const std::map<std::string, std::string> &());
+    MOCK_METHOD((const std::map<std::string, std::string> &),
+                properties,
+                (),
+                (const));
 
-    MOCK_CONST_METHOD1(getProperty,
-                       std::optional<std::reference_wrapper<const std::string>>(
-                           const std::string &property));
+    MOCK_METHOD(std::optional<std::reference_wrapper<const std::string>>,
+                getProperty,
+                (const std::string &property),
+                (const, override));
 
-    MOCK_CONST_METHOD0(forkBlocks, const std::set<primitives::BlockHash> &());
+    MOCK_METHOD(const std::set<primitives::BlockHash> &,
+                forkBlocks,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(badBlocks, const std::set<primitives::BlockHash> &());
+    MOCK_METHOD(const std::set<primitives::BlockHash> &,
+                badBlocks,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(consensusEngine, std::optional<std::string>());
+    MOCK_METHOD(std::optional<std::string>,
+                consensusEngine,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(codeSubstitutes,
-                       std::shared_ptr<const primitives::CodeSubstitutes>());
+    MOCK_METHOD(std::shared_ptr<const primitives::CodeSubstitutes>,
+                codeSubstitutes,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(getGenesis, GenesisRawData());
+    MOCK_METHOD(GenesisRawData, getGenesis, (), (const, override));
   };
 
 }  // namespace kagome::application

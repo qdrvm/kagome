@@ -62,4 +62,4 @@ static const std::vector<std::shared_ptr<PolkadotNode>> CASES = {
     make<BranchNode>("010203"_hex2buf, "abcdef"_hex2buf),
     branch_with_2_children};
 
-INSTANTIATE_TEST_CASE_P(PolkadotCodec, NodeDecodingTest, ValuesIn(CASES));
+INSTANTIATE_TEST_SUITE_P(PolkadotCodec, NodeDecodingTest, ValuesIn(CASES));

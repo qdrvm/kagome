@@ -13,28 +13,36 @@ namespace kagome::runtime {
 
   class BlockBuilderApiMock : public BlockBuilder {
    public:
-    MOCK_METHOD3(
+    MOCK_METHOD(
+        outcome::result<PersistentResult<primitives::ApplyExtrinsicResult>>,
         apply_extrinsic,
-        outcome::result<PersistentResult<primitives::ApplyExtrinsicResult>>(
-            const primitives::BlockInfo &block,
-            storage::trie::RootHash const &storage_hash,
-            const primitives::Extrinsic &));
-    MOCK_METHOD2(finalize_block,
-                 outcome::result<primitives::BlockHeader>(
-                     const primitives::BlockInfo &block,
-                     storage::trie::RootHash const &storage_hash));
-    MOCK_METHOD3(inherent_extrinsics,
-                 outcome::result<std::vector<primitives::Extrinsic>>(
-                     const primitives::BlockInfo &block,
-                     storage::trie::RootHash const &storage_hash,
-                     const primitives::InherentData &));
-    MOCK_METHOD2(check_inherents,
-                 outcome::result<primitives::CheckInherentsResult>(
-                     const primitives::Block &,
-                     const primitives::InherentData &));
-    MOCK_METHOD1(random_seed,
-                 outcome::result<common::Hash256>(
-                     storage::trie::RootHash const &storage_hash));
+        (const primitives::BlockInfo &block,
+         storage::trie::RootHash const &storage_hash,
+         const primitives::Extrinsic &),
+        (override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockHeader>,
+                finalize_block,
+                (const primitives::BlockInfo &block,
+                 storage::trie::RootHash const &storage_hash),
+                (override));
+
+    MOCK_METHOD(outcome::result<std::vector<primitives::Extrinsic>>,
+                inherent_extrinsics,
+                (const primitives::BlockInfo &block,
+                 storage::trie::RootHash const &storage_hash,
+                 const primitives::InherentData &),
+                (override));
+
+    MOCK_METHOD(outcome::result<primitives::CheckInherentsResult>,
+                check_inherents,
+                (const primitives::Block &, const primitives::InherentData &),
+                (override));
+
+    MOCK_METHOD(outcome::result<common::Hash256>,
+                random_seed,
+                (storage::trie::RootHash const &storage_hash),
+                (override));
   };
 
 }  // namespace kagome::runtime

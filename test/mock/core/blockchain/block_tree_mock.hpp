@@ -12,81 +12,110 @@
 
 namespace kagome::blockchain {
   struct BlockTreeMock : public BlockTree {
-    MOCK_CONST_METHOD1(
-        getBlockBody,
-        outcome::result<primitives::BlockBody>(const primitives::BlockId &));
+    MOCK_METHOD(outcome::result<primitives::BlockBody>,
+                getBlockBody,
+                (const primitives::BlockId &),
+                (const, override));
 
-    MOCK_CONST_METHOD1(
-        getBlockHeader,
-        outcome::result<primitives::BlockHeader>(const primitives::BlockId &));
+    MOCK_METHOD(outcome::result<primitives::BlockHeader>,
+                getBlockHeader,
+                (const primitives::BlockId &),
+                (const, override));
 
-    MOCK_CONST_METHOD1(getBlockJustification,
-                       outcome::result<primitives::Justification>(
-                           const primitives::BlockId &));
+    MOCK_METHOD(outcome::result<primitives::Justification>,
+                getBlockJustification,
+                (const primitives::BlockId &),
+                (const, override));
 
-    MOCK_CONST_METHOD0(runtimeVersion, std::optional<primitives::Version>());
+    MOCK_METHOD(std::optional<primitives::Version>,
+                runtimeVersion,
+                (),
+                (const, override));
 
-    MOCK_METHOD1(addBlockHeader,
-                 outcome::result<void>(const primitives::BlockHeader &));
+    MOCK_METHOD(outcome::result<void>,
+                addBlockHeader,
+                (const primitives::BlockHeader &),
+                (override));
 
-    MOCK_METHOD3(
-        addBlockBody,
-        outcome::result<void>(primitives::BlockNumber block_number,
-                              const primitives::BlockHash &block_hash,
-                              const primitives::BlockBody &block_body));
+    MOCK_METHOD(outcome::result<void>,
+                addBlockBody,
+                (primitives::BlockNumber block_number,
+                 const primitives::BlockHash &block_hash,
+                 const primitives::BlockBody &block_body),
+                (override));
 
-    MOCK_METHOD2(addExistingBlock,
-                 outcome::result<void>(const primitives::BlockHash &,
-                                       const primitives::BlockHeader &));
+    MOCK_METHOD(outcome::result<void>,
+                addExistingBlock,
+                (const primitives::BlockHash &,
+                 const primitives::BlockHeader &),
+                (override));
 
-    MOCK_METHOD1(addBlock, outcome::result<void>(const primitives::Block &));
+    MOCK_METHOD(outcome::result<void>,
+                addBlock,
+                (const primitives::Block &),
+                (override));
 
-    MOCK_METHOD2(finalize,
-                 outcome::result<void>(const primitives::BlockHash &,
-                                       const primitives::Justification &));
+    MOCK_METHOD(outcome::result<void>,
+                finalize,
+                (const primitives::BlockHash &,
+                 const primitives::Justification &),
+                (override));
 
-    MOCK_CONST_METHOD1(getChainByBlock,
-                       BlockHashVecRes(const primitives::BlockHash &));
+    MOCK_METHOD(BlockHashVecRes,
+                getChainByBlock,
+                (const primitives::BlockHash &),
+                (const, override));
 
-    MOCK_CONST_METHOD3(getChainByBlock,
-                       BlockHashVecRes(const primitives::BlockHash &,
-                                       GetChainDirection,
-                                       uint64_t));
+    MOCK_METHOD(BlockHashVecRes,
+                getChainByBlock,
+                (const primitives::BlockHash &, GetChainDirection, uint64_t),
+                (const, override));
 
-    MOCK_CONST_METHOD2(getChainByBlocks,
-                       BlockHashVecRes(const primitives::BlockHash &,
-                                       const primitives::BlockHash &));
+    MOCK_METHOD(BlockHashVecRes,
+                getChainByBlocks,
+                (const primitives::BlockHash &, const primitives::BlockHash &),
+                (const, override));
 
-    MOCK_CONST_METHOD3(getChainByBlocks,
-                       BlockHashVecRes(const primitives::BlockHash &,
-                                       const primitives::BlockHash &,
-                                       const uint32_t));
+    MOCK_METHOD(BlockHashVecRes,
+                getChainByBlocks,
+                (const primitives::BlockHash &,
+                 const primitives::BlockHash &,
+                 const uint32_t),
+                (const, override));
 
-    MOCK_CONST_METHOD2(hasDirectChain,
-                       bool(const primitives::BlockHash &,
-                            const primitives::BlockHash &));
+    MOCK_METHOD(bool,
+                hasDirectChain,
+                (const primitives::BlockHash &, const primitives::BlockHash &),
+                (const, override));
 
-    MOCK_CONST_METHOD2(getBestContaining,
-                       outcome::result<primitives::BlockInfo>(
-                           const primitives::BlockHash &,
-                           const std::optional<primitives::BlockNumber> &));
+    MOCK_METHOD(outcome::result<primitives::BlockInfo>,
+                getBestContaining,
+                (const primitives::BlockHash &,
+                 const std::optional<primitives::BlockNumber> &),
+                (const, override));
 
-    MOCK_CONST_METHOD0(longestPath, BlockHashVecRes());
+    MOCK_METHOD(BlockHashVecRes, longestPath, (), (const, override));
 
-    MOCK_CONST_METHOD0(deepestLeaf, primitives::BlockInfo());
+    MOCK_METHOD(primitives::BlockInfo, deepestLeaf, (), (const, override));
 
-    MOCK_CONST_METHOD0(getLeaves, std::vector<primitives::BlockHash>());
+    MOCK_METHOD(std::vector<primitives::BlockHash>,
+                getLeaves,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD1(getChildren,
-                       BlockHashVecRes(const primitives::BlockHash &));
+    MOCK_METHOD(BlockHashVecRes,
+                getChildren,
+                (const primitives::BlockHash &),
+                (const, override));
 
-    MOCK_CONST_METHOD0(getLastFinalized, primitives::BlockInfo());
+    MOCK_METHOD(primitives::BlockInfo, getLastFinalized, (), (const, override));
 
-    MOCK_METHOD0(prune, outcome::result<void>());
+    MOCK_METHOD(outcome::result<void>, prune, (), ());
 
-    MOCK_CONST_METHOD2(getEpochDescriptor,
-                       outcome::result<consensus::EpochDigest>(
-                           consensus::EpochNumber, primitives::BlockHash));
+    MOCK_METHOD(outcome::result<consensus::EpochDigest>,
+                getEpochDescriptor,
+                (consensus::EpochNumber, primitives::BlockHash),
+                (const, override));
   };
 }  // namespace kagome::blockchain
 

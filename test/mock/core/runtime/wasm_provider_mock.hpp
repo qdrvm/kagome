@@ -12,11 +12,11 @@
 
 namespace kagome::runtime {
 
-  class WasmProviderMock: public RuntimeCodeProvider {
+  class WasmProviderMock : public RuntimeCodeProvider {
    public:
-    MOCK_CONST_METHOD0(getStateCode, const common::Buffer &());
+    MOCK_METHOD(const common::Buffer &, getStateCode, (), (const, override));
   };
 
-}
+}  // namespace kagome::runtime
 
 #endif  // KAGOME_TEST_MOCK_CORE_RUNTIME_WASM_PROVIDER_MOCK

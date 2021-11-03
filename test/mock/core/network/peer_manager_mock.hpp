@@ -14,20 +14,40 @@ namespace kagome::network {
 
   class PeerManagerMock final : public PeerManager {
    public:
-    MOCK_METHOD1(connectToPeer, void(const PeerInfo &));
-    MOCK_CONST_METHOD1(reserveStreams, void(const PeerId &));
-    MOCK_METHOD1(keepAlive, void(const PeerId &));
-    MOCK_METHOD1(startPingingPeer, void(const PeerId &));
+    MOCK_METHOD(void, connectToPeer, (const PeerInfo &), (override));
 
-    MOCK_METHOD2(updatePeerStatus, void(const PeerId &, const Status &));
-    MOCK_METHOD2(updatePeerStatus, void(const PeerId &, const BlockInfo &));
-    MOCK_METHOD1(getPeerStatus, std::optional<Status>(const PeerId &));
-    MOCK_CONST_METHOD0(activePeersNumber, size_t());
-    MOCK_CONST_METHOD1(forEachPeer,
-                       void(std::function<void(const PeerId &)> func));
-    MOCK_CONST_METHOD2(forOnePeer,
-                       void(const PeerId &peer_id,
-                            std::function<void(const PeerId &)> func));
+    MOCK_METHOD(void, reserveStreams, (const PeerId &), (const, override));
+
+    MOCK_METHOD(void, keepAlive, (const PeerId &), (override));
+
+    MOCK_METHOD(void, startPingingPeer, (const PeerId &), (override));
+
+    MOCK_METHOD(void,
+                updatePeerStatus,
+                (const PeerId &, const Status &),
+                (override));
+
+    MOCK_METHOD(void,
+                updatePeerStatus,
+                (const PeerId &, const BlockInfo &),
+                (override));
+
+    MOCK_METHOD(std::optional<Status>,
+                getPeerStatus,
+                (const PeerId &),
+                (override));
+
+    MOCK_METHOD(size_t, activePeersNumber, (), (const, override));
+
+    MOCK_METHOD(void,
+                forEachPeer,
+                (std::function<void(const PeerId &)>),
+                (const, override));
+
+    MOCK_METHOD(void,
+                forOnePeer,
+                (const PeerId &, std::function<void(const PeerId &)>),
+                (const, override));
   };
 
 }  // namespace kagome::network
