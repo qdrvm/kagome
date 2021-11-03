@@ -5,13 +5,13 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
+#include "consensus/grandpa/grandpa_context.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "scale/scale.hpp"
-#include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -406,6 +406,14 @@ namespace kagome::consensus::grandpa {
       }
     }
 
+    GrandpaContext::Guard cg;
+    auto ctx = GrandpaContext::get().value();
+    ctx->peer_id = peer_id;
+    ctx->justification.emplace(
+        GrandpaJustification{.round_number = msg.round_number,
+                             .block_info = msg.best_final_candidate,
+                             .items = msg.precommit_justification});
+
     auto round = makeInitialRound(round_state, std::move(voters));
 
     // TODO(xDimon): Ensure if this ckecking is really needed
@@ -456,6 +464,11 @@ namespace kagome::consensus::grandpa {
     auto block_info = visit_in_place(msg.vote.message, [](const auto &vote) {
       return BlockInfo(vote.number, vote.hash);
     });
+
+    GrandpaContext::Guard cg;
+    auto ctx = GrandpaContext::get().value();
+    ctx->peer_id = peer_id;
+    ctx->vote.emplace(msg);
 
     /* TODO(xDimon): Ensure if it is really needed
     auto authorities_res = authority_manager_->authorities(block_info, false);
@@ -522,7 +535,13 @@ namespace kagome::consensus::grandpa {
       justification.items.emplace_back(std::move(commit));
     }
 
-    auto res = applyJustification(justification.block_info, justification);
+    GrandpaContext::Guard cg;
+    auto ctx = GrandpaContext::get().value();
+    ctx->peer_id = peer_id;
+    ctx->justification = std::move(justification);
+
+    auto res = applyJustification(justification.block_info,
+                                  ctx->justification.value());
     if (not res.has_value()) {
       logger_->warn("Fin message is not applied: {}", res.error().message());
       return;

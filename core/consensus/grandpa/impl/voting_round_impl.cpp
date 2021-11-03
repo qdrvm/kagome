@@ -13,6 +13,7 @@
 
 #include "common/visitor.hpp"
 #include "consensus/grandpa/grandpa.hpp"
+#include "consensus/grandpa/grandpa_context.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -844,6 +845,15 @@ namespace kagome::consensus::grandpa {
 
     if (primary_vote_.has_value()) {
       propagation = Propagation::NEEDLESS;
+    } else {
+      // Check if node hasn't block
+      // TODO(xDimon): Implement checking
+      if (false /* missing block */) {
+        if (auto ctx_opt = GrandpaContext::get()) {
+          auto ctx = ctx_opt.value();
+          ctx->missing_blocks.emplace_back(proposal.getBlockInfo());
+        }
+      }
     }
 
     primary_vote_.emplace(proposal.getBlockInfo());
