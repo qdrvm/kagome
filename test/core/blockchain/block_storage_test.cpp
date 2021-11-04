@@ -23,7 +23,7 @@ using kagome::primitives::BlockData;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
-using   scale::encode;
+using scale::encode;
 using kagome::storage::face::GenericStorageMock;
 using kagome::storage::trie::RootHash;
 using testing::_;
@@ -118,7 +118,7 @@ TEST_F(BlockStorageTest, LoadFromExistingStorage) {
       .WillOnce(Return(Buffer{genesis_block_hash}))
       // getting header of last finalized block
       .WillOnce(Return(Buffer{}))
-      .WillOnce(Return(Buffer{ scale::encode(BlockHeader{}).value()}));
+      .WillOnce(Return(Buffer{scale::encode(BlockHeader{}).value()}));
 
   auto new_block_storage_res =
       KeyValueBlockStorage::loadExisting(storage, hasher, block_handler);
@@ -195,8 +195,8 @@ TEST_F(BlockStorageTest, PutExistingBlock) {
   EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_block_hash));
 
   EXPECT_CALL(*storage, tryGet(_))
-      .WillOnce(Return(Buffer{ scale::encode(BlockHeader{}).value()}))
-      .WillOnce(Return(Buffer{ scale::encode(BlockBody{}).value()}));
+      .WillOnce(Return(Buffer{scale::encode(BlockHeader{}).value()}))
+      .WillOnce(Return(Buffer{scale::encode(BlockBody{}).value()}));
 
   Block block;
 
