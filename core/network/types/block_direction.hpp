@@ -9,8 +9,9 @@
 #include <cstdint>
 #include <type_traits>
 
+#include <scale/enum_traits.hpp>
+
 #include "common/outcome_throw.hpp"
-#include "scale/scale_error.hpp"
 
 namespace kagome::network {
   /**
@@ -24,5 +25,10 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
+
+SCALE_DEFINE_ENUM_VALUE_RANGE(kagome::network,
+                              Direction,
+                              kagome::network::Direction::ASCENDING,
+                              kagome::network::Direction::DESCENDING);
 
 #endif  // KAGOME_CORE_NETWORK_TYPES_BLOCK_DIRECTION_HPP
