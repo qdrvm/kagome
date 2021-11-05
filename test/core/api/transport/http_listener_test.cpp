@@ -20,30 +20,46 @@ using HttpListenerTest = ListenerTest<HttpListenerImpl>;
  * @when do simple request to RPC
  * @then response contains expected value
  */
-
 TEST_F(HttpListenerTest, EchoSuccess) {
-  backward::SignalHandling sh;
-
-  auto client = std::make_shared<HttpClient>(*client_context);
-
-  ASSERT_NO_THROW(listener->prepare());
-  ASSERT_NO_THROW(service->prepare());
-
-  ASSERT_NO_THROW(listener->start());
-  ASSERT_NO_THROW(service->start());
-
-  std::thread client_thread([this, client] {
-    ASSERT_TRUE(client->connect(listener_config.endpoint));
-    client->query(request, [this](outcome::result<std::string> res) {
-      ASSERT_TRUE(res);
-      ASSERT_EQ(res.value(), response);
-      main_context->stop();
-    });
+  app_state_manager->atLaunch([ctx{main_context}] {
+    std::thread([ctx] { ctx->run_for(3s); }).detach();
+    return true;
   });
 
-  main_context->run_for(std::chrono::seconds(2));
-  client_thread.join();
+  main_context->post([&] {
+    std::thread(
+        [&](Endpoint endpoint, std::string request, std::string response) {
+          auto local_context = std::make_shared<Context>();
 
-  ASSERT_NO_THROW(service->stop());
-  ASSERT_NO_THROW(listener->stop());
+          bool time_is_out;
+
+          local_context->post([&] {
+            auto client = std::make_shared<HttpClient>(*local_context);
+
+            ASSERT_OUTCOME_SUCCESS_TRY(client->connect(endpoint));
+
+            client->query(request, [&](outcome::result<std::string> res) {
+              ASSERT_OUTCOME_SUCCESS_TRY(res);
+              EXPECT_EQ(res.value(), response);
+              client->disconnect();
+              time_is_out = false;
+              local_context->stop();
+            });
+          });
+
+          time_is_out = true;
+          local_context->run_for(2s);
+          EXPECT_FALSE(time_is_out);
+
+          EXPECT_TRUE(app_state_manager->state()
+                      == AppStateManager::State::Works);
+          app_state_manager->shutdown();
+        },
+        listener_config.endpoint,
+        request,
+        response)
+        .detach();
+  });
+
+  app_state_manager->run();
 }

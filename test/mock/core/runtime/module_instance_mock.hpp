@@ -14,16 +14,22 @@ namespace kagome::runtime {
 
   class ModuleInstanceMock : public ModuleInstance {
    public:
-    MOCK_CONST_METHOD2(callExportFunction,
-                       outcome::result<PtrSize>(std::string_view name,
-                                                PtrSize args));
+    MOCK_METHOD(outcome::result<PtrSize>,
+                callExportFunction,
+                (std::string_view name, PtrSize args),
+                (const, override));
 
-    MOCK_CONST_METHOD1(
-        getGlobal,
-        outcome::result<std::optional<WasmValue>>(std::string_view name));
+    MOCK_METHOD(outcome::result<std::optional<WasmValue>>,
+                getGlobal,
+                (std::string_view name),
+                (const, override));
 
-    MOCK_CONST_METHOD0(getEnvironment, InstanceEnvironment const &());
-    MOCK_METHOD0(resetEnvironment, outcome::result<void>());
+    MOCK_METHOD(InstanceEnvironment const &,
+                getEnvironment,
+                (),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<void>, resetEnvironment, (), (override));
   };
 }  // namespace kagome::runtime
 

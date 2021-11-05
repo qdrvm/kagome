@@ -14,22 +14,30 @@ namespace kagome::storage::trie {
 
   class TrieStorageMock : public TrieStorage {
    public:
-    MOCK_METHOD0(getPersistentBatch,
-                 outcome::result<std::unique_ptr<PersistentTrieBatch>>());
-    MOCK_CONST_METHOD0(getEphemeralBatch,
-                       outcome::result<std::unique_ptr<EphemeralTrieBatch>>());
+    MOCK_METHOD(outcome::result<std::unique_ptr<PersistentTrieBatch>>,
+                getPersistentBatch,
+                (),
+                (override));
 
-    MOCK_METHOD1(getPersistentBatchAt,
-                 outcome::result<std::unique_ptr<PersistentTrieBatch>>(
-                     const storage::trie::RootHash &root));
-    MOCK_CONST_METHOD1(getEphemeralBatchAt,
-                       outcome::result<std::unique_ptr<EphemeralTrieBatch>>(
-                           const storage::trie::RootHash &root));
+    MOCK_METHOD(outcome::result<std::unique_ptr<EphemeralTrieBatch>>,
+                getEphemeralBatch,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(getRootHashMock, storage::trie::RootHash());
-    storage::trie::RootHash getRootHash() const noexcept override {
-      return getRootHashMock();
-    }
+    MOCK_METHOD(outcome::result<std::unique_ptr<PersistentTrieBatch>>,
+                getPersistentBatchAt,
+                (const storage::trie::RootHash &root),
+                (override));
+
+    MOCK_METHOD(outcome::result<std::unique_ptr<EphemeralTrieBatch>>,
+                getEphemeralBatchAt,
+                (const storage::trie::RootHash &root),
+                (const, override));
+
+    MOCK_METHOD(storage::trie::RootHash,
+                getRootHash,
+                (),
+                (const, noexcept, override));
   };
 
 }  // namespace kagome::storage::trie

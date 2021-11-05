@@ -15,27 +15,73 @@ namespace kagome::api {
   class ChainApiMock : public ChainApi {
    public:
     ~ChainApiMock() override = default;
-    MOCK_METHOD1(setApiService, void(const std::shared_ptr<api::ApiService> &));
 
-    MOCK_CONST_METHOD0(getBlockHash, outcome::result<BlockHash>());
-    MOCK_CONST_METHOD1(getBlockHash, outcome::result<BlockHash>(BlockNumber));
-    MOCK_CONST_METHOD1(getBlockHash,
-                       outcome::result<BlockHash>(std::string_view));
-    MOCK_CONST_METHOD1(
-        getBlockHash,
-        outcome::result<std::vector<BlockHash>>(gsl::span<const ValueType>));
-    MOCK_METHOD1(getHeader,
-                 outcome::result<primitives::BlockHeader>(std::string_view));
-    MOCK_METHOD0(getHeader, outcome::result<primitives::BlockHeader>());
-    MOCK_METHOD1(getBlock,
-                 outcome::result<primitives::BlockData>(std::string_view));
-    MOCK_METHOD0(getBlock, outcome::result<primitives::BlockData>());
-    MOCK_CONST_METHOD0(getFinalizedHead, outcome::result<primitives::BlockHash>());
+    MOCK_METHOD(void,
+                setApiService,
+                (const std::shared_ptr<api::ApiService> &),
+                (override));
 
-    MOCK_METHOD0(subscribeFinalizedHeads, outcome::result<uint32_t>());
-    MOCK_METHOD1(unsubscribeFinalizedHeads, outcome::result<void>(uint32_t));
-    MOCK_METHOD0(subscribeNewHeads, outcome::result<uint32_t>());
-    MOCK_METHOD1(unsubscribeNewHeads, outcome::result<void>(uint32_t));
+    MOCK_METHOD(outcome::result<BlockHash>,
+                getBlockHash,
+                (),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<BlockHash>,
+                getBlockHash,
+                (BlockNumber),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<BlockHash>,
+                getBlockHash,
+                (std::string_view),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<std::vector<BlockHash>>,
+                getBlockHash,
+                (gsl::span<const ValueType>),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockHeader>,
+                getHeader,
+                (std::string_view),
+                (override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockHeader>,
+                getHeader,
+                (),
+                (override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockData>,
+                getBlock,
+                (std::string_view),
+                (override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockData>,
+                getBlock,
+                (),
+                (override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockHash>,
+                getFinalizedHead,
+                (),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<uint32_t>,
+                subscribeFinalizedHeads,
+                (),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                unsubscribeFinalizedHeads,
+                (uint32_t),
+                (override));
+
+    MOCK_METHOD(outcome::result<uint32_t>, subscribeNewHeads, (), (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                unsubscribeNewHeads,
+                (uint32_t),
+                (override));
   };
 
 }  // namespace kagome::api

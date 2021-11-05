@@ -14,15 +14,20 @@ namespace kagome::consensus::grandpa {
   struct ChainMock : public virtual Chain {
     ~ChainMock() override = default;
 
-    MOCK_CONST_METHOD2(getAncestry,
-                       outcome::result<std::vector<primitives::BlockHash>>(
-                           const BlockHash &base, const BlockHash &block));
+    MOCK_METHOD(outcome::result<std::vector<primitives::BlockHash>>,
+                getAncestry,
+                (const BlockHash &base, const BlockHash &block),
+                (const, override));
 
-    MOCK_CONST_METHOD2(hasAncestry,
-                       bool(const BlockHash &base, const BlockHash &block));
+    MOCK_METHOD(bool,
+                hasAncestry,
+                (const BlockHash &base, const BlockHash &block),
+                (const, override));
 
-    MOCK_CONST_METHOD1(bestChainContaining,
-                       outcome::result<BlockInfo>(const BlockHash &base));
+    MOCK_METHOD(outcome::result<BlockInfo>,
+                bestChainContaining,
+                (const BlockHash &base),
+                (const, override));
   };
 
 }  // namespace kagome::consensus::grandpa

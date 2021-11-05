@@ -540,6 +540,7 @@ namespace kagome::runtime::binaryen {
 
     wasm::Fatal() << "callImport: unknown import: " << import->module.str << "."
                   << import->name.str;
+    return wasm::Literal();
   }  // namespace kagome::runtime::binaryen
 
   void RuntimeExternalInterface::checkArguments(std::string_view extern_name,

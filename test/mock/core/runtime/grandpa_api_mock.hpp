@@ -14,17 +14,20 @@ namespace kagome::runtime {
 
   class GrandpaApiMock : public GrandpaApi {
    public:
-    MOCK_METHOD2(pending_change,
-                 outcome::result<std::optional<ScheduledChange>>(
-                     primitives::BlockHash const &block, const Digest &digest));
+    MOCK_METHOD(outcome::result<std::optional<ScheduledChange>>,
+                pending_change,
+                (primitives::BlockHash const &block, const Digest &digest),
+                (override));
 
-    MOCK_METHOD2(forced_change,
-                 outcome::result<std::optional<ForcedChange>>(
-                     primitives::BlockHash const &block, const Digest &digest));
+    MOCK_METHOD(outcome::result<std::optional<ForcedChange>>,
+                forced_change,
+                (primitives::BlockHash const &block, const Digest &digest),
+                (override));
 
-    MOCK_METHOD1(
-        authorities,
-        outcome::result<AuthorityList>(const primitives::BlockId &block_id));
+    MOCK_METHOD(outcome::result<AuthorityList>,
+                authorities,
+                (const primitives::BlockId &block_id),
+                (override));
   };
 
 }  // namespace kagome::runtime

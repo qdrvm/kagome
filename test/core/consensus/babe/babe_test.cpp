@@ -267,7 +267,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
   EXPECT_CALL(*block_tree_, addBlock(_)).WillOnce(Return(outcome::success()));
 
-  EXPECT_CALL(*block_announce_transmitter_, blockAnnounce_rv(_))
+  EXPECT_CALL(*block_announce_transmitter_, blockAnnounce(_))
       .WillOnce(CheckBlockHeader(created_block_.header));
 
   EXPECT_CALL(*babe_util_, setLastEpoch(_))

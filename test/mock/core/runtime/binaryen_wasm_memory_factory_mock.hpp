@@ -16,10 +16,11 @@ namespace kagome::runtime::binaryen {
    public:
     ~BinaryenWasmMemoryFactoryMock() override = default;
 
-    MOCK_CONST_METHOD2(make,
-                       std::unique_ptr<MemoryImpl>(
-                           wasm::ShellExternalInterface::Memory *memory,
-                           WasmSize heap_base));
+    MOCK_METHOD(std::unique_ptr<MemoryImpl>,
+                make,
+                (wasm::ShellExternalInterface::Memory * memory,
+                 WasmSize heap_base),
+                (const, override));
   };
 
 }  // namespace kagome::runtime::binaryen

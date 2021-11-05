@@ -12,27 +12,37 @@
 
 namespace kagome::crypto {
   struct VRFProviderMock : public VRFProvider {
-    MOCK_CONST_METHOD0(generateKeypair, Sr25519Keypair());
+    MOCK_METHOD(Sr25519Keypair, generateKeypair, (), (const, override));
 
-    MOCK_CONST_METHOD3(sign,
-                       std::optional<VRFOutput>(const common::Buffer &,
-                                                const Sr25519Keypair &,
-                                                const VRFThreshold &));
-    MOCK_CONST_METHOD4(verify,
-                       VRFVerifyOutput(const common::Buffer &,
-                                       const VRFOutput &,
-                                       const Sr25519PublicKey &,
-                                       const VRFThreshold &));
+    MOCK_METHOD(std::optional<VRFOutput>,
+                sign,
+                (const common::Buffer &,
+                 const Sr25519Keypair &,
+                 const VRFThreshold &),
+                (const, override));
 
-    MOCK_CONST_METHOD3(signTranscript,
-                       std::optional<VRFOutput>(const primitives::Transcript &,
-                                                const Sr25519Keypair &,
-                                                const VRFThreshold &));
-    MOCK_CONST_METHOD4(verifyTranscript,
-                       VRFVerifyOutput(const primitives::Transcript &,
-                                       const VRFOutput &,
-                                       const Sr25519PublicKey &,
-                                       const VRFThreshold &));
+    MOCK_METHOD(VRFVerifyOutput,
+                verify,
+                (const common::Buffer &,
+                 const VRFOutput &,
+                 const Sr25519PublicKey &,
+                 const VRFThreshold &),
+                (const, override));
+
+    MOCK_METHOD(std::optional<VRFOutput>,
+                signTranscript,
+                (const primitives::Transcript &,
+                 const Sr25519Keypair &,
+                 const VRFThreshold &),
+                (const, override));
+
+    MOCK_METHOD(VRFVerifyOutput,
+                verifyTranscript,
+                (const primitives::Transcript &,
+                 const VRFOutput &,
+                 const Sr25519PublicKey &,
+                 const VRFThreshold &),
+                (const, override));
   };
 }  // namespace kagome::crypto
 

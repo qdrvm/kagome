@@ -215,14 +215,14 @@ TEST_F(AuthorityManagerTest, Prune) {
   EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
   common::Buffer encoded_data(std::move(encode_result.value()));
 
-  ON_CALL(*storage, put_rv(schedulerLookupKey, _))
-      .WillByDefault(testing::Invoke([&encoded_data](auto &key, auto &val) {
+  ON_CALL(*storage, put(schedulerLookupKey, _))
+      .WillByDefault(testing::Invoke([&encoded_data](auto &key, auto val) {
         EXPECT_EQ(key, storage::kSchedulerTreeLookupKey);
         EXPECT_EQ(val, encoded_data);
         return outcome::success();
       }));
 
-  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+  EXPECT_CALL(*storage, put(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
 
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
@@ -250,7 +250,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
   uint32_t subchain_length = 10;
 
-  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+  EXPECT_CALL(*storage, put(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(
       r1,
@@ -265,7 +265,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   examine({20, "D"_hash256}, old_authorities);
   examine({25, "E"_hash256}, old_authorities);
 
-  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+  EXPECT_CALL(*storage, put(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
                          authority_manager->prune({20, "D"_hash256}));
@@ -292,7 +292,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
   uint32_t subchain_length = 10;
 
-  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+  EXPECT_CALL(*storage, put(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
 
   EXPECT_OUTCOME_SUCCESS(
@@ -333,7 +333,7 @@ TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
   assert(new_authorities.size() == 3);
   new_authorities[authority_index].weight = 0;
 
-  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+  EXPECT_CALL(*storage, put(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
 
   EXPECT_OUTCOME_SUCCESS(
@@ -365,7 +365,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   primitives::BlockInfo target_block{5, "A"_hash256};
   uint32_t delay = 10;
 
-  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+  EXPECT_CALL(*storage, put(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(
       r1,
@@ -383,7 +383,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   examine({20, "D"_hash256}, old_authorities);
   examine({25, "E"_hash256}, old_authorities);
 
-  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+  EXPECT_CALL(*storage, put(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
                          authority_manager->prune({20, "D"_hash256}));
@@ -419,14 +419,14 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
     primitives::BlockInfo target_block{5, "A"_hash256};
     uint32_t delay = 5;
 
-    EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+    EXPECT_CALL(*storage, put(schedulerLookupKey, _))
         .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_SUCCESS(
         r1,
         authority_manager->onConsensus(
             engine_id, target_block, primitives::Pause(delay)));
 
-    EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+    EXPECT_CALL(*storage, put(schedulerLookupKey, _))
         .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_SUCCESS(finalisation_result,
                            authority_manager->prune({10, "B"_hash256}));
@@ -442,7 +442,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
     primitives::BlockInfo target_block{15, "C"_hash256};
     uint32_t delay = 10;
 
-    EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+    EXPECT_CALL(*storage, put(schedulerLookupKey, _))
         .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_SUCCESS(
         r1,

@@ -15,60 +15,79 @@ namespace kagome::consensus::grandpa {
 
   class EnvironmentMock : public Environment, public ChainMock {
    public:
-    MOCK_METHOD1(
-        setJustificationObserver,
-        void(std::weak_ptr<JustificationObserver> justification_observer));
+    MOCK_METHOD(void,
+                setJustificationObserver,
+                (std::weak_ptr<JustificationObserver> justification_observer),
+                (override));
 
-    MOCK_METHOD3(onProposed,
-                 outcome::result<void>(RoundNumber round,
-                                       MembershipCounter set_id,
-                                       const SignedMessage &propose));
+    MOCK_METHOD(outcome::result<void>,
+                onProposed,
+                (RoundNumber round,
+                 MembershipCounter set_id,
+                 const SignedMessage &propose),
+                (override));
 
-    MOCK_METHOD3(onPrevoted,
-                 outcome::result<void>(RoundNumber round,
-                                       MembershipCounter set_id,
-                                       const SignedMessage &prevote));
-    MOCK_METHOD3(onPrecommitted,
-                 outcome::result<void>(RoundNumber round,
-                                       MembershipCounter set_id,
-                                       const SignedMessage &precommit));
-    MOCK_METHOD3(
-        onCommitted,
-        outcome::result<void>(RoundNumber round,
-                              const BlockInfo &vote,
-                              const GrandpaJustification &justification));
+    MOCK_METHOD(outcome::result<void>,
+                onPrevoted,
+                (RoundNumber round,
+                 MembershipCounter set_id,
+                 const SignedMessage &prevote),
+                (override));
 
-    MOCK_METHOD1(doOnCompleted, void(const CompleteHandler &));
+    MOCK_METHOD(outcome::result<void>,
+                onPrecommitted,
+                (RoundNumber round,
+                 MembershipCounter set_id,
+                 const SignedMessage &precommit),
+                (override));
 
-    MOCK_METHOD1(onCompleted, void(outcome::result<MovableRoundState> state));
+    MOCK_METHOD(outcome::result<void>,
+                onCommitted,
+                (RoundNumber round,
+                 const BlockInfo &vote,
+                 const GrandpaJustification &justification),
+                (override));
 
-    MOCK_METHOD2(
-        applyJustification,
-        outcome::result<void>(const BlockInfo &block_info,
-                              const primitives::Justification &justification));
+    MOCK_METHOD(void, doOnCompleted, (const CompleteHandler &), (override));
 
-    MOCK_METHOD2(
-        finalize,
-        outcome::result<void>(MembershipCounter id,
-                              const GrandpaJustification &justification));
+    MOCK_METHOD(void,
+                onCompleted,
+                (outcome::result<MovableRoundState> state),
+                (override));
 
-    MOCK_METHOD1(
-        getJustification,
-        outcome::result<GrandpaJustification>(const BlockHash &block_hash));
+    MOCK_METHOD(outcome::result<void>,
+                applyJustification,
+                (const BlockInfo &block_info,
+                 const primitives::Justification &justification),
+                (override));
 
-    MOCK_METHOD3(onCatchUpRequested,
-                 outcome::result<void>(const libp2p::peer::PeerId &peer_id,
-                                       MembershipCounter set_id,
-                                       RoundNumber round_number));
+    MOCK_METHOD(outcome::result<void>,
+                finalize,
+                (MembershipCounter id,
+                 const GrandpaJustification &justification),
+                (override));
 
-    MOCK_METHOD6(onCatchUpResponsed,
-                 outcome::result<void>(
-                     const libp2p::peer::PeerId &peer_id,
-                     MembershipCounter set_id,
-                     RoundNumber round_number,
-                     std::vector<SignedPrevote> prevote_justification,
-                     std::vector<SignedPrecommit> precommit_justification,
-                     BlockInfo best_final_candidate));
+    MOCK_METHOD(outcome::result<GrandpaJustification>,
+                getJustification,
+                (const BlockHash &block_hash),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                onCatchUpRequested,
+                (const libp2p::peer::PeerId &peer_id,
+                 MembershipCounter set_id,
+                 RoundNumber round_number),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                onCatchUpResponsed,
+                (const libp2p::peer::PeerId &peer_id,
+                 MembershipCounter set_id,
+                 RoundNumber round_number,
+                 std::vector<SignedPrevote> prevote_justification,
+                 std::vector<SignedPrecommit> precommit_justification,
+                 BlockInfo best_final_candidate),
+                (override));
   };
 
 }  // namespace kagome::consensus::grandpa

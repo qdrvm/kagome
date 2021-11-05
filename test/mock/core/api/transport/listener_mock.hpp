@@ -14,16 +14,19 @@ namespace kagome::api {
   class ListenerMock : public Listener {
    public:
     ~ListenerMock() override = default;
-    MOCK_METHOD0(prepare, void());
-    MOCK_METHOD0(start, void());
-    MOCK_METHOD0(stop, void());
 
+    MOCK_METHOD(void, prepare, (), (override));
+
+    MOCK_METHOD(void, start, (), (override));
+
+    MOCK_METHOD(void, stop, (), (override));
+
+    MOCK_METHOD(void, setHandlerForNewSession, (NewSessionHandler), (override));
     void setHandlerForNewSession(NewSessionHandler &&handler) override {
-      setHandlerForNewSession_rv(std::move(handler));
+      setHandlerForNewSession(handler);
     }
-    MOCK_METHOD1(setHandlerForNewSession_rv, void(NewSessionHandler));
 
-    MOCK_METHOD0(acceptOnce, void());
+    MOCK_METHOD(void, acceptOnce, (), (override));
   };
 
 }  // namespace kagome::api

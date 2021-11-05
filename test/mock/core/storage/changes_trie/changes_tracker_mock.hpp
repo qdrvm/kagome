@@ -14,30 +14,41 @@ namespace kagome::storage::changes_trie {
 
   class ChangesTrackerMock : public ChangesTracker {
    public:
-    MOCK_METHOD1(setBlockHash, void(const primitives::BlockHash &hash));
+    MOCK_METHOD(void, setBlockHash, (const primitives::BlockHash &hash), ());
 
-    MOCK_METHOD1(setConfig, void(const ChangesTrieConfig &conf));
+    MOCK_METHOD(void, setConfig, (const ChangesTrieConfig &conf), ());
 
-    MOCK_METHOD2(
-        onBlockExecutionStart,
-        outcome::result<void>(primitives::BlockHash new_parent_hash,
-                              primitives::BlockNumber new_parent_number));
+    MOCK_METHOD(outcome::result<void>,
+                onBlockExecutionStart,
+                (primitives::BlockHash new_parent_hash,
+                 primitives::BlockNumber new_parent_number),
+                (override));
 
-    MOCK_METHOD1(onBlockAdded, void(const primitives::BlockHash &block_hash));
-    MOCK_METHOD1(onClearPrefix, void(const common::Buffer &));
-    MOCK_METHOD4(onPut,
-                 outcome::result<void>(const common::Buffer &ext_idx,
-                                       const common::Buffer &key,
-                                       const common::Buffer &value,
-                                       bool is_new_entry));
-    MOCK_METHOD2(onRemove,
-                 outcome::result<void>(const common::Buffer &ext_idx,
-                                       const common::Buffer &key));
+    MOCK_METHOD(void,
+                onBlockAdded,
+                (const primitives::BlockHash &block_hash),
+                (override));
 
-    MOCK_METHOD2(
-        constructChangesTrie,
-        outcome::result<common::Hash256>(const primitives::BlockHash &parent,
-                                         const ChangesTrieConfig &conf));
+    MOCK_METHOD(void, onClearPrefix, (const common::Buffer &), (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                onPut,
+                (const common::Buffer &ext_idx,
+                 const common::Buffer &key,
+                 const common::Buffer &value,
+                 bool is_new_entry),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                onRemove,
+                (const common::Buffer &ext_idx, const common::Buffer &key),
+                (override));
+
+    MOCK_METHOD(outcome::result<common::Hash256>,
+                constructChangesTrie,
+                (const primitives::BlockHash &parent,
+                 const ChangesTrieConfig &conf),
+                (override));
   };
 
 }  // namespace kagome::storage::changes_trie

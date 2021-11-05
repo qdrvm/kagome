@@ -14,19 +14,35 @@ namespace kagome::consensus::grandpa {
 
   class VoteCryptoProviderMock : public VoteCryptoProvider {
    public:
-    MOCK_CONST_METHOD1(verifyPrimaryPropose,
-                       bool(const SignedMessage &primary_propose));
-    MOCK_CONST_METHOD1(verifyPrevote, bool(const SignedMessage &prevote));
-    MOCK_CONST_METHOD1(verifyPrecommit, bool(const SignedMessage &precommit));
+    MOCK_METHOD(bool,
+                verifyPrimaryPropose,
+                (const SignedMessage &primary_propose),
+                (const, override));
 
-    MOCK_CONST_METHOD1(
-        signPrimaryPropose,
-        std::optional<SignedMessage>(const PrimaryPropose &primary_propose));
-    MOCK_CONST_METHOD1(signPrevote,
-                       std::optional<SignedMessage>(const Prevote &prevote));
-    MOCK_CONST_METHOD1(
-        signPrecommit,
-        std::optional<SignedMessage>(const Precommit &precommit));
+    MOCK_METHOD(bool,
+                verifyPrevote,
+                (const SignedMessage &prevote),
+                (const, override));
+
+    MOCK_METHOD(bool,
+                verifyPrecommit,
+                (const SignedMessage &precommit),
+                (const, override));
+
+    MOCK_METHOD(std::optional<SignedMessage>,
+                signPrimaryPropose,
+                (const PrimaryPropose &primary_propose),
+                (const, override));
+
+    MOCK_METHOD(std::optional<SignedMessage>,
+                signPrevote,
+                (const Prevote &prevote),
+                (const, override));
+
+    MOCK_METHOD(std::optional<SignedMessage>,
+                signPrecommit,
+                (const Precommit &precommit),
+                (const, override));
   };
 
 }  // namespace kagome::consensus::grandpa

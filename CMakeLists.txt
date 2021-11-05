@@ -135,6 +135,7 @@ add_subdirectory(core)
 
 kagome_install_setup(
     HEADER_DIRS
+    core/application
     core/common
     core/clock
     core/consensus

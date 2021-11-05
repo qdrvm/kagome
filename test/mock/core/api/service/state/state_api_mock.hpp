@@ -18,49 +18,73 @@ namespace kagome::api {
    public:
     ~StateApiMock() override = default;
 
-    MOCK_METHOD1(setApiService, void(const std::shared_ptr<api::ApiService> &));
+    MOCK_METHOD(void,
+                setApiService,
+                (const std::shared_ptr<api::ApiService> &),
+                (override));
 
-    MOCK_CONST_METHOD4(getKeysPaged,
-                       outcome::result<std::vector<common::Buffer>>(
-                           const std::optional<common::Buffer> &,
-                           uint32_t,
-                           const std::optional<common::Buffer> &,
-                           const std::optional<primitives::BlockHash> &));
+    MOCK_METHOD(outcome::result<std::vector<common::Buffer>>,
+                getKeysPaged,
+                (const std::optional<common::Buffer> &,
+                 uint32_t,
+                 const std::optional<common::Buffer> &,
+                 const std::optional<primitives::BlockHash> &),
+                (const, override));
 
-    MOCK_CONST_METHOD1(getStorage,
-                       outcome::result<std::optional<common::Buffer>>(
-                           const common::Buffer &key));
-    MOCK_CONST_METHOD2(getStorageAt,
-                       outcome::result<std::optional<common::Buffer>>(
-                           const common::Buffer &key,
-                           const primitives::BlockHash &at));
+    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
+                getStorage,
+                (const common::Buffer &key),
+                (const, override));
 
-    MOCK_CONST_METHOD3(queryStorage,
-                       outcome::result<std::vector<StorageChangeSet>>(
-                           gsl::span<const common::Buffer> keys,
-                           const primitives::BlockHash &from,
-                           std::optional<primitives::BlockHash> to));
-    MOCK_CONST_METHOD2(queryStorageAt,
-                       outcome::result<std::vector<StorageChangeSet>>(
-                           gsl::span<const common::Buffer> keys,
-                           std::optional<primitives::BlockHash> at));
+    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
+                getStorageAt,
+                (const common::Buffer &key, const primitives::BlockHash &at),
+                (const, override));
 
-    MOCK_METHOD1(
-        subscribeStorage,
-        outcome::result<uint32_t>(std::vector<common::Buffer> const &keys));
-    MOCK_METHOD1(
-        unsubscribeStorage,
-        outcome::result<bool>(const std::vector<uint32_t> &subscription_id));
+    MOCK_METHOD(outcome::result<std::vector<StorageChangeSet>>,
+                queryStorage,
+                (gsl::span<const common::Buffer> keys,
+                 const primitives::BlockHash &from,
+                 std::optional<primitives::BlockHash> to),
+                (const, override));
 
-    MOCK_CONST_METHOD1(getRuntimeVersion,
-                       outcome::result<primitives::Version>(
-                           std::optional<primitives::BlockHash> const &at));
-    MOCK_METHOD0(subscribeRuntimeVersion, outcome::result<uint32_t>());
-    MOCK_METHOD1(unsubscribeRuntimeVersion,
-                 outcome::result<void>(uint32_t subscription_id));
+    MOCK_METHOD(outcome::result<std::vector<StorageChangeSet>>,
+                queryStorageAt,
+                (gsl::span<const common::Buffer> keys,
+                 std::optional<primitives::BlockHash> at),
+                (const, override));
 
-    MOCK_METHOD0(getMetadata, outcome::result<std::string>());
-    MOCK_METHOD1(getMetadata, outcome::result<std::string>(std::string_view));
+    MOCK_METHOD(outcome::result<uint32_t>,
+                subscribeStorage,
+                (std::vector<common::Buffer> const &keys),
+                (override));
+
+    MOCK_METHOD(outcome::result<bool>,
+                unsubscribeStorage,
+                (const std::vector<uint32_t> &subscription_id),
+                (override));
+
+    MOCK_METHOD(outcome::result<primitives::Version>,
+                getRuntimeVersion,
+                (std::optional<primitives::BlockHash> const &at),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<uint32_t>,
+                subscribeRuntimeVersion,
+                (),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                unsubscribeRuntimeVersion,
+                (uint32_t subscription_id),
+                (override));
+
+    MOCK_METHOD(outcome::result<std::string>, getMetadata, (), (override));
+
+    MOCK_METHOD(outcome::result<std::string>,
+                getMetadata,
+                (std::string_view),
+                (override));
   };
 }  // namespace kagome::api
 
