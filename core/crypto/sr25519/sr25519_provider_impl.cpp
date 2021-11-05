@@ -63,7 +63,7 @@ namespace kagome::crypto {
     } catch (...) {
       return Sr25519ProviderError::SIGN_UNKNOWN_ERROR;
     }
-    return outcome::success(result);
+    return result;
   }
 
   outcome::result<bool> Sr25519ProviderImpl::verify(
