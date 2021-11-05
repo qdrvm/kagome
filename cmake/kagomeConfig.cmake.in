@@ -4,3 +4,5 @@ include(CMakeFindDependencyMacro)
 find_dependency(Threads REQUIRED)
 find_dependency(Boost REQUIRED)
 find_dependency(soralog REQUIRED)
+
+include("${CMAKE_CURRENT_LIST_DIR}/kagomeTargets.cmake")
