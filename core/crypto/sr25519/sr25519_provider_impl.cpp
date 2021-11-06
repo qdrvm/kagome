@@ -52,6 +52,20 @@ namespace kagome::crypto {
     return signature;
   }
 
+  outcome::result<bool> Sr25519ProviderImpl::verify_deprecated(
+      const Sr25519Signature &signature,
+      gsl::span<const uint8_t> message,
+      const Sr25519PublicKey &public_key) const {
+    bool result = false;
+    try {
+      result = sr25519_verify_deprecated(
+          signature.data(), message.data(), message.size(), public_key.data());
+    } catch (...) {
+      return Sr25519ProviderError::SIGN_UNKNOWN_ERROR;
+    }
+    return result;
+  }
+
   outcome::result<bool> Sr25519ProviderImpl::verify(
       const Sr25519Signature &signature,
       gsl::span<const uint8_t> message,
