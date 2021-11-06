@@ -6,15 +6,16 @@
 #include "offchain/impl/http_request.hpp"
 
 #include <algorithm>
+#include <string>
+#include <string_view>
+#include <thread>
+
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/error.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/beast/http.hpp>
-#include <string>
-#include <string_view>
-#include <thread>
 
 namespace kagome::offchain {
 
@@ -113,7 +114,7 @@ namespace kagome::offchain {
                                     boost::asio::error::get_ssl_category()};
         SL_ERROR(
             log_, "Can't resolve hostname {}: {}", uri_.Host, ec.message());
-        status_ = HttpStatus(20);
+        status_ = ErrorHasOccurred;
         return;
       }
     }
@@ -137,7 +138,7 @@ namespace kagome::offchain {
                  "Can't resolve hostname {}: {}",
                  self->uri_.Host,
                  ec.message());
-        self->status_ = HttpStatus(20);
+        self->status_ = ErrorHasOccurred;
       }
     };
 
@@ -187,7 +188,7 @@ namespace kagome::offchain {
           SL_TRACE(self->log_, "Trying next endpoint...");
           self->connect();
         } else {
-          self->status_ = HttpStatus(20);
+          self->status_ = ErrorHasOccurred;
         }
       }
     };
@@ -220,7 +221,7 @@ namespace kagome::offchain {
         }
 
         SL_ERROR(self->log_, "Handshake failed: {}", ec.message());
-        self->status_ = HttpStatus(20);
+        self->status_ = ErrorHasOccurred;
       }
     };
 
@@ -267,7 +268,7 @@ namespace kagome::offchain {
         }
 
         SL_ERROR(self->log_, "Request send was fail: {}", ec.message());
-        self->status_ = HttpStatus(20);
+        self->status_ = ErrorHasOccurred;
       }
     };
 
@@ -306,7 +307,7 @@ namespace kagome::offchain {
         }
 
         SL_ERROR(self->log_, "Response receive was fail: {}", ec.message());
-        self->status_ = HttpStatus(20);
+        self->status_ = ErrorHasOccurred;
       }
     };
 
@@ -386,10 +387,10 @@ namespace kagome::offchain {
       request_is_ready_ = true;
       sendRequest();
       if (deadline_opt.has_value()) {
-        auto& deadline = deadline_opt.value();
+        auto &deadline = deadline_opt.value();
         io_context_.run_for(deadline);
         if (status_ == 0) {
-          status_ = HttpStatus(10);  // Deadline was reached
+          status_ = DeadlineHasReached;  // Deadline was reached
         }
       } else {
         io_context_.run();

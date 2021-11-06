@@ -17,11 +17,17 @@
 
 namespace kagome::offchain {
 
+  /// Timestamp is milliseconds scince UNIX Epoch
   using Timestamp = uint64_t;
+
   using RandomSeed = common::Blob<32>;
+
   enum class StorageType : int32_t { Undefined = 0, Persistent = 1, Local = 2 };
+
   enum class HttpMethod { Undefined = 0, Get = 1, Post = 2 };
+
   using RequestId = int16_t;
+
   enum class HttpError : int32_t {
     Timeout = 0,   //!< The deadline was reached
     IoError = 1,   //!< There was an IO error while processing the request
@@ -38,6 +44,9 @@ namespace kagome::offchain {
    * 100-999: the request has finished with the given HTTP status code.
    */
   using HttpStatus = uint16_t;
+  constexpr HttpStatus InvalidIdentifier(0);
+  constexpr HttpStatus DeadlineHasReached(10);
+  constexpr HttpStatus ErrorHasOccurred(20);
 
   struct NoPayload {};
 
@@ -108,7 +117,7 @@ namespace kagome::offchain {
     s >> size;
     v.address.resize(size.convert_to<uint64_t>());
 
-    for (auto& address : v.address){
+    for (auto &address : v.address) {
       s >> buff;
       auto ma_res = libp2p::multi::Multiaddress::create(buff);
       if (ma_res.has_error()) {

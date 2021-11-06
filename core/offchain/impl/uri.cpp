@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "uri.hpp"
+#include "offchain/impl/uri.hpp"
 
 #include <algorithm>
 

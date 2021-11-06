@@ -613,6 +613,7 @@ namespace kagome::consensus::babe {
           [](const auto &) { return outcome::success(); });
       if (res.has_error()) {
         // TODO(xDimon): Rolling back of block is needed here
+        //  issue: https://github.com/soramitsu/kagome/issues/996
         return;
       }
     }
@@ -621,6 +622,7 @@ namespace kagome::consensus::babe {
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
       SL_ERROR(log_, "Could not add block: {}", add_res.error().message());
       // TODO(xDimon): Rolling back of block is needed here
+      //  issue: https://github.com/soramitsu/kagome/issues/996
       return;
     }
 

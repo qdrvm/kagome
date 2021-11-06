@@ -23,7 +23,7 @@ namespace kagome::offchain {
   OffchainPersistentStorageImpl::OffchainPersistentStorageImpl(
       std::shared_ptr<storage::BufferStorage> storage)
       : storage_(std::move(storage)),
-        log_(log::createLogger("OcwPersistentStorage", "offchain")) {
+        log_(log::createLogger("OffchainPersistentStorage", "offchain")) {
     BOOST_ASSERT(storage_);
   }
 
@@ -47,25 +47,17 @@ namespace kagome::offchain {
       common::Buffer value) {
     auto iKey = internalKey(key);
     std::lock_guard lg(mutex_);
-    auto get_res = storage_->get(iKey);
-    if (get_res.has_error()) {
-      if (get_res != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-        return get_res.as_failure();
-      }
-    }
+    OUTCOME_TRY(get_opt, storage_->tryGet(iKey));
 
     std::optional<std::reference_wrapper<const common::Buffer>> existing;
-    if (get_res.has_value()) {
-      existing = get_res.value();
+    if (get_opt.has_value()) {
+      existing = get_opt.value();
     }
 
     if ((not existing.has_value() and not expected.has_value())
         or (existing.has_value() and expected.has_value()
             and existing->get() == expected->get())) {
-      auto put_res = storage_->put(iKey, std::move(value));
-      if (put_res.has_failure()) {
-        return put_res.as_failure();
-      }
+      OUTCOME_TRY(storage_->put(iKey, std::move(value)));
       return true;
     }
     return false;

@@ -30,6 +30,7 @@ namespace kagome::crypto {
 namespace kagome::runtime {
   class Executor;
 }
+using namespace std::chrono_literals;
 
 namespace kagome::offchain {
 
@@ -37,6 +38,10 @@ namespace kagome::offchain {
       : public OffchainWorker,
         public std::enable_shared_from_this<OffchainWorkerImpl> {
    public:
+    // Duration of sleeping in loop of waiting.
+    // This value because all deadline quantized with milliseconds
+    static constexpr auto latency_of_waiting = 1ms;
+
     OffchainWorkerImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<clock::SystemClock> clock,
@@ -124,7 +129,7 @@ namespace kagome::offchain {
     log::Logger log_;
 
     int16_t request_id_ = 0;
-    std::map<RequestId, std::shared_ptr<HttpRequest>> requests_;
+    std::map<RequestId, std::shared_ptr<HttpRequest>> active_http_requests_;
   };
 
 }  // namespace kagome::offchain

@@ -10,10 +10,20 @@
 
 namespace kagome::offchain {
 
+  namespace {
+    common::Buffer internalKey(const common::Buffer &key) {
+      const auto &prefix = storage::kOffchainWorkerStoragePrefix;
+      return common::Buffer()
+          .reserve(prefix.size() + key.size())
+          .putBuffer(prefix)
+          .putBuffer(key);
+    }
+  }  // namespace
+
   OffchainLocalStorageImpl::OffchainLocalStorageImpl(
       std::shared_ptr<storage::BufferStorage> storage)
       : storage_(std::move(storage)),
-        log_(log::createLogger("OcwLocalStorage", "offchain")) {
+        log_(log::createLogger("OffchainLocalStorage", "offchain")) {
     BOOST_ASSERT(storage_);
   }
 
@@ -22,10 +32,12 @@ namespace kagome::offchain {
     // TODO(xDimon):
     //  Need to implemented as soon as it will implemented in Substrate.
     //  Specification in not enough to implement it now.
+    //  issue: https://github.com/soramitsu/kagome/issues/997
     throw std::invalid_argument("Off-chain local storage is unavailable yet");
 
+    auto iKey = internalKey(key);
     std::lock_guard lg(mutex_);
-    return storage_->put(key, std::move(value));
+    return storage_->put(iKey, std::move(value));
   }
 
   outcome::result<void> OffchainLocalStorageImpl::clear(
@@ -33,6 +45,7 @@ namespace kagome::offchain {
     // TODO(xDimon):
     //  Need to implemented as soon as it will implemented in Substrate.
     //  Specification in not enough to implement it now.
+    //  issue: https://github.com/soramitsu/kagome/issues/997
     throw std::invalid_argument("Off-chain local storage is unavailable yet");
 
     std::lock_guard lg(mutex_);
@@ -46,28 +59,22 @@ namespace kagome::offchain {
     // TODO(xDimon):
     //  Need to implemented as soon as it will implemented in Substrate.
     //  Specification in not enough to implement it now.
+    //  issue: https://github.com/soramitsu/kagome/issues/997
     throw std::invalid_argument("Off-chain local storage is unavailable yet");
 
+    auto iKey = internalKey(key);
     std::lock_guard lg(mutex_);
-    auto get_res = storage_->get(key);
-    if (get_res.has_error()) {
-      if (get_res != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-        return get_res.as_failure();
-      }
-    }
+    OUTCOME_TRY(get_opt, storage_->tryGet(iKey));
 
     std::optional<std::reference_wrapper<const common::Buffer>> existing;
-    if (get_res.has_value()) {
-      existing = get_res.value();
+    if (get_opt.has_value()) {
+      existing = get_opt.value();
     }
 
     if ((not existing.has_value() and not expected.has_value())
         or (existing.has_value() and expected.has_value()
-               and existing->get() == expected->get())) {
-      auto put_res = storage_->put(key, std::move(value));
-      if (put_res.has_failure()) {
-        return put_res.as_failure();
-      }
+            and existing->get() == expected->get())) {
+      OUTCOME_TRY(storage_->put(iKey, std::move(value)));
       return true;
     }
     return false;
@@ -78,8 +85,10 @@ namespace kagome::offchain {
     // TODO(xDimon):
     //  Need to implemented as soon as it will implemented in Substrate.
     //  Specification in not enough to implement it now.
+    //  issue: https://github.com/soramitsu/kagome/issues/997
     throw std::invalid_argument("Off-chain local storage is unavailable yet");
 
-    return storage_->get(key);
+    auto iKey = internalKey(key);
+    return storage_->get(iKey);
   }
 }  // namespace kagome::offchain

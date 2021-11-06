@@ -7,9 +7,7 @@ add_library(offchain_persistent_storage
     offchain_persistent_storage.cpp
     )
 target_link_libraries(offchain_persistent_storage
-    hasher
-    scale
-    leveldb
+    Boost::boost
     )
 kagome_install(offchain_persistent_storage)
 
@@ -17,9 +15,7 @@ add_library(offchain_local_storage
     offchain_local_storage.cpp
     )
 target_link_libraries(offchain_local_storage
-    hasher
-    scale
-    leveldb
+    Boost::boost
     )
 kagome_install(offchain_local_storage)
 

@@ -5,8 +5,9 @@
 
 #include "offchain/impl/offchain_worker_impl.hpp"
 
-#include <libp2p/host/host.hpp>
 #include <thread>
+
+#include <libp2p/host/host.hpp>
 
 #include "api/service/author/author_api.hpp"
 #include "application/app_configuration.hpp"
@@ -158,6 +159,7 @@ namespace kagome::offchain {
         // TODO(xDimon):
         //  Need to implemented as soon as it will implemented in Substrate.
         //  Specification in not enough to implement it now.
+        //  issue: https://github.com/soramitsu/kagome/issues/997
         SL_WARN(
             log_,
             "Attempt to use off-chain local storage which unavailable yet.");
@@ -225,7 +227,8 @@ namespace kagome::offchain {
       return Failure();
     }
 
-    auto is_emplaced = requests_.emplace(request_id, std::move(request)).second;
+    auto is_emplaced =
+        active_http_requests_.emplace(request_id, std::move(request)).second;
 
     if (is_emplaced) {
       return request_id;
@@ -236,8 +239,8 @@ namespace kagome::offchain {
 
   Result<Success, Failure> OffchainWorkerImpl::httpRequestAddHeader(
       RequestId id, std::string_view name, std::string_view value) {
-    auto it = requests_.find(id);
-    if (it == requests_.end()) {
+    auto it = active_http_requests_.find(id);
+    if (it == active_http_requests_.end()) {
       return Failure();
     }
     auto &request = it->second;
@@ -256,8 +259,8 @@ namespace kagome::offchain {
           - clock_->now().time_since_epoch());
     }
 
-    auto it = requests_.find(id);
-    if (it == requests_.end()) {
+    auto it = active_http_requests_.find(id);
+    if (it == active_http_requests_.end()) {
       return HttpError::InvalidId;
     }
     auto &request = it->second;
@@ -273,9 +276,9 @@ namespace kagome::offchain {
     result.reserve(ids.size());
 
     for (auto id : ids) {
-      auto it = requests_.find(id);
-      if (it == requests_.end()) {
-        result.push_back(0);  // Invalid identifier
+      auto it = active_http_requests_.find(id);
+      if (it == active_http_requests_.end()) {
+        result.push_back(InvalidIdentifier);
       }
       auto &request = it->second;
 
@@ -286,10 +289,10 @@ namespace kagome::offchain {
                     < clock_->now()) {
           break;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::this_thread::sleep_for(latency_of_waiting);
       }
 
-      result.push_back(status ? status : HttpStatus(10));
+      result.push_back(status ? status : DeadlineHasReached);
     }
 
     return result;
@@ -298,8 +301,8 @@ namespace kagome::offchain {
   std::vector<std::pair<std::string, std::string>>
   OffchainWorkerImpl::httpResponseHeaders(RequestId id) {
     std::vector<std::pair<std::string, std::string>> result;
-    auto it = requests_.find(id);
-    if (it == requests_.end()) {
+    auto it = active_http_requests_.find(id);
+    if (it == active_http_requests_.end()) {
       return result;
     }
     auto &request = it->second;
@@ -311,8 +314,8 @@ namespace kagome::offchain {
 
   Result<uint32_t, HttpError> OffchainWorkerImpl::httpResponseReadBody(
       RequestId id, common::Buffer &chunk, std::optional<Timestamp> deadline) {
-    auto it = requests_.find(id);
-    if (it == requests_.end()) {
+    auto it = active_http_requests_.find(id);
+    if (it == active_http_requests_.end()) {
       return HttpError::InvalidId;
     }
     auto &request = it->second;
@@ -332,6 +335,7 @@ namespace kagome::offchain {
   void OffchainWorkerImpl::setAuthorizedNodes(
       std::vector<libp2p::peer::PeerId> nodes, bool authorized_only) {
     // TODO(xDimon): Need to implement it
+    //  issue: https://github.com/soramitsu/kagome/issues/998
     throw std::runtime_error(
         "This method of OffchainWorkerImpl is not implemented yet");
     return;
