@@ -31,8 +31,8 @@ hunter_add_package(c-ares)
 find_package(c-ares CONFIG REQUIRED)
 
 # transitive from libp2p
-hunter_add_package(tsl)
-find_package(tsl CONFIG REQUIRED)
+hunter_add_package(tsl_hat_trie)
+find_package(tsl_hat_trie CONFIG REQUIRED)
 
 # https://www.openssl.org/
 hunter_add_package(OpenSSL)
