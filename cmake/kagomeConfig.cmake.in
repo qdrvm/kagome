@@ -17,7 +17,7 @@ find_dependency(yaml-cpp REQUIRED)
 option(KAGOME_ENABLE_WAVM ON)
 if (KAGOME_ENABLE_WAVM)
     find_dependency(LLVM REQUIRED)
-    find_dependency(wavm REQUIRED)
+    find_dependency(WAVM REQUIRED)
 endif()
 
 option(KAGOME_ENABLE_BINARYEN ON)
