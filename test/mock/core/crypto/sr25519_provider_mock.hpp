@@ -29,6 +29,13 @@ namespace kagome::crypto {
                  gsl::span<const uint8_t>,
                  const Sr25519PublicKey &),
                 (const, override));
+    
+    MOCK_METHOD(outcome::result<bool>,
+                verify_deprecated,
+                (const Sr25519Signature &,
+                 gsl::span<const uint8_t>,
+                 const Sr25519PublicKey &),
+                (const, override));
   };
 }  // namespace kagome::crypto
 
