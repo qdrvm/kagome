@@ -29,7 +29,7 @@ namespace kagome::host_api {
   }
 
   offchain::OffchainWorker &OffchainExtension::getWorker() {
-    auto &worker_opt = OffchainWorker::current();
+    auto &worker_opt = OffchainWorker::worker_of_this_thread();
     if (not worker_opt.has_value()) {
       std::runtime_error("Method was called not in offchain worker context");
     }

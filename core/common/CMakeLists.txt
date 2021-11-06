@@ -34,3 +34,12 @@ target_link_libraries(mp_utils
     Boost::boost
     )
 kagome_install(mp_utils)
+
+add_library(error
+    error.cpp
+    error.hpp
+    )
+target_link_libraries(error
+    Boost::boost
+    )
+kagome_install(error)

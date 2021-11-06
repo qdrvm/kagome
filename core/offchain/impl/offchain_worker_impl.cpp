@@ -11,6 +11,7 @@
 
 #include "api/service/author/author_api.hpp"
 #include "application/app_configuration.hpp"
+#include "common/error.hpp"
 #include "crypto/hasher.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "runtime/executor.hpp"
@@ -56,12 +57,12 @@ namespace kagome::offchain {
   }
 
   outcome::result<void> OffchainWorkerImpl::run() {
-    BOOST_ASSERT(not current().has_value());
+    BOOST_ASSERT(not worker_of_this_thread().has_value());
 
     auto main_thread_func = [ocw = shared_from_this()] {
       soralog::util::setThreadName("ocw." + std::to_string(ocw->block_.number));
 
-      current(*ocw);
+      worker_of_this_thread(*ocw);
 
       SL_TRACE(ocw->log_,
                "Offchain worker is started for block #{} hash={}",
@@ -71,7 +72,7 @@ namespace kagome::offchain {
       auto res = ocw->executor_->callAt<void>(
           ocw->block_.hash, "OffchainWorkerApi_offchain_worker", ocw->header_);
 
-      current(std::nullopt);
+      worker_of_this_thread(std::nullopt);
 
       if (res.has_failure()) {
         SL_ERROR(ocw->log_,
@@ -93,7 +94,7 @@ namespace kagome::offchain {
     } catch (const std::system_error &exception) {
       return outcome::failure(exception.code());
     } catch (...) {
-      return outcome::failure(boost::system::error_code{});
+      return Error::OTHER_EXCEPTION;
     }
 
     return outcome::success();
@@ -138,8 +139,8 @@ namespace kagome::offchain {
                  ts - clock_->now())
                  .count());
 
-    std::this_thread::sleep_until(std::chrono::system_clock::time_point()
-                                  + std::chrono::milliseconds(deadline));
+    std::this_thread::sleep_until(decltype(clock_)::element_type::TimePoint(
+        std::chrono::milliseconds(deadline)));
     SL_DEBUG(log_, "Woke up after sleeping");
   }
 

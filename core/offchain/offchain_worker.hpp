@@ -18,11 +18,21 @@
 
 namespace kagome::offchain {
 
+  /**
+   *
+   * The offchain workers allow the execution of long-running and possibly
+   * non-deterministic tasks (e.g. web requests, encryption/decryption and
+   * signing of data, random number generation, CPU-intensive computations,
+   * enumeration/aggregation of on-chain data, etc.) which could otherwise
+   * require longer than the block execution time. Offchain workers have their
+   * own execution environment. This separation of concerns is to make sure that
+   * the block production is not impacted by the long-running tasks.
+   */
   class OffchainWorker {
    public:
     static const std::optional<std::reference_wrapper<OffchainWorker>>
-        &current() {
-      return current_opt();
+        &worker_of_this_thread() {
+      return worker_of_this_thread_opt();
     }
 
     virtual ~OffchainWorker() = default;
@@ -87,17 +97,17 @@ namespace kagome::offchain {
                                     bool authorized_only) = 0;
 
    protected:
-    static void current(
+    static void worker_of_this_thread(
         std::optional<std::reference_wrapper<OffchainWorker>> worker) {
-      current_opt() = std::move(worker);
+      worker_of_this_thread_opt() = std::move(worker);
     }
 
    private:
     static std::optional<std::reference_wrapper<OffchainWorker>>
-        &current_opt() {
+        &worker_of_this_thread_opt() {
       static thread_local std::optional<std::reference_wrapper<OffchainWorker>>
-          current_opt = std::nullopt;
-      return current_opt;
+          worker_of_this_thread_opt = std::nullopt;
+      return worker_of_this_thread_opt;
     }
   };
 

@@ -12,16 +12,21 @@
 namespace kagome::offchain {
   struct Uri final {
    public:
-    std::string Schema;
-    std::string Host;
-    std::string Port;
-    std::string Path;
-    std::string Query;
-    std::string Fragment;
+    std::string_view Schema;
+    std::string_view Host;
+    std::string_view Port;
+    std::string_view Path;
+    std::string_view Query;
+    std::string_view Fragment;
+
+    const std::string& toString() const {
+      return uri_;
+    }
 
     static Uri Parse(std::string_view uri);
 
-    std::string toString() const;
+   private:
+    std::string uri_;
   };
 
 }  // namespace kagome::offchain

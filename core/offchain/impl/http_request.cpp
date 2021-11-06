@@ -49,11 +49,13 @@ namespace kagome::offchain {
                          common::Buffer meta) {
     uri_ = Uri::Parse(uri_arg);
     if (uri_.Schema != "https" and uri_.Schema != "http") {
-      SL_ERROR(log_, "URI has invalid schema: `{}`", uri_.Schema);
+      SL_ERROR(log_,
+               "URI has invalid schema: `{}` (`http` or `https` is expected)",
+               uri_.Schema);
       return false;
     }
     if (not uri_.Port.empty()) {
-      if (int port = std::stoi(uri_.Port);
+      if (int port = std::stoi(std::string(uri_.Port));
           port <= 0 or port > 65536 or uri_.Port != std::to_string(port)) {
         SL_ERROR(log_, "URI has invalid port: `{}`", uri_.Port);
         return false;
@@ -87,7 +89,7 @@ namespace kagome::offchain {
     } else if (method == HttpMethod::Get) {
       request_.method(boost::beast::http::verb::get);
     }
-    request_.target(uri_.Path);
+    request_.target(std::string(uri_.Path));
     request_.version(11);  // HTTP/1.1
     request_.set(boost::beast::http::field::host, uri_.Host);
     request_.set(boost::beast::http::field::user_agent, "KagomeOffchainWorker");
@@ -109,7 +111,7 @@ namespace kagome::offchain {
 
       // Set SNI Hostname (many hosts need this to handshake successfully)
       if (!SSL_set_tlsext_host_name(stream.native_handle(),
-                                    uri_.Host.c_str())) {
+                                    std::string(uri_.Host).c_str())) {
         boost::beast::error_code ec{static_cast<int>(::ERR_get_error()),
                                     boost::asio::error::get_ssl_category()};
         SL_ERROR(
@@ -123,7 +125,7 @@ namespace kagome::offchain {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(
-              self->log_, "Result of resilving is ignored: {}", self->status_);
+              self->log_, "Result of resolving is ignored: {}", self->status_);
           return;
         }
 
