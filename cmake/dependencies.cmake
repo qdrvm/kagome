@@ -26,6 +26,10 @@ find_package(xxhash CONFIG REQUIRED)
 hunter_add_package(binaryen)
 find_package(binaryen CONFIG REQUIRED)
 
+# transitive from libp2p
+hunter_add_package(c-ares)
+find_package(c-ares CONFIG REQUIRED)
+
 # https://www.openssl.org/
 hunter_add_package(OpenSSL)
 find_package(OpenSSL REQUIRED)
@@ -51,16 +55,9 @@ find_package(jsonrpc-lean REQUIRED)
 hunter_add_package(soralog)
 find_package(soralog CONFIG REQUIRED)
 
-# https://github.com/masterjedy/hat-trie
-hunter_add_package(tsl_hat_trie)
-find_package(tsl_hat_trie CONFIG REQUIRED)
-
 # https://github.com/masterjedy/di
 hunter_add_package(Boost.DI)
 find_package(Boost.DI CONFIG REQUIRED)
-
-hunter_add_package(c-ares)
-find_package(c-ares CONFIG REQUIRED)
 
 # https://hunter.readthedocs.io/en/latest/packages/pkg/prometheus-cpp.html
 hunter_add_package(prometheus-cpp)

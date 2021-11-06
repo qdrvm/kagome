@@ -90,7 +90,6 @@ target_link_libraries(application_injector
     trie_serializer
     trie_storage
     trie_storage_provider
-    tsl::tsl_hat_trie
     vrf_provider
     waitable_timer
     authority_manager
