@@ -27,12 +27,13 @@ hunter_add_package(binaryen)
 find_package(binaryen CONFIG REQUIRED)
 
 # transitive from libp2p
-hunter_add_package(c-ares)
 find_package(c-ares CONFIG REQUIRED)
 
 # transitive from libp2p
-hunter_add_package(tsl_hat_trie)
 find_package(tsl_hat_trie CONFIG REQUIRED)
+
+# transitive from libp2p
+find_package(yaml-cpp CONFIG REQUIRED)
 
 # https://www.openssl.org/
 hunter_add_package(OpenSSL)
@@ -77,9 +78,6 @@ find_package(libsecp256k1 CONFIG REQUIRED)
 
 hunter_add_package(fmt)
 find_package(fmt CONFIG REQUIRED)
-
-hunter_add_package(yaml-cpp)
-find_package(yaml-cpp CONFIG REQUIRED)
 
 hunter_add_package(wavm)
 find_package(LLVM CONFIG REQUIRED)
