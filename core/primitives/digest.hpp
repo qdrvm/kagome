@@ -176,7 +176,7 @@ namespace kagome::primitives {
   }
 
   /// Runtime code or heap pages updated.
-  struct RuntimeEnvironmentUpdated {};
+  struct RuntimeEnvironmentUpdated : public Empty {};
 
   /// Digest item that is able to encode/decode 'system' digest items and
   /// provide opaque access to other items.
