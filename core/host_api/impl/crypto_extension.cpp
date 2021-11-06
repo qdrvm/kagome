@@ -450,7 +450,7 @@ namespace kagome::host_api {
                 sr25519_constants::SIGNATURE_SIZE,
                 signature.begin());
 
-    auto verify_res = sr25519_provider_->verify(signature, msg, key);
+    auto verify_res = sr25519_provider_->verify_deprecated(signature, msg, key);
 
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
