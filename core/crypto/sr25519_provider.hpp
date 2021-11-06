@@ -55,6 +55,11 @@ namespace kagome::crypto {
         const Sr25519Signature &signature,
         gsl::span<const uint8_t> message,
         const Sr25519PublicKey &public_key) const = 0;
+
+    virtual outcome::result<bool> verify_deprecated(
+        const Sr25519Signature &signature,
+        gsl::span<const uint8_t> message,
+        const Sr25519PublicKey &public_key) const = 0;
   };
 }  // namespace kagome::crypto
 
