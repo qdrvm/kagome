@@ -13,4 +13,4 @@ target_link_libraries(leveldb_wrapper
     database_error
     logger
     )
-kagome_install(leveldb_wrapper
+kagome_install(leveldb_wrapper)
