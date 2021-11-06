@@ -19,7 +19,7 @@ target_link_libraries(base_leveldb_test
     base_fs_test
     Boost::filesystem
     Boost::boost
-    leveldb
+    leveldb_wrapper
     logger_for_tests
     )
 

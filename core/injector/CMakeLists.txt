@@ -52,7 +52,7 @@ target_link_libraries(application_injector
     kagome_router
     kagome_router
     key_file_storage
-    leveldb
+    leveldb_wrapper
     log_configurator
     metadata_api
     metrics
