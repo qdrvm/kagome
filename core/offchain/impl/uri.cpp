@@ -16,6 +16,9 @@ namespace kagome::offchain {
       return result;
     }
 
+    result.uri_.assign(uri);
+    uri = result.uri_;
+
     const auto uri_end = uri.end();
 
     // Schema
@@ -40,6 +43,7 @@ namespace kagome::offchain {
       result.Port = std::string_view(port_begin, path_begin - port_begin);
     } else {
       result.Host = std::string_view(host_begin, path_begin - host_begin);
+      result.Port = std::string_view(port_begin, 0);
     }
 
     const auto path_end = std::find_if(
@@ -56,74 +60,6 @@ namespace kagome::offchain {
     const auto fragm_end = uri_end;
 
     result.Fragment = std::string_view(fragm_begin, fragm_end - fragm_begin);
-
-    // Reconstruct URI
-
-    auto begin = result.uri_.data();
-    auto end = begin;
-
-    begin = result.uri_.data();
-    if (not result.Schema.empty()) {
-      result.uri_ += result.Schema;
-      end = result.uri_.data();
-      result.uri_ += ":";
-    }
-    result.Schema = std::string_view(begin, end - begin);
-
-    if (not result.Host.empty()) {
-      if (not result.Schema.empty()) {
-        result.uri_ += "//";
-      }
-      begin = result.uri_.data();
-      result.uri_ += result.Host;
-      end = result.uri_.data();
-      result.Host = std::string_view(begin, end - begin);
-
-      if (not result.Port.empty()) {
-        result.uri_ += ":";
-        begin = result.uri_.data();
-        result.uri_ += result.Port;
-        end = result.uri_.data();
-        result.Port = std::string_view(begin, end - begin);
-      } else {
-        begin = result.uri_.data();
-        result.Port = std::string_view(begin, 0);
-      }
-    } else {
-      begin = result.uri_.data();
-      result.Host = std::string_view(begin, 0);
-      result.Port = std::string_view(begin, 0);
-    }
-
-    begin = result.uri_.data();
-    if (not result.Path.empty()) {
-      result.uri_ += result.Path;
-      end = result.uri_.data();
-    } else {
-      result.uri_ += "/";
-      end = result.uri_.data();
-    }
-    result.Path = std::string_view(begin, end - begin);
-
-    if (not result.Query.empty()) {
-      result.uri_ += "?";
-      begin = result.uri_.data();
-      result.uri_ += result.Query;
-    } else {
-      begin = result.uri_.data();
-    }
-    end = result.uri_.data();
-    result.Query = std::string_view(begin, end - begin);
-
-    if (not result.Fragment.empty()) {
-      result.uri_ += "#";
-      begin = result.uri_.data();
-      result.uri_ += result.Fragment;
-    } else {
-      begin = result.uri_.data();
-    }
-    end = result.uri_.data();
-    result.Fragment = std::string_view(begin, end - begin);
 
     return result;
   }
