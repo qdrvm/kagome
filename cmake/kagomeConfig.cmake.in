@@ -1,3 +1,4 @@
+@PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
 
@@ -14,11 +15,11 @@ find_dependency(OpenSSL REQUIRED)
 find_dependency(leveldb REQUIRED)
 find_dependency(yaml-cpp REQUIRED)
 
-option(KAGOME_ENABLE_WAVM "Include WAVM webassembly executor dependency" ON)
-if (KAGOME_ENABLE_WAVM)
+#option(KAGOME_ENABLE_WAVM "Include WAVM webassembly executor dependency" ON)
+#if (KAGOME_ENABLE_WAVM)
     find_dependency(LLVM REQUIRED)
     find_dependency(WAVM REQUIRED)
-endif()
+#endif()
 
 option(KAGOME_ENABLE_BINARYEN "Include Binaryen webassembly executor dependency" ON)
 if (KAGOME_ENABLE_BINARYEN)
@@ -27,3 +28,5 @@ endif()
 
 
 include("${CMAKE_CURRENT_LIST_DIR}/kagomeTargets.cmake")
+
+check_required_components(kagome)
