@@ -13,19 +13,20 @@ target_link_libraries(app_config_impl
     p2p::p2p_multiaddress
     blob
     assets
-    configuration_storage
+    chain_spec
     )
 
-add_library(configuration_storage
+add_library(chain_spec
     impl/chain_spec_impl.cpp
     )
-target_link_libraries(configuration_storage
+target_link_libraries(chain_spec
     Boost::filesystem
     p2p::p2p_multiaddress
     p2p::p2p_peer_id
     buffer
     sr25519_types
     )
+kagome_install(chain_spec)
 
 add_library(app_state_manager
     impl/app_state_manager_impl.cpp

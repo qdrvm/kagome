@@ -41,7 +41,7 @@ target_link_libraries(application_injector
     chain_api_service
     changes_tracker
     clock
-    configuration_storage
+    chain_spec
     core_api
     crypto_store
     ed25519_provider

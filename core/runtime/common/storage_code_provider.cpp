@@ -21,7 +21,8 @@ namespace kagome::runtime {
       std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes)
       : storage_{std::move(storage)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
-        code_substitutes_{std::move(code_substitutes)} {
+        code_substitutes_{std::move(code_substitutes)},
+        logger_ {log::createLogger("StorageCodeProvider", "runtime")} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
     last_state_root_ = storage_->getRootHash();
