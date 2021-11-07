@@ -35,7 +35,6 @@ add_library(offchain_worker
     )
 target_link_libraries(offchain_worker
     http_request
-    error
     )
 
 add_library(offchain_worker_factory

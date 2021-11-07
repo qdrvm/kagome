@@ -17,7 +17,7 @@
 
 namespace kagome::offchain {
 
-  /// Timestamp is milliseconds scince UNIX Epoch
+  /// Timestamp is milliseconds since UNIX Epoch
   using Timestamp = uint64_t;
 
   using RandomSeed = common::Blob<32>;

@@ -11,7 +11,6 @@
 
 #include "api/service/author/author_api.hpp"
 #include "application/app_configuration.hpp"
-#include "common/error.hpp"
 #include "crypto/hasher.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "runtime/executor.hpp"
@@ -94,7 +93,7 @@ namespace kagome::offchain {
     } catch (const std::system_error &exception) {
       return outcome::failure(exception.code());
     } catch (...) {
-      return Error::OTHER_EXCEPTION;
+      BOOST_UNREACHABLE_RETURN({});
     }
 
     return outcome::success();

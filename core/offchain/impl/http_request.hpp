@@ -47,6 +47,10 @@ namespace kagome::offchain {
         common::Buffer &chunk,
         std::optional<std::chrono::milliseconds> deadline);
 
+    std::string errorMessage() const {
+      return error_message_;
+    }
+
    private:
     void resolve();
     void connect();
@@ -72,6 +76,7 @@ namespace kagome::offchain {
     bool request_has_sent_ = false;
     bool secure_;
     uint16_t status_ = 0;
+    std::string error_message_;
     boost::beast::flat_buffer buffer_;
     boost::asio::steady_timer deadline_timer_;
     boost::asio::ip::tcp::resolver::iterator resolver_iterator_;
