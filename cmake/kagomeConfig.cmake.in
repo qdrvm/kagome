@@ -14,7 +14,6 @@ find_dependency(libsecp256k1 REQUIRED)
 find_dependency(OpenSSL REQUIRED)
 find_dependency(leveldb REQUIRED)
 find_dependency(yaml-cpp REQUIRED)
-find_dependency(Protobuf REQUIRED)
 
 #option(KAGOME_ENABLE_WAVM "Include WAVM webassembly executor dependency" ON)
 #if (KAGOME_ENABLE_WAVM)
