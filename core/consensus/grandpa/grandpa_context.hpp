@@ -36,11 +36,12 @@ namespace kagome::consensus::grandpa {
     };
 
     // Payload
-    std::optional<libp2p::peer::PeerId> peer_id{};
+    std::optional<const libp2p::peer::PeerId> peer_id{};
     std::optional<const network::VoteMessage> vote{};
-    std::optional<GrandpaJustification> justification{};
+    std::optional<const network::CatchUpResponse> catch_up_response{};
     std::optional<const network::FullCommitMessage> commit{};
-    std::vector<primitives::BlockInfo> missing_blocks{};
+    std::set<primitives::BlockInfo, std::greater<primitives::BlockInfo>>
+        missing_blocks{};
 
     static void set(std::shared_ptr<GrandpaContext> context) {
       auto opt = instance();

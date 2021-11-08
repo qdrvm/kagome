@@ -5,12 +5,9 @@
 
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 
-#include <boost/range/adaptors.hpp>
-#include <boost/range/numeric.hpp>
-#include <boost/system/error_code.hpp>
-#include <unordered_map>
 #include <unordered_set>
 
+#include "blockchain/impl/common.hpp"
 #include "common/visitor.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
@@ -577,7 +574,10 @@ namespace kagome::consensus::grandpa {
              precommit.number,
              precommit.hash);
 
-    auto signed_precommit_opt = vote_crypto_provider_->signPrecommit(precommit);
+    //    auto signed_precommit_opt =
+    //    vote_crypto_provider_->signPrecommit(precommit);
+    auto signed_precommit_opt = vote_crypto_provider_->signPrecommit(
+        convertToPrecommit(BlockInfo(10, {})));
     if (not signed_precommit_opt.has_value()) {
       logger_->error("Round #{}: Precommit was not sent: Can't sign message",
                      round_number_);
@@ -847,11 +847,11 @@ namespace kagome::consensus::grandpa {
       propagation = Propagation::NEEDLESS;
     } else {
       // Check if node hasn't block
-      // TODO(xDimon): Implement checking
-      if (false /* missing block */) {
+      auto res = env_->hasBlock(proposal.getBlockHash());
+      if (res.has_value() and not res.value()) {
         if (auto ctx_opt = GrandpaContext::get()) {
           auto ctx = ctx_opt.value();
-          ctx->missing_blocks.emplace_back(proposal.getBlockInfo());
+          ctx->missing_blocks.emplace(proposal.getBlockInfo());
         }
       }
     }
@@ -981,7 +981,7 @@ namespace kagome::consensus::grandpa {
     }
     const auto &[index, weight] = inw_res.value();
 
-    auto [type_str, equivocators, tracker, graph] =
+    auto [type_str_, equivocators, tracker, graph] =
         [&]() -> std::tuple<const char *const,
                             std::vector<bool> &,
                             VoteTracker &,
@@ -996,6 +996,7 @@ namespace kagome::consensus::grandpa {
                 *precommit_graph_};
       }
     }();
+    auto &type_str = type_str_;  // Reference to binding for capturing in lambda
 
     // Ignore known equivocators
     if (equivocators[index]) {
@@ -1013,12 +1014,21 @@ namespace kagome::consensus::grandpa {
         auto result = graph.insert(vote.getBlockInfo(), vote.id);
         if (result.has_error()) {
           tracker.unpush(vote, weight);
-          logger_->warn(
-              "{} for block #{} hash={} was not inserted with error: {}",
-              type_str,
-              vote.getBlockNumber(),
-              vote.getBlockHash().toHex(),
-              result.error().message());
+          auto log_lvl = log::Level::WARN;
+          if (result == outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+            if (auto ctx_opt = GrandpaContext::get(); ctx_opt.has_value()) {
+              auto &ctx = ctx_opt.value();
+              ctx->missing_blocks.emplace(vote.getBlockInfo());
+              log_lvl = log::Level::DEBUG;
+            }
+          }
+          SL_LOG(logger_,
+                 log_lvl,
+                 "{} for block #{} hash={} was not inserted with error: {}",
+                 type_str,
+                 vote.getBlockNumber(),
+                 vote.getBlockHash().toHex(),
+                 result.error().message());
           return result.as_failure();
         }
         return outcome::success();
@@ -1319,9 +1329,9 @@ namespace kagome::consensus::grandpa {
                                     : last_finalized_block_;
 
     // spec: Bpv <- GRANDPA-GHOST(r)
-    auto rbest_chain = env_->bestChainContaining(best_final_candicate.hash);
-    auto best_prevote_candidate = rbest_chain.has_value()
-                                      ? convertToBlockInfo(rbest_chain.value())
+    auto best_chain = env_->bestChainContaining(best_final_candicate.hash);
+    auto best_prevote_candidate = best_chain.has_value()
+                                      ? convertToBlockInfo(best_chain.value())
                                       : last_finalized_block_;
 
     // spec: N <- Bpv
