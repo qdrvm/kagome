@@ -14,4 +14,5 @@ add_library(api_system_requests
 
 target_link_libraries(api_system_requests
     Boost::boost
+    scale::scale
     )

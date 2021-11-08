@@ -13,7 +13,7 @@ add_library(author_api_service
 
 target_link_libraries(author_api_service
     crypto_store
-    scale
+    scale::scale
     logger
     api_service
     )

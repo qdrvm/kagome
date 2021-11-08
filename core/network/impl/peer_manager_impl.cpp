@@ -10,7 +10,7 @@
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
 
 #include "outcome/outcome.hpp"
-#include "scale/scale.hpp"
+#include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::network {
@@ -615,8 +615,8 @@ namespace kagome::network {
       return;
     }
 
-    auto save_res =
-        storage_->put(storage::kActivePeersKey, common::Buffer{out.data()});
+    auto save_res = storage_->put(storage::kActivePeersKey,
+                                  common::Buffer{out.to_vector()});
     if (not save_res) {
       SL_ERROR(log_,
                "Cannot store active peers. Error={}",

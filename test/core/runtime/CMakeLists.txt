@@ -45,7 +45,7 @@ target_link_libraries(executor_test
     executor
     buffer
     basic_code_provider
-    scale
+    scale::scale
     logger
     log_configurator
     )
@@ -60,7 +60,7 @@ target_link_libraries(runtime_upgrade_tracker_test
     in_memory_storage
     logger
     log_configurator
-    scale
+    scale::scale
     )
 
 addtest(small_lru_cache_test
