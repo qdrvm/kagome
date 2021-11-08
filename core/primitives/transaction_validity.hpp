@@ -38,12 +38,6 @@ namespace kagome::primitives {
     External,
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const TransactionSource &v) {
-    return s << static_cast<uint8_t>(v);
-  }
-
   /**
    * @brief Information concerning a valid transaction.
    *

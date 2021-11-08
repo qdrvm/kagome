@@ -122,7 +122,7 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
   std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_txs;
   for (size_t i = 0; i < kReadyTxNum; i++) {
     EXPECT_OUTCOME_TRUE(enc_nonce,
-                        kagome::scale::encode(kAccountId, kInitialNonce + i))
+                        scale::encode(kAccountId, kInitialNonce + i))
     encoded_nonces[i] = std::move(enc_nonce);
     ready_txs[Hash256{{static_cast<uint8_t>(i)}}] =
         std::make_shared<Transaction>(

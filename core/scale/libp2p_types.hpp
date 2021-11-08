@@ -9,7 +9,7 @@
 #include <libp2p/peer/peer_info.hpp>
 #include "scale/scale.hpp"
 
-namespace kagome::scale {
+namespace scale {
 
   class PeerInfoSerializable : public libp2p::peer::PeerInfo {
    public:
@@ -18,12 +18,12 @@ namespace kagome::scale {
     static libp2p::peer::PeerId dummyPeerId();
   };
 
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
+  ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                  const libp2p::peer::PeerInfo &peer_info);
 
-  ScaleDecoderStream &operator>>(ScaleDecoderStream &s,
+  ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                  libp2p::peer::PeerInfo &peer_info);
 
-}  // namespace kagome::scale
+}  // namespace scale
 
 #endif  // KAGOME_CORE_SCALE_LIBP2P_TYPES_HPP

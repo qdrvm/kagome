@@ -471,7 +471,7 @@ namespace kagome::host_api {
         BOOST_ASSERT(!"This is unreachable");
       }
 
-      auto res = self->sr25519_provider_->verify(signature, msg, pubkey);
+      auto res = self->sr25519_provider_->verify_deprecated(signature, msg, pubkey);
 
       bool is_succeeded = res && res.value();
       return is_succeeded ? kVerifySuccess : kVerifyFail;

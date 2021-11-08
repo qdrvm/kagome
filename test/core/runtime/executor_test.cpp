@@ -72,12 +72,12 @@ class ExecutorTest : public testing::Test {
       int arg2,
       int res,
       kagome::storage::trie::RootHash const &next_storage_state) {
-    auto enc_args = kagome::scale::encode(arg1, arg2).value();
+    auto enc_args = scale::encode(arg1, arg2).value();
     const PtrSize ARGS_LOCATION{1, 2};
     const PtrSize RESULT_LOCATION{3, 4};
     EXPECT_CALL(*memory_, storeBuffer(ElementsAreArray(enc_args)))
         .WillOnce(Return(ARGS_LOCATION.combine()));
-    Buffer enc_res{kagome::scale::encode(res).value()};
+    Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
     EXPECT_CALL(*env_factory_, start(blockchain_state, storage_state))
@@ -140,12 +140,12 @@ class ExecutorTest : public testing::Test {
       int arg1,
       int arg2,
       int res) {
-    auto enc_args = kagome::scale::encode(arg1, arg2).value();
+    auto enc_args = scale::encode(arg1, arg2).value();
     const PtrSize ARGS_LOCATION{1, 2};
     const PtrSize RESULT_LOCATION{3, 4};
     EXPECT_CALL(*memory_, storeBuffer(ElementsAreArray(enc_args)))
         .WillOnce(Return(ARGS_LOCATION.combine()));
-    Buffer enc_res{kagome::scale::encode(res).value()};
+    Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
     EXPECT_CALL(*env_factory_, start(blockchain_state, storage_state))

@@ -67,8 +67,8 @@ find_package(prometheus-cpp CONFIG REQUIRED)
 hunter_add_package(libsecp256k1)
 find_package(libsecp256k1 CONFIG REQUIRED)
 
-hunter_add_package(fmt)
-find_package(fmt CONFIG REQUIRED)
+hunter_add_package(scale)
+find_package(scale CONFIG REQUIRED)
 
 hunter_add_package(wavm)
 find_package(LLVM CONFIG REQUIRED)
