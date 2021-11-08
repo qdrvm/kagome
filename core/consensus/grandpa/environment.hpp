@@ -127,6 +127,9 @@ namespace kagome::consensus::grandpa {
         const BlockInfo &block_info,
         const primitives::Justification &justification) = 0;
 
+    /**
+     * @see BlockTree::contains
+     */
     virtual bool contains(const primitives::BlockHash &block_hash) const = 0;
 
     /**

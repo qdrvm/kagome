@@ -15,7 +15,7 @@ namespace kagome::authority {
    public:
     virtual ~AuthorityManager() = default;
 
-    virtual boost::optional<const primitives::BlockInfo> base() = 0;
+    virtual std::optional<const primitives::BlockInfo> base() = 0;
 
     /**
      * @brief Returns authorities according specified block

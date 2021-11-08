@@ -49,6 +49,13 @@ namespace kagome::host_api {
     virtual void ext_storage_set_version_1(runtime::WasmSpan key,
                                            runtime::WasmSpan value) = 0;
 
+    /**
+     * @brief Retrieves the value associated with the given storage_key and key
+     * from the default child storage.
+     * @param storage_key key memory span containing storage key
+     * @param key key memory span containing key
+     * @return value memory span containing scale-encoded optional value
+     */
     [[nodiscard]] virtual runtime::WasmSpan
     ext_default_child_storage_get_version_1(runtime::WasmSpan storage_key,
                                             runtime::WasmSpan key) = 0;

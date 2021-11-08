@@ -79,11 +79,11 @@ namespace kagome::authority {
     return outcome::success();
   }
 
-  boost::optional<const primitives::BlockInfo> AuthorityManagerImpl::base() {
+  std::optional<const primitives::BlockInfo> AuthorityManagerImpl::base() {
     if (root_) {
       return root_->block;
     }
-    return boost::none;
+    return std::nullopt;
   }
 
   outcome::result<std::shared_ptr<const primitives::AuthorityList>>

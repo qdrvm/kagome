@@ -112,8 +112,14 @@ namespace kagome::blockchain {
      */
     virtual outcome::result<void> addBlock(const primitives::Block &block) = 0;
 
+    /**
+     * Check if block exists in the DB
+     * @param block to be finalized
+     * @return true if exists
+     */
     virtual bool contains(
         const primitives::BlockHash &block_hash) const = 0;
+
     /**
      * Mark the block as finalized and store a finalization justification
      * @param block to be finalized
