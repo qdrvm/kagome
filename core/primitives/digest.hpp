@@ -175,18 +175,22 @@ namespace kagome::primitives {
     return s >> dic.consensus_engine_id >> dic.data;
   }
 
+  /// Runtime code or heap pages updated.
+  struct RuntimeEnvironmentUpdated : public Empty {};
+
   /// Digest item that is able to encode/decode 'system' digest items and
   /// provide opaque access to other items.
   /// Note: order of types in variant matters. Should match type ids from here:
-  /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/runtime/src/generic/digest.rs#L186
-  using DigestItem = boost::variant<Other,               // 0
-                                    Unused<1>,           // 1
-                                    ChangesTrieRoot,     // 2
-                                    Unused<3>,           // 3
-                                    Consensus,           // 4
-                                    Seal,                // 5
-                                    PreRuntime,          // 6
-                                    ChangesTrieSignal>;  // 7
+  /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.12/primitives/runtime/src/generic/digest.rs#L272
+  using DigestItem = boost::variant<Other,                       // 0
+                                    Unused<1>,                   // 1
+                                    ChangesTrieRoot,             // 2
+                                    Unused<3>,                   // 3
+                                    Consensus,                   // 4
+                                    Seal,                        // 5
+                                    PreRuntime,                  // 6
+                                    ChangesTrieSignal,           // 7
+                                    RuntimeEnvironmentUpdated>;  // 8
 
   /**
    * Digest is an implementation- and usage-defined entity, for example,
