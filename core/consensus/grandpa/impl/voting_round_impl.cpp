@@ -575,8 +575,6 @@ namespace kagome::consensus::grandpa {
              precommit.hash);
 
     auto signed_precommit_opt = vote_crypto_provider_->signPrecommit(precommit);
-    //    auto signed_precommit_opt = vote_crypto_provider_->signPrecommit(
-    //        convertToPrecommit(BlockInfo(10, {})));
     if (not signed_precommit_opt.has_value()) {
       logger_->error("Round #{}: Precommit was not sent: Can't sign message",
                      round_number_);
