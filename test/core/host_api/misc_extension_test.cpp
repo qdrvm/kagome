@@ -30,7 +30,7 @@ using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::PtrSize;
 using kagome::runtime::TrieStorageProviderMock;
-using kagome::scale::encode;
+using scale::encode;
 using testing::_;
 using testing::Invoke;
 using testing::Return;

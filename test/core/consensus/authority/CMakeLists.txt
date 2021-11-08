@@ -8,8 +8,9 @@ addtest(authority_manager_test
     )
 target_link_libraries(authority_manager_test
     authority_manager
-    scale
+    scale::scale
     blob
+    buffer
     dummy_error
     logger_for_tests
     )
