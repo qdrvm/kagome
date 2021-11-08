@@ -92,6 +92,8 @@ namespace kagome::consensus::grandpa {
         const BlockInfo &block_info,
         const primitives::Justification &justification) override;
 
+    bool contains(const primitives::BlockHash &block_hash) const override;
+
     outcome::result<void> finalize(
         MembershipCounter id,
         const GrandpaJustification &justification) override;

@@ -165,17 +165,21 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(ancectry_it != ancestry.end());
 
     // Found entry is got block as descendant
-    Entry &entry = entry_it->second;
-    entry.descendants.push_back(block.hash);
+    if(entry_it != entries_.end()) {
+      Entry &entry = entry_it->second;
+      entry.descendants.push_back(block.hash);
+    }
 
     // Needed ancestries is ancestries from parent to ancestor represented in
     // found entry
     std::vector<BlockHash> ancestors(ancestry.begin() + 1, ancectry_it + 1);
 
     // Block will become a head instead his oldest ancestor
-    BlockHash ancestor_hash = ancestors.back();
-    heads_.erase(ancestor_hash);
-    heads_.insert(block.hash);
+    if(ancestors.size() > 0) {
+      BlockHash ancestor_hash = ancestors.back();
+      heads_.erase(ancestor_hash);
+      heads_.insert(block.hash);
+    }
 
     // New entry is got ancestors and added to entries container
     Entry newEntry;

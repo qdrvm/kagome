@@ -19,16 +19,16 @@ namespace kagome::network {
 
     /// Target amount of active peers
 #ifdef NDEBUG
-    size_t targetPeerAmount = 4;
+    size_t targetPeerAmount = 20;
 #else
-    size_t targetPeerAmount = 2;
+    size_t targetPeerAmount = 20;
 #endif
 
     /// Max peers count before start to disconnect of innactive ones
-    size_t softLimit = 8;
+    size_t softLimit = 40;
 
     /// Max peers before start forced disconnection
-    size_t hardLimit = 10;
+    size_t hardLimit = 60;
   };
 
 }  // namespace kagome::network

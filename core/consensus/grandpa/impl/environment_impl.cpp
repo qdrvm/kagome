@@ -225,6 +225,11 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
+  bool EnvironmentImpl::contains(
+      const primitives::BlockHash &block_hash) const {
+    return block_tree_->contains(block_hash);
+  }
+
   outcome::result<void> EnvironmentImpl::finalize(
       MembershipCounter id, const GrandpaJustification &grandpa_justification) {
     primitives::Justification justification;

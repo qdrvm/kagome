@@ -56,7 +56,7 @@ namespace kagome::consensus::grandpa {
       for (size_t i = voter_set.size(); i > 0;) {
         --i;
 
-        if (not flags[i] and equivocators.size() > i and equivocators[i]) {
+        if (flags.size() > i and not flags[i] and equivocators.size() > i and equivocators[i]) {
           result += voter_set.voterWeight(i).value();
         }
       }

@@ -112,6 +112,8 @@ namespace kagome::blockchain {
      */
     virtual outcome::result<void> addBlock(const primitives::Block &block) = 0;
 
+    virtual bool contains(
+        const primitives::BlockHash &block_hash) const = 0;
     /**
      * Mark the block as finalized and store a finalization justification
      * @param block to be finalized
@@ -197,8 +199,8 @@ namespace kagome::blockchain {
     virtual primitives::BlockInfo deepestLeaf() const = 0;
 
     /**
-     * @brief Get the most recent block of the best (longest) chain among those
-     * that contain a block with \param target_hash
+     * @brief Get the most recent block of the best (longest) chain among
+     * those that contain a block with \param target_hash
      * @param target_hash is a hash of a block that the chosen chain must
      * contain
      * @param max_number is the max block number that the resulting block (and

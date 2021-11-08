@@ -6,12 +6,16 @@
 #ifndef KAGOME_AUTHORITY_MANAGER
 #define KAGOME_AUTHORITY_MANAGER
 
+#include <boost/optional.hpp>
+
 #include "primitives/authority.hpp"
 
 namespace kagome::authority {
   class AuthorityManager {
    public:
     virtual ~AuthorityManager() = default;
+
+    virtual boost::optional<const primitives::BlockInfo> base() = 0;
 
     /**
      * @brief Returns authorities according specified block

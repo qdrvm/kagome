@@ -159,6 +159,8 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash,
         const primitives::BlockBody &body) override;
 
+    bool contains(const primitives::BlockHash &block_hash) const override;
+
     outcome::result<void> finalize(
         const primitives::BlockHash &block_hash,
         const primitives::Justification &justification) override;

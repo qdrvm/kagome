@@ -16,6 +16,19 @@ namespace kagome::runtime::binaryen {
 
   const static wasm::Name env = "env";
 
+  const static wasm::Name ext_default_child_storage_clear_version_1 =
+      "ext_default_child_storage_clear_version_1";
+  const static wasm::Name ext_default_child_storage_get_version_1 =
+      "ext_default_child_storage_get_version_1";
+  const static wasm::Name ext_default_child_storage_next_key_version_1 =
+      "ext_default_child_storage_next_key_version_1";
+  const static wasm::Name ext_default_child_storage_root_version_1 =
+      "ext_default_child_storage_root_version_1";
+  const static wasm::Name ext_default_child_storage_set_version_1 =
+      "ext_default_child_storage_set_version_1";
+  const static wasm::Name ext_default_child_storage_kill_version_1 =
+      "ext_default_child_storage_kill_version_1";
+
   const static wasm::Name ext_logging_log_version_1 =
       "ext_logging_log_version_1";
   const static wasm::Name ext_logging_max_level_version_1 =
@@ -153,6 +166,33 @@ namespace kagome::runtime::binaryen {
                                                   arguments.at(1).geti64(),
                                                   arguments.at(2).geti32());
         return wasm::Literal(res);
+      }
+      /// ext_default_child_storage_clear_version_1
+      if (import->base == ext_default_child_storage_clear_version_1) {
+        return wasm::Literal();
+      }
+      /// ext_default_child_storage_get_version_1
+      if (import->base == ext_default_child_storage_get_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = host_api_->ext_default_child_storage_get_version_1(
+            arguments.at(0).geti64(), arguments.at(1).geti64());
+        return wasm::Literal(res);
+      }
+      /// ext_default_child_storage_next_key_version_1
+      if (import->base == ext_default_child_storage_next_key_version_1) {
+        return wasm::Literal(0);
+      }
+      /// ext_default_child_storage_root_version_1
+      if (import->base == ext_default_child_storage_root_version_1) {
+        return wasm::Literal(0);
+      }
+      /// ext_default_child_storage_set_version_1
+      if (import->base == ext_default_child_storage_set_version_1) {
+        return wasm::Literal();
+      }
+      /// ext_default_child_storage_kill_version_1
+      if (import->base == ext_default_child_storage_kill_version_1) {
+        return wasm::Literal();
       }
       /// ext_logging_log_version_1
       if (import->base == ext_logging_log_version_1) {

@@ -83,6 +83,12 @@ namespace kagome::host_api {
     return batch->get(key);
   }
 
+  common::Buffer StorageExtension::getKey(runtime::WasmSpan key) const {
+    auto [key_ptr, key_size] = runtime::PtrSize(key);
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    return memory.loadN(key_ptr, key_size);
+  }
+
   outcome::result<std::optional<Buffer>> StorageExtension::getStorageNextKey(
       const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
@@ -110,16 +116,24 @@ namespace kagome::host_api {
     }
   }
 
+  runtime::WasmSpan StorageExtension::ext_default_child_storage_get_version_1(
+      runtime::WasmSpan storage_key, runtime::WasmSpan key) {
+    auto storage_key_buffer = getKey(storage_key);
+    auto key_buffer = getKey(key);
+    SL_TRACE(logger_,
+             "ext_default_child_storage_get_version_1( {}, {} )",
+             storage_key_buffer.toHex(),
+             key_buffer.toHex());
+    auto option = std::make_optional(common::Buffer());
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    return memory.storeBuffer(scale::encode(option).value());
+  }
+
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
       runtime::WasmSpan key) {
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = memory.loadN(key_ptr, key_size);
-
-    if (key_buffer.toHex()
-        == "1cb6f36e027abb2091cfb5110ab5087f06155b3cd9a8c9e5e9a23fd5dc13a5ed") {
-      [] {}();
-    }
 
     auto result = get(key_buffer);
     auto option = result ? std::make_optional(result.value()) : std::nullopt;
@@ -128,12 +142,12 @@ namespace kagome::host_api {
       SL_TRACE_FUNC_CALL(logger_, option.value(), key_buffer);
 
     } else {
-      SL_TRACE(
-          logger_,
-          "ext_storage_get_version_1( {} ) => value was not obtained. Reason: "
-          "{}",
-          key_buffer.toHex(),
-          result.error().message());
+      SL_TRACE(logger_,
+               "ext_storage_get_version_1( {} ) => value was not obtained. "
+               "Reason: "
+               "{}",
+               key_buffer.toHex(),
+               result.error().message());
     }
 
     return memory.storeBuffer(scale::encode(option).value());
@@ -149,7 +163,8 @@ namespace kagome::host_api {
     SL_TRACE_FUNC_CALL(logger_, del_result.has_value(), key);
     if (not del_result) {
       logger_->warn(
-          "ext_storage_clear_version_1 did not delete key {} from trie db with "
+          "ext_storage_clear_version_1 did not delete key {} from trie db "
+          "with "
           "reason: "
           "{}",
           key_data,
@@ -282,7 +297,8 @@ namespace kagome::host_api {
       auto put_result = batch->put(key_bytes, std::move(val));
       if (not put_result) {
         logger_->error(
-            "ext_storage_append_version_1 failed, due to fail in trie db with "
+            "ext_storage_append_version_1 failed, due to fail in trie db "
+            "with "
             "reason: {}",
             put_result.error().message());
       }
@@ -425,11 +441,11 @@ namespace kagome::host_api {
     }
     storage::changes_trie::ChangesTrieConfig trie_config = config_res.value();
 
-    SL_DEBUG(
-        logger_,
-        "ext_storage_changes_root constructing changes trie with parent_hash: "
-        "{}",
-        parent_hash.toHex());
+    SL_DEBUG(logger_,
+             "ext_storage_changes_root constructing changes trie with "
+             "parent_hash: "
+             "{}",
+             parent_hash.toHex());
     auto trie_hash_res =
         changes_tracker_->constructChangesTrie(parent_hash, trie_config);
     if (trie_hash_res.has_error()) {

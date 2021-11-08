@@ -293,10 +293,14 @@ namespace kagome::network {
           visit_in_place(
               grandpa_message,
               [&](const network::GrandpaVote &vote_message) {
-                self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
+                if (self->app_config_.roles().flags.authority) {
+                  self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
+                }
               },
               [&](const FullCommitMessage &fin_message) {
-                self->grandpa_observer_->onFinalize(peer_id, fin_message);
+                if (self->app_config_.roles().flags.authority) {
+                  self->grandpa_observer_->onFinalize(peer_id, fin_message);
+                }
               },
               [&](const GrandpaNeighborMessage &neighbor_message) {
                 self->grandpa_observer_->onNeighborMessage(peer_id,

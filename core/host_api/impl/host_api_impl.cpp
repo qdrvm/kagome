@@ -73,6 +73,12 @@ namespace kagome::host_api {
     return storage_ext_.ext_storage_set_version_1(key, value);
   }
 
+  runtime::WasmSpan HostApiImpl::ext_default_child_storage_get_version_1(
+      runtime::WasmSpan storage_key, runtime::WasmSpan key) {
+    return storage_ext_.ext_default_child_storage_get_version_1(storage_key,
+                                                                key);
+  }
+
   runtime::WasmSpan HostApiImpl::ext_storage_get_version_1(
       runtime::WasmSpan key) {
     return storage_ext_.ext_storage_get_version_1(key);
