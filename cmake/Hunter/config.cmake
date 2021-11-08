@@ -32,7 +32,7 @@ hunter_config(
 hunter_config(
     libp2p
     URL https://github.com/libp2p/cpp-libp2p/archive/refs/heads/feature/cmake-config.tar.gz
-    SHA1 c89b39f77410278a83aeef6b7ad0d517f49784a7
+    SHA1 edae6a868637e6288eca44f17747bd3cd4c784a3
     KEEP_PACKAGE_SOURCES
 )
 
