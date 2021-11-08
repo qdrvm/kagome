@@ -153,21 +153,21 @@ class CryptoExtensionTest : public ::testing::Test {
         ecdsa::RSVSignature::fromSpan(secp_signature_bytes).value();
 
     scale_encoded_secp_truncated_public_key =
-        Buffer( scale::encode(RecoverUncompressedPublicKeyReturnValue(
-                                         secp_truncated_public_key))
+        Buffer(scale::encode(RecoverUncompressedPublicKeyReturnValue(
+                                 secp_truncated_public_key))
                    .value());
 
     scale_encoded_secp_compressed_public_key =
-        Buffer( scale::encode(RecoverCompressedPublicKeyReturnValue(
-                                         secp_compressed_pyblic_key))
+        Buffer(scale::encode(RecoverCompressedPublicKeyReturnValue(
+                                 secp_compressed_pyblic_key))
                    .value());
 
     // this value suits both compressed & uncompressed failure tests
-    secp_invalid_signature_error = Buffer(
-          scale::encode(RecoverCompressedPublicKeyReturnValue(
-                                  kagome::crypto::secp256k1::
-                                      ecdsa_verify_error::kInvalidSignature))
-            .value());
+    secp_invalid_signature_error =
+        Buffer(scale::encode(RecoverCompressedPublicKeyReturnValue(
+                                 kagome::crypto::secp256k1::ecdsa_verify_error::
+                                     kInvalidSignature))
+                   .value());
 
     ed_public_keys_result
         .putUint8(4)  // scale-encoded size // 1
