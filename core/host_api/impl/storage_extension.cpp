@@ -163,7 +163,8 @@ namespace kagome::host_api {
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key = memory.loadN(key_ptr, key_size);
-    return batch->contains(key) ? 1 : 0;
+    auto res = batch->contains(key);
+    return (res.has_value() and res.value()) ? 1 : 0;
   }
 
   void StorageExtension::ext_storage_clear_prefix_version_1(
