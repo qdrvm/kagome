@@ -127,12 +127,13 @@ include(GNUInstallDirs)
 include(cmake/install.cmake)
 
 include_directories(
-  # project includes
-  ${PROJECT_SOURCE_DIR}/core
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/core>
 )
 
 add_subdirectory(core)
 
+# TODO(Harrm): refactor to avoid manually adding each new directory
 kagome_install_setup(
     HEADER_DIRS
     core/application
