@@ -6,8 +6,8 @@
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 
 #include "network/common.hpp"
-#include "network/types/no_data_message.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
+#include "network/types/no_data_message.hpp"
 
 namespace kagome::network {
 
@@ -207,15 +207,8 @@ namespace kagome::network {
               cb(outcome::success());
               break;
             case Direction::INCOMING:
-              if (self->babe_->getCurrentState()
-                  == consensus::babe::Babe::State::SYNCHRONIZED) {
-                self->writeHandshake(
-                    std::move(stream), Direction::INCOMING, std::move(cb));
-                return;
-              }
-
-              stream->close([](auto &&...) {});
-              cb(ProtocolError::NODE_NOT_SYNCHRONIZED_YET);
+              self->writeHandshake(
+                  std::move(stream), Direction::INCOMING, std::move(cb));
               break;
           }
         });

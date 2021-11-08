@@ -262,7 +262,7 @@ namespace kagome::api {
         [](const primitives::events::BroadcastEventParams &params)
             -> jsonrpc::Value {
           jArray peers;
-          peers.reserve(params.peers.size());
+          peers.resize(params.peers.size());
           std::transform(
               params.peers.cbegin(),
               params.peers.cend(),
