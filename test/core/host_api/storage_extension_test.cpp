@@ -189,7 +189,7 @@ TEST_F(StorageExtensionTest, NextKey) {
       .WillOnce(Invoke(
           [&expected_next_key, &expected_key_span](auto &&buffer) -> WasmSpan {
             EXPECT_OUTCOME_TRUE(
-                key_opt, kagome::scale::decode<std::optional<Buffer>>(buffer));
+                key_opt, scale::decode<std::optional<Buffer>>(buffer));
             EXPECT_TRUE(key_opt.has_value());
             EXPECT_EQ(key_opt.value(), expected_next_key);
             return expected_key_span;
@@ -224,7 +224,7 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
   EXPECT_CALL(*memory_, storeBuffer(_))
       .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
         EXPECT_OUTCOME_TRUE(
-            key_opt, kagome::scale::decode<std::optional<Buffer>>(buffer));
+            key_opt, scale::decode<std::optional<Buffer>>(buffer));
         EXPECT_EQ(key_opt, std::nullopt);
         return 0;  // don't need the result
       }));
@@ -256,7 +256,7 @@ TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
   EXPECT_CALL(*memory_, storeBuffer(_))
       .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
         EXPECT_OUTCOME_TRUE(
-            key_opt, kagome::scale::decode<std::optional<Buffer>>(buffer));
+            key_opt, scale::decode<std::optional<Buffer>>(buffer));
         EXPECT_EQ(key_opt, std::nullopt);
         return 0;
       }));
@@ -333,7 +333,7 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   Buffer offset_value_data = value_data.subbuffer(offset);
   ASSERT_EQ(offset_value_data.size(), value_data.size() - offset);
   EXPECT_OUTCOME_TRUE(encoded_opt_offset_val_size,
-                      kagome::scale::encode(std::make_optional<uint32_t>(
+                      scale::encode(std::make_optional<uint32_t>(
                           offset_value_data.size())));
   WasmSpan res_wasm_span = 1337;
 
@@ -371,11 +371,11 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
   Buffer key_data(key.size, 'k');
 
   Buffer value_data1(42, '1');
-  Buffer value_data1_encoded{kagome::scale::encode(value_data1).value()};
+  Buffer value_data1_encoded{scale::encode(value_data1).value()};
   PtrSize value1(42, value_data1_encoded.size());
 
   Buffer value_data2(43, '2');
-  Buffer value_data2_encoded{kagome::scale::encode(value_data2).value()};
+  Buffer value_data2_encoded{scale::encode(value_data2).value()};
   PtrSize value2(45, value_data2_encoded.size());
 
   // @given wasm memory that can provide these key and values
@@ -386,7 +386,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
   EXPECT_CALL(*memory_, loadN(value2.ptr, value2.size))
       .WillOnce(Return(value_data2_encoded));
 
-  std::vector<kagome::scale::EncodeOpaqueValue> vals;
+  std::vector<scale::EncodeOpaqueValue> vals;
   Buffer vals_encoded;
   {
     // @when there is no value by given key in trie
@@ -396,8 +396,8 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     // @then storage is inserted by scale encoded vector containing
     // EncodeOpaqueValue with value1
     vals.push_back(
-        kagome::scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
-    vals_encoded = Buffer(kagome::scale::encode(vals).value());
+        scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
+    vals_encoded = Buffer(scale::encode(vals).value());
     EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
         .WillOnce(Return(outcome::success()));
 
@@ -412,8 +412,8 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     // @then storage is inserted by scale encoded vector containing two
     // EncodeOpaqueValues with value1 and value2
     vals.push_back(
-        kagome::scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
-    vals_encoded = Buffer(kagome::scale::encode(vals).value());
+        scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
+    vals_encoded = Buffer(scale::encode(vals).value());
     EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
         .WillOnce(Return(outcome::success()));
 
@@ -428,11 +428,11 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
   Buffer key_data(key.size, 'k');
 
   Buffer value_data1(42, '1');
-  Buffer value_data1_encoded{kagome::scale::encode(value_data1).value()};
+  Buffer value_data1_encoded{scale::encode(value_data1).value()};
   PtrSize value1(42, value_data1_encoded.size());
 
   Buffer value_data2(43, '2');
-  Buffer value_data2_encoded{kagome::scale::encode(value_data2).value()};
+  Buffer value_data2_encoded{scale::encode(value_data2).value()};
   PtrSize value2(45, value_data2_encoded.size());
 
   // @given wasm memory that can provide these key and values
@@ -443,10 +443,10 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 
   // @when vals contains (2^6 - 1) elements (high limit for one-byte compact
   // integers)
-  std::vector<kagome::scale::EncodeOpaqueValue> vals(
-      kagome::scale::compact::EncodingCategoryLimits::kMinUint16 - 1,
-      kagome::scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
-  Buffer vals_encoded = Buffer(kagome::scale::encode(vals).value());
+  std::vector<scale::EncodeOpaqueValue> vals(
+      scale::compact::EncodingCategoryLimits::kMinUint16 - 1,
+      scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
+  Buffer vals_encoded = Buffer(scale::encode(vals).value());
 
   {
     // @when encoded vals is stored by given key
@@ -454,8 +454,8 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 
     // @when storage is inserted by one more value by the same key
     vals.push_back(
-        kagome::scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
-    vals_encoded = Buffer(kagome::scale::encode(vals).value());
+        scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
+    vals_encoded = Buffer(scale::encode(vals).value());
 
     // @then everything fine: storage is inserted with vals with new value
     EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
@@ -475,7 +475,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
  */
 TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto &[values, hash_array] = GetParam();
-  auto values_enc = kagome::scale::encode(values).value();
+  auto values_enc = scale::encode(values).value();
 
   using testing::_;
   PtrSize values_span{42, static_cast<WasmSize>(values_enc.size())};
@@ -506,7 +506,7 @@ TEST_P(BuffersParametrizedTest, Blake2_256_OrderedTrieRootV1) {
   WasmSpan values_data = PtrSize(values_ptr, values_size).combine();
   WasmPointer result = 1984;
 
-  Buffer buffer{kagome::scale::encode(values).value()};
+  Buffer buffer{scale::encode(values).value()};
 
   EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
       .WillOnce(Return(buffer));
@@ -551,7 +551,7 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
 
   Buffer value(8, 'v');
   auto encoded_opt_value =
-      kagome::scale::encode<std::optional<Buffer>>(value).value();
+      scale::encode<std::optional<Buffer>>(value).value();
 
   // expect key and value were loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
@@ -645,7 +645,7 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
   WasmSpan dict_data = PtrSize(values_ptr, values_size).combine();
   WasmPointer result = 1984;
 
-  Buffer buffer{kagome::scale::encode(dict).value()};
+  Buffer buffer{scale::encode(dict).value()};
 
   EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
       .WillOnce(Return(buffer));
@@ -703,11 +703,11 @@ TEST_F(StorageExtensionTest, ChangesRootNotEmpty) {
   kagome::storage::changes_trie::ChangesTrieConfig config{.digest_interval = 0,
                                                           .digest_levels = 0};
   EXPECT_CALL(*trie_batch_, get(kagome::common::Buffer{}.put(":changes_trie")))
-      .WillOnce(Return(Buffer(kagome::scale::encode(config).value())));
+      .WillOnce(Return(Buffer(scale::encode(config).value())));
 
   auto trie_hash = "deadbeef"_hash256;
   auto enc_trie_hash =
-      kagome::scale::encode(
+      scale::encode(
           std::make_optional((gsl::span(trie_hash.data(), Hash256::size()))))
           .value();
   EXPECT_CALL(*changes_tracker_,

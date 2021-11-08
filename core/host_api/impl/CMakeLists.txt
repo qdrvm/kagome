@@ -23,7 +23,7 @@ target_link_libraries(crypto_extension
     sr25519_provider
     secp256k1_provider
     ed25519_provider
-    scale
+    scale::scale
     crypto_store
     )
 kagome_install(crypto_extension)
@@ -51,7 +51,7 @@ add_library(misc_extension
     misc_extension.cpp
     )
 target_link_libraries(misc_extension
-    scale
+    scale::scale
     logger
     constant_code_provider
     outcome
@@ -67,7 +67,7 @@ target_link_libraries(storage_extension
     blob
     logger
     ordered_trie_hash
-    scale_encode_append
+    scale::scale_encode_append
     runtime_transaction_error
     )
 kagome_install(storage_extension)

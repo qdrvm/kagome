@@ -27,11 +27,11 @@
 
 #define EXPECT_OUTCOME_FALSE_void(var, expr) \
   auto &&var = expr;                         \
-  EXPECT_FALSE(var) << "Line " << __LINE__ << ": " << var.error().message();
+  EXPECT_FALSE(var);
 
 #define EXPECT_OUTCOME_FALSE_name(var, val, expr)                            \
   auto &&var = expr;                                                         \
-  EXPECT_FALSE(var) << "Line " << __LINE__ << ": " << var.error().message(); \
+  EXPECT_FALSE(var); \
   auto &&val = var.error();
 
 #define EXPECT_OUTCOME_TRUE_3(var, val, expr) \

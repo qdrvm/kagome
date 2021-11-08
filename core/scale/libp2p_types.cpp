@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <exception>
 
-namespace kagome::scale {
+namespace scale {
 
   PeerInfoSerializable::PeerInfoSerializable() : PeerInfo{dummyPeerId(), {}} {}
 
@@ -20,8 +20,8 @@ namespace kagome::scale {
     return res.value();
   }
 
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
-                                 const libp2p::peer::PeerInfo &peer_info) {
+  scale::ScaleEncoderStream &operator<<(
+      scale::ScaleEncoderStream &s, const libp2p::peer::PeerInfo &peer_info) {
     std::vector<std::string> addresses;
     for (const auto &addr : peer_info.addresses) {
       addresses.emplace_back(addr.getStringAddress());
@@ -29,8 +29,8 @@ namespace kagome::scale {
     return s << peer_info.id.toBase58() << addresses;
   }
 
-  ScaleDecoderStream &operator>>(ScaleDecoderStream &s,
-                                 libp2p::peer::PeerInfo &peer_info) {
+  scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                        libp2p::peer::PeerInfo &peer_info) {
     std::string peer_id_base58;
     std::vector<std::string> addresses;
     s >> peer_id_base58 >> addresses;
@@ -53,4 +53,4 @@ namespace kagome::scale {
     peer_info.addresses = std::move(multi_addrs);
     return s;
   }
-}  // namespace kagome::scale
+}  // namespace scale

@@ -13,8 +13,8 @@
 using kagome::network::BlockAttribute;
 using kagome::network::BlockAttributes;
 
-using kagome::scale::decode;
-using kagome::scale::encode;
+using scale::decode;
+using scale::encode;
 
 using BlockAttributesTestParam = testutil::TestParam<BlockAttributes>;
 
@@ -36,7 +36,7 @@ TEST_P(BlockAttributesTest, DecodeBlockAttributes) {
   if (should_fail) {
     EXPECT_OUTCOME_FALSE(err, decode<BlockAttributes>(encoded_value));
     ASSERT_EQ(err.value(),
-              static_cast<int>(kagome::scale::DecodeError::UNEXPECTED_VALUE));
+              static_cast<int>(scale::DecodeError::UNEXPECTED_VALUE));
   } else {
     EXPECT_OUTCOME_TRUE(val, decode<BlockAttributes>(encoded_value));
     ASSERT_EQ(val, value);

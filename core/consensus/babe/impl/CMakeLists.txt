@@ -25,7 +25,7 @@ add_library(babe_digests_util
     )
 target_link_libraries(babe_digests_util
     primitives
-    scale
+    scale::scale
     )
 
 add_library(block_executor
@@ -34,7 +34,7 @@ add_library(block_executor
 target_link_libraries(block_executor
     logger
     primitives
-    scale
+    scale::scale
     block_tree_error
     threshold_util
     transaction_pool_error
@@ -45,7 +45,7 @@ add_library(babe_util
     )
 target_link_libraries(babe_util
     primitives
-    scale
+    scale::scale
     )
 
 add_library(babe
@@ -58,7 +58,7 @@ target_link_libraries(babe
     schnorrkel_crust::schnorrkel_crust
     buffer
     logger
-    scale
+    scale::scale
     blob
     outcome
     p2p::p2p_peer_id

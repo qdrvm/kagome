@@ -62,6 +62,9 @@ find_package(Boost.DI CONFIG REQUIRED)
 hunter_add_package(c-ares)
 find_package(c-ares CONFIG REQUIRED)
 
+hunter_add_package(fmt)
+find_package(fmt CONFIG REQUIRED)
+
 # https://hunter.readthedocs.io/en/latest/packages/pkg/prometheus-cpp.html
 hunter_add_package(prometheus-cpp)
 find_package(prometheus-cpp CONFIG REQUIRED)
@@ -74,8 +77,8 @@ find_package(libp2p CONFIG REQUIRED)
 hunter_add_package(libsecp256k1)
 find_package(libsecp256k1 CONFIG REQUIRED)
 
-hunter_add_package(fmt)
-find_package(fmt CONFIG REQUIRED)
+hunter_add_package(scale)
+find_package(scale CONFIG REQUIRED)
 
 hunter_add_package(yaml-cpp)
 find_package(yaml-cpp CONFIG REQUIRED)
