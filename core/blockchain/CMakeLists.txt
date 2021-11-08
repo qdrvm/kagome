@@ -20,7 +20,7 @@ add_library(block_storage
 target_link_libraries(block_storage
     blockchain_common
     hasher
-    scale
+    scale::scale
     leveldb
     )
 

@@ -9,6 +9,6 @@ target_link_libraries(changes_tracker
     buffer
     blob
     logger
-    scale
+    scale::scale
     )
 kagome_install(changes_tracker)

@@ -11,7 +11,7 @@ target_link_libraries(primitives_codec_test
     buffer
     outcome
     primitives
-    scale
+    scale::scale
     testutil_primitives_generator
     Boost::boost
     )
