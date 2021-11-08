@@ -30,11 +30,6 @@ find_package(binaryen CONFIG REQUIRED)
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
 
-# transitive from libp2p
-find_package(c-ares CONFIG REQUIRED)
-find_package(tsl_hat_trie CONFIG REQUIRED)
-find_package(yaml-cpp CONFIG REQUIRED)
-
 # https://www.openssl.org/
 hunter_add_package(OpenSSL)
 find_package(OpenSSL REQUIRED)

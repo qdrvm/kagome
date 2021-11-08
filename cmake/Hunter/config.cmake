@@ -31,7 +31,15 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.0.4
+    URL https://github.com/libp2p/cpp-libp2p/archive/refs/heads/feature/cmake-config.tar.gz
+    SHA1 ad6fc09c643d0a9cb64f3d35960e05bbc6ed9c6d
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    schnorrkel_crust
+    URL https://github.com/soramitsu/soramitsu-sr25519-crust/archive/refs/heads/refactor/cmake-config.tar.gz
+    SHA1 00a32ff1133bcfc89a985809934eb4573e2257e9
     KEEP_PACKAGE_SOURCES
 )
 
