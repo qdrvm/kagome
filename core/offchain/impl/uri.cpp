@@ -18,6 +18,7 @@ namespace kagome::offchain {
 
     result.uri_.assign(uri);
     uri = result.uri_;
+    result.error_.reset();
 
     const auto uri_end = uri.cend();
 
