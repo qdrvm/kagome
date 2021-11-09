@@ -57,7 +57,7 @@ namespace kagome::offchain {
     if (uri_.Schema != "https" and uri_.Schema != "http") {
       error_message_ = fmt::format(
           "URI has invalid schema: `{}` "
-          "(d={:P} s={}) (host={}, port={}, path={}, query={}, fragment={}, uri.toString={})",
+          "(d={:p} s={}) (host={}, port={}, path={}, query={}, fragment={}, uri.toString={})",
           uri_.Schema,
           uri_.Schema.data(),
           uri_.Schema.size(),
