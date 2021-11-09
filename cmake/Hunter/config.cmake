@@ -15,7 +15,7 @@
 #     CMAKE_ARGS "CMAKE_VARIABLE=value"
 # )
 
-message(FATAL_ERROR Kagome config)
+message(FATAL_ERROR "Kagome config")
 
 hunter_config(
     backward-cpp
