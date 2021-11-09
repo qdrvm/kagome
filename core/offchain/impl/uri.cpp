@@ -9,6 +9,54 @@
 
 namespace kagome::offchain {
 
+  Uri::Uri(const Uri &other) : uri_(other.uri_), error_(other.error_) {
+    Schema = std::string_view(
+        uri_.data() + (other.Schema.data() - other.uri_.data()),
+        other.Schema.size());
+    Host =
+        std::string_view(uri_.data() + (other.Host.data() - other.uri_.data()),
+                         other.Host.size());
+    Port =
+        std::string_view(uri_.data() + (other.Port.data() - other.uri_.data()),
+                         other.Port.size());
+    Path =
+        std::string_view(uri_.data() + (other.Path.data() - other.uri_.data()),
+                         other.Path.size());
+    Query =
+        std::string_view(uri_.data() + (other.Query.data() - other.uri_.data()),
+                         other.Query.size());
+    Fragment = std::string_view(
+        uri_.data() + (other.Fragment.data() - other.uri_.data()),
+        other.Fragment.size());
+  }
+
+  Uri::Uri(Uri &&other) noexcept {
+    auto p = other.uri_.data();
+
+    uri_ = std::move(other.uri_);
+    error_ = std::move(other.error_);
+
+    Schema = std::string_view(uri_.data() + (other.Schema.data() - p),
+                              other.Schema.size());
+    Host = std::string_view(uri_.data() + (other.Host.data() - p),
+                            other.Host.size());
+    Port = std::string_view(uri_.data() + (other.Port.data() - p),
+                            other.Port.size());
+    Path = std::string_view(uri_.data() + (other.Path.data() - p),
+                            other.Path.size());
+    Query = std::string_view(uri_.data() + (other.Query.data() - p),
+                             other.Query.size());
+    Fragment = std::string_view(uri_.data() + (other.Fragment.data() - p),
+                                other.Fragment.size());
+
+    other.Schema = std::string_view(other.uri_.data(), 0);
+    other.Host = std::string_view(other.uri_.data(), 0);
+    other.Port = std::string_view(other.uri_.data(), 0);
+    other.Path = std::string_view(other.uri_.data(), 0);
+    other.Query = std::string_view(other.uri_.data(), 0);
+    other.Fragment = std::string_view(other.uri_.data(), 0);
+  }
+
   Uri Uri::Parse(std::string_view uri) {
     Uri result;
 

@@ -20,6 +20,13 @@ namespace kagome::offchain {
     std::string_view Query;
     std::string_view Fragment;
 
+    Uri() = default;
+    Uri(const Uri &other);
+    Uri(Uri &&other) noexcept;
+
+    Uri &operator=(const Uri &other) = default;
+    Uri &operator=(Uri &&other) noexcept = default;
+
     const std::string &toString() const {
       return uri_;
     }
@@ -32,7 +39,7 @@ namespace kagome::offchain {
 
    private:
     std::string uri_;
-    std::optional<std::string> error_;
+    std::optional<std::string> error_ = "Is not initialized";
   };
 
 }  // namespace kagome::offchain

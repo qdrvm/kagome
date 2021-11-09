@@ -165,3 +165,95 @@ TEST(UriTest, CorrectInvalidPort) {
     EXPECT_EQ(uri.error().value(), error);
   }
 }
+
+TEST(UriTest, Copy) {
+  auto original_url =
+      "schema://hostname:12345/path/to/resource?alpha=A&beta=B#anchor";
+
+  {
+    auto uri1 = Uri::Parse(original_url);
+    Uri uri2(uri1);
+
+    EXPECT_EQ(uri1.Schema, "schema");
+    EXPECT_EQ(uri1.Host, "hostname");
+    EXPECT_EQ(uri1.Port, "12345");
+    EXPECT_EQ(uri1.Path, "/path/to/resource");
+    EXPECT_EQ(uri1.Query, "alpha=A&beta=B");
+    EXPECT_EQ(uri1.Fragment, "anchor");
+    EXPECT_EQ(uri1.toString(), original_url);
+
+    EXPECT_EQ(uri2.Schema, "schema");
+    EXPECT_EQ(uri2.Host, "hostname");
+    EXPECT_EQ(uri2.Port, "12345");
+    EXPECT_EQ(uri2.Path, "/path/to/resource");
+    EXPECT_EQ(uri2.Query, "alpha=A&beta=B");
+    EXPECT_EQ(uri2.Fragment, "anchor");
+    EXPECT_EQ(uri2.toString(), original_url);
+  }
+  {
+    auto uri1 = Uri::Parse(original_url);
+    auto uri2 = uri1;
+
+    EXPECT_EQ(uri1.Schema, "schema");
+    EXPECT_EQ(uri1.Host, "hostname");
+    EXPECT_EQ(uri1.Port, "12345");
+    EXPECT_EQ(uri1.Path, "/path/to/resource");
+    EXPECT_EQ(uri1.Query, "alpha=A&beta=B");
+    EXPECT_EQ(uri1.Fragment, "anchor");
+    EXPECT_EQ(uri1.toString(), original_url);
+
+    EXPECT_EQ(uri2.Schema, "schema");
+    EXPECT_EQ(uri2.Host, "hostname");
+    EXPECT_EQ(uri2.Port, "12345");
+    EXPECT_EQ(uri2.Path, "/path/to/resource");
+    EXPECT_EQ(uri2.Query, "alpha=A&beta=B");
+    EXPECT_EQ(uri2.Fragment, "anchor");
+    EXPECT_EQ(uri2.toString(), original_url);
+  }
+}
+
+TEST(UriTest, Move) {
+  auto original_url =
+      "schema://hostname:12345/path/to/resource?alpha=A&beta=B#anchor";
+
+  {
+    auto uri1 = Uri::Parse(original_url);
+    Uri uri2(std::move(uri1));
+
+    EXPECT_EQ(uri1.Schema, "");
+    EXPECT_EQ(uri1.Host, "");
+    EXPECT_EQ(uri1.Port, "");
+    EXPECT_EQ(uri1.Path, "");
+    EXPECT_EQ(uri1.Query, "");
+    EXPECT_EQ(uri1.Fragment, "");
+    EXPECT_EQ(uri1.toString(), "");
+
+    EXPECT_EQ(uri2.Schema, "schema");
+    EXPECT_EQ(uri2.Host, "hostname");
+    EXPECT_EQ(uri2.Port, "12345");
+    EXPECT_EQ(uri2.Path, "/path/to/resource");
+    EXPECT_EQ(uri2.Query, "alpha=A&beta=B");
+    EXPECT_EQ(uri2.Fragment, "anchor");
+    EXPECT_EQ(uri2.toString(), original_url);
+  }
+  {
+    auto uri1 = Uri::Parse(original_url);
+    auto uri2 = std::move(uri1);
+
+    EXPECT_EQ(uri1.Schema, "");
+    EXPECT_EQ(uri1.Host, "");
+    EXPECT_EQ(uri1.Port, "");
+    EXPECT_EQ(uri1.Path, "");
+    EXPECT_EQ(uri1.Query, "");
+    EXPECT_EQ(uri1.Fragment, "");
+    EXPECT_EQ(uri1.toString(), "");
+
+    EXPECT_EQ(uri2.Schema, "schema");
+    EXPECT_EQ(uri2.Host, "hostname");
+    EXPECT_EQ(uri2.Port, "12345");
+    EXPECT_EQ(uri2.Path, "/path/to/resource");
+    EXPECT_EQ(uri2.Query, "alpha=A&beta=B");
+    EXPECT_EQ(uri2.Fragment, "anchor");
+    EXPECT_EQ(uri2.toString(), original_url);
+  }
+}
