@@ -116,6 +116,9 @@ class VotingRoundTest : public testing::Test {
     authorities->emplace_back(Authority{{kEve}, kEveWeight});
 
     authority_manager_ = std::make_shared<AuthorityManagerMock>();
+    EXPECT_CALL(*authority_manager_, base())
+        .Times(AnyNumber())
+        .WillRepeatedly(Return(BlockInfo{2, "B"_H}));
     EXPECT_CALL(*authority_manager_, authorities(_, _))
         .Times(AnyNumber())
         .WillRepeatedly(Return(authorities));
