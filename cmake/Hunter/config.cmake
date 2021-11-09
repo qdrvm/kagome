@@ -15,6 +15,8 @@
 #     CMAKE_ARGS "CMAKE_VARIABLE=value"
 # )
 
+message(FATAL_ERROR Kagome config)
+
 hunter_config(
     backward-cpp
     URL https://github.com/bombela/backward-cpp/archive/refs/tags/v1.6.zip
