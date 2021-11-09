@@ -39,7 +39,7 @@ namespace kagome::offchain {
       return error_;
     }
 
-    static Uri Parse(std::string uri);
+    static Uri Parse(std::string_view uri);
   };
 
 }  // namespace kagome::offchain

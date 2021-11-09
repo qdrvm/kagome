@@ -45,17 +45,22 @@ namespace kagome::offchain {
   }
 
   bool HttpRequest::init(HttpMethod method,
-                         std::string uri,
+                         std::string_view uri_arg,
                          common::Buffer meta) {
-    uri_ = Uri::Parse(std::move(uri));
+    uri_ = Uri::Parse(uri_arg);
     if (uri_.error().has_value()) {
       error_message_ =
           fmt::format("URI parsing was failed: {}", uri_.error().value());
       SL_ERROR(log_, error_message_);
       return false;
     }
+    auto z = std::string(uri_.Schema);
     if (uri_.Schema != "https" and uri_.Schema != "http") {
-      error_message_ = fmt::format("URI has invalid schema: `{}`", uri_.Schema);
+      error_message_ =
+          fmt::format("URI has invalid schema: `{}` (z={}, uri.toString={})",
+                      uri_.Schema,
+                      z,
+                      uri_.toString());
       SL_ERROR(log_, error_message_);
       return false;
     }

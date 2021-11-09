@@ -75,15 +75,15 @@ namespace kagome::offchain {
     return *this;
   }
 
-  Uri Uri::Parse(std::string uri_arg) {
+  Uri Uri::Parse(std::string_view uri) {
     Uri result;
 
-    if (uri_arg.empty()) {
+    if (uri.empty()) {
       return result;
     }
 
-    result.uri_ = std::move(uri_arg);
-    std::string_view uri = result.uri_;
+    result.uri_.assign(uri);
+    uri = result.uri_;
     result.error_.reset();
 
     const auto uri_end = uri.cend();
