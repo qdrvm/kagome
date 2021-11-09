@@ -6,6 +6,7 @@
 #ifndef KAGOME_OFFCHAIN_URI
 #define KAGOME_OFFCHAIN_URI
 
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -19,14 +20,19 @@ namespace kagome::offchain {
     std::string_view Query;
     std::string_view Fragment;
 
-    const std::string& toString() const {
+    const std::string &toString() const {
       return uri_;
+    }
+
+    const std::optional<std::string> error() const {
+      return error_;
     }
 
     static Uri Parse(std::string_view uri);
 
    private:
     std::string uri_;
+    std::optional<std::string> error_;
   };
 
 }  // namespace kagome::offchain

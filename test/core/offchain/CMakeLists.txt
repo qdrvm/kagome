@@ -3,6 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+addtest(uri_test
+    uri_test.cpp
+    )
+target_link_libraries(uri_test
+    http_request
+    )
+
 addtest(http_request_test
     http_request_test.cpp
     )
