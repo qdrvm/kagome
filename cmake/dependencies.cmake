@@ -7,8 +7,6 @@ if (TESTING)
     find_package(GTest CONFIG REQUIRED)
 endif()
 
-message(FATAL_ERROR "Kagome dependencies")
-
 hunter_add_package(backward-cpp)
 find_package(Backward)
 
