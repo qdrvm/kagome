@@ -32,7 +32,7 @@ namespace kagome::offchain {
 
     HttpStatus status() const;
 
-    bool init(HttpMethod method, std::string_view uri, common::Buffer meta);
+    bool init(HttpMethod method, std::string uri, common::Buffer meta);
 
     Result<Success, Failure> addRequestHeader(std::string_view name,
                                               std::string_view value);
