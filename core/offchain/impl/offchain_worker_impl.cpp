@@ -202,6 +202,7 @@ namespace kagome::offchain {
       SL_WARN(log_,
               "Can't compare-and-set value in storage: {}",
               result.error().message());
+      return false;
     }
     return result.value();
   }

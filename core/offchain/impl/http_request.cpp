@@ -317,7 +317,7 @@ namespace kagome::offchain {
         }
 
         self->error_message_ =
-            fmt::format("Response receive was fail: {}", ec.message());
+            fmt::format("Response reception has failed: {}", ec.message());
         SL_ERROR(self->log_, self->error_message_);
         self->status_ = ErrorHasOccurred;
       }
