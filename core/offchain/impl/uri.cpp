@@ -10,51 +10,69 @@
 namespace kagome::offchain {
 
   Uri::Uri(const Uri &other) : uri_(other.uri_), error_(other.error_) {
-    Schema = std::string_view(
-        uri_.data() + (other.Schema.data() - other.uri_.data()),
-        other.Schema.size());
-    Host =
-        std::string_view(uri_.data() + (other.Host.data() - other.uri_.data()),
-                         other.Host.size());
-    Port =
-        std::string_view(uri_.data() + (other.Port.data() - other.uri_.data()),
-                         other.Port.size());
-    Path =
-        std::string_view(uri_.data() + (other.Path.data() - other.uri_.data()),
-                         other.Path.size());
-    Query =
-        std::string_view(uri_.data() + (other.Query.data() - other.uri_.data()),
-                         other.Query.size());
-    Fragment = std::string_view(
-        uri_.data() + (other.Fragment.data() - other.uri_.data()),
-        other.Fragment.size());
+    auto offset = uri_.data() - other.uri_.data();
+    Schema = {other.Schema.data() + offset, other.Schema.size()};
+    Host = {other.Host.data() + offset, other.Host.size()};
+    Port = {other.Port.data() + offset, other.Port.size()};
+    Path = {other.Path.data() + offset, other.Path.size()};
+    Query = {other.Query.data() + offset, other.Query.size()};
+    Fragment = {other.Fragment.data() + offset, other.Fragment.size()};
   }
 
-  Uri::Uri(Uri &&other) noexcept {
-    auto p = other.uri_.data();
+  Uri::Uri(Uri &&other) noexcept
+      : uri_(std::move(other.uri_)),
+        error_(std::move(other.error_)),
+        Schema(other.Schema),
+        Host(other.Host),
+        Port(other.Port),
+        Path(other.Path),
+        Query(other.Query),
+        Fragment(other.Fragment) {
+    other.Schema = {other.uri_.data(), 0};
+    other.Host = {other.uri_.data(), 0};
+    other.Port = {other.uri_.data(), 0};
+    other.Path = {other.uri_.data(), 0};
+    other.Query = {other.uri_.data(), 0};
+    other.Fragment = {other.uri_.data(), 0};
+    other.error_.emplace("Is not initialized");
+  }
 
+  Uri &Uri::operator=(const Uri &other) {
+    uri_ = other.uri_;
+    error_ = other.error_;
+
+    auto offset = uri_.data() - other.uri_.data();
+    Schema = {other.Schema.data() + offset, other.Schema.size()};
+    Host = {other.Host.data() + offset, other.Host.size()};
+    Port = {other.Port.data() + offset, other.Port.size()};
+    Path = {other.Path.data() + offset, other.Path.size()};
+    Query = {other.Query.data() + offset, other.Query.size()};
+    Fragment = {other.Fragment.data() + offset, other.Fragment.size()};
+
+    return *this;
+  }
+
+  Uri &Uri::operator=(Uri &&other) noexcept {
     uri_ = std::move(other.uri_);
+
     error_ = std::move(other.error_);
+    other.error_.emplace("Is not initialized");
 
-    Schema = std::string_view(uri_.data() + (other.Schema.data() - p),
-                              other.Schema.size());
-    Host = std::string_view(uri_.data() + (other.Host.data() - p),
-                            other.Host.size());
-    Port = std::string_view(uri_.data() + (other.Port.data() - p),
-                            other.Port.size());
-    Path = std::string_view(uri_.data() + (other.Path.data() - p),
-                            other.Path.size());
-    Query = std::string_view(uri_.data() + (other.Query.data() - p),
-                             other.Query.size());
-    Fragment = std::string_view(uri_.data() + (other.Fragment.data() - p),
-                                other.Fragment.size());
+    Schema = other.Schema;
+    Host = other.Host;
+    Port = other.Port;
+    Path = other.Path;
+    Query = other.Query;
+    Fragment = other.Fragment;
 
-    other.Schema = std::string_view(other.uri_.data(), 0);
-    other.Host = std::string_view(other.uri_.data(), 0);
-    other.Port = std::string_view(other.uri_.data(), 0);
-    other.Path = std::string_view(other.uri_.data(), 0);
-    other.Query = std::string_view(other.uri_.data(), 0);
-    other.Fragment = std::string_view(other.uri_.data(), 0);
+    other.Schema = {other.uri_.data(), 0};
+    other.Host = {other.uri_.data(), 0};
+    other.Port = {other.uri_.data(), 0};
+    other.Path = {other.uri_.data(), 0};
+    other.Query = {other.uri_.data(), 0};
+    other.Fragment = {other.uri_.data(), 0};
+
+    return *this;
   }
 
   Uri Uri::Parse(std::string_view uri) {

@@ -12,6 +12,10 @@
 
 namespace kagome::offchain {
   struct Uri final {
+   private:
+    std::string uri_;
+    std::optional<std::string> error_ = "Is not initialized";
+
    public:
     std::string_view Schema;
     std::string_view Host;
@@ -24,8 +28,8 @@ namespace kagome::offchain {
     Uri(const Uri &other);
     Uri(Uri &&other) noexcept;
 
-    Uri &operator=(const Uri &other) = default;
-    Uri &operator=(Uri &&other) noexcept = default;
+    Uri &operator=(const Uri &other);
+    Uri &operator=(Uri &&other) noexcept;
 
     const std::string &toString() const {
       return uri_;
@@ -36,10 +40,6 @@ namespace kagome::offchain {
     }
 
     static Uri Parse(std::string_view uri);
-
-   private:
-    std::string uri_;
-    std::optional<std::string> error_ = "Is not initialized";
   };
 
 }  // namespace kagome::offchain

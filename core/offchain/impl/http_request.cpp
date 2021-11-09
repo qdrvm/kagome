@@ -48,6 +48,12 @@ namespace kagome::offchain {
                          std::string_view uri_arg,
                          common::Buffer meta) {
     uri_ = Uri::Parse(uri_arg);
+    if (uri_.error().has_value()) {
+      error_message_ =
+          fmt::format("URI parsing was failed: {}", uri_.error().value());
+      SL_ERROR(log_, error_message_);
+      return false;
+    }
     if (uri_.Schema != "https" and uri_.Schema != "http") {
       error_message_ = fmt::format("URI has invalid schema: `{}`", uri_.Schema);
       SL_ERROR(log_, error_message_);

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "offchain/impl/uri.hpp"
