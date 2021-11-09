@@ -40,8 +40,7 @@ TEST(UriTest, CorrectWithoutSchema) {
     EXPECT_EQ(uri.toString(), original_url);
   }
   {
-    auto original_url =
-        "hostname:12345/path/to/resource?alpha=A&beta=B#anchor";
+    auto original_url = "hostname:12345/path/to/resource?alpha=A&beta=B#anchor";
 
     auto uri = Uri::Parse(original_url);
 
@@ -71,8 +70,7 @@ TEST(UriTest, CorrectWithoutPort) {
 }
 
 TEST(UriTest, CorrectWithoutQuery) {
-  auto original_url =
-      "schema://hostname:12345/path/to/resource#anchor";
+  auto original_url = "schema://hostname:12345/path/to/resource#anchor";
 
   auto uri = Uri::Parse(original_url);
 
@@ -86,8 +84,7 @@ TEST(UriTest, CorrectWithoutQuery) {
 }
 
 TEST(UriTest, CorrectWithoutFragment) {
-  auto original_url =
-      "schema://hostname:12345/path/to/resource?alpha=A&beta=B";
+  auto original_url = "schema://hostname:12345/path/to/resource?alpha=A&beta=B";
 
   auto uri = Uri::Parse(original_url);
 
@@ -124,8 +121,7 @@ TEST(UriTest, CorrectInvalidHostname) {
     EXPECT_EQ(uri.error().value(), error);
   }
   {
-    auto original_url =
-        "https://:12345/path/to/resource?alpha=A&beta=B#anchor";
+    auto original_url = "https://:12345/path/to/resource?alpha=A&beta=B#anchor";
 
     auto uri = Uri::Parse(original_url);
 
@@ -137,8 +133,7 @@ TEST(UriTest, CorrectInvalidHostname) {
 TEST(UriTest, CorrectInvalidPort) {
   auto error = "Invalid port";
   {
-    auto original_url =
-        "https://google.com:Azaza/";
+    auto original_url = "https://google.com:Azaza/";
 
     auto uri = Uri::Parse(original_url);
 
@@ -146,8 +141,7 @@ TEST(UriTest, CorrectInvalidPort) {
     EXPECT_EQ(uri.error().value(), error);
   }
   {
-    auto original_url =
-        "https://google.com:77777/";
+    auto original_url = "https://google.com:77777/";
 
     auto uri = Uri::Parse(original_url);
 
@@ -155,8 +149,7 @@ TEST(UriTest, CorrectInvalidPort) {
     EXPECT_EQ(uri.error().value(), error);
   }
   {
-    auto original_url =
-        "https://google.com:/";
+    auto original_url = "https://google.com:/";
 
     auto uri = Uri::Parse(original_url);
 
@@ -191,7 +184,8 @@ TEST(UriTest, Copy) {
   }
   {
     auto uri1 = Uri::Parse(original_url);
-    auto uri2 = uri1;
+    Uri uri2;
+    uri2 = uri1;
 
     EXPECT_EQ(uri1.Schema, "schema");
     EXPECT_EQ(uri1.Host, "hostname");
@@ -237,7 +231,8 @@ TEST(UriTest, Move) {
   }
   {
     auto uri1 = Uri::Parse(original_url);
-    auto uri2 = std::move(uri1);
+    Uri uri2;
+    uri2 = std::move(uri1);
 
     EXPECT_EQ(uri1.Schema, "");
     EXPECT_EQ(uri1.Host, "");

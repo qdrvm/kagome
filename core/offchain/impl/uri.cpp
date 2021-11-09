@@ -53,7 +53,7 @@ namespace kagome::offchain {
   }
 
   Uri &Uri::operator=(Uri &&other) noexcept {
-    uri_ = std::move(other.uri_);
+    uri_.swap(other.uri_);
 
     error_ = std::move(other.error_);
     other.error_.emplace("Is not initialized");
@@ -64,6 +64,8 @@ namespace kagome::offchain {
     Path = other.Path;
     Query = other.Query;
     Fragment = other.Fragment;
+
+    other.uri_.clear();
 
     other.Schema = {other.uri_.data(), 0};
     other.Host = {other.uri_.data(), 0};
