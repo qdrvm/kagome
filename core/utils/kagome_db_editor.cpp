@@ -74,7 +74,7 @@ Example:
 
 int main(int argc, char *argv[]) {
   Command cmd;
-  if (argc == 3 or (argc == 4 and not std::strcmp(argv[MODE], "compact"))) {
+  if (argc == 2 or argc == 3 or (argc == 4 and not std::strcmp(argv[MODE], "compact"))) {
     cmd = COMPACT;
   } else if (argc == 4 and not std::strcmp(argv[MODE], "dump")) {
     cmd = DUMP;
@@ -98,6 +98,9 @@ int main(int argc, char *argv[]) {
     std::shared_ptr<storage::LevelDB> storage =
         storage::LevelDB::create(argv[DB_PATH], leveldb::Options()).value();
     auto injector = di::make_injector(
+                                      di::bind<BlockStorage>.template to([](const auto& injector) {
+                                        ;
+                                      }),
         di::bind<TrieSerializer>.template to([](const auto &injector) {
           return std::make_shared<TrieSerializerImpl>(
               injector.template create<sptr<PolkadotTrieFactory>>(),
@@ -113,6 +116,10 @@ int main(int argc, char *argv[]) {
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory));
+
+    if(argc == 2) {
+      ;
+    }
 
     auto hash = RootHash::fromHexWithPrefix(argv[STATE_HASH]).value();
 

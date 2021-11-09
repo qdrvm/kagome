@@ -19,16 +19,18 @@ namespace kagome::runtime {
 
   class TrieStorageProviderImpl : public TrieStorageProvider {
    public:
+    enum class Error {
+      NO_BATCH = 1,
+    };
+
     explicit TrieStorageProviderImpl(
         std::shared_ptr<storage::trie::TrieStorage> trie_storage);
 
     ~TrieStorageProviderImpl() override = default;
 
-    outcome::result<void> setToEphemeral() override;
     outcome::result<void> setToEphemeralAt(
         const common::Hash256 &state_root) override;
 
-    outcome::result<void> setToPersistent() override;
     outcome::result<void> setToPersistentAt(
         const common::Hash256 &state_root) override;
 
@@ -42,8 +44,6 @@ namespace kagome::runtime {
     outcome::result<void> startTransaction() override;
     outcome::result<void> rollbackTransaction() override;
     outcome::result<void> commitTransaction() override;
-
-    storage::trie::RootHash getLatestRoot() const noexcept override;
 
    private:
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
@@ -60,5 +60,7 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, TrieStorageProviderImpl::Error);
 
 #endif  // KAGOME_CORE_RUNTIME_COMMON_TRIE_STORAGE_PROVIDER_IMPL

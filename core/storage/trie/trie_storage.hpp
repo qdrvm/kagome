@@ -23,11 +23,6 @@ namespace kagome::storage::trie {
    public:
     virtual ~TrieStorage() = default;
 
-    virtual outcome::result<std::unique_ptr<PersistentTrieBatch>>
-    getPersistentBatch() = 0;
-    virtual outcome::result<std::unique_ptr<EphemeralTrieBatch>>
-    getEphemeralBatch() const = 0;
-
     /**
      * Initializes a batch at the provided state
      * @warning if the batch is committed, the trie will still switch to its
@@ -37,11 +32,6 @@ namespace kagome::storage::trie {
     getPersistentBatchAt(const RootHash &root) = 0;
     virtual outcome::result<std::unique_ptr<EphemeralTrieBatch>>
     getEphemeralBatchAt(const RootHash &root) const = 0;
-
-    /**
-     * Root hash of the latest committed trie
-     */
-    virtual RootHash getRootHash() const noexcept = 0;
   };
 
 }  // namespace kagome::storage::trie

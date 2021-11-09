@@ -52,7 +52,8 @@ class TrieStorageProviderTest : public ::testing::Test {
         std::make_shared<kagome::runtime::TrieStorageProviderImpl>(
             std::move(trieDb));
 
-    ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->setToPersistent());
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        storage_provider_->setToPersistentAt(serializer->getEmptyRootHash()));
   }
 
  protected:

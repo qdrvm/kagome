@@ -8,6 +8,17 @@
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
+                            TrieStorageProviderImpl::Error,
+                            e) {
+  using E = kagome::runtime::TrieStorageProviderImpl::Error;
+  switch (e) {
+    case E::NO_BATCH:
+      return "Batch was not created or already was destructed.";
+  }
+  return "Unknown error";
+}
+
 namespace kagome::runtime {
   using storage::trie::TopperTrieBatch;
   using storage::trie::TopperTrieBatchImpl;
@@ -20,15 +31,6 @@ namespace kagome::runtime {
     BOOST_ASSERT(trie_storage_ != nullptr);
   }
 
-  outcome::result<void> TrieStorageProviderImpl::setToEphemeral() {
-    SL_DEBUG(logger_,
-             "Setting storage provider to ephemeral batch with root {}",
-             trie_storage_->getRootHash().toHex());
-    OUTCOME_TRY(batch, trie_storage_->getEphemeralBatch());
-    current_batch_ = std::move(batch);
-    return outcome::success();
-  }
-
   outcome::result<void> TrieStorageProviderImpl::setToEphemeralAt(
       const common::Hash256 &state_root) {
     SL_DEBUG(logger_,
@@ -36,22 +38,6 @@ namespace kagome::runtime {
              state_root.toHex());
     OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(state_root));
     current_batch_ = std::move(batch);
-    return outcome::success();
-  }
-
-  outcome::result<void> TrieStorageProviderImpl::setToPersistent() {
-    if (persistent_batch_ == nullptr) {
-      SL_DEBUG(logger_,
-               "Setting storage provider to new persistent batch with root {}",
-               trie_storage_->getRootHash().toHex());
-      OUTCOME_TRY(batch, trie_storage_->getPersistentBatch());
-      persistent_batch_ = std::move(batch);
-    }
-    SL_DEBUG(
-        logger_,
-        "Setting storage provider to existing persistent batch with root {}",
-        trie_storage_->getRootHash().toHex());
-    current_batch_ = persistent_batch_;
     return outcome::success();
   }
 
@@ -87,7 +73,7 @@ namespace kagome::runtime {
     if (persistent_batch_ != nullptr) {
       return persistent_batch_->commit();
     }
-    return trie_storage_->getRootHash();
+    return Error::NO_BATCH;
   }
 
   outcome::result<void> TrieStorageProviderImpl::startTransaction() {
@@ -120,11 +106,6 @@ namespace kagome::runtime {
     current_batch_ = std::move(stack_of_batches_.top());
     stack_of_batches_.pop();
     return outcome::success();
-  }
-
-  storage::trie::RootHash TrieStorageProviderImpl::getLatestRoot()
-      const noexcept {
-    return trie_storage_->getRootHash();
   }
 
 }  // namespace kagome::runtime

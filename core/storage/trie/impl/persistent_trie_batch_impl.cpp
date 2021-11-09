@@ -33,14 +33,12 @@ namespace kagome::storage::trie {
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-      std::shared_ptr<PolkadotTrie> trie,
-      RootChangedEventHandler &&handler) {
+      std::shared_ptr<PolkadotTrie> trie) {
     std::unique_ptr<PersistentTrieBatchImpl> ptr(
         new PersistentTrieBatchImpl(std::move(codec),
                                     std::move(serializer),
                                     std::move(changes),
-                                    std::move(trie),
-                                    std::move(handler)));
+                                    std::move(trie)));
     return ptr;
   }
 
@@ -48,13 +46,11 @@ namespace kagome::storage::trie {
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-      std::shared_ptr<PolkadotTrie> trie,
-      RootChangedEventHandler &&handler)
+      std::shared_ptr<PolkadotTrie> trie)
       : codec_{std::move(codec)},
         serializer_{std::move(serializer)},
         changes_{std::move(changes)},
-        trie_{std::move(trie)},
-        root_changed_handler_{std::move(handler)} {
+        trie_{std::move(trie)} {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
@@ -73,7 +69,6 @@ namespace kagome::storage::trie {
 
   outcome::result<RootHash> PersistentTrieBatchImpl::commit() {
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_));
-    root_changed_handler_(root);
     SL_TRACE_FUNC_CALL(logger_, root);
     return std::move(root);
   }
