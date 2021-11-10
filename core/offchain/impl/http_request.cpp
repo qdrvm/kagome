@@ -54,38 +54,38 @@ namespace kagome::offchain {
       SL_ERROR(log_, error_message_);
       return false;
     }
-    if (uri_.Schema != "https" and uri_.Schema != "http") {
-      error_message_ = fmt::format("URI has invalid schema: `{}`", uri_.Schema);
+    if (uri_.schema() != "https" and uri_.schema() != "http") {
+      error_message_ = fmt::format("URI has invalid schema: `{}`", uri_.schema());
       SL_ERROR(log_, error_message_);
       return false;
     }
-    if (not uri_.Port.empty()) {
-      if (int port = std::stoi(std::string(uri_.Port));
-          port <= 0 or port > 65536 or uri_.Port != std::to_string(port)) {
-        error_message_ = fmt::format("URI has invalid port: `{}`", uri_.Port);
+    if (not uri_.port().empty()) {
+      if (int port = std::stoi(std::string(uri_.port()));
+          port <= 0 or port > 65536 or uri_.port() != std::to_string(port)) {
+        error_message_ = fmt::format("URI has invalid port: `{}`", uri_.port());
         SL_ERROR(log_, error_message_);
         return false;
       }
-    } else if (uri_.Schema == "https") {
-      uri_.Port = "443";
-    } else if (uri_.Schema == "http") {
-      uri_.Port = "80";
+    } else if (uri_.schema() == "https") {
+      uri_.port() = "443";
+    } else if (uri_.schema() == "http") {
+      uri_.port() = "80";
     }
-    if (uri_.Host.empty()) {
+    if (uri_.host().empty()) {
       error_message_ = "URI has empty host";
       SL_ERROR(log_, error_message_);
       return false;
     }
-    if (uri_.Path.empty()) {
+    if (uri_.path().empty()) {
       error_message_ = "URI has empty path";
       SL_ERROR(log_, error_message_);
       return false;
     }
 
-    if (uri_.Schema == "https") {
+    if (uri_.schema() == "https") {
       secure_ = true;
       stream_ = std::make_unique<SslStream>(io_context_, ssl_ctx_);
-    } else if (uri_.Schema == "http") {
+    } else if (uri_.schema() == "http") {
       secure_ = false;
       stream_ = std::make_unique<TcpStream>(io_context_);
     }
@@ -97,9 +97,9 @@ namespace kagome::offchain {
     } else if (method == HttpMethod::Get) {
       request_.method(boost::beast::http::verb::get);
     }
-    request_.target(std::string(uri_.Path));
+    request_.target(std::string(uri_.path()));
     request_.version(11);  // HTTP/1.1
-    request_.set(boost::beast::http::field::host, uri_.Host);
+    request_.set(boost::beast::http::field::host, uri_.host());
     request_.set(boost::beast::http::field::user_agent, "KagomeOffchainWorker");
     request_.set(boost::beast::http::field::connection, "Close");
 
@@ -112,18 +112,18 @@ namespace kagome::offchain {
       return;
     }
 
-    SL_TRACE(log_, "Resolve hostname {}", uri_.Host);
+    SL_TRACE(log_, "Resolve hostname {}", uri_.host());
 
     if (secure_) {
       auto &stream = *boost::relaxed_get<SslStreamPtr>(stream_);
 
       // Set SNI Hostname (many hosts need this to handshake successfully)
       if (!SSL_set_tlsext_host_name(stream.native_handle(),
-                                    std::string(uri_.Host).c_str())) {
+                                    std::string(uri_.host()).c_str())) {
         boost::beast::error_code ec{static_cast<int>(::ERR_get_error()),
                                     boost::asio::error::get_ssl_category()};
         error_message_ = fmt::format(
-            "Can't resolve hostname {}: {}", uri_.Host, ec.message());
+            "Can't resolve hostname {}: {}", uri_.host(), ec.message());
         SL_ERROR(log_, error_message_);
         status_ = ErrorHasOccurred;
         return;
@@ -139,20 +139,20 @@ namespace kagome::offchain {
         }
 
         if (!ec) {
-          SL_TRACE(self->log_, "Resolved hostname {}", self->uri_.Host);
+          SL_TRACE(self->log_, "Resolved hostname {}", self->uri_.host());
           self->resolver_iterator_ = it;
           self->connect();
           return;
         }
 
         self->error_message_ = fmt::format(
-            "Can't resolve hostname {}: {}", self->uri_.Host, ec.message());
+            "Can't resolve hostname {}: {}", self->uri_.host(), ec.message());
         SL_ERROR(self->log_, self->error_message_);
         self->status_ = ErrorHasOccurred;
       }
     };
 
-    resolver_.async_resolve(uri_.Host, uri_.Port, std::move(resolve_handler));
+    resolver_.async_resolve(uri_.host(), uri_.port(), std::move(resolve_handler));
   }
 
   void HttpRequest::connect() {
@@ -162,7 +162,7 @@ namespace kagome::offchain {
 
     SL_TRACE(log_,
              "Connect to `{}` (addr={}:{})",
-             uri_.Host,
+             uri_.host(),
              resolver_iterator_->endpoint().address().to_string(),
              resolver_iterator_->endpoint().port());
 

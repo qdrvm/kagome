@@ -9,103 +9,22 @@
 
 namespace kagome::offchain {
 
-  Uri::Uri(const Uri &other) : uri_(other.uri_), error_(other.error_) {
-    auto offset = uri_.data() - other.uri_.data();
-    Schema = {other.Schema.data() + offset, other.Schema.size()};
-    Host = {other.Host.data() + offset, other.Host.size()};
-    Port = {other.Port.data() + offset, other.Port.size()};
-    Path = {other.Path.data() + offset, other.Path.size()};
-    Query = {other.Query.data() + offset, other.Query.size()};
-    Fragment = {other.Fragment.data() + offset, other.Fragment.size()};
-  }
-
   Uri::Uri(Uri &&other) noexcept {
-    std::ptrdiff_t offset[] = {
-        other.Schema.data() - other.uri_.data(),   // Schema
-        other.Host.data() - other.uri_.data(),     // Host
-        other.Port.data() - other.uri_.data(),     // Port
-        other.Path.data() - other.uri_.data(),     // Path
-        other.Query.data() - other.uri_.data(),    // Query
-        other.Fragment.data() - other.uri_.data()  // Fragment
-    };
-    std::size_t size[] = {
-        other.Schema.size(),   // Schema
-        other.Host.size(),     // Host
-        other.Port.size(),     // Port
-        other.Path.size(),     // Path
-        other.Query.size(),    // Query
-        other.Fragment.size()  // Fragment
-    };
-
-    uri_ = std::move(other.uri_);
-    error_ = std::move(other.error_);
-
-    Schema =   {uri_.data() + offset[0], size[0]};
-    Host =     {uri_.data() + offset[1], size[1]};
-    Port =     {uri_.data() + offset[2], size[2]};
-    Path =     {uri_.data() + offset[3], size[3]};
-    Query =    {uri_.data() + offset[4], size[4]};
-    Fragment = {uri_.data() + offset[5], size[5]};
-
-    other.Schema = {other.uri_.data(), 0};
-    other.Host = {other.uri_.data(), 0};
-    other.Port = {other.uri_.data(), 0};
-    other.Path = {other.uri_.data(), 0};
-    other.Query = {other.uri_.data(), 0};
-    other.Fragment = {other.uri_.data(), 0};
-  }
-
-  Uri &Uri::operator=(const Uri &other) {
-    uri_ = other.uri_;
-    error_ = other.error_;
-
-    auto offset = uri_.data() - other.uri_.data();
-    Schema = {other.Schema.data() + offset, other.Schema.size()};
-    Host = {other.Host.data() + offset, other.Host.size()};
-    Port = {other.Port.data() + offset, other.Port.size()};
-    Path = {other.Path.data() + offset, other.Path.size()};
-    Query = {other.Query.data() + offset, other.Query.size()};
-    Fragment = {other.Fragment.data() + offset, other.Fragment.size()};
-
-    return *this;
+    auto uri = std::move(other.uri_);
+    auto error = std::move(other.error_);
+    *this = other;
+    other.reset();
+    uri_ = std::move(uri);
+    error_ = std::move(error);
   }
 
   Uri &Uri::operator=(Uri &&other) noexcept {
-    std::ptrdiff_t offset[] = {
-        other.Schema.data() - other.uri_.data(),   // Schema
-        other.Host.data() - other.uri_.data(),     // Host
-        other.Port.data() - other.uri_.data(),     // Port
-        other.Path.data() - other.uri_.data(),     // Path
-        other.Query.data() - other.uri_.data(),    // Query
-        other.Fragment.data() - other.uri_.data()  // Fragment
-    };
-    std::size_t size[] = {
-        other.Schema.size(),   // Schema
-        other.Host.size(),     // Host
-        other.Port.size(),     // Port
-        other.Path.size(),     // Path
-        other.Query.size(),    // Query
-        other.Fragment.size()  // Fragment
-    };
-
-    uri_ = std::move(other.uri_);
-    error_ = std::move(other.error_);
-    other.error_.emplace("Is not initialized");
-
-    Schema =   {uri_.data() + offset[0], size[0]};
-    Host =     {uri_.data() + offset[1], size[1]};
-    Port =     {uri_.data() + offset[2], size[2]};
-    Path =     {uri_.data() + offset[3], size[3]};
-    Query =    {uri_.data() + offset[4], size[4]};
-    Fragment = {uri_.data() + offset[5], size[5]};
-
-    other.Schema = {other.uri_.data(), 0};
-    other.Host = {other.uri_.data(), 0};
-    other.Port = {other.uri_.data(), 0};
-    other.Path = {other.uri_.data(), 0};
-    other.Query = {other.uri_.data(), 0};
-    other.Fragment = {other.uri_.data(), 0};
-
+    auto uri = std::move(other.uri_);
+    auto error = std::move(other.error_);
+    *this = other;
+    other.reset();
+    uri_ = std::move(uri);
+    error_ = std::move(error);
     return *this;
   }
 
@@ -130,12 +49,12 @@ namespace kagome::offchain {
         or std::string_view(schema_end, 3) != "://") {
       schema_end = uri.cbegin();
     }
-    result.Schema = std::string_view(schema_begin, schema_end - schema_begin);
+    result.schema_offset_ = schema_begin - uri.cbegin();
+    result.schema_size_ = schema_end - schema_begin;
 
-    if (std::find_if_not(result.Schema.begin(),
-                         result.Schema.end(),
-                         [](auto ch) { return std::isalpha(ch); })
-        != result.Schema.end()) {
+    if (std::find_if_not(
+            schema_begin, schema_end, [](auto ch) { return std::isalpha(ch); })
+        != schema_end) {
       if (not result.error_.has_value()) {
         result.error_.emplace("Invalid schema");
       }
@@ -147,13 +66,14 @@ namespace kagome::offchain {
     const auto host_end = std::find_if(host_begin, uri_end, [](auto ch) {
       return ch == ':' or ch == '/' or ch == '?' or ch == '#';
     });
-    result.Host = std::string_view(host_begin, host_end - host_begin);
+    result.host_offset_ = host_begin - uri.cbegin();
+    result.host_size_ = host_end - host_begin;
     if (std::find_if_not(
-            result.Host.begin(),
-            result.Host.end(),
+            host_begin,
+            host_end,
             [](auto ch) { return std::isalnum(ch) or ch == '.' or ch == '-'; })
-            != result.Host.end()
-        or result.Host.empty()) {
+            != host_end
+        or host_begin == host_end) {
       if (not result.error_.has_value()) {
         result.error_.emplace("Invalid hostname");
       }
@@ -165,17 +85,16 @@ namespace kagome::offchain {
       return ch == '/' or ch == '?' or ch == '#';
     });
 
-    result.Port = std::string_view(port_begin, port_end - port_begin);
+    result.port_offset_ = port_begin - uri.cbegin();
+    result.port_size_ = port_end - port_begin;
 
-    if ((result.Port.size() == 1 and result.Port == "0")
-        or std::find_if_not(result.Port.begin(),
-                            result.Port.end(),
-                            [](auto ch) { return std::isdigit(ch); })
-               != result.Port.end()
-        or (result.Port.empty() and *host_end == ':')
-        or (result.Port.size() == 1 and result.Port == "0")
-        or (result.Port.size() == 5 and result.Port > "65535")
-        or result.Port.size() > 5) {
+    if (std::find_if_not(
+            port_begin, port_end, [](auto ch) { return std::isdigit(ch); })
+            != port_end
+        or (result.port_size_ == 0 and *host_end == ':')
+        or (result.port_size_ == 1 and result.port() == "0")
+        or (result.port_size_ == 5 and result.port() > "65535")
+        or result.port_size_ > 5) {
       if (not result.error_.has_value()) {
         result.error_.emplace("Invalid port");
       }
@@ -186,19 +105,22 @@ namespace kagome::offchain {
     const auto path_end = std::find_if(
         path_begin, uri_end, [](auto ch) { return ch == '?' or ch == '#'; });
 
-    result.Path = std::string_view(path_begin, path_end - path_begin);
+    result.path_offset_ = path_begin - uri.cbegin();
+    result.path_size_ = path_end - path_begin;
 
     // Query
     const auto query_begin = path_end + (*path_end == '?' ? 1 : 0);
     const auto query_end = std::find(query_begin, uri_end, '#');
 
-    result.Query = std::string_view(query_begin, query_end - query_begin);
+    result.query_offset_ = query_begin - uri.cbegin();
+    result.query_size_ = query_end - query_begin;
 
     // Fragment
-    const auto fragm_begin = query_end + (*query_end == '#' ? 1 : 0);
-    const auto fragm_end = uri_end;
+    const auto fragment_begin = query_end + (*query_end == '#' ? 1 : 0);
+    const auto fragment_end = uri_end;
 
-    result.Fragment = std::string_view(fragm_begin, fragm_end - fragm_begin);
+    result.fragment_offset_ = fragment_begin - uri.cbegin();
+    result.fragment_size_ = fragment_end - fragment_begin;
 
     return result;
   }
