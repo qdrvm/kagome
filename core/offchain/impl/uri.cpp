@@ -19,22 +19,40 @@ namespace kagome::offchain {
     Fragment = {other.Fragment.data() + offset, other.Fragment.size()};
   }
 
-  Uri::Uri(Uri &&other) noexcept
-      : uri_(std::move(other.uri_)),
-        error_(std::move(other.error_)),
-        Schema(other.Schema),
-        Host(other.Host),
-        Port(other.Port),
-        Path(other.Path),
-        Query(other.Query),
-        Fragment(other.Fragment) {
+  Uri::Uri(Uri &&other) noexcept {
+    std::ptrdiff_t offset[] = {
+        other.Schema.data() - other.uri_.data(),   // Schema
+        other.Host.data() - other.uri_.data(),     // Host
+        other.Port.data() - other.uri_.data(),     // Port
+        other.Path.data() - other.uri_.data(),     // Path
+        other.Query.data() - other.uri_.data(),    // Query
+        other.Fragment.data() - other.uri_.data()  // Fragment
+    };
+    std::size_t size[] = {
+        other.Schema.size(),   // Schema
+        other.Host.size(),     // Host
+        other.Port.size(),     // Port
+        other.Path.size(),     // Path
+        other.Query.size(),    // Query
+        other.Fragment.size()  // Fragment
+    };
+
+    uri_ = std::move(other.uri_);
+    error_ = std::move(other.error_);
+
+    Schema =   {uri_.data() + offset[0], size[0]};
+    Host =     {uri_.data() + offset[1], size[1]};
+    Port =     {uri_.data() + offset[2], size[2]};
+    Path =     {uri_.data() + offset[3], size[3]};
+    Query =    {uri_.data() + offset[4], size[4]};
+    Fragment = {uri_.data() + offset[5], size[5]};
+
     other.Schema = {other.uri_.data(), 0};
     other.Host = {other.uri_.data(), 0};
     other.Port = {other.uri_.data(), 0};
     other.Path = {other.uri_.data(), 0};
     other.Query = {other.uri_.data(), 0};
     other.Fragment = {other.uri_.data(), 0};
-    other.error_.emplace("Is not initialized");
   }
 
   Uri &Uri::operator=(const Uri &other) {
@@ -53,19 +71,33 @@ namespace kagome::offchain {
   }
 
   Uri &Uri::operator=(Uri &&other) noexcept {
-    uri_.swap(other.uri_);
+    std::ptrdiff_t offset[] = {
+        other.Schema.data() - other.uri_.data(),   // Schema
+        other.Host.data() - other.uri_.data(),     // Host
+        other.Port.data() - other.uri_.data(),     // Port
+        other.Path.data() - other.uri_.data(),     // Path
+        other.Query.data() - other.uri_.data(),    // Query
+        other.Fragment.data() - other.uri_.data()  // Fragment
+    };
+    std::size_t size[] = {
+        other.Schema.size(),   // Schema
+        other.Host.size(),     // Host
+        other.Port.size(),     // Port
+        other.Path.size(),     // Path
+        other.Query.size(),    // Query
+        other.Fragment.size()  // Fragment
+    };
 
+    uri_ = std::move(other.uri_);
     error_ = std::move(other.error_);
     other.error_.emplace("Is not initialized");
 
-    Schema = other.Schema;
-    Host = other.Host;
-    Port = other.Port;
-    Path = other.Path;
-    Query = other.Query;
-    Fragment = other.Fragment;
-
-    other.uri_.clear();
+    Schema =   {uri_.data() + offset[0], size[0]};
+    Host =     {uri_.data() + offset[1], size[1]};
+    Port =     {uri_.data() + offset[2], size[2]};
+    Path =     {uri_.data() + offset[3], size[3]};
+    Query =    {uri_.data() + offset[4], size[4]};
+    Fragment = {uri_.data() + offset[5], size[5]};
 
     other.Schema = {other.uri_.data(), 0};
     other.Host = {other.uri_.data(), 0};
