@@ -5,8 +5,6 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
-#include <boost/range/adaptor/reversed.hpp>
-
 #include "consensus/grandpa/grandpa_context.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
@@ -695,7 +693,8 @@ namespace kagome::consensus::grandpa {
                   auto do_request = std::move(*do_request_ptr);
                   do_request();
                 }
-              });
+              },
+              true);
           blocks.erase(block);
           return;
         }

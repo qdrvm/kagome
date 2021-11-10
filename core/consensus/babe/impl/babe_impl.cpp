@@ -226,7 +226,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    // Received announce has the same block number as our best one,
+    // Received announce has the same block number than our best one,
     // or greater by one. Using of simple way to load block
     synchronizer_->syncByBlockHeader(
         announce.header,
@@ -274,7 +274,8 @@ namespace kagome::consensus::babe {
                     bn,
                     res.value().number);
           }
-        });
+        },
+        false);
 
     if (is_ran) {
       SL_INFO(log_, "Catching up to block #{} is ran", target_block.number);
