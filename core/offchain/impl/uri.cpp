@@ -9,23 +9,34 @@
 
 namespace kagome::offchain {
 
-  Uri::Uri(Uri &&other) noexcept {
-    auto uri = std::move(other.uri_);
-    auto error = std::move(other.error_);
-    *this = other;
-    other.reset();
-    uri_ = std::move(uri);
-    error_ = std::move(error);
-  }
-
-  Uri &Uri::operator=(Uri &&other) noexcept {
-    auto uri = std::move(other.uri_);
-    auto error = std::move(other.error_);
-    *this = other;
-    other.reset();
-    uri_ = std::move(uri);
-    error_ = std::move(error);
-    return *this;
+  std::string Uri::toString() const {
+    std::string result;
+    if (not Schema.empty()) {
+      result += Schema;
+      result += ":";
+    }
+    if (not Host.empty()) {
+      if (not Schema.empty()) {
+        result += "//";
+      }
+      result += Host;
+      if (not Port.empty()) {
+        result += ":";
+        result += Port;
+      }
+    }
+    if (not Path.empty()) {
+      result += Path;
+    }
+    if (not Query.empty()) {
+      result += "?";
+      result += Query;
+    }
+    if (not Fragment.empty()) {
+      result += "#";
+      result += Fragment;
+    }
+    return result;
   }
 
   Uri Uri::Parse(std::string_view uri) {
@@ -35,8 +46,6 @@ namespace kagome::offchain {
       return result;
     }
 
-    result.uri_.assign(uri);
-    uri = result.uri_;
     result.error_.reset();
 
     const auto uri_end = uri.cend();
@@ -49,8 +58,7 @@ namespace kagome::offchain {
         or std::string_view(schema_end, 3) != "://") {
       schema_end = uri.cbegin();
     }
-    result.schema_offset_ = schema_begin - uri.cbegin();
-    result.schema_size_ = schema_end - schema_begin;
+    result.Schema.assign(schema_begin, schema_end);
 
     if (std::find_if_not(
             schema_begin, schema_end, [](auto ch) { return std::isalpha(ch); })
@@ -66,8 +74,7 @@ namespace kagome::offchain {
     const auto host_end = std::find_if(host_begin, uri_end, [](auto ch) {
       return ch == ':' or ch == '/' or ch == '?' or ch == '#';
     });
-    result.host_offset_ = host_begin - uri.cbegin();
-    result.host_size_ = host_end - host_begin;
+    result.Host.assign(host_begin, host_end);
     if (std::find_if_not(
             host_begin,
             host_end,
@@ -85,16 +92,14 @@ namespace kagome::offchain {
       return ch == '/' or ch == '?' or ch == '#';
     });
 
-    result.port_offset_ = port_begin - uri.cbegin();
-    result.port_size_ = port_end - port_begin;
+    result.Port.assign(port_begin, port_end);
 
     if (std::find_if_not(
             port_begin, port_end, [](auto ch) { return std::isdigit(ch); })
             != port_end
-        or (result.port_size_ == 0 and *host_end == ':')
-        or (result.port_size_ == 1 and result.port() == "0")
-        or (result.port_size_ == 5 and result.port() > "65535")
-        or result.port_size_ > 5) {
+        or (result.Port.empty() and *host_end == ':') or (result.Port == "0")
+        or (result.Port.size() == 5 and result.Port > "65535")
+        or result.Port.size() > 5) {
       if (not result.error_.has_value()) {
         result.error_.emplace("Invalid port");
       }
@@ -105,22 +110,19 @@ namespace kagome::offchain {
     const auto path_end = std::find_if(
         path_begin, uri_end, [](auto ch) { return ch == '?' or ch == '#'; });
 
-    result.path_offset_ = path_begin - uri.cbegin();
-    result.path_size_ = path_end - path_begin;
+    result.Path.assign(path_begin, path_end);
 
     // Query
     const auto query_begin = path_end + (*path_end == '?' ? 1 : 0);
     const auto query_end = std::find(query_begin, uri_end, '#');
 
-    result.query_offset_ = query_begin - uri.cbegin();
-    result.query_size_ = query_end - query_begin;
+    result.Query.assign(query_begin, query_end);
 
     // Fragment
     const auto fragment_begin = query_end + (*query_end == '#' ? 1 : 0);
     const auto fragment_end = uri_end;
 
-    result.fragment_offset_ = fragment_begin - uri.cbegin();
-    result.fragment_size_ = fragment_end - fragment_begin;
+    result.Fragment.assign(fragment_begin, fragment_end);
 
     return result;
   }
