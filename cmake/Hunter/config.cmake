@@ -15,7 +15,6 @@
 #     CMAKE_ARGS "CMAKE_VARIABLE=value"
 # )
 
-message(FATAL_ERROR "Kagome config")
 
 hunter_config(
     backward-cpp
@@ -34,7 +33,7 @@ hunter_config(
 hunter_config(
     libp2p
     URL https://github.com/libp2p/cpp-libp2p/archive/refs/heads/feature/cmake-config.tar.gz
-    SHA1 edae6a868637e6288eca44f17747bd3cd4c784a3
+    SHA1 fa9e6fd1865a8f2582984ab78104623f1cd39ed9
     KEEP_PACKAGE_SOURCES
 )
 
