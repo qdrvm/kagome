@@ -154,6 +154,8 @@ namespace kagome::application {
      * @return enum constant of the chosen runtime backend
      */
     virtual OffchainWorkerMode offchainWorkerMode() const = 0;
+
+    virtual bool isOffchainIndexingEnabled() const = 0;
   };
 
 }  // namespace kagome::application

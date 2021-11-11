@@ -132,6 +132,9 @@ namespace kagome::application {
     OffchainWorkerMode offchainWorkerMode() const override {
       return offchain_worker_mode_;
     }
+    bool isOffchainIndexingEnabled() const override {
+      return enable_offchain_indexing_;
+    }
 
    private:
     void parse_general_segment(rapidjson::Value &val);
@@ -212,6 +215,7 @@ namespace kagome::application {
     uint32_t max_ws_connections_;
     RuntimeExecutionMethod runtime_exec_method_;
     OffchainWorkerMode offchain_worker_mode_;
+    bool enable_offchain_indexing_;
   };
 
 }  // namespace kagome::application

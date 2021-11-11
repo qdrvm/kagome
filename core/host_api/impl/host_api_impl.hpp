@@ -33,6 +33,7 @@ namespace kagome::host_api {
    public:
     HostApiImpl() = delete;
     HostApiImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<const runtime::CoreApiFactory> core_provider,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
