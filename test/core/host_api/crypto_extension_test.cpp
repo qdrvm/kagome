@@ -465,7 +465,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
 }
 
 /**
- * @given initialized crypto extention without started batch
+ * @given initialized crypto extension without started batch
  * @when trying to finish batch
  * @then exception is thrown
  */
@@ -474,7 +474,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
 //}
 
 /**
- * @given initialized crypto extention without started batch
+ * @given initialized crypto extension without started batch
  * @when trying to start batch twice
  * @then exception is thrown at second call
  */
@@ -483,7 +483,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
 //}
 
 /**
- * @given initialized crypto extention without started batch
+ * @given initialized crypto extension without started batch
  * @when start batch, check valid signature, and finish batch
  * @then verification returns positive, batch result is positive too
  */
@@ -492,7 +492,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
 //}
 
 /**
- * @given initialized crypto extention without started batch
+ * @given initialized crypto extension without started batch
  * @when start batch, check valid signature, and finish batch
  * @then verification returns positive, but batch returns negative result
  */

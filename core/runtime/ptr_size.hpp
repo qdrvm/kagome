@@ -8,6 +8,8 @@
 
 #include "runtime/types.hpp"
 
+#include <tuple>
+
 namespace kagome::runtime {
   /**
    * Result of a call to a Runtime API wasm function is an i64 where first 32
@@ -17,9 +19,7 @@ namespace kagome::runtime {
     constexpr PtrSize() : ptr{0}, size{0} {}
 
     explicit constexpr PtrSize(WasmSpan v) {
-      auto [addr, len] = splitSpan(v);
-      ptr = addr;
-      size = len;
+      std::tie(ptr, size) = splitSpan(v);
     }
 
     constexpr PtrSize(WasmPointer ptr, WasmSize size) : ptr{ptr}, size{size} {}
