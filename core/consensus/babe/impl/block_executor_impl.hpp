@@ -23,6 +23,10 @@
 #include "runtime/runtime_api/core.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
+namespace kagome::runtime {
+  class OffchainWorkerApi;
+};
+
 namespace kagome::consensus {
 
   class BlockExecutorImpl
@@ -41,7 +45,8 @@ namespace kagome::consensus {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<authority::AuthorityUpdateObserver>
             authority_update_observer,
-        std::shared_ptr<BabeUtil> babe_util);
+        std::shared_ptr<BabeUtil> babe_util,
+        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api);
 
     outcome::result<void> applyBlock(primitives::BlockData &&block) override;
 
@@ -56,6 +61,7 @@ namespace kagome::consensus {
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
+    std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
     log::Logger logger_;
   };
 

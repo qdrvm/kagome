@@ -144,7 +144,7 @@ namespace kagome::host_api {
                 (runtime::WasmSpan),
                 (override));
 
-    // -------------------- hashing methods v1 --------------------
+    // -------------------------- hashing methods v1 ---------------------------
 
     MOCK_METHOD(runtime::WasmPointer,
                 ext_hashing_keccak_256_version_1,
@@ -181,7 +181,7 @@ namespace kagome::host_api {
                 (runtime::WasmSpan),
                 (override));
 
-    // -------------------------Crypto extensions v1---------------------
+    // ------------------------- Crypto extensions v1 --------------------------
 
     MOCK_METHOD(runtime::WasmSpan,
                 ext_crypto_ed25519_public_keys_version_1,
@@ -251,7 +251,7 @@ namespace kagome::host_api {
                 (runtime::WasmPointer sig, runtime::WasmPointer msg),
                 (override));
 
-    // ---------------------------- memory api v1 ----------------------------
+    // ----------------------------- memory api v1 -----------------------------
 
     MOCK_METHOD(runtime::WasmPointer,
                 ext_allocator_malloc_version_1,
@@ -261,6 +261,106 @@ namespace kagome::host_api {
     MOCK_METHOD(void,
                 ext_allocator_free_version_1,
                 (runtime::WasmPointer),
+                (override));
+
+    // -------------------------- Offchain extension ---------------------------
+
+    MOCK_METHOD(runtime::WasmI8,
+                ext_offchain_is_validator_version_1,
+                (),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_offchain_submit_transaction_version_1,
+                (runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_offchain_network_state_version_1,
+                (),
+                (override));
+
+    MOCK_METHOD(runtime::WasmU64,
+                ext_offchain_timestamp_version_1,
+                (),
+                (override));
+
+    MOCK_METHOD(void,
+                ext_offchain_sleep_until_version_1,
+                (runtime::WasmU64),
+                (override));
+
+    MOCK_METHOD(runtime::WasmPointer,
+                ext_offchain_random_seed_version_1,
+                (),
+                (override));
+
+    MOCK_METHOD(void,
+                ext_offchain_local_storage_set_version_1,
+                (runtime::WasmI32, runtime::WasmSpan, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(void,
+                ext_offchain_local_storage_clear_version_1,
+                (runtime::WasmI32, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(runtime::WasmI8,
+                ext_offchain_local_storage_compare_and_set_version_1,
+                (runtime::WasmI32,
+                 runtime::WasmSpan,
+                 runtime::WasmSpan,
+                 runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_offchain_local_storage_get_version_1,
+                (runtime::WasmI32, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_offchain_http_request_start_version_1,
+                (runtime::WasmSpan, runtime::WasmSpan, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_offchain_http_request_add_header_version_1,
+                (runtime::WasmI32, runtime::WasmSpan, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_offchain_http_request_write_body_version_1,
+                (runtime::WasmI32, runtime::WasmSpan, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_offchain_http_response_wait_version_1,
+                (runtime::WasmSpan, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_offchain_http_response_headers_version_1,
+                (runtime::WasmI32),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_offchain_http_response_read_body_version_1,
+                (runtime::WasmI32, runtime::WasmSpan, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(void,
+                ext_offchain_set_authorized_nodes_version_1,
+                (runtime::WasmSpan, runtime::WasmI32),
+                (override));
+
+    MOCK_METHOD(void,
+                ext_offchain_index_set_version_1,
+                (runtime::WasmSpan, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(void,
+                ext_offchain_index_clear_version_1,
+                (runtime::WasmSpan),
                 (override));
   };
 

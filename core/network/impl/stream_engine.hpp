@@ -437,7 +437,7 @@ namespace kagome::network {
 
             std::unique_lock cs(self->streams_cs_);
 
-            bool existing = false;
+            bool existing = false;  // NOLINT
             self->forSubscriber(peer_id, protocol, [&](auto, auto &subscriber) {
               existing = true;
               self->uploadStream(

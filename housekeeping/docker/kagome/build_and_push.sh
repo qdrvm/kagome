@@ -38,6 +38,7 @@ mkdir -p ${CTX_DIR}
 
 # Copy binaries
 cp -a ${BUILD_DIR}/node/kagome ${CTX_DIR}/
+cp -a ${BUILD_DIR}/core/utils/kagome-db-editor ${CTX_DIR}/
 
 if [ "$BUILD_TYPE" = "Release" ]; then
   strip ${CTX_DIR}/kagome

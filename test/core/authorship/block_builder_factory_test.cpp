@@ -70,7 +70,7 @@ TEST_F(BlockBuilderFactoryTest, CreateSuccessful) {
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
-  auto block_builder_res = factory.create(parent_id_, inherent_digests_);
+  auto block_builder_res = factory.make(parent_id_, inherent_digests_);
 
   // then
   ASSERT_TRUE(block_builder_res);
@@ -90,7 +90,7 @@ TEST_F(BlockBuilderFactoryTest, CreateFailed) {
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
-  auto block_builder_res = factory.create(parent_id_, inherent_digests_);
+  auto block_builder_res = factory.make(parent_id_, inherent_digests_);
 
   // then
   ASSERT_FALSE(block_builder_res);

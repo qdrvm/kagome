@@ -3,15 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_HOST_API_IMPL_HPP
-#define KAGOME_HOST_API_IMPL_HPP
+#ifndef KAGOME_RUNTIME_HOSTAPIIMPL
+#define KAGOME_RUNTIME_HOSTAPIIMPL
 
 #include "host_api/host_api.hpp"
+
 #include "host_api/impl/crypto_extension.hpp"
 #include "host_api/impl/io_extension.hpp"
 #include "host_api/impl/memory_extension.hpp"
 #include "host_api/impl/misc_extension.hpp"
+#include "host_api/impl/offchain_extension.hpp"
 #include "host_api/impl/storage_extension.hpp"
+#include "offchain/impl/offchain_persistent_storage.hpp"
 
 namespace kagome::runtime {
   class Core;
@@ -20,6 +23,9 @@ namespace kagome::runtime {
 }  // namespace kagome::runtime
 
 namespace kagome::host_api {
+
+  class OffchainExtension;
+
   /**
    * Fair implementation of the extensions interface
    */
@@ -36,7 +42,9 @@ namespace kagome::host_api {
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<const crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
-        std::shared_ptr<const crypto::Bip39Provider> bip39_provider);
+        std::shared_ptr<const crypto::Bip39Provider> bip39_provider,
+        std::shared_ptr<offchain::OffchainPersistentStorage>
+            offchain_persistent_storage);
 
     ~HostApiImpl() override = default;
 
@@ -190,18 +198,85 @@ namespace kagome::host_api {
 
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const override;
 
+    // -------------------------- Offchain extension ---------------------------
+
+    runtime::WasmI8 ext_offchain_is_validator_version_1() override;
+
+    runtime::WasmSpan ext_offchain_submit_transaction_version_1(
+        runtime::WasmSpan data) override;
+
+    runtime::WasmSpan ext_offchain_network_state_version_1() override;
+
+    runtime::WasmU64 ext_offchain_timestamp_version_1() override;
+
+    void ext_offchain_sleep_until_version_1(runtime::WasmU64 deadline) override;
+
+    runtime::WasmPointer ext_offchain_random_seed_version_1() override;
+
+    void ext_offchain_local_storage_set_version_1(
+        runtime::WasmI32 kind,
+        runtime::WasmSpan key,
+        runtime::WasmSpan value) override;
+
+    void ext_offchain_local_storage_clear_version_1(
+        runtime::WasmI32 kind, runtime::WasmSpan key) override;
+
+    runtime::WasmI8 ext_offchain_local_storage_compare_and_set_version_1(
+        runtime::WasmI32 kind,
+        runtime::WasmSpan key,
+        runtime::WasmSpan expected,
+        runtime::WasmSpan value) override;
+
+    runtime::WasmSpan ext_offchain_local_storage_get_version_1(
+        runtime::WasmI32 kind, runtime::WasmSpan key) override;
+
+    runtime::WasmSpan ext_offchain_http_request_start_version_1(
+        runtime::WasmSpan method,
+        runtime::WasmSpan uri,
+        runtime::WasmSpan meta) override;
+
+    runtime::WasmSpan ext_offchain_http_request_add_header_version_1(
+        runtime::WasmI32 request_id,
+        runtime::WasmSpan name,
+        runtime::WasmSpan value) override;
+
+    runtime::WasmSpan ext_offchain_http_request_write_body_version_1(
+        runtime::WasmI32 request_id,
+        runtime::WasmSpan chunk,
+        runtime::WasmSpan deadline) override;
+
+    runtime::WasmSpan ext_offchain_http_response_wait_version_1(
+        runtime::WasmSpan ids, runtime::WasmSpan deadline) override;
+
+    runtime::WasmSpan ext_offchain_http_response_headers_version_1(
+        runtime::WasmI32 request_id) override;
+
+    runtime::WasmSpan ext_offchain_http_response_read_body_version_1(
+        runtime::WasmI32 request_id,
+        runtime::WasmSpan buffer,
+        runtime::WasmSpan deadline) override;
+
+    void ext_offchain_set_authorized_nodes_version_1(
+        runtime::WasmSpan nodes, runtime::WasmI32 authorized_only) override;
+
+    void ext_offchain_index_set_version_1(runtime::WasmSpan key,
+                                          runtime::WasmSpan value) override;
+
+    void ext_offchain_index_clear_version_1(runtime::WasmSpan key) override;
+
    private:
     static constexpr uint64_t DEFAULT_CHAIN_ID = 42;
 
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 
-    std::shared_ptr<CryptoExtension> crypto_ext_;
+    CryptoExtension crypto_ext_;
     IOExtension io_ext_;
     MemoryExtension memory_ext_;
     MiscExtension misc_ext_;
     StorageExtension storage_ext_;
+    OffchainExtension offchain_ext_;
   };
 }  // namespace kagome::host_api
 
-#endif  // KAGOME_HOST_API_IMPL_HPP
+#endif  // KAGOME_RUNTIME_HOSTAPIIMPL
