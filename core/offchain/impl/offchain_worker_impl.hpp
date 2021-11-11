@@ -9,10 +9,10 @@
 #include "offchain/offchain_worker.hpp"
 
 #include <boost/asio/io_context.hpp>
-#include <libp2p/host/host.hpp>
 
 #include "crypto/random_generator.hpp"
 #include "log/logger.hpp"
+#include "network/types/own_peer_info.hpp"
 #include "offchain/impl/http_request.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "offchain/impl/offchain_persistent_storage.hpp"
@@ -49,7 +49,7 @@ namespace kagome::offchain {
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::CSPRNG> random_generator,
         std::shared_ptr<api::AuthorApi> author_api,
-        libp2p::Host &host,
+        const network::OwnPeerInfo &current_peer_info,
         std::shared_ptr<OffchainPersistentStorage> persistent_storage,
         std::shared_ptr<runtime::Executor> executor,
         const primitives::BlockHeader &header);
@@ -120,7 +120,7 @@ namespace kagome::offchain {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CSPRNG> random_generator_;
     std::shared_ptr<api::AuthorApi> author_api_;
-    libp2p::Host &host_;
+    const network::OwnPeerInfo &current_peer_info_;
     std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage_;
     std::shared_ptr<offchain::OffchainLocalStorage> local_storage_;
     std::shared_ptr<runtime::Executor> executor_;

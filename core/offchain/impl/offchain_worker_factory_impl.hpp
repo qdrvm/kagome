@@ -11,6 +11,7 @@
 #include <libp2p/host/host.hpp>
 
 #include "crypto/random_generator.hpp"
+#include "network/types/own_peer_info.hpp"
 #include "offchain/offchain_persistent_storage.hpp"
 
 namespace kagome::api {
@@ -36,7 +37,7 @@ namespace kagome::offchain {
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::CSPRNG> random_generator,
         std::shared_ptr<api::AuthorApi> author_api,
-        libp2p::Host &host,
+        const network::OwnPeerInfo &current_peer_info,
         std::shared_ptr<offchain::OffchainPersistentStorage>
             persistent_storage);
 
@@ -51,7 +52,7 @@ namespace kagome::offchain {
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::CSPRNG> random_generator_;
     std::shared_ptr<api::AuthorApi> author_api_;
-    libp2p::Host &host_;
+    const network::OwnPeerInfo &current_peer_info_;
     std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage_;
   };
 

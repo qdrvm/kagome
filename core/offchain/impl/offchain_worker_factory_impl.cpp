@@ -16,7 +16,7 @@ namespace kagome::offchain {
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::CSPRNG> random_generator,
       std::shared_ptr<api::AuthorApi> author_api,
-      libp2p::Host &host,
+      const network::OwnPeerInfo &current_peer_info,
       std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage)
       : app_config_(app_config),
         clock_(std::move(clock)),
@@ -24,7 +24,7 @@ namespace kagome::offchain {
         storage_(std::move(storage)),
         random_generator_(std::move(random_generator)),
         author_api_(std::move(author_api)),
-        host_(host),
+        current_peer_info_(current_peer_info),
         persistent_storage_(std::move(persistent_storage)) {
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
@@ -43,7 +43,7 @@ namespace kagome::offchain {
                                                 storage_,
                                                 random_generator_,
                                                 author_api_,
-                                                host_,
+                                                current_peer_info_,
                                                 persistent_storage_,
                                                 executor,
                                                 header);

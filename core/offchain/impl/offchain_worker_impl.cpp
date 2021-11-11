@@ -24,7 +24,7 @@ namespace kagome::offchain {
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::CSPRNG> random_generator,
       std::shared_ptr<api::AuthorApi> author_api,
-      libp2p::Host &host,
+      const network::OwnPeerInfo &current_peer_info,
       std::shared_ptr<OffchainPersistentStorage> persistent_storage,
       std::shared_ptr<runtime::Executor> executor,
       const primitives::BlockHeader &header)
@@ -33,7 +33,7 @@ namespace kagome::offchain {
         hasher_(std::move(hasher)),
         random_generator_(std::move(random_generator)),
         author_api_(std::move(author_api)),
-        host_(host),
+        current_peer_info_(current_peer_info),
         persistent_storage_(std::move(persistent_storage)),
         executor_(std::move(executor)),
         header_(header),
@@ -114,11 +114,11 @@ namespace kagome::offchain {
   }
 
   Result<OpaqueNetworkState, Failure> OffchainWorkerImpl::networkState() {
-    auto peer_info = host_.getPeerInfo();
-    OpaqueNetworkState result{.peer_id = peer_info.id};
+    OpaqueNetworkState result{.peer_id = current_peer_info_.id};
 
-    std::list<libp2p::multi::Multiaddress> address(peer_info.addresses.begin(),
-                                                   peer_info.addresses.end());
+    std::list<libp2p::multi::Multiaddress> address(
+        current_peer_info_.addresses.begin(),
+        current_peer_info_.addresses.end());
 
     return result;
   }
