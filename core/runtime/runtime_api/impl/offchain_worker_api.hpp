@@ -8,6 +8,9 @@
 
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 
+namespace kagome::application {
+  class AppConfiguration;
+}
 namespace kagome::offchain {
   class OffchainWorkerFactory;
 }
@@ -21,6 +24,7 @@ namespace kagome::runtime {
         std::enable_shared_from_this<OffchainWorkerApiImpl> {
    public:
     OffchainWorkerApiImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory,
         std::shared_ptr<Executor> executor);
 
@@ -29,6 +33,7 @@ namespace kagome::runtime {
         const primitives::BlockHeader &header) override;
 
    private:
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory_;
     std::shared_ptr<Executor> executor_;
   };

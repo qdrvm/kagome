@@ -48,6 +48,8 @@ namespace {
   }();
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
+  const auto def_offchain_worker_mode =
+      kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
 
   /**
    * Generate once at run random node name if form of UUID
@@ -77,6 +79,21 @@ namespace {
     }
     return std::nullopt;
   }
+
+  std::optional<kagome::application::AppConfiguration::OffchainWorkerMode>
+  str_to_offchain_worker_mode(std::string_view str) {
+    using Mode = kagome::application::AppConfiguration::OffchainWorkerMode;
+    if (str == "Always") {
+      return Mode::Always;
+    }
+    if (str == "Newer") {
+      return Mode::Never;
+    }
+    if (str == "WhenValidating") {
+      return Mode::WhenValidating;
+    }
+    return std::nullopt;
+  }
 }  // namespace
 
 namespace kagome::application {
@@ -95,7 +112,8 @@ namespace kagome::application {
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
         max_ws_connections_(def_ws_max_connections),
-        runtime_exec_method_{def_runtime_exec_method} {}
+        runtime_exec_method_{def_runtime_exec_method},
+        offchain_worker_mode_{def_offchain_worker_mode} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -365,6 +383,9 @@ namespace kagome::application {
     po::options_description blockhain_desc("Blockchain options");
     blockhain_desc.add_options()
         ("chain", po::value<std::string>(), "required, chainspec file path")
+        ("offchain-worker", po::value<std::string>(),
+          "Should execute offchain workers on every block.\n"
+          "Possible values: Always, Never, WhenValidating. By default used WhenValidating")
         ;
 
     po::options_description storage_desc("Storage options");
@@ -704,6 +725,22 @@ namespace kagome::application {
       return false;
     } else {
       runtime_exec_method_ = runtime_exec_method_opt.value();
+    }
+
+    std::optional<OffchainWorkerMode> offchain_worker_mode_opt;
+    find_argument<std::string>(
+        vm,
+        "offchain-worker",
+        [this, &offchain_worker_mode_opt](std::string const &val) {
+          offchain_worker_mode_opt = str_to_offchain_worker_mode(val);
+          if (not offchain_worker_mode_opt) {
+            logger_->error("Invalid offchain worker mode specified: '{}'", val);
+          }
+        });
+    if (not offchain_worker_mode_opt) {
+      return false;
+    } else {
+      offchain_worker_mode_ = offchain_worker_mode_opt.value();
     }
 
     // if something wrong with config print help message
