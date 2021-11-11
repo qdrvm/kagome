@@ -79,18 +79,6 @@ target_link_libraries(metadata_test
     logger_for_tests
     )
 
-addtest(offchain_worker_test
-    offchain_worker_test.cpp
-    )
-target_link_libraries(offchain_worker_test
-    binaryen_runtime_test
-    offchain_worker_api
-    basic_code_provider
-    trie_storage_backend
-    core_api
-    logger_for_tests
-    )
-
 addtest(runtime_external_interface_test
     runtime_external_interface_test.cpp
     )

@@ -28,7 +28,7 @@ namespace kagome::host_api {
 
     virtual void reset() = 0;
 
-    // ------------------------ Storage extensions v1 ------------------------
+    // ------------------------- Storage extensions v1 -------------------------
 
     /**
      * @brief Reads data from storage with the given key
@@ -169,7 +169,7 @@ namespace kagome::host_api {
     ext_trie_blake2_256_ordered_root_version_1(
         runtime::WasmSpan values_data) = 0;
 
-    // ------------------------Memory extensions v1-------------------------
+    // ------------------------- Memory extensions v1 --------------------------
     /**
      * @see Extension::ext_malloc
      */
@@ -181,7 +181,7 @@ namespace kagome::host_api {
      */
     virtual void ext_allocator_free_version_1(runtime::WasmPointer ptr) = 0;
 
-    // -------------------------I/O extensions--------------------------
+    // ---------------------------- I/O extensions -----------------------------
 
     /**
      * Print a log message
@@ -197,7 +197,7 @@ namespace kagome::host_api {
      */
     virtual runtime::WasmEnum ext_logging_max_level_version_1() = 0;
 
-    // -------------------------Cryptographic extensions------------------------
+    // ------------------------ Cryptographic extensions -----------------------
 
     /**
      * @brief Starts the verification extension. The extension is a separate
@@ -245,7 +245,7 @@ namespace kagome::host_api {
     ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(
         runtime::WasmPointer sig, runtime::WasmPointer msg) = 0;
 
-    // ------------------------- Hashing extension/crypto ---------------
+    // ------------------------- Hashing extension/crypto ----------------------
 
     [[nodiscard]] virtual runtime::WasmPointer ext_hashing_keccak_256_version_1(
         runtime::WasmSpan data) = 0;
@@ -268,7 +268,7 @@ namespace kagome::host_api {
     [[nodiscard]] virtual runtime::WasmPointer ext_hashing_twox_256_version_1(
         runtime::WasmSpan data) = 0;
 
-    // -------------------------Crypto extensions v1---------------------
+    // --------------------------- Crypto extensions v1 ------------------------
 
     /**
      * @see Extension::ext_ed25519_public_keys
@@ -343,7 +343,7 @@ namespace kagome::host_api {
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
 
-    // -------------------------Misc extensions--------------------------
+    // ---------------------------- Misc extensions ----------------------------
 
     [[nodiscard]] virtual runtime::WasmSpan ext_misc_runtime_version_version_1(
         runtime::WasmSpan data) const = 0;
@@ -366,6 +366,105 @@ namespace kagome::host_api {
      */
     virtual void ext_misc_print_utf8_version_1(
         runtime::WasmSpan data) const = 0;
+
+    // -------------------------- Offchain extension ---------------------------
+
+    /// @copydoc OffchainExtension::ext_offchain_is_validator_version_1
+    [[nodiscard]] virtual runtime::WasmI8
+    ext_offchain_is_validator_version_1() = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_submit_transaction_version_1
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_offchain_submit_transaction_version_1(runtime::WasmSpan data) = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_network_state_version_1
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_offchain_network_state_version_1() = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_timestamp_version_1
+    [[nodiscard]] virtual runtime::WasmU64
+    ext_offchain_timestamp_version_1() = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_sleep_until_version_1
+    virtual void ext_offchain_sleep_until_version_1(
+        runtime::WasmU64 deadline) = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_random_seed_version_1
+    [[nodiscard]] virtual runtime::WasmPointer
+    ext_offchain_random_seed_version_1() = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_local_storage_set_version_1
+    virtual void ext_offchain_local_storage_set_version_1(
+        runtime::WasmI32 kind,
+        runtime::WasmSpan key,
+        runtime::WasmSpan value) = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_local_storage_clear_version_1
+    virtual void ext_offchain_local_storage_clear_version_1(
+        runtime::WasmI32 kind, runtime::WasmSpan key) = 0;
+
+    /// @copydoc
+    /// OffchainExtension::ext_offchain_local_storage_compare_and_set_version_1
+    [[nodiscard]] virtual runtime::WasmI8
+    ext_offchain_local_storage_compare_and_set_version_1(
+        runtime::WasmI32 kind,
+        runtime::WasmSpan key,
+        runtime::WasmSpan expected,
+        runtime::WasmSpan value) = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_local_storage_get_version_1
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_offchain_local_storage_get_version_1(runtime::WasmI32 kind,
+                                             runtime::WasmSpan key) = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_http_request_start_version_1
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_offchain_http_request_start_version_1(runtime::WasmSpan method,
+                                              runtime::WasmSpan uri,
+                                              runtime::WasmSpan meta) = 0;
+
+    /// @copydoc
+    /// OffchainExtension::ext_offchain_http_request_add_header_version_1
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_offchain_http_request_add_header_version_1(runtime::WasmI32 request_id,
+                                                   runtime::WasmSpan name,
+                                                   runtime::WasmSpan value) = 0;
+
+    /// @copydoc
+    /// OffchainExtension::ext_offchain_http_request_write_body_version_1
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_offchain_http_request_write_body_version_1(
+        runtime::WasmI32 request_id,
+        runtime::WasmSpan chunk,
+        runtime::WasmSpan deadline) = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_http_response_wait_version_1
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_offchain_http_response_wait_version_1(runtime::WasmSpan ids,
+                                              runtime::WasmSpan deadline) = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_http_response_headers_version_1
+    virtual runtime::WasmSpan ext_offchain_http_response_headers_version_1(
+        runtime::WasmI32 request_id) = 0;
+
+    /// @copydoc
+    /// OffchainExtension::ext_offchain_http_response_read_body_version_1
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_offchain_http_response_read_body_version_1(
+        runtime::WasmI32 request_id,
+        runtime::WasmSpan buffer,
+        runtime::WasmSpan deadline) = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_set_authorized_nodes_version_1
+    virtual void ext_offchain_set_authorized_nodes_version_1(
+        runtime::WasmSpan nodes, runtime::WasmI32 authorized_only) = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_index_set_version_1
+    virtual void ext_offchain_index_set_version_1(runtime::WasmSpan key,
+                                                  runtime::WasmSpan value) = 0;
+
+    /// @copydoc OffchainExtension::ext_offchain_index_clear_version_1
+    virtual void ext_offchain_index_clear_version_1(runtime::WasmSpan key) = 0;
   };
 }  // namespace kagome::host_api
 
