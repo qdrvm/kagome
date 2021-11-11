@@ -27,8 +27,8 @@
 #include <kagome/crypto/crypto_store/crypto_store_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
 #include <kagome/crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
-#include <kagome/libp2p/crypto/random_generator/boost_generator.hpp>
-#include <kagome/libp2p/log/configurator.hpp>
+#include <libp2p/crypto/random_generator/boost_generator.hpp>
+#include <libp2p/log/configurator.hpp>
 #include <kagome/log/configurator.hpp>
 #include <kagome/application/impl/chain_spec_impl.hpp>
 
