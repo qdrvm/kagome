@@ -848,7 +848,14 @@ namespace kagome::consensus::grandpa {
     primary_vote_ = {{proposal.getBlockNumber(), proposal.getBlockHash()}};
 
     if (propagation == Propagation::REQUESTED) {
-      sendProposal(convertToPrimaryPropose(proposal.getBlockInfo()));
+      auto proposed =
+          env_->onProposed(round_number_, voter_set_->id(), proposal);
+
+      if (not proposed) {
+        logger_->error("Round #{}: Primary proposal was not propagated: {}",
+                       round_number_,
+                       proposed.error().message());
+      }
     }
   }
 
@@ -889,7 +896,14 @@ namespace kagome::consensus::grandpa {
     }
 
     if (propagation == Propagation::REQUESTED) {
-      sendPrevote(convertToPrevote(prevote.getBlockInfo()));
+      auto prevoted =
+          env_->onPrevoted(round_number_, voter_set_->id(), prevote);
+
+      if (not prevoted) {
+        logger_->error("Round #{}: Prevote was not propagated: {}",
+                       round_number_,
+                       prevoted.error().message());
+      }
     }
 
     return true;
@@ -934,7 +948,14 @@ namespace kagome::consensus::grandpa {
     }
 
     if (propagation == Propagation::REQUESTED) {
-      sendPrecommit(convertToPrecommit(precommit.getBlockInfo()));
+      auto precommited =
+          env_->onPrecommitted(round_number_, voter_set_->id(), precommit);
+
+      if (not precommited) {
+        logger_->error("Round #{}: Precommit was not propagated: {}",
+                       round_number_,
+                       precommited.error().message());
+      }
     }
 
     return true;
