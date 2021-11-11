@@ -62,7 +62,7 @@ namespace kagome::consensus::grandpa {
                 (override));
 
     MOCK_METHOD(bool,
-                contains,
+                containsBlock,
                 (const primitives::BlockHash &),
                 (const, override));
 

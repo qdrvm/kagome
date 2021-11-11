@@ -141,13 +141,13 @@ namespace kagome::host_api {
     outcome::result<common::Buffer> get(const common::Buffer &key) const;
 
     /**
-     * Read key in form of [ptr; size] and read its value
+     * Read key in form of [ptr; size] and load its value
      * from memory into buffer
      *
      * @param key representation by [ptr; size]
      * @return result containing Buffer with the key
      */
-    common::Buffer getKey(runtime::WasmSpan key) const;
+    common::Buffer loadKey(runtime::WasmSpan key) const;
     /**
      * @return error if any, a key if the next key exists
      * none otherwise

@@ -225,7 +225,7 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  bool EnvironmentImpl::contains(
+  bool EnvironmentImpl::containsBlock(
       const primitives::BlockHash &block_hash) const {
     return block_tree_->contains(block_hash);
   }

@@ -18,13 +18,9 @@ namespace kagome::network {
     std::chrono::seconds aligningPeriod = std::chrono::seconds(5);
 
     /// Target amount of active peers
-#ifdef NDEBUG
     size_t targetPeerAmount = 20;
-#else
-    size_t targetPeerAmount = 20;
-#endif
 
-    /// Max peers count before start to disconnect of innactive ones
+    /// Max peers count before start to disconnect of inactive ones
     size_t softLimit = 40;
 
     /// Max peers before start forced disconnection

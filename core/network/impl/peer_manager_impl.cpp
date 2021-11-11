@@ -39,7 +39,7 @@ namespace kagome::network {
         own_peer_info_(own_peer_info),
         router_{std::move(router)},
         storage_{std::move(storage)},
-        log_(log::createLogger("PeerManager", "peer_manager")) {
+        log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);

@@ -157,8 +157,7 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeNextRound(
       const std::shared_ptr<VotingRound> &round) {
-    BOOST_ASSERT(authority_manager_->base().has_value());
-    auto best_block = authority_manager_->base().value();
+    auto best_block = authority_manager_->base();
     auto authorities_res = authority_manager_->authorities(best_block, true);
     if (authorities_res.has_error()) {
       SL_CRITICAL(logger_,
@@ -516,7 +515,7 @@ namespace kagome::consensus::grandpa {
              fin.set_id,
              peer_id.toBase58());
 
-    if (not environment_->contains(fin.message.target_hash)) {
+    if (not environment_->containsBlock(fin.message.target_hash)) {
       SL_WARN(logger_, "Fin message is not applied.");
       return;
     }

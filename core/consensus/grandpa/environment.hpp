@@ -130,7 +130,7 @@ namespace kagome::consensus::grandpa {
     /**
      * @see BlockTree::contains
      */
-    virtual bool contains(const primitives::BlockHash &block_hash) const = 0;
+    virtual bool containsBlock(const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * Triggered when blovk \param block justified by \param justification

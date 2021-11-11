@@ -49,7 +49,7 @@ namespace kagome::authority {
     /** @see AppStateManager::takeControl */
     void stop();
 
-    std::optional<const primitives::BlockInfo> base() override;
+    primitives::BlockInfo base() const override;
 
     outcome::result<std::shared_ptr<const primitives::AuthorityList>>
     authorities(const primitives::BlockInfo &block, bool finalized) override;
