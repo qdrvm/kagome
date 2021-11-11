@@ -473,26 +473,6 @@ namespace kagome::consensus::grandpa {
 
     GrandpaContext::Guard cg;
 
-    /* TODO(xDimon): Ensure if it is really needed
-    auto authorities_res = authority_manager_->authorities(block_info, false);
-    if (authorities_res.has_error()) {
-      logger_->error("Can't get authorities: {}",
-                     authorities_res.error().message());
-    }
-    auto &authorities = authorities_res.value();
-
-    // find signer in authorities
-    if (std::find_if(authorities->begin(),
-                     authorities->end(),
-                     [&id = msg.vote.id](const auto &weighted_authority) {
-                       return weighted_authority.id.id == id;
-                     })
-        == authorities->end()) {
-      logger_->warn("Vote signed by unknown validator");
-      return;
-    }
-    */
-
     bool isPrevotesChanged = false;
     bool isPrecommitsChanged = false;
     visit_in_place(

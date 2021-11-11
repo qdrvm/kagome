@@ -226,7 +226,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    // Received announce has the same block number than our best one,
+    // Received announce that has the same block number as ours best,
     // or greater by one. Using of simple way to load block
     synchronizer_->syncByBlockHeader(
         announce.header,

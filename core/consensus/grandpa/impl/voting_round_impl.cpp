@@ -919,8 +919,6 @@ namespace kagome::consensus::grandpa {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
-      // TODO(xDimon): Check if it is really needed
-      // env_->onCompleted(result.as_failure());
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
         logger_->warn("Round #{}: Precommit received from {} was rejected: {}",
                       round_number_,
