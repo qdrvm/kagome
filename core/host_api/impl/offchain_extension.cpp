@@ -94,7 +94,10 @@ namespace kagome::host_api {
     auto &worker = getWorker();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
-    StorageType storage_type = StorageType::Undefined;
+    // TODO(xDimon): Replace StorageType::Persistent by StorageType::Undefined
+    //  when it will be implemented it substrate
+    //  issue: https://github.com/soramitsu/kagome/issues/997
+    StorageType storage_type = StorageType::Persistent;
     if (kind == 1) {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
@@ -116,7 +119,10 @@ namespace kagome::host_api {
     auto &worker = getWorker();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
-    StorageType storage_type = StorageType::Undefined;
+    // TODO(xDimon): Replace StorageType::Persistent by StorageType::Undefined
+    //  when it will be implemented it substrate
+    //  issue: https://github.com/soramitsu/kagome/issues/997
+    StorageType storage_type = StorageType::Persistent;
     if (kind == 1) {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
@@ -141,7 +147,10 @@ namespace kagome::host_api {
     auto &worker = getWorker();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
-    StorageType storage_type = StorageType::Undefined;
+    // TODO(xDimon): Replace StorageType::Persistent by StorageType::Undefined
+    //  when it will be implemented it substrate
+    //  issue: https://github.com/soramitsu/kagome/issues/997
+    StorageType storage_type = StorageType::Persistent;
     if (kind == 1) {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
@@ -169,7 +178,10 @@ namespace kagome::host_api {
     auto &worker = getWorker();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
-    StorageType storage_type = StorageType::Undefined;
+    // TODO(xDimon): Replace StorageType::Persistent by StorageType::Undefined
+    //  when it will be implemented it substrate
+    //  issue: https://github.com/soramitsu/kagome/issues/997
+    StorageType storage_type = StorageType::Persistent;
     if (kind == 1) {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
