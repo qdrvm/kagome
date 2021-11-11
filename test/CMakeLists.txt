@@ -11,3 +11,4 @@ include_directories(
 add_subdirectory(core)
 add_subdirectory(deps)
 add_subdirectory(testutil)
+add_subdirectory(external-project-test)
