@@ -29,7 +29,7 @@ namespace kagome::host_api {
   /**
    * Implements extension functions related to cryptography
    */
-  class CryptoExtension : public std::enable_shared_from_this<CryptoExtension> {
+  class CryptoExtension {
    public:
     static constexpr uint32_t kVerifyBatchSuccess = 1;
     static constexpr uint32_t kVerifyBatchFail = 0;

@@ -33,6 +33,10 @@ namespace kagome::network {
   class BlockAnnounceTransmitter;
 }  // namespace kagome::network
 
+namespace kagome::runtime {
+  class OffchainWorkerApi;
+}  // namespace kagome::runtime
+
 namespace kagome::consensus::babe {
 
   inline const auto kTimestampId =
@@ -65,7 +69,8 @@ namespace kagome::consensus::babe {
              std::shared_ptr<authority::AuthorityUpdateObserver>
                  authority_update_observer,
              std::shared_ptr<network::Synchronizer> synchronizer,
-             std::shared_ptr<BabeUtil> babe_util);
+             std::shared_ptr<BabeUtil> babe_util,
+             std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api);
 
     ~BabeImpl() override = default;
 
@@ -139,6 +144,7 @@ namespace kagome::consensus::babe {
         authority_update_observer_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
+    std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
 
     State current_state_{State::WAIT_REMOTE_STATUS};
 
