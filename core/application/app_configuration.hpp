@@ -151,7 +151,7 @@ namespace kagome::application {
 
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**
-     * @return enum constant of the chosen runtime backend
+     * @return enum constant of the mode of run offchain workers
      */
     virtual OffchainWorkerMode offchainWorkerMode() const = 0;
 

@@ -385,14 +385,15 @@ namespace kagome::application {
     po::options_description blockhain_desc("Blockchain options");
     blockhain_desc.add_options()
         ("chain", po::value<std::string>(), "required, chainspec file path")
-        ("offchain-worker", po::value<std::string>(),
+        ("offchain-worker", po::value<std::string>()->default_value("WhenValidating"),
           "Should execute offchain workers on every block.\n"
-          "Possible values: Always, Never, WhenValidating. By default used WhenValidating")
+          "Possible values: Always, Never, WhenValidating. WhenValidating is used by default.")
         ;
 
     po::options_description storage_desc("Storage options");
     storage_desc.add_options()
         ("base-path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
+        ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ;
 
     po::options_description network_desc("Network options");
