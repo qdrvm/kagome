@@ -13,7 +13,7 @@ namespace kagome::log {
 sinks:
   - name: console
     type: console
-    thread: none
+    thread: name
     color: false
     latency: 0
 groups:
@@ -57,6 +57,7 @@ groups:
             children:
               - name: runtime_api
               - name: host_api
+              - name: offchain_worker_api
               - name: binaryen
               - name: wavm
           - name: metrics
