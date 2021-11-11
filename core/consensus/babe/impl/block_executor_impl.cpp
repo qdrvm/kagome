@@ -11,6 +11,7 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "primitives/common.hpp"
+#include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "scale/scale.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
@@ -39,7 +40,8 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
-      std::shared_ptr<BabeUtil> babe_util)
+      std::shared_ptr<BabeUtil> babe_util,
+      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         babe_configuration_{std::move(configuration)},
@@ -49,6 +51,7 @@ namespace kagome::consensus {
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
         babe_util_(std::move(babe_util)),
+        offchain_worker_api_(std::move(offchain_worker_api)),
         logger_{log::createLogger("BlockExecutor", "block_executor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
@@ -59,6 +62,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(authority_update_observer_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
+    BOOST_ASSERT(offchain_worker_api_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -170,6 +174,7 @@ namespace kagome::consensus {
              parent.number,
              block.header.parent_hash,
              parent.state_root);
+
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
     auto exec_end = std::chrono::high_resolution_clock::now();
     SL_DEBUG(logger_,
@@ -183,7 +188,7 @@ namespace kagome::consensus {
 
     // observe possible changes of authorities
     for (auto &digest_item : block_without_seal_digest.header.digest) {
-      OUTCOME_TRY(visit_in_place(
+      auto res = visit_in_place(
           digest_item,
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
@@ -192,7 +197,11 @@ namespace kagome::consensus {
                 primitives::BlockInfo{block.header.number, block_hash},
                 consensus_message);
           },
-          [](const auto &) { return outcome::success(); }));
+          [](const auto &) { return outcome::success(); });
+      if (res.has_error()) {
+        // TODO(xDimon): Rolling back of block is needed here
+        return res.as_failure();
+      }
     }
 
     // apply justification if any
@@ -200,9 +209,13 @@ namespace kagome::consensus {
       SL_VERBOSE(logger_,
                  "Justification received for block number {}",
                  block.header.number);
-      OUTCOME_TRY(grandpa_environment_->applyJustification(
+      auto res = grandpa_environment_->applyJustification(
           primitives::BlockInfo(block.header.number, block_hash),
-          b.justification.value()));
+          b.justification.value());
+      if (res.has_error()) {
+        // TODO(xDimon): Rolling back of block is needed here
+        return res.as_failure();
+      }
     }
 
     // remove block's extrinsics from tx pool
@@ -219,11 +232,22 @@ namespace kagome::consensus {
     auto t_end = std::chrono::high_resolution_clock::now();
 
     logger_->info(
-        "Imported block with number: {}, hash: {} within {} ms",
+        "Imported block #{} hash={} within {} ms",
         block.header.number,
         block_hash.toHex(),
         std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
             .count());
+
+    // Create new offchain worker for block
+    auto ocw_res = offchain_worker_api_->offchain_worker(
+        block.header.parent_hash, block.header);
+    if (ocw_res.has_failure()) {
+      logger_->error("Can't spawn offchain worker for block #{} hash={}: {}",
+                     block.header.number,
+                     block_hash.toHex(),
+                     ocw_res.error().message());
+    }
+
     return outcome::success();
   }
 

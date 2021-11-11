@@ -32,7 +32,7 @@ namespace kagome::authorship {
       const primitives::Digest &inherent_digest) {
     OUTCOME_TRY(
         block_builder,
-        block_builder_factory_->create(parent_block_number, inherent_digest));
+        block_builder_factory_->make(parent_block_number, inherent_digest));
 
     auto inherent_xts_res = block_builder->getInherentExtrinsics(inherent_data);
     if (not inherent_xts_res) {
