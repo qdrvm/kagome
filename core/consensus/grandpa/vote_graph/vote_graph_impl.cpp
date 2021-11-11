@@ -175,7 +175,7 @@ namespace kagome::consensus::grandpa {
     std::vector<BlockHash> ancestors(ancestry.begin() + 1, ancectry_it + 1);
 
     // Block will become a head instead his oldest ancestor
-    if(ancestors.size() > 0) {
+    if(!ancestors.empty()) {
       BlockHash ancestor_hash = ancestors.back();
       heads_.erase(ancestor_hash);
       heads_.insert(block.hash);
