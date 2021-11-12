@@ -60,12 +60,13 @@ namespace kagome::runtime {
       : runtime_upgrades_{std::move(saved_data)},
         header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
-        code_substitutes_{std::move(code_substitutes)},
+        known_code_substitutes_{std::move(code_substitutes)},
         logger_{log::createLogger("StorageCodeProvider", "runtime")} {}
 
   bool RuntimeUpgradeTrackerImpl::hasCodeSubstitute(
       const kagome::primitives::BlockHash &hash) const {
-    return code_substitutes_->find(hash) != code_substitutes_->end();
+    return known_code_substitutes_->find(hash)
+           != known_code_substitutes_->end();
   }
 
   bool RuntimeUpgradeTrackerImpl::isStateInChain(

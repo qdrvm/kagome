@@ -22,7 +22,7 @@ namespace kagome::runtime {
       std::shared_ptr<application::ChainSpec> chain_spec)
       : storage_{std::move(storage)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
-        code_substitutes_{std::move(code_substitutes)},
+        known_code_substitutes_{std::move(code_substitutes)},
         chain_spec_{std::move(chain_spec)} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
@@ -47,7 +47,7 @@ namespace kagome::runtime {
 
       auto hash = runtime_upgrade_tracker_->getLastCodeUpdateHash(state);
       if (hash.has_value()) {
-        if (code_substitutes_->count(hash.value())) {
+        if (known_code_substitutes_->count(hash.value())) {
           OUTCOME_TRY(code,
                       chain_spec_->fetchCodeSubstituteByHash(hash.value()));
           OUTCOME_TRY(uncompressCodeIfNeeded(code, cached_code_));
