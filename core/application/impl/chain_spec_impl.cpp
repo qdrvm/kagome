@@ -34,7 +34,7 @@ namespace kagome::application {
     // done so because of private constructor
     std::shared_ptr<ChainSpecImpl> config_storage{new ChainSpecImpl};
     config_storage->code_substitutes_ =
-        std::make_shared<primitives::CodeSubstitutes>();
+        std::make_shared<primitives::CodeSubstituteHashes>();
     OUTCOME_TRY(config_storage->loadFromJson(path));
 
     return config_storage;
@@ -163,7 +163,6 @@ namespace kagome::application {
     if (code_substitutes_opt.has_value()) {
       for (const auto &[hash, code] : code_substitutes_opt.value()) {
         OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(hash));
-        // OUTCOME_TRY(code_processed, common::unhexWith0x(code.data()));
         code_substitutes_->emplace(hash_processed);
       }
     }
@@ -172,7 +171,7 @@ namespace kagome::application {
   }
 
   outcome::result<common::Buffer> ChainSpecImpl::fetchCodeSubstituteByHash(
-      const common::Hash256 hash) const {
+      const common::Hash256 &hash) const {
     pt::ptree tree;
     try {
       pt::read_json(config_path_, tree);
@@ -192,7 +191,7 @@ namespace kagome::application {
         }
       }
     }
-    return outcome::failure(Error::MISSING_ENTRY);
+    return Error::MISSING_ENTRY;
   }
 
   outcome::result<void> ChainSpecImpl::loadGenesis(

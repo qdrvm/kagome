@@ -33,7 +33,8 @@ namespace kagome::runtime {
     static outcome::result<std::unique_ptr<RuntimeUpgradeTrackerImpl>> create(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::BufferStorage> storage,
-        std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes);
+        std::shared_ptr<const primitives::CodeSubstituteHashes>
+            code_substitutes);
 
     struct RuntimeUpgradeData {
       RuntimeUpgradeData() = default;
@@ -70,7 +71,8 @@ namespace kagome::runtime {
     RuntimeUpgradeTrackerImpl(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::BufferStorage> storage,
-        std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes,
+        std::shared_ptr<const primitives::CodeSubstituteHashes>
+            code_substitutes,
         std::vector<RuntimeUpgradeData> &&saved_data);
 
     bool isStateInChain(const primitives::BlockInfo &state,
@@ -97,7 +99,7 @@ namespace kagome::runtime {
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<storage::BufferStorage> storage_;
-    std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes_;
+    std::shared_ptr<const primitives::CodeSubstituteHashes> code_substitutes_;
     log::Logger logger_;
   };
 

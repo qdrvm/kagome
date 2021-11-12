@@ -59,7 +59,7 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
       trie_db,
       tracker,
-      std::make_shared<primitives::CodeSubstitutes>(),
+      std::make_shared<primitives::CodeSubstituteHashes>(),
       std::make_shared<application::ChainSpecMock>());
 
   // when
@@ -97,7 +97,7 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
       trie_db,
       tracker,
-      std::make_shared<primitives::CodeSubstitutes>(),
+      std::make_shared<primitives::CodeSubstituteHashes>(),
       std::make_shared<application::ChainSpecMock>());
 
   common::Buffer new_state_code{{1, 3, 3, 8}};

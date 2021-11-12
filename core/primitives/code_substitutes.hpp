@@ -10,8 +10,10 @@
 
 namespace kagome::primitives {
 
-  using CodeSubstitutes = std::unordered_set<primitives::BlockHash>;
+  /// A set of valid code_substitute hashes.
+  /// You can pass them to fetchCodeSubstituteByHash() and get code_substitute.
+  using CodeSubstituteHashes = std::unordered_set<primitives::BlockHash>;
 
-}
+}  // namespace kagome::primitives
 
 #endif  // KAGOME_CODE_SUBSTITUTES_HPP

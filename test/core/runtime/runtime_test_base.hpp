@@ -134,7 +134,7 @@ class RuntimeTestBase : public ::testing::Test {
             kagome::runtime::RuntimeUpgradeTrackerImpl::create(
                 header_repo_,
                 std::make_shared<kagome::storage::InMemoryStorage>(),
-                std::make_shared<kagome::primitives::CodeSubstitutes>())
+                std::make_shared<kagome::primitives::CodeSubstituteHashes>())
                 .value();
 
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
