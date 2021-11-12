@@ -88,6 +88,8 @@ namespace kagome::application {
       return genesis_;
     }
 
+    outcome::result<common::Buffer> fetchCodeByHash(const common::Hash256 hash) override;
+
    private:
     outcome::result<void> loadFromJson(const std::string &file_path);
     outcome::result<void> loadFields(const boost::property_tree::ptree &tree);
@@ -111,6 +113,7 @@ namespace kagome::application {
     std::string name_;
     std::string id_;
     std::string chain_type_;
+    std::string config_path_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;
     std::vector<std::pair<std::string, size_t>> telemetry_endpoints_;
     std::string protocol_id_{"sup"};

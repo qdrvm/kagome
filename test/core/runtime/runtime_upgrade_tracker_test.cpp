@@ -212,7 +212,7 @@ TEST_F(RuntimeUpgradeTrackerTest, CodeSubstituteAndStore) {
               getBlockHeader(kagome::primitives::BlockId{block2.hash}))
       .WillRepeatedly(testing::Return(block2_header));
   code_substitutes_.reset(
-      new kagome::primitives::CodeSubstitutes{{block2.hash, "5203203"_buf}});
+      new kagome::primitives::CodeSubstitutes{{block2.hash}});
 
   // reset tracker
   tracker_ = kagome::runtime::RuntimeUpgradeTrackerImpl::create(
@@ -248,7 +248,7 @@ TEST_F(RuntimeUpgradeTrackerTest, UpgradeAfterCodeSubstitute) {
   auto block1 = makeBlockInfo(5203203);
   auto block1_header = makeBlockHeader(5203203);
   code_substitutes_.reset(
-      new kagome::primitives::CodeSubstitutes{{block1.hash, "5203203"_buf}});
+      new kagome::primitives::CodeSubstitutes{{block1.hash}});
 
   EXPECT_CALL(*header_repo_,
               getBlockHeader(kagome::primitives::BlockId{block1.hash}))

@@ -42,6 +42,7 @@ namespace kagome::application {
 
   outcome::result<void> ChainSpecImpl::loadFromJson(
       const std::string &file_path) {
+    config_path_ = file_path;
     pt::ptree tree;
     try {
       pt::read_json(file_path, tree);
@@ -162,14 +163,35 @@ namespace kagome::application {
     if (code_substitutes_opt.has_value()) {
       for (const auto &[hash, code] : code_substitutes_opt.value()) {
         OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(hash));
-        OUTCOME_TRY(code_processed, common::unhexWith0x(code.data()));
-        // TODO(sanblch): move this from memory to db
-        // https://github.com/soramitsu/kagome/issues/935
-        code_substitutes_->emplace(hash_processed, code_processed);
+        // OUTCOME_TRY(code_processed, common::unhexWith0x(code.data()));
+        code_substitutes_->emplace(hash_processed);
       }
     }
 
     return outcome::success();
+  }
+
+  outcome::result<common::Buffer> ChainSpecImpl::fetchCodeByHash(const common::Hash256 hash) {
+    pt::ptree tree;
+    try {
+      pt::read_json(config_path_, tree);
+    } catch (pt::json_parser_error &e) {
+      log_->error(
+          "Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
+      return Error::PARSER_ERROR;
+    }
+
+    auto code_substitutes_opt = tree.get_child_optional("codeSubstitutes");
+    if (code_substitutes_opt.has_value()) {
+      for (const auto &[_hash, _code] : code_substitutes_opt.value()) {
+        OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(_hash));
+        if (hash_processed == hash){
+          OUTCOME_TRY(code_processed, common::unhexWith0x(_code.data()));
+          return outcome::success(code_processed);
+        }
+      }
+    }
+    return outcome::failure(Error::MISSING_ENTRY);
   }
 
   outcome::result<void> ChainSpecImpl::loadGenesis(

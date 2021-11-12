@@ -27,7 +27,8 @@ namespace kagome::runtime {
     explicit StorageCodeProvider(
         std::shared_ptr<const storage::trie::TrieStorage> storage,
         std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
-        std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes);
+        std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes,
+        std::shared_ptr<application::ChainSpec> chain_spec);
 
     outcome::result<gsl::span<const uint8_t>> getCodeAt(
         const storage::trie::RootHash &state) const override;
@@ -38,6 +39,7 @@ namespace kagome::runtime {
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes_;
+    std::shared_ptr<application::ChainSpec> chain_spec_;
     mutable common::Buffer cached_code_;
     mutable storage::trie::RootHash last_state_root_;
     log::Logger logger_;

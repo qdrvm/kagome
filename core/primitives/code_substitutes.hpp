@@ -6,9 +6,11 @@
 #ifndef KAGOME_CODE_SUBSTITUTES_HPP
 #define KAGOME_CODE_SUBSTITUTES_HPP
 
+#include <unordered_set>
+
 namespace kagome::primitives {
 
-  using CodeSubstitutes = std::map<primitives::BlockHash, common::Buffer>;
+  using CodeSubstitutes = std::unordered_set<primitives::BlockHash>;
 
 }
 
