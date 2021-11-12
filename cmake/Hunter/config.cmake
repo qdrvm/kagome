@@ -41,6 +41,8 @@ hunter_config(
     schnorrkel_crust
     URL https://github.com/soramitsu/soramitsu-sr25519-crust/archive/refs/heads/refactor/cmake-config.tar.gz
     SHA1 c35cc25fda7a57003c2255241d9b1b2cc252f701
+    CMAKE_ARGS
+        TESTING=OFF
     KEEP_PACKAGE_SOURCES
 )
 
