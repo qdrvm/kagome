@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
+
 #include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "testutil/outcome.hpp"
@@ -36,8 +37,9 @@ struct LevelDB_Integration_Test : public test::BaseLevelDB_Test {
  * @then {value} is correct
  */
 TEST_F(LevelDB_Integration_Test, Put_Get) {
-  EXPECT_OUTCOME_TRUE_1(db_->put(key_, value_));
-  EXPECT_TRUE(db_->contains(key_));
+  ASSERT_OUTCOME_SUCCESS_TRY(db_->put(key_, value_));
+  ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
+  EXPECT_TRUE(contains);
   EXPECT_OUTCOME_TRUE_2(val, db_->get(key_));
   EXPECT_EQ(val, value_);
 }
@@ -48,8 +50,9 @@ TEST_F(LevelDB_Integration_Test, Put_Get) {
  * @then get "not found"
  */
 TEST_F(LevelDB_Integration_Test, Get_NonExistent) {
-  EXPECT_FALSE(db_->contains(key_));
-  EXPECT_OUTCOME_TRUE_1(db_->remove(key_));
+  ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
+  EXPECT_FALSE(contains);
+  ASSERT_OUTCOME_SUCCESS_TRY(db_->remove(key_));
   auto r = db_->get(key_);
   EXPECT_FALSE(r);
   EXPECT_EQ(r.error().value(), (int)DatabaseError::NOT_FOUND);
@@ -69,19 +72,22 @@ TEST_F(LevelDB_Integration_Test, WriteBatch) {
   ASSERT_TRUE(batch);
 
   for (const auto &item : keys) {
-    EXPECT_OUTCOME_TRUE_1(batch->put(item, item));
-    EXPECT_FALSE(db_->contains(item));
+    ASSERT_OUTCOME_SUCCESS_TRY(batch->put(item, item));
+    ASSERT_OUTCOME_SUCCESS(contains, db_->contains(item));
+    EXPECT_FALSE(contains);
   }
-  EXPECT_OUTCOME_TRUE_1(batch->remove(toBeRemoved));
-  EXPECT_OUTCOME_TRUE_1(batch->commit());
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->remove(toBeRemoved));
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->commit());
 
   for (const auto &item : expected) {
-    EXPECT_TRUE(db_->contains(item));
-    EXPECT_OUTCOME_TRUE_2(val, db_->get(item));
+    ASSERT_OUTCOME_SUCCESS(contains, db_->contains(item));
+    EXPECT_TRUE(contains);
+    ASSERT_OUTCOME_SUCCESS(val, db_->get(item));
     EXPECT_EQ(val, item);
   }
 
-  EXPECT_FALSE(db_->contains(toBeRemoved));
+  ASSERT_OUTCOME_SUCCESS(contains, db_->contains(toBeRemoved));
+  EXPECT_FALSE(contains);
 }
 
 /**
@@ -98,14 +104,14 @@ TEST_F(LevelDB_Integration_Test, Iterator) {
   }
 
   for (const auto &item : keys) {
-    EXPECT_OUTCOME_TRUE_1(db_->put(item, item));
+    ASSERT_OUTCOME_SUCCESS_TRY(db_->put(item, item));
   }
 
   std::array<size_t, size> counter{};
 
   logger->warn("forward iteration");
   auto it = db_->cursor();
-  EXPECT_OUTCOME_TRUE_1(it->seekFirst());
+  ASSERT_OUTCOME_SUCCESS_TRY(it->seekFirst());
   for (; it->isValid(); it->next().assume_value()) {
     auto k = it->key().value();
     auto v = it->value().value();

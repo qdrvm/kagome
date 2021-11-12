@@ -136,6 +136,9 @@ namespace kagome::blockchain {
 
     ~BlockTreeImpl() override = default;
 
+    outcome::result<bool> hasBlockHeader(
+        const primitives::BlockId &block) const override;
+
     outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockId &block) const override;
 

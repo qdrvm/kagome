@@ -12,6 +12,11 @@
 
 namespace kagome::blockchain {
   struct BlockTreeMock : public BlockTree {
+    MOCK_METHOD(outcome::result<bool>,
+                hasBlockHeader,
+                (const primitives::BlockId &),
+                (const, override));
+
     MOCK_METHOD(outcome::result<primitives::BlockBody>,
                 getBlockBody,
                 (const primitives::BlockId &),

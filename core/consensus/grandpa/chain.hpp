@@ -22,6 +22,13 @@ namespace kagome::consensus::grandpa {
     virtual ~Chain() = default;
 
     /**
+     * @brief Checks if {@param block} exists locally
+     * @return true iff block exists
+     */
+    virtual outcome::result<bool> hasBlock(
+        const primitives::BlockHash &block) const = 0;
+
+    /**
      * @brief Get the ancestry of a {@param block} up to the {@param base} hash.
      * Should be in reverse order from block's parent.
      * @return If the block is not a descendant of base, returns an error.

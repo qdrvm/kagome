@@ -605,6 +605,11 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<bool> BlockTreeImpl::hasBlockHeader(
+      const primitives::BlockId &block) const {
+    return storage_->hasBlockHeader(block);
+  }
+
   outcome::result<primitives::BlockHeader> BlockTreeImpl::getBlockHeader(
       const primitives::BlockId &block) const {
     return storage_->getBlockHeader(block);

@@ -21,6 +21,7 @@
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
+#include "network/synchronizer.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
 #include "storage/buffer_map_types.hpp"
 
@@ -70,7 +71,8 @@ namespace kagome::consensus::grandpa {
                 const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
                 std::shared_ptr<Clock> clock,
                 std::shared_ptr<boost::asio::io_context> io_context,
-                std::shared_ptr<authority::AuthorityManager> authority_manager);
+                std::shared_ptr<authority::AuthorityManager> authority_manager,
+                std::shared_ptr<network::Synchronizer> synchronizer);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -120,6 +122,8 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> makeNextRound(
         const std::shared_ptr<VotingRound> &previous_round);
 
+    void loadMissingBlocks();
+
     void onCompletedRound(outcome::result<MovableRoundState> round_state_res);
 
     void tryCatchUp(const libp2p::peer::PeerId &peer_id,
@@ -143,6 +147,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
+    std::shared_ptr<network::Synchronizer> synchronizer_;
 
     std::vector<FullRound> neighbor_msgs_{};
 

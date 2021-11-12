@@ -41,6 +41,9 @@ namespace kagome::consensus::grandpa {
 
     // Chain methods
 
+    outcome::result<bool> hasBlock(
+        const primitives::BlockHash &block) const override;
+
     outcome::result<std::vector<primitives::BlockHash>> getAncestry(
         const primitives::BlockHash &base,
         const primitives::BlockHash &block) const override;

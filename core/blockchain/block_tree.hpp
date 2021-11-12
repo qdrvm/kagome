@@ -34,6 +34,14 @@ namespace kagome::blockchain {
     virtual ~BlockTree() = default;
 
     /**
+     * Checks containing of block header by provided block id
+     * @param block id of the block header we are checking
+     * @return containing block header or does not, or error
+     */
+    virtual outcome::result<bool> hasBlockHeader(
+        const primitives::BlockId &block) const = 0;
+
+    /**
      * Get block header by provided block id
      * @param block id of the block header we are looking for
      * @return result containing block header if it exists, error otherwise

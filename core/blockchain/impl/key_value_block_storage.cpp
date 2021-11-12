@@ -125,6 +125,11 @@ namespace kagome::blockchain {
     return block_storage;
   }
 
+  outcome::result<bool> KeyValueBlockStorage::hasBlockHeader(
+      const primitives::BlockId &id) const {
+    return hasWithPrefix(*storage_, Prefix::HEADER, id);
+  }
+
   outcome::result<primitives::BlockHeader> KeyValueBlockStorage::getBlockHeader(
       const primitives::BlockId &id) const {
     OUTCOME_TRY(encoded_header_opt,

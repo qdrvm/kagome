@@ -137,8 +137,7 @@ namespace kagome::consensus::grandpa {
      * should be applied to the storage
      */
     virtual outcome::result<void> finalize(
-        MembershipCounter id,
-        const GrandpaJustification &justification) = 0;
+        MembershipCounter id, const GrandpaJustification &justification) = 0;
 
     virtual outcome::result<GrandpaJustification> getJustification(
         const BlockHash &block_hash) = 0;
