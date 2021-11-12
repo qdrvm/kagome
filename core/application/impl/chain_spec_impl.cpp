@@ -33,8 +33,8 @@ namespace kagome::application {
       const std::string &path) {
     // done so because of private constructor
     std::shared_ptr<ChainSpecImpl> config_storage{new ChainSpecImpl};
-    config_storage->code_substitutes_ =
-        std::make_shared<primitives::CodeSubstitutes>();
+    config_storage->known_code_substitutes_ =
+        std::make_shared<primitives::CodeSubstituteHashes>();
     OUTCOME_TRY(config_storage->loadFromJson(path));
 
     return config_storage;
@@ -42,6 +42,7 @@ namespace kagome::application {
 
   outcome::result<void> ChainSpecImpl::loadFromJson(
       const std::string &file_path) {
+    config_path_ = file_path;
     pt::ptree tree;
     try {
       pt::read_json(file_path, tree);
@@ -162,14 +163,39 @@ namespace kagome::application {
     if (code_substitutes_opt.has_value()) {
       for (const auto &[hash, code] : code_substitutes_opt.value()) {
         OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(hash));
-        OUTCOME_TRY(code_processed, common::unhexWith0x(code.data()));
-        // TODO(sanblch): move this from memory to db
-        // https://github.com/soramitsu/kagome/issues/935
-        code_substitutes_->emplace(hash_processed, code_processed);
+        known_code_substitutes_->emplace(hash_processed);
       }
     }
 
     return outcome::success();
+  }
+
+  outcome::result<common::Buffer> ChainSpecImpl::fetchCodeSubstituteByHash(
+      const common::Hash256 &hash) const {
+    if (!known_code_substitutes_->count(hash)) {
+      return Error::MISSING_ENTRY;
+    }
+
+    pt::ptree tree;
+    try {
+      pt::read_json(config_path_, tree);
+    } catch (pt::json_parser_error &e) {
+      log_->error(
+          "Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
+      return Error::PARSER_ERROR;
+    }
+
+    auto code_substitutes_opt = tree.get_child_optional("codeSubstitutes");
+    if (code_substitutes_opt.has_value()) {
+      for (const auto &[_hash, _code] : code_substitutes_opt.value()) {
+        OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(_hash));
+        if (hash_processed == hash) {
+          OUTCOME_TRY(code_processed, common::unhexWith0x(_code.data()));
+          return outcome::success(code_processed);
+        }
+      }
+    }
+    return Error::MISSING_ENTRY;
   }
 
   outcome::result<void> ChainSpecImpl::loadGenesis(

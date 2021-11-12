@@ -30,7 +30,8 @@ namespace kagome::runtime {
   RuntimeUpgradeTrackerImpl::create(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<storage::BufferStorage> storage,
-      std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes) {
+      std::shared_ptr<const primitives::CodeSubstituteHashes>
+          code_substitutes) {
     BOOST_ASSERT(header_repo);
     BOOST_ASSERT(storage);
     BOOST_ASSERT(code_substitutes);
@@ -54,17 +55,18 @@ namespace kagome::runtime {
   RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<storage::BufferStorage> storage,
-      std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes,
+      std::shared_ptr<const primitives::CodeSubstituteHashes> code_substitutes,
       std::vector<RuntimeUpgradeData> &&saved_data)
       : runtime_upgrades_{std::move(saved_data)},
         header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
-        code_substitutes_{std::move(code_substitutes)},
+        known_code_substitutes_{std::move(code_substitutes)},
         logger_{log::createLogger("StorageCodeProvider", "runtime")} {}
 
   bool RuntimeUpgradeTrackerImpl::hasCodeSubstitute(
       const kagome::primitives::BlockHash &hash) const {
-    return code_substitutes_->find(hash) != code_substitutes_->end();
+    return known_code_substitutes_->find(hash)
+           != known_code_substitutes_->end();
   }
 
   bool RuntimeUpgradeTrackerImpl::isStateInChain(
