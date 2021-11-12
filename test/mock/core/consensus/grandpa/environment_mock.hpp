@@ -61,11 +61,6 @@ namespace kagome::consensus::grandpa {
                  const primitives::Justification &justification),
                 (override));
 
-    MOCK_METHOD(bool,
-                containsBlock,
-                (const primitives::BlockHash &),
-                (const, override));
-
     MOCK_METHOD(outcome::result<void>,
                 finalize,
                 (MembershipCounter id,

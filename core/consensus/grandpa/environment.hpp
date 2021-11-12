@@ -128,11 +128,6 @@ namespace kagome::consensus::grandpa {
         const primitives::Justification &justification) = 0;
 
     /**
-     * @see BlockTree::contains
-     */
-    virtual bool containsBlock(const primitives::BlockHash &block_hash) const = 0;
-
-    /**
      * Triggered when blovk \param block justified by \param justification
      * should be applied to the storage
      */

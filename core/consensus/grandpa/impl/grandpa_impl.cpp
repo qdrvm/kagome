@@ -512,8 +512,16 @@ namespace kagome::consensus::grandpa {
              fin.set_id,
              peer_id.toBase58());
 
-    if (not environment_->containsBlock(fin.message.target_hash)) {
-      SL_WARN(logger_, "Fin message is not applied.");
+    auto existence_res = environment_->hasBlock(fin.message.target_hash);
+    if (existence_res.has_error()) {
+      SL_WARN(logger_,
+              "Fin message is not applied: {}",
+              existence_res.error().message());
+      return;
+    }
+    if (not existence_res.value()) {
+      SL_WARN(logger_,
+              "Fin message is not applied: Finalizing block not found");
       return;
     }
 
