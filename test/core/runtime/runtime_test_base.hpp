@@ -125,14 +125,16 @@ class RuntimeTestBase : public ::testing::Test {
 
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
                      + "/wasm/sub2dev.wasm";
-    wasm_provider_ = std::make_shared<runtime::BasicCodeProvider>(wasm_path);
+    wasm_provider_ =
+        std::make_shared<runtime::BasicCodeProvider>(wasm_path);
 
-    std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl> upgrade_tracker =
-        runtime::RuntimeUpgradeTrackerImpl::create(
-            header_repo_,
-            std::make_shared<storage::InMemoryStorage>(),
-            std::make_shared<primitives::CodeSubstitutes>())
-            .value();
+    std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>
+        upgrade_tracker =
+            runtime::RuntimeUpgradeTrackerImpl::create(
+                header_repo_,
+                std::make_shared<storage::InMemoryStorage>(),
+                std::make_shared<primitives::CodeSubstituteHashes>())
+                .value();
 
     auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(
         upgrade_tracker, module_factory);
