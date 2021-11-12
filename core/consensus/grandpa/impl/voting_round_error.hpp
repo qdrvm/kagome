@@ -21,7 +21,8 @@ namespace kagome::consensus::grandpa {
     ZERO_WEIGHT_VOTER,
     DUPLICATED_VOTE,
     EQUIVOCATED_VOTE,
-    NO_PREVOTE_CANDIDATE
+    NO_PREVOTE_CANDIDATE,
+    ROUND_IS_NOT_FINALIZABLE
   };
 
 }

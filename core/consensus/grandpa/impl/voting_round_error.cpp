@@ -31,6 +31,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
       return "Provided vote equivocated the existing one";
     case E::NO_PREVOTE_CANDIDATE:
       return "Can't get best prevote candidate";
+    case E::ROUND_IS_NOT_FINALIZABLE:
+      return "Round is not finalizable";
   }
   return "Unknown error (invalid VotingRoundError)";
 }
