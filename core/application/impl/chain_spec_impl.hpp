@@ -88,7 +88,8 @@ namespace kagome::application {
       return genesis_;
     }
 
-    outcome::result<common::Buffer> fetchCodeByHash(const common::Hash256 hash) const override;
+    outcome::result<common::Buffer> fetchCodeSubstituteByHash(
+        const common::Hash256 hash) const override;
 
    private:
     outcome::result<void> loadFromJson(const std::string &file_path);

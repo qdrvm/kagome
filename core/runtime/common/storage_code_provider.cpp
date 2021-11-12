@@ -46,9 +46,10 @@ namespace kagome::runtime {
       last_state_root_ = state;
 
       auto hash = runtime_upgrade_tracker_->getLastCodeUpdateHash(state);
-      if (hash.has_value()) { 
+      if (hash.has_value()) {
         if (code_substitutes_->find(hash.value()) != code_substitutes_->end()) {
-          OUTCOME_TRY(code, chain_spec_->fetchCodeByHash(hash.value()));
+          OUTCOME_TRY(code,
+                      chain_spec_->fetchCodeSubstituteByHash(hash.value()));
           OUTCOME_TRY(uncompressCodeIfNeeded(code, cached_code_));
           return cached_code_;
         }

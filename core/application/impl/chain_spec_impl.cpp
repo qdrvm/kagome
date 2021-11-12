@@ -171,7 +171,8 @@ namespace kagome::application {
     return outcome::success();
   }
 
-  outcome::result<common::Buffer> ChainSpecImpl::fetchCodeByHash(const common::Hash256 hash) const {
+  outcome::result<common::Buffer> ChainSpecImpl::fetchCodeSubstituteByHash(
+      const common::Hash256 hash) const {
     pt::ptree tree;
     try {
       pt::read_json(config_path_, tree);
@@ -185,7 +186,7 @@ namespace kagome::application {
     if (code_substitutes_opt.has_value()) {
       for (const auto &[_hash, _code] : code_substitutes_opt.value()) {
         OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(_hash));
-        if (hash_processed == hash){
+        if (hash_processed == hash) {
           OUTCOME_TRY(code_processed, common::unhexWith0x(_code.data()));
           return outcome::success(code_processed);
         }

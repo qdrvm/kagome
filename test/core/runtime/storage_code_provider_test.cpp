@@ -7,10 +7,10 @@
 
 #include <gtest/gtest.h>
 
+#include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
-#include "mock/core/application/chain_spec_mock.hpp"
 #include "storage/predefined_keys.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -57,7 +57,9 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
     return batch;
   }));
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
-      trie_db, tracker, std::make_shared<primitives::CodeSubstitutes>(), 
+      trie_db,
+      tracker,
+      std::make_shared<primitives::CodeSubstitutes>(),
       std::make_shared<application::ChainSpecMock>());
 
   // when
@@ -93,7 +95,9 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
     return batch;
   }));
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
-      trie_db, tracker, std::make_shared<primitives::CodeSubstitutes>(),
+      trie_db,
+      tracker,
+      std::make_shared<primitives::CodeSubstitutes>(),
       std::make_shared<application::ChainSpecMock>());
 
   common::Buffer new_state_code{{1, 3, 3, 8}};
