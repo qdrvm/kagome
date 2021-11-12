@@ -28,7 +28,8 @@ namespace kagome::network {
     /// @note Is used for start/continue catching up.
     virtual bool syncByBlockInfo(const primitives::BlockInfo &block_info,
                                  const libp2p::peer::PeerId &peer_id,
-                                 SyncResultHandler &&handler) = 0;
+                                 SyncResultHandler &&handler,
+                                 bool subscribe_to_block) = 0;
 
     /// Try to load and apply block with header {@param block_header} from peer
     /// {@param peer_id}.

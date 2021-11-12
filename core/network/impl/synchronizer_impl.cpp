@@ -31,6 +31,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
       return "Block is already enqueued";
     case E::PEER_BUSY:
       return "Peer is busy";
+    case E::ARRIVED_TOO_EARLY:
+      return "Block is arrived too early. Try to process it late";
   }
   return "unknown error";
 }
@@ -59,16 +61,70 @@ namespace kagome::network {
     app_state_manager->atShutdown([this] { node_is_shutting_down_ = true; });
   }
 
+  bool SynchronizerImpl::subscribeToBlock(
+      const primitives::BlockInfo &block_info, SyncResultHandler &&handler) {
+    // Check if block is already in tree
+    if (block_tree_->hasBlockHeader(block_info.hash)) {
+      handler(block_info);
+      return false;
+    }
+
+    auto last_finalized_block = block_tree_->getLastFinalized();
+    // Check if block from discarded side-chain
+    if (last_finalized_block.number <= block_info.number) {
+      handler(Error::DISCARDED_BLOCK);
+      return false;
+    }
+
+    // Check if block has arrived too early
+    auto best_block_res =
+        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
+    BOOST_ASSERT(best_block_res.has_value());
+    const auto &best_block = best_block_res.value();
+    if (best_block.number + kMaxDistanceToBlockForSubscription
+        < block_info.number) {
+      handler(Error::ARRIVED_TOO_EARLY);
+      return false;
+    }
+
+    subscriptions_.emplace(block_info, handler);
+    return true;
+  }
+
+  void SynchronizerImpl::notifySubscribers(const primitives::BlockInfo &block,
+                                           outcome::result<void> res) {
+    auto range = subscriptions_.equal_range(block);
+    for (auto it = range.first; it != range.second;) {
+      auto cit = it++;
+      if (auto node = subscriptions_.extract(cit)) {
+        if (res.has_error()) {
+          auto error = res.as_failure();
+          scheduler_->schedule(
+              [handler = std::move(node.mapped()), error] { handler(error); });
+        } else {
+          scheduler_->schedule(
+              [handler = std::move(node.mapped()), block] { handler(block); });
+        }
+      }
+    }
+  }
+
   bool SynchronizerImpl::syncByBlockInfo(
       const primitives::BlockInfo &block_info,
       const libp2p::peer::PeerId &peer_id,
-      Synchronizer::SyncResultHandler &&handler) {
+      Synchronizer::SyncResultHandler &&handler,
+      bool subscribe_to_block) {
+    // Subscribe on demand
+    if (subscribe_to_block) {
+      subscribeToBlock(block_info, std::move(handler));
+    }
+
     // If provided block is already enqueued, just remember peer
     if (auto it = known_blocks_.find(block_info.hash);
         it != known_blocks_.end()) {
       auto &block_in_queue = it->second;
       block_in_queue.peers.emplace(peer_id);
-      handler(block_info);
+      if (handler) handler(block_info);
       return false;
     }
 
@@ -95,7 +151,7 @@ namespace kagome::network {
 
     // Provided block is equal our best one. Nothing needs to do.
     if (block_info == best_block) {
-      handler(block_info);
+      if (handler) handler(block_info);
       return false;
     }
 
@@ -131,7 +187,7 @@ namespace kagome::network {
 
             // Finding the best common block was failed
             if (not res.has_value()) {
-              handler(res.as_failure());
+              if (handler) handler(res.as_failure());
               return;
             }
 
@@ -141,7 +197,7 @@ namespace kagome::network {
                 it != self->known_blocks_.end()) {
               auto &block_in_queue = it->second;
               block_in_queue.peers.emplace(peer_id);
-              handler(std::move(block_info));
+              if (handler) handler(std::move(block_info));
               return;
             }
 
@@ -213,11 +269,14 @@ namespace kagome::network {
 
     // Otherwise, is using base way to enqueue
     return syncByBlockInfo(
-        block_info, peer_id, [wp = weak_from_this()](auto res) {
+        block_info,
+        peer_id,
+        [wp = weak_from_this()](auto res) {
           if (auto self = wp.lock()) {
             SL_TRACE(self->log_, "Block(s) enqueued to load by announce");
           }
-        });
+        },
+        false);
   }
 
   void SynchronizerImpl::findCommonBlock(const libp2p::peer::PeerId &peer_id,
@@ -261,8 +320,8 @@ namespace kagome::network {
       auto &blocks = response_res.value().blocks;
 
       // No block in response is abnormal situation. Requested block must be
-      // existed because finding in interval of numbers of blocks what must
-      // existing
+      // existed because finding in interval of numbers of blocks that must
+      // exist
       if (blocks.empty()) {
         SL_ERROR(self->log_,
                  "Can't check if block #{} in #{}..#{} is common with {}: "
@@ -297,7 +356,7 @@ namespace kagome::network {
 
         // Common block is not found. It is abnormal situation. Requested
         // block must be existed because finding in interval of numbers of
-        // blocks what must existing
+        // blocks that must exist
         SL_WARN(self->log_,
                 "Not found any common block with {}",
                 peer_id.toBase58());
@@ -367,7 +426,7 @@ namespace kagome::network {
 
     // Interrupts process if node is shutting down
     if (node_is_shutting_down_) {
-      handler(Error::SHUTTING_DOWN);
+      if (handler) handler(Error::SHUTTING_DOWN);
       return;
     }
 
@@ -385,12 +444,12 @@ namespace kagome::network {
       // Any error interrupts loading of blocks
       if (response_res.has_error()) {
         SL_ERROR(self->log_,
-                 "Can't load blocks from {} beggining block #{} hash={}: {}",
+                 "Can't load blocks from {} beginning block #{} hash={}: {}",
                  peer_id.toBase58(),
                  from.number,
                  from.hash,
                  response_res.error().message());
-        handler(response_res.as_failure());
+        if (handler) handler(response_res.as_failure());
         return;
       }
       auto &blocks = response_res.value().blocks;
@@ -399,17 +458,17 @@ namespace kagome::network {
       // At least one starting block should be returned as existing
       if (blocks.empty()) {
         SL_ERROR(self->log_,
-                 "Can't load blocks from {} beggining block #{} hash={}: ",
+                 "Can't load blocks from {} beginning block #{} hash={}: ",
                  "Response does not have any blocks",
                  peer_id.toBase58(),
                  from.number,
                  from.hash);
-        handler(Error::EMPTY_RESPONSE);
+        if (handler) handler(Error::EMPTY_RESPONSE);
         return;
       }
 
       SL_TRACE(self->log_,
-               "{} blocks are loaded from {} beggining block #{} hash={}",
+               "{} blocks are loaded from {} beginning block #{} hash={}",
                blocks.size(),
                peer_id.toBase58(),
                from.number,
@@ -427,7 +486,7 @@ namespace kagome::network {
                    peer_id.toBase58(),
                    from.number,
                    from.hash);
-          handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+          if (handler) handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
           return;
         }
         // Check if body is provided
@@ -438,7 +497,7 @@ namespace kagome::network {
                    peer_id.toBase58(),
                    from.number,
                    from.hash);
-          handler(Error::RESPONSE_WITHOUT_BLOCK_BODY);
+          if (handler) handler(Error::RESPONSE_WITHOUT_BLOCK_BODY);
           return;
         }
         auto &header = block.header.value();
@@ -459,7 +518,7 @@ namespace kagome::network {
                        from.hash.toHex(),
                        header.number,
                        block.hash);
-              handler(Error::DISCARDED_BLOCK);
+              if (handler) handler(Error::DISCARDED_BLOCK);
               return;
             }
 
@@ -495,7 +554,7 @@ namespace kagome::network {
                      from.hash.toHex(),
                      header.number,
                      header.parent_hash.toHex());
-            handler(Error::DISCARDED_BLOCK);
+            if (handler) handler(Error::DISCARDED_BLOCK);
             return;
           }
 
@@ -513,7 +572,7 @@ namespace kagome::network {
                    peer_id.toBase58(),
                    from.number,
                    from.hash.toHex());
-          handler(Error::WRONG_ORDER);
+          if (handler) handler(Error::WRONG_ORDER);
           return;
         }
 
@@ -528,7 +587,7 @@ namespace kagome::network {
                    peer_id.toBase58(),
                    from.number,
                    from.hash.toHex());
-          handler(Error::INVALID_HASH);
+          if (handler) handler(Error::INVALID_HASH);
           return;
         }
 
@@ -565,7 +624,7 @@ namespace kagome::network {
       }
 
       SL_TRACE(self->log_, "Block loading is finished");
-      handler(last_loaded_block);
+      if (handler) handler(last_loaded_block);
 
       if (some_blocks_added) {
         SL_TRACE(self->log_, "Enqueued some new blocks: schedule applying");
@@ -652,9 +711,12 @@ namespace kagome::network {
         }
       } else {
         auto applying_res = block_executor_->applyBlock(std::move(block));
+        notifySubscribers({number, hash}, applying_res);
+
         if (not applying_res.has_value()) {
           if (applying_res
               != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
+            notifySubscribers({number, hash}, applying_res.as_failure());
             auto n = discardBlock(block.hash);
             SL_WARN(
                 log_,
@@ -679,7 +741,7 @@ namespace kagome::network {
     }
     ancestry_.erase(hash);
 
-    if (known_blocks_.size() < kMinPreloadedBlockNumber) {
+    if (known_blocks_.size() < kMinPreloadedBlockAmount) {
       SL_TRACE(log_,
                "{} blocks in queue: ask next portion of block",
                known_blocks_.size());
@@ -704,7 +766,13 @@ namespace kagome::network {
     while (not queue.empty()) {
       const auto &hash = queue.front();
 
-      affected += known_blocks_.erase(hash);
+      if (auto it = known_blocks_.find(hash); it != known_blocks_.end()) {
+        auto number = it->second.data.header->number;
+        notifySubscribers({number, hash}, Error::DISCARDED_BLOCK);
+
+        known_blocks_.erase(it);
+        affected++;
+      }
 
       auto range = ancestry_.equal_range(hash);
       for (auto it = range.first; it != range.second; ++it) {
@@ -728,12 +796,14 @@ namespace kagome::network {
           break;
         }
         const auto &hash = generation_node.mapped();
+        notifySubscribers({number, hash}, Error::DISCARDED_BLOCK);
+
         known_blocks_.erase(hash);
         ancestry_.erase(hash);
       }
     }
 
-    // Remove blocks whose numbers equal finalized one, exceptly finalized one
+    // Remove blocks whose numbers equal finalized one, excluding finalized one
     auto range = generations_.equal_range(finalized_block.number);
     for (auto it = range.first; it != range.second;) {
       auto cit = it++;

@@ -96,7 +96,8 @@ namespace kagome::storage::trie {
     return std::make_unique<PolkadotTrieCursorImpl>(*trie_);
   }
 
-  bool PersistentTrieBatchImpl::contains(const Buffer &key) const {
+  outcome::result<bool> PersistentTrieBatchImpl::contains(
+      const Buffer &key) const {
     return trie_->contains(key);
   }
 
@@ -121,7 +122,8 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,
                                                      const Buffer &value) {
-    bool is_new_entry = not trie_->contains(key);
+    OUTCOME_TRY(contains, trie_->contains(key));
+    bool is_new_entry = not contains;
     auto res = trie_->put(key, value);
     if (res and changes_.has_value()) {
       OUTCOME_TRY(ext_idx, getExtrinsicIndex());
