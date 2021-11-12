@@ -543,10 +543,6 @@ namespace kagome::blockchain {
     return storage_->putBlockData(block_number, block_data);
   }
 
-  bool BlockTreeImpl::contains(const primitives::BlockHash &block_hash) const {
-    return static_cast<bool>(tree_->getByHash(block_hash));
-  }
-
   outcome::result<void> BlockTreeImpl::finalize(
       const primitives::BlockHash &block_hash,
       const primitives::Justification &justification) {
@@ -722,9 +718,9 @@ namespace kagome::blockchain {
 
     std::deque<primitives::BlockHash> chain;
     chain.emplace_back(current_hash);
-    unsigned count = 0;
+    size_t count = 0;
     while (current_hash != top_block && result.size() < response_length) {
-      if(max_count.has_value() && ++count > max_count.value()) {
+      if (max_count.has_value() && ++count > max_count.value()) {
         log_->warn(
             "impossible to get chain by blocks: "
             "max count exceeded at intermediate block hash={}",
