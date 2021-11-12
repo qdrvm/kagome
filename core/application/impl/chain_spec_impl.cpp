@@ -171,7 +171,7 @@ namespace kagome::application {
     return outcome::success();
   }
 
-  outcome::result<common::Buffer> ChainSpecImpl::fetchCodeByHash(const common::Hash256 hash) {
+  outcome::result<common::Buffer> ChainSpecImpl::fetchCodeByHash(const common::Hash256 hash) const {
     pt::ptree tree;
     try {
       pt::read_json(config_path_, tree);

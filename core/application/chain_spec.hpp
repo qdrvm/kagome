@@ -51,7 +51,7 @@ namespace kagome::application {
 
     virtual std::optional<std::string> consensusEngine() const = 0;
 
-    virtual outcome::result<common::Buffer> fetchCodeByHash(const common::Hash256 hash) = 0;
+    virtual outcome::result<common::Buffer> fetchCodeByHash(const common::Hash256 hash) const = 0;
 
     /**
      * @return runtime code substitution map

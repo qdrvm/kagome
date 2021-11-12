@@ -63,6 +63,11 @@ namespace kagome::application {
                 (const, override));
 
     MOCK_METHOD(GenesisRawData, getGenesis, (), (const, override));
+
+    MOCK_METHOD(outcome::result<common::Buffer>,
+                fetchCodeByHash,
+                (const common::Hash256 hash),
+                (const, override));
   };
 
 }  // namespace kagome::application
