@@ -116,19 +116,23 @@ namespace kagome::host_api {
     }
   }
 
-  // TO BE IMPLEMENTED!!! This function declaration just always return empty
-  // optional for runtime debug purposes.
   runtime::WasmSpan StorageExtension::ext_default_child_storage_get_version_1(
       runtime::WasmSpan storage_key, runtime::WasmSpan key) {
     auto storage_key_buffer = loadKey(storage_key);
+    auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = loadKey(key);
+
     SL_TRACE(logger_,
              "ext_default_child_storage_get_version_1( {}, {} )",
              storage_key_buffer.toHex(),
              key_buffer.toHex());
-    auto option = std::make_optional(common::Buffer());
-    auto &memory = memory_provider_->getCurrentMemory()->get();
-    return memory.storeBuffer(scale::encode(option).value());
+
+    // TODO(xDimon):
+    //  This is stubbed logic. Need implement it in according with the spec
+    //  issue: https://github.com/soramitsu/kagome/issues/1004
+    auto none = std::optional<int>(std::nullopt);
+
+    return memory.storeBuffer(scale::encode(none).value());
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
