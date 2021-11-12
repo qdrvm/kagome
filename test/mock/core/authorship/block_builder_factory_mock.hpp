@@ -15,9 +15,9 @@ namespace kagome::authorship {
   class BlockBuilderFactoryMock : public BlockBuilderFactory {
    public:
     MOCK_METHOD(outcome::result<std::unique_ptr<BlockBuilder>>,
-                create,
+                make,
                 (const primitives::BlockId &, primitives::Digest),
-                (const, override));
+                (const));
   };
 
 }  // namespace kagome::authorship

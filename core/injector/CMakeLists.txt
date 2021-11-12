@@ -111,4 +111,8 @@ target_link_libraries(application_injector
     grandpa_transmitter
     block_announce_transmitter
     transactions_transmitter
+    offchain_worker_factory
+    offchain_worker_api
+    offchain_persistent_storage
+    offchain_local_storage
     )

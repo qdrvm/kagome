@@ -18,6 +18,7 @@
 #include "network/synchronizer.hpp"
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
+#include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
@@ -41,7 +42,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<network::Synchronizer> synchronizer,
-      std::shared_ptr<BabeUtil> babe_util)
+      std::shared_ptr<BabeUtil> babe_util,
+      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api)
       : lottery_{std::move(lottery)},
         trie_storage_{std::move(trie_storage)},
         babe_configuration_{std::move(configuration)},
@@ -56,6 +58,7 @@ namespace kagome::consensus::babe {
         authority_update_observer_(std::move(authority_update_observer)),
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
+        offchain_worker_api_(std::move(offchain_worker_api)),
         log_{log::createLogger("Babe", "babe")} {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(trie_storage_);
@@ -70,6 +73,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(authority_update_observer_);
     BOOST_ASSERT(synchronizer_);
     BOOST_ASSERT(babe_util_);
+    BOOST_ASSERT(offchain_worker_api_);
 
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
@@ -591,25 +595,39 @@ namespace kagome::consensus::babe {
 
     // observe possible changes of authorities
     for (auto &digest_item : block.header.digest) {
-      visit_in_place(
+      auto res = visit_in_place(
           digest_item,
-          [&](const primitives::Consensus &consensus_message) {
-            [[maybe_unused]] auto res = authority_update_observer_->onConsensus(
+          [&](const primitives::Consensus &consensus_message)
+              -> outcome::result<void> {
+            auto res = authority_update_observer_->onConsensus(
                 consensus_message.consensus_engine_id,
                 best_block_,
                 consensus_message);
+            if (res.has_error()) {
+              SL_WARN(log_,
+                      "Can't process consensus message digest: {}",
+                      res.error().message());
+            }
+            return res;
           },
-          [](const auto &) {});
+          [](const auto &) { return outcome::success(); });
+      if (res.has_error()) {
+        // TODO(xDimon): Rolling back of block is needed here
+        //  issue: https://github.com/soramitsu/kagome/issues/996
+        return;
+      }
     }
 
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
       SL_ERROR(log_, "Could not add block: {}", add_res.error().message());
+      // TODO(xDimon): Rolling back of block is needed here
+      //  issue: https://github.com/soramitsu/kagome/issues/996
       return;
     }
 
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
-        next_epoch_digest_res) {
+        next_epoch_digest_res.has_value()) {
       auto &next_epoch_digest = next_epoch_digest_res.value();
       SL_VERBOSE(log_,
                  "Got next epoch digest in slot {} (block #{}). Randomness: {}",
@@ -628,6 +646,19 @@ namespace kagome::consensus::babe {
         current_slot_,
         babe_util_->slotToEpoch(current_slot_),
         now);
+
+    const auto block_hash =
+        hasher_->blake2b_256(scale::encode(block.header).value());
+
+    // Create new offchain worker for block
+    auto ocw_res = offchain_worker_api_->offchain_worker(
+        block.header.parent_hash, block.header);
+    if (ocw_res.has_failure()) {
+      log_->error("Can't spawn offchain worker for block #{} hash={}: {}",
+                  block.header.number,
+                  block_hash.toHex(),
+                  ocw_res.error().message());
+    }
   }
 
   void BabeImpl::changeLotteryEpoch(

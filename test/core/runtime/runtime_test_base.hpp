@@ -22,6 +22,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
@@ -84,6 +85,8 @@ class RuntimeTestBase : public ::testing::Test {
         kagome::crypto::KeyFileStorage::createAt(keystore_path).value());
     changes_tracker_ =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
+    offchain_storage_ =
+        std::make_shared<kagome::offchain::OffchainPersistentStorageMock>();
 
     host_api_factory_ = std::make_shared<kagome::host_api::HostApiFactoryImpl>(
         changes_tracker_,
@@ -92,7 +95,8 @@ class RuntimeTestBase : public ::testing::Test {
         secp256k1_provider,
         hasher_,
         crypto_store,
-        bip39_provider);
+        bip39_provider,
+        offchain_storage_);
 
     header_repo_ = std::make_shared<
         testing::NiceMock<kagome::blockchain::BlockHeaderRepositoryMock>>();
@@ -228,6 +232,8 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<kagome::runtime::Executor> executor_;
   std::shared_ptr<kagome::storage::changes_trie::ChangesTrackerMock>
       changes_tracker_;
+  std::shared_ptr<kagome::offchain::OffchainPersistentStorageMock>
+      offchain_storage_;
   std::shared_ptr<kagome::crypto::Hasher> hasher_;
   std::shared_ptr<kagome::host_api::HostApiFactory> host_api_factory_;
 };
