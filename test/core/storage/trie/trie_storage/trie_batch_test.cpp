@@ -59,6 +59,17 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
   static const Buffer kNodePrefix;
 };
 
+#define ASSERT_OUTCOME_IS_TRUE(Expression)        \
+  {                                               \
+    ASSERT_OUTCOME_SUCCESS(result, (Expression)); \
+    ASSERT_TRUE(result);                          \
+  }
+#define ASSERT_OUTCOME_IS_FALSE(Expression)       \
+  {                                               \
+    ASSERT_OUTCOME_SUCCESS(result, (Expression)); \
+    ASSERT_FALSE(result);                         \
+  }
+
 const Buffer TrieBatchTest::kNodePrefix{1};
 
 const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
@@ -70,7 +81,7 @@ const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
 
 void FillSmallTrieWithBatch(TrieBatch &batch) {
   for (auto &entry : TrieBatchTest::data) {
-    EXPECT_OUTCOME_TRUE_1(batch.put(entry.first, entry.second));
+    ASSERT_OUTCOME_SUCCESS_TRY(batch.put(entry.first, entry.second));
   }
 }
 
@@ -106,26 +117,27 @@ class MockDb : public kagome::storage::InMemoryStorage {
 TEST_F(TrieBatchTest, Put) {
   auto batch = trie->getPersistentBatch().value();
   FillSmallTrieWithBatch(*batch);
-  // changes are not yet commited
+  // changes are not yet committed
   auto new_batch = trie->getEphemeralBatch().value();
   for (auto &entry : data) {
-    EXPECT_OUTCOME_FALSE(err, new_batch->get(entry.first));
-    ASSERT_EQ(err.value(),
-              static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
+    ASSERT_OUTCOME_ERROR(new_batch->get(entry.first),
+                         kagome::storage::trie::TrieError::NO_VALUE);
   }
-  EXPECT_OUTCOME_TRUE_void(r, batch->commit());
-  // changes are commited
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->commit());
+  // changes are committed
   new_batch = trie->getEphemeralBatch().value();
   for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE(res, new_batch->get(entry.first));
+    ASSERT_OUTCOME_SUCCESS(res, new_batch->get(entry.first));
     ASSERT_EQ(res, entry.second);
   }
 
-  EXPECT_OUTCOME_TRUE_1(new_batch->put("102030"_hex2buf, "010203"_hex2buf));
-  EXPECT_OUTCOME_TRUE_1(new_batch->put("104050"_hex2buf, "0a0b0c"_hex2buf));
-  EXPECT_OUTCOME_TRUE(v1, new_batch->get("102030"_hex2buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      new_batch->put("102030"_hex2buf, "010203"_hex2buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      new_batch->put("104050"_hex2buf, "0a0b0c"_hex2buf));
+  ASSERT_OUTCOME_SUCCESS(v1, new_batch->get("102030"_hex2buf));
   ASSERT_EQ(v1, "010203"_hex2buf);
-  EXPECT_OUTCOME_TRUE(v2, new_batch->get("104050"_hex2buf));
+  ASSERT_OUTCOME_SUCCESS(v2, new_batch->get("104050"_hex2buf));
   ASSERT_EQ(v2, "0a0b0c"_hex2buf);
 }
 
@@ -138,18 +150,18 @@ TEST_F(TrieBatchTest, Remove) {
   auto batch = trie->getPersistentBatch().value();
   FillSmallTrieWithBatch(*batch);
 
-  EXPECT_OUTCOME_TRUE_1(batch->remove(data[2].first));
-  EXPECT_OUTCOME_TRUE_1(batch->remove(data[3].first));
-  EXPECT_OUTCOME_TRUE_1(batch->remove(data[4].first));
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->remove(data[2].first));
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->remove(data[3].first));
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->remove(data[4].first));
 
-  EXPECT_OUTCOME_TRUE_1(batch->commit());
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->commit());
 
   auto read_batch = trie->getEphemeralBatch().value();
   for (auto i : {2, 3, 4}) {
-    ASSERT_FALSE(read_batch->contains(data[i].first));
+    ASSERT_OUTCOME_IS_FALSE(read_batch->contains(data[i].first));
   }
-  ASSERT_TRUE(read_batch->contains(data[0].first));
-  ASSERT_TRUE(read_batch->contains(data[1].first));
+  ASSERT_OUTCOME_IS_TRUE(read_batch->contains(data[0].first));
+  ASSERT_OUTCOME_IS_TRUE(read_batch->contains(data[1].first));
 }
 
 /**
@@ -160,10 +172,10 @@ TEST_F(TrieBatchTest, Remove) {
  */
 TEST_F(TrieBatchTest, Replace) {
   auto batch = trie->getPersistentBatch().value();
-  EXPECT_OUTCOME_TRUE_1(batch->put(data[1].first, data[3].second));
-  EXPECT_OUTCOME_TRUE_1(batch->commit());
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->put(data[1].first, data[3].second));
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->commit());
   auto read_batch = trie->getEphemeralBatch().value();
-  EXPECT_OUTCOME_TRUE(res, read_batch->get(data[1].first));
+  ASSERT_OUTCOME_SUCCESS(res, read_batch->get(data[1].first));
   ASSERT_EQ(res, data[3].second);
 }
 
@@ -198,14 +210,14 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
           .value();
   auto batch = trie->getPersistentBatch().value();
 
-  EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch->commit());
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->put("123"_buf, "111"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->commit());
 
   auto old_root = trie->getRootHash();
   ASSERT_FALSE(old_root.empty());
-  EXPECT_OUTCOME_TRUE_1(batch->put("133"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch->put("124"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch->put("154"_buf, "111"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->put("133"_buf, "111"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->put("124"_buf, "111"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->put("154"_buf, "111"_buf));
   ASSERT_FALSE(batch->commit());
 
   // if the root hash is unchanged, then the trie content is kept untouched
@@ -216,28 +228,28 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 TEST_F(TrieBatchTest, TopperBatchAtomic) {
   std::shared_ptr<PersistentTrieBatch> p_batch =
       trie->getPersistentBatch().value();
-  EXPECT_OUTCOME_TRUE_1(p_batch->put("123"_buf, "abc"_buf));
-  EXPECT_OUTCOME_TRUE_1(p_batch->put("678"_buf, "abc"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("123"_buf, "abc"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("678"_buf, "abc"_buf));
 
   auto t_batch = p_batch->batchOnTop();
 
-  EXPECT_OUTCOME_TRUE_1(t_batch->put("123"_buf, "abc"_buf));
-  ASSERT_TRUE(t_batch->contains("123"_buf));
-  EXPECT_OUTCOME_TRUE_1(t_batch->put("345"_buf, "cde"_buf));
-  ASSERT_TRUE(t_batch->contains("345"_buf));
-  EXPECT_OUTCOME_TRUE_1(t_batch->remove("123"_buf));
-  ASSERT_FALSE(t_batch->contains("123"_buf));
-  ASSERT_TRUE(t_batch->contains("678"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("123"_buf, "abc"_buf));
+  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("123"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("345"_buf, "cde"_buf));
+  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("345"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->remove("123"_buf));
+  ASSERT_OUTCOME_IS_FALSE(t_batch->contains("123"_buf));
+  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("678"_buf));
 
-  ASSERT_FALSE(p_batch->contains("345"_buf));
-  ASSERT_TRUE(p_batch->contains("678"_buf));
-  ASSERT_TRUE(p_batch->contains("123"_buf));
+  ASSERT_OUTCOME_IS_FALSE(p_batch->contains("345"_buf));
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("678"_buf));
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("123"_buf));
 
-  EXPECT_OUTCOME_TRUE_1(t_batch->writeBack());
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->writeBack());
 
-  ASSERT_TRUE(p_batch->contains("345"_buf));
-  ASSERT_TRUE(p_batch->contains("678"_buf));
-  ASSERT_FALSE(p_batch->contains("123"_buf));
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("345"_buf));
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("678"_buf));
+  ASSERT_OUTCOME_IS_FALSE(p_batch->contains("123"_buf));
 }
 
-/// TODO(Harrm): #595 test clearPrefix
+// TODO(Harrm): #595 test clearPrefix

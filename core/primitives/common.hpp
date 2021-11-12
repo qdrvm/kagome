@@ -22,7 +22,8 @@ namespace kagome::primitives {
     // base data structure for the types describing block information
     // (BlockInfo, Prevote, Precommit, PrimaryPropose)
     template <typename Tag>
-    struct BlockInfoT : public boost::equality_comparable<BlockInfoT<Tag>> {
+    struct BlockInfoT : public boost::equality_comparable<BlockInfoT<Tag>>,
+                        public boost::less_than_comparable<BlockInfoT<Tag>> {
       BlockInfoT() = default;
 
       BlockInfoT(const BlockNumber &n, const BlockHash &h)
@@ -33,6 +34,10 @@ namespace kagome::primitives {
 
       bool operator==(const BlockInfoT<Tag> &o) const {
         return number == o.number && hash == o.hash;
+      }
+
+      bool operator<(const BlockInfoT<Tag> &o) const {
+        return number < o.number or (number == o.number and hash < o.hash);
       }
     };
 
