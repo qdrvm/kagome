@@ -81,7 +81,8 @@ namespace kagome::network {
         block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(best_block_res.has_value());
     const auto &best_block = best_block_res.value();
-    if (best_block.number + 512 < block_info.number) {
+    if (best_block.number + kMaxDistanceToBlockForSubscription
+        < block_info.number) {
       handler(Error::ARRIVED_TOO_EARLY);
       return false;
     }
@@ -740,7 +741,7 @@ namespace kagome::network {
     }
     ancestry_.erase(hash);
 
-    if (known_blocks_.size() < kMinPreloadedBlockNumber) {
+    if (known_blocks_.size() < kMinPreloadedBlockAmount) {
       SL_TRACE(log_,
                "{} blocks in queue: ask next portion of block",
                known_blocks_.size());

@@ -22,7 +22,16 @@ namespace kagome::network {
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {
    public:
-    static const size_t kMinPreloadedBlockNumber = 250;
+    /// Block amount enough for applying and preloading other ones
+    /// simultaneously.
+    /// 256 is doubled max amount block in BlocksResponse.
+    static const size_t kMinPreloadedBlockAmount = 256;
+
+    /// Indicating how far the block can be subscribed to.
+    /// In general we don't needed wait very far blocks. This limit to avoid
+    /// extra memory consumption.
+    static const size_t kMaxDistanceToBlockForSubscription =
+        kMinPreloadedBlockAmount * 2;
 
     enum class Error {
       SHUTTING_DOWN = 1,
