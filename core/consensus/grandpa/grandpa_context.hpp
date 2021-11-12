@@ -45,7 +45,11 @@ namespace kagome::consensus::grandpa {
 
     static void set(std::shared_ptr<GrandpaContext> context) {
       auto opt = instance();
-      BOOST_ASSERT(not opt.has_value());
+      if (not opt.has_value()) {
+        throw std::runtime_error(
+            "Attempt to set GrandpaContext in thread, "
+            "which has already have it set");
+      }
       opt.emplace(std::move(context));
     }
 
@@ -62,7 +66,11 @@ namespace kagome::consensus::grandpa {
 
     static void create() {
       auto &opt = instance();
-      BOOST_ASSERT(not opt.has_value());
+      if (not opt.has_value()) {
+        throw std::runtime_error(
+            "Attempt to create second GrandpaContext for thread, "
+            "which has already have it");
+      }
       opt.emplace(std::make_shared<GrandpaContext>());
     }
 
