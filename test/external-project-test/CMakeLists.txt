@@ -26,7 +26,6 @@ HunterGate(
 
 project(KagomeFromExternalProject)
 
-hunter_add_package(kagome)
 find_package(kagome CONFIG REQUIRED)
 
 add_executable(main src/main.cpp)
