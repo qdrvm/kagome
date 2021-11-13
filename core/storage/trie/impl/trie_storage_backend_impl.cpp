@@ -38,7 +38,8 @@ namespace kagome::storage::trie {
     return storage_->tryGet(prefixKey(key));
   }
 
-  bool TrieStorageBackendImpl::contains(const Buffer &key) const {
+  outcome::result<bool> TrieStorageBackendImpl::contains(
+      const Buffer &key) const {
     return storage_->contains(prefixKey(key));
   }
 

@@ -63,7 +63,7 @@ namespace kagome::storage::trie {
 
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
 
-    bool contains(const common::Buffer &key) const override;
+    outcome::result<bool> contains(const common::Buffer &key) const override;
 
     bool empty() const override;
 

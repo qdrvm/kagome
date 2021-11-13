@@ -442,14 +442,14 @@ namespace kagome::storage::trie {
     return std::make_unique<PolkadotTrieCursorImpl>(*this);
   }
 
-  bool PolkadotTrieImpl::contains(const common::Buffer &key) const {
+  outcome::result<bool> PolkadotTrieImpl::contains(
+      const common::Buffer &key) const {
     if (not root_) {
       return false;
     }
 
-    auto node = getNode(root_, PolkadotCodec::keyToNibbles(key));
-    return node.has_value() && (node.value() != nullptr)
-           && (node.value()->value);
+    OUTCOME_TRY(node, getNode(root_, PolkadotCodec::keyToNibbles(key)));
+    return node != nullptr && node->value;
   }
 
   bool PolkadotTrieImpl::empty() const {

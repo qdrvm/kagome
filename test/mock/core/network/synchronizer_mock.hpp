@@ -18,12 +18,14 @@ namespace kagome::network {
                 syncByBlockInfo,
                 (const primitives::BlockInfo &,
                  const libp2p::peer::PeerId &,
-                 const SyncResultHandler &),
+                 const SyncResultHandler &,
+                 bool),
                 ());
     bool syncByBlockInfo(const primitives::BlockInfo &block_info,
                          const libp2p::peer::PeerId &peer_id,
-                         SyncResultHandler &&handler) override {
-      return syncByBlockInfo(block_info, peer_id, handler);
+                         SyncResultHandler &&handler,
+                         bool subscribe_to_block) override {
+      return syncByBlockInfo(block_info, peer_id, handler, subscribe_to_block);
     };
 
     MOCK_METHOD(bool,

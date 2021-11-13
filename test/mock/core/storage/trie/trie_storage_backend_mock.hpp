@@ -29,7 +29,10 @@ namespace kagome::storage::trie {
                 (const Buffer &key),
                 (const, override));
 
-    MOCK_METHOD(bool, contains, (const Buffer &key), (const, override));
+    MOCK_METHOD(outcome::result<bool>,
+                contains,
+                (const Buffer &key),
+                (const, override));
 
     MOCK_METHOD(outcome::result<void>,
                 put,

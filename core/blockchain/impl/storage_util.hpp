@@ -69,6 +69,17 @@ namespace kagome::blockchain {
                                       const common::Buffer &value);
 
   /**
+   * Chech if an entry from the database
+   * @param storage - to get the entry from
+   * @param prefix - key space in the storage  to which the entry belongs
+   * @param block_id - id of the block to get entry for
+   * @return true if entry exists, false if does not, and error at fail
+   */
+  outcome::result<bool> hasWithPrefix(const storage::BufferStorage &storage,
+                                      prefix::Prefix prefix,
+                                      const primitives::BlockId &block_id);
+
+  /**
    * Get an entry from the database
    * @param storage - to get the entry from
    * @param prefix - key space in the storage  to which the entry belongs
