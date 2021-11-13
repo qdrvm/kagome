@@ -24,8 +24,7 @@ BUILD_TARGET="${BUILD_FINAL_TARGET:-main}"
 
 EXTERNAL_PROJECT_BINARY_DIR="$BUILD_DIR"
 
-mkdir -p "$KAGOME_BINARY_DIR"
-mkdir -p "$KAGOME_INSTALL_DIR"
+mkdir -p "$EXTERNAL_PROJECT_BINARY_DIR"
 
 cmake -B "$EXTERNAL_PROJECT_BINARY_DIR" "$@"
 BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) + 1 ))}"
