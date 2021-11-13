@@ -78,7 +78,9 @@ namespace kagome::storage {
     auto status = db_->Get(ro_, make_slice(key), &value);
     if (status.ok()) {
       // cannot move string content to a buffer
-      return Buffer{}.put(value);
+      return Buffer(
+          reinterpret_cast<uint8_t *>(value.data()),                  // NOLINT
+          reinterpret_cast<uint8_t *>(value.data()) + value.size());  // NOLINT
     }
 
     return status_as_error(status);
@@ -89,8 +91,9 @@ namespace kagome::storage {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);
     if (status.ok()) {
-      // cannot move string content to a buffer
-      return std::make_optional(Buffer{}.put(value));
+      return std::make_optional(Buffer(
+          reinterpret_cast<uint8_t *>(value.data()),                   // NOLINT
+          reinterpret_cast<uint8_t *>(value.data()) + value.size()));  // NOLINT
     }
 
     if (status.IsNotFound()) {
@@ -100,8 +103,18 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
-  bool LevelDB::contains(const Buffer &key) const {
-    return get(key).has_value();
+  outcome::result<bool> LevelDB::contains(const Buffer &key) const {
+    std::string value;
+    auto status = db_->Get(ro_, make_slice(key), &value);
+    if (status.ok()) {
+      return true;
+    }
+
+    if (status.IsNotFound()) {
+      return false;
+    }
+
+    return status_as_error(status);
   }
 
   bool LevelDB::empty() const {

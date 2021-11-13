@@ -67,6 +67,9 @@ namespace kagome::blockchain {
     outcome::result<void> setLastFinalizedBlockHash(
         const primitives::BlockHash &) override;
 
+    outcome::result<bool> hasBlockHeader(
+        const primitives::BlockId &id) const override;
+
     outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockId &id) const override;
     outcome::result<primitives::BlockBody> getBlockBody(

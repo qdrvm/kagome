@@ -22,7 +22,7 @@ namespace kagome::storage::face {
 
     MOCK_CONST_METHOD1_T(tryGet, outcome::result<std::optional<V>>(const K &));
 
-    MOCK_CONST_METHOD1_T(contains, bool(const K &));
+    MOCK_CONST_METHOD1_T(contains, outcome::result<bool>(const K &));
 
     MOCK_CONST_METHOD0_T(empty, bool());
 

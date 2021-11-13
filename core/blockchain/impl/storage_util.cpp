@@ -41,6 +41,13 @@ namespace kagome::blockchain {
     return map.put(value_lookup_key, value);
   }
 
+  outcome::result<bool> hasWithPrefix(const storage::BufferStorage &map,
+                                      prefix::Prefix prefix,
+                                      const primitives::BlockId &block_id) {
+    OUTCOME_TRY(key, idToLookupKey(map, block_id));
+    return map.contains(prependPrefix(key, prefix));
+  }
+
   outcome::result<std::optional<common::Buffer>> getWithPrefix(
       const storage::BufferStorage &map,
       prefix::Prefix prefix,

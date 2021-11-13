@@ -22,7 +22,16 @@ namespace kagome::network {
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {
    public:
-    static const size_t kMinPreloadedBlockNumber = 250;
+    /// Block amount enough for applying and preloading other ones
+    /// simultaneously.
+    /// 256 is doubled max amount block in BlocksResponse.
+    static const size_t kMinPreloadedBlockAmount = 256;
+
+    /// Indicating how far the block can be subscribed to.
+    /// In general we don't needed wait very far blocks. This limit to avoid
+    /// extra memory consumption.
+    static const size_t kMaxDistanceToBlockForSubscription =
+        kMinPreloadedBlockAmount * 2;
 
     enum class Error {
       SHUTTING_DOWN = 1,
@@ -33,7 +42,8 @@ namespace kagome::network {
       WRONG_ORDER,
       INVALID_HASH,
       ALREADY_IN_QUEUE,
-      PEER_BUSY
+      PEER_BUSY,
+      ARRIVED_TOO_EARLY
     };
 
     SynchronizerImpl(
@@ -51,7 +61,8 @@ namespace kagome::network {
     /// @note Is used for start/continue catching up.
     bool syncByBlockInfo(const primitives::BlockInfo &block_info,
                          const libp2p::peer::PeerId &peer_id,
-                         SyncResultHandler &&handler) override;
+                         SyncResultHandler &&handler,
+                         bool subscribe_to_block) override;
 
     /// Enqueues loading and applying block {@param block_info} from peer
     /// {@param peer_id}.
@@ -68,7 +79,7 @@ namespace kagome::network {
     /// finalized).
     /// @param upper is number of definitely unknown block.
     /// @param hint is examining block for current call
-    /// @param handler callback what is called at the end of proccess
+    /// @param handler callback what is called at the end of process
     void findCommonBlock(const libp2p::peer::PeerId &peer_id,
                          primitives::BlockNumber lower,
                          primitives::BlockNumber upper,
@@ -82,6 +93,16 @@ namespace kagome::network {
                     SyncResultHandler &&handler);
 
    private:
+    /// Subscribes handler for block with provided {@param block_info}
+    /// {@param handler} will be called When block is received or discarded
+    /// @returns true if subscription is successful
+    bool subscribeToBlock(const primitives::BlockInfo &block_info,
+                          SyncResultHandler &&handler);
+
+    /// Notifies subscribers about arrived block
+    void notifySubscribers(const primitives::BlockInfo &block_info,
+                           outcome::result<void> res);
+
     /// Tries to request another portion of block
     void askNextPortionOfBlocks();
 
@@ -92,7 +113,7 @@ namespace kagome::network {
     /// @returns number of affected blocks
     size_t discardBlock(const primitives::BlockHash &block);
 
-    /// Removes blocks what will never be applied beause they are contained in
+    /// Removes blocks what will never be applied because they are contained in
     /// side-branch for provided finalized block {@param finalized_block}
     void prune(const primitives::BlockInfo &finalized_block);
 
@@ -113,7 +134,7 @@ namespace kagome::network {
       std::set<libp2p::peer::PeerId> peers;
     };
 
-    // Already known (enqueued) but is not applyed yet
+    // Already known (enqueued) but is not applied yet
     std::unordered_map<primitives::BlockHash, KnownBlock> known_blocks_;
 
     // Blocks grouped by number
@@ -129,6 +150,8 @@ namespace kagome::network {
     // Handlers what will be called when block is apply
     std::unordered_multimap<primitives::BlockHash, SyncResultHandler>
         watched_blocks_;
+
+    std::multimap<primitives::BlockInfo, SyncResultHandler> subscriptions_;
 
     std::atomic_bool applying_in_progress_ = false;
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
