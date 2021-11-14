@@ -144,6 +144,7 @@ kagome_install_setup(
     core/blockchain
     core/primitives
     core/macro
+    core/network
     core/scale
     core/storage
     core/crypto
