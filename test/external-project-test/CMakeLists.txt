@@ -58,6 +58,7 @@ target_link_libraries(main
     kagome::module_repository
     kagome::changes_tracker
     kagome::storage_code_provider
+    kagome::offchain_persistent_storage
     kagome::block_header_repository
     kagome::runtime_upgrade_tracker
     )
