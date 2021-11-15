@@ -205,8 +205,8 @@ namespace kagome::blockchain {
     virtual primitives::BlockInfo deepestLeaf() const = 0;
 
     /**
-     * @brief Get the most recent block of the best (longest) chain among those
-     * that contain a block with \param target_hash
+     * @brief Get the most recent block of the best (longest) chain among
+     * those that contain a block with \param target_hash
      * @param target_hash is a hash of a block that the chosen chain must
      * contain
      * @param max_number is the max block number that the resulting block (and
