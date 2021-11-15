@@ -152,7 +152,7 @@ int main() {
       ed_suite, sr_suite, bip39_provider, key_fs);
 
   auto offchain_persistent_storage =
-      std::make_shared<offchain::OffchainPersistentStorage>(database);
+      std::make_shared<kagome::offchain::OffchainPersistentStorage>(database);
 
   auto host_api_factory =
       std::make_shared<kagome::host_api::HostApiFactoryImpl>(
@@ -200,7 +200,7 @@ int main() {
       kagome::blockchain::getWithPrefix(
           *database, kagome::blockchain::prefix::HEADER, genesis_hash)
           .value()
-          .value());
+          .value()).value();
   assert(genesis_block.header.state_root == decoded_header.state_root);
   auto executor = kagome::runtime::Executor(header_repo, env_factory);
   std::cout << executor
