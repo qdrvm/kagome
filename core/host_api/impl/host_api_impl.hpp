@@ -61,6 +61,9 @@ namespace kagome::host_api {
     void ext_storage_set_version_1(runtime::WasmSpan key,
                                    runtime::WasmSpan value) override;
 
+    runtime::WasmSpan ext_default_child_storage_get_version_1(
+        runtime::WasmSpan storage_key, runtime::WasmSpan key) override;
+
     runtime::WasmSpan ext_storage_get_version_1(runtime::WasmSpan key) override;
 
     void ext_storage_clear_version_1(runtime::WasmSpan key_data) override;

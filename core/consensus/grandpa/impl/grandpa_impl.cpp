@@ -160,10 +160,7 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeNextRound(
       const std::shared_ptr<VotingRound> &round) {
-    BOOST_ASSERT(round->finalizedBlock().has_value());
-
-    BlockInfo best_block = round->finalizedBlock().value();
-
+    auto best_block = authority_manager_->base();
     auto authorities_res = authority_manager_->authorities(best_block, true);
     if (authorities_res.has_error()) {
       SL_CRITICAL(logger_,
@@ -514,6 +511,19 @@ namespace kagome::consensus::grandpa {
              fin.message.target_hash.toHex(),
              fin.set_id,
              peer_id.toBase58());
+
+    auto existence_res = environment_->hasBlock(fin.message.target_hash);
+    if (existence_res.has_error()) {
+      SL_WARN(logger_,
+              "Fin message is not applied: {}",
+              existence_res.error().message());
+      return;
+    }
+    if (not existence_res.value()) {
+      SL_WARN(logger_,
+              "Fin message is not applied: Finalizing block not found");
+      return;
+    }
 
     GrandpaJustification justification{
         .round_number = fin.round,
