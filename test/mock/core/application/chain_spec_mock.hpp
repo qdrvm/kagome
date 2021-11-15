@@ -57,12 +57,17 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(std::shared_ptr<const primitives::CodeSubstitutes>,
+    MOCK_METHOD(std::shared_ptr<const primitives::CodeSubstituteHashes>,
                 codeSubstitutes,
                 (),
                 (const, override));
 
     MOCK_METHOD(GenesisRawData, getGenesis, (), (const, override));
+
+    MOCK_METHOD(outcome::result<common::Buffer>,
+                fetchCodeSubstituteByHash,
+                (const common::Hash256 &hash),
+                (const, override));
   };
 
 }  // namespace kagome::application

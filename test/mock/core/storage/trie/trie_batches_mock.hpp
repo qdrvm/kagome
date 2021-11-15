@@ -29,7 +29,10 @@ namespace kagome::storage::trie {
                 (),
                 (override));
 
-    MOCK_METHOD(bool, contains, (const common::Buffer &), (const, override));
+    MOCK_METHOD(outcome::result<bool>,
+                contains,
+                (const common::Buffer &),
+                (const, override));
 
     MOCK_METHOD(outcome::result<void>,
                 put,
@@ -77,7 +80,10 @@ namespace kagome::storage::trie {
                 (),
                 (override));
 
-    MOCK_METHOD(bool, contains, (const common::Buffer &), (const, override));
+    MOCK_METHOD(outcome::result<bool>,
+                contains,
+                (const common::Buffer &),
+                (const, override));
 
     MOCK_METHOD(outcome::result<void>,
                 put,
@@ -110,7 +116,10 @@ namespace kagome::storage::trie {
                 (const common::Buffer &),
                 (const, override));
 
-    MOCK_METHOD(bool, contains, (const common::Buffer &), (const, override));
+    MOCK_METHOD(outcome::result<bool>,
+                contains,
+                (const common::Buffer &),
+                (const, override));
 
     MOCK_METHOD(bool, empty, (), (const, override));
 

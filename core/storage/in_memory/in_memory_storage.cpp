@@ -41,7 +41,7 @@ namespace kagome::storage {
     return outcome::success();
   }
 
-  bool InMemoryStorage::contains(const Buffer &key) const {
+  outcome::result<bool> InMemoryStorage::contains(const Buffer &key) const {
     return storage.find(key.toHex()) != storage.end();
   }
 

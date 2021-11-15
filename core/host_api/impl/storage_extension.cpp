@@ -116,11 +116,6 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = memory.loadN(key_ptr, key_size);
 
-    if (key_buffer.toHex()
-        == "1cb6f36e027abb2091cfb5110ab5087f06155b3cd9a8c9e5e9a23fd5dc13a5ed") {
-      [] {}();
-    }
-
     auto result = get(key_buffer);
     auto option = result ? std::make_optional(result.value()) : std::nullopt;
 
@@ -163,7 +158,8 @@ namespace kagome::host_api {
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key = memory.loadN(key_ptr, key_size);
-    return batch->contains(key) ? 1 : 0;
+    auto res = batch->contains(key);
+    return (res.has_value() and res.value()) ? 1 : 0;
   }
 
   void StorageExtension::ext_storage_clear_prefix_version_1(

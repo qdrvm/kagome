@@ -85,6 +85,10 @@
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
 #include "network/sync_protocol_observer.hpp"
+#include "offchain/impl/offchain_local_storage.hpp"
+#include "offchain/impl/offchain_persistent_storage.hpp"
+#include "offchain/impl/offchain_worker_factory_impl.hpp"
+#include "offchain/impl/offchain_worker_impl.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
@@ -102,7 +106,7 @@
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "runtime/runtime_api/impl/metadata.hpp"
-#include "runtime/runtime_api/impl/offchain_worker.hpp"
+#include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
@@ -727,7 +731,8 @@ namespace {
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
-        injector.template create<sptr<consensus::BabeUtil>>());
+        injector.template create<sptr<consensus::BabeUtil>>(),
+        injector.template create<sptr<runtime::OffchainWorkerApi>>());
 
     initialized.emplace(std::move(block_executor));
     return initialized.value();
@@ -850,9 +855,8 @@ namespace {
               sptr<const blockchain::BlockHeaderRepository>>();
           auto storage =
               injector.template create<sptr<storage::BufferStorage>>();
-          auto substitutes =
-              injector
-                  .template create<sptr<const primitives::CodeSubstitutes>>();
+          auto substitutes = injector.template create<
+              sptr<const primitives::CodeSubstituteHashes>>();
           auto res = runtime::RuntimeUpgradeTrackerImpl::create(
               std::move(header_repo),
               std::move(storage),
@@ -915,7 +919,11 @@ namespace {
         }),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
-        di::bind<runtime::OffchainWorker>.template to<runtime::OffchainWorkerImpl>(),
+        di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
+        di::bind<offchain::OffchainWorkerFactory>.template to<offchain::OffchainWorkerFactoryImpl>(),
+        di::bind<offchain::OffchainWorker>.template to<offchain::OffchainWorkerImpl>(),
+        di::bind<offchain::OffchainPersistentStorage>.template to<offchain::OffchainPersistentStorageImpl>(),
+        di::bind<offchain::OffchainLocalStorage>.template to<offchain::OffchainLocalStorageImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
         di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
@@ -962,7 +970,7 @@ namespace {
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
-        di::bind<primitives::CodeSubstitutes>.to(
+        di::bind<primitives::CodeSubstituteHashes>.to(
             get_chain_spec(config)->codeSubstitutes()),
 
         // compose peer keypair
@@ -1265,7 +1273,8 @@ namespace {
         injector.template create<uptr<clock::Timer>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<network::Synchronizer>>(),
-        injector.template create<sptr<consensus::BabeUtil>>());
+        injector.template create<sptr<consensus::BabeUtil>>(),
+        injector.template create<sptr<runtime::OffchainWorkerApi>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1315,7 +1324,8 @@ namespace {
         session_keys->getGranKeyPair(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
-        injector.template create<sptr<authority::AuthorityManager>>());
+        injector.template create<sptr<authority::AuthorityManager>>(),
+        injector.template create<sptr<network::Synchronizer>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();

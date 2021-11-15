@@ -35,7 +35,7 @@ namespace kagome::storage {
     outcome::result<void> put(const common::Buffer &key,
                               common::Buffer &&value) override;
 
-    bool contains(const common::Buffer &key) const override;
+    outcome::result<bool> contains(const common::Buffer &key) const override;
 
     bool empty() const override;
 

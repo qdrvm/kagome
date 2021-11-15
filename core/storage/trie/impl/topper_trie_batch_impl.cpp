@@ -58,7 +58,7 @@ namespace kagome::storage::trie {
     return nullptr;
   }
 
-  bool TopperTrieBatchImpl::contains(const Buffer &key) const {
+  outcome::result<bool> TopperTrieBatchImpl::contains(const Buffer &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
       return it->second.has_value();
     }
