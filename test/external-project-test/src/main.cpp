@@ -122,7 +122,7 @@ int main() {
 
   auto code_provider =
       std::make_shared<const kagome::runtime::StorageCodeProvider>(
-          trie_storage, runtime_upgrade_tracker, code_substitutes);
+          trie_storage, runtime_upgrade_tracker, code_substitutes, chain_spec);
   auto compartment =
       std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
           "WAVM Compartment");
@@ -153,7 +153,8 @@ int main() {
       ed_suite, sr_suite, bip39_provider, key_fs);
 
   auto offchain_persistent_storage =
-      std::make_shared<kagome::offchain::OffchainPersistentStorageImpl>(database);
+      std::make_shared<kagome::offchain::OffchainPersistentStorageImpl>(
+          database);
 
   auto host_api_factory =
       std::make_shared<kagome::host_api::HostApiFactoryImpl>(
@@ -197,11 +198,13 @@ int main() {
       genesis_hash,
       kagome::common::Buffer{scale::encode(genesis_block.header).value()})
       .value();
-  auto decoded_header = scale::decode<kagome::primitives::BlockHeader>(
-      kagome::blockchain::getWithPrefix(
-          *database, kagome::blockchain::prefix::HEADER, genesis_hash)
-          .value()
-          .value()).value();
+  auto decoded_header =
+      scale::decode<kagome::primitives::BlockHeader>(
+          kagome::blockchain::getWithPrefix(
+              *database, kagome::blockchain::prefix::HEADER, genesis_hash)
+              .value()
+              .value())
+          .value();
   assert(genesis_block.header.state_root == decoded_header.state_root);
   auto executor = kagome::runtime::Executor(header_repo, env_factory);
   std::cout << executor
