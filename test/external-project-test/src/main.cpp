@@ -151,14 +151,20 @@ int main() {
   auto crypto_store = std::make_shared<kagome::crypto::CryptoStoreImpl>(
       ed_suite, sr_suite, bip39_provider, key_fs);
 
+  auto offchain_persistent_storage =
+      std::make_shared<offchain::OffchainPersistentStorage>(database);
+
   auto host_api_factory =
-      std::make_shared<kagome::host_api::HostApiFactoryImpl>(changes_tracker,
-                                                             sr25519_provider,
-                                                             ed25519_provider,
-                                                             secp256k1_provider,
-                                                             hasher,
-                                                             crypto_store,
-                                                             bip39_provider);
+      std::make_shared<kagome::host_api::HostApiFactoryImpl>(
+          changes_tracker,
+          sr25519_provider,
+          ed25519_provider,
+          secp256k1_provider,
+          hasher,
+          crypto_store,
+          bip39_provider,
+          offchain_persistent_storage);
+
   auto instance_env_factory =
       std::make_shared<const kagome::runtime::wavm::InstanceEnvironmentFactory>(
           trie_storage,
@@ -190,7 +196,11 @@ int main() {
       genesis_hash,
       kagome::common::Buffer{scale::encode(genesis_block.header).value()})
       .value();
-  auto decoded_header = scale::decode<kagome::primitives::BlockHeader>(kagome::blockchain::getWithPrefix(*database, kagome::blockchain::prefix::HEADER, genesis_hash).value().value());
+  auto decoded_header = scale::decode<kagome::primitives::BlockHeader>(
+      kagome::blockchain::getWithPrefix(
+          *database, kagome::blockchain::prefix::HEADER, genesis_hash)
+          .value()
+          .value());
   assert(genesis_block.header.state_root == decoded_header.state_root);
   auto executor = kagome::runtime::Executor(header_repo, env_factory);
   std::cout << executor
@@ -202,8 +212,10 @@ int main() {
 }
 
 // put
-// hash_to_idx_key 03b10c7eaf45bdc1b5be32bef31ea0da3da208b381c1b3ffe438ed5aab389578f5
-// block_lookup_key 00000000b10c7eaf45bdc1b5be32bef31ea0da3da208b381c1b3ffe438ed5aab389578f5
+// hash_to_idx_key
+// 03b10c7eaf45bdc1b5be32bef31ea0da3da208b381c1b3ffe438ed5aab389578f5
+// block_lookup_key
+// 00000000b10c7eaf45bdc1b5be32bef31ea0da3da208b381c1b3ffe438ed5aab389578f5
 
 // get
 
