@@ -25,7 +25,7 @@ namespace kagome::host_api {
       : app_config_(app_config),
         memory_provider_(std::move(memory_provider)),
         offchain_storage_(std::move(offchain_storage)),
-        log_(log::createLogger("OffchainExtension", "host_api")) {
+        log_(log::createLogger("OffchainExtension", "offchain_extension")) {
     BOOST_ASSERT(memory_provider_);
     BOOST_ASSERT(offchain_storage_);
   }
