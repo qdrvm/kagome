@@ -10,7 +10,7 @@
 namespace kagome::host_api {
 
   HostApiFactoryImpl::HostApiFactoryImpl(
-      const application::AppConfiguration &app_config,
+      const OffchainExtensionConfig &offchain_config,
       std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
@@ -20,7 +20,7 @@ namespace kagome::host_api {
       std::shared_ptr<crypto::Bip39Provider> bip39_provider,
       std::shared_ptr<offchain::OffchainPersistentStorage>
           offchain_persistent_storage)
-      : app_config_(app_config),
+      : offchain_config_(offchain_config),
         changes_tracker_{std::move(tracker)},
         sr25519_provider_(std::move(sr25519_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
@@ -43,7 +43,7 @@ namespace kagome::host_api {
       std::shared_ptr<const runtime::CoreApiFactory> core_provider,
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const {
-    return std::make_unique<HostApiImpl>(app_config_,
+    return std::make_unique<HostApiImpl>(offchain_config_,
                                          memory_provider,
                                          core_provider,
                                          storage_provider,

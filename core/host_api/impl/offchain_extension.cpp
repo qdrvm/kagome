@@ -19,10 +19,10 @@ namespace kagome::host_api {
   using namespace offchain;
 
   OffchainExtension::OffchainExtension(
-      const application::AppConfiguration &app_config,
+      const OffchainExtensionConfig &config,
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
       std::shared_ptr<offchain::OffchainStorage> offchain_storage)
-      : app_config_(app_config),
+      : config_(config),
         memory_provider_(std::move(memory_provider)),
         offchain_storage_(std::move(offchain_storage)),
         log_(log::createLogger("OffchainExtension", "offchain_extension")) {
@@ -426,7 +426,7 @@ namespace kagome::host_api {
 
   void OffchainExtension::ext_offchain_index_set_version_1(
       runtime::WasmSpan key, runtime::WasmSpan value) {
-    if (not app_config_.isOffchainIndexingEnabled()) {
+    if (not config_.is_indexing_enabled) {
       return;
     }
 
@@ -445,7 +445,7 @@ namespace kagome::host_api {
 
   void OffchainExtension::ext_offchain_index_clear_version_1(
       runtime::WasmSpan key) {
-    if (not app_config_.isOffchainIndexingEnabled()) {
+    if (not config_.is_indexing_enabled) {
       return;
     }
 
