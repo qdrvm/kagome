@@ -17,6 +17,7 @@
 namespace kagome::host_api {
 
   HostApiImpl::HostApiImpl(
+      const application::AppConfiguration &app_config,
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
       std::shared_ptr<const runtime::CoreApiFactory> core_provider,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
@@ -51,7 +52,8 @@ namespace kagome::host_api {
                   memory_provider_,
                   std::move(core_provider)},
         storage_ext_(storage_provider_, memory_provider_, std::move(tracker)),
-        offchain_ext_(memory_provider_,
+        offchain_ext_(app_config,
+                      memory_provider_,
                       std::move(offchain_persistent_storage)) {}
 
   void HostApiImpl::reset() {
@@ -78,6 +80,12 @@ namespace kagome::host_api {
   void HostApiImpl::ext_storage_set_version_1(runtime::WasmSpan key,
                                               runtime::WasmSpan value) {
     return storage_ext_.ext_storage_set_version_1(key, value);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_default_child_storage_get_version_1(
+      runtime::WasmSpan storage_key, runtime::WasmSpan key) {
+    return storage_ext_.ext_default_child_storage_get_version_1(storage_key,
+                                                                key);
   }
 
   runtime::WasmSpan HostApiImpl::ext_storage_get_version_1(

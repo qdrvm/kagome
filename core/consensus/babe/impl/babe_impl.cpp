@@ -235,8 +235,8 @@ namespace kagome::consensus::babe {
     synchronizer_->syncByBlockHeader(
         announce.header,
         peer_id,
-        [wp = weak_from_this()](
-            outcome::result<primitives::BlockInfo> block_res) {
+        [wp = weak_from_this(), announce = announce](
+            outcome::result<primitives::BlockInfo> block_res) mutable {
           if (auto self = wp.lock()) {
             if (block_res.has_error()) {
               return;
@@ -251,6 +251,10 @@ namespace kagome::consensus::babe {
               self->current_state_ = Babe::State::SYNCHRONIZED;
             }
             self->onSynchronized();
+
+            // Propagate announce
+            self->block_announce_transmitter_->blockAnnounce(
+                std::move(announce));
           }
         });
   }
@@ -619,6 +623,12 @@ namespace kagome::consensus::babe {
       }
     }
 
+    auto last_finalized_block = block_tree_->getLastFinalized();
+    auto previous_best_block_res =
+        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
+    BOOST_ASSERT(previous_best_block_res.has_value());
+    const auto &previous_best_block = previous_best_block_res.value();
+
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
       SL_ERROR(log_, "Could not add block: {}", add_res.error().message());
@@ -651,14 +661,22 @@ namespace kagome::consensus::babe {
     const auto block_hash =
         hasher_->blake2b_256(scale::encode(block.header).value());
 
-    // Create new offchain worker for block
-    auto ocw_res = offchain_worker_api_->offchain_worker(
-        block.header.parent_hash, block.header);
-    if (ocw_res.has_failure()) {
-      log_->error("Can't spawn offchain worker for block #{} hash={}: {}",
-                  block.header.number,
-                  block_hash.toHex(),
-                  ocw_res.error().message());
+    last_finalized_block = block_tree_->getLastFinalized();
+    auto current_best_block_res =
+        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
+    BOOST_ASSERT(current_best_block_res.has_value());
+    const auto &current_best_block = current_best_block_res.value();
+
+    // Create new offchain worker for block if it is best only
+    if (current_best_block.number > previous_best_block.number) {
+      auto ocw_res = offchain_worker_api_->offchain_worker(
+          block.header.parent_hash, block.header);
+      if (ocw_res.has_failure()) {
+        log_->error("Can't spawn offchain worker for block #{} hash={}: {}",
+                    block.header.number,
+                    block_hash.toHex(),
+                    ocw_res.error().message());
+      }
     }
   }
 

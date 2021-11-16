@@ -48,6 +48,12 @@ namespace kagome::host_api {
                                    runtime::WasmSpan value);
 
     /**
+     * @see HostApi::ext_default_child_storage_get_version_1
+     */
+    runtime::WasmSpan ext_default_child_storage_get_version_1(
+        runtime::WasmSpan storage_key, runtime::WasmSpan key);
+
+    /**
      * @see HostApi::ext_storage_get_version_1
      */
     runtime::WasmSpan ext_storage_get_version_1(runtime::WasmSpan key);
@@ -134,6 +140,14 @@ namespace kagome::host_api {
      */
     outcome::result<common::Buffer> get(const common::Buffer &key) const;
 
+    /**
+     * Read key in form of [ptr; size] and load its value
+     * from memory into buffer
+     *
+     * @param key representation by [ptr; size]
+     * @return result containing Buffer with the key
+     */
+    common::Buffer loadKey(runtime::WasmSpan key) const;
     /**
      * @return error if any, a key if the next key exists
      * none otherwise

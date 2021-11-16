@@ -33,6 +33,7 @@ namespace kagome::host_api {
    public:
     HostApiImpl() = delete;
     HostApiImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<const runtime::CoreApiFactory> core_provider,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
@@ -59,6 +60,9 @@ namespace kagome::host_api {
 
     void ext_storage_set_version_1(runtime::WasmSpan key,
                                    runtime::WasmSpan value) override;
+
+    runtime::WasmSpan ext_default_child_storage_get_version_1(
+        runtime::WasmSpan storage_key, runtime::WasmSpan key) override;
 
     runtime::WasmSpan ext_storage_get_version_1(runtime::WasmSpan key) override;
 

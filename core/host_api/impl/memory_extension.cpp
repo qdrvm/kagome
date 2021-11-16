@@ -14,7 +14,7 @@ namespace kagome::host_api {
   MemoryExtension::MemoryExtension(
       std::shared_ptr<const runtime::MemoryProvider> memory_provider)
       : memory_provider_(std::move(memory_provider)),
-        logger_{log::createLogger("MemoryExtension", "host_api")} {
+        logger_{log::createLogger("MemoryExtension", "memory_extension")} {
     BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
   }
 

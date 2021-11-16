@@ -148,6 +148,14 @@ namespace kagome::application {
      * @return enum constant of the chosen runtime backend
      */
     virtual RuntimeExecutionMethod runtimeExecMethod() const = 0;
+
+    enum class OffchainWorkerMode { WhenValidating, Always, Never };
+    /**
+     * @return enum constant of the mode of run offchain workers
+     */
+    virtual OffchainWorkerMode offchainWorkerMode() const = 0;
+
+    virtual bool isOffchainIndexingEnabled() const = 0;
   };
 
 }  // namespace kagome::application

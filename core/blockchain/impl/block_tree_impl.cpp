@@ -667,12 +667,12 @@ namespace kagome::blockchain {
     auto &finish_block_hash = finish_block_hash_res.value();
 
     if (direction == GetChainDirection::ASCEND) {
-      return getChainByBlocks(block, finish_block_hash);
+      return getChainByBlocks(block, finish_block_hash, maximum);
     }
 
     // the function returns the blocks in the chronological order, but we want a
     // reverted one in this case
-    OUTCOME_TRY(chain, getChainByBlocks(finish_block_hash, block));
+    OUTCOME_TRY(chain, getChainByBlocks(finish_block_hash, block, maximum));
     std::reverse(chain.begin(), chain.end());
     return std::move(chain);
   }
@@ -718,7 +718,15 @@ namespace kagome::blockchain {
 
     std::deque<primitives::BlockHash> chain;
     chain.emplace_back(current_hash);
+    size_t count = 0;
     while (current_hash != top_block && result.size() < response_length) {
+      if (max_count.has_value() && ++count > max_count.value()) {
+        log_->warn(
+            "impossible to get chain by blocks: "
+            "max count exceeded at intermediate block hash={}",
+            current_hash.toHex());
+        break;
+      }
       auto header_res = header_repo_->getBlockHeader(current_hash);
       if (!header_res) {
         log_->warn(
