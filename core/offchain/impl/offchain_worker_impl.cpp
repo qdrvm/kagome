@@ -14,6 +14,7 @@
 #include "crypto/hasher.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "runtime/executor.hpp"
+#include "storage/database_error.hpp"
 
 namespace kagome::offchain {
 
@@ -211,11 +212,12 @@ namespace kagome::offchain {
       StorageType storage_type, const common::Buffer &key) {
     auto &storage = getStorage(storage_type);
     auto result = storage.get(key);
-    if (result.has_error()) {
+    if (result.has_error()
+        and result != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
       SL_WARN(log_, "Can't get value in storage: {}", result.error().message());
       return result.as_failure();
     }
-    return std::move(result.value());
+    return result;
   }
 
   Result<RequestId, Failure> OffchainWorkerImpl::httpRequestStart(
