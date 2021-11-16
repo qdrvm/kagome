@@ -145,7 +145,7 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
                         base_path.native().c_str()};
 
   ASSERT_TRUE(
-      app_config_->initialize_from_args(std::size(args), (char **)args));
+      app_config_->initializeFromArgs(std::size(args), (char **)args));
 
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
@@ -180,7 +180,7 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
   };
 
   ASSERT_TRUE(
-      app_config_->initialize_from_args(std::size(args), (char **)args));
+      app_config_->initializeFromArgs(std::size(args), (char **)args));
 
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
@@ -197,7 +197,7 @@ TEST_F(AppConfigurationTest, GenesisPathTest) {
                         chain_path.native().c_str(),
                         "--base-path",
                         base_path.native().c_str()};
-  ASSERT_TRUE(app_config_->initialize_from_args(
+  ASSERT_TRUE(app_config_->initializeFromArgs(
 
       std::size(args), (char **)args));
 
@@ -229,7 +229,7 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
   };
 
   ASSERT_TRUE(
-      app_config_->initialize_from_args(std::size(args), (char **)args));
+      app_config_->initializeFromArgs(std::size(args), (char **)args));
 
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
@@ -248,7 +248,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
 
   char const *args[] = {"/path/", "--config-file", config_path.c_str()};
   ASSERT_TRUE(
-      app_config_->initialize_from_args(std::size(args), (char **)args));
+      app_config_->initializeFromArgs(std::size(args), (char **)args));
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path);
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -282,7 +282,7 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
                         "--config-file",
                         invalid_config_path.c_str()};
   ASSERT_TRUE(
-      app_config_->initialize_from_args(std::size(args), (char **)args));
+      app_config_->initializeFromArgs(std::size(args), (char **)args));
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -314,7 +314,7 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
                         "--config-file",
                         damaged_config_path.c_str()};
   ASSERT_TRUE(
-      app_config_->initialize_from_args(std::size(args), (char **)args));
+      app_config_->initializeFromArgs(std::size(args), (char **)args));
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -346,7 +346,7 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
                         "--config-file",
                         "<some_file>"};
   ASSERT_TRUE(
-      app_config_->initialize_from_args(std::size(args), (char **)args));
+      app_config_->initializeFromArgs(std::size(args), (char **)args));
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -370,7 +370,7 @@ TEST_F(AppConfigurationTest, KeystorePathTest) {
                         chain_path.native().c_str(),
                         "--base-path",
                         base_path.native().c_str()};
-  ASSERT_TRUE(app_config_->initialize_from_args(
+  ASSERT_TRUE(app_config_->initializeFromArgs(
 
       std::size(args), (char **)args));
 
@@ -392,7 +392,7 @@ TEST_F(AppConfigurationTest, base_pathPathTest) {
                         "--base-path",
                         base_path.native().c_str()};
   ASSERT_TRUE(
-      app_config_->initialize_from_args(std::size(args), (char **)args));
+      app_config_->initializeFromArgs(std::size(args), (char **)args));
 
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
@@ -418,7 +418,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(
-        app_config_->initialize_from_args(std::size(args), (char **)args));
+        app_config_->initializeFromArgs(std::size(args), (char **)args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"info"});
   }
   {
@@ -432,7 +432,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(
-        app_config_->initialize_from_args(std::size(args), (char **)args));
+        app_config_->initializeFromArgs(std::size(args), (char **)args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"verbose"});
   }
   {
@@ -446,7 +446,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(
-        app_config_->initialize_from_args(std::size(args), (char **)args));
+        app_config_->initializeFromArgs(std::size(args), (char **)args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   }
   {
@@ -460,7 +460,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(
-        app_config_->initialize_from_args(std::size(args), (char **)args));
+        app_config_->initializeFromArgs(std::size(args), (char **)args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"trace"});
   }
 }
@@ -479,7 +479,7 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
                         "--base-path",
                         base_path.native().c_str()};
   ASSERT_TRUE(
-      app_config_->initialize_from_args(std::size(args), (char **)args));
+      app_config_->initializeFromArgs(std::size(args), (char **)args));
   ASSERT_EQ(app_config_->log(), std::vector<std::string>{""});
 }
 
@@ -497,6 +497,6 @@ TEST_F(AppConfigurationTest, NodeNameAsCommandLineOption) {
                         "--name",
                         "Alice's node"};
   ASSERT_TRUE(
-      app_config_->initialize_from_args(std::size(args), (char **)args));
+      app_config_->initializeFromArgs(std::size(args), (char **)args));
   ASSERT_EQ(app_config_->nodeName(), "Alice's node");
 }

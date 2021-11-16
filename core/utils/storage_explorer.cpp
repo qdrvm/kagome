@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
   auto logger = kagome::log::createLogger("AppConfiguration", "main");
   kagome::application::AppConfigurationImpl configuration{logger};
 
-  BOOST_ASSERT(configuration.initialize_from_args(argc, argv));
+  BOOST_ASSERT(configuration.initializeFromArgs(argc, argv));
 
   kagome::injector::KagomeNodeInjector injector{configuration};
   auto block_storage = injector.injectBlockStorage();
