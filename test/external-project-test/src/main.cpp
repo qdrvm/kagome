@@ -184,44 +184,11 @@ int main() {
       std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
           code_provider, module_repo, header_repo);
 
-  kagome::primitives::Block genesis_block;
-  genesis_block.header.number = 0;
-  genesis_block.header.extrinsics_root = trieRoot({});
-  genesis_block.header.state_root = trie_storage->getRootHash();
+  [[maybe_unused]] auto executor = kagome::runtime::Executor(header_repo, env_factory);
 
-  auto genesis_hash = hasher->blake2b_256(scale::encode(genesis_block).value());
+  // TODO(Harrm): Currently, the test only checks if kagome builds as
+  // a dependency in some project. However, we can use the test to run
+  // some integration tests, like it's done in polkadot tests
 
-  kagome::blockchain::putWithPrefix(
-      *database,
-      kagome::blockchain::prefix::HEADER,
-      0,
-      genesis_hash,
-      kagome::common::Buffer{scale::encode(genesis_block.header).value()})
-      .value();
-  auto decoded_header =
-      scale::decode<kagome::primitives::BlockHeader>(
-          kagome::blockchain::getWithPrefix(
-              *database, kagome::blockchain::prefix::HEADER, genesis_hash)
-              .value()
-              .value())
-          .value();
-  assert(genesis_block.header.state_root == decoded_header.state_root);
-  auto executor = kagome::runtime::Executor(header_repo, env_factory);
-  std::cout << executor
-                   .callAtGenesis<kagome::primitives::Version>("Core_version")
-                   .value()
-                   .impl_version
-            << "\n";
   return 0;
 }
-
-// put
-// hash_to_idx_key
-// 03b10c7eaf45bdc1b5be32bef31ea0da3da208b381c1b3ffe438ed5aab389578f5
-// block_lookup_key
-// 00000000b10c7eaf45bdc1b5be32bef31ea0da3da208b381c1b3ffe438ed5aab389578f5
-
-// get
-
-// 0400000000b10c7eaf45bdc1b5be32bef31ea0da3da208b381c1b3ffe438ed5aab389578f5
-// 0400000000b10c7eaf45bdc1b5be32bef31ea0da3da208b381c1b3ffe438ed5aab389578f5
