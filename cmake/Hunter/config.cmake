@@ -32,15 +32,15 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/refs/heads/feature/cmake-config.tar.gz
-    SHA1 fa9e6fd1865a8f2582984ab78104623f1cd39ed9
+    URL https://github.com/libp2p/cpp-libp2p/archive/69299a8182a976fbe6654ed367ba1fb5d89800e0.tar.gz
+    SHA1 024b4dad4afc900ed15e41fef85ff90e2ea2f00a
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     schnorrkel_crust
-    URL https://github.com/soramitsu/soramitsu-sr25519-crust/archive/refs/heads/refactor/cmake-config.tar.gz
-    SHA1 c35cc25fda7a57003c2255241d9b1b2cc252f701
+    URL https://github.com/soramitsu/soramitsu-sr25519-crust/archive/69299a8182a976fbe6654ed367ba1fb5d89800e0.tar.gz
+    SHA1 78fb38f212fa49029aff24c669a39648d9b4e68b
     CMAKE_ARGS
         TESTING=OFF
     KEEP_PACKAGE_SOURCES
