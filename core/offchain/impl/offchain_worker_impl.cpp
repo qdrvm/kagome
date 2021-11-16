@@ -215,7 +215,6 @@ namespace kagome::offchain {
     if (result.has_error()
         and result != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
       SL_WARN(log_, "Can't get value in storage: {}", result.error().message());
-      return result.as_failure();
     }
     return result;
   }
