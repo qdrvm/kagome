@@ -32,7 +32,7 @@ namespace kagome::storage {
      * @param options leveldb options, such as caching, logging, etc.
      * @return instance of LevelDB
      */
-    static outcome::result<std::shared_ptr<LevelDB>> create(
+    static outcome::result<std::unique_ptr<LevelDB>> create(
         const boost::filesystem::path &path,
         leveldb::Options options = leveldb::Options());
 
@@ -71,6 +71,8 @@ namespace kagome::storage {
     void compact(const Buffer &first, const Buffer &last);
 
    private:
+    LevelDB() = default;
+
     std::unique_ptr<leveldb::DB> db_;
     leveldb::ReadOptions ro_;
     leveldb::WriteOptions wo_;
