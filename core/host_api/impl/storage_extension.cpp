@@ -32,7 +32,7 @@ namespace kagome::host_api {
       : storage_provider_(std::move(storage_provider)),
         memory_provider_(std::move(memory_provider)),
         changes_tracker_{std::move(changes_tracker)},
-        logger_{log::createLogger("StorageExtension", "host_api")} {
+        logger_{log::createLogger("StorageExtension", "storage_extension")} {
     BOOST_ASSERT_MSG(storage_provider_ != nullptr, "storage batch is nullptr");
     BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
     BOOST_ASSERT_MSG(changes_tracker_ != nullptr, "changes tracker is nullptr");

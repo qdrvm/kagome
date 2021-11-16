@@ -26,6 +26,7 @@ namespace kagome::host_api {
   class OffchainExtension final {
    public:
     OffchainExtension(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<offchain::OffchainStorage> offchain_storage);
 
@@ -370,6 +371,7 @@ namespace kagome::host_api {
    private:
     offchain::OffchainWorker &getWorker();
 
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<offchain::OffchainStorage> offchain_storage_;
 
