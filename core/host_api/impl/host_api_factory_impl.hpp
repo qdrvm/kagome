@@ -28,6 +28,7 @@ namespace kagome::host_api {
     ~HostApiFactoryImpl() override = default;
 
     HostApiFactoryImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
         std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
@@ -45,6 +46,7 @@ namespace kagome::host_api {
         const override;
 
    private:
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::Ed25519Provider> ed25519_provider_;

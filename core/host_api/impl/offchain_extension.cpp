@@ -19,11 +19,13 @@ namespace kagome::host_api {
   using namespace offchain;
 
   OffchainExtension::OffchainExtension(
+      const application::AppConfiguration &app_config,
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
       std::shared_ptr<offchain::OffchainStorage> offchain_storage)
-      : memory_provider_(std::move(memory_provider)),
+      : app_config_(app_config),
+        memory_provider_(std::move(memory_provider)),
         offchain_storage_(std::move(offchain_storage)),
-        log_(log::createLogger("OffchainExtension", "host_api")) {
+        log_(log::createLogger("OffchainExtension", "offchain_extension")) {
     BOOST_ASSERT(memory_provider_);
     BOOST_ASSERT(offchain_storage_);
   }
@@ -99,10 +101,15 @@ namespace kagome::host_api {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
+    } else if (kind == 0) {
+      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
+      //  issue: https://github.com/soramitsu/kagome/issues/997
+      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
     }
+
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto key_buffer = memory.loadN(key_ptr, key_size);
     auto [value_ptr, value_size] = runtime::PtrSize(value);
@@ -121,6 +128,10 @@ namespace kagome::host_api {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
+    } else if (kind == 0) {
+      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
+      //  issue: https://github.com/soramitsu/kagome/issues/997
+      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -146,6 +157,10 @@ namespace kagome::host_api {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
+    } else if (kind == 0) {
+      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
+      //  issue: https://github.com/soramitsu/kagome/issues/997
+      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -174,6 +189,10 @@ namespace kagome::host_api {
       storage_type = StorageType::Persistent;
     } else if (kind == 2) {
       storage_type = StorageType::Local;
+    } else if (kind == 0) {
+      // TODO(xDimon): Remove this if-branch when it will be fixed it substrate
+      //  issue: https://github.com/soramitsu/kagome/issues/997
+      storage_type = StorageType::Persistent;
     } else {
       throw std::invalid_argument(
           "Method was called with unknown kind of storage");
@@ -407,6 +426,10 @@ namespace kagome::host_api {
 
   void OffchainExtension::ext_offchain_index_set_version_1(
       runtime::WasmSpan key, runtime::WasmSpan value) {
+    if (not app_config_.isOffchainIndexingEnabled()) {
+      return;
+    }
+
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [key_ptr, key_size] = runtime::PtrSize(key);
@@ -422,6 +445,10 @@ namespace kagome::host_api {
 
   void OffchainExtension::ext_offchain_index_clear_version_1(
       runtime::WasmSpan key) {
+    if (not app_config_.isOffchainIndexingEnabled()) {
+      return;
+    }
+
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [key_ptr, key_size] = runtime::PtrSize(key);

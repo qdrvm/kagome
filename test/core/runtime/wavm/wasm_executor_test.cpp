@@ -16,6 +16,7 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
@@ -41,6 +42,7 @@
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
 
+using kagome::application::AppConfigurationMock;
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
@@ -125,6 +127,7 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<kagome::offchain::OffchainPersistentStorageMock>();
     auto host_api_factory =
         std::make_shared<kagome::host_api::HostApiFactoryImpl>(
+            app_config_,
             std::make_shared<ChangesTrackerMock>(),
             sr25519_provider,
             ed25519_provider,
@@ -182,6 +185,7 @@ class WasmExecutorTest : public ::testing::Test {
   }
 
  protected:
+  AppConfigurationMock app_config_;
   std::shared_ptr<Executor> executor_;
   std::shared_ptr<TrieStorageProvider> storage_provider_;
   std::shared_ptr<RuntimeCodeProvider> wasm_provider_;
