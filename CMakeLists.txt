@@ -127,28 +127,33 @@ include(GNUInstallDirs)
 include(cmake/install.cmake)
 
 include_directories(
-  # project includes
-  ${PROJECT_SOURCE_DIR}/core
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/core>
 )
 
 add_subdirectory(core)
 
+# TODO(Harrm): refactor to avoid manually adding each new directory
 kagome_install_setup(
     HEADER_DIRS
     core/application
-    core/common
-    core/clock
-    core/consensus
-    core/log
+    core/assets
     core/blockchain
-    core/primitives
+    core/clock
+    core/common
+    core/consensus
+    core/crypto
+    core/filesystem
+    core/host_api
+    core/log
     core/macro
+    core/network
+    core/offchain
+    core/outcome
+    core/primitives
+    core/runtime
     core/scale
     core/storage
-    core/crypto
-    core/outcome
-    core/runtime
-    core/host_api
     core/subscription
 )
 

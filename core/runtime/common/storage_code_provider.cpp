@@ -23,7 +23,8 @@ namespace kagome::runtime {
       : storage_{std::move(storage)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
         known_code_substitutes_{std::move(code_substitutes)},
-        chain_spec_{std::move(chain_spec)} {
+        chain_spec_{std::move(chain_spec)},
+        logger_ {log::createLogger("StorageCodeProvider", "runtime")} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
     last_state_root_ = storage_->getRootHash();

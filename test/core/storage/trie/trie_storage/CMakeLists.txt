@@ -12,7 +12,7 @@ addtest(polkadot_trie_storage_test
     )
 target_link_libraries(polkadot_trie_storage_test
     trie_storage
-    leveldb
+    leveldb_wrapper
     ordered_trie_hash
     polkadot_trie_factory
     Boost::boost

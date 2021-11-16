@@ -18,7 +18,7 @@
 namespace kagome::storage {
   namespace fs = boost::filesystem;
 
-  outcome::result<std::shared_ptr<LevelDB>> LevelDB::create(
+  outcome::result<std::unique_ptr<LevelDB>> LevelDB::create(
       const filesystem::path &path, leveldb::Options options) {
     if (!filesystem::createDirectoryRecursive(path))
       return DatabaseError::DB_PATH_NOT_CREATED;
@@ -44,7 +44,7 @@ namespace kagome::storage {
 
     auto status = leveldb::DB::Open(options, path.native(), &db);
     if (status.ok()) {
-      auto l = std::make_unique<LevelDB>();
+      std::unique_ptr<LevelDB> l {new LevelDB{}};
       l->db_ = std::unique_ptr<leveldb::DB>(db);
       l->logger_ = std::move(log);
       return l;
