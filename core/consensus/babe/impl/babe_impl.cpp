@@ -235,8 +235,8 @@ namespace kagome::consensus::babe {
     synchronizer_->syncByBlockHeader(
         announce.header,
         peer_id,
-        [wp = weak_from_this()](
-            outcome::result<primitives::BlockInfo> block_res) {
+        [wp = weak_from_this(), announce = announce](
+            outcome::result<primitives::BlockInfo> block_res) mutable {
           if (auto self = wp.lock()) {
             if (block_res.has_error()) {
               return;
@@ -251,6 +251,10 @@ namespace kagome::consensus::babe {
               self->current_state_ = Babe::State::SYNCHRONIZED;
             }
             self->onSynchronized();
+
+            // Propagate announce
+            self->block_announce_transmitter_->blockAnnounce(
+                std::move(announce));
           }
         });
   }
