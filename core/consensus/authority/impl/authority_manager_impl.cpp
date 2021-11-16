@@ -79,6 +79,14 @@ namespace kagome::authority {
     return outcome::success();
   }
 
+  primitives::BlockInfo AuthorityManagerImpl::base() const {
+    if (not root_) {
+      log_->critical("Authority manager has null root");
+      std::terminate();
+    }
+    return root_->block;
+  }
+
   outcome::result<std::shared_ptr<const primitives::AuthorityList>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &block,
                                     bool finalized) {

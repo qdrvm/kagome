@@ -83,6 +83,12 @@ namespace kagome::host_api {
     return batch->get(key);
   }
 
+  common::Buffer StorageExtension::loadKey(runtime::WasmSpan key) const {
+    auto [key_ptr, key_size] = runtime::PtrSize(key);
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    return memory.loadN(key_ptr, key_size);
+  }
+
   outcome::result<std::optional<Buffer>> StorageExtension::getStorageNextKey(
       const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
@@ -110,6 +116,25 @@ namespace kagome::host_api {
     }
   }
 
+  runtime::WasmSpan StorageExtension::ext_default_child_storage_get_version_1(
+      runtime::WasmSpan storage_key, runtime::WasmSpan key) {
+    auto storage_key_buffer = loadKey(storage_key);
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    auto key_buffer = loadKey(key);
+
+    SL_TRACE(logger_,
+             "ext_default_child_storage_get_version_1( {}, {} )",
+             storage_key_buffer.toHex(),
+             key_buffer.toHex());
+
+    // TODO(xDimon):
+    //  This is stubbed logic. Need implement it in according with the spec
+    //  issue: https://github.com/soramitsu/kagome/issues/1004
+    auto none = std::optional<int>(std::nullopt);
+
+    return memory.storeBuffer(scale::encode(none).value());
+  }
+
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
       runtime::WasmSpan key) {
     auto [key_ptr, key_size] = runtime::PtrSize(key);
@@ -123,12 +148,11 @@ namespace kagome::host_api {
       SL_TRACE_FUNC_CALL(logger_, option.value(), key_buffer);
 
     } else {
-      SL_TRACE(
-          logger_,
-          "ext_storage_get_version_1( {} ) => value was not obtained. Reason: "
-          "{}",
-          key_buffer.toHex(),
-          result.error().message());
+      SL_TRACE(logger_,
+               "ext_storage_get_version_1( {} ) => value was not obtained. "
+               "Reason: {}",
+               key_buffer.toHex(),
+               result.error().message());
     }
 
     return memory.storeBuffer(scale::encode(option).value());
@@ -145,8 +169,7 @@ namespace kagome::host_api {
     if (not del_result) {
       logger_->warn(
           "ext_storage_clear_version_1 did not delete key {} from trie db with "
-          "reason: "
-          "{}",
+          "reason: {}",
           key_data,
           del_result.error().message());
     }
@@ -421,11 +444,10 @@ namespace kagome::host_api {
     }
     storage::changes_trie::ChangesTrieConfig trie_config = config_res.value();
 
-    SL_DEBUG(
-        logger_,
-        "ext_storage_changes_root constructing changes trie with parent_hash: "
-        "{}",
-        parent_hash.toHex());
+    SL_DEBUG(logger_,
+             "ext_storage_changes_root constructing changes trie with "
+             "parent_hash: {}",
+             parent_hash.toHex());
     auto trie_hash_res =
         changes_tracker_->constructChangesTrie(parent_hash, trie_config);
     if (trie_hash_res.has_error()) {
