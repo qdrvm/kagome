@@ -13,6 +13,10 @@
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
 
+namespace {
+  constexpr const char *kSyncPeer = "kagome_sync_peer";
+}
+
 namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -47,6 +51,11 @@ namespace kagome::network {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
+
+    // Register metrics
+    registry_->registerGaugeFamily(kSyncPeer, "Number of peers we sync with");
+    sync_peer_num_ = registry_->registerGaugeMetric(kSyncPeer);
+    sync_peer_num_->set(0);
 
     app_state_manager_->takeControl(*this);
   }
@@ -335,6 +344,7 @@ namespace kagome::network {
       SL_DEBUG(log_, "Disconnect from peer_id={}", peer_id.toBase58());
       stream_engine_->del(peer_id);
       active_peers_.erase(it);
+      sync_peer_num_->set(active_peers_.size());
       SL_DEBUG(log_, "Remained {} active peers", active_peers_.size());
     }
   }
@@ -420,6 +430,7 @@ namespace kagome::network {
       // Add as active peer
       active_peers_.emplace(
           peer_id, ActivePeerData{.time = clock_->now(), .status = status});
+      sync_peer_num_->set(active_peers_.size());
       recently_active_peers_.insert(peer_id);
     }
   }
@@ -528,6 +539,7 @@ namespace kagome::network {
                          "Remained peers in queue for connect: {}",
                          self->peers_in_queue_.size());
               }
+              self->sync_peer_num_->set(self->active_peers_.size());
             }
 
             self->connecting_peers_.erase(peer_id);
