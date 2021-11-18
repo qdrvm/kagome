@@ -9,6 +9,7 @@
 
 #include "application/impl/util.hpp"
 #include "consensus/babe/babe.hpp"
+#include "metrics/metrics.hpp"
 
 namespace kagome::application {
 
@@ -57,6 +58,15 @@ namespace kagome::application {
     });
 
     app_state_manager_->atShutdown([ctx{io_context_}] { ctx->stop(); });
+
+    {  // Metrics
+      const auto kStartTime = "kagome_process_start_time_seconds";
+      auto metrics_registry = metrics::createRegistry();
+      metrics_registry->registerGaugeFamily(
+          kStartTime, "UNIX timestamp of the moment the process started");
+      auto start_time = metrics_registry->registerGaugeMetric(kStartTime);
+      start_time->set(clock_->nowUint64());
+    }
 
     app_state_manager_->run();
   }
