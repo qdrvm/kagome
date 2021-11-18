@@ -12,6 +12,7 @@
 
 #include "api/transport/impl/ws/ws_session.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -60,6 +61,11 @@ namespace kagome::api {
     std::atomic<Session::SessionId> next_session_id_;
     std::shared_ptr<SessionImpl> new_session_;
     std::atomic<uint32_t> active_connections_;
+
+    // metrics
+    metrics::RegistryPtr registry_ = metrics::createRegistry();
+    metrics::Counter *opened_session_;
+    metrics::Counter *closed_session_;
 
     log::Logger log_;
   };

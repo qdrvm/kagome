@@ -8,6 +8,11 @@
 #include <boost/asio.hpp>
 #include "application/app_state_manager.hpp"
 
+namespace {
+  constexpr const char *kOpenedRpcSession = "kagome_rpc_sessions_opened";
+  constexpr const char *kClosedRpcSession = "kagome_rpc_sessions_closed";
+}  // namespace
+
 namespace kagome::api {
   WsListenerImpl::WsListenerImpl(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
@@ -22,6 +27,15 @@ namespace kagome::api {
         active_connections_{0},
         log_{log::createLogger("RpcWsListener", "rpc_transport")} {
     BOOST_ASSERT(app_state_manager);
+
+    // Register metrics
+    registry_->registerCounterFamily(
+        kOpenedRpcSession, "Number of persistent RPC sessions opened");
+    opened_session_ = registry_->registerCounterMetric(kOpenedRpcSession);
+    registry_->registerCounterFamily(
+        kClosedRpcSession, "Number of persistent RPC sessions closed");
+    closed_session_ = registry_->registerCounterMetric(kClosedRpcSession);
+
     app_state_manager->takeControl(*this);
   }
 
@@ -76,6 +90,7 @@ namespace kagome::api {
         *context_, session_config_, next_session_id_.fetch_add(1ull));
     auto session_stopped_handler = [wp = weak_from_this()] {
       if (auto self = wp.lock()) {
+        self->closed_session_->inc();
         --self->active_connections_;
         SL_TRACE(self->log_,
                  "Session closed. Active connections count is {}",
@@ -98,6 +113,7 @@ namespace kagome::api {
                      self->max_ws_connections_,
                      self->active_connections_.load());
           } else {
+            self->opened_session_->inc();
             if (self->on_new_session_) {
               (*self->on_new_session_)(self->new_session_);
             }
