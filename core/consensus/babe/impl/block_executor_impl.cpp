@@ -28,6 +28,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockExecutorImpl::Error, e) {
   return "Unknown error";
 }
 
+namespace {
+  constexpr const char *kBlockExecutionTime =
+      "kagome_block_verification_and_import_time";
+}
+
 namespace kagome::consensus {
 
   BlockExecutorImpl::BlockExecutorImpl(
@@ -64,6 +69,13 @@ namespace kagome::consensus {
     BOOST_ASSERT(babe_util_ != nullptr);
     BOOST_ASSERT(offchain_worker_api_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
+
+    // Register metrics
+    metrics_registry_->registerHistogramFamily(
+        kBlockExecutionTime, "Time taken to verify and import blocks");
+    metric_block_execution_time_ = metrics_registry_->registerHistogramMetric(
+        kBlockExecutionTime,
+        {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
   }
 
   outcome::result<void> BlockExecutorImpl::applyBlock(
@@ -182,12 +194,16 @@ namespace kagome::consensus {
     const auto &previous_best_block = previous_best_block_res.value();
 
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
+
     auto exec_end = std::chrono::high_resolution_clock::now();
-    SL_DEBUG(logger_,
-             "Core_execute_block: {} ms",
-             std::chrono::duration_cast<std::chrono::milliseconds>(exec_end
-                                                                   - exec_start)
-                 .count());
+    auto taken_milliseconds =
+        std::chrono::duration_cast<std::chrono::milliseconds>(exec_end
+                                                              - exec_start)
+            .count();
+    SL_DEBUG(logger_, "Core_execute_block: {} ms", taken_milliseconds);
+
+    metric_block_execution_time_->observe(
+        static_cast<double>(taken_milliseconds) / 1000);
 
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));
