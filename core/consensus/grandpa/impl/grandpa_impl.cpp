@@ -14,6 +14,10 @@
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
 
+namespace {
+  constexpr const char *kHighestGrandpaRound = "kagome_finality_grandpa_round";
+}
+
 namespace kagome::consensus::grandpa {
 
   GrandpaImpl::GrandpaImpl(
@@ -27,8 +31,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<authority::AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer)
-      : app_state_manager_(std::move(app_state_manager)),
-        environment_{std::move(environment)},
+      : environment_{std::move(environment)},
         storage_{std::move(storage)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
@@ -37,7 +40,6 @@ namespace kagome::consensus::grandpa {
         io_context_{std::move(io_context)},
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)) {
-    BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
@@ -47,7 +49,16 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(synchronizer_ != nullptr);
 
-    app_state_manager_->takeControl(*this);
+    BOOST_ASSERT(app_state_manager != nullptr);
+
+    // Register metrics
+    metrics_registry_->registerGaugeFamily(kHighestGrandpaRound,
+                                           "Highest GRANDPA round");
+    metric_highest_round_ =
+        metrics_registry_->registerGaugeMetric(kHighestGrandpaRound);
+    metric_highest_round_->set(0);
+
+    app_state_manager->takeControl(*this);
   }
 
   bool GrandpaImpl::prepare() {
@@ -262,6 +273,7 @@ namespace kagome::consensus::grandpa {
     previous_round_.swap(current_round_);
     previous_round_->end();
     current_round_ = makeNextRound(previous_round_);
+    metric_highest_round_->set(current_round_->roundNumber());
     if (keypair_) {
       current_round_->play();
     }
