@@ -10,6 +10,7 @@
 
 #include "authorship/block_builder_factory.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 #include "runtime/runtime_api/block_builder.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/transaction_pool.hpp"
@@ -47,6 +48,11 @@ namespace kagome::authorship {
         ext_sub_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         extrinsic_event_key_repo_;
+
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_tx_included_in_block_;
+
     log::Logger logger_ = log::createLogger("Proposer", "authorship");
   };
 
