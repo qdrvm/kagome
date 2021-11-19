@@ -11,6 +11,10 @@
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Transaction;
 
+namespace {
+  constexpr const char *kReadyTransactions = "kagome_ready_transactions_number";
+}
+
 namespace kagome::transaction_pool {
 
   using primitives::events::ExtrinsicEventType;
@@ -33,6 +37,13 @@ namespace kagome::transaction_pool {
     BOOST_ASSERT_MSG(sub_engine_ != nullptr, "sub engine is nullptr");
     BOOST_ASSERT_MSG(ext_key_repo_ != nullptr,
                      "extrinsic event key repository is nullptr");
+
+    // Register metrics
+    metrics_registry_->registerGaugeFamily(
+        kReadyTransactions, "Number of transactions in the ready queue");
+    metric_ready_txs_ =
+        metrics_registry_->registerGaugeMetric(kReadyTransactions);
+    metric_ready_txs_->set(0);
   }
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
@@ -245,6 +256,7 @@ namespace kagome::transaction_pool {
       }
       commitRequiredTags(tx);
       commitProvidedTags(tx);
+      metric_ready_txs_->set(ready_txs_.size());
     }
   }
 
@@ -288,6 +300,7 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::unsetReady(const std::shared_ptr<Transaction> &tx) {
     if (auto tx_node = ready_txs_.extract(tx->hash); !tx_node.empty()) {
+      metric_ready_txs_->set(ready_txs_.size());
       rollbackRequiredTags(tx);
       rollbackProvidedTags(tx);
       if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
