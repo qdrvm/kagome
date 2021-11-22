@@ -29,7 +29,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
   return "unknown error";
 }
 
-constexpr const char *kBlockHeightGaugeName = "kagome_block_height";
+namespace {
+  constexpr const char *kBlockHeightGaugeName = "kagome_block_height";
+  constexpr const char *kKnownChainLeaves = "kagome_known_chain_leaves";
+}
 
 namespace kagome::blockchain {
   using Buffer = common::Buffer;
@@ -386,15 +389,25 @@ namespace kagome::blockchain {
     BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(babe_configuration_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
-    // initialize metrics
-    registry_->registerGaugeFamily(kBlockHeightGaugeName,
+
+    // Register metrics
+    metrics_registry_->registerGaugeFamily(kBlockHeightGaugeName,
                                    "Block height info of the chain");
-    block_height_best_ = registry_->registerGaugeMetric(kBlockHeightGaugeName,
+
+    metric_best_block_height_ = metrics_registry_->registerGaugeMetric(kBlockHeightGaugeName,
                                                         {{"status", "best"}});
-    block_height_best_->set(tree_meta_->deepest_leaf.get().depth);
-    block_height_finalized_ = registry_->registerGaugeMetric(
+    metric_best_block_height_->set(tree_meta_->deepest_leaf.get().depth);
+
+    metric_finalized_block_height_ = metrics_registry_->registerGaugeMetric(
         kBlockHeightGaugeName, {{"status", "finalized"}});
-    block_height_finalized_->set(tree_meta_->last_finalized.get().depth);
+    metric_finalized_block_height_->set(tree_meta_->last_finalized.get().depth);
+
+    metrics_registry_->registerGaugeFamily(kKnownChainLeaves,
+                                           "Number of known chain leaves (aka forks)");
+
+    metric_known_chain_leaves_ = metrics_registry_->registerGaugeMetric(
+        kKnownChainLeaves);
+    metric_known_chain_leaves_->set(tree_meta_->leaves.size());
   }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -425,6 +438,9 @@ namespace kagome::blockchain {
 
     tree_meta_->leaves.insert(new_node->block_hash);
     tree_meta_->leaves.erase(parent->block_hash);
+
+    metric_known_chain_leaves_->set(tree_meta_->leaves.size());
+
     if (new_node->depth > tree_meta_->deepest_leaf.get().depth) {
       tree_meta_->deepest_leaf = *new_node;
     }
@@ -441,6 +457,9 @@ namespace kagome::blockchain {
 
     tree_meta_->leaves.insert(new_node->block_hash);
     tree_meta_->leaves.erase(parent->block_hash);
+
+    metric_known_chain_leaves_->set(tree_meta_->leaves.size());
+
     if (new_node->depth > tree_meta_->deepest_leaf.get().depth) {
       tree_meta_->deepest_leaf = *new_node;
     }
@@ -491,7 +510,7 @@ namespace kagome::blockchain {
       }
     }
 
-    block_height_best_->set(tree_meta_->deepest_leaf.get().depth);
+    metric_best_block_height_->set(tree_meta_->deepest_leaf.get().depth);
 
     return outcome::success();
   }
@@ -597,7 +616,7 @@ namespace kagome::blockchain {
     }
 
     log_->info("Finalized block #{} hash={}", node->depth, block_hash.toHex());
-    block_height_finalized_->set(node->depth);
+    metric_finalized_block_height_->set(node->depth);
     return outcome::success();
   }
 
