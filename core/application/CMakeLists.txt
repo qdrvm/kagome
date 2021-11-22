@@ -5,6 +5,24 @@ target_link_libraries(application_util
     Boost::filesystem
     )
 
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "#include <string>" > ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "namespace kagome {" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "  const std::string &buildVersion() { " >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo -n "    static const std::string buildVersion(\"" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND ${PROJECT_SOURCE_DIR}/get_version.sh >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "\");" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "    return buildVersion;" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "  }" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "}" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMENT "Generate build_version.cpp"
+    VERBATIM
+    )
+add_library(build_version
+    ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    )
+
 add_library(app_config_impl
     impl/app_configuration_impl.cpp
     )
