@@ -17,8 +17,7 @@ namespace kagome::application {
       const AppConfiguration &app_config)
       : app_config_(app_config),
         injector_{std::make_unique<injector::KagomeNodeInjector>(app_config)},
-        logger_(log::createLogger("Application", "application")),
-        node_name_(app_config.nodeName()) {
+        logger_(log::createLogger("Application", "application")) {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     chain_spec_ = injector_->injectChainSpec();
@@ -38,9 +37,10 @@ namespace kagome::application {
   }
 
   void KagomeApplicationImpl::run() {
-    logger_->info("Start as KagomeApplicationImpl with PID {} named as {}",
-                  getpid(),
-                  node_name_);
+    logger_->info("Start as node version '{}' named as '{}' with PID {}",
+                  app_config_.nodeVersion(),
+                  app_config_.nodeName(),
+                  getpid());
 
     auto chain_path = app_config_.chainPath(chain_spec_->id());
     auto res = util::init_directory(chain_path);
@@ -75,6 +75,16 @@ namespace kagome::application {
       auto metric_node_roles =
           metrics_registry->registerGaugeMetric(kNodeRoles);
       metric_node_roles->set(app_config_.roles().value);
+
+      const auto kBuildInfo = "kagome_build_info";
+      metrics_registry->registerGaugeFamily(
+          kBuildInfo,
+          "A metric with a constant '1' value labeled by name, version");
+      auto metric_build_info = metrics_registry->registerGaugeMetric(
+          kBuildInfo,
+          {{"name", app_config_.nodeName()},
+           {"version", app_config_.nodeVersion()}});
+      metric_build_info->set(1);
     }
 
     app_state_manager_->run();

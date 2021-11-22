@@ -9,9 +9,9 @@ add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
     COMMAND echo "#include <string>" > ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
     COMMAND echo "namespace kagome {" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
-    COMMAND echo "  const std::string &buildVersion() { " >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
-    COMMAND echo -n "    static const std::string buildVersion(\"" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
-    COMMAND ${PROJECT_SOURCE_DIR}/get_version.sh >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "  const std::string &buildVersion() {" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "    static const std::string buildVersion(\"" | tr -d "\\n" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND ${PROJECT_SOURCE_DIR}/get_version.sh | tr -d "\\n" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
     COMMAND echo "\");" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
     COMMAND echo "    return buildVersion;" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
     COMMAND echo "  }" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
