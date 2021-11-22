@@ -12,7 +12,7 @@ add_executable(kagome-db-editor
 target_link_libraries(kagome-db-editor
   Boost::Boost.DI
   changes_tracker
-  leveldb
+  leveldb_wrapper
   polkadot_codec
   polkadot_trie_factory
   trie_serializer

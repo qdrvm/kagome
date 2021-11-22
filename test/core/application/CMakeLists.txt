@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(configuration_storage_test
-    configuration_storage_test.cpp
+addtest(chain_spec_test
+    chain_spec_test.cpp
     )
-target_link_libraries(configuration_storage_test
-    configuration_storage
+target_link_libraries(chain_spec_test
+    chain_spec
     logger_for_tests
     )
 
