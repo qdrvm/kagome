@@ -12,7 +12,7 @@ target_link_libraries(application_injector
     account_nonce_api
     api_jrpc_server
     api_transport
-    app_config_impl
+    app_config
     app_state_manager
     assets
     author_api_service

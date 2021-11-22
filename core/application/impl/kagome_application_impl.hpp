@@ -45,7 +45,6 @@ namespace kagome::application {
     sptr<network::PeerManager> peer_manager_;
     sptr<api::ApiService> jrpc_api_service_;
     sptr<network::SyncProtocolObserver> sync_observer_;
-    const std::string node_name_;
   };
 
 }  // namespace kagome::application

@@ -23,15 +23,16 @@ add_library(build_version
     ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
     )
 
-add_library(app_config_impl
+add_library(app_config
     impl/app_configuration_impl.cpp
     )
-target_link_libraries(app_config_impl
+target_link_libraries(app_config
     Boost::program_options
     p2p::p2p_multiaddress
     blob
     assets
     chain_spec
+    build_version
     )
 
 add_library(chain_spec

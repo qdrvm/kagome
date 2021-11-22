@@ -14,6 +14,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include "application/build_version.hpp"
 #include "assets/assets.hpp"
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
@@ -112,6 +113,7 @@ namespace kagome::application {
         openmetrics_http_port_(def_openmetrics_http_port),
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
+        node_version_(buildVersion()),
         max_ws_connections_(def_ws_max_connections),
         runtime_exec_method_{def_runtime_exec_method},
         offchain_worker_mode_{def_offchain_worker_mode},
