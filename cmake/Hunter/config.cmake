@@ -38,7 +38,7 @@ hunter_config(
 hunter_config(
   wavm
   URL https://github.com/soramitsu/WAVM/archive/refs/heads/fix/cxa-demangle.tar.gz
-  SHA1 372e83800d6f9333708aecb0040f43ca42dc6f41
+  SHA1 bedc933b1745e72b701e7aa4042bb249dccfc315
   CMAKE_ARGS
       WAVM_ENABLE_FUZZ_TARGETS=OFF
       WAVM_ENABLE_STATIC_LINKING=ON

@@ -55,7 +55,7 @@ namespace kagome::storage::changes_trie {
           primitives::events::ChainEventType::kNewRuntime, hash);
     }
     for (auto &pair : actual_val_) {
-      SL_DEBUG(logger_,
+      SL_TRACE(logger_,
                "Key: 0x{}; Value 0x{};",
                pair.first.toHex(),
                pair.second.toHex());

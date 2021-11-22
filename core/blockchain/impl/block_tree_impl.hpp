@@ -37,66 +37,10 @@ namespace kagome::storage::changes_trie {
 
 namespace kagome::blockchain {
 
+  class TreeNode;
+  class CachedTree;
+
   class BlockTreeImpl : public BlockTree {
-    /**
-     * In-memory light representation of the tree, used for efficiency and usage
-     * convenience - we would only ask the database for some info, when directly
-     * requested
-     */
-    struct TreeNode : public std::enable_shared_from_this<TreeNode> {
-      TreeNode(primitives::BlockHash hash,
-               primitives::BlockNumber depth,
-               consensus::EpochDigest &&curr_epoch_digest,
-               consensus::EpochNumber epoch_number,
-               consensus::EpochDigest &&next_epoch_digest,
-               bool finalized = false);
-
-      TreeNode(primitives::BlockHash hash,
-               primitives::BlockNumber depth,
-               const std::shared_ptr<TreeNode> &parent,
-               consensus::EpochNumber epoch_number,
-               std::optional<consensus::EpochDigest> next_epoch_digest,
-               bool finalized = false);
-
-      primitives::BlockHash block_hash;
-      primitives::BlockNumber depth;
-      std::weak_ptr<TreeNode> parent;
-      consensus::EpochNumber epoch_number;
-      std::shared_ptr<consensus::EpochDigest> epoch_digest;
-      std::shared_ptr<consensus::EpochDigest> next_epoch_digest;
-      bool finalized;
-
-      std::vector<std::shared_ptr<TreeNode>> children{};
-
-      /**
-       * Get a node of the tree, containing block with the specified hash, if it
-       * can be found
-       */
-      std::shared_ptr<TreeNode> getByHash(const primitives::BlockHash &hash);
-
-      std::optional<std::vector<std::shared_ptr<TreeNode>>> getPathTo(
-          const primitives::BlockHash &hash);
-
-      bool operator==(const TreeNode &other) const;
-      bool operator!=(const TreeNode &other) const;
-    };
-
-    /**
-     * Useful information about the tree & blocks it contains to make some of
-     * the operations faster
-     */
-    struct TreeMeta {
-      explicit TreeMeta(TreeNode &subtree_root_node);
-
-      TreeMeta(std::unordered_set<primitives::BlockHash> leaves,
-               TreeNode &deepest_leaf,
-               TreeNode &last_finalized);
-
-      std::unordered_set<primitives::BlockHash> leaves;
-      std::reference_wrapper<TreeNode> deepest_leaf;
-
-      std::reference_wrapper<TreeNode> last_finalized;
-    };
 
    public:
     enum class Error {
@@ -106,7 +50,7 @@ namespace kagome::blockchain {
       BLOCK_ON_DEAD_END,
       // block exists in chain but not found when following all
       // leaves backwards.
-      BLOCK_NOT_FOUND
+      BLOCK_NOT_FOUND,
     };
 
     /**
@@ -171,7 +115,7 @@ namespace kagome::blockchain {
 
     BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
                                      const primitives::BlockHash &bottom_block,
-                                     const uint32_t max_count) const override;
+                                     uint32_t max_count) const override;
 
     BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
                                     GetChainDirection ascending,
@@ -216,8 +160,7 @@ namespace kagome::blockchain {
     BlockTreeImpl(
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
-        std::shared_ptr<TreeNode> tree,
-        std::shared_ptr<TreeMeta> meta,
+        std::unique_ptr<CachedTree> cached_tree,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -231,11 +174,6 @@ namespace kagome::blockchain {
         std::shared_ptr<consensus::BabeUtil> babe_util);
 
     /**
-     * Update local meta with the provided node
-     */
-    void updateMeta(const std::shared_ptr<TreeNode> &new_node);
-
-    /**
      * Walks the chain backwards starting from \param start until the current
      * block number is less or equal than \param limit
      */
@@ -244,8 +182,8 @@ namespace kagome::blockchain {
         const primitives::BlockNumber &limit) const;
 
     std::optional<std::vector<primitives::BlockHash>>
-    tryGetChainByBlocksFromCache(const primitives::BlockHash &top_block,
-                                 const primitives::BlockHash &bottom_block,
+    tryGetChainByBlocksFromCache(const primitives::BlockInfo &top_block,
+                                 const primitives::BlockInfo &bottom_block,
                                  std::optional<uint32_t> max_count) const;
 
     BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
@@ -268,8 +206,7 @@ namespace kagome::blockchain {
     std::shared_ptr<BlockHeaderRepository> header_repo_;
     std::shared_ptr<BlockStorage> storage_;
 
-    std::shared_ptr<TreeNode> tree_;
-    std::shared_ptr<TreeMeta> tree_meta_;
+    std::unique_ptr<CachedTree> tree_;
 
     std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_;
 
