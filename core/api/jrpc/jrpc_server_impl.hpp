@@ -9,6 +9,7 @@
 #include <jsonrpc-lean/server.h>
 
 #include "api/jrpc/jrpc_server.hpp"
+#include "metrics/metrics.hpp"
 
 namespace kagome::api {
 
@@ -56,6 +57,10 @@ namespace kagome::api {
     jsonrpc::Server jsonrpc_handler_{};
     /// format handler instance
     jsonrpc::JsonFormatHandler format_handler_{};
+
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Counter *metric_rpc_requests_count_;
   };
 
 }  // namespace kagome::api
