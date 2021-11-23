@@ -127,7 +127,7 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<kagome::offchain::OffchainPersistentStorageMock>();
     auto host_api_factory =
         std::make_shared<kagome::host_api::HostApiFactoryImpl>(
-            app_config_,
+            kagome::host_api::OffchainExtensionConfig{},
             std::make_shared<ChangesTrackerMock>(),
             sr25519_provider,
             ed25519_provider,
@@ -185,7 +185,6 @@ class WasmExecutorTest : public ::testing::Test {
   }
 
  protected:
-  AppConfigurationMock app_config_;
   std::shared_ptr<Executor> executor_;
   std::shared_ptr<TrieStorageProvider> storage_provider_;
   std::shared_ptr<RuntimeCodeProvider> wasm_provider_;

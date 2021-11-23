@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
                                           kagome::log::defaultGroupName);
   AppConfigurationImpl configuration{logger};
 
-  if (configuration.initialize_from_args(argc, argv)) {
+  if (configuration.initializeFromArgs(argc, argv)) {
     kagome::log::tuneLoggingSystem(configuration.log());
 
     auto app = std::make_shared<kagome::application::KagomeApplicationImpl>(

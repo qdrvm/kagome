@@ -15,7 +15,7 @@
 namespace kagome::primitives {
   /**
    * This is the same structure as RuntimeVersion from substrate
-   * https://github.com/paritytech/substrate/blob/master/core/sr-version/src/lib.rs
+   * https://github.com/paritytech/substrate/blob/e670c040d42132da982e156e25a385df213354ed/primitives/version/src/lib.rs
    */
 
   /**

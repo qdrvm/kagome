@@ -51,7 +51,7 @@ namespace kagome::storage::trie {
     static Buffer nibblesToKey(const KeyNibbles &nibbles);
 
     /**
-     * Encodes a node header accroding to the specification
+     * Encodes a node header according to the specification
      * @see Algorithm 3: partial key length encoding
      */
     outcome::result<Buffer> encodeHeader(const PolkadotNode &node) const;
