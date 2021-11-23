@@ -1,90 +1,31 @@
-get_filename_component(kagome_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+@PACKAGE_INIT@
 
+include(CMakeFindDependencyMacro)
 
-if(NOT TARGET kagome::buffer)
-    include("${kagome_CMAKE_DIR}/kagomeTargets.cmake")
+find_dependency(Threads REQUIRED)
+find_dependency(Boost REQUIRED random filesystem)
+find_dependency(soralog REQUIRED)
+find_dependency(libp2p REQUIRED)
+find_dependency(xxhash REQUIRED)
+find_dependency(schnorrkel_crust REQUIRED)
+find_dependency(zstd REQUIRED)
+find_dependency(libsecp256k1 REQUIRED)
+find_dependency(OpenSSL REQUIRED)
+find_dependency(leveldb REQUIRED)
+find_dependency(scale REQUIRED)
+
+option(KAGOME_ENABLE_WAVM "Include WAVM webassembly executor dependency" ON)
+if (KAGOME_ENABLE_WAVM)
+    find_dependency(LLVM REQUIRED)
+    find_dependency(WAVM REQUIRED)
 endif()
 
-find_package(Threads)
+option(KAGOME_ENABLE_BINARYEN "Include Binaryen webassembly executor dependency" ON)
+if (KAGOME_ENABLE_BINARYEN)
+    find_dependency(binaryen REQUIRED)
+endif()
 
 
-include(GNUInstallDirs)
+include("${CMAKE_CURRENT_LIST_DIR}/kagomeTargets.cmake")
 
-set(kagome_INCLUDE_DIRS
-    "@CONFIG_INCLUDE_DIRS@"
-)
-
-set(kagome_LIBRARIES
-        kagome::binaryen_executor_factory
-        kagome::binaryen_instance_environment_factory
-        kagome::binaryen_memory_provider
-        kagome::binaryen_module_factory
-        kagome::binaryen_runtime_external_interface
-        kagome::binaryen_wasm_memory
-        kagome::binaryen_wasm_memory_factory
-        kagome::binaryen_wasm_module
-        kagome::bip39_provider
-        kagome::blake2
-        kagome::blob
-        kagome::blockchain_common
-        kagome::block_header_repository
-        kagome::buffer
-        kagome::changes_tracker
-        kagome::clock
-        kagome::compartment_wrapper
-        kagome::constant_code_provider
-        kagome::core_api
-        kagome::crypto_extension
-        kagome::crypto_store
-        kagome::crypto_store_key_type
-        kagome::database_error
-        kagome::ed25519_provider
-        kagome::ed25519_types
-        kagome::ephemeral_trie_batch
-        kagome::executor
-        kagome::hasher
-        kagome::hexutil
-        kagome::host_api
-        kagome::host_api_factory
-        kagome::in_memory_storage
-        kagome::io_extension
-        kagome::keccak
-        kagome::key_file_storage
-        kagome::leveldb
-        kagome::log_configurator
-        kagome::logger
-        kagome::memory_allocator
-        kagome::memory_extension
-        kagome::misc_extension
-        kagome::module_repository
-        kagome::mp_utils
-        kagome::ordered_trie_hash
-        kagome::outcome
-        kagome::pbkdf2_provider
-        kagome::persistent_trie_batch
-        kagome::polkadot_codec
-        kagome::polkadot_node
-        kagome::polkadot_trie
-        kagome::polkadot_trie_cursor
-        kagome::polkadot_trie_factory
-        kagome::primitives
-        kagome::runtime_environment_factory
-        kagome::runtime_transaction_error
-        kagome::runtime_upgrade_tracker
-        kagome::runtime_wavm
-        kagome::secp256k1_provider
-        kagome::sha
-        kagome::sr25519_provider
-        kagome::sr25519_types
-        kagome::ss58_codec
-        kagome::storage_code_provider
-        kagome::storage_extension
-        kagome::topper_trie_batch
-        kagome::trie_error
-        kagome::trie_serializer
-        kagome::trie_storage
-        kagome::trie_storage_backend
-        kagome::trie_storage_provider
-        kagome::twox
-        kagome::wavm_memory
-    )
+check_required_components(kagome)

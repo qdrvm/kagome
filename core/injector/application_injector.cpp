@@ -855,9 +855,8 @@ namespace {
               sptr<const blockchain::BlockHeaderRepository>>();
           auto storage =
               injector.template create<sptr<storage::BufferStorage>>();
-          auto substitutes =
-              injector
-                  .template create<sptr<const primitives::CodeSubstitutes>>();
+          auto substitutes = injector.template create<
+              sptr<const primitives::CodeSubstituteHashes>>();
           auto res = runtime::RuntimeUpgradeTrackerImpl::create(
               std::move(header_repo),
               std::move(storage),
@@ -971,7 +970,7 @@ namespace {
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
-        di::bind<primitives::CodeSubstitutes>.to(
+        di::bind<primitives::CodeSubstituteHashes>.to(
             get_chain_spec(config)->codeSubstitutes()),
 
         // compose peer keypair
@@ -1325,7 +1324,8 @@ namespace {
         session_keys->getGranKeyPair(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
-        injector.template create<sptr<authority::AuthorityManager>>());
+        injector.template create<sptr<authority::AuthorityManager>>(),
+        injector.template create<sptr<network::Synchronizer>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();

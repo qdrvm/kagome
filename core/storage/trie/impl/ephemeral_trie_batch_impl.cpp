@@ -29,7 +29,8 @@ namespace kagome::storage::trie {
     return std::make_unique<PolkadotTrieCursorImpl>(*trie_);
   }
 
-  bool EphemeralTrieBatchImpl::contains(const Buffer &key) const {
+  outcome::result<bool> EphemeralTrieBatchImpl::contains(
+      const Buffer &key) const {
     return trie_->contains(key);
   }
 

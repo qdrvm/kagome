@@ -33,6 +33,11 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(transmitter_ != nullptr);
   }
 
+  outcome::result<bool> EnvironmentImpl::hasBlock(
+      const primitives::BlockHash &block) const {
+    return block_tree_->hasBlockHeader(block);
+  }
+
   outcome::result<std::vector<BlockHash>> EnvironmentImpl::getAncestry(
       const BlockHash &base, const BlockHash &block) const {
     // if base equal to block, then return list with single block
@@ -223,11 +228,6 @@ namespace kagome::consensus::grandpa {
         justification_observer->applyJustification(block_info, justification));
 
     return outcome::success();
-  }
-
-  bool EnvironmentImpl::containsBlock(
-      const primitives::BlockHash &block_hash) const {
-    return block_tree_->contains(block_hash);
   }
 
   outcome::result<void> EnvironmentImpl::finalize(

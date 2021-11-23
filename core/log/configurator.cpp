@@ -37,6 +37,7 @@ groups:
                 - name: author_api
           - name: authorship
           - name: blockchain
+          - name: offchain
           - name: authority
           - name: crypto
             children:
@@ -58,7 +59,13 @@ groups:
             children:
               - name: runtime_api
               - name: host_api
-              - name: offchain_worker_api
+                children:
+                  - name: memory_extension
+                  - name: io_extension
+                  - name: crypto_extension
+                  - name: storage_extension
+                  - name: offchain_extension
+                  - name: misc_extension
               - name: binaryen
               - name: wavm
           - name: metrics

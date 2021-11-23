@@ -127,20 +127,12 @@ namespace kagome::consensus::grandpa {
         const BlockInfo &block_info,
         const primitives::Justification &justification) = 0;
 
-    virtual bool contains(const primitives::BlockHash &block_hash) const = 0;
-
-    /**
-     * @see BlockTree::contains
-     */
-    virtual bool containsBlock(const primitives::BlockHash &block_hash) const = 0;
-
     /**
      * Triggered when blovk \param block justified by \param justification
      * should be applied to the storage
      */
     virtual outcome::result<void> finalize(
-        MembershipCounter id,
-        const GrandpaJustification &justification) = 0;
+        MembershipCounter id, const GrandpaJustification &justification) = 0;
 
     virtual outcome::result<GrandpaJustification> getJustification(
         const BlockHash &block_hash) = 0;

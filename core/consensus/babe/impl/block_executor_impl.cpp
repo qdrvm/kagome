@@ -175,6 +175,12 @@ namespace kagome::consensus {
              block.header.parent_hash,
              parent.state_root);
 
+    auto last_finalized_block = block_tree_->getLastFinalized();
+    auto previous_best_block_res =
+        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
+    BOOST_ASSERT(previous_best_block_res.has_value());
+    const auto &previous_best_block = previous_best_block_res.value();
+
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
     auto exec_end = std::chrono::high_resolution_clock::now();
     SL_DEBUG(logger_,
@@ -238,14 +244,22 @@ namespace kagome::consensus {
         std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
             .count());
 
-    // Create new offchain worker for block
-    auto ocw_res = offchain_worker_api_->offchain_worker(
-        block.header.parent_hash, block.header);
-    if (ocw_res.has_failure()) {
-      logger_->error("Can't spawn offchain worker for block #{} hash={}: {}",
-                     block.header.number,
-                     block_hash.toHex(),
-                     ocw_res.error().message());
+    last_finalized_block = block_tree_->getLastFinalized();
+    auto current_best_block_res =
+        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
+    BOOST_ASSERT(current_best_block_res.has_value());
+    const auto &current_best_block = current_best_block_res.value();
+
+    // Create new offchain worker for block if it is best only
+    if (current_best_block.number > previous_best_block.number) {
+      auto ocw_res = offchain_worker_api_->offchain_worker(
+          block.header.parent_hash, block.header);
+      if (ocw_res.has_failure()) {
+        logger_->error("Can't spawn offchain worker for block #{} hash={}: {}",
+                       block.header.number,
+                       block_hash.toHex(),
+                       ocw_res.error().message());
+      }
     }
 
     return outcome::success();

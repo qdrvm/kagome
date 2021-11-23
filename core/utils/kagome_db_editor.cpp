@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
   {
     auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
 
-    auto storage =
+    std::shared_ptr<storage::LevelDB> storage =
         storage::LevelDB::create(argv[DB_PATH], leveldb::Options()).value();
     auto injector = di::make_injector(
         di::bind<TrieSerializer>.template to([](const auto &injector) {

@@ -34,6 +34,14 @@ namespace kagome::blockchain {
     virtual ~BlockTree() = default;
 
     /**
+     * Checks containing of block header by provided block id
+     * @param block id of the block header we are checking
+     * @return containing block header or does not, or error
+     */
+    virtual outcome::result<bool> hasBlockHeader(
+        const primitives::BlockId &block) const = 0;
+
+    /**
      * Get block header by provided block id
      * @param block id of the block header we are looking for
      * @return result containing block header if it exists, error otherwise
@@ -111,16 +119,6 @@ namespace kagome::blockchain {
      * repeated until a successful insertion happens
      */
     virtual outcome::result<void> addBlock(const primitives::Block &block) = 0;
-
-    virtual bool contains(
-        const primitives::BlockHash &block_hash) const = 0;
-    /**
-     * Check if block exists in the DB
-     * @param block to be finalized
-     * @return true if exists
-     */
-    virtual bool contains(
-        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * Mark the block as finalized and store a finalization justification

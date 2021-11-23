@@ -136,6 +136,9 @@ namespace kagome::blockchain {
 
     ~BlockTreeImpl() override = default;
 
+    outcome::result<bool> hasBlockHeader(
+        const primitives::BlockId &block) const override;
+
     outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockId &block) const override;
 
@@ -158,8 +161,6 @@ namespace kagome::blockchain {
         primitives::BlockNumber block_number,
         const primitives::BlockHash &block_hash,
         const primitives::BlockBody &body) override;
-
-    bool contains(const primitives::BlockHash &block_hash) const override;
 
     outcome::result<void> finalize(
         const primitives::BlockHash &block_hash,

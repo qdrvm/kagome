@@ -41,7 +41,7 @@ target_link_libraries(application_injector
     chain_api_service
     changes_tracker
     clock
-    configuration_storage
+    chain_spec
     core_api
     crypto_store
     ed25519_provider
@@ -52,7 +52,7 @@ target_link_libraries(application_injector
     kagome_router
     kagome_router
     key_file_storage
-    leveldb
+    leveldb_wrapper
     log_configurator
     metadata_api
     metrics
@@ -90,7 +90,6 @@ target_link_libraries(application_injector
     trie_serializer
     trie_storage
     trie_storage_provider
-    tsl::tsl_hat_trie
     vrf_provider
     waitable_timer
     authority_manager

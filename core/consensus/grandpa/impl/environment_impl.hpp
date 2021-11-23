@@ -41,6 +41,9 @@ namespace kagome::consensus::grandpa {
 
     // Chain methods
 
+    outcome::result<bool> hasBlock(
+        const primitives::BlockHash &block) const override;
+
     outcome::result<std::vector<primitives::BlockHash>> getAncestry(
         const primitives::BlockHash &base,
         const primitives::BlockHash &block) const override;
@@ -91,8 +94,6 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> applyJustification(
         const BlockInfo &block_info,
         const primitives::Justification &justification) override;
-
-    bool containsBlock(const primitives::BlockHash &block_hash) const override;
 
     outcome::result<void> finalize(
         MembershipCounter id,

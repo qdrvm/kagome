@@ -21,7 +21,6 @@ target_link_libraries(block_storage
     blockchain_common
     hasher
     scale::scale
-    leveldb
     )
 
 add_library(block_tree_error

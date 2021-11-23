@@ -35,11 +35,11 @@ namespace kagome::storage::face {
     virtual outcome::result<std::optional<V>> tryGet(const K &key) const = 0;
 
     /**
-     * @brief Returns true if given key-value binding exists in the storage.
+     * @brief Checks if given key-value binding exists in the storage.
      * @param key K
-     * @return true if key has value, false otherwise.
+     * @return true if key has value, false if does not, or error at .
      */
-    virtual bool contains(const K &key) const = 0;
+    virtual outcome::result<bool> contains(const K &key) const = 0;
 
     /**
      * @brief Returns true if the storage is empty.

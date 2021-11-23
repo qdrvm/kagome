@@ -199,7 +199,7 @@ class BabeTest : public testing::Test {
   primitives::BlockInfo best_leaf{best_block_number_, best_block_hash_};
 
   BlockHeader block_header_{best_block_hash_,
-                            1,
+                            best_block_number_ + 1,
                             "state_root"_hash256,
                             "extrinsic_root"_hash256,
                             {PreRuntime{}}};
@@ -264,6 +264,14 @@ TEST_F(BabeTest, Success) {
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
   EXPECT_CALL(*block_tree_, deepestLeaf()).WillRepeatedly(Return(best_leaf));
+
+  // call for check condition of offchain worker run
+  EXPECT_CALL(*block_tree_, getLastFinalized())
+      .WillRepeatedly(Return(best_leaf));
+  EXPECT_CALL(*block_tree_, getBestContaining(_, _))
+      .WillOnce(Return(best_leaf))
+      .WillOnce(
+          Return(BlockInfo(created_block_.header.number, created_block_hash_)));
 
   EXPECT_CALL(*block_tree_, getBlockHeader(_))
       .WillRepeatedly(Return(outcome::success(BlockHeader{})));

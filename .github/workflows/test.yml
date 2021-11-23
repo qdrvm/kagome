@@ -49,6 +49,8 @@ jobs:
            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-9_cxx17.cmake -DTSAN=ON
          - name: "Linux: clang-9 UBSAN"
            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-9_cxx17.cmake -DUBSAN=ON
+         - name: "Linux: clang-9 External Project"
+           run: ./housekeeping/make_external_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/clang-9-cpp17-toolchain.cmake
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev:3-minideb

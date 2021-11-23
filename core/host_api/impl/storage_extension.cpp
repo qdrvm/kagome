@@ -32,7 +32,7 @@ namespace kagome::host_api {
       : storage_provider_(std::move(storage_provider)),
         memory_provider_(std::move(memory_provider)),
         changes_tracker_{std::move(changes_tracker)},
-        logger_{log::createLogger("StorageExtension", "host_api")} {
+        logger_{log::createLogger("StorageExtension", "storage_extension")} {
     BOOST_ASSERT_MSG(storage_provider_ != nullptr, "storage batch is nullptr");
     BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
     BOOST_ASSERT_MSG(changes_tracker_ != nullptr, "changes tracker is nullptr");
@@ -116,19 +116,23 @@ namespace kagome::host_api {
     }
   }
 
-  // TO BE IMPLEMENTED!!! This function declaration just always return empty
-  // optional for runtime debug purposes.
   runtime::WasmSpan StorageExtension::ext_default_child_storage_get_version_1(
       runtime::WasmSpan storage_key, runtime::WasmSpan key) {
     auto storage_key_buffer = loadKey(storage_key);
+    auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = loadKey(key);
+
     SL_TRACE(logger_,
              "ext_default_child_storage_get_version_1( {}, {} )",
              storage_key_buffer.toHex(),
              key_buffer.toHex());
-    auto option = std::make_optional(common::Buffer());
-    auto &memory = memory_provider_->getCurrentMemory()->get();
-    return memory.storeBuffer(scale::encode(option).value());
+
+    // TODO(xDimon):
+    //  This is stubbed logic. Need implement it in according with the spec
+    //  issue: https://github.com/soramitsu/kagome/issues/1004
+    auto none = std::optional<int>(std::nullopt);
+
+    return memory.storeBuffer(scale::encode(none).value());
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
@@ -177,7 +181,8 @@ namespace kagome::host_api {
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key = memory.loadN(key_ptr, key_size);
-    return batch->contains(key) ? 1 : 0;
+    auto res = batch->contains(key);
+    return (res.has_value() and res.value()) ? 1 : 0;
   }
 
   void StorageExtension::ext_storage_clear_prefix_version_1(

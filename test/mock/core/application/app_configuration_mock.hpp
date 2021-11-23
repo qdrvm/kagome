@@ -94,6 +94,13 @@ namespace kagome::application {
                 runtimeExecMethod,
                 (),
                 (const, override));
+
+    MOCK_METHOD(AppConfiguration::OffchainWorkerMode,
+                offchainWorkerMode,
+                (),
+                (const, override));
+
+    MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));
   };
 
 }  // namespace kagome::application

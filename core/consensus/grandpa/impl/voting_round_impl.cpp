@@ -5,14 +5,12 @@
 
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 
-#include <boost/range/adaptors.hpp>
-#include <boost/range/numeric.hpp>
-#include <boost/system/error_code.hpp>
-#include <unordered_map>
 #include <unordered_set>
 
+#include "blockchain/impl/common.hpp"
 #include "common/visitor.hpp"
 #include "consensus/grandpa/grandpa.hpp"
+#include "consensus/grandpa/grandpa_context.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -689,8 +687,9 @@ namespace kagome::consensus::grandpa {
 
     update(isPrevotesChanged, isPrecommitsChanged);
 
-    // NOTE: Perhaps it's needless or needs to replace by condition
-    BOOST_ASSERT(finalizable());
+    if (not finalizable()) {
+      return VotingRoundError::ROUND_IS_NOT_FINALIZABLE;
+    }
     BOOST_ASSERT(
         env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
 
@@ -843,9 +842,18 @@ namespace kagome::consensus::grandpa {
 
     if (primary_vote_.has_value()) {
       propagation = Propagation::NEEDLESS;
+    } else {
+      // Check if node hasn't block
+      auto res = env_->hasBlock(proposal.getBlockHash());
+      if (res.has_value() and not res.value()) {
+        if (auto ctx_opt = GrandpaContext::get()) {
+          auto ctx = ctx_opt.value();
+          ctx->missing_blocks.emplace(proposal.getBlockInfo());
+        }
+      }
     }
 
-    primary_vote_ = {{proposal.getBlockNumber(), proposal.getBlockHash()}};
+    primary_vote_.emplace(proposal.getBlockInfo());
 
     if (propagation == Propagation::REQUESTED) {
       auto proposed =
@@ -891,7 +899,7 @@ namespace kagome::consensus::grandpa {
              prevote.id.toHex());
 
     if (not prevote_.has_value() && id_ == prevote.id) {
-      prevote_ = {{prevote.getBlockNumber(), prevote.getBlockHash()}};
+      prevote_.emplace(prevote.getBlockInfo());
       SL_DEBUG(logger_, "Round #{}: Own prevote was restored", round_number_);
     }
 
@@ -925,7 +933,6 @@ namespace kagome::consensus::grandpa {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
-      env_->onCompleted(result.as_failure());
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
         logger_->warn("Round #{}: Precommit received from {} was rejected: {}",
                       round_number_,
@@ -943,7 +950,7 @@ namespace kagome::consensus::grandpa {
              precommit.id.toHex());
 
     if (not precommit_.has_value() && id_ == precommit.id) {
-      precommit_ = {{precommit.getBlockNumber(), precommit.getBlockHash()}};
+      precommit_.emplace(precommit.getBlockInfo());
       SL_DEBUG(logger_, "Round #{}: Own precommit was restored", round_number_);
     }
 
@@ -990,7 +997,7 @@ namespace kagome::consensus::grandpa {
     }
     const auto &[index, weight] = inw_res.value();
 
-    auto [type_str, equivocators, tracker, graph] =
+    auto [type_str_, equivocators, tracker, graph] =
         [&]() -> std::tuple<const char *const,
                             std::vector<bool> &,
                             VoteTracker &,
@@ -1005,6 +1012,7 @@ namespace kagome::consensus::grandpa {
                 *precommit_graph_};
       }
     }();
+    auto &type_str = type_str_;  // Reference to binding for capturing in lambda
 
     // Ignore known equivocators
     if (equivocators[index]) {
@@ -1016,17 +1024,27 @@ namespace kagome::consensus::grandpa {
       return VotingRoundError::ZERO_WEIGHT_VOTER;
     }
 
-    switch (tracker.push(vote, weight)) {
+    auto push_res = tracker.push(vote, weight);
+    switch (push_res) {
       case VoteTracker::PushResult::SUCCESS: {
         auto result = graph.insert(vote.getBlockInfo(), vote.id);
-        if (not result.has_value()) {
+        if (result.has_error()) {
           tracker.unpush(vote, weight);
-          logger_->warn(
-              "{} for block #{} hash={} was not inserted with error: {}",
-              type_str,
-              vote.getBlockNumber(),
-              vote.getBlockHash().toHex(),
-              result.error().message());
+          auto log_lvl = log::Level::WARN;
+          if (result == outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+            if (auto ctx_opt = GrandpaContext::get(); ctx_opt.has_value()) {
+              auto &ctx = ctx_opt.value();
+              ctx->missing_blocks.emplace(vote.getBlockInfo());
+              log_lvl = log::Level::DEBUG;
+            }
+          }
+          SL_LOG(logger_,
+                 log_lvl,
+                 "{} for block #{} hash={} was not inserted with error: {}",
+                 type_str,
+                 vote.getBlockNumber(),
+                 vote.getBlockHash().toHex(),
+                 result.error().message());
           return result.as_failure();
         }
         return outcome::success();
@@ -1039,8 +1057,9 @@ namespace kagome::consensus::grandpa {
         graph.remove(vote.id);
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
+      default:
+        BOOST_UNREACHABLE_RETURN({});
     }
-    BOOST_UNREACHABLE_RETURN({});
   }
 
   template outcome::result<void> VotingRoundImpl::onSigned<Prevote>(
@@ -1326,9 +1345,9 @@ namespace kagome::consensus::grandpa {
                                     : last_finalized_block_;
 
     // spec: Bpv <- GRANDPA-GHOST(r)
-    auto rbest_chain = env_->bestChainContaining(best_final_candicate.hash);
-    auto best_prevote_candidate = rbest_chain.has_value()
-                                      ? convertToBlockInfo(rbest_chain.value())
+    auto best_chain = env_->bestChainContaining(best_final_candicate.hash);
+    auto best_prevote_candidate = best_chain.has_value()
+                                      ? convertToBlockInfo(best_chain.value())
                                       : last_finalized_block_;
 
     // spec: N <- Bpv
