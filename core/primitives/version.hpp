@@ -116,9 +116,11 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Version &v) {
-    return s >> v.spec_name >> v.impl_name >> v.authoring_version
-           >> v.spec_version >> v.impl_version >> v.apis
-           >> v.transaction_version;
+    s >> v.spec_name >> v.impl_name >> v.authoring_version >> v.spec_version
+        >> v.impl_version >> v.apis;
+    if (s.hasMore(sizeof(v.transaction_version)))
+      s >> v.transaction_version;
+    return s;
   }
 }  // namespace kagome::primitives
 

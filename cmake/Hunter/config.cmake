@@ -39,8 +39,8 @@ hunter_config(
 
 hunter_config(
     schnorrkel_crust
-    URL https://github.com/soramitsu/soramitsu-sr25519-crust/archive/105d97b03179bcfb308f90c732472817aa61ed24.tar.gz
-    SHA1 d03f82a53ba39c3b4eb9380afb3dbd4f810683bb
+    URL https://github.com/soramitsu/soramitsu-sr25519-crust/archive/152b9f5fdc33c9d081561a92c36578e347cc9732.tar.gz
+    SHA1 bc639cfb1fef241710eb3191906af15fd8b96bf0
     CMAKE_ARGS
         TESTING=OFF
     KEEP_PACKAGE_SOURCES
