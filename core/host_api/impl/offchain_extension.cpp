@@ -16,7 +16,11 @@
 
 namespace kagome::host_api {
 
-  using namespace offchain;
+  using offchain::OffchainWorker;
+  using offchain::StorageType;
+  using offchain::HttpMethod;
+  using offchain::Timestamp;
+  using offchain::RequestId;
 
   OffchainExtension::OffchainExtension(
       const OffchainExtensionConfig &config,
