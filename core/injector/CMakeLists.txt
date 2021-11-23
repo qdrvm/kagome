@@ -56,6 +56,7 @@ target_link_libraries(application_injector
     log_configurator
     metadata_api
     metrics
+    metrics_watcher
     outcome
     p2p::p2p
     p2p::p2p_identify

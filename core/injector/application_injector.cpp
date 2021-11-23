@@ -73,6 +73,7 @@
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "metrics/impl/exposer_impl.hpp"
+#include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/block_announce_transmitter_impl.hpp"
@@ -1443,6 +1444,11 @@ namespace kagome::injector {
   std::shared_ptr<storage::trie::TrieStorage>
   KagomeNodeInjector::injectTrieStorage() {
     return pimpl_->injector_.create<sptr<storage::trie::TrieStorage>>();
+  }
+
+  std::shared_ptr<metrics::MetricsWatcher>
+  KagomeNodeInjector::injectMetricsWatcher() {
+    return pimpl_->injector_.create<sptr<metrics::MetricsWatcher>>();
   }
 
 }  // namespace kagome::injector

@@ -9,6 +9,7 @@
 
 #include "application/impl/util.hpp"
 #include "consensus/babe/babe.hpp"
+#include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/metrics.hpp"
 
 namespace kagome::application {
@@ -34,6 +35,7 @@ namespace kagome::application {
     peer_manager_ = injector_->injectPeerManager();
     jrpc_api_service_ = injector_->injectRpcApiService();
     sync_observer_ = injector_->injectSyncObserver();
+    metrics_watcher_ = injector_->injectMetricsWatcher();
   }
 
   void KagomeApplicationImpl::run() {
