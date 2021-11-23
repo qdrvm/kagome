@@ -12,13 +12,9 @@ function realpath {
 
 SCRIPT_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 
-echo "Script is in: $SCRIPT_DIR"
-
 cd "$SCRIPT_DIR"
 
 KAGOME_DIR="$SCRIPT_DIR/../.."
-
-echo "Kagome is in: $(realpath "$KAGOME_DIR")"
 
 cd "$KAGOME_DIR"
 

@@ -6,7 +6,6 @@
 #ifndef KAGOME_HOSTAPI_OFFCHAINEXTENSION
 #define KAGOME_HOSTAPI_OFFCHAINEXTENSION
 
-#include "application/app_configuration.hpp"
 #include "clock/clock.hpp"
 #include "crypto/random_generator.hpp"
 #include "log/logger.hpp"
@@ -23,10 +22,14 @@ namespace kagome::runtime {
 
 namespace kagome::host_api {
 
+  struct OffchainExtensionConfig {
+    bool is_indexing_enabled = false;
+  };
+
   class OffchainExtension final {
    public:
     OffchainExtension(
-        const application::AppConfiguration &app_config,
+        const OffchainExtensionConfig &config,
         std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<offchain::OffchainStorage> offchain_storage);
 
@@ -371,7 +374,7 @@ namespace kagome::host_api {
    private:
     offchain::OffchainWorker &getWorker();
 
-    const application::AppConfiguration &app_config_;
+    const OffchainExtensionConfig &config_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<offchain::OffchainStorage> offchain_storage_;
 

@@ -87,16 +87,16 @@ class RuntimeTestBase : public ::testing::Test {
     offchain_storage_ =
         std::make_shared<offchain::OffchainPersistentStorageMock>();
 
-    host_api_factory_ =
-        std::make_shared<host_api::HostApiFactoryImpl>(app_config_,
-                                                       changes_tracker_,
-                                                       sr25519_provider,
-                                                       ed25519_provider,
-                                                       secp256k1_provider,
-                                                       hasher_,
-                                                       crypto_store,
-                                                       bip39_provider,
-                                                       offchain_storage_);
+    host_api_factory_ = std::make_shared<host_api::HostApiFactoryImpl>(
+        kagome::host_api::OffchainExtensionConfig{},
+        changes_tracker_,
+        sr25519_provider,
+        ed25519_provider,
+        secp256k1_provider,
+        hasher_,
+        crypto_store,
+        bip39_provider,
+        offchain_storage_);
 
     header_repo_ = std::make_shared<
         testing::NiceMock<blockchain::BlockHeaderRepositoryMock>>();
@@ -125,16 +125,14 @@ class RuntimeTestBase : public ::testing::Test {
 
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
                      + "/wasm/sub2dev.wasm";
-    wasm_provider_ =
-        std::make_shared<runtime::BasicCodeProvider>(wasm_path);
+    wasm_provider_ = std::make_shared<runtime::BasicCodeProvider>(wasm_path);
 
-    std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>
-        upgrade_tracker =
-            runtime::RuntimeUpgradeTrackerImpl::create(
-                header_repo_,
-                std::make_shared<storage::InMemoryStorage>(),
-                std::make_shared<primitives::CodeSubstituteHashes>())
-                .value();
+    std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl> upgrade_tracker =
+        runtime::RuntimeUpgradeTrackerImpl::create(
+            header_repo_,
+            std::make_shared<storage::InMemoryStorage>(),
+            std::make_shared<primitives::CodeSubstituteHashes>())
+            .value();
 
     auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(
         upgrade_tracker, module_factory);
@@ -217,7 +215,6 @@ class RuntimeTestBase : public ::testing::Test {
   }
 
  protected:
-  application::AppConfigurationMock app_config_;
   std::shared_ptr<testing::NiceMock<blockchain::BlockHeaderRepositoryMock>>
       header_repo_;
   std::shared_ptr<runtime::RuntimeCodeProvider> wasm_provider_;

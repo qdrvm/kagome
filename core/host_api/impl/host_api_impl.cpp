@@ -17,7 +17,7 @@
 namespace kagome::host_api {
 
   HostApiImpl::HostApiImpl(
-      const application::AppConfiguration &app_config,
+      const OffchainExtensionConfig &offchain_config,
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
       std::shared_ptr<const runtime::CoreApiFactory> core_provider,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
@@ -52,7 +52,7 @@ namespace kagome::host_api {
                   memory_provider_,
                   std::move(core_provider)},
         storage_ext_(storage_provider_, memory_provider_, std::move(tracker)),
-        offchain_ext_(app_config,
+        offchain_ext_(offchain_config,
                       memory_provider_,
                       std::move(offchain_persistent_storage)) {}
 
