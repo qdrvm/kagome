@@ -2,12 +2,19 @@
 #include <fstream>
 #include <thread>
 
+#include <backward.hpp>
+#undef TRUE
+#undef FALSE
 #include <boost/di.hpp>
 #include <soralog/impl/configurator_from_yaml.hpp>
 
+#include "blockchain/impl/key_value_block_storage.hpp"
 #include "blockchain/impl/storage_util.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
+#include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
+#include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -51,6 +58,23 @@ class Configurator : public soralog::ConfiguratorFromYAML {
 enum ArgNum : uint8_t { DB_PATH = 1, STATE_HASH, MODE };
 enum Command : uint8_t { COMPACT, DUMP };
 
+namespace kagome::runtime {
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(
+      Stream &s,
+      const runtime::RuntimeUpgradeTrackerImpl::RuntimeUpgradeData &d) {
+    return s << d.block << d.state;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(
+      Stream &s, runtime::RuntimeUpgradeTrackerImpl::RuntimeUpgradeData &d) {
+    return s >> d.block >> d.state;
+  }
+}  // namespace kagome::runtime
+
 void usage() {
   std::string help(R"(
 Kagome DB Editor
@@ -73,8 +97,11 @@ Example:
 };
 
 int main(int argc, char *argv[]) {
+  backward::SignalHandling sh;
+
   Command cmd;
-  if (argc == 2 or argc == 3 or (argc == 4 and not std::strcmp(argv[MODE], "compact"))) {
+  if (argc == 2 or argc == 3
+      or (argc == 4 and not std::strcmp(argv[MODE], "compact"))) {
     cmd = COMPACT;
   } else if (argc == 4 and not std::strcmp(argv[MODE], "dump")) {
     cmd = DUMP;
@@ -98,9 +125,6 @@ int main(int argc, char *argv[]) {
     std::shared_ptr<storage::LevelDB> storage =
         storage::LevelDB::create(argv[DB_PATH], leveldb::Options()).value();
     auto injector = di::make_injector(
-                                      di::bind<BlockStorage>.template to([](const auto& injector) {
-                                        ;
-                                      }),
         di::bind<TrieSerializer>.template to([](const auto &injector) {
           return std::make_shared<TrieSerializerImpl>(
               injector.template create<sptr<PolkadotTrieFactory>>(),
@@ -115,17 +139,65 @@ int main(int argc, char *argv[]) {
             }),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         di::bind<Codec>.template to<PolkadotCodec>(),
-        di::bind<PolkadotTrieFactory>.to(factory));
+        di::bind<PolkadotTrieFactory>.to(factory),
+        di::bind<crypto::Hasher>.template to<crypto::HasherImpl>());
 
-    if(argc == 2) {
-      ;
+    RootHash hash;
+
+    if (argc == 2) {
+      auto block_hash_res =
+          storage->get(storage::kLastFinalizedBlockHashLookupKey);
+
+      auto hasher = injector.template create<sptr<crypto::Hasher>>();
+      auto block_storage_res = blockchain::KeyValueBlockStorage::loadExisting(
+          storage, hasher, [](const auto &block) {});
+      auto block_storage = block_storage_res.value();
+      auto header =
+          block_storage
+              ->getBlockHeader(
+                  common::Hash256::fromSpan(block_hash_res.value()).value())
+              .value();
+      hash = header.state_root;
+      log->trace("Autodetected state root is 0x{}", hash.toHex());
+
+      // we place the only existing state hash at runtime look up key
+      // it won't work for code substitute
+      {
+        std::vector<runtime::RuntimeUpgradeTrackerImpl::RuntimeUpgradeData>
+            runtime_upgrade_data{};
+        runtime_upgrade_data.emplace_back(
+            primitives::BlockInfo{
+                header.number,
+                hasher->blake2b_256(scale::encode(header).value())},
+            header.state_root);
+        auto encoded_res = scale::encode(runtime_upgrade_data);
+        storage->put(storage::kRuntimeHashesLookupKey,
+                     common::Buffer(encoded_res.value()));
+      }
+
+      {
+        auto block_number = header.number + 1;
+        while (auto header_res = block_storage->getBlockHeader(block_number)) {
+          if (not header_res.has_value()) {
+            break;
+          }
+          auto block_hash =
+              hasher->blake2b_256(scale::encode(header_res.value()).value());
+          auto remove_result =
+              block_storage->removeBlock(block_hash, block_number);
+          if (remove_result.has_value()) {
+            log->trace(
+                "Removed block {}: 0x{}", block_number, block_hash.toHex());
+          }
+          ++block_number;
+        }
+      }
+    } else {
+      hash = RootHash::fromHexWithPrefix(argv[STATE_HASH]).value();
     }
-
-    auto hash = RootHash::fromHexWithPrefix(argv[STATE_HASH]).value();
 
     auto trie =
         TrieStorageImpl::createFromStorage(
-            hash,
             injector.template create<sptr<Codec>>(),
             injector.template create<sptr<TrieSerializer>>(),
             injector
@@ -133,7 +205,7 @@ int main(int argc, char *argv[]) {
             .value();
 
     if (COMPACT == cmd) {
-      auto batch = trie->getPersistentBatch().value();
+      auto batch = trie->getPersistentBatchAt(hash).value();
       auto cursor = batch->trieCursor();
       auto res = cursor->next();
       int count = 0;
@@ -182,9 +254,10 @@ int main(int argc, char *argv[]) {
         dynamic_cast<storage::LevelDB *>(storage.get())
             ->compact(common::Buffer(), common::Buffer());
       }
+
       need_additional_compaction = true;
     } else if (DUMP == cmd) {
-      auto batch = trie->getEphemeralBatch().value();
+      auto batch = trie->getEphemeralBatchAt(hash).value();
       auto cursor = batch->trieCursor();
       auto res = cursor->next();
       {
