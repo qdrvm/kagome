@@ -62,7 +62,7 @@ namespace kagome::runtime::wavm {
 
   outcome::result<std::shared_ptr<kagome::runtime::ModuleInstance>>
   ModuleImpl::instantiate() const {
-    auto &ir_module = WAVM::Runtime::getModuleIR(module_);
+    const auto &ir_module = WAVM::Runtime::getModuleIR(module_);
     bool imports_memory =
         std::find_if(ir_module.imports.cbegin(),
                      ir_module.imports.cend(),
@@ -71,7 +71,7 @@ namespace kagome::runtime::wavm {
                      })
         != ir_module.imports.cend();
     auto memory_origin =
-        imports_memory ? InstanceEnvironmentFactory::MemoryOrigin::INTRINSIC
+        imports_memory ? InstanceEnvironmentFactory::MemoryOrigin::EXTERNAL
                        : InstanceEnvironmentFactory::MemoryOrigin::INTERNAL;
 
     auto new_intrinsic_module_instance =
