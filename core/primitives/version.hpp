@@ -118,8 +118,12 @@ namespace kagome::primitives {
   Stream &operator>>(Stream &s, Version &v) {
     s >> v.spec_name >> v.impl_name >> v.authoring_version >> v.spec_version
         >> v.impl_version >> v.apis;
-    if (s.hasMore(sizeof(v.transaction_version)))
+    // old Kusama runtimes do not contain transaction_version
+    if (s.hasMore(sizeof(v.transaction_version))) {
       s >> v.transaction_version;
+    } else {
+      v.transaction_version = 0;
+    }
     return s;
   }
 }  // namespace kagome::primitives
