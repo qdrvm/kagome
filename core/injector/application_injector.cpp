@@ -945,6 +945,8 @@ namespace {
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
     libp2p::protocol::PingConfig ping_config{};
+    host_api::OffchainExtensionConfig offchain_ext_config{
+        config.isOffchainIndexingEnabled()};
 
     return di::make_injector(
         // bind configs
@@ -954,6 +956,7 @@ namespace {
         useConfig(pool_moderator_config),
         useConfig(tp_pool_limits),
         useConfig(ping_config),
+        useConfig(offchain_ext_config),
 
         // inherit host injector
         libp2p::injector::makeHostInjector(

@@ -7,7 +7,6 @@
 
 #include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/key_value_block_header_repository.hpp>
-#include <kagome/blockchain/impl/storage_util.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
 #include <kagome/crypto/crypto_store/crypto_store_impl.hpp>
 #include <kagome/crypto/ed25519/ed25519_provider_impl.hpp>
@@ -79,6 +78,7 @@ int main() {
           database, hasher);
 
   using std::string_literals::operator""s;
+
   auto chain_spec = kagome::application::ChainSpecImpl::loadFrom(
                         std::filesystem::path(__FILE__).parent_path()
                         / "../../../examples/polkadot/polkadot.json"s)
@@ -158,6 +158,7 @@ int main() {
 
   auto host_api_factory =
       std::make_shared<kagome::host_api::HostApiFactoryImpl>(
+          kagome::host_api::OffchainExtensionConfig{},
           changes_tracker,
           sr25519_provider,
           ed25519_provider,
@@ -184,7 +185,8 @@ int main() {
       std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
           code_provider, module_repo, header_repo);
 
-  [[maybe_unused]] auto executor = kagome::runtime::Executor(header_repo, env_factory);
+  [[maybe_unused]] auto executor =
+      kagome::runtime::Executor(header_repo, env_factory);
 
   // TODO(Harrm): Currently, the test only checks if kagome builds as
   // a dependency in some project. However, we can use the test to run
