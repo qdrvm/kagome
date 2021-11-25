@@ -48,8 +48,8 @@ hunter_config(
 
 hunter_config(
   wavm
-  URL https://github.com/soramitsu/WAVM/archive/c3f1a9e5ff7db38c722bdbfd79cf9edc325ff1c9.tar.gz
-  SHA1 637a9c27efdfaef20f2173b2b75782506242f07c
+  URL "https://github.com/soramitsu/WAVM/archive/refs/tags/1.0.3.zip"
+  SHA1 67cafaec3c810a5e8d7bb9416148d7532a0071ed
   CMAKE_ARGS
       WAVM_ENABLE_FUZZ_TARGETS=OFF
       WAVM_ENABLE_STATIC_LINKING=ON
