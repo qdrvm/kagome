@@ -231,8 +231,8 @@ namespace kagome::blockchain {
     // find epoch digest. First found digest if it in the block assigned to the
     // current epoch will be saved as digest planned for next epoch. First found
     // digest if it in the block assigned to the early epoch will be saved as
-    // digest for current epoch (and planned for next epoch, if it not defined
-    // yet).
+    // digest for current epoch (and planned for next epoch, if it is not
+    // defined yet).
 
     for (;;) {
       if (hash_tmp == primitives::BlockHash{}) {
