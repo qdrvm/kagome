@@ -210,6 +210,7 @@ namespace kagome::blockchain {
         babe_util_(std::move(babe_util)) {
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(tree_ != nullptr);
     BOOST_ASSERT(extrinsic_observer_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(chain_events_engine_ != nullptr);
