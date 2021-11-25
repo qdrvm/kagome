@@ -114,7 +114,9 @@ int main() {
       std::shared_ptr(kagome::storage::trie::TrieStorageImpl::createEmpty(
                           trie_factory, codec, serializer, changes_tracker)
                           .value());
-  auto storage_batch = trie_storage->getPersistentBatch().value();
+  auto storage_batch =
+      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
+          .value();
   for (auto &kv : chain_spec->getGenesis()) {
     storage_batch->put(kv.first, kv.second).value();
   }

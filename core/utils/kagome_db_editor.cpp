@@ -96,6 +96,24 @@ Example:
   std::cout << help;
 };
 
+std::unique_ptr<PersistentTrieBatch> persistent_batch(
+    const std::unique_ptr<TrieStorageImpl> &trie, const RootHash &hash) {
+  auto batch = trie->getPersistentBatchAt(hash).value();
+  auto cursor = batch->trieCursor();
+  auto res = cursor->next();
+  int count = 0;
+  auto log = log::createLogger("main", "kagome-db-editor");
+  {
+    TicToc t1("Process state.", log);
+    while (cursor->key().has_value()) {
+      count++;
+      res = cursor->next();
+    }
+  }
+  log->trace("{} keys were processed at the state.", ++count);
+  return batch;
+}
+
 int main(int argc, char *argv[]) {
   backward::SignalHandling sh;
 
@@ -142,56 +160,52 @@ int main(int argc, char *argv[]) {
         di::bind<PolkadotTrieFactory>.to(factory),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>());
 
+    RootHash finalized_hash;
+    auto block_hash_res =
+        storage->get(storage::kLastFinalizedBlockHashLookupKey);
+    auto hasher = injector.template create<sptr<crypto::Hasher>>();
+    auto block_storage_res = blockchain::KeyValueBlockStorage::loadExisting(
+        storage, hasher, [](const auto &block) {});
+    auto block_storage = block_storage_res.value();
+    auto header =
+        block_storage
+            ->getBlockHeader(
+                common::Hash256::fromSpan(block_hash_res.value()).value())
+            .value();
+    finalized_hash = header.state_root;
+    log->trace("Autodetected finalized block is #{}, state root is 0x{}",
+               header.number,
+               finalized_hash.toHex());
+
+    // we place the only existing state hash at runtime look up key
+    // it won't work for code substitute
+    {
+      std::vector<runtime::RuntimeUpgradeTrackerImpl::RuntimeUpgradeData>
+          runtime_upgrade_data{};
+      runtime_upgrade_data.emplace_back(
+          primitives::BlockInfo{
+              header.number,
+              hasher->blake2b_256(scale::encode(header).value())},
+          header.state_root);
+      auto encoded_res = scale::encode(runtime_upgrade_data);
+      [[maybe_unused]] auto res =
+          storage->put(storage::kRuntimeHashesLookupKey,
+                       common::Buffer(encoded_res.value()));
+    }
+
     RootHash hash;
-
     if (argc == 2) {
-      auto block_hash_res =
-          storage->get(storage::kLastFinalizedBlockHashLookupKey);
-
-      auto hasher = injector.template create<sptr<crypto::Hasher>>();
-      auto block_storage_res = blockchain::KeyValueBlockStorage::loadExisting(
-          storage, hasher, [](const auto &block) {});
-      auto block_storage = block_storage_res.value();
-      auto header =
-          block_storage
-              ->getBlockHeader(
-                  common::Hash256::fromSpan(block_hash_res.value()).value())
-              .value();
-      hash = header.state_root;
-      log->trace("Autodetected state root is 0x{}", hash.toHex());
-
-      // we place the only existing state hash at runtime look up key
-      // it won't work for code substitute
-      {
-        std::vector<runtime::RuntimeUpgradeTrackerImpl::RuntimeUpgradeData>
-            runtime_upgrade_data{};
-        runtime_upgrade_data.emplace_back(
-            primitives::BlockInfo{
-                header.number,
-                hasher->blake2b_256(scale::encode(header).value())},
-            header.state_root);
-        auto encoded_res = scale::encode(runtime_upgrade_data);
-        storage->put(storage::kRuntimeHashesLookupKey,
-                     common::Buffer(encoded_res.value()));
-      }
-
-      {
-        auto block_number = header.number + 1;
-        while (auto header_res = block_storage->getBlockHeader(block_number)) {
-          if (not header_res.has_value()) {
-            break;
-          }
-          auto block_hash =
-              hasher->blake2b_256(scale::encode(header_res.value()).value());
-          auto remove_result =
-              block_storage->removeBlock(block_hash, block_number);
-          if (remove_result.has_value()) {
-            log->trace(
-                "Removed block {}: 0x{}", block_number, block_hash.toHex());
-          }
-          ++block_number;
+      auto block_number = header.number + 1;
+      for (;;) {
+        auto header_res = block_storage->getBlockHeader(block_number++);
+        if (not header_res.has_value()) {
+          break;
         }
+        hash = header_res.value().state_root;
       }
+      log->trace("Autodetected best block number is #{}, state root is 0x{}",
+                 block_number - 1,
+                 hash.toHex());
     } else {
       hash = RootHash::fromHexWithPrefix(argv[STATE_HASH]).value();
     }
@@ -205,47 +219,39 @@ int main(int argc, char *argv[]) {
             .value();
 
     if (COMPACT == cmd) {
-      auto batch = trie->getPersistentBatchAt(hash).value();
-      auto cursor = batch->trieCursor();
-      auto res = cursor->next();
-      int count = 0;
-      {
-        TicToc t1("Process state.", log);
-        while (cursor->key().has_value()) {
-          count++;
-          res = cursor->next();
-        }
-      }
-      log->trace("{} keys were processed at the state.", ++count);
+      auto batch = persistent_batch(trie, hash);
+      auto finalized_batch = persistent_batch(trie, finalized_hash);
 
       auto db_cursor = storage->cursor();
       auto db_batch = storage->batch();
-      auto res2 = db_cursor->seek(prefix);
-      count = 0;
+      auto res = db_cursor->seek(prefix);
+      int count = 0;
       {
         TicToc t2("Process DB.", log);
         while (db_cursor->isValid() && db_cursor->key().has_value()
                && db_cursor->key().value()[0] == prefix[0]) {
-          res = db_batch->remove(db_cursor->key().value());
+          auto res2 = db_batch->remove(db_cursor->key().value());
           count++;
           if (not(count % 10000000)) {
             log->trace("{} keys were processed at the db.", count);
-            res = db_batch->commit();
+            res2 = db_batch->commit();
             dynamic_cast<storage::LevelDB *>(storage.get())
                 ->compact(prefix, db_cursor->key().value());
             db_cursor = storage->cursor();
             db_batch = storage->batch();
-            res2 = db_cursor->seek(prefix);
+            res = db_cursor->seek(prefix);
           }
-          res = db_cursor->next();
+          res2 = db_cursor->next();
         }
-        res = db_batch->commit();
+        [[maybe_unused]] auto res2 = db_batch->commit();
       }
       log->trace("{} keys were processed at the db.", ++count);
 
       {
         TicToc t3("Commit state.", log);
-        auto res3 = batch->commit();
+        auto res3 = finalized_batch->commit();
+        log->trace("{}", res3.value().toHex());
+        res3 = batch->commit();
         log->trace("{}", res3.value().toHex());
       }
 

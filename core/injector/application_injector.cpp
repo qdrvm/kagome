@@ -1030,7 +1030,7 @@ namespace {
               injector.template create<sptr<application::ChainSpec>>();
           return get_level_db(config, chain_spec);
         }),
-        di::bind<blockchain::BlockStorage>.to([root_hash](const auto &injector) {
+        di::bind<blockchain::BlockStorage>.to([](const auto &injector) {
           const auto &hasher = injector.template create<sptr<crypto::Hasher>>();
           const auto &db =
               injector.template create<sptr<storage::BufferStorage>>();
