@@ -31,7 +31,7 @@ class PolkadotTrieCursorTest : public testing::Test {
 
 // The default values for arguments are somewhat randomly chosen,
 // they totally depend on what you want to test.
-// More alphabet size ~ more branching
+// Bigger alphabet size ~ more branching
 // Longer keys ~ longer keys (increases branching, too, if alphabet size is big
 // enough, and can be used for performance testing
 std::tuple<std::unique_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(
