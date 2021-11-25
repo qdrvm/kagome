@@ -38,23 +38,15 @@ hunter_config(
 )
 
 hunter_config(
-    schnorrkel_crust
-    URL https://github.com/soramitsu/soramitsu-sr25519-crust/archive/105d97b03179bcfb308f90c732472817aa61ed24.tar.gz
-    SHA1 d03f82a53ba39c3b4eb9380afb3dbd4f810683bb
+    wavm
+    URL "https://github.com/soramitsu/WAVM/archive/refs/tags/1.0.3.zip"
+    SHA1 67cafaec3c810a5e8d7bb9416148d7532a0071ed
     CMAKE_ARGS
-        TESTING=OFF
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-  wavm
-  URL "https://github.com/soramitsu/WAVM/archive/refs/tags/1.0.3.zip"
-  SHA1 67cafaec3c810a5e8d7bb9416148d7532a0071ed
-  CMAKE_ARGS
+      TESTING=OFF
       WAVM_ENABLE_FUZZ_TARGETS=OFF
       WAVM_ENABLE_STATIC_LINKING=ON
       WAVM_BUILD_EXAMPLES=OFF
       WAVM_BUILD_TESTS=OFF
-  KEEP_PACKAGE_SOURCES
+    KEEP_PACKAGE_SOURCES
 )
 
