@@ -51,12 +51,12 @@ namespace kagome::runtime::wavm {
 
     std::shared_ptr<MemoryProvider> memory_provider;
     switch (memory_origin) {
-      case MemoryOrigin::INTRINSIC:
+      case MemoryOrigin::EXTERNAL:
         memory_provider =
             std::make_shared<WavmExternalMemoryProvider>(intrinsic_instance);
         break;
       case MemoryOrigin::INTERNAL: {
-        auto memory = WAVM::Runtime::getDefaultMemory(runtime_instance);
+        auto *memory = WAVM::Runtime::getDefaultMemory(runtime_instance);
         memory_provider = std::make_shared<WavmInternalMemoryProvider>(memory);
       } break;
     }

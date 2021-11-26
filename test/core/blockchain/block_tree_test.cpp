@@ -8,6 +8,7 @@
 #include "blockchain/impl/block_tree_impl.hpp"
 
 #include "blockchain/block_tree_error.hpp"
+#include "blockchain/impl/cached_tree.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -23,6 +24,8 @@
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 #include "scale/scale.hpp"
+
+#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -106,6 +109,8 @@ struct BlockTreeTest : public testing::Test {
         .WillRepeatedly(Return(block.header));
     EXPECT_CALL(*header_repo_, getHashByNumber(block.header.number))
         .WillRepeatedly(Return(hash));
+    EXPECT_CALL(*header_repo_, getNumberByHash(hash))
+        .WillRepeatedly(Return(block.header.number));
 
     return hash;
   }
@@ -269,6 +274,113 @@ TEST_F(BlockTreeTest, Finalize) {
   ASSERT_EQ(block_tree_->getLastFinalized().hash, hash);
 }
 
+std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
+  auto make_subtree = [branching_factor](std::shared_ptr<TreeNode> parent,
+                                         size_t current_depth,
+                                         size_t max_depth,
+                                         std::string name,
+                                         auto &make_subtree) {
+    primitives::BlockHash hash{};
+    std::copy_n(name.begin(), name.size(), hash.begin());
+    auto node = std::make_shared<TreeNode>(
+        hash, current_depth, parent, 33, EpochDigest{});
+    if (current_depth + 1 == max_depth) {
+      return node;
+    }
+    for (size_t i = 0; i < branching_factor; i++) {
+      auto child = make_subtree(node,
+                                current_depth + 1,
+                                max_depth,
+                                name + "_" + std::to_string(i),
+                                make_subtree);
+      node->children.push_back(child);
+    }
+    return node;
+  };
+  return make_subtree(
+      std::shared_ptr<TreeNode>{nullptr}, 0, depth, "block0", make_subtree);
+}
+
+struct NodeProcessor {
+  MOCK_METHOD(void, foo, (TreeNode const &), (const));
+};
+
+/**
+ * Call applyToChain targeting the rightmost leaf in the tree
+ * (so that the whole tree is traversed on its lookup)
+ */
+TEST_F(BlockTreeTest, TreeNode_applyToChain_lastLeaf) {
+  auto tree = makeFullTree(3, 2);
+
+  NodeProcessor p;
+  EXPECT_CALL(p, foo(*tree));
+  EXPECT_CALL(p, foo(*tree->children[1]));
+  EXPECT_CALL(p, foo(*tree->children[1]->children[1]));
+
+  EXPECT_OUTCOME_TRUE_1(tree->applyToChain(
+      {2, tree->children[1]->children[1]->block_hash}, [&p](auto &node) {
+        p.foo(node);
+        return TreeNode::ExitToken::CONTINUE;
+      }));
+}
+
+/**
+ * Call applyToChain targeting the tree root
+ */
+TEST_F(BlockTreeTest, TreeNode_applyToChain_root) {
+  auto tree = makeFullTree(3, 2);
+
+  NodeProcessor p;
+  EXPECT_CALL(p, foo(*tree));
+
+  EXPECT_OUTCOME_TRUE_1(
+      tree->applyToChain({0, tree->block_hash}, [&p](auto &node) {
+        p.foo(node);
+        return TreeNode::ExitToken::CONTINUE;
+      }));
+}
+
+/**
+ * Call apply to chain targeting a node not present in the tree
+ */
+TEST_F(BlockTreeTest, TreeNode_applyToChain_invalidNode) {
+  auto tree = makeFullTree(3, 2);
+
+  // p.foo() should not be called
+  testing::StrictMock<NodeProcessor> p;
+
+  EXPECT_OUTCOME_FALSE_1(
+      tree->applyToChain({42, "213232"_hash256}, [&p](auto &node) {
+        p.foo(node);
+        return outcome::success(TreeNode::ExitToken::CONTINUE);
+      }));
+}
+
+/**
+ * Call apply to chain with a functor that return ExitToken::EXIT on the second
+ * processed node
+ */
+TEST_F(BlockTreeTest, TreeNode_applyToChain_exitTokenWorks) {
+  auto tree = makeFullTree(3, 2);
+
+  NodeProcessor p;
+  EXPECT_CALL(p, foo(*tree));
+  EXPECT_CALL(p, foo(*tree->children[1]));
+  // shouldn't be called because of exit token
+  // EXPECT_CALL(p, foo(*tree->children[1]->children[1]));
+
+  size_t counter = 0;
+  EXPECT_OUTCOME_TRUE_1(
+      tree->applyToChain({2, tree->children[1]->children[1]->block_hash},
+                         [&p, &counter](auto &node) {
+                           p.foo(node);
+                           if (counter++ == 1) {
+                             return TreeNode::ExitToken::EXIT;
+                           }
+                           return TreeNode::ExitToken::CONTINUE;
+                         }));
+}
+
 /**
  * @given block tree with at least three blocks inside
  * @when asking for chain from the lowest block to the closest finalized one
@@ -340,14 +452,14 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
 TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
-                     .number = kFinalizedBlockInfo.number + 1,
+                     .number = 1,
                      .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
   header = BlockHeader{.parent_hash = hash1,
-                       .number = kFinalizedBlockInfo.number + 2,
+                       .number = 2,
                        .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};

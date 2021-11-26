@@ -25,7 +25,7 @@ kagome_install(blockchain_common)
 
 add_library(block_tree
     block_tree_impl.cpp
-    block_tree_impl.hpp
+    cached_tree.cpp
     )
 target_link_libraries(block_tree
     block_tree_error

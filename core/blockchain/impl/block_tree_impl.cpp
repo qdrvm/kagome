@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "blockchain/block_tree_error.hpp"
+#include "blockchain/impl/cached_tree.hpp"
 #include "blockchain/impl/common.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -35,171 +36,6 @@ namespace kagome::blockchain {
   using Buffer = common::Buffer;
   using Prefix = prefix::Prefix;
   using DatabaseError = kagome::storage::DatabaseError;
-
-  BlockTreeImpl::TreeNode::TreeNode(primitives::BlockHash hash,
-                                    primitives::BlockNumber depth,
-                                    consensus::EpochDigest &&curr_epoch_digest,
-                                    consensus::EpochNumber epoch_number,
-                                    consensus::EpochDigest &&next_epoch_digest,
-                                    bool finalized)
-      : block_hash{hash},
-        depth{depth},
-        epoch_number(epoch_number),
-        finalized{finalized} {
-    this->epoch_digest =
-        std::make_shared<consensus::EpochDigest>(std::move(curr_epoch_digest));
-    this->next_epoch_digest = *epoch_digest == next_epoch_digest
-                                  ? epoch_digest
-                                  : std::make_shared<consensus::EpochDigest>(
-                                      std::move(next_epoch_digest));
-  }
-
-  BlockTreeImpl::TreeNode::TreeNode(
-      primitives::BlockHash hash,
-      primitives::BlockNumber depth,
-      const std::shared_ptr<TreeNode> &parent,
-      consensus::EpochNumber epoch_number,
-      std::optional<consensus::EpochDigest> next_epoch_digest_opt,
-      bool finalized)
-      : block_hash{hash},
-        depth{depth},
-        parent{parent},
-        epoch_number(epoch_number),
-        finalized{finalized} {
-    BOOST_ASSERT(parent != nullptr or next_epoch_digest_opt.has_value());
-    if (parent) {
-      epoch_digest = epoch_number != parent->epoch_number
-                         ? parent->next_epoch_digest
-                         : epoch_digest = parent->epoch_digest;
-      next_epoch_digest = parent->next_epoch_digest;
-    } else {
-      epoch_digest = std::make_shared<consensus::EpochDigest>(
-          next_epoch_digest_opt.value());
-      next_epoch_digest = epoch_digest;
-    }
-
-    if (next_epoch_digest_opt.has_value()) {
-      if (next_epoch_digest_opt != *next_epoch_digest) {
-        if (next_epoch_digest_opt == *epoch_digest) {
-          next_epoch_digest = epoch_digest;
-        } else {
-          next_epoch_digest = std::make_shared<consensus::EpochDigest>(
-              std::move(next_epoch_digest_opt.value()));
-        }
-      }
-    }
-  }
-
-  std::optional<std::vector<std::shared_ptr<BlockTreeImpl::TreeNode>>>
-  BlockTreeImpl::TreeNode::getPathTo(const primitives::BlockHash &hash) {
-    std::vector<std::shared_ptr<TreeNode>> stack{shared_from_this()};
-    std::unordered_map<primitives::BlockNumber, size_t> forks;
-
-    bool came_back = false;
-    while (not stack.empty()) {
-      auto &current = stack.back();
-
-      // Found
-      if (current->block_hash == hash) {
-        return stack;
-      }
-
-      // Straight
-      if (current->children.size() == 1) {
-        if (not came_back) {
-          // Go to children
-          stack.push_back(current->children.front());
-          continue;
-        }
-        // else - continue going back
-      }
-
-      // Fork
-      if (current->children.size() > 1) {
-        auto &children_index = forks[current->depth];
-        if (children_index < current->children.size()) {
-          // Go to next child
-          stack.push_back(current->children[children_index++]);
-          came_back = false;
-          continue;
-        }
-        // else (no more children) - going back
-      }
-
-      // Going back
-      forks.erase(current->depth);
-      stack.pop_back();
-      came_back = true;
-    }
-    return std::nullopt;
-  }
-
-  std::shared_ptr<BlockTreeImpl::TreeNode> BlockTreeImpl::TreeNode::getByHash(
-      const primitives::BlockHash &hash) {
-    // standard BFS
-    std::queue<std::shared_ptr<TreeNode>> nodes_to_scan;
-    nodes_to_scan.push(shared_from_this());
-    while (!nodes_to_scan.empty()) {
-      const auto &node = nodes_to_scan.front();
-      if (node->block_hash == hash) {
-        return node;
-      }
-      for (const auto &child : node->children) {
-        nodes_to_scan.push(child);
-      }
-      nodes_to_scan.pop();
-    }
-    return nullptr;
-  }
-
-  bool BlockTreeImpl::TreeNode::operator==(const TreeNode &other) const {
-    const auto &other_parent = other.parent;
-    auto parents_equal = (parent.expired() && other_parent.expired())
-                         || (!parent.expired() && !other_parent.expired()
-                             && parent.lock() == other_parent.lock());
-
-    return parents_equal && block_hash == other.block_hash
-           && depth == other.depth;
-  }
-
-  bool BlockTreeImpl::TreeNode::operator!=(const TreeNode &other) const {
-    return !(*this == other);
-  }
-
-  BlockTreeImpl::TreeMeta::TreeMeta(TreeNode &subtree_root_node)
-      : deepest_leaf{subtree_root_node}, last_finalized{subtree_root_node} {
-    std::function<void(std::shared_ptr<TreeNode>)> handle =
-        [&](std::shared_ptr<TreeNode> node) {
-          // avoid of deep recurse
-          while (node->children.size() == 1) {
-            node = node->children.front();
-          }
-
-          // is leaf
-          if (node->children.empty()) {
-            leaves.emplace(node->block_hash);
-
-            if (node->depth > deepest_leaf.get().depth) {
-              deepest_leaf = *node;
-            }
-          } else {
-            // follow descendants recursively
-            for (const auto &child : node->children) {
-              handle(child);
-            }
-          }
-        };
-
-    handle(subtree_root_node.shared_from_this());
-  }
-
-  BlockTreeImpl::TreeMeta::TreeMeta(
-      std::unordered_set<primitives::BlockHash> leaves,
-      TreeNode &deepest_leaf,
-      TreeNode &last_finalized)
-      : leaves{std::move(leaves)},
-        deepest_leaf{deepest_leaf},
-        last_finalized{last_finalized} {}
 
   outcome::result<std::shared_ptr<BlockTreeImpl>> BlockTreeImpl::create(
       std::shared_ptr<BlockHeaderRepository> header_repo,
@@ -231,8 +67,8 @@ namespace kagome::blockchain {
     // find epoch digest. First found digest if it in the block assigned to the
     // current epoch will be saved as digest planned for next epoch. First found
     // digest if it in the block assigned to the early epoch will be saved as
-    // digest for current epoch (and planned for next epoch, if it is not
-    // defined yet).
+    // digest for current epoch (and planned for next epoch,
+    // if it is yet undefined).
 
     for (;;) {
       if (hash_tmp == primitives::BlockHash{}) {
@@ -325,30 +161,30 @@ namespace kagome::blockchain {
                                            number,
                                            std::move(curr_epoch.value()),
                                            curr_epoch_number.value(),
-                                           std::move(next_epoch.value()));
-    auto meta = std::make_shared<TreeMeta>(*tree);
+                                           std::move(next_epoch.value()),
+                                           true);
+    auto meta = std::make_shared<TreeMeta>(tree);
 
-    auto block_tree = new BlockTreeImpl(std::move(header_repo),
-                                        std::move(storage),
-                                        std::move(tree),
-                                        std::move(meta),
-                                        std::move(extrinsic_observer),
-                                        std::move(hasher),
-                                        std::move(chain_events_engine),
-                                        std::move(extrinsic_events_engine),
-                                        std::move(extrinsic_event_key_repo),
-                                        std::move(runtime_core),
-                                        std::move(changes_tracker),
-                                        std::move(babe_configuration),
-                                        std::move(babe_util));
+    auto *block_tree =
+        new BlockTreeImpl(std::move(header_repo),
+                          std::move(storage),
+                          std::make_unique<CachedTree>(tree, meta),
+                          std::move(extrinsic_observer),
+                          std::move(hasher),
+                          std::move(chain_events_engine),
+                          std::move(extrinsic_events_engine),
+                          std::move(extrinsic_event_key_repo),
+                          std::move(runtime_core),
+                          std::move(changes_tracker),
+                          std::move(babe_configuration),
+                          std::move(babe_util));
     return std::shared_ptr<BlockTreeImpl>(block_tree);
   }
 
   BlockTreeImpl::BlockTreeImpl(
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
-      std::shared_ptr<TreeNode> tree,
-      std::shared_ptr<TreeMeta> meta,
+      std::unique_ptr<CachedTree> cached_tree,
       std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -362,8 +198,7 @@ namespace kagome::blockchain {
       std::shared_ptr<consensus::BabeUtil> babe_util)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
-        tree_{std::move(tree)},
-        tree_meta_{std::move(meta)},
+        tree_{std::move(cached_tree)},
         extrinsic_observer_{std::move(extrinsic_observer)},
         hasher_{std::move(hasher)},
         chain_events_engine_(std::move(chain_events_engine)),
@@ -376,7 +211,6 @@ namespace kagome::blockchain {
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(tree_ != nullptr);
-    BOOST_ASSERT(tree_meta_ != nullptr);
     BOOST_ASSERT(extrinsic_observer_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(chain_events_engine_ != nullptr);
@@ -391,15 +225,17 @@ namespace kagome::blockchain {
                                    "Block height info of the chain");
     block_height_best_ = registry_->registerGaugeMetric(kBlockHeightGaugeName,
                                                         {{"status", "best"}});
-    block_height_best_->set(tree_meta_->deepest_leaf.get().depth);
+    block_height_best_->set(
+        tree_->getMetadata().deepest_leaf.lock()->depth);
     block_height_finalized_ = registry_->registerGaugeMetric(
         kBlockHeightGaugeName, {{"status", "finalized"}});
-    block_height_finalized_->set(tree_meta_->last_finalized.get().depth);
+    block_height_finalized_->set(
+        tree_->getMetadata().deepest_leaf.lock()->depth);
   }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
       const primitives::BlockHeader &header) {
-    auto parent = tree_->getByHash(header.parent_hash);
+    auto parent = tree_->getRoot().findByHash(header.parent_hash);
     if (!parent) {
       return BlockTreeError::NO_PARENT;
     }
@@ -421,35 +257,17 @@ namespace kagome::blockchain {
     // update local meta with the new block
     auto new_node = std::make_shared<TreeNode>(
         block_hash, header.number, parent, epoch_number, std::move(next_epoch));
-    parent->children.push_back(new_node);
-
-    tree_meta_->leaves.insert(new_node->block_hash);
-    tree_meta_->leaves.erase(parent->block_hash);
-    if (new_node->depth > tree_meta_->deepest_leaf.get().depth) {
-      tree_meta_->deepest_leaf = *new_node;
-    }
-
+    tree_->updateMeta(new_node);
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  header);
 
     return outcome::success();
   }
 
-  void BlockTreeImpl::updateMeta(const std::shared_ptr<TreeNode> &new_node) {
-    auto parent = new_node->parent.lock();
-    parent->children.push_back(new_node);
-
-    tree_meta_->leaves.insert(new_node->block_hash);
-    tree_meta_->leaves.erase(parent->block_hash);
-    if (new_node->depth > tree_meta_->deepest_leaf.get().depth) {
-      tree_meta_->deepest_leaf = *new_node;
-    }
-  }
-
   outcome::result<void> BlockTreeImpl::addBlock(
       const primitives::Block &block) {
     // Check if we know parent of this block; if not, we cannot insert it
-    auto parent = tree_->getByHash(block.header.parent_hash);
+    auto parent = tree_->getRoot().findByHash(block.header.parent_hash);
     if (!parent) {
       return BlockTreeError::NO_PARENT;
     }
@@ -477,21 +295,21 @@ namespace kagome::blockchain {
                                                epoch_number,
                                                std::move(next_epoch));
 
-    updateMeta(new_node);
+    tree_->updateMeta(new_node);
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
     trie_changes_tracker_->onBlockAdded(block_hash);
-    for (size_t idx = 0; idx < block.body.size(); idx++) {
-      if (auto key = extrinsic_event_key_repo_->get(
-              hasher_->blake2b_256(block.body[idx].data))) {
+    for (const auto &ext : block.body) {
+      if (auto key =
+              extrinsic_event_key_repo_->get(hasher_->blake2b_256(ext.data))) {
         extrinsic_events_engine_->notify(
             key.value(),
-            primitives::events::ExtrinsicLifecycleEvent::InBlock(
-                key.value(), std::move(block_hash)));
+            primitives::events::ExtrinsicLifecycleEvent::InBlock(key.value(),
+                                                                 block_hash));
       }
     }
 
-    block_height_best_->set(tree_meta_->deepest_leaf.get().depth);
+    block_height_best_->set(tree_->getMetadata().deepest_leaf.lock()->depth);
 
     return outcome::success();
   }
@@ -499,13 +317,13 @@ namespace kagome::blockchain {
   outcome::result<void> BlockTreeImpl::addExistingBlock(
       const primitives::BlockHash &block_hash,
       const primitives::BlockHeader &block_header) {
-    auto node = tree_->getByHash(block_hash);
+    auto node = tree_->getRoot().findByHash(block_hash);
     // Check if tree doesn't have this block; if not, we skip that
     if (node != nullptr) {
       return BlockTreeError::BLOCK_EXISTS;
     }
     // Check if we know parent of this block; if not, we cannot insert it
-    auto parent = tree_->getByHash(block_header.parent_hash);
+    auto parent = tree_->getRoot().findByHash(block_header.parent_hash);
     if (parent == nullptr) {
       return BlockTreeError::NO_PARENT;
     }
@@ -530,7 +348,7 @@ namespace kagome::blockchain {
                                                epoch_number,
                                                std::move(next_epoch));
 
-    updateMeta(new_node);
+    tree_->updateMeta(new_node);
 
     return outcome::success();
   }
@@ -546,7 +364,7 @@ namespace kagome::blockchain {
   outcome::result<void> BlockTreeImpl::finalize(
       const primitives::BlockHash &block_hash,
       const primitives::Justification &justification) {
-    auto node = tree_->getByHash(block_hash);
+    auto node = tree_->getRoot().findByHash(block_hash);
     if (!node) {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
@@ -564,11 +382,7 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(prune(node));
 
-    tree_ = node;
-
-    tree_meta_ = std::make_shared<TreeMeta>(*tree_);
-
-    tree_->parent.reset();
+    tree_->updateTreeRoot(node);
 
     OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
     OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
@@ -586,13 +400,13 @@ namespace kagome::blockchain {
     }
     OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
 
-    for (size_t idx = 0; idx < body.size(); idx++) {
-      if (auto key = extrinsic_event_key_repo_->get(
-              hasher_->blake2b_256(body[idx].data))) {
+    for (auto &ext : body) {
+      if (auto key =
+              extrinsic_event_key_repo_->get(hasher_->blake2b_256(ext.data))) {
         extrinsic_events_engine_->notify(
             key.value(),
-            primitives::events::ExtrinsicLifecycleEvent::Finalized(
-                key.value(), std::move(block_hash)));
+            primitives::events::ExtrinsicLifecycleEvent::Finalized(key.value(),
+                                                                   block_hash));
       }
     }
 
@@ -623,7 +437,8 @@ namespace kagome::blockchain {
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
       const primitives::BlockHash &block) const {
-    return getChainByBlocks(tree_meta_->last_finalized.get().block_hash, block);
+    return getChainByBlocks(
+        tree_->getMetadata().last_finalized.lock()->block_hash, block);
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
@@ -650,7 +465,7 @@ namespace kagome::blockchain {
       }
     } else {
       finish_block_number = start_block_number + maximum - 1;
-      auto current_depth = tree_meta_->deepest_leaf.get().depth;
+      auto current_depth = tree_->getMetadata().deepest_leaf.lock()->depth;
       if (current_depth < finish_block_number) {
         finish_block_number = current_depth;
       }
@@ -689,14 +504,16 @@ namespace kagome::blockchain {
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block,
       std::optional<uint32_t> max_count) const {
-    if (auto chain_res =
-            tryGetChainByBlocksFromCache(top_block, bottom_block, max_count)) {
+    OUTCOME_TRY(from, header_repo_->getNumberByHash(top_block));
+    OUTCOME_TRY(to, header_repo_->getNumberByHash(bottom_block));
+
+    if (auto chain_res = tryGetChainByBlocksFromCache(
+            primitives::BlockInfo{from, top_block},
+            primitives::BlockInfo{to, bottom_block},
+            max_count)) {
       auto &chain = chain_res.value();
       return std::move(chain);
     }
-
-    OUTCOME_TRY(from, header_repo_->getNumberByHash(top_block));
-    OUTCOME_TRY(to, header_repo_->getNumberByHash(bottom_block));
 
     std::vector<primitives::BlockHash> result;
     if (to < from) {
@@ -748,32 +565,41 @@ namespace kagome::blockchain {
 
   std::optional<std::vector<primitives::BlockHash>>
   BlockTreeImpl::tryGetChainByBlocksFromCache(
-      const primitives::BlockHash &top_block,
-      const primitives::BlockHash &bottom_block,
+      const primitives::BlockInfo &top_block,
+      const primitives::BlockInfo &bottom_block,
       std::optional<uint32_t> max_count) const {
-    if (auto from = tree_->getByHash(top_block)) {
-      if (auto way_opt = from->getPathTo(bottom_block)) {
-        auto &way = way_opt.value();
-        const auto in_tree_branch_len = way.back()->depth - from->depth + 1;
-        const auto response_length =
-            max_count ? std::min(in_tree_branch_len, max_count.value())
-                      : in_tree_branch_len;
-        SL_TRACE(log_,
-                 "Create {} length chain from number {} to {} from cache.",
-                 response_length,
-                 from->depth,
-                 way.back()->depth);
+    if (auto from = tree_->getRoot().findByHash(top_block.hash)) {
+      const auto in_tree_branch_len = bottom_block.number - from->depth + 1;
+      const auto response_length =
+          max_count ? std::min(in_tree_branch_len, max_count.value())
+                    : in_tree_branch_len;
 
-        way.resize(response_length);
+      std::vector<primitives::BlockHash> result;
+      result.reserve(response_length);
 
-        std::vector<primitives::BlockHash> result;
-        result.reserve(response_length);
-        for (auto &s : way) {
-          result.emplace_back(s->block_hash);
-        }
-
-        return result;
+      auto res = from->applyToChain(
+          bottom_block,
+          [&result, response_length](auto &node) -> TreeNode::ExitToken {
+            result.emplace_back(node.block_hash);
+            if (result.size() == response_length) {
+              return TreeNode::ExitToken::EXIT;
+            }
+            return TreeNode::ExitToken::CONTINUE;
+          });
+      if (res.has_error()) {
+        SL_DEBUG(log_,
+                 "Failed to collect a chain of blocks from {} to {}: {}",
+                 top_block.hash.toHex(),
+                 bottom_block.hash.toHex());
+        return std::nullopt;
       }
+      SL_TRACE(log_,
+               "Create {} length chain from number {} to {} from cache.",
+               response_length,
+               from->depth,
+               bottom_block.number);
+
+      return result;
     }
     return std::nullopt;
   }
@@ -787,8 +613,8 @@ namespace kagome::blockchain {
   bool BlockTreeImpl::hasDirectChain(
       const primitives::BlockHash &ancestor,
       const primitives::BlockHash &descendant) const {
-    auto ancestor_node_ptr = tree_->getByHash(ancestor);
-    auto descendant_node_ptr = tree_->getByHash(descendant);
+    auto ancestor_node_ptr = tree_->getRoot().findByHash(ancestor);
+    auto descendant_node_ptr = tree_->getRoot().findByHash(descendant);
 
     /*
      * check that ancestor is above descendant
@@ -859,8 +685,9 @@ namespace kagome::blockchain {
   }
 
   primitives::BlockInfo BlockTreeImpl::deepestLeaf() const {
-    auto &&leaf = tree_meta_->deepest_leaf.get();
-    return {leaf.depth, leaf.block_hash};
+    auto &&leaf = tree_->getMetadata().deepest_leaf.lock();
+    BOOST_ASSERT(leaf != nullptr);
+    return {leaf->depth, leaf->block_hash};
   }
 
   outcome::result<primitives::BlockInfo> BlockTreeImpl::getBestContaining(
@@ -900,16 +727,15 @@ namespace kagome::blockchain {
         current_hash = hash;
       }
       OUTCOME_TRY(best_header, header_repo_->getBlockHeader(best_hash));
-      while (true) {
+      primitives::BlockNumber current_block_number{};
+      do {
         OUTCOME_TRY(current_header, header_repo_->getBlockHeader(current_hash));
         if (current_hash == target_hash) {
           return primitives::BlockInfo{best_header.number, best_hash};
         }
-        if (current_header.number < target_header.number) {
-          break;
-        }
+        current_block_number = current_header.number;
         current_hash = current_header.parent_hash;
-      }
+      } while (current_block_number >= target_header.number);
     }
 
     log_->warn(
@@ -922,9 +748,9 @@ namespace kagome::blockchain {
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeaves() const {
     std::vector<primitives::BlockHash> result;
-    result.reserve(tree_meta_->leaves.size());
-    std::transform(tree_meta_->leaves.begin(),
-                   tree_meta_->leaves.end(),
+    result.reserve(tree_->getMetadata().leaves.size());
+    std::transform(tree_->getMetadata().leaves.begin(),
+                   tree_->getMetadata().leaves.end(),
                    std::back_inserter(result),
                    [](const auto &hash) { return hash; });
     return result;
@@ -932,7 +758,7 @@ namespace kagome::blockchain {
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChildren(
       const primitives::BlockHash &block) const {
-    if (auto node = tree_->getByHash(block); node != nullptr) {
+    if (auto node = tree_->getRoot().findByHash(block); node != nullptr) {
       std::vector<primitives::BlockHash> result;
       result.reserve(node->children.size());
       for (const auto &child : node->children) {
@@ -947,14 +773,15 @@ namespace kagome::blockchain {
   }
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalized() const {
-    const auto &last = tree_meta_->last_finalized.get();
-    return primitives::BlockInfo{last.depth, last.block_hash};
+    const auto &last = tree_->getMetadata().last_finalized.lock();
+    BOOST_ASSERT(last != nullptr);
+    return primitives::BlockInfo{last->depth, last->block_hash};
   }
 
   outcome::result<consensus::EpochDigest> BlockTreeImpl::getEpochDescriptor(
       consensus::EpochNumber epoch_number,
       primitives::BlockHash block_hash) const {
-    auto node = tree_->getByHash(block_hash);
+    auto node = tree_->getRoot().findByHash(block_hash);
     if (node) {
       if (node->epoch_number != epoch_number) {
         return *node->next_epoch_digest;
@@ -969,7 +796,7 @@ namespace kagome::blockchain {
     auto leaves = getLeaves();
     leaf_depths.reserve(leaves.size());
     for (auto &leaf : leaves) {
-      auto leaf_node = tree_->getByHash(leaf);
+      auto leaf_node = tree_->getRoot().findByHash(leaf);
       leaf_depths.emplace_back(
           primitives::BlockInfo{leaf_node->depth, leaf_node->block_hash});
     }
@@ -1006,12 +833,9 @@ namespace kagome::blockchain {
 
     auto current_node = lastFinalizedNode;
 
-    for (;;) {
-      auto parent_node = current_node->parent.lock();
-      if (!parent_node || parent_node->finalized) {
-        break;
-      }
-
+    for (auto parent_node = current_node->parent.lock();
+         parent_node && !parent_node->finalized;
+         parent_node = current_node->parent.lock()) {
       auto main_chain_node = current_node;
       current_node = parent_node;
 
@@ -1034,15 +858,15 @@ namespace kagome::blockchain {
       auto block_body_res = storage_->getBlockBody(hash);
       if (block_body_res.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
-        for (size_t idx = 0; idx < block_body_res.value().size(); idx++) {
+        for (auto &ext : block_body_res.value()) {
           if (auto key = extrinsic_event_key_repo_->get(
-                  hasher_->blake2b_256(block_body_res.value()[idx].data))) {
+                  hasher_->blake2b_256(ext.data))) {
             extrinsic_events_engine_->notify(
                 key.value(),
                 primitives::events::ExtrinsicLifecycleEvent::Retracted(
-                    key.value(), std::move(hash)));
+                    key.value(), hash));
           }
-          extrinsics.emplace_back(std::move(block_body_res.value()[idx]));
+          extrinsics.emplace_back(std::move(ext));
         }
       }
 
@@ -1078,4 +902,5 @@ namespace kagome::blockchain {
       container.emplace_back(child->block_hash, child->depth);
     }
   }
+
 }  // namespace kagome::blockchain
