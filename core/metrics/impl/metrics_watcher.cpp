@@ -6,7 +6,7 @@
 #include "metrics_watcher.hpp"
 
 namespace {
-  const auto kStorageSize = "kagome_storage_size";
+  constexpr auto storageSizeMetricName = "kagome_storage_size";
 }  // namespace
 
 namespace kagome::metrics {
@@ -23,8 +23,9 @@ namespace kagome::metrics {
     metrics_registry_ = metrics::createRegistry();
 
     metrics_registry_->registerGaugeFamily(
-        kStorageSize, "Consumption of disk space by storage");
-    metric_storage_size_ = metrics_registry_->registerGaugeMetric(kStorageSize);
+        storageSizeMetricName, "Consumption of disk space by storage");
+    metric_storage_size_ =
+        metrics_registry_->registerGaugeMetric(storageSizeMetricName);
 
     app_state_manager->takeControl(*this);
   }

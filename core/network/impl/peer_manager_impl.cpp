@@ -14,7 +14,7 @@
 #include "storage/predefined_keys.hpp"
 
 namespace {
-  constexpr const char *kSyncPeer = "kagome_sync_peer";
+  constexpr const char *syncPeerMetricName = "kagome_sync_peer";
 }
 
 namespace kagome::network {
@@ -53,8 +53,9 @@ namespace kagome::network {
     BOOST_ASSERT(storage_ != nullptr);
 
     // Register metrics
-    registry_->registerGaugeFamily(kSyncPeer, "Number of peers we sync with");
-    sync_peer_num_ = registry_->registerGaugeMetric(kSyncPeer);
+    registry_->registerGaugeFamily(syncPeerMetricName,
+                                   "Number of peers we sync with");
+    sync_peer_num_ = registry_->registerGaugeMetric(syncPeerMetricName);
     sync_peer_num_->set(0);
 
     app_state_manager_->takeControl(*this);

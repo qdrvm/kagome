@@ -30,9 +30,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
 }
 
 namespace {
-  constexpr const char *kBlockHeightGaugeName = "kagome_block_height";
-  constexpr const char *kKnownChainLeaves = "kagome_known_chain_leaves";
-}
+  constexpr auto blockHeightMetricName = "kagome_block_height";
+  constexpr auto knownChainLeavesMetricName = "kagome_known_chain_leaves";
+}  // namespace
 
 namespace kagome::blockchain {
   using Buffer = common::Buffer;
@@ -316,7 +316,7 @@ namespace kagome::blockchain {
     }
 
     SL_TRACE(log,
-             "EPOCH_DIGEST_IN_BLOCKTREE: ROOT, block #{}, hash {}\n"
+             "EPOCH_DIGEST_IN_BLOCKTREE: ROOT, block #{}, hash {}, "
              "Epoch {}, Current randomness {}, Next randomness {}",
              number,
              hash.toHex(),
@@ -391,22 +391,22 @@ namespace kagome::blockchain {
     BOOST_ASSERT(babe_util_ != nullptr);
 
     // Register metrics
-    metrics_registry_->registerGaugeFamily(kBlockHeightGaugeName,
-                                   "Block height info of the chain");
+    metrics_registry_->registerGaugeFamily(blockHeightMetricName,
+                                           "Block height info of the chain");
 
-    metric_best_block_height_ = metrics_registry_->registerGaugeMetric(kBlockHeightGaugeName,
-                                                        {{"status", "best"}});
+    metric_best_block_height_ = metrics_registry_->registerGaugeMetric(
+        blockHeightMetricName, {{"status", "best"}});
     metric_best_block_height_->set(tree_meta_->deepest_leaf.get().depth);
 
     metric_finalized_block_height_ = metrics_registry_->registerGaugeMetric(
-        kBlockHeightGaugeName, {{"status", "finalized"}});
+        blockHeightMetricName, {{"status", "finalized"}});
     metric_finalized_block_height_->set(tree_meta_->last_finalized.get().depth);
 
-    metrics_registry_->registerGaugeFamily(kKnownChainLeaves,
-                                           "Number of known chain leaves (aka forks)");
+    metrics_registry_->registerGaugeFamily(
+        knownChainLeavesMetricName, "Number of known chain leaves (aka forks)");
 
-    metric_known_chain_leaves_ = metrics_registry_->registerGaugeMetric(
-        kKnownChainLeaves);
+    metric_known_chain_leaves_ =
+        metrics_registry_->registerGaugeMetric(knownChainLeavesMetricName);
     metric_known_chain_leaves_->set(tree_meta_->leaves.size());
   }
 

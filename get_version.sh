@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -eu
 
 realpath() {
   if [ -d "$1" ]; then

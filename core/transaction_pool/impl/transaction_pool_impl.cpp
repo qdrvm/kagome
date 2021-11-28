@@ -12,7 +12,8 @@ using kagome::primitives::BlockNumber;
 using kagome::primitives::Transaction;
 
 namespace {
-  constexpr const char *kReadyTransactions = "kagome_ready_transactions_number";
+  constexpr const char *readyTransactionsMetricName =
+      "kagome_ready_transactions_number";
 }
 
 namespace kagome::transaction_pool {
@@ -40,9 +41,10 @@ namespace kagome::transaction_pool {
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
-        kReadyTransactions, "Number of transactions in the ready queue");
+        readyTransactionsMetricName,
+        "Number of transactions in the ready queue");
     metric_ready_txs_ =
-        metrics_registry_->registerGaugeMetric(kReadyTransactions);
+        metrics_registry_->registerGaugeMetric(readyTransactionsMetricName);
     metric_ready_txs_->set(0);
   }
 

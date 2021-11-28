@@ -196,14 +196,13 @@ namespace kagome::consensus {
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
 
     auto exec_end = std::chrono::high_resolution_clock::now();
-    auto taken_milliseconds =
-        std::chrono::duration_cast<std::chrono::milliseconds>(exec_end
-                                                              - exec_start)
-            .count();
-    SL_DEBUG(logger_, "Core_execute_block: {} ms", taken_milliseconds);
+    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           exec_end - exec_start)
+                           .count();
+    SL_DEBUG(logger_, "Core_execute_block: {} ms", duration_ms);
 
-    metric_block_execution_time_->observe(
-        static_cast<double>(taken_milliseconds) / 1000);
+    metric_block_execution_time_->observe(static_cast<double>(duration_ms)
+                                          / 1000);
 
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));

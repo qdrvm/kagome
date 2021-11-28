@@ -9,8 +9,8 @@
 #include "application/app_state_manager.hpp"
 
 namespace {
-  constexpr const char *kOpenedRpcSession = "kagome_rpc_sessions_opened";
-  constexpr const char *kClosedRpcSession = "kagome_rpc_sessions_closed";
+  constexpr auto openedRpcSessionMetricName = "kagome_rpc_sessions_opened";
+  constexpr auto closedRpcSessionMetricName = "kagome_rpc_sessions_closed";
 }  // namespace
 
 namespace kagome::api {
@@ -30,11 +30,13 @@ namespace kagome::api {
 
     // Register metrics
     registry_->registerCounterFamily(
-        kOpenedRpcSession, "Number of persistent RPC sessions opened");
-    opened_session_ = registry_->registerCounterMetric(kOpenedRpcSession);
+        openedRpcSessionMetricName, "Number of persistent RPC sessions opened");
+    opened_session_ =
+        registry_->registerCounterMetric(openedRpcSessionMetricName);
     registry_->registerCounterFamily(
-        kClosedRpcSession, "Number of persistent RPC sessions closed");
-    closed_session_ = registry_->registerCounterMetric(kClosedRpcSession);
+        closedRpcSessionMetricName, "Number of persistent RPC sessions closed");
+    closed_session_ =
+        registry_->registerCounterMetric(closedRpcSessionMetricName);
 
     app_state_manager->takeControl(*this);
   }

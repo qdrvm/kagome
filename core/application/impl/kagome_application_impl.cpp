@@ -64,26 +64,27 @@ namespace kagome::application {
     {  // Metrics
       auto metrics_registry = metrics::createRegistry();
 
-      const auto kStartTime = "kagome_process_start_time_seconds";
+      constexpr auto startTimeMetricName = "kagome_process_start_time_seconds";
       metrics_registry->registerGaugeFamily(
-          kStartTime, "UNIX timestamp of the moment the process started");
+          startTimeMetricName,
+          "UNIX timestamp of the moment the process started");
       auto metric_start_time =
-          metrics_registry->registerGaugeMetric(kStartTime);
+          metrics_registry->registerGaugeMetric(startTimeMetricName);
       metric_start_time->set(clock_->nowUint64());
 
-      const auto kNodeRoles = "kagome_node_roles";
-      metrics_registry->registerGaugeFamily(kNodeRoles,
+      constexpr auto nodeRolesMetricName = "kagome_node_roles";
+      metrics_registry->registerGaugeFamily(nodeRolesMetricName,
                                             "The roles the node is running as");
       auto metric_node_roles =
-          metrics_registry->registerGaugeMetric(kNodeRoles);
+          metrics_registry->registerGaugeMetric(nodeRolesMetricName);
       metric_node_roles->set(app_config_.roles().value);
 
-      const auto kBuildInfo = "kagome_build_info";
+      constexpr auto buildInfoMetricName = "kagome_build_info";
       metrics_registry->registerGaugeFamily(
-          kBuildInfo,
+          buildInfoMetricName,
           "A metric with a constant '1' value labeled by name, version");
       auto metric_build_info = metrics_registry->registerGaugeMetric(
-          kBuildInfo,
+          buildInfoMetricName,
           {{"name", app_config_.nodeName()},
            {"version", app_config_.nodeVersion()}});
       metric_build_info->set(1);

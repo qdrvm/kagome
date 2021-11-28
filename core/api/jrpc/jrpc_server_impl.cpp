@@ -17,7 +17,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, JRpcServerImpl::Error, e) {
 }
 
 namespace {
-  constexpr const char *kRpcRequestsCount = "kagome_rpc_requests_count";
+  constexpr auto rpcRequestsCountMetricName = "kagome_rpc_requests_count";
 }
 
 namespace kagome::api {
@@ -27,11 +27,11 @@ namespace kagome::api {
     jsonrpc_handler_.RegisterFormatHandler(format_handler_);
 
     // Register metrics
-    metrics_registry_->registerCounterFamily(kRpcRequestsCount,
+    metrics_registry_->registerCounterFamily(rpcRequestsCountMetricName,
                                              "Block height info of the chain");
 
     metric_rpc_requests_count_ =
-        metrics_registry_->registerCounterMetric(kRpcRequestsCount);
+        metrics_registry_->registerCounterMetric(rpcRequestsCountMetricName);
   }
 
   void JRpcServerImpl::registerHandler(const std::string &name, Method method) {

@@ -237,6 +237,11 @@ namespace {
               common::raise(authorities_res.error());
             }
             auto &authorities = authorities_res.value();
+
+            for (const auto &authority : authorities) {
+              SL_DEBUG(log, "Grandpa authority: {}", authority.id.id.toHex());
+            }
+
             authorities.id = 0;
 
             auto node = authority::ScheduleNode::createAsRoot({0, hash});

@@ -15,7 +15,8 @@
 #include "storage/predefined_keys.hpp"
 
 namespace {
-  constexpr const char *kHighestGrandpaRound = "kagome_finality_grandpa_round";
+  constexpr auto highestGrandpaRoundMetricName =
+      "kagome_finality_grandpa_round";
 }
 
 namespace kagome::consensus::grandpa {
@@ -52,10 +53,10 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(app_state_manager != nullptr);
 
     // Register metrics
-    metrics_registry_->registerGaugeFamily(kHighestGrandpaRound,
+    metrics_registry_->registerGaugeFamily(highestGrandpaRoundMetricName,
                                            "Highest GRANDPA round");
     metric_highest_round_ =
-        metrics_registry_->registerGaugeMetric(kHighestGrandpaRound);
+        metrics_registry_->registerGaugeMetric(highestGrandpaRoundMetricName);
     metric_highest_round_->set(0);
 
     app_state_manager->takeControl(*this);

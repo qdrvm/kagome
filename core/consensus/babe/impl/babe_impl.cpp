@@ -575,13 +575,12 @@ namespace kagome::consensus::babe {
     }
 
     auto proposal_end = std::chrono::high_resolution_clock::now();
-    auto taken_milliseconds =
-        std::chrono::duration_cast<std::chrono::milliseconds>(proposal_end
-                                                              - proposal_start)
-            .count();
-    SL_DEBUG(log_, "Block has built for {} ms", taken_milliseconds);
+    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           proposal_end - proposal_start)
+                           .count();
+    SL_DEBUG(log_, "Block has been built in {} ms", duration_ms);
 
-    metric_block_proposal_time_->observe(static_cast<double>(taken_milliseconds)
+    metric_block_proposal_time_->observe(static_cast<double>(duration_ms)
                                          / 1000);
 
     auto block = pre_seal_block_res.value();
