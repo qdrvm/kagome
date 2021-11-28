@@ -71,8 +71,10 @@ namespace kagome::application {
     if (auto entry = tree.get_child_optional("chainType"); entry.has_value()) {
       chain_type_ = entry.value().get<std::string>("");
     } else {
-      log_->warn("Field 'chainType' was not specified in the chain spec");
-      chain_type_ = std::string("Unspecified");
+      log_->warn(
+          "Field 'chainType' was not specified in the chain spec. 'Live' by "
+          "default.");
+      chain_type_ = std::string("Live");
     }
 
     auto telemetry_endpoints_opt =
