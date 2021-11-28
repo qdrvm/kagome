@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
           }
           res2 = db_cursor->next();
         }
-        [[maybe_unused]] auto res2 = db_batch->commit();
+        std::ignore = db_batch->commit();
       }
       log->trace("{} keys were processed at the db.", ++count);
 
