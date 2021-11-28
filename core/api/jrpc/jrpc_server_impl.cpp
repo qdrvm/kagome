@@ -15,11 +15,23 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, JRpcServerImpl::Error, e) {
   }
   return "Unknown error";
 }
+
+namespace {
+  constexpr auto rpcRequestsCountMetricName = "kagome_rpc_requests_count";
+}
+
 namespace kagome::api {
 
   JRpcServerImpl::JRpcServerImpl() {
     // register json format handler
     jsonrpc_handler_.RegisterFormatHandler(format_handler_);
+
+    // Register metrics
+    metrics_registry_->registerCounterFamily(rpcRequestsCountMetricName,
+                                             "Block height info of the chain");
+
+    metric_rpc_requests_count_ =
+        metrics_registry_->registerCounterMetric(rpcRequestsCountMetricName);
   }
 
   void JRpcServerImpl::registerHandler(const std::string &name, Method method) {
@@ -51,9 +63,12 @@ namespace kagome::api {
       auto &&formatted_response = writer.GetData();
       cb(std::string_view(formatted_response->GetData(),
                           formatted_response->GetSize()));
+
     } catch (const Fault &ex) {
       cb(outcome::failure(Error::JSON_FORMAT_FAILED));
     }
+
+    metric_rpc_requests_count_->inc();
   }
 
   void JRpcServerImpl::processData(std::string_view request,

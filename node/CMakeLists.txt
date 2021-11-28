@@ -11,7 +11,7 @@ target_link_libraries(kagome
     Boost::boost
     Boost::program_options
     kagome_application
-    app_config_impl
+    app_config
     p2p::p2p_identify
     p2p::p2p_ping
     )

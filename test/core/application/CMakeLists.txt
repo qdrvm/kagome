@@ -23,7 +23,7 @@ addtest(app_config_test
     app_config_test.cpp
     )
 target_link_libraries(app_config_test
-    app_config_impl
+    app_config
     Boost::filesystem
     logger_for_tests
     )

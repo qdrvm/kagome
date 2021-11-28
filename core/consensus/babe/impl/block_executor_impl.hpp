@@ -18,6 +18,7 @@
 #include "consensus/validation/block_validator.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
 #include "runtime/runtime_api/core.hpp"
@@ -62,6 +63,11 @@ namespace kagome::consensus {
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
+
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Histogram *metric_block_execution_time_;
+
     log::Logger logger_;
   };
 

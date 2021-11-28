@@ -14,6 +14,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "consensus/babe/block_executor.hpp"
+#include "metrics/metrics.hpp"
 #include "network/router.hpp"
 
 namespace kagome::network {
@@ -122,6 +123,10 @@ namespace kagome::network {
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
+
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_import_queue_length_;
 
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
 

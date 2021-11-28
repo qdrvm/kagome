@@ -8,6 +8,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
@@ -130,6 +131,10 @@ namespace kagome::transaction_pool {
     std::multimap<Transaction::Tag, std::weak_ptr<Transaction>> tx_waits_tag_;
 
     Limits limits_;
+
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_ready_txs_;
   };
 
 }  // namespace kagome::transaction_pool

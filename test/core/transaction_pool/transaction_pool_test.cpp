@@ -13,7 +13,6 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/std_list_adapter.hpp"
-#include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
