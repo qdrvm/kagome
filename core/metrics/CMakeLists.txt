@@ -18,9 +18,20 @@ add_library(metrics
     impl/session_impl.hpp
     metrics.hpp
     registry.hpp
-    session.hpp)
+    session.hpp
+    )
 
 target_link_libraries(metrics
     app_state_manager
     Boost::boost
-    prometheus-cpp::core)
+    prometheus-cpp::core
+    )
+
+add_library(metrics_watcher
+    impl/metrics_watcher.cpp
+    )
+
+target_link_libraries(metrics_watcher
+    metrics
+    )
+

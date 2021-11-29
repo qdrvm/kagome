@@ -9,6 +9,8 @@
 
 #include "application/impl/util.hpp"
 #include "consensus/babe/babe.hpp"
+#include "metrics/impl/metrics_watcher.hpp"
+#include "metrics/metrics.hpp"
 
 namespace kagome::application {
 
@@ -16,8 +18,7 @@ namespace kagome::application {
       const AppConfiguration &app_config)
       : app_config_(app_config),
         injector_{std::make_unique<injector::KagomeNodeInjector>(app_config)},
-        logger_(log::createLogger("Application", "application")),
-        node_name_(app_config.nodeName()) {
+        logger_(log::createLogger("Application", "application")) {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     chain_spec_ = injector_->injectChainSpec();
@@ -34,12 +35,14 @@ namespace kagome::application {
     peer_manager_ = injector_->injectPeerManager();
     jrpc_api_service_ = injector_->injectRpcApiService();
     sync_observer_ = injector_->injectSyncObserver();
+    metrics_watcher_ = injector_->injectMetricsWatcher();
   }
 
   void KagomeApplicationImpl::run() {
-    logger_->info("Start as KagomeApplicationImpl with PID {} named as {}",
-                  getpid(),
-                  node_name_);
+    logger_->info("Start as node version '{}' named as '{}' with PID {}",
+                  app_config_.nodeVersion(),
+                  app_config_.nodeName(),
+                  getpid());
 
     auto chain_path = app_config_.chainPath(chain_spec_->id());
     auto res = util::init_directory(chain_path);
@@ -57,6 +60,35 @@ namespace kagome::application {
     });
 
     app_state_manager_->atShutdown([ctx{io_context_}] { ctx->stop(); });
+
+    {  // Metrics
+      auto metrics_registry = metrics::createRegistry();
+
+      constexpr auto startTimeMetricName = "kagome_process_start_time_seconds";
+      metrics_registry->registerGaugeFamily(
+          startTimeMetricName,
+          "UNIX timestamp of the moment the process started");
+      auto metric_start_time =
+          metrics_registry->registerGaugeMetric(startTimeMetricName);
+      metric_start_time->set(clock_->nowUint64());
+
+      constexpr auto nodeRolesMetricName = "kagome_node_roles";
+      metrics_registry->registerGaugeFamily(nodeRolesMetricName,
+                                            "The roles the node is running as");
+      auto metric_node_roles =
+          metrics_registry->registerGaugeMetric(nodeRolesMetricName);
+      metric_node_roles->set(app_config_.roles().value);
+
+      constexpr auto buildInfoMetricName = "kagome_build_info";
+      metrics_registry->registerGaugeFamily(
+          buildInfoMetricName,
+          "A metric with a constant '1' value labeled by name, version");
+      auto metric_build_info = metrics_registry->registerGaugeMetric(
+          buildInfoMetricName,
+          {{"name", app_config_.nodeName()},
+           {"version", app_config_.nodeVersion()}});
+      metric_build_info->set(1);
+    }
 
     app_state_manager_->run();
   }

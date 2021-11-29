@@ -9,7 +9,7 @@ namespace kagome::api::state::request {
 
   GetRuntimeVersion::GetRuntimeVersion(std::shared_ptr<StateApi> api)
       : api_(std::move(api)) {
-    BOOST_ASSERT(!!api_);
+    BOOST_ASSERT(api_ != nullptr);
   }
 
   outcome::result<void> GetRuntimeVersion::init(

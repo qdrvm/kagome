@@ -47,7 +47,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
 
-    enum class MemoryOrigin { INTRINSIC, INTERNAL };
+    enum class MemoryOrigin { EXTERNAL, INTERNAL };
     [[nodiscard]] InstanceEnvironment make(
         MemoryOrigin memory_origin,
         WAVM::Runtime::Instance *runtime_instance,

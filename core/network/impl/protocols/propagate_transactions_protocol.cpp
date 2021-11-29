@@ -9,6 +9,11 @@
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/types/no_data_message.hpp"
 
+namespace {
+  constexpr const char *kPropagatedTransactions =
+      "kagome_sync_propagated_transactions";
+}
+
 namespace kagome::network {
 
   KAGOME_DEFINE_CACHE(PropagateTransactionsProtocol);
@@ -35,6 +40,13 @@ namespace kagome::network {
     BOOST_ASSERT(ext_event_key_repo_ != nullptr);
     const_cast<Protocol &>(protocol_) = fmt::format(
         kPropagateTransactionsProtocol.data(), chain_spec.protocolId());
+
+    // Register metrics
+    metrics_registry_->registerCounterFamily(
+        kPropagatedTransactions,
+        "Number of transactions propagated to at least one peer");
+    metric_propagated_tx_counter_ =
+        metrics_registry_->registerCounterMetric(kPropagatedTransactions);
   }
 
   bool PropagateTransactionsProtocol::start() {
@@ -313,6 +325,7 @@ namespace kagome::network {
           peers.push_back(peer_id);
         });
     if (peers.size() > 1) {  // One of peers is current node itself
+      metric_propagated_tx_counter_->inc(peers.size() - 1);
       for (const auto &tx : txs) {
         if (auto key = ext_event_key_repo_->get(tx.hash); key.has_value()) {
           extrinsic_events_engine_->notify(

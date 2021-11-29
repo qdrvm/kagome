@@ -143,6 +143,12 @@ namespace kagome::application {
      */
     virtual const std::string &nodeName() const = 0;
 
+    /**
+     * @return string representation of node version .
+     * The version of node is going to be used in telemetry, etc.
+     */
+    virtual const std::string &nodeVersion() const = 0;
+
     enum class RuntimeExecutionMethod { Compile, Interpret };
     /**
      * @return enum constant of the chosen runtime backend

@@ -23,6 +23,11 @@
 #include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
+namespace {
+  constexpr const char *kBlockProposalTime =
+      "kagome_proposer_block_constructed";
+}
+
 using namespace std::literals::chrono_literals;
 
 namespace kagome::consensus::babe {
@@ -77,6 +82,14 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(offchain_worker_api_);
 
     BOOST_ASSERT(app_state_manager);
+
+    // Register metrics
+    metrics_registry_->registerHistogramFamily(
+        kBlockProposalTime, "Time taken to construct new block");
+    metric_block_proposal_time_ = metrics_registry_->registerHistogramMetric(
+        kBlockProposalTime,
+        {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
+
     app_state_manager->takeControl(*this);
   }
 
@@ -152,7 +165,7 @@ namespace kagome::consensus::babe {
       const primitives::AuthorityList &authorities,
       const primitives::BabeSessionKey &authority_key) {
     uint64_t n = 0;
-    for (const auto &authority : authorities) {
+    for (auto &authority : authorities) {
       if (authority.id.id == authority_key) {
         return n;
       }
@@ -575,6 +588,7 @@ namespace kagome::consensus::babe {
             best_block_.number,
             best_block_.hash);
 
+    auto proposal_start = std::chrono::high_resolution_clock::now();
     // calculate babe_pre_digest
     auto babe_pre_digest_res =
         babePreDigest(slot_type, output, authority_index);
@@ -593,6 +607,15 @@ namespace kagome::consensus::babe {
                       "Cannot propose a block: {}",
                       pre_seal_block_res.error().message());
     }
+
+    auto proposal_end = std::chrono::high_resolution_clock::now();
+    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           proposal_end - proposal_start)
+                           .count();
+    SL_DEBUG(log_, "Block has been built in {} ms", duration_ms);
+
+    metric_block_proposal_time_->observe(static_cast<double>(duration_ms)
+                                         / 1000);
 
     auto block = pre_seal_block_res.value();
 

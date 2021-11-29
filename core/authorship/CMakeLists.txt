@@ -35,4 +35,5 @@ add_library(proposer
 target_link_libraries(proposer
     block_builder_factory
     scale::scale
+    metrics
     )

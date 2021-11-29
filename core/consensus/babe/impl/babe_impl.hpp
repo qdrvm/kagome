@@ -24,6 +24,7 @@
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
@@ -164,6 +165,10 @@ namespace kagome::consensus::babe {
     BabeSlotNumber current_slot_{};
 
     primitives::BlockInfo best_block_{};
+
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Histogram *metric_block_proposal_time_;
 
     log::Logger log_;
   };

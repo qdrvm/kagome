@@ -73,6 +73,7 @@
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "metrics/impl/exposer_impl.hpp"
+#include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/block_announce_transmitter_impl.hpp"
@@ -236,6 +237,11 @@ namespace {
               common::raise(authorities_res.error());
             }
             auto &authorities = authorities_res.value();
+
+            for (const auto &authority : authorities) {
+              SL_DEBUG(log, "Grandpa authority: {}", authority.id.id.toHex());
+            }
+
             authorities.id = 0;
 
             auto node = authority::ScheduleNode::createAsRoot({0, hash});
@@ -1446,6 +1452,11 @@ namespace kagome::injector {
   std::shared_ptr<storage::trie::TrieStorage>
   KagomeNodeInjector::injectTrieStorage() {
     return pimpl_->injector_.create<sptr<storage::trie::TrieStorage>>();
+  }
+
+  std::shared_ptr<metrics::MetricsWatcher>
+  KagomeNodeInjector::injectMetricsWatcher() {
+    return pimpl_->injector_.create<sptr<metrics::MetricsWatcher>>();
   }
 
 }  // namespace kagome::injector

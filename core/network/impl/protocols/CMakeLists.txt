@@ -33,6 +33,7 @@ add_library(propagate_transactions_protocol
 target_link_libraries(propagate_transactions_protocol
     logger
     protocol_error
+    metrics
     )
 
 add_library(sync_protocol
