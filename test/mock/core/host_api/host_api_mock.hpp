@@ -79,11 +79,6 @@ namespace kagome::host_api {
                 (override));
 
     MOCK_METHOD(runtime::WasmSpan,
-                ext_default_child_storage_get_version_1,
-                (runtime::WasmSpan, runtime::WasmSpan key),
-                (override));
-
-    MOCK_METHOD(runtime::WasmSpan,
                 ext_storage_get_version_1,
                 (runtime::WasmSpan),
                 (override));
