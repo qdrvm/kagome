@@ -14,10 +14,12 @@ namespace kagome::runtime::binaryen {
 
   InstanceEnvironmentFactory::InstanceEnvironmentFactory(
       std::shared_ptr<storage::trie::TrieStorage> storage,
+      std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : storage_{std::move(storage)},
+        serializer_{std::move(serializer)},
         host_api_factory_{std::move(host_api_factory)},
         block_header_repo_{std::move(block_header_repo)},
         changes_tracker_{std::move(changes_tracker)} {
@@ -32,7 +34,7 @@ namespace kagome::runtime::binaryen {
     auto new_memory_provider =
         std::make_shared<BinaryenMemoryProvider>(memory_factory);
     auto new_storage_provider =
-        std::make_shared<TrieStorageProviderImpl>(storage_);
+        std::make_shared<TrieStorageProviderImpl>(storage_, serializer_);
     auto core_factory = std::make_shared<CoreApiFactoryImpl>(
         shared_from_this(), block_header_repo_, changes_tracker_);
     auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(

@@ -10,6 +10,7 @@
 
 namespace kagome::storage::trie {
   class TrieStorage;
+  class TrieSerializer;
 }
 
 namespace kagome::storage::changes_trie {
@@ -38,6 +39,7 @@ namespace kagome::runtime::binaryen {
    public:
     InstanceEnvironmentFactory(
         std::shared_ptr<storage::trie::TrieStorage> storage,
+        std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
@@ -46,6 +48,7 @@ namespace kagome::runtime::binaryen {
 
    private:
     std::shared_ptr<storage::trie::TrieStorage> storage_;
+    std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;

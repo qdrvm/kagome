@@ -11,11 +11,14 @@
 namespace kagome::runtime {
   using storage::trie::TopperTrieBatch;
   using storage::trie::TopperTrieBatchImpl;
+  using storage::trie::TrieSerializer;
   using storage::trie::TrieStorage;
 
   TrieStorageProviderImpl::TrieStorageProviderImpl(
-      std::shared_ptr<TrieStorage> trie_storage)
+      std::shared_ptr<TrieStorage> trie_storage,
+      std::shared_ptr<TrieSerializer> trie_serializer)
       : trie_storage_{std::move(trie_storage)},
+        trie_serializer_{std::move(trie_serializer)},
         logger_{log::createLogger("TrieStorageProvider", "runtime_api")} {
     BOOST_ASSERT(trie_storage_ != nullptr);
   }
@@ -90,9 +93,12 @@ namespace kagome::runtime {
           "Creating new persistent batch for child storage {} with root {}",
           root_path.toHex(),
           trie_storage_->getRootHash().toHex());
-      OUTCOME_TRY(child_root_value, getCurrentBatch()->get(root_path));
-      OUTCOME_TRY(child_root_hash,
-                  common::Hash256::fromSpan(gsl::make_span(child_root_value)));
+      OUTCOME_TRY(child_root_value, getCurrentBatch()->tryGet(root_path));
+      auto child_root_hash = child_root_value
+                                 ? common::Hash256::fromSpan(
+                                       gsl::make_span(child_root_value.value()))
+                                       .value()
+                                 : trie_serializer_->getEmptyRootHash();
       OUTCOME_TRY(child_batch,
                   trie_storage_->getPersistentBatchAt(child_root_hash));
       child_batches_.emplace(root_path, std::move(child_batch));

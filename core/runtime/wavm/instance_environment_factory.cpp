@@ -17,12 +17,14 @@ namespace kagome::runtime::wavm {
 
   InstanceEnvironmentFactory::InstanceEnvironmentFactory(
       std::shared_ptr<storage::trie::TrieStorage> storage,
+      std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<const IntrinsicModule> intrinsic_module,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : storage_{std::move(storage)},
+        serializer_{std::move(serializer)},
         compartment_{std::move(compartment)},
         intrinsic_module_{std::move(intrinsic_module)},
         host_api_factory_{std::move(host_api_factory)},
@@ -41,7 +43,7 @@ namespace kagome::runtime::wavm {
       WAVM::Runtime::Instance *runtime_instance,
       std::shared_ptr<IntrinsicModuleInstance> intrinsic_instance) const {
     auto new_storage_provider =
-        std::make_shared<TrieStorageProviderImpl>(storage_);
+        std::make_shared<TrieStorageProviderImpl>(storage_, serializer_);
     auto core_factory = std::make_shared<CoreApiFactoryImpl>(compartment_,
                                                              intrinsic_module_,
                                                              storage_,
