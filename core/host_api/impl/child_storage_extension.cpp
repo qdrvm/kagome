@@ -59,6 +59,9 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(
         logger_, child_key_buffer, key_buffer, value_buffer);
 
+    auto child_key_string = child_key_buffer.toHex();
+    auto key_string = key_buffer.toHex();
+    auto value_string = value_buffer.toHex();
     auto inner_batch = storage_provider_->getChildBatchAt(child_key_buffer);
     auto put_result = inner_batch.value()->put(key_buffer, value_buffer);
     if (not put_result) {

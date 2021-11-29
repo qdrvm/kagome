@@ -27,6 +27,7 @@
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
+#include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block.hpp"
@@ -120,6 +121,7 @@ class RuntimeTestBase : public ::testing::Test {
   void SetUp() override {
     initStorage();
     trie_storage_ = std::make_shared<storage::trie::TrieStorageMock>();
+    serializer_ = std::make_shared<storage::trie::TrieSerializerMock>();
 
     auto module_factory = createModuleFactory();
 
@@ -219,6 +221,7 @@ class RuntimeTestBase : public ::testing::Test {
       header_repo_;
   std::shared_ptr<runtime::RuntimeCodeProvider> wasm_provider_;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
+  std::shared_ptr<storage::trie::TrieSerializerMock> serializer_;
   std::shared_ptr<runtime::RuntimeEnvironmentFactory> runtime_env_factory_;
   std::shared_ptr<runtime::Executor> executor_;
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_;
