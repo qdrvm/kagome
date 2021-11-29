@@ -68,7 +68,6 @@ namespace kagome::host_api {
     constexpr static auto kDefaultLoggerTag =
         "WASM Runtime [ChildStorageExtension]";
 
-   private:
     template <typename F>
     auto executeOnChildStorage(runtime::WasmSpan child_storage_key,
                                runtime::WasmSpan key,

@@ -206,21 +206,6 @@ namespace kagome::runtime {
           "Current batch should always be persistent for a persistent call");
       auto persistent_batch =
           env.storage_provider->tryGetPersistentBatch().value();
-      for (auto [child_root_path, child_batch] :
-           env.storage_provider->getChildBatches()) {
-        OUTCOME_TRY(new_child_root, child_batch->commit());
-        auto path =
-            child_root_path.toHex();  // structure binding capture workaround
-        SL_DEBUG(logger_,
-                 "Runtime call committed new state for child storage {} with "
-                 "hash {}",
-                 path,
-                 new_child_root.toHex());
-        OUTCOME_TRY(persistent_batch->put(
-            child_root_path,
-            common::Buffer{scale::encode(new_child_root).value()}));
-      }
-      env.storage_provider->getChildBatches().clear();
       OUTCOME_TRY(new_state_root, persistent_batch->commit());
       SL_DEBUG(logger_,
                "Runtime call committed new state with hash {}",
