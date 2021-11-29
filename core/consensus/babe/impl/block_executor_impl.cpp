@@ -182,6 +182,7 @@ namespace kagome::consensus {
     const auto &previous_best_block = previous_best_block_res.value();
 
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
+
     auto exec_end = std::chrono::high_resolution_clock::now();
     SL_DEBUG(logger_,
              "Core_execute_block: {} ms",

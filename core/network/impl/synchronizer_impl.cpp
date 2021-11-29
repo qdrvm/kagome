@@ -724,7 +724,7 @@ namespace kagome::network {
             auto n = discardBlock(block_hash);
             SL_WARN(
                 log_,
-                "Block #{} hash={} {} was discarded: {}",
+                "Block #{} hash={} {} been discarded: {}",
                 number,
                 hash.toHex(),
                 n ? fmt::format("and {} others have", n) : fmt::format("has"),
