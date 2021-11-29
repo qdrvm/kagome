@@ -97,7 +97,7 @@ namespace kagome::consensus {
     virtual std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
         primitives::BabeSlotNumber slot,
         primitives::AuthorityListSize authorities_count,
-        const Randomness &randomness) = 0;
+        const Randomness &randomness) const = 0;
   };
 }  // namespace kagome::consensus
 

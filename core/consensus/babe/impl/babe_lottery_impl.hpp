@@ -44,7 +44,7 @@ namespace kagome::consensus {
     std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
         primitives::BabeSlotNumber slot,
         primitives::AuthorityListSize authorities_count,
-        const Randomness &randomness) override;
+        const Randomness &randomness) const override;
 
    private:
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;

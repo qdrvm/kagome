@@ -114,7 +114,7 @@ namespace kagome::consensus {
   BabeLotteryImpl::secondarySlotAuthor(
       primitives::BabeSlotNumber slot,
       primitives::AuthorityListSize authorities_count,
-      const Randomness &randomness) {
+      const Randomness &randomness) const {
     if (0 == authorities_count) {
       return std::nullopt;
     }
