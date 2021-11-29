@@ -24,6 +24,7 @@ namespace kagome::runtime::binaryen {
         block_header_repo_{std::move(block_header_repo)},
         changes_tracker_{std::move(changes_tracker)} {
     BOOST_ASSERT(storage_);
+    BOOST_ASSERT(serializer_);
     BOOST_ASSERT(host_api_factory_);
     BOOST_ASSERT(block_header_repo_);
     BOOST_ASSERT(changes_tracker_);
