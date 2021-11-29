@@ -71,6 +71,21 @@ namespace kagome::runtime {
     virtual bool isCurrentlyPersistent() const = 0;
 
     /**
+     * @brief Get (or create new) Child Batch with given root hash
+     *
+     * @param root root hash value of a new (or cached) batch
+     * @return Child storage tree batch
+     */
+    virtual outcome::result<std::shared_ptr<Batch>> getChildBatchAt(
+        const common::Buffer &root_path) = 0;
+
+    /**
+     * Access to internal map of child storages batches
+     */
+    virtual std::unordered_map<common::Buffer, std::shared_ptr<PersistentBatch>>&
+    getChildBatches() = 0;
+
+    /**
      * Commits persistent changes even if the current batch is not persistent
      */
     virtual outcome::result<storage::trie::RootHash> forceCommit() = 0;

@@ -82,6 +82,34 @@ namespace kagome::runtime {
            != nullptr;
   }
 
+  outcome::result<std::shared_ptr<TrieStorageProvider::Batch>>
+  TrieStorageProviderImpl::getChildBatchAt(const common::Buffer &root_path) {
+    if (child_batches_.count(root_path)) {
+      SL_DEBUG(
+          logger_,
+          "Creating new persistent batch for child storage {} with root {}",
+          root_path.toHex(),
+          trie_storage_->getRootHash().toHex());
+      OUTCOME_TRY(child_root_value, getCurrentBatch()->get(root_path));
+      OUTCOME_TRY(child_root_hash,
+                  common::Hash256::fromSpan(gsl::make_span(child_root_value)));
+      OUTCOME_TRY(child_batch,
+                  trie_storage_->getPersistentBatchAt(child_root_hash));
+      child_batches_.emplace(root_path, std::move(child_batch));
+    }
+    SL_DEBUG(logger_,
+             "Fetching persistent batch for child storage {} with root {}",
+             root_path.toHex(),
+             trie_storage_->getRootHash().toHex());
+    return child_batches_.at(root_path);
+  }
+
+  std::unordered_map<common::Buffer,
+                     std::shared_ptr<storage::trie::PersistentTrieBatch>>
+      &TrieStorageProviderImpl::getChildBatches() {
+    return child_batches_;
+  }
+
   outcome::result<storage::trie::RootHash>
   TrieStorageProviderImpl::forceCommit() {
     if (persistent_batch_ != nullptr) {

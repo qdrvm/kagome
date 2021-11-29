@@ -476,6 +476,53 @@ namespace kagome::host_api {
 
     /// @copydoc OffchainExtension::ext_offchain_index_clear_version_1
     virtual void ext_offchain_index_clear_version_1(runtime::WasmSpan key) = 0;
+
+    // ---------------------------- Child Storage ----------------------------
+
+    /**
+     * @brief Sets the value under a given key into the child storage
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param key a pointer-size indicating the key.
+     * @param value a pointer-size indicating the value.
+     */
+    virtual void ext_default_child_storage_set_version_1(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan key,
+        runtime::WasmSpan value) = 0;
+
+    /**
+     * @brief Retrieves the value associated with the given key from the child
+     * storage
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param key a pointer-size indicating the key.
+     * @return a pointer-size indicating the SCALE encoded Option containing the
+     * value.
+     */
+    virtual runtime::WasmSpan ext_default_child_storage_get_version_1(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan key) const = 0;
+
+    /**
+     * @brief Clears the storage of the given key and its value from the child
+     * storage.
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param key a pointer-size indicating the key
+     */
+    virtual void ext_default_child_storage_clear_version_1(
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan key) = 0;
+
+    /**
+     * @brief Gets the next key in storage after the given one in lexicographic
+     * order. The key provided to this function may or may not exist in storage
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param key a pointer-size indicating the key.
+     * @return a pointer-size indicating the SCALE encoded Option containing
+     * the next key in lexicographic order.
+     * Returns None if the entry cannot be found.
+     */
+    virtual runtime::WasmSpan ext_default_child_storage_next_key_version_1(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan key) const = 0;
   };
 }  // namespace kagome::host_api
 

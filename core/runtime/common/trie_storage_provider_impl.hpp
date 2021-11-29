@@ -9,6 +9,7 @@
 #include "runtime/trie_storage_provider.hpp"
 
 #include <stack>
+#include <unordered_map>
 
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
@@ -37,6 +38,11 @@ namespace kagome::runtime {
         const override;
     bool isCurrentlyPersistent() const override;
 
+    outcome::result<std::shared_ptr<Batch>> getChildBatchAt(
+        const common::Buffer &root_path) override;
+
+    std::unordered_map<common::Buffer, std::shared_ptr<PersistentBatch>>& getChildBatches() override;
+
     outcome::result<storage::trie::RootHash> forceCommit() override;
 
     outcome::result<void> startTransaction() override;
@@ -55,6 +61,9 @@ namespace kagome::runtime {
     // need to store it because it has to be the same in different runtime calls
     // to keep accumulated changes for commit to the main storage
     std::shared_ptr<PersistentBatch> persistent_batch_;
+
+    std::unordered_map<common::Buffer, std::shared_ptr<PersistentBatch>>
+        child_batches_;
 
     log::Logger logger_;
   };
