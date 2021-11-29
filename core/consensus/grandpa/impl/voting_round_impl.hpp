@@ -233,7 +233,7 @@ namespace kagome::consensus::grandpa {
     void sendFinalize(const BlockInfo &block,
                       const GrandpaJustification &justification);
 
-    void pending();
+    void sendNeighborMessage();
 
     std::shared_ptr<VoterSet> voter_set_;
     const RoundNumber round_number_;
@@ -297,7 +297,7 @@ namespace kagome::consensus::grandpa {
     std::optional<BlockInfo> finalized_;
 
     Timer timer_;
-    Timer pending_timer_;
+    Timer neighbor_msg_timer_;
 
     log::Logger logger_ = log::createLogger("VotingRound", "voting_round");
 

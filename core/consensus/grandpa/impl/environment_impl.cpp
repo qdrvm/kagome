@@ -193,6 +193,18 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
+  outcome::result<void> EnvironmentImpl::onNeighborMessageSent(
+      RoundNumber round, MembershipCounter set_id, BlockNumber last_finalized) {
+    SL_DEBUG(logger_, "Round #{}: Send neighbor message", round);
+
+    network::GrandpaNeighborMessage message{.round_number = round,
+                                            .voter_set_id = set_id,
+                                            .last_finalized = last_finalized};
+    transmitter_->neighbor(std::move(message));
+
+    return outcome::success();
+  }
+
   void EnvironmentImpl::doOnCompleted(
       const CompleteHandler &on_completed_slot) {
     on_completed_.disconnect_all_slots();
@@ -235,15 +247,10 @@ namespace kagome::consensus::grandpa {
     primitives::Justification justification;
     OUTCOME_TRY(enc, scale::encode(grandpa_justification));
     justification.data.put(enc);
-    auto res = block_tree_->finalize(grandpa_justification.block_info.hash,
-                                     justification);
-    if (res.has_value()) {
-      transmitter_->neighbor(network::GrandpaNeighborMessage{
-          .round_number = grandpa_justification.round_number,
-          .voter_set_id = id,
-          .last_finalized = grandpa_justification.block_info.number});
-    }
-    return res;
+    OUTCOME_TRY(block_tree_->finalize(grandpa_justification.block_info.hash,
+                                      justification));
+
+    return outcome::success();
   }
 
   outcome::result<GrandpaJustification> EnvironmentImpl::getJustification(

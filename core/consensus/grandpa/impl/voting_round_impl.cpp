@@ -57,7 +57,7 @@ namespace kagome::consensus::grandpa {
         prevotes_{std::move(prevotes)},
         precommits_{std::move(precommits)},
         timer_{*io_context_},
-        pending_timer_{*io_context_} {
+        neighbor_msg_timer_{*io_context_} {
     BOOST_ASSERT(not grandpa_.expired());
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(vote_crypto_provider_ != nullptr);
@@ -191,10 +191,10 @@ namespace kagome::consensus::grandpa {
 
     stage_ = Stage::START;
 
-    SL_DEBUG(logger_, "Round #{}: Start round", round_number_);
+    SL_DEBUG(
+        logger_, "Round #{}: Start round {:p}", round_number_, (void *)this);
 
-    // Start pending mechanism
-    pending();
+    sendNeighborMessage();
 
     // Current local time (Tstart)
     start_time_ = clock_->now();
@@ -1637,34 +1637,28 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void VotingRoundImpl::pending() {
-    pending_timer_.cancel();
+  void VotingRoundImpl::sendNeighborMessage() {
+    neighbor_msg_timer_.cancel();
 
-    // Resend defined votes
-    if (isPrimary_ && primary_vote_.has_value()) {
-      sendProposal(convertToPrimaryPropose(primary_vote_.value()));
+    auto res = env_->onNeighborMessageSent(
+        round_number_, voter_set_->id(), last_finalized_block_.number);
+    if (res.has_error()) {
+      logger_->warn("Neighbor message was not sent: {}", res.error().message());
     }
-    if (prevote_.has_value()) {
-      sendPrevote(convertToPrevote(prevote_.value()));
-    }
-    if (precommit_.has_value()) {
-      sendPrecommit(convertToPrecommit(precommit_.value()));
-    }
-    attemptToFinalizeRound();
 
     // Note: Pending interval must be longer than total voting time:
     //  2*Duration + 2*Duration + Gap
-    pending_timer_.expires_from_now(
-        std::max<Clock::Duration>(duration_ * 10, std::chrono::seconds(30)));
-    pending_timer_.async_wait(
+    // Spec says to send at least once per five minutes.
+    // Substrate sends at least once per two minutes.
+    neighbor_msg_timer_.expires_from_now(
+        std::max<Clock::Duration>(duration_ * 10, std::chrono::seconds(120)));
+    neighbor_msg_timer_.async_wait(
         [wp = std::weak_ptr<VotingRoundImpl>(
              std::static_pointer_cast<VotingRoundImpl>(shared_from_this()))](
             const boost::system::error_code &ec) {
           if (ec == boost::system::errc::operation_canceled) return;
           if (auto self = wp.lock()) {
-            SL_DEBUG(
-                self->logger_, "Round #{}: Pending...", self->round_number_);
-            self->pending();
+            self->sendNeighborMessage();
           }
         });
   }
