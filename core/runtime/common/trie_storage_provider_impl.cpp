@@ -84,7 +84,7 @@ namespace kagome::runtime {
 
   outcome::result<std::shared_ptr<TrieStorageProvider::Batch>>
   TrieStorageProviderImpl::getChildBatchAt(const common::Buffer &root_path) {
-    if (child_batches_.count(root_path)) {
+    if (!child_batches_.count(root_path)) {
       SL_DEBUG(
           logger_,
           "Creating new persistent batch for child storage {} with root {}",

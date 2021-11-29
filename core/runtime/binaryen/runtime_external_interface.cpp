@@ -208,24 +208,6 @@ namespace kagome::runtime::binaryen {
                                                   arguments.at(2).geti32());
         return wasm::Literal(res);
       }
-      /// ext_default_child_storage_clear_version_1
-      if (import->base == ext_default_child_storage_clear_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
-        return wasm::Literal();
-      }
-      /// ext_default_child_storage_get_version_1
-      if (import->base == ext_default_child_storage_get_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        auto res = host_api_->ext_default_child_storage_get_version_1(
-            arguments.at(0).geti64(), arguments.at(1).geti64());
-        return wasm::Literal(res);
-      }
-      /// ext_default_child_storage_next_key_version_1
-      if (import->base == ext_default_child_storage_next_key_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
-        return wasm::Literal(0);
-      }
       /// ext_default_child_storage_root_version_1
       if (import->base == ext_default_child_storage_root_version_1) {
         SL_WARN(logger_, "Call unimplemented import {}", import->base);
@@ -233,8 +215,33 @@ namespace kagome::runtime::binaryen {
       }
       /// ext_default_child_storage_set_version_1
       if (import->base == ext_default_child_storage_set_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        host_api_->ext_default_child_storage_set_version_1(
+            arguments.at(0).geti64(),
+            arguments.at(1).geti64(),
+            arguments.at(2).geti64());
         return wasm::Literal();
+      }
+      /// ext_default_child_storage_get_version_1
+      if (import->base == ext_default_child_storage_get_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = host_api_->ext_default_child_storage_get_version_1(
+            arguments.at(0).geti64(), arguments.at(1).geti64());
+        return wasm::Literal(res);
+      }
+      /// ext_default_child_storage_clear_version_1
+      if (import->base == ext_default_child_storage_clear_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        host_api_->ext_default_child_storage_clear_version_1(
+            arguments.at(0).geti64(), arguments.at(1).geti64());
+        return wasm::Literal();
+      }
+      /// ext_default_child_storage_next_key_version_1
+      if (import->base == ext_default_child_storage_next_key_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = host_api_->ext_default_child_storage_next_key_version_1(
+            arguments.at(0).geti64(), arguments.at(1).geti64());
+        return wasm::Literal(res);
       }
       /// ext_default_child_storage_kill_version_1
       if (import->base == ext_default_child_storage_kill_version_1) {
