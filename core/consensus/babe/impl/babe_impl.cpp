@@ -532,13 +532,15 @@ namespace kagome::consensus::babe {
     // identifiers are guaranteed to be correct, so use .value() directly
     auto put_res = inherent_data.putData<uint64_t>(kTimestampId, now);
     if (!put_res) {
-      return SL_ERROR(
+      SL_ERROR(
           log_, "cannot put an inherent data: {}", put_res.error().message());
+      return;
     }
     put_res = inherent_data.putData(kBabeSlotId, current_slot_);
     if (!put_res) {
-      return SL_ERROR(
+      SL_ERROR(
           log_, "cannot put an inherent data: {}", put_res.error().message());
+      return;
     }
 
     SL_INFO(log_,
@@ -546,22 +548,32 @@ namespace kagome::consensus::babe {
             best_block_.number,
             best_block_.hash);
 
-    auto epoch = block_tree_->getEpochDescriptor(current_epoch_.epoch_number,
-                                                 best_block_.hash);
+    auto epoch_res = block_tree_->getEpochDescriptor(
+        current_epoch_.epoch_number, best_block_.hash);
+    if (epoch_res.has_error()) {
+      SL_ERROR(
+          log_, "cannot get epoch descriptor: {}", put_res.error().message());
+      return;
+    }
+    auto &epoch = epoch_res.value();
 
     auto authority_index_res =
-        getAuthorityIndex(epoch.value().authorities, keypair_->public_key);
-    BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
+        getAuthorityIndex(epoch.authorities, keypair_->public_key);
+    if (not authority_index_res.has_value()) {
+      SL_ERROR(log_, "cannot get authority index: unknown authority");
+      return ;
+    }
+    auto authority_index = authority_index_res.value();
 
     auto proposal_start = std::chrono::high_resolution_clock::now();
 
     // calculate babe_pre_digest
-    auto babe_pre_digest_res =
-        babePreDigest(output, authority_index_res.value());
+    auto babe_pre_digest_res = babePreDigest(output, authority_index);
     if (not babe_pre_digest_res) {
-      return SL_ERROR(log_,
+       SL_ERROR(log_,
                       "cannot propose a block: {}",
                       babe_pre_digest_res.error().message());
+       return;
     }
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
@@ -569,9 +581,10 @@ namespace kagome::consensus::babe {
     auto pre_seal_block_res = proposer_->propose(
         best_block_.number, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
-      return SL_ERROR(log_,
+      SL_ERROR(log_,
                       "Cannot propose a block: {}",
                       pre_seal_block_res.error().message());
+      return;
     }
 
     auto proposal_end = std::chrono::high_resolution_clock::now();
@@ -602,8 +615,9 @@ namespace kagome::consensus::babe {
     // seal the block
     auto seal_res = sealBlock(block);
     if (!seal_res) {
-      return SL_ERROR(
+       SL_ERROR(
           log_, "Failed to seal the block: {}", seal_res.error().message());
+       return;
     }
 
     // add seal digest item
