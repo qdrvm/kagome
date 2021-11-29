@@ -205,7 +205,7 @@ namespace kagome::blockchain {
     // cleanup children from child to parent, because otherwise
     // when they are cleaned up when their parent shared ptr is deleted,
     // recursive calls of shared pointer destructors break the stack
-    while (prev_node != prev_root) {
+    while (prev_node && prev_node != prev_root) {
       prev_node->children.clear();
       prev_node = prev_node->parent.lock();
     }
