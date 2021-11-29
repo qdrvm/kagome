@@ -9,7 +9,6 @@
 #include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
-#include "blockchain/impl/block_tree_impl.hpp"
 #include "injector/application_injector.hpp"
 #include "log/configurator.hpp"
 #include "storage/trie/trie_storage.hpp"
