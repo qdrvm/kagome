@@ -171,4 +171,30 @@ namespace kagome::host_api {
     return kErrorSpan;
   }
 
+  runtime::WasmSpan ChildStorageExtension::ext_default_child_storage_root_version_1(
+          runtime::WasmSpan child_storage_key) const {
+    outcome::result<storage::trie::RootHash> res{{}};
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    auto [child_storage_key_ptr, child_storage_key_size] =
+        runtime::PtrSize(child_storage_key);
+    auto child_key_buffer =
+        memory.loadN(child_storage_key_ptr, child_storage_key_size);
+
+    SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);
+
+    if (auto opt_batch = storage_provider_->getChildBatchAt(child_key_buffer);
+        opt_batch.has_value() and opt_batch.value() != nullptr) {
+      res = opt_batch.value()->commit();
+    } else {
+      logger_->warn("ext_default_child_storage_root called in an ephemeral extension");
+      res = storage_provider_->forceCommit();
+    }
+    if (res.has_error()) {
+      logger_->error("ext_default_child_storage_root resulted with an error: {}",
+                     res.error().message());
+    }
+    const auto &root = res.value();
+    return memory.storeBuffer(root);
+  }
+
 }  // namespace kagome::host_api

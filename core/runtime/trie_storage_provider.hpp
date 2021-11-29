@@ -76,7 +76,7 @@ namespace kagome::runtime {
      * @param root root hash value of a new (or cached) batch
      * @return Child storage tree batch
      */
-    virtual outcome::result<std::shared_ptr<Batch>> getChildBatchAt(
+    virtual outcome::result<std::shared_ptr<PersistentBatch>> getChildBatchAt(
         const common::Buffer &root_path) = 0;
 
     /**

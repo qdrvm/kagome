@@ -54,6 +54,13 @@ namespace kagome::host_api {
     runtime::WasmSpan ext_default_child_storage_next_key_version_1(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const;
 
+    /**
+     * @see HostApi::ext_default_child_storage_root_version_1
+     */
+    runtime::WasmSpan ext_default_child_storage_root_version_1(
+        runtime::WasmSpan child_storage_key) const;
+
+   private:
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     log::Logger logger_;

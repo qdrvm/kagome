@@ -381,6 +381,11 @@ namespace kagome::host_api {
                 ext_default_child_storage_next_key_version_1,
                 (runtime::WasmSpan, runtime::WasmSpan),
                 (const, override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_default_child_storage_root_version_1,
+                (runtime::WasmSpan),
+                (const, override));
   };
 
 }  // namespace kagome::host_api

@@ -512,6 +512,14 @@ namespace kagome::host_api {
     virtual runtime::WasmSpan ext_default_child_storage_next_key_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key) const = 0;
+
+    /**
+     * @brief Commits all existing operations and computes the resulting child storage root.
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @return a pointer-size indicating the SCALE encoded storage root.
+     */
+    virtual runtime::WasmSpan ext_default_child_storage_root_version_1(
+        runtime::WasmSpan child_storage_key) const = 0;
   };
 }  // namespace kagome::host_api
 

@@ -210,8 +210,10 @@ namespace kagome::runtime::binaryen {
       }
       /// ext_default_child_storage_root_version_1
       if (import->base == ext_default_child_storage_root_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
-        return wasm::Literal(0);
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res =
+            host_api_->ext_default_child_storage_root_version_1(arguments.at(0).geti64());
+        return wasm::Literal(res);
       }
       /// ext_default_child_storage_set_version_1
       if (import->base == ext_default_child_storage_set_version_1) {

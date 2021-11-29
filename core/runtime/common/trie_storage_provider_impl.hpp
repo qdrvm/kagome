@@ -40,7 +40,7 @@ namespace kagome::runtime {
         const override;
     bool isCurrentlyPersistent() const override;
 
-    outcome::result<std::shared_ptr<Batch>> getChildBatchAt(
+    outcome::result<std::shared_ptr<PersistentBatch>> getChildBatchAt(
         const common::Buffer &root_path) override;
 
     std::unordered_map<common::Buffer, std::shared_ptr<PersistentBatch>>

@@ -37,7 +37,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(bool, isCurrentlyPersistent, (), (const, override));
 
-    MOCK_METHOD(outcome::result<std::shared_ptr<Batch>>,
+    MOCK_METHOD(outcome::result<std::shared_ptr<PersistentBatch>>,
                 getChildBatchAt,
                 (const common::Buffer &),
                 (override));
