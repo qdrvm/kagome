@@ -314,7 +314,7 @@ namespace kagome::host_api {
 
   // --------------------------- Offchain extension ----------------------------
 
-  runtime::WasmI8 HostApiImpl::ext_offchain_is_validator_version_1() {
+  runtime::WasmU32 HostApiImpl::ext_offchain_is_validator_version_1() {
     return offchain_ext_.ext_offchain_is_validator_version_1();
   }
 
@@ -341,19 +341,19 @@ namespace kagome::host_api {
   }
 
   void HostApiImpl::ext_offchain_local_storage_set_version_1(
-      runtime::WasmI32 kind, runtime::WasmSpan key, runtime::WasmSpan value) {
+      runtime::WasmU32 kind, runtime::WasmSpan key, runtime::WasmSpan value) {
     return offchain_ext_.ext_offchain_local_storage_set_version_1(
         kind, key, value);
   }
 
   void HostApiImpl::ext_offchain_local_storage_clear_version_1(
-      runtime::WasmI32 kind, runtime::WasmSpan key) {
+      runtime::WasmU32 kind, runtime::WasmSpan key) {
     return offchain_ext_.ext_offchain_local_storage_clear_version_1(kind, key);
   }
 
-  runtime::WasmI8
+  runtime::WasmU32
   HostApiImpl::ext_offchain_local_storage_compare_and_set_version_1(
-      runtime::WasmI32 kind,
+      runtime::WasmU32 kind,
       runtime::WasmSpan key,
       runtime::WasmSpan expected,
       runtime::WasmSpan value) {
@@ -362,7 +362,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan HostApiImpl::ext_offchain_local_storage_get_version_1(
-      runtime::WasmI32 kind, runtime::WasmSpan key) {
+      runtime::WasmU32 kind, runtime::WasmSpan key) {
     return offchain_ext_.ext_offchain_local_storage_get_version_1(kind, key);
   }
 
@@ -373,7 +373,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan HostApiImpl::ext_offchain_http_request_add_header_version_1(
-      runtime::WasmI32 request_id,
+      runtime::WasmU32 request_id,
       runtime::WasmSpan name,
       runtime::WasmSpan value) {
     return offchain_ext_.ext_offchain_http_request_add_header_version_1(
@@ -381,7 +381,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan HostApiImpl::ext_offchain_http_request_write_body_version_1(
-      runtime::WasmI32 request_id,
+      runtime::WasmU32 request_id,
       runtime::WasmSpan chunk,
       runtime::WasmSpan deadline) {
     return offchain_ext_.ext_offchain_http_request_write_body_version_1(
@@ -395,13 +395,13 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan HostApiImpl::ext_offchain_http_response_headers_version_1(
-      runtime::WasmI32 request_id) {
+      runtime::WasmU32 request_id) {
     return offchain_ext_.ext_offchain_http_response_headers_version_1(
         request_id);
   }
 
   runtime::WasmSpan HostApiImpl::ext_offchain_http_response_read_body_version_1(
-      runtime::WasmI32 request_id,
+      runtime::WasmU32 request_id,
       runtime::WasmSpan buffer,
       runtime::WasmSpan deadline) {
     return offchain_ext_.ext_offchain_http_response_read_body_version_1(
@@ -409,7 +409,7 @@ namespace kagome::host_api {
   }
 
   void HostApiImpl::ext_offchain_set_authorized_nodes_version_1(
-      runtime::WasmSpan nodes, runtime::WasmI32 authorized_only) {
+      runtime::WasmSpan nodes, runtime::WasmU32 authorized_only) {
     return offchain_ext_.ext_offchain_set_authorized_nodes_version_1(
         nodes, authorized_only);
   }

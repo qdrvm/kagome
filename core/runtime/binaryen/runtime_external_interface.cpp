@@ -12,170 +12,82 @@ namespace kagome::runtime {
   class TrieStorageProvider;
 }
 
+namespace {
+  template <typename T>
+  auto literalMemFun() {
+    return nullptr;
+  }
+
+  template <>
+  auto literalMemFun<uint64_t>() {
+    return &wasm::Literal::geti64;
+  }
+
+  template <>
+  auto literalMemFun<uint32_t>() {
+    return &wasm::Literal::geti32;
+  }
+
+  template <typename R, auto mf, typename... Args, size_t... I>
+  wasm::Literal callInternal(kagome::host_api::HostApi *host_api,
+                             const wasm::LiteralList &arguments,
+                             std::index_sequence<I...>) {
+    if constexpr (not std::is_same_v<void, R>) {
+      return wasm::Literal(
+          (host_api->*mf)((arguments.at(I).*literalMemFun<Args>())()...));
+    } else {
+      (host_api->*mf)((arguments.at(I).*literalMemFun<Args>())()...);
+      return wasm::Literal();
+    }
+  }
+
+  template <typename T, T>
+  struct HostApiFunc;
+  template <typename T, typename R, typename... Args, R (T::*mf)(Args...)>
+  struct HostApiFunc<R (T::*)(Args...), mf> {
+    using Ret = R;
+    static const size_t size = sizeof...(Args);
+    static wasm::Literal call(kagome::host_api::HostApi *host_api,
+                              const wasm::LiteralList &arguments) {
+      auto indices = std::index_sequence_for<Args...>{};
+      return callInternal<R, mf, Args...>(host_api, arguments, indices);
+    }
+  };
+  template <typename T, typename R, typename... Args, R (T::*mf)(Args...) const>
+  struct HostApiFunc<R (T::*)(Args...) const, mf> {
+    using Ret = R;
+    static const size_t size = sizeof...(Args);
+    static wasm::Literal call(kagome::host_api::HostApi *host_api,
+                              const wasm::LiteralList &arguments) {
+      auto indices = std::index_sequence_for<Args...>{};
+      return callInternal<R, mf, Args...>(host_api, arguments, indices);
+    }
+  };
+
+  template <auto mf>
+  constexpr size_t hostApiFuncArgSize() {
+    return HostApiFunc<decltype(mf), mf>::size;
+  }
+
+  template <auto mf>
+  wasm::Literal callHostApiFunc(kagome::host_api::HostApi *host_api,
+                                const wasm::LiteralList &arguments) {
+    return HostApiFunc<decltype(mf), mf>::call(host_api, arguments);
+  }
+}  // namespace
+
+#define CALL_HOST_API_FUNC(name)                                       \
+  if (import->base == #name) {                                         \
+    checkArguments(import->base.c_str(),                               \
+                   hostApiFuncArgSize<&host_api::HostApi ::name>(),    \
+                   arguments.size());                                  \
+    return callHostApiFunc<&host_api::HostApi ::name>(host_api_.get(), \
+                                                      arguments);      \
+  }                                                                    \
+  (void)0;
+
 namespace kagome::runtime::binaryen {
-
   const static wasm::Name env = "env";
-
-  const static wasm::Name ext_default_child_storage_clear_version_1 =
-      "ext_default_child_storage_clear_version_1";
-  const static wasm::Name ext_default_child_storage_get_version_1 =
-      "ext_default_child_storage_get_version_1";
-  const static wasm::Name ext_default_child_storage_next_key_version_1 =
-      "ext_default_child_storage_next_key_version_1";
-  const static wasm::Name ext_default_child_storage_root_version_1 =
-      "ext_default_child_storage_root_version_1";
-  const static wasm::Name ext_default_child_storage_set_version_1 =
-      "ext_default_child_storage_set_version_1";
-  const static wasm::Name ext_default_child_storage_kill_version_1 =
-      "ext_default_child_storage_kill_version_1";
-
-  const static wasm::Name ext_logging_log_version_1 =
-      "ext_logging_log_version_1";
-  const static wasm::Name ext_logging_max_level_version_1 =
-      "ext_logging_max_level_version_1";
-
-  const static wasm::Name ext_misc_print_hex_version_1 =
-      "ext_misc_print_hex_version_1";
-  const static wasm::Name ext_misc_print_num_version_1 =
-      "ext_misc_print_num_version_1";
-  const static wasm::Name ext_misc_print_utf8_version_1 =
-      "ext_misc_print_utf8_version_1";
-  const static wasm::Name ext_misc_runtime_version_version_1 =
-      "ext_misc_runtime_version_version_1";
-
-  // version 1
-  const static wasm::Name ext_hashing_keccak_256_version_1 =
-      "ext_hashing_keccak_256_version_1";
-  const static wasm::Name ext_hashing_sha2_256_version_1 =
-      "ext_hashing_sha2_256_version_1";
-  const static wasm::Name ext_hashing_blake2_128_version_1 =
-      "ext_hashing_blake2_128_version_1";
-  const static wasm::Name ext_hashing_blake2_256_version_1 =
-      "ext_hashing_blake2_256_version_1";
-  const static wasm::Name ext_hashing_twox_256_version_1 =
-      "ext_hashing_twox_256_version_1";
-  const static wasm::Name ext_hashing_twox_128_version_1 =
-      "ext_hashing_twox_128_version_1";
-  const static wasm::Name ext_hashing_twox_64_version_1 =
-      "ext_hashing_twox_64_version_1";
-
-  const static wasm::Name ext_allocator_malloc_version_1 =
-      "ext_allocator_malloc_version_1";
-  const static wasm::Name ext_allocator_free_version_1 =
-      "ext_allocator_free_version_1";
-
-  const static wasm::Name ext_storage_set_version_1 =
-      "ext_storage_set_version_1";
-  const static wasm::Name ext_storage_get_version_1 =
-      "ext_storage_get_version_1";
-  const static wasm::Name ext_storage_clear_version_1 =
-      "ext_storage_clear_version_1";
-  const static wasm::Name ext_storage_exists_version_1 =
-      "ext_storage_exists_version_1";
-  const static wasm::Name ext_storage_read_version_1 =
-      "ext_storage_read_version_1";
-  const static wasm::Name ext_storage_clear_prefix_version_1 =
-      "ext_storage_clear_prefix_version_1";
-  const static wasm::Name ext_storage_clear_prefix_version_2 =
-      "ext_storage_clear_prefix_version_2";
-  const static wasm::Name ext_storage_root_version_1 =
-      "ext_storage_root_version_1";
-  const static wasm::Name ext_storage_changes_root_version_1 =
-      "ext_storage_changes_root_version_1";
-  const static wasm::Name ext_storage_next_key_version_1 =
-      "ext_storage_next_key_version_1";
-  const static wasm::Name ext_storage_append_version_1 =
-      "ext_storage_append_version_1";
-
-  const static wasm::Name ext_storage_start_transaction_version_1 =
-      "ext_storage_start_transaction_version_1";
-  const static wasm::Name ext_storage_commit_transaction_version_1 =
-      "ext_storage_commit_transaction_version_1";
-  const static wasm::Name ext_storage_rollback_transaction_version_1 =
-      "ext_storage_rollback_transaction_version_1";
-
-  const static wasm::Name ext_crypto_start_batch_verify_version_1 =
-      "ext_crypto_start_batch_verify_version_1";
-  const static wasm::Name ext_crypto_finish_batch_verify_version_1 =
-      "ext_crypto_finish_batch_verify_version_1";
-
-  const static wasm::Name ext_crypto_ed25519_public_keys_version_1 =
-      "ext_crypto_ed25519_public_keys_version_1";
-  const static wasm::Name ext_crypto_ed25519_generate_version_1 =
-      "ext_crypto_ed25519_generate_version_1";
-  const static wasm::Name ext_crypto_ed25519_sign_version_1 =
-      "ext_crypto_ed25519_sign_version_1";
-  const static wasm::Name ext_crypto_ed25519_verify_version_1 =
-      "ext_crypto_ed25519_verify_version_1";
-
-  const static wasm::Name ext_crypto_sr25519_public_keys_version_1 =
-      "ext_crypto_sr25519_public_keys_version_1";
-  const static wasm::Name ext_crypto_sr25519_generate_version_1 =
-      "ext_crypto_sr25519_generate_version_1";
-  const static wasm::Name ext_crypto_sr25519_sign_version_1 =
-      "ext_crypto_sr25519_sign_version_1";
-  const static wasm::Name ext_crypto_sr25519_verify_version_1 =
-      "ext_crypto_sr25519_verify_version_1";
-  const static wasm::Name ext_crypto_sr25519_verify_version_2 =
-      "ext_crypto_sr25519_verify_version_2";
-
-  const static wasm::Name ext_crypto_secp256k1_ecdsa_recover_version_1 =
-      "ext_crypto_secp256k1_ecdsa_recover_version_1";
-  const static wasm::Name ext_crypto_secp256k1_ecdsa_recover_version_2 =
-      "ext_crypto_secp256k1_ecdsa_recover_version_2";
-  const static wasm::Name
-      ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 =
-          "ext_crypto_secp256k1_ecdsa_recover_compressed_version_1";
-  const static wasm::Name
-      ext_crypto_secp256k1_ecdsa_recover_compressed_version_2 =
-          "ext_crypto_secp256k1_ecdsa_recover_compressed_version_2";
-
-  const static wasm::Name ext_trie_blake2_256_root_version_1 =
-      "ext_trie_blake2_256_root_version_1";
-  const static wasm::Name ext_trie_blake2_256_ordered_root_version_1 =
-      "ext_trie_blake2_256_ordered_root_version_1";
-
-  // --------------------------- Offchain extension ----------------------------
-
-  const static wasm::Name ext_offchain_is_validator_version_1 =
-      "ext_offchain_is_validator_version_1";
-  const static wasm::Name ext_offchain_submit_transaction_version_1 =
-      "ext_offchain_submit_transaction_version_1";
-  const static wasm::Name ext_offchain_network_state_version_1 =
-      "ext_offchain_network_state_version_1";
-  const static wasm::Name ext_offchain_timestamp_version_1 =
-      "ext_offchain_timestamp_version_1";
-  const static wasm::Name ext_offchain_sleep_until_version_1 =
-      "ext_offchain_sleep_until_version_1";
-  const static wasm::Name ext_offchain_random_seed_version_1 =
-      "ext_offchain_random_seed_version_1";
-  const static wasm::Name ext_offchain_local_storage_set_version_1 =
-      "ext_offchain_local_storage_set_version_1";
-  const static wasm::Name ext_offchain_local_storage_clear_version_1 =
-      "ext_offchain_local_storage_clear_version_1";
-  const static wasm::Name ext_offchain_local_storage_compare_and_set_version_1 =
-      "ext_offchain_local_storage_compare_and_set_version_1";
-  const static wasm::Name ext_offchain_local_storage_get_version_1 =
-      "ext_offchain_local_storage_get_version_1";
-  const static wasm::Name ext_offchain_http_request_start_version_1 =
-      "ext_offchain_http_request_start_version_1";
-  const static wasm::Name ext_offchain_http_request_add_header_version_1 =
-      "ext_offchain_http_request_add_header_version_1";
-  const static wasm::Name ext_offchain_http_request_write_body_version_1 =
-      "ext_offchain_http_request_write_body_version_1";
-  const static wasm::Name ext_offchain_http_response_wait_version_1 =
-      "ext_offchain_http_response_wait_version_1";
-  const static wasm::Name ext_offchain_http_response_headers_version_1 =
-      "ext_offchain_http_response_headers_version_1";
-  const static wasm::Name ext_offchain_http_response_read_body_version_1 =
-      "ext_offchain_http_response_read_body_version_1";
-  const static wasm::Name ext_offchain_set_authorized_nodes_version_1 =
-      "ext_offchain_set_authorized_nodes_version_1";
-  const static wasm::Name ext_offchain_index_set_version_1 =
-      "ext_offchain_index_set_version_1";
-  const static wasm::Name ext_offchain_index_clear_version_1 =
-      "ext_offchain_index_clear_version_1";
-
   /**
    * @note: some implementation details were taken from
    * https://github.com/WebAssembly/binaryen/blob/master/src/shell-interface.h
@@ -199,587 +111,100 @@ namespace kagome::runtime::binaryen {
     // TODO(kamilsa): PRE-359 Replace ifs with switch case
     if (import->module == env) {
       /// memory externals
-      /// ext_storage_read_version_1
-      if (import->base == ext_storage_read_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res =
-            host_api_->ext_storage_read_version_1(arguments.at(0).geti64(),
-                                                  arguments.at(1).geti64(),
-                                                  arguments.at(2).geti32());
-        return wasm::Literal(res);
-      }
-      /// ext_default_child_storage_clear_version_1
-      if (import->base == ext_default_child_storage_clear_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
-        return wasm::Literal();
-      }
-      /// ext_default_child_storage_get_version_1
-      if (import->base == ext_default_child_storage_get_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        auto res = host_api_->ext_default_child_storage_get_version_1(
-            arguments.at(0).geti64(), arguments.at(1).geti64());
-        return wasm::Literal(res);
-      }
-      /// ext_default_child_storage_next_key_version_1
-      if (import->base == ext_default_child_storage_next_key_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
-        return wasm::Literal(0);
-      }
-      /// ext_default_child_storage_root_version_1
-      if (import->base == ext_default_child_storage_root_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
-        return wasm::Literal(0);
-      }
-      /// ext_default_child_storage_set_version_1
-      if (import->base == ext_default_child_storage_set_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
-        return wasm::Literal();
-      }
-      /// ext_default_child_storage_kill_version_1
-      if (import->base == ext_default_child_storage_kill_version_1) {
-        SL_WARN(logger_, "Call unimplemented import {}", import->base);
-        return wasm::Literal();
-      }
-      /// ext_logging_log_version_1
-      if (import->base == ext_logging_log_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        host_api_->ext_logging_log_version_1(arguments.at(0).geti32(),
-                                             arguments.at(1).geti64(),
-                                             arguments.at(2).geti64());
-        return wasm::Literal();
-      }
-      /// ext_logging_max_level_version_1
-      if (import->base == ext_logging_max_level_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        auto res = host_api_->ext_logging_max_level_version_1();
-        return wasm::Literal(res);
-      }
+      CALL_HOST_API_FUNC(ext_logging_log_version_1);
+      CALL_HOST_API_FUNC(ext_logging_max_level_version_1);
+
       // -------------------------- crypto functions ---------------------------
 
-      // ext_crypto_start_batch_verify_version_1
-      if (import->base == ext_crypto_start_batch_verify_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        host_api_->ext_crypto_start_batch_verify_version_1();
-        return wasm::Literal();
-      }
-
-      // ext_crypto_finish_batch_verify_version_1
-      if (import->base == ext_crypto_finish_batch_verify_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        auto res = host_api_->ext_crypto_finish_batch_verify_version_1();
-        return wasm::Literal(res);
-      }
-
-      /// ext_crypto_ed25519_public_keys_version_1
-      if (import->base == ext_crypto_ed25519_public_keys_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_crypto_ed25519_public_keys_version_1(
-            arguments.at(0).geti32());
-        return wasm::Literal(res);
-      }
-
-      /// ext_crypto_ed25519_generate_version_1
-      if (import->base == ext_crypto_ed25519_generate_version_1) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        auto res = host_api_->ext_crypto_ed25519_generate_version_1(
-            arguments.at(0).geti32(), arguments.at(1).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_crypto_ed25519_sign_version_1
-      if (import->base == ext_crypto_ed25519_sign_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res = host_api_->ext_crypto_ed25519_sign_version_1(
-            arguments.at(0).geti32(),
-            arguments.at(1).geti32(),
-            arguments.at(2).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_crypto_ed25519_verify_version_1
-      if (import->base == ext_crypto_ed25519_verify_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res = host_api_->ext_crypto_ed25519_verify_version_1(
-            arguments.at(0).geti32(),
-            arguments.at(1).geti64(),
-            arguments.at(2).geti32());
-        return wasm::Literal(res);
-      }
-
-      /// ext_crypto_sr25519_public_keys_version_1
-      if (import->base == ext_crypto_sr25519_public_keys_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_crypto_sr25519_public_keys_version_1(
-            arguments.at(0).geti32());
-        return wasm::Literal(res);
-      }
-
-      /// ext_crypto_sr25519_generate_version_1
-      if (import->base == ext_crypto_sr25519_generate_version_1) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        auto res = host_api_->ext_crypto_sr25519_generate_version_1(
-            arguments.at(0).geti32(), arguments.at(1).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_crypto_sr25519_sign_version_1
-      if (import->base == ext_crypto_sr25519_sign_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res = host_api_->ext_crypto_sr25519_sign_version_1(
-            arguments.at(0).geti32(),
-            arguments.at(1).geti32(),
-            arguments.at(2).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_crypto_sr25519_verify_version_1
-      if (import->base == ext_crypto_sr25519_verify_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res = host_api_->ext_crypto_sr25519_verify_version_1(
-            arguments.at(0).geti32(),
-            arguments.at(1).geti64(),
-            arguments.at(2).geti32());
-        return wasm::Literal(res);
-      }
-
-      /// ext_crypto_sr25519_verify_version_2
-      if (import->base == ext_crypto_sr25519_verify_version_2) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res = host_api_->ext_crypto_sr25519_verify_version_2(
-            arguments.at(0).geti32(),
-            arguments.at(1).geti64(),
-            arguments.at(2).geti32());
-        return wasm::Literal(res);
-      }
-
+      CALL_HOST_API_FUNC(ext_crypto_start_batch_verify_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_finish_batch_verify_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_ed25519_public_keys_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_ed25519_generate_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_ed25519_sign_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_ed25519_verify_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_sr25519_public_keys_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_sr25519_generate_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_sr25519_sign_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_sr25519_verify_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_sr25519_verify_version_2);
       /**
-       *  secp256k1 recovery algorithms version_1 and version_2 are not
-       * different for our bitcoin secp256k1 library. They have difference only
-       * for rust implementation and it is use of `parse_standard` instead of
+       *  secp256k1 recovery algorithms version_1 and version_2
+       * are not different for our bitcoin secp256k1 library.
+       * They have difference only for rust implementation and it
+       * is use of `parse_standard` instead of
        * `parse_overflowing`. In comment, @see
        * https://github.com/paritytech/libsecp256k1/blob/d2ca104ea2cbda8f0708a6d80eb1da63e0cc0e69/src/lib.rs#L461
-       * it is said that `parse_overflowing` is implementation specific and
-       * won't be used in any other standard libraries
+       * it is said that `parse_overflowing` is implementation
+       * specific and won't be used in any other standard
+       * libraries
        */
-      /// ext_crypto_secp256k1_ecdsa_recover_version_1
-      if (import->base == ext_crypto_secp256k1_ecdsa_recover_version_1
-          || import->base == ext_crypto_secp256k1_ecdsa_recover_version_2) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        auto res = host_api_->ext_crypto_secp256k1_ecdsa_recover_version_1(
-            arguments.at(0).geti32(), arguments.at(1).geti32());
-        return wasm::Literal(res);
-      }
-
-      /// ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
-      if (import->base
-              == ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
-          || import->base
-                 == ext_crypto_secp256k1_ecdsa_recover_compressed_version_2) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        auto res =
-            host_api_->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
-                arguments.at(0).geti32(), arguments.at(1).geti32());
-        return wasm::Literal(res);
-      }
+      CALL_HOST_API_FUNC(ext_crypto_secp256k1_ecdsa_recover_version_1);
+      CALL_HOST_API_FUNC(ext_crypto_secp256k1_ecdsa_recover_version_2);
+      CALL_HOST_API_FUNC(
+          ext_crypto_secp256k1_ecdsa_recover_compressed_version_1);
+      CALL_HOST_API_FUNC(
+          ext_crypto_secp256k1_ecdsa_recover_compressed_version_2);
 
       // -------------------------- hashing functions --------------------------
 
-      /// ext_hashing_keccak_256_version_1
-      if (import->base == ext_hashing_keccak_256_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_hashing_keccak_256_version_1(
-            arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_hashing_sha2_256_version_1
-      if (import->base == ext_hashing_sha2_256_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res =
-            host_api_->ext_hashing_sha2_256_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_hashing_blake2_128_version_1
-      if (import->base == ext_hashing_blake2_128_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_hashing_blake2_128_version_1(
-            arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_hashing_blake2_256_version_1
-      if (import->base == ext_hashing_blake2_256_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_hashing_blake2_256_version_1(
-            arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_hashing_twox_256_version_1
-      if (import->base == ext_hashing_twox_256_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res =
-            host_api_->ext_hashing_twox_256_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_hashing_twox_128_version_1
-      if (import->base == ext_hashing_twox_128_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res =
-            host_api_->ext_hashing_twox_128_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_hashing_twox_64_version_1
-      if (import->base == ext_hashing_twox_64_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res =
-            host_api_->ext_hashing_twox_64_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_allocator_malloc_version_1
-      if (import->base == ext_allocator_malloc_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res =
-            host_api_->ext_allocator_malloc_version_1(arguments.at(0).geti32());
-        return wasm::Literal(res);
-      }
+      CALL_HOST_API_FUNC(ext_hashing_keccak_256_version_1);
+      CALL_HOST_API_FUNC(ext_hashing_sha2_256_version_1);
+      CALL_HOST_API_FUNC(ext_hashing_blake2_128_version_1);
+      CALL_HOST_API_FUNC(ext_hashing_blake2_256_version_1);
+      CALL_HOST_API_FUNC(ext_hashing_twox_256_version_1);
+      CALL_HOST_API_FUNC(ext_hashing_twox_128_version_1);
+      CALL_HOST_API_FUNC(ext_hashing_twox_64_version_1);
+      CALL_HOST_API_FUNC(ext_allocator_malloc_version_1);
 
       // -------------------------- memory functions ---------------------------
 
-      /// ext_allocator_malloc_version_1
-      if (import->base == ext_allocator_malloc_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res =
-            host_api_->ext_allocator_malloc_version_1(arguments.at(0).geti32());
-        return wasm::Literal(res);
-      }
-
-      /// ext_allocator_free_version_1
-      if (import->base == ext_allocator_free_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        host_api_->ext_allocator_free_version_1(arguments.at(0).geti32());
-        return wasm::Literal();
-      }
+      CALL_HOST_API_FUNC(ext_allocator_malloc_version_1);
+      CALL_HOST_API_FUNC(ext_allocator_free_version_1);
 
       // -------------------------- storage functions --------------------------
-      /// ext_storage_set_version_1
-      if (import->base == ext_storage_set_version_1) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        host_api_->ext_storage_set_version_1(arguments.at(0).geti64(),
-                                             arguments.at(1).geti64());
-        return wasm::Literal();
-      }
 
-      /// ext_storage_get_version_1
-      if (import->base == ext_storage_get_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res =
-            host_api_->ext_storage_get_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_storage_clear_version_1
-      if (import->base == ext_storage_clear_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        host_api_->ext_storage_clear_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
-      }
-
-      /// ext_storage_exists_version_1
-      if (import->base == ext_storage_exists_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res =
-            host_api_->ext_storage_exists_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_storage_read_version_1
-      if (import->base == ext_storage_read_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res =
-            host_api_->ext_storage_read_version_1(arguments.at(0).geti64(),
-                                                  arguments.at(1).geti64(),
-                                                  arguments.at(2).geti32());
-        return wasm::Literal(res);
-      }
-
-      /// ext_storage_clear_prefix_version_1
-      if (import->base == ext_storage_clear_prefix_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        host_api_->ext_storage_clear_prefix_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
-      }
-
-      /// ext_storage_clear_prefix_version_2
-      if (import->base == ext_storage_clear_prefix_version_2) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        auto res = host_api_->ext_storage_clear_prefix_version_2(
-            arguments.at(0).geti64(), arguments.at(1).geti64());
-        // always remove successfully all elements
-        return wasm::Literal(res);
-      }
-
-      /// ext_storage_root_version_1
-      if (import->base == ext_storage_root_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        auto res = host_api_->ext_storage_root_version_1();
-        return wasm::Literal(res);
-      }
-
-      /// ext_storage_changes_root_version_1
-      if (import->base == ext_storage_changes_root_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_storage_changes_root_version_1(
-            arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_storage_next_key_version_1
-      if (import->base == ext_storage_next_key_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res =
-            host_api_->ext_storage_next_key_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-      /// ext_storage_append_version_1
-      if (import->base == ext_storage_append_version_1) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        host_api_->ext_storage_append_version_1(arguments.at(0).geti64(),
-                                                arguments.at(1).geti64());
-        return wasm::Literal();
-      }
-
-      /// ext_storage_start_transaction_version_1
-      if (import->base == ext_storage_start_transaction_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        host_api_->ext_storage_start_transaction_version_1();
-        return wasm::Literal();
-      }
-      /// ext_storage_commit_transaction_version_1
-      if (import->base == ext_storage_commit_transaction_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        host_api_->ext_storage_commit_transaction_version_1();
-        return wasm::Literal();
-      }
-      /// ext_storage_rollback_transaction_version_1
-      if (import->base == ext_storage_rollback_transaction_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        host_api_->ext_storage_rollback_transaction_version_1();
-        return wasm::Literal();
-      }
-
-      /// ext_trie_blake2_256_root_version_1
-      if (import->base == ext_trie_blake2_256_root_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_trie_blake2_256_root_version_1(
-            arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_trie_blake2_256_ordered_root_version_1
-      if (import->base == ext_trie_blake2_256_ordered_root_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_trie_blake2_256_ordered_root_version_1(
-            arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_misc_print_hex_version_1
-      if (import->base == ext_misc_print_hex_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        host_api_->ext_misc_print_hex_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
-      }
-
-      /// ext_misc_print_num_version_1
-      if (import->base == ext_misc_print_num_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        host_api_->ext_misc_print_num_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
-      }
-
-      /// ext_misc_print_utf8_version_1
-      if (import->base == ext_misc_print_utf8_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        host_api_->ext_misc_print_utf8_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
-      }
-
-      /// ext_misc_runtime_version_version_1
-      if (import->base == ext_misc_runtime_version_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_misc_runtime_version_version_1(
-            arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
+      CALL_HOST_API_FUNC(ext_storage_set_version_1);
+      CALL_HOST_API_FUNC(ext_storage_get_version_1);
+      CALL_HOST_API_FUNC(ext_storage_clear_version_1);
+      CALL_HOST_API_FUNC(ext_storage_exists_version_1);
+      CALL_HOST_API_FUNC(ext_storage_read_version_1);
+      CALL_HOST_API_FUNC(ext_storage_clear_prefix_version_1);
+      CALL_HOST_API_FUNC(ext_storage_clear_prefix_version_2);
+      CALL_HOST_API_FUNC(ext_storage_root_version_1);
+      CALL_HOST_API_FUNC(ext_storage_changes_root_version_1);
+      CALL_HOST_API_FUNC(ext_storage_next_key_version_1);
+      CALL_HOST_API_FUNC(ext_storage_append_version_1);
+      CALL_HOST_API_FUNC(ext_storage_start_transaction_version_1);
+      CALL_HOST_API_FUNC(ext_storage_commit_transaction_version_1);
+      CALL_HOST_API_FUNC(ext_storage_rollback_transaction_version_1);
+      CALL_HOST_API_FUNC(ext_trie_blake2_256_root_version_1);
+      CALL_HOST_API_FUNC(ext_trie_blake2_256_ordered_root_version_1);
+      CALL_HOST_API_FUNC(ext_misc_print_hex_version_1);
+      CALL_HOST_API_FUNC(ext_misc_print_num_version_1);
+      CALL_HOST_API_FUNC(ext_misc_print_utf8_version_1);
+      CALL_HOST_API_FUNC(ext_misc_runtime_version_version_1);
 
       // ------------------------- Offchain extension --------------------------
 
-      /// ext_offchain_is_validator_version_1
-      if (import->base == ext_offchain_is_validator_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        auto res = host_api_->ext_offchain_is_validator_version_1();
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_submit_transaction_version_1
-      if (import->base == ext_offchain_submit_transaction_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_offchain_submit_transaction_version_1(
-            arguments.at(0).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_network_state_version_1
-      if (import->base == ext_offchain_network_state_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        auto res = host_api_->ext_offchain_network_state_version_1();
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_timestamp_version_1
-      if (import->base == ext_offchain_timestamp_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        auto res = host_api_->ext_offchain_timestamp_version_1();
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_sleep_until_version_1
-      if (import->base == ext_offchain_sleep_until_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        host_api_->ext_offchain_sleep_until_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
-      }
-
-      /// ext_offchain_random_seed_version_1
-      if (import->base == ext_offchain_random_seed_version_1) {
-        checkArguments(import->base.c_str(), 0, arguments.size());
-        auto res = host_api_->ext_offchain_random_seed_version_1();
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_local_storage_set_version_1
-      if (import->base == ext_offchain_local_storage_set_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        host_api_->ext_offchain_local_storage_set_version_1(
-            arguments.at(0).geti32(),
-            arguments.at(1).geti64(),
-            arguments.at(2).geti64());
-        return wasm::Literal();
-      }
-
-      /// ext_offchain_local_storage_clear_version_1
-      if (import->base == ext_offchain_local_storage_clear_version_1) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        host_api_->ext_offchain_local_storage_clear_version_1(
-            arguments.at(0).geti32(), arguments.at(1).geti64());
-        return wasm::Literal();
-      }
-
-      /// ext_offchain_local_storage_compare_and_set_version_1
-      if (import->base
-          == ext_offchain_local_storage_compare_and_set_version_1) {
-        checkArguments(import->base.c_str(), 4, arguments.size());
-        auto res =
-            host_api_->ext_offchain_local_storage_compare_and_set_version_1(
-                arguments.at(0).geti32(),
-                arguments.at(1).geti64(),
-                arguments.at(2).geti64(),
-                arguments.at(3).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_local_storage_get_version_1
-      if (import->base == ext_offchain_local_storage_get_version_1) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        auto res = host_api_->ext_offchain_local_storage_get_version_1(
-            arguments.at(0).geti32(), arguments.at(1).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_http_request_start_version_1
-      if (import->base == ext_offchain_http_request_start_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res = host_api_->ext_offchain_http_request_start_version_1(
-            arguments.at(0).geti64(),
-            arguments.at(1).geti64(),
-            arguments.at(2).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_http_request_add_header_version_1
-      if (import->base == ext_offchain_http_request_add_header_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res = host_api_->ext_offchain_http_request_add_header_version_1(
-            arguments.at(0).geti32(),
-            arguments.at(1).geti64(),
-            arguments.at(2).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_http_request_write_body_version_1
-      if (import->base == ext_offchain_http_request_write_body_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res = host_api_->ext_offchain_http_request_write_body_version_1(
-            arguments.at(0).geti32(),
-            arguments.at(1).geti64(),
-            arguments.at(2).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_http_response_wait_version_1
-      if (import->base == ext_offchain_http_response_wait_version_1) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        auto res = host_api_->ext_offchain_http_response_wait_version_1(
-            arguments.at(0).geti64(), arguments.at(1).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_http_response_headers_version_1
-      if (import->base == ext_offchain_http_response_headers_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res = host_api_->ext_offchain_http_response_headers_version_1(
-            arguments.at(0).geti32());
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_http_response_read_body_version_1
-      if (import->base == ext_offchain_http_response_read_body_version_1) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res = host_api_->ext_offchain_http_response_read_body_version_1(
-            arguments.at(0).geti64(),
-            arguments.at(1).geti64(),
-            arguments.at(2).geti64());
-        return wasm::Literal(res);
-      }
-
-      /// ext_offchain_set_authorized_nodes_version_1
-      if (import->base == ext_offchain_set_authorized_nodes_version_1) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        host_api_->ext_offchain_set_authorized_nodes_version_1(
-            arguments.at(0).geti64(), arguments.at(1).geti32());
-        return wasm::Literal();
-      }
-
-      /// ext_offchain_index_set_version_1
-      if (import->base == ext_offchain_index_set_version_1) {
-        checkArguments(import->base.c_str(), 2, arguments.size());
-        host_api_->ext_offchain_index_set_version_1(arguments.at(0).geti64(),
-                                                    arguments.at(1).geti64());
-        return wasm::Literal();
-      }
-
-      /// ext_offchain_index_clear_version_1
-      if (import->base == ext_offchain_index_clear_version_1) {
-        checkArguments(import->base.c_str(), 1, arguments.size());
-        host_api_->ext_offchain_index_clear_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
-      }
+      CALL_HOST_API_FUNC(ext_offchain_is_validator_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_submit_transaction_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_network_state_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_timestamp_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_sleep_until_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_random_seed_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_local_storage_set_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_local_storage_clear_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_local_storage_compare_and_set_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_local_storage_get_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_http_request_start_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_http_request_add_header_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_http_request_write_body_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_http_response_wait_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_http_response_headers_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_http_response_read_body_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_set_authorized_nodes_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_index_set_version_1);
+      CALL_HOST_API_FUNC(ext_offchain_index_clear_version_1);
     }
 
     wasm::Fatal() << "callImport: unknown import: " << import->module.str << "."
@@ -791,12 +216,14 @@ namespace kagome::runtime::binaryen {
                                                 size_t actual) {
     if (expected != actual) {
       logger_->error(
-          "Wrong number of arguments in {}. Expected: {}. Actual: {}",
+          "Wrong number of arguments in {}. Expected: {}. "
+          "Actual: {}",
           extern_name,
           expected,
           actual);
       throw std::runtime_error(
-          "Invocation of a Host API method with wrong number of arguments");
+          "Invocation of a Host API method with wrong number of "
+          "arguments");
     }
   }
 
