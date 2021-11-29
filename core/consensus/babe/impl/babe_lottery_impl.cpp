@@ -63,6 +63,16 @@ namespace kagome::consensus {
     return res;
   }
 
+  crypto::VRFOutput BabeLotteryImpl::slotVrfSignature(
+      primitives::BabeSlotNumber slot) const {
+    primitives::Transcript transcript;
+    prepareTranscript(transcript, randomness_, slot, epoch_.epoch_number);
+    auto res = vrf_provider_->signTranscript(transcript, keypair_);
+
+    BOOST_ASSERT(res);
+    return res.value();
+  }
+
   Randomness BabeLotteryImpl::computeRandomness(
       const Randomness &last_epoch_randomness, EpochNumber last_epoch_number) {
     static std::unordered_set<EpochNumber> computed_epochs_randomnesses{};
@@ -99,4 +109,26 @@ namespace kagome::consensus {
   void BabeLotteryImpl::submitVRFValue(const crypto::VRFPreOutput &value) {
     last_epoch_vrf_values_.push_back(value);
   }
+
+  std::optional<primitives::AuthorityIndex>
+  BabeLotteryImpl::secondarySlotAuthor(
+      primitives::BabeSlotNumber slot,
+      primitives::AuthorityListSize authorities_count,
+      const Randomness &randomness) {
+    if (0 == authorities_count) {
+      return std::nullopt;
+    }
+
+    auto slot_bytes = common::uint64_t_to_bytes(slot);
+    common::Buffer seed;
+    seed.put(randomness);
+    seed.put(slot_bytes);
+    auto rand = hasher_->blake2b_256(seed);
+
+    auto rand_number = common::bytes_to_uint256_t(rand);
+    auto index = static_cast<primitives::AuthorityIndex>(rand_number
+                                                         % authorities_count);
+    return index;
+  }
+
 }  // namespace kagome::consensus

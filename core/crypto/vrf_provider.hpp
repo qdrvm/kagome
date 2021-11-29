@@ -56,6 +56,14 @@ namespace kagome::crypto {
         const VRFThreshold &threshold) const = 0;
 
     /**
+     * Sign transcript message \param msg using \param keypair without any
+     * threshold check. Returns proof if no error happened.
+     */
+    virtual std::optional<VRFOutput> signTranscript(
+        const primitives::Transcript &msg,
+        const Sr25519Keypair &keypair) const = 0;
+
+    /**
      * Verifies that \param output was derived using \param public_key on
      * transcript \param msg
      */

@@ -33,10 +33,18 @@ namespace kagome::consensus {
     std::optional<crypto::VRFOutput> getSlotLeadership(
         primitives::BabeSlotNumber i) const override;
 
+    crypto::VRFOutput slotVrfSignature(
+        primitives::BabeSlotNumber slot) const override;
+
     Randomness computeRandomness(const Randomness &last_epoch_randomness,
                                  EpochNumber last_epoch_number) override;
 
     void submitVRFValue(const crypto::VRFPreOutput &value) override;
+
+    std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
+        primitives::BabeSlotNumber slot,
+        primitives::AuthorityListSize authorities_count,
+        const Randomness &randomness) override;
 
    private:
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;

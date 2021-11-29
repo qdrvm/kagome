@@ -15,6 +15,8 @@
 namespace kagome::crypto {
 
   class VRFProviderImpl : public VRFProvider {
+    static constexpr VRFThreshold kMaxThreshold{-1};
+
    public:
     explicit VRFProviderImpl(std::shared_ptr<CSPRNG> generator);
 
@@ -42,7 +44,17 @@ namespace kagome::crypto {
         const Sr25519PublicKey &public_key,
         const VRFThreshold &threshold) const override;
 
+    std::optional<VRFOutput> signTranscript(
+        const primitives::Transcript &msg,
+        const Sr25519Keypair &keypair) const override;
+
    private:
+    std::optional<VRFOutput> signTranscriptImpl(
+        const primitives::Transcript &msg,
+        const Sr25519Keypair &keypair,
+        const std::optional<std::reference_wrapper<const VRFThreshold>>
+            threshold) const;
+
     std::shared_ptr<CSPRNG> generator_;
   };
 }  // namespace kagome::crypto
