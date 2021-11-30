@@ -25,6 +25,7 @@ namespace kagome {
 
   namespace metrics {
     class Exposer;
+    class MetricsWatcher;
   }  // namespace metrics
 
   namespace network {
@@ -79,6 +80,7 @@ namespace kagome::injector {
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
     std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem();
     std::shared_ptr<storage::trie::TrieStorage> injectTrieStorage();
+    std::shared_ptr<metrics::MetricsWatcher> injectMetricsWatcher();
 
    protected:
     std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;

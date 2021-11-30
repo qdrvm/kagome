@@ -7,6 +7,11 @@
 
 #include "authorship/impl/block_builder_error.hpp"
 
+namespace {
+  constexpr const char *kTransactionsIncludedInBlock =
+      "kagome_proposer_number_of_transactions";
+}
+
 namespace kagome::authorship {
 
   ProposerImpl::ProposerImpl(
@@ -24,6 +29,12 @@ namespace kagome::authorship {
     BOOST_ASSERT(transaction_pool_);
     BOOST_ASSERT(ext_sub_engine_);
     BOOST_ASSERT(extrinsic_event_key_repo_);
+
+    metrics_registry_->registerGaugeFamily(
+        kTransactionsIncludedInBlock,
+        "Number of transactions included in block");
+    metric_tx_included_in_block_ =
+        metrics_registry_->registerGaugeMetric(kTransactionsIncludedInBlock);
   }
 
   outcome::result<primitives::Block> ProposerImpl::propose(
@@ -88,6 +99,7 @@ namespace kagome::authorship {
     // at the moment block_size includes block headers and a counter to hold a
     // number of transactions to be pushed to the block
 
+    size_t included_tx_count = 0;
     for (const auto &[hash, tx] : ready_txs) {
       const auto &tx_ref = tx;
       scale::ScaleEncoderStream s(true);
@@ -131,8 +143,10 @@ namespace kagome::authorship {
       } else {  // tx was pushed successfully
         block_size += estimate_tx_size;
         transaction_pushed = true;
+        ++included_tx_count;
       }
     }
+    metric_tx_included_in_block_->set(included_tx_count);
 
     if (hit_block_size_limit and not transaction_pushed) {
       SL_WARN(logger_,

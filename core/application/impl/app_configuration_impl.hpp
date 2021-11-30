@@ -126,6 +126,9 @@ namespace kagome::application {
     const std::string &nodeName() const override {
       return node_name_;
     }
+    const std::string &nodeVersion() const override {
+      return node_version_;
+    }
     RuntimeExecutionMethod runtimeExecMethod() const override {
       return runtime_exec_method_;
     }
@@ -212,6 +215,7 @@ namespace kagome::application {
     network::PeeringConfig peering_config_;
     bool dev_mode_;
     std::string node_name_;
+    std::string node_version_;
     uint32_t max_ws_connections_;
     RuntimeExecutionMethod runtime_exec_method_;
     OffchainWorkerMode offchain_worker_mode_;

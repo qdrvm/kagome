@@ -21,6 +21,7 @@
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 #include "network/synchronizer.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
 #include "storage/buffer_map_types.hpp"
@@ -138,7 +139,6 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> previous_round_;
     std::shared_ptr<VotingRound> current_round_;
 
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
@@ -150,6 +150,10 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::Synchronizer> synchronizer_;
 
     std::vector<FullRound> neighbor_msgs_{};
+
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_highest_round_;
 
     log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
   };

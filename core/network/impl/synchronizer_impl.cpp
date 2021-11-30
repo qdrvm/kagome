@@ -37,6 +37,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
   return "unknown error";
 }
 
+namespace {
+  constexpr const char *kImportQueueLength =
+      "kagome_import_queue_blocks_submitted";
+}
+
 namespace kagome::network {
 
   SynchronizerImpl::SynchronizerImpl(
@@ -58,6 +63,15 @@ namespace kagome::network {
     BOOST_ASSERT(hasher_);
 
     BOOST_ASSERT(app_state_manager);
+
+    // Register metrics
+    metrics_registry_->registerGaugeFamily(
+        kImportQueueLength,
+        "Number of blocks submitted to the import queue");
+    metric_import_queue_length_ =
+        metrics_registry_->registerGaugeMetric(kImportQueueLength);
+    metric_import_queue_length_->set(0);
+
     app_state_manager->atShutdown([this] { node_is_shutting_down_ = true; });
   }
 
@@ -600,6 +614,7 @@ namespace kagome::network {
         auto it = self->known_blocks_.find(block.hash);
         if (it == self->known_blocks_.end()) {
           self->known_blocks_.emplace(block.hash, KnownBlock{block, {peer_id}});
+          self->metric_import_queue_length_->set(self->known_blocks_.size());
         } else {
           it->second.peers.emplace(peer_id);
           SL_TRACE(self->log_,
@@ -749,6 +764,7 @@ namespace kagome::network {
     } else {
       SL_TRACE(log_, "{} blocks in queue", known_blocks_.size());
     }
+    metric_import_queue_length_->set(known_blocks_.size());
 
     scheduler_->schedule([wp = weak_from_this()] {
       if (auto self = wp.lock()) {
@@ -783,6 +799,8 @@ namespace kagome::network {
       queue.pop();
     }
 
+    metric_import_queue_length_->set(known_blocks_.size());
+
     return affected;
   }
 
@@ -812,6 +830,8 @@ namespace kagome::network {
         discardBlock(hash);
       }
     }
+
+    metric_import_queue_length_->set(known_blocks_.size());
   }
 
   void SynchronizerImpl::askNextPortionOfBlocks() {

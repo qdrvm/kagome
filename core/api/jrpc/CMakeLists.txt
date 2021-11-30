@@ -9,4 +9,5 @@ add_library(api_jrpc_server
     )
 target_link_libraries(api_jrpc_server
     RapidJSON::rapidjson
+    metrics
     )

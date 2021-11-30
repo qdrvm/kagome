@@ -17,6 +17,7 @@
 #include "consensus/babe/babe.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 #include "network/extrinsic_observer.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/propagate_transactions.hpp"
@@ -97,6 +98,11 @@ namespace kagome::network {
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         ext_event_key_repo_;
     const libp2p::peer::Protocol protocol_;
+
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Counter *metric_propagated_tx_counter_;
+
     log::Logger log_ =
         log::createLogger("PropagateTransactionsProtocol", "kagome_protocols");
   };
