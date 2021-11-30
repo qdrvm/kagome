@@ -31,6 +31,7 @@ namespace kagome::runtime::wavm {
         block_header_repo_{std::move(block_header_repo)},
         changes_tracker_{std::move(changes_tracker)} {
     BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
     BOOST_ASSERT(intrinsic_module_ != nullptr);
     BOOST_ASSERT(host_api_factory_ != nullptr);
