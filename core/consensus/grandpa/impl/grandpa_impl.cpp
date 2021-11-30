@@ -610,11 +610,13 @@ namespace kagome::consensus::grandpa {
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
 
-    previous_round_.swap(current_round_);
-    previous_round_->end();
-    current_round_ = std::move(round);
+    if (previous_round_ != round) {
+      previous_round_.swap(current_round_);
+      previous_round_->end();
+      current_round_ = std::move(round);
 
-    executeNextRound();
+      executeNextRound();
+    }
 
     return outcome::success();
   }
