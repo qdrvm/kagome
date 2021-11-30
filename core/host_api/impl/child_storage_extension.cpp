@@ -11,6 +11,9 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
 
+#include <tuple>
+#include <utility>
+
 using kagome::common::Buffer;
 
 namespace kagome::host_api {
@@ -26,26 +29,45 @@ namespace kagome::host_api {
     BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
   }
 
-  template <typename F>
-  auto ChildStorageExtension::executeOnChildStorage(
-      runtime::WasmSpan child_storage_key, runtime::WasmSpan key, F func) {
-    auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_storage_key_ptr, child_storage_key_size] =
-        runtime::PtrSize(child_storage_key);
-    auto child_key_buffer =
-        memory.loadN(child_storage_key_ptr, child_storage_key_size);
-    auto [key_ptr, key_size] = runtime::PtrSize(key);
-    auto key_buffer = memory.loadN(key_ptr, key_size);
-
-    auto child_batch = storage_provider_->getChildBatchAt(child_key_buffer);
-    return func(child_batch);
+  outcome::result<common::Buffer> make_prefixed_child_storage_key(
+      const common::Buffer &child_storage_key) {
+    OUTCOME_TRY(prefix, common::Buffer::fromString(":child_storage:default:"));
+    return prefix.putBuffer(child_storage_key);
   }
 
-  common::Buffer make_prefixed_child_storage_key(
-      const common::Buffer &child_storage_key) {
-    return common::Buffer::fromString(":child_storage:default:")
-        .value()
-        .putBuffer(child_storage_key);
+  template <typename R, typename F, typename... Args>
+  outcome::result<R> ChildStorageExtension::executeOnChildStorage(
+      const common::Buffer &child_storage_key, F func, Args &&... args) const {
+    OUTCOME_TRY(prefixed_child_key,
+                make_prefixed_child_storage_key(child_storage_key));
+    OUTCOME_TRY(child_batch,
+                storage_provider_->getChildBatchAt(prefixed_child_key));
+
+    auto result = func(child_batch, std::forward<Args>(args)...);
+    if (not result) {
+      storage_provider_->clearChildBatches();
+      return result;
+    }
+
+    OUTCOME_TRY(new_child_root, child_batch->commit());
+    OUTCOME_TRY(storage_provider_->getCurrentBatch()->put(
+        prefixed_child_key,
+        common::Buffer{scale::encode(new_child_root).value()}));
+    storage_provider_->clearChildBatches();
+    if constexpr (!std::is_void_v<R>) {
+      return result;
+    }
+    return outcome::success();
+  }
+
+  template <typename... Args>
+  auto ChildStorageExtension::toBuffer(runtime::Memory &memory,
+                                       Args &&... spans) const {
+    auto f = [&memory](auto &&span) {
+      auto [span_ptr, span_size] = runtime::PtrSize(span);
+      return memory.loadN(span_ptr, span_size);
+    };
+    return std::make_tuple(f(std::forward<Args>(spans))...);
   }
 
   void ChildStorageExtension::ext_default_child_storage_set_version_1(
@@ -53,34 +75,24 @@ namespace kagome::host_api {
       runtime::WasmSpan key,
       runtime::WasmSpan value) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_storage_key_ptr, child_storage_key_size] =
-        runtime::PtrSize(child_storage_key);
-    auto child_key_buffer =
-        memory.loadN(child_storage_key_ptr, child_storage_key_size);
-    auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
-    auto [key_ptr, key_size] = runtime::PtrSize(key);
-    auto key_buffer = memory.loadN(key_ptr, key_size);
-
-    auto [value_ptr, value_size] = runtime::PtrSize(value);
-    auto value_buffer = memory.loadN(value_ptr, value_size);
+    auto [child_key_buffer, key_buffer, value_buffer] =
+        toBuffer(memory, child_storage_key, key, value);
 
     SL_TRACE_VOID_FUNC_CALL(
         logger_, child_key_buffer, key_buffer, value_buffer);
 
-    auto inner_batch = storage_provider_->getChildBatchAt(prefixed_child_key);
-    auto put_result = inner_batch.value()->put(key_buffer, value_buffer);
+    auto result = executeOnChildStorage<void>(
+        child_key_buffer,
+        [](auto &child_batch, auto &key, auto &value) {
+          return child_batch->put(key, value);
+        },
+        key_buffer,
+        value_buffer);
 
-    auto new_child_root = inner_batch.value()->commit().value();
-    storage_provider_->getCurrentBatch()->put(
-        prefixed_child_key,
-        common::Buffer{scale::encode(new_child_root).value()});
-    storage_provider_->getChildBatches().clear();
-
-    if (not put_result) {
+    if (not result) {
       logger_->error(
-          "ext_default_child_storage_set_version_1 failed, due to fail in trie "
-          "db with reason: {}",
-          put_result.error().message());
+          "ext_default_child_storage_set_version_1 failed with reason: {}",
+          result.error().message());
     }
   }
 
@@ -88,31 +100,28 @@ namespace kagome::host_api {
   ChildStorageExtension::ext_default_child_storage_get_version_1(
       runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const {
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_storage_key_ptr, child_storage_key_size] =
-        runtime::PtrSize(child_storage_key);
-    auto child_key_buffer =
-        memory.loadN(child_storage_key_ptr, child_storage_key_size);
-    auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
-
-    auto [key_ptr, key_size] = runtime::PtrSize(key);
-    auto key_buffer = memory.loadN(key_ptr, key_size);
+    auto [child_key_buffer, key_buffer] =
+        toBuffer(memory, child_storage_key, key);
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    auto inner_batch = storage_provider_->getChildBatchAt(prefixed_child_key);
-    auto result = inner_batch.value()->get(key_buffer);
+    auto result = executeOnChildStorage<common::Buffer>(
+        child_key_buffer,
+        [](auto &child_batch, auto &key) -> outcome::result<common::Buffer> {
+          return child_batch->get(key);
+        },
+        key_buffer);
     auto option = result ? std::make_optional(result.value()) : std::nullopt;
-
-    if (option) {
+    if (result) {
       SL_TRACE_FUNC_CALL(logger_, option.value(), child_key_buffer, key_buffer);
     } else {
-      SL_TRACE(logger_,
-               "ext_default_child_storage_get_version_1( {}, {} ) => value was "
-               "not obtained. "
-               "Reason: {}",
-               child_key_buffer.toHex(),
-               key_buffer.toHex(),
-               result.error().message());
+      logger_->trace(
+          "ext_default_child_storage_get_version_1( {}, {} ) => value was "
+          "not obtained. "
+          "Reason: {}",
+          child_key_buffer.toHex(),
+          key_buffer.toHex(),
+          result.error().message());
     }
     return memory.storeBuffer(scale::encode(option).value());
   }
@@ -120,24 +129,16 @@ namespace kagome::host_api {
   void ChildStorageExtension::ext_default_child_storage_clear_version_1(
       runtime::WasmSpan child_storage_key, runtime::WasmSpan key) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_storage_key_ptr, child_storage_key_size] =
-        runtime::PtrSize(child_storage_key);
-    auto child_key_buffer =
-        memory.loadN(child_storage_key_ptr, child_storage_key_size);
-    auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
-
-    auto [key_ptr, key_size] = runtime::PtrSize(key);
-    auto key_buffer = memory.loadN(key_ptr, key_size);
+    auto [child_key_buffer, key_buffer] =
+        toBuffer(memory, child_storage_key, key);
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    auto inner_batch = storage_provider_->getChildBatchAt(prefixed_child_key);
-    auto result = inner_batch.value()->remove(key_buffer);
-    auto new_child_root = inner_batch.value()->commit().value();
-    storage_provider_->getCurrentBatch()->put(
-        prefixed_child_key,
-        common::Buffer{scale::encode(new_child_root).value()});
-    storage_provider_->getChildBatches().clear();
+    auto result = executeOnChildStorage<void>(
+        child_key_buffer,
+        [](auto &child_batch, auto &key) { return child_batch->remove(key); },
+        key_buffer);
+
     if (not result) {
       logger_->error(
           "ext_default_child_storage_clear_version_1 failed, due to fail in "
@@ -152,19 +153,25 @@ namespace kagome::host_api {
       runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const {
     static constexpr runtime::WasmSpan kErrorSpan = -1;
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_storage_key_ptr, child_storage_key_size] =
-        runtime::PtrSize(child_storage_key);
-    auto child_key_buffer =
-        memory.loadN(child_storage_key_ptr, child_storage_key_size);
-    auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
-
-    auto [key_ptr, key_size] = runtime::PtrSize(key);
-    auto key_buffer = memory.loadN(key_ptr, key_size);
+    auto [child_key_buffer, key_buffer] =
+        toBuffer(memory, child_storage_key, key);
+    auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer).value();
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    auto inner_batch = storage_provider_->getChildBatchAt(prefixed_child_key);
-    auto cursor = inner_batch.value()->trieCursor();
+    auto child_batch_outcome =
+        storage_provider_->getChildBatchAt(prefixed_child_key);
+    if (child_batch_outcome.has_error()) {
+      logger_->error(
+          "ext_default_child_storage_next_key_version_1 resulted with error: "
+          "{}",
+          child_batch_outcome.error().message());
+      storage_provider_->clearChildBatches();
+      return kErrorSpan;
+    }
+    auto child_batch = child_batch_outcome.value();
+    auto cursor = child_batch->trieCursor();
+    storage_provider_->clearChildBatches();
     auto seek_result = cursor->seekUpperBound(key_buffer);
     if (seek_result.has_error()) {
       logger_->error(
@@ -196,22 +203,20 @@ namespace kagome::host_api {
       runtime::WasmSpan child_storage_key) const {
     outcome::result<storage::trie::RootHash> res{{}};
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_storage_key_ptr, child_storage_key_size] =
-        runtime::PtrSize(child_storage_key);
-    auto child_key_buffer =
-        memory.loadN(child_storage_key_ptr, child_storage_key_size);
+    auto [child_key_buffer] = toBuffer(memory, child_storage_key);
     auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);
 
-    if (auto opt_batch = storage_provider_->getChildBatchAt(prefixed_child_key);
-        opt_batch.has_value() and opt_batch.value() != nullptr) {
-      res = opt_batch.value()->commit();
+    if (auto child_batch =
+            storage_provider_->getChildBatchAt(prefixed_child_key.value());
+        child_batch.has_value() and child_batch.value() != nullptr) {
+      res = child_batch.value()->commit();
     } else {
       logger_->warn(
           "ext_default_child_storage_root called in an ephemeral extension");
       res = storage_provider_->forceCommit();
-      storage_provider_->getChildBatches().clear();
+      storage_provider_->clearChildBatches();
     }
     if (res.has_error()) {
       logger_->error(

@@ -43,9 +43,6 @@ namespace kagome::runtime {
     outcome::result<std::shared_ptr<PersistentBatch>> getChildBatchAt(
         const common::Buffer &root_path) override;
 
-    std::unordered_map<common::Buffer, std::shared_ptr<PersistentBatch>>
-        &getChildBatches() override;
-
     outcome::result<storage::trie::RootHash> forceCommit() override;
 
     outcome::result<void> startTransaction() override;
@@ -53,6 +50,8 @@ namespace kagome::runtime {
     outcome::result<void> commitTransaction() override;
 
     storage::trie::RootHash getLatestRoot() const noexcept override;
+
+    void clearChildBatches() noexcept override;
 
    private:
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;

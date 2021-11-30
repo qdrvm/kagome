@@ -81,10 +81,9 @@ namespace kagome::runtime {
         const common::Buffer &root_path) = 0;
 
     /**
-     * Access to internal map of child storages batches
+     * Clear internal map of child storages batches
      */
-    virtual std::unordered_map<common::Buffer, std::shared_ptr<PersistentBatch>>
-        &getChildBatches() = 0;
+    virtual void clearChildBatches() noexcept = 0;
 
     /**
      * Commits persistent changes even if the current batch is not persistent

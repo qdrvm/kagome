@@ -110,10 +110,8 @@ namespace kagome::runtime {
     return child_batches_.at(root_path);
   }
 
-  std::unordered_map<common::Buffer,
-                     std::shared_ptr<storage::trie::PersistentTrieBatch>>
-      &TrieStorageProviderImpl::getChildBatches() {
-    return child_batches_;
+  void TrieStorageProviderImpl::clearChildBatches() noexcept {
+    child_batches_.clear();
   }
 
   outcome::result<storage::trie::RootHash>

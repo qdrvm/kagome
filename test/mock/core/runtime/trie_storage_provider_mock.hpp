@@ -42,11 +42,10 @@ namespace kagome::runtime {
                 (const common::Buffer &),
                 (override));
 
-    MOCK_METHOD((std::unordered_map<common::Buffer,
-                                    std::shared_ptr<PersistentBatch>> &),
-                getChildBatches,
+    MOCK_METHOD(void,
+                clearChildBatches,
                 (),
-                (override));
+                (noexcept, override));
 
     MOCK_METHOD(outcome::result<storage::trie::RootHash>,
                 forceCommit,

@@ -10,10 +10,12 @@
 
 #include "log/logger.hpp"
 #include "runtime/types.hpp"
+#include "common/buffer.hpp"
 
 namespace kagome::runtime {
   class MemoryProvider;
   class TrieStorageProvider;
+  class Memory;
 }  // namespace kagome::runtime
 
 namespace kagome::host_api {
@@ -68,10 +70,12 @@ namespace kagome::host_api {
     constexpr static auto kDefaultLoggerTag =
         "WASM Runtime [ChildStorageExtension]";
 
-    template <typename F>
-    auto executeOnChildStorage(runtime::WasmSpan child_storage_key,
-                               runtime::WasmSpan key,
-                               F func);
+    template <typename R, typename F, typename... Args>
+    outcome::result<R> executeOnChildStorage(
+      const common::Buffer& child_storage_key, F func, Args&&... args) const;
+    
+    template <typename... Args>
+    auto toBuffer(runtime::Memory& memory, Args&&... spans) const;
   };
 
 }  // namespace kagome::host_api
