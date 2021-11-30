@@ -1,3 +1,4 @@
+#include <boost/throw_exception.hpp>
 #include <chrono>
 #include <fstream>
 #include <thread>
@@ -10,6 +11,7 @@
 
 #include "blockchain/impl/key_value_block_storage.hpp"
 #include "blockchain/impl/storage_util.hpp"
+#include "common/outcome_throw.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -29,6 +31,21 @@ using namespace storage::trie;
 
 template <class T>
 using sptr = std::shared_ptr<T>;
+
+template <typename T>
+inline outcome::result<T> &&check(outcome::result<T> &&res) {
+  if (not res.has_value()) {
+    kagome::common::raise(res.error());
+  }
+  return std::move(res);
+}
+template <typename T>
+inline std::optional<T> &&check(std::optional<T> &&res) {
+  if (not res.has_value()) {
+    throw std::runtime_error("No value");
+  }
+  return std::move(res);
+}
 
 namespace {
   std::string embedded_config(R"(
@@ -100,14 +117,14 @@ std::unique_ptr<PersistentTrieBatch> persistent_batch(
     const std::unique_ptr<TrieStorageImpl> &trie, const RootHash &hash) {
   auto batch = trie->getPersistentBatchAt(hash).value();
   auto cursor = batch->trieCursor();
-  auto res = cursor->next();
+  auto res = check(cursor->next());
   int count = 0;
   auto log = log::createLogger("main", "kagome-db-editor");
   {
     TicToc t1("Process state.", log);
     while (cursor->key().has_value()) {
       count++;
-      res = cursor->next();
+      res = check(cursor->next());
     }
   }
   log->trace("{} keys were processed at the state.", ++count);
@@ -162,15 +179,16 @@ int main(int argc, char *argv[]) {
 
     RootHash finalized_hash;
     auto block_hash_res =
-        storage->get(storage::kLastFinalizedBlockHashLookupKey);
+        check(storage->get(storage::kLastFinalizedBlockHashLookupKey));
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
-    auto block_storage_res = blockchain::KeyValueBlockStorage::loadExisting(
-        storage, hasher, [](const auto &block) {});
+    auto block_storage_res =
+        check(blockchain::KeyValueBlockStorage::loadExisting(
+            storage, hasher, [](const auto &block) {}));
     auto block_storage = block_storage_res.value();
     auto header =
-        block_storage
-            ->getBlockHeader(
-                common::Hash256::fromSpan(block_hash_res.value()).value())
+        check(block_storage->getBlockHeader(
+                  check(common::Hash256::fromSpan(block_hash_res.value()))
+                      .value()))
             .value();
     finalized_hash = header.state_root;
     log->trace("Autodetected finalized block is #{}, state root is 0x{}",
@@ -185,12 +203,12 @@ int main(int argc, char *argv[]) {
       runtime_upgrade_data.emplace_back(
           primitives::BlockInfo{
               header.number,
-              hasher->blake2b_256(scale::encode(header).value())},
+              hasher->blake2b_256(check(scale::encode(header)).value())},
           header.state_root);
-      auto encoded_res = scale::encode(runtime_upgrade_data);
+      auto encoded_res = check(scale::encode(runtime_upgrade_data));
       [[maybe_unused]] auto res =
-          storage->put(storage::kRuntimeHashesLookupKey,
-                       common::Buffer(encoded_res.value()));
+          check(storage->put(storage::kRuntimeHashesLookupKey,
+                             common::Buffer(encoded_res.value())));
     }
 
     RootHash hash;
@@ -207,7 +225,7 @@ int main(int argc, char *argv[]) {
                  block_number - 1,
                  hash.toHex());
     } else {
-      hash = RootHash::fromHexWithPrefix(argv[STATE_HASH]).value();
+      hash = check(RootHash::fromHexWithPrefix(argv[STATE_HASH])).value();
     }
 
     auto trie =
@@ -224,32 +242,32 @@ int main(int argc, char *argv[]) {
 
       auto db_cursor = storage->cursor();
       auto db_batch = storage->batch();
-      auto res = db_cursor->seek(prefix);
+      auto res = check(db_cursor->seek(prefix));
       int count = 0;
       {
         TicToc t2("Process DB.", log);
         while (db_cursor->isValid() && db_cursor->key().has_value()
                && db_cursor->key().value()[0] == prefix[0]) {
-          auto res2 = db_batch->remove(db_cursor->key().value());
+          auto res2 = check(db_batch->remove(db_cursor->key().value()));
           count++;
           if (not(count % 10000000)) {
             log->trace("{} keys were processed at the db.", count);
-            res2 = db_batch->commit();
+            res2 = check(db_batch->commit());
             dynamic_cast<storage::LevelDB *>(storage.get())
-                ->compact(prefix, db_cursor->key().value());
+                ->compact(prefix, check(db_cursor->key()).value());
             db_cursor = storage->cursor();
             db_batch = storage->batch();
-            res = db_cursor->seek(prefix);
+            res = check(db_cursor->seek(prefix));
           }
-          res2 = db_cursor->next();
+          res2 = check(db_cursor->next());
         }
-        std::ignore = db_batch->commit();
+        std::ignore = check(db_batch->commit());
       }
       log->trace("{} keys were processed at the db.", ++count);
 
       {
         TicToc t3("Commit state.", log);
-        auto res3 = finalized_batch->commit();
+        auto res3 = check(finalized_batch->commit());
         log->trace("{}", res3.value().toHex());
         res3 = batch->commit();
         log->trace("{}", res3.value().toHex());
@@ -263,9 +281,9 @@ int main(int argc, char *argv[]) {
 
       need_additional_compaction = true;
     } else if (DUMP == cmd) {
-      auto batch = trie->getEphemeralBatchAt(hash).value();
+      auto batch = check(trie->getEphemeralBatchAt(hash)).value();
       auto cursor = batch->trieCursor();
-      auto res = cursor->next();
+      auto res = check(cursor->next());
       {
         TicToc t1("Dump full state.", log);
         int count = 0;
@@ -280,15 +298,17 @@ int main(int argc, char *argv[]) {
           res = cursor->next();
         }
         auto cursor = batch->trieCursor();
-        auto res = cursor->next();
+        auto res = check(cursor->next());
         ofs << "values:\n";
         count = 0;
         while (cursor->key().has_value()) {
-          ofs << "  - " << batch->get(cursor->key().value()).value() << "\n";
+          ofs << "  - "
+              << check(batch->get(check(cursor->key()).value())).value()
+              << "\n";
           if (not(++count % 50000)) {
             log->trace("{} values were dumped.", count);
           }
-          res = cursor->next();
+          res = check(cursor->next());
         }
         ofs.close();
       }
@@ -298,7 +318,7 @@ int main(int argc, char *argv[]) {
   if (need_additional_compaction) {
     TicToc t5("Compaction 2.", log);
     auto storage =
-        storage::LevelDB::create(argv[1], leveldb::Options()).value();
+        check(storage::LevelDB::create(argv[1], leveldb::Options())).value();
     dynamic_cast<storage::LevelDB *>(storage.get())
         ->compact(common::Buffer(), common::Buffer());
   }
