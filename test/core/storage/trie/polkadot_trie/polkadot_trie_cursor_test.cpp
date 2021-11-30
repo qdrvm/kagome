@@ -12,8 +12,8 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/storage/polkadot_trie_printer.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/storage/polkadot_trie_printer.hpp"
 
 using kagome::common::Buffer;
 using kagome::storage::trie::PolkadotTrie;
@@ -22,11 +22,12 @@ using kagome::storage::trie::PolkadotTrieImpl;
 using kagome::storage::trie::operator<<;
 
 class PolkadotTrieCursorTest : public testing::Test {
-
+ public:
   void SetUp() override {
     testutil::prepareLoggers();
   }
 
+ private:
 };
 
 // The default values for arguments are somewhat randomly chosen,
@@ -160,7 +161,8 @@ const std::vector<std::pair<Buffer, Buffer>> lex_sorted_vals{
 TEST_F(PolkadotTrieCursorTest, Lexicographical) {
   auto trie = makeTrie(lex_sorted_vals);
   auto c = trie->cursor();
-  EXPECT_OUTCOME_FALSE_1(c->seek("f"_buf));
+  EXPECT_OUTCOME_TRUE(res, c->seek("f"_buf));
+  ASSERT_FALSE(res);
   EXPECT_OUTCOME_TRUE_1(c->seek("06"_hex2buf));
   Buffer prev_key{0};
   do {
@@ -257,3 +259,98 @@ TEST_F(PolkadotTrieCursorTest, LexOrderKept) {
   EXPECT_OUTCOME_TRUE_1(c->seekLowerBound("Optional"_buf));
   EXPECT_FALSE(c->key().has_value());
 }
+
+TEST_F(PolkadotTrieCursorTest, SeekFirst) {
+  auto trie = makeTrie(lex_sorted_vals);
+  auto c = trie->trieCursor();
+
+  EXPECT_OUTCOME_TRUE_1(c->seekFirst());
+  ASSERT_EQ(c->key().value(), lex_sorted_vals.front().first);
+}
+
+TEST_F(PolkadotTrieCursorTest, SeekLast) {
+  auto trie = makeTrie(lex_sorted_vals);
+  auto c = trie->trieCursor();
+
+  EXPECT_OUTCOME_TRUE_1(c->seekLast());
+  ASSERT_EQ(c->key().value(), lex_sorted_vals.back().first);
+}
+
+TEST_F(PolkadotTrieCursorTest, SeekWithNullRoot) {
+  auto trie = makeTrie({});
+  auto c = trie->trieCursor();
+
+  EXPECT_OUTCOME_TRUE_1(c->seek("some_key"_buf));
+  ASSERT_EQ(c->key(), std::nullopt);
+  ASSERT_EQ(c->value(), std::nullopt);
+}
+
+TEST_F(PolkadotTrieCursorTest, SeekLastWithNullRoot) {
+  auto trie = makeTrie({});
+  auto c = trie->trieCursor();
+
+  EXPECT_OUTCOME_TRUE_1(c->seekLast());
+  ASSERT_EQ(c->key(), std::nullopt);
+  ASSERT_EQ(c->value(), std::nullopt);
+}
+
+TEST_F(PolkadotTrieCursorTest, SeekUpperBound) {
+  auto trie = makeTrie(lex_sorted_vals);
+  auto c = trie->trieCursor();
+
+  EXPECT_OUTCOME_TRUE_1(c->seekUpperBound(lex_sorted_vals[4].first));
+  ASSERT_EQ(c->key().value(), lex_sorted_vals[5].first);
+
+  EXPECT_OUTCOME_TRUE_1(c->seekUpperBound(lex_sorted_vals.back().first));
+  ASSERT_EQ(c->key(), std::nullopt);
+
+  EXPECT_OUTCOME_TRUE_1(c->seekUpperBound(lex_sorted_vals.front().first));
+  ASSERT_EQ(c->key().value(), lex_sorted_vals[1].first);
+}
+
+TEST_F(PolkadotTrieCursorTest, SuccessfulCreateAt) {
+  auto trie = makeTrie(lex_sorted_vals);
+  EXPECT_OUTCOME_TRUE(cursor, kagome::storage::trie::PolkadotTrieCursorImpl::createAt(
+      lex_sorted_vals[4].first, *trie));
+  ASSERT_EQ(cursor->key(), lex_sorted_vals[4].first);
+}
+
+TEST_F(PolkadotTrieCursorTest, CreateAtNonexisting) {
+  auto trie = makeTrie(lex_sorted_vals);
+  EXPECT_OUTCOME_FALSE_1(kagome::storage::trie::PolkadotTrieCursorImpl::createAt(
+      "some_random_key"_buf, *trie));
+}
+
+TEST_F(PolkadotTrieCursorTest, SeekNonexisting) {
+  auto trie = makeTrie(lex_sorted_vals);
+  auto c = trie->trieCursor();
+
+  EXPECT_OUTCOME_TRUE_1(c->seek("some_random_key"_buf));
+  ASSERT_FALSE(c->isValid());
+}
+
+TEST_F(PolkadotTrieCursorTest, SeekBranchNoValue) {
+  auto trie = makeTrie(lex_sorted_vals);
+  auto c = trie->trieCursor();
+
+  EXPECT_OUTCOME_TRUE_1(c->seek("01"_hex2buf));
+  ASSERT_FALSE(c->isValid());
+}
+
+TEST_F(PolkadotTrieCursorTest, SeekFirstEmptyTrie) {
+  auto trie = makeTrie({});
+  auto c = trie->trieCursor();
+
+  EXPECT_OUTCOME_TRUE_1(c->seekFirst());
+  ASSERT_FALSE(c->isValid());
+}
+
+TEST_F(PolkadotTrieCursorTest, SeekLowerBoundLeaf) {
+  auto trie = makeTrie(lex_sorted_vals);
+  auto c = trie->trieCursor();
+
+  EXPECT_OUTCOME_TRUE_1(c->seekLowerBound(lex_sorted_vals[3].first));
+  ASSERT_TRUE(c->isValid());
+}
+
+// invalid node type

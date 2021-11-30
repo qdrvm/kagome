@@ -23,8 +23,7 @@ namespace kagome::storage::trie {
       // operation cannot be performed for cursor position is not valid
       // due to an error, reaching the end or not calling next() after
       // initialization
-      INVALID_NODE_TYPE = 1,
-      METHOD_NOT_IMPLEMENTED
+      INVALID_NODE_TYPE = 1
     };
 
     explicit PolkadotTrieCursorImpl(const PolkadotTrie &trie);

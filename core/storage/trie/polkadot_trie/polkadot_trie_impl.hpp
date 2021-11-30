@@ -13,7 +13,7 @@
 
 namespace kagome::storage::trie {
 
-  class PolkadotTrieImpl : public PolkadotTrie {
+  class PolkadotTrieImpl final: public PolkadotTrie {
    public:
     enum class Error { INVALID_NODE_TYPE = 1 };
 

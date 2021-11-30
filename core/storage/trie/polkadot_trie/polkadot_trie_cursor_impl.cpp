@@ -10,6 +10,7 @@
 #include "common/buffer_back_insert_iterator.hpp"
 #include "macro/unreachable.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
@@ -19,10 +20,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
   switch (e) {
     case E::INVALID_NODE_TYPE:
       return "The processed node type is invalid";
-    case E::METHOD_NOT_IMPLEMENTED:
-      return "the method is not yet implemented";
   }
-  return "unknown error";
+  return "unknown TrieCursor error";
 }
 
 namespace kagome::storage::trie {
@@ -61,7 +60,12 @@ namespace kagome::storage::trie {
     }
     last_visited_child_.clear();
     visited_root_ = true;  // root is always visited first
-    OUTCOME_TRY(last_child_path, constructLastVisitedChildPath(key));
+    auto last_child_path = constructLastVisitedChildPath(key);
+    if (last_child_path.has_error()
+        and last_child_path.error() == TrieError::NO_VALUE) {
+      current_ = nullptr;
+      return false;
+    }
     auto nibbles = PolkadotCodec::keyToNibbles(key);
     OUTCOME_TRY(node, trie_.getNode(trie_.getRoot(), nibbles));
 
@@ -72,7 +76,7 @@ namespace kagome::storage::trie {
       current_ = nullptr;
       return false;
     }
-    last_visited_child_ = std::move(last_child_path);
+    last_visited_child_ = std::move(last_child_path.value());
     return true;
   }
 
@@ -96,6 +100,7 @@ namespace kagome::storage::trie {
             OUTCOME_TRY(c, trie_.retrieveChild(branch, i));
             last_visited_child_.emplace_back(branch, i);
             current = c;
+            break;
           }
         }
 
