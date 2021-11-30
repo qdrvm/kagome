@@ -191,8 +191,7 @@ namespace kagome::consensus::grandpa {
 
     stage_ = Stage::START;
 
-    SL_DEBUG(
-        logger_, "Round #{}: Start round {:p}", round_number_, (void *)this);
+    SL_DEBUG(logger_, "Round #{}: Start round", round_number_);
 
     sendNeighborMessage();
 
