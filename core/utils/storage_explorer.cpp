@@ -100,11 +100,15 @@ int main(int argc, char **argv) {
 
   kagome::injector::KagomeNodeInjector injector{configuration};
   auto block_storage = injector.injectBlockStorage();
+
   auto trie_storage = injector.injectTrieStorage();
   parser.addCommand(
       "inspect-block",
-      "(# or hash) - print info about the block with the given number or hash",
+      "# or hash - print info about the block with the given number or hash",
       [&block_storage](int argc, char **argv) {
+        if (argc != 2) {
+          throw std::runtime_error("Invalid argument count, 1 expected");
+        }
         auto opt_id = parseBlockId(argv[1]);
         if (!opt_id) {
           return;
@@ -122,30 +126,36 @@ int main(int argc, char **argv) {
         }
       });
 
-  parser.addCommand("remove-block",
-                    "[# or hash] -  remove the block from the block tree",
-                    [&block_storage](int argc, char **argv) {
-                      auto opt_id = parseBlockId(argv[1]);
-                      if (!opt_id) {
-                        return;
-                      }
-                      auto data = block_storage->getBlockData(opt_id.value());
-                      if (!data) {
-                        std::cerr << "Error: " << data.error().message()
-                                  << "\n";
-                      }
-                      if (auto res = block_storage->removeBlock(
-                              data.value().hash, data.value().header->number);
-                          !res) {
-                        std::cerr << "Error: " << res.error().message() << "\n";
-                        return;
-                      }
-                    });
+  parser.addCommand(
+      "remove-block",
+      "# or hash - remove the block from the block tree",
+      [&block_storage](int argc, char **argv) {
+        if (argc != 2) {
+          throw std::runtime_error("Invalid argument count, 1 expected");
+        }
+        auto opt_id = parseBlockId(argv[1]);
+        if (!opt_id) {
+          return;
+        }
+        auto data = block_storage->getBlockData(opt_id.value());
+        if (!data) {
+          std::cerr << "Error: " << data.error().message() << "\n";
+        }
+        if (auto res = block_storage->removeBlock(data.value().hash,
+                                                  data.value().header->number);
+            !res) {
+          std::cerr << "Error: " << res.error().message() << "\n";
+          return;
+        }
+      });
 
   parser.addCommand(
       "query-state",
-      "[state_hash, [key]] - remove the block from the block tree",
+      "state_hash, key - query value at a given key and state",
       [&trie_storage](int argc, char **argv) {
+        if (argc != 3) {
+          throw std::runtime_error("Invalid argument count, 2 expected");
+        }
         kagome::storage::trie::RootHash state_root{};
         if (auto id_bytes = kagome::common::unhex(argv[1]); id_bytes) {
           std::copy_n(id_bytes.value().begin(),
@@ -160,7 +170,24 @@ int main(int argc, char **argv) {
           std::cerr << "Error: " << batch.error().message() << "\n";
           return;
         }
-        std::cout << "Storage hash is correct\n";
+        kagome::common::Buffer key{};
+        if (auto key_bytes = kagome::common::unhex(argv[2]); key_bytes) {
+          key = kagome::common::Buffer{std::move(key_bytes.value())};
+        } else {
+          std::cerr << "Invalid key!\n";
+          return;
+        }
+        auto value_opt_res = batch.value()->tryGet(key);
+        if (value_opt_res.has_error()) {
+          std::cout << "Error retrieving value from Trie: "
+                    << value_opt_res.error().message() << "\n";
+        }
+        if (value_opt_res.value().has_value()) {
+          std::cout << "Value is " << value_opt_res.value().value().toHex()
+                    << "\n";
+        } else {
+          std::cout << "No value by provided key\n";
+        }
       });
 
   parser.invoke(argc, argv);
