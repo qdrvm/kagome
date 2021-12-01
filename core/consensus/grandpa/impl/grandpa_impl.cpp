@@ -319,8 +319,8 @@ namespace kagome::consensus::grandpa {
           peer_id.toBase58());
       return;
     }
-    if (FullRound{msg} < FullRound{current_round_}) {
-      // Catching up in to the past
+    if (FullRound{msg} > FullRound{current_round_}) {
+      // Node lags from remote peer
       SL_DEBUG(
           logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
