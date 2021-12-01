@@ -174,7 +174,7 @@ namespace kagome::blockchain {
     virtual BlockHashVecRes getChainByBlocks(
         const primitives::BlockHash &top_block,
         const primitives::BlockHash &bottom_block,
-        const uint32_t max_count) const = 0;
+        uint32_t max_count) const = 0;
 
     /**
      * Check if one block is ancestor of second one (direct chain exists)
@@ -245,6 +245,7 @@ namespace kagome::blockchain {
         consensus::EpochNumber epoch_number,
         primitives::BlockHash block_hash) const = 0;
   };
+
 }  // namespace kagome::blockchain
 
 #endif  // KAGOME_BLOCK_TREE_HPP
