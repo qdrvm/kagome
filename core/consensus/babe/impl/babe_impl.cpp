@@ -552,7 +552,7 @@ namespace kagome::consensus::babe {
         current_epoch_.epoch_number, best_block_.hash);
     if (epoch_res.has_error()) {
       SL_ERROR(
-          log_, "cannot get epoch descriptor: {}", put_res.error().message());
+          log_, "cannot get epoch descriptor: {}", epoch_res.error().message());
       return;
     }
     auto &epoch = epoch_res.value();
