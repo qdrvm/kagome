@@ -240,7 +240,7 @@ namespace kagome::common {
     /**
      * @brief stores content of a string to byte array
      */
-    static outcome::result<Buffer> fromString(const std::string &src);
+    static Buffer fromString(const std::string_view &src);
 
    private:
     std::vector<uint8_t> data_;
@@ -279,6 +279,19 @@ namespace kagome::common {
   }
 
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
+
+  namespace literals {
+    /// creates a buffer filled with characters from the original string
+    /// mind that it does not perform unhexing, there is ""_unhex for it
+    inline Buffer operator""_buf(const char *c, size_t s) {
+      std::vector<uint8_t> chars(c, c + s);
+      return Buffer(std::move(chars));
+    }
+
+    inline Buffer operator""_hex2buf(const char *c, size_t s) {
+      return Buffer::fromHex(std::string_view(c, s)).value();
+    }
+  }  // namespace literals
 
 }  // namespace kagome::common
 

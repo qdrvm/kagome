@@ -17,6 +17,7 @@
 using kagome::common::Buffer;
 
 namespace kagome::host_api {
+  using namespace kagome::common::literals;
 
   ChildStorageExtension::ChildStorageExtension(
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
@@ -31,8 +32,7 @@ namespace kagome::host_api {
 
   outcome::result<common::Buffer> make_prefixed_child_storage_key(
       const common::Buffer &child_storage_key) {
-    OUTCOME_TRY(prefix, common::Buffer::fromString(":child_storage:default:"));
-    return prefix.putBuffer(child_storage_key);
+    return ":child_storage:default:"_buf.putBuffer(child_storage_key);
   }
 
   template <typename R, typename F, typename... Args>
@@ -155,7 +155,8 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto [child_key_buffer, key_buffer] =
         toBuffer(memory, child_storage_key, key);
-    auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer).value();
+    auto prefixed_child_key =
+        make_prefixed_child_storage_key(child_key_buffer).value();
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
