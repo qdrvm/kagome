@@ -881,6 +881,10 @@ namespace kagome::consensus::grandpa {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
+      if (result
+          == outcome::failure(VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR)) {
+        return false;
+      }
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
         logger_->warn("Round #{}: Prevote received from {} was rejected: {}",
                       round_number_,
@@ -930,6 +934,10 @@ namespace kagome::consensus::grandpa {
 
     if (auto result = onSigned<Precommit>(precommit); result.has_failure()) {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
+        return false;
+      }
+      if (result
+          == outcome::failure(VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR)) {
         return false;
       }
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
@@ -1015,7 +1023,7 @@ namespace kagome::consensus::grandpa {
 
     // Ignore known equivocators
     if (equivocators[index]) {
-      return VotingRoundError::EQUIVOCATED_VOTE;
+      return VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR;
     }
 
     // Ignore zero-weight voter
@@ -1640,7 +1648,9 @@ namespace kagome::consensus::grandpa {
     neighbor_msg_timer_.cancel();
 
     auto res = env_->onNeighborMessageSent(
-        round_number_, voter_set_->id(), last_finalized_block_.number);
+        round_number_,
+        voter_set_->id(),
+        finalized_.value_or(last_finalized_block_).number);
     if (res.has_error()) {
       logger_->warn("Neighbor message was not sent: {}", res.error().message());
     }
