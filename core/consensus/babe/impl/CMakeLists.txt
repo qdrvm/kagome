@@ -66,4 +66,5 @@ target_link_libraries(babe
     threshold_util
     block_executor
     polkadot_trie
+    metrics
     )

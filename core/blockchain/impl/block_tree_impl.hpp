@@ -222,10 +222,14 @@ namespace kagome::blockchain {
     std::shared_ptr<const consensus::BabeUtil> babe_util_;
     std::optional<primitives::Version> actual_runtime_version_;
     log::Logger log_ = log::createLogger("BlockTree", "blockchain");
-    // metrics
-    metrics::RegistryPtr registry_ = metrics::createRegistry();
-    metrics::Gauge *block_height_best_;
-    metrics::Gauge *block_height_finalized_;
+
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_best_block_height_;
+    metrics::Gauge *metric_finalized_block_height_;
+    metrics::Gauge *metric_known_chain_leaves_;
+
+
   };
 }  // namespace kagome::blockchain
 

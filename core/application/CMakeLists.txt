@@ -5,15 +5,34 @@ target_link_libraries(application_util
     Boost::filesystem
     )
 
-add_library(app_config_impl
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "#include <string>" > ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "namespace kagome {" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "  const std::string &buildVersion() {" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "    static const std::string buildVersion(\"" | tr -d "\\n" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND ${PROJECT_SOURCE_DIR}/get_version.sh | tr -d "\\n" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "\");" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "    return buildVersion;" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "  }" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMAND echo "}" >> ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    COMMENT "Generate build_version.cpp"
+    VERBATIM
+    )
+add_library(build_version
+    ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
+    )
+
+add_library(app_config
     impl/app_configuration_impl.cpp
     )
-target_link_libraries(app_config_impl
+target_link_libraries(app_config
     Boost::program_options
     p2p::p2p_multiaddress
     blob
     assets
     chain_spec
+    build_version
     )
 
 add_library(chain_spec

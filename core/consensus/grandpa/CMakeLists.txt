@@ -63,4 +63,5 @@ target_link_libraries(grandpa
     vote_crypto_provider
     vote_graph
     vote_tracker
+    metrics
     )

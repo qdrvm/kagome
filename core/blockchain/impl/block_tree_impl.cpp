@@ -30,7 +30,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
   return "unknown error";
 }
 
-constexpr const char *kBlockHeightGaugeName = "kagome_block_height";
+namespace {
+  constexpr auto blockHeightMetricName = "kagome_block_height";
+  constexpr auto knownChainLeavesMetricName = "kagome_known_chain_leaves";
+}  // namespace
 
 namespace kagome::blockchain {
   using Buffer = common::Buffer;
@@ -149,7 +152,7 @@ namespace kagome::blockchain {
     }
 
     SL_TRACE(log,
-             "EPOCH_DIGEST_IN_BLOCKTREE: ROOT, block #{}, hash {}\n"
+             "EPOCH_DIGEST_IN_BLOCKTREE: ROOT, block #{}, hash {}, "
              "Epoch {}, Current randomness {}, Next randomness {}",
              number,
              hash.toHex(),
@@ -220,17 +223,25 @@ namespace kagome::blockchain {
     BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(babe_configuration_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
-    // initialize metrics
-    registry_->registerGaugeFamily(kBlockHeightGaugeName,
-                                   "Block height info of the chain");
-    block_height_best_ = registry_->registerGaugeMetric(kBlockHeightGaugeName,
-                                                        {{"status", "best"}});
-    block_height_best_->set(
-        tree_->getMetadata().deepest_leaf.lock()->depth);
-    block_height_finalized_ = registry_->registerGaugeMetric(
-        kBlockHeightGaugeName, {{"status", "finalized"}});
-    block_height_finalized_->set(
-        tree_->getMetadata().deepest_leaf.lock()->depth);
+
+    // Register metrics
+    metrics_registry_->registerGaugeFamily(blockHeightMetricName,
+                                           "Block height info of the chain");
+
+    metric_best_block_height_ = metrics_registry_->registerGaugeMetric(
+        blockHeightMetricName, {{"status", "best"}});
+    metric_best_block_height_->set(tree_->getMetadata().deepest_leaf.lock()->depth);
+
+    metric_finalized_block_height_ = metrics_registry_->registerGaugeMetric(
+        blockHeightMetricName, {{"status", "finalized"}});
+    metric_finalized_block_height_->set(tree_->getMetadata().last_finalized.lock()->depth);
+
+    metrics_registry_->registerGaugeFamily(
+        knownChainLeavesMetricName, "Number of known chain leaves (aka forks)");
+
+    metric_known_chain_leaves_ =
+        metrics_registry_->registerGaugeMetric(knownChainLeavesMetricName);
+    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
   }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -258,6 +269,10 @@ namespace kagome::blockchain {
     auto new_node = std::make_shared<TreeNode>(
         block_hash, header.number, parent, epoch_number, std::move(next_epoch));
     tree_->updateMeta(new_node);
+
+    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+    metric_best_block_height_->set(tree_->getMetadata().deepest_leaf.lock()->depth);
+
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  header);
 
@@ -309,7 +324,8 @@ namespace kagome::blockchain {
       }
     }
 
-    block_height_best_->set(tree_->getMetadata().deepest_leaf.lock()->depth);
+    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+    metric_best_block_height_->set(tree_->getMetadata().deepest_leaf.lock()->depth);
 
     return outcome::success();
   }
@@ -349,6 +365,9 @@ namespace kagome::blockchain {
                                                std::move(next_epoch));
 
     tree_->updateMeta(new_node);
+
+    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+    metric_best_block_height_->set(tree_->getMetadata().deepest_leaf.lock()->depth);
 
     return outcome::success();
   }
@@ -411,7 +430,7 @@ namespace kagome::blockchain {
     }
 
     log_->info("Finalized block #{} hash={}", node->depth, block_hash.toHex());
-    block_height_finalized_->set(node->depth);
+    metric_finalized_block_height_->set(node->depth);
     return outcome::success();
   }
 

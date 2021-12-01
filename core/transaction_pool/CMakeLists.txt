@@ -27,4 +27,5 @@ target_link_libraries(transaction_pool
     blob
     transaction_pool_error
     block_header_repository
+    metrics
     )

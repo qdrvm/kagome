@@ -11,6 +11,7 @@ add_library(synchronizer
 target_link_libraries(synchronizer
     logger
     primitives
+    metrics
     )
 
 add_library(grandpa_transmitter
