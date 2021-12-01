@@ -63,23 +63,18 @@ namespace kagome::storage::trie {
      * index of its child which is the next node in the path
      */
     struct TriePathEntry {
-      TriePathEntry(BranchPtr parent, uint8_t child_idx)
+      TriePathEntry(Branch *parent, uint8_t child_idx)
           : parent{std::move(parent)}, child_idx{child_idx} {}
 
-      BranchPtr parent;
+      Branch *parent;
       uint8_t child_idx;
     };
 
-    // will either put a new entry or update the top entry (in case that parent
-    // in the top entry is the same as \param parent
-    void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
-
     outcome::result<void> seekLowerBoundInternal(
-        NodePtr current, gsl::span<const uint8_t> left_nibbles);
+        Node *current, gsl::span<const uint8_t> left_nibbles);
     outcome::result<bool> seekNodeWithValueBothDirections();
-    outcome::result<void> seekNodeWithValue(NodePtr &node);
-    outcome::result<bool> setChildWithMinIdx(NodePtr &node,
-                                             uint8_t min_idx = 0);
+    outcome::result<void> seekNodeWithValue(Node *node);
+    outcome::result<bool> setChildWithMinIdx(Node *node, uint8_t min_idx = 0);
     /**
      * Constructs a list of branch nodes on the path from the root to the node
      * with the given \arg key
@@ -87,14 +82,49 @@ namespace kagome::storage::trie {
     auto constructLastVisitedChildPath(const common::Buffer &key)
         -> outcome::result<std::list<TriePathEntry>>;
 
+    template <typename Res, typename... Args>
+    outcome::result<Res> safeAccess(outcome::result<Res> (*f)(Args...),
+                                    Args &&...args) {
+      auto res = f(std::forward<Args>(args)...);
+      if (res.has_error()) {
+        current_ = nullptr;
+        search_state_.reset();
+      }
+    }
+
     common::Buffer collectKey() const;
 
     PolkadotCodec codec_;
-    std::list<TriePathEntry> last_visited_child_;
-    const PolkadotTrie &trie_;
-    NodePtr current_;
-    bool visited_root_ = false;
     log::Logger log_;
+
+    template <typename Res>
+    outcome::result<Res> safeAccess(outcome::result<Res>&& value) {
+      if (value.has_error()) {
+        current_ = nullptr;
+        search_state_.reset();
+      }
+      return value;
+    }
+
+    const PolkadotTrie &trie_;
+
+#define SAFE_VOID_CALL(expr) \
+  OUTCOME_TRY(safeAccess((expr)));
+
+#define SAFE_CALL(res, expr) \
+  OUTCOME_TRY(res, safeAccess((expr)));
+
+    struct SearchState {
+      std::list<TriePathEntry> last_visited_child;
+      bool visited_root = false;
+
+      void reset() {
+        visited_root = false;
+        last_visited_child.clear();
+      }
+    } search_state_;
+
+    Node *current_;
   };
 
 }  // namespace kagome::storage::trie

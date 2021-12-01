@@ -16,8 +16,8 @@ namespace kagome::storage::trie {
   class PolkadotTrieCursor
       : public face::MapCursor<common::Buffer, common::Buffer> {
    public:
-    using NodePtr = std::shared_ptr<PolkadotNode>;
-    using BranchPtr = std::shared_ptr<BranchNode>;
+    using Node = PolkadotNode;
+    using Branch = BranchNode;
 
     ~PolkadotTrieCursor() override = default;
 
