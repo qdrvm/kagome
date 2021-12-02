@@ -153,6 +153,8 @@ class VotingRoundTest : public testing::Test {
         .WillRepeatedly(Return(true));
     EXPECT_CALL(*env_, bestChainContaining("C"_H))
         .WillRepeatedly(Return(BlockInfo{9, "FC"_H}));
+    EXPECT_CALL(*env_, onNeighborMessageSent(_, _, _))
+        .WillRepeatedly(Return(outcome::success()));
 
     prevote_graph_ = std::make_shared<VoteGraphImpl>(base, config.voters, env_);
     precommit_graph_ =
