@@ -10,15 +10,12 @@
 #include "runtime/ptr_size.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
+#include "storage/predefined_keys.hpp"
 
 #include <tuple>
 #include <utility>
 
-using kagome::common::Buffer;
-
 namespace kagome::host_api {
-  using namespace kagome::common::literals;
-
   ChildStorageExtension::ChildStorageExtension(
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
       std::shared_ptr<const runtime::MemoryProvider> memory_provider)
@@ -32,7 +29,8 @@ namespace kagome::host_api {
 
   outcome::result<common::Buffer> make_prefixed_child_storage_key(
       const common::Buffer &child_storage_key) {
-    return ":child_storage:default:"_buf.putBuffer(child_storage_key);
+    return common::Buffer{storage::kChildStorageDefaultPrefix}.putBuffer(
+        child_storage_key);
   }
 
   template <typename R, typename F, typename... Args>
@@ -61,7 +59,7 @@ namespace kagome::host_api {
   }
 
   template <typename... Args>
-  auto ChildStorageExtension::toBuffer(runtime::Memory &memory,
+  auto ChildStorageExtension::loadBuffer(runtime::Memory &memory,
                                        Args &&... spans) const {
     auto f = [&memory](auto &&span) {
       auto [span_ptr, span_size] = runtime::PtrSize(span);
@@ -76,7 +74,7 @@ namespace kagome::host_api {
       runtime::WasmSpan value) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto [child_key_buffer, key_buffer, value_buffer] =
-        toBuffer(memory, child_storage_key, key, value);
+        loadBuffer(memory, child_storage_key, key, value);
 
     SL_TRACE_VOID_FUNC_CALL(
         logger_, child_key_buffer, key_buffer, value_buffer);
@@ -101,7 +99,7 @@ namespace kagome::host_api {
       runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto [child_key_buffer, key_buffer] =
-        toBuffer(memory, child_storage_key, key);
+        loadBuffer(memory, child_storage_key, key);
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
@@ -130,7 +128,7 @@ namespace kagome::host_api {
       runtime::WasmSpan child_storage_key, runtime::WasmSpan key) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto [child_key_buffer, key_buffer] =
-        toBuffer(memory, child_storage_key, key);
+        loadBuffer(memory, child_storage_key, key);
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
@@ -154,7 +152,7 @@ namespace kagome::host_api {
     static constexpr runtime::WasmSpan kErrorSpan = -1;
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto [child_key_buffer, key_buffer] =
-        toBuffer(memory, child_storage_key, key);
+        loadBuffer(memory, child_storage_key, key);
     auto prefixed_child_key =
         make_prefixed_child_storage_key(child_key_buffer).value();
 
@@ -204,7 +202,7 @@ namespace kagome::host_api {
       runtime::WasmSpan child_storage_key) const {
     outcome::result<storage::trie::RootHash> res{{}};
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_key_buffer] = toBuffer(memory, child_storage_key);
+    auto [child_key_buffer] = loadBuffer(memory, child_storage_key);
     auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);

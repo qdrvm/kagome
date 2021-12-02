@@ -288,8 +288,21 @@ namespace kagome::common {
       return Buffer(std::move(chars));
     }
 
-    inline Buffer operator""_hex2buf(const char *c, size_t s) {
-      return Buffer::fromHex(std::string_view(c, s)).value();
+    constexpr bool is_hex(const char c) {
+      return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F')
+             || (c >= 'a' && c <= 'f');
+    }
+
+    template <char... cs>
+    constexpr bool is_hex_str() {
+      return (is_hex(cs) && ...);
+    }
+
+    template <typename C, C... cs>
+    inline Buffer operator""_hex2buf() {
+      static_assert(is_hex_str<cs...>());
+      constexpr static C data[] = {cs..., 0};
+      return Buffer::fromHex({data, strlen(data)}).value();
     }
   }  // namespace literals
 

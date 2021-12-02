@@ -8,9 +8,9 @@
 
 #include <cstdint>
 
+#include "common/buffer.hpp"
 #include "log/logger.hpp"
 #include "runtime/types.hpp"
-#include "common/buffer.hpp"
 
 namespace kagome::runtime {
   class MemoryProvider;
@@ -72,10 +72,10 @@ namespace kagome::host_api {
 
     template <typename R, typename F, typename... Args>
     outcome::result<R> executeOnChildStorage(
-      const common::Buffer& child_storage_key, F func, Args&&... args) const;
-    
+        const common::Buffer &child_storage_key, F func, Args &&...args) const;
+
     template <typename... Args>
-    auto toBuffer(runtime::Memory& memory, Args&&... spans) const;
+    auto loadBuffer(runtime::Memory &memory, Args &&...spans) const;
   };
 
 }  // namespace kagome::host_api

@@ -55,7 +55,7 @@ namespace kagome::runtime {
         primitives::BlockInfo const &block_info,
         storage::trie::RootHash const &storage_state,
         std::string_view name,
-        Args &&... args) {
+        Args &&...args) {
       OUTCOME_TRY(
           env,
           env_factory_->start(block_info, storage_state)->persistent().make());
@@ -79,7 +79,7 @@ namespace kagome::runtime {
      */
     template <typename Result, typename... Args>
     outcome::result<PersistentResult<Result>> persistentCallAtGenesis(
-        std::string_view name, Args &&... args) {
+        std::string_view name, Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
       OUTCOME_TRY(env, env_template->persistent().make());
       auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
@@ -104,7 +104,7 @@ namespace kagome::runtime {
     outcome::result<PersistentResult<Result>> persistentCallAt(
         primitives::BlockHash const &block_hash,
         std::string_view name,
-        Args &&... args) {
+        Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->persistent().make());
       auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
@@ -130,7 +130,7 @@ namespace kagome::runtime {
     outcome::result<Result> callAt(primitives::BlockInfo const &block_info,
                                    storage::trie::RootHash const &storage_state,
                                    std::string_view name,
-                                   Args &&... args) {
+                                   Args &&...args) {
       OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
@@ -143,7 +143,7 @@ namespace kagome::runtime {
     template <typename Result, typename... Args>
     outcome::result<Result> callAt(primitives::BlockHash const &block_hash,
                                    std::string_view name,
-                                   Args &&... args) {
+                                   Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
@@ -156,7 +156,7 @@ namespace kagome::runtime {
      */
     template <typename Result, typename... Args>
     outcome::result<Result> callAtGenesis(std::string_view name,
-                                          Args &&... args) {
+                                          Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
       OUTCOME_TRY(env, env_template->make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
@@ -173,7 +173,7 @@ namespace kagome::runtime {
     template <typename Result, typename... Args>
     outcome::result<Result> callInternal(RuntimeEnvironment &env,
                                          std::string_view name,
-                                         Args &&... args) {
+                                         Args &&...args) {
       auto &memory = env.memory_provider->getCurrentMemory()->get();
 
       Buffer encoded_args{};
