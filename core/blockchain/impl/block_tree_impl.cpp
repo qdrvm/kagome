@@ -230,11 +230,13 @@ namespace kagome::blockchain {
 
     metric_best_block_height_ = metrics_registry_->registerGaugeMetric(
         blockHeightMetricName, {{"status", "best"}});
-    metric_best_block_height_->set(tree_->getMetadata().deepest_leaf.lock()->depth);
+    metric_best_block_height_->set(
+        tree_->getMetadata().deepest_leaf.lock()->depth);
 
     metric_finalized_block_height_ = metrics_registry_->registerGaugeMetric(
         blockHeightMetricName, {{"status", "finalized"}});
-    metric_finalized_block_height_->set(tree_->getMetadata().last_finalized.lock()->depth);
+    metric_finalized_block_height_->set(
+        tree_->getMetadata().last_finalized.lock()->depth);
 
     metrics_registry_->registerGaugeFamily(
         knownChainLeavesMetricName, "Number of known chain leaves (aka forks)");
@@ -271,7 +273,8 @@ namespace kagome::blockchain {
     tree_->updateMeta(new_node);
 
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
-    metric_best_block_height_->set(tree_->getMetadata().deepest_leaf.lock()->depth);
+    metric_best_block_height_->set(
+        tree_->getMetadata().deepest_leaf.lock()->depth);
 
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  header);
@@ -325,7 +328,8 @@ namespace kagome::blockchain {
     }
 
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
-    metric_best_block_height_->set(tree_->getMetadata().deepest_leaf.lock()->depth);
+    metric_best_block_height_->set(
+        tree_->getMetadata().deepest_leaf.lock()->depth);
 
     return outcome::success();
   }
@@ -367,7 +371,8 @@ namespace kagome::blockchain {
     tree_->updateMeta(new_node);
 
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
-    metric_best_block_height_->set(tree_->getMetadata().deepest_leaf.lock()->depth);
+    metric_best_block_height_->set(
+        tree_->getMetadata().deepest_leaf.lock()->depth);
 
     return outcome::success();
   }
@@ -429,7 +434,8 @@ namespace kagome::blockchain {
       }
     }
 
-    log_->info("Finalized block #{} hash={}", node->depth, block_hash.toHex());
+    log_->info("Finalized block {}",
+               primitives::BlockInfo(node->depth, block_hash));
     metric_finalized_block_height_->set(node->depth);
     return outcome::success();
   }

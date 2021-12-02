@@ -239,7 +239,7 @@ namespace {
             auto &authorities = authorities_res.value();
 
             for (const auto &authority : authorities) {
-              SL_DEBUG(log, "Grandpa authority: {}", authority.id.id.toHex());
+              SL_DEBUG(log, "Grandpa authority: {:l}", authority.id.id);
             }
 
             authorities.id = 0;
@@ -419,7 +419,7 @@ namespace {
 
     auto log = log::createLogger("Injector", "injector");
     for (const auto &authority : configuration->genesis_authorities) {
-      SL_DEBUG(log, "Babe authority: {}", authority.id.id.toHex());
+      SL_DEBUG(log, "Babe authority: {:l}", authority.id.id);
     }
 
     initialized.emplace(std::move(configuration));

@@ -459,16 +459,14 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
     SL_DEBUG(logger_,
-             "{} has received from {}: "
-             "voter_set_id={} round={} for block #{} hash={}",
+             "{} has received from {}: voter_set_id={} round={} for block {}",
              msg.vote.is<Prevote>()     ? "Prevote"
              : msg.vote.is<Precommit>() ? "Precommit"
                                         : "PrimaryPropose",
              peer_id.toBase58(),
              msg.counter,
              msg.round_number,
-             msg.vote.getBlockNumber(),
-             msg.vote.getBlockHash());
+             msg.vote.getBlockInfo());
 
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
@@ -518,10 +516,9 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
                                const network::FullCommitMessage &fin) {
     SL_DEBUG(logger_,
-             "Finalization of block #{} hash={} and voter set #{} has received "
+             "Finalization of block {} and voter set #{} has received "
              "from peer_id={}",
-             fin.message.target_number,
-             fin.message.target_hash.toHex(),
+             BlockInfo(fin.message.target_number, fin.message.target_hash),
              fin.set_id,
              peer_id.toBase58());
 
@@ -581,9 +578,8 @@ namespace kagome::consensus::grandpa {
       if (authorities_res.has_error()) {
         SL_WARN(logger_,
                 "Can't retrieve authorities for applying justification "
-                "of block #{} hash={}: {}",
-                block_info.number,
-                block_info.hash,
+                "of block {}: {}",
+                block_info,
                 authorities_res.error().message());
         return authorities_res.as_failure();
       }

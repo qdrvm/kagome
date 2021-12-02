@@ -257,10 +257,7 @@ namespace kagome::consensus::babe {
 
             if (self->current_state_ == Babe::State::CATCHING_UP) {
               const auto &block = block_res.value();
-              SL_INFO(self->log_,
-                      "Catching up is finished on block #{} hash={}",
-                      block.number,
-                      block.hash.toHex());
+              SL_INFO(self->log_, "Catching up is finished on block {}", block);
               self->current_state_ = Babe::State::SYNCHRONIZED;
             }
             self->onSynchronized();
@@ -424,7 +421,13 @@ namespace kagome::consensus::babe {
     if (lottery_->getEpoch() != current_epoch_) {
       auto epoch_res = block_tree_->getEpochDescriptor(
           current_epoch_.epoch_number, best_block_.hash);
-      BOOST_ASSERT(epoch_res.has_value());
+      if (epoch_res.has_error()) {
+        log_->critical("Can't get epoch descriptor of epoch {} on block {}: {}",
+                       current_epoch_.epoch_number,
+                       best_block_.hash,
+                       epoch_res.error().message());
+        std::terminate();
+      }
       const auto &epoch = epoch_res.value();
 
       changeLotteryEpoch(current_epoch_, epoch.authorities, epoch.randomness);
@@ -543,10 +546,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    SL_INFO(log_,
-            "Babe builds block on top of block #{} hash={}",
-            best_block_.number,
-            best_block_.hash);
+    SL_INFO(log_, "Babe builds block on top of block {}", best_block_);
 
     auto epoch_res = block_tree_->getEpochDescriptor(
         current_epoch_.epoch_number, best_block_.hash);
@@ -561,7 +561,7 @@ namespace kagome::consensus::babe {
         getAuthorityIndex(epoch.authorities, keypair_->public_key);
     if (not authority_index_res.has_value()) {
       SL_ERROR(log_, "cannot get authority index: unknown authority");
-      return ;
+      return;
     }
     auto authority_index = authority_index_res.value();
 
@@ -570,10 +570,10 @@ namespace kagome::consensus::babe {
     // calculate babe_pre_digest
     auto babe_pre_digest_res = babePreDigest(output, authority_index);
     if (not babe_pre_digest_res) {
-       SL_ERROR(log_,
-                      "cannot propose a block: {}",
-                      babe_pre_digest_res.error().message());
-       return;
+      SL_ERROR(log_,
+               "cannot propose a block: {}",
+               babe_pre_digest_res.error().message());
+      return;
     }
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
@@ -582,8 +582,8 @@ namespace kagome::consensus::babe {
         best_block_.number, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
       SL_ERROR(log_,
-                      "Cannot propose a block: {}",
-                      pre_seal_block_res.error().message());
+               "Cannot propose a block: {}",
+               pre_seal_block_res.error().message());
       return;
     }
 
@@ -615,9 +615,9 @@ namespace kagome::consensus::babe {
     // seal the block
     auto seal_res = sealBlock(block);
     if (!seal_res) {
-       SL_ERROR(
+      SL_ERROR(
           log_, "Failed to seal the block: {}", seal_res.error().message());
-       return;
+      return;
     }
 
     // add seal digest item
@@ -710,9 +710,8 @@ namespace kagome::consensus::babe {
       auto ocw_res = offchain_worker_api_->offchain_worker(
           block.header.parent_hash, block.header);
       if (ocw_res.has_failure()) {
-        log_->error("Can't spawn offchain worker for block #{} hash={}: {}",
-                    block.header.number,
-                    block_hash.toHex(),
+        log_->error("Can't spawn offchain worker for block {}: {}",
+                    primitives::BlockInfo(block.header.number, block_hash),
                     ocw_res.error().message());
       }
     }

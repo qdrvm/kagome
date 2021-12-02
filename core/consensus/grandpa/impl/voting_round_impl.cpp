@@ -464,10 +464,9 @@ namespace kagome::consensus::grandpa {
 
   void VotingRoundImpl::sendProposal(const PrimaryPropose &primary_proposal) {
     SL_DEBUG(logger_,
-             "Round #{}: Sending primary proposal of block #{} hash={}",
+             "Round #{}: Sending primary proposal of block {}",
              round_number_,
-             primary_proposal.number,
-             primary_proposal.hash);
+             primary_proposal);
 
     auto signed_primary_proposal_opt =
         vote_crypto_provider_->signPrimaryPropose(primary_proposal);
@@ -511,10 +510,9 @@ namespace kagome::consensus::grandpa {
 
   void VotingRoundImpl::sendPrevote(const Prevote &prevote) {
     SL_DEBUG(logger_,
-             "Round #{}: Sending prevote for block #{} hash={}",
+             "Round #{}: Sending prevote for block {}",
              round_number_,
-             prevote.number,
-             prevote.hash);
+             prevote);
 
     auto signed_prevote_opt = vote_crypto_provider_->signPrevote(prevote);
     if (not signed_prevote_opt.has_value()) {
@@ -568,10 +566,9 @@ namespace kagome::consensus::grandpa {
 
   void VotingRoundImpl::sendPrecommit(const Precommit &precommit) {
     SL_DEBUG(logger_,
-             "Round #{}: Sending precommit for block #{} hash={}",
+             "Round #{}: Sending precommit for block {}",
              round_number_,
-             precommit.number,
-             precommit.hash);
+             precommit);
 
     auto signed_precommit_opt = vote_crypto_provider_->signPrecommit(precommit);
     if (not signed_precommit_opt.has_value()) {
@@ -598,11 +595,8 @@ namespace kagome::consensus::grandpa {
     const auto &precommit_justification =
         getPrecommitJustification(block, precommits_->getMessages());
 
-    SL_DEBUG(logger_,
-             "Round #{}: Finalizing on block #{} hash={}",
-             round_number_,
-             block.number,
-             block.hash.toHex());
+    SL_DEBUG(
+        logger_, "Round #{}: Finalizing on block {}", round_number_, block);
 
     GrandpaJustification justification{
         .round_number = round_number_,
@@ -615,10 +609,9 @@ namespace kagome::consensus::grandpa {
       auto res = env_->finalize(voter_set_->id(), justification);
       if (res.has_error()) {
         SL_WARN(logger_,
-                "Round #{}: Finalizing on block #{} hash={} is failed",
+                "Round #{}: Finalizing on block {} is failed",
                 round_number_,
-                block.number,
-                block.hash.toHex());
+                block);
       }
     }
 
@@ -627,11 +620,8 @@ namespace kagome::consensus::grandpa {
 
   void VotingRoundImpl::sendFinalize(
       const BlockInfo &block, const GrandpaJustification &justification) {
-    SL_DEBUG(logger_,
-             "Round #{}: Sending finalize block #{} hash={}",
-             round_number_,
-             block.number,
-             block.hash.toHex());
+    SL_DEBUG(
+        logger_, "Round #{}: Sending finalize block {}", round_number_, block);
 
     auto finalized = env_->onCommitted(round_number_, block, justification);
     if (not finalized) {
@@ -658,12 +648,10 @@ namespace kagome::consensus::grandpa {
       return result.as_failure();
     }
 
-    SL_DEBUG(
-        logger_,
-        "Round #{}: Finalisation of round is received for block #{} hash={}",
-        round_number_,
-        block_info.number,
-        block_info.hash.toHex());
+    SL_DEBUG(logger_,
+             "Round #{}: Finalisation of round is received for block {}",
+             round_number_,
+             block_info);
 
     bool isPrevotesChanged = false;
     bool isPrecommitsChanged = false;
@@ -726,7 +714,7 @@ namespace kagome::consensus::grandpa {
       if (not vote_crypto_provider_->verifyPrecommit(signed_precommit)) {
         logger_->error("Round #{}: Received invalid signed precommit from {}",
                        round_number_,
-                       signed_precommit.id.toHex());
+                       signed_precommit.id);
         return VotingRoundError::INVALID_SIGNATURE;
       }
 
@@ -767,7 +755,7 @@ namespace kagome::consensus::grandpa {
         logger_->error(
             "Round #{}: Received third precommit of caught equivocator from {}",
             round_number_,
-            signed_precommit.id.toHex());
+            signed_precommit.id);
         return VotingRoundError::REDUNDANT_EQUIVOCATION;
       }
     }
@@ -818,7 +806,7 @@ namespace kagome::consensus::grandpa {
           "Round #{}: Proposal received from {} was rejected: "
           "voter is not primary",
           round_number_,
-          proposal.id.toHex());
+          proposal.id);
       return;
     }
 
@@ -828,16 +816,15 @@ namespace kagome::consensus::grandpa {
           "Round #{}: Proposal received from {} was rejected: "
           "invalid signature",
           round_number_,
-          proposal.id.toHex());
+          proposal.id);
       return;
     }
 
     SL_DEBUG(logger_,
-             "Round #{}: Proposal received for block #{} hash={} from {}",
+             "Round #{}: Proposal received for block {} from {}",
              round_number_,
-             proposal.getBlockNumber(),
-             proposal.getBlockHash(),
-             proposal.id.toHex());
+             proposal.getBlockInfo(),
+             proposal.id);
 
     if (primary_vote_.has_value()) {
       propagation = Propagation::NEEDLESS;
@@ -873,7 +860,7 @@ namespace kagome::consensus::grandpa {
       logger_->warn(
           "Round #{}: Prevote received from {} was rejected: invalid signature",
           round_number_,
-          prevote.id.toHex());
+          prevote.id);
       return false;
     }
 
@@ -888,18 +875,17 @@ namespace kagome::consensus::grandpa {
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
         logger_->warn("Round #{}: Prevote received from {} was rejected: {}",
                       round_number_,
-                      prevote.id.toHex(),
+                      prevote.id,
                       result.error().message());
         return false;
       }
     }
 
     SL_DEBUG(logger_,
-             "Round #{}: Prevote received for block #{} hash={} from {} ",
+             "Round #{}: Prevote received for block {} from {} ",
              round_number_,
-             prevote.getBlockNumber(),
-             prevote.getBlockHash(),
-             prevote.id.toHex());
+             prevote.getBlockInfo(),
+             prevote.id);
 
     if (not prevote_.has_value() && id_ == prevote.id) {
       prevote_.emplace(prevote.getBlockInfo());
@@ -928,7 +914,7 @@ namespace kagome::consensus::grandpa {
           "Round #{}: Precommit received from {} was rejected: "
           "invalid signature",
           round_number_,
-          precommit.id.toHex());
+          precommit.id);
       return false;
     }
 
@@ -943,18 +929,17 @@ namespace kagome::consensus::grandpa {
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
         logger_->warn("Round #{}: Precommit received from {} was rejected: {}",
                       round_number_,
-                      precommit.id.toHex(),
+                      precommit.id,
                       result.error().message());
         return false;
       }
     }
 
     SL_DEBUG(logger_,
-             "Round #{}: Precommit received for block #{} hash={} from {} ",
+             "Round #{}: Precommit received for block {} from {} ",
              round_number_,
-             precommit.getBlockNumber(),
-             precommit.getBlockHash(),
-             precommit.id.toHex());
+             precommit.getBlockInfo(),
+             precommit.id);
 
     if (not precommit_.has_value() && id_ == precommit.id) {
       precommit_.emplace(precommit.getBlockInfo());
@@ -998,7 +983,7 @@ namespace kagome::consensus::grandpa {
     auto inw_res = voter_set_->indexAndWeight(vote.id);
     if (inw_res.has_error()) {
       logger_->warn("Can't get weight for voter {}: {}",
-                    vote.id.toHex(),
+                    vote.id,
                     inw_res.error().message());
       return inw_res.as_failure();
     }
@@ -1047,10 +1032,9 @@ namespace kagome::consensus::grandpa {
           }
           SL_LOG(logger_,
                  log_lvl,
-                 "{} for block #{} hash={} was not inserted with error: {}",
+                 "{} for block {} was not inserted with error: {}",
                  type_str,
-                 vote.getBlockNumber(),
-                 vote.getBlockHash().toHex(),
+                 vote.getBlockInfo(),
                  result.error().message());
           return result.as_failure();
         }
@@ -1107,10 +1091,9 @@ namespace kagome::consensus::grandpa {
       if (changed) {
         SL_TRACE(logger_,
                  "Round #{}: updatePrevoteGhost->true "
-                 "(prevote ghost was changed to block #{} hash={})",
+                 "(prevote ghost was changed to block {})",
                  round_number_,
-                 prevote_ghost_->number,
-                 prevote_ghost_->hash.toHex());
+                 prevote_ghost_.value());
       } else {
         SL_TRACE(logger_,
                  "Round #{}: updatePrevoteGhost->false "
@@ -1174,10 +1157,9 @@ namespace kagome::consensus::grandpa {
     if (changed) {
       SL_TRACE(logger_,
                "Round #{}: updatePrecommitGhost->true "
-               "(precommit ghost was changed to block #{} hash={})",
+               "(precommit ghost was changed to block {})",
                round_number_,
-               precommit_ghost_->number,
-               precommit_ghost_->hash.toHex());
+               precommit_ghost_.value());
       return true;
     }
 
@@ -1278,10 +1260,9 @@ namespace kagome::consensus::grandpa {
       SL_TRACE(
           logger_,
           "Round #{}: updateCompletability <- update best_final_candidate by "
-          "prevote_ghost_ (block #{} hash={})",
+          "prevote_ghost {}",
           round_number_,
-          best_final_candidate_->number,
-          best_final_candidate_->hash);
+          best_final_candidate_.value());
       return false;
     }
 
@@ -1299,14 +1280,11 @@ namespace kagome::consensus::grandpa {
         } else {
           SL_TRACE(
               logger_,
-              "Round #{}: updateCompletability <- precommit ghost (block #{} "
-              "hash={}) based on best prevote is different from "
-              "best_final_candidate (block #{} hash={})",
+              "Round #{}: updateCompletability <- precommit_ghost {} based on "
+              "best prevote is different from best_final_candidate {}",
               round_number_,
-              ghost->number,
-              ghost->hash,
-              best_final_candidate_->number,
-              best_final_candidate_->hash);
+              ghost.value(),
+              best_final_candidate_.value());
         }
       }
     } else {
@@ -1479,10 +1457,9 @@ namespace kagome::consensus::grandpa {
         SL_TRACE(
             logger_,
             "Round #{}: bestFinalCandidate <- best_final_candidate is updated "
-            "by precommit_ghost with given equvocations (block #{} hash={})",
+            "by precommit_ghost {} with given equvocations",
             round_number_,
-            best_final_candidate_->number,
-            best_final_candidate_->hash);
+            best_final_candidate_.value());
       } else {
         SL_TRACE(logger_,
                  "Round #{}: bestFinalCandidate <- best_final_candidate is not "
@@ -1496,10 +1473,9 @@ namespace kagome::consensus::grandpa {
       SL_TRACE(
           logger_,
           "Round #{}: bestFinalCandidate <- update best_final_candidate by "
-          "prevote_ghost_ (block #{} hash={})",
+          "prevote_ghost {}",
           round_number_,
-          best_final_candidate_->number,
-          best_final_candidate_->hash);
+          best_final_candidate_.value());
       return best_final_candidate_.value();
     }
 
@@ -1515,16 +1491,12 @@ namespace kagome::consensus::grandpa {
             && best_final_candidate_ == bestPrevoteCandidate()) {
           completable_ = true;
         } else {
-          SL_TRACE(
-              logger_,
-              "Round #{}: bestFinalCandidate <- precommit ghost (block #{} "
-              "hash={}) based on best prevote is different from "
-              "best_final_candidate (block #{} hash={})",
-              round_number_,
-              ghost->number,
-              ghost->hash,
-              best_final_candidate_->number,
-              best_final_candidate_->hash);
+          SL_TRACE(logger_,
+                   "Round #{}: bestFinalCandidate <- precommit_ghost {} based "
+                   "on best prevote is different from best_final_candidate {}",
+                   round_number_,
+                   ghost.value(),
+                   best_final_candidate_.value());
         }
       }
     } else {

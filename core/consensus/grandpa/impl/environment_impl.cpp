@@ -12,6 +12,7 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "network/grandpa_transmitter.hpp"
+#include "primitives/common.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -57,7 +58,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
       const BlockHash &base) const {
-    SL_DEBUG(logger_, "Finding best chain containing block {}", base.toHex());
+    SL_DEBUG(logger_, "Finding best chain containing block {}", base);
     OUTCOME_TRY(best_info, block_tree_->getBestContaining(base, std::nullopt));
     auto best_hash = best_info.hash;
 
@@ -69,9 +70,8 @@ namespace kagome::consensus::grandpa {
     while (true) {
       if (best_header.number == target) {
         SL_DEBUG(logger_,
-                 "found best chain: number {}, hash {}",
-                 best_header.number,
-                 best_hash.toHex());
+                 "found best chain: {}",
+                 BlockInfo(best_header.number, best_hash));
         return BlockInfo{primitives::BlockNumber{best_header.number},
                          best_hash};
       }
@@ -119,10 +119,9 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(propose.is<PrimaryPropose>());
 
     SL_DEBUG(logger_,
-             "Round #{}: Send proposal for block #{} with hash {}",
+             "Round #{}: Send proposal for block {}",
              round,
-             propose.getBlockNumber(),
-             propose.getBlockHash().toHex());
+             propose.getBlockInfo());
 
     network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = propose}};
@@ -137,10 +136,9 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(prevote.is<Prevote>());
 
     SL_DEBUG(logger_,
-             "Round #{}: Send prevote for block #{} with hash {}",
+             "Round #{}: Send prevote for block {}",
              round,
-             prevote.getBlockNumber(),
-             prevote.getBlockHash().toHex());
+             prevote.getBlockInfo());
 
     network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = prevote}};
@@ -156,10 +154,9 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(precommit.is<Precommit>());
 
     SL_DEBUG(logger_,
-             "Round #{}: Send precommit for block #{} with hash {}",
+             "Round #{}: Send precommit for block {}",
              round,
-             precommit.getBlockNumber(),
-             precommit.getBlockHash().toHex());
+             precommit.getBlockInfo());
 
     network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = precommit}};
@@ -172,11 +169,7 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
-    SL_DEBUG(logger_,
-             "Round #{}: Send commit of block #{} with hash {}",
-             round,
-             vote.number,
-             vote.hash.toHex());
+    SL_DEBUG(logger_, "Round #{}: Send commit of block {}", round, vote);
 
     network::FullCommitMessage message{
         .round = round,
@@ -229,12 +222,10 @@ namespace kagome::consensus::grandpa {
         justification,
         scale::decode<grandpa::GrandpaJustification>(raw_justification.data));
 
-    SL_DEBUG(
-        logger_,
-        "Trying to apply justification on round #{} for block #{} with hash {}",
-        justification.round_number,
-        justification.block_info.number,
-        justification.block_info.hash.toHex());
+    SL_DEBUG(logger_,
+             "Trying to apply justification on round #{} for block {}",
+             justification.round_number,
+             justification.block_info);
 
     OUTCOME_TRY(
         justification_observer->applyJustification(block_info, justification));

@@ -121,9 +121,8 @@ namespace kagome::consensus {
 
     const auto &[seal, babe_header] = babe_digests;
 
-    logger_->info("Applying block #{} hash={} (slot #{})",
-                  block.header.number,
-                  block_hash.toHex(),
+    logger_->info("Applying block {} (slot {})",
+                  primitives::BlockInfo(block.header.number, block_hash),
                   babe_header.slot_number);
 
     // add information about epoch to epoch storage
@@ -228,8 +227,8 @@ namespace kagome::consensus {
     // apply justification if any
     if (b.justification.has_value()) {
       SL_VERBOSE(logger_,
-                 "Justification received for block number {}",
-                 block.header.number);
+                 "Justification received for block {}",
+                 primitives::BlockInfo(block.header.number, block_hash));
       auto res = grandpa_environment_->applyJustification(
           primitives::BlockInfo(block.header.number, block_hash),
           b.justification.value());
@@ -253,9 +252,8 @@ namespace kagome::consensus {
     auto t_end = std::chrono::high_resolution_clock::now();
 
     logger_->info(
-        "Imported block #{} hash={} within {} ms",
-        block.header.number,
-        block_hash.toHex(),
+        "Imported block {} within {} ms",
+        primitives::BlockInfo(block.header.number, block_hash),
         std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
             .count());
 
@@ -270,9 +268,8 @@ namespace kagome::consensus {
       auto ocw_res = offchain_worker_api_->offchain_worker(
           block.header.parent_hash, block.header);
       if (ocw_res.has_failure()) {
-        logger_->error("Can't spawn offchain worker for block #{} hash={}: {}",
-                       block.header.number,
-                       block_hash.toHex(),
+        logger_->error("Can't spawn offchain worker for block {}: {}",
+                       primitives::BlockInfo(block.header.number, block_hash),
                        ocw_res.error().message());
       }
     }
