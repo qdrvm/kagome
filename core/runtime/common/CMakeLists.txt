@@ -44,6 +44,7 @@ add_library(trie_storage_provider
 target_link_libraries(trie_storage_provider
     runtime_transaction_error
     trie_storage
+    trie_serializer
     blob
     )
 kagome_install(trie_storage_provider)
