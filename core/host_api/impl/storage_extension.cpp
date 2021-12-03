@@ -19,6 +19,7 @@
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
+using kagome::storage::trie::TrieError;
 
 namespace {
   const auto CHANGES_CONFIG_KEY = kagome::common::Buffer{}.put(":changes_trie");
@@ -121,19 +122,20 @@ namespace kagome::host_api {
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = memory.loadN(key_ptr, key_size);
+    constexpr auto error_message =
+        "ext_storage_get_version_1( {} ) => value was not obtained. Reason: {}";
 
     auto result = get(key_buffer);
     auto option = result ? std::make_optional(result.value()) : std::nullopt;
 
-    if (option) {
-      SL_TRACE_FUNC_CALL(logger_, option.value(), key_buffer);
-
+    if (result) {
+      SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
+    } else if (result.error() == TrieError::NO_VALUE) {
+      logger_->trace(
+          error_message, key_buffer.toHex(), result.error().message());
     } else {
-      SL_TRACE(logger_,
-               "ext_storage_get_version_1( {} ) => value was not obtained. "
-               "Reason: {}",
-               key_buffer.toHex(),
-               result.error().message());
+      logger_->error(
+          error_message, key_buffer.toHex(), result.error().message());
     }
 
     return memory.storeBuffer(scale::encode(option).value());

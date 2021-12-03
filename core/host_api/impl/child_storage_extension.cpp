@@ -11,9 +11,13 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 
 #include <tuple>
 #include <utility>
+
+using kagome::common::Buffer;
+using kagome::storage::trie::TrieError;
 
 namespace kagome::host_api {
   ChildStorageExtension::ChildStorageExtension(
@@ -27,15 +31,15 @@ namespace kagome::host_api {
     BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
   }
 
-  outcome::result<common::Buffer> make_prefixed_child_storage_key(
-      const common::Buffer &child_storage_key) {
-    return common::Buffer{storage::kChildStorageDefaultPrefix}.putBuffer(
+  outcome::result<Buffer> make_prefixed_child_storage_key(
+      const Buffer &child_storage_key) {
+    return Buffer{storage::kChildStorageDefaultPrefix}.putBuffer(
         child_storage_key);
   }
 
   template <typename R, typename F, typename... Args>
   outcome::result<R> ChildStorageExtension::executeOnChildStorage(
-      const common::Buffer &child_storage_key, F func, Args &&... args) const {
+      const Buffer &child_storage_key, F func, Args &&...args) const {
     OUTCOME_TRY(prefixed_child_key,
                 make_prefixed_child_storage_key(child_storage_key));
     OUTCOME_TRY(child_batch,
@@ -49,8 +53,7 @@ namespace kagome::host_api {
 
     OUTCOME_TRY(new_child_root, child_batch->commit());
     OUTCOME_TRY(storage_provider_->getCurrentBatch()->put(
-        prefixed_child_key,
-        common::Buffer{scale::encode(new_child_root).value()}));
+        prefixed_child_key, Buffer{scale::encode(new_child_root).value()}));
     storage_provider_->clearChildBatches();
     if constexpr (!std::is_void_v<R>) {
       return result;
@@ -60,7 +63,7 @@ namespace kagome::host_api {
 
   template <typename... Args>
   auto ChildStorageExtension::loadBuffer(runtime::Memory &memory,
-                                       Args &&... spans) const {
+                                         Args &&...spans) const {
     auto f = [&memory](auto &&span) {
       auto [span_ptr, span_size] = runtime::PtrSize(span);
       return memory.loadN(span_ptr, span_size);
@@ -100,26 +103,32 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto [child_key_buffer, key_buffer] =
         loadBuffer(memory, child_storage_key, key);
+    constexpr auto error_message =
+        "ext_default_child_storage_get_version_1( {}, {} ) => value was not "
+        "obtained. Reason: {}";
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    auto result = executeOnChildStorage<common::Buffer>(
+    auto result = executeOnChildStorage<Buffer>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) -> outcome::result<common::Buffer> {
+        [](auto &child_batch, auto &key) -> outcome::result<Buffer> {
           return child_batch->get(key);
         },
         key_buffer);
     auto option = result ? std::make_optional(result.value()) : std::nullopt;
+
     if (result) {
-      SL_TRACE_FUNC_CALL(logger_, option.value(), child_key_buffer, key_buffer);
+      SL_TRACE_FUNC_CALL(logger_, result.value(), child_key_buffer, key_buffer);
+    } else if (result.error() == TrieError::NO_VALUE) {
+      logger_->trace(error_message,
+                     child_key_buffer.toHex(),
+                     key_buffer.toHex(),
+                     result.error().message());
     } else {
-      logger_->trace(
-          "ext_default_child_storage_get_version_1( {}, {} ) => value was "
-          "not obtained. "
-          "Reason: {}",
-          child_key_buffer.toHex(),
-          key_buffer.toHex(),
-          result.error().message());
+      logger_->error(error_message,
+                     child_key_buffer.toHex(),
+                     key_buffer.toHex(),
+                     result.error().message());
     }
     return memory.storeBuffer(scale::encode(option).value());
   }
@@ -182,9 +191,8 @@ namespace kagome::host_api {
     auto next_key_opt = cursor->key();
     if (auto enc_res = scale::encode(next_key_opt); enc_res.has_value()) {
       SL_TRACE_FUNC_CALL(logger_,
-                         next_key_opt.has_value()
-                             ? next_key_opt.value()
-                             : common::Buffer().put("no value"),
+                         next_key_opt.has_value() ? next_key_opt.value()
+                                                  : Buffer().put("no value"),
                          child_key_buffer,
                          key_buffer);
       return memory.storeBuffer(enc_res.value());
