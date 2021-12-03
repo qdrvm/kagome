@@ -298,10 +298,10 @@ namespace kagome::common {
       return (is_hex(cs) && ...);
     }
 
-    template <typename C, C... cs>
+    template <char... cs>
     inline Buffer operator""_hex2buf() {
       static_assert(is_hex_str<cs...>());
-      constexpr static C data[] = {cs..., 0};
+      constexpr static char data[] = {cs..., 0};
       return Buffer::fromHex({data, strlen(data)}).value();
     }
   }  // namespace literals
