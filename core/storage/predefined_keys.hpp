@@ -9,37 +9,36 @@
 #include "common/buffer.hpp"
 
 namespace kagome::storage {
+  using namespace common::literals;
 
-  inline const common::Buffer kRuntimeCodeKey = common::Buffer().put(":code");
+  inline const common::Buffer kRuntimeCodeKey = ":code"_buf;
 
-  inline const common::Buffer kExtrinsicIndexKey =
-      common::Buffer().put(":extrinsic_index");
+  inline const common::Buffer kExtrinsicIndexKey = ":extrinsic_index"_buf;
 
-  inline const common::Buffer kAuthoritySetKey =
-      common::Buffer().put("grandpa_voters");
+  inline const common::Buffer kAuthoritySetKey = "grandpa_voters"_buf;
 
-  inline const common::Buffer kSetStateKey =
-      common::Buffer().put("grandpa_completed_round");
+  inline const common::Buffer kSetStateKey = "grandpa_completed_round"_buf;
 
   inline const common::Buffer kGenesisBlockHashLookupKey =
-      common::Buffer().put(":kagome:genesis_block_hash");
+      ":kagome:genesis_block_hash"_buf;
   inline const common::Buffer kLastFinalizedBlockHashLookupKey =
-      common::Buffer().put(":kagome:last_finalized_block_hash");
+      ":kagome:last_finalized_block_hash"_buf;
 
   inline const common::Buffer kLastBabeEpochNumberLookupKey =
-      common::Buffer().put(":kagome:last_babe_epoch_number");
+      ":kagome:last_babe_epoch_number"_buf;
 
-  inline const common::Buffer kActivePeersKey =
-      common::Buffer().put(":kagome:last_active_peers");
+  inline const common::Buffer kActivePeersKey = ":kagome:last_active_peers"_buf;
 
   inline const common::Buffer kRuntimeHashesLookupKey =
-      common::Buffer().put(":kagome:runtime_hashes");
+      ":kagome:runtime_hashes"_buf;
 
   inline const common::Buffer kSchedulerTreeLookupKey =
-      common::Buffer().put(":kagome:authorities:scheduler_tree");
+      ":kagome:authorities:scheduler_tree"_buf;
 
-  inline const common::Buffer kOffchainWorkerStoragePrefix =
-      common::Buffer().put(":kagome:ocw");
+  inline const common::Buffer kOffchainWorkerStoragePrefix = ":kagome:ocw"_buf;
+
+  inline const common::Buffer kChildStorageDefaultPrefix =
+      ":child_storage:default:"_buf;
 }  // namespace kagome::storage
 
 #endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP

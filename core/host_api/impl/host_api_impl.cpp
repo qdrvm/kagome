@@ -13,6 +13,7 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "host_api/impl/offchain_extension.hpp"
+#include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::host_api {
 
@@ -52,6 +53,7 @@ namespace kagome::host_api {
                   memory_provider_,
                   std::move(core_provider)},
         storage_ext_(storage_provider_, memory_provider_, std::move(tracker)),
+        child_storage_ext_(storage_provider_, memory_provider_),
         offchain_ext_(offchain_config,
                       memory_provider_,
                       std::move(offchain_persistent_storage)) {}
@@ -80,12 +82,6 @@ namespace kagome::host_api {
   void HostApiImpl::ext_storage_set_version_1(runtime::WasmSpan key,
                                               runtime::WasmSpan value) {
     return storage_ext_.ext_storage_set_version_1(key, value);
-  }
-
-  runtime::WasmSpan HostApiImpl::ext_default_child_storage_get_version_1(
-      runtime::WasmSpan storage_key, runtime::WasmSpan key) {
-    return storage_ext_.ext_default_child_storage_get_version_1(storage_key,
-                                                                key);
   }
 
   runtime::WasmSpan HostApiImpl::ext_storage_get_version_1(
@@ -421,6 +417,38 @@ namespace kagome::host_api {
 
   void HostApiImpl::ext_offchain_index_clear_version_1(runtime::WasmSpan key) {
     return offchain_ext_.ext_offchain_index_clear_version_1(key);
+  }
+
+  void HostApiImpl::ext_default_child_storage_set_version_1(
+      runtime::WasmSpan child_storage_key,
+      runtime::WasmSpan key,
+      runtime::WasmSpan value) {
+    child_storage_ext_.ext_default_child_storage_set_version_1(
+        child_storage_key, key, value);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_default_child_storage_get_version_1(
+      runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const {
+    return child_storage_ext_.ext_default_child_storage_get_version_1(
+        child_storage_key, key);
+  }
+
+  void HostApiImpl::ext_default_child_storage_clear_version_1(
+      runtime::WasmSpan child_storage_key, runtime::WasmSpan key) {
+    child_storage_ext_.ext_default_child_storage_clear_version_1(
+        child_storage_key, key);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_default_child_storage_next_key_version_1(
+      runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const {
+    return child_storage_ext_.ext_default_child_storage_next_key_version_1(
+        child_storage_key, key);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_default_child_storage_root_version_1(
+      runtime::WasmSpan child_storage_key) const {
+    return child_storage_ext_.ext_default_child_storage_root_version_1(
+        child_storage_key);
   }
 
 }  // namespace kagome::host_api
