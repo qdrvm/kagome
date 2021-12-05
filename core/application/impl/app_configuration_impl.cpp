@@ -728,9 +728,8 @@ namespace kagome::application {
         });
     if (not runtime_exec_method_opt) {
       return false;
-    } else {
-      runtime_exec_method_ = runtime_exec_method_opt.value();
     }
+    runtime_exec_method_ = runtime_exec_method_opt.value();
 
     std::optional<OffchainWorkerMode> offchain_worker_mode_opt;
     find_argument<std::string>(
@@ -744,9 +743,8 @@ namespace kagome::application {
         });
     if (not offchain_worker_mode_opt) {
       return false;
-    } else {
-      offchain_worker_mode_ = offchain_worker_mode_opt.value();
     }
+    offchain_worker_mode_ = offchain_worker_mode_opt.value();
 
     if (vm.count("enable-offchain-indexing") > 0) {
       enable_offchain_indexing_ = true;

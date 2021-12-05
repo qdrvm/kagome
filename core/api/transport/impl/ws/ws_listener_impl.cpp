@@ -6,6 +6,7 @@
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 
 #include <boost/asio.hpp>
+#include "api/transport/tuner.hpp"
 #include "application/app_state_manager.hpp"
 
 namespace {
@@ -43,7 +44,8 @@ namespace kagome::api {
 
   bool WsListenerImpl::prepare() {
     try {
-      acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
+      acceptor_ = acceptOnFreePort(
+          context_, config_.endpoint, kDefaultPortTolerance, log_);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
       SL_CRITICAL(log_, "Failed to prepare a listener: {}", exception.what());
       return false;
@@ -70,7 +72,10 @@ namespace kagome::api {
       return false;
     }
     SL_TRACE(log_, "Connections limit is set to {}", max_ws_connections_);
-
+    SL_INFO(log_,
+            "Listening for new connections on {}:{}",
+            config_.endpoint.address(),
+            acceptor_->local_endpoint().port());
     acceptOnce();
     return true;
   }
