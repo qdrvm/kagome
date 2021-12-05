@@ -29,8 +29,8 @@ namespace kagome::network {
         public std::enable_shared_from_this<SyncProtocolImpl> {
    public:
     SyncProtocolImpl(libp2p::Host &host,
-                 const application::ChainSpec &chain_spec,
-                 std::shared_ptr<SyncProtocolObserver> sync_observer);
+                     const application::ChainSpec &chain_spec,
+                     std::shared_ptr<SyncProtocolObserver> sync_observer);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -67,7 +67,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("SyncProtocol", "kagome_protocols");
+    log::Logger log_ = log::createLogger("SyncProtocol", "sync_protocol");
   };
 
 }  // namespace kagome::network

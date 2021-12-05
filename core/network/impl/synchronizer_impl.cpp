@@ -358,11 +358,10 @@ namespace kagome::network {
         if (block_is_known) {
           // Common block is found
           SL_DEBUG(self->log_,
-                   "Found best common block with {}: #{} hash={}",
+                   "Found best common block with {}: {}",
                    peer_id.toBase58(),
-                   target,
-                   block.hash.toHex());
-          handler(primitives::BlockInfo(target, block.hash));
+                   BlockInfo(target, block.hash));
+          handler(BlockInfo(target, block.hash));
           return;
         }
 

@@ -123,26 +123,37 @@ namespace kagome::network {
       }
       auto &block_request = block_request_res.value();
 
-      SL_VERBOSE(
-          self->log_,
-          "Block request is received from incoming {} stream with {}: "
-          "id={} fields={} dir={} from={} to={} amount={}",
-          self->protocol_,
-          stream->remotePeerId().value().toBase58(),
-          block_request.id,
-          (uint8_t)block_request.fields,
-          block_request.direction == Direction::ASCENDING ? "anc" : "desc",
-          visit_in_place(
-              block_request.from,
-              [](const primitives::BlockHash &hash) { return hash.toHex(); },
-              [](const primitives::BlockNumber &number) {
-                return std::to_string(number);
-              }),
-          block_request.to.has_value() ? block_request.to.value().toHex()
-                                       : "max",
-          block_request.max.has_value()
-              ? std::to_string(block_request.max.value())
-              : "max");
+      if (self->log_->level() >= log::Level::VERBOSE) {
+        std::string logmsg = fmt::format(
+            "Block request is received from incoming {} stream with {}: id={}",
+            self->protocol_,
+            stream->remotePeerId().value().toBase58(),
+            block_request.id);
+
+        logmsg += ", fields=";
+        if (block_request.fields & BlockAttribute::HEADER) logmsg += 'H';
+        if (block_request.fields & BlockAttribute::BODY) logmsg += 'B';
+        if (block_request.fields & BlockAttribute::RECEIPT) logmsg += 'R';
+        if (block_request.fields & BlockAttribute::MESSAGE_QUEUE) logmsg += 'M';
+        if (block_request.fields & BlockAttribute::JUSTIFICATION) logmsg += 'J';
+
+        visit_in_place(block_request.from, [&](const auto &from) {
+          logmsg += fmt::format(", from {}", from);
+        });
+
+        if (block_request.to.has_value()) {
+          logmsg += fmt::format(" to {}", block_request.to.value());
+        }
+
+        logmsg +=
+            block_request.direction == Direction::ASCENDING ? " anc" : " desc";
+
+        if (block_request.max.has_value()) {
+          logmsg += fmt::format(", max {}", block_request.max.value());
+        }
+
+        self->log_->verbose(std::move(logmsg));
+      }
 
       auto block_response_res =
           self->sync_observer_->onBlocksRequest(block_request);
@@ -293,21 +304,32 @@ namespace kagome::network {
       return;
     }
 
-    visit_in_place(
-        block_request.from,
-        [this](primitives::BlockNumber from) {
-          SL_DEBUG(log_, "Requesting blocks: from {}", from);
-        },
-        [this, &block_request](const primitives::BlockHash &from) {
-          if (not block_request.to) {
-            SL_DEBUG(log_, "Requesting blocks: from {}", from.toHex());
-          } else {
-            SL_DEBUG(log_,
-                     "Requesting blocks: from {}, to {}",
-                     from.toHex(),
-                     block_request.to->toHex());
-          }
-        });
+    if (log_->level() >= log::Level::DEBUG) {
+      std::string logmsg = "Requesting blocks: fields=";
+
+      if (block_request.fields & BlockAttribute::HEADER) logmsg += 'H';
+      if (block_request.fields & BlockAttribute::BODY) logmsg += "B";
+      if (block_request.fields & BlockAttribute::RECEIPT) logmsg += "R";
+      if (block_request.fields & BlockAttribute::MESSAGE_QUEUE) logmsg += "M";
+      if (block_request.fields & BlockAttribute::JUSTIFICATION) logmsg += "J";
+
+      visit_in_place(block_request.from, [&](const auto &from) {
+        logmsg += fmt::format(" from {}", from);
+      });
+
+      if (block_request.to.has_value()) {
+        logmsg += fmt::format(" to {}", block_request.to.value());
+      }
+
+      logmsg +=
+          block_request.direction == Direction::ASCENDING ? " anc" : " desc";
+
+      if (block_request.max.has_value()) {
+        logmsg += fmt::format(", max {}", block_request.max.value());
+      }
+
+      log_->debug(std::move(logmsg));
+    }
 
     newOutgoingStream(
         {peer_id, addresses_res.value()},

@@ -42,14 +42,14 @@ namespace kagome::network {
           });
 
       // Note: request.to is not used in substrate
-      if (t.to) {
+      if (t.to.has_value()) {
         msg.set_to_block(t.to->toString());
       }
 
       msg.set_direction(static_cast<::api::v1::Direction>(t.direction));
 
-      if (t.max) {
-        msg.set_max_blocks(*t.max);
+      if (t.max.has_value()) {
+        msg.set_max_blocks(t.max.value());
       }
 
       const size_t distance_was = std::distance(out.begin(), loaded);
@@ -71,8 +71,9 @@ namespace kagome::network {
       assert(remains >= size(out));
 
       ::api::v1::BlockRequest msg;
-      if (!msg.ParseFromArray(from.base(), remains))
+      if (!msg.ParseFromArray(from.base(), remains)) {
         return AdaptersError::PARSE_FAILED;
+      }
 
       out.fields.load(be32toh(msg.fields()));
       out.direction = static_cast<decltype(out.direction)>(msg.direction());
@@ -99,9 +100,12 @@ namespace kagome::network {
       if (not msg.to_block().empty()) {
         OUTCOME_TRY(to_block,
                     primitives::BlockHash::fromString(msg.to_block()));
-        out.to = to_block;
+        out.to.emplace(to_block);
       }
-      out.max = msg.max_blocks();
+
+      if (msg.max_blocks() > 0) {
+        out.max.emplace(msg.max_blocks());
+      }
 
       std::advance(from, msg.ByteSizeLong());
       return from;

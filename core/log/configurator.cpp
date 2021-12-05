@@ -72,6 +72,8 @@ groups:
             children:
               - name: synchronizer
               - name: kagome_protocols
+                children:
+                  - name: sync_protocol
           - name: changes_trie
           - name: storage
             children:
