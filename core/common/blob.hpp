@@ -300,7 +300,7 @@ struct fmt::formatter<kagome::common::Blob<N>> {
       static_assert(N > 4);
       return format_to(
           ctx.out(),
-          "0x{:02x}…{:02x}",
+          "0x{:04x}…{:04x}",
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
           htobe16(*reinterpret_cast<const uint16_t *>(blob.data())),
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)

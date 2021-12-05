@@ -95,7 +95,7 @@ struct fmt::formatter<kagome::primitives::detail::BlockInfoT<Tag>> {
       static_assert(decltype(block_info.hash)::size() > 4);
       return format_to(
           ctx.out(),
-          "#{} (0x{:02x}…{:02x})",
+          "#{} (0x{:04x}…{:04x})",
           block_info.number,
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
           htobe16(*reinterpret_cast<const uint16_t *>(block_info.hash.data())),
