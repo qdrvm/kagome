@@ -702,9 +702,7 @@ namespace kagome::network {
           if (handler) handler(Error::DISCARDED_BLOCK);
         }
       } else {
-        // we might need those after we've moved the block to applyBlock
-        auto block_hash = block.hash;
-        auto block_number = block.header->number;
+        const BlockInfo block_info(block.header->number, block.hash);
 
         auto applying_res = block_executor_->applyBlock(std::move(block));
         notifySubscribers({number, hash}, applying_res);
@@ -713,23 +711,20 @@ namespace kagome::network {
           if (applying_res
               != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
             notifySubscribers({number, hash}, applying_res.as_failure());
-            auto n = discardBlock(block_hash);
+            auto n = discardBlock(block_info.hash);
             SL_WARN(
                 log_,
                 "Block {} {} been discarded: {}",
-                BlockInfo(number, hash),
+                block_info,
                 n ? fmt::format("and {} others have", n) : fmt::format("has"),
                 applying_res.error().message());
             if (handler) handler(Error::DISCARDED_BLOCK);
           } else {
-            SL_DEBUG(log_,
-                     "Block {} is skipped as existing",
-                     BlockInfo(number, hash));
+            SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
             if (handler) handler(applying_res.as_failure());
           }
         } else {
-          if (handler)
-            handler(consensus::grandpa::BlockInfo(block_number, hash));
+          if (handler) handler(block_info);
         }
       }
     }
