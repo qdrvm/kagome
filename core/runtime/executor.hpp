@@ -79,8 +79,7 @@ namespace kagome::runtime {
      */
     template <typename Result, typename... Args>
     outcome::result<PersistentResult<Result>> persistentCallAtGenesis(
-        std::string_view name,
-        Args &&...args) {
+        std::string_view name, Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
       OUTCOME_TRY(env, env_template->persistent().make());
       auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
@@ -205,9 +204,9 @@ namespace kagome::runtime {
       BOOST_ASSERT_MSG(
           env.storage_provider->tryGetPersistentBatch(),
           "Current batch should always be persistent for a persistent call");
-      OUTCOME_TRY(
-          new_state_root,
-          env.storage_provider->tryGetPersistentBatch().value()->commit());
+      auto persistent_batch =
+          env.storage_provider->tryGetPersistentBatch().value();
+      OUTCOME_TRY(new_state_root, persistent_batch->commit());
       SL_DEBUG(logger_,
                "Runtime call committed new state with hash {}",
                new_state_root.toHex());

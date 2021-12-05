@@ -37,6 +37,7 @@ class WavmRuntimeTest : public RuntimeTestBase {
     auto instance_env_factory =
         std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
             trie_storage_,
+            serializer_,
             compartment,
             intrinsic_module,
             host_api_factory_,

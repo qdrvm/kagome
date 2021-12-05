@@ -93,18 +93,17 @@ namespace kagome::network {
           bodies->emplace_back(std::move(body));
         }
 
-        OUTCOME_TRY(receipt,
-                    common::Buffer::fromString(src_block_data.receipt()));
+        auto receipt = common::Buffer::fromString(src_block_data.receipt());
 
-        OUTCOME_TRY(message_queue,
-                    common::Buffer::fromString(src_block_data.message_queue()));
+        auto message_queue =
+            common::Buffer::fromString(src_block_data.message_queue());
 
         std::optional<primitives::Justification> justification;
 
         if (not src_block_data.justification().empty()
             || src_block_data.is_empty_justification()) {
-          OUTCOME_TRY(
-              data, common::Buffer::fromString(src_block_data.justification()));
+          auto data =
+              common::Buffer::fromString(src_block_data.justification());
 
           justification.emplace(primitives::Justification{std::move(data)});
         }
