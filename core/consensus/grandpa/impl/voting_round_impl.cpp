@@ -438,6 +438,7 @@ namespace kagome::consensus::grandpa {
       stage_ = Stage::COMPLETED;
       on_complete_handler_ = nullptr;
       timer_.cancel();
+      neighbor_msg_timer_.cancel();
     }
   }
 
