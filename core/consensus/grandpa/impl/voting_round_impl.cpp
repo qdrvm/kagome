@@ -215,7 +215,7 @@ namespace kagome::consensus::grandpa {
       // if Best-Final-Candidate greater than Last-Finalized-Block
       // spec: if Best-Final-Candidate(r ¡ 1) > Last-Finalized-Block
       if (previous_round->bestFinalCandidate().number
-          >= last_finalized_block_.number) {
+          > last_finalized_block_.number) {
         doProposal();
       }
     }
