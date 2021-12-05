@@ -565,16 +565,16 @@ namespace kagome::blockchain {
       if (max_count.has_value() && ++count > max_count.value()) {
         log_->warn(
             "impossible to get chain by blocks: "
-            "max count exceeded at intermediate block hash={}",
-            current_hash.toHex());
+            "max count exceeded at intermediate block {}",
+            current_hash);
         break;
       }
       auto header_res = header_repo_->getBlockHeader(current_hash);
       if (!header_res) {
         log_->warn(
             "impossible to get chain by blocks: "
-            "intermediate block hash={} was not added to block tree before",
-            current_hash.toHex());
+            "intermediate block {} was not added to block tree before",
+            current_hash);
         return BlockTreeError::NO_SOME_BLOCK_IN_CHAIN;
       }
       current_hash = header_res.value().parent_hash;

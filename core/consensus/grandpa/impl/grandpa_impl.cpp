@@ -11,6 +11,7 @@
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
+#include "network/helpers/peer_id_formatter.hpp"
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
 
@@ -299,12 +300,12 @@ namespace kagome::consensus::grandpa {
       const libp2p::peer::PeerId &peer_id,
       const network::GrandpaNeighborMessage &msg) {
     SL_DEBUG(logger_,
-             "NeighborMessage has received from {}: "
-             "voter_set_id={} round={} last_finalized={}",
-             peer_id.toBase58(),
+             "NeighborMessage set_id={} round={} last_finalized={} "
+             "has received from {}",
              msg.voter_set_id,
              msg.round_number,
-             msg.last_finalized);
+             msg.last_finalized,
+             peer_id);
     tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
   }
 
@@ -316,7 +317,7 @@ namespace kagome::consensus::grandpa {
           "Catch-up request (since round #{}) received from {} was rejected: "
           "previous round is dummy yet",
           msg.round_number,
-          peer_id.toBase58());
+          peer_id);
       return;
     }
     if (FullRound{msg} > FullRound{current_round_}) {
@@ -326,7 +327,7 @@ namespace kagome::consensus::grandpa {
           "Catch-up request (since round #{}) received from {} was rejected: "
           "catching up into the past",
           msg.round_number,
-          peer_id.toBase58());
+          peer_id);
       return;
     }
     if (not previous_round_->completable()) {
@@ -335,7 +336,7 @@ namespace kagome::consensus::grandpa {
           "Catch-up request (since round #{}) received from {} was rejected: "
           "round is not completable",
           msg.round_number,
-          peer_id.toBase58());
+          peer_id);
       return;
     }
     if (not previous_round_->finalizable()) {
@@ -344,14 +345,14 @@ namespace kagome::consensus::grandpa {
           "Catch-up request (since round #{}) received from {} was rejected: "
           "round is not finalizable",
           msg.round_number,
-          peer_id.toBase58());
+          peer_id);
       return;
     }
 
     SL_DEBUG(logger_,
              "Catch-up request (since round #{}) received from {}",
              msg.round_number,
-             peer_id.toBase58());
+             peer_id);
     previous_round_->doCatchUpResponse(peer_id);
   }
 
@@ -365,14 +366,14 @@ namespace kagome::consensus::grandpa {
           "Catch-up response (till round #{}) received from {} was rejected: "
           "catching up into the past",
           msg.round_number,
-          peer_id.toBase58());
+          peer_id);
       return;
     }
 
     SL_DEBUG(logger_,
              "Catch-up response (till round #{}) received from {}",
              msg.round_number,
-             peer_id.toBase58());
+             peer_id);
 
     GrandpaContext::Guard cg;
 
@@ -459,25 +460,22 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
     SL_DEBUG(logger_,
-             "{} has received from {}: voter_set_id={} round={} for block {}",
+             "{} signed by {} with set_id={} in round={} for block {} "
+             "has received from {}",
              msg.vote.is<Prevote>()     ? "Prevote"
              : msg.vote.is<Precommit>() ? "Precommit"
                                         : "PrimaryPropose",
-             peer_id.toBase58(),
+             msg.id(),
              msg.counter,
              msg.round_number,
-             msg.vote.getBlockInfo());
+             msg.vote.getBlockInfo(),
+             peer_id);
 
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
       tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
       return;
     }
-
-    // get block info
-    auto block_info = visit_in_place(msg.vote.message, [](const auto &vote) {
-      return BlockInfo(vote.number, vote.hash);
-    });
 
     GrandpaContext::Guard cg;
 
@@ -520,7 +518,7 @@ namespace kagome::consensus::grandpa {
              "from peer_id={}",
              BlockInfo(fin.message.target_number, fin.message.target_hash),
              fin.set_id,
-             peer_id.toBase58());
+             peer_id);
 
     auto existence_res = environment_->hasBlock(fin.message.target_hash);
     if (existence_res.has_error()) {

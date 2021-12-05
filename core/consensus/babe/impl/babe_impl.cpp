@@ -99,10 +99,7 @@ namespace kagome::consensus::babe {
   bool BabeImpl::start() {
     best_block_ = block_tree_->deepestLeaf();
 
-    SL_DEBUG(log_,
-             "Babe is starting with syncing from block #{}, hash={}",
-             best_block_.number,
-             best_block_.hash);
+    SL_DEBUG(log_, "Babe is starting with syncing from block {}", best_block_);
 
     EpochDescriptor last_epoch_descriptor;
     const auto now = clock_->now();
@@ -321,10 +318,7 @@ namespace kagome::consensus::babe {
 
       best_block_ = block_tree_->deepestLeaf();
 
-      SL_DEBUG(log_,
-               "Babe is synchronized on block #{}, hash={}",
-               best_block_.number,
-               best_block_.hash);
+      SL_DEBUG(log_, "Babe is synchronized on block {}", best_block_);
 
       runEpoch(last_epoch_descriptor);
     }

@@ -160,9 +160,8 @@ namespace kagome::authorship {
       auto removed_res = transaction_pool_->removeOne(hash);
       if (not removed_res) {
         logger_->error(
-            "Can't remove extrinsic (hash={}) after adding to the block. "
-            "Reason: {}",
-            hash.toHex(),
+            "Can't remove extrinsic {} after adding to the block. Reason: {}",
+            hash,
             removed_res.error().message());
       }
     }
