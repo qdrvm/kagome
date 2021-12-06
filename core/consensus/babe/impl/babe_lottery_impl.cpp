@@ -128,6 +128,13 @@ namespace kagome::consensus {
     auto rand_number = common::bytes_to_uint256_t(rand);
     auto index = static_cast<primitives::AuthorityIndex>(rand_number
                                                          % authorities_count);
+    SL_TRACE(logger_,
+             "Secondary slot author for slot {}, authorities count {}, "
+             "randomness {} is {}",
+             slot,
+             authorities_count,
+             randomness.toHex(),
+             index);
     return index;
   }
 

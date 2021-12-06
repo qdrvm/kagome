@@ -388,8 +388,8 @@ namespace kagome::consensus::babe {
         best_block_ =
             primitives::BlockInfo(header.number - 1, header.parent_hash);
         continue;
-
-      } else if (best_block_.number == 0) {
+      }
+      if (best_block_.number == 0) {
         // Only genesis may not have a babe digest
         break;
       }
@@ -449,7 +449,8 @@ namespace kagome::consensus::babe {
 
       processSlotLeadership(
           SlotType::Primary, std::cref(vrf_result), authority_index);
-    } else if (isSecondarySlotsAllowed()) {
+    } else if (isSecondarySlotsAllowed()
+               and block_tree_->getLastFinalized().number > 0) {
       auto expected_author = lottery_->secondarySlotAuthor(
           current_slot_, epoch.authorities.size(), epoch.randomness);
 
