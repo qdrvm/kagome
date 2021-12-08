@@ -9,11 +9,13 @@
 #include "runtime/trie_storage_provider.hpp"
 
 #include <stack>
+#include <unordered_map>
 
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "storage/trie/serialization/trie_serializer.hpp"
 
 namespace kagome::runtime {
 
@@ -24,7 +26,8 @@ namespace kagome::runtime {
     };
 
     explicit TrieStorageProviderImpl(
-        std::shared_ptr<storage::trie::TrieStorage> trie_storage);
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+        std::shared_ptr<storage::trie::TrieSerializer> trie_serializer);
 
     ~TrieStorageProviderImpl() override = default;
 
@@ -39,14 +42,20 @@ namespace kagome::runtime {
         const override;
     bool isCurrentlyPersistent() const override;
 
+    outcome::result<std::shared_ptr<PersistentBatch>> getChildBatchAt(
+        const common::Buffer &root_path) override;
+
     outcome::result<storage::trie::RootHash> forceCommit() override;
 
     outcome::result<void> startTransaction() override;
     outcome::result<void> rollbackTransaction() override;
     outcome::result<void> commitTransaction() override;
 
+    void clearChildBatches() noexcept override;
+
    private:
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
+    std::shared_ptr<storage::trie::TrieSerializer> trie_serializer_;
 
     std::stack<std::shared_ptr<Batch>> stack_of_batches_;
 
@@ -55,6 +64,9 @@ namespace kagome::runtime {
     // need to store it because it has to be the same in different runtime calls
     // to keep accumulated changes for commit to the main storage
     std::shared_ptr<PersistentBatch> persistent_batch_;
+
+    std::unordered_map<common::Buffer, std::shared_ptr<PersistentBatch>>
+        child_batches_;
 
     log::Logger logger_;
   };

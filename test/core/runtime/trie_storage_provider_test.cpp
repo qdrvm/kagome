@@ -50,7 +50,7 @@ class TrieStorageProviderTest : public ::testing::Test {
 
     storage_provider_ =
         std::make_shared<kagome::runtime::TrieStorageProviderImpl>(
-            std::move(trieDb));
+            std::move(trieDb), std::move(serializer));
 
     ASSERT_OUTCOME_SUCCESS_TRY(
         storage_provider_->setToPersistentAt(serializer->getEmptyRootHash()));

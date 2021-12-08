@@ -7,6 +7,7 @@
 #define KAGOME_CORE_RUNTIME_TRIE_STORAGE_PROVIDER
 
 #include <optional>
+#include <unordered_map>
 
 #include "common/blob.hpp"
 #include "outcome/outcome.hpp"
@@ -62,6 +63,20 @@ namespace kagome::runtime {
      * false otherwise
      */
     virtual bool isCurrentlyPersistent() const = 0;
+
+    /**
+     * @brief Get (or create new) Child Batch with given root hash
+     *
+     * @param root root hash value of a new (or cached) batch
+     * @return Child storage tree batch
+     */
+    virtual outcome::result<std::shared_ptr<PersistentBatch>> getChildBatchAt(
+        const common::Buffer &root_path) = 0;
+
+    /**
+     * Clear internal map of child storages batches
+     */
+    virtual void clearChildBatches() noexcept = 0;
 
     /**
      * Commits persistent changes even if the current batch is not persistent

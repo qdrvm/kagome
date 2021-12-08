@@ -173,6 +173,7 @@ int main() {
   auto instance_env_factory =
       std::make_shared<const kagome::runtime::wavm::InstanceEnvironmentFactory>(
           trie_storage,
+          serializer,
           compartment,
           intrinsic_module,
           host_api_factory,
