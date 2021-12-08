@@ -100,7 +100,7 @@ Usage:
 
     <db-path>     full or relative path to kagome database. It is usually path
                     polkadot/db inside base path set in kagome options.
-    <root-state>  root state hash in 0x prefixed hex format.
+    <root-state>  root state hash in 0x prefixed hex format. [Optional]
     <command>
          dump:    dumps the state from the DB to file hex_full_state.yaml in
                     format ready for use in polkadot-test.
@@ -109,6 +109,7 @@ Usage:
 
 Example:
     kagome-db-editor base-path/polkadot/db 0x1e22e dump
+    kagome-db-editor base-path/polkadot/db
 )");
   std::cout << help;
 };
@@ -157,8 +158,16 @@ int main(int argc, char *argv[]) {
   {
     auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
 
-    std::shared_ptr<storage::LevelDB> storage =
-        storage::LevelDB::create(argv[DB_PATH], leveldb::Options()).value();
+    std::shared_ptr<storage::LevelDB> storage;
+    try {
+      storage =
+          storage::LevelDB::create(argv[DB_PATH], leveldb::Options()).value();
+    } catch (std::system_error &e) {
+      log->error("{}", e.what());
+      usage();
+      return 0;
+    }
+
     auto injector = di::make_injector(
         di::bind<TrieSerializer>.template to([](const auto &injector) {
           return std::make_shared<TrieSerializerImpl>(

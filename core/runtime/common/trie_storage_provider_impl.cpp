@@ -76,9 +76,8 @@ namespace kagome::runtime {
     if (!child_batches_.count(root_path)) {
       SL_DEBUG(
           logger_,
-          "Creating new persistent batch for child storage {} with root {}",
-          root_path.toHex(),
-          trie_storage_->getRootHash().toHex());
+          "Creating new persistent batch for child storage {}",
+          root_path.toHex());
       OUTCOME_TRY(child_root_value, getCurrentBatch()->tryGet(root_path));
       auto child_root_hash = child_root_value
                                  ? common::Hash256::fromSpan(
@@ -90,9 +89,8 @@ namespace kagome::runtime {
       child_batches_.emplace(root_path, std::move(child_batch));
     }
     SL_DEBUG(logger_,
-             "Fetching persistent batch for child storage {} with root {}",
-             root_path.toHex(),
-             trie_storage_->getRootHash().toHex());
+             "Fetching persistent batch for child storage {}",
+             root_path.toHex());
     return child_batches_.at(root_path);
   }
 
