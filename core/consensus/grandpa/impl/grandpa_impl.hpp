@@ -47,9 +47,9 @@ namespace kagome::consensus::grandpa {
     FullRound &operator=(const FullRound &) = default;
 
     bool operator<(const FullRound &round) const {
-      return voter_set_id == round.voter_set_id
-                 ? round_number < round.round_number
-                 : voter_set_id < round.voter_set_id;
+      return voter_set_id < round.voter_set_id
+             or (voter_set_id == round.voter_set_id
+                 and round_number < round.round_number);
     }
 
     bool operator==(const FullRound &round) const {
