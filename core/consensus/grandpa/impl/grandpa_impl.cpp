@@ -568,7 +568,7 @@ namespace kagome::consensus::grandpa {
       const BlockInfo &block_info, const GrandpaJustification &justification) {
     auto round = selectRound(justification.round_number, std::nullopt);
     if (round == nullptr) {
-      if (current_round_->bestPrevoteCandidate().number > block_info.number) {
+      if (current_round_->lastFinalizedBlock().number > block_info.number) {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
       }
 
