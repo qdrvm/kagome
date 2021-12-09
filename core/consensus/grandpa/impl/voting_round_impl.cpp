@@ -769,6 +769,10 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::attemptToFinalizeRound() {
+    if (stage_ == Stage::COMPLETED) {
+      return;
+    }
+
     if (finalizable()) {
       doFinalize();
       if (on_complete_handler_) {
