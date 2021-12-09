@@ -520,25 +520,25 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
                                const network::FullCommitMessage &fin) {
-    SL_DEBUG(logger_,
-             "Finalization of block {} and voter set #{} has received "
-             "from peer_id={}",
-             BlockInfo(fin.message.target_number, fin.message.target_hash),
-             fin.set_id,
-             peer_id);
+    auto round = selectRound(fin.round, fin.set_id);
+    if (round && round == previous_round_) {
+      SL_DEBUG(logger_,
+               "Finalization with set_id={} in round={} for block {} "
+               "has received from {} and skipped as fulfilled",
+               fin.set_id,
+               fin.round,
+               BlockInfo(fin.message.target_number, fin.message.target_hash),
+               peer_id);
+      return;
+    }
 
-    auto existence_res = environment_->hasBlock(fin.message.target_hash);
-    if (existence_res.has_error()) {
-      SL_WARN(logger_,
-              "Fin message is not applied: {}",
-              existence_res.error().message());
-      return;
-    }
-    if (not existence_res.value()) {
-      SL_WARN(logger_,
-              "Fin message is not applied: Finalizing block not found");
-      return;
-    }
+    SL_DEBUG(logger_,
+             "Finalization with set_id={} in round={} for block {} "
+             "has received from {}",
+             fin.set_id,
+             fin.round,
+             BlockInfo(fin.message.target_number, fin.message.target_hash),
+             peer_id);
 
     GrandpaJustification justification{
         .round_number = fin.round,
