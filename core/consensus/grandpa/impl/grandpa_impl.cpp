@@ -681,20 +681,20 @@ namespace kagome::consensus::grandpa {
       if (auto self = wp.lock()) {
         auto &peer_id = ctx->peer_id.value();
         auto &blocks = ctx->missing_blocks;
-        auto it = blocks.rbegin();
-        if (it != blocks.rend()) {
-          auto &block = *it;
+        if (not blocks.empty()) {
+          auto it = blocks.rbegin();
+          auto node = blocks.extract((++it).base());
+          auto block = node.value();
           self->synchronizer_->syncByBlockInfo(
               block,
               peer_id,
-              [do_request_ptr = std::move(do_request_ptr)](auto res) {
-                if (res.has_value()) {
+              [wp, ctx, do_request_ptr = std::move(do_request_ptr)](auto res) {
+                if (do_request_ptr != nullptr) {
                   auto do_request = std::move(*do_request_ptr);
                   do_request();
                 }
               },
               true);
-          blocks.erase(block);
           return;
         }
         final();

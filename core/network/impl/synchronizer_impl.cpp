@@ -79,14 +79,16 @@ namespace kagome::network {
       const primitives::BlockInfo &block_info, SyncResultHandler &&handler) {
     // Check if block is already in tree
     if (block_tree_->hasBlockHeader(block_info.hash)) {
-      handler(block_info);
+      scheduler_->schedule(
+          [handler = std::move(handler), block_info] { handler(block_info); });
       return false;
     }
 
     auto last_finalized_block = block_tree_->getLastFinalized();
     // Check if block from discarded side-chain
     if (last_finalized_block.number <= block_info.number) {
-      handler(Error::DISCARDED_BLOCK);
+      scheduler_->schedule(
+          [handler = std::move(handler)] { handler(Error::DISCARDED_BLOCK); });
       return false;
     }
 
@@ -97,11 +99,13 @@ namespace kagome::network {
     const auto &best_block = best_block_res.value();
     if (best_block.number + kMaxDistanceToBlockForSubscription
         < block_info.number) {
-      handler(Error::ARRIVED_TOO_EARLY);
+      scheduler_->schedule([handler = std::move(handler)] {
+        handler(Error::ARRIVED_TOO_EARLY);
+      });
       return false;
     }
 
-    subscriptions_.emplace(block_info, handler);
+    subscriptions_.emplace(block_info, std::move(handler));
     return true;
   }
 
