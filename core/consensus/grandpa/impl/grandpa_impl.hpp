@@ -114,7 +114,9 @@ namespace kagome::consensus::grandpa {
     void executeNextRound() override;
 
    private:
-    std::shared_ptr<VotingRound> selectRound(RoundNumber round_number);
+    std::shared_ptr<VotingRound> selectRound(
+        RoundNumber round_number,
+        std::optional<MembershipCounter> voter_set_id);
     outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> makeInitialRound(

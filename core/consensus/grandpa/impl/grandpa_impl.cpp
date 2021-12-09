@@ -231,15 +231,21 @@ namespace kagome::consensus::grandpa {
   }
 
   std::shared_ptr<VotingRound> GrandpaImpl::selectRound(
-      RoundNumber round_number) {
+      RoundNumber round_number, std::optional<MembershipCounter> voter_set_id) {
     std::shared_ptr<VotingRound> target_round;
     if (current_round_ && current_round_->roundNumber() == round_number) {
-      target_round = current_round_;
-    } else if (previous_round_
-               && previous_round_->roundNumber() == round_number) {
-      target_round = previous_round_;
+      if (not voter_set_id.has_value()
+          or current_round_->voterSetId() == voter_set_id.value()) {
+        return current_round_;
+      }
     }
-    return target_round;
+    if (previous_round_ && previous_round_->roundNumber() == round_number) {
+      if (not voter_set_id.has_value()
+          or previous_round_->voterSetId() == voter_set_id.value()) {
+        return previous_round_;
+      }
+    }
+    return {};
   }
 
   outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
@@ -471,7 +477,8 @@ namespace kagome::consensus::grandpa {
              msg.vote.getBlockInfo(),
              peer_id);
 
-    std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
+    std::shared_ptr<VotingRound> target_round =
+        selectRound(msg.round_number, msg.counter);
     if (not target_round) {
       tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
       return;
@@ -559,7 +566,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> GrandpaImpl::applyJustification(
       const BlockInfo &block_info, const GrandpaJustification &justification) {
-    auto round = selectRound(justification.round_number);
+    auto round = selectRound(justification.round_number, std::nullopt);
     if (round == nullptr) {
       if (current_round_->bestPrevoteCandidate().number > block_info.number) {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
