@@ -892,9 +892,12 @@ namespace kagome::consensus::grandpa {
              prevote.id,
              prevote.getBlockInfo());
 
-    if (not prevote_.has_value() && id_ == prevote.id) {
-      prevote_.emplace(prevote.getBlockInfo());
-      SL_DEBUG(logger_, "Round #{}: Own prevote was restored", round_number_);
+    if (id_ == prevote.id) {
+      if (not prevote_.has_value()) {
+        prevote_.emplace(prevote.getBlockInfo());
+        SL_DEBUG(logger_, "Round #{}: Own prevote was restored", round_number_);
+      }
+      propagation = Propagation::NEEDLESS;
     }
 
     if (propagation == Propagation::REQUESTED) {
@@ -946,9 +949,13 @@ namespace kagome::consensus::grandpa {
              precommit.id,
              precommit.getBlockInfo());
 
-    if (not precommit_.has_value() && id_ == precommit.id) {
-      precommit_.emplace(precommit.getBlockInfo());
-      SL_DEBUG(logger_, "Round #{}: Own precommit was restored", round_number_);
+    if (id_ == precommit.id) {
+      if (not precommit_.has_value()) {
+        precommit_.emplace(precommit.getBlockInfo());
+        SL_DEBUG(
+            logger_, "Round #{}: Own precommit was restored", round_number_);
+      }
+      propagation = Propagation::NEEDLESS;
     }
 
     if (propagation == Propagation::REQUESTED) {
