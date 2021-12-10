@@ -472,7 +472,7 @@ namespace kagome::network {
       // At least one starting block should be returned as existing
       if (blocks.empty()) {
         SL_ERROR(self->log_,
-                 "Can't load blocks from {} beginning block {}: ",
+                 "Can't load blocks from {} beginning block {}: "
                  "Response does not have any blocks",
                  peer_id.toBase58(),
                  from);

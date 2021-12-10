@@ -210,7 +210,7 @@ namespace kagome::consensus::grandpa {
      */
     bool updatePrecommitGhost();
 
-    bool updateCompletability();
+    bool updateCompletable();
 
     /// prepare prevote justification of \param estimate over the provided
     /// \param votes

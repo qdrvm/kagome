@@ -361,7 +361,7 @@ namespace kagome::consensus::grandpa {
     SL_DEBUG(logger_, "Round #{}: Start final stage", round_number_);
 
     // Continue to receive messages until current round is completable and
-    // previous one is finalisable and last finalized better than best filan
+    // previous one is finalizable and last finalized better than the best final
     // candidate of previous round
 
     // spec: Receive-Messages(
@@ -416,7 +416,7 @@ namespace kagome::consensus::grandpa {
     // Reset handler of previous round finalizable
     on_complete_handler_ = nullptr;
 
-    // Final attemption to finalize round what sould be success
+    // Final attempt to finalize round what should be success
     BOOST_ASSERT(finalizable());
     attemptToFinalizeRound();
 
@@ -959,13 +959,13 @@ namespace kagome::consensus::grandpa {
     }
 
     if (propagation == Propagation::REQUESTED) {
-      auto precommited =
+      auto precommitted =
           env_->onPrecommitted(round_number_, voter_set_->id(), precommit);
 
-      if (not precommited) {
+      if (not precommitted) {
         logger_->error("Round #{}: Precommit was not propagated: {}",
                        round_number_,
-                       precommited.error().message());
+                       precommitted.error().message());
       }
     }
 
@@ -981,7 +981,7 @@ namespace kagome::consensus::grandpa {
     }
     if (isPrecommitsChanged) {
       if (updatePrecommitGhost()) {
-        updateCompletability();
+        updateCompletable();
       }
       attemptToFinalizeRound();
     }
@@ -1182,7 +1182,7 @@ namespace kagome::consensus::grandpa {
     return false;
   }
 
-  bool VotingRoundImpl::updateCompletability() {
+  bool VotingRoundImpl::updateCompletable() {
     // figuring out whether a block can still be committed for is
     // not straightforward because we have to account for all possible future
     // equivocations and thus cannot discount weight from validators who
@@ -1253,29 +1253,27 @@ namespace kagome::consensus::grandpa {
       if (best_final_candidate.has_value()) {
         best_final_candidate_ = best_final_candidate;
         SL_TRACE(logger_,
-                 "Round #{}: updateCompletability <- best_final_candidate is "
+                 "Round #{}: updateCompletable <- best_final_candidate is "
                  "updated by precommit_ghost with given equvocations: block {}",
                  round_number_,
                  best_final_candidate_.value());
       } else {
-        SL_TRACE(
-            logger_,
-            "Round #{}: updateCompletability <- best_final_candidate is not "
-            "updated by precommit_ghost based on prevote_ghost",
-            round_number_);
+        SL_TRACE(logger_,
+                 "Round #{}: updateCompletable <- best_final_candidate is not "
+                 "updated by precommit_ghost based on prevote_ghost",
+                 round_number_);
       }
     } else {
       best_final_candidate_ = prevote_ghost_;
-      SL_TRACE(
-          logger_,
-          "Round #{}: updateCompletability <- update best_final_candidate by "
-          "prevote_ghost {}",
-          round_number_,
-          best_final_candidate_.value());
+      SL_TRACE(logger_,
+               "Round #{}: updateCompletable <- update best_final_candidate by "
+               "prevote_ghost {}",
+               round_number_,
+               best_final_candidate_.value());
       return false;
     }
 
-    bool maybe_need_handle_completability = not completable_;
+    bool maybe_need_handle_completable = not completable_;
 
     if (best_final_candidate_.has_value()) {
       if (best_final_candidate_ != bestPrevoteCandidate()) {
@@ -1289,7 +1287,7 @@ namespace kagome::consensus::grandpa {
         } else {
           SL_TRACE(
               logger_,
-              "Round #{}: updateCompletability <- precommit_ghost {} based on "
+              "Round #{}: updateCompletable <- precommit_ghost {} based on "
               "best prevote is different from best_final_candidate {}",
               round_number_,
               ghost.value(),
@@ -1298,21 +1296,21 @@ namespace kagome::consensus::grandpa {
       }
     } else {
       SL_TRACE(logger_,
-               "Round #{}: updateCompletability <- no best_final_candidate",
+               "Round #{}: updateCompletable <- no best_final_candidate",
                round_number_);
     }
 
-    if (maybe_need_handle_completability && completable_) {
+    if (maybe_need_handle_completable && completable_) {
       if (on_complete_handler_) {
         on_complete_handler_();
       }
     }
 
     if (completable_) {
-      SL_TRACE(logger_, "Round #{}: updateCompletability->true", round_number_);
+      SL_TRACE(logger_, "Round #{}: updateCompletable->true", round_number_);
     } else {
       SL_TRACE(
-          logger_, "Round #{}: updateCompletability->false", round_number_);
+          logger_, "Round #{}: updateCompletable->false", round_number_);
     }
 
     return completable_;
@@ -1488,7 +1486,7 @@ namespace kagome::consensus::grandpa {
       return best_final_candidate_.value();
     }
 
-    bool maybe_need_handle_completability = not completable_;
+    bool maybe_need_handle_completable = not completable_;
 
     if (best_final_candidate_.has_value()) {
       if (best_final_candidate_ != bestPrevoteCandidate()) {
@@ -1514,7 +1512,7 @@ namespace kagome::consensus::grandpa {
                round_number_);
     }
 
-    if (maybe_need_handle_completability && completable_
+    if (maybe_need_handle_completable && completable_
         && on_complete_handler_) {
       on_complete_handler_();
     }
