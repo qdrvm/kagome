@@ -49,6 +49,8 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(void, doFinalize, (), (override));
 
+    MOCK_METHOD(void, doCommit, (), (override));
+
     MOCK_METHOD(void, doCatchUpRequest, (const libp2p::peer::PeerId &), ());
 
     MOCK_METHOD(void,

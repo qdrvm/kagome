@@ -266,52 +266,52 @@ namespace kagome::network {
   void GrandpaProtocol::read(std::shared_ptr<Stream> stream) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    read_writer->read<GrandpaMessage>(
-        [stream = std::move(stream),
-         wp = weak_from_this()](auto &&grandpa_message_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            return;
-          }
+    read_writer->read<GrandpaMessage>([stream = std::move(stream),
+                                       wp = weak_from_this()](
+                                          auto &&grandpa_message_res) mutable {
+      auto self = wp.lock();
+      if (not self) {
+        stream->reset();
+        return;
+      }
 
-          if (not grandpa_message_res.has_value()) {
-            SL_VERBOSE(self->log_,
-                       "Can't read grandpa message from {}: {}",
-                       stream->remotePeerId().value().toBase58(),
-                       grandpa_message_res.error().message());
-            stream->reset();
-            return;
-          }
+      if (not grandpa_message_res.has_value()) {
+        SL_VERBOSE(self->log_,
+                   "Can't read grandpa message from {}: {}",
+                   stream->remotePeerId().value().toBase58(),
+                   grandpa_message_res.error().message());
+        stream->reset();
+        return;
+      }
 
-          auto peer_id = stream->remotePeerId().value();
-          auto &grandpa_message = grandpa_message_res.value();
+      auto peer_id = stream->remotePeerId().value();
+      auto &grandpa_message = grandpa_message_res.value();
 
-          SL_VERBOSE(
-              self->log_, "Message has received from {}", peer_id.toBase58());
+      SL_VERBOSE(
+          self->log_, "Message has received from {}", peer_id.toBase58());
 
-          visit_in_place(
-              grandpa_message,
-              [&](const network::GrandpaVote &vote_message) {
-                self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
-              },
-              [&](const FullCommitMessage &fin_message) {
-                self->grandpa_observer_->onFinalize(peer_id, fin_message);
-              },
-              [&](const GrandpaNeighborMessage &neighbor_message) {
-                self->grandpa_observer_->onNeighborMessage(peer_id,
-                                                           neighbor_message);
-              },
-              [&](const network::CatchUpRequest &catch_up_request) {
-                self->grandpa_observer_->onCatchUpRequest(peer_id,
-                                                          catch_up_request);
-              },
-              [&](const network::CatchUpResponse &catch_up_response) {
-                self->grandpa_observer_->onCatchUpResponse(peer_id,
-                                                           catch_up_response);
-              });
-          self->read(std::move(stream));
-        });
+      visit_in_place(
+          grandpa_message,
+          [&](const network::GrandpaVote &vote_message) {
+            self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
+          },
+          [&](const FullCommitMessage &commit_message) {
+            self->grandpa_observer_->onCommitMessage(peer_id, commit_message);
+          },
+          [&](const GrandpaNeighborMessage &neighbor_message) {
+            self->grandpa_observer_->onNeighborMessage(peer_id,
+                                                       neighbor_message);
+          },
+          [&](const network::CatchUpRequest &catch_up_request) {
+            self->grandpa_observer_->onCatchUpRequest(peer_id,
+                                                      catch_up_request);
+          },
+          [&](const network::CatchUpResponse &catch_up_response) {
+            self->grandpa_observer_->onCatchUpResponse(peer_id,
+                                                       catch_up_response);
+          });
+      self->read(std::move(stream));
+    });
   }
 
   void GrandpaProtocol::vote(network::GrandpaVote &&vote_message) {

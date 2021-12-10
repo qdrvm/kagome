@@ -142,8 +142,6 @@ namespace kagome::consensus::grandpa {
                         io_context) {
     last_finalized_block_ = round_state.last_finalized_block;
 
-    need_to_notice_at_finalizing_ = false;
-
     if (round_number_ != 0) {
       bool isPrevotesChanged = false;
       bool isPrecommitsChanged = false;
@@ -207,10 +205,10 @@ namespace kagome::consensus::grandpa {
       auto previous_round = previous_round_.lock();
       BOOST_ASSERT(previous_round != nullptr);
 
-      // Broadcast Fin-message with previous round best final candidate
+      // Broadcast Commit-message with previous round best final candidate
       //  (or last finalized otherwise)
       // spec: Broadcast(M vr ¡1;Fin (Best-Final-Candidate(r-1)))
-      previous_round->attemptToFinalizeRound();
+      previous_round->doCommit();
 
       // if Best-Final-Candidate greater than Last-Finalized-Block
       // spec: if Best-Final-Candidate(r ¡ 1) > Last-Finalized-Block
@@ -593,8 +591,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(finalizable());
 
     auto block = finalized_.value();
-    const auto &precommit_justification =
-        getPrecommitJustification(block, precommits_->getMessages());
 
     SL_DEBUG(
         logger_, "Round #{}: Finalizing on block {}", round_number_, block);
@@ -602,18 +598,14 @@ namespace kagome::consensus::grandpa {
     GrandpaJustification justification{
         .round_number = round_number_,
         .block_info = block,
-        .items = std::move(precommit_justification)};
+        .items = getPrecommitJustification(block, precommits_->getMessages())};
 
-    if (need_to_notice_at_finalizing_) {
-      sendFinalize(block, std::move(justification));
-    } else {
-      auto res = env_->finalize(voter_set_->id(), justification);
-      if (res.has_error()) {
-        SL_WARN(logger_,
-                "Round #{}: Finalizing on block {} is failed",
-                round_number_,
-                block);
-      }
+    auto res = env_->finalize(voter_set_->id(), justification);
+    if (res.has_error()) {
+      SL_WARN(logger_,
+              "Round #{}: Finalizing on block {} is failed",
+              round_number_,
+              block);
     }
 
     // Note: this is hack for behavior like in substrate
@@ -629,20 +621,29 @@ namespace kagome::consensus::grandpa {
     env_->onCompleted(state());
   }
 
-  void VotingRoundImpl::sendFinalize(
-      const BlockInfo &block, const GrandpaJustification &justification) {
-    SL_DEBUG(
-        logger_, "Round #{}: Sending finalize block {}", round_number_, block);
-
-    auto finalized = env_->onCommitted(round_number_, block, justification);
-    if (not finalized) {
-      logger_->error("Round #{}: Finalize was not sent: {}",
-                     round_number_,
-                     finalized.error().message());
+  void VotingRoundImpl::doCommit() {
+    if (not finalizable()) {
       return;
     }
 
-    need_to_notice_at_finalizing_ = false;
+    auto block = finalized_.value();
+    GrandpaJustification justification{
+        .round_number = round_number_,
+        .block_info = block,
+        .items = getPrecommitJustification(block, precommits_->getMessages())};
+
+    SL_DEBUG(logger_,
+             "Round #{}: Sending commit message for block {}",
+             round_number_,
+             block);
+
+    auto committed = env_->onCommitted(round_number_, block, justification);
+    if (not committed) {
+      logger_->error("Round #{}: Commit message was not sent: {}",
+                     round_number_,
+                     committed.error().message());
+      return;
+    }
   }
 
   bool VotingRoundImpl::isPrimary(const Id &id) const {
@@ -698,7 +699,6 @@ namespace kagome::consensus::grandpa {
 
     std::ignore = authority_manager_->prune(last_finalized_block_);
 
-    need_to_notice_at_finalizing_ = false;
     env_->onCompleted(state());
 
     return outcome::success();

@@ -8,6 +8,7 @@
 #include <boost/range/algorithm/find.hpp>
 
 #include "clock/impl/clock_impl.hpp"
+#include "common/visitor.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
@@ -38,6 +39,7 @@ using kagome::crypto::HasherMock;
 using kagome::primitives::Authority;
 using kagome::primitives::AuthorityList;
 using Propagation = kagome::consensus::grandpa::VotingRound::Propagation;
+using kagome::visit_in_place;
 
 using testing::_;
 using testing::AnyNumber;
@@ -544,7 +546,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
     auto matcher = [&](const SignedMessage &precommit) {
       if (precommit.id == kAlice
           and precommit.getBlockHash() == best_block.hash) {
-        std::cout << "Precommited: " << precommit.getBlockHash().data()
+        std::cout << "Precommitted: " << precommit.getBlockHash().data()
                   << std::endl;
         return true;
       }
@@ -556,44 +558,43 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   }
 
   {
-    // check that expected fin message was sent
-    auto matcher1 = [&](const BlockInfo &compared) {
-      std::cout << "Finalized: " << compared.hash.data() << std::endl;
-      return compared == best_block;
-    };
-    auto matcher2 = [&](GrandpaJustification just) {
-      Precommit precommit{best_block.number, best_block.hash};
-
-      auto alice_precommit =
-          preparePrecommit(kAlice, kAliceSignature, precommit);
-      auto bob_precommit = preparePrecommit(kBob, kBobSignature, precommit);
-
-      bool has_alice_precommit =
-          boost::find(just.items, alice_precommit) != just.items.end();
-      bool has_bob_precommit =
-          boost::find(just.items, bob_precommit) != just.items.end();
-
-      return has_alice_precommit and has_bob_precommit;
-    };
-    // Is doing finalization
-    EXPECT_CALL(*env_,
-                onCommitted(round_number_, Truly(matcher1), Truly(matcher2)))
-        .WillOnce(onFinalize(this));
-  }
-
-  {
-    // check that expected fin message was sent
+    // check that round has completed
     auto matcher = [&](const outcome::result<MovableRoundState> &result) {
       if (not result.has_value()) {
         return false;
       }
       const auto &state = result.value();
 
+      Precommit precommit{best_block.number, best_block.hash};
+
+      auto alice_precommit =
+          preparePrecommit(kAlice, kAliceSignature, precommit);
+      auto bob_precommit = preparePrecommit(kBob, kBobSignature, precommit);
+
+      bool has_alice_precommit = false;
+      bool has_bob_precommit = false;
+
+      auto lookup = [&](const auto &vote) {
+        has_alice_precommit = vote == alice_precommit or has_alice_precommit;
+        has_bob_precommit = vote == bob_precommit or has_bob_precommit;
+      };
+
+      for (auto &vote_variant : state.votes) {
+        kagome::visit_in_place(
+            vote_variant,
+            [&](const SignedMessage &vote) { lookup(vote); },
+            [&](const EquivocatorySignedMessage &pair) {
+              lookup(pair.first);
+              lookup(pair.second);
+            });
+      }
+
       // check if completed round state is as expected
       return state.round_number == round_number_
              and state.last_finalized_block == finalized_block
              and state.finalized.has_value()
-             and state.finalized.value() == best_block;
+             and state.finalized.value() == best_block and has_alice_precommit
+             and has_bob_precommit;
     };
 
     EXPECT_CALL(*env_, onCompleted(Truly(matcher))).WillRepeatedly(Return());

@@ -31,7 +31,7 @@ namespace kagome::consensus::grandpa {
                 (override));
 
     MOCK_METHOD(void,
-                onFinalize,
+                onCommitMessage,
                 (const PeerId &peer_id, const network::FullCommitMessage &),
                 (override));
 

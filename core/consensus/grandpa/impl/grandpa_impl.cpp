@@ -518,48 +518,48 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
-                               const network::FullCommitMessage &fin) {
-    auto round = selectRound(fin.round, fin.set_id);
+  void GrandpaImpl::onCommitMessage(const libp2p::peer::PeerId &peer_id,
+                                    const network::FullCommitMessage &msg) {
+    auto round = selectRound(msg.round, msg.set_id);
     if (round && round == previous_round_) {
       SL_DEBUG(logger_,
-               "Finalization with set_id={} in round={} for block {} "
+               "Commit with set_id={} in round={} for block {} "
                "has received from {} and skipped as fulfilled",
-               fin.set_id,
-               fin.round,
-               BlockInfo(fin.message.target_number, fin.message.target_hash),
+               msg.set_id,
+               msg.round,
+               BlockInfo(msg.message.target_number, msg.message.target_hash),
                peer_id);
       return;
     }
 
     SL_DEBUG(logger_,
-             "Finalization with set_id={} in round={} for block {} "
+             "Commit with set_id={} in round={} for block {} "
              "has received from {}",
-             fin.set_id,
-             fin.round,
-             BlockInfo(fin.message.target_number, fin.message.target_hash),
+             msg.set_id,
+             msg.round,
+             BlockInfo(msg.message.target_number, msg.message.target_hash),
              peer_id);
 
     GrandpaJustification justification{
-        .round_number = fin.round,
+        .round_number = msg.round,
         .block_info =
-            BlockInfo(fin.message.target_number, fin.message.target_hash)};
-    for (size_t i = 0; i < fin.message.precommits.size(); ++i) {
+            BlockInfo(msg.message.target_number, msg.message.target_hash)};
+    for (size_t i = 0; i < msg.message.precommits.size(); ++i) {
       SignedPrecommit commit;
-      commit.message = fin.message.precommits[i];
-      commit.signature = fin.message.auth_data[i].first;
-      commit.id = fin.message.auth_data[i].second;
+      commit.message = msg.message.precommits[i];
+      commit.signature = msg.message.auth_data[i].first;
+      commit.id = msg.message.auth_data[i].second;
       justification.items.emplace_back(std::move(commit));
     }
 
     GrandpaContext::Guard cg;
     auto ctx = GrandpaContext::get().value();
     ctx->peer_id.emplace(peer_id);
-    ctx->commit.emplace(fin);
+    ctx->commit.emplace(msg);
 
     auto res = applyJustification(justification.block_info, justification);
     if (not res.has_value()) {
-      logger_->warn("Fin message is not applied: {}", res.error().message());
+      logger_->warn("Commit is not applied: {}", res.error().message());
       return;
     }
   }
@@ -673,7 +673,7 @@ namespace kagome::consensus::grandpa {
           self->onCatchUpResponse(ctx->peer_id.value(),
                                   ctx->catch_up_response.value());
         } else if (ctx->commit.has_value()) {
-          self->onFinalize(ctx->peer_id.value(), ctx->commit.value());
+          self->onCommitMessage(ctx->peer_id.value(), ctx->commit.value());
         }
       }
     };

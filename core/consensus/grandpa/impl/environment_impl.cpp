@@ -90,7 +90,7 @@ namespace kagome::consensus::grandpa {
         logger_, "Send Catch-Up-Request beginning with round {}", round_number);
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
-    transmitter_->catchUpRequest(peer_id, std::move(message));
+    transmitter_->sendCatchUpRequest(peer_id, std::move(message));
     return outcome::success();
   }
 
@@ -108,7 +108,7 @@ namespace kagome::consensus::grandpa {
         .prevote_justification = std::move(prevote_justification),
         .precommit_justification = std::move(precommit_justification),
         .best_final_candidate = best_final_candidate};
-    transmitter_->catchUpResponse(peer_id, std::move(message));
+    transmitter_->sendCatchUpResponse(peer_id, std::move(message));
     return outcome::success();
   }
 
@@ -125,7 +125,7 @@ namespace kagome::consensus::grandpa {
 
     network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = propose}};
-    transmitter_->vote(std::move(message));
+    transmitter_->sendVoteMessage(std::move(message));
     return outcome::success();
   }
 
@@ -142,7 +142,7 @@ namespace kagome::consensus::grandpa {
 
     network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = prevote}};
-    transmitter_->vote(std::move(message));
+    transmitter_->sendVoteMessage(std::move(message));
 
     return outcome::success();
   }
@@ -160,7 +160,7 @@ namespace kagome::consensus::grandpa {
 
     network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = precommit}};
-    transmitter_->vote(std::move(message));
+    transmitter_->sendVoteMessage(std::move(message));
 
     return outcome::success();
   }
@@ -178,10 +178,9 @@ namespace kagome::consensus::grandpa {
       BOOST_ASSERT(item.is<Precommit>());
       const auto &precommit = boost::relaxed_get<Precommit>(item.message);
       message.message.precommits.push_back(precommit);
-      message.message.auth_data.emplace_back(
-          std::make_pair(item.signature, item.id));
+      message.message.auth_data.emplace_back(item.signature, item.id);
     }
-    transmitter_->finalize(std::move(message));
+    transmitter_->sendCommitMessage(std::move(message));
 
     return outcome::success();
   }
@@ -193,7 +192,7 @@ namespace kagome::consensus::grandpa {
     network::GrandpaNeighborMessage message{.round_number = round,
                                             .voter_set_id = set_id,
                                             .last_finalized = last_finalized};
-    transmitter_->neighbor(std::move(message));
+    transmitter_->sendNeighborMessage(std::move(message));
 
     return outcome::success();
   }
