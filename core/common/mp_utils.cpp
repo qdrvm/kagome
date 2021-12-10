@@ -19,7 +19,7 @@ namespace kagome::common {
     }
 
     template <size_t size, typename uint>
-    uint bytes_to_uint(gsl::span<uint8_t, size> bytes) {
+    uint bytes_to_uint(gsl::span<const uint8_t, size> bytes) {
       if (bytes.empty()) {
         return uint(0);
       }
@@ -37,7 +37,7 @@ namespace kagome::common {
     return result;
   }
 
-  uint64_t bytes_to_uint64_t(gsl::span<uint8_t, 8> bytes) {
+  uint64_t bytes_to_uint64_t(gsl::span<const uint8_t, 8> bytes) {
     uint64_t result{0};
     for (auto i = 0; i < 8; ++i) {
       result |= static_cast<uint64_t>(bytes[i]) << (i * 8);
@@ -51,7 +51,7 @@ namespace kagome::common {
   }
 
   boost::multiprecision::uint128_t bytes_to_uint128_t(
-      gsl::span<uint8_t, 16> bytes) {
+      gsl::span<const uint8_t, 16> bytes) {
     return detail::bytes_to_uint<16, boost::multiprecision::uint128_t>(bytes);
   }
 
@@ -61,7 +61,7 @@ namespace kagome::common {
   }
 
   boost::multiprecision::uint256_t bytes_to_uint256_t(
-      gsl::span<uint8_t, 32> bytes) {
+      gsl::span<const uint8_t, 32> bytes) {
     return detail::bytes_to_uint<32, boost::multiprecision::uint256_t>(bytes);
   }
 

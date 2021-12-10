@@ -244,7 +244,7 @@ namespace kagome::consensus::grandpa {
   outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
       const {
     OUTCOME_TRY(last_round_encoded_opt,
-                storage_->tryGet(storage::kSetStateKey));
+                storage_->tryLoad(storage::kSetStateKey));
 
     // Saved data exists
     if (last_round_encoded_opt.has_value()) {
@@ -252,7 +252,7 @@ namespace kagome::consensus::grandpa {
     }
 
     // No saved data - make from genesis
-    auto genesis_hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
+    auto genesis_hash_res = storage_->load(storage::kGenesisBlockHashLookupKey);
     if (not genesis_hash_res.has_value()) {
       logger_->critical("Can't retrieve genesis block hash: {}",
                         genesis_hash_res.error().message());
@@ -647,7 +647,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    BOOST_ASSERT(storage_->get(storage::kSetStateKey));
+    BOOST_ASSERT(storage_->load(storage::kSetStateKey));
   }
 
   void GrandpaImpl::loadMissingBlocks() {

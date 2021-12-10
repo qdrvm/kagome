@@ -292,7 +292,7 @@ namespace kagome::blockchain {
       return genesis_block_hash_.value();
     }
 
-    auto hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
+    auto hash_res = storage_->load(storage::kGenesisBlockHashLookupKey);
     if (hash_res.has_value()) {
       primitives::BlockHash hash;
       std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
@@ -310,7 +310,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHash>
   KeyValueBlockStorage::getLastFinalizedBlockHash() const {
     OUTCOME_TRY(hash_opt,
-                storage_->tryGet(storage::kLastFinalizedBlockHashLookupKey));
+                storage_->tryLoad(storage::kLastFinalizedBlockHashLookupKey));
     if (not hash_opt.has_value()) {
       return Error::FINALIZED_BLOCK_NOT_FOUND;
     }

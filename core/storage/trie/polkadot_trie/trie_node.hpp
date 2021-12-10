@@ -32,16 +32,15 @@ namespace kagome::storage::trie {
 
   /**
    * For specification see
-   * https://github.com/w3f/polkadot-re-spec/blob/master/polkadot_re_spec.pdf
-   * 5.3 The Trie structure
+   * 5.3 The Trie structure in the Polkadot Host specification
    */
 
-  struct PolkadotNode : public Node {
-    PolkadotNode() = default;
-    PolkadotNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
+  struct TrieNode : public Node {
+    TrieNode() = default;
+    TrieNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
         : key_nibbles{std::move(key_nibbles)}, value{std::move(value)} {}
 
-    ~PolkadotNode() override = default;
+    ~TrieNode() override = default;
 
     enum class Type {
       Special = 0b00,
@@ -67,13 +66,13 @@ namespace kagome::storage::trie {
     std::optional<common::Buffer> value;
   };
 
-  struct BranchNode : public PolkadotNode {
-    static constexpr int kMaxChildren = 16;
+  struct BranchNode : public TrieNode {
+    static constexpr uint8_t kMaxChildren = 16;
 
     BranchNode() = default;
     explicit BranchNode(KeyNibbles key_nibbles,
                         std::optional<common::Buffer> value = std::nullopt)
-        : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
+        : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
     ~BranchNode() override = default;
 
@@ -88,13 +87,13 @@ namespace kagome::storage::trie {
     // Has 1..16 children.
     // Stores their hashes to search for them in a storage and encode them more
     // easily. @see DummyNode
-    std::array<std::shared_ptr<PolkadotNode>, kMaxChildren> children;
+    std::array<std::shared_ptr<TrieNode>, kMaxChildren> children;
   };
 
-  struct LeafNode : public PolkadotNode {
+  struct LeafNode : public TrieNode {
     LeafNode() = default;
     LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
-        : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
+        : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
     ~LeafNode() override = default;
 
@@ -108,7 +107,7 @@ namespace kagome::storage::trie {
    * Used in branch nodes to indicate that there is a node, but this node is not
    * interesting at the moment and need not be retrieved from the storage.
    */
-  struct DummyNode : public PolkadotNode {
+  struct DummyNode : public TrieNode {
     /**
      * Constructs a dummy node
      * @param key a storage key, which is a hash of an encoded node according to

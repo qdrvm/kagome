@@ -26,7 +26,8 @@ namespace kagome::storage::trie {
       const std::shared_ptr<TrieBatch> &parent)
       : parent_(parent) {}
 
-  outcome::result<Buffer> TopperTrieBatchImpl::get(const Buffer &key) const {
+  outcome::result<common::BufferConstRef> TopperTrieBatchImpl::get(
+      const BufferView &key) const {
     OUTCOME_TRY(opt_value, tryGet(key));
     if (opt_value) {
       return opt_value.value();
@@ -34,8 +35,8 @@ namespace kagome::storage::trie {
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<std::optional<Buffer>> TopperTrieBatchImpl::tryGet(
-      const Buffer &key) const {
+  outcome::result<std::optional<common::BufferConstRef>>
+  TopperTrieBatchImpl::tryGet(const BufferView &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
       if (it->second.has_value()) {
         return it->second.value();
@@ -58,7 +59,8 @@ namespace kagome::storage::trie {
     return nullptr;
   }
 
-  outcome::result<bool> TopperTrieBatchImpl::contains(const Buffer &key) const {
+  outcome::result<bool> TopperTrieBatchImpl::contains(
+      const BufferView &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
       return it->second.has_value();
     }
@@ -86,30 +88,34 @@ namespace kagome::storage::trie {
     return true;
   }
 
-  outcome::result<void> TopperTrieBatchImpl::put(const Buffer &key,
+  outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
                                                  const Buffer &value) {
     return put(key, Buffer(value));
   }
 
-  outcome::result<void> TopperTrieBatchImpl::put(const Buffer &key,
+  outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
                                                  Buffer &&value) {
-    cache_[key] = std::move(value);
+    if (auto it = cache_.find(key); it != cache_.end()) {
+      it->second = std::move(value);
+    }
     return outcome::success();
   }
 
-  outcome::result<void> TopperTrieBatchImpl::remove(const Buffer &key) {
-    cache_[key] = std::nullopt;
+  outcome::result<void> TopperTrieBatchImpl::remove(const BufferView &key) {
+    if (auto it = cache_.find(key); it != cache_.end()) {
+      it->second = std::nullopt;
+    }
     return outcome::success();
   }
 
   outcome::result<std::tuple<bool, uint32_t>> TopperTrieBatchImpl::clearPrefix(
-      const Buffer &prefix, std::optional<uint64_t>) {
+      const BufferView &prefix, std::optional<uint64_t>) {
     for (auto it = cache_.lower_bound(prefix);
          it != cache_.end() && it->first.subbuffer(0, prefix.size()) == prefix;
          ++it)
       it->second = std::nullopt;
 
-    cleared_prefixes_.push_back(prefix);
+    cleared_prefixes_.push_back(Buffer{prefix});
     if (parent_.lock() != nullptr) {
       return outcome::success(std::make_tuple(true, 0ULL));
     }
@@ -133,10 +139,10 @@ namespace kagome::storage::trie {
     return Error::PARENT_EXPIRED;
   }
 
-  bool TopperTrieBatchImpl::wasClearedByPrefix(const Buffer &key) const {
+  bool TopperTrieBatchImpl::wasClearedByPrefix(const BufferView &key) const {
     for (const auto &prefix : cleared_prefixes_) {
       auto key_end = key.begin();
-      std::advance(key_end, std::min(key.size(), prefix.size()) - 1);
+      std::advance(key_end, std::min<size_t>(key.size(), prefix.size()) - 1);
       auto is_cleared = std::equal(key.begin(), key_end, prefix.begin());
       if (is_cleared) return true;
     }

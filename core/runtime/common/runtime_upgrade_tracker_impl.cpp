@@ -36,7 +36,7 @@ namespace kagome::runtime {
     BOOST_ASSERT(storage);
     BOOST_ASSERT(code_substitutes);
 
-    OUTCOME_TRY(encoded_opt, storage->tryGet(storage::kRuntimeHashesLookupKey));
+    OUTCOME_TRY(encoded_opt, storage->tryLoad(storage::kRuntimeHashesLookupKey));
 
     std::vector<RuntimeUpgradeData> saved_data{};
     if (encoded_opt.has_value()) {

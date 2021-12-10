@@ -17,7 +17,7 @@ namespace kagome::storage::face {
    * @tparam K key type
    * @tparam V value type
    */
-  template <typename K, typename V>
+  template <typename K, typename V, typename KView = K>
   struct MapCursor {
     virtual ~MapCursor() = default;
 
@@ -31,7 +31,7 @@ namespace kagome::storage::face {
      * @brief Find given key and seek iterator to this key.
      * @return error if any, true if \arg key found, false otherwise
      */
-    virtual outcome::result<bool> seek(const K &key) = 0;
+    virtual outcome::result<bool> seek(const KView &key) = 0;
 
     /**
      * @brief Same as std::rbegin(...);, e.g. points to the last valid element

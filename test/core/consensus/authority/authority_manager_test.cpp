@@ -110,10 +110,10 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*block_tree, hasDirectChain(_, _)).Times(testing::AnyNumber());
   }
 
-  using StorageMock =
-      storage::face::GenericStorageMock<common::Buffer, common::Buffer>;
+  using StorageMock = storage::face::
+      GenericStorageMock<common::Buffer, common::Buffer, common::BufferView>;
 
-  static inline const auto schedulerLookupKey =
+  static inline const common::BufferView schedulerLookupKey =
       storage::kSchedulerTreeLookupKey;
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
@@ -137,7 +137,7 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
     common::Buffer encoded_data(encode_result.value());
 
-    EXPECT_CALL(*storage, get(schedulerLookupKey))
+    EXPECT_CALL(*storage, load(schedulerLookupKey))
         .WillOnce(Return(encoded_data));
 
     authority_manager->prepare();
@@ -186,7 +186,8 @@ TEST_F(AuthorityManagerTest, InitFromStorage) {
   EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
   common::Buffer encoded_data(encode_result.value());
 
-  EXPECT_CALL(*storage, get(schedulerLookupKey)).WillOnce(Return(encoded_data));
+  EXPECT_CALL(*storage, load(schedulerLookupKey))
+      .WillOnce(Return(encoded_data));
 
   authority_manager->prepare();
 

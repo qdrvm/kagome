@@ -165,7 +165,8 @@ class RuntimeTestBase : public ::testing::Test {
   template <typename BatchMock>
   void prepareStorageBatchExpectations(BatchMock &batch) {
     ON_CALL(batch, get(_)).WillByDefault(testing::Invoke([](auto &key) {
-      return common::Buffer();
+      static common::Buffer buf;
+      return std::cref(buf);
     }));
     ON_CALL(batch, put(_, _))
         .WillByDefault(testing::Return(outcome::success()));
@@ -180,7 +181,7 @@ class RuntimeTestBase : public ::testing::Test {
       return cursor;
     }));
     auto heappages_key = ":heappages"_buf;
-    EXPECT_CALL(batch, get(heappages_key));
+    EXPECT_CALL(batch, get(heappages_key.view()));
   }
 
   primitives::BlockHeader createBlockHeader(primitives::BlockHash const &hash,

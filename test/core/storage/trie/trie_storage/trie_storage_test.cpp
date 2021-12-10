@@ -79,11 +79,11 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
           .value();
   auto batch = storage->getPersistentBatch().value();
   EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));
-  ASSERT_EQ(v1, "abc"_buf);
+  ASSERT_EQ(v1.get(), "abc"_buf);
   EXPECT_OUTCOME_TRUE(v2, batch->get("345"_buf));
-  ASSERT_EQ(v2, "def"_buf);
+  ASSERT_EQ(v2.get(), "def"_buf);
   EXPECT_OUTCOME_TRUE(v3, batch->get("678"_buf));
-  ASSERT_EQ(v3, "xyz"_buf);
+  ASSERT_EQ(v3.get(), "xyz"_buf);
 
   boost::filesystem::remove_all("/tmp/kagome_leveldb_persistency_test");
 }

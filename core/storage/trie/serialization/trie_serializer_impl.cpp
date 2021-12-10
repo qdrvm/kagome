@@ -7,7 +7,7 @@
 
 #include "outcome/outcome.hpp"
 #include "storage/trie/codec.hpp"
-#include "storage/trie/polkadot_trie/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 
@@ -26,7 +26,7 @@ namespace kagome::storage::trie {
   }
 
   RootHash TrieSerializerImpl::getEmptyRootHash() const {
-    return codec_->hash256({0});
+    return codec_->hash256(common::Buffer{0});
   }
 
   outcome::result<RootHash> TrieSerializerImpl::storeTrie(PolkadotTrie &trie) {
@@ -48,10 +48,9 @@ namespace kagome::storage::trie {
     return trie_factory_->createFromRoot(std::move(root), std::move(f));
   }
 
-  outcome::result<RootHash> TrieSerializerImpl::storeRootNode(
-      PolkadotNode &node) {
+  outcome::result<RootHash> TrieSerializerImpl::storeRootNode(TrieNode &node) {
     auto batch = backend_->batch();
-    using T = PolkadotNode::Type;
+    using T = TrieNode::Type;
 
     // if node is a branch node, its children must be stored to the storage
     // before it, as their hashes, which are used as database keys, are a part
@@ -71,8 +70,8 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<common::Buffer> TrieSerializerImpl::storeNode(
-      PolkadotNode &node, BufferBatch &batch) {
-    using T = PolkadotNode::Type;
+      TrieNode &node, BufferBatch &batch) {
+    using T = TrieNode::Type;
 
     // if node is a branch node, its children must be stored to the storage
     // before it, as their hashes, which are used as database keys, are a part
@@ -115,9 +114,9 @@ namespace kagome::storage::trie {
     if (db_key.empty() or db_key == getEmptyRootHash()) {
       return nullptr;
     }
-    OUTCOME_TRY(enc, backend_->get(db_key));
+    OUTCOME_TRY(enc, backend_->load(db_key));
     OUTCOME_TRY(n, codec_->decodeNode(enc));
-    return std::dynamic_pointer_cast<PolkadotNode>(n);
+    return std::dynamic_pointer_cast<TrieNode>(n);
   }
 
 }  // namespace kagome::storage::trie

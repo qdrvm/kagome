@@ -160,8 +160,8 @@ namespace kagome::api {
   }
 
   jsonrpc::Value ApiServiceImpl::createStateStorageEvent(
-      const common::Buffer &key,
-      const common::Buffer &value,
+      common::BufferView key,
+      common::BufferView value,
       const primitives::BlockHash &block) {
     /// TODO(iceseer): PRE-475 make event notification depending
     /// in packs blocks, to batch them in a single message Because
@@ -271,16 +271,16 @@ namespace kagome::api {
           /// TODO(iceseer): PRE-476 make move data to subscription
           session->subscribe(id, key);
           if (auto res = pb->get(key); res.has_value()) {
-            forJsonData(
-                server_,
-                logger_,
-                id,
-                kRpcEventSubscribeStorage,
-                createStateStorageEvent(key, res.value(), last_finalized.hash),
-                [&](const auto &result) {
-                  session_context.messages->emplace_back(
-                      uploadFromCache(result.data()));
-                });
+            forJsonData(server_,
+                        logger_,
+                        id,
+                        kRpcEventSubscribeStorage,
+                        createStateStorageEvent(
+                            key, res.value().get(), last_finalized.hash),
+                        [&](const auto &result) {
+                          session_context.messages->emplace_back(
+                              uploadFromCache(result.data()));
+                        });
           }
         }
         return static_cast<PubsubSubscriptionId>(id);

@@ -8,7 +8,7 @@
 #include "crypto/blake2/blake2b.h"
 #include "scale/scale.hpp"
 #include "scale/scale_decoder_stream.hpp"
-#include "storage/trie/polkadot_trie/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
   using E = kagome::storage::trie::PolkadotCodec::Error;
@@ -59,7 +59,7 @@ namespace kagome::storage::trie {
     return res;
   }
 
-  KeyNibbles PolkadotCodec::keyToNibbles(const common::Buffer &key) {
+  KeyNibbles PolkadotCodec::keyToNibbles(const common::BufferView &key) {
     if (key.empty()) {
       return {};
     }
@@ -69,7 +69,7 @@ namespace kagome::storage::trie {
 
     auto l = key.size() * 2;
     KeyNibbles res(common::Buffer(l, 0));
-    for (size_t i = 0; i < key.size(); i++) {
+    for (ssize_t i = 0; i < key.size(); i++) {
       res[2 * i] = key[i] >> 4u;
       res[2 * i + 1] = key[i] & 0xfu;
     }
@@ -77,17 +77,18 @@ namespace kagome::storage::trie {
     return res;
   }
 
-  common::Buffer PolkadotCodec::merkleValue(const common::Buffer &buf) const {
+  common::Buffer PolkadotCodec::merkleValue(
+      const common::BufferView &buf) const {
     // if a buffer size is less than the size of a would-be hash, just return
     // this buffer to save space
-    if (buf.size() < common::Hash256::size()) {
-      return buf;
+    if (static_cast<size_t>(buf.size()) < common::Hash256::size()) {
+      return common::Buffer{buf};
     }
 
     return Buffer{hash256(buf)};
   }
 
-  common::Hash256 PolkadotCodec::hash256(const common::Buffer &buf) const {
+  common::Hash256 PolkadotCodec::hash256(const common::BufferView &buf) const {
     common::Hash256 out;
 
     BOOST_VERIFY(crypto::blake2b(out.data(),
@@ -102,14 +103,14 @@ namespace kagome::storage::trie {
 
   outcome::result<common::Buffer> PolkadotCodec::encodeNode(
       const Node &node) const {
-    switch (static_cast<PolkadotNode::Type>(node.getType())) {
-      case PolkadotNode::Type::BranchEmptyValue:
-      case PolkadotNode::Type::BranchWithValue:
+    switch (static_cast<TrieNode::Type>(node.getType())) {
+      case TrieNode::Type::BranchEmptyValue:
+      case TrieNode::Type::BranchWithValue:
         return encodeBranch(dynamic_cast<const BranchNode &>(node));
-      case PolkadotNode::Type::Leaf:
+      case TrieNode::Type::Leaf:
         return encodeLeaf(dynamic_cast<const LeafNode &>(node));
 
-      case PolkadotNode::Type::Special:
+      case TrieNode::Type::Special:
         // special node is not handled right now
       default:
         return std::errc::invalid_argument;
@@ -117,17 +118,17 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeHeader(
-      const PolkadotNode &node) const {
+      const TrieNode &node) const {
     if (node.key_nibbles.size() > 0xffffu) {
       return Error::TOO_MANY_NIBBLES;
     }
 
     uint8_t head = 0;
     // set bits 6..7
-    switch (static_cast<PolkadotNode::Type>(node.getType())) {
-      case PolkadotNode::Type::BranchEmptyValue:
-      case PolkadotNode::Type::BranchWithValue:
-      case PolkadotNode::Type::Leaf:
+    switch (static_cast<TrieNode::Type>(node.getType())) {
+      case TrieNode::Type::BranchEmptyValue:
+      case TrieNode::Type::BranchWithValue:
+      case TrieNode::Type::Leaf:
         head = node.getType();
         break;
       default:
@@ -171,7 +172,7 @@ namespace kagome::storage::trie {
     // children bitmap
     encoding += ushortToBytes(node.childrenBitmap());
 
-    if (node.getTrieType() == PolkadotNode::Type::BranchWithValue) {
+    if (node.getTrieType() == TrieNode::Type::BranchWithValue) {
       // scale encoded value
       OUTCOME_TRY(encNodeValue, scale::encode(node.value.value()));
       encoding += Buffer(std::move(encNodeValue));
@@ -212,7 +213,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeNode(
-      const common::Buffer &encoded_data) const {
+      gsl::span<const uint8_t> encoded_data) const {
     BufferStream stream{encoded_data};
     // decode the header with the node type and the partial key length
     OUTCOME_TRY(header, decodeHeader(stream));
@@ -222,12 +223,12 @@ namespace kagome::storage::trie {
     // decode the node subvalue (see Definition 28 of the polkadot
     // specification)
     switch (type) {
-      case PolkadotNode::Type::Leaf: {
+      case TrieNode::Type::Leaf: {
         OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
         return std::make_shared<LeafNode>(partial_key, value);
       }
-      case PolkadotNode::Type::BranchEmptyValue:
-      case PolkadotNode::Type::BranchWithValue: {
+      case TrieNode::Type::BranchEmptyValue:
+      case TrieNode::Type::BranchWithValue: {
         return decodeBranch(type, partial_key, stream);
       }
       default:
@@ -235,16 +236,16 @@ namespace kagome::storage::trie {
     }
   }
 
-  outcome::result<std::pair<PolkadotNode::Type, size_t>>
+  outcome::result<std::pair<TrieNode::Type, size_t>>
   PolkadotCodec::decodeHeader(BufferStream &stream) const {
-    PolkadotNode::Type type;
+    TrieNode::Type type;
     size_t pk_length = 0;
     if (not stream.hasMore(1)) {
       return Error::INPUT_TOO_SMALL;
     }
     auto first = stream.next();
     // decode type, which is in the first two bits
-    type = static_cast<PolkadotNode::Type>((first & 0xC0u) >> 6u);
+    type = static_cast<TrieNode::Type>((first & 0xC0u) >> 6u);
     first &= 0x3Fu;
     // decode partial key length, which is stored in the last 6 bits and, if its
     // greater than 62, in the following bytes
@@ -285,7 +286,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeBranch(
-      PolkadotNode::Type type,
+      TrieNode::Type type,
       const KeyNibbles &partial_key,
       BufferStream &stream) const {
     constexpr uint8_t kChildrenBitmapSize = 2;
@@ -302,7 +303,7 @@ namespace kagome::storage::trie {
 
     // decode the branch value if needed
     common::Buffer value;
-    if (type == PolkadotNode::Type::BranchWithValue) {
+    if (type == TrieNode::Type::BranchWithValue) {
       try {
         ss >> value;
       } catch (std::system_error &e) {

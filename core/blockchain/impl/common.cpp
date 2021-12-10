@@ -20,8 +20,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
 
 namespace kagome::blockchain {
 
-  outcome::result<common::Buffer> idToLookupKey(const ReadableBufferMap &map,
-                                                const primitives::BlockId &id) {
+  outcome::result<common::BufferView> idToLookupKey(
+      const ReadableBufferStorage &map, const primitives::BlockId &id) {
     OUTCOME_TRY(
         key_opt,
         visit_in_place(
@@ -29,13 +29,13 @@ namespace kagome::blockchain {
             [&map](const primitives::BlockNumber &n) {
               auto key = prependPrefix(numberToIndexKey(n),
                                        prefix::Prefix::ID_TO_LOOKUP_KEY);
-              return map.tryGet(key);
+              return map.tryLoad(key);
             },
             [&map](const common::Hash256 &hash) {
-              return map.tryGet(prependPrefix(
+              return map.tryLoad(prependPrefix(
                   common::Buffer{hash}, prefix::Prefix::ID_TO_LOOKUP_KEY));
             }));
-    if (key_opt.has_value()) return std::move(key_opt.value());
+    if (key_opt.has_value()) return key_opt.value();
     return Error::BLOCK_NOT_FOUND;
   }
 
@@ -50,7 +50,7 @@ namespace kagome::blockchain {
     }
     auto root = trie.getRoot();
     if (root == nullptr) {
-      return codec.hash256({0});
+      return codec.hash256(common::Buffer{0});
     }
     auto encode_res = codec.encodeNode(*root);
     BOOST_ASSERT_MSG(encode_res.has_value(), "Trie encoding failed");

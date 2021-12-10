@@ -13,7 +13,9 @@
 
 namespace kagome::storage::trie {
 
-  class PolkadotTrieImpl final: public PolkadotTrie {
+  class PolkadotTrieImpl final
+      : public PolkadotTrie,
+        public std::enable_shared_from_this<PolkadotTrieImpl> {
    public:
     enum class Error { INVALID_NODE_TYPE = 1 };
 
@@ -30,40 +32,47 @@ namespace kagome::storage::trie {
                               PolkadotTrie::NodeRetrieveFunctor f =
                                   PolkadotTrie::defaultNodeRetrieveFunctor);
 
-    NodePtr getRoot() const override;
+    NodePtr getRoot() override;
+    ConstNodePtr getRoot() const override;
 
-    outcome::result<NodePtr> getNode(
-        NodePtr parent, const KeyNibbles &key_nibbles) const override;
+    outcome::result<NodePtr> getNode(ConstNodePtr parent,
+                                     const KeyNibbles &key_nibbles) override;
+    outcome::result<ConstNodePtr> getNode(
+        ConstNodePtr parent, const KeyNibbles &key_nibbles) const override;
 
-    outcome::result<std::list<std::pair<BranchPtr, uint8_t>>> getPath(
-        NodePtr parent, const KeyNibbles &key_nibbles) const override;
+    outcome::result<void> forNodeInPath(
+        ConstNodePtr parent,
+        const KeyNibbles &path,
+        const std::function<outcome::result<void>(
+            BranchNode const &, uint8_t idx)> &callback) const override;
 
     /**
      * Remove all entries, which key starts with the prefix
      */
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
-        const common::Buffer &prefix,
+        const common::BufferView &prefix,
         std::optional<uint64_t> limit,
         const OnDetachCallback &callback) override;
 
     // value will be copied
-    outcome::result<void> put(const common::Buffer &key,
+    outcome::result<void> put(const common::BufferView &key,
                               const common::Buffer &value) override;
 
-    outcome::result<void> put(const common::Buffer &key,
+    outcome::result<void> put(const common::BufferView &key,
                               common::Buffer &&value) override;
 
-    outcome::result<void> remove(const common::Buffer &key) override;
+    outcome::result<void> remove(const common::BufferView &key) override;
 
-    outcome::result<common::Buffer> get(
-        const common::Buffer &key) const override;
+    outcome::result<common::BufferConstRef> get(
+        const common::BufferView &key) const override;
 
-    outcome::result<std::optional<common::Buffer>> tryGet(
-        const common::Buffer &key) const override;
+    outcome::result<std::optional<common::BufferConstRef>> tryGet(
+        const common::BufferView &key) const override;
 
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
 
-    outcome::result<bool> contains(const common::Buffer &key) const override;
+    outcome::result<bool> contains(
+        const common::BufferView &key) const override;
 
     bool empty() const override;
 
@@ -76,8 +85,10 @@ namespace kagome::storage::trie {
                                           const KeyNibbles &key_nibbles,
                                           const NodePtr &node);
 
-    outcome::result<NodePtr> retrieveChild(BranchPtr parent,
-                                           uint8_t idx) const override;
+    outcome::result<ConstNodePtr> retrieveChild(const BranchNode &parent,
+                                                uint8_t idx) const override;
+    outcome::result<NodePtr> retrieveChild(const BranchNode &parent,
+                                           uint8_t idx) override;
 
     NodeRetrieveFunctor retrieve_node_;
     NodePtr root_;

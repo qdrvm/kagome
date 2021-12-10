@@ -4,7 +4,7 @@
 #
 
 add_library(blockchain_common
-    types.cpp
+        common.cpp
     common.hpp
     storage_util.cpp
     storage_util.hpp

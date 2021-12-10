@@ -173,8 +173,8 @@ namespace kagome::api {
         PubsubSubscriptionId subscription_id) override;
 
    private:
-    jsonrpc::Value createStateStorageEvent(const common::Buffer &key,
-                                           const common::Buffer &value,
+    jsonrpc::Value createStateStorageEvent(common::BufferView key,
+                                           common::BufferView value,
                                            const primitives::BlockHash &block);
 
     std::optional<std::shared_ptr<SessionSubscriptions>> findSessionById(

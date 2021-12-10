@@ -13,8 +13,9 @@
 #include "storage/trie/types.hpp"
 
 namespace kagome::blockchain {
-  using ReadableBufferMap =
-      storage::face::Readable<common::Buffer, common::Buffer>;
+
+  using ReadableBufferStorage =
+      storage::face::ReadableStorage<common::BufferView, common::Buffer>;
 
   enum class Error {
     // it's important to convert storage errors of this type to this one to
@@ -27,8 +28,8 @@ namespace kagome::blockchain {
    * Convert a block ID into a key, which is a first part of a key, by which the
    * columns are stored in the database
    */
-  outcome::result<common::Buffer> idToLookupKey(const ReadableBufferMap &map,
-                                                const primitives::BlockId &id);
+  outcome::result<common::BufferView> idToLookupKey(
+      const ReadableBufferStorage &map, const primitives::BlockId &id);
 
   /**
    * Instantiate empty merkle trie, insert \param key_vals pairs and \return

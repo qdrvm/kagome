@@ -14,6 +14,7 @@
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::storage::face::GenericStorageMock;
 using kagome::storage::face::WriteBatchMock;
 using kagome::storage::trie::TrieStorageBackendImpl;
@@ -24,8 +25,8 @@ static const Buffer kNodePrefix{1};
 
 class TrieDbBackendTest : public testing::Test {
  public:
-  std::shared_ptr<GenericStorageMock<Buffer, Buffer>> storage =
-      std::make_shared<GenericStorageMock<Buffer, Buffer>>();
+  std::shared_ptr<GenericStorageMock<Buffer, Buffer, BufferView>> storage =
+      std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
   TrieStorageBackendImpl backend{storage, kNodePrefix};
 };
 
@@ -37,7 +38,7 @@ class TrieDbBackendTest : public testing::Test {
 TEST_F(TrieDbBackendTest, Put) {
   Buffer prefixed{kNodePrefix};
   prefixed.put("abc"_buf);
-  ((*storage).gmock_put(prefixed, "123"_buf))(
+  ((*storage).gmock_put(BufferView{prefixed}, "123"_buf))(
       ::testing::internal::GetWithoutMatchers(), nullptr)
       .InternalExpectedAt(
           "_file_name_", 40, "*storage", "put(prefixed, \"123\"_buf)")
@@ -53,8 +54,8 @@ TEST_F(TrieDbBackendTest, Put) {
 TEST_F(TrieDbBackendTest, Get) {
   Buffer prefixed{kNodePrefix};
   prefixed.put("abc"_buf);
-  EXPECT_CALL(*storage, get(prefixed)).WillOnce(Return("123"_buf));
-  EXPECT_OUTCOME_TRUE_1(backend.get("abc"_buf));
+  EXPECT_CALL(*storage, load(BufferView{prefixed})).WillOnce(Return("123"_buf));
+  EXPECT_OUTCOME_TRUE_1(backend.load("abc"_buf));
 }
 
 /**
@@ -63,12 +64,15 @@ TEST_F(TrieDbBackendTest, Get) {
  * @then it delegates them to the underlying storage batch with added prefixes
  */
 TEST_F(TrieDbBackendTest, Batch) {
-  auto batch_mock = std::make_unique<WriteBatchMock<Buffer, Buffer>>();
-  EXPECT_CALL(*batch_mock, put(Buffer{kNodePrefix}.put("abc"_buf), "123"_buf))
+  auto batch_mock = std::make_unique<WriteBatchMock<BufferView, Buffer>>();
+  EXPECT_CALL(*batch_mock,
+              put(BufferView{Buffer{kNodePrefix}.put("abc"_buf)}, "123"_buf))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*batch_mock, put(Buffer{kNodePrefix}.put("def"_buf), "123"_buf))
+  EXPECT_CALL(*batch_mock,
+              put(BufferView{Buffer{kNodePrefix}.put("def"_buf)}, "123"_buf))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*batch_mock, remove(Buffer{kNodePrefix}.put("abc"_buf)))
+  EXPECT_CALL(*batch_mock,
+              remove(BufferView{Buffer{kNodePrefix}.put("abc"_buf)}))
       .WillOnce(Return(outcome::success()));
   EXPECT_CALL(*batch_mock, commit()).WillOnce(Return(outcome::success()));
 

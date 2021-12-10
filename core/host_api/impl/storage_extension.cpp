@@ -65,8 +65,9 @@ namespace kagome::host_api {
 
     auto key = memory.loadN(key_ptr, key_size);
     std::optional<uint32_t> res{std::nullopt};
-    if (const auto &data_res = get(key); data_res) {
-      auto data = gsl::make_span(data_res.value());
+    if (const auto &data_res = get(key);
+        data_res && data_res.value().has_value()) {
+      common::BufferView data = data_res.value().value().get();
       auto offset_data = data.subspan(std::min<size_t>(offset, data.size()));
       auto written = std::min<size_t>(offset_data.size(), value_size);
       memory.storeBuffer(value_ptr, offset_data.subspan(0, written));
@@ -77,10 +78,10 @@ namespace kagome::host_api {
     return memory.storeBuffer(scale::encode(res).value());
   }
 
-  outcome::result<common::Buffer> StorageExtension::get(
-      const common::Buffer &key) const {
+  outcome::result<std::optional<common::BufferConstRef>> StorageExtension::get(
+      const common::BufferView &key) const {
     auto batch = storage_provider_->getCurrentBatch();
-    return batch->get(key);
+    return batch->tryGet(key);
   }
 
   common::Buffer StorageExtension::loadKey(runtime::WasmSpan key) const {
@@ -142,18 +143,14 @@ namespace kagome::host_api {
     auto key_buffer = memory.loadN(key_ptr, key_size);
 
     auto result = get(key_buffer);
-    auto option = result ? std::make_optional(result.value()) : std::nullopt;
-
-    if (option) {
-      SL_TRACE_FUNC_CALL(logger_, option.value(), key_buffer);
-
-    } else {
-      SL_TRACE(logger_,
+    if (!result) {
+      SL_ERROR(logger_,
                "ext_storage_get_version_1( {} ) => value was not obtained. "
                "Reason: {}",
                key_buffer.toHex(),
                result.error().message());
     }
+    auto &option = result.value();
 
     return memory.storeBuffer(scale::encode(option).value());
   }
@@ -292,8 +289,14 @@ namespace kagome::host_api {
     auto key_bytes = memory.loadN(key_ptr, key_size);
     auto append_bytes = memory.loadN(append_ptr, append_size);
 
-    auto &&val_res = get(key_bytes);
-    auto &&val = val_res ? std::move(val_res.value()) : common::Buffer();
+    auto val_opt_res = get(key_bytes);
+    if (val_opt_res.has_error()) {
+      throw std::runtime_error{
+          fmt::format("Error fetching value from storage: {}",
+                      val_opt_res.error().message())};
+    }
+    auto &val_opt = val_opt_res.value();
+    auto &&val = val_opt ? common::Buffer{val_opt.value()} : common::Buffer{};
 
     if (scale::append_or_new_vec(val.asVector(), append_bytes).has_value()) {
       auto batch = storage_provider_->getCurrentBatch();
@@ -363,7 +366,8 @@ namespace kagome::host_api {
     auto &&pv = pairs.value();
     storage::trie::PolkadotCodec codec;
     if (pv.empty()) {
-      static const auto empty_root = common::Buffer{}.put(codec.hash256({0}));
+      static const auto empty_root =
+          common::Buffer{}.put(codec.hash256(common::Buffer{0}));
       auto res = memory.storeBuffer(empty_root);
       return runtime::PtrSize(res).ptr;
     }
@@ -436,7 +440,7 @@ namespace kagome::host_api {
       return std::nullopt;
     }
     auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
-        config_bytes_res.value());
+        config_bytes_res.value().get());
     if (config_res.has_error()) {
       logger_->error("ext_storage_changes_root resulted with an error: {}",
                      config_res.error().message());
@@ -461,7 +465,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan StorageExtension::clearPrefix(
-      const common::Buffer &prefix, std::optional<uint32_t> limit) {
+      const common::BufferView &prefix, std::optional<uint32_t> limit) {
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 

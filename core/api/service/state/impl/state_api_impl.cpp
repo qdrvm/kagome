@@ -57,9 +57,9 @@ namespace kagome::api {
   }
 
   outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(
-      const std::optional<common::Buffer> &prefix_opt,
+      const std::optional<common::BufferView> &prefix_opt,
       uint32_t keys_amount,
-      const std::optional<common::Buffer> &prev_key_opt,
+      const std::optional<common::BufferView> &prev_key_opt,
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
     const auto &prefix = prefix_opt.value_or(common::Buffer{});
     const auto &prev_key = prev_key_opt.value_or(prefix);
@@ -88,7 +88,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      auto min_size = std::min(prefix.size(), key->size());
+      auto min_size = std::min<ssize_t>(prefix.size(), key->size());
       if (not std::equal(
               prefix.begin(), prefix.begin() + min_size, key.value().begin())) {
         break;
@@ -100,14 +100,15 @@ namespace kagome::api {
     return result;
   }
 
-  outcome::result<std::optional<common::Buffer>> StateApiImpl::getStorage(
-      const common::Buffer &key) const {
+  outcome::result<std::optional<common::BufferConstRef>>
+  StateApiImpl::getStorage(const common::BufferView &key) const {
     auto last_finalized = block_tree_->getLastFinalized();
     return getStorageAt(key, last_finalized.hash);
   }
 
-  outcome::result<std::optional<common::Buffer>> StateApiImpl::getStorageAt(
-      const common::Buffer &key, const primitives::BlockHash &at) const {
+  outcome::result<std::optional<common::BufferConstRef>>
+  StateApiImpl::getStorageAt(const common::BufferView &key,
+                             const primitives::BlockHash &at) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     return trie_reader->tryGet(key);
@@ -152,7 +153,11 @@ namespace kagome::api {
         OUTCOME_TRY(opt_value, batch->tryGet(key));
         auto it = last_values.find(key);
         if (it == last_values.end() || it->second != opt_value) {
-          change.changes.push_back({key, opt_value});
+          std::optional<common::Buffer> opt_buffer =
+              opt_value ? std::make_optional(opt_value.value().get())
+                        : std::nullopt;
+          change.changes.push_back(
+              StorageChangeSet::Change{common::Buffer{key}, opt_buffer});
         }
         last_values[key] = std::move(opt_value);
       }

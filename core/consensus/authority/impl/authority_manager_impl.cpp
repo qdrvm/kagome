@@ -32,7 +32,7 @@ namespace kagome::authority {
   }
 
   bool AuthorityManagerImpl::prepare() {
-    auto encoded_root_res = storage_->get(storage::kSchedulerTreeLookupKey);
+    auto encoded_root_res = storage_->load(storage::kSchedulerTreeLookupKey);
     if (not encoded_root_res.has_value()) {
       log_->critical("Can't restore authority manager state");
       return false;

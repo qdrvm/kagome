@@ -107,7 +107,7 @@ namespace kagome::consensus {
       return last_epoch_.value();
     }
     const auto &key = storage::kLastBabeEpochNumberLookupKey;
-    OUTCOME_TRY(epoch_descriptor, storage_->get(key));
+    OUTCOME_TRY(epoch_descriptor, storage_->load(key));
     auto &&res = scale::decode<EpochDescriptor>(epoch_descriptor);
     BOOST_ASSERT(res.has_value());
     return std::move(res);

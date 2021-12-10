@@ -4,7 +4,7 @@
  */
 
 #include "common/buffer.hpp"
-#include "buffer.hpp"
+
 #include "common/hexutil.hpp"
 
 namespace kagome::common {
@@ -39,7 +39,7 @@ namespace kagome::common {
     return hex_lower(data_);
   }
 
-  const std::string_view Buffer::toString() const {
+  std::string_view Buffer::asString() const {
     return std::string_view(reinterpret_cast<const char *>(data_.data()),
                             data_.size());  // NOLINT
   }
@@ -121,6 +121,10 @@ namespace kagome::common {
     return std::lexicographical_compare(begin(), end(), b.begin(), b.end());
   }
 
+  bool Buffer::operator<(gsl::span<const uint8_t> b) const noexcept {
+    return std::lexicographical_compare(begin(), end(), b.begin(), b.end());
+  }
+
   template <typename T>
   Buffer &Buffer::putRange(const T &begin, const T &end) {
     static_assert(sizeof(*begin) == 1);
@@ -165,7 +169,7 @@ namespace kagome::common {
     return *this;
   }
 
-  std::string Buffer::asString() const {
+  std::string Buffer::toString() const {
     return std::string{data_.begin(), data_.end()};
   }
 
@@ -177,12 +181,24 @@ namespace kagome::common {
     return Buffer(gsl::make_span(*this).subspan(offset, length));
   }
 
+  BufferView Buffer::view(size_t offset, size_t length) const {
+    return BufferView{gsl::make_span(*this).subspan(offset, length)};
+  }
+
   Buffer &Buffer::operator+=(const Buffer &other) noexcept {
     return this->putBuffer(other);
   }
 
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer) {
     return os << buffer.toHex();
+  }
+
+  std::ostream &operator<<(std::ostream &os, BufferView view) {
+    return os << view.toHex();
+  }
+
+  std::string BufferView::toHex() const {
+    return hex_lower(*this);
   }
 
 }  // namespace kagome::common
