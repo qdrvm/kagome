@@ -18,6 +18,7 @@ namespace kagome::storage::changes_trie {
 
 namespace kagome::storage::trie {
   class TrieStorage;
+  class TrieSerializer;
 }
 
 namespace kagome::blockchain {
@@ -41,6 +42,7 @@ namespace kagome::runtime::wavm {
    public:
     InstanceEnvironmentFactory(
         std::shared_ptr<storage::trie::TrieStorage> storage,
+        std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<CompartmentWrapper> compartment,
         std::shared_ptr<const IntrinsicModule> intrinsic_module,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
@@ -55,6 +57,7 @@ namespace kagome::runtime::wavm {
 
    private:
     std::shared_ptr<storage::trie::TrieStorage> storage_;
+    std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<const IntrinsicModule> intrinsic_module_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;

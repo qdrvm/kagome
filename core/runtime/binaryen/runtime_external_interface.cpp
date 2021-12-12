@@ -114,6 +114,15 @@ namespace kagome::runtime::binaryen {
       CALL_HOST_API_FUNC(ext_logging_log_version_1);
       CALL_HOST_API_FUNC(ext_logging_max_level_version_1);
 
+      // -------------------------- child storage functions --------------------
+
+      CALL_HOST_API_FUNC(ext_default_child_storage_root_version_1);
+      CALL_HOST_API_FUNC(ext_default_child_storage_set_version_1);
+      CALL_HOST_API_FUNC(ext_default_child_storage_get_version_1);
+      CALL_HOST_API_FUNC(ext_default_child_storage_clear_version_1);
+      CALL_HOST_API_FUNC(ext_default_child_storage_next_key_version_1);
+      // CALL_HOST_API_FUNC(ext_default_child_storage_kill_version_1);
+
       // -------------------------- crypto functions ---------------------------
 
       CALL_HOST_API_FUNC(ext_crypto_start_batch_verify_version_1);

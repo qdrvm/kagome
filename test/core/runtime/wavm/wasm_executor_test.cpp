@@ -102,7 +102,7 @@ class WasmExecutorTest : public ::testing::Test {
             trie_factory, codec, serializer, std::nullopt)
             .value();
 
-    storage_provider_ = std::make_shared<TrieStorageProviderImpl>(trie_db);
+    storage_provider_ = std::make_shared<TrieStorageProviderImpl>(trie_db, serializer);
 
     auto random_generator = std::make_shared<BoostRandomGenerator>();
     auto sr25519_provider =
@@ -155,6 +155,7 @@ class WasmExecutorTest : public ::testing::Test {
     auto instance_env_factory =
         std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
             trie_db,
+            serializer,
             compartment_wrapper,
             intrinsic_module,
             host_api_factory,

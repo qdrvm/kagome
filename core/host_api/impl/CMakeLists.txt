@@ -72,6 +72,19 @@ target_link_libraries(storage_extension
     )
 kagome_install(storage_extension)
 
+add_library(child_storage_extension
+    child_storage_extension.cpp
+    )
+target_link_libraries(child_storage_extension
+    buffer
+    blob
+    logger
+    ordered_trie_hash
+    scale::scale_encode_append
+    runtime_transaction_error
+    )
+kagome_install(child_storage_extension)
+
 add_library(offchain_extension
     offchain_extension.cpp
     )

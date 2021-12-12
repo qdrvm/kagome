@@ -63,6 +63,7 @@ groups:
                   - name: io_extension
                   - name: crypto_extension
                   - name: storage_extension
+                  - name: child_storage_extension
                   - name: offchain_extension
                   - name: misc_extension
               - name: binaryen
