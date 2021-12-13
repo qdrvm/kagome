@@ -436,12 +436,21 @@ namespace kagome::consensus::grandpa {
       current_round_ = std::move(round);
 
     } else {
+      bool isPrevotesChanged = false;
+      bool isPrecommitsChanged = false;
       for (auto &vote : msg.prevote_justification) {
-        current_round_->onPrevote(vote, VotingRound::Propagation::NEEDLESS);
+        if (current_round_->onPrevote(vote,
+                                      VotingRound::Propagation::NEEDLESS)) {
+          isPrevotesChanged = true;
+        }
       }
       for (auto &vote : msg.precommit_justification) {
-        current_round_->onPrecommit(vote, VotingRound::Propagation::NEEDLESS);
+        if (current_round_->onPrecommit(vote,
+                                        VotingRound::Propagation::NEEDLESS)) {
+          isPrecommitsChanged = true;
+        }
       }
+      current_round_->update(isPrevotesChanged, isPrecommitsChanged);
 
       // Check if catch-up round is not completable
       if (not current_round_->completable()) {
