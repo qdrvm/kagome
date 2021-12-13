@@ -186,8 +186,19 @@ namespace kagome::application {
                   uint32_t &target);
     bool load_bool(const rapidjson::Value &val, char const *name, bool &target);
 
-    boost::asio::ip::tcp::endpoint get_endpoint_from(const std::string &host,
-                                                     uint16_t port);
+    boost::asio::ip::tcp::endpoint getEndpointFrom(const std::string &host,
+                                                   uint16_t port) const;
+
+    outcome::result<boost::asio::ip::tcp::endpoint> getEndpointFrom(
+        const libp2p::multi::Multiaddress &multiaddress) const;
+
+    /**
+     * Checks whether configured listen addresses are available.
+     * @return true when addresses are available, false - when at least one
+     * address is not available
+     */
+    bool testListenAddresses() const;
+
     FilePtr open_file(const std::string &filepath);
 
     log::Logger logger_;
