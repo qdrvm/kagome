@@ -430,17 +430,17 @@ namespace kagome::host_api {
       return std::nullopt;
     }
     auto batch = storage_provider_->tryGetPersistentBatch().value();
-    auto config_bytes_res = batch->get(CHANGES_CONFIG_KEY);
+    auto config_bytes_res = batch->tryGet(CHANGES_CONFIG_KEY);
     if (config_bytes_res.has_error()) {
-      if (config_bytes_res.error() != storage::trie::TrieError::NO_VALUE) {
-        logger_->error("ext_storage_changes_root resulted with an error: {}",
-                       config_bytes_res.error().message());
-        throw std::runtime_error(config_bytes_res.error().message());
-      }
+      logger_->error("ext_storage_changes_root resulted with an error: {}",
+                     config_bytes_res.error().message());
+      throw std::runtime_error(config_bytes_res.error().message());
+    }
+    if(config_bytes_res.value() == std::nullopt) {
       return std::nullopt;
     }
     auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
-        config_bytes_res.value().get());
+        config_bytes_res.value().value().get());
     if (config_res.has_error()) {
       logger_->error("ext_storage_changes_root resulted with an error: {}",
                      config_res.error().message());

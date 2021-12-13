@@ -65,14 +65,16 @@ TEST_F(TrieDbBackendTest, Get) {
  */
 TEST_F(TrieDbBackendTest, Batch) {
   auto batch_mock = std::make_unique<WriteBatchMock<BufferView, Buffer>>();
+  auto buf_abc = Buffer{kNodePrefix}.put("abc"_buf);
   EXPECT_CALL(*batch_mock,
-              put(BufferView{Buffer{kNodePrefix}.put("abc"_buf)}, "123"_buf))
+              put(buf_abc.view(), "123"_buf))
+      .WillOnce(Return(outcome::success()));
+  auto buf_def = Buffer{kNodePrefix}.put("def"_buf);
+  EXPECT_CALL(*batch_mock,
+              put(buf_def.view(), "123"_buf))
       .WillOnce(Return(outcome::success()));
   EXPECT_CALL(*batch_mock,
-              put(BufferView{Buffer{kNodePrefix}.put("def"_buf)}, "123"_buf))
-      .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*batch_mock,
-              remove(BufferView{Buffer{kNodePrefix}.put("abc"_buf)}))
+              remove(buf_abc.view()))
       .WillOnce(Return(outcome::success()));
   EXPECT_CALL(*batch_mock, commit()).WillOnce(Return(outcome::success()));
 

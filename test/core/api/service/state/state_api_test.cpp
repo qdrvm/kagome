@@ -68,22 +68,25 @@ namespace kagome::api {
     primitives::BlockId did = "D"_hash256;
     EXPECT_CALL(*block_header_repo_, getBlockHeader(did))
         .WillOnce(testing::Return(BlockHeader{.state_root = "CDE"_hash256}));
+    auto in_buf = "a"_buf;
+    auto out_buf = "1"_buf;
     EXPECT_CALL(*storage_, getEphemeralBatchAt(_))
-        .WillRepeatedly(testing::Invoke([](auto &root) {
+        .WillRepeatedly(testing::Invoke([&in_buf, &out_buf](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, tryGet("a"_buf.view()))
-              .WillRepeatedly(testing::Return("1"_buf));
+          EXPECT_CALL(*batch, tryGet(in_buf.view()))
+              .WillRepeatedly(testing::Return(std::cref(out_buf)));
           return batch;
         }));
 
-    EXPECT_OUTCOME_TRUE(r, api_->getStorage("a"_buf.view()));
+    auto key = "a"_buf;
+    EXPECT_OUTCOME_TRUE(r, api_->getStorage(key.view()))
     ASSERT_EQ(r.value().get(), "1"_buf);
 
     primitives::BlockId bid = "B"_hash256;
     EXPECT_CALL(*block_header_repo_, getBlockHeader(bid))
         .WillOnce(testing::Return(BlockHeader{.state_root = "ABC"_hash256}));
 
-    EXPECT_OUTCOME_TRUE(r1, api_->getStorageAt("a"_buf.view(), "B"_hash256));
+    EXPECT_OUTCOME_TRUE(r1, api_->getStorageAt(key.view(), "B"_hash256));
     ASSERT_EQ(r1.value().get(), "1"_buf);
   }
 

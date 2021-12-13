@@ -139,8 +139,8 @@ class StateJrpcProcessorTest : public testing::Test {
  */
 TEST_F(StateJrpcProcessorTest, ProcessRequest) {
   auto expected_result = "ABCDEF"_hex2buf;
-
-  EXPECT_CALL(*state_api, getStorage("01234567"_hex2buf.view()))
+  auto key = "01234567"_hex2buf;
+  EXPECT_CALL(*state_api, getStorage(key.view()))
       .WillOnce(testing::Return(expected_result));
 
   registerHandlers();
@@ -159,7 +159,8 @@ TEST_F(StateJrpcProcessorTest, ProcessRequest) {
 TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
   auto expected_result = "ABCDEF"_hex2buf;
 
-  EXPECT_CALL(*state_api, getStorageAt("01234567"_hex2buf.view(), "010203"_hash256))
+  auto key = "01234567"_hex2buf;
+  EXPECT_CALL(*state_api, getStorageAt(key.view(), "010203"_hash256))
       .WillOnce(testing::Return(expected_result));
 
   registerHandlers();

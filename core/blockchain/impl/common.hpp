@@ -28,7 +28,7 @@ namespace kagome::blockchain {
    * Convert a block ID into a key, which is a first part of a key, by which the
    * columns are stored in the database
    */
-  outcome::result<common::BufferView> idToLookupKey(
+  outcome::result<common::Buffer> idToLookupKey(
       const ReadableBufferStorage &map, const primitives::BlockId &id);
 
   /**

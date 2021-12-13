@@ -529,11 +529,11 @@ TEST_F(TrieTest, GetPath) {
     ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry.first, entry.second));
   }
 
-  std::vector<std::pair<BranchNode *, uint8_t>> path;
+  std::vector<std::pair<const BranchNode *, uint8_t>> path;
   ASSERT_OUTCOME_SUCCESS_TRY(
       trie->forNodeInPath(trie->getRoot(),
                           KeyNibbles{"010203040506"_hex2buf},
-                          [&path](auto &node, auto idx) mutable {
+                          [&path](const auto &node, auto idx) mutable {
                             path.emplace_back(&node, idx);
                             return outcome::success();
                           }))

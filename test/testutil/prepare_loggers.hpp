@@ -20,7 +20,7 @@ namespace testutil {
   static std::once_flag initialized;
 
   // supposed to be called in SetUpTestCase
-  void prepareLoggers(soralog::Level level = soralog::Level::INFO) {
+  inline void prepareLoggers(soralog::Level level = soralog::Level::INFO) {
     std::call_once(initialized, [] {
       auto testing_log_config = std::string(R"(
 sinks:

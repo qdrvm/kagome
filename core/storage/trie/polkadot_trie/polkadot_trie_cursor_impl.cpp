@@ -77,13 +77,23 @@ namespace kagome::storage::trie {
 
     auto res = makeSearchStateAt(key);
     if (res.has_error()) {
+      // if the given key is just not present in the trie, return false
       state_ = InvalidState{res.error()};
       if (res.error() == Error::KEY_NOT_FOUND) {
         return false;
       }
+      // on other errors - propagate them
       return res.error();
     }
     state_ = std::move(res.value());
+    auto &current = std::get<SearchState>(state_).getCurrent();
+    // while there is a node in a trie with the given key, it contains no value,
+    // thus cannot be pointed at by the cursor
+    if (not current.value.has_value()) {
+      state_ = InvalidState{Error::KEY_NOT_FOUND};
+      return false;
+    }
+
     return true;
   }
 
@@ -121,24 +131,25 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PolkadotTrieCursorImpl::seekLowerBoundInternal(
-      const TrieNode &current, gsl::span<const uint8_t> left_nibbles) {
+      const TrieNode &current, gsl::span<const uint8_t> sought_nibbles) {
     BOOST_ASSERT(std::holds_alternative<SearchState>(state_));
     auto &search_state = std::get<SearchState>(state_);
-    auto [left_mismatch, current_mismatch] =
-        std::mismatch(left_nibbles.begin(),
-                      left_nibbles.end(),
+    auto [sought_nibbles_mismatch, current_mismatch] =
+        std::mismatch(sought_nibbles.begin(),
+                      sought_nibbles.end(),
                       current.key_nibbles.begin(),
                       current.key_nibbles.end());
-    // parts of every sequence within their common length (minimum of their
-    // lengths) are equal
-    bool part_equal = left_mismatch == left_nibbles.end()
-                      or current_mismatch == current.key_nibbles.end();
-    // if current choice is lexicographically less or equal to the left part
-    // of the sought key, we just take the closest node with value
-    bool less_or_eq =
-        (part_equal and left_mismatch == left_nibbles.end())
-        or (not part_equal and *left_mismatch < *current_mismatch);
-    if (less_or_eq) {
+    // one nibble sequence is a prefix of the other
+    bool sought_is_prefix = sought_nibbles_mismatch == sought_nibbles.end();
+    bool current_is_prefix = current_mismatch == current.key_nibbles.end();
+
+    // if sought nibbles are lexicographically less or equal to the current
+    // nibbles, we just take the closest node with value
+    bool sought_less_or_eq =
+        sought_is_prefix
+        or (not current_is_prefix
+            and *sought_nibbles_mismatch < *current_mismatch);
+    if (sought_less_or_eq) {
       switch (current.getTrieType()) {
         case NodeType::BranchEmptyValue:
         case NodeType::BranchWithValue: {
@@ -156,20 +167,18 @@ namespace kagome::storage::trie {
     // that starts with a nibble that is greater of equal to the first
     // nibble of the left part (if there is no such child, proceed to the
     // next case)
-    bool longer = (part_equal and left_mismatch != left_nibbles.end()
-                   and current_mismatch == current.key_nibbles.end());
-    if (longer) {
+    bool sought_is_longer = current_is_prefix and not sought_is_prefix;
+    if (sought_is_longer) {
       switch (current.getTrieType()) {
         case NodeType::BranchEmptyValue:
         case NodeType::BranchWithValue: {
-          auto length = left_mismatch - left_nibbles.begin();
+          auto mismatch_pos = sought_nibbles_mismatch - sought_nibbles.begin();
           auto *branch = dynamic_cast<const BranchNode *>(&current);
-          SAFE_CALL(child, trie_->retrieveChild(*branch, left_nibbles[length]))
+          SAFE_CALL(child,
+                    visitChildWithMinIdx(*branch, sought_nibbles[mismatch_pos]))
           if (child) {
-            SAFE_VOID_CALL(
-                search_state.visitChild(left_nibbles[length], *child))
             return seekLowerBoundInternal(*child,
-                                          left_nibbles.subspan(length + 1));
+                                          sought_nibbles.subspan(mismatch_pos + 1));
           }
           break;  // go to case3
         }
@@ -180,14 +189,16 @@ namespace kagome::storage::trie {
           return Error::INVALID_NODE_TYPE;
       }
     }
-    // if the left part of the key is longer than the current of
+    // if the left part of the key is longer than the current or
     // lexicographically greater than the current, we must return to its
     // parent and find a child greater than the current one
-    bool longer_or_bigger =
-        longer or (not part_equal and *left_mismatch > *current_mismatch);
-    if (longer_or_bigger) {
+    bool longer_or_greater =
+        sought_is_longer
+        or (not(sought_is_prefix or current_is_prefix)
+            and *sought_nibbles_mismatch > *current_mismatch);
+    if (longer_or_greater) {
       SAFE_CALL(found, nextNodeWithValueInOuterTree())
-      if(!found) {
+      if (!found) {
         state_ = ReachedEndState{};
       }
       return outcome::success();
@@ -356,8 +367,8 @@ namespace kagome::storage::trie {
     };
     auto res = trie_->forNodeInPath(
         trie_->getRoot(), codec_.keyToNibbles(key), add_visited_child);
-    if (res.has_error()){
-      if(res.error() == TrieError::NO_VALUE) {
+    if (res.has_error()) {
+      if (res.error() == TrieError::NO_VALUE) {
         return Error::KEY_NOT_FOUND;
       } else {
         return res.error();

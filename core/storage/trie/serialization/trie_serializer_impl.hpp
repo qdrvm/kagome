@@ -55,7 +55,7 @@ namespace kagome::storage::trie {
      * Retrieves a node, replacing a dummy node to an actual node if
      * needed
      */
-    outcome::result<void> retrieveNode(PolkadotTrie::NodePtr &parent) const;
+    outcome::result<void> retrieveNode(PolkadotTrie::NodePtr &node) const;
 
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;

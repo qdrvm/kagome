@@ -180,7 +180,7 @@ class RuntimeTestBase : public ::testing::Test {
           .WillByDefault(Return(outcome::success()));
       return cursor;
     }));
-    auto heappages_key = ":heappages"_buf;
+    static auto heappages_key = ":heappages"_buf;
     EXPECT_CALL(batch, get(heappages_key.view()));
   }
 

@@ -20,7 +20,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
 
 namespace kagome::blockchain {
 
-  outcome::result<common::BufferView> idToLookupKey(
+  outcome::result<common::Buffer> idToLookupKey(
       const ReadableBufferStorage &map, const primitives::BlockId &id) {
     OUTCOME_TRY(
         key_opt,

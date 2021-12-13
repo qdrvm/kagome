@@ -384,6 +384,9 @@ namespace kagome::storage::trie {
   outcome::result<PolkadotTrie::ConstNodePtr> PolkadotTrieImpl::getNode(
       ConstNodePtr parent, const KeyNibbles &key_nibbles) const {
     using T = TrieNode::Type;
+    if (parent == nullptr) {
+      return nullptr;
+    }
     switch (parent->getTrieType()) {
       case T::BranchEmptyValue:
       case T::BranchWithValue: {

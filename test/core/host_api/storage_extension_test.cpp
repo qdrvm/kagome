@@ -341,11 +341,11 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
       scale::encode(std::make_optional<uint32_t>(offset_value_data.size())));
   WasmSpan res_wasm_span = 1337;
 
-  // expect key loaded, than data stored
+  // expect key loaded, then data stored
   EXPECT_CALL(*memory_, loadN(key.ptr, key.size)).WillOnce(Return(key_data));
   EXPECT_CALL(*storage_provider_, getCurrentBatch())
       .WillOnce(Return(trie_batch_));
-  EXPECT_CALL(*trie_batch_, get(key_data.view())).WillOnce(Return(value_data));
+  EXPECT_CALL(*trie_batch_, tryGet(key_data.view())).WillOnce(Return(value_data));
   EXPECT_CALL(
       *memory_,
       storeBuffer(value.ptr, gsl::span<const uint8_t>(offset_value_data)));
@@ -394,8 +394,8 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
   Buffer vals_encoded;
   {
     // @when there is no value by given key in trie
-    EXPECT_CALL(*trie_batch_, get(key_data.view()))
-        .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+    EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
+        .WillOnce(Return(std::nullopt));
 
     // @then storage is inserted by scale encoded vector containing
     // EncodeOpaqueValue with value1
@@ -410,7 +410,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
 
   {
     // @when there is a value by given key (inserted above)
-    EXPECT_CALL(*trie_batch_, get(key_data.view()))
+    EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
         .WillOnce(Return(vals_encoded));
 
     // @then storage is inserted by scale encoded vector containing two
@@ -453,7 +453,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 
   {
     // @when encoded vals is stored by given key
-    EXPECT_CALL(*trie_batch_, get(key_data.view()))
+    EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
         .WillOnce(Return(vals_encoded));
 
     // @when storage is inserted by one more value by the same key
@@ -562,7 +562,7 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
       .WillOnce(Return(value_span));
 
   // expect key-value pair was put to db
-  EXPECT_CALL(*trie_batch_, get(key.view())).WillOnce(Return(value));
+  EXPECT_CALL(*trie_batch_, tryGet(key.view())).WillOnce(Return(value));
 
   ASSERT_EQ(value_span,
             storage_extension_->ext_storage_get_version_1(key_span));
@@ -671,9 +671,10 @@ TEST_F(StorageExtensionTest, ChangesRootEmpty) {
   EXPECT_CALL(*memory_, loadN(parent_root_ptr.ptr, Hash256::size()))
       .WillOnce(Return(parent_hash_buf));
 
+  auto changes_trie_buf = kagome::common::Buffer{}.put(":changes_trie");
   EXPECT_CALL(*trie_batch_,
-              get(kagome::common::Buffer{}.put(":changes_trie").view()))
-      .WillOnce(Return(kagome::storage::trie::TrieError::NO_VALUE));
+              tryGet(changes_trie_buf.view()))
+      .WillOnce(Return(std::nullopt));
 
   WasmPointer result = 1984;
   Buffer none_bytes{0};
@@ -705,8 +706,9 @@ TEST_F(StorageExtensionTest, ChangesRootNotEmpty) {
 
   kagome::storage::changes_trie::ChangesTrieConfig config{.digest_interval = 0,
                                                           .digest_levels = 0};
+  auto changes_trie_buf = kagome::common::Buffer{}.put(":changes_trie");
   EXPECT_CALL(*trie_batch_,
-              get(kagome::common::Buffer{}.put(":changes_trie").view()))
+              tryGet(changes_trie_buf.view()))
       .WillOnce(Return(Buffer(scale::encode(config).value())));
 
   auto trie_hash = "deadbeef"_hash256;

@@ -111,7 +111,8 @@ namespace kagome::api {
                              const primitives::BlockHash &at) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
-    return trie_reader->tryGet(key);
+    auto res = trie_reader->tryGet(key);
+    return res;
   }
 
   outcome::result<std::vector<StateApiImpl::StorageChangeSet>>

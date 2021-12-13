@@ -21,6 +21,7 @@ target_link_libraries(polkadot_trie_storage_test
     trie_serializer
     in_memory_storage
     trie_error
+    logger_for_tests
     )
 
 addtest(trie_storage_backend_test

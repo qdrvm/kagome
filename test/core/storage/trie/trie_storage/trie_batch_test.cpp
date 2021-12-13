@@ -8,7 +8,6 @@
 
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -230,28 +229,28 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 TEST_F(TrieBatchTest, TopperBatchAtomic) {
   std::shared_ptr<PersistentTrieBatch> p_batch =
       trie->getPersistentBatch().value();
-  ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("123"_buf, "abc"_buf));
-  ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("678"_buf, "abc"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("123"_buf, "abc"_buf))
+  ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("678"_buf, "abc"_buf))
 
   auto t_batch = p_batch->batchOnTop();
 
-  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("123"_buf, "abc"_buf));
-  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("123"_buf));
-  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("345"_buf, "cde"_buf));
-  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("345"_buf));
-  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->remove("123"_buf));
-  ASSERT_OUTCOME_IS_FALSE(t_batch->contains("123"_buf));
-  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("678"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("123"_buf, "abc"_buf))
+  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("123"_buf))
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("345"_buf, "cde"_buf))
+  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("345"_buf))
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->remove("123"_buf))
+  ASSERT_OUTCOME_IS_FALSE(t_batch->contains("123"_buf))
+  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("678"_buf))
 
-  ASSERT_OUTCOME_IS_FALSE(p_batch->contains("345"_buf));
-  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("678"_buf));
-  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("123"_buf));
+  ASSERT_OUTCOME_IS_FALSE(p_batch->contains("345"_buf))
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("678"_buf))
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("123"_buf))
 
-  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->writeBack());
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->writeBack())
 
-  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("345"_buf));
-  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("678"_buf));
-  ASSERT_OUTCOME_IS_FALSE(p_batch->contains("123"_buf));
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("345"_buf))
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("678"_buf))
+  ASSERT_OUTCOME_IS_FALSE(p_batch->contains("123"_buf))
 }
 
 // TODO(Harrm): #595 test clearPrefix

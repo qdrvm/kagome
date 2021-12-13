@@ -27,6 +27,7 @@ namespace kagome::storage::trie {
       // due to an error, reaching the end or not calling next() after
       // initialization
       INVALID_CURSOR_ACCESS,
+      NO_VALUE_BY_SOUGHT_KEY,
       KEY_NOT_FOUND
     };
 

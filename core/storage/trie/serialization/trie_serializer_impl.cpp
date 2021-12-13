@@ -7,8 +7,8 @@
 
 #include "outcome/outcome.hpp"
 #include "storage/trie/codec.hpp"
-#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
@@ -38,8 +38,12 @@ namespace kagome::storage::trie {
 
   outcome::result<std::shared_ptr<PolkadotTrie>>
   TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key) const {
-    PolkadotTrie::NodeRetrieveFunctor f = [this](PolkadotTrie::NodePtr &parent) {
-      return retrieveNode(parent);
+    PolkadotTrie::NodeRetrieveFunctor f =
+        [this](const PolkadotTrie::NodePtr &parent)
+        -> outcome::result<PolkadotTrie::NodePtr> {
+      PolkadotTrie::NodePtr copy{parent};
+      OUTCOME_TRY(retrieveNode(copy));
+      return copy;
     };
     if (db_key == getEmptyRootHash()) {
       return trie_factory_->createEmpty(std::move(f));
@@ -103,7 +107,8 @@ namespace kagome::storage::trie {
   outcome::result<void> TrieSerializerImpl::retrieveNode(
       PolkadotTrie::NodePtr &parent) const {
     if (parent and parent->isDummy()) {
-      OUTCOME_TRY(n, retrieveNode(dynamic_cast<DummyNode&>(*parent.get()).db_key));
+      OUTCOME_TRY(
+          n, retrieveNode(dynamic_cast<DummyNode &>(*parent.get()).db_key));
       parent = n;
     }
     return outcome::success();
