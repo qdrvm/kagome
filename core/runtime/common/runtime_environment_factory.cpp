@@ -28,11 +28,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
 }
 
 namespace kagome::runtime {
+  using namespace kagome::common::literals;
 
   RuntimeEnvironment::RuntimeEnvironment(
       std::shared_ptr<ModuleInstance> module_instance,
       std::shared_ptr<const MemoryProvider> memory_provider,
-      std::shared_ptr<const TrieStorageProvider> storage_provider)
+      std::shared_ptr<TrieStorageProvider> storage_provider)
       : module_instance{std::move(module_instance)},
         memory_provider{std::move(memory_provider)},
         storage_provider{std::move(storage_provider)} {
@@ -82,7 +83,7 @@ namespace kagome::runtime {
                     blockchain_state_,
                     header_res.value()));
 
-    auto &env = instance->getEnvironment();
+    const auto &env = instance->getEnvironment();
     if (persistent_) {
       if (auto res = env.storage_provider->setToPersistentAt(storage_state_);
           !res) {
@@ -115,7 +116,7 @@ namespace kagome::runtime {
 
     OUTCOME_TRY(env.memory_provider->resetMemory(heap_base));
 
-    OUTCOME_TRY(heappages_key, common::Buffer::fromString(":heappages"));
+    auto heappages_key = ":heappages"_buf;
     auto heappages_res =
         env.storage_provider->getCurrentBatch()->get(heappages_key);
     if (heappages_res.has_value()) {

@@ -173,7 +173,7 @@ namespace kagome::common {
     return std::string{data_.begin(), data_.end()};
   }
 
-  outcome::result<Buffer> Buffer::fromString(const std::string &src) {
+  Buffer Buffer::fromString(const std::string_view &src) {
     return Buffer({src.begin(), src.end()});
   }
 

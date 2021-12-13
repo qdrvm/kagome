@@ -14,6 +14,7 @@ target_link_libraries(host_api
     memory_extension
     misc_extension
     storage_extension
+    child_storage_extension
     offchain_extension
     )
 kagome_install(host_api)
