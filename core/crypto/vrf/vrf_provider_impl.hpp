@@ -8,6 +8,7 @@
 
 #include "crypto/vrf_provider.hpp"
 
+#include <limits>
 #include <optional>
 #include "common/buffer.hpp"
 #include "crypto/random_generator.hpp"
@@ -15,7 +16,8 @@
 namespace kagome::crypto {
 
   class VRFProviderImpl : public VRFProvider {
-    static constexpr VRFThreshold kMaxThreshold{-1};
+    static constexpr VRFThreshold kMaxThreshold{
+        std::numeric_limits<VRFThreshold>::max()};
 
    public:
     explicit VRFProviderImpl(std::shared_ptr<CSPRNG> generator);

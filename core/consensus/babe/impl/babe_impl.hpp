@@ -129,7 +129,7 @@ namespace kagome::consensus::babe {
                             const Randomness &randomness) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(
-        SlotType slot,
+        SlotType slot_type,
         std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
         primitives::AuthorityIndex authority_index) const;
 

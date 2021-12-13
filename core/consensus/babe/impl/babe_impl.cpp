@@ -430,7 +430,12 @@ namespace kagome::consensus::babe {
     const auto &epoch = epoch_res.value();
     auto authority_index_res =
         getAuthorityIndex(epoch.authorities, keypair_->public_key);
-    BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
+    if (not authority_index_res) {
+      SL_DEBUG(log_,
+               "Authority not known, skipping slot processing. Probably "
+               "authority list has changed.");
+      return;
+    }
     const auto &authority_index = authority_index_res.value();
 
     if (lottery_->getEpoch() != current_epoch_) {
@@ -503,11 +508,11 @@ namespace kagome::consensus::babe {
   }
 
   outcome::result<primitives::PreRuntime> BabeImpl::babePreDigest(
-      SlotType slot,
+      SlotType slot_type,
       std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
       primitives::AuthorityIndex authority_index) const {
     uint8_t header_type = 0;
-    if (SlotType::Primary == slot or SlotType::SecondaryVRF == slot) {
+    if (SlotType::Primary == slot_type or SlotType::SecondaryVRF == slot_type) {
       header_type = BabeBlockHeader::kVRFHeader;
       if (not output.has_value()) {
         SL_ERROR(
@@ -516,7 +521,8 @@ namespace kagome::consensus::babe {
         return BabeError::MISSING_PROOF;
       }
     }
-    if (SlotType::SecondaryPlain == slot or SlotType::SecondaryVRF == slot) {
+    if (SlotType::SecondaryPlain == slot_type
+        or SlotType::SecondaryVRF == slot_type) {
       header_type |= BabeBlockHeader::kSecondaryHeaderCheck;
     }
     crypto::VRFOutput dummy{};
