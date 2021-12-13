@@ -199,7 +199,7 @@ namespace kagome::host_api {
 
     // -------------------------- Offchain extension ---------------------------
 
-    runtime::WasmI8 ext_offchain_is_validator_version_1() override;
+    runtime::WasmU32 ext_offchain_is_validator_version_1() override;
 
     runtime::WasmSpan ext_offchain_submit_transaction_version_1(
         runtime::WasmSpan data) override;
@@ -213,21 +213,21 @@ namespace kagome::host_api {
     runtime::WasmPointer ext_offchain_random_seed_version_1() override;
 
     void ext_offchain_local_storage_set_version_1(
-        runtime::WasmI32 kind,
+        runtime::WasmU32 kind,
         runtime::WasmSpan key,
         runtime::WasmSpan value) override;
 
     void ext_offchain_local_storage_clear_version_1(
-        runtime::WasmI32 kind, runtime::WasmSpan key) override;
+        runtime::WasmU32 kind, runtime::WasmSpan key) override;
 
-    runtime::WasmI8 ext_offchain_local_storage_compare_and_set_version_1(
-        runtime::WasmI32 kind,
+    runtime::WasmU32 ext_offchain_local_storage_compare_and_set_version_1(
+        runtime::WasmU32 kind,
         runtime::WasmSpan key,
         runtime::WasmSpan expected,
         runtime::WasmSpan value) override;
 
     runtime::WasmSpan ext_offchain_local_storage_get_version_1(
-        runtime::WasmI32 kind, runtime::WasmSpan key) override;
+        runtime::WasmU32 kind, runtime::WasmSpan key) override;
 
     runtime::WasmSpan ext_offchain_http_request_start_version_1(
         runtime::WasmSpan method,
@@ -235,12 +235,12 @@ namespace kagome::host_api {
         runtime::WasmSpan meta) override;
 
     runtime::WasmSpan ext_offchain_http_request_add_header_version_1(
-        runtime::WasmI32 request_id,
+        runtime::WasmU32 request_id,
         runtime::WasmSpan name,
         runtime::WasmSpan value) override;
 
     runtime::WasmSpan ext_offchain_http_request_write_body_version_1(
-        runtime::WasmI32 request_id,
+        runtime::WasmU32 request_id,
         runtime::WasmSpan chunk,
         runtime::WasmSpan deadline) override;
 
@@ -248,15 +248,15 @@ namespace kagome::host_api {
         runtime::WasmSpan ids, runtime::WasmSpan deadline) override;
 
     runtime::WasmSpan ext_offchain_http_response_headers_version_1(
-        runtime::WasmI32 request_id) override;
+        runtime::WasmU32 request_id) override;
 
     runtime::WasmSpan ext_offchain_http_response_read_body_version_1(
-        runtime::WasmI32 request_id,
+        runtime::WasmU32 request_id,
         runtime::WasmSpan buffer,
         runtime::WasmSpan deadline) override;
 
     void ext_offchain_set_authorized_nodes_version_1(
-        runtime::WasmSpan nodes, runtime::WasmI32 authorized_only) override;
+        runtime::WasmSpan nodes, runtime::WasmU32 authorized_only) override;
 
     void ext_offchain_index_set_version_1(runtime::WasmSpan key,
                                           runtime::WasmSpan value) override;

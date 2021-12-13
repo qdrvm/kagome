@@ -43,7 +43,7 @@ namespace kagome::host_api {
      * @return a boolean equal to true if the node is a validator, false if
      * otherwise
      */
-    runtime::WasmI8 ext_offchain_is_validator_version_1();
+    runtime::WasmU32 ext_offchain_is_validator_version_1();
 
     /**
      * @brief Given a SCALE encoded extrinsic, this function submits the
@@ -121,7 +121,7 @@ namespace kagome::host_api {
      * @param key a pointer-size indicating the key
      * @param value a pointer-size indicating the value
      */
-    void ext_offchain_local_storage_set_version_1(runtime::WasmI32 kind,
+    void ext_offchain_local_storage_set_version_1(runtime::WasmU32 kind,
                                                   runtime::WasmSpan key,
                                                   runtime::WasmSpan value);
 
@@ -138,7 +138,7 @@ namespace kagome::host_api {
      * storage
      * @param key a pointer-size indicating the key
      */
-    void ext_offchain_local_storage_clear_version_1(runtime::WasmI32 kind,
+    void ext_offchain_local_storage_clear_version_1(runtime::WasmU32 kind,
                                                     runtime::WasmSpan key);
 
     /**
@@ -162,8 +162,8 @@ namespace kagome::host_api {
      * @return a boolean equal to true if the new value has been set, false if
      * otherwise
      */
-    runtime::WasmI8 ext_offchain_local_storage_compare_and_set_version_1(
-        runtime::WasmI32 kind,
+    runtime::WasmU32 ext_offchain_local_storage_compare_and_set_version_1(
+        runtime::WasmU32 kind,
         runtime::WasmSpan key,
         runtime::WasmSpan expected,
         runtime::WasmSpan value);
@@ -185,7 +185,7 @@ namespace kagome::host_api {
      * the value or the corresponding key
      */
     runtime::WasmSpan ext_offchain_local_storage_get_version_1(
-        runtime::WasmI32 kind, runtime::WasmSpan key);
+        runtime::WasmU32 kind, runtime::WasmSpan key);
 
     /**
      * @brief Initiates a HTTP request given by the HTTP method and the URL.
@@ -233,7 +233,7 @@ namespace kagome::host_api {
      * failure is implementation specific
      */
     runtime::WasmSpan ext_offchain_http_request_add_header_version_1(
-        runtime::WasmI32 request_id,
+        runtime::WasmU32 request_id,
         runtime::WasmSpan name,
         runtime::WasmSpan value);
 
@@ -258,7 +258,7 @@ namespace kagome::host_api {
      * type
      */
     runtime::WasmSpan ext_offchain_http_request_write_body_version_1(
-        runtime::WasmI32 request_id,
+        runtime::WasmU32 request_id,
         runtime::WasmSpan chunk,
         runtime::WasmSpan deadline);
 
@@ -298,7 +298,7 @@ namespace kagome::host_api {
      * pairs
      */
     runtime::WasmSpan ext_offchain_http_response_headers_version_1(
-        runtime::WasmI32 request_id);
+        runtime::WasmU32 request_id);
 
     /**
      * @brief Reads a chunk of body response to the given buffer. Returns the
@@ -322,7 +322,7 @@ namespace kagome::host_api {
      * written or a `HTTP error` type on failure
      */
     runtime::WasmSpan ext_offchain_http_response_read_body_version_1(
-        runtime::WasmI32 request_id,
+        runtime::WasmU32 request_id,
         runtime::WasmSpan buffer,
         runtime::WasmSpan deadline);
 
@@ -344,7 +344,7 @@ namespace kagome::host_api {
      * rejected. If set to 0, then no such restriction is placed
      */
     void ext_offchain_set_authorized_nodes_version_1(
-        runtime::WasmSpan nodes, runtime::WasmI32 authorized_only);
+        runtime::WasmSpan nodes, runtime::WasmU32 authorized_only);
 
     /**
      * @brief Write a key value pair to the offchain database in a buffered

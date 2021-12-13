@@ -260,7 +260,7 @@ namespace kagome::host_api {
 
     // -------------------------- Offchain extension ---------------------------
 
-    MOCK_METHOD(runtime::WasmI8,
+    MOCK_METHOD(runtime::WasmU32,
                 ext_offchain_is_validator_version_1,
                 (),
                 (override));
@@ -292,17 +292,17 @@ namespace kagome::host_api {
 
     MOCK_METHOD(void,
                 ext_offchain_local_storage_set_version_1,
-                (runtime::WasmI32, runtime::WasmSpan, runtime::WasmSpan),
+                (runtime::WasmU32, runtime::WasmSpan, runtime::WasmSpan),
                 (override));
 
     MOCK_METHOD(void,
                 ext_offchain_local_storage_clear_version_1,
-                (runtime::WasmI32, runtime::WasmSpan),
+                (runtime::WasmU32, runtime::WasmSpan),
                 (override));
 
-    MOCK_METHOD(runtime::WasmI8,
+    MOCK_METHOD(runtime::WasmU32,
                 ext_offchain_local_storage_compare_and_set_version_1,
-                (runtime::WasmI32,
+                (runtime::WasmU32,
                  runtime::WasmSpan,
                  runtime::WasmSpan,
                  runtime::WasmSpan),
@@ -310,7 +310,7 @@ namespace kagome::host_api {
 
     MOCK_METHOD(runtime::WasmSpan,
                 ext_offchain_local_storage_get_version_1,
-                (runtime::WasmI32, runtime::WasmSpan),
+                (runtime::WasmU32, runtime::WasmSpan),
                 (override));
 
     MOCK_METHOD(runtime::WasmSpan,
@@ -320,12 +320,12 @@ namespace kagome::host_api {
 
     MOCK_METHOD(runtime::WasmSpan,
                 ext_offchain_http_request_add_header_version_1,
-                (runtime::WasmI32, runtime::WasmSpan, runtime::WasmSpan),
+                (runtime::WasmU32, runtime::WasmSpan, runtime::WasmSpan),
                 (override));
 
     MOCK_METHOD(runtime::WasmSpan,
                 ext_offchain_http_request_write_body_version_1,
-                (runtime::WasmI32, runtime::WasmSpan, runtime::WasmSpan),
+                (runtime::WasmU32, runtime::WasmSpan, runtime::WasmSpan),
                 (override));
 
     MOCK_METHOD(runtime::WasmSpan,
@@ -335,17 +335,17 @@ namespace kagome::host_api {
 
     MOCK_METHOD(runtime::WasmSpan,
                 ext_offchain_http_response_headers_version_1,
-                (runtime::WasmI32),
+                (runtime::WasmU32),
                 (override));
 
     MOCK_METHOD(runtime::WasmSpan,
                 ext_offchain_http_response_read_body_version_1,
-                (runtime::WasmI32, runtime::WasmSpan, runtime::WasmSpan),
+                (runtime::WasmU32, runtime::WasmSpan, runtime::WasmSpan),
                 (override));
 
     MOCK_METHOD(void,
                 ext_offchain_set_authorized_nodes_version_1,
-                (runtime::WasmSpan, runtime::WasmI32),
+                (runtime::WasmSpan, runtime::WasmU32),
                 (override));
 
     MOCK_METHOD(void,
