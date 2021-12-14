@@ -341,7 +341,7 @@ namespace kagome::network {
   }
 
   void GrandpaProtocol::finalize(FullCommitMessage &&msg) {
-    SL_DEBUG(log_, "Send fin message: grandpa round number {}", msg.round);
+    SL_DEBUG(log_, "Send commit message: grandpa round number {}", msg.round);
 
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);

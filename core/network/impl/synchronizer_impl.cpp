@@ -8,6 +8,7 @@
 #include <random>
 
 #include "blockchain/block_tree_error.hpp"
+#include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 
@@ -154,10 +155,10 @@ namespace kagome::network {
           log_,
           "Can't syncByBlockHeader block {} is received from {}: Peer busy",
           block_info,
-          peer_id.toBase58());
+          peer_id);
       return false;
     }
-    SL_TRACE(log_, "Peer {} marked as busy", peer_id.toBase58());
+    SL_TRACE(log_, "Peer {} marked as busy", peer_id);
 
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
@@ -198,8 +199,7 @@ namespace kagome::network {
           if (auto self = wp.lock()) {
             // Remove peer from list of busy peers
             if (self->busy_peers_.erase(peer_id) > 0) {
-              SL_TRACE(
-                  self->log_, "Peer {} unmarked as busy", peer_id.toBase58());
+              SL_TRACE(self->log_, "Peer {} unmarked as busy", peer_id);
             }
 
             // Finding the best common block was failed
@@ -221,7 +221,7 @@ namespace kagome::network {
             // Start to load blocks since found
             SL_DEBUG(self->log_,
                      "Start to load blocks from {} since block {}",
-                     peer_id.toBase58(),
+                     peer_id,
                      block_info);
             self->loadBlocks(peer_id, block_info, std::move(handler));
           }
@@ -230,7 +230,7 @@ namespace kagome::network {
     // Find the best common block
     SL_DEBUG(log_,
              "Start to find common block with {} in #{}..#{} to catch up",
-             peer_id.toBase58(),
+             peer_id,
              lower,
              upper);
     findCommonBlock(peer_id, lower, upper, hint, std::move(find_handler));
@@ -328,7 +328,7 @@ namespace kagome::network {
                  target,
                  lower,
                  upper,
-                 peer_id.toBase58(),
+                 peer_id,
                  response_res.error().message());
         handler(response_res.as_failure());
         return;
@@ -345,7 +345,7 @@ namespace kagome::network {
                  target,
                  lower,
                  upper,
-                 peer_id.toBase58());
+                 peer_id);
         handler(Error::EMPTY_RESPONSE);
         return;
       }
@@ -363,7 +363,7 @@ namespace kagome::network {
           // Common block is found
           SL_DEBUG(self->log_,
                    "Found best common block with {}: {}",
-                   peer_id.toBase58(),
+                   peer_id,
                    BlockInfo(target, block.hash));
           handler(BlockInfo(target, block.hash));
           return;
@@ -372,9 +372,7 @@ namespace kagome::network {
         // Common block is not found. It is abnormal situation. Requested
         // block must be existed because finding in interval of numbers of
         // blocks that must exist
-        SL_WARN(self->log_,
-                "Not found any common block with {}",
-                peer_id.toBase58());
+        SL_WARN(self->log_, "Not found any common block with {}", peer_id);
         handler(Error::EMPTY_RESPONSE);
         return;
       }
@@ -387,7 +385,7 @@ namespace kagome::network {
         SL_TRACE(self->log_,
                  "Found common block #{} with {} in #{}..#{}",
                  target,
-                 peer_id.toBase58(),
+                 peer_id,
                  lower,
                  upper);
 
@@ -397,7 +395,7 @@ namespace kagome::network {
         SL_TRACE(self->log_,
                  "Not found common block #{} with {} in #{}..#{}",
                  target,
-                 peer_id.toBase58(),
+                 peer_id,
                  lower,
                  upper);
 
@@ -418,7 +416,7 @@ namespace kagome::network {
              hint,
              lower,
              upper,
-             peer_id.toBase58());
+             peer_id);
 
     network::BlocksRequest request{dis(rd),
                                    // TODO: perhaps hash would be enough
@@ -460,7 +458,7 @@ namespace kagome::network {
       if (response_res.has_error()) {
         SL_ERROR(self->log_,
                  "Can't load blocks from {} beginning block {}: {}",
-                 peer_id.toBase58(),
+                 peer_id,
                  from,
                  response_res.error().message());
         if (handler) handler(response_res.as_failure());
@@ -474,7 +472,7 @@ namespace kagome::network {
         SL_ERROR(self->log_,
                  "Can't load blocks from {} beginning block {}: "
                  "Response does not have any blocks",
-                 peer_id.toBase58(),
+                 peer_id,
                  from);
         if (handler) handler(Error::EMPTY_RESPONSE);
         return;
@@ -483,7 +481,7 @@ namespace kagome::network {
       SL_TRACE(self->log_,
                "{} blocks are loaded from {} beginning block {}",
                blocks.size(),
-               peer_id.toBase58(),
+               peer_id,
                from);
 
       bool some_blocks_added = false;
@@ -495,7 +493,7 @@ namespace kagome::network {
           SL_ERROR(self->log_,
                    "Can't load blocks from {} starting from block {}: "
                    "Received block without header",
-                   peer_id.toBase58(),
+                   peer_id,
                    from);
           if (handler) handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
           return;
@@ -505,7 +503,7 @@ namespace kagome::network {
           SL_ERROR(self->log_,
                    "Can't load blocks from {} starting from block {}: "
                    "Received block without body",
-                   peer_id.toBase58(),
+                   peer_id,
                    from);
           if (handler) handler(Error::RESPONSE_WITHOUT_BLOCK_BODY);
           return;
@@ -522,7 +520,7 @@ namespace kagome::network {
               SL_ERROR(self->log_,
                        "Can't load blocks from {} starting from block {}: "
                        "Received discarded block {}",
-                       peer_id.toBase58(),
+                       peer_id,
                        from,
                        BlockInfo(header.number, block.hash));
               if (handler) handler(Error::DISCARDED_BLOCK);
@@ -533,7 +531,7 @@ namespace kagome::network {
                      "Skip block {} received from {}: "
                      "it is finalized with block #{}",
                      BlockInfo(header.number, block.hash),
-                     peer_id.toBase58(),
+                     peer_id,
                      last_finalized_block.number);
             continue;
           }
@@ -542,7 +540,7 @@ namespace kagome::network {
                    "Skip block {} received from {}: "
                    "it is below the last finalized block #{}",
                    BlockInfo(header.number, block.hash),
-                   peer_id.toBase58(),
+                   peer_id,
                    last_finalized_block.number);
           continue;
         }
@@ -553,7 +551,7 @@ namespace kagome::network {
             SL_ERROR(self->log_,
                      "Can't complete blocks loading from {} starting from "
                      "block {}: Received discarded block {}",
-                     peer_id.toBase58(),
+                     peer_id,
                      from,
                      BlockInfo(header.number, header.parent_hash));
             if (handler) handler(Error::DISCARDED_BLOCK);
@@ -570,7 +568,7 @@ namespace kagome::network {
           SL_ERROR(self->log_,
                    "Can't complete blocks loading from {} starting from "
                    "block {}: Received block is not descendant of previous",
-                   peer_id.toBase58(),
+                   peer_id,
                    from);
           if (handler) handler(Error::WRONG_ORDER);
           return;
@@ -584,7 +582,7 @@ namespace kagome::network {
                    "Can't complete blocks loading from {} starting from "
                    "block {}: "
                    "Received block whose hash does not match the header",
-                   peer_id.toBase58(),
+                   peer_id,
                    from);
           if (handler) handler(Error::INVALID_HASH);
           return;
@@ -605,14 +603,14 @@ namespace kagome::network {
           SL_TRACE(self->log_,
                    "Skip block {} received from {}: already enqueued",
                    BlockInfo(header.number, block.hash),
-                   peer_id.toBase58());
+                   peer_id);
           continue;
         }
 
         SL_TRACE(self->log_,
                  "Enqueue block {} received from {}",
                  BlockInfo(header.number, block.hash),
-                 peer_id.toBase58());
+                 peer_id);
 
         self->generations_.emplace(header.number, block.hash);
         self->ancestry_.emplace(header.parent_hash, block.hash);
@@ -849,32 +847,30 @@ namespace kagome::network {
         if (busy_peers_.find(peer_id) != busy_peers_.end()) {
           SL_TRACE(log_,
                    "Peer {} for block {} is busy",
-                   peer_id.toBase58(),
+                   peer_id,
                    primitives::BlockInfo(g_it->first, hash));
           continue;
         }
 
         busy_peers_.insert(peers.extract(cp_it));
-        SL_TRACE(log_, "Peer {} marked as busy", peer_id.toBase58());
+        SL_TRACE(log_, "Peer {} marked as busy", peer_id);
 
         auto handler = [wp = weak_from_this(), peer_id](const auto &res) {
           if (auto self = wp.lock()) {
             if (self->busy_peers_.erase(peer_id) > 0) {
-              SL_TRACE(
-                  self->log_, "Peer {} unmarked as busy", peer_id.toBase58());
+              SL_TRACE(self->log_, "Peer {} unmarked as busy", peer_id);
             }
             SL_TRACE(self->log_, "End asking portion of blocks");
             self->asking_blocks_portion_in_progress_ = false;
             if (not res.has_value()) {
               SL_DEBUG(self->log_,
                        "Loading next portion of blocks from {} is failed: {}",
-                       peer_id.toBase58(),
+                       peer_id,
                        res.error().message());
               return;
             }
-            SL_DEBUG(self->log_,
-                     "Portion of blocks from {} is loaded",
-                     peer_id.toBase58());
+            SL_DEBUG(
+                self->log_, "Portion of blocks from {} is loaded", peer_id);
           }
         };
 
@@ -884,7 +880,7 @@ namespace kagome::network {
 
         SL_DEBUG(log_,
                  "Start to find common block with {} in #{}..#{} to fill queue",
-                 peer_id.toBase58(),
+                 peer_id,
                  generations_.begin()->first,
                  generations_.rbegin()->first);
         findCommonBlock(
@@ -898,7 +894,7 @@ namespace kagome::network {
                 if (not res.has_value()) {
                   SL_DEBUG(self->log_,
                            "Can't load next portion of blocks from {}: {}",
-                           peer_id.toBase58(),
+                           peer_id,
                            res.error().message());
                   handler(res);
                   return;
@@ -907,7 +903,7 @@ namespace kagome::network {
                 SL_DEBUG(self->log_,
                          "Start to load next portion of blocks from {} "
                          "since block {}",
-                         peer_id.toBase58(),
+                         peer_id,
                          block_info);
                 self->loadBlocks(peer_id, block_info, std::move(handler));
               }

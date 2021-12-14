@@ -251,7 +251,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(putBlockData(block.header.number, block_data));
     logger_->info("Added block {}. State root: {}",
                   primitives::BlockInfo(block.header.number, block_hash),
-                  block.header.state_root.toHex());
+                  block.header.state_root);
     return block_hash;
   }
 

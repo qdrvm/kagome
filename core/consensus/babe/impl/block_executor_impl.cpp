@@ -10,6 +10,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
+#include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "scale/scale.hpp"
@@ -99,9 +100,8 @@ namespace kagome::consensus {
     // check if block body already exists. If so, do not apply
     if (block_tree_->getBlockBody(block_hash)) {
       SL_DEBUG(logger_,
-               "Skipping existed block number: {}, hash: {}",
-               header.number,
-               block_hash.toHex());
+               "Skip existing block: {}",
+               primitives::BlockInfo(header.number, block_hash));
 
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
 
@@ -177,13 +177,10 @@ namespace kagome::consensus {
     auto exec_start = std::chrono::high_resolution_clock::now();
     // apply block
     SL_DEBUG(logger_,
-             "Execute block #{}, hash {}, state {}, "
-             "a child of block #{}, hash {}, state {}",
-             block.header.number,
-             block_hash,
+             "Execute block {}, state {}, a child of block {}, state {}",
+             primitives::BlockInfo(block.header.number, block_hash),
              block.header.state_root,
-             parent.number,
-             block.header.parent_hash,
+             primitives::BlockInfo(parent.number, block.header.parent_hash),
              parent.state_root);
 
     auto last_finalized_block = block_tree_->getLastFinalized();
