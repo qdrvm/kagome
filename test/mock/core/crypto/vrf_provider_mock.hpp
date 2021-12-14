@@ -36,6 +36,11 @@ namespace kagome::crypto {
                  const VRFThreshold &),
                 (const, override));
 
+    MOCK_METHOD(std::optional<VRFOutput>,
+                signTranscript,
+                (const primitives::Transcript &, const Sr25519Keypair &),
+                (const, override));
+
     MOCK_METHOD(VRFVerifyOutput,
                 verifyTranscript,
                 (const primitives::Transcript &,
