@@ -27,6 +27,11 @@ namespace kagome::consensus {
                 (primitives::BabeSlotNumber),
                 (const, override));
 
+    MOCK_METHOD(crypto::VRFOutput,
+                slotVrfSignature,
+                (primitives::BabeSlotNumber),
+                (const, override));
+
     MOCK_METHOD(Randomness,
                 computeRandomness,
                 (const Randomness &, EpochNumber),
@@ -36,6 +41,13 @@ namespace kagome::consensus {
                 submitVRFValue,
                 (const crypto::VRFPreOutput &),
                 (override));
+
+    MOCK_METHOD(std::optional<primitives::AuthorityIndex>,
+                secondarySlotAuthor,
+                (primitives::BabeSlotNumber,
+                 primitives::AuthorityListSize,
+                 const Randomness &),
+                (const, override));
   };
 }  // namespace kagome::consensus
 

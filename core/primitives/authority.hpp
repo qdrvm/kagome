@@ -16,6 +16,7 @@ namespace kagome::primitives {
 
   using AuthorityWeight = uint64_t;
   using AuthorityListId = uint64_t;
+  using AuthorityListSize = uint64_t;
 
   struct AuthorityId {
     GenericSessionKey id;
