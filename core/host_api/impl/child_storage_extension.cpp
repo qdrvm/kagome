@@ -17,6 +17,7 @@
 #include <utility>
 
 using kagome::common::Buffer;
+using kagome::common::BufferConstRef;
 using kagome::storage::trie::TrieError;
 
 namespace kagome::host_api {
@@ -109,28 +110,20 @@ namespace kagome::host_api {
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    auto result = executeOnChildStorage<Buffer>(
+    auto result = executeOnChildStorage<std::optional<BufferConstRef>>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) -> outcome::result<Buffer> {
-          return child_batch->get(key);
-        },
+        [](auto &child_batch, auto &key) { return child_batch->tryGet(key); },
         key_buffer);
-    auto option = result ? std::make_optional(result.value()) : std::nullopt;
 
     if (result) {
       SL_TRACE_FUNC_CALL(logger_, result.value(), child_key_buffer, key_buffer);
-    } else if (result.error() == TrieError::NO_VALUE) {
-      logger_->trace(error_message,
-                     child_key_buffer.toHex(),
-                     key_buffer.toHex(),
-                     result.error().message());
     } else {
       logger_->error(error_message,
                      child_key_buffer.toHex(),
                      key_buffer.toHex(),
                      result.error().message());
     }
-    return memory.storeBuffer(scale::encode(option).value());
+    return memory.storeBuffer(scale::encode(result.value()).value());
   }
 
   void ChildStorageExtension::ext_default_child_storage_clear_version_1(

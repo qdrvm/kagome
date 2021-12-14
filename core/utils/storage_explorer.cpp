@@ -183,8 +183,8 @@ int main(int argc, char **argv) {
                     << value_opt_res.error().message() << "\n";
         }
         if (value_opt_res.value().has_value()) {
-          std::cout << "Value is " << value_opt_res.value().value().toHex()
-                    << "\n";
+          std::cout << "Value is "
+                    << value_opt_res.value().value().get().toHex() << "\n";
         } else {
           std::cout << "No value by provided key\n";
         }

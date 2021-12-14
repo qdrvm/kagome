@@ -133,7 +133,6 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieCursorImpl::seekLowerBoundInternal(
       const TrieNode &current, gsl::span<const uint8_t> sought_nibbles) {
     BOOST_ASSERT(std::holds_alternative<SearchState>(state_));
-    auto &search_state = std::get<SearchState>(state_);
     auto [sought_nibbles_mismatch, current_mismatch] =
         std::mismatch(sought_nibbles.begin(),
                       sought_nibbles.end(),

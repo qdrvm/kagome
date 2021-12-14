@@ -122,8 +122,6 @@ namespace kagome::host_api {
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = memory.loadN(key_ptr, key_size);
-    constexpr auto error_message =
-        "ext_storage_get_version_1( {} ) => value was not obtained. Reason: {}";
 
     auto result = get(key_buffer);
     if (!result) {
