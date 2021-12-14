@@ -33,18 +33,19 @@ template <class T>
 using sptr = std::shared_ptr<T>;
 
 template <typename T>
-inline outcome::result<T> &&check(outcome::result<T> &&res) {
-  if (not res.has_value()) {
-    kagome::common::raise(res.error());
-  }
-  return std::move(res);
-}
+struct is_optional : std::false_type {};
 template <typename T>
-inline std::optional<T> &&check(std::optional<T> &&res) {
+struct is_optional<typename std::optional<T>> : std::true_type {};
+template <typename T>
+inline auto check(T &&res) {
   if (not res.has_value()) {
-    throw std::runtime_error("No value");
+    if constexpr (is_optional<T>::value) {
+      throw std::runtime_error("No value");
+    } else {
+      kagome::common::raise(res.error());
+    }
   }
-  return std::move(res);
+  return std::forward<T>(res);
 }
 
 namespace {
