@@ -9,7 +9,11 @@
 #include <outcome/outcome.hpp>
 
 namespace kagome::consensus {
-  enum class BabeError { TIMER_ERROR = 1, NODE_FALL_BEHIND };
+  enum class BabeError {
+    TIMER_ERROR = 1,
+    NODE_FALL_BEHIND,
+    MISSING_PROOF,
+  };
 }
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, BabeError)
