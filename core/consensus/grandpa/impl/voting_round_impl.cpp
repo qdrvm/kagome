@@ -1646,6 +1646,13 @@ namespace kagome::consensus::grandpa {
   void VotingRoundImpl::sendNeighborMessage() {
     neighbor_msg_timer_.cancel();
 
+    if (precommit_.has_value()) {
+      auto previous_round = previous_round_.lock();
+      if (previous_round) {
+        previous_round->doCommit();
+      }
+    }
+
     auto res = env_->onNeighborMessageSent(
         round_number_,
         voter_set_->id(),
