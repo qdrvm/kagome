@@ -58,7 +58,8 @@ namespace kagome::api {
 
   /**
    * @given child_state api
-   * @when get a storage value for the given key (and optionally child_state root)
+   * @when get a storage value for the given key (and optionally child_state
+   * root)
    * @then the correct value is returned
    */
   TEST_F(ChildStateApiTest, GetStorage) {
@@ -81,7 +82,7 @@ namespace kagome::api {
               .WillRepeatedly(testing::Return("2"_buf));
           return batch;
         }));
-    
+
     EXPECT_OUTCOME_SUCCESS(r, api_->getStorage("a"_buf, "b"_buf, std::nullopt));
     ASSERT_EQ(r.value(), "2"_buf);
   }
@@ -105,7 +106,10 @@ namespace kagome::api {
           return batch;
         }));
 
-    EXPECT_OUTCOME_TRUE(r1, api_->getStorage("c"_buf, "d"_buf, std::optional<BlockHash>{"B"_hash256}));
+    EXPECT_OUTCOME_TRUE(
+        r1,
+        api_->getStorage(
+            "c"_buf, "d"_buf, std::optional<BlockHash>{"B"_hash256}));
     ASSERT_EQ(r1.value(), "4"_buf);
   }
 }  // namespace kagome::api

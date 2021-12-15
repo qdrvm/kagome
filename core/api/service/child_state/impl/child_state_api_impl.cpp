@@ -148,9 +148,10 @@ namespace kagome::api {
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
     OUTCOME_TRY(value_opt, getStorage(child_storage_key, key, block_hash_opt));
     std::optional<primitives::BlockHash> hash_opt;
-    if (value_opt.has_value()){
+    if (value_opt.has_value()) {
       storage::trie::PolkadotCodec codec;
-      auto hash = codec.hash256(common::Buffer(gsl::make_span(value_opt.value())));
+      auto hash =
+          codec.hash256(common::Buffer(gsl::make_span(value_opt.value())));
       return std::move(hash);
     }
     return std::nullopt;

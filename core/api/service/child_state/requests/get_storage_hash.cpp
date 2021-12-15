@@ -51,7 +51,8 @@ namespace kagome::api::child_state::request {
     return outcome::success();
   }
 
-  outcome::result<std::optional<primitives::BlockHash>> GetStorageHash::execute() {
+  outcome::result<std::optional<primitives::BlockHash>>
+  GetStorageHash::execute() {
     return api_->getStorageHash(child_storage_key_, key_, at_);
   }
 
