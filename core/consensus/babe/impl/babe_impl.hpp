@@ -19,6 +19,7 @@
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/block_executor.hpp"
+#include "consensus/babe/types/slot.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/sr25519_types.hpp"
@@ -108,10 +109,15 @@ namespace kagome::consensus::babe {
     void processSlot();
 
     /**
-     * Gather the block and broadcast it
-     * @param output that we are the leader of this slot
+     * Gather block and broadcast it
+     * @param slot_type - kind of slot to compose correct block header
+     * @param output - VRF proof if required (determined by slot_type)
+     * @param authority_index - this node index in epoch authorities list
      */
-    void processSlotLeadership(const crypto::VRFOutput &output);
+    void processSlotLeadership(
+        SlotType slot_type,
+        std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
+        primitives::AuthorityIndex authority_index);
 
     /**
      * Finish the Babe epoch
@@ -123,13 +129,15 @@ namespace kagome::consensus::babe {
                             const Randomness &randomness) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(
-        const crypto::VRFOutput &output,
+        SlotType slot_type,
+        std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
         primitives::AuthorityIndex authority_index) const;
 
     outcome::result<primitives::Seal> sealBlock(
         const primitives::Block &block) const;
 
-   private:
+    bool isSecondarySlotsAllowed() const;
+
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;

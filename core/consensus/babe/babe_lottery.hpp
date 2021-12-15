@@ -57,6 +57,15 @@ namespace kagome::consensus {
         primitives::BabeSlotNumber slot) const = 0;
 
     /**
+     * Computes VRF proof for the slot regardless threshold.
+     * Used when secondary VRF slots are enabled
+     * @param slot is a slot number
+     * @return VRF output and proof
+     */
+    virtual crypto::VRFOutput slotVrfSignature(
+        primitives::BabeSlotNumber slot) const = 0;
+
+    /**
      * Compute randomness for the next epoch
      * @param last_epoch_randomness - randomness of the last epoch
      * @param new_epoch_number - index of the new epoch
@@ -76,6 +85,19 @@ namespace kagome::consensus {
      * the randomness for the next epoch
      */
     virtual void submitVRFValue(const crypto::VRFPreOutput &value) = 0;
+
+    /**
+     * Compute the expected author for secondary slot
+     * @param slot - slot to have secondary block produced
+     * @param authorities_count - quantity of authorities in current epoch
+     * @param randomness - current randomness
+     * @return - should always return some authority unless authorities list is
+     * empty
+     */
+    virtual std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
+        primitives::BabeSlotNumber slot,
+        primitives::AuthorityListSize authorities_count,
+        const Randomness &randomness) const = 0;
   };
 }  // namespace kagome::consensus
 
