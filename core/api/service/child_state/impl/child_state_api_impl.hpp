@@ -38,7 +38,8 @@ namespace kagome::api {
         const std::optional<common::Buffer> &prefix_opt,
         uint32_t keys_amount,
         const std::optional<common::Buffer> &prev_key_opt,
-        const std::optional<primitives::BlockHash> &block_hash_opt) const;
+        const std::optional<primitives::BlockHash> &block_hash_opt)
+        const override;
 
     outcome::result<std::optional<common::Buffer>> getStorage(
         const common::Buffer &child_storage_key,
@@ -46,7 +47,7 @@ namespace kagome::api {
         const std::optional<primitives::BlockHash> &block_hash_opt)
         const override;
 
-    outcome::result<std::optional<common::BlockHash>> getStorageHash(
+    outcome::result<std::optional<primitives::BlockHash>> getStorageHash(
         const common::Buffer &child_storage_key,
         const common::Buffer &key,
         const std::optional<primitives::BlockHash> &block_hash_opt)

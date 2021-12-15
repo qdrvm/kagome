@@ -41,7 +41,8 @@ namespace kagome::api {
         const common::Buffer &key,
         const std::optional<primitives::BlockHash> &block_hash_opt) const = 0;
 
-    virtual outcome::result<std::optional<common::BlockHash>> getStorageHash(
+    virtual outcome::result<std::optional<primitives::BlockHash>>
+    getStorageHash(
         const common::Buffer &child_storage_key,
         const common::Buffer &key,
         const std::optional<primitives::BlockHash> &block_hash_opt) const = 0;

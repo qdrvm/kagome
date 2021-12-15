@@ -14,8 +14,8 @@
 
 namespace kagome::api::child_state {
 
-  StateJrpcProcessor::StateJrpcProcessor(std::shared_ptr<JRpcServer> server,
-                                         std::shared_ptr<ChildStateApi> api)
+  ChildStateJrpcProcessor::ChildStateJrpcProcessor(
+      std::shared_ptr<JRpcServer> server, std::shared_ptr<ChildStateApi> api)
       : api_{std::move(api)}, server_{std::move(server)} {
     BOOST_ASSERT(api_ != nullptr);
     BOOST_ASSERT(server_ != nullptr);
@@ -24,7 +24,7 @@ namespace kagome::api::child_state {
   template <typename Request>
   using Handler = kagome::api::Method<Request, ChildStateApi>;
 
-  void StateJrpcProcessor::registerHandlers() {
+  void ChildStateJrpcProcessor::registerHandlers() {
     server_->registerHandler("childstate_getKeys",
                              Handler<request::GetKeys>(api_));
 

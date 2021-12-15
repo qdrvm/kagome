@@ -10,7 +10,7 @@
 
 #include <optional>
 
-#include "api/service/state/state_api.hpp"
+#include "api/service/child_state/child_state_api.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_id.hpp"
@@ -25,7 +25,7 @@ namespace kagome::api::child_state::request {
     GetStorageSize(GetStorageSize &&) = default;
     GetStorageSize &operator=(GetStorageSize &&) = default;
 
-    explicit GetStorageSize(std::shared_ptr<StateApi> api)
+    explicit GetStorageSize(std::shared_ptr<ChildStateApi> api)
         : api_(std::move(api)){};
     ~GetStorageSize() = default;
 
@@ -34,7 +34,7 @@ namespace kagome::api::child_state::request {
     outcome::result<std::optional<uint64_t>> execute();
 
    private:
-    std::shared_ptr<StateApi> api_;
+    std::shared_ptr<ChildStateApi> api_;
     common::Buffer child_storage_key_;
     common::Buffer key_;
     std::optional<kagome::primitives::BlockHash> at_;
