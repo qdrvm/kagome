@@ -259,7 +259,8 @@ namespace kagome::api {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.storage_sub;
         const auto id = session->generateSubscriptionSetId();
-        auto persistent_batch = trie_storage_->getPersistentBatch();
+        auto persistent_batch = trie_storage_->getPersistentBatchAt(
+            block_tree_->deepestLeaf().hash);
         BOOST_ASSERT(persistent_batch.has_value());
 
         auto &pb = persistent_batch.value();

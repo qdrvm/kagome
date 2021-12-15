@@ -62,9 +62,7 @@ namespace kagome::consensus {
       const primitives::AuthorityId &authority_id,
       const Threshold &threshold,
       const Randomness &randomness) const {
-    SL_DEBUG(log_,
-             "Validates block signed by authority: {}",
-             authority_id.id.toHex());
+    SL_DEBUG(log_, "Validated block signed by authority: {}", authority_id.id);
 
     // get BABE-specific digests, which must be inside of this block
     OUTCOME_TRY(babe_digests, getBabeDigests(header));

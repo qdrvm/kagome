@@ -8,57 +8,80 @@
 
 #include <array>
 
+#include <fmt/format.h>
 #include <boost/functional/hash.hpp>
 
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
+#include "macro/endianness_utils.hpp"
 
-#define KAGOME_BLOB_STRICT_TYPEDEF(class_name, blob_size)                    \
-  struct class_name : public ::kagome::common::Blob<blob_size> {             \
-    class_name() = default;                                                  \
-    class_name(const class_name &) = default;                                \
-    class_name(class_name &&) = default;                                     \
-    class_name &operator=(const class_name &) = default;                     \
-    class_name &operator=(class_name &&) = default;                          \
-                                                                             \
-    explicit class_name(const ::kagome::common::Blob<blob_size> &blob)       \
-        : Blob<blob_size>{blob} {}                                           \
-    explicit class_name(::kagome::common::Blob<blob_size> &&blob)            \
-        : Blob<blob_size>{std::move(blob)} {}                                \
-                                                                             \
-    ~class_name() = default;                                                 \
-                                                                             \
-    class_name &operator=(const ::kagome::common::Blob<blob_size> &blob) {   \
-      Blob::operator=(blob);                                                 \
-      return *this;                                                          \
-    }                                                                        \
-                                                                             \
-    class_name &operator=(::kagome::common::Blob<blob_size> &&blob) {        \
-      Blob::operator=(std::move(blob));                                      \
-      return *this;                                                          \
-    }                                                                        \
-                                                                             \
-    static ::outcome::result<class_name> fromString(std::string_view data) { \
-      OUTCOME_TRY(blob, Blob<blob_size>::fromString(data));                  \
-      return class_name{std::move(blob)};                                    \
-    }                                                                        \
-                                                                             \
-    static ::outcome::result<class_name> fromHex(std::string_view hex) {     \
-      OUTCOME_TRY(blob, Blob<blob_size>::fromHex(hex));                      \
-      return class_name{std::move(blob)};                                    \
-    }                                                                        \
-                                                                             \
-    static ::outcome::result<class_name> fromHexWithPrefix(                  \
-        std::string_view hex) {                                              \
-      OUTCOME_TRY(blob, Blob<blob_size>::fromHexWithPrefix(hex));            \
-      return class_name{std::move(blob)};                                    \
-    }                                                                        \
-                                                                             \
-    static ::outcome::result<class_name> fromSpan(                           \
-        const gsl::span<const uint8_t> &span) {                              \
-      OUTCOME_TRY(blob, Blob<blob_size>::fromSpan(span));                    \
-      return class_name{std::move(blob)};                                    \
-    }                                                                        \
+#define KAGOME_BLOB_STRICT_TYPEDEF(space_name, class_name, blob_size)          \
+  namespace space_name {                                                       \
+    struct class_name : public ::kagome::common::Blob<blob_size> {             \
+      class_name() = default;                                                  \
+      class_name(const class_name &) = default;                                \
+      class_name(class_name &&) = default;                                     \
+      class_name &operator=(const class_name &) = default;                     \
+      class_name &operator=(class_name &&) = default;                          \
+                                                                               \
+      explicit class_name(const ::kagome::common::Blob<blob_size> &blob)       \
+          : Blob<blob_size>{blob} {}                                           \
+      explicit class_name(::kagome::common::Blob<blob_size> &&blob)            \
+          : Blob<blob_size>{std::move(blob)} {}                                \
+                                                                               \
+      ~class_name() = default;                                                 \
+                                                                               \
+      class_name &operator=(const ::kagome::common::Blob<blob_size> &blob) {   \
+        Blob::operator=(blob);                                                 \
+        return *this;                                                          \
+      }                                                                        \
+                                                                               \
+      class_name &operator=(::kagome::common::Blob<blob_size> &&blob) {        \
+        Blob::operator=(std::move(blob));                                      \
+        return *this;                                                          \
+      }                                                                        \
+                                                                               \
+      static ::outcome::result<class_name> fromString(std::string_view data) { \
+        OUTCOME_TRY(blob, Blob<blob_size>::fromString(data));                  \
+        return class_name{std::move(blob)};                                    \
+      }                                                                        \
+                                                                               \
+      static ::outcome::result<class_name> fromHex(std::string_view hex) {     \
+        OUTCOME_TRY(blob, Blob<blob_size>::fromHex(hex));                      \
+        return class_name{std::move(blob)};                                    \
+      }                                                                        \
+                                                                               \
+      static ::outcome::result<class_name> fromHexWithPrefix(                  \
+          std::string_view hex) {                                              \
+        OUTCOME_TRY(blob, Blob<blob_size>::fromHexWithPrefix(hex));            \
+        return class_name{std::move(blob)};                                    \
+      }                                                                        \
+                                                                               \
+      static ::outcome::result<class_name> fromSpan(                           \
+          const gsl::span<const uint8_t> &span) {                              \
+        OUTCOME_TRY(blob, Blob<blob_size>::fromSpan(span));                    \
+        return class_name{std::move(blob)};                                    \
+      }                                                                        \
+    };                                                                         \
+  };                                                                           \
+                                                                               \
+  template <>                                                                  \
+  struct std::hash<space_name::class_name> {                                   \
+    auto operator()(const space_name::class_name &key) const {                 \
+      /* NOLINTNEXTLINE */                                                     \
+      return boost::hash_range(key.cbegin(), key.cend());                      \
+    }                                                                          \
+  };                                                                           \
+                                                                               \
+  template <>                                                                  \
+  struct fmt::formatter<space_name::class_name>                                \
+      : fmt::formatter<kagome::common::Blob<space_name::class_name::size()>> { \
+    template <typename FormatCtx>                                              \
+    auto format(const space_name::class_name &blob, FormatCtx &ctx) {          \
+      return fmt::formatter<                                                   \
+          kagome::common::Blob<space_name::class_name::size()>>::format(blob,  \
+                                                                        ctx);  \
+    }                                                                          \
   };
 
 namespace kagome::common {
@@ -241,6 +264,51 @@ template <size_t N>
 struct std::hash<kagome::common::Blob<N>> {
   auto operator()(const kagome::common::Blob<N> &blob) const {
     return boost::hash_range(blob.data(), blob.data() + N);  // NOLINT
+  }
+};
+
+template <size_t N>
+struct fmt::formatter<kagome::common::Blob<N>> {
+  // Presentation format: 's' - short, 'l' - long.
+  char presentation = 's';
+
+  // Parses format specifications of the form ['s' | 'l'].
+  constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
+    // Parse the presentation format and store it in the formatter:
+    auto it = ctx.begin(), end = ctx.end();
+    if (it != end && (*it == 's' || *it == 'l')) {
+      presentation = *it++;
+    }
+
+    // Check if reached the end of the range:
+    if (it != end && *it != '}') {
+      throw format_error("invalid format");
+    }
+
+    // Return an iterator past the end of the parsed range:
+    return it;
+  }
+
+  // Formats the Blob using the parsed format specification (presentation)
+  // stored in this formatter.
+  template <typename FormatContext>
+  auto format(const kagome::common::Blob<N> &blob, FormatContext &ctx)
+      -> decltype(ctx.out()) {
+    // ctx.out() is an output iterator to write to.
+
+    if (presentation == 's') {
+      static_assert(N > 4);
+      return format_to(
+          ctx.out(),
+          "0x{:04x}…{:04x}",
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          htobe16(*reinterpret_cast<const uint16_t *>(blob.data())),
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          htobe16(*reinterpret_cast<const uint16_t *>(blob.data() + blob.size()
+                                                      - sizeof(uint16_t))));
+    }
+
+    return format_to(ctx.out(), "0x{}", blob.toHex());
   }
 };
 

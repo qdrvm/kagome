@@ -182,8 +182,9 @@ namespace kagome::api {
 
   outcome::result<uint32_t> StateApiImpl::subscribeStorage(
       const std::vector<common::Buffer> &keys) {
-    if (auto api_service = api_service_.lock())
+    if (auto api_service = api_service_.lock()) {
       return api_service->subscribeSessionToKeys(keys);
+    }
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");

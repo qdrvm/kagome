@@ -97,6 +97,8 @@ namespace kagome::consensus::babe {
 
     void onSynchronized() override;
 
+    bool wasSynchronized() const override;
+
    private:
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
@@ -138,6 +140,7 @@ namespace kagome::consensus::babe {
 
     bool isSecondarySlotsAllowed() const;
 
+    bool was_synchronized_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
