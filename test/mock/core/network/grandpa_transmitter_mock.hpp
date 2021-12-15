@@ -14,37 +14,40 @@ namespace kagome::network {
 
   class GrandpaTransmitterMock : public GrandpaTransmitter {
    public:
-    MOCK_METHOD(void, vote, (network::GrandpaVote &), ());
-    void vote(network::GrandpaVote &&msg) override {
-      vote(msg);
-    }
-
-    MOCK_METHOD(void, neighbor, (network::GrandpaNeighborMessage &), ());
-    void neighbor(network::GrandpaNeighborMessage &&msg) override {
-      neighbor(msg);
-    }
-
-    MOCK_METHOD(void, finalize, (network::FullCommitMessage &), ());
-    void finalize(network::FullCommitMessage &&msg) override {
-      finalize(msg);
+    MOCK_METHOD(void, sendVoteMessage, (network::GrandpaVote &), ());
+    void sendVoteMessage(network::GrandpaVote &&msg) override {
+      sendVoteMessage(msg);
     }
 
     MOCK_METHOD(void,
-                catchUpRequest,
+                sendNeighborMessage,
+                (network::GrandpaNeighborMessage &),
+                ());
+    void sendNeighborMessage(network::GrandpaNeighborMessage &&msg) override {
+      sendNeighborMessage(msg);
+    }
+
+    MOCK_METHOD(void, sendCommitMessage, (network::FullCommitMessage &), ());
+    void sendCommitMessage(network::FullCommitMessage &&msg) override {
+      sendCommitMessage(msg);
+    }
+
+    MOCK_METHOD(void,
+                sendCatchUpRequest,
                 (const libp2p::peer::PeerId &, network::CatchUpRequest &),
                 ());
-    void catchUpRequest(const libp2p::peer::PeerId &pi,
-                        network::CatchUpRequest &&msg) override {
-      catchUpRequest(pi, msg);
+    void sendCatchUpRequest(const libp2p::peer::PeerId &pi,
+                            network::CatchUpRequest &&msg) override {
+      sendCatchUpRequest(pi, msg);
     }
 
     MOCK_METHOD(void,
-                catchUpResponse,
+                sendCatchUpResponse,
                 (const libp2p::peer::PeerId &, network::CatchUpResponse &),
                 ());
-    void catchUpResponse(const libp2p::peer::PeerId &pi,
-                         network::CatchUpResponse &&msg) override {
-      catchUpResponse(pi, msg);
+    void sendCatchUpResponse(const libp2p::peer::PeerId &pi,
+                             network::CatchUpResponse &&msg) override {
+      sendCatchUpResponse(pi, msg);
     }
   };
 

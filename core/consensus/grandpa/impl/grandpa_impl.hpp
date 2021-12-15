@@ -47,9 +47,9 @@ namespace kagome::consensus::grandpa {
     FullRound &operator=(const FullRound &) = default;
 
     bool operator<(const FullRound &round) const {
-      return voter_set_id == round.voter_set_id
-                 ? round_number < round.round_number
-                 : voter_set_id < round.voter_set_id;
+      return voter_set_id < round.voter_set_id
+             or (voter_set_id == round.voter_set_id
+                 and round_number < round.round_number);
     }
 
     bool operator==(const FullRound &round) const {
@@ -102,8 +102,8 @@ namespace kagome::consensus::grandpa {
     void onVoteMessage(const libp2p::peer::PeerId &peer_id,
                        const network::VoteMessage &msg) override;
 
-    void onFinalize(const libp2p::peer::PeerId &peer_id,
-                    const network::FullCommitMessage &fin) override;
+    void onCommitMessage(const libp2p::peer::PeerId &peer_id,
+                         const network::FullCommitMessage &msg) override;
 
     outcome::result<void> applyJustification(
         const BlockInfo &block_info,
@@ -114,7 +114,9 @@ namespace kagome::consensus::grandpa {
     void executeNextRound() override;
 
    private:
-    std::shared_ptr<VotingRound> selectRound(RoundNumber round_number);
+    std::shared_ptr<VotingRound> selectRound(
+        RoundNumber round_number,
+        std::optional<MembershipCounter> voter_set_id);
     outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> makeInitialRound(

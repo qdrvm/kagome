@@ -48,6 +48,13 @@ namespace kagome::consensus::grandpa {
                  const GrandpaJustification &justification),
                 (override));
 
+    MOCK_METHOD(outcome::result<void>,
+                onNeighborMessageSent,
+                (RoundNumber round,
+                 MembershipCounter set_id,
+                 BlockNumber last_finalized),
+                (override));
+
     MOCK_METHOD(void, doOnCompleted, (const CompleteHandler &), (override));
 
     MOCK_METHOD(void,

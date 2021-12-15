@@ -35,8 +35,8 @@ namespace kagome::consensus::grandpa {
      * @param peer_id finalization sender
      * @param f finalization message
      */
-    virtual void onFinalize(const libp2p::peer::PeerId &peer_id,
-                            const network::FullCommitMessage &f) = 0;
+    virtual void onCommitMessage(const libp2p::peer::PeerId &peer_id,
+                                 const network::FullCommitMessage &msg) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

@@ -85,8 +85,11 @@ namespace kagome::consensus::grandpa {
     /// Calculate precommit and broadcast signed precommit message
     virtual void doPrecommit() = 0;
 
-    /// Broadcast Fin message
+    /// Collect and save justifications finalizing this round
     virtual void doFinalize() = 0;
+
+    /// Broadcast commit message
+    virtual void doCommit() = 0;
 
     /// Make Cathc-Up-Response based on current round and send to requesting
     /// peer
