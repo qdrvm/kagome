@@ -24,7 +24,7 @@ namespace kagome::api::child_state::request {
           "Parameter '[child_storage_key]' must be a hex string");
     }
 
-    OUTCOME_TRY(child_storage_key, common::unhexWith0x(param1.AsString()));
+    OUTCOME_TRY(child_storage_key, common::unhexWith0x(param0.AsString()));
     child_storage_key_ = common::Buffer(std::move(child_storage_key));
 
     auto &param1 = params[1];

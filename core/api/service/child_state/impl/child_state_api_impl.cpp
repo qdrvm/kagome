@@ -48,8 +48,10 @@ namespace kagome::api {
     OUTCOME_TRY(initial_trie_reader,
                 storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, initial_trie_reader->get(child_storage_key));
+    OUTCOME_TRY(child_root_hash,
+                common::Hash256::fromSpan(gsl::make_span(child_root)));
     OUTCOME_TRY(child_storage_trie_reader,
-                storage_->getEphemeralBatchAt(child_root));
+                storage_->getEphemeralBatchAt(child_root_hash));
     auto cursor = child_storage_trie_reader->trieCursor();
 
     OUTCOME_TRY(cursor->seekLowerBound(prefix));
@@ -87,8 +89,10 @@ namespace kagome::api {
     OUTCOME_TRY(initial_trie_reader,
                 storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, initial_trie_reader->get(child_storage_key));
+    OUTCOME_TRY(child_root_hash,
+                common::Hash256::fromSpan(gsl::make_span(child_root)));
     OUTCOME_TRY(child_storage_trie_reader,
-                storage_->getEphemeralBatchAt(child_root));
+                storage_->getEphemeralBatchAt(child_root_hash));
     auto cursor = child_storage_trie_reader->trieCursor();
 
     // if prev_key is bigger than prefix, then set cursor to the next key after
@@ -125,29 +129,29 @@ namespace kagome::api {
       const common::Buffer &key,
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
     auto at = block_hash_opt ? block_hash_opt.value()
-                             : block_tree_->getLastFinalized();
+                             : block_tree_->getLastFinalized().hash;
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, trie_reader->get(child_storage_key));
+    OUTCOME_TRY(child_root_hash,
+                common::Hash256::fromSpan(gsl::make_span(child_root)));
     OUTCOME_TRY(child_storage_trie_reader,
-                storage_->getEphemeralBatchAt(child_root));
+                storage_->getEphemeralBatchAt(child_root_hash));
     return child_storage_trie_reader->tryGet(key);
   }
 
-  outcome::result<std::optional<common::BlockHash>>
+  outcome::result<std::optional<primitives::BlockHash>>
   ChildStateApiImpl::getStorageHash(
       const common::Buffer &child_storage_key,
       const common::Buffer &key,
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
-    return Error::MAX_BLOCK_RANGE_EXCEEDED;
-    auto at = block_hash_opt ? block_hash_opt.value()
-                             : block_tree_->getLastFinalized();
-    OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
-    OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
-    OUTCOME_TRY(child_root, trie_reader->get(child_storage_key));
-    OUTCOME_TRY(child_storage_trie_reader,
-                storage_->getEphemeralBatchAt(child_root));
-    // return child_storage_trie_reader -
+    OUTCOME_TRY(value_opt, getStorage(child_storage_key, key, block_hash_opt));
+    std::optional<primitives::BlockHash> hash_opt;
+    if (value_opt.has_value()){
+      OUTCOME_TRY(hash, common::Hash256::fromSpan(gsl::make_span(value_opt.value())));
+      return std::move(hash);
+    }
+    return std::nullopt;
   }
 
   outcome::result<std::optional<uint64_t>> ChildStateApiImpl::getStorageSize(
@@ -155,12 +159,14 @@ namespace kagome::api {
       const common::Buffer &key,
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
     auto at = block_hash_opt ? block_hash_opt.value()
-                             : block_tree_->getLastFinalized();
+                             : block_tree_->getLastFinalized().hash;
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, trie_reader->get(child_storage_key));
+    OUTCOME_TRY(child_root_hash,
+                common::Hash256::fromSpan(gsl::make_span(child_root)));
     OUTCOME_TRY(child_storage_trie_reader,
-                storage_->getEphemeralBatchAt(child_root));
+                storage_->getEphemeralBatchAt(child_root_hash));
     OUTCOME_TRY(value, child_storage_trie_reader->get(key));
     return value.size();
   }
