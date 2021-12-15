@@ -69,8 +69,7 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       codec,
       serializer,
       std::make_optional(changes_tracker),
-      factory->createEmpty([](auto &) { return outcome::success(); }),
-      [](auto &buf) {});
+      factory->createEmpty([](auto &) { return outcome::success(); }));
 
   EXPECT_OUTCOME_TRUE_1(
       batch->put(":extrinsic_index"_buf, Buffer{scale::encode(42).value()}));
