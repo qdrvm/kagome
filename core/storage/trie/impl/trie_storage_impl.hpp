@@ -26,7 +26,6 @@ namespace kagome::storage::trie {
         std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
 
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createFromStorage(
-        const RootHash &root_hash,
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
@@ -38,27 +37,18 @@ namespace kagome::storage::trie {
     TrieStorageImpl &operator=(TrieStorageImpl &&) = default;
     ~TrieStorageImpl() override = default;
 
-    outcome::result<std::unique_ptr<PersistentTrieBatch>> getPersistentBatch()
-        override;
-    outcome::result<std::unique_ptr<EphemeralTrieBatch>> getEphemeralBatch()
-        const override;
-
     outcome::result<std::unique_ptr<PersistentTrieBatch>> getPersistentBatchAt(
         const RootHash &root) override;
     outcome::result<std::unique_ptr<EphemeralTrieBatch>> getEphemeralBatchAt(
         const RootHash &root) const override;
 
-    RootHash getRootHash() const noexcept override;
-
    protected:
     TrieStorageImpl(
-        RootHash root_hash,
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
 
    private:
-    RootHash root_hash_;
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;

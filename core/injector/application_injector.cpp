@@ -149,6 +149,19 @@ namespace {
         std::move(c))[boost::di::override];
   }
 
+  template <typename T, typename Fun>
+  auto bind_by_lambda(const Fun &fun) {
+    return di::bind<T>.to([fun](auto const &injector) {
+      static boost::optional<sptr<T>> initialized = boost::none;
+      if (not initialized) {
+        initialized.emplace(std::move(fun(injector)));
+      }
+      return initialized.value();
+    });
+  }
+
+  kagome::storage::trie::RootHash root_hash;
+
   sptr<api::HttpListenerImpl> get_jrpc_api_http_listener(
       application::AppConfiguration const &config,
       sptr<application::AppStateManager> app_state_manager,
@@ -198,6 +211,7 @@ namespace {
   }
 
   sptr<blockchain::BlockStorage> get_block_storage(
+      storage::trie::RootHash state_root,
       sptr<crypto::Hasher> hasher,
       sptr<storage::BufferStorage> db,
       sptr<storage::trie::TrieStorage> trie_storage,
@@ -210,10 +224,7 @@ namespace {
     }
 
     auto storage_res = blockchain::KeyValueBlockStorage::create(
-        trie_storage->getRootHash(),
-        db,
-        hasher,
-        [&](const primitives::Block &genesis_block) {
+        state_root, db, hasher, [&](const primitives::Block &genesis_block) {
           auto log = log::createLogger("Injector", "injector");
 
           auto res = db->tryGet(storage::kSchedulerTreeLookupKey);
@@ -239,7 +250,7 @@ namespace {
             auto &authorities = authorities_res.value();
 
             for (const auto &authority : authorities) {
-              SL_DEBUG(log, "Grandpa authority: {}", authority.id.id.toHex());
+              SL_DEBUG(log, "Grandpa authority: {:l}", authority.id.id);
             }
 
             authorities.id = 0;
@@ -287,65 +298,6 @@ namespace {
         storage, common::Buffer{blockchain::prefix::TRIE_NODE});
 
     initialized.emplace(std::move(backend));
-    return initialized.value();
-  }
-
-  sptr<storage::trie::TrieStorageImpl> get_trie_storage_impl(
-      sptr<storage::trie::PolkadotTrieFactory> factory,
-      sptr<storage::trie::Codec> codec,
-      sptr<storage::trie::TrieSerializer> serializer,
-      sptr<storage::changes_trie::ChangesTracker> tracker) {
-    static auto initialized =
-        std::optional<sptr<storage::trie::TrieStorageImpl>>(std::nullopt);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto trie_storage_res = storage::trie::TrieStorageImpl::createEmpty(
-        factory, codec, serializer, tracker);
-
-    if (!trie_storage_res) {
-      common::raise(trie_storage_res.error());
-    }
-    auto &trie_storage = trie_storage_res.value();
-
-    initialized.emplace(std::move(trie_storage));
-    return initialized.value();
-  }
-
-  sptr<storage::trie::TrieStorage> get_trie_storage(
-      sptr<application::ChainSpec> configuration_storage,
-      sptr<storage::trie::TrieStorageImpl> trie_storage) {
-    static auto initialized =
-        std::optional<sptr<storage::trie::TrieStorage>>(std::nullopt);
-    if (initialized) {
-      return initialized.value();
-    }
-    const auto genesis_raw_configs = configuration_storage->getGenesis();
-
-    auto batch_res = trie_storage->getPersistentBatch();
-    if (not batch_res) {
-      common::raise(batch_res.error());
-    }
-    auto batch = std::move(batch_res.value());
-
-    auto log = log::createLogger("Injector", "injector");
-
-    for (const auto &[key_, val_] : genesis_raw_configs) {
-      auto &key = key_;
-      auto &val = val_;
-      SL_TRACE(
-          log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
-      if (auto res = batch->put(key, val); not res) {
-        common::raise(res.error());
-      }
-    }
-    if (auto res = batch->commit(); not res) {
-      common::raise(res.error());
-    }
-
-    initialized.emplace(std::move(trie_storage));
     return initialized.value();
   }
 
@@ -419,7 +371,7 @@ namespace {
 
     auto log = log::createLogger("Injector", "injector");
     for (const auto &authority : configuration->genesis_authorities) {
-      SL_DEBUG(log, "Babe authority: {}", authority.id.id.toHex());
+      SL_DEBUG(log, "Babe authority: {:l}", authority.id.id);
     }
 
     initialized.emplace(std::move(configuration));
@@ -1092,7 +1044,7 @@ namespace {
               injector.template create<sptr<storage::trie::TrieStorage>>();
           const auto &grandpa_api =
               injector.template create<sptr<runtime::GrandpaApi>>();
-          return get_block_storage(hasher, db, trie_storage, grandpa_api);
+          return get_block_storage(root_hash, hasher, db, trie_storage, grandpa_api);
         }),
         di::bind<blockchain::BlockTree>.to(
             [](auto const &injector) { return get_block_tree(injector); }),
@@ -1148,23 +1100,54 @@ namespace {
                   injector.template create<sptr<storage::BufferStorage>>();
               return get_trie_storage_backend(storage);
             }),
-        di::bind<storage::trie::TrieStorageImpl>.to([](auto const &injector) {
+        bind_by_lambda<storage::trie::TrieStorage>([](auto const &injector) {
           auto factory =
               injector
                   .template create<sptr<storage::trie::PolkadotTrieFactory>>();
           auto codec = injector.template create<sptr<storage::trie::Codec>>();
+          auto configuration_storage =
+              injector.template create<sptr<application::ChainSpec>>();
           auto serializer =
               injector.template create<sptr<storage::trie::TrieSerializer>>();
           auto tracker = injector.template create<
               sptr<storage::changes_trie::ChangesTracker>>();
-          return get_trie_storage_impl(factory, codec, serializer, tracker);
-        }),
-        di::bind<storage::trie::TrieStorage>.to([](auto const &injector) {
-          auto configuration_storage =
-              injector.template create<sptr<application::ChainSpec>>();
-          auto trie_storage =
-              injector.template create<sptr<storage::trie::TrieStorageImpl>>();
-          return get_trie_storage(configuration_storage, trie_storage);
+          auto trie_storage_res = storage::trie::TrieStorageImpl::createEmpty(
+              factory, codec, serializer, tracker);
+
+          if (!trie_storage_res) {
+            common::raise(trie_storage_res.error());
+          }
+
+          const auto genesis_raw_configs = configuration_storage->getGenesis();
+          auto &trie_storage = trie_storage_res.value();
+
+          auto batch_res = trie_storage->getPersistentBatchAt(
+              serializer->getEmptyRootHash());
+          if (not batch_res) {
+            common::raise(batch_res.error());
+          }
+          auto batch = std::move(batch_res.value());
+
+          auto log = log::createLogger("Injector", "injector");
+
+          for (const auto &[key_, val_] : genesis_raw_configs) {
+            auto &key = key_;
+            auto &val = val_;
+            SL_TRACE(log,
+                     "Key: {}, Val: {}",
+                     key.toHex(),
+                     val.toHex().substr(0, 200));
+            if (auto res = batch->put(key, val); not res) {
+              common::raise(res.error());
+            }
+          }
+          if (auto res = batch->commit(); not res) {
+            common::raise(res.error());
+          } else {
+            root_hash = res.value();
+          }
+          sptr<storage::trie::TrieStorage> trie = std::move(trie_storage);
+          return trie;
         }),
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),

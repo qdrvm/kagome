@@ -29,6 +29,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
       return "Provided vote duplicates the existing one";
     case E::EQUIVOCATED_VOTE:
       return "Provided vote equivocated the existing one";
+    case E::VOTE_OF_KNOWN_EQUIVOCATOR:
+      return "Provided vote is vote of known equivocator";
     case E::NO_PREVOTE_CANDIDATE:
       return "Can't get best prevote candidate";
     case E::ROUND_IS_NOT_FINALIZABLE:

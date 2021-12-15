@@ -106,6 +106,17 @@ namespace kagome::consensus::grandpa {
         const GrandpaJustification &justification) = 0;
 
     /**
+     * Triggered when current peer should send neighbor message
+     * @param round current round
+     * @param set_id id of actual voter set
+     * @param last_finalized last known finalized block
+     */
+    virtual outcome::result<void> onNeighborMessageSent(
+        RoundNumber round,
+        MembershipCounter set_id,
+        BlockNumber last_finalized) = 0;
+
+    /**
      * Provides a handler for completed round
      */
     virtual void doOnCompleted(const CompleteHandler &) = 0;
