@@ -50,7 +50,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api)
-      : lottery_{std::move(lottery)},
+      : was_synchronized_{false},
+        lottery_{std::move(lottery)},
         trie_storage_{std::move(trie_storage)},
         babe_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
@@ -137,12 +138,11 @@ namespace kagome::consensus::babe {
           return true;
         }
       } else {
-        SL_CRITICAL(
-            log_,
-            "Epoch couldn't be obtained from epoch #{}, block {}: {}",
-            last_epoch_descriptor.epoch_number,
-            best_block_,
-            epoch_res.error().message());
+        SL_CRITICAL(log_,
+                    "Epoch couldn't be obtained from epoch #{}, block {}: {}",
+                    last_epoch_descriptor.epoch_number,
+                    best_block_,
+                    epoch_res.error().message());
         return false;
       }
     }
@@ -259,6 +259,7 @@ namespace kagome::consensus::babe {
               const auto &block = block_res.value();
               SL_INFO(self->log_, "Catching up is finished on block {}", block);
               self->current_state_ = Babe::State::SYNCHRONIZED;
+              self->was_synchronized_ = true;
             }
             self->onSynchronized();
 
@@ -309,6 +310,7 @@ namespace kagome::consensus::babe {
     }
 
     current_state_ = State::SYNCHRONIZED;
+    was_synchronized_ = true;
 
     if (not active_) {
       EpochDescriptor last_epoch_descriptor;
@@ -325,6 +327,10 @@ namespace kagome::consensus::babe {
 
       runEpoch(last_epoch_descriptor);
     }
+  }
+
+  bool BabeImpl::wasSynchronized() const {
+    return was_synchronized_;
   }
 
   void BabeImpl::runSlot() {

@@ -33,6 +33,8 @@ namespace kagome::consensus::babe {
                 (override));
 
     MOCK_METHOD(void, onSynchronized, (), (override));
+
+    MOCK_METHOD(bool, wasSynchronized, (), (const, override));
   };
 
 }  // namespace kagome::consensus::babe
