@@ -23,34 +23,25 @@ namespace kagome::storage::trie {
     auto empty_trie =
         trie_factory->createEmpty([](auto &) { return outcome::success(); });
     // ensure retrieval of empty trie succeeds
-    OUTCOME_TRY(empty_root, serializer->storeTrie(*empty_trie));
-    return std::unique_ptr<TrieStorageImpl>(
-        new TrieStorageImpl(std::move(empty_root),
-                            std::move(codec),
-                            std::move(serializer),
-                            std::move(changes)));
+    OUTCOME_TRY(hash, serializer->storeTrie(*empty_trie));
+    return std::unique_ptr<TrieStorageImpl>(new TrieStorageImpl(
+            std::move(codec), std::move(serializer), std::move(changes)));
   }
 
   outcome::result<std::unique_ptr<TrieStorageImpl>>
   TrieStorageImpl::createFromStorage(
-      const RootHash &root_hash,
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes) {
-    return std::unique_ptr<TrieStorageImpl>(
-        new TrieStorageImpl(root_hash,
-                            std::move(codec),
-                            std::move(serializer),
-                            std::move(changes)));
+    return std::unique_ptr<TrieStorageImpl>(new TrieStorageImpl(
+        std::move(codec), std::move(serializer), std::move(changes)));
   }
 
   TrieStorageImpl::TrieStorageImpl(
-      RootHash root_hash,
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes)
-      : root_hash_{std::move(root_hash)},
-        codec_{std::move(codec)},
+      : codec_{std::move(codec)},
         serializer_{std::move(serializer)},
         changes_{std::move(changes)},
         logger_{log::createLogger("TrieStorage", "storage")} {
@@ -58,34 +49,7 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT((changes_.has_value() and changes_.value() != nullptr)
                  or not changes_.has_value());
-    logger_->verbose("Initialize trie storage with root: {}",
-                     root_hash_.toHex());
-  }
-
-  outcome::result<std::unique_ptr<PersistentTrieBatch>>
-  TrieStorageImpl::getPersistentBatch() {
-    SL_DEBUG(logger_,
-             "Initialize persistent trie batch with root: {}",
-             root_hash_.toHex());
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root_hash_}));
-    return PersistentTrieBatchImpl::create(
-        codec_,
-        serializer_,
-        changes_,
-        std::move(trie),
-        [this](const auto &new_root) {
-          root_hash_ = new_root;
-          SL_DEBUG(logger_, "Update state root: {}", root_hash_);
-        });
-  }
-
-  outcome::result<std::unique_ptr<EphemeralTrieBatch>>
-  TrieStorageImpl::getEphemeralBatch() const {
-    SL_DEBUG(logger_,
-             "Initialize ephemeral trie batch with root: {}",
-             root_hash_.toHex());
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root_hash_}));
-    return std::make_unique<EphemeralTrieBatchImpl>(codec_, std::move(trie));
+    logger_->verbose("Initialize trie storage");
   }
 
   outcome::result<std::unique_ptr<PersistentTrieBatch>>
@@ -95,26 +59,14 @@ namespace kagome::storage::trie {
              root.toHex());
     OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
     return PersistentTrieBatchImpl::create(
-        codec_,
-        serializer_,
-        changes_,
-        std::move(trie),
-        [this](const auto &new_root) {
-          root_hash_ = new_root;
-          SL_DEBUG(logger_, "Update state root: {}", root_hash_);
-        });
+        codec_, serializer_, changes_, std::move(trie));
   }
 
   outcome::result<std::unique_ptr<EphemeralTrieBatch>>
   TrieStorageImpl::getEphemeralBatchAt(const RootHash &root) const {
-    SL_DEBUG(logger_,
-             "Initialize ephemeral trie batch with root: {}",
-             root_hash_.toHex());
+    SL_DEBUG(
+        logger_, "Initialize ephemeral trie batch with root: {}", root.toHex());
     OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
     return std::make_unique<EphemeralTrieBatchImpl>(codec_, std::move(trie));
-  }
-
-  RootHash TrieStorageImpl::getRootHash() const noexcept {
-    return root_hash_;
   }
 }  // namespace kagome::storage::trie

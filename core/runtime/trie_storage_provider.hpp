@@ -33,15 +33,8 @@ namespace kagome::runtime {
     /**
      * Sets the current batch to a new ephemeral batch
      */
-    virtual outcome::result<void> setToEphemeral() = 0;
     virtual outcome::result<void> setToEphemeralAt(
         const common::Hash256 &state_root) = 0;
-
-    /**
-     * Sets the current batch to the persistent batch (a persistent batch is
-     * unique as it accumulates changes for commit)
-     */
-    virtual outcome::result<void> setToPersistent() = 0;
 
     /**
      * Sets the current batch to a new persistent batch at specified storage
@@ -89,11 +82,6 @@ namespace kagome::runtime {
      * Commits persistent changes even if the current batch is not persistent
      */
     virtual outcome::result<storage::trie::RootHash> forceCommit() = 0;
-
-    /**
-     * Root hash of the latest committed trie
-     */
-    virtual storage::trie::RootHash getLatestRoot() const noexcept = 0;
 
     // ------ Transaction methods ------
 

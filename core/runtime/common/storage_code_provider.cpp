@@ -27,18 +27,6 @@ namespace kagome::runtime {
         logger_ {log::createLogger("StorageCodeProvider", "runtime")} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
-    last_state_root_ = storage_->getRootHash();
-    auto batch = storage_->getEphemeralBatch();
-    if (batch.has_error()) {
-      SL_CRITICAL(logger_,
-                  "Error getting a batch of the storage: {}",
-                  batch.error().message());
-    }
-    auto res = setCodeFromBatch(*batch.value().get());
-    if (res.has_error()) {
-      SL_CRITICAL(
-          logger_, "Error setting code from batch: {}", res.error().message());
-    }
   }
 
   outcome::result<gsl::span<const uint8_t>> StorageCodeProvider::getCodeAt(
