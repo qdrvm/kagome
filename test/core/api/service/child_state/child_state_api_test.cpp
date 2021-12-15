@@ -67,126 +67,45 @@ namespace kagome::api {
     primitives::BlockId did = "D"_hash256;
     EXPECT_CALL(*block_header_repo_, getBlockHeader(did))
         .WillOnce(testing::Return(BlockHeader{.state_root = "CDE"_hash256}));
-    EXPECT_CALL(*storage_, getEphemeralBatchAt(_))
-        .WillRepeatedly(testing::Invoke([](auto &root) {
+    EXPECT_CALL(*storage_, getEphemeralBatchAt("CDE"_hash256))
+        .WillOnce(testing::Invoke([](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, tryGet("a"_buf))
-              .WillRepeatedly(testing::Return("1"_buf));
+          EXPECT_CALL(*batch, get("a"_buf))
+              .WillRepeatedly(testing::Return(common::Buffer("1"_hash256)));
           return batch;
         }));
+    EXPECT_CALL(*storage_, getEphemeralBatchAt("1"_hash256))
+        .WillOnce(testing::Invoke([](auto &root) {
+          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          EXPECT_CALL(*batch, tryGet(common::Buffer("b"_buf)))
+              .WillRepeatedly(testing::Return("2"_buf));
+          return batch;
+        }));
+    
+    EXPECT_OUTCOME_SUCCESS(r, api_->getStorage("a"_buf, "b"_buf, std::nullopt));
+    ASSERT_EQ(r.value(), "2"_buf);
+  }
 
-    EXPECT_OUTCOME_TRUE(r, api_->getStorage("a"_buf, "b"_buf, std::nullopt));
-    ASSERT_EQ(r.value(), "1"_buf);
-
+  TEST_F(ChildStateApiTest, GetStorageAt) {
     primitives::BlockId bid = "B"_hash256;
     EXPECT_CALL(*block_header_repo_, getBlockHeader(bid))
         .WillOnce(testing::Return(BlockHeader{.state_root = "ABC"_hash256}));
+    EXPECT_CALL(*storage_, getEphemeralBatchAt("ABC"_hash256))
+        .WillOnce(testing::Invoke([](auto &root) {
+          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          EXPECT_CALL(*batch, get("c"_buf))
+              .WillRepeatedly(testing::Return(common::Buffer("3"_hash256)));
+          return batch;
+        }));
+    EXPECT_CALL(*storage_, getEphemeralBatchAt("3"_hash256))
+        .WillOnce(testing::Invoke([](auto &root) {
+          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          EXPECT_CALL(*batch, tryGet(common::Buffer("d"_buf)))
+              .WillRepeatedly(testing::Return("4"_buf));
+          return batch;
+        }));
 
-    EXPECT_OUTCOME_TRUE(r1, api_->getStorage("a"_buf, "B"_buf, std::optional<BlockHash>{"111213"_hash256}));
-    ASSERT_EQ(r1.value(), "1"_buf);
-  }
-
-  class GetKeysPagedTest : public ::testing::Test {
-   public:
-    void SetUp() override {
-      auto storage = std::make_shared<TrieStorageMock>();
-      block_header_repo_ = std::make_shared<BlockHeaderRepositoryMock>();
-      block_tree_ = std::make_shared<BlockTreeMock>();
-      auto runtime_core = std::make_shared<CoreMock>();
-      auto metadata = std::make_shared<MetadataMock>();
-
-      api_ = std::make_shared<api::ChildStateApiImpl>(
-          block_header_repo_, storage, block_tree_, runtime_core, metadata);
-
-      EXPECT_CALL(*block_tree_, getLastFinalized())
-          .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));
-      primitives::BlockId did = "D"_hash256;
-
-      EXPECT_CALL(*block_header_repo_, getBlockHeader(did))
-          .WillOnce(testing::Return(BlockHeader{.state_root = "CDE"_hash256}));
-
-      EXPECT_CALL(*storage, getEphemeralBatchAt(_))
-          .WillRepeatedly(testing::Invoke([this](auto &root) {
-            auto batch = std::make_unique<EphemeralTrieBatchMock>();
-            EXPECT_CALL(*batch, trieCursor())
-                .WillRepeatedly(testing::Invoke([this]() {
-                  return std::make_unique<
-                      storage::trie::PolkadotTrieCursorDummy>(lex_sorted_vals);
-                }));
-            return batch;
-          }));
-    }
-
-   protected:
-    std::shared_ptr<BlockHeaderRepositoryMock> block_header_repo_;
-    std::shared_ptr<BlockTreeMock> block_tree_;
-    std::shared_ptr<api::ChildStateApiImpl> api_;
-
-    const std::map<Buffer, Buffer> lex_sorted_vals{
-        {"0102"_hex2buf, "0102"_hex2buf},
-        {"0103"_hex2buf, "0103"_hex2buf},
-        {"010304"_hex2buf, "010304"_hex2buf},
-        {"05"_hex2buf, "05"_hex2buf},
-        {"06"_hex2buf, "06"_hex2buf},
-        {"0607"_hex2buf, "0607"_hex2buf},
-        {"060708"_hex2buf, "060708"_hex2buf},
-        {"06070801"_hex2buf, "06070801"_hex2buf},
-        {"06070802"_hex2buf, "06070802"_hex2buf},
-        {"06070803"_hex2buf, "06070803"_hex2buf},
-        {"07"_hex2buf, "07"_hex2buf}};
-  };
-
-  /**
-   * @given child_state api with cursor over predefined set of key-vals
-   * @when getKeysPaged invoked with no prefix
-   * @then expected amount of keys from beginning of cursor are returned
-   */
-  TEST_F(GetKeysPagedTest, EmptyParamsTest) {
-    EXPECT_OUTCOME_TRUE(
-        val, api_->getKeysPaged(common::Buffer{}, std::nullopt, 2, std::nullopt, std::nullopt));
-    ASSERT_THAT(val, ElementsAre("0102"_hex2buf, "0103"_hex2buf));
-  }
-
-  /**
-   * @given child_state api with cursor over predefined set of key-vals
-   * @when getKeysPaged invoked with prefix
-   * @then expected amount of keys with provided prefix are returned
-   */
-  TEST_F(GetKeysPagedTest, NonEmptyPrefixTest) {
-    EXPECT_OUTCOME_TRUE(
-        val, api_->getKeysPaged("0607"_hex2buf, "0607"_hex2buf, 3, std::nullopt, std::nullopt));
-    ASSERT_THAT(
-        val, ElementsAre("0607"_hex2buf, "060708"_hex2buf, "06070801"_hex2buf));
-  }
-
-  /**
-   * @given child_state api with cursor over predefined set of key-vals
-   * @when getKeysPaged invoked with prefix and prev_key
-   * @then exepected amount of keys after provided prev_key are returned
-   */
-  TEST_F(GetKeysPagedTest, NonEmptyPrevKeyTest) {
-    EXPECT_OUTCOME_TRUE(
-        val, api_->getKeysPaged("0607"_hex2buf, "06"_hex2buf, 3, "0607"_hex2buf, std::nullopt));
-    ASSERT_THAT(
-        val,
-        ElementsAre("060708"_hex2buf, "06070801"_hex2buf, "06070802"_hex2buf));
-  }
-
-  /**
-   * @given child_state api with cursor over predefined set of key-vals
-   * @when getKeysPaged invoked with non-empty prev_key and non-empty prefix
-   * that is bigger than prev_key
-   * @then expected amount of keys with provided prefix after prev_key are
-   * returned
-   */
-  TEST_F(GetKeysPagedTest, PrefixBiggerThanPrevkey) {
-    EXPECT_OUTCOME_TRUE(
-        val,
-        api_->getKeysPaged("0607"_hex2buf, "060708"_hex2buf, 5, "06"_hex2buf, std::nullopt));
-    ASSERT_THAT(val,
-                ElementsAre("060708"_hex2buf,
-                            "06070801"_hex2buf,
-                            "06070802"_hex2buf,
-                            "06070803"_hex2buf));
+    EXPECT_OUTCOME_TRUE(r1, api_->getStorage("c"_buf, "d"_buf, std::optional<BlockHash>{"B"_hash256}));
+    ASSERT_EQ(r1.value(), "4"_buf);
   }
 }  // namespace kagome::api
