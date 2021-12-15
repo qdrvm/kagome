@@ -13,7 +13,7 @@ namespace kagome::api::child_state::request {
       const jsonrpc::Request::Parameters &params) {
     // getKeys(childKey, prefix, [opt]at)
 
-    if (params.size() > 5 or params.size() <= 2) {
+    if (params.size() > 3 or params.size() < 2) {
       throw jsonrpc::InvalidParametersFault("Incorrect number of params");
     }
     // childKey

@@ -4,6 +4,7 @@
  */
 
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
 
 #include <unordered_map>
 #include <utility>
@@ -148,7 +149,8 @@ namespace kagome::api {
     OUTCOME_TRY(value_opt, getStorage(child_storage_key, key, block_hash_opt));
     std::optional<primitives::BlockHash> hash_opt;
     if (value_opt.has_value()){
-      OUTCOME_TRY(hash, common::Hash256::fromSpan(gsl::make_span(value_opt.value())));
+      storage::trie::PolkadotCodec codec;
+      auto hash = codec.hash256(common::Buffer(gsl::make_span(value_opt.value())));
       return std::move(hash);
     }
     return std::nullopt;
