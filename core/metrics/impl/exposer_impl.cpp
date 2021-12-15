@@ -7,6 +7,7 @@
 
 #include <thread>
 
+#include "api/transport/tuner.hpp"
 #include "metrics/impl/session_impl.hpp"
 
 namespace kagome::metrics {
@@ -24,13 +25,18 @@ namespace kagome::metrics {
 
   bool ExposerImpl::prepare() {
     try {
-      acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
+      acceptor_ =
+          kagome::api::acceptOnFreePort(context_,
+                                        config_.endpoint,
+                                        kagome::api::kDefaultPortTolerance,
+                                        logger_);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
-      SL_CRITICAL(logger_, "Failed to prepare a listener: {}", exception.what());
+      SL_CRITICAL(
+          logger_, "Failed to prepare a listener: {}", exception.what());
       return false;
     } catch (const std::exception &exception) {
-      SL_CRITICAL(logger_, "Exception when preparing a listener: {}",
-                        exception.what());
+      SL_CRITICAL(
+          logger_, "Exception when preparing a listener: {}", exception.what());
       return false;
     }
 
@@ -51,9 +57,9 @@ namespace kagome::metrics {
       return false;
     }
 
-    logger_->info("Started successfully on host: {}, port: {}",
+    logger_->info("Listening for new connections on {}:{}",
                   config_.endpoint.address(),
-                  config_.endpoint.port());
+                  acceptor_->local_endpoint().port());
     acceptOnce();
 
     thread_ = std::make_shared<std::thread>(

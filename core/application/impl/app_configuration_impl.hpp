@@ -186,8 +186,32 @@ namespace kagome::application {
                   uint32_t &target);
     bool load_bool(const rapidjson::Value &val, char const *name, bool &target);
 
-    boost::asio::ip::tcp::endpoint get_endpoint_from(const std::string &host,
-                                                     uint16_t port);
+    /**
+     * Convert given values into boost tcp::endpoint representation format
+     * @param host - host name
+     * @param port - port value
+     * @return boost tcp::endpoint constructed
+     */
+    boost::asio::ip::tcp::endpoint getEndpointFrom(const std::string &host,
+                                                   uint16_t port) const;
+
+    /**
+     * Convert a given libp2p multiaddress into a boost tcp::endpoint format.
+     * @param multiaddress - an address to be converted. Should contain a valid
+     * interface name or IP4/IP6 address and a port value to listen on.
+     * @return boost tcp::endpoint when well-formed multiaddress is passed,
+     * otherwise - an error
+     */
+    outcome::result<boost::asio::ip::tcp::endpoint> getEndpointFrom(
+        const libp2p::multi::Multiaddress &multiaddress) const;
+
+    /**
+     * Checks whether configured listen addresses are available.
+     * @return true when addresses are available, false - when at least one
+     * address is not available
+     */
+    bool testListenAddresses() const;
+
     FilePtr open_file(const std::string &filepath);
 
     log::Logger logger_;
