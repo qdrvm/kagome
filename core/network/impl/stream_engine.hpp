@@ -249,21 +249,33 @@ namespace kagome::network {
     }
 
     template <typename T>
-    void broadcast(const std::shared_ptr<ProtocolBase> &protocol,
-                   std::shared_ptr<T> msg) {
+    void broadcast(
+        const std::shared_ptr<ProtocolBase> &protocol,
+        const std::shared_ptr<T> &msg,
+        const std::function<bool(const PeerId &peer_id)> &predicate) {
       BOOST_ASSERT(msg != nullptr);
       BOOST_ASSERT(protocol != nullptr);
 
       std::shared_lock cs(streams_cs_);
       forEachPeer([&](const auto &peer_id, auto &proto_map) {
-        forProtocol(proto_map, protocol, [&](auto &descr) {
-          if (descr.outgoing and not descr.outgoing->isClosed()) {
-            send(peer_id, protocol, descr.outgoing, *msg);
-            return;
-          }
-          updateStream(peer_id, protocol, msg);
-        });
+        if (predicate(peer_id)) {
+          forProtocol(proto_map, protocol, [&](auto &descr) {
+            if (descr.outgoing and not descr.outgoing->isClosed()) {
+              send(peer_id, protocol, descr.outgoing, *msg);
+              return;
+            }
+            updateStream(peer_id, protocol, msg);
+          });
+        }
       });
+    }
+
+    template <typename T>
+    void broadcast(const std::shared_ptr<ProtocolBase> &protocol,
+                   const std::shared_ptr<T> &msg) {
+      static const std::function<bool(const PeerId &)> any =
+          [](const PeerId &) { return true; };
+      broadcast(protocol, msg, any);
     }
 
     template <typename F>

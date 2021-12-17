@@ -9,6 +9,7 @@
 
 #include "network/common.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
+#include "network/peer_manager.hpp"
 #include "network/types/grandpa_message.hpp"
 #include "network/types/roles.hpp"
 
@@ -23,13 +24,15 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
       const OwnPeerInfo &own_info,
-      std::shared_ptr<StreamEngine> stream_engine)
+      std::shared_ptr<StreamEngine> stream_engine,
+      std::shared_ptr<PeerManager> peer_manager)
       : host_(host),
         io_context_(std::move(io_context)),
         app_config_(app_config),
         grandpa_observer_(std::move(grandpa_observer)),
         own_info_(own_info),
-        stream_engine_(std::move(stream_engine)) {
+        stream_engine_(std::move(stream_engine)),
+        peer_manager_(std::move(peer_manager)) {
     const_cast<Protocol &>(protocol_) = kGrandpaProtocol;
   }
 
@@ -299,6 +302,7 @@ namespace kagome::network {
             self->grandpa_observer_->onCommitMessage(peer_id, commit_message);
           },
           [&](const GrandpaNeighborMessage &neighbor_message) {
+            self->peer_manager_->updatePeerStatus(peer_id, neighbor_message);
             self->grandpa_observer_->onNeighborMessage(peer_id,
                                                        neighbor_message);
           },

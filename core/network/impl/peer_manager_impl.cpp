@@ -30,7 +30,8 @@ namespace kagome::network {
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
       std::shared_ptr<network::Router> router,
-      std::shared_ptr<storage::BufferStorage> storage)
+      std::shared_ptr<storage::BufferStorage> storage,
+      std::shared_ptr<crypto::Hasher> hasher)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -43,6 +44,7 @@ namespace kagome::network {
         own_peer_info_(own_peer_info),
         router_{std::move(router)},
         storage_{std::move(storage)},
+        hasher_{std::move(hasher)},
         log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -51,6 +53,7 @@ namespace kagome::network {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
 
     // Register metrics
     registry_->registerGaugeFamily(syncPeerMetricName,
@@ -406,7 +409,8 @@ namespace kagome::network {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
       it->second.time = clock_->now();
-      it->second.status = status;
+      it->second.roles = status.roles;
+      it->second.best_block = status.best_block;
     } else {
       // Remove from connecting peer list
       connecting_peers_.erase(peer_id);
@@ -429,28 +433,45 @@ namespace kagome::network {
       }
 
       // Add as active peer
-      active_peers_.emplace(
-          peer_id, ActivePeerData{.time = clock_->now(), .status = status});
+      active_peers_.emplace(peer_id,
+                            ActivePeerData{.time = clock_->now(),
+                                           .roles = status.roles,
+                                           .best_block = status.best_block,
+                                           .last_finalized = 0});
       sync_peer_num_->set(active_peers_.size());
       recently_active_peers_.insert(peer_id);
     }
   }
 
   void PeerManagerImpl::updatePeerStatus(const PeerId &peer_id,
-                                         const BlockInfo &best_block) {
+                                         const BlockAnnounce &announce) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
+      auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
+
       it->second.time = clock_->now();
-      it->second.status.best_block = best_block;
+      it->second.best_block = {announce.header.number, hash};
     }
   }
 
-  std::optional<Status> PeerManagerImpl::getPeerStatus(const PeerId &peer_id) {
+  void PeerManagerImpl::updatePeerStatus(
+      const PeerId &peer_id, const GrandpaNeighborMessage &neighbor_message) {
+    auto it = active_peers_.find(peer_id);
+    if (it != active_peers_.end()) {
+      it->second.time = clock_->now();
+      it->second.round_number = neighbor_message.round_number;
+      it->second.set_id = neighbor_message.voter_set_id;
+      it->second.last_finalized = neighbor_message.last_finalized;
+    }
+  }
+
+  std::optional<ActivePeerData> PeerManagerImpl::getPeerStatus(
+      const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it == active_peers_.end()) {
       return std::nullopt;
     }
-    return it->second.status;
+    return it->second;
   }
 
   void PeerManagerImpl::processDiscoveredPeer(const PeerId &peer_id) {
@@ -515,10 +536,11 @@ namespace kagome::network {
             }
 
             // Add to active peer list
-            if (auto [ap_it, added] = self->active_peers_.emplace(
-                    peer_id,
-                    ActivePeerData{.time = self->clock_->now(),
-                                   .status = Status{}});
+            if (auto [ap_it, added] =
+                    self->active_peers_.emplace(peer_id,
+                                                ActivePeerData{
+                                                    .time = self->clock_->now(),
+                                                });
                 added) {
               self->recently_active_peers_.insert(peer_id);
 

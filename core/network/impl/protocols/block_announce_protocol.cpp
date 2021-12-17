@@ -23,7 +23,6 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockStorage> storage,
       std::shared_ptr<BlockAnnounceObserver> observer,
-      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<PeerManager> peer_manager)
       : host_(host),
         app_config_(app_config),
@@ -31,13 +30,11 @@ namespace kagome::network {
         block_tree_(std::move(block_tree)),
         storage_(std::move(storage)),
         observer_(std::move(observer)),
-        hasher_(std::move(hasher)),
         peer_manager_(std::move(peer_manager)) {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(observer_ != nullptr);
-    BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
     const_cast<Protocol &>(protocol_) =
         fmt::format(kBlockAnnouncesProtocol.data(), chain_spec.protocolId());
@@ -369,12 +366,8 @@ namespace kagome::network {
 
           self->observer_->onBlockAnnounce(peer_id, block_announce);
 
-          auto hash = self->hasher_->blake2b_256(
-              scale::encode(block_announce.header).value());
-
-          self->peer_manager_->updatePeerStatus(
-              stream->remotePeerId().value(),
-              BlockInfo(block_announce.header.number, hash));
+          self->peer_manager_->updatePeerStatus(stream->remotePeerId().value(),
+                                                block_announce);
 
           self->readAnnounce(std::move(stream));
         });

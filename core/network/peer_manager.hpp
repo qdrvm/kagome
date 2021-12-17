@@ -9,11 +9,23 @@
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/peer/peer_info.hpp>
 
+#include "network/types/block_announce.hpp"
+#include "network/types/grandpa_message.hpp"
 #include "network/types/status.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::network {
+
+  struct ActivePeerData {
+    clock::SteadyClock::TimePoint time;
+    Roles roles = 0;
+    BlockInfo best_block = {0, {}};
+    RoundNumber round_number = 0;
+    MembershipCounter set_id = 0;
+    BlockNumber last_finalized = 0;
+  };
+
   /**
    * Manage active peers:
    * - peer discovery (internally)
@@ -56,15 +68,23 @@ namespace kagome::network {
                                   const Status &status) = 0;
 
     /**
-     * Updates status of peer with {@param peer_id} by {@param best_block}
+     * Updates status of peer with {@param peer_id} by {@param announce}
      */
     virtual void updatePeerStatus(const PeerId &peer_id,
-                                  const BlockInfo &best_block) = 0;
+                                  const BlockAnnounce &announce) = 0;
 
     /**
-     * @returns status of peer with {@param peer_id} or error
+     * Updates status of peer with {@param peer_id} by {@param neighbor_message}
      */
-    virtual std::optional<Status> getPeerStatus(const PeerId &peer_id) = 0;
+    virtual void updatePeerStatus(
+        const PeerId &peer_id,
+        const GrandpaNeighborMessage &neighbor_message) = 0;
+
+    /**
+     * @returns known info about peer with {@param peer_id} or none
+     */
+    virtual std::optional<ActivePeerData> getPeerStatus(
+        const PeerId &peer_id) = 0;
 
     /**
      * @returns number of active peers

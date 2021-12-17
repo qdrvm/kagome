@@ -18,6 +18,7 @@
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "network/peer_manager.hpp"
 #include "network/types/own_peer_info.hpp"
 
 namespace kagome::network {
@@ -46,7 +47,8 @@ namespace kagome::network {
         const application::AppConfiguration &app_config,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         const OwnPeerInfo &own_info,
-        std::shared_ptr<StreamEngine> stream_engine);
+        std::shared_ptr<StreamEngine> stream_engine,
+        std::shared_ptr<PeerManager> peer_manager);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -92,6 +94,7 @@ namespace kagome::network {
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     const OwnPeerInfo &own_info_;
     std::shared_ptr<StreamEngine> stream_engine_;
+    std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
     log::Logger log_ = log::createLogger("GrandpaProtocol", "kagome_protocols");
   };
