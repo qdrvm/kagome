@@ -6,9 +6,9 @@
 #ifndef KAGOME_CORE_API_SERVICE_CHILD_STATE_REQUESTS_GET_KEYS_HPP
 #define KAGOME_CORE_API_SERVICE_CHILD_STATE_REQUESTS_GET_KEYS_HPP
 
-#include <jsonrpc-lean/request.h>
-
 #include <optional>
+
+#include <jsonrpc-lean/request.h>
 
 #include "api/service/child_state/child_state_api.hpp"
 #include "outcome/outcome.hpp"
