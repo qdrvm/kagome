@@ -317,6 +317,30 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                                      const network::CatchUpRequest &msg) {
+    // It is also impolite to send a catch up request to a peer in a new
+    // different Set ID.
+    if (msg.voter_set_id != current_round_->voterSetId()) {
+      SL_DEBUG(
+          logger_,
+          "Catch-up request (since round #{}) received from {} was rejected: "
+          "impolite (different voter set id)",
+          msg.round_number,
+          peer_id);
+      return;
+    }
+
+    // It is impolite to send a catch up request for a round `R` to a peer whose
+    // announced view is behind `R`.
+    if (msg.round_number > current_round_->voterSetId()) {
+      SL_DEBUG(
+          logger_,
+          "Catch-up request (since round #{}) received from {} was rejected: "
+          "impolite (different voter set id)",
+          msg.round_number,
+          peer_id);
+      return;
+    }
+
     if (previous_round_ == nullptr) {
       SL_DEBUG(
           logger_,
@@ -364,6 +388,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
+
     BOOST_ASSERT(current_round_ != nullptr);
     if (FullRound{msg} < FullRound{current_round_}) {
       // Catching up in to the past
@@ -474,6 +499,81 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
+    // If a peer is at a given voter set, it is impolite to send messages from
+    // an earlier voter set.
+    if (msg.counter < current_round_->voterSetId()) {
+      SL_DEBUG(logger_,
+               "{} with set_id={} in round={} has received from {} "
+               "and rejected as impolite",
+               msg.vote.is<Prevote>()     ? "Prevote"
+               : msg.vote.is<Precommit>() ? "Precommit"
+                                          : "PrimaryPropose",
+               msg.counter,
+               msg.round_number,
+               peer_id);
+      return;
+    }
+
+    // It is extremely impolite to send messages from a future voter set.
+    // "future-set" messages can be dropped and ignored.
+    if (msg.counter > current_round_->voterSetId()) {
+      SL_WARN(logger_,
+              "{} with set_id={} in round={} has received from {} "
+              "and rejected as extremely impolite",
+              msg.vote.is<Prevote>()     ? "Prevote"
+              : msg.vote.is<Precommit>() ? "Precommit"
+                                         : "PrimaryPropose",
+              msg.counter,
+              msg.round_number,
+              peer_id);
+      return;
+    }
+
+    // If a peer is at round r, is impolite to send messages about r-2 or
+    // earlier
+    if (msg.round_number <= current_round_->roundNumber() - 2) {
+      SL_DEBUG(logger_,
+               "{} with set_id={} in round={} has received from {} "
+               "and rejected as impolite",
+               msg.vote.is<Prevote>()     ? "Prevote"
+               : msg.vote.is<Precommit>() ? "Precommit"
+                                          : "PrimaryPropose",
+               msg.counter,
+               msg.round_number,
+               peer_id);
+      return;
+    }
+
+    // If a peer is at round r, is extremely impolite to send messages about r+1
+    // or later. "future-round" messages can be dropped and ignored.
+    if (msg.round_number >= current_round_->roundNumber() + 1) {
+      SL_WARN(logger_,
+              "{} with set_id={} in round={} has received from {} "
+              "and rejected as extremely impolite",
+              msg.vote.is<Prevote>()     ? "Prevote"
+              : msg.vote.is<Precommit>() ? "Precommit"
+                                         : "PrimaryPropose",
+              msg.counter,
+              msg.round_number,
+              peer_id);
+      return;
+    }
+
+    std::shared_ptr<VotingRound> target_round =
+        selectRound(msg.round_number, msg.counter);
+    if (not target_round) {
+      SL_DEBUG(logger_,
+               "{} with set_id={} in round={} has received from {} "
+               "and rejected (round not found)",
+               msg.vote.is<Prevote>()     ? "Prevote"
+               : msg.vote.is<Precommit>() ? "Precommit"
+                                          : "PrimaryPropose",
+               msg.counter,
+               msg.round_number,
+               peer_id);
+      return;
+    }
+
     SL_DEBUG(logger_,
              "{} signed by {} with set_id={} in round={} for block {} "
              "has received from {}",
@@ -485,13 +585,6 @@ namespace kagome::consensus::grandpa {
              msg.round_number,
              msg.vote.getBlockInfo(),
              peer_id);
-
-    std::shared_ptr<VotingRound> target_round =
-        selectRound(msg.round_number, msg.counter);
-    if (not target_round) {
-      tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
-      return;
-    }
 
     GrandpaContext::Guard cg;
 
