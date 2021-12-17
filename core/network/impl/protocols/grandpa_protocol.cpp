@@ -323,12 +323,39 @@ namespace kagome::network {
              "Send vote message: grandpa round number {}",
              vote_message.round_number);
 
+    auto filter = [this,
+                   set_id = vote_message.counter,
+                   round_number =
+                       vote_message.round_number](const PeerId &peer_id) {
+      auto info_opt = peer_manager_->getPeerStatus(peer_id);
+      if (not info_opt.has_value()) {
+        return false;
+      }
+      const auto &info = info_opt.value();
+
+      // If a peer is at a given voter set, it is impolite to send messages
+      // from an earlier voter set. It is extremely impolite to send messages
+      // from a future voter set.
+      if (set_id != info.set_id) {
+        return false;
+      }
+
+      // If a peer is at round r, is impolite to send messages about r-2 or
+      // earlier and extremely impolite to send messages about r+1 or later.
+      if (round_number + 2 < info.round_number
+          or round_number > info.round_number) {
+        return false;
+      }
+
+      return true;
+    };
+
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
     (*shared_msg) = GrandpaMessage(std::move(vote_message));
 
     stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
-                                              std::move(shared_msg));
+                                              std::move(shared_msg), filter);
   }
 
   void GrandpaProtocol::neighbor(GrandpaNeighborMessage &&msg) {
@@ -347,12 +374,44 @@ namespace kagome::network {
   void GrandpaProtocol::finalize(FullCommitMessage &&msg) {
     SL_DEBUG(log_, "Send commit message: grandpa round number {}", msg.round);
 
+    auto filter = [this,
+                   set_id = msg.set_id,
+                   round_number = msg.round,
+                   finalizing =
+                       msg.message.target_number](const PeerId &peer_id) {
+      auto info_opt = peer_manager_->getPeerStatus(peer_id);
+      if (not info_opt.has_value()) {
+        return false;
+      }
+      const auto &info = info_opt.value();
+
+      // It is especially impolite to send commits which are invalid, or from
+      // a different Set ID than the receiving peer has indicated.
+      if (set_id != info.set_id) {
+        return false;
+      }
+
+      // If a peer is at round r, is impolite to send messages about r-2 or
+      // earlier and extremely impolite to send messages about r+1 or later.
+      if (round_number < info.round_number) {
+        return false;
+      }
+
+      // It is impolite to send commits which are earlier than the last commit
+      // sent.
+      if (finalizing <= info.last_finalized) {
+        return false;
+      }
+
+      return true;
+    };
+
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
     (*shared_msg) = GrandpaMessage(std::move(msg));
 
     stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
-                                              std::move(shared_msg));
+                                              std::move(shared_msg), filter);
   }
 
   void GrandpaProtocol::catchUpRequest(const libp2p::peer::PeerId &peer_id,
@@ -360,6 +419,23 @@ namespace kagome::network {
     SL_DEBUG(log_,
              "Send catch-up request: beginning with grandpa round number {}",
              catch_up_request.round_number);
+
+    auto info_opt = peer_manager_->getPeerStatus(peer_id);
+    if (not info_opt.has_value()) {
+      return;
+    }
+    const auto &info = info_opt.value();
+
+    /// Impolite to send a catch up request to a peer in a new different Set ID.
+    if (catch_up_request.voter_set_id != info.set_id) {
+      return;
+    }
+
+    /// It is impolite to send a catch up request for a round `R` to a peer
+    /// whose announced view is behind `R`.
+    if (catch_up_request.round_number < info.round_number - 1) {
+      return;
+    }
 
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
@@ -373,6 +449,22 @@ namespace kagome::network {
     SL_DEBUG(log_,
              "Send catch-up response: beginning with grandpa round number {}",
              catch_up_response.round_number);
+
+    auto info_opt = peer_manager_->getPeerStatus(peer_id);
+    if (not info_opt.has_value()) {
+      return;
+    }
+    const auto &info = info_opt.value();
+
+    /// Impolite to send a catch up request to a peer in a new different Set ID.
+    if (catch_up_response.voter_set_id != info.set_id) {
+      return;
+    }
+
+    /// Avoid sending useless response (if peer is already caught up)
+    if (catch_up_response.round_number < info.round_number) {
+      return;
+    }
 
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
