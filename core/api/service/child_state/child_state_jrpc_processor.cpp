@@ -35,7 +35,7 @@ namespace kagome::api::child_state {
                              Handler<request::GetStorage>(api_));
 
     // duplicate of `childstate_getStorage`. Required for compatibility with
-    // some client
+    // some clients
     server_->registerHandler("childstate_getStorageAt",
                              Handler<request::GetStorage>(api_));
 
