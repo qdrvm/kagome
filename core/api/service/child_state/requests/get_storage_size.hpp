@@ -6,9 +6,9 @@
 #ifndef KAGOME_CORE_API_SERVICE_CHILD_STATE_REQUESTS_GET_STORAGE_SIZE
 #define KAGOME_CORE_API_SERVICE_CHILD_STATE_REQUESTS_GET_STORAGE_SIZE
 
-#include <jsonrpc-lean/request.h>
-
 #include <optional>
+
+#include <jsonrpc-lean/request.h>
 
 #include "api/service/child_state/child_state_api.hpp"
 #include "common/buffer.hpp"
