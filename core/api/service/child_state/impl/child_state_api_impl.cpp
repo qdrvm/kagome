@@ -4,12 +4,12 @@
  */
 
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
-#include "storage/trie/serialization/polkadot_codec.hpp"
 
 #include <unordered_map>
 #include <utility>
 
 #include "common/hexutil.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::api {
 
