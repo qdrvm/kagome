@@ -20,6 +20,8 @@
 #include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
 #include "api/service/chain/impl/chain_api_impl.hpp"
+#include "api/service/child_state/impl/child_state_api_impl.hpp"
+#include "api/service/child_state/child_state_jrpc_processor.hpp"
 #include "api/service/impl/api_service_impl.hpp"
 #include "api/service/payment/impl/payment_api_impl.hpp"
 #include "api/service/payment/payment_jrpc_processor.hpp"
@@ -547,6 +549,10 @@ namespace {
                                               block_tree,
                                               trie_storage);
 
+    auto child_state_api =
+        injector.template create<std::shared_ptr<api::ChildStateApi>>();
+    child_state_api->setApiService(api_service);
+
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(api_service);
 
@@ -962,6 +968,8 @@ namespace {
                                                                &injector) {
           static std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
               injector.template create<
+                  std::shared_ptr<api::child_state::ChildStateJrpcProcessor>>(),
+              injector.template create<
                   std::shared_ptr<api::state::StateJrpcProcessor>>(),
               injector.template create<
                   std::shared_ptr<api::author::AuthorJRpcProcessor>>(),
@@ -1018,6 +1026,7 @@ namespace {
         di::bind<crypto::SessionKeys>.template to<crypto::SessionKeys>(),
         di::bind<network::Roles>.to(config.roles()),
         di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
+        di::bind<api::ChildStateApi>.template to<api::ChildStateApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::SystemApi>.template to<api::SystemApiImpl>(),
         di::bind<api::RpcApi>.template to<api::RpcApiImpl>(),
