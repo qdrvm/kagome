@@ -187,11 +187,11 @@ namespace kagome::api {
               return;
             }
 
-#define UNWRAP_WEAK_PTR(callback)  \
-  [wp](auto &&...params) mutable { \
-    if (auto self = wp.lock()) {   \
-      self->callback(params...);   \
-    }                              \
+#define UNWRAP_WEAK_PTR(callback)   \
+  [wp](auto &&... params) mutable { \
+    if (auto self = wp.lock()) {    \
+      self->callback(params...);    \
+    }                               \
   }
 
             if (SessionType::kWs == session->type()) {
@@ -259,8 +259,11 @@ namespace kagome::api {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.storage_sub;
         const auto id = session->generateSubscriptionSetId();
-        auto persistent_batch = trie_storage_->getPersistentBatchAt(
-            block_tree_->deepestLeaf().hash);
+        const auto &header =
+            block_tree_->getBlockHeader(block_tree_->deepestLeaf().hash);
+        BOOST_ASSERT(header.has_value());
+        auto persistent_batch =
+            trie_storage_->getPersistentBatchAt(header.value().state_root);
         BOOST_ASSERT(persistent_batch.has_value());
 
         auto &pb = persistent_batch.value();

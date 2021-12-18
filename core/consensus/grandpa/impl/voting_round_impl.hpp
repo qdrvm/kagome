@@ -115,6 +115,7 @@ namespace kagome::consensus::grandpa {
     void doPrevote() override;
     void doPrecommit() override;
     void doFinalize() override;
+    void doCommit() override;
 
     // Handlers of incoming messages
 
@@ -210,7 +211,7 @@ namespace kagome::consensus::grandpa {
      */
     bool updatePrecommitGhost();
 
-    bool updateCompletability();
+    bool updateCompletable();
 
     /// prepare prevote justification of \param estimate over the provided
     /// \param votes
@@ -227,13 +228,11 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> validatePrecommitJustification(
         const BlockInfo &vote, const GrandpaJustification &justification) const;
 
+    void sendNeighborMessage();
     void sendProposal(const PrimaryPropose &primary_proposal);
     void sendPrevote(const Prevote &prevote);
     void sendPrecommit(const Precommit &precommit);
-    void sendFinalize(const BlockInfo &block,
-                      const GrandpaJustification &justification);
-
-    void pending();
+    void sendCommit();
 
     std::shared_ptr<VoterSet> voter_set_;
     const RoundNumber round_number_;
@@ -297,16 +296,11 @@ namespace kagome::consensus::grandpa {
     std::optional<BlockInfo> finalized_;
 
     Timer timer_;
-    Timer pending_timer_;
+    Timer neighbor_msg_timer_;
 
     log::Logger logger_ = log::createLogger("VotingRound", "voting_round");
 
     bool completable_ = false;
-
-    // We should not broadcast Fin message, if our round was finalized by Fin
-    // message from other peer or during the catch-up mechanism.
-    // In last cases we can just unset this flag for that.
-    bool need_to_notice_at_finalizing_ = true;
   };
 }  // namespace kagome::consensus::grandpa
 

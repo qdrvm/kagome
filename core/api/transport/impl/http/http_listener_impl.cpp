@@ -8,7 +8,7 @@
 #include <utility>
 
 #include <boost/asio.hpp>
-
+#include "api/transport/tuner.hpp"
 #include "application/app_state_manager.hpp"
 
 namespace kagome::api {
@@ -27,7 +27,8 @@ namespace kagome::api {
 
   bool HttpListenerImpl::prepare() {
     try {
-      acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
+      acceptor_ = acceptOnFreePort(
+          context_, config_.endpoint, kDefaultPortTolerance, logger_);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
       logger_->critical("Failed to prepare a listener: {}", exception.what());
       return false;
@@ -54,6 +55,10 @@ namespace kagome::api {
       return false;
     }
 
+    SL_INFO(logger_,
+            "Listening for new connections on {}:{}",
+            config_.endpoint.address(),
+            acceptor_->local_endpoint().port());
     acceptOnce();
     return true;
   }

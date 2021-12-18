@@ -302,13 +302,19 @@ namespace kagome::network {
                  message.extrinsics.size(),
                  peer_id.toBase58());
 
-      for (auto &ext : message.extrinsics) {
-        auto result = self->extrinsic_observer_->onTxMessage(ext);
-        if (result) {
-          SL_DEBUG(self->log_, "  Received tx {}", result.value());
-        } else {
-          SL_DEBUG(self->log_, "  Rejected tx: {}", result.error().message());
+      if (self->babe_->wasSynchronized()) {
+        for (auto &ext : message.extrinsics) {
+          auto result = self->extrinsic_observer_->onTxMessage(ext);
+          if (result) {
+            SL_DEBUG(self->log_, "  Received tx {}", result.value());
+          } else {
+            SL_DEBUG(self->log_, "  Rejected tx: {}", result.error().message());
+          }
         }
+      } else {
+        SL_TRACE(self->log_,
+                 "Skipping extrinsics processing since the node was not in a "
+                 "synchronized state yet.");
       }
 
       self->readPropagatedExtrinsics(std::move(stream));

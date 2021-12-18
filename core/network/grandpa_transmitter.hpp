@@ -19,13 +19,13 @@ namespace kagome::network {
    public:
     virtual ~GrandpaTransmitter() = default;
 
-    virtual void neighbor(network::GrandpaNeighborMessage &&message) = 0;
-    virtual void vote(network::GrandpaVote &&message) = 0;
-    virtual void finalize(network::FullCommitMessage &&message) = 0;
-    virtual void catchUpRequest(const libp2p::peer::PeerId &peer_id,
-                                network::CatchUpRequest &&message) = 0;
-    virtual void catchUpResponse(const libp2p::peer::PeerId &peer_id,
-                                 network::CatchUpResponse &&message) = 0;
+    virtual void sendNeighborMessage(GrandpaNeighborMessage &&message) = 0;
+    virtual void sendVoteMessage(GrandpaVote &&message) = 0;
+    virtual void sendCommitMessage(FullCommitMessage &&message) = 0;
+    virtual void sendCatchUpRequest(const libp2p::peer::PeerId &peer_id,
+                                    CatchUpRequest &&message) = 0;
+    virtual void sendCatchUpResponse(const libp2p::peer::PeerId &peer_id,
+                                     CatchUpResponse &&message) = 0;
   };
 
 }  // namespace kagome::network

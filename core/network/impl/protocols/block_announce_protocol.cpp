@@ -7,6 +7,7 @@
 
 #include "application/app_configuration.hpp"
 #include "network/common.hpp"
+#include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 
@@ -146,10 +147,7 @@ namespace kagome::network {
   void BlockAnnounceProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    SL_DEBUG(log_,
-             "Connect for {} stream with {}",
-             protocol_,
-             peer_info.id.toBase58());
+    SL_DEBUG(log_, "Connect for {} stream with {}", protocol_, peer_info.id);
 
     host_.newStream(
         peer_info.id,
@@ -166,7 +164,7 @@ namespace kagome::network {
             SL_VERBOSE(self->log_,
                        "Can't create outgoing {} stream with {}: {}",
                        self->protocol_,
-                       peer_id.toBase58(),
+                       peer_id,
                        stream_res.error().message());
             cb(stream_res.as_failure());
             return;
@@ -186,7 +184,7 @@ namespace kagome::network {
               SL_VERBOSE(self->log_,
                          "Handshake failed on outgoing {} stream with {}: {}",
                          self->protocol_,
-                         stream->remotePeerId().value().toBase58(),
+                         stream->remotePeerId().value(),
                          res.error().message());
               stream->reset();
               cb(res.as_failure());
@@ -198,7 +196,7 @@ namespace kagome::network {
               SL_VERBOSE(self->log_,
                          "Can't register outgoing {} stream with {}: {}",
                          self->protocol_,
-                         stream->remotePeerId().value().toBase58(),
+                         stream->remotePeerId().value(),
                          res.error().message());
               stream->reset();
               cb(res.as_failure());
@@ -208,7 +206,7 @@ namespace kagome::network {
             SL_VERBOSE(self->log_,
                        "Fully established outgoing {} stream with {}",
                        self->protocol_,
-                       stream->remotePeerId().value().toBase58());
+                       stream->remotePeerId().value());
             cb(std::move(stream));
           };
 
@@ -236,7 +234,7 @@ namespace kagome::network {
           if (not remote_status_res.has_value()) {
             SL_VERBOSE(self->log_,
                        "Can't read handshake from {}: {}",
-                       stream->remotePeerId().value().toBase58(),
+                       stream->remotePeerId().value(),
                        remote_status_res.error().message());
             stream->reset();
             cb(remote_status_res.as_failure());
@@ -246,7 +244,7 @@ namespace kagome::network {
 
           SL_TRACE(self->log_,
                    "Handshake has received from {}",
-                   stream->remotePeerId().value().toBase58());
+                   stream->remotePeerId().value());
 
           if (auto genesis_res = self->storage_->getGenesisBlockHash();
               genesis_res.has_value()) {
@@ -269,7 +267,7 @@ namespace kagome::network {
           auto peer_id = stream->remotePeerId().value();
           SL_TRACE(self->log_,
                    "Received status from peer_id={} (best block {})",
-                   peer_id.toBase58(),
+                   peer_id,
                    remote_status.best_block.number);
           self->peer_manager_->updatePeerStatus(peer_id, remote_status);
 
@@ -315,7 +313,7 @@ namespace kagome::network {
                          if (not write_res.has_value()) {
                            SL_VERBOSE(self->log_,
                                       "Can't send handshake to {}: {}",
-                                      stream->remotePeerId().value().toBase58(),
+                                      stream->remotePeerId().value(),
                                       write_res.error().message());
                            stream->reset();
                            cb(write_res.as_failure());
@@ -324,7 +322,7 @@ namespace kagome::network {
 
                          SL_TRACE(self->log_,
                                   "Handshake has sent to {}",
-                                  stream->remotePeerId().value().toBase58());
+                                  stream->remotePeerId().value());
 
                          switch (direction) {
                            case Direction::OUTGOING:
@@ -355,7 +353,7 @@ namespace kagome::network {
           if (not block_announce_res.has_value()) {
             SL_WARN(self->log_,
                     "Can't read block announce from {}: {}",
-                    stream->remotePeerId().value().toBase58(),
+                    stream->remotePeerId().value(),
                     block_announce_res.error().message());
             stream->reset();
             return;
@@ -367,7 +365,7 @@ namespace kagome::network {
           SL_VERBOSE(self->log_,
                      "Announce of block #{} is received from {}",
                      block_announce.header.number,
-                     peer_id.toBase58());
+                     peer_id);
 
           self->observer_->onBlockAnnounce(peer_id, block_announce);
 

@@ -599,8 +599,8 @@ namespace kagome::network {
     scale::ScaleDecoderStream s{get_res.value().asVector()};
     try {
       s >> last_active_peers;
-    } catch (std::exception &e) {
-      SL_ERROR(log_, "Cannot decode list of active peers. Error={}", e.what());
+    } catch (...) {
+      SL_ERROR(log_, "Unable to decode list of active peers");
       return {};
     }
     return last_active_peers;
@@ -623,8 +623,8 @@ namespace kagome::network {
     scale::ScaleEncoderStream out;
     try {
       out << last_active_peers;
-    } catch (std::exception &e) {
-      SL_ERROR(log_, "Cannot encode list of active peers. Error={}", e.what());
+    } catch (...) {
+      SL_ERROR(log_, "Unable to encode list of active peers");
       return;
     }
 

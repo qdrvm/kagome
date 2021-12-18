@@ -331,11 +331,11 @@ namespace kagome::host_api {
     }
     auto public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
     if (not public_keys) {
-      auto msg =
-          "error loading public keys: {}" + public_keys.error().message();
-      logger_->error(msg);
+      auto msg = fmt::format("error loading public keys: {}",
+                             public_keys.error().message());
       throw std::runtime_error(msg);
     }
+
     auto buffer = scale::encode(public_keys.value()).value();
     SL_TRACE_FUNC_CALL(logger_, public_keys.value().size(), key_type_id);
 

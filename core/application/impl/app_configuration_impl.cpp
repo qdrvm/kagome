@@ -5,6 +5,7 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
+#include <limits>
 #include <string>
 
 #include <rapidjson/document.h>
@@ -14,6 +15,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
 #include "assets/assets.hpp"
 #include "chain_spec_impl.hpp"
@@ -263,49 +265,50 @@ namespace kagome::application {
 
   bool AppConfigurationImpl::validate_config() {
     if (not fs::exists(chain_spec_path_)) {
-      logger_->error(
-          "Chain path {} does not exist, "
-          "please specify a valid path with --chain option",
-          chain_spec_path_);
+      SL_ERROR(logger_,
+               "Chain path {} does not exist, "
+               "please specify a valid path with --chain option",
+               chain_spec_path_);
       return false;
     }
 
     if (base_path_.empty() or !fs::createDirectoryRecursive(base_path_)) {
-      logger_->error(
-          "Base path {} does not exist, "
-          "please specify a valid path with -d option",
-          base_path_);
+      SL_ERROR(logger_,
+               "Base path {} does not exist, "
+               "please specify a valid path with -d option",
+               base_path_);
       return false;
     }
 
     if (not listen_addresses_.empty()) {
-      logger_->info(
-          "Listen addresses are set. The p2p port value would be ignored "
-          "then.");
+      SL_INFO(logger_,
+              "Listen addresses are set. The p2p port value would be ignored "
+              "then.");
     } else if (p2p_port_ == 0) {
-      logger_->error(
-          "p2p port is 0, "
-          "please specify a valid path with -p option");
+      SL_ERROR(logger_,
+               "p2p port is 0, "
+               "please specify a valid path with -p option");
       return false;
     }
 
     if (rpc_ws_port_ == 0) {
-      logger_->error(
-          "RPC ws port is 0, "
-          "please specify a valid path with --ws-port option");
+      SL_ERROR(logger_,
+               "RPC ws port is 0, "
+               "please specify a valid path with --ws-port option");
       return false;
     }
 
     if (rpc_http_port_ == 0) {
-      logger_->error(
-          "RPC http port is 0, "
-          "please specify a valid path with --rpc-port option");
+      SL_ERROR(logger_,
+               "RPC http port is 0, "
+               "please specify a valid path with --rpc-port option");
       return false;
     }
 
     if (node_name_.length() > kNodeNameMaxLength) {
-      logger_->error("Node name exceeds the maximum length of {} characters",
-                     kNodeNameMaxLength);
+      SL_ERROR(logger_,
+               "Node name exceeds the maximum length of {} characters",
+               kNodeNameMaxLength);
       return false;
     }
 
@@ -323,10 +326,10 @@ namespace kagome::application {
 
     auto file = open_file(filepath);
     if (!file) {
-      logger_->error(
-          "Configuration file path is invalid: {}, "
-          "please specify a valid path with -c option",
-          filepath);
+      SL_ERROR(logger_,
+               "Configuration file path is invalid: {}, "
+               "please specify a valid path with -c option",
+               filepath);
       return;
     }
 
@@ -340,9 +343,10 @@ namespace kagome::application {
     Document document;
     document.ParseStream(input_stream);
     if (document.HasParseError()) {
-      logger_->error("Configuration file {} parse failed with error {}",
-                     filepath,
-                     document.GetParseError());
+      SL_ERROR(logger_,
+               "Configuration file {} parse failed with error {}",
+               filepath,
+               document.GetParseError());
       return;
     }
 
@@ -354,19 +358,91 @@ namespace kagome::application {
     }
   }
 
-  boost::asio::ip::tcp::endpoint AppConfigurationImpl::get_endpoint_from(
-      std::string const &host, uint16_t port) {
+  boost::asio::ip::tcp::endpoint AppConfigurationImpl::getEndpointFrom(
+      std::string const &host, uint16_t port) const {
     boost::asio::ip::tcp::endpoint endpoint;
     boost::system::error_code err;
 
     endpoint.address(boost::asio::ip::address::from_string(host, err));
     if (err.failed()) {
-      logger_->error("RPC address '{}' is invalid", host);
+      SL_ERROR(logger_, "RPC address '{}' is invalid", host);
       exit(EXIT_FAILURE);
     }
 
     endpoint.port(port);
     return endpoint;
+  }
+
+  outcome::result<boost::asio::ip::tcp::endpoint>
+  AppConfigurationImpl::getEndpointFrom(
+      const libp2p::multi::Multiaddress &multiaddress) const {
+    using proto = libp2p::multi::Protocol::Code;
+    constexpr auto NOT_SUPPORTED = std::errc::address_family_not_supported;
+    constexpr auto BAD_ADDRESS = std::errc::bad_address;
+    auto host = multiaddress.getFirstValueForProtocol(proto::IP4);
+    if (not host) {
+      host = multiaddress.getFirstValueForProtocol(proto::IP6);
+    }
+    if (not host) {
+      SL_ERROR(logger_,
+               "Address cannot be used to bind to ({}). Only IPv4 and IPv6 "
+               "interfaces are supported",
+               multiaddress.getStringAddress());
+      return NOT_SUPPORTED;
+    }
+    auto port = multiaddress.getFirstValueForProtocol(proto::TCP);
+    if (not port) {
+      return NOT_SUPPORTED;
+    }
+    uint16_t port_number = 0;
+    try {
+      auto wide_port = std::stoul(port.value());
+      constexpr auto max_port = std::numeric_limits<uint16_t>::max();
+      if (wide_port > max_port or 0 == wide_port) {
+        SL_ERROR(
+            logger_,
+            "Port value ({}) cannot be zero or greater than {} (address {})",
+            wide_port,
+            max_port,
+            multiaddress.getStringAddress());
+        return BAD_ADDRESS;
+      }
+      port_number = static_cast<uint16_t>(wide_port);
+    } catch (...) {
+      // only std::out_of_range or std::invalid_argument are possible
+      SL_ERROR(logger_,
+               "Passed value {} is not a valid port number within address {}",
+               port.value(),
+               multiaddress.getStringAddress());
+      return BAD_ADDRESS;
+    }
+    return getEndpointFrom(host.value(), port_number);
+  }
+
+  bool AppConfigurationImpl::testListenAddresses() const {
+    auto temp_context = std::make_shared<boost::asio::io_context>();
+    constexpr auto kZeroPortTolerance = 0;
+    for (const auto &addr : listen_addresses_) {
+      auto endpoint = getEndpointFrom(addr);
+      if (not endpoint) {
+        SL_ERROR(logger_,
+                 "Endpoint cannot be constructed from address {}",
+                 addr.getStringAddress());
+        return false;
+      }
+      try {
+        boost::system::error_code error_code;
+        auto acceptor = api::acceptOnFreePort(
+            temp_context, endpoint.value(), kZeroPortTolerance, logger_);
+        acceptor->cancel(error_code);
+        acceptor->close(error_code);
+      } catch (...) {
+        SL_ERROR(
+            logger_, "Unable to listen on address {}", addr.getStringAddress());
+        return false;
+      }
+    }
+    return true;
   }
 
   bool AppConfigurationImpl::initializeFromArgs(int argc, char **argv) {
@@ -556,14 +632,14 @@ namespace kagome::application {
         if (not ma_res.has_value()) {
           auto err_msg = "Bootnode '" + addr_str
                          + "' is invalid: " + ma_res.error().message();
-          logger_->error(err_msg);
+          SL_ERROR(logger_, err_msg);
           std::cout << err_msg << std::endl;
           return false;
         }
         auto peer_id_base58_opt = ma_res.value().getPeerId();
         if (not peer_id_base58_opt) {
           auto err_msg = "Bootnode '" + addr_str + "' has not peer_id";
-          logger_->error(err_msg);
+          SL_ERROR(logger_, err_msg);
           std::cout << err_msg << std::endl;
           return false;
         }
@@ -579,7 +655,7 @@ namespace kagome::application {
       if (not key_res.has_value()) {
         auto err_msg = "Node key '" + node_key.value()
                        + "' is invalid: " + key_res.error().message();
-        logger_->error(err_msg);
+        SL_ERROR(logger_, err_msg);
         std::cout << err_msg << std::endl;
         return false;
       }
@@ -608,10 +684,11 @@ namespace kagome::application {
       for (auto &s : addrs) {
         auto ma_res = libp2p::multi::Multiaddress::create(s);
         if (not ma_res) {
-          logger_->error("Address {} passed as value to {} is invalid: {}",
-                         s,
-                         param_name,
-                         ma_res.error().message());
+          SL_ERROR(logger_,
+                   "Address {} passed as value to {} is invalid: {}",
+                   s,
+                   param_name,
+                   ma_res.error().message());
           return false;
         }
         output_field.emplace_back(std::move(ma_res.value()));
@@ -631,9 +708,9 @@ namespace kagome::application {
     // Moreover, this is ok to have empty set of public addresses at this point
     // of time
     if (public_addresses_.empty() and not listen_addresses_.empty()) {
-      logger_->info(
-          "Public addresses are not specified. Using listen addresses as "
-          "node's public addresses");
+      SL_INFO(logger_,
+              "Public addresses are not specified. Using listen addresses as "
+              "node's public addresses");
       public_addresses_ = listen_addresses_;
     }
 
@@ -643,14 +720,16 @@ namespace kagome::application {
         auto ma_res = libp2p::multi::Multiaddress::create(
             "/ip6/::/tcp/" + std::to_string(p2p_port_));
         if (not ma_res) {
-          logger_->error(
+          SL_ERROR(
+              logger_,
               "Cannot construct IPv6 listen multiaddress from port {}. Error: "
               "{}",
               p2p_port_,
               ma_res.error().message());
         } else {
-          logger_->info("Automatically added IPv6 listen address {}",
-                        ma_res.value().getStringAddress());
+          SL_INFO(logger_,
+                  "Automatically added IPv6 listen address {}",
+                  ma_res.value().getStringAddress());
           listen_addresses_.emplace_back(std::move(ma_res.value()));
         }
       }
@@ -660,17 +739,26 @@ namespace kagome::application {
         auto ma_res = libp2p::multi::Multiaddress::create(
             "/ip4/0.0.0.0/tcp/" + std::to_string(p2p_port_));
         if (not ma_res) {
-          logger_->error(
+          SL_ERROR(
+              logger_,
               "Cannot construct IPv4 listen multiaddress from port {}. Error: "
               "{}",
               p2p_port_,
               ma_res.error().message());
         } else {
-          logger_->info("Automatically added IPv4 listen address {}",
-                        ma_res.value().getStringAddress());
+          SL_INFO(logger_,
+                  "Automatically added IPv4 listen address {}",
+                  ma_res.value().getStringAddress());
           listen_addresses_.emplace_back(std::move(ma_res.value()));
         }
       }
+    }
+
+    if (not testListenAddresses()) {
+      SL_ERROR(logger_,
+               "One of configured listen addresses is unavailable, the node "
+               "cannot start.");
+      return false;
     }
 
     find_argument<uint32_t>(vm, "max-blocks-in-response", [&](uint32_t val) {
@@ -707,10 +795,10 @@ namespace kagome::application {
       max_ws_connections_ = val;
     });
 
-    rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
-    rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
+    rpc_http_endpoint_ = getEndpointFrom(rpc_http_host_, rpc_http_port_);
+    rpc_ws_endpoint_ = getEndpointFrom(rpc_ws_host_, rpc_ws_port_);
     openmetrics_http_endpoint_ =
-        get_endpoint_from(openmetrics_http_host_, openmetrics_http_port_);
+        getEndpointFrom(openmetrics_http_host_, openmetrics_http_port_);
 
     find_argument<std::string>(
         vm, "name", [&](std::string const &val) { node_name_ = val; });
@@ -722,15 +810,15 @@ namespace kagome::application {
         [this, &runtime_exec_method_opt](std::string const &val) {
           runtime_exec_method_opt = str_to_runtime_exec_method(val);
           if (not runtime_exec_method_opt) {
-            logger_->error("Invalid runtime execution method specified: '{}'",
-                           val);
+            SL_ERROR(logger_,
+                     "Invalid runtime execution method specified: '{}'",
+                     val);
           }
         });
     if (not runtime_exec_method_opt) {
       return false;
-    } else {
-      runtime_exec_method_ = runtime_exec_method_opt.value();
     }
+    runtime_exec_method_ = runtime_exec_method_opt.value();
 
     std::optional<OffchainWorkerMode> offchain_worker_mode_opt;
     find_argument<std::string>(
@@ -739,14 +827,14 @@ namespace kagome::application {
         [this, &offchain_worker_mode_opt](std::string const &val) {
           offchain_worker_mode_opt = str_to_offchain_worker_mode(val);
           if (not offchain_worker_mode_opt) {
-            logger_->error("Invalid offchain worker mode specified: '{}'", val);
+            SL_ERROR(
+                logger_, "Invalid offchain worker mode specified: '{}'", val);
           }
         });
     if (not offchain_worker_mode_opt) {
       return false;
-    } else {
-      offchain_worker_mode_ = offchain_worker_mode_opt.value();
     }
+    offchain_worker_mode_ = offchain_worker_mode_opt.value();
 
     if (vm.count("enable-offchain-indexing") > 0) {
       enable_offchain_indexing_ = true;
