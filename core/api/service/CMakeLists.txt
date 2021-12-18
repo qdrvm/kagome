@@ -16,6 +16,7 @@ target_link_libraries(api_service
 
 add_subdirectory(author)
 add_subdirectory(chain)
+add_subdirectory(child_state)
 add_subdirectory(state)
 add_subdirectory(system)
 add_subdirectory(rpc)

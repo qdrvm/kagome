@@ -29,6 +29,7 @@ add_library(app_config
 target_link_libraries(app_config
     Boost::program_options
     p2p::p2p_multiaddress
+    api_transport
     blob
     assets
     chain_spec

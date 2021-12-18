@@ -9,6 +9,7 @@
 
 #include "application/app_configuration.hpp"
 #include "network/common.hpp"
+#include "network/helpers/peer_id_formatter.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network,
                             SyncProtocolObserverImpl::Error,
@@ -64,22 +65,24 @@ namespace kagome::network {
     // thirdly, fill the resulting response with data, which we were asked for
     fillBlocksResponse(request, response, chain_hash);
     if (response.blocks.empty()) {
-      SL_DEBUG(log_, "Return response id={}: empty", response.id);
+      SL_DEBUG(log_, "Return response id={}: no blocks", response.id);
     } else if (response.blocks.size() == 1) {
-      SL_DEBUG(log_,
-               "Return response id={}: {}, #{}, count 1",
-               response.id,
-               response.blocks.front().hash.toHex(),
-               response.blocks.front().header.value().number);
+      SL_DEBUG(
+          log_,
+          "Return response id={}: {}, count 1",
+          response.id,
+          primitives::BlockInfo(response.blocks.front().header.value().number,
+                                response.blocks.front().hash));
     } else {
-      SL_DEBUG(log_,
-               "Return response id={}: {}..{}, #{}..#{}, count {}",
-               response.id,
-               response.blocks.front().hash.toHex(),
-               response.blocks.back().hash.toHex(),
-               response.blocks.front().header.value().number,
-               response.blocks.back().header.value().number,
-               response.blocks.size());
+      SL_DEBUG(
+          log_,
+          "Return response id={}: from {} to {}, count {}",
+          response.id,
+          primitives::BlockInfo(response.blocks.front().header.value().number,
+                                response.blocks.front().hash),
+          primitives::BlockInfo(response.blocks.back().header.value().number,
+                                response.blocks.back().hash),
+          response.blocks.size());
     }
 
     requested_ids_.erase(request.id);
@@ -90,10 +93,9 @@ namespace kagome::network {
   SyncProtocolObserverImpl::retrieveRequestedHashes(
       const BlocksRequest &request,
       const primitives::BlockHash &from_hash) const {
-    auto direction =
-        request.direction == network::Direction::ASCENDING
-            ? blockchain::BlockTree::GetChainDirection::ASCEND
-            : blockchain::BlockTree::GetChainDirection::DESCEND;
+    auto direction = request.direction == network::Direction::ASCENDING
+                         ? blockchain::BlockTree::GetChainDirection::ASCEND
+                         : blockchain::BlockTree::GetChainDirection::DESCEND;
     blockchain::BlockTree::BlockHashVecRes chain_hash_res{{}};
 
     uint32_t request_count =
@@ -107,9 +109,9 @@ namespace kagome::network {
 
     // Note: request.to is not used in substrate
 
-    OUTCOME_TRY(chain_hash,
-                block_tree_->getChainByBlock(
-                    from_hash, direction, request_count));
+    OUTCOME_TRY(
+        chain_hash,
+        block_tree_->getChainByBlock(from_hash, direction, request_count));
 
     return std::move(chain_hash);
   }
@@ -120,8 +122,7 @@ namespace kagome::network {
       const std::vector<primitives::BlockHash> &hash_chain) const {
     auto header_needed =
         request.attributeIsSet(network::BlockAttribute::HEADER);
-    auto body_needed =
-        request.attributeIsSet(network::BlockAttribute::BODY);
+    auto body_needed = request.attributeIsSet(network::BlockAttribute::BODY);
     auto justification_needed =
         request.attributeIsSet(network::BlockAttribute::JUSTIFICATION);
 

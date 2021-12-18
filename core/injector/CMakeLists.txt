@@ -40,6 +40,7 @@ target_link_libraries(application_injector
     buffer
     chain_api_service
     changes_tracker
+    child_state_api_service
     clock
     chain_spec
     core_api

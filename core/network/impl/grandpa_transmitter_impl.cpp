@@ -13,33 +13,34 @@ namespace kagome::network {
       std::shared_ptr<network::Router> router)
       : router_(std::move(router)) {}
 
-  void GrandpaTransmitterImpl::neighbor(GrandpaNeighborMessage &&message) {
+  void GrandpaTransmitterImpl::sendNeighborMessage(
+      GrandpaNeighborMessage &&message) {
     auto protocol = router_->getGrandpaProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
     protocol->neighbor(std::move(message));
   }
 
-  void GrandpaTransmitterImpl::vote(GrandpaVote &&message) {
+  void GrandpaTransmitterImpl::sendVoteMessage(GrandpaVote &&message) {
     auto protocol = router_->getGrandpaProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
     protocol->vote(std::move(message));
   }
 
-  void GrandpaTransmitterImpl::finalize(FullCommitMessage &&message) {
+  void GrandpaTransmitterImpl::sendCommitMessage(FullCommitMessage &&message) {
     auto protocol = router_->getGrandpaProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
     protocol->finalize(std::move(message));
   }
 
-  void GrandpaTransmitterImpl::catchUpRequest(const PeerId &peer_id,
-                                              CatchUpRequest &&message) {
+  void GrandpaTransmitterImpl::sendCatchUpRequest(const PeerId &peer_id,
+                                                  CatchUpRequest &&message) {
     auto protocol = router_->getGrandpaProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
     protocol->catchUpRequest(peer_id, std::move(message));
   }
 
-  void GrandpaTransmitterImpl::catchUpResponse(const PeerId &peer_id,
-                                               CatchUpResponse &&message) {
+  void GrandpaTransmitterImpl::sendCatchUpResponse(const PeerId &peer_id,
+                                                   CatchUpResponse &&message) {
     auto protocol = router_->getGrandpaProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
     protocol->catchUpResponse(peer_id, std::move(message));

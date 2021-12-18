@@ -64,10 +64,8 @@ namespace kagome::offchain {
 
       worker_of_this_thread(*ocw);
 
-      SL_TRACE(ocw->log_,
-               "Offchain worker is started for block #{} hash={}",
-               ocw->block_.number,
-               ocw->block_.hash.toHex());
+      SL_TRACE(
+          ocw->log_, "Offchain worker is started for block {}", ocw->block_);
 
       auto res = ocw->executor_->callAt<void>(
           ocw->block_.hash, "OffchainWorkerApi_offchain_worker", ocw->header_);
@@ -76,17 +74,15 @@ namespace kagome::offchain {
 
       if (res.has_failure()) {
         SL_ERROR(ocw->log_,
-                 "Can't execute offchain worker for block #{} hash={}: {}",
-                 ocw->block_.number,
-                 ocw->block_.hash.toHex(),
+                 "Can't execute offchain worker for block {}: {}",
+                 ocw->block_,
                  res.error().message());
         return;
       }
 
       SL_DEBUG(ocw->log_,
-               "Offchain worker is successfully executed for block #{} hash={}",
-               ocw->block_.number,
-               ocw->block_.hash.toHex());
+               "Offchain worker is successfully executed for block {}",
+               ocw->block_);
     };
 
     try {

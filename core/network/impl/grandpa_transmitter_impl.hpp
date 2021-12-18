@@ -1,4 +1,4 @@
-/**
+/**round_number_,
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -15,13 +15,13 @@ namespace kagome::network {
    public:
     GrandpaTransmitterImpl(std::shared_ptr<Router> router);
 
-    void vote(GrandpaVote &&message) override;
-    void neighbor(GrandpaNeighborMessage &&message) override;
-    void finalize(FullCommitMessage &&message) override;
-    void catchUpRequest(const libp2p::peer::PeerId &peer_id,
-                        CatchUpRequest &&message) override;
-    void catchUpResponse(const libp2p::peer::PeerId &peer_id,
-                         CatchUpResponse &&message) override;
+    void sendVoteMessage(GrandpaVote &&message) override;
+    void sendNeighborMessage(GrandpaNeighborMessage &&message) override;
+    void sendCommitMessage(FullCommitMessage &&message) override;
+    void sendCatchUpRequest(const libp2p::peer::PeerId &peer_id,
+                            CatchUpRequest &&message) override;
+    void sendCatchUpResponse(const libp2p::peer::PeerId &peer_id,
+                             CatchUpResponse &&message) override;
 
    private:
     std::shared_ptr<Router> router_;

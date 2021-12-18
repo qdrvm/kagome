@@ -55,6 +55,14 @@ namespace kagome::consensus::babe {
      * @returns current state
      */
     virtual State getCurrentState() const = 0;
+
+    /**
+     * Checks whether the node was in a synchronized state at least once since
+     * startup.
+     * @return true when current state was ever set to synchronized during the
+     * current run, otherwise - false.
+     */
+    virtual bool wasSynchronized() const = 0;
   };
 }  // namespace kagome::consensus::babe
 
