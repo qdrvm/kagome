@@ -62,7 +62,7 @@ namespace kagome::consensus::grandpa {
     /**
      * Make catch-up-response
      */
-    virtual outcome::result<void> onCatchUpResponsed(
+    virtual outcome::result<void> onCatchUpRespond(
         const libp2p::peer::PeerId &peer_id,
         MembershipCounter set_id,
         RoundNumber round_number,

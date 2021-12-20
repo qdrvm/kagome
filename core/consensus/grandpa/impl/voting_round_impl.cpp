@@ -1605,12 +1605,12 @@ namespace kagome::consensus::grandpa {
     auto precommit_justification =
         getPrecommitJustification(finalised_block, precommits_->getMessages());
 
-    auto result = env_->onCatchUpResponsed(peer_id,
-                                           voter_set_->id(),
-                                           round_number_,
-                                           std::move(prevote_justification),
-                                           std::move(precommit_justification),
-                                           finalised_block);
+    auto result = env_->onCatchUpRespond(peer_id,
+                                         voter_set_->id(),
+                                         round_number_,
+                                         std::move(prevote_justification),
+                                         std::move(precommit_justification),
+                                         finalised_block);
     if (not result) {
       logger_->warn("Catch-Up-Response was not sent: {}",
                     result.error().message());

@@ -61,7 +61,7 @@ namespace kagome::consensus::grandpa {
         MembershipCounter set_id,
         RoundNumber round_number) override;
 
-    outcome::result<void> onCatchUpResponsed(
+    outcome::result<void> onCatchUpRespond(
         const libp2p::peer::PeerId &peer_id,
         MembershipCounter set_id,
         RoundNumber round_number,

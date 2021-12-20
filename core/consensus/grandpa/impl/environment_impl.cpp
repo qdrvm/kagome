@@ -94,7 +94,7 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  outcome::result<void> EnvironmentImpl::onCatchUpResponsed(
+  outcome::result<void> EnvironmentImpl::onCatchUpRespond(
       const libp2p::peer::PeerId &peer_id,
       MembershipCounter set_id,
       RoundNumber round_number,
