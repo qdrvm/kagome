@@ -157,6 +157,20 @@ namespace kagome::consensus::grandpa {
     void update(bool isPrevotesChanged, bool isPrecommitsChanged) override;
 
     /**
+     * @returns previous known round for current
+     */
+    std::shared_ptr<VotingRound> getPreviousRound() const override {
+      return previous_round_;
+    };
+
+    /**
+     * Removes previous round to limit chain of rounds
+     */
+    void forgetPreviousRound() override {
+      previous_round_.reset();
+    }
+
+    /**
      * Checks if current round is completable and finalized block differs from
      * the last round's finalized block. If so fin message is broadcasted to the
      * network
@@ -236,7 +250,7 @@ namespace kagome::consensus::grandpa {
 
     std::shared_ptr<VoterSet> voter_set_;
     const RoundNumber round_number_;
-    std::weak_ptr<VotingRound> previous_round_;
+    std::shared_ptr<VotingRound> previous_round_;
 
     const Duration duration_;  // length of round
     bool isPrimary_ = false;

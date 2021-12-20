@@ -62,6 +62,9 @@ namespace kagome::consensus::grandpa {
                       public GrandpaObserver,
                       public std::enable_shared_from_this<GrandpaImpl> {
    public:
+    /// Maximum number of rounds we are keep to communication
+    static const size_t kKeepRecentRounds = 3;
+
     ~GrandpaImpl() override = default;
 
     GrandpaImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -114,6 +117,8 @@ namespace kagome::consensus::grandpa {
     void executeNextRound() override;
 
    private:
+    std::shared_ptr<VotingRound> currentRound();
+
     std::shared_ptr<VotingRound> selectRound(
         RoundNumber round_number,
         std::optional<MembershipCounter> voter_set_id);
@@ -138,7 +143,6 @@ namespace kagome::consensus::grandpa {
     // Perhaps, 333ms is not enough for normal communication during the round
     const Clock::Duration round_time_factor_ = std::chrono::milliseconds(333);
 
-    std::shared_ptr<VotingRound> previous_round_;
     std::shared_ptr<VotingRound> current_round_;
 
     std::shared_ptr<Environment> environment_;

@@ -129,6 +129,16 @@ namespace kagome::consensus::grandpa {
 
     // Auxiliary methods
 
+    /**
+     * @returns previous known round for current
+     */
+    virtual std::shared_ptr<VotingRound> getPreviousRound() const = 0;
+
+    /**
+     * Removes previous round to limit chain of rounds
+     */
+    virtual void forgetPreviousRound() = 0;
+
     virtual outcome::result<void> applyJustification(
         const BlockInfo &block_info,
         const GrandpaJustification &justification) = 0;

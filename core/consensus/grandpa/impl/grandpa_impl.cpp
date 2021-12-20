@@ -230,22 +230,26 @@ namespace kagome::consensus::grandpa {
     return new_round;
   }
 
+  std::shared_ptr<VotingRound> GrandpaImpl::currentRound() {
+    BOOST_ASSERT(current_round_ != nullptr);
+    return current_round_;
+  }
+
   std::shared_ptr<VotingRound> GrandpaImpl::selectRound(
       RoundNumber round_number, std::optional<MembershipCounter> voter_set_id) {
-    std::shared_ptr<VotingRound> target_round;
-    if (current_round_ && current_round_->roundNumber() == round_number) {
-      if (not voter_set_id.has_value()
-          or current_round_->voterSetId() == voter_set_id.value()) {
-        return current_round_;
+    std::shared_ptr<VotingRound> round = current_round_;
+
+    while (round != nullptr) {
+      if (round->roundNumber() == round_number) {
+        if (not voter_set_id.has_value()
+            or round->voterSetId() == voter_set_id.value()) {
+          break;
+        }
       }
+      round = round->getPreviousRound();
     }
-    if (previous_round_ && previous_round_->roundNumber() == round_number) {
-      if (not voter_set_id.has_value()
-          or previous_round_->voterSetId() == voter_set_id.value()) {
-        return previous_round_;
-      }
-    }
-    return {};
+
+    return round;
   }
 
   outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
@@ -278,9 +282,18 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::executeNextRound() {
-    previous_round_.swap(current_round_);
-    previous_round_->end();
-    current_round_ = makeNextRound(previous_round_);
+    current_round_->end();
+    current_round_ = makeNextRound(current_round_);
+
+    // Truncate chain of rounds
+    size_t i = 0;
+    for (auto round = current_round_; round != nullptr;
+         round = round->getPreviousRound()) {
+      if (++i >= kKeepRecentRounds) {
+        round->forgetPreviousRound();
+      }
+    }
+
     metric_highest_round_->set(current_round_->roundNumber());
     if (keypair_) {
       current_round_->play();
@@ -341,26 +354,18 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (previous_round_ == nullptr) {
+    auto round = selectRound(msg.round_number, msg.voter_set_id);
+    if (round == nullptr) {
       SL_DEBUG(
           logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
-          "previous round is dummy yet",
+          "target round not found",
           msg.round_number,
           peer_id);
       return;
     }
-    if (FullRound{msg} > FullRound{current_round_}) {
-      // Node lags from remote peer
-      SL_DEBUG(
-          logger_,
-          "Catch-up request (since round #{}) received from {} was rejected: "
-          "catching up into the past",
-          msg.round_number,
-          peer_id);
-      return;
-    }
-    if (not previous_round_->completable()) {
+
+    if (not round->completable()) {
       SL_DEBUG(
           logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
@@ -369,7 +374,7 @@ namespace kagome::consensus::grandpa {
           peer_id);
       return;
     }
-    if (not previous_round_->finalizable()) {
+    if (not round->finalizable()) {
       SL_DEBUG(
           logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
@@ -383,12 +388,11 @@ namespace kagome::consensus::grandpa {
              "Catch-up request (since round #{}) received from {}",
              msg.round_number,
              peer_id);
-    previous_round_->doCatchUpResponse(peer_id);
+    round->doCatchUpResponse(peer_id);
   }
 
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
-
     BOOST_ASSERT(current_round_ != nullptr);
     if (FullRound{msg} < FullRound{current_round_}) {
       // Catching up in to the past
@@ -456,8 +460,7 @@ namespace kagome::consensus::grandpa {
         return;
       }
 
-      previous_round_.swap(current_round_);
-      previous_round_->end();
+      current_round_->end();
       current_round_ = std::move(round);
 
     } else {
@@ -713,9 +716,7 @@ namespace kagome::consensus::grandpa {
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
 
-    if (previous_round_ != round) {
-      previous_round_.swap(current_round_);
-      previous_round_->end();
+    if (current_round_->getPreviousRound() != round) {
       current_round_ = std::move(round);
 
       executeNextRound();

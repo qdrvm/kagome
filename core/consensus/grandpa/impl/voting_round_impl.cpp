@@ -202,17 +202,16 @@ namespace kagome::consensus::grandpa {
     if (isPrimary_) {
       SL_DEBUG(logger_, "Node is primary proposer at round #{}", round_number_);
 
-      auto previous_round = previous_round_.lock();
-      BOOST_ASSERT(previous_round != nullptr);
+      BOOST_ASSERT(previous_round_ != nullptr);
 
       // Broadcast Commit-message with previous round best final candidate
       //  (or last finalized otherwise)
       // spec: Broadcast(M vr ¡1;Fin (Best-Final-Candidate(r-1)))
-      previous_round->doCommit();
+      previous_round_->doCommit();
 
       // if Best-Final-Candidate greater than Last-Finalized-Block
       // spec: if Best-Final-Candidate(r ¡ 1) > Last-Finalized-Block
-      if (previous_round->bestFinalCandidate().number
+      if (previous_round_->bestFinalCandidate().number
           > last_finalized_block_.number) {
         doProposal();
       }
@@ -368,13 +367,12 @@ namespace kagome::consensus::grandpa {
     //    and Last-Finalized-Block>Best-Final-Candidate(r-1)
     // )
 
-    auto previous_round = previous_round_.lock();
-    BOOST_ASSERT(previous_round != nullptr);
+    BOOST_ASSERT(previous_round_ != nullptr);
 
     const bool is_ready_to_end =
         finalizable()
         && finalizedBlock()->number
-               >= previous_round->bestFinalCandidate().number;
+               >= previous_round_->bestFinalCandidate().number;
 
     if (is_ready_to_end) {
       SL_DEBUG(logger_,
@@ -386,13 +384,10 @@ namespace kagome::consensus::grandpa {
     }
 
     on_complete_handler_ = [this] {
-      auto previous_round = previous_round_.lock();
-      BOOST_ASSERT(previous_round != nullptr);
-
       const bool is_ready_to_end =
           finalizable()
           && finalizedBlock()->number
-                 >= previous_round->bestFinalCandidate().number;
+                 >= previous_round_->bestFinalCandidate().number;
 
       if (is_ready_to_end) {
         SL_DEBUG(logger_,
@@ -453,10 +448,9 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT_MSG(not primary_vote_.has_value(),
                      "Primary proposal must be once for a round");
 
-    auto previous_round = previous_round_.lock();
-    BOOST_ASSERT(previous_round != nullptr);
+    BOOST_ASSERT(previous_round_ != nullptr);
 
-    primary_vote_ = previous_round->bestFinalCandidate();
+    primary_vote_ = previous_round_->bestFinalCandidate();
 
     sendProposal(convertToPrimaryPropose(primary_vote_.value()));
   }
@@ -493,8 +487,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    auto previous_round = previous_round_.lock();
-    BOOST_ASSERT(previous_round != nullptr);
+    BOOST_ASSERT(previous_round_ != nullptr);
 
     // spec: N <- Best-PreVote-Candidate(r)
     const auto best_prevote_candidate = bestPrevoteCandidate();
@@ -535,10 +528,9 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    auto previous_round = previous_round_.lock();
-    BOOST_ASSERT(previous_round != nullptr);
+    BOOST_ASSERT(previous_round_ != nullptr);
 
-    auto last_round_estimate = previous_round->bestFinalCandidate();
+    auto last_round_estimate = previous_round_->bestFinalCandidate();
 
     auto best_prevote_candidate = bestPrevoteCandidate();
 
@@ -1081,10 +1073,8 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    auto previous_round = previous_round_.lock();
-
-    auto current_best = previous_round ? previous_round->bestFinalCandidate()
-                                       : last_finalized_block_;
+    auto current_best = previous_round_ ? previous_round_->bestFinalCandidate()
+                                        : last_finalized_block_;
 
     auto possible_to_prevote = [this](const VoteWeight &weight) {
       return weight.total(prevote_equivocators_, *voter_set_) >= threshold_;
@@ -1136,9 +1126,8 @@ namespace kagome::consensus::grandpa {
     };
 
     auto current_best = precommit_ghost_.value_or(prevote_ghost_.value_or([&] {
-      auto previous_round = previous_round_.lock();
-      return previous_round ? previous_round->bestFinalCandidate()
-                            : last_finalized_block_;
+      return previous_round_ ? previous_round_->bestFinalCandidate()
+                             : last_finalized_block_;
     }()));
 
     /// @see spec: Grandpa-Ghost
@@ -1334,11 +1323,9 @@ namespace kagome::consensus::grandpa {
       return prevote_.value();
     }
 
-    auto previous_round = previous_round_.lock();
-
     // spec: L <- Best-Final-Candidate(r-1)
-    auto best_final_candicate = previous_round
-                                    ? previous_round->bestFinalCandidate()
+    auto best_final_candicate = previous_round_
+                                    ? previous_round_->bestFinalCandidate()
                                     : last_finalized_block_;
 
     // spec: Bpv <- GRANDPA-GHOST(r)
@@ -1365,8 +1352,6 @@ namespace kagome::consensus::grandpa {
   }
 
   BlockInfo VotingRoundImpl::bestPrecommitCandidate() {
-    auto previous_round = previous_round_.lock();
-
     const auto &best_prevote_candidate = prevote_ghost_.has_value()
                                              ? prevote_ghost_.value()
                                              : last_finalized_block_;
@@ -1636,9 +1621,8 @@ namespace kagome::consensus::grandpa {
     neighbor_msg_timer_.cancel();
 
     if (precommit_.has_value()) {
-      auto previous_round = previous_round_.lock();
-      if (previous_round) {
-        previous_round->doCommit();
+      if (previous_round_) {
+        previous_round_->doCommit();
       }
     }
 
