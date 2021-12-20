@@ -96,7 +96,7 @@ namespace kagome::network {
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("GrandpaProtocol", "kagome_protocols");
+    log::Logger log_ = log::createLogger("GrandpaProtocol", "grandpa_protocol");
   };
 
 }  // namespace kagome::network
