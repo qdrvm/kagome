@@ -75,6 +75,13 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(void, update, (bool, bool), (override));
 
+    MOCK_METHOD(std::shared_ptr<VotingRound>,
+                getPreviousRound,
+                (),
+                (const, override));
+
+    MOCK_METHOD(void, forgetPreviousRound, (), (override));
+
     MOCK_METHOD(outcome::result<void>,
                 applyJustification,
                 (const BlockInfo &, const GrandpaJustification &),

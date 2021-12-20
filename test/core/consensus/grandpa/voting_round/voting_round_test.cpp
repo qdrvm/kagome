@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/range/algorithm/find.hpp>
+#include <mock/libp2p/basic/scheduler_mock.hpp>
 
 #include "clock/impl/clock_impl.hpp"
 #include "common/visitor.hpp"
@@ -73,7 +73,9 @@ ACTION_P(onSignPrecommit, fixture) {
       fixture->kAlice, fixture->kAliceSignature, arg0);
 }
 
-class VotingRoundTest : public testing::Test {
+class VotingRoundTest : public testing::Test,
+                        // Next inheritance only for access to private methods
+                        protected VotingRoundImpl {
  public:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
@@ -162,6 +164,10 @@ class VotingRoundTest : public testing::Test {
     precommit_graph_ =
         std::make_shared<VoteGraphImpl>(base, config.voters, env_);
 
+    scheduler_ = std::make_shared<libp2p::basic::SchedulerMock>();
+    EXPECT_CALL(*scheduler_, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
+    EXPECT_CALL(*scheduler_, nowMockCall()).Times(AnyNumber());
+
     previous_round_ = std::make_shared<VotingRoundMock>();
     ON_CALL(*previous_round_, lastFinalizedBlock())
         .WillByDefault(Return(BlockInfo{0, "genesis"_H}));
@@ -178,6 +184,7 @@ class VotingRoundTest : public testing::Test {
     EXPECT_CALL(*previous_round_, finalizedBlock())
         .Times(AnyNumber())
         .WillRepeatedly(Return(BlockInfo{2, "B"_H}));
+    ON_CALL(*previous_round_, doCommit()).WillByDefault(Return());
 
     round_ = std::make_shared<VotingRoundImpl>(grandpa_,
                                                config,
@@ -189,7 +196,7 @@ class VotingRoundTest : public testing::Test {
                                                prevote_graph_,
                                                precommit_graph_,
                                                clock_,
-                                               io_context_,
+                                               scheduler_,
                                                previous_round_);
   }
 
@@ -228,7 +235,7 @@ class VotingRoundTest : public testing::Test {
   const Ed25519Signature kEveSignature = "Eve"_SIG;
 
   RoundNumber round_number_{0};
-  Duration duration_{100ms};
+  static constexpr auto duration_ = 100ms;
   TimePoint start_time_{42h};
 
   Ed25519Keypair keypair_;
@@ -249,8 +256,7 @@ class VotingRoundTest : public testing::Test {
   std::shared_ptr<VoteGraphImpl> precommit_graph_;
   std::shared_ptr<Clock> clock_ = std::make_shared<SteadyClockImpl>();
 
-  std::shared_ptr<boost::asio::io_context> io_context_ =
-      std::make_shared<boost::asio::io_context>();
+  std::shared_ptr<libp2p::basic::SchedulerMock> scheduler_;
 
   std::shared_ptr<VotingRoundMock> previous_round_;
   std::shared_ptr<VotingRoundImpl> round_;
@@ -515,7 +521,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   // Alice is also a Primary (alice's voter index % round number is zero)
   {
     auto matcher = [&](const SignedMessage &primary_propose) {
-      if (primary_propose.id == kAlice
+      if (primary_propose.is<PrimaryPropose>() and primary_propose.id == kAlice
           and primary_propose.getBlockHash() == base_block.hash) {
         std::cout << "Proposed: " << primary_propose.getBlockHash().data()
                   << std::endl;
@@ -523,28 +529,29 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
       }
       return false;
     };
-    EXPECT_CALL(*env_, onProposed(_, _, Truly(matcher)))
+    EXPECT_CALL(*env_, onVoted(_, _, Truly(matcher)))
         .WillOnce(onProposed(this));  // propose;
   }
 
   // After prevote stage timer is out, Alice is doing prevote
   {
     auto matcher = [&](const SignedMessage &prevote) {
-      if (prevote.id == kAlice and prevote.getBlockHash() == best_block.hash) {
+      if (prevote.is<Prevote>() and prevote.id == kAlice
+          and prevote.getBlockHash() == best_block.hash) {
         std::cout << "Prevoted: " << prevote.getBlockHash().data() << std::endl;
         return true;
       }
       return false;
     };
     // Is doing prevote
-    EXPECT_CALL(*env_, onPrevoted(_, _, Truly(matcher)))
+    EXPECT_CALL(*env_, onVoted(_, _, Truly(matcher)))
         .WillOnce(onPrevoted(this));  // prevote;
   }
 
   // After precommit stage timer is out, Alice is doing precommit
   {
     auto matcher = [&](const SignedMessage &precommit) {
-      if (precommit.id == kAlice
+      if (precommit.is<Precommit>() and precommit.id == kAlice
           and precommit.getBlockHash() == best_block.hash) {
         std::cout << "Precommitted: " << precommit.getBlockHash().data()
                   << std::endl;
@@ -553,7 +560,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
       return false;
     };
     // Is doing precommit
-    EXPECT_CALL(*env_, onPrecommitted(_, _, Truly(matcher)))
+    EXPECT_CALL(*env_, onVoted(_, _, Truly(matcher)))
         .WillOnce(onPrecommitted(this));  // precommit;
   }
 
@@ -601,6 +608,6 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   }
 
   round_->play();
-
-  io_context_->run_for(duration_ * 6);
+  round_->endPrevoteStage();
+  round_->endPrecommitStage();
 }

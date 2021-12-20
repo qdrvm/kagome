@@ -64,7 +64,6 @@ namespace kagome::consensus::grandpa {
         vote_crypto_provider_{std::move(vote_crypto_provider)},
         prevote_graph_{std::move(prevote_graph)},
         precommit_graph_{std::move(precommit_graph)},
-        clock_{std::move(clock)},
         scheduler_{std::move(scheduler)},
         prevotes_{std::move(prevotes)},
         precommits_{std::move(precommits)} {
@@ -76,7 +75,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(env_ != nullptr);
     BOOST_ASSERT(prevote_graph_ != nullptr);
     BOOST_ASSERT(precommit_graph_ != nullptr);
-    BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
 
     // calculate supermajority
@@ -214,7 +212,7 @@ namespace kagome::consensus::grandpa {
     sendNeighborMessage();
 
     // Current local time (Tstart)
-    start_time_ = clock_->now();
+    start_time_ = scheduler_->now();
 
     // Derive-Primary
     // see ctor
@@ -270,7 +268,7 @@ namespace kagome::consensus::grandpa {
             endPrevoteStage();
           }
         },
-        toMilliseconds(duration_ * 2 - (start_time_ - clock_->now())));
+        toMilliseconds(duration_ * 2 - (start_time_ - scheduler_->now())));
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PREVOTE_RUNS) {
@@ -335,7 +333,7 @@ namespace kagome::consensus::grandpa {
             endPrecommitStage();
           }
         },
-        toMilliseconds(duration_ * 4 - (start_time_ - clock_->now())));
+        toMilliseconds(duration_ * 4 - (start_time_ - scheduler_->now())));
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PRECOMMIT_RUNS) {

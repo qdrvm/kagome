@@ -23,17 +23,22 @@ namespace kagome::network {
     MOCK_METHOD(void, startPingingPeer, (const PeerId &), (override));
 
     MOCK_METHOD(void,
-                updatePeerStatus,
+                updatePeerState,
                 (const PeerId &, const Status &),
                 (override));
 
     MOCK_METHOD(void,
-                updatePeerStatus,
-                (const PeerId &, const BlockInfo &),
+                updatePeerState,
+                (const PeerId &, const BlockAnnounce &),
                 (override));
 
-    MOCK_METHOD(std::optional<Status>,
-                getPeerStatus,
+    MOCK_METHOD(void,
+                updatePeerState,
+                (const PeerId &, const GrandpaNeighborMessage &),
+                (override));
+
+    MOCK_METHOD(std::optional<PeerState>,
+                getPeerState,
                 (const PeerId &),
                 (override));
 

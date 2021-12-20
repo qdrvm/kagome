@@ -41,6 +41,10 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<Clock> clock,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
+   protected:
+    // This ctor is needed only for tests purposes
+    VotingRoundImpl() : round_number_{}, duration_{} {}
+
    public:
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
@@ -258,7 +262,7 @@ namespace kagome::consensus::grandpa {
     bool isPrimary_ = false;
     size_t threshold_;            // supermajority threshold
     const std::optional<Id> id_;  // id of current peer
-    TimePoint start_time_;        // time when round was started to play
+    std::chrono::milliseconds start_time_;  // time of start round to play
 
     std::weak_ptr<Grandpa> grandpa_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
