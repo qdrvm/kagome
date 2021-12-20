@@ -71,30 +71,13 @@ namespace kagome::consensus::grandpa {
         BlockInfo best_final_candidate) = 0;
 
     /**
-     * Note that we've done a primary proposal in the given round.
+     * Note that we've done a vote in the given round.
      * Triggered when current peer appears in round \param round with
-     * \param set_id and \param propose is ready to be sent.
+     * \param set_id and \param vote is ready to be sent.
      */
-    virtual outcome::result<void> onProposed(RoundNumber round,
-                                             MembershipCounter set_id,
-                                             const SignedMessage &propose) = 0;
-
-    /**
-     * Triggered when current peer appears in round \param round with
-     * \param set_id and \param prevote is ready to be sent.
-     */
-    virtual outcome::result<void> onPrevoted(RoundNumber round,
-                                             MembershipCounter set_id,
-                                             const SignedMessage &prevote) = 0;
-
-    /**
-     * Triggered when current peer appears in round \param round with
-     * \param set_id and \param precommit is ready to be sent.
-     */
-    virtual outcome::result<void> onPrecommitted(
-        RoundNumber round,
-        MembershipCounter set_id,
-        const SignedMessage &precommit) = 0;
+    virtual outcome::result<void> onVoted(RoundNumber round,
+                                         MembershipCounter set_id,
+                                         const SignedMessage &propose) = 0;
 
     /**
      * Triggered when current peer appears in round \param round intends to

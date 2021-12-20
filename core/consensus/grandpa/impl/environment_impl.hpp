@@ -69,18 +69,9 @@ namespace kagome::consensus::grandpa {
         std::vector<SignedPrecommit> precommit_justification,
         BlockInfo best_final_candidate) override;
 
-    outcome::result<void> onProposed(RoundNumber round,
+    outcome::result<void> onVoted(RoundNumber round,
                                      MembershipCounter set_id,
                                      const SignedMessage &propose) override;
-
-    outcome::result<void> onPrevoted(RoundNumber round,
-                                     MembershipCounter set_id,
-                                     const SignedMessage &prevote) override;
-
-    outcome::result<void> onPrecommitted(
-        RoundNumber round,
-        MembershipCounter set_id,
-        const SignedMessage &precommit) override;
 
     outcome::result<void> onCommitted(
         RoundNumber round,

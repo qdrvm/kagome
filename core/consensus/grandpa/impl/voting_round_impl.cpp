@@ -477,13 +477,12 @@ namespace kagome::consensus::grandpa {
     }
     auto &signed_primary_proposal = signed_primary_proposal_opt.value();
 
-    auto proposed = env_->onProposed(
-        round_number_, voter_set_->id(), signed_primary_proposal);
-
-    if (not proposed) {
+    auto res =
+        env_->onVoted(round_number_, voter_set_->id(), signed_primary_proposal);
+    if (not res) {
       logger_->error("Round #{}: Primary proposal was not sent: {}",
                      round_number_,
-                     proposed.error().message());
+                     res.error().message());
     }
   }
 
@@ -521,13 +520,11 @@ namespace kagome::consensus::grandpa {
     }
     auto &signed_prevote = signed_prevote_opt.value();
 
-    auto prevoted =
-        env_->onPrevoted(round_number_, voter_set_->id(), signed_prevote);
-
-    if (not prevoted) {
+    auto res = env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
+    if (not res) {
       logger_->error("Round #{}: Prevote was not sent: {}",
                      round_number_,
-                     prevoted.error().message());
+                     res.error().message());
     }
   }
 
@@ -577,13 +574,11 @@ namespace kagome::consensus::grandpa {
     }
     auto &signed_precommit = signed_precommit_opt.value();
 
-    auto precommited =
-        env_->onPrecommitted(round_number_, voter_set_->id(), signed_precommit);
-
-    if (not precommited) {
+    auto res = env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
+    if (not res) {
       logger_->error("Round #{}: Precommit was not sent: {}",
                      round_number_,
-                     precommited.error().message());
+                     res.error().message());
     }
   }
 
@@ -857,13 +852,11 @@ namespace kagome::consensus::grandpa {
     primary_vote_.emplace(proposal.getBlockInfo());
 
     if (propagation == Propagation::REQUESTED) {
-      auto proposed =
-          env_->onProposed(round_number_, voter_set_->id(), proposal);
-
-      if (not proposed) {
+      auto res = env_->onVoted(round_number_, voter_set_->id(), proposal);
+      if (not res) {
         logger_->error("Round #{}: Primary proposal was not propagated: {}",
                        round_number_,
-                       proposed.error().message());
+                       res.error().message());
       }
     }
   }
@@ -911,13 +904,11 @@ namespace kagome::consensus::grandpa {
     }
 
     if (propagation == Propagation::REQUESTED) {
-      auto prevoted =
-          env_->onPrevoted(round_number_, voter_set_->id(), prevote);
-
-      if (not prevoted) {
+      auto res = env_->onVoted(round_number_, voter_set_->id(), prevote);
+      if (not res) {
         logger_->error("Round #{}: Prevote was not propagated: {}",
                        round_number_,
-                       prevoted.error().message());
+                       res.error().message());
       }
     }
 
@@ -969,13 +960,11 @@ namespace kagome::consensus::grandpa {
     }
 
     if (propagation == Propagation::REQUESTED) {
-      auto precommitted =
-          env_->onPrecommitted(round_number_, voter_set_->id(), precommit);
-
-      if (not precommitted) {
+      auto res = env_->onVoted(round_number_, voter_set_->id(), precommit);
+      if (not res) {
         logger_->error("Round #{}: Precommit was not propagated: {}",
                        round_number_,
-                       precommitted.error().message());
+                       res.error().message());
       }
     }
 

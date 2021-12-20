@@ -112,56 +112,22 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  outcome::result<void> EnvironmentImpl::onProposed(
-      RoundNumber round,
-      MembershipCounter set_id,
-      const SignedMessage &propose) {
-    BOOST_ASSERT(propose.is<PrimaryPropose>());
-
+  outcome::result<void> EnvironmentImpl::onVoted(RoundNumber round,
+                                                 MembershipCounter set_id,
+                                                 const SignedMessage &vote) {
     SL_DEBUG(logger_,
-             "Round #{}: Send proposal for block {}",
+             "Round #{}: Send {} for block {}",
              round,
-             propose.getBlockInfo());
+             visit_in_place(
+                 vote.message,
+                 [&](const Prevote &) { return "prevote"; },
+                 [&](const Precommit &) { return "precommit"; },
+                 [&](const PrimaryPropose &) { return "primary propose"; }),
+             vote.getBlockInfo());
 
     network::GrandpaVote message{
-        {.round_number = round, .counter = set_id, .vote = propose}};
+        {.round_number = round, .counter = set_id, .vote = vote}};
     transmitter_->sendVoteMessage(std::move(message));
-    return outcome::success();
-  }
-
-  outcome::result<void> EnvironmentImpl::onPrevoted(
-      RoundNumber round,
-      MembershipCounter set_id,
-      const SignedMessage &prevote) {
-    BOOST_ASSERT(prevote.is<Prevote>());
-
-    SL_DEBUG(logger_,
-             "Round #{}: Send prevote for block {}",
-             round,
-             prevote.getBlockInfo());
-
-    network::GrandpaVote message{
-        {.round_number = round, .counter = set_id, .vote = prevote}};
-    transmitter_->sendVoteMessage(std::move(message));
-
-    return outcome::success();
-  }
-
-  outcome::result<void> EnvironmentImpl::onPrecommitted(
-      RoundNumber round,
-      MembershipCounter set_id,
-      const SignedMessage &precommit) {
-    BOOST_ASSERT(precommit.is<Precommit>());
-
-    SL_DEBUG(logger_,
-             "Round #{}: Send precommit for block {}",
-             round,
-             precommit.getBlockInfo());
-
-    network::GrandpaVote message{
-        {.round_number = round, .counter = set_id, .vote = precommit}};
-    transmitter_->sendVoteMessage(std::move(message));
-
     return outcome::success();
   }
 
