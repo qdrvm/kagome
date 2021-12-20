@@ -116,13 +116,14 @@ namespace kagome::consensus::grandpa {
                                                  MembershipCounter set_id,
                                                  const SignedMessage &vote) {
     SL_DEBUG(logger_,
-             "Round #{}: Send {} for block {}",
+             "Round #{}: Send {} signed by {} for block {}",
              round,
              visit_in_place(
                  vote.message,
                  [&](const Prevote &) { return "prevote"; },
                  [&](const Precommit &) { return "precommit"; },
                  [&](const PrimaryPropose &) { return "primary propose"; }),
+             vote.id,
              vote.getBlockInfo());
 
     network::GrandpaVote message{
