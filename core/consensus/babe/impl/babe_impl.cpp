@@ -424,12 +424,18 @@ namespace kagome::consensus::babe {
 
     auto epoch_res = block_tree_->getEpochDescriptor(
         current_epoch_.epoch_number, best_block_.hash);
-    BOOST_ASSERT(epoch_res);
+    if (epoch_res.has_error()) {
+      SL_ERROR(log_,
+               "Fail to get epoch: {}; Skipping slot processing",
+               epoch_res.error().message());
+      return;
+    }
     const auto &epoch = epoch_res.value();
+
     auto authority_index_res =
         getAuthorityIndex(epoch.authorities, keypair_->public_key);
     if (not authority_index_res) {
-      SL_DEBUG(log_,
+      SL_ERROR(log_,
                "Authority not known, skipping slot processing. "
                "Probably authority list has changed.");
       return;
