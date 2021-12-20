@@ -33,7 +33,7 @@ namespace kagome::api::system::request {
       result.reserve(peer_manager.activePeersNumber());
 
       peer_manager.forEachPeer([&](auto &peer_id) {
-        auto status_opt = peer_manager.getPeerStatus(peer_id);
+        auto status_opt = peer_manager.getPeerState(peer_id);
         if (status_opt.has_value()) {
           auto &status = status_opt.value();
 

@@ -302,7 +302,7 @@ namespace kagome::network {
             self->grandpa_observer_->onCommitMessage(peer_id, commit_message);
           },
           [&](const GrandpaNeighborMessage &neighbor_message) {
-            self->peer_manager_->updatePeerStatus(peer_id, neighbor_message);
+            self->peer_manager_->updatePeerState(peer_id, neighbor_message);
             self->grandpa_observer_->onNeighborMessage(peer_id,
                                                        neighbor_message);
           },
@@ -327,7 +327,7 @@ namespace kagome::network {
                    set_id = vote_message.counter,
                    round_number =
                        vote_message.round_number](const PeerId &peer_id) {
-      auto info_opt = peer_manager_->getPeerStatus(peer_id);
+      auto info_opt = peer_manager_->getPeerState(peer_id);
       if (not info_opt.has_value()) {
         return false;
       }
@@ -354,14 +354,16 @@ namespace kagome::network {
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
     (*shared_msg) = GrandpaMessage(std::move(vote_message));
 
-    stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
-                                              std::move(shared_msg), filter);
+    stream_engine_->broadcast<GrandpaMessage>(
+        shared_from_this(), std::move(shared_msg), filter);
   }
 
   void GrandpaProtocol::neighbor(GrandpaNeighborMessage &&msg) {
     SL_DEBUG(log_,
              "Send neighbor message: grandpa round number {}",
              msg.round_number);
+
+    peer_manager_->updatePeerState(own_info_.id, msg);
 
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
@@ -379,7 +381,7 @@ namespace kagome::network {
                    round_number = msg.round,
                    finalizing =
                        msg.message.target_number](const PeerId &peer_id) {
-      auto info_opt = peer_manager_->getPeerStatus(peer_id);
+      auto info_opt = peer_manager_->getPeerState(peer_id);
       if (not info_opt.has_value()) {
         return false;
       }
@@ -410,8 +412,8 @@ namespace kagome::network {
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
     (*shared_msg) = GrandpaMessage(std::move(msg));
 
-    stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
-                                              std::move(shared_msg), filter);
+    stream_engine_->broadcast<GrandpaMessage>(
+        shared_from_this(), std::move(shared_msg), filter);
   }
 
   void GrandpaProtocol::catchUpRequest(const libp2p::peer::PeerId &peer_id,
@@ -420,7 +422,7 @@ namespace kagome::network {
              "Send catch-up request: beginning with grandpa round number {}",
              catch_up_request.round_number);
 
-    auto info_opt = peer_manager_->getPeerStatus(peer_id);
+    auto info_opt = peer_manager_->getPeerState(peer_id);
     if (not info_opt.has_value()) {
       return;
     }
@@ -450,7 +452,7 @@ namespace kagome::network {
              "Send catch-up response: beginning with grandpa round number {}",
              catch_up_response.round_number);
 
-    auto info_opt = peer_manager_->getPeerStatus(peer_id);
+    auto info_opt = peer_manager_->getPeerState(peer_id);
     if (not info_opt.has_value()) {
       return;
     }

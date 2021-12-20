@@ -92,20 +92,20 @@ namespace kagome::network {
     /** @see PeerManager::startPingingPeer */
     void startPingingPeer(const PeerId &peer_id) override;
 
-    /** @see PeerManager::updatePeerStatus */
-    void updatePeerStatus(const PeerId &peer_id, const Status &status) override;
+    /** @see PeerManager::updatePeerState */
+    void updatePeerState(const PeerId &peer_id, const Status &status) override;
 
-    /** @see PeerManager::updatePeerStatus */
-    void updatePeerStatus(const PeerId &peer_id,
-                          const BlockAnnounce &announce) override;
+    /** @see PeerManager::updatePeerState */
+    void updatePeerState(const PeerId &peer_id,
+                         const BlockAnnounce &announce) override;
 
-    /** @see PeerManager::updatePeerStatus */
-    void updatePeerStatus(
+    /** @see PeerManager::updatePeerState */
+    void updatePeerState(
         const PeerId &peer_id,
         const GrandpaNeighborMessage &neighbor_message) override;
 
-    /** @see PeerManager::getPeerStatus */
-    std::optional<ActivePeerData> getPeerStatus(const PeerId &peer_id) override;
+    /** @see PeerManager::getPeerState */
+    std::optional<PeerState> getPeerState(const PeerId &peer_id) override;
 
    private:
     /// Right way to check self peer as it takes into account dev mode
@@ -151,7 +151,8 @@ namespace kagome::network {
     std::unordered_set<libp2p::network::ConnectionManager::ConnectionSPtr>
         pinging_connections_;
 
-    std::map<PeerId, ActivePeerData> active_peers_;
+    std::map<PeerId, clock::SteadyClock::TimePoint> active_peers_;
+    std::unordered_map<PeerId, PeerState> peer_states_;
     libp2p::basic::Scheduler::Handle align_timer_;
     std::set<PeerId> recently_active_peers_;
 

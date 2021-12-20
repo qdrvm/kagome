@@ -210,10 +210,9 @@ namespace kagome::network {
       auto it = std::min_element(active_peers_.begin(),
                                  active_peers_.end(),
                                  [](const auto &item1, const auto &item2) {
-                                   return item1.second.time < item2.second.time;
+                                   return item1.second < item2.second;
                                  });
-      auto &[oldest_peer_id, data] = *it;
-      auto &oldest_timepoint = data.time;
+      auto &[oldest_peer_id, oldest_timepoint] = *it;
 
       if (active_peers_.size() > hard_limit) {
         // Hard limit is exceeded
@@ -351,12 +350,15 @@ namespace kagome::network {
       sync_peer_num_->set(active_peers_.size());
       SL_DEBUG(log_, "Remained {} active peers", active_peers_.size());
     }
+    if (peer_id != own_peer_info_.id) {
+      peer_states_.erase(peer_id);
+    }
   }
 
   void PeerManagerImpl::keepAlive(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
-      it->second.time = clock_->now();
+      it->second = clock_->now();
     }
   }
 
@@ -404,71 +406,63 @@ namespace kagome::network {
         });
   }
 
-  void PeerManagerImpl::updatePeerStatus(const PeerId &peer_id,
-                                         const Status &status) {
-    auto it = active_peers_.find(peer_id);
-    if (it != active_peers_.end()) {
-      it->second.time = clock_->now();
-      it->second.roles = status.roles;
-      it->second.best_block = status.best_block;
-    } else {
-      // Remove from connecting peer list
-      connecting_peers_.erase(peer_id);
+  void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
+                                        const Status &status) {
+    auto [it, is_new] = peer_states_.emplace(peer_id, PeerState{});
+    it->second.time = clock_->now();
+    it->second.roles = status.roles;
+    it->second.best_block = status.best_block;
 
-      // Remove from queue for connection
-      if (auto piq_it = peers_in_queue_.find(peer_id);
-          piq_it != peers_in_queue_.end()) {
-        auto qtc_it = std::find_if(queue_to_connect_.cbegin(),
-                                   queue_to_connect_.cend(),
-                                   [&peer_id = peer_id](const auto &item) {
-                                     return peer_id == item.get();
-                                   });
-        queue_to_connect_.erase(qtc_it);
-        peers_in_queue_.erase(piq_it);
-        BOOST_ASSERT(queue_to_connect_.size() == peers_in_queue_.size());
-
-        SL_DEBUG(log_,
-                 "Remained peers in queue for connect: {}",
-                 peers_in_queue_.size());
-      }
-
-      // Add as active peer
-      active_peers_.emplace(peer_id,
-                            ActivePeerData{.time = clock_->now(),
-                                           .roles = status.roles,
-                                           .best_block = status.best_block,
-                                           .last_finalized = 0});
-      sync_peer_num_->set(active_peers_.size());
-      recently_active_peers_.insert(peer_id);
-    }
+    //  // Remove from connecting peer list
+    //  connecting_peers_.erase(peer_id);
+    //
+    //  // Remove from queue for connection
+    //  if (auto piq_it = peers_in_queue_.find(peer_id);
+    //      piq_it != peers_in_queue_.end()) {
+    //    auto qtc_it = std::find_if(queue_to_connect_.cbegin(),
+    //                               queue_to_connect_.cend(),
+    //                               [&peer_id = peer_id](const auto &item) {
+    //                                 return peer_id == item.get();
+    //                               });
+    //    queue_to_connect_.erase(qtc_it);
+    //    peers_in_queue_.erase(piq_it);
+    //    BOOST_ASSERT(queue_to_connect_.size() == peers_in_queue_.size());
+    //
+    //    SL_DEBUG(log_,
+    //             "Remained peers in queue for connect: {}",
+    //             peers_in_queue_.size());
+    //  }
+    //
+    //  // Add as active peer
+    //  active_peers_.emplace(peer_id, clock_->now());
+    //  PeerManagerImpl::updatePeerState(peer_id, status);
+    //
+    //  sync_peer_num_->set(active_peers_.size());
+    //  recently_active_peers_.insert(peer_id);
   }
 
-  void PeerManagerImpl::updatePeerStatus(const PeerId &peer_id,
-                                         const BlockAnnounce &announce) {
-    auto it = active_peers_.find(peer_id);
-    if (it != active_peers_.end()) {
-      auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
+  void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
+                                        const BlockAnnounce &announce) {
+    auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
 
-      it->second.time = clock_->now();
-      it->second.best_block = {announce.header.number, hash};
-    }
+    auto [it, _] = peer_states_.emplace(peer_id, PeerState{});
+    it->second.time = clock_->now();
+    it->second.best_block = {announce.header.number, hash};
   }
 
-  void PeerManagerImpl::updatePeerStatus(
+  void PeerManagerImpl::updatePeerState(
       const PeerId &peer_id, const GrandpaNeighborMessage &neighbor_message) {
-    auto it = active_peers_.find(peer_id);
-    if (it != active_peers_.end()) {
-      it->second.time = clock_->now();
-      it->second.round_number = neighbor_message.round_number;
-      it->second.set_id = neighbor_message.voter_set_id;
-      it->second.last_finalized = neighbor_message.last_finalized;
-    }
+    auto [it, _] = peer_states_.emplace(peer_id, PeerState{});
+    it->second.time = clock_->now();
+    it->second.round_number = neighbor_message.round_number;
+    it->second.set_id = neighbor_message.voter_set_id;
+    it->second.last_finalized = neighbor_message.last_finalized;
   }
 
-  std::optional<ActivePeerData> PeerManagerImpl::getPeerStatus(
+  std::optional<PeerState> PeerManagerImpl::getPeerState(
       const PeerId &peer_id) {
-    auto it = active_peers_.find(peer_id);
-    if (it == active_peers_.end()) {
+    auto it = peer_states_.find(peer_id);
+    if (it == peer_states_.end()) {
       return std::nullopt;
     }
     return it->second;
@@ -537,10 +531,7 @@ namespace kagome::network {
 
             // Add to active peer list
             if (auto [ap_it, added] =
-                    self->active_peers_.emplace(peer_id,
-                                                ActivePeerData{
-                                                    .time = self->clock_->now(),
-                                                });
+                    self->active_peers_.emplace(peer_id, self->clock_->now());
                 added) {
               self->recently_active_peers_.insert(peer_id);
 

@@ -17,7 +17,7 @@
 
 namespace kagome::network {
 
-  struct ActivePeerData {
+  struct PeerState {
     clock::SteadyClock::TimePoint time;
     Roles roles = 0;
     BlockInfo best_block = {0, {}};
@@ -62,29 +62,29 @@ namespace kagome::network {
     virtual void startPingingPeer(const PeerId &peer_id) = 0;
 
     /**
-     * Updates status of peer with {@param peer_id} by {@param status}
+     * Updates known data about peer with {@param peer_id} by {@param status}
      */
-    virtual void updatePeerStatus(const PeerId &peer_id,
-                                  const Status &status) = 0;
+    virtual void updatePeerState(const PeerId &peer_id,
+                                 const Status &status) = 0;
 
     /**
-     * Updates status of peer with {@param peer_id} by {@param announce}
+     * Updates known data about peer with {@param peer_id} by {@param announce}
      */
-    virtual void updatePeerStatus(const PeerId &peer_id,
-                                  const BlockAnnounce &announce) = 0;
+    virtual void updatePeerState(const PeerId &peer_id,
+                                 const BlockAnnounce &announce) = 0;
 
     /**
-     * Updates status of peer with {@param peer_id} by {@param neighbor_message}
+     * Updates known data about peer with {@param peer_id} by {@param
+     * neighbor_message}
      */
-    virtual void updatePeerStatus(
+    virtual void updatePeerState(
         const PeerId &peer_id,
         const GrandpaNeighborMessage &neighbor_message) = 0;
 
     /**
      * @returns known info about peer with {@param peer_id} or none
      */
-    virtual std::optional<ActivePeerData> getPeerStatus(
-        const PeerId &peer_id) = 0;
+    virtual std::optional<PeerState> getPeerState(const PeerId &peer_id) = 0;
 
     /**
      * @returns number of active peers

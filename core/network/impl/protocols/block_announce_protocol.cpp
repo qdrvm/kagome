@@ -266,7 +266,7 @@ namespace kagome::network {
                    "Received status from peer_id={} (best block {})",
                    peer_id,
                    remote_status.best_block.number);
-          self->peer_manager_->updatePeerStatus(peer_id, remote_status);
+          self->peer_manager_->updatePeerState(peer_id, remote_status);
 
           switch (direction) {
             case Direction::OUTGOING:
@@ -366,8 +366,8 @@ namespace kagome::network {
 
           self->observer_->onBlockAnnounce(peer_id, block_announce);
 
-          self->peer_manager_->updatePeerStatus(stream->remotePeerId().value(),
-                                                block_announce);
+          self->peer_manager_->updatePeerState(stream->remotePeerId().value(),
+                                               block_announce);
 
           self->readAnnounce(std::move(stream));
         });
