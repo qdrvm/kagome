@@ -1636,14 +1636,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::sendNeighborMessage() {
-    neighbor_msg_timer_.cancel();
-
-    if (precommit_.has_value()) {
-      if (previous_round_) {
-        previous_round_->doCommit();
-      }
-    }
-
     auto res = env_->onNeighborMessageSent(
         round_number_,
         voter_set_->id(),
@@ -1651,6 +1643,44 @@ namespace kagome::consensus::grandpa {
     if (res.has_error()) {
       logger_->warn("Neighbor message was not sent: {}", res.error().message());
     }
+  }
+
+  void VotingRoundImpl::pending() {
+    SL_DEBUG(logger_, "Round #{}: Pending...", round_number_);
+
+    std::ignore = env_->onNeighborMessageSent(
+        round_number_,
+        voter_set_->id(),
+        finalized_.value_or(last_finalized_block_).number);
+
+    std::function<void(std::shared_ptr<VotingRound>)> resend =
+        [&](std::shared_ptr<VotingRound> round_arg) mutable {
+          auto round = std::dynamic_pointer_cast<VotingRoundImpl>(round_arg);
+          BOOST_ASSERT_MSG(round != nullptr, "Expected single implementation");
+          if (auto prev_round = round->getPreviousRound()) {
+            resend(std::move(prev_round));
+          }
+          auto r = round->roundNumber();
+          auto s = round->voterSetId();
+          if (r == 0) return;
+          SL_DEBUG(logger_, "Round #{}: resend votes", r);
+          for (const auto &graph : {round->prevotes_, round->precommits_}) {
+            for (const auto &vote_variant : graph->getMessages()) {
+              visit_in_place(
+                  vote_variant,
+                  [&](const SignedMessage &vote) {
+                    std::ignore = env_->onVoted(r, s, vote);
+                  },
+                  [&](const EquivocatorySignedMessage &pair) {
+                    std::ignore = env_->onVoted(r, s, pair.first);
+                    std::ignore = env_->onVoted(r, s, pair.second);
+                  });
+            }
+          }
+        };
+
+    SL_DEBUG(logger_, "Resend votes of recent rounds");
+    resend(shared_from_this());
 
     // Note: Pending interval must be longer than total voting time:
     //  2*Duration + 2*Duration + Gap
