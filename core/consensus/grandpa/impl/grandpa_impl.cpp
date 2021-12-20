@@ -514,13 +514,14 @@ namespace kagome::consensus::grandpa {
     if (msg.counter < current_round_->voterSetId()) {
       SL_DEBUG(logger_,
                "{} with set_id={} in round={} has received from {} "
-               "and rejected as impolite",
+               "and rejected as impolite (our set id is {})",
                msg.vote.is<Prevote>()     ? "Prevote"
                : msg.vote.is<Precommit>() ? "Precommit"
                                           : "PrimaryPropose",
                msg.counter,
                msg.round_number,
-               peer_id);
+               peer_id,
+               current_round_->voterSetId());
       return;
     }
 
@@ -529,28 +530,30 @@ namespace kagome::consensus::grandpa {
     if (msg.counter > current_round_->voterSetId()) {
       SL_WARN(logger_,
               "{} with set_id={} in round={} has received from {} "
-              "and rejected as extremely impolite",
+              "and rejected as extremely impolite (our set id is {})",
               msg.vote.is<Prevote>()     ? "Prevote"
               : msg.vote.is<Precommit>() ? "Precommit"
                                          : "PrimaryPropose",
               msg.counter,
               msg.round_number,
-              peer_id);
+              peer_id,
+              current_round_->voterSetId());
       return;
     }
 
     // If a peer is at round r, is impolite to send messages about r-2 or
     // earlier
-    if (msg.round_number <= current_round_->roundNumber() - 2) {
+    if (msg.round_number + 2 <= current_round_->roundNumber()) {
       SL_DEBUG(logger_,
                "{} with set_id={} in round={} has received from {} "
-               "and rejected as impolite",
+               "and rejected as impolite (our round is {})",
                msg.vote.is<Prevote>()     ? "Prevote"
                : msg.vote.is<Precommit>() ? "Precommit"
                                           : "PrimaryPropose",
                msg.counter,
                msg.round_number,
-               peer_id);
+               peer_id,
+               current_round_->roundNumber());
       return;
     }
 
@@ -559,13 +562,14 @@ namespace kagome::consensus::grandpa {
     if (msg.round_number >= current_round_->roundNumber() + 1) {
       SL_WARN(logger_,
               "{} with set_id={} in round={} has received from {} "
-              "and rejected as extremely impolite",
+              "and rejected as extremely impolite (our round is {})",
               msg.vote.is<Prevote>()     ? "Prevote"
               : msg.vote.is<Precommit>() ? "Precommit"
                                          : "PrimaryPropose",
               msg.counter,
               msg.round_number,
-              peer_id);
+              peer_id,
+              current_round_->roundNumber());
       return;
     }
 
@@ -633,7 +637,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onCommitMessage(const libp2p::peer::PeerId &peer_id,
                                     const network::FullCommitMessage &msg) {
     auto round = selectRound(msg.round, msg.set_id);
-    if (round && round == previous_round_) {
+    if (round && round != current_round_) {
       SL_DEBUG(logger_,
                "Commit with set_id={} in round={} for block {} "
                "has received from {} and skipped as fulfilled",

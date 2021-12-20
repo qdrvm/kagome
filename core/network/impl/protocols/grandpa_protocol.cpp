@@ -401,7 +401,7 @@ namespace kagome::network {
 
       // It is impolite to send commits which are earlier than the last commit
       // sent.
-      if (finalizing <= info.last_finalized) {
+      if (finalizing < info.last_finalized) {
         return false;
       }
 

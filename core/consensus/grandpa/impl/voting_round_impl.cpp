@@ -24,17 +24,17 @@ namespace kagome::consensus::grandpa {
     template <typename T>
     auto convertToPrevote(T &&vote) {
       return Prevote(vote.number, vote.hash);
-    };
+    }
 
     template <typename T>
     auto convertToPrecommit(T &&vote) {
       return Precommit(vote.number, vote.hash);
-    };
+    }
 
     template <typename T>
     auto convertToBlockInfo(T &&vote) {
       return BlockInfo(vote.number, vote.hash);
-    };
+    }
 
     template <typename D>
     auto toMilliseconds(D &&duration) {
