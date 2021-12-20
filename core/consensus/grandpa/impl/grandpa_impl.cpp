@@ -325,7 +325,14 @@ namespace kagome::consensus::grandpa {
              msg.round_number,
              msg.last_finalized,
              peer_id);
-    tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
+
+    if (msg.voter_set_id == current_round_->voterSetId()) {
+      if (msg.round_number
+          >= current_round_->roundNumber() + kCatchUpThreshold) {
+        std::ignore = environment_->onCatchUpRequested(
+            peer_id, msg.voter_set_id, msg.round_number - 1);
+      }
+    }
   }
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,

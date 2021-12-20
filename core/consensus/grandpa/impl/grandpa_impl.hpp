@@ -62,6 +62,10 @@ namespace kagome::consensus::grandpa {
                       public GrandpaObserver,
                       public std::enable_shared_from_this<GrandpaImpl> {
    public:
+    /// Maximum number of rounds we are behind a peer before issuing a catch up
+    /// request.
+    static const size_t kCatchUpThreshold = 2;
+
     /// Maximum number of rounds we are keep to communication
     static const size_t kKeepRecentRounds = 3;
 
