@@ -74,7 +74,7 @@ namespace kagome::consensus::grandpa {
                 std::shared_ptr<runtime::GrandpaApi> grandpa_api,
                 const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
                 std::shared_ptr<Clock> clock,
-                std::shared_ptr<boost::asio::io_context> io_context,
+                std::shared_ptr<libp2p::basic::Scheduler> scheduler,
                 std::shared_ptr<authority::AuthorityManager> authority_manager,
                 std::shared_ptr<network::Synchronizer> synchronizer);
 
@@ -151,7 +151,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
     std::shared_ptr<Clock> clock_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
 

@@ -1328,7 +1328,7 @@ namespace {
         injector.template create<sptr<runtime::GrandpaApi>>(),
         session_keys->getGranKeyPair(),
         injector.template create<sptr<clock::SteadyClock>>(),
-        injector.template create<sptr<boost::asio::io_context>>(),
+        injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<authority::AuthorityManager>>(),
         injector.template create<sptr<network::Synchronizer>>());
 

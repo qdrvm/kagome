@@ -30,7 +30,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
       std::shared_ptr<Clock> clock,
-      std::shared_ptr<boost::asio::io_context> io_context,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<authority::AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer)
       : environment_{std::move(environment)},
@@ -39,7 +39,7 @@ namespace kagome::consensus::grandpa {
         grandpa_api_{std::move(grandpa_api)},
         keypair_{keypair},
         clock_{std::move(clock)},
-        io_context_{std::move(io_context)},
+        scheduler_{std::move(scheduler)},
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)) {
     BOOST_ASSERT(environment_ != nullptr);
@@ -47,7 +47,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(crypto_provider_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
-    BOOST_ASSERT(io_context_ != nullptr);
+    BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(synchronizer_ != nullptr);
 
@@ -164,7 +164,7 @@ namespace kagome::consensus::grandpa {
         std::move(prevote_graph),
         std::move(precommit_graph),
         clock_,
-        io_context_,
+        scheduler_,
         round_state);
 
     new_round->end();
@@ -225,7 +225,7 @@ namespace kagome::consensus::grandpa {
         std::move(prevote_graph),
         std::move(precommit_graph),
         clock_,
-        io_context_,
+        scheduler_,
         round);
     return new_round;
   }
@@ -330,7 +330,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                                      const network::CatchUpRequest &msg) {
-    // It is also impolite to send a catch up request to a peer in a new
+    // It is also impolite to send a catch-up request to a peer in a new
     // different Set ID.
     if (msg.voter_set_id != current_round_->voterSetId()) {
       SL_DEBUG(
@@ -342,7 +342,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    // It is impolite to send a catch up request for a round `R` to a peer whose
+    // It is impolite to send a catch-up request for a round `R` to a peer whose
     // announced view is behind `R`.
     if (msg.round_number > current_round_->voterSetId()) {
       SL_DEBUG(

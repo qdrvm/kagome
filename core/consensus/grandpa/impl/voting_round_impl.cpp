@@ -14,21 +14,33 @@
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 
 namespace kagome::consensus::grandpa {
-  static auto convertToPrimaryPropose = [](const auto &vote) {
-    return PrimaryPropose(vote.number, vote.hash);
-  };
 
-  static auto convertToPrevote = [](const auto &vote) {
-    return Prevote(vote.number, vote.hash);
-  };
+  namespace {
+    template <typename T>
+    auto convertToPrimaryPropose(T &&vote) {
+      return PrimaryPropose(vote.number, vote.hash);
+    }
 
-  static auto convertToPrecommit = [](const auto &vote) {
-    return Precommit(vote.number, vote.hash);
-  };
+    template <typename T>
+    auto convertToPrevote(T &&vote) {
+      return Prevote(vote.number, vote.hash);
+    };
 
-  static auto convertToBlockInfo = [](const auto &vote) {
-    return BlockInfo(vote.number, vote.hash);
-  };
+    template <typename T>
+    auto convertToPrecommit(T &&vote) {
+      return Precommit(vote.number, vote.hash);
+    };
+
+    template <typename T>
+    auto convertToBlockInfo(T &&vote) {
+      return BlockInfo(vote.number, vote.hash);
+    };
+
+    template <typename D>
+    auto toMilliseconds(D &&duration) {
+      return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+    }
+  }  // namespace
 
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
@@ -41,7 +53,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<VoteGraph> prevote_graph,
       std::shared_ptr<VoteGraph> precommit_graph,
       std::shared_ptr<Clock> clock,
-      std::shared_ptr<boost::asio::io_context> io_context)
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : voter_set_{std::move(config.voters)},
         round_number_{config.round_number},
         duration_{config.duration},
@@ -53,11 +65,9 @@ namespace kagome::consensus::grandpa {
         prevote_graph_{std::move(prevote_graph)},
         precommit_graph_{std::move(precommit_graph)},
         clock_{std::move(clock)},
-        io_context_{std::move(io_context)},
+        scheduler_{std::move(scheduler)},
         prevotes_{std::move(prevotes)},
-        precommits_{std::move(precommits)},
-        timer_{*io_context_},
-        neighbor_msg_timer_{*io_context_} {
+        precommits_{std::move(precommits)} {
     BOOST_ASSERT(not grandpa_.expired());
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(vote_crypto_provider_ != nullptr);
@@ -67,6 +77,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(prevote_graph_ != nullptr);
     BOOST_ASSERT(precommit_graph_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
+    BOOST_ASSERT(scheduler_ != nullptr);
 
     // calculate supermajority
     auto faulty = (voter_set_->totalWeight() - 1) / 3;
@@ -96,7 +107,7 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VoteGraph> &prevote_graph,
       const std::shared_ptr<VoteGraph> &precommit_graph,
       const std::shared_ptr<Clock> &clock,
-      const std::shared_ptr<boost::asio::io_context> &io_context,
+      const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
       const std::shared_ptr<VotingRound> &previous_round)
       : VotingRoundImpl(grandpa,
                         config,
@@ -108,7 +119,7 @@ namespace kagome::consensus::grandpa {
                         prevote_graph,
                         precommit_graph,
                         clock,
-                        io_context) {
+                        scheduler) {
     BOOST_ASSERT(previous_round != nullptr);
 
     previous_round_ = previous_round;
@@ -127,7 +138,7 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VoteGraph> &prevote_graph,
       const std::shared_ptr<VoteGraph> &precommit_graph,
       const std::shared_ptr<Clock> &clock,
-      const std::shared_ptr<boost::asio::io_context> &io_context,
+      const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
       const MovableRoundState &round_state)
       : VotingRoundImpl(grandpa,
                         config,
@@ -139,7 +150,7 @@ namespace kagome::consensus::grandpa {
                         prevote_graph,
                         precommit_graph,
                         clock,
-                        io_context) {
+                        scheduler) {
     last_finalized_block_ = round_state.last_finalized_block;
 
     if (round_number_ != 0) {
@@ -191,6 +202,15 @@ namespace kagome::consensus::grandpa {
 
     SL_DEBUG(logger_, "Round #{}: Start round", round_number_);
 
+    // Note: Pending interval must be longer than total voting time:
+    //  2*Duration + 2*Duration + Gap
+    // Spec says to send at least once per five minutes.
+    // Substrate sends at least once per two minutes.
+    pending_timer_handle_ = scheduler_->scheduleWithHandle(
+        [&] { pending(); },
+        toMilliseconds(std::max<Clock::Duration>(duration_ * 10,
+                                                 std::chrono::seconds(30))));
+
     sendNeighborMessage();
 
     // Current local time (Tstart)
@@ -241,16 +261,16 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    timer_.cancel();
-    timer_.expires_at(start_time_ + duration_ * 2);
-    timer_.async_wait([this](const boost::system::error_code &ec) {
-      if (ec == boost::system::errc::operation_canceled) return;
-      if (stage_ == Stage::PREVOTE_RUNS) {
-        SL_DEBUG(
-            logger_, "Round #{}: Time of prevote stage is out", round_number_);
-        endPrevoteStage();
-      }
-    });
+    stage_timer_handle_ = scheduler_->scheduleWithHandle(
+        [&] {
+          if (stage_ == Stage::PREVOTE_RUNS) {
+            SL_DEBUG(logger_,
+                     "Round #{}: Time of prevote stage is out",
+                     round_number_);
+            endPrevoteStage();
+          }
+        },
+        toMilliseconds(duration_ * 2 - (start_time_ - clock_->now())));
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PREVOTE_RUNS) {
@@ -268,7 +288,7 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::PREVOTE_RUNS);
 
-    timer_.cancel();
+    stage_timer_handle_.cancel();
     on_complete_handler_ = nullptr;
 
     stage_ = Stage::END_PREVOTE;
@@ -306,17 +326,16 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    timer_.cancel();
-    timer_.expires_at(start_time_ + duration_ * 4);
-    timer_.async_wait([this](const boost::system::error_code &ec) {
-      if (ec == boost::system::errc::operation_canceled) return;
-      if (stage_ == Stage::PRECOMMIT_RUNS) {
-        SL_DEBUG(logger_,
-                 "Round #{}: Time of precommit stage is out",
-                 round_number_);
-        endPrecommitStage();
-      }
-    });
+    stage_timer_handle_ = scheduler_->scheduleWithHandle(
+        [&] {
+          if (stage_ == Stage::PRECOMMIT_RUNS) {
+            SL_DEBUG(logger_,
+                     "Round #{}: Time of precommit stage is out",
+                     round_number_);
+            endPrecommitStage();
+          }
+        },
+        toMilliseconds(duration_ * 4 - (start_time_ - clock_->now())));
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PRECOMMIT_RUNS) {
@@ -334,7 +353,7 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::PRECOMMIT_RUNS);
 
-    timer_.cancel();
+    stage_timer_handle_.cancel();
     on_complete_handler_ = nullptr;
 
     stage_ = Stage::END_PRECOMMIT;
@@ -430,8 +449,8 @@ namespace kagome::consensus::grandpa {
       SL_DEBUG(logger_, "Round #{}: End round", round_number_);
       stage_ = Stage::COMPLETED;
       on_complete_handler_ = nullptr;
-      timer_.cancel();
-      neighbor_msg_timer_.cancel();
+      stage_timer_handle_.cancel();
+      pending_timer_handle_.cancel();
     }
   }
 
@@ -1451,12 +1470,11 @@ namespace kagome::consensus::grandpa {
       if (best_final_candidate.has_value()
           and best_final_candidate != best_final_candidate_) {
         best_final_candidate_ = best_final_candidate;
-        SL_TRACE(
-            logger_,
-            "Round #{}: bestFinalCandidate <- best_final_candidate is updated "
-            "by precommit_ghost {} with given equvocations",
-            round_number_,
-            best_final_candidate_.value());
+        SL_TRACE(logger_,
+                 "Round #{}: bestFinalCandidate <- best_final_candidate is "
+                 "updated by precommit_ghost {} with given equvocations",
+                 round_number_,
+                 best_final_candidate_.value());
       } else {
         SL_TRACE(logger_,
                  "Round #{}: bestFinalCandidate <- best_final_candidate is not "
@@ -1638,16 +1656,9 @@ namespace kagome::consensus::grandpa {
     //  2*Duration + 2*Duration + Gap
     // Spec says to send at least once per five minutes.
     // Substrate sends at least once per two minutes.
-    neighbor_msg_timer_.expires_from_now(
-        std::max<Clock::Duration>(duration_ * 10, std::chrono::seconds(120)));
-    neighbor_msg_timer_.async_wait(
-        [wp = std::weak_ptr<VotingRoundImpl>(
-             std::static_pointer_cast<VotingRoundImpl>(shared_from_this()))](
-            const boost::system::error_code &ec) {
-          if (ec == boost::system::errc::operation_canceled) return;
-          if (auto self = wp.lock()) {
-            self->sendNeighborMessage();
-          }
-        });
+    pending_timer_handle_ = scheduler_->scheduleWithHandle(
+        [&] { pending(); },
+        toMilliseconds(std::max<Clock::Duration>(duration_ * 10,
+                                                 std::chrono::seconds(30))));
   }
 }  // namespace kagome::consensus::grandpa

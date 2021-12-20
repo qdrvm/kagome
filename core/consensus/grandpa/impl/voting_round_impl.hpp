@@ -10,6 +10,7 @@
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/signals2.hpp>
+#include <libp2p/basic/scheduler.hpp>
 
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/grandpa/environment.hpp"
@@ -38,7 +39,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<VoteGraph> prevote_graph,
         std::shared_ptr<VoteGraph> precommit_graph,
         std::shared_ptr<Clock> clock,
-        std::shared_ptr<boost::asio::io_context> io_context);
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
    public:
     VotingRoundImpl(
@@ -52,7 +53,7 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteGraph> &prevote_graph,
         const std::shared_ptr<VoteGraph> &precommit_graph,
         const std::shared_ptr<Clock> &clock,
-        const std::shared_ptr<boost::asio::io_context> &io_context,
+        const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const MovableRoundState &round_state);
 
     VotingRoundImpl(
@@ -66,7 +67,7 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteGraph> &prevote_graph,
         const std::shared_ptr<VoteGraph> &precommit_graph,
         const std::shared_ptr<Clock> &clock,
-        const std::shared_ptr<boost::asio::io_context> &io_context,
+        const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const std::shared_ptr<VotingRound> &previous_round);
 
     enum class Stage {
@@ -247,6 +248,7 @@ namespace kagome::consensus::grandpa {
     void sendPrevote(const Prevote &prevote);
     void sendPrecommit(const Precommit &precommit);
     void sendCommit();
+    void pending();
 
     std::shared_ptr<VoterSet> voter_set_;
     const RoundNumber round_number_;
@@ -266,7 +268,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VoteGraph> prevote_graph_;
     std::shared_ptr<VoteGraph> precommit_graph_;
     std::shared_ptr<Clock> clock_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::function<void()> on_complete_handler_;
 
@@ -276,7 +278,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VoteTracker> precommits_;
 
     // equivocators arrays. Index in vector corresponds to the index of voter in
-    // voterset, value corresponds to the weight of the voter
+    // voter set, value corresponds to the weight of the voter
     std::vector<bool> prevote_equivocators_;
     std::vector<bool> precommit_equivocators_;
 
@@ -309,8 +311,8 @@ namespace kagome::consensus::grandpa {
     std::optional<BlockInfo> best_final_candidate_;
     std::optional<BlockInfo> finalized_;
 
-    Timer timer_;
-    Timer neighbor_msg_timer_;
+    libp2p::basic::Scheduler::Handle stage_timer_handle_;
+    libp2p::basic::Scheduler::Handle pending_timer_handle_;
 
     log::Logger logger_ = log::createLogger("VotingRound", "voting_round");
 
