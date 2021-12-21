@@ -7,6 +7,7 @@
 
 #include <boost/assert.hpp>
 #include <boost/range/adaptor/transformed.hpp>
+#include <consensus/babe/babe_error.hpp>
 
 #include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
@@ -49,7 +50,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api)
-      : lottery_{std::move(lottery)},
+      : was_synchronized_{false},
+        lottery_{std::move(lottery)},
         trie_storage_{std::move(trie_storage)},
         babe_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
@@ -99,10 +101,7 @@ namespace kagome::consensus::babe {
   bool BabeImpl::start() {
     best_block_ = block_tree_->deepestLeaf();
 
-    SL_DEBUG(log_,
-             "Babe is starting with syncing from block #{}, hash={}",
-             best_block_.number,
-             best_block_.hash);
+    SL_DEBUG(log_, "Babe is starting with syncing from block {}", best_block_);
 
     EpochDescriptor last_epoch_descriptor;
     const auto now = clock_->now();
@@ -139,12 +138,11 @@ namespace kagome::consensus::babe {
           return true;
         }
       } else {
-        SL_CRITICAL(
-            log_,
-            "Epoch couldn't be obtained from epoch #{}, block hash {}: {}",
-            last_epoch_descriptor.epoch_number,
-            best_block_.hash.toHex(),
-            epoch_res.error().message());
+        SL_CRITICAL(log_,
+                    "Epoch couldn't be obtained from epoch #{}, block {}: {}",
+                    last_epoch_descriptor.epoch_number,
+                    best_block_,
+                    epoch_res.error().message());
         return false;
       }
     }
@@ -181,11 +179,13 @@ namespace kagome::consensus::babe {
 
     BOOST_ASSERT(keypair_ != nullptr);
 
-    SL_DEBUG(log_,
-             "Starting an epoch {}. Session key: {}",
-             epoch.epoch_number,
-             keypair_->public_key.toHex());
-    current_epoch_ = std::move(epoch);
+    SL_DEBUG(
+        log_,
+        "Starting an epoch {}. Session key: {}. Secondary slots allowed={}",
+        epoch.epoch_number,
+        keypair_->public_key.toHex(),
+        isSecondarySlotsAllowed());
+    current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
 
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(current_epoch_);
@@ -257,11 +257,9 @@ namespace kagome::consensus::babe {
 
             if (self->current_state_ == Babe::State::CATCHING_UP) {
               const auto &block = block_res.value();
-              SL_INFO(self->log_,
-                      "Catching up is finished on block #{} hash={}",
-                      block.number,
-                      block.hash.toHex());
+              SL_INFO(self->log_, "Catching up is finished on block {}", block);
               self->current_state_ = Babe::State::SYNCHRONIZED;
+              self->was_synchronized_ = true;
             }
             self->onSynchronized();
 
@@ -312,6 +310,7 @@ namespace kagome::consensus::babe {
     }
 
     current_state_ = State::SYNCHRONIZED;
+    was_synchronized_ = true;
 
     if (not active_) {
       EpochDescriptor last_epoch_descriptor;
@@ -324,13 +323,14 @@ namespace kagome::consensus::babe {
 
       best_block_ = block_tree_->deepestLeaf();
 
-      SL_DEBUG(log_,
-               "Babe is synchronized on block #{}, hash={}",
-               best_block_.number,
-               best_block_.hash);
+      SL_DEBUG(log_, "Babe is synchronized on block {}", best_block_);
 
       runEpoch(last_epoch_descriptor);
     }
+  }
+
+  bool BabeImpl::wasSynchronized() const {
+    return was_synchronized_;
   }
 
   void BabeImpl::runSlot() {
@@ -385,8 +385,8 @@ namespace kagome::consensus::babe {
         best_block_ =
             primitives::BlockInfo(header.number - 1, header.parent_hash);
         continue;
-
-      } else if (best_block_.number == 0) {
+      }
+      if (best_block_.number == 0) {
         // Only genesis may not have a babe digest
         break;
       }
@@ -421,12 +421,21 @@ namespace kagome::consensus::babe {
   void BabeImpl::processSlot() {
     BOOST_ASSERT(keypair_ != nullptr);
 
-    if (lottery_->getEpoch() != current_epoch_) {
-      auto epoch_res = block_tree_->getEpochDescriptor(
-          current_epoch_.epoch_number, best_block_.hash);
-      BOOST_ASSERT(epoch_res.has_value());
-      const auto &epoch = epoch_res.value();
+    auto epoch_res = block_tree_->getEpochDescriptor(
+        current_epoch_.epoch_number, best_block_.hash);
+    BOOST_ASSERT(epoch_res);
+    const auto &epoch = epoch_res.value();
+    auto authority_index_res =
+        getAuthorityIndex(epoch.authorities, keypair_->public_key);
+    if (not authority_index_res) {
+      SL_DEBUG(log_,
+               "Authority not known, skipping slot processing. "
+               "Probably authority list has changed.");
+      return;
+    }
+    const auto &authority_index = authority_index_res.value();
 
+    if (lottery_->getEpoch() != current_epoch_) {
       changeLotteryEpoch(current_epoch_, epoch.authorities, epoch.randomness);
     }
 
@@ -440,7 +449,25 @@ namespace kagome::consensus::babe {
                common::Buffer(vrf_result.output).toHex(),
                common::Buffer(vrf_result.proof).toHex());
 
-      processSlotLeadership(vrf_result);
+      processSlotLeadership(
+          SlotType::Primary, std::cref(vrf_result), authority_index);
+    } else if (isSecondarySlotsAllowed()
+               and block_tree_->getLastFinalized().number > 0) {
+      auto expected_author = lottery_->secondarySlotAuthor(
+          current_slot_, epoch.authorities.size(), epoch.randomness);
+
+      if (expected_author.has_value()
+          and authority_index == expected_author.value()) {
+        if (primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots
+            == babe_configuration_->allowed_slots) {
+          auto vrf = lottery_->slotVrfSignature(current_slot_);
+          processSlotLeadership(
+              SlotType::SecondaryVRF, std::cref(vrf), authority_index);
+        } else {  // plain secondary slots mode
+          processSlotLeadership(
+              SlotType::SecondaryPlain, std::nullopt, authority_index);
+        }
+      }
     }
 
     SL_DEBUG(log_,
@@ -478,10 +505,26 @@ namespace kagome::consensus::babe {
   }
 
   outcome::result<primitives::PreRuntime> BabeImpl::babePreDigest(
-      const crypto::VRFOutput &output,
+      SlotType slot_type,
+      std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
       primitives::AuthorityIndex authority_index) const {
+    uint8_t header_type = 0;
+    if (SlotType::Primary == slot_type or SlotType::SecondaryVRF == slot_type) {
+      header_type = BabeBlockHeader::kVRFHeader;
+      if (not output.has_value()) {
+        SL_ERROR(
+            log_,
+            "VRF proof is required to build block header but was not passed");
+        return BabeError::MISSING_PROOF;
+      }
+    }
+    if (SlotType::SecondaryPlain == slot_type
+        or SlotType::SecondaryVRF == slot_type) {
+      header_type |= BabeBlockHeader::kSecondaryHeaderCheck;
+    }
+    crypto::VRFOutput dummy{};
     BabeBlockHeader babe_header{
-        BabeBlockHeader::kVRFHeader, current_slot_, output, authority_index};
+        header_type, current_slot_, output.value_or(dummy), authority_index};
     auto encoded_header_res = scale::encode(babe_header);
     if (!encoded_header_res) {
       SL_ERROR(log_,
@@ -516,7 +559,10 @@ namespace kagome::consensus::babe {
     return primitives::Seal{{primitives::kBabeEngineId, encoded_seal}};
   }
 
-  void BabeImpl::processSlotLeadership(const crypto::VRFOutput &output) {
+  void BabeImpl::processSlotLeadership(
+      SlotType slot_type,
+      std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
+      primitives::AuthorityIndex authority_index) {
     BOOST_ASSERT(keypair_ != nullptr);
 
     // build a block to be announced
@@ -532,36 +578,28 @@ namespace kagome::consensus::babe {
     // identifiers are guaranteed to be correct, so use .value() directly
     auto put_res = inherent_data.putData<uint64_t>(kTimestampId, now);
     if (!put_res) {
-      return SL_ERROR(
+      SL_ERROR(
           log_, "cannot put an inherent data: {}", put_res.error().message());
+      return;
     }
     put_res = inherent_data.putData(kBabeSlotId, current_slot_);
     if (!put_res) {
-      return SL_ERROR(
+      SL_ERROR(
           log_, "cannot put an inherent data: {}", put_res.error().message());
+      return;
     }
 
-    SL_INFO(log_,
-            "Babe builds block on top of block #{} hash={}",
-            best_block_.number,
-            best_block_.hash);
-
-    auto epoch = block_tree_->getEpochDescriptor(current_epoch_.epoch_number,
-                                                 best_block_.hash);
-
-    auto authority_index_res =
-        getAuthorityIndex(epoch.value().authorities, keypair_->public_key);
-    BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
+    SL_INFO(log_, "Babe builds block on top of block {}", best_block_);
 
     auto proposal_start = std::chrono::high_resolution_clock::now();
-
     // calculate babe_pre_digest
     auto babe_pre_digest_res =
-        babePreDigest(output, authority_index_res.value());
+        babePreDigest(slot_type, output, authority_index);
     if (not babe_pre_digest_res) {
-      return SL_ERROR(log_,
-                      "cannot propose a block: {}",
-                      babe_pre_digest_res.error().message());
+      SL_ERROR(log_,
+               "cannot propose a block: {}",
+               babe_pre_digest_res.error().message());
+      return;
     }
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
@@ -569,9 +607,10 @@ namespace kagome::consensus::babe {
     auto pre_seal_block_res = proposer_->propose(
         best_block_.number, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
-      return SL_ERROR(log_,
-                      "Cannot propose a block: {}",
-                      pre_seal_block_res.error().message());
+      SL_ERROR(log_,
+               "Cannot propose a block: {}",
+               pre_seal_block_res.error().message());
+      return;
     }
 
     auto proposal_end = std::chrono::high_resolution_clock::now();
@@ -602,14 +641,14 @@ namespace kagome::consensus::babe {
     // seal the block
     auto seal_res = sealBlock(block);
     if (!seal_res) {
-      return SL_ERROR(
+      SL_ERROR(
           log_, "Failed to seal the block: {}", seal_res.error().message());
+      return;
     }
 
     // add seal digest item
     block.header.digest.emplace_back(seal_res.value());
 
-    // check that we are still in the middle of the
     if (babe_util_->remainToFinishOfSlot(current_slot_ + kMaxBlockSlotsOvertime)
             .count()
         == 0) {
@@ -696,9 +735,8 @@ namespace kagome::consensus::babe {
       auto ocw_res = offchain_worker_api_->offchain_worker(
           block.header.parent_hash, block.header);
       if (ocw_res.has_failure()) {
-        log_->error("Can't spawn offchain worker for block #{} hash={}: {}",
-                    block.header.number,
-                    block_hash.toHex(),
+        log_->error("Can't spawn offchain worker for block {}: {}",
+                    primitives::BlockInfo(block.header.number, block_hash),
                     ocw_res.error().message());
       }
     }
@@ -739,4 +777,12 @@ namespace kagome::consensus::babe {
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(
         {current_epoch_.epoch_number, current_epoch_.start_slot});
   }
+
+  bool BabeImpl::isSecondarySlotsAllowed() const {
+    return primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots
+               == babe_configuration_->allowed_slots
+           or primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots
+                  == babe_configuration_->allowed_slots;
+  }
+
 }  // namespace kagome::consensus::babe

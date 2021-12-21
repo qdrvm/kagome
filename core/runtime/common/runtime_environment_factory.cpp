@@ -70,9 +70,9 @@ namespace kagome::runtime {
         parent_factory->header_repo_->getBlockHeader(blockchain_state_.hash);
     if (!header_res) {
       parent_factory->logger_->error(
-          "Failed to obtain the block header with hash {} when initializing a "
-          "runtime environment; Reason: {}",
-          blockchain_state_.hash.toHex(),
+          "Failed to obtain the block {} when initializing a runtime "
+          "environment; Reason: {}",
+          blockchain_state_,
           header_res.error().message());
       return Error::ABSENT_BLOCK;
     }
@@ -88,9 +88,9 @@ namespace kagome::runtime {
       if (auto res = env.storage_provider->setToPersistentAt(storage_state_);
           !res) {
         parent_factory->logger_->error(
-            "Failed to set the storage state to hash {} when initializing a "
+            "Failed to set the storage state to hash {:l} when initializing a "
             "runtime environment; Reason: {}",
-            storage_state_.toHex(),
+            storage_state_,
             res.error().message());
         return Error::FAILED_TO_SET_STORAGE_STATE;
       }
@@ -98,9 +98,9 @@ namespace kagome::runtime {
       if (auto res = env.storage_provider->setToEphemeralAt(storage_state_);
           !res) {
         parent_factory->logger_->error(
-            "Failed to set the storage state to hash {} when initializing a "
+            "Failed to set the storage state to hash {:l} when initializing a "
             "runtime environment; Reason: {}",
-            storage_state_.toHex(),
+            storage_state_,
             res.error().message());
         return Error::FAILED_TO_SET_STORAGE_STATE;
       }
@@ -141,10 +141,9 @@ namespace kagome::runtime {
     }
 
     SL_DEBUG(parent_factory->logger_,
-             "Runtime environment at #{} hash: {}, state: {}",
-             blockchain_state_.number,
-             blockchain_state_.hash.toHex(),
-             storage_state_.toHex());
+             "Runtime environment at {}, state: {:l}",
+             blockchain_state_,
+             storage_state_);
 
     auto runtime_env = std::make_unique<RuntimeEnvironment>(
         instance, env.memory_provider, env.storage_provider);

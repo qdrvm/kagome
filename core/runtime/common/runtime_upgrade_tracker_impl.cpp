@@ -95,13 +95,10 @@ namespace kagome::runtime {
       if (isStateInChain(latest_upgrade_it->block, block)) {
         SL_TRACE_FUNC_CALL(
             logger_, latest_upgrade_it->state, block.hash, block.number);
-        SL_DEBUG(
-            logger_,
-            "Pick runtime state at block #{} hash {} for block #{} hash {}",
-            latest_upgrade_it->block.number,
-            latest_upgrade_it->block.hash,
-            block.number,
-            block.hash.toHex());
+        SL_DEBUG(logger_,
+                 "Pick runtime state at block {} for block {}",
+                 latest_upgrade_it->block,
+                 block);
 
         return latest_upgrade_it->state;
       }
@@ -116,10 +113,7 @@ namespace kagome::runtime {
     // genesis block
     if (block_tree_ == nullptr) {
       OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
-      SL_DEBUG(logger_,
-               "Pick runtime state at genesis for block #{} hash {}",
-               block.number,
-               block.hash.toHex());
+      SL_DEBUG(logger_, "Pick runtime state at genesis for block {}", block);
       return genesis.state_root;
     }
 
@@ -133,10 +127,8 @@ namespace kagome::runtime {
       // even if it doesn't actually upgrade runtime, still a solid source of
       // runtime code
       OUTCOME_TRY(state, push(block.hash));
-      SL_DEBUG(logger_,
-               "Pick runtime state at block #{} hash {} for the same block",
-               block.number,
-               block.hash.toHex());
+      SL_DEBUG(
+          logger_, "Pick runtime state at block {} for the same block", block);
       return std::move(state);
     }
 
@@ -155,10 +147,8 @@ namespace kagome::runtime {
       // if we have no info on updates before this block, we just return its
       // state
       OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
-      SL_DEBUG(logger_,
-               "Pick runtime state at block #{} hash {} for the same block",
-               block.number,
-               block.hash.toHex());
+      SL_DEBUG(
+          logger_, "Pick runtime state at block {} for the same block", block);
       return block_header.state_root;
     }
 
@@ -178,10 +168,10 @@ namespace kagome::runtime {
     // if this is an orphan block for some reason, just return its state_root
     // (there is no other choice)
     OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
-    logger_->warn("Block #{} hash {}, a child of block with hash {} is orphan",
-                  block.number,
-                  block.hash.toHex(),
-                  block_header.parent_hash.toHex());
+    logger_->warn("Block {}, a child of block {} is orphan",
+                  block,
+                  primitives::BlockInfo(block_header.number - 1,
+                                        block_header.parent_hash));
     return block_header.state_root;
   }
 

@@ -14,14 +14,10 @@ namespace kagome::runtime {
 
   class TrieStorageProviderMock : public TrieStorageProvider {
    public:
-    MOCK_METHOD(outcome::result<void>, setToEphemeral, (), (override));
-
     MOCK_METHOD(outcome::result<void>,
                 setToEphemeralAt,
                 (const storage::trie::RootHash &),
                 (override));
-
-    MOCK_METHOD(outcome::result<void>, setToPersistent, (), (override));
 
     MOCK_METHOD(outcome::result<void>,
                 setToPersistentAt,
@@ -57,11 +53,6 @@ namespace kagome::runtime {
     MOCK_METHOD(outcome::result<void>, rollbackTransaction, (), (override));
 
     MOCK_METHOD(outcome::result<void>, commitTransaction, (), (override));
-
-    MOCK_METHOD(storage::trie::RootHash,
-                getLatestRoot,
-                (),
-                (const, noexcept, override));
   };
 
 }  // namespace kagome::runtime

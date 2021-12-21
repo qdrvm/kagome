@@ -60,7 +60,8 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
         TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
             .value();
 
-    auto batch = storage->getPersistentBatch().value();
+    auto batch =
+        storage->getPersistentBatchAt(serializer->getEmptyRootHash()).value();
     EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "abc"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("345"_buf, "def"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("678"_buf, "xyz"_buf));
@@ -75,9 +76,9 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
       std::make_shared<TrieStorageBackendImpl>(std::move(new_level_db),
                                                kNodePrefix));
   auto storage =
-      TrieStorageImpl::createFromStorage(root, codec, serializer, std::nullopt)
+      TrieStorageImpl::createFromStorage(codec, serializer, std::nullopt)
           .value();
-  auto batch = storage->getPersistentBatch().value();
+  auto batch = storage->getPersistentBatchAt(root).value();
   EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));
   ASSERT_EQ(v1.get(), "abc"_buf);
   EXPECT_OUTCOME_TRUE(v2, batch->get("345"_buf));

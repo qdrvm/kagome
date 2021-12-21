@@ -19,7 +19,6 @@ namespace kagome::storage::trie {
 
   class PersistentTrieBatchImpl final : public PersistentTrieBatch {
    public:
-    using RootChangedEventHandler = std::function<void(const RootHash &)>;
     enum class Error {
       NO_TRIE = 1,
     };
@@ -28,8 +27,7 @@ namespace kagome::storage::trie {
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-        std::shared_ptr<PolkadotTrie> trie,
-        RootChangedEventHandler &&handler);
+        std::shared_ptr<PolkadotTrie> trie);
     ~PersistentTrieBatchImpl() override = default;
 
     outcome::result<RootHash> commit() override;
@@ -54,8 +52,7 @@ namespace kagome::storage::trie {
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-        std::shared_ptr<PolkadotTrie> trie,
-        RootChangedEventHandler &&handler);
+        std::shared_ptr<PolkadotTrie> trie);
 
     // retrieves the current extrinsic index from the storage
     outcome::result<common::BufferConstRef> getExtrinsicIndex() const;
@@ -64,7 +61,6 @@ namespace kagome::storage::trie {
     std::shared_ptr<TrieSerializer> serializer_;
     std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
     std::shared_ptr<PolkadotTrie> trie_;
-    RootChangedEventHandler root_changed_handler_;
 
     log::Logger logger_ = log::createLogger("PersistentTrieBatch", "storage");
   };

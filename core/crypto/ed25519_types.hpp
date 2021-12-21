@@ -26,8 +26,19 @@ namespace kagome::crypto {
     };
   }  // namespace constants::ed25519
 
-  KAGOME_BLOB_STRICT_TYPEDEF(Ed25519PrivateKey, constants::ed25519::PRIVKEY_SIZE);
-  KAGOME_BLOB_STRICT_TYPEDEF(Ed25519PublicKey, constants::ed25519::PUBKEY_SIZE);
+}  // namespace kagome::crypto
+
+KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+                           Ed25519PrivateKey,
+                           constants::ed25519::PRIVKEY_SIZE);
+KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+                           Ed25519PublicKey,
+                           constants::ed25519::PUBKEY_SIZE);
+KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+                           Ed25519Signature,
+                           constants::ed25519::SIGNATURE_SIZE);
+
+namespace kagome::crypto {
 
   struct Ed25519Keypair {
     Ed25519PrivateKey secret_key;
@@ -37,32 +48,8 @@ namespace kagome::crypto {
     bool operator!=(const Ed25519Keypair &other) const;
   };
 
-  KAGOME_BLOB_STRICT_TYPEDEF(Ed25519Signature,
-                             constants::ed25519::SIGNATURE_SIZE);
-
   using Ed25519Seed = common::Blob<constants::ed25519::SEED_SIZE>;
 
 }  // namespace kagome::crypto
-
-template <>
-struct std::hash<kagome::crypto::Ed25519PrivateKey> {
-  auto operator()(const kagome::crypto::Ed25519PrivateKey &key) const {
-    return boost::hash_range(key.cbegin(), key.cend());  // NOLINT
-  }
-};
-
-template <>
-struct std::hash<kagome::crypto::Ed25519PublicKey> {
-  auto operator()(const kagome::crypto::Ed25519PublicKey &key) const {
-    return boost::hash_range(key.cbegin(), key.cend());  // NOLINT
-  }
-};
-
-template <>
-struct std::hash<kagome::crypto::Ed25519Signature> {
-  auto operator()(const kagome::crypto::Ed25519Signature &sig) const {
-    return boost::hash_range(sig.cbegin(), sig.cend());  // NOLINT
-  }
-};
 
 #endif  // KAGOME_CORE_CRYPTO_ED25519_TYPES_HPP

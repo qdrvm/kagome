@@ -70,10 +70,19 @@ namespace kagome::crypto {
     // indicates if the value is less than the provided threshold
     bool is_less;
   };
+}  // namespace kagome::crypto
 
-  KAGOME_BLOB_STRICT_TYPEDEF(Sr25519SecretKey, constants::sr25519::SECRET_SIZE);
-  KAGOME_BLOB_STRICT_TYPEDEF(Sr25519PublicKey, constants::sr25519::PUBLIC_SIZE);
+KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+                           Sr25519SecretKey,
+                           constants::sr25519::SECRET_SIZE);
+KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+                           Sr25519PublicKey,
+                           constants::sr25519::PUBLIC_SIZE);
+KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+                           Sr25519Signature,
+                           constants::sr25519::SIGNATURE_SIZE);
 
+namespace kagome::crypto {
   using Sr25519Seed = common::Blob<constants::sr25519::SEED_SIZE>;
 
   struct Sr25519Keypair {
@@ -85,9 +94,6 @@ namespace kagome::crypto {
     bool operator==(const Sr25519Keypair &other) const;
     bool operator!=(const Sr25519Keypair &other) const;
   };
-
-  KAGOME_BLOB_STRICT_TYPEDEF(Sr25519Signature,
-                             constants::sr25519::SIGNATURE_SIZE);
 
   /**
    * @brief outputs object of type VRFOutput to stream
@@ -116,26 +122,5 @@ namespace kagome::crypto {
   }
 
 }  // namespace kagome::crypto
-
-template <>
-struct std::hash<kagome::crypto::Sr25519SecretKey> {
-  auto operator()(const kagome::crypto::Sr25519SecretKey &key) const {
-    return boost::hash_range(key.cbegin(), key.cend());  // NOLINT
-  }
-};
-
-template <>
-struct std::hash<kagome::crypto::Sr25519PublicKey> {
-  auto operator()(const kagome::crypto::Sr25519PublicKey &key) const {
-    return boost::hash_range(key.cbegin(), key.cend());  // NOLINT
-  }
-};
-
-template <>
-struct std::hash<kagome::crypto::Sr25519Signature> {
-  auto operator()(const kagome::crypto::Sr25519Signature &sig) const {
-    return boost::hash_range(sig.cbegin(), sig.cend());  // NOLINT
-  }
-};
 
 #endif  // KAGOME_CORE_CRYPTO_VRF_TYPES

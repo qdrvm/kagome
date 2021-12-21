@@ -8,9 +8,11 @@
 
 #include <cstdint>
 
+#include <fmt/format.h>
 #include <boost/operators.hpp>
 
 #include "common/blob.hpp"
+#include "macro/endianness_utils.hpp"
 
 namespace kagome::primitives {
   using BlocksRequestId = uint64_t;
@@ -59,5 +61,53 @@ namespace kagome::primitives {
   using BlockInfo = detail::BlockInfoT<struct BlockInfoTag>;
 
 }  // namespace kagome::primitives
+
+template <typename Tag>
+struct fmt::formatter<kagome::primitives::detail::BlockInfoT<Tag>> {
+  // Presentation format: 's' - short, 'l' - long.
+  char presentation = 's';
+
+  // Parses format specifications of the form ['s' | 'l'].
+  constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
+    // Parse the presentation format and store it in the formatter:
+    auto it = ctx.begin(), end = ctx.end();
+    if (it != end && (*it == 's' || *it == 'l')) {
+      presentation = *it++;
+    }
+
+    // Check if reached the end of the range:
+    if (it != end && *it != '}') {
+      throw format_error("invalid format");
+    }
+
+    // Return an iterator past the end of the parsed range:
+    return it;
+  }
+
+  // Formats the BlockInfo using the parsed format specification (presentation)
+  // stored in this formatter.
+  template <typename FormatContext>
+  auto format(const kagome::primitives::detail::BlockInfoT<Tag> &block_info,
+              FormatContext &ctx) -> decltype(ctx.out()) {
+    // ctx.out() is an output iterator to write to.
+
+    if (presentation == 's') {
+      static_assert(decltype(block_info.hash)::size() > 4);
+      return format_to(
+          ctx.out(),
+          "#{} (0x{:04x}…{:04x})",
+          block_info.number,
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          htobe16(*reinterpret_cast<const uint16_t *>(block_info.hash.data())),
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          htobe16(*reinterpret_cast<const uint16_t *>(block_info.hash.data()
+                                                      + block_info.hash.size()
+                                                      - sizeof(uint16_t))));
+    }
+
+    return format_to(
+        ctx.out(), "#{} (0x{})", block_info.number, block_info.hash.toHex());
+  }
+};
 
 #endif  // KAGOME_CORE_PRIMITIVES_COMMON_HPP

@@ -87,6 +87,11 @@ namespace kagome::consensus::grandpa {
         const BlockInfo &vote,
         const GrandpaJustification &justification) override;
 
+    outcome::result<void> onNeighborMessageSent(
+        RoundNumber round,
+        MembershipCounter set_id,
+        BlockNumber last_finalized) override;
+
     void doOnCompleted(const CompleteHandler &) override;
 
     void onCompleted(outcome::result<MovableRoundState> round) override;

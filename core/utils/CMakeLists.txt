@@ -10,11 +10,15 @@ add_executable(kagome-db-editor
   kagome_db_editor.cpp
   )
 target_link_libraries(kagome-db-editor
+  Backward::Backward
   Boost::Boost.DI
+  block_storage
   changes_tracker
+  hasher
   leveldb_wrapper
   polkadot_codec
   polkadot_trie_factory
+  runtime_upgrade_tracker
   trie_serializer
   trie_storage
   trie_storage_backend
