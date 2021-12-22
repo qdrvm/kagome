@@ -14,14 +14,6 @@ namespace kagome::common {
   using uint128_t = boost::multiprecision::uint128_t;
   using uint256_t = boost::multiprecision::uint256_t;
 
-  //  namespace detail {
-  //    template <size_t size, typename uint>
-  //    std::array<uint8_t, size> uint_to_bytes(uint &&i);
-  //
-  //    template <size_t size, typename uint>
-  //    uint bytes_to_uint(gsl::span<uint8_t, size> bytes);
-  //  }  // namespace detail
-
   std::array<uint8_t, 8> uint64_to_le_bytes(uint64_t number);
   uint64_t le_bytes_to_uint64(gsl::span<uint8_t, 8> bytes);
 
