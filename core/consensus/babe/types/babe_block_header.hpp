@@ -35,16 +35,16 @@ namespace kagome::consensus {
       return slot_assignment_type;
     }
 
-    bool needVRFCheck() const {  // x1
+    bool needVRFCheck() const {
       return slot_assignment_type == SlotType::Primary
              or slot_assignment_type == SlotType::SecondaryVRF;
     }
 
-    bool needVRFWithThresholdCheck() const {  // 01
+    bool needVRFWithThresholdCheck() const {
       return slot_assignment_type == SlotType::Primary;
     }
 
-    bool needAuthorCheck() const {  // 1x
+    bool needAuthorCheck() const {
       return slot_assignment_type == SlotType::SecondaryPlain
              or slot_assignment_type == SlotType::SecondaryVRF;
     }
