@@ -546,7 +546,7 @@ namespace kagome::consensus::grandpa {
 
     // If a peer is at round r, is impolite to send messages about r-2 or
     // earlier
-    if (msg.round_number + 2 <= current_round_->roundNumber()) {
+    if (msg.round_number + 2 < current_round_->roundNumber()) {
       SL_DEBUG(
           logger_,
           "{} signed by {} with set_id={} in round={} has received from {} "
@@ -644,15 +644,45 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCommitMessage(const libp2p::peer::PeerId &peer_id,
                                     const network::FullCommitMessage &msg) {
-    auto round = selectRound(msg.round, msg.set_id);
-    if (round && round != current_round_) {
-      SL_DEBUG(logger_,
-               "Commit with set_id={} in round={} for block {} "
-               "has received from {} and skipped as fulfilled",
-               msg.set_id,
-               msg.round,
-               BlockInfo(msg.message.target_number, msg.message.target_hash),
-               peer_id);
+    // It is especially impolite to send commits which are invalid, or from
+    // a different Set ID than the receiving peer has indicated
+    if (msg.set_id != current_round_->voterSetId()) {
+      SL_DEBUG(
+          logger_,
+          "Commit with set_id={} in round={} for block {} has received from {} "
+          "and dropped as impolite: our voter set id is {}",
+          msg.set_id,
+          msg.round,
+          BlockInfo(msg.message.target_number, msg.message.target_hash),
+          peer_id,
+          current_round_->voterSetId());
+      return;
+    }
+
+    // It is impolite to send commits which are earlier than the last commit
+    // sent
+    if (msg.round + kKeepRecentRounds < current_round_->voterSetId()) {
+      SL_DEBUG(
+          logger_,
+          "Commit with set_id={} in round={} for block {} has received from {} "
+          "and dropped as impolite: too old commit, our round is {}",
+          msg.set_id,
+          msg.round,
+          BlockInfo(msg.message.target_number, msg.message.target_hash),
+          peer_id,
+          current_round_->roundNumber());
+      return;
+    }
+
+    if (msg.round < current_round_->voterSetId()) {
+      SL_DEBUG(
+          logger_,
+          "Commit with set_id={} in round={} for block {} has received from {} "
+          "and dropped as fulfilled",
+          msg.set_id,
+          msg.round,
+          BlockInfo(msg.message.target_number, msg.message.target_hash),
+          peer_id);
       return;
     }
 
@@ -683,7 +713,15 @@ namespace kagome::consensus::grandpa {
 
     auto res = applyJustification(justification.block_info, justification);
     if (not res.has_value()) {
-      logger_->warn("Commit is not applied: {}", res.error().message());
+      SL_WARN(
+          logger_,
+          "Commit with set_id={} in round={} for block {} has received from {} "
+          "and has not applied: {}",
+          msg.set_id,
+          msg.round,
+          BlockInfo(msg.message.target_number, msg.message.target_hash),
+          peer_id,
+          res.error().message());
       return;
     }
   }
@@ -755,14 +793,11 @@ namespace kagome::consensus::grandpa {
 
     const auto &round_state = round_state_res.value();
 
-    logger_->debug(
-        "Save state of finalized round #{}: finalized={}, finalizing={}",
-        round_state.round_number,
-        round_state.last_finalized_block.number,
-        round_state.finalized.value().number);
-
-    SL_DEBUG(
-        logger_, "Event OnCompleted for round #{}", round_state.round_number);
+    SL_DEBUG(logger_,
+             "Save state of finalized round #{}: finalized={}, finalizing={}",
+             round_state.round_number,
+             round_state.last_finalized_block.number,
+             round_state.finalized.value().number);
 
     if (auto put_res =
             storage_->put(storage::kSetStateKey,
