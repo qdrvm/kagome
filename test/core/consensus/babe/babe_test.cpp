@@ -189,7 +189,7 @@ class BabeTest : public testing::Test {
 
   EpochDescriptor epoch_;
 
-  VRFOutput leader_vrf_output_{uint256_t_to_bytes(50), {}};
+  VRFOutput leader_vrf_output_{uint256_to_le_bytes(50), {}};
   std::array<std::optional<VRFOutput>, 2> leadership_{std::nullopt,
                                                       leader_vrf_output_};
 

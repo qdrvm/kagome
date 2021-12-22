@@ -41,9 +41,9 @@ struct BabeLotteryTest : public testing::Test {
 
   BabeLotteryImpl lottery_{vrf_provider_, babe_config_, hasher_};
 
-  std::vector<VRFPreOutput> submitted_vrf_values_{uint256_t_to_bytes(28482),
-                                                  uint256_t_to_bytes(57302840),
-                                                  uint256_t_to_bytes(8405)};
+  std::vector<VRFPreOutput> submitted_vrf_values_{uint256_to_le_bytes(28482),
+                                                  uint256_to_le_bytes(57302840),
+                                                  uint256_to_le_bytes(8405)};
   EpochDescriptor current_epoch_;
 
   Randomness randomness_{{0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
@@ -69,8 +69,8 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
 
   std::vector<VRFOutput> vrf_outputs;
   vrf_outputs.reserve(2);
-  vrf_outputs.push_back({uint256_t_to_bytes(3749373), {}});
-  vrf_outputs.push_back({uint256_t_to_bytes(1057472095), {}});
+  vrf_outputs.push_back({uint256_to_le_bytes(3749373), {}});
+  vrf_outputs.push_back({uint256_to_le_bytes(1057472095), {}});
 
   for (size_t i = 0; i < babe_config_->epoch_length; ++i) {
     primitives::Transcript transcript;
@@ -98,9 +98,9 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
 
   // THEN
   ASSERT_TRUE(leadership[0]);
-  EXPECT_EQ(leadership[0]->output, uint256_t_to_bytes(3749373));
+  EXPECT_EQ(leadership[0]->output, uint256_to_le_bytes(3749373));
   ASSERT_TRUE(leadership[1]);
-  EXPECT_EQ(leadership[1]->output, uint256_t_to_bytes(1057472095));
+  EXPECT_EQ(leadership[1]->output, uint256_to_le_bytes(1057472095));
   ASSERT_FALSE(leadership[2]);
 }
 
@@ -118,7 +118,7 @@ TEST_F(BabeLotteryTest, ComputeRandomness) {
   // WHEN
   Buffer concat_values{};
   concat_values.put(randomness_);
-  concat_values.put(uint64_t_to_bytes(current_epoch_.epoch_number));
+  concat_values.put(uint64_to_le_bytes(current_epoch_.epoch_number));
   for (const auto &value : submitted_vrf_values_) {
     concat_values.put(value);
   }

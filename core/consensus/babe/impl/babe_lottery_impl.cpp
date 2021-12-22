@@ -90,7 +90,7 @@ namespace kagome::consensus {
               last_epoch_randomness.end(),
               new_randomness.begin());
 
-    auto epoch_number_bytes = common::uint64_t_to_bytes(last_epoch_number);
+    auto epoch_number_bytes = common::uint64_to_le_bytes(last_epoch_number);
     std::copy(epoch_number_bytes.begin(),
               epoch_number_bytes.end(),
               new_randomness.begin() + vrf_constants::OUTPUT_SIZE);
@@ -123,9 +123,8 @@ namespace kagome::consensus {
 
     auto rand = hasher_->blake2b_256(
         scale::encode(std::tuple(randomness, slot)).value());
-    std::reverse(rand.begin(),rand.end());
 
-    auto rand_number = common::bytes_to_uint256_t(rand);
+    auto rand_number = common::be_bytes_to_uint256(rand);
 
     auto index = (rand_number % authorities_count)
                      .convert_to<primitives::AuthorityIndex>();
