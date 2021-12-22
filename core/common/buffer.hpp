@@ -9,10 +9,12 @@
 #include <string_view>
 #include <vector>
 
+#include <fmt/format.h>
 #include <boost/container_hash/hash.hpp>
 #include <boost/operators.hpp>
 #include <gsl/span>
-#include <outcome/outcome.hpp>
+
+#include "outcome/outcome.hpp"
 
 namespace kagome::common {
 
@@ -299,7 +301,7 @@ namespace kagome::common {
     }
 
     inline Buffer operator""_hex2buf(const char *c, size_t s) {
-      /// TODO(GaroRobe): After migrating to C++20 enable static_assert 
+      /// TODO(GaroRobe): After migrating to C++20 enable static_assert
       /// using literal operator template (see fe599c601d490b2d73c172a32c9ed1d6d58c8f78)
       /// static_assert(is_hex_str(c), "Expected hex string");
       return Buffer::fromHex({c, s}).value();
@@ -316,5 +318,53 @@ namespace std {
     }
   };
 }  // namespace std
+
+template <>
+struct fmt::formatter<kagome::common::Buffer> {
+  // Presentation format: 's' - short, 'l' - long.
+  char presentation = 's';
+
+  // Parses format specifications of the form ['s' | 'l'].
+  constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
+    // Parse the presentation format and store it in the formatter:
+    auto it = ctx.begin(), end = ctx.end();
+    if (it != end && (*it == 's' || *it == 'l')) {
+      presentation = *it++;
+    }
+
+    // Check if reached the end of the range:
+    if (it != end && *it != '}') {
+      throw format_error("invalid format");
+    }
+
+    // Return an iterator past the end of the parsed range:
+    return it;
+  }
+
+  // Formats the Blob using the parsed format specification (presentation)
+  // stored in this formatter.
+  template <typename FormatContext>
+  auto format(const kagome::common::Buffer &blob, FormatContext &ctx)
+      -> decltype(ctx.out()) {
+    // ctx.out() is an output iterator to write to.
+
+    if (blob.empty()) {
+      return format_to(ctx.out(), "empty");
+    }
+
+    if (presentation == 's' && blob.size() > 5) {
+      return format_to(
+          ctx.out(),
+          "0x{:04x}…{:04x}",
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          htobe16(*reinterpret_cast<const uint16_t *>(blob.data())),
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          htobe16(*reinterpret_cast<const uint16_t *>(blob.data() + blob.size()
+                                                      - sizeof(uint16_t))));
+    }
+
+    return format_to(ctx.out(), "0x{}", blob.toHex());
+  }
+};
 
 #endif  // KAGOME_BUFFER_HPP

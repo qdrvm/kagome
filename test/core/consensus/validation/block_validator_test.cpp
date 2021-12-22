@@ -107,7 +107,7 @@ class BlockValidatorTest : public testing::Test {
   VRFPreOutput vrf_value_ = {1, 2, 3, 4, 5};
   VRFProof vrf_proof_{};
   AuthorityIndex authority_index_ = {1};
-  BabeBlockHeader babe_header_{BabeBlockHeader::kVRFHeader,
+  BabeBlockHeader babe_header_{SlotType::Primary,
                                slot_number_,
                                {vrf_value_, vrf_proof_},
                                authority_index_};

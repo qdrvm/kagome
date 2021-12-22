@@ -8,6 +8,8 @@
 #include <unordered_set>
 
 #include <boost/assert.hpp>
+#include <scale/scale.hpp>
+
 #include "common/buffer.hpp"
 #include "common/mp_utils.hpp"
 #include "consensus/validation/prepare_transcript.hpp"
@@ -119,15 +121,15 @@ namespace kagome::consensus {
       return std::nullopt;
     }
 
-    auto slot_bytes = common::uint64_t_to_bytes(slot);
-    common::Buffer seed;
-    seed.put(randomness);
-    seed.put(slot_bytes);
-    auto rand = hasher_->blake2b_256(seed);
+    auto rand = hasher_->blake2b_256(
+        scale::encode(std::tuple(randomness, slot)).value());
+    std::reverse(rand.begin(),rand.end());
 
     auto rand_number = common::bytes_to_uint256_t(rand);
-    auto index = static_cast<primitives::AuthorityIndex>(rand_number
-                                                         % authorities_count);
+
+    auto index = (rand_number % authorities_count)
+                     .convert_to<primitives::AuthorityIndex>();
+
     SL_TRACE(logger_,
              "Secondary slot author for slot {}, authorities count {}, "
              "randomness {} is {}",

@@ -7,6 +7,7 @@
 #define KAGOME_BABE_BLOCK_HEADER_HPP
 
 #include "consensus/babe/common.hpp"
+#include "consensus/babe/types/slot.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/common.hpp"
 #include "primitives/digest.hpp"
@@ -19,27 +20,33 @@ namespace kagome::consensus {
    * https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/consensus/babe/src/digests.rs#L74
    */
   struct BabeBlockHeader {
-    static constexpr uint8_t kVRFHeader = 0x01;
-    static constexpr uint8_t kSecondaryHeaderCheck = 0x02;
+    SlotType slot_assignment_type;
 
-    uint8_t check_type{};
     /// slot, in which the block was produced
-    BabeSlotNumber slot_number{};
+    BabeSlotNumber slot_number;
+
     /// output of VRF function
     crypto::VRFOutput vrf_output;
+
     /// authority index of the producer
-    primitives::AuthorityIndex authority_index{};
+    primitives::AuthorityIndex authority_index;
 
-    bool needVRFCheck() const {
-      return (check_type & kVRFHeader) != 0;
+    SlotType slotType() const {
+      return slot_assignment_type;
     }
 
-    bool needVRFWithThresholdCheck() const {
-      return (check_type & (kVRFHeader | kSecondaryHeaderCheck)) == kVRFHeader;
+    bool needVRFCheck() const {  // x1
+      return slot_assignment_type == SlotType::Primary
+             or slot_assignment_type == SlotType::SecondaryVRF;
     }
 
-    bool needAuthorCheck() const {
-      return (check_type & kSecondaryHeaderCheck) != 0;
+    bool needVRFWithThresholdCheck() const {  // 01
+      return slot_assignment_type == SlotType::Primary;
+    }
+
+    bool needAuthorCheck() const {  // 1x
+      return slot_assignment_type == SlotType::SecondaryPlain
+             or slot_assignment_type == SlotType::SecondaryVRF;
     }
   };
 
@@ -53,8 +60,12 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BabeBlockHeader &bh) {
-    return s << bh.check_type << bh.authority_index << bh.slot_number
-             << bh.vrf_output;
+    s << bh.slot_assignment_type;
+    s << bh.authority_index << bh.slot_number;
+    if (bh.needVRFCheck()) {
+      s << bh.vrf_output;
+    }
+    return s;
   }
 
   /**
@@ -67,8 +78,11 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeBlockHeader &bh) {
-    s >> bh.check_type >> bh.authority_index >> bh.slot_number;
-    if (bh.needVRFCheck()) s >> bh.vrf_output;
+    s >> bh.slot_assignment_type;
+    s >> bh.authority_index >> bh.slot_number;
+    if (bh.needVRFCheck()) {
+      s >> bh.vrf_output;
+    }
     return s;
   }
 }  // namespace kagome::consensus
