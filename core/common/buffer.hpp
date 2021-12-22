@@ -14,6 +14,7 @@
 #include <boost/operators.hpp>
 #include <gsl/span>
 
+#include "macro/endianness_utils.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::common {
@@ -302,8 +303,9 @@ namespace kagome::common {
 
     inline Buffer operator""_hex2buf(const char *c, size_t s) {
       /// TODO(GaroRobe): After migrating to C++20 enable static_assert
-      /// using literal operator template (see fe599c601d490b2d73c172a32c9ed1d6d58c8f78)
-      /// static_assert(is_hex_str(c), "Expected hex string");
+      /// using literal operator template (see
+      /// fe599c601d490b2d73c172a32c9ed1d6d58c8f78) static_assert(is_hex_str(c),
+      /// "Expected hex string");
       return Buffer::fromHex({c, s}).value();
     }
   }  // namespace literals
