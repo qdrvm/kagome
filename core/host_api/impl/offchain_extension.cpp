@@ -42,7 +42,7 @@ namespace kagome::host_api {
     return worker_opt.value();
   }
 
-  runtime::WasmI8 OffchainExtension::ext_offchain_is_validator_version_1() {
+  runtime::WasmU32 OffchainExtension::ext_offchain_is_validator_version_1() {
     auto &worker = getWorker();
     bool isValidator = worker.isValidator();
     return isValidator ? 1 : 0;
@@ -96,7 +96,7 @@ namespace kagome::host_api {
   }
 
   void OffchainExtension::ext_offchain_local_storage_set_version_1(
-      runtime::WasmI32 kind, runtime::WasmSpan key, runtime::WasmSpan value) {
+      runtime::WasmU32 kind, runtime::WasmSpan key, runtime::WasmSpan value) {
     auto &worker = getWorker();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
@@ -123,7 +123,7 @@ namespace kagome::host_api {
   }
 
   void OffchainExtension::ext_offchain_local_storage_clear_version_1(
-      runtime::WasmI32 kind, runtime::WasmSpan key) {
+      runtime::WasmU32 kind, runtime::WasmSpan key) {
     auto &worker = getWorker();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
@@ -147,9 +147,9 @@ namespace kagome::host_api {
     worker.localStorageClear(storage_type, key_buffer);
   }
 
-  runtime::WasmI8
+  runtime::WasmU32
   OffchainExtension::ext_offchain_local_storage_compare_and_set_version_1(
-      runtime::WasmI32 kind,
+      runtime::WasmU32 kind,
       runtime::WasmSpan key,
       runtime::WasmSpan expected,
       runtime::WasmSpan value) {
@@ -184,7 +184,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan OffchainExtension::ext_offchain_local_storage_get_version_1(
-      runtime::WasmI32 kind, runtime::WasmSpan key) {
+      runtime::WasmU32 kind, runtime::WasmSpan key) {
     auto &worker = getWorker();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
@@ -267,7 +267,7 @@ namespace kagome::host_api {
 
   runtime::WasmSpan
   OffchainExtension::ext_offchain_http_request_add_header_version_1(
-      runtime::WasmI32 request_id,
+      runtime::WasmU32 request_id,
       runtime::WasmSpan name_pos,
       runtime::WasmSpan value_pos) {
     auto &worker = getWorker();
@@ -302,7 +302,7 @@ namespace kagome::host_api {
 
   runtime::WasmSpan
   OffchainExtension::ext_offchain_http_request_write_body_version_1(
-      runtime::WasmI32 request_id,
+      runtime::WasmU32 request_id,
       runtime::WasmSpan chunk_pos,
       runtime::WasmSpan deadline_pos) {
     auto &worker = getWorker();
@@ -358,7 +358,7 @@ namespace kagome::host_api {
 
   runtime::WasmSpan
   OffchainExtension::ext_offchain_http_response_headers_version_1(
-      runtime::WasmI32 request_id) {
+      runtime::WasmU32 request_id) {
     auto &worker = getWorker();
 
     auto &memory = memory_provider_->getCurrentMemory()->get();
@@ -373,7 +373,7 @@ namespace kagome::host_api {
 
   runtime::WasmSpan
   OffchainExtension::ext_offchain_http_response_read_body_version_1(
-      runtime::WasmI32 request_id,
+      runtime::WasmU32 request_id,
       runtime::WasmSpan buffer_pos,
       runtime::WasmSpan deadline_pos) {
     auto &worker = getWorker();
@@ -403,7 +403,7 @@ namespace kagome::host_api {
   }
 
   void OffchainExtension::ext_offchain_set_authorized_nodes_version_1(
-      runtime::WasmSpan nodes_pos, runtime::WasmI32 authorized_only) {
+      runtime::WasmSpan nodes_pos, runtime::WasmU32 authorized_only) {
     auto &worker = getWorker();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 

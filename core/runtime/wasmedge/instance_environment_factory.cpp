@@ -16,22 +16,25 @@ namespace kagome::runtime::wasmedge {
 
   InstanceEnvironmentFactory::InstanceEnvironmentFactory(
       std::shared_ptr<storage::trie::TrieStorage> storage,
+      std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : storage_{std::move(storage)},
+        serializer_{std::move(serializer)},
         host_api_factory_{std::move(host_api_factory)},
         block_header_repo_{std::move(block_header_repo)},
         changes_tracker_{std::move(changes_tracker)} {
-    BOOST_ASSERT(storage_);
-    BOOST_ASSERT(host_api_factory_);
-    BOOST_ASSERT(block_header_repo_);
-    BOOST_ASSERT(changes_tracker_);
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(serializer_ != nullptr);
+    BOOST_ASSERT(host_api_factory_ != nullptr);
+    BOOST_ASSERT(block_header_repo_ != nullptr);
+    BOOST_ASSERT(changes_tracker_ != nullptr);
   }
 
   WasmedgeInstanceEnvironment InstanceEnvironmentFactory::make() const {
     auto new_storage_provider =
-        std::make_shared<TrieStorageProviderImpl>(storage_);
+      std::make_shared<TrieStorageProviderImpl>(storage_, serializer_);
     auto core_factory = std::make_shared<CoreApiFactoryImpl>(
         shared_from_this(), block_header_repo_, changes_tracker_);
     auto memory_provider = std::make_shared<WasmedgeMemoryProvider>();
