@@ -60,20 +60,26 @@ namespace kagome::host_api {
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
     auto [key_ptr, key_size] = runtime::PtrSize(key_pos);
-    auto [value_ptr, value_size] = runtime::PtrSize(value_out);
+    auto value = runtime::PtrSize(value_out);
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto key = memory.loadN(key_ptr, key_size);
     std::optional<uint32_t> res{std::nullopt};
-    if (const auto &data_res = get(key);
-        data_res && data_res.value().has_value()) {
-      common::BufferView data = data_res.value().value().get();
-      auto offset_data = data.subspan(std::min<size_t>(offset, data.size()));
-      auto written = std::min<size_t>(offset_data.size(), value_size);
-      memory.storeBuffer(value_ptr, offset_data.subspan(0, written));
-      SL_TRACE_FUNC_CALL(
-          logger_, key, common::Buffer{offset_data.subspan(0, written)});
-      res = offset_data.size();
+    if (auto data_opt_res = get(key); data_opt_res.has_value()) {
+      auto& data_opt = data_opt_res.value();
+      if (data_opt.has_value()) {
+        common::BufferView data = data_opt.value().get();
+        data = data.subspan(std::min<size_t>(offset, data.size()));
+        auto written = std::min<size_t>(data.size(), value.size);
+        data = data.subspan(0, written);
+        memory.storeBuffer(value.ptr, data);
+        SL_TRACE_FUNC_CALL(logger_, data, key, value.ptr, value.size, offset);
+        res = data.size();
+      }
+    } else {
+      SL_ERROR(logger_,
+               "Error in ext_storage_read_version_1: {}",
+               data_opt_res.error().message());
     }
     return memory.storeBuffer(scale::encode(res).value());
   }
@@ -143,10 +149,13 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key = memory.loadN(key_ptr, key_size);
     auto del_result = batch->remove(key);
+    auto _res = batch->contains(key);
+    logger_->debug("Contains after remove? {}", _res.value());
     SL_TRACE_FUNC_CALL(logger_, del_result.has_value(), key);
     if (not del_result) {
       logger_->warn(
-          "ext_storage_clear_version_1 did not delete key {} from trie db with "
+          "ext_storage_clear_version_1 did not delete key {} from trie db "
+          "with "
           "reason: {}",
           key_data,
           del_result.error().message());
@@ -285,7 +294,8 @@ namespace kagome::host_api {
       auto put_result = batch->put(key_bytes, std::move(val));
       if (not put_result) {
         logger_->error(
-            "ext_storage_append_version_1 failed, due to fail in trie db with "
+            "ext_storage_append_version_1 failed, due to fail in trie db "
+            "with "
             "reason: {}",
             put_result.error().message());
       }
@@ -417,7 +427,7 @@ namespace kagome::host_api {
                      config_bytes_res.error().message());
       throw std::runtime_error(config_bytes_res.error().message());
     }
-    if(config_bytes_res.value() == std::nullopt) {
+    if (config_bytes_res.value() == std::nullopt) {
       return std::nullopt;
     }
     auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(

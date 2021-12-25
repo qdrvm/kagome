@@ -181,9 +181,9 @@ namespace kagome::storage::trie {
     // encode each child
     for (auto &child : node.children) {
       if (child) {
-        if (child->isDummy()) {
-          auto merkle_value =
-              std::dynamic_pointer_cast<DummyNode>(child)->db_key;
+        if (auto dummy = std::dynamic_pointer_cast<DummyNode>(child);
+            dummy != nullptr) {
+          auto merkle_value = dummy->db_key;
           OUTCOME_TRY(scale_enc, scale::encode(std::move(merkle_value)));
           encoding.put(scale_enc);
         } else {

@@ -39,11 +39,10 @@ namespace kagome::storage::trie {
   outcome::result<std::shared_ptr<PolkadotTrie>>
   TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key) const {
     PolkadotTrie::NodeRetrieveFunctor f =
-        [this](const PolkadotTrie::NodePtr &parent)
+        [this](const std::shared_ptr<OpaqueTrieNode> &parent)
         -> outcome::result<PolkadotTrie::NodePtr> {
-      PolkadotTrie::NodePtr copy{parent};
-      OUTCOME_TRY(retrieveNode(copy));
-      return copy;
+      OUTCOME_TRY(node, retrieveNode(parent));
+      return node;
     };
     if (db_key == getEmptyRootHash()) {
       return trie_factory_->createEmpty(std::move(f));
@@ -94,8 +93,8 @@ namespace kagome::storage::trie {
   outcome::result<void> TrieSerializerImpl::storeChildren(BranchNode &branch,
                                                           BufferBatch &batch) {
     for (auto &child : branch.children) {
-      if (child and not child->isDummy()) {
-        OUTCOME_TRY(hash, storeNode(*child, batch));
+      if (auto c = std::dynamic_pointer_cast<TrieNode>(child); c != nullptr) {
+        OUTCOME_TRY(hash, storeNode(*c, batch));
         // when a node is written to the storage, it is replaced with a dummy
         // node to avoid memory waste
         child = std::make_shared<DummyNode>(hash);
@@ -104,14 +103,13 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<void> TrieSerializerImpl::retrieveNode(
-      PolkadotTrie::NodePtr &parent) const {
-    if (parent and parent->isDummy()) {
-      OUTCOME_TRY(
-          n, retrieveNode(dynamic_cast<DummyNode &>(*parent.get()).db_key));
-      parent = n;
+  outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
+      const std::shared_ptr<OpaqueTrieNode> &parent) const {
+    if (auto p = std::dynamic_pointer_cast<DummyNode>(parent); p != nullptr) {
+      OUTCOME_TRY(n, retrieveNode(p->db_key));
+      return n;
     }
-    return outcome::success();
+    return std::dynamic_pointer_cast<TrieNode>(parent);
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(

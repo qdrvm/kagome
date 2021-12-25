@@ -26,8 +26,8 @@ namespace kagome::storage::trie {
     using ConstNodePtr = std::shared_ptr<const TrieNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
     using ConstBranchPtr = std::shared_ptr<const BranchNode>;
-    using NodeRetrieveFunctor =
-        std::function<outcome::result<NodePtr>(const NodePtr &)>;
+    using NodeRetrieveFunctor = std::function<outcome::result<NodePtr>(
+        std::shared_ptr<OpaqueTrieNode> const &)>;
 
     /**
      * This callback is called when a node is detached from a trie. It is called
@@ -60,8 +60,8 @@ namespace kagome::storage::trie {
      * @returns a child node pointer of a provided \arg parent node
      * at the index \idx
      */
-    virtual outcome::result<ConstNodePtr> retrieveChild(const BranchNode &parent,
-                                                        uint8_t idx) const = 0;
+    virtual outcome::result<ConstNodePtr> retrieveChild(
+        const BranchNode &parent, uint8_t idx) const = 0;
     virtual outcome::result<NodePtr> retrieveChild(const BranchNode &parent,
                                                    uint8_t idx) = 0;
 
@@ -70,9 +70,9 @@ namespace kagome::storage::trie {
      * \arg key_nibbles (includes parent's key nibbles)
      */
     virtual outcome::result<NodePtr> getNode(ConstNodePtr parent,
-                                             const KeyNibbles &key_nibbles) = 0;
+                                             const NibblesView &key_nibbles) = 0;
     virtual outcome::result<ConstNodePtr> getNode(
-        ConstNodePtr parent, const KeyNibbles &key_nibbles) const = 0;
+        ConstNodePtr parent, const NibblesView &key_nibbles) const = 0;
 
     /**
      * Invokes callback on each node starting from \arg parent and ending on the
@@ -81,7 +81,7 @@ namespace kagome::storage::trie {
      */
     virtual outcome::result<void> forNodeInPath(
         ConstNodePtr parent,
-        const KeyNibbles &path,
+        const NibblesView &path,
         const std::function<outcome::result<void>(
             BranchNode const &, uint8_t idx)> &callback) const = 0;
 
@@ -92,10 +92,12 @@ namespace kagome::storage::trie {
     }
 
     inline static outcome::result<NodePtr> defaultNodeRetrieveFunctor(
-        const NodePtr &node) {
-      BOOST_ASSERT_MSG(not node or not node->isDummy(),
-                       "Dummy node unexpected.");
-      return node;
+        const std::shared_ptr<OpaqueTrieNode> &node) {
+      BOOST_ASSERT_MSG(
+          node != nullptr
+              and std::dynamic_pointer_cast<TrieNode>(node) != nullptr,
+          "Dummy node unexpected.");
+      return std::dynamic_pointer_cast<TrieNode>(node);
     }
   };
 

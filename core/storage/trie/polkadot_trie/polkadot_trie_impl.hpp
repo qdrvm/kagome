@@ -36,13 +36,13 @@ namespace kagome::storage::trie {
     ConstNodePtr getRoot() const override;
 
     outcome::result<NodePtr> getNode(ConstNodePtr parent,
-                                     const KeyNibbles &key_nibbles) override;
+                                     const NibblesView &key_nibbles) override;
     outcome::result<ConstNodePtr> getNode(
-        ConstNodePtr parent, const KeyNibbles &key_nibbles) const override;
+        ConstNodePtr parent, const NibblesView &key_nibbles) const override;
 
     outcome::result<void> forNodeInPath(
         ConstNodePtr parent,
-        const KeyNibbles &path,
+        const NibblesView &path,
         const std::function<outcome::result<void>(
             BranchNode const &, uint8_t idx)> &callback) const override;
 
@@ -78,11 +78,11 @@ namespace kagome::storage::trie {
 
    private:
     outcome::result<NodePtr> insert(const NodePtr &parent,
-                                    const KeyNibbles &key_nibbles,
+                                    const NibblesView &key_nibbles,
                                     NodePtr node);
 
     outcome::result<NodePtr> updateBranch(BranchPtr parent,
-                                          const KeyNibbles &key_nibbles,
+                                          const NibblesView &key_nibbles,
                                           const NodePtr &node);
 
     outcome::result<ConstNodePtr> retrieveChild(const BranchNode &parent,

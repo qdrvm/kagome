@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_library(polkadot_node
-    polkadot_node.cpp
+        trie_node.cpp
     )
 target_link_libraries(polkadot_node
     buffer
