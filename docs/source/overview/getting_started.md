@@ -4,7 +4,7 @@
 
 ### Prerequisites
 
-For now, please refer to the [Dockerfile](./housekeeping/docker/Dockerfile) to get a picture of what you need for a local build-environment.
+For now, please refer to the [Dockerfile](https://github.com/soramitsu/kagome/blob/master/housekeeping/docker/kagome-dev/minideb.Dockerfile) to get a picture of what you need for a local build-environment.
 
 ### Clone
 
