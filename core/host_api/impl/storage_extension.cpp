@@ -149,8 +149,6 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key = memory.loadN(key_ptr, key_size);
     auto del_result = batch->remove(key);
-    auto _res = batch->contains(key);
-    logger_->debug("Contains after remove? {}", _res.value());
     SL_TRACE_FUNC_CALL(logger_, del_result.has_value(), key);
     if (not del_result) {
       logger_->warn(
