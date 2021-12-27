@@ -562,4 +562,43 @@ namespace kagome::host_api {
     auto buffer = scale::encode(ResultType(public_key.value())).value();
     return getMemory().storeBuffer(buffer);
   }
+
+  runtime::WasmSpan CryptoExtension::ext_crypto_ecdsa_public_keys_version_1(
+          runtime::WasmSize key_type) {
+    using ResultType = std::vector<crypto::Sr25519PublicKey>;
+    static const auto error_result(scale::encode(ResultType{}).value());
+
+    auto key_type_id =
+        static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
+    if (!crypto::isSupportedKeyType(key_type_id)) {
+      logger_->warn("key type '{}' is not officially supported",
+                    common::int_to_hex(key_type_id, 8));
+    }
+    auto public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
+    if (not public_keys) {
+      auto msg = fmt::format("error loading public keys: {}",
+                             public_keys.error().message());
+      throw std::runtime_error(msg);
+    }
+
+    auto buffer = scale::encode(public_keys.value()).value();
+    SL_TRACE_FUNC_CALL(logger_, public_keys.value().size(), key_type_id);
+
+    return getMemory().storeBuffer(buffer);
+  }
+
+  runtime::WasmSpan CryptoExtension::ext_crypto_ecdsa_sign_version_1(
+          runtime::WasmSize key_type,
+          runtime::WasmPointer key,
+          runtime::WasmSpan msg_data) {
+    using ResultType = std::optional<crypto::Sr25519Signature>;
+    static const auto error_result =
+        scale::encode(ResultType(std::nullopt)).value();
+    auto key_type_id =
+        static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
+
+    if (!crypto::isSupportedKeyType(key_type_id)) {
+      logger_->warn("key type '{}' is not officially supported",
+                    common::int_to_hex(key_type_id, 8));
+  }
 }  // namespace kagome::host_api

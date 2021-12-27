@@ -164,6 +164,20 @@ namespace kagome::host_api {
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
         runtime::WasmPointer sig, runtime::WasmPointer msg);
 
+    /**
+     * @see HostApi::ext_crypto_ecdsa_public_keys_version_1
+     */
+    runtime::WasmSpan ext_crypto_ecdsa_public_keys_version_1(
+        runtime::WasmSize key_type);
+
+    /**
+     * @see HostApi::ext_crypto_ecdsa_sign_version_1
+     */
+    runtime::WasmSpan ext_crypto_ecdsa_sign_version_1(
+        runtime::WasmSize key_type,
+        runtime::WasmPointer key,
+        runtime::WasmSpan msg_data);
+
    private:
     common::Blob<32> deriveSeed(std::string_view content);
 

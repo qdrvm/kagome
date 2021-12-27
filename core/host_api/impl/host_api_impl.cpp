@@ -229,6 +229,18 @@ namespace kagome::host_api {
         sig_data, msg, pubkey_data);
   }
 
+  runtime::WasmSpan HostApiImpl::ext_crypto_ecdsa_public_keys_version_1(
+      runtime::WasmSize key_type) {
+    return crypto_ext_.ext_crypto_ecdsa_public_keys_version_1(key_type);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_crypto_ecdsa_sign_version_1(
+      runtime::WasmSize key_type,
+      runtime::WasmPointer key,
+      runtime::WasmSpan msg_data) {
+    return crypto_ext_.ext_crypto_ecdsa_sign_version_1(key_type, key, msg_data);
+  }
+
   // ------------------------- Hashing extension/crypto ---------------
 
   runtime::WasmPointer HostApiImpl::ext_hashing_keccak_256_version_1(

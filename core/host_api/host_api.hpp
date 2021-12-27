@@ -343,6 +343,20 @@ namespace kagome::host_api {
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
 
+    /**
+     * @see Extension::ext_crypto_ecdsa_public_keys
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_crypto_ecdsa_public_keys_version_1(runtime::WasmSize key_type) = 0;
+
+    /**
+     * @see Extension::ext_crypto_ecdsa_sign
+     */
+    [[nodiscard]] virtual runtime::WasmSpan ext_crypto_ecdsa_sign_version_1(
+        runtime::WasmSize key_type,
+        runtime::WasmPointer key,
+        runtime::WasmSpan msg_data) = 0;
+
     // ---------------------------- Misc extensions ----------------------------
 
     [[nodiscard]] virtual runtime::WasmSpan ext_misc_runtime_version_version_1(
@@ -488,8 +502,7 @@ namespace kagome::host_api {
      * value.
      */
     virtual runtime::WasmSpan ext_default_child_storage_get_version_1(
-        runtime::WasmSpan child_storage_key,
-        runtime::WasmSpan key) const = 0;
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
 
     /**
      * @brief Clears the storage of the given key and its value from the child
@@ -510,11 +523,11 @@ namespace kagome::host_api {
      * Returns None if the entry cannot be found.
      */
     virtual runtime::WasmSpan ext_default_child_storage_next_key_version_1(
-        runtime::WasmSpan child_storage_key,
-        runtime::WasmSpan key) const = 0;
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
 
     /**
-     * @brief Commits all existing operations and computes the resulting child storage root.
+     * @brief Commits all existing operations and computes the resulting child
+     * storage root.
      * @param child_storage_key a pointer-size indicating the child storage key
      * @return a pointer-size indicating the SCALE encoded storage root.
      */
