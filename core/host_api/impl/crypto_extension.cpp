@@ -15,6 +15,7 @@
 #include "crypto/bip39/mnemonic.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/key_type.hpp"
+#include "crypto/ecdsa_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
@@ -26,19 +27,20 @@
 namespace kagome::host_api {
   namespace sr25519_constants = crypto::constants::sr25519;
   namespace ed25519_constants = crypto::constants::ed25519;
-  namespace ecdsa = crypto::secp256k1;
+  namespace secp256k1 = crypto::secp256k1;
 
   using crypto::decodeKeyTypeId;
   using crypto::Secp256k1ProviderError;
-  using crypto::secp256k1::CompressedPublicKey;
-  using crypto::secp256k1::EcdsaVerifyError;
-  using crypto::secp256k1::MessageHash;
-  using crypto::secp256k1::RSVSignature;
-  using crypto::secp256k1::UncompressedPublicKey;
+  using secp256k1::CompressedPublicKey;
+  using secp256k1::MessageHash;
+  using secp256k1::RSVSignature;
+  using secp256k1::Secp256k1VerifyError;
+  using secp256k1::UncompressedPublicKey;
 
   CryptoExtension::CryptoExtension(
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
       std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<const crypto::EcdsaProvider> ecdsa_provider,
       std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<const crypto::Hasher> hasher,
@@ -46,6 +48,7 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::Bip39Provider> bip39_provider)
       : memory_provider_(std::move(memory_provider)),
         sr25519_provider_(std::move(sr25519_provider)),
+        ecdsa_provider_(std::move(ecdsa_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         hasher_(std::move(hasher)),
@@ -54,6 +57,7 @@ namespace kagome::host_api {
         logger_{log::createLogger("CryptoExtension", "crypto_extension")} {
     BOOST_ASSERT(memory_provider_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
+    BOOST_ASSERT(ecdsa_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
@@ -473,29 +477,30 @@ namespace kagome::host_api {
         decltype(outcome::result<std::decay_t<T>>(T{}).as_failure());
 
     /**
-     * @brief converts outcome::failure_type to EcdsaVerifyError error code
+     * @brief converts outcome::failure_type to Secp256k1VerifyError error code
      * @param failure outcome::result containing error
      * @return error code
      */
     template <class T>
-    EcdsaVerifyError convertFailureToError(const failure_type<T> &failure) {
+    Secp256k1VerifyError convertFailureToError(const failure_type<T> &failure) {
       const outcome::result<void> res = failure;
       if (res == outcome::failure(Secp256k1ProviderError::INVALID_V_VALUE)) {
-        return ecdsa::ecdsa_verify_error::kInvalidV;
+        return secp256k1::secp256k1_verify_error::kInvalidV;
       }
       if (res
           == outcome::failure(Secp256k1ProviderError::INVALID_R_OR_S_VALUE)) {
-        return ecdsa::ecdsa_verify_error::kInvalidRS;
+        return secp256k1::secp256k1_verify_error::kInvalidRS;
       }
 
-      return ecdsa::ecdsa_verify_error::kInvalidSignature;
+      return secp256k1::secp256k1_verify_error::kInvalidSignature;
     }
   }  // namespace
 
   runtime::WasmSpan
   CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_version_1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    using ResultType = boost::variant<ecdsa::PublicKey, EcdsaVerifyError>;
+    using ResultType =
+        boost::variant<secp256k1::PublicKey, Secp256k1VerifyError>;
 
     constexpr auto signature_size = RSVSignature::size();
     constexpr auto message_size = MessageHash::size();
@@ -526,7 +531,7 @@ namespace kagome::host_api {
     // On success it contains the 64-byte recovered public key or an error type
     auto truncated_span = gsl::span<uint8_t>(public_key.value()).subspan(1, 64);
     auto truncated_public_key =
-        ecdsa::PublicKey::fromSpan(truncated_span).value();
+        secp256k1::PublicKey::fromSpan(truncated_span).value();
     SL_TRACE_FUNC_CALL(logger_, truncated_public_key, sig_buffer, msg_buffer);
     auto buffer = scale::encode(ResultType(truncated_public_key)).value();
     return getMemory().storeBuffer(buffer);
@@ -535,7 +540,8 @@ namespace kagome::host_api {
   runtime::WasmSpan
   CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    using ResultType = boost::variant<CompressedPublicKey, EcdsaVerifyError>;
+    using ResultType =
+        boost::variant<CompressedPublicKey, Secp256k1VerifyError>;
 
     constexpr auto signature_size = RSVSignature::size();
     constexpr auto message_size = MessageHash::size();
@@ -564,8 +570,8 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan CryptoExtension::ext_crypto_ecdsa_public_keys_version_1(
-          runtime::WasmSize key_type) {
-    using ResultType = std::vector<crypto::Sr25519PublicKey>;
+      runtime::WasmSize key_type) {
+    using ResultType = std::vector<crypto::EcdsaPublicKey>;
     static const auto error_result(scale::encode(ResultType{}).value());
 
     auto key_type_id =
@@ -574,7 +580,7 @@ namespace kagome::host_api {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
     }
-    auto public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
+    auto public_keys = crypto_store_->getEcdsaPublicKeys(key_type_id);
     if (not public_keys) {
       auto msg = fmt::format("error loading public keys: {}",
                              public_keys.error().message());
@@ -588,17 +594,39 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan CryptoExtension::ext_crypto_ecdsa_sign_version_1(
-          runtime::WasmSize key_type,
-          runtime::WasmPointer key,
-          runtime::WasmSpan msg_data) {
-    using ResultType = std::optional<crypto::Sr25519Signature>;
-    static const auto error_result =
-        scale::encode(ResultType(std::nullopt)).value();
+      runtime::WasmSize key_type,
+      runtime::WasmPointer key,
+      runtime::WasmSpan msg) {
+    using ResultType = std::optional<crypto::EcdsaSignature>;
+
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
+    }
+    auto public_buffer = getMemory().loadN(key, sizeof(crypto::EcdsaPublicKey));
+    auto [msg_data, msg_len] = runtime::PtrSize(msg);
+    auto msg_buffer = getMemory().loadN(msg_data, msg_len);
+
+    crypto::EcdsaPublicKey pk;
+    std::copy(public_buffer.begin(), public_buffer.end(), pk.begin());
+    auto key_pair = crypto_store_->findEcdsaKeypair(key_type_id, pk);
+    if (!key_pair) {
+      logger_->error("failed to find required key");
+      auto error_result = scale::encode(ResultType(std::nullopt)).value();
+      return getMemory().storeBuffer(error_result);
+    }
+
+    auto sign = ecdsa_provider_->sign(msg_buffer, key_pair.value().secret_key);
+    if (!sign) {
+      logger_->error("failed to sign message, error = {}",
+                     sign.error().message());
+      std::terminate();
+    }
+    SL_TRACE_FUNC_CALL(
+        logger_, sign.value(), key_pair.value().public_key, msg_buffer);
+    auto buffer = scale::encode(ResultType(sign.value())).value();
+    return getMemory().storeBuffer(buffer);
   }
 }  // namespace kagome::host_api

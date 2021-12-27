@@ -45,6 +45,7 @@ target_link_libraries(application_injector
     chain_spec
     core_api
     crypto_store
+    ecdsa_provider
     ed25519_provider
     environment
     extrinsic_observer

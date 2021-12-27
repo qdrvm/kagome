@@ -38,10 +38,14 @@ namespace kagome::crypto {
   /// suspicious behaviour)
   class CryptoStoreImpl : public CryptoStore {
    public:
-    CryptoStoreImpl(std::shared_ptr<Ed25519Suite> ed_suite,
+    CryptoStoreImpl(std::shared_ptr<EcdsaSuite> ecdsa_suite,
+                    std::shared_ptr<Ed25519Suite> ed_suite,
                     std::shared_ptr<Sr25519Suite> sr_suite,
                     std::shared_ptr<Bip39Provider> bip39_provider,
                     std::shared_ptr<KeyFileStorage> key_fs);
+
+    outcome::result<EcdsaKeypair> generateEcdsaKeypair(
+        KeyTypeId key_type, std::string_view mnemonic_phrase) override;
 
     outcome::result<Ed25519Keypair> generateEd25519Keypair(
         KeyTypeId key_type, std::string_view mnemonic_phrase) override;
@@ -49,11 +53,17 @@ namespace kagome::crypto {
     outcome::result<Sr25519Keypair> generateSr25519Keypair(
         KeyTypeId key_type, std::string_view mnemonic_phrase) override;
 
+    EcdsaKeypair generateEcdsaKeypair(KeyTypeId key_type,
+                                      const EcdsaSeed &seed) override;
+
     Ed25519Keypair generateEd25519Keypair(KeyTypeId key_type,
                                           const Ed25519Seed &seed) override;
 
     Sr25519Keypair generateSr25519Keypair(KeyTypeId key_type,
                                           const Sr25519Seed &seed) override;
+
+    outcome::result<EcdsaKeypair> generateEcdsaKeypairOnDisk(
+        KeyTypeId key_type) override;
 
     outcome::result<Ed25519Keypair> generateEd25519KeypairOnDisk(
         KeyTypeId key_type) override;
@@ -61,11 +71,17 @@ namespace kagome::crypto {
     outcome::result<Sr25519Keypair> generateSr25519KeypairOnDisk(
         KeyTypeId key_type) override;
 
+    outcome::result<EcdsaKeypair> findEcdsaKeypair(
+        KeyTypeId key_type, const EcdsaPublicKey &pk) const override;
+
     outcome::result<Ed25519Keypair> findEd25519Keypair(
         KeyTypeId key_type, const Ed25519PublicKey &pk) const override;
 
     outcome::result<Sr25519Keypair> findSr25519Keypair(
         KeyTypeId key_type, const Sr25519PublicKey &pk) const override;
+
+    outcome::result<EcdsaKeys> getEcdsaPublicKeys(
+        KeyTypeId key_type) const override;
 
     outcome::result<Ed25519Keys> getEd25519PublicKeys(
         KeyTypeId key_type) const override;
@@ -160,9 +176,11 @@ namespace kagome::crypto {
     libp2p::crypto::KeyPair ed25519KeyToLibp2pKeypair(
         const Ed25519Keypair &kp) const;
 
+    mutable std::unordered_map<KeyTypeId, KeyCache<EcdsaSuite>> ecdsa_caches_;
     mutable std::unordered_map<KeyTypeId, KeyCache<Ed25519Suite>> ed_caches_;
     mutable std::unordered_map<KeyTypeId, KeyCache<Sr25519Suite>> sr_caches_;
     std::shared_ptr<KeyFileStorage> file_storage_;
+    std::shared_ptr<EcdsaSuite> ecdsa_suite_;
     std::shared_ptr<Ed25519Suite> ed_suite_;
     std::shared_ptr<Sr25519Suite> sr_suite_;
     std::shared_ptr<Bip39Provider> bip39_provider_;

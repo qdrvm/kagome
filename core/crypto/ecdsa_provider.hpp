@@ -3,66 +3,47 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CRYPTO_SR25519_PROVIDER_HPP
-#define KAGOME_CORE_CRYPTO_SR25519_PROVIDER_HPP
+#ifndef KAGOME_CORE_CRYPTO_ECDSA_PROVIDER_HPP
+#define KAGOME_CORE_CRYPTO_ECDSA_PROVIDER_HPP
 
 #include <gsl/span>
 #include <outcome/outcome.hpp>
-#include "crypto/sr25519_types.hpp"
+
+#include "crypto/ecdsa_types.hpp"
 
 namespace kagome::crypto {
 
   /**
-   * sr25519 provider error codes
+   * ecdsa provider error codes
    */
-  enum class Sr25519ProviderError {
+  enum class EcdsaProviderError {
     SIGN_UNKNOWN_ERROR = 1,  // unknown error occured during call to `sign`
                              // method of bound function
-    VERIFY_UNKNOWN_ERROR     // unknown error occured during call to `verify`
+    VERIFY_UNKNOWN_ERROR,    // unknown error occured during call to `verify`
+                             // method of bound function
+    DERIVE_UNKNOWN_ERROR     // unknown error occured during call to `derive`
                              // method of bound function
   };
 
-  class Sr25519Provider {
+  class EcdsaProvider {
    public:
-    virtual ~Sr25519Provider() = default;
+    virtual ~EcdsaProvider() = default;
 
-    /**
-     * Generates random keypair for signing the message
-     */
-    virtual Sr25519Keypair generateKeypair() const = 0;
+    virtual EcdsaKeypair generate() const = 0;
 
-    /**
-     * Generate random keypair from seed
-     */
-    virtual Sr25519Keypair generateKeypair(const Sr25519Seed &seed) const = 0;
+    virtual outcome::result<EcdsaPublicKey> derive(
+        const EcdsaSeed &seed) const = 0;
 
-    /**
-     * Sign message \param msg using \param keypair. If computed value is less
-     * than \param threshold then return optional containing this value and
-     * proof. Otherwise none returned
-     * @param keypair pair of public and secret sr25519 keys
-     * @param message bytes to be signed
-     * @return signed message
-     */
-    virtual outcome::result<Sr25519Signature> sign(
-        const Sr25519Keypair &keypair, gsl::span<const uint8_t> message) const = 0;
+    virtual outcome::result<EcdsaSignature> sign(
+        gsl::span<const uint8_t> message, const EcdsaPrivateKey &key) const = 0;
 
-    /**
-     * Verifies that \param message was derived using \param public_key on
-     * \param signature
-     */
     virtual outcome::result<bool> verify(
-        const Sr25519Signature &signature,
         gsl::span<const uint8_t> message,
-        const Sr25519PublicKey &public_key) const = 0;
-
-    virtual outcome::result<bool> verify_deprecated(
-        const Sr25519Signature &signature,
-        gsl::span<const uint8_t> message,
-        const Sr25519PublicKey &public_key) const = 0;
+        const EcdsaSignature &signature,
+        const EcdsaPublicKey &publicKey) const = 0;
   };
 }  // namespace kagome::crypto
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, Sr25519ProviderError)
+OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, EcdsaProviderError)
 
-#endif  // KAGOME_CORE_CRYPTO_SR25519_PROVIDER_HPP
+#endif  // KAGOME_CORE_CRYPTO_ECDSA_PROVIDER_HPP

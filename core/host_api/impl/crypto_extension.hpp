@@ -18,6 +18,7 @@
 
 namespace kagome::crypto {
   class Sr25519Provider;
+  class EcdsaProvider;
   class Ed25519Provider;
   class Secp256k1Provider;
   class Hasher;
@@ -39,6 +40,7 @@ namespace kagome::host_api {
     CryptoExtension(
         std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider,
+        std::shared_ptr<const crypto::EcdsaProvider> ecdsa_provider,
         std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<const crypto::Hasher> hasher,
@@ -176,7 +178,7 @@ namespace kagome::host_api {
     runtime::WasmSpan ext_crypto_ecdsa_sign_version_1(
         runtime::WasmSize key_type,
         runtime::WasmPointer key,
-        runtime::WasmSpan msg_data);
+        runtime::WasmSpan msg);
 
    private:
     common::Blob<32> deriveSeed(std::string_view content);
@@ -187,6 +189,7 @@ namespace kagome::host_api {
 
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider_;
+    std::shared_ptr<const crypto::EcdsaProvider> ecdsa_provider_;
     std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider_;
     std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider_;
     std::shared_ptr<const crypto::Hasher> hasher_;

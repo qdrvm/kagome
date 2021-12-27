@@ -6,6 +6,7 @@
 #ifndef KAGOME_CRYPTO_SUITES_HPP
 #define KAGOME_CRYPTO_SUITES_HPP
 
+#include "crypto/ecdsa_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/random_generator.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -65,6 +66,54 @@ namespace kagome::crypto {
      */
     virtual outcome::result<Seed> toSeed(
         gsl::span<const uint8_t> bytes) const noexcept = 0;
+  };
+
+  class EcdsaSuite : public CryptoSuite<EcdsaPublicKey,
+                                        EcdsaPrivateKey,
+                                        EcdsaKeypair,
+                                        EcdsaSeed> {
+   public:
+    explicit EcdsaSuite(std::shared_ptr<EcdsaProvider> ecdsa_provider)
+        : ecdsa_provider_{std::move(ecdsa_provider)} {
+      BOOST_ASSERT(ecdsa_provider_ != nullptr);
+    }
+
+    ~EcdsaSuite() override = default;
+
+    EcdsaKeypair generateRandomKeypair() const noexcept override {
+      return ecdsa_provider_->generate();
+    }
+
+    EcdsaKeypair generateKeypair(
+        const EcdsaSeed &seed) const noexcept override {
+      auto pub = ecdsa_provider_->derive(seed).value();
+      return composeKeypair(pub, EcdsaPrivateKey{seed});
+    }
+
+    EcdsaKeypair composeKeypair(PublicKey pub,
+                                PrivateKey priv) const noexcept override {
+      return EcdsaKeypair{.secret_key = std::move(priv),
+                          .public_key = std::move(pub)};
+    }
+
+    std::pair<PublicKey, PrivateKey> decomposeKeypair(
+        const EcdsaKeypair &kp) const noexcept override {
+      return {kp.public_key, kp.secret_key};
+    }
+
+    outcome::result<PublicKey> toPublicKey(
+        gsl::span<const uint8_t> bytes) const noexcept override {
+      OUTCOME_TRY(blob, EcdsaPublicKey::fromSpan(bytes));
+      return EcdsaPublicKey{blob};
+    }
+
+    outcome::result<Seed> toSeed(
+        gsl::span<const uint8_t> bytes) const noexcept override {
+      return EcdsaSeed::fromSpan(bytes);
+    }
+
+   private:
+    std::shared_ptr<EcdsaProvider> ecdsa_provider_;
   };
 
   class Ed25519Suite : public CryptoSuite<Ed25519PublicKey,
