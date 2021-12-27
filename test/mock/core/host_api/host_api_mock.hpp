@@ -246,6 +246,18 @@ namespace kagome::host_api {
                 (runtime::WasmPointer sig, runtime::WasmPointer msg),
                 (override));
 
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_crypto_ecdsa_public_keys_version_1,
+                (runtime::WasmSize key_type),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_crypto_ecdsa_sign_version_1,
+                (runtime::WasmSize key_type,
+                 runtime::WasmPointer key,
+                 runtime::WasmSpan msg_data),
+                (override));
+
     // ----------------------------- memory api v1 -----------------------------
 
     MOCK_METHOD(runtime::WasmPointer,
@@ -362,9 +374,7 @@ namespace kagome::host_api {
 
     MOCK_METHOD(void,
                 ext_default_child_storage_set_version_1,
-                (runtime::WasmSpan,
-                 runtime::WasmSpan,
-                 runtime::WasmSpan),
+                (runtime::WasmSpan, runtime::WasmSpan, runtime::WasmSpan),
                 (override));
 
     MOCK_METHOD(runtime::WasmSpan,

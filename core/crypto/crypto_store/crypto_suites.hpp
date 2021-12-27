@@ -81,7 +81,7 @@ namespace kagome::crypto {
     ~EcdsaSuite() override = default;
 
     EcdsaKeypair generateRandomKeypair() const noexcept override {
-      return ecdsa_provider_->generate();
+      return ecdsa_provider_->generate().value();
     }
 
     EcdsaKeypair generateKeypair(

@@ -18,10 +18,12 @@ namespace kagome::crypto {
     enum class Error { VERIFICATION_FAILED = 1, SIGN_FAILED };
     using Libp2pEcdsaProviderImpl = libp2p::crypto::ecdsa::EcdsaProviderImpl;
 
+    EcdsaProviderImpl();
+
     explicit EcdsaProviderImpl(
         std::shared_ptr<Libp2pEcdsaProviderImpl> provider);
 
-    EcdsaKeypair generate() const override;
+    outcome::result<EcdsaKeypair> generate() const override;
 
     outcome::result<EcdsaPublicKey> derive(
         const EcdsaSeed &seed) const override;

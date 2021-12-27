@@ -12,6 +12,7 @@
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -37,6 +38,12 @@ using kagome::crypto::CryptoStore;
 using kagome::crypto::CryptoStoreImpl;
 using kagome::crypto::CryptoStoreMock;
 using kagome::crypto::CSPRNG;
+using kagome::crypto::EcdsaKeypair;
+using kagome::crypto::EcdsaPrivateKey;
+using kagome::crypto::EcdsaProvider;
+using kagome::crypto::EcdsaProviderImpl;
+using kagome::crypto::EcdsaPublicKey;
+using kagome::crypto::EcdsaSignature;
 using kagome::crypto::Ed25519Keypair;
 using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519Provider;
@@ -55,7 +62,7 @@ using kagome::crypto::Sr25519ProviderImpl;
 using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519SecretKey;
 using kagome::crypto::Sr25519Signature;
-using kagome::crypto::secp256k1::EcdsaVerifyError;
+using kagome::crypto::secp256k1::Secp256k1VerifyError;
 using kagome::runtime::Memory;
 using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
@@ -66,9 +73,10 @@ using kagome::runtime::WasmSpan;
 
 using ::testing::Return;
 
+namespace ecdsa_constants = kagome::crypto::constants::ecdsa;
 namespace sr25519_constants = kagome::crypto::constants::sr25519;
 namespace ed25519_constants = kagome::crypto::constants::ed25519;
-namespace ecdsa = kagome::crypto::secp256k1;
+namespace secp256k1 = kagome::crypto::secp256k1;
 
 // The point is that sr25519 signature can have many valid values
 // so we can only verify whether it is correct
@@ -90,9 +98,9 @@ class CryptoExtensionTest : public ::testing::Test {
   }
 
   using RecoverUncompressedPublicKeyReturnValue =
-      boost::variant<ecdsa::PublicKey, EcdsaVerifyError>;
+      boost::variant<secp256k1::PublicKey, Secp256k1VerifyError>;
   using RecoverCompressedPublicKeyReturnValue =
-      boost::variant<ecdsa::CompressedPublicKey, EcdsaVerifyError>;
+      boost::variant<secp256k1::CompressedPublicKey, Secp256k1VerifyError>;
 
   void SetUp() override {
     memory_ = std::make_shared<MemoryMock>();
@@ -102,6 +110,7 @@ class CryptoExtensionTest : public ::testing::Test {
             Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
 
     random_generator_ = std::make_shared<BoostRandomGenerator>();
+    ecdsa_provider_ = std::make_shared<EcdsaProviderImpl>();
     sr25519_provider_ =
         std::make_shared<Sr25519ProviderImpl>(random_generator_);
     ed25519_provider_ =
@@ -114,6 +123,7 @@ class CryptoExtensionTest : public ::testing::Test {
     crypto_store_ = std::make_shared<CryptoStoreMock>();
     crypto_ext_ = std::make_shared<CryptoExtension>(memory_provider_,
                                                     sr25519_provider_,
+                                                    ecdsa_provider_,
                                                     ed25519_provider_,
                                                     secp256k1_provider_,
                                                     hasher_,
@@ -137,20 +147,21 @@ class CryptoExtensionTest : public ::testing::Test {
     ed25519_signature = ed25519_provider_->sign(ed25519_keypair, input).value();
 
     secp_message_hash =
-        ecdsa::MessageHash::fromSpan(secp_message_vector).value();
+        secp256k1::MessageHash::fromSpan(secp_message_vector).value();
     secp_uncompressed_public_key =
-        ecdsa::UncompressedPublicKey::fromSpan(secp_public_key_bytes).value();
-    secp_compressed_pyblic_key =
-        ecdsa::CompressedPublicKey::fromSpan(secp_public_key_compressed_bytes)
+        secp256k1::UncompressedPublicKey::fromSpan(secp_public_key_bytes)
             .value();
+    secp_compressed_pyblic_key = secp256k1::CompressedPublicKey::fromSpan(
+                                     secp_public_key_compressed_bytes)
+                                     .value();
     // first byte contains 0x04
     // and needs to be omitted in runtime api return value
     secp_truncated_public_key =
-        ecdsa::PublicKey::fromSpan(
+        secp256k1::PublicKey::fromSpan(
             gsl::make_span(secp_public_key_bytes).subspan(1))
             .value();
     secp_signature =
-        ecdsa::RSVSignature::fromSpan(secp_signature_bytes).value();
+        secp256k1::RSVSignature::fromSpan(secp_signature_bytes).value();
 
     scale_encoded_secp_truncated_public_key =
         Buffer(scale::encode(RecoverUncompressedPublicKeyReturnValue(
@@ -165,8 +176,8 @@ class CryptoExtensionTest : public ::testing::Test {
     // this value suits both compressed & uncompressed failure tests
     secp_invalid_signature_error =
         Buffer(scale::encode(RecoverCompressedPublicKeyReturnValue(
-                                 kagome::crypto::secp256k1::ecdsa_verify_error::
-                                     kInvalidSignature))
+                                 kagome::crypto::secp256k1::
+                                     secp256k1_verify_error::kInvalidSignature))
                    .value());
 
     ed_public_keys_result
@@ -199,6 +210,7 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<CSPRNG> random_generator_;
+  std::shared_ptr<EcdsaProvider> ecdsa_provider_;
   std::shared_ptr<Sr25519Provider> sr25519_provider_;
   std::shared_ptr<Ed25519Provider> ed25519_provider_;
   std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
@@ -246,7 +258,7 @@ class CryptoExtensionTest : public ::testing::Test {
       "ebdedee38bcf530f13c1b5c8717d974a6f8bd25a7e3707ca36c7ee7efd5aa6c557bcc67906975696cbb28a556b649e5fbf5ce51831572cd54add248c4d023fcf01"_hex2buf};
   inline static Buffer secp_message_vector{
       "e13d3f3f21115294edf249cfdcb262a4f96d86943b63426c7635b6d94a5434c7"_hex2buf};
-  ecdsa::MessageHash secp_message_hash;
+  secp256k1::MessageHash secp_message_hash;
   Buffer secp_invalid_signature_error;
   Buffer ed_public_keys_result;
   Buffer sr_public_keys_result;
@@ -258,13 +270,13 @@ class CryptoExtensionTest : public ::testing::Test {
   std::vector<Ed25519PublicKey> ed_public_keys;
   std::vector<Sr25519PublicKey> sr_public_keys;
 
-  ecdsa::RSVSignature secp_signature;  ///< secp256k1 RSV-signature
-  ecdsa::UncompressedPublicKey
+  secp256k1::RSVSignature secp_signature;  ///< secp256k1 RSV-signature
+  secp256k1::UncompressedPublicKey
       secp_uncompressed_public_key;  ///< secp256k1 uncompressed public key
-  ecdsa::CompressedPublicKey
+  secp256k1::CompressedPublicKey
       secp_compressed_pyblic_key;  ///< secp256k1 compressed public key
-  ecdsa::PublicKey secp_truncated_public_key;  ///< secp256k1 truncated
-                                               ///< uncompressed public key
+  secp256k1::PublicKey secp_truncated_public_key;  ///< secp256k1 truncated
+                                                   ///< uncompressed public key
 
   Buffer scale_encoded_secp_truncated_public_key;
   Buffer scale_encoded_secp_compressed_public_key;

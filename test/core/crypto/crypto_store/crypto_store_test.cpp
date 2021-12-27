@@ -8,6 +8,7 @@
 #include <gmock/gmock.h>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
@@ -25,6 +26,12 @@ using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CryptoStore;
 using kagome::crypto::CryptoStoreError;
 using kagome::crypto::CryptoStoreImpl;
+using kagome::crypto::EcdsaKeypair;
+using kagome::crypto::EcdsaPrivateKey;
+using kagome::crypto::EcdsaProvider;
+using kagome::crypto::EcdsaProviderImpl;
+using kagome::crypto::EcdsaPublicKey;
+using kagome::crypto::EcdsaSuite;
 using kagome::crypto::Ed25519Keypair;
 using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519Provider;
@@ -54,6 +61,7 @@ struct CryptoStoreTest : public test::BaseFS_Test {
 
   void SetUp() override {
     auto csprng = std::make_shared<BoostRandomGenerator>();
+    auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>();
     auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(csprng);
     auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>(csprng);
 
@@ -61,6 +69,7 @@ struct CryptoStoreTest : public test::BaseFS_Test {
     bip39_provider =
         std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider));
     crypto_store = std::make_shared<CryptoStoreImpl>(
+        std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
         std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
         std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
         bip39_provider,
@@ -332,6 +341,7 @@ TEST_F(CryptoStoreTest, SessionKeys) {
  */
 TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
   auto csprng = std::make_shared<BoostRandomGenerator>();
+  auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>();
   auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(csprng);
   auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>(csprng);
 
@@ -341,6 +351,7 @@ TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
   auto keystore_path = boost::filesystem::path(__FILE__).parent_path()
                        / "subkey_keys" / "keystore";
   auto crypto_store = std::make_shared<CryptoStoreImpl>(
+      std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
       std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
       std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
       bip39_provider,

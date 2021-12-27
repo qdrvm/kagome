@@ -18,6 +18,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, EcdsaProviderImpl::Error, e) {
 
 namespace kagome::crypto {
 
+  EcdsaProviderImpl::EcdsaProviderImpl()
+      : provider_{std::make_shared<Libp2pEcdsaProviderImpl>()} {}
+
   EcdsaProviderImpl::EcdsaProviderImpl(
       std::shared_ptr<Libp2pEcdsaProviderImpl> provider)
       : provider_{std::move(provider)},
@@ -25,8 +28,8 @@ namespace kagome::crypto {
     BOOST_ASSERT(provider_ != nullptr);
   }
 
-  EcdsaKeypair EcdsaProviderImpl::generate() const {
-    auto kp = provider_->generate().value();
+  outcome::result<EcdsaKeypair> EcdsaProviderImpl::generate() const {
+    OUTCOME_TRY(kp, provider_->generate());
     EcdsaPrivateKey secret_key;
     std::copy(kp.private_key.begin(), kp.private_key.end(), secret_key.begin());
     EcdsaPublicKey public_key;
@@ -56,6 +59,7 @@ namespace kagome::crypto {
       const EcdsaSignature &signature,
       const EcdsaPublicKey &publicKey) const {
     libp2p::crypto::ecdsa::Signature inner_sign;
+    inner_sign.resize(signature.size());
     std::copy(signature.begin(), signature.end(), inner_sign.begin());
     return provider_->verify(message, inner_sign, publicKey);
   }

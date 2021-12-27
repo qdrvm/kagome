@@ -2,6 +2,7 @@ add_library(wavm_runtime_test INTERFACE)
 target_link_libraries(wavm_runtime_test INTERFACE
     key_file_storage
     sr25519_provider
+    ecdsa_provider
     ed25519_provider
     pbkdf2_provider
     bip39_provider
@@ -52,6 +53,7 @@ target_link_libraries(wasm_executor_test
     crypto_store
     key_file_storage
     sr25519_provider
+    ecdsa_provider
     ed25519_provider
     pbkdf2_provider
     hasher
