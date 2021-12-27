@@ -8,7 +8,6 @@
 #include <gsl/span>
 
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
-#include "crypto/random_generator/boost_generator.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -24,11 +23,9 @@ struct EcdsaProviderTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    ecdsa_provider = std::make_shared<EcdsaProviderImpl>();
+    ecdsa_provider_ = std::make_shared<EcdsaProviderImpl>();
 
-    std::string_view m = "i am a message";
-    message = std::vector<uint8_t>(m.begin(), m.end());
-    message_span = message;
+    message = kagome::common::Buffer::fromString("i am a message").asVector();
 
     hex_seed =
         "3077020101042005a66b7bb0a232a51634f15cf7bbfc13885d3c176f91251d368acff9"
@@ -41,12 +38,12 @@ struct EcdsaProviderTest : public ::testing::Test {
         "363f637d2fe6d9c9ea00fd1f2d1bb3fb8807f098f6";
   }
 
+  std::shared_ptr<EcdsaProvider> ecdsa_provider_;
+
   std::string_view hex_seed;
   std::string_view hex_public_key;
 
-  gsl::span<uint8_t> message_span;
   std::vector<uint8_t> message;
-  std::shared_ptr<EcdsaProvider> ecdsa_provider;
 };
 
 /**
@@ -56,40 +53,37 @@ struct EcdsaProviderTest : public ::testing::Test {
  */
 TEST_F(EcdsaProviderTest, GenerateKeysNotEqual) {
   for (auto i = 0; i < 10; ++i) {
-    auto kp1 = ecdsa_provider->generate().value();
-    auto kp2 = ecdsa_provider->generate().value();
+    EXPECT_OUTCOME_TRUE(kp1, ecdsa_provider_->generate());
+    EXPECT_OUTCOME_TRUE(kp2, ecdsa_provider_->generate());
     ASSERT_NE(kp1.public_key, kp2.public_key);
     ASSERT_NE(kp1.secret_key, kp2.secret_key);
   }
 }
 
 /**
- * @given ecdsa provider instance configured with predefined message
- * @when generate a keypair @and sign message
- * @and verify signed message with generated public key
- * @then verification succeeds
+ * @given a keypair
+ * @when a message gets signed
+ * @then the signature verification against the key succeeds
  */
 TEST_F(EcdsaProviderTest, SignVerifySuccess) {
-  auto kp = ecdsa_provider->generate().value();
+  EXPECT_OUTCOME_TRUE(key_pair, ecdsa_provider_->generate());
   EXPECT_OUTCOME_TRUE(signature,
-                      ecdsa_provider->sign(message_span, kp.secret_key));
+                      ecdsa_provider_->sign(message, key_pair.secret_key));
   EXPECT_OUTCOME_TRUE(
-      res, ecdsa_provider->verify(message_span, signature, kp.public_key));
-  ASSERT_EQ(res, true);
+      verify_res,
+      ecdsa_provider_->verify(message, signature, key_pair.public_key));
+  ASSERT_EQ(verify_res, true);
 }
 
 /**
- * Don't try to sign a message using invalid key pair, this may lead to
- * program termination
- *
- * @given ecdsa provider instance configured with predefined message
- * @when generate a keypair @and make public key invalid @and sign message
- * @then sign fails
+ * @given an ill-formed private key
+ * @when the key is used to sign a message
+ * @then no valid signature could be produced
  */
 TEST_F(EcdsaProviderTest, SignWithInvalidKeyFails) {
-  auto kp = ecdsa_provider->generate().value();
-  kp.secret_key.fill(1);
-  EXPECT_OUTCOME_FALSE_1(ecdsa_provider->sign(message_span, kp.secret_key));
+  EcdsaPrivateKey key;
+  key.fill(1);
+  EXPECT_OUTCOME_FALSE_1(ecdsa_provider_->sign(message, key));
 }
 
 /**
@@ -99,30 +93,27 @@ TEST_F(EcdsaProviderTest, SignWithInvalidKeyFails) {
  * @then verification succeeds, but verification result is false
  */
 TEST_F(EcdsaProviderTest, VerifyWrongKeyFail) {
-  auto kp = ecdsa_provider->generate().value();
+  auto key_pair = ecdsa_provider_->generate().value();
   EXPECT_OUTCOME_TRUE(signature,
-                      ecdsa_provider->sign(message_span, kp.secret_key));
+                      ecdsa_provider_->sign(message, key_pair.secret_key));
   // generate another valid key pair and take public one
-  auto kp1 = ecdsa_provider->generate().value();
+  auto another_keypair = ecdsa_provider_->generate().value();
   EXPECT_OUTCOME_TRUE(
-      ver_res, ecdsa_provider->verify(message_span, signature, kp1.public_key));
+      ver_res,
+      ecdsa_provider_->verify(message, signature, another_keypair.public_key));
 
   ASSERT_FALSE(ver_res);
 }
 
 /**
- * @given seed value
- * @when generate key pair by seed
- * @then public and private keys come up with predefined values
+ * @given a private key or seed
+ * @when public key is derived
+ * @then the resulting key matches the reference one
  */
 TEST_F(EcdsaProviderTest, GenerateBySeedSuccess) {
   EXPECT_OUTCOME_TRUE(seed, EcdsaSeed::fromHex(hex_seed));
   EXPECT_OUTCOME_TRUE(public_key, EcdsaPublicKey::fromHex(hex_public_key));
+  EXPECT_OUTCOME_TRUE(derived_key, ecdsa_provider_->derive(seed));
 
-  // private key is the same as seed
-  EXPECT_OUTCOME_TRUE(private_key, EcdsaPrivateKey::fromHex(hex_seed));
-
-  auto pk = ecdsa_provider->derive(seed).value();
-
-  ASSERT_EQ(pk, public_key);
+  ASSERT_EQ(derived_key, public_key);
 }

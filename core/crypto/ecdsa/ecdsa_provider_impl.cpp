@@ -29,38 +29,36 @@ namespace kagome::crypto {
   }
 
   outcome::result<EcdsaKeypair> EcdsaProviderImpl::generate() const {
-    OUTCOME_TRY(kp, provider_->generate());
+    OUTCOME_TRY(key_pair, provider_->generate());
     EcdsaPrivateKey secret_key;
-    std::copy(kp.private_key.begin(), kp.private_key.end(), secret_key.begin());
+    std::copy(key_pair.private_key.begin(),
+              key_pair.private_key.end(),
+              secret_key.begin());
     EcdsaPublicKey public_key;
-    std::copy(kp.public_key.begin(), kp.public_key.end(), public_key.begin());
+    std::copy(key_pair.public_key.begin(),
+              key_pair.public_key.end(),
+              public_key.begin());
     return EcdsaKeypair{.secret_key = secret_key, .public_key = public_key};
   }
 
   outcome::result<EcdsaPublicKey> EcdsaProviderImpl::derive(
       const EcdsaSeed &seed) const {
     // seed here is private key
-    OUTCOME_TRY(pk, provider_->derive(EcdsaPrivateKey{seed}));
+    OUTCOME_TRY(public_key, provider_->derive(EcdsaPrivateKey{seed}));
     EcdsaPublicKey res;
-    std::copy(pk.begin(), pk.end(), res.begin());
+    std::copy(public_key.begin(), public_key.end(), res.begin());
     return res;
   }
 
   outcome::result<EcdsaSignature> EcdsaProviderImpl::sign(
       gsl::span<const uint8_t> message, const EcdsaPrivateKey &key) const {
-    OUTCOME_TRY(signature, provider_->sign(message, key));
-    EcdsaSignature res_sign;
-    std::copy(signature.begin(), signature.end(), res_sign.begin());
-    return res_sign;
+    return provider_->sign(message, key);
   }
 
   outcome::result<bool> EcdsaProviderImpl::verify(
       gsl::span<const uint8_t> message,
       const EcdsaSignature &signature,
       const EcdsaPublicKey &publicKey) const {
-    libp2p::crypto::ecdsa::Signature inner_sign;
-    inner_sign.resize(signature.size());
-    std::copy(signature.begin(), signature.end(), inner_sign.begin());
-    return provider_->verify(message, inner_sign, publicKey);
+    return provider_->verify(message, signature, publicKey);
   }
 }  // namespace kagome::crypto

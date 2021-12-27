@@ -17,7 +17,6 @@ namespace kagome::crypto {
     enum {
       PRIVKEY_SIZE = sizeof(PrivateKey),
       PUBKEY_SIZE = sizeof(PublicKey),
-      SIGNATURE_SIZE = 72,  // Or is it?
       SEED_SIZE = PRIVKEY_SIZE,
     };
   }
@@ -29,9 +28,6 @@ KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            EcdsaPublicKey,
                            constants::ecdsa::PUBKEY_SIZE);
-KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
-                           EcdsaSignature,
-                           constants::ecdsa::SIGNATURE_SIZE);
 
 namespace kagome::crypto {
 
@@ -43,6 +39,7 @@ namespace kagome::crypto {
     bool operator!=(const EcdsaKeypair &other) const;
   };
 
+  using EcdsaSignature = std::vector<uint8_t>;
   using EcdsaSeed = common::Blob<constants::ecdsa::SEED_SIZE>;
 
 }  // namespace kagome::crypto
