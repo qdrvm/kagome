@@ -207,18 +207,23 @@ namespace kagome::runtime::wavm {
         child_storage_key, key);
   }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
-                                      ext_default_child_storage_read_version_1,
-                                      WAVM::I64,
-                                      WAVM::I64,
-                                      WAVM::I64,
-                                      WAVM::I32)
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_default_child_storage_read_version_1,
+                                 WAVM::I64 child_storage_key,
+                                 WAVM::I64 key,
+                                 WAVM::I64 value_out,
+                                 WAVM::I32 offset) {
+    return peekHostApi()->ext_default_child_storage_read_version_1(
+        child_storage_key, key, value_out, offset);
+  }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      WAVM::I32,
-      ext_default_child_storage_exists_version_1,
-      WAVM::I64,
-      WAVM::I64)
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_default_child_storage_exists_version_1,
+                                 WAVM::I64 child_storage_key,
+                                 WAVM::I64 key) {
+    return peekHostApi()->ext_default_child_storage_exists_version_1(
+        child_storage_key, key);
+  }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
                                  ext_default_child_storage_get_version_1,
@@ -236,11 +241,14 @@ namespace kagome::runtime::wavm {
         child_storage_key, key);
   }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
       void,
       ext_default_child_storage_clear_prefix_version_1,
-      WAVM::I64,
-      WAVM::I64)
+      WAVM::I64 child_storage_key,
+      WAVM::I64 prefix) {
+    return peekHostApi()->ext_default_child_storage_clear_prefix_version_1(
+        child_storage_key, prefix);
+  }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
                                  ext_default_child_storage_root_version_1,
@@ -258,8 +266,13 @@ namespace kagome::runtime::wavm {
         child_storage_key, key, value);
   }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      void, ext_default_child_storage_storage_kill_version_1, WAVM::I64)
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
+      void,
+      ext_default_child_storage_storage_kill_version_1,
+      WAVM::I64 child_storage_key) {
+    return peekHostApi()->ext_default_child_storage_storage_kill_version_1(
+        child_storage_key);
+  }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
                                  ext_hashing_blake2_128_version_1,
