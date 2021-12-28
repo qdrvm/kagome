@@ -362,9 +362,7 @@ namespace kagome::host_api {
 
     MOCK_METHOD(void,
                 ext_default_child_storage_set_version_1,
-                (runtime::WasmSpan,
-                 runtime::WasmSpan,
-                 runtime::WasmSpan),
+                (runtime::WasmSpan, runtime::WasmSpan, runtime::WasmSpan),
                 (override));
 
     MOCK_METHOD(runtime::WasmSpan,
@@ -386,6 +384,29 @@ namespace kagome::host_api {
                 ext_default_child_storage_root_version_1,
                 (runtime::WasmSpan),
                 (const, override));
+
+    MOCK_METHOD(void,
+                ext_default_child_storage_clear_prefix_version_1,
+                (runtime::WasmSpan, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_default_child_storage_read_version_1,
+                (runtime::WasmSpan,
+                 runtime::WasmSpan,
+                 runtime::WasmSpan,
+                 runtime::WasmOffset),
+                (const, override));
+
+    MOCK_METHOD(uint32_t,
+                ext_default_child_storage_exists_version_1,
+                (runtime::WasmSpan, runtime::WasmSpan),
+                (const, override));
+
+    MOCK_METHOD(void,
+                ext_default_child_storage_storage_kill_version_1,
+                (runtime::WasmSpan),
+                (override));
   };
 
 }  // namespace kagome::host_api
