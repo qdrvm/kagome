@@ -284,6 +284,16 @@ namespace kagome::host_api {
                          key_buffer,
                          common::Buffer{offset_data.subbuffer(0, written)});
       res = offset_data.size();
+    } else if (read.error() == TrieError::NO_VALUE){
+      logger_->info(
+          "ext_default_child_storage_clear_prefix_version_1 returned no value "
+          "reason: {}",
+          read.error().message());
+    } else {
+      logger_->error(
+          "ext_default_child_storage_clear_prefix_version_1 failed with "
+          "reason: {}",
+          read.error().message());
     }
     return memory.storeBuffer(scale::encode(res).value());
   }
@@ -300,6 +310,13 @@ namespace kagome::host_api {
         child_key_buffer,
         [](auto &child_batch, auto &key) { return child_batch->contains(key); },
         key_buffer);
+
+    if (not res) {
+      logger_->error(
+          "ext_default_child_storage_exists_version_1 failed with "
+          "reason: {}",
+          res.error().message());
+    }
 
     return (res.has_value() and res.value()) ? 1 : 0;
   }
