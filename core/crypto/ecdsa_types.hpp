@@ -8,6 +8,7 @@
 
 #include "libp2p/crypto/ecdsa_types.hpp"
 
+#include <cstdint>
 #include "common/blob.hpp"
 
 namespace kagome::crypto {
