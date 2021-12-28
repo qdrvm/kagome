@@ -21,8 +21,8 @@ addtest(blob_test
     blob_test.cpp
     )
 target_link_libraries(blob_test
-  blob
-  )
+    blob
+    )
 
 addtest(mp_utils_test
     mp_utils_test.cpp
@@ -30,6 +30,8 @@ addtest(mp_utils_test
 target_link_libraries(mp_utils_test
     mp_utils
     blob
+    buffer
+    fmt::fmt
     )
 
 addtest(variant_builder_test

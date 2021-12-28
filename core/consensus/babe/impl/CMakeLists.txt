@@ -11,6 +11,7 @@ target_link_libraries(babe_lottery
     hasher
     vrf_provider
     logger
+    scale::scale
     )
 
 add_library(threshold_util
