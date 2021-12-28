@@ -234,4 +234,112 @@ namespace kagome::host_api {
     return memory.storeBuffer(root);
   }
 
+  void ChildStorageExtension::ext_default_child_storage_clear_prefix_version_1(
+      runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix) {
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    auto [child_key_buffer, prefix_buffer] =
+        loadBuffer(memory, child_storage_key, prefix);
+
+    SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, prefix);
+
+    auto result = executeOnChildStorage<std::tuple<bool, uint32_t>>(
+        child_key_buffer,
+        [](auto &child_batch, auto &prefix) {
+          return child_batch->clearPrefix(prefix, std::nullopt);
+        },
+        prefix_buffer);
+
+    if (not result) {
+      logger_->error(
+          "ext_default_child_storage_clear_prefix_version_1 failed with "
+          "reason: {}",
+          result.error().message());
+    }
+  }
+
+  runtime::WasmSpan
+  ChildStorageExtension::ext_default_child_storage_read_version_1(
+      runtime::WasmSpan child_storage_key,
+      runtime::WasmSpan key,
+      runtime::WasmSpan value_out,
+      runtime::WasmOffset offset) const {
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    auto [child_key_buffer, key_buffer] =
+        loadBuffer(memory, child_storage_key, key);
+    auto [value_ptr, value_size] = runtime::PtrSize(value_out);
+
+    auto read = executeOnChildStorage<common::Buffer>(
+        child_key_buffer,
+        [](auto &child_batch, auto &key) { return child_batch->get(key); },
+        key_buffer);
+    std::optional<uint32_t> res{std::nullopt};
+    if (read) {
+      auto data = read.value();
+      auto offset_data = data.subbuffer(std::min<size_t>(offset, data.size()));
+      auto written = std::min<size_t>(offset_data.size(), value_size);
+      memory.storeBuffer(value_ptr,
+                         gsl::make_span(offset_data).subspan(0, written));
+      SL_TRACE_FUNC_CALL(logger_,
+                         child_key_buffer,
+                         key_buffer,
+                         common::Buffer{offset_data.subbuffer(0, written)});
+      res = offset_data.size();
+    } else if (read.error() == TrieError::NO_VALUE){
+      logger_->info(
+          "ext_default_child_storage_clear_prefix_version_1 returned no value "
+          "reason: {}",
+          read.error().message());
+    } else {
+      logger_->error(
+          "ext_default_child_storage_clear_prefix_version_1 failed with "
+          "reason: {}",
+          read.error().message());
+    }
+    return memory.storeBuffer(scale::encode(res).value());
+  }
+
+  uint32_t ChildStorageExtension::ext_default_child_storage_exists_version_1(
+      runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const {
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    auto [child_key_buffer, key_buffer] =
+        loadBuffer(memory, child_storage_key, key);
+
+    SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
+
+    auto res = executeOnChildStorage<bool>(
+        child_key_buffer,
+        [](auto &child_batch, auto &key) { return child_batch->contains(key); },
+        key_buffer);
+
+    if (not res) {
+      logger_->error(
+          "ext_default_child_storage_exists_version_1 failed with "
+          "reason: {}",
+          res.error().message());
+    }
+
+    return (res.has_value() and res.value()) ? 1 : 0;
+  }
+
+  void ChildStorageExtension::ext_default_child_storage_storage_kill_version_1(
+      runtime::WasmSpan child_storage_key) {
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    auto [child_key_buffer] = loadBuffer(memory, child_storage_key);
+
+    SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);
+
+    auto result = executeOnChildStorage<std::tuple<bool, uint32_t>>(
+        child_key_buffer,
+        [](auto &child_batch) {
+          return child_batch->clearPrefix(common::Buffer{}, std::nullopt);
+        });
+
+    if (not result) {
+      logger_->error(
+          "ext_default_child_storage_storage_kill_version_1 failed with "
+          "reason: {}",
+          result.error().message());
+    }
+  }
+
 }  // namespace kagome::host_api

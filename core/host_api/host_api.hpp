@@ -533,6 +533,55 @@ namespace kagome::host_api {
      */
     virtual runtime::WasmSpan ext_default_child_storage_root_version_1(
         runtime::WasmSpan child_storage_key) const = 0;
+
+    /**
+     * @brief Clears the child storage of each key/value pair where the key
+     * starts with the given prefix.
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param prefix a pointer-size indicating the prefix
+     */
+    virtual void ext_default_child_storage_clear_prefix_version_1(
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix) = 0;
+
+    /**
+     * @brief Gets the given key from storage, placing the value into a buffer
+     * and returning the number of bytes that the entry in storage has beyond
+     * the offset.
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param key a pointer-size as defined in Definition D.3 indicating the
+     * key.
+     * @param value_out a pointer-size as defined in Definition D.3 indicating
+     * the buffer to which the value will be written to. This function will
+     * never write more then the length of the buffer, even if the value's
+     * length is bigger.
+     * @param offset an i32 integer containing the offset beyond the value
+     * should be read from.
+     * @return a pointer-size indicating the SCALE encoded Option containing the
+     * number of bytes written into the value_out buffer. Returns None if the
+     * entry does not exists.
+     */
+    virtual runtime::WasmSpan ext_default_child_storage_read_version_1(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan key,
+        runtime::WasmSpan value_out,
+        runtime::WasmOffset offset) const = 0;
+
+    /**
+     * @brief Checks whether the given key exists in the child storage.
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param key a pointer-size indicating the key.
+     * @return a boolean equal to true if the key does exist, false if
+     * otherwise.
+     */
+    virtual uint32_t ext_default_child_storage_exists_version_1(
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
+
+    /**
+     * @brief Clears an entire child storage
+     * @param child_storage_key a pointer-size indicating the child storage key
+     */
+    virtual void ext_default_child_storage_storage_kill_version_1(
+        runtime::WasmSpan child_storage_key) = 0;
   };
 }  // namespace kagome::host_api
 
