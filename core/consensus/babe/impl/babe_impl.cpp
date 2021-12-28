@@ -365,34 +365,6 @@ namespace kagome::consensus::babe {
       }
     } while (rewind_slots);
 
-    best_block_ = block_tree_->deepestLeaf();
-
-    // Resolve slot collisions: if best block slot greater than current slot,
-    // that select his ancestor as best
-    for (;;) {
-      const auto &hash = best_block_.hash;
-      const auto header_res = block_tree_->getBlockHeader(hash);
-      BOOST_ASSERT(header_res.has_value());
-      const auto &header = header_res.value();
-      const auto babe_digests_res = getBabeDigests(header);
-      if (babe_digests_res.has_value()) {
-        const auto &babe_digests = babe_digests_res.value();
-        auto best_block_slot = babe_digests.second.slot_number;
-        if (current_slot_ > best_block_slot) {  // Condition met
-          break;
-        }
-        // Shift to parent block and check again
-        best_block_ =
-            primitives::BlockInfo(header.number - 1, header.parent_hash);
-        continue;
-      }
-      if (best_block_.number == 0) {
-        // Only genesis may not have a babe digest
-        break;
-      }
-      BOOST_ASSERT(babe_digests_res.has_value());
-    }
-
     // Slot processing begins in 1/3 slot time before end
     auto finish_time = babe_util_->slotFinishTime(current_slot_)
                        - babe_util_->slotDuration() / 3;
@@ -420,6 +392,35 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::processSlot() {
     BOOST_ASSERT(keypair_ != nullptr);
+
+    best_block_ = block_tree_->deepestLeaf();
+
+    // Resolve slot collisions: if best block slot greater than current slot,
+    // that select his ancestor as best
+    for (;;) {
+      const auto &hash = best_block_.hash;
+      const auto header_res = block_tree_->getBlockHeader(hash);
+      BOOST_ASSERT(header_res.has_value());
+      const auto &header = header_res.value();
+      const auto babe_digests_res = getBabeDigests(header);
+      if (babe_digests_res.has_value()) {
+        const auto &babe_digests = babe_digests_res.value();
+        auto best_block_slot = babe_digests.second.slot_number;
+        if (current_slot_ > best_block_slot) {  // Condition met
+          break;
+        }
+        SL_DEBUG(log_, "Detected collision in slot {}", current_slot_);
+        // Shift to parent block and check again
+        best_block_ =
+            primitives::BlockInfo(header.number - 1, header.parent_hash);
+        continue;
+      }
+      if (best_block_.number == 0) {
+        // Only genesis may not have a babe digest
+        break;
+      }
+      BOOST_ASSERT(babe_digests_res.has_value());
+    }
 
     auto epoch_res = block_tree_->getEpochDescriptor(
         current_epoch_.epoch_number, best_block_.hash);
@@ -451,8 +452,7 @@ namespace kagome::consensus::babe {
 
       processSlotLeadership(
           SlotType::Primary, std::cref(vrf_result), authority_index);
-    } else if (isSecondarySlotsAllowed()
-               and block_tree_->getLastFinalized().number > 0) {
+    } else if (isSecondarySlotsAllowed()) {
       auto expected_author = lottery_->secondarySlotAuthor(
           current_slot_, epoch.authorities.size(), epoch.randomness);
 
@@ -508,23 +508,22 @@ namespace kagome::consensus::babe {
       SlotType slot_type,
       std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
       primitives::AuthorityIndex authority_index) const {
-    uint8_t header_type = 0;
-    if (SlotType::Primary == slot_type or SlotType::SecondaryVRF == slot_type) {
-      header_type = BabeBlockHeader::kVRFHeader;
+    BabeBlockHeader babe_header{
+        .slot_assignment_type = slot_type,
+        .slot_number = current_slot_,
+        .authority_index = authority_index,
+    };
+
+    if (babe_header.needVRFCheck()) {
       if (not output.has_value()) {
         SL_ERROR(
             log_,
             "VRF proof is required to build block header but was not passed");
         return BabeError::MISSING_PROOF;
       }
+      babe_header.vrf_output = output.value();
     }
-    if (SlotType::SecondaryPlain == slot_type
-        or SlotType::SecondaryVRF == slot_type) {
-      header_type |= BabeBlockHeader::kSecondaryHeaderCheck;
-    }
-    crypto::VRFOutput dummy{};
-    BabeBlockHeader babe_header{
-        header_type, current_slot_, output.value_or(dummy), authority_index};
+
     auto encoded_header_res = scale::encode(babe_header);
     if (!encoded_header_res) {
       SL_ERROR(log_,
@@ -567,7 +566,11 @@ namespace kagome::consensus::babe {
 
     // build a block to be announced
     SL_VERBOSE(log_,
-               "Obtained slot leadership in slot {} epoch {}",
+               "Obtained {} slot leadership in slot {} epoch {}",
+               slot_type == SlotType::Primary          ? "primary"
+               : slot_type == SlotType::SecondaryVRF   ? "secondary-vrf"
+               : slot_type == SlotType::SecondaryPlain ? "secondary-plain"
+                                                       : "unknown",
                current_slot_,
                current_epoch_.epoch_number);
 
