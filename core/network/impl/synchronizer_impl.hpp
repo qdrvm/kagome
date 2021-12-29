@@ -44,7 +44,8 @@ namespace kagome::network {
       INVALID_HASH,
       ALREADY_IN_QUEUE,
       PEER_BUSY,
-      ARRIVED_TOO_EARLY
+      ARRIVED_TOO_EARLY,
+      IMPOLITE_REQUEST
     };
 
     SynchronizerImpl(
@@ -85,7 +86,9 @@ namespace kagome::network {
                          primitives::BlockNumber lower,
                          primitives::BlockNumber upper,
                          primitives::BlockNumber hint,
-                         SyncResultHandler &&handler) const;
+                         SyncResultHandler &&handler,
+                         std::map<primitives::BlockNumber,
+                                  primitives::BlockHash> &&observed = {});
 
     /// Loads blocks from peer {@param peer_id} since block {@param from} till
     /// its best. Calls {@param handler} when process is finished or failed
@@ -161,6 +164,8 @@ namespace kagome::network {
     std::atomic_bool applying_in_progress_ = false;
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
+
+    std::set<std::tuple<libp2p::peer::PeerId, std::size_t>> recent_requests_;
   };
 
 }  // namespace kagome::network

@@ -35,6 +35,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
       return "Peer is busy";
     case E::ARRIVED_TOO_EARLY:
       return "Block is arrived too early. Try to process it late";
+    case E::IMPOLITE_REQUEST:
+      return "Duplicate of recent request has detected";
   }
   return "unknown error";
 }
@@ -295,12 +297,13 @@ namespace kagome::network {
         false);
   }
 
-  void SynchronizerImpl::findCommonBlock(const libp2p::peer::PeerId &peer_id,
-                                         primitives::BlockNumber lower,
-                                         primitives::BlockNumber upper,
-                                         primitives::BlockNumber hint,
-                                         SyncResultHandler &&handler) const {
-
+  void SynchronizerImpl::findCommonBlock(
+      const libp2p::peer::PeerId &peer_id,
+      primitives::BlockNumber lower,
+      primitives::BlockNumber upper,
+      primitives::BlockNumber hint,
+      SyncResultHandler &&handler,
+      std::map<primitives::BlockNumber, primitives::BlockHash> &&observed) {
     // Interrupts process if node is shutting down
     if (node_is_shutting_down_) {
       handler(Error::SHUTTING_DOWN);
@@ -314,12 +317,37 @@ namespace kagome::network {
                                    network::Direction::ASCENDING,
                                    1};
 
+    auto request_fingerprint = request.fingerprint();
+
+    if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
+      SL_ERROR(
+          log_,
+          "Can't check if block #{} in #{}..#{} is common with {}: {}",
+          hint,
+          lower,
+          upper,
+          peer_id,
+          outcome::result<void>(Error::IMPOLITE_REQUEST).error().message());
+      handler(Error::IMPOLITE_REQUEST);
+      return;
+    }
+
+    scheduler_->schedule(
+        [wp = weak_from_this(), peer_id, request_fingerprint] {
+          if (auto self = wp.lock()) {
+            self->recent_requests_.erase(
+                std::tuple(peer_id, request_fingerprint));
+          }
+        },
+        std::chrono::minutes(1));
+
     auto response_handler = [wp = weak_from_this(),
                              lower,
                              upper,
                              target = hint,
                              peer_id,
-                             handler = std::move(handler)](
+                             handler = std::move(handler),
+                             observed = std::move(observed)](
                                 auto &&response_res) mutable {
       auto self = wp.lock();
       if (not self) {
@@ -355,65 +383,95 @@ namespace kagome::network {
         return;
       }
 
-      const primitives::BlockData &block = blocks.front();
+      auto &block = blocks.front();
+      auto hash = block.hash;
 
-      // Check if block is known (is already enqueued or is in block tree)
-      bool block_is_known =
-          self->known_blocks_.find(block.hash) != self->known_blocks_.end()
-          or self->block_tree_->getBlockHeader(block.hash).has_value();
+      observed.emplace(target, hash);
 
-      // Interval of finding is totally narrowed. Common block should be found
-      if (target == lower) {
-        if (block_is_known) {
-          // Common block is found
-          SL_DEBUG(self->log_,
-                   "Found best common block with {}: {}",
-                   peer_id,
-                   BlockInfo(target, block.hash));
-          handler(BlockInfo(target, block.hash));
+      for (;;) {
+        // Check if block is known (is already enqueued or is in block tree)
+        bool block_is_known =
+            self->known_blocks_.find(hash) != self->known_blocks_.end()
+            or self->block_tree_->getBlockHeader(hash).has_value();
+
+        // Interval of finding is totally narrowed. Common block should be found
+        if (target == lower) {
+          if (block_is_known) {
+            // Common block is found
+            SL_DEBUG(self->log_,
+                     "Found best common block with {}: {}",
+                     peer_id,
+                     BlockInfo(target, hash));
+            handler(BlockInfo(target, hash));
+            return;
+          }
+
+          // Common block is not found. It is abnormal situation. Requested
+          // block must be existed because finding in interval of numbers of
+          // blocks that must exist
+          SL_WARN(self->log_, "Not found any common block with {}", peer_id);
+          handler(Error::EMPTY_RESPONSE);
           return;
         }
 
-        // Common block is not found. It is abnormal situation. Requested
-        // block must be existed because finding in interval of numbers of
-        // blocks that must exist
-        SL_WARN(self->log_, "Not found any common block with {}", peer_id);
-        handler(Error::EMPTY_RESPONSE);
-        return;
+        // Step for next iteration
+        auto step = upper - target + 1;
+
+        // Narrowing interval for next iteration
+        if (block_is_known) {
+          SL_TRACE(self->log_,
+                   "Found common block #{} with {} in #{}..#{}",
+                   target,
+                   peer_id,
+                   lower,
+                   upper);
+
+          // Narrowing interval to continue above
+          lower = target;
+        } else {
+          SL_TRACE(self->log_,
+                   "Not found common block #{} with {} in #{}..#{}",
+                   target,
+                   peer_id,
+                   lower,
+                   upper);
+
+          // Narrowing interval to continue below
+          upper = target;
+        }
+
+        // Speed up of dive if possible or Bisect otherwise
+        primitives::BlockNumber hint =
+            lower + std::min(step, (upper - lower) / 2);
+
+        // Try again with narrowed interval
+
+        auto it = observed.find(hint);
+
+        // This block number was observed early
+        if (it != observed.end()) {
+          target = hint;
+          hash = it->second;
+
+          SL_TRACE(self->log_,
+                   "Check if block #{} in #{}..#{} is common with {} - "
+                   "observed early",
+                   hint,
+                   lower,
+                   upper,
+                   peer_id);
+          continue;
+        }
+
+        // This block number has not observed yet
+        self->findCommonBlock(peer_id,
+                              lower,
+                              upper,
+                              hint,
+                              std::move(handler),
+                              std::move(observed));
+        break;
       }
-
-      // Step for next iteration
-      auto step = upper - target + 1;
-
-      // Narrowing interval for next iteration
-      if (block_is_known) {
-        SL_TRACE(self->log_,
-                 "Found common block #{} with {} in #{}..#{}",
-                 target,
-                 peer_id,
-                 lower,
-                 upper);
-
-        // Narrowing interval to continue above
-        lower = target;
-      } else {
-        SL_TRACE(self->log_,
-                 "Not found common block #{} with {} in #{}..#{}",
-                 target,
-                 peer_id,
-                 lower,
-                 upper);
-
-        // Narrowing interval to continue below
-        upper = target;
-      }
-
-      // Speed up of dive if possible or Bisect otherwise
-      primitives::BlockNumber hint =
-          lower + std::min(step, (upper - lower) / 2);
-
-      // Try again with narrowed interval
-      self->findCommonBlock(peer_id, lower, upper, hint, std::move(handler));
     };
 
     SL_TRACE(log_,
@@ -444,6 +502,28 @@ namespace kagome::network {
                                    std::nullopt,
                                    network::Direction::ASCENDING,
                                    std::nullopt};
+
+    auto request_fingerprint = request.fingerprint();
+
+    if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
+      SL_ERROR(
+          log_,
+          "Can't load blocks from {} beginning block {}: {}",
+          peer_id,
+          from,
+          outcome::result<void>(Error::IMPOLITE_REQUEST).error().message());
+      handler(Error::IMPOLITE_REQUEST);
+      return;
+    }
+
+    scheduler_->schedule(
+        [wp = weak_from_this(), peer_id, request_fingerprint] {
+          if (auto self = wp.lock()) {
+            self->recent_requests_.erase(
+                std::tuple(peer_id, request_fingerprint));
+          }
+        },
+        std::chrono::minutes(1));
 
     auto response_handler = [wp = weak_from_this(),
                              from,
