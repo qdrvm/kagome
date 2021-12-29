@@ -10,6 +10,7 @@
 
 #include <gsl/span>
 #include <optional>
+
 #include "network/types/block_attributes.hpp"
 #include "network/types/block_direction.hpp"
 #include "primitives/block_id.hpp"
@@ -20,8 +21,6 @@ namespace kagome::network {
    * Request for blocks to another peer
    */
   struct BlocksRequest {
-    /// unique request id
-    primitives::BlocksRequestId id;
     /// bits, showing, which parts of BlockData to return
     BlockAttributes fields{};
     /// start from this block
@@ -43,7 +42,38 @@ namespace kagome::network {
     bool attributeIsSet(const BlockAttribute &attribute) const {
       return fields & attribute;
     }
+
+    inline size_t fingerprint() const;
   };
 }  // namespace kagome::network
+
+template <>
+struct std::hash<kagome::network::BlocksRequest> {
+  auto operator()(const kagome::network::BlocksRequest &blocks_request) const {
+    auto result =
+        std::hash<kagome::network::BlockAttributes>()(blocks_request.fields);
+
+    boost::hash_combine(
+        result, std::hash<kagome::primitives::BlockId>()(blocks_request.from));
+
+    boost::hash_combine(
+        result,
+        std::hash<std::optional<kagome::primitives::BlockHash>>()(
+            blocks_request.to));
+
+    boost::hash_combine(
+        result,
+        std::hash<kagome::network::Direction>()(blocks_request.direction));
+
+    boost::hash_combine(
+        result, std::hash<std::optional<uint32_t>>()(blocks_request.max));
+
+    return result;
+  }
+};
+
+inline size_t kagome::network::BlocksRequest::fingerprint() const {
+  return std::hash<BlocksRequest>()(*this);
+}
 
 #endif  // KAGOME_BLOCKS_REQUEST_HPP

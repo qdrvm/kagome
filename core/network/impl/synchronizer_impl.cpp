@@ -300,14 +300,19 @@ namespace kagome::network {
                                          primitives::BlockNumber upper,
                                          primitives::BlockNumber hint,
                                          SyncResultHandler &&handler) const {
-    static std::random_device rd{};
-    static std::uniform_int_distribution<primitives::BlocksRequestId> dis{};
 
     // Interrupts process if node is shutting down
     if (node_is_shutting_down_) {
       handler(Error::SHUTTING_DOWN);
       return;
     }
+
+    network::BlocksRequest request{// TODO: perhaps hash would be enough
+                                   network::BlockAttribute::HEADER,
+                                   hint,
+                                   std::nullopt,
+                                   network::Direction::ASCENDING,
+                                   1};
 
     auto response_handler = [wp = weak_from_this(),
                              lower,
@@ -418,14 +423,6 @@ namespace kagome::network {
              upper,
              peer_id);
 
-    network::BlocksRequest request{dis(rd),
-                                   // TODO: perhaps hash would be enough
-                                   network::BlockAttribute::HEADER,
-                                   hint,
-                                   std::nullopt,
-                                   network::Direction::ASCENDING,
-                                   1};
-
     auto protocol = router_->getSyncProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide sync protocol");
     protocol->request(peer_id, std::move(request), std::move(response_handler));
@@ -434,14 +431,19 @@ namespace kagome::network {
   void SynchronizerImpl::loadBlocks(const libp2p::peer::PeerId &peer_id,
                                     primitives::BlockInfo from,
                                     SyncResultHandler &&handler) {
-    static std::random_device rd{};
-    static std::uniform_int_distribution<primitives::BlocksRequestId> dis{};
-
     // Interrupts process if node is shutting down
     if (node_is_shutting_down_) {
       if (handler) handler(Error::SHUTTING_DOWN);
       return;
     }
+
+    network::BlocksRequest request{network::BlockAttribute::HEADER
+                                       | network::BlockAttribute::BODY
+                                       | network::BlockAttribute::JUSTIFICATION,
+                                   from.hash,
+                                   std::nullopt,
+                                   network::Direction::ASCENDING,
+                                   std::nullopt};
 
     auto response_handler = [wp = weak_from_this(),
                              from,
@@ -630,15 +632,6 @@ namespace kagome::network {
         });
       }
     };
-
-    network::BlocksRequest request{dis(rd),
-                                   network::BlockAttribute::HEADER
-                                       | network::BlockAttribute::BODY
-                                       | network::BlockAttribute::JUSTIFICATION,
-                                   from.hash,
-                                   std::nullopt,
-                                   network::Direction::ASCENDING,
-                                   std::nullopt};
 
     auto protocol = router_->getSyncProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide sync protocol");

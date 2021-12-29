@@ -29,6 +29,22 @@ using testing::_;
 
 using ScaleRPC = RPC<ScaleMessageReadWriter>;
 
+namespace kagome::network {
+  /// outputs object of type BlockResponse to stream
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const BlocksResponse &v) {
+    return s << v.blocks;
+  }
+
+  /// decodes object of type BlockResponse from stream
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, BlocksResponse &v) {
+    return s >> v.blocks;
+  }
+}  // namespace kagome::network
+
 class RpcLibp2pTest : public testing::Test {
  public:
   static void SetUpTestCase() {
@@ -45,9 +61,10 @@ class RpcLibp2pTest : public testing::Test {
 
   // we are not interested in the exact semantics, so let BlocksResponse be both
   // request and response
-  BlocksResponse request_{1}, response_{2};
-  kagome::common::Buffer encoded_request_{scale::encode(request_).value()},
-      encoded_response_{scale::encode(response_).value()};
+  BlocksResponse request_{.blocks = {primitives::BlockData{}}};
+  BlocksResponse response_{.blocks = {primitives::BlockData{}}};
+  kagome::common::Buffer encoded_request_{scale::encode(request_).value()};
+  kagome::common::Buffer encoded_response_{scale::encode(response_).value()};
 };
 
 /**
@@ -63,7 +80,6 @@ TEST_F(RpcLibp2pTest, ReadWithResponse) {
   ScaleRPC::read<BlocksResponse, BlocksResponse>(
       read_writer_,
       [this, &finished](auto &&received_request) mutable {
-        EXPECT_EQ(received_request.id, request_.id);
         finished = true;
         return response_;
       },
@@ -83,8 +99,7 @@ TEST_F(RpcLibp2pTest, ReadWithResponseErroredResponse) {
   auto finished = false;
   ScaleRPC::read<BlocksResponse, BlocksResponse>(
       read_writer_,
-      [this](auto &&received_request) {
-        EXPECT_EQ(received_request.id, request_.id);
+      [](auto &&received_request) {
         return ::outcome::failure(boost::system::error_code{});
       },
       [&finished](auto &&err) mutable { finished = true; });
@@ -101,12 +116,11 @@ TEST_F(RpcLibp2pTest, ReadWithoutResponse) {
   setReadExpectations(read_writer_, encoded_request_.asVector());
 
   auto finished = false;
-  ScaleRPC::read<BlocksResponse>(
-      read_writer_, [this, &finished](auto &&received_request) mutable {
-        EXPECT_TRUE(received_request);
-        EXPECT_EQ(received_request.value().id, request_.id);
-        finished = true;
-      });
+  ScaleRPC::read<BlocksResponse>(read_writer_,
+                                 [&finished](auto &&received_request) mutable {
+                                   EXPECT_TRUE(received_request);
+                                   finished = true;
+                                 });
 
   ASSERT_TRUE(finished);
 }
@@ -131,9 +145,8 @@ TEST_F(RpcLibp2pTest, WriteWithResponse) {
       peer_info_,
       protocol_,
       request_,
-      [this, &finished](auto &&response_res) mutable {
+      [&finished](auto &&response_res) mutable {
         ASSERT_TRUE(response_res);
-        ASSERT_EQ(response_res.value().id, response_.id);
         finished = true;
       });
 
