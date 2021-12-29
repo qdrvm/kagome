@@ -7,6 +7,12 @@
 #include <libp2p/peer/peer_id.hpp>
 #include <string_view>
 
+#ifndef KAGOME__FMT_FORMATTER_PEERID
+#define KAGOME__FMT_FORMATTER_PEERID
+
+#include <fmt/format.h>
+#include <libp2p/peer/peer_id.hpp>
+
 template <>
 struct fmt::formatter<libp2p::peer::PeerId> {
   // Presentation format: 's' - short, 'l' - long.
@@ -49,3 +55,5 @@ struct fmt::formatter<libp2p::peer::PeerId> {
     return format_to(ctx.out(), "{}", b58);
   }
 };
+
+#endif  // KAGOME__FMT_FORMATTER_PEERID

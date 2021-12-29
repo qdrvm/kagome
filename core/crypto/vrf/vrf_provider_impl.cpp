@@ -55,7 +55,7 @@ namespace kagome::crypto {
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE + vrf_constants::PROOF_SIZE>
         out_proof{};
     auto threshold_value = threshold.value_or(std::cref(kMaxThreshold));
-    auto threshold_bytes = common::uint128_t_to_bytes(threshold_value);
+    auto threshold_bytes = common::uint128_to_le_bytes(threshold_value);
     auto sign_res = sr25519_vrf_sign_transcript(
         out_proof.data(),
         keypair_buf.data(),
@@ -89,7 +89,7 @@ namespace kagome::crypto {
         reinterpret_cast<const Strobe128 *>(msg.data().data()),  // NOLINT
         output.output.data(),
         output.proof.data(),
-        common::uint128_t_to_bytes(threshold).data());
+        common::uint128_to_le_bytes(threshold).data());
     return VRFVerifyOutput{
         .is_valid = res.result == SR25519_SIGNATURE_RESULT_OK,
         .is_less = res.is_less};
@@ -104,7 +104,7 @@ namespace kagome::crypto {
 
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE + vrf_constants::PROOF_SIZE>
         out_proof{};
-    auto threshold_bytes = common::uint128_t_to_bytes(threshold);
+    auto threshold_bytes = common::uint128_to_le_bytes(threshold);
     auto sign_res = sr25519_vrf_sign_if_less(out_proof.data(),
                                              keypair_buf.data(),
                                              msg.data(),
@@ -129,12 +129,13 @@ namespace kagome::crypto {
                                           const VRFOutput &output,
                                           const Sr25519PublicKey &public_key,
                                           const VRFThreshold &threshold) const {
-    auto res = sr25519_vrf_verify(public_key.data(),
-                                  msg.data(),
-                                  msg.size(),
-                                  output.output.data(),
-                                  output.proof.data(),
-                                  common::uint128_t_to_bytes(threshold).data());
+    auto res =
+        sr25519_vrf_verify(public_key.data(),
+                           msg.data(),
+                           msg.size(),
+                           output.output.data(),
+                           output.proof.data(),
+                           common::uint128_to_le_bytes(threshold).data());
     return VRFVerifyOutput{
         .is_valid = res.result == SR25519_SIGNATURE_RESULT_OK,
         .is_less = res.is_less};

@@ -8,13 +8,13 @@
 
 #include "host_api/host_api.hpp"
 
+#include "host_api/impl/child_storage_extension.hpp"
 #include "host_api/impl/crypto_extension.hpp"
 #include "host_api/impl/io_extension.hpp"
 #include "host_api/impl/memory_extension.hpp"
 #include "host_api/impl/misc_extension.hpp"
 #include "host_api/impl/offchain_extension.hpp"
 #include "host_api/impl/storage_extension.hpp"
-#include "host_api/impl/child_storage_extension.hpp"
 #include "offchain/impl/offchain_persistent_storage.hpp"
 
 namespace kagome::runtime {
@@ -275,8 +275,7 @@ namespace kagome::host_api {
         runtime::WasmSpan key) const override;
 
     void ext_default_child_storage_clear_version_1(
-        runtime::WasmSpan child_storage_key,
-        runtime::WasmSpan key) override;
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan key) override;
 
     runtime::WasmSpan ext_default_child_storage_next_key_version_1(
         runtime::WasmSpan child_storage_key,
@@ -284,6 +283,22 @@ namespace kagome::host_api {
 
     runtime::WasmSpan ext_default_child_storage_root_version_1(
         runtime::WasmSpan child_storage_key) const override;
+
+    void ext_default_child_storage_clear_prefix_version_1(
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix) override;
+
+    virtual runtime::WasmSpan ext_default_child_storage_read_version_1(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan key,
+        runtime::WasmSpan value_out,
+        runtime::WasmOffset offset) const override;
+        
+    virtual uint32_t ext_default_child_storage_exists_version_1(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan key) const override;
+        
+    virtual void ext_default_child_storage_storage_kill_version_1(
+        runtime::WasmSpan child_storage_key) override;
 
    private:
     static constexpr uint64_t DEFAULT_CHAIN_ID = 42;

@@ -60,36 +60,28 @@ namespace kagome::runtime::wavm {
 
   template <typename T, T>
   struct HostApiFunc;
-  template <typename T, typename R, typename... Args, R (T::*mf)(Args...)>
-  struct HostApiFunc<R (T::*)(Args...), mf> {
-    using Ret = R;
-    static WAVM::IR::FunctionType type() {
-      WAVM::IR::TypeTuple types({valType<Args>()...});
-      if constexpr (std::is_same_v<R, void>) {
-        return WAVM::IR::FunctionType{{}, types};
-      } else {
-        return WAVM::IR::FunctionType{{valType<R>()}, types};
-      }
-    }
-    static R (*fun())(WAVM::Runtime::ContextRuntimeData *, Args...) {
-      return function<T, mf, Args...>;
-    }
-  };
-  template <typename T, typename R, typename... Args, R (T::*mf)(Args...) const>
-  struct HostApiFunc<R (T::*)(Args...) const, mf> {
-    using Ret = R;
-    static WAVM::IR::FunctionType type() {
-      WAVM::IR::TypeTuple types({valType<Args>()...});
-      if constexpr (std::is_same_v<R, void>) {
-        return WAVM::IR::FunctionType{{}, types};
-      } else {
-        return WAVM::IR::FunctionType{{valType<R>()}, types};
-      }
-    }
-    static R (*fun())(WAVM::Runtime::ContextRuntimeData *, Args...) {
-      return function<T, mf, Args...>;
-    }
-  };
+#define HOST_API_FUNC(...)                                            \
+  template <typename T,                                               \
+            typename R,                                               \
+            typename... Args,                                         \
+            R (T::*mf)(Args...) __VA_ARGS__>                          \
+  struct HostApiFunc<R (T::*)(Args...) __VA_ARGS__, mf> {             \
+    using Ret = R;                                                    \
+    static WAVM::IR::FunctionType type() {                            \
+      WAVM::IR::TypeTuple types({valType<Args>()...});                \
+      if constexpr (std::is_same_v<R, void>) {                        \
+        return WAVM::IR::FunctionType{{}, types};                     \
+      } else {                                                        \
+        return WAVM::IR::FunctionType{{valType<R>()}, types};         \
+      }                                                               \
+    }                                                                 \
+    static R (*fun())(WAVM::Runtime::ContextRuntimeData *, Args...) { \
+      return function<T, mf, Args...>;                                \
+    }                                                                 \
+  }
+
+  HOST_API_FUNC();
+  HOST_API_FUNC(const);
 
 #define WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(Result, cName, ...)            \
   Result cName(WAVM::Runtime::ContextRuntimeData *contextRuntimeData,      \
@@ -97,32 +89,6 @@ namespace kagome::runtime::wavm {
     logger->warn("Unimplemented Host API function " #cName " was called"); \
     return Result();                                                       \
   }
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
-                                      ext_default_child_storage_read_version_1,
-                                      WAVM::I64,
-                                      WAVM::I64,
-                                      WAVM::I64,
-                                      WAVM::I32)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      WAVM::I32,
-      ext_default_child_storage_exists_version_1,
-      WAVM::I64,
-      WAVM::I64)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      void,
-      ext_default_child_storage_clear_prefix_version_1,
-      WAVM::I64,
-      WAVM::I64)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
-                                      ext_default_child_storage_root_version_1,
-                                      WAVM::I64)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      void, ext_default_child_storage_storage_kill_version_1, WAVM::I64)
 
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
                                       ext_sandbox_instance_teardown_version_1,
@@ -212,8 +178,13 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(ext_crypto_sr25519_verify_version_2);
     REGISTER_HOST_INTRINSIC(ext_crypto_start_batch_verify_version_1);
     REGISTER_HOST_INTRINSIC(ext_default_child_storage_clear_version_1);
+    REGISTER_HOST_INTRINSIC(ext_default_child_storage_clear_prefix_version_1);
+    REGISTER_HOST_INTRINSIC(ext_default_child_storage_exists_version_1);
     REGISTER_HOST_INTRINSIC(ext_default_child_storage_get_version_1);
+    REGISTER_HOST_INTRINSIC(ext_default_child_storage_storage_kill_version_1);
     REGISTER_HOST_INTRINSIC(ext_default_child_storage_next_key_version_1);
+    REGISTER_HOST_INTRINSIC(ext_default_child_storage_read_version_1);
+    REGISTER_HOST_INTRINSIC(ext_default_child_storage_root_version_1);
     REGISTER_HOST_INTRINSIC(ext_default_child_storage_set_version_1);
     REGISTER_HOST_INTRINSIC(ext_hashing_blake2_128_version_1);
     REGISTER_HOST_INTRINSIC(ext_hashing_blake2_256_version_1);
@@ -263,18 +234,13 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(ext_storage_start_transaction_version_1);
     REGISTER_HOST_INTRINSIC(ext_trie_blake2_256_ordered_root_version_1);
     REGISTER_HOST_INTRINSIC(ext_trie_blake2_256_root_version_1);
-    REGISTER_HOST_INTRINSIC_STUB(, ext_default_child_storage_clear_prefix_version_1, I64, I64)
-    REGISTER_HOST_INTRINSIC_STUB(, ext_default_child_storage_storage_kill_version_1, I64)
     REGISTER_HOST_INTRINSIC_STUB(, ext_sandbox_instance_teardown_version_1, I32)
     REGISTER_HOST_INTRINSIC_STUB(, ext_sandbox_memory_teardown_version_1, I32)
-    REGISTER_HOST_INTRINSIC_STUB(I32, ext_default_child_storage_exists_version_1, I64, I64)
     REGISTER_HOST_INTRINSIC_STUB(I32, ext_sandbox_instantiate_version_1, I32, I64, I64, I32)
     REGISTER_HOST_INTRINSIC_STUB(I32, ext_sandbox_invoke_version_1, I32, I64, I64, I32, I32, I32)
     REGISTER_HOST_INTRINSIC_STUB(I32, ext_sandbox_memory_get_version_1, I32, I32, I32, I32)
     REGISTER_HOST_INTRINSIC_STUB(I32, ext_sandbox_memory_new_version_1, I32, I32)
     REGISTER_HOST_INTRINSIC_STUB(I32, ext_sandbox_memory_set_version_1, I32, I32, I32, I32)
-    REGISTER_HOST_INTRINSIC_STUB(I64, ext_default_child_storage_read_version_1, I64, I64, I64, I32)
-    REGISTER_HOST_INTRINSIC_STUB(I64, ext_default_child_storage_root_version_1, I64)
     // clang-format on
   }
 
