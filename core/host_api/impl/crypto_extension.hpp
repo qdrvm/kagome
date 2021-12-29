@@ -180,6 +180,19 @@ namespace kagome::host_api {
         runtime::WasmPointer key,
         runtime::WasmSpan msg);
 
+    /**
+     * @see HostApi::ext_crypto_ecdsa_generate
+     */
+    runtime::WasmPointer ext_crypto_ecdsa_generate_version_1(
+        runtime::WasmSize key_type_id, runtime::WasmSpan seed) const;
+
+    /**
+     * @see HostApi::ext_crypto_ecdsa_verify
+     */
+    int32_t ext_crypto_ecdsa_verify_version_1(runtime::WasmPointer sig,
+                                              runtime::WasmSpan msg,
+                                              runtime::WasmPointer key) const;
+
    private:
     common::Blob<32> deriveSeed(std::string_view content);
 

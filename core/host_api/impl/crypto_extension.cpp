@@ -27,6 +27,7 @@
 namespace kagome::host_api {
   namespace sr25519_constants = crypto::constants::sr25519;
   namespace ed25519_constants = crypto::constants::ed25519;
+  namespace ecdsa_constants = crypto::constants::ecdsa;
   namespace secp256k1 = crypto::secp256k1;
 
   using crypto::decodeKeyTypeId;
@@ -628,5 +629,70 @@ namespace kagome::host_api {
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
     auto buffer = scale::encode(ResultType(sign.value())).value();
     return getMemory().storeBuffer(buffer);
+  }
+
+  runtime::WasmPointer CryptoExtension::ext_crypto_ecdsa_generate_version_1(
+      runtime::WasmSize key_type, runtime::WasmSpan seed) const {
+    auto key_type_id =
+        static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
+    if (!crypto::isSupportedKeyType(key_type_id)) {
+      logger_->warn("key type '{}' is not officially supported",
+                    common::int_to_hex(key_type_id, 8));
+    }
+
+    auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
+    auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
+    auto seed_res = scale::decode<std::optional<std::string>>(seed_buffer);
+    if (!seed_res) {
+      logger_->error("failed to decode seed");
+      std::terminate();
+    }
+
+    outcome::result<crypto::EcdsaKeypair> kp_res{{}};
+    auto bip39_seed = seed_res.value();
+    if (bip39_seed.has_value()) {
+      kp_res =
+          crypto_store_->generateEcdsaKeypair(key_type_id, bip39_seed.value());
+    } else {
+      kp_res = crypto_store_->generateEcdsaKeypairOnDisk(key_type_id);
+    }
+    if (!kp_res) {
+      logger_->error("failed to generate ecdsa key pair: {}",
+                     kp_res.error().message());
+      std::terminate();
+    }
+    auto &key_pair = kp_res.value();
+
+    SL_TRACE_FUNC_CALL(logger_, key_pair.public_key, key_type_id, seed_buffer);
+
+    common::Buffer buffer(key_pair.public_key);
+    runtime::WasmSpan ps = getMemory().storeBuffer(buffer);
+
+    return runtime::PtrSize(ps).ptr;
+  }
+
+  int32_t CryptoExtension::ext_crypto_ecdsa_verify_version_1(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg_span,
+      runtime::WasmPointer pubkey_data) const {
+    auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
+    auto msg = getMemory().loadN(msg_data, msg_len);
+    auto signature =
+        getMemory().loadN(sig, ecdsa_constants::SIGNATURE_SIZE).toVector();
+
+    auto pubkey_buffer =
+        getMemory().loadN(pubkey_data, ecdsa_constants::PUBKEY_SIZE);
+    auto key_res = crypto::EcdsaPublicKey::fromSpan(pubkey_buffer);
+    if (!key_res) {
+      BOOST_UNREACHABLE_RETURN(kVerifyFail)
+    }
+    auto &&pubkey = key_res.value();
+
+    auto verify_res = ecdsa_provider_->verify(msg, signature, pubkey);
+
+    auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
+
+    SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
+    return res;
   }
 }  // namespace kagome::host_api

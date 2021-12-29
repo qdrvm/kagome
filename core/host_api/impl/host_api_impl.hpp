@@ -166,6 +166,14 @@ namespace kagome::host_api {
         runtime::WasmPointer key,
         runtime::WasmSpan msg_data) override;
 
+    runtime::WasmPointer ext_crypto_ecdsa_generate_version_1(
+        runtime::WasmSize key_type_id, runtime::WasmSpan seed) override;
+
+    int32_t ext_crypto_ecdsa_verify_version_1(
+        runtime::WasmPointer sig,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer key) override;
+
     // ------------------------- Hashing extension/crypto ---------------
 
     runtime::WasmPointer ext_hashing_keccak_256_version_1(
@@ -301,11 +309,11 @@ namespace kagome::host_api {
         runtime::WasmSpan key,
         runtime::WasmSpan value_out,
         runtime::WasmOffset offset) const override;
-        
+
     virtual uint32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key) const override;
-        
+
     virtual void ext_default_child_storage_storage_kill_version_1(
         runtime::WasmSpan child_storage_key) override;
 

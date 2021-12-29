@@ -163,6 +163,37 @@ namespace kagome::runtime::wavm {
         sig_data, msg, pubkey_data);
   }
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_crypto_ecdsa_generate_version_1,
+                                 WAVM::I32 key_type,
+                                 WAVM::I64 seed) {
+    return peekHostApi()->ext_crypto_ecdsa_generate_version_1(key_type, seed);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_crypto_ecdsa_public_keys_version_1,
+                                 WAVM::I32 key_type) {
+    return peekHostApi()->ext_crypto_ecdsa_public_keys_version_1(key_type);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_crypto_ecdsa_sign_version_1,
+                                 WAVM::I32 key_type,
+                                 WAVM::I32 key,
+                                 WAVM::I64 msg_data) {
+    return peekHostApi()->ext_crypto_ecdsa_sign_version_1(
+        key_type, key, msg_data);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_crypto_ecdsa_verify_version_1,
+                                 WAVM::I32 sig_data,
+                                 WAVM::I64 msg,
+                                 WAVM::I32 pubkey_data) {
+    return peekHostApi()->ext_crypto_ecdsa_verify_version_1(
+        sig_data, msg, pubkey_data);
+  }
+
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
                                  ext_crypto_start_batch_verify_version_1) {
     return peekHostApi()->ext_crypto_start_batch_verify_version_1();
@@ -639,6 +670,10 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_generate_version_1, I32, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_verify_version_1, I32, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_verify_version_2, I32, I64, I32)
+    REGISTER_HOST_INTRINSIC(I64, ext_crypto_ecdsa_public_keys_version_1, I32)
+    REGISTER_HOST_INTRINSIC(I64, ext_crypto_ecdsa_sign_version_1, I32, I32, I64)
+    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_generate_version_1, I32, I64)
+    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_verify_version_1, I32, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_default_child_storage_exists_version_1, I64, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_hashing_blake2_128_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_hashing_blake2_256_version_1, I64)
