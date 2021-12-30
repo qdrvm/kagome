@@ -7,7 +7,8 @@
 #define KAGOME_CORE_CRYPTO_ECDSA_TYPES_HPP
 
 #include <cstdint>
-#include "libp2p/crypto/ecdsa_types.hpp"
+
+#include <libp2p/crypto/ecdsa_types.hpp>
 
 #include "common/blob.hpp"
 
