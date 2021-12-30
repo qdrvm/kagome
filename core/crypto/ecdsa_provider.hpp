@@ -7,7 +7,8 @@
 #define KAGOME_CORE_CRYPTO_ECDSA_PROVIDER_HPP
 
 #include <gsl/span>
-#include <outcome/outcome.hpp>
+
+#include "outcome/outcome.hpp"
 
 #include "crypto/ecdsa_types.hpp"
 
