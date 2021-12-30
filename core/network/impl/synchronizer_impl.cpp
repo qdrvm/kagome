@@ -36,7 +36,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
     case E::ARRIVED_TOO_EARLY:
       return "Block is arrived too early. Try to process it late";
     case E::IMPOLITE_REQUEST:
-      return "Duplicate of recent request has detected";
+      return "Duplicate of recent request has been detected";
   }
   return "unknown error";
 }
@@ -383,8 +383,7 @@ namespace kagome::network {
         return;
       }
 
-      auto &block = blocks.front();
-      auto hash = block.hash;
+      auto hash = blocks.front().hash;
 
       observed.emplace(target, hash);
 
