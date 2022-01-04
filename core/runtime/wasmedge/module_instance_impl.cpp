@@ -5,12 +5,12 @@
 
 #include "runtime/wasmedge/module_instance_impl.hpp"
 
-#include "host_api/impl/host_api_impl.hpp"
+#include "host_api/host_api.hpp"
 #include "runtime/wasmedge/memory_provider.hpp"
 #include "runtime/wasmedge/module_impl.hpp"
 #include "runtime/wasmedge/register_host_api.hpp"
 
-#include <wasmedge.h>
+#include <wasmedge/wasmedge.h>
 
 namespace kagome::runtime::wasmedge {
 
@@ -24,12 +24,12 @@ namespace kagome::runtime::wasmedge {
     //    auto Res = WasmEdge_VMRegisterModuleFromASTModule(
     //        rei_, ModuleName, parent_->ast());
     WasmEdge_ImportObjectContext *ImpObj =
-        WasmEdge_ImportObjectCreate(ModuleName, env_.host_api.get());
+        WasmEdge_ImportObjectCreate(ModuleName);
     //    WasmEdge_ImportObjectContext *ImpObj =
     //        WasmEdge_VMGetImportModuleContext(rei_,
     //        WasmEdge_HostRegistration_WasmEdge_Process);
     WasmEdge_StringDelete(ModuleName);
-    register_host_api(ImpObj);
+    register_host_api(ImpObj, env_.host_api.get());
     dynamic_cast<WasmedgeMemoryProvider *>(env_.memory_provider.get())
         ->setExternalInterface(ImpObj);
     auto Res = WasmEdge_VMRegisterModuleFromImport(rei_, ImpObj);
@@ -59,7 +59,8 @@ namespace kagome::runtime::wasmedge {
     auto GlobalName = WasmEdge_StringCreateByCString(name.data());
     auto store = WasmEdge_VMGetStoreContext(rei_);
     auto res = WasmEdge_StoreFindGlobal(store, GlobalName);
-    auto type = WasmEdge_GlobalInstanceGetValType(res);
+    auto type_cxt = WasmEdge_GlobalInstanceGetGlobalType(res);
+    auto type = WasmEdge_GlobalTypeGetValType(type_cxt);
     auto val = WasmEdge_GlobalInstanceGetValue(res);
     WasmEdge_StringDelete(GlobalName);
     switch (type) {

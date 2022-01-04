@@ -10,7 +10,7 @@ add_library(wasmedge_wasm_memory
 target_link_libraries(wasmedge_wasm_memory
     buffer
     logger
-    CONAN_PKG::WasmEdge
+    WasmEdge::WasmEdge
     memory_allocator
     )
 kagome_install(wasmedge_wasm_memory)

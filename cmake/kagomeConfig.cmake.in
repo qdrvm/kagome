@@ -20,6 +20,12 @@ if (KAGOME_ENABLE_WAVM)
     find_dependency(WAVM REQUIRED)
 endif()
 
+option(KAGOME_ENABLE_WASMEDGE "Include WasmEdge webassembly executor dependency" OFF)
+if (KAGOME_ENABLE_WASMEDGE)
+  find_dependency(LLVM REQUIRED)
+  find_dependency(WasmEdge REQUIRED)
+endif()
+
 option(KAGOME_ENABLE_BINARYEN "Include Binaryen webassembly executor dependency" ON)
 if (KAGOME_ENABLE_BINARYEN)
     find_dependency(binaryen REQUIRED)

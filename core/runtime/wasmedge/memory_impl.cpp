@@ -9,7 +9,7 @@
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/ptr_size.hpp"
 
-#include <wasmedge.h>
+#include <wasmedge/wasmedge.h>
 
 namespace {
   template <typename T, auto N = sizeof(T)>

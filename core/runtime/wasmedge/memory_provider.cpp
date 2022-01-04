@@ -8,7 +8,7 @@
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/wasmedge/memory_impl.hpp"
 
-#include <wasmedge.h>
+#include <wasmedge/wasmedge.h>
 #include <functional>
 
 namespace kagome::runtime::wasmedge {
@@ -27,8 +27,9 @@ namespace kagome::runtime::wasmedge {
 
   void WasmedgeMemoryProvider::setExternalInterface(
       WasmEdge_ImportObjectContext *imp_obj) {
-    WasmEdge_Limit MemoryLimit = {.HasMax = false, .Min = 500, .Max = 500};
-    mem_ctx_ = WasmEdge_MemoryInstanceCreate(MemoryLimit);
+    WasmEdge_Limit MemoryLimit = {.HasMax = true, .Min = 400, .Max = 500};
+    WasmEdge_MemoryTypeContext *MemTypeCxt = WasmEdge_MemoryTypeCreate(MemoryLimit);
+    mem_ctx_ = WasmEdge_MemoryInstanceCreate(MemTypeCxt);
     WasmEdge_String MemoryName = WasmEdge_StringCreateByCString("memory");
     WasmEdge_ImportObjectAddMemory(imp_obj, MemoryName, mem_ctx_);
     WasmEdge_StringDelete(MemoryName);

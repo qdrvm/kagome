@@ -14,7 +14,6 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "host_api/impl/offchain_extension.hpp"
 #include "runtime/trie_storage_provider.hpp"
-#include "runtime/wasmedge/register_host_api.hpp"
 
 namespace kagome::host_api {
 

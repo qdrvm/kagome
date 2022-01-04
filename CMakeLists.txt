@@ -19,13 +19,14 @@ include("cmake/Hunter/init.cmake")
 
 project(kagome C CXX)
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_define_targets()
-
+include(cmake/conan.cmake)
 include(cmake/print.cmake)
 print("C flags: ${CMAKE_C_FLAGS}")
 print("CXX flags: ${CMAKE_CXX_FLAGS}")
 print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
+
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_BINARY_DIR})
+find_package(WasmEdge REQUIRED)
 
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads)

@@ -16,6 +16,6 @@ target_link_libraries(host_api
     storage_extension
     child_storage_extension
     offchain_extension
-    CONAN_PKG::WasmEdge
+    WasmEdge::WasmEdge
     )
 kagome_install(host_api)

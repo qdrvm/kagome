@@ -9,7 +9,7 @@
 #include <fstream>
 #include <memory>
 
-#include <wasmedge.h>
+#include <wasmedge/wasmedge.h>
 
 #include "common/mp_utils.hpp"
 #include "crypto/sha/sha256.hpp"
@@ -40,7 +40,7 @@ namespace kagome::runtime::wasmedge {
 
     auto ConfCtx = WasmEdge_ConfigureCreate();
     WasmEdge_ConfigureCompilerSetOptimizationLevel(
-        ConfCtx, WasmEdge_CompilerOptimizationLevel_O3);
+        ConfCtx, WasmEdge_CompilerOptimizationLevel_O0);
     auto CompilerCtx = WasmEdge_CompilerCreate(ConfCtx);
 
     auto hash = crypto::sha256(code);

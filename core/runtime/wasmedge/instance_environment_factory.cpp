@@ -6,7 +6,7 @@
 #include "runtime/wasmedge/instance_environment_factory.hpp"
 
 #include "host_api/host_api_factory.hpp"
-#include "host_api/impl/host_api_impl.hpp"
+#include "host_api/host_api.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/wasmedge/core_api_factory_impl.hpp"
 #include "runtime/wasmedge/memory_provider.hpp"
