@@ -26,13 +26,16 @@ namespace kagome::network {
     /// Block amount enough for applying and preloading other ones
     /// simultaneously.
     /// 256 is doubled max amount block in BlocksResponse.
-    static const size_t kMinPreloadedBlockAmount = 256;
+    static constexpr size_t kMinPreloadedBlockAmount = 256;
 
     /// Indicating how far the block can be subscribed to.
     /// In general we don't needed wait very far blocks. This limit to avoid
     /// extra memory consumption.
-    static const size_t kMaxDistanceToBlockForSubscription =
+    static constexpr size_t kMaxDistanceToBlockForSubscription =
         kMinPreloadedBlockAmount * 2;
+
+    static constexpr std::chrono::milliseconds kRecentnessDuration =
+        std::chrono::seconds(60);
 
     enum class Error {
       SHUTTING_DOWN = 1,
@@ -45,7 +48,7 @@ namespace kagome::network {
       ALREADY_IN_QUEUE,
       PEER_BUSY,
       ARRIVED_TOO_EARLY,
-      IMPOLITE_REQUEST
+      DUPLICATE_REQUEST
     };
 
     SynchronizerImpl(

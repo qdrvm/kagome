@@ -43,7 +43,9 @@ namespace kagome::network {
       return fields & attribute;
     }
 
-    inline size_t fingerprint() const;
+    using Fingerprint = size_t;
+
+    inline Fingerprint fingerprint() const;
   };
 }  // namespace kagome::network
 
@@ -72,7 +74,8 @@ struct std::hash<kagome::network::BlocksRequest> {
   }
 };
 
-inline size_t kagome::network::BlocksRequest::fingerprint() const {
+inline kagome::network::BlocksRequest::Fingerprint
+kagome::network::BlocksRequest::fingerprint() const {
   return std::hash<BlocksRequest>()(*this);
 }
 

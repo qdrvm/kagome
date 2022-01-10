@@ -35,7 +35,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
       return "Peer is busy";
     case E::ARRIVED_TOO_EARLY:
       return "Block is arrived too early. Try to process it late";
-    case E::IMPOLITE_REQUEST:
+    case E::DUPLICATE_REQUEST:
       return "Duplicate of recent request has been detected";
   }
   return "unknown error";
@@ -310,8 +310,7 @@ namespace kagome::network {
       return;
     }
 
-    network::BlocksRequest request{// TODO: perhaps hash would be enough
-                                   network::BlockAttribute::HEADER,
+    network::BlocksRequest request{network::BlockAttribute::HEADER,
                                    hint,
                                    std::nullopt,
                                    network::Direction::ASCENDING,
@@ -327,8 +326,8 @@ namespace kagome::network {
           lower,
           upper,
           peer_id,
-          outcome::result<void>(Error::IMPOLITE_REQUEST).error().message());
-      handler(Error::IMPOLITE_REQUEST);
+          outcome::result<void>(Error::DUPLICATE_REQUEST).error().message());
+      handler(Error::DUPLICATE_REQUEST);
       return;
     }
 
@@ -339,7 +338,7 @@ namespace kagome::network {
                 std::tuple(peer_id, request_fingerprint));
           }
         },
-        std::chrono::minutes(1));
+        kRecentnessDuration);
 
     auto response_handler = [wp = weak_from_this(),
                              lower,
@@ -510,8 +509,8 @@ namespace kagome::network {
           "Can't load blocks from {} beginning block {}: {}",
           peer_id,
           from,
-          outcome::result<void>(Error::IMPOLITE_REQUEST).error().message());
-      handler(Error::IMPOLITE_REQUEST);
+          outcome::result<void>(Error::DUPLICATE_REQUEST).error().message());
+      handler(Error::DUPLICATE_REQUEST);
       return;
     }
 
