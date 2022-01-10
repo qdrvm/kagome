@@ -53,14 +53,14 @@ namespace kagome::crypto {
     outcome::result<Sr25519Keypair> generateSr25519Keypair(
         KeyTypeId key_type, std::string_view mnemonic_phrase) override;
 
-    EcdsaKeypair generateEcdsaKeypair(KeyTypeId key_type,
-                                      const EcdsaSeed &seed) override;
+    outcome::result<EcdsaKeypair> generateEcdsaKeypair(
+        KeyTypeId key_type, const EcdsaSeed &seed) override;
 
-    Ed25519Keypair generateEd25519Keypair(KeyTypeId key_type,
-                                          const Ed25519Seed &seed) override;
+    outcome::result<Ed25519Keypair> generateEd25519Keypair(
+        KeyTypeId key_type, const Ed25519Seed &seed) override;
 
-    Sr25519Keypair generateSr25519Keypair(KeyTypeId key_type,
-                                          const Sr25519Seed &seed) override;
+    outcome::result<Sr25519Keypair> generateSr25519Keypair(
+        KeyTypeId key_type, const Sr25519Seed &seed) override;
 
     outcome::result<EcdsaKeypair> generateEcdsaKeypairOnDisk(
         KeyTypeId key_type) override;
@@ -133,7 +133,7 @@ namespace kagome::crypto {
             continue;
           }
           SL_TRACE(logger_, "Loaded key {}", pk.toHex());
-          auto kp = suite.generateKeypair(seed_res.value());
+          OUTCOME_TRY(kp, suite.generateKeypair(seed_res.value()));
           auto &&[pub, priv] = suite.decomposeKeypair(kp);
           if (pub == pk) {
             SL_TRACE(logger_, "Key is correct {}", pk.toHex());

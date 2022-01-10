@@ -16,7 +16,7 @@ namespace kagome::crypto {
    public:
     EcdsaKeypair;
 
-    MOCK_METHOD(EcdsaKeypair, generate, (), (const, override));
+    MOCK_METHOD(outcome::result<EcdsaKeypair>, generate, (), (const, override));
 
     MOCK_METHOD(outcome::result<EcdsaPublicKey>,
                 derive,

@@ -32,13 +32,14 @@ namespace kagome::crypto {
      * Genereate a keypair from \param seed (mind that in some algorithms a seed
      * is a private key)
      */
-    virtual Keypair generateKeypair(const Seed &seed) const noexcept = 0;
+    virtual outcome::result<Keypair> generateKeypair(
+        const Seed &seed) const noexcept = 0;
 
     /**
      * Generate a random keypair (randomness source is determined by an
      * underlying crypto provider)
      */
-    virtual Keypair generateRandomKeypair() const noexcept = 0;
+    virtual outcome::result<Keypair> generateRandomKeypair() const noexcept = 0;
 
     /**
      * Create a keypair from a public key and a private key
@@ -80,21 +81,15 @@ namespace kagome::crypto {
 
     ~EcdsaSuite() override = default;
 
-    EcdsaKeypair generateRandomKeypair() const noexcept override {
-      auto kp = ecdsa_provider_->generate();
-      if (kp) {
-        return kp.value();
-      }
-      return EcdsaKeypair{};
+    outcome::result<EcdsaKeypair> generateRandomKeypair()
+        const noexcept override {
+      return ecdsa_provider_->generate();
     }
 
-    EcdsaKeypair generateKeypair(
+    outcome::result<EcdsaKeypair> generateKeypair(
         const EcdsaSeed &seed) const noexcept override {
-      auto pub = ecdsa_provider_->derive(seed);
-      if (pub) {
-        return composeKeypair(pub.value(), EcdsaPrivateKey{seed});
-      }
-      return EcdsaKeypair{};
+      OUTCOME_TRY(public_key, ecdsa_provider_->derive(seed));
+      return composeKeypair(public_key, EcdsaPrivateKey{seed});
     }
 
     EcdsaKeypair composeKeypair(PublicKey pub,
@@ -135,11 +130,12 @@ namespace kagome::crypto {
 
     ~Ed25519Suite() override = default;
 
-    Ed25519Keypair generateRandomKeypair() const noexcept override {
+    outcome::result<Ed25519Keypair> generateRandomKeypair()
+        const noexcept override {
       return ed_provider_->generateKeypair();
     }
 
-    Ed25519Keypair generateKeypair(
+    outcome::result<Ed25519Keypair> generateKeypair(
         const Ed25519Seed &seed) const noexcept override {
       return ed_provider_->generateKeypair(seed);
     }
@@ -182,11 +178,12 @@ namespace kagome::crypto {
 
     ~Sr25519Suite() override = default;
 
-    Sr25519Keypair generateRandomKeypair() const noexcept override {
+    outcome::result<Sr25519Keypair> generateRandomKeypair()
+        const noexcept override {
       return sr_provider_->generateKeypair();
     }
 
-    Sr25519Keypair generateKeypair(
+    outcome::result<Sr25519Keypair> generateKeypair(
         const Sr25519Seed &seed) const noexcept override {
       return sr_provider_->generateKeypair(seed);
     }

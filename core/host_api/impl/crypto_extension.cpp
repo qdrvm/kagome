@@ -24,6 +24,15 @@
 #include "runtime/ptr_size.hpp"
 #include "scale/scale.hpp"
 
+namespace {
+  template <typename... Args>
+  void throw_with_error(kagome::log::Logger &logger, Args &&...fmt_args) {
+    auto msg = fmt::format(fmt_args...);
+    logger->error(msg);
+    throw std::runtime_error(msg);
+  }
+}  // namespace
+
 namespace kagome::host_api {
   namespace sr25519_constants = crypto::constants::sr25519;
   namespace ed25519_constants = crypto::constants::ed25519;
@@ -286,10 +295,9 @@ namespace kagome::host_api {
 
     auto sign = ed25519_provider_->sign(key_pair.value(), msg_buffer);
     if (!sign) {
-      auto msg = fmt::format("failed to sign message, error = {}",
-                             sign.error().message());
-      logger_->error(msg);
-      throw std::runtime_error(msg);
+      throw_with_error(logger_,
+                       "failed to sign message, error = {}",
+                       sign.error().message());
     }
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);

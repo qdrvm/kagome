@@ -68,8 +68,8 @@ namespace kagome::crypto {
      * @param seed seed for generating keys
      * @return generated key pair
      */
-    virtual EcdsaKeypair generateEcdsaKeypair(KeyTypeId key_type,
-                                              const EcdsaSeed &seed) = 0;
+    virtual outcome::result<EcdsaKeypair> generateEcdsaKeypair(
+        KeyTypeId key_type, const EcdsaSeed &seed) = 0;
 
     /**
      * @brief generates Ed25519 keypair and stores it in memory
@@ -77,8 +77,8 @@ namespace kagome::crypto {
      * @param seed seed for generating keys
      * @return generated key pair
      */
-    virtual Ed25519Keypair generateEd25519Keypair(KeyTypeId key_type,
-                                                  const Ed25519Seed &seed) = 0;
+    virtual outcome::result<Ed25519Keypair> generateEd25519Keypair(
+        KeyTypeId key_type, const Ed25519Seed &seed) = 0;
 
     /**
      * @brief generates SR25519 keypair and stores it in memory
@@ -86,8 +86,8 @@ namespace kagome::crypto {
      * @param seed seed for generating keys
      * @return generated key
      */
-    virtual Sr25519Keypair generateSr25519Keypair(KeyTypeId key_type,
-                                                  const Sr25519Seed &seed) = 0;
+    virtual outcome::result<Sr25519Keypair> generateSr25519Keypair(
+        KeyTypeId key_type, const Sr25519Seed &seed) = 0;
 
     /**
      * @brief generates ecdsa keypair and stores it on disk

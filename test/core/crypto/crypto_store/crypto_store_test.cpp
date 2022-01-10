@@ -180,7 +180,8 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairSeedSuccess) {
       err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
 
-  auto pair = crypto_store->generateEd25519Keypair(key_type, seed);
+  EXPECT_OUTCOME_TRUE(pair,
+                      crypto_store->generateEd25519Keypair(key_type, seed));
   ASSERT_EQ(pair, ed_pair);
 
   // check that created pair is now contained in memory
@@ -202,7 +203,8 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairSeedSuccess) {
       err, crypto_store->findSr25519Keypair(key_type, sr_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
 
-  auto &&pair = crypto_store->generateSr25519Keypair(key_type, seed);
+  EXPECT_OUTCOME_TRUE(pair,
+                      crypto_store->generateSr25519Keypair(key_type, seed));
   ASSERT_EQ(pair, sr_pair);
 
   // check that created pair is now contained in memory
