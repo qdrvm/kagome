@@ -26,7 +26,7 @@
 
 namespace {
   template <typename... Args>
-  void throw_with_error(kagome::log::Logger &logger, Args &&...fmt_args) {
+  void throw_with_error(const kagome::log::Logger &logger, Args &&...fmt_args) {
     auto msg = fmt::format(fmt_args...);
     logger->error(msg);
     throw std::runtime_error(msg);
@@ -173,10 +173,9 @@ namespace kagome::host_api {
 
     auto public_keys = crypto_store_->getEd25519PublicKeys(key_type_id);
     if (not public_keys) {
-      auto msg =
-          "error loading public keys: {}" + public_keys.error().message();
-      logger_->error(msg);
-      throw std::runtime_error(msg);
+      throw_with_error(logger_,
+                       "error loading public keys: {}",
+                       public_keys.error().message());
     }
     common::Buffer buffer{scale::encode(public_keys.value()).value()};
     SL_TRACE_FUNC_CALL(logger_, buffer.size(), key_type_id);
@@ -195,27 +194,21 @@ namespace kagome::host_api {
     // now check if it is a bip39 mnemonic phrase with optional password
     auto mnemonic = crypto::bip39::Mnemonic::parse(content);
     if (!mnemonic) {
-      auto msg = fmt::format("failed to parse mnemonic {}",
-                             mnemonic.error().message());
-      logger_->error(msg);
-      throw std::runtime_error(msg);
+      throw_with_error(
+          logger_, "failed to parse mnemonic {}", mnemonic.error().message());
     }
 
     auto &&entropy = bip39_provider_->calculateEntropy(mnemonic.value().words);
     if (!entropy) {
-      auto msg = fmt::format("failed to calculate entropy {}",
-                             entropy.error().message());
-      logger_->error(msg);
-      throw std::runtime_error(msg);
+      throw_with_error(
+          logger_, "failed to calculate entropy {}", entropy.error().message());
     }
 
     auto &&big_seed =
         bip39_provider_->makeSeed(entropy.value(), mnemonic.value().password);
     if (!big_seed) {
-      auto msg =
-          fmt::format("failed to generate seed {}", big_seed.error().message());
-      logger_->error(msg);
-      throw std::runtime_error(msg);
+      throw_with_error(
+          logger_, "failed to generate seed {}", big_seed.error().message());
     }
 
     auto big_span = gsl::span<uint8_t>(big_seed.value());
@@ -242,8 +235,7 @@ namespace kagome::host_api {
     auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
     auto seed_res = scale::decode<std::optional<std::string>>(seed_buffer);
     if (!seed_res) {
-      logger_->error("failed to decode seed");
-      throw std::runtime_error("failed to decode bip39 seed");
+      throw_with_error(logger_, "failed to decode seed");
     }
     auto &&seed_opt = seed_res.value();
 
@@ -255,9 +247,9 @@ namespace kagome::host_api {
       kp_res = crypto_store_->generateEd25519KeypairOnDisk(key_type_id);
     }
     if (!kp_res) {
-      logger_->error("failed to generate ed25519 key pair: {}",
-                     kp_res.error().message());
-      throw std::runtime_error("failed to generate ed25519 key pair");
+      throw_with_error(logger_,
+                       "failed to generate ed25519 key pair: {}",
+                       kp_res.error().message());
     }
     auto &key_pair = kp_res.value();
     SL_TRACE_FUNC_CALL(logger_, key_pair.public_key, key_type_id, seed_buffer);
@@ -350,9 +342,9 @@ namespace kagome::host_api {
     }
     auto public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
     if (not public_keys) {
-      auto msg = fmt::format("error loading public keys: {}",
-                             public_keys.error().message());
-      throw std::runtime_error(msg);
+      throw_with_error(logger_,
+                       "error loading public keys: {}",
+                       public_keys.error().message());
     }
 
     auto buffer = scale::encode(public_keys.value()).value();
@@ -374,8 +366,7 @@ namespace kagome::host_api {
     auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
     auto seed_res = scale::decode<std::optional<std::string>>(seed_buffer);
     if (!seed_res) {
-      logger_->error("failed to decode seed");
-      throw std::runtime_error("failed to decode seed");
+      throw_with_error(logger_, "failed to decode seed");
     }
 
     outcome::result<crypto::Sr25519Keypair> kp_res{{}};
@@ -387,10 +378,9 @@ namespace kagome::host_api {
       kp_res = crypto_store_->generateSr25519KeypairOnDisk(key_type_id);
     }
     if (!kp_res) {
-      auto msg = fmt::format("failed to generate sr25519 key pair: {}",
-                             kp_res.error().message());
-      logger_->error(msg);
-      throw std::runtime_error(msg);
+      throw_with_error(logger_,
+                       "failed to generate sr25519 key pair: {}",
+                       kp_res.error().message());
     }
     auto &key_pair = kp_res.value();
 
@@ -435,10 +425,9 @@ namespace kagome::host_api {
 
     auto sign = sr25519_provider_->sign(key_pair.value(), msg_buffer);
     if (!sign) {
-      logger_->error("failed to sign message, error = {}",
-                     sign.error().message());
-      throw std::runtime_error{fmt::format("failed to sign message, error = {}",
-                                           sign.error().message())};
+      throw_with_error(logger_,
+                       "failed to sign message, error = {}",
+                       sign.error().message());
     }
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
@@ -598,9 +587,9 @@ namespace kagome::host_api {
     }
     auto public_keys = crypto_store_->getEcdsaPublicKeys(key_type_id);
     if (not public_keys) {
-      auto msg = fmt::format("error loading public keys: {}",
-                             public_keys.error().message());
-      throw std::runtime_error(msg);
+      throw_with_error(logger_,
+                       "error loading public keys: {}",
+                       public_keys.error().message());
     }
 
     auto buffer = scale::encode(public_keys.value()).value();
@@ -636,10 +625,9 @@ namespace kagome::host_api {
 
     auto sign = ecdsa_provider_->sign(msg_buffer, key_pair.value().secret_key);
     if (!sign) {
-      auto msg = fmt::format("failed to sign message, error = {}",
-                             sign.error().message());
-      logger_->error(msg);
-      throw std::runtime_error(msg);
+      throw_with_error(logger_,
+                       "failed to sign message, error = {}",
+                       sign.error().message());
     }
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
@@ -660,8 +648,7 @@ namespace kagome::host_api {
     auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
     auto seed_res = scale::decode<std::optional<std::string>>(seed_buffer);
     if (!seed_res) {
-      logger_->error("failed to decode seed");
-      throw std::runtime_error("failed to decode seed");
+      throw_with_error(logger_, "failed to decode seed");
     }
 
     outcome::result<crypto::EcdsaKeypair> kp_res{{}};
@@ -673,10 +660,9 @@ namespace kagome::host_api {
       kp_res = crypto_store_->generateEcdsaKeypairOnDisk(key_type_id);
     }
     if (!kp_res) {
-      auto msg = fmt::format("failed to generate ecdsa key pair: {}",
-                             kp_res.error().message());
-      logger_->error(msg);
-      throw std::runtime_error(msg);
+      throw_with_error(logger_,
+                       "failed to generate ecdsa key pair: {}",
+                       kp_res.error().message());
     }
     auto &key_pair = kp_res.value();
 
