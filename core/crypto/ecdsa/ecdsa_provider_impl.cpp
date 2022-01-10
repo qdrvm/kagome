@@ -5,24 +5,13 @@
 
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, EcdsaProviderImpl::Error, e) {
-  using E = kagome::crypto::EcdsaProviderImpl::Error;
-  switch (e) {
-    case E::VERIFICATION_FAILED:
-      return "Internal error during ecdsa signature verification";
-    case E::SIGN_FAILED:
-      return "Internal error during ecdsa signing";
-  }
-  return "Unknown error in ecdsa provider";
-}
-
 namespace kagome::crypto {
 
   EcdsaProviderImpl::EcdsaProviderImpl()
       : provider_{std::make_shared<Libp2pEcdsaProviderImpl>()} {}
 
   EcdsaProviderImpl::EcdsaProviderImpl(
-      std::shared_ptr<Libp2pEcdsaProviderImpl> provider)
+      std::shared_ptr<Libp2pEcdsaProvider> provider)
       : provider_{std::move(provider)},
         logger_{log::createLogger("EcdsaProvider", "ecdsa")} {
     BOOST_ASSERT(provider_ != nullptr);

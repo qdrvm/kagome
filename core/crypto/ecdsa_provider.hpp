@@ -13,18 +13,6 @@
 
 namespace kagome::crypto {
 
-  /**
-   * ecdsa provider error codes
-   */
-  enum class EcdsaProviderError {
-    SIGN_UNKNOWN_ERROR = 1,  // unknown error occured during call to `sign`
-                             // method of bound function
-    VERIFY_UNKNOWN_ERROR,    // unknown error occured during call to `verify`
-                             // method of bound function
-    DERIVE_UNKNOWN_ERROR     // unknown error occured during call to `derive`
-                             // method of bound function
-  };
-
   class EcdsaProvider {
    public:
     virtual ~EcdsaProvider() = default;
@@ -43,7 +31,5 @@ namespace kagome::crypto {
         const EcdsaPublicKey &publicKey) const = 0;
   };
 }  // namespace kagome::crypto
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, EcdsaProviderError)
 
 #endif  // KAGOME_CORE_CRYPTO_ECDSA_PROVIDER_HPP

@@ -81,13 +81,20 @@ namespace kagome::crypto {
     ~EcdsaSuite() override = default;
 
     EcdsaKeypair generateRandomKeypair() const noexcept override {
-      return ecdsa_provider_->generate().value();
+      auto kp = ecdsa_provider_->generate();
+      if (kp) {
+        return kp.value();
+      }
+      return EcdsaKeypair{};
     }
 
     EcdsaKeypair generateKeypair(
         const EcdsaSeed &seed) const noexcept override {
-      auto pub = ecdsa_provider_->derive(seed).value();
-      return composeKeypair(pub, EcdsaPrivateKey{seed});
+      auto pub = ecdsa_provider_->derive(seed);
+      if (pub) {
+        return composeKeypair(pub.value(), EcdsaPrivateKey{seed});
+      }
+      return EcdsaKeypair{};
     }
 
     EcdsaKeypair composeKeypair(PublicKey pub,

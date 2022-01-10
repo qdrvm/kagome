@@ -16,12 +16,13 @@ namespace kagome::crypto {
   class EcdsaProviderImpl : public EcdsaProvider {
    public:
     enum class Error { VERIFICATION_FAILED = 1, SIGN_FAILED };
+    using Libp2pEcdsaProvider = libp2p::crypto::ecdsa::EcdsaProvider;
     using Libp2pEcdsaProviderImpl = libp2p::crypto::ecdsa::EcdsaProviderImpl;
 
     EcdsaProviderImpl();
 
     explicit EcdsaProviderImpl(
-        std::shared_ptr<Libp2pEcdsaProviderImpl> provider);
+        std::shared_ptr<Libp2pEcdsaProvider> provider);
 
     outcome::result<EcdsaKeypair> generate() const override;
 
@@ -38,7 +39,7 @@ namespace kagome::crypto {
         const EcdsaPublicKey &publicKey) const override;
 
    private:
-    std::shared_ptr<Libp2pEcdsaProviderImpl> provider_;
+    std::shared_ptr<Libp2pEcdsaProvider> provider_;
     log::Logger logger_;
   };
 

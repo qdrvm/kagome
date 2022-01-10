@@ -186,22 +186,27 @@ namespace kagome::host_api {
     // now check if it is a bip39 mnemonic phrase with optional password
     auto mnemonic = crypto::bip39::Mnemonic::parse(content);
     if (!mnemonic) {
-      logger_->error("failed to parse mnemonic {}", mnemonic.error().message());
-      std::terminate();
+      auto msg = fmt::format("failed to parse mnemonic {}",
+                             mnemonic.error().message());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
 
     auto &&entropy = bip39_provider_->calculateEntropy(mnemonic.value().words);
     if (!entropy) {
-      logger_->error("failed to calculate entropy {}",
-                     entropy.error().message());
-      std::terminate();
+      auto msg = fmt::format("failed to calculate entropy {}",
+                             entropy.error().message());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
 
     auto &&big_seed =
         bip39_provider_->makeSeed(entropy.value(), mnemonic.value().password);
     if (!big_seed) {
-      logger_->error("failed to generate seed {}", big_seed.error().message());
-      std::terminate();
+      auto msg =
+          fmt::format("failed to generate seed {}", big_seed.error().message());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
 
     auto big_span = gsl::span<uint8_t>(big_seed.value());
@@ -281,9 +286,10 @@ namespace kagome::host_api {
 
     auto sign = ed25519_provider_->sign(key_pair.value(), msg_buffer);
     if (!sign) {
-      logger_->error("failed to sign message, error = {}",
-                     sign.error().message());
-      std::terminate();
+      auto msg = fmt::format("failed to sign message, error = {}",
+                             sign.error().message());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
@@ -361,7 +367,7 @@ namespace kagome::host_api {
     auto seed_res = scale::decode<std::optional<std::string>>(seed_buffer);
     if (!seed_res) {
       logger_->error("failed to decode seed");
-      std::terminate();
+      throw std::runtime_error("failed to decode seed");
     }
 
     outcome::result<crypto::Sr25519Keypair> kp_res{{}};
@@ -373,9 +379,10 @@ namespace kagome::host_api {
       kp_res = crypto_store_->generateSr25519KeypairOnDisk(key_type_id);
     }
     if (!kp_res) {
-      logger_->error("failed to generate sr25519 key pair: {}",
-                     kp_res.error().message());
-      std::terminate();
+      auto msg = fmt::format("failed to generate sr25519 key pair: {}",
+                             kp_res.error().message());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
     auto &key_pair = kp_res.value();
 
@@ -621,9 +628,10 @@ namespace kagome::host_api {
 
     auto sign = ecdsa_provider_->sign(msg_buffer, key_pair.value().secret_key);
     if (!sign) {
-      logger_->error("failed to sign message, error = {}",
-                     sign.error().message());
-      std::terminate();
+      auto msg = fmt::format("failed to sign message, error = {}",
+                             sign.error().message());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
@@ -645,7 +653,7 @@ namespace kagome::host_api {
     auto seed_res = scale::decode<std::optional<std::string>>(seed_buffer);
     if (!seed_res) {
       logger_->error("failed to decode seed");
-      std::terminate();
+      throw std::runtime_error("failed to decode seed");
     }
 
     outcome::result<crypto::EcdsaKeypair> kp_res{{}};
@@ -657,9 +665,10 @@ namespace kagome::host_api {
       kp_res = crypto_store_->generateEcdsaKeypairOnDisk(key_type_id);
     }
     if (!kp_res) {
-      logger_->error("failed to generate ecdsa key pair: {}",
-                     kp_res.error().message());
-      std::terminate();
+      auto msg = fmt::format("failed to generate ecdsa key pair: {}",
+                             kp_res.error().message());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
     auto &key_pair = kp_res.value();
 

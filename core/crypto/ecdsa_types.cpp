@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "ecdsa_types.hpp"
+#include "crypto/ecdsa_types.hpp"
 
 namespace kagome::crypto {
   bool EcdsaKeypair::operator==(const EcdsaKeypair &other) const {
