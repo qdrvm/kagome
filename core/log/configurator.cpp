@@ -44,6 +44,7 @@ groups:
               - name: bip39
               - name: crypto_store
               - name: ed25519
+              - name: ecdsa
           - name: consensus
             children:
               - name: babe

@@ -125,6 +125,15 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_crypto_sr25519_verify_version_2 =
       "ext_crypto_sr25519_verify_version_2";
 
+  const static wasm::Name ext_crypto_ecdsa_public_keys_version_1 =
+      "ext_crypto_ecdsa_public_keys_version_1";
+  const static wasm::Name ext_crypto_ecdsa_sign_version_1 =
+      "ext_crypto_ecdsa_sign_version_1";
+  const static wasm::Name ext_crypto_ecdsa_generate_version_1 =
+      "ext_crypto_ecdsa_generate_version_1";
+  const static wasm::Name ext_crypto_ecdsa_verify_version_1 =
+      "ext_crypto_ecdsa_verify_version_1";
+
   const static wasm::Name ext_crypto_secp256k1_ecdsa_recover_version_1 =
       "ext_crypto_secp256k1_ecdsa_recover_version_1";
   const static wasm::Name ext_crypto_secp256k1_ecdsa_recover_version_2 =
@@ -217,8 +226,8 @@ namespace kagome::runtime::binaryen {
       /// ext_default_child_storage_root_version_1
       if (import->base == ext_default_child_storage_root_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
-        auto res =
-            host_api_->ext_default_child_storage_root_version_1(arguments.at(0).geti64());
+        auto res = host_api_->ext_default_child_storage_root_version_1(
+            arguments.at(0).geti64());
         return wasm::Literal(res);
       }
       /// ext_default_child_storage_set_version_1
@@ -269,7 +278,10 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_default_child_storage_read_version_1) {
         checkArguments(import->base.c_str(), 4, arguments.size());
         auto res = host_api_->ext_default_child_storage_read_version_1(
-            arguments.at(0).geti64(), arguments.at(1).geti64(), arguments.at(2).geti64(), arguments.at(3).geti32());
+            arguments.at(0).geti64(),
+            arguments.at(1).geti64(),
+            arguments.at(2).geti64(),
+            arguments.at(3).geti32());
         return wasm::Literal(res);
       }
       /// ext_default_child_storage_exists_version_1
@@ -385,6 +397,42 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_crypto_sr25519_verify_version_2) {
         checkArguments(import->base.c_str(), 3, arguments.size());
         auto res = host_api_->ext_crypto_sr25519_verify_version_2(
+            arguments.at(0).geti32(),
+            arguments.at(1).geti64(),
+            arguments.at(2).geti32());
+        return wasm::Literal(res);
+      }
+
+      /// ext_crypto_ecdsa_public_keys_version_1
+      if (import->base == ext_crypto_ecdsa_public_keys_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = host_api_->ext_crypto_ecdsa_public_keys_version_1(
+            arguments.at(0).geti32());
+        return wasm::Literal(res);
+      }
+
+      /// ext_crypto_ecdsa_sign_version_1
+      if (import->base == ext_crypto_ecdsa_sign_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = host_api_->ext_crypto_ecdsa_sign_version_1(
+            arguments.at(0).geti32(),
+            arguments.at(1).geti32(),
+            arguments.at(2).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_crypto_ecdsa_generate_version_1
+      if (import->base == ext_crypto_ecdsa_generate_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = host_api_->ext_crypto_ecdsa_generate_version_1(
+            arguments.at(0).geti32(), arguments.at(1).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_crypto_ecdsa_verify_version_1
+      if (import->base == ext_crypto_ecdsa_verify_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = host_api_->ext_crypto_ecdsa_verify_version_1(
             arguments.at(0).geti32(),
             arguments.at(1).geti64(),
             arguments.at(2).geti32());

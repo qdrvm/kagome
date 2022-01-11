@@ -40,6 +40,7 @@ namespace kagome::host_api {
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
         std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
         std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider,
+        std::shared_ptr<const crypto::EcdsaProvider> ecdsa_provider,
         std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<const crypto::Hasher> hasher,
@@ -156,6 +157,22 @@ namespace kagome::host_api {
     int32_t ext_crypto_sr25519_verify_version_2(runtime::WasmPointer,
                                                 runtime::WasmSpan,
                                                 runtime::WasmPointer) override;
+
+    runtime::WasmSpan ext_crypto_ecdsa_public_keys_version_1(
+        runtime::WasmSize key_type) override;
+
+    runtime::WasmSpan ext_crypto_ecdsa_sign_version_1(
+        runtime::WasmSize key_type,
+        runtime::WasmPointer key,
+        runtime::WasmSpan msg_data) override;
+
+    runtime::WasmPointer ext_crypto_ecdsa_generate_version_1(
+        runtime::WasmSize key_type_id, runtime::WasmSpan seed) override;
+
+    int32_t ext_crypto_ecdsa_verify_version_1(
+        runtime::WasmPointer sig,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer key) override;
 
     // ------------------------- Hashing extension/crypto ---------------
 
@@ -292,11 +309,11 @@ namespace kagome::host_api {
         runtime::WasmSpan key,
         runtime::WasmSpan value_out,
         runtime::WasmOffset offset) const override;
-        
+
     virtual uint32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key) const override;
-        
+
     virtual void ext_default_child_storage_storage_kill_version_1(
         runtime::WasmSpan child_storage_key) override;
 
