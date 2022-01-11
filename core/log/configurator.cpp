@@ -76,6 +76,7 @@ groups:
               - name: kagome_protocols
                 children:
                   - name: sync_protocol
+                  - name: grandpa_protocol
           - name: changes_trie
           - name: storage
             children:

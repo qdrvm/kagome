@@ -123,10 +123,9 @@ namespace kagome::network {
 
       if (self->log_->level() >= log::Level::VERBOSE) {
         std::string logmsg = fmt::format(
-            "Block request is received from incoming {} stream with {}: id={}",
+            "Block request is received from incoming {} stream with {}",
             self->protocol_,
-            stream->remotePeerId().value(),
-            block_request.id);
+            stream->remotePeerId().value());
 
         logmsg += ", fields=";
         if (block_request.fields & BlockAttribute::HEADER) logmsg += 'H';

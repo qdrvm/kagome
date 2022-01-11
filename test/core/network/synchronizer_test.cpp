@@ -62,6 +62,9 @@ class SynchronizerTest
     EXPECT_CALL(*router, getSyncProtocol())
         .WillRepeatedly(Return(sync_protocol));
 
+    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _))
+        .Times(AnyNumber());
+
     synchronizer =
         std::make_shared<network::SynchronizerImpl>(app_state_manager,
                                                     block_tree,
@@ -259,7 +262,7 @@ TEST_P(SynchronizerTest, findCommonBlock) {
   SyncResultHandlerMock mock;
 
   /// @then callback will be called once with expected data
-  auto is_expected = [&local = local, &common = common](auto res) {
+  auto is_expected = [&local = local, &common = common](const auto &res) {
     return res.has_value() and res.value() == local[common];
   };
   EXPECT_CALL(mock, call(Truly(is_expected))).Times(1);
