@@ -521,7 +521,7 @@ namespace kagome::network {
                 std::tuple(peer_id, request_fingerprint));
           }
         },
-        std::chrono::minutes(1));
+        kRecentnessDuration);
 
     auto response_handler = [wp = weak_from_this(),
                              from,
