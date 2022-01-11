@@ -15,6 +15,31 @@ namespace kagome::crypto {
    public:
     ~CryptoStoreMock() override = default;
 
+    MOCK_METHOD(outcome::result<EcdsaKeypair>,
+                generateEcdsaKeypair,
+                (KeyTypeId, std::string_view),
+                (override));
+
+    MOCK_METHOD(outcome::result<EcdsaKeypair>,
+                generateEcdsaKeypair,
+                (KeyTypeId, const EcdsaSeed &),
+                (override));
+
+    MOCK_METHOD(outcome::result<EcdsaKeypair>,
+                generateEcdsaKeypairOnDisk,
+                (KeyTypeId),
+                (override));
+
+    MOCK_METHOD(outcome::result<EcdsaKeypair>,
+                findEcdsaKeypair,
+                (KeyTypeId, const EcdsaPublicKey &),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<EcdsaKeys>,
+                getEcdsaPublicKeys,
+                (KeyTypeId),
+                (const, override));
+
     MOCK_METHOD(outcome::result<Ed25519Keypair>,
                 generateEd25519Keypair,
                 (KeyTypeId, std::string_view),
@@ -25,12 +50,12 @@ namespace kagome::crypto {
                 (KeyTypeId, std::string_view),
                 (override));
 
-    MOCK_METHOD(Ed25519Keypair,
+    MOCK_METHOD(outcome::result<Ed25519Keypair>,
                 generateEd25519Keypair,
                 (KeyTypeId, const Ed25519Seed &),
                 (override));
 
-    MOCK_METHOD(Sr25519Keypair,
+    MOCK_METHOD(outcome::result<Sr25519Keypair>,
                 generateSr25519Keypair,
                 (KeyTypeId, const Sr25519Seed &),
                 (override));

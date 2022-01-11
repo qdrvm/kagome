@@ -33,19 +33,30 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
 namespace kagome::crypto {
 
   CryptoStoreImpl::CryptoStoreImpl(
+      std::shared_ptr<EcdsaSuite> ecdsa_suite,
       std::shared_ptr<Ed25519Suite> ed_suite,
       std::shared_ptr<Sr25519Suite> sr_suite,
       std::shared_ptr<Bip39Provider> bip39_provider,
       std::shared_ptr<KeyFileStorage> key_fs)
       : file_storage_{std::move(key_fs)},
+        ecdsa_suite_{std::move(ecdsa_suite)},
         ed_suite_{std::move(ed_suite)},
         sr_suite_{std::move(sr_suite)},
         bip39_provider_{std::move(bip39_provider)},
         logger_{log::createLogger("CryptoStore", "crypto_store")} {
+    BOOST_ASSERT(ecdsa_suite_ != nullptr);
     BOOST_ASSERT(ed_suite_ != nullptr);
     BOOST_ASSERT(sr_suite_ != nullptr);
     BOOST_ASSERT(bip39_provider_ != nullptr);
     BOOST_ASSERT(file_storage_ != nullptr);
+  }
+
+  outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypair(
+      KeyTypeId key_type, std::string_view mnemonic_phrase) {
+    OUTCOME_TRY(kp, generateKeypair(mnemonic_phrase, *ecdsa_suite_));
+    getCache(ecdsa_suite_, ecdsa_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
+    return std::move(kp);
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
@@ -64,25 +75,43 @@ namespace kagome::crypto {
     return std::move(kp);
   }
 
-  Ed25519Keypair CryptoStoreImpl::generateEd25519Keypair(
+  outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypair(
+      KeyTypeId key_type, const EcdsaSeed &seed) {
+    OUTCOME_TRY(kp, ecdsa_suite_->generateKeypair(seed));
+    getCache(ecdsa_suite_, ecdsa_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
+    return kp;
+  }
+
+  outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
       KeyTypeId key_type, const Ed25519Seed &seed) {
-    auto kp = ed_suite_->generateKeypair(seed);
+    OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed));
     getCache(ed_suite_, ed_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     return kp;
   }
 
-  Sr25519Keypair CryptoStoreImpl::generateSr25519Keypair(
+  outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
       KeyTypeId key_type, const Sr25519Seed &seed) {
-    auto kp = sr_suite_->generateKeypair(seed);
+    OUTCOME_TRY(kp, sr_suite_->generateKeypair(seed));
     getCache(sr_suite_, sr_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     return kp;
   }
 
+  outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypairOnDisk(
+      KeyTypeId key_type) {
+    OUTCOME_TRY(kp, ecdsa_suite_->generateRandomKeypair());
+    getCache(ecdsa_suite_, ecdsa_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
+    OUTCOME_TRY(
+        file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
+    return kp;
+  }
+
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519KeypairOnDisk(
       KeyTypeId key_type) {
-    auto kp = ed_suite_->generateRandomKeypair();
+    OUTCOME_TRY(kp, ed_suite_->generateRandomKeypair());
     getCache(ed_suite_, ed_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
@@ -92,12 +121,33 @@ namespace kagome::crypto {
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519KeypairOnDisk(
       KeyTypeId key_type) {
-    auto kp = sr_suite_->generateRandomKeypair();
+    OUTCOME_TRY(kp, sr_suite_->generateRandomKeypair());
     getCache(sr_suite_, sr_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
         file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
     return kp;
+  }
+
+  outcome::result<EcdsaKeypair> CryptoStoreImpl::findEcdsaKeypair(
+      KeyTypeId key_type, const EcdsaPublicKey &pk) const {
+    auto kp_opt =
+        getCache(ecdsa_suite_, ecdsa_caches_, key_type).searchKeypair(pk);
+    if (kp_opt) {
+      return kp_opt.value();
+    }
+    OUTCOME_TRY(seed_bytes,
+                file_storage_->searchForSeed(key_type, gsl::make_span(pk)));
+    if (not seed_bytes) {
+      return CryptoStoreError::KEY_NOT_FOUND;
+    }
+    EcdsaSeed seed;
+    auto bytes = seed_bytes.value();
+    if (seed.size() != bytes.size()) {
+      return CryptoStoreError::WRONG_SEED_SIZE;
+    }
+    std::copy(bytes.begin(), bytes.end(), seed.begin());
+    return ecdsa_suite_->generateKeypair(seed);
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::findEd25519Keypair(
@@ -130,6 +180,13 @@ namespace kagome::crypto {
     return sr_suite_->generateKeypair(seed);
   }
 
+  outcome::result<CryptoStoreImpl::EcdsaKeys>
+  CryptoStoreImpl::getEcdsaPublicKeys(KeyTypeId key_type) const {
+    return getPublicKeys(key_type,
+                         getCache(ecdsa_suite_, ecdsa_caches_, key_type),
+                         *ecdsa_suite_);
+  }
+
   outcome::result<CryptoStoreImpl::Ed25519Keys>
   CryptoStoreImpl::getEd25519PublicKeys(KeyTypeId key_type) const {
     return getPublicKeys(
@@ -160,7 +217,7 @@ namespace kagome::crypto {
     auto lookup_res = file_storage_->loadFileContent(key_path);
     if (lookup_res.has_error()
         and lookup_res.error() == KeyFileStorage::Error::FILE_DOESNT_EXIST) {
-      auto kp = ed_suite_->generateRandomKeypair();
+      OUTCOME_TRY(kp, ed_suite_->generateRandomKeypair());
       getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P)
           .insert(kp.public_key, kp.secret_key);
       OUTCOME_TRY(file_storage_->saveKeyHexAtPath(kp.secret_key, key_path));
@@ -173,25 +230,25 @@ namespace kagome::crypto {
     const auto &contents = lookup_res.value();
     BOOST_ASSERT(ED25519_SEED_LENGTH == contents.size()
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
-    std::optional<Ed25519Keypair> kp;
+    kagome::common::Hash256 seed;
     if (ED25519_SEED_LENGTH == contents.size()) {
       OUTCOME_TRY(
-          seed,
+          _seed,
           Ed25519Seed::fromSpan(gsl::span(
               reinterpret_cast<const uint8_t *>(contents.data()),  // NOLINT
               ED25519_SEED_LENGTH)));
-      kp = ed_suite_->generateKeypair(seed);
+      seed = _seed;
     } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
-      OUTCOME_TRY(seed, Ed25519Seed::fromHexWithPrefix(contents));
-      kp = ed_suite_->generateKeypair(seed);
-    }
-
-    if (std::nullopt == kp) {
+      OUTCOME_TRY(_seed, Ed25519Seed::fromHexWithPrefix(contents));
+      seed = _seed;
+    } else {
       return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
     }
+    OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed));
+
     getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P)
-        .insert(kp.value().public_key, kp.value().secret_key);
-    return ed25519KeyToLibp2pKeypair(kp.value());
+        .insert(kp.public_key, kp.secret_key);
+    return ed25519KeyToLibp2pKeypair(kp);
   }
 
   libp2p::crypto::KeyPair CryptoStoreImpl::ed25519KeyToLibp2pKeypair(
