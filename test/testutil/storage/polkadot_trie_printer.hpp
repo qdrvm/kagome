@@ -11,10 +11,6 @@
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
-/**
- * IMPORTANT: This module is meant only for test usage and is not exception-safe
- */
-
 namespace kagome::storage::trie {
 
   namespace printer_internal {
@@ -78,12 +74,13 @@ namespace kagome::storage::trie {
           }
         }
         stream_ << "\n";
-        //printEncAndHash(node, nest_level);
+        // printEncAndHash(node, nest_level);
         for (size_t i = 0; i < branch->children.size(); i++) {
           auto child = branch->children.at(i);
           if (child) {
-            if (not child->isDummy()) {
-              printNode(child, trie, nest_level + 1);
+            if (auto child_node = std::dynamic_pointer_cast<TrieNode>(child);
+                child_node != nullptr) {
+              printNode(child_node, trie, nest_level + 1);
             } else {
               auto fetched_child = trie.retrieveChild(*branch, i).value();
               printNode(fetched_child, trie, nest_level + 1);

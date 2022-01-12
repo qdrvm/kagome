@@ -367,16 +367,18 @@ class DeleteTest : public testing::Test,
 
 size_t size(const PolkadotTrie::NodePtr &node) {
   size_t count = 0;
-  if (node) {
-    if (node->isBranch()) {
-      auto branch =
-          std::dynamic_pointer_cast<kagome::storage::trie::BranchNode>(node);
-      for (const auto &child : branch->children) {
-        count += size(child);
+  BOOST_ASSERT(node != nullptr);
+  if (node->isBranch()) {
+    auto branch =
+        std::dynamic_pointer_cast<kagome::storage::trie::BranchNode>(node);
+    for (const auto &child : branch->children) {
+      if (child != nullptr) {
+        auto child_node = std::dynamic_pointer_cast<TrieNode>(child);
+        count += size(child_node);
       }
     }
-    ++count;
   }
+  ++count;
   return count;
 }
 

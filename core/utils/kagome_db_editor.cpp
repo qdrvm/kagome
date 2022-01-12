@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
 
     RootHash finalized_hash;
     auto block_hash_res =
-        check(storage->get(storage::kLastFinalizedBlockHashLookupKey));
+        check(storage->load(storage::kLastFinalizedBlockHashLookupKey));
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
     auto block_storage_res =
         check(blockchain::KeyValueBlockStorage::loadExisting(
