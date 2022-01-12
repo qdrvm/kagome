@@ -343,6 +343,58 @@ namespace kagome::host_api {
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
 
+    /**
+     * @see Extension::ext_crypto_ecdsa_public_keys
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_crypto_ecdsa_public_keys_version_1(runtime::WasmSize key_type) = 0;
+
+    /**
+     * @see Extension::ext_crypto_ecdsa_sign
+     */
+    [[nodiscard]] virtual runtime::WasmSpan ext_crypto_ecdsa_sign_version_1(
+        runtime::WasmSize key_type,
+        runtime::WasmPointer key,
+        runtime::WasmSpan msg_data) = 0;
+
+    /**
+     * @brief Generates an ecdsa key for the given key type using an optional
+     * BIP-39 seed and stores it in the keystore. Warning: Panics if the key
+     * cannot be generated, such as when an invalid key type or invalid seed was
+     * provided.
+     * @param key_type_id a 32-bit pointer to the key identifier
+     * @param seed a pointer-size indicating the SCALE encoded Option containing
+     * the BIP-39 seed which must be valid UTF8.
+     * @return a 32-bit pointer to the buffer containing the 33-byte compressed
+     * public key
+     */
+    [[nodiscard]] virtual runtime::WasmPointer
+    ext_crypto_ecdsa_generate_version_1(runtime::WasmSize key_type,
+                                        runtime::WasmSpan seed) = 0;
+
+    /**
+     * @brief Verifies an ecdsa signature. Returns true when the verification is
+     * either successful or batched. If no batching verification extension is
+     * registered, this function will fully verify the signature and return the
+     * result. If batching verification is registered, this function will push
+     * the data to the batch and return immediately. The caller can then get the
+     * result by calling ext_crypto_finish_batch_verify. The verification
+     * extension is explained more in detail in ext_crypto_start_batch_verify
+     * @param sig a 32-bit pointer to the buffer containing the 65-byte
+     * signature. The signature is 65- bytes in size, where the first 512-bits
+     * represent the signature and the other 8 bits represent the recovery ID.
+     * @param msg a pointer-size as defined in Definition D.3 indicating the
+     * message that is to be verified.
+     * @param key a 32-bit pointer to the buffer containing the 33-byte
+     * compressed public key.
+     * @return a boolean equal to true if the signature is valid, false if
+     * otherwise.
+     */
+    [[nodiscard]] virtual int32_t ext_crypto_ecdsa_verify_version_1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) = 0;
+
     // ---------------------------- Misc extensions ----------------------------
 
     [[nodiscard]] virtual runtime::WasmSpan ext_misc_runtime_version_version_1(
@@ -488,8 +540,7 @@ namespace kagome::host_api {
      * value.
      */
     virtual runtime::WasmSpan ext_default_child_storage_get_version_1(
-        runtime::WasmSpan child_storage_key,
-        runtime::WasmSpan key) const = 0;
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
 
     /**
      * @brief Clears the storage of the given key and its value from the child
@@ -510,16 +561,65 @@ namespace kagome::host_api {
      * Returns None if the entry cannot be found.
      */
     virtual runtime::WasmSpan ext_default_child_storage_next_key_version_1(
-        runtime::WasmSpan child_storage_key,
-        runtime::WasmSpan key) const = 0;
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
 
     /**
-     * @brief Commits all existing operations and computes the resulting child storage root.
+     * @brief Commits all existing operations and computes the resulting child
+     * storage root.
      * @param child_storage_key a pointer-size indicating the child storage key
      * @return a pointer-size indicating the SCALE encoded storage root.
      */
     virtual runtime::WasmSpan ext_default_child_storage_root_version_1(
         runtime::WasmSpan child_storage_key) const = 0;
+
+    /**
+     * @brief Clears the child storage of each key/value pair where the key
+     * starts with the given prefix.
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param prefix a pointer-size indicating the prefix
+     */
+    virtual void ext_default_child_storage_clear_prefix_version_1(
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix) = 0;
+
+    /**
+     * @brief Gets the given key from storage, placing the value into a buffer
+     * and returning the number of bytes that the entry in storage has beyond
+     * the offset.
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param key a pointer-size as defined in Definition D.3 indicating the
+     * key.
+     * @param value_out a pointer-size as defined in Definition D.3 indicating
+     * the buffer to which the value will be written to. This function will
+     * never write more then the length of the buffer, even if the value's
+     * length is bigger.
+     * @param offset an i32 integer containing the offset beyond the value
+     * should be read from.
+     * @return a pointer-size indicating the SCALE encoded Option containing the
+     * number of bytes written into the value_out buffer. Returns None if the
+     * entry does not exists.
+     */
+    virtual runtime::WasmSpan ext_default_child_storage_read_version_1(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan key,
+        runtime::WasmSpan value_out,
+        runtime::WasmOffset offset) const = 0;
+
+    /**
+     * @brief Checks whether the given key exists in the child storage.
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param key a pointer-size indicating the key.
+     * @return a boolean equal to true if the key does exist, false if
+     * otherwise.
+     */
+    virtual uint32_t ext_default_child_storage_exists_version_1(
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
+
+    /**
+     * @brief Clears an entire child storage
+     * @param child_storage_key a pointer-size indicating the child storage key
+     */
+    virtual void ext_default_child_storage_storage_kill_version_1(
+        runtime::WasmSpan child_storage_key) = 0;
   };
 }  // namespace kagome::host_api
 

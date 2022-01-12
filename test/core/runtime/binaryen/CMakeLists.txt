@@ -2,6 +2,7 @@ add_library(binaryen_runtime_test INTERFACE)
 target_link_libraries(binaryen_runtime_test INTERFACE
     key_file_storage
     sr25519_provider
+    ecdsa_provider
     ed25519_provider
     pbkdf2_provider
     bip39_provider

@@ -14,6 +14,7 @@
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -68,6 +69,7 @@ class RuntimeTestBase : public ::testing::Test {
     auto random_generator = std::make_shared<crypto::BoostRandomGenerator>();
     auto sr25519_provider =
         std::make_shared<crypto::Sr25519ProviderImpl>(random_generator);
+    auto ecdsa_provider = std::make_shared<crypto::EcdsaProviderImpl>();
     auto ed25519_provider =
         std::make_shared<crypto::Ed25519ProviderImpl>(random_generator);
     auto secp256k1_provider = std::make_shared<crypto::Secp256k1ProviderImpl>();
@@ -79,6 +81,7 @@ class RuntimeTestBase : public ::testing::Test {
         boost::filesystem::temp_directory_path()
         / boost::filesystem::unique_path("kagome_keystore_test_dir");
     auto crypto_store = std::make_shared<crypto::CryptoStoreImpl>(
+        std::make_shared<crypto::EcdsaSuite>(ecdsa_provider),
         std::make_shared<crypto::Ed25519Suite>(ed25519_provider),
         std::make_shared<crypto::Sr25519Suite>(sr25519_provider),
         bip39_provider,
@@ -92,6 +95,7 @@ class RuntimeTestBase : public ::testing::Test {
         kagome::host_api::OffchainExtensionConfig{},
         changes_tracker_,
         sr25519_provider,
+        ecdsa_provider,
         ed25519_provider,
         secp256k1_provider,
         hasher_,

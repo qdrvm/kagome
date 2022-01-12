@@ -115,9 +115,9 @@ Example:
   std::cout << help;
 };
 
-std::unique_ptr<PersistentTrieBatch> persistent_batch(
+outcome::result<std::unique_ptr<PersistentTrieBatch>> persistent_batch(
     const std::unique_ptr<TrieStorageImpl> &trie, const RootHash &hash) {
-  auto batch = trie->getPersistentBatchAt(hash).value();
+  OUTCOME_TRY(batch, trie->getPersistentBatchAt(hash));
   auto cursor = batch->trieCursor();
   auto res = check(cursor->next());
   int count = 0;
@@ -130,7 +130,32 @@ std::unique_ptr<PersistentTrieBatch> persistent_batch(
     }
   }
   log->trace("{} keys were processed at the state.", ++count);
-  return batch;
+  return std::move(batch);
+}
+
+void child_storage_root_hashes(
+    const std::unique_ptr<PersistentTrieBatch> &batch,
+    std::set<RootHash> &hashes) {
+  auto log = log::createLogger("main", "kagome-db-editor");
+
+  const auto &child_prefix = storage::kChildStorageDefaultPrefix;
+  auto cursor = batch->trieCursor();
+  auto res = cursor->seekUpperBound(child_prefix);
+  if (res.has_value()) {
+    auto key = cursor->key();
+    while (key.has_value() && key.value().size() >= child_prefix.size()
+           && key.value().subbuffer(0, child_prefix.size()) == child_prefix) {
+      if (auto value_res = batch->tryGet(key.value());
+          value_res.has_value() && value_res.value().has_value()) {
+        log->trace("Found child root hash {}",
+                   value_res.value().value().toHex());
+        hashes.insert(
+            common::Hash256::fromSpan(value_res.value().value()).value());
+      }
+      res = cursor->next();
+      key = cursor->key();
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -247,8 +272,25 @@ int main(int argc, char *argv[]) {
             .value();
 
     if (COMPACT == cmd) {
-      auto batch = persistent_batch(trie, hash);
-      auto finalized_batch = persistent_batch(trie, finalized_hash);
+      auto batch = check(persistent_batch(trie, hash)).value();
+      auto finalized_batch =
+          check(persistent_batch(trie, finalized_hash)).value();
+
+      std::vector<std::unique_ptr<PersistentTrieBatch>> child_batches;
+      {
+        std::set<RootHash> child_root_hashes;
+        child_storage_root_hashes(batch, child_root_hashes);
+        child_storage_root_hashes(finalized_batch, child_root_hashes);
+        for (const auto &child_root_hash : child_root_hashes) {
+          auto child_batch_res = persistent_batch(trie, child_root_hash);
+          if (child_batch_res.has_value()) {
+            child_batches.emplace_back(std::move(child_batch_res.value()));
+          } else {
+            log->error("Child batch 0x{} not found in the storage",
+                       child_root_hash.toHex());
+          }
+        }
+      }
 
       auto db_cursor = storage->cursor();
       auto db_batch = storage->batch();
@@ -279,8 +321,12 @@ int main(int argc, char *argv[]) {
         TicToc t3("Commit state.", log);
         auto res3 = check(finalized_batch->commit());
         log->trace("{}", res3.value().toHex());
-        res3 = batch->commit();
+        res3 = check(batch->commit());
         log->trace("{}", res3.value().toHex());
+        for (const auto &child_batch : child_batches) {
+          res3 = check(child_batch->commit());
+          log->trace("{}", res3.value().toHex());
+        }
       }
 
       {

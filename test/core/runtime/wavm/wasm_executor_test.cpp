@@ -9,6 +9,7 @@
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -49,6 +50,8 @@ using kagome::common::Buffer;
 using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CryptoStoreImpl;
+using kagome::crypto::EcdsaProviderImpl;
+using kagome::crypto::EcdsaSuite;
 using kagome::crypto::Ed25519ProviderImpl;
 using kagome::crypto::Ed25519Suite;
 using kagome::crypto::HasherImpl;
@@ -102,9 +105,11 @@ class WasmExecutorTest : public ::testing::Test {
             trie_factory, codec, serializer, std::nullopt)
             .value();
 
-    storage_provider_ = std::make_shared<TrieStorageProviderImpl>(trie_db, serializer);
+    storage_provider_ =
+        std::make_shared<TrieStorageProviderImpl>(trie_db, serializer);
 
     auto random_generator = std::make_shared<BoostRandomGenerator>();
+    auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>();
     auto sr25519_provider =
         std::make_shared<Sr25519ProviderImpl>(random_generator);
     auto ed25519_provider =
@@ -117,6 +122,7 @@ class WasmExecutorTest : public ::testing::Test {
     auto keystore_path =
         boost::filesystem::temp_directory_path() / "kagome_keystore_test_dir";
     auto crypto_store = std::make_shared<CryptoStoreImpl>(
+        std::make_shared<EcdsaSuite>(ecdsa_provider),
         std::make_shared<Ed25519Suite>(ed25519_provider),
         std::make_shared<Sr25519Suite>(sr25519_provider),
         bip39_provider,
@@ -130,6 +136,7 @@ class WasmExecutorTest : public ::testing::Test {
             kagome::host_api::OffchainExtensionConfig{},
             std::make_shared<ChangesTrackerMock>(),
             sr25519_provider,
+            ecdsa_provider,
             ed25519_provider,
             secp256k1_provider,
             hasher,

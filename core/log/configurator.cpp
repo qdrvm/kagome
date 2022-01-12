@@ -44,6 +44,7 @@ groups:
               - name: bip39
               - name: crypto_store
               - name: ed25519
+              - name: ecdsa
           - name: consensus
             children:
               - name: babe
@@ -75,6 +76,7 @@ groups:
               - name: kagome_protocols
                 children:
                   - name: sync_protocol
+                  - name: grandpa_protocol
           - name: changes_trie
           - name: storage
             children:

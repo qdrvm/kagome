@@ -69,8 +69,7 @@ class SynchronizerTest : public testing::Test {
  */
 TEST_F(SynchronizerTest, ProcessRequest) {
   // GIVEN
-  BlocksRequest received_request{1,
-                                 BlocksRequest::kBasicAttributes,
+  BlocksRequest received_request{BlocksRequest::kBasicAttributes,
                                  block3_hash_,
                                  std::nullopt,
                                  Direction::ASCENDING,
@@ -102,8 +101,6 @@ TEST_F(SynchronizerTest, ProcessRequest) {
       response, sync_protocol_observer_->onBlocksRequest(received_request));
 
   // THEN
-  ASSERT_EQ(response.id, received_request.id);
-
   const auto &received_blocks = response.blocks;
   ASSERT_EQ(received_blocks.size(), 2);
 
