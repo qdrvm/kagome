@@ -128,7 +128,7 @@ namespace kagome::runtime {
             sizeof(uint64_t),
             heappages.size());
       } else {
-        uint64_t pages = common::bytes_to_uint64_t(heappages.asVector());
+        uint64_t pages = common::le_bytes_to_uint64(heappages.asVector());
         env.memory_provider->getCurrentMemory()->get().resize(
             pages * kMemoryPageSize);
         parent_factory->logger_->trace(

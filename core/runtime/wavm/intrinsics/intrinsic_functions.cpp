@@ -163,6 +163,37 @@ namespace kagome::runtime::wavm {
         sig_data, msg, pubkey_data);
   }
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_crypto_ecdsa_generate_version_1,
+                                 WAVM::I32 key_type,
+                                 WAVM::I64 seed) {
+    return peekHostApi()->ext_crypto_ecdsa_generate_version_1(key_type, seed);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_crypto_ecdsa_public_keys_version_1,
+                                 WAVM::I32 key_type) {
+    return peekHostApi()->ext_crypto_ecdsa_public_keys_version_1(key_type);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_crypto_ecdsa_sign_version_1,
+                                 WAVM::I32 key_type,
+                                 WAVM::I32 key,
+                                 WAVM::I64 msg_data) {
+    return peekHostApi()->ext_crypto_ecdsa_sign_version_1(
+        key_type, key, msg_data);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_crypto_ecdsa_verify_version_1,
+                                 WAVM::I32 sig_data,
+                                 WAVM::I64 msg,
+                                 WAVM::I32 pubkey_data) {
+    return peekHostApi()->ext_crypto_ecdsa_verify_version_1(
+        sig_data, msg, pubkey_data);
+  }
+
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
                                  ext_crypto_start_batch_verify_version_1) {
     return peekHostApi()->ext_crypto_start_batch_verify_version_1();
@@ -198,7 +229,7 @@ namespace kagome::runtime::wavm {
                                  WAVM::I64 values_data) {
     return peekHostApi()->ext_misc_runtime_version_version_1(values_data);
   }
-  
+
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
                                  ext_default_child_storage_clear_version_1,
                                  WAVM::I64 child_storage_key,
@@ -207,18 +238,23 @@ namespace kagome::runtime::wavm {
         child_storage_key, key);
   }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
-                                      ext_default_child_storage_read_version_1,
-                                      WAVM::I64,
-                                      WAVM::I64,
-                                      WAVM::I64,
-                                      WAVM::I32)
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_default_child_storage_read_version_1,
+                                 WAVM::I64 child_storage_key,
+                                 WAVM::I64 key,
+                                 WAVM::I64 value_out,
+                                 WAVM::I32 offset) {
+    return peekHostApi()->ext_default_child_storage_read_version_1(
+        child_storage_key, key, value_out, offset);
+  }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      WAVM::I32,
-      ext_default_child_storage_exists_version_1,
-      WAVM::I64,
-      WAVM::I64)
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_default_child_storage_exists_version_1,
+                                 WAVM::I64 child_storage_key,
+                                 WAVM::I64 key) {
+    return peekHostApi()->ext_default_child_storage_exists_version_1(
+        child_storage_key, key);
+  }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
                                  ext_default_child_storage_get_version_1,
@@ -236,15 +272,21 @@ namespace kagome::runtime::wavm {
         child_storage_key, key);
   }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
       void,
       ext_default_child_storage_clear_prefix_version_1,
-      WAVM::I64,
-      WAVM::I64)
+      WAVM::I64 child_storage_key,
+      WAVM::I64 prefix) {
+    return peekHostApi()->ext_default_child_storage_clear_prefix_version_1(
+        child_storage_key, prefix);
+  }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
-                                      ext_default_child_storage_root_version_1,
-                                      WAVM::I64)
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_default_child_storage_root_version_1,
+                                 WAVM::I64 child_storage_key) {
+    return peekHostApi()->ext_default_child_storage_root_version_1(
+        child_storage_key);
+  }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
                                  ext_default_child_storage_set_version_1,
@@ -255,8 +297,13 @@ namespace kagome::runtime::wavm {
         child_storage_key, key, value);
   }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      void, ext_default_child_storage_storage_kill_version_1, WAVM::I64)
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
+      void,
+      ext_default_child_storage_storage_kill_version_1,
+      WAVM::I64 child_storage_key) {
+    return peekHostApi()->ext_default_child_storage_storage_kill_version_1(
+        child_storage_key);
+  }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
                                  ext_hashing_blake2_128_version_1,
@@ -623,6 +670,10 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_generate_version_1, I32, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_verify_version_1, I32, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_verify_version_2, I32, I64, I32)
+    REGISTER_HOST_INTRINSIC(I64, ext_crypto_ecdsa_public_keys_version_1, I32)
+    REGISTER_HOST_INTRINSIC(I64, ext_crypto_ecdsa_sign_version_1, I32, I32, I64)
+    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_generate_version_1, I32, I64)
+    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_verify_version_1, I32, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_default_child_storage_exists_version_1, I64, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_hashing_blake2_128_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_hashing_blake2_256_version_1, I64)

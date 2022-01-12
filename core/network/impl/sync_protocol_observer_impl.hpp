@@ -46,7 +46,9 @@ namespace kagome::network {
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
-    mutable std::unordered_set<primitives::BlocksRequestId> requested_ids_;
+
+    mutable std::unordered_set<BlocksRequest::Fingerprint> requested_ids_;
+
     log::Logger log_;
   };
 

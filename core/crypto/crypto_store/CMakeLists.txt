@@ -29,6 +29,7 @@ add_library(crypto_store
 
 target_link_libraries(crypto_store
     key_file_storage
+    ecdsa_provider
     ed25519_provider
     sr25519_provider
     p2p::p2p_random_generator # generator from libp2p

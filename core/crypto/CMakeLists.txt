@@ -55,6 +55,16 @@ target_link_libraries(sr25519_provider
     )
 kagome_install(sr25519_provider)
 
+add_library(ecdsa_provider
+    ecdsa/ecdsa_provider_impl.cpp
+    ecdsa_types.cpp
+    )
+target_link_libraries(ecdsa_provider
+    logger
+    p2p::p2p_ecdsa_provider
+    )
+kagome_install(ecdsa_provider)
+
 add_library(ed25519_provider
     ed25519/ed25519_provider_impl.cpp
     )

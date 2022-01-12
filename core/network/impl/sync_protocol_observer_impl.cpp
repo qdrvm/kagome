@@ -37,17 +37,18 @@ namespace kagome::network {
   outcome::result<network::BlocksResponse>
   SyncProtocolObserverImpl::onBlocksRequest(
       const BlocksRequest &request) const {
-    if (!requested_ids_.emplace(request.id).second) {
+    auto request_id = request.fingerprint();
+    if (!requested_ids_.emplace(request_id).second) {
       return Error::DUPLICATE_REQUEST_ID;
     }
 
-    BlocksResponse response{request.id};
+    BlocksResponse response;
 
     // firstly, check if we have both "from" & "to" blocks (if set)
     auto from_hash_res = blocks_headers_->getHashById(request.from);
     if (not from_hash_res.has_value()) {
       log_->warn("cannot find a requested block with id {}", request.from);
-      requested_ids_.erase(request.id);
+      requested_ids_.erase(request_id);
       return response;
     }
     auto &from_hash = from_hash_res.value();
@@ -57,7 +58,7 @@ namespace kagome::network {
     if (not chain_hash_res.has_value()) {
       log_->warn("cannot retrieve a chain of blocks: {}",
                  chain_hash_res.error().message());
-      requested_ids_.erase(request.id);
+      requested_ids_.erase(request_id);
       return response;
     }
     auto &chain_hash = chain_hash_res.value();
@@ -65,19 +66,19 @@ namespace kagome::network {
     // thirdly, fill the resulting response with data, which we were asked for
     fillBlocksResponse(request, response, chain_hash);
     if (response.blocks.empty()) {
-      SL_DEBUG(log_, "Return response id={}: no blocks", response.id);
+      SL_DEBUG(log_, "Return response id={}: no blocks", request_id);
     } else if (response.blocks.size() == 1) {
       SL_DEBUG(
           log_,
           "Return response id={}: {}, count 1",
-          response.id,
+          request_id,
           primitives::BlockInfo(response.blocks.front().header.value().number,
                                 response.blocks.front().hash));
     } else {
       SL_DEBUG(
           log_,
           "Return response id={}: from {} to {}, count {}",
-          response.id,
+          request_id,
           primitives::BlockInfo(response.blocks.front().header.value().number,
                                 response.blocks.front().hash),
           primitives::BlockInfo(response.blocks.back().header.value().number,
@@ -85,7 +86,7 @@ namespace kagome::network {
           response.blocks.size());
     }
 
-    requested_ids_.erase(request.id);
+    requested_ids_.erase(request_id);
     return response;
   }
 

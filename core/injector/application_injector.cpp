@@ -20,8 +20,8 @@
 #include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
 #include "api/service/chain/impl/chain_api_impl.hpp"
-#include "api/service/child_state/impl/child_state_api_impl.hpp"
 #include "api/service/child_state/child_state_jrpc_processor.hpp"
+#include "api/service/child_state/impl/child_state_api_impl.hpp"
 #include "api/service/impl/api_service_impl.hpp"
 #include "api/service/payment/impl/payment_api_impl.hpp"
 #include "api/service/payment/payment_jrpc_processor.hpp"
@@ -63,6 +63,7 @@
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -1053,7 +1054,8 @@ namespace {
               injector.template create<sptr<storage::trie::TrieStorage>>();
           const auto &grandpa_api =
               injector.template create<sptr<runtime::GrandpaApi>>();
-          return get_block_storage(root_hash, hasher, db, trie_storage, grandpa_api);
+          return get_block_storage(
+              root_hash, hasher, db, trie_storage, grandpa_api);
         }),
         di::bind<blockchain::BlockTree>.to(
             [](auto const &injector) { return get_block_tree(injector); }),
@@ -1077,6 +1079,7 @@ namespace {
         di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
+        di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),

@@ -134,6 +134,8 @@ namespace kagome::network {
    private:
     static constexpr uint8_t mask_ = 0b00011111;
     uint8_t attributes = 0;
+
+    friend class std::hash<BlockAttributes>;
   };
 
   inline constexpr BlockAttributes operator|(const BlockAttribute &lhs,
@@ -183,5 +185,12 @@ namespace kagome::network {
   }
 
 }  // namespace kagome::network
+
+template <>
+struct std::hash<kagome::network::BlockAttributes> {
+  auto operator()(const kagome::network::BlockAttributes &attr) const {
+    return std::hash<uint8_t>()(attr.attributes);
+  }
+};
 
 #endif  // KAGOME_CORE_NETWORK_TYPES_BLOCK_ATTRIBUTES_HPP
