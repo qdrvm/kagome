@@ -58,8 +58,9 @@ namespace kagome::host_api {
     storage_provider_->clearChildBatches();
     if constexpr (!std::is_void_v<R>) {
       return result;
+    } else {
+      return outcome::success();
     }
-    return outcome::success();
   }
 
   template <typename... Args>
@@ -261,14 +262,15 @@ namespace kagome::host_api {
         loadBuffer(memory, child_storage_key, key);
     auto [value_ptr, value_size] = runtime::PtrSize(value_out);
 
-    auto read = executeOnChildStorage<common::Buffer>(
+    auto read = executeOnChildStorage<common::BufferConstRef>(
         child_key_buffer,
         [](auto &child_batch, auto &key) { return child_batch->get(key); },
         key_buffer);
     std::optional<uint32_t> res{std::nullopt};
     if (read) {
       auto data = read.value();
-      auto offset_data = data.subbuffer(std::min<size_t>(offset, data.size()));
+      auto offset_data =
+          data.get().subbuffer(std::min<size_t>(offset, data.get().size()));
       auto written = std::min<size_t>(offset_data.size(), value_size);
       memory.storeBuffer(value_ptr,
                          gsl::make_span(offset_data).subspan(0, written));
@@ -277,7 +279,7 @@ namespace kagome::host_api {
                          key_buffer,
                          common::Buffer{offset_data.subbuffer(0, written)});
       res = offset_data.size();
-    } else if (read.error() == TrieError::NO_VALUE){
+    } else if (read.error() == TrieError::NO_VALUE) {
       logger_->info(
           "ext_default_child_storage_clear_prefix_version_1 returned no value "
           "reason: {}",
@@ -322,8 +324,7 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);
 
     auto result = executeOnChildStorage<std::tuple<bool, uint32_t>>(
-        child_key_buffer,
-        [](auto &child_batch) {
+        child_key_buffer, [](auto &child_batch) {
           return child_batch->clearPrefix(common::Buffer{}, std::nullopt);
         });
 
