@@ -36,8 +36,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
         std::shared_ptr<VoteTracker> prevotes,
         std::shared_ptr<VoteTracker> precommits,
-        std::shared_ptr<VoteGraph> prevote_graph,
-        std::shared_ptr<VoteGraph> precommit_graph,
+        std::shared_ptr<VoteGraph> vote_graph,
         std::shared_ptr<Clock> clock,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
@@ -54,8 +53,7 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
-        const std::shared_ptr<VoteGraph> &prevote_graph,
-        const std::shared_ptr<VoteGraph> &precommit_graph,
+        const std::shared_ptr<VoteGraph> &vote_graph,
         const std::shared_ptr<Clock> &clock,
         const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const MovableRoundState &round_state);
@@ -68,8 +66,7 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
-        const std::shared_ptr<VoteGraph> &prevote_graph,
-        const std::shared_ptr<VoteGraph> &precommit_graph,
+        const std::shared_ptr<VoteGraph> &vote_graph,
         const std::shared_ptr<Clock> &clock,
         const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const std::shared_ptr<VotingRound> &previous_round);
@@ -198,7 +195,6 @@ namespace kagome::consensus::grandpa {
       return last_finalized_block_;
     }
     BlockInfo bestPrevoteCandidate() override;
-    BlockInfo bestPrecommitCandidate() override;
     BlockInfo bestFinalCandidate() override;
     std::optional<BlockInfo> finalizedBlock() const override {
       return finalized_;
@@ -216,21 +212,17 @@ namespace kagome::consensus::grandpa {
 
     /**
      * Invoked during each onSingedPrevote.
-     * Updates current round's prevote ghost. New prevote-ghost is the highest
+     * Updates current round's grandpa ghost. New grandpa-ghost is the highest
      * block with supermajority of prevotes
      * @return true if prevote ghost was updated
      */
-    bool updatePrevoteGhost();
+    bool updateGrandpaGhost();
 
     /**
-     * Invoked during each onSingedPrevote.
-     * Updates current round's prevote ghost. New prevote-ghost is the highest
-     * block with supermajority of prevotes
-     * @return true if precommit ghost was updated
+     * Invoked during each onSingedPrecommit.
+     * @return true if estimate was updated
      */
-    bool updatePrecommitGhost();
-
-    bool updateCompletable();
+    bool updateEstimate();
 
     /// prepare prevote justification of \param estimate over the provided
     /// \param votes
@@ -260,8 +252,8 @@ namespace kagome::consensus::grandpa {
 
     const Duration duration_;  // length of round
     bool isPrimary_ = false;
-    size_t threshold_;            // supermajority threshold
-    const std::optional<Id> id_;  // id of current peer
+    size_t threshold_;                      // supermajority threshold
+    const std::optional<Id> id_;            // id of current peer
     std::chrono::milliseconds start_time_;  // time of start round to play
 
     std::weak_ptr<Grandpa> grandpa_;
@@ -269,8 +261,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<const primitives::AuthorityList> authorities_;
     std::shared_ptr<Environment> env_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
-    std::shared_ptr<VoteGraph> prevote_graph_;
-    std::shared_ptr<VoteGraph> precommit_graph_;
+    std::shared_ptr<VoteGraph> graph_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
@@ -307,10 +298,7 @@ namespace kagome::consensus::grandpa {
     // supermajority Is't also the best prevote candidate
     std::optional<BlockInfo> prevote_ghost_;
 
-    // Precommit ghost. Updating by each prevote and precommit.
-    // It's deepest descendant of best prevote candidate with precommit
-    // supermajority Is't also the best final candidate
-    std::optional<BlockInfo> precommit_ghost_;
+    std::optional<BlockInfo> estimate_;
 
     std::optional<BlockInfo> best_final_candidate_;
     std::optional<BlockInfo> finalized_;

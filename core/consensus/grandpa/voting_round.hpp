@@ -41,13 +41,6 @@ namespace kagome::consensus::grandpa {
     virtual BlockInfo bestPrevoteCandidate() = 0;
 
     /**
-     * Block what has prevote supermajority.
-     * @see spec: Best-PreVote-Candidate
-     * @see spec: Ghost-Function
-     */
-    virtual BlockInfo bestPrecommitCandidate() = 0;
-
-    /**
      * Block what has precommit supermajority.
      * Should be descendant or equal of Best-PreVote-Candidate
      * @see spec: Best-Final-Candidate

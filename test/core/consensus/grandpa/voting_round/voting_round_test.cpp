@@ -160,9 +160,7 @@ class VotingRoundTest : public testing::Test,
     EXPECT_CALL(*env_, onNeighborMessageSent(_, _, _))
         .WillRepeatedly(Return(outcome::success()));
 
-    prevote_graph_ = std::make_shared<VoteGraphImpl>(base, config.voters, env_);
-    precommit_graph_ =
-        std::make_shared<VoteGraphImpl>(base, config.voters, env_);
+    vote_graph_ = std::make_shared<VoteGraphImpl>(base, config.voters, env_);
 
     scheduler_ = std::make_shared<libp2p::basic::SchedulerMock>();
     EXPECT_CALL(*scheduler_, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
@@ -193,8 +191,7 @@ class VotingRoundTest : public testing::Test,
                                                vote_crypto_provider_,
                                                prevotes_,
                                                precommits_,
-                                               prevote_graph_,
-                                               precommit_graph_,
+                                               vote_graph_,
                                                clock_,
                                                scheduler_,
                                                previous_round_);
@@ -252,8 +249,7 @@ class VotingRoundTest : public testing::Test,
   std::shared_ptr<GrandpaMock> grandpa_;
   std::shared_ptr<AuthorityManagerMock> authority_manager_;
   std::shared_ptr<EnvironmentMock> env_;
-  std::shared_ptr<VoteGraphImpl> prevote_graph_;
-  std::shared_ptr<VoteGraphImpl> precommit_graph_;
+  std::shared_ptr<VoteGraphImpl> vote_graph_;
   std::shared_ptr<Clock> clock_ = std::make_shared<SteadyClockImpl>();
 
   std::shared_ptr<libp2p::basic::SchedulerMock> scheduler_;
