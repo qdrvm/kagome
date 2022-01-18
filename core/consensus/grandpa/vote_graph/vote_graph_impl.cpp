@@ -481,11 +481,12 @@ namespace kagome::consensus::grandpa {
         // Not enough weight, check the parent vote-node.
         const auto &child = children.back();
         const Entry &child_node = entries_.at(child);
-        if (child_node.ancestors.empty()) {
-          return std::nullopt;
+        size_t offset = child_node.number - block.number;
+        if (offset < child_node.ancestors.size()) {
+          block.hash = child_node.ancestors[offset];
+          block.number = child_node.number - offset - 1;
         } else {
-          block.hash = child_node.ancestors.back();
-          block.number = child_node.number - child_node.ancestors.size();
+          return std::nullopt;
         }
       }
     }

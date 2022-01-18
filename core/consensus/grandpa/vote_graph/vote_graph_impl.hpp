@@ -98,7 +98,7 @@ namespace kagome::consensus::grandpa {
     }
 
     // should be mutable, otherwise operator[] is not defined for const map
-    auto &getEntries() {
+    const auto &getEntries() const {
       return entries_;
     }
 

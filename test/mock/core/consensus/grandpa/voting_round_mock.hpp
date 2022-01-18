@@ -26,8 +26,6 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(BlockInfo, bestPrevoteCandidate, (), (override));
 
-    MOCK_METHOD(BlockInfo, bestPrecommitCandidate, (), (override));
-
     MOCK_METHOD(BlockInfo, bestFinalCandidate, (), (override));
 
     MOCK_METHOD(std::optional<BlockInfo>,

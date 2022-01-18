@@ -12,11 +12,11 @@ using kagome::consensus::grandpa::VoteWeight;
 class VoteWeightTest : public testing::Test {
  protected:
   void SetUp() override {
-    testee = std::make_unique<VoteWeight>();
+    testee = std::make_unique<VoteWeight::OneTypeVoteWeight>();
   }
 
   static constexpr VoteWeight::Weight w[] = {1, 10, 100};
-  std::unique_ptr<VoteWeight> testee;
+  std::unique_ptr<VoteWeight::OneTypeVoteWeight> testee;
 };
 
 /**

@@ -11,6 +11,7 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/operators.hpp>
 #include "consensus/grandpa/structs.hpp"
+#include "consensus/grandpa/vote_types.hpp"
 #include "consensus/grandpa/voter_set.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -24,8 +25,7 @@ namespace kagome::consensus::grandpa {
    public:
     using Weight = size_t;
 
-   private:
-    struct ForType {
+    struct OneTypeVoteWeight {
       std::vector<bool> flags;
       Weight sum = 0;
 
@@ -67,7 +67,7 @@ namespace kagome::consensus::grandpa {
         return result;
       }
 
-      void merge(const ForType &other,
+      void merge(const OneTypeVoteWeight &other,
                  const std::shared_ptr<VoterSet> &voter_set) {
         for (auto i = other.flags.size(); i > 0;) {
           --i;
@@ -77,15 +77,11 @@ namespace kagome::consensus::grandpa {
         }
       }
 
-      bool operator==(const ForType &other) const {
+      bool operator==(const OneTypeVoteWeight &other) const {
         return sum == other.sum and flags == other.flags;
       }
     };
 
-    ForType pv;
-    ForType pc;
-
-   public:
     inline Weight sum(VoteType vote_type) const {
       switch (vote_type) {
         case VoteType::Prevote:
@@ -137,6 +133,10 @@ namespace kagome::consensus::grandpa {
     bool operator==(const VoteWeight &other) const {
       return pv == other.pv and pc == other.pc;
     }
+
+   private:
+    OneTypeVoteWeight pv;
+    OneTypeVoteWeight pc;
   };
 
 }  // namespace kagome::consensus::grandpa

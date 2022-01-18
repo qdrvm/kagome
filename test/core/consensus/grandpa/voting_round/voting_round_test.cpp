@@ -171,8 +171,6 @@ class VotingRoundTest : public testing::Test,
         .WillByDefault(Return(BlockInfo{0, "genesis"_H}));
     ON_CALL(*previous_round_, bestPrevoteCandidate())
         .WillByDefault(Return(BlockInfo{2, "B"_H}));
-    ON_CALL(*previous_round_, bestPrecommitCandidate())
-        .WillByDefault(Return(BlockInfo{3, "C"_H}));
     EXPECT_CALL(*previous_round_, bestFinalCandidate())
         .Times(AnyNumber())
         .WillRepeatedly(Return(BlockInfo{3, "C"_H}));
@@ -306,28 +304,23 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   round_->onPrevote(alice_vote, Propagation::NEEDLESS);
   round_->update(true, false);
 
-  // when 2.
   // Bob prevotes
   auto bob_vote = preparePrevote(kBob, kBobSignature, Prevote{9, "ED"_H});
   round_->onPrevote(bob_vote, Propagation::NEEDLESS);
   round_->update(true, false);
 
   // then 1.
-  ASSERT_EQ(round_->bestPrecommitCandidate(), BlockInfo(5, "E"_H));
-
-  // then 2.
   ASSERT_EQ(round_->bestFinalCandidate(), BlockInfo(5, "E"_H));
   ASSERT_FALSE(round_->completable());
 
-  // when 3.
+  // when 2.
   // Eve prevotes
   auto eve_vote = preparePrevote(kEve, kEveSignature, Prevote{6, "F"_H});
 
   round_->onPrevote(eve_vote, Propagation::NEEDLESS);
   round_->update(true, false);
 
-  // then 3.
-  ASSERT_EQ(round_->bestPrecommitCandidate(), BlockInfo(5, "E"_H));
+  // then 2.
   ASSERT_EQ(round_->bestFinalCandidate(), BlockInfo(5, "E"_H));
 }
 
