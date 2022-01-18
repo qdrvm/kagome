@@ -240,4 +240,34 @@ namespace kagome::blockchain {
       metadata_->deepest_leaf = new_node;
     }
   }
+
+  void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
+    auto parent = node->parent.lock();
+    parent->children.erase(std::find_if(
+        parent->children.begin(),
+        parent->children.end(),
+        [hash = node->block_hash](auto a) { return a->block_hash == hash; }));
+
+    metadata_->leaves.erase(node->block_hash);
+    if (parent->children.empty()) {
+      metadata_->leaves.insert(parent->block_hash);
+    }
+    if (metadata_->deepest_leaf.expired()) {
+      std::vector<primitives::BlockInfo> leaf_depths;
+      leaf_depths.reserve(metadata_->leaves.size());
+      std::transform(metadata_->leaves.begin(),
+                     metadata_->leaves.end(),
+                     std::back_inserter(leaf_depths),
+                     [this](const auto &hash) {
+                       auto leaf_node = root_->findByHash(hash);
+                       return primitives::BlockInfo{leaf_node->depth,
+                                                    leaf_node->block_hash};
+                     });
+      std::sort(
+          leaf_depths.begin(),
+          leaf_depths.end(),
+          [](auto const &p1, auto const &p2) { return p1.number > p2.number; });
+      metadata_->deepest_leaf = root_->findByHash(leaf_depths.end()->hash);
+    }
+  }
 }  // namespace kagome::blockchain

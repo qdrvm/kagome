@@ -24,14 +24,14 @@ namespace kagome::blockchain {
    public:
     enum class Error { NO_CHAIN_BETWEEN_BLOCKS = 1 };
 
-    TreeNode(const primitives::BlockHash& hash,
+    TreeNode(const primitives::BlockHash &hash,
              primitives::BlockNumber depth,
              consensus::EpochDigest &&curr_epoch_digest,
              consensus::EpochNumber epoch_number,
              consensus::EpochDigest &&next_epoch_digest,
              bool finalized = false);
 
-    TreeNode(const primitives::BlockHash& hash,
+    TreeNode(const primitives::BlockHash &hash,
              primitives::BlockNumber depth,
              const std::shared_ptr<TreeNode> &parent,
              consensus::EpochNumber epoch_number,
@@ -100,11 +100,11 @@ namespace kagome::blockchain {
    * the operations faster
    */
   struct TreeMeta {
-    explicit TreeMeta(const std::shared_ptr<TreeNode>& subtree_root_node);
+    explicit TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node);
 
     TreeMeta(std::unordered_set<primitives::BlockHash> leaves,
-             const std::shared_ptr<TreeNode>& deepest_leaf,
-             const std::shared_ptr<TreeNode>& last_finalized);
+             const std::shared_ptr<TreeNode> &deepest_leaf,
+             const std::shared_ptr<TreeNode> &last_finalized);
 
     std::unordered_set<primitives::BlockHash> leaves;
     std::weak_ptr<TreeNode> deepest_leaf;
@@ -132,6 +132,14 @@ namespace kagome::blockchain {
     void updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root);
 
     void updateMeta(const std::shared_ptr<TreeNode> &new_node);
+
+    /**
+     * @brief
+     * A reversal of updateMeta - it's called upon block tree branch prunung to
+     * remove pruned block from leaves list, update deepest node wptr etc.
+     * @param node Removed node
+     */
+    void removeFromMeta(const std::shared_ptr<TreeNode> &node);
 
     TreeNode const &getRoot() const;
     TreeNode &getRoot();

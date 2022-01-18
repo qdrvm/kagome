@@ -895,6 +895,7 @@ namespace kagome::blockchain {
         }
       }
 
+      tree_->removeFromMeta(tree_->getRoot().findByHash(hash));
       OUTCOME_TRY(storage_->removeBlock(hash, number));
     }
 
