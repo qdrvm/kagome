@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, feature/DOPS-1584/codecov-fix ]
     tags: [ '*' ]
   pull_request:
 
