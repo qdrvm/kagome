@@ -111,7 +111,7 @@ class VotingRoundTest : public testing::Test,
     BlockInfo base{3, "C"_H};
 
     grandpa_ = std::make_shared<GrandpaMock>();
-    EXPECT_CALL(*grandpa_, executeNextRound()).Times(AnyNumber());
+    EXPECT_CALL(*grandpa_, executeNextRound(_)).Times(AnyNumber());
 
     auto authorities = std::make_shared<AuthorityList>();
     authorities->id = 0;

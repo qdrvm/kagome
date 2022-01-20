@@ -125,7 +125,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(current_round_->finalizable());
     BOOST_ASSERT(current_round_->finalizedBlock() == round_state.finalized);
 
-    executeNextRound();
+    executeNextRound(current_round_);
 
     if (not current_round_) {
       return false;
@@ -224,11 +224,6 @@ namespace kagome::consensus::grandpa {
     return new_round;
   }
 
-  std::shared_ptr<VotingRound> GrandpaImpl::currentRound() {
-    BOOST_ASSERT(current_round_ != nullptr);
-    return current_round_;
-  }
-
   std::shared_ptr<VotingRound> GrandpaImpl::selectRound(
       RoundNumber round_number, std::optional<MembershipCounter> voter_set_id) {
     std::shared_ptr<VotingRound> round = current_round_;
@@ -275,7 +270,12 @@ namespace kagome::consensus::grandpa {
                              .finalized = {{0, genesis_hash}}};
   }
 
-  void GrandpaImpl::executeNextRound() {
+  void GrandpaImpl::executeNextRound(
+      const std::shared_ptr<VotingRound> &round) {
+    if (current_round_ != round) {
+      return;
+    }
+
     current_round_->end();
     current_round_ = makeNextRound(current_round_);
 
@@ -291,21 +291,6 @@ namespace kagome::consensus::grandpa {
     metric_highest_round_->set(current_round_->roundNumber());
     if (keypair_) {
       current_round_->play();
-    }
-  }
-
-  void GrandpaImpl::tryCatchUp(const libp2p::peer::PeerId &peer_id,
-                               const FullRound &next,
-                               const FullRound &curr) {
-    if (next > curr) {
-      if (std::find(neighbor_msgs_.begin(), neighbor_msgs_.end(), next)
-          == neighbor_msgs_.end()) {
-        auto res = environment_->onCatchUpRequested(
-            peer_id, next.voter_set_id, next.round_number - 1);
-        if (res) {
-          neighbor_msgs_.push_back(next);
-        }
-      }
     }
   }
 
@@ -481,6 +466,8 @@ namespace kagome::consensus::grandpa {
       }
       current_round_->update(isPrevotesChanged, isPrecommitsChanged);
 
+      SL_DEBUG(logger_, "Catch-up response applied");
+
       // Check if catch-up round is not completable
       if (not current_round_->completable()) {
         auto ctx = GrandpaContext::get().value();
@@ -498,7 +485,7 @@ namespace kagome::consensus::grandpa {
                    neighbor_msgs_.end(),
                    [&current](const auto &msg) { return msg < current; });
 
-    executeNextRound();
+    executeNextRound(current_round_);
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
@@ -770,7 +757,7 @@ namespace kagome::consensus::grandpa {
     if (current_round_->getPreviousRound() != round) {
       current_round_ = std::move(round);
 
-      executeNextRound();
+      executeNextRound(current_round_);
     }
 
     return outcome::success();

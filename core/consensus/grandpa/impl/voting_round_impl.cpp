@@ -265,7 +265,7 @@ namespace kagome::consensus::grandpa {
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PREVOTE_RUNS) {
-        SL_DEBUG(logger_, "Round #{} is became completable", round_number_);
+        SL_DEBUG(logger_, "Round #{}: Became completable", round_number_);
         endPrevoteStage();
       }
     };
@@ -416,7 +416,7 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::WAITING_RUNS);
 
-    // Reset handler of previous round finalizable
+    stage_timer_handle_.cancel();
     on_complete_handler_ = nullptr;
 
     // Final attempt to finalize round what should be success
@@ -438,10 +438,10 @@ namespace kagome::consensus::grandpa {
   void VotingRoundImpl::end() {
     if (stage_ != Stage::COMPLETED) {
       SL_DEBUG(logger_, "Round #{}: End round", round_number_);
-      stage_ = Stage::COMPLETED;
       on_complete_handler_ = nullptr;
       stage_timer_handle_.cancel();
       pending_timer_handle_.cancel();
+      stage_ = Stage::COMPLETED;
     }
   }
 

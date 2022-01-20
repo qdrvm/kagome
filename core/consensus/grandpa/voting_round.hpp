@@ -14,7 +14,8 @@ namespace kagome::consensus::grandpa {
   /**
    * Handles execution of one grandpa round. For details @see VotingRoundImpl
    */
-  struct VotingRound : public std::enable_shared_from_this<VotingRound> {
+  class VotingRound : public std::enable_shared_from_this<VotingRound> {
+   public:
     virtual ~VotingRound() = default;
 
     // Getters

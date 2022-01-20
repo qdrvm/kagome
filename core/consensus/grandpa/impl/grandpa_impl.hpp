@@ -118,11 +118,9 @@ namespace kagome::consensus::grandpa {
 
     // Round processing method
 
-    void executeNextRound() override;
+    void executeNextRound(const std::shared_ptr<VotingRound> &round) override;
 
    private:
-    std::shared_ptr<VotingRound> currentRound();
-
     std::shared_ptr<VotingRound> selectRound(
         RoundNumber round_number,
         std::optional<MembershipCounter> voter_set_id);
@@ -137,10 +135,6 @@ namespace kagome::consensus::grandpa {
     void loadMissingBlocks();
 
     void onCompletedRound(outcome::result<MovableRoundState> round_state_res);
-
-    void tryCatchUp(const libp2p::peer::PeerId &peer_id,
-                    const FullRound &next,
-                    const FullRound &curr);
 
     // Note: Duration value was gotten from substrate
     // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166

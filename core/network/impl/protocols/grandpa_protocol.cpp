@@ -435,13 +435,12 @@ namespace kagome::network {
                        msg.message.target_number](const PeerId &peer_id) {
       auto info_opt = peer_manager_->getPeerState(peer_id);
       if (not info_opt.has_value()) {
-        SL_DEBUG(
-            log_,
-            "Commit with set_id={} in round={} has not sent to {}: "
-            "peen is not connected",
-            set_id,
-            round_number,
-            peer_id);
+        SL_DEBUG(log_,
+                 "Commit with set_id={} in round={} has not sent to {}: "
+                 "peen is not connected",
+                 set_id,
+                 round_number,
+                 peer_id);
         return false;
       }
       const auto &info = info_opt.value();
