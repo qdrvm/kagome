@@ -243,13 +243,16 @@ namespace kagome::blockchain {
 
   void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
     auto parent = node->parent.lock();
-    parent->children.erase(std::find_if(
-        parent->children.begin(),
-        parent->children.end(),
-        [hash = node->block_hash](auto a) { return a->block_hash == hash; }));
+    if (parent.get()) {
+      auto child_it = std::find_if(
+          parent->children.begin(),
+          parent->children.end(),
+          [hash = node->block_hash](auto a) { return a->block_hash == hash; });
+      parent->children.erase(child_it);
+    }
 
     metadata_->leaves.erase(node->block_hash);
-    if (parent->children.empty()) {
+    if (parent.get() && parent->children.empty()) {
       metadata_->leaves.insert(parent->block_hash);
     }
     if (metadata_->deepest_leaf.expired()) {

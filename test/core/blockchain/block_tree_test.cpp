@@ -132,9 +132,11 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<BlockStorageMock> storage_ =
       std::make_shared<BlockStorageMock>();
 
+  std::shared_ptr<api::AuthorApiMock> author_api_ =
+      std::make_shared<api::AuthorApiMock>();
+
   std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_ =
-      std::make_shared<network::ExtrinsicObserverImpl>(
-          std::make_shared<api::AuthorApiMock>());
+      std::make_shared<network::ExtrinsicObserverImpl>(author_api_);
 
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
@@ -272,6 +274,150 @@ TEST_F(BlockTreeTest, Finalize) {
 
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, hash);
+}
+
+/**
+ * @given block tree with following topology (finalized blocks marked with an
+ * asterisk):
+ *
+ *      +---B1---C1
+ *     /
+ * ---A*---B
+ *
+ * @when finalizing non-finalized block B1
+ * @then finalization completes successfully: block B pruned, block C1 persists,
+ * metadata valid
+ */
+TEST_F(BlockTreeTest, FinalizeWithPruning) {
+  // GIVEN
+  auto &&A_finalized_hash = block_tree_->getLastFinalized().hash;
+  ASSERT_EQ(A_finalized_hash, kFinalizedBlockInfo.hash);
+
+  BlockHeader B_header{.parent_hash = A_finalized_hash,
+                       .number = kFinalizedBlockInfo.number + 1,
+                       .digest = {PreRuntime{}}};
+  BlockBody B_body{{Buffer{0x55, 0x55}}};
+  Block B_block{B_header, B_body};
+  auto B_hash = addBlock(B_block);
+
+  BlockHeader B1_header{.parent_hash = A_finalized_hash,
+                        .number = kFinalizedBlockInfo.number + 1,
+                        .digest = {PreRuntime{}}};
+  BlockBody B1_body{{Buffer{0x55, 0x56}}};
+  Block B1_block{B1_header, B1_body};
+  auto B1_hash = addBlock(B1_block);
+
+  BlockHeader C1_header{.parent_hash = B1_hash,
+                        .number = kFinalizedBlockInfo.number + 2,
+                        .digest = {PreRuntime{}}};
+  BlockBody C1_body{{Buffer{0x55, 0x57}}};
+  Block C1_block{C1_header, C1_body};
+  auto C1_hash = addBlock(C1_block);
+
+  Justification justification{{0x45, 0xF4}};
+  auto encoded_justification = scale::encode(justification).value();
+  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(B1_hash)))
+      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+  EXPECT_CALL(*storage_,
+              putJustification(justification, B1_hash, B1_header.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage_, setLastFinalizedBlockHash(B1_hash))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage_, getBlockHeader(primitives::BlockId{B1_hash}))
+      .WillRepeatedly(Return(outcome::success(B1_header)));
+  EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B1_hash}))
+      .WillRepeatedly(Return(outcome::success(B1_body)));
+  EXPECT_CALL(*runtime_core_, version(B1_hash))
+      .WillRepeatedly(Return(primitives::Version{}));
+  EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
+      .WillRepeatedly(Return(outcome::success(B1_body)));
+  EXPECT_CALL(*storage_, removeBlock(B_hash, B_header.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*author_api_, submitExtrinsic(_))
+      .WillRepeatedly(
+          Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
+
+  // WHEN
+  ASSERT_TRUE(block_tree_->finalize(B1_hash, justification));
+
+  // THEN
+  ASSERT_EQ(block_tree_->getLastFinalized().hash, B1_hash);
+  ASSERT_EQ(block_tree_->getLeaves().size(), 1);
+  ASSERT_EQ(block_tree_->deepestLeaf().hash, C1_hash);
+}
+
+/**
+ * @given block tree with following topology (finalized blocks marked with an
+ * asterisk):
+ *
+ *      +---B1---C1
+ *     /
+ * ---A*---B
+ *
+ * @when finalizing non-finalized block B
+ * @then finalization completes successfully: blocks B1, C1 pruned, metadata
+ * valid
+ */
+TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
+  // GIVEN
+  auto &&A_finalized_hash = block_tree_->getLastFinalized().hash;
+  ASSERT_EQ(A_finalized_hash, kFinalizedBlockInfo.hash);
+
+  BlockHeader B_header{.parent_hash = A_finalized_hash,
+                       .number = kFinalizedBlockInfo.number + 1,
+                       .digest = {PreRuntime{}}};
+  BlockBody B_body{{Buffer{0x55, 0x55}}};
+  Block B_block{B_header, B_body};
+  auto B_hash = addBlock(B_block);
+
+  BlockHeader B1_header{.parent_hash = A_finalized_hash,
+                        .number = kFinalizedBlockInfo.number + 1,
+                        .digest = {PreRuntime{}}};
+  BlockBody B1_body{{Buffer{0x55, 0x56}}};
+  Block B1_block{B1_header, B1_body};
+  auto B1_hash = addBlock(B1_block);
+
+  BlockHeader C1_header{.parent_hash = B1_hash,
+                        .number = kFinalizedBlockInfo.number + 2,
+                        .digest = {PreRuntime{}}};
+  BlockBody C1_body{{Buffer{0x55, 0x57}}};
+  Block C1_block{C1_header, C1_body};
+  auto C1_hash = addBlock(C1_block);
+
+  Justification justification{{0x45, 0xF4}};
+  auto encoded_justification = scale::encode(justification).value();
+  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(B_hash)))
+      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+  EXPECT_CALL(*storage_,
+              putJustification(justification, B_hash, B_header.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage_, setLastFinalizedBlockHash(B_hash))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage_, getBlockHeader(primitives::BlockId{B_hash}))
+      .WillRepeatedly(Return(outcome::success(B_header)));
+  EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
+      .WillRepeatedly(Return(outcome::success(B_body)));
+  EXPECT_CALL(*runtime_core_, version(B_hash))
+      .WillRepeatedly(Return(primitives::Version{}));
+  EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B1_hash}))
+      .WillRepeatedly(Return(outcome::success(B1_body)));
+  EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{C1_hash}))
+      .WillRepeatedly(Return(outcome::success(C1_body)));
+  EXPECT_CALL(*storage_, removeBlock(B1_hash, B1_header.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage_, removeBlock(C1_hash, C1_header.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*author_api_, submitExtrinsic(_))
+      .WillRepeatedly(
+          Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
+
+  // WHEN
+  ASSERT_TRUE(block_tree_->finalize(B_hash, justification));
+
+  // THEN
+  ASSERT_EQ(block_tree_->getLastFinalized().hash, B_hash);
+  ASSERT_EQ(block_tree_->getLeaves().size(), 1);
+  ASSERT_EQ(block_tree_->deepestLeaf().hash, B_hash);
 }
 
 std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
@@ -458,9 +604,8 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
-  header = BlockHeader{.parent_hash = hash1,
-                       .number = 2,
-                       .digest = {Consensus{}}};
+  header =
+      BlockHeader{.parent_hash = hash1, .number = 2, .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
