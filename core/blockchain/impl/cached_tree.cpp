@@ -243,12 +243,8 @@ namespace kagome::blockchain {
 
   void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
     auto parent = node->parent.lock();
-    if (parent.get()) {
-      auto child_it = std::find_if(
-          parent->children.begin(),
-          parent->children.end(),
-          [hash = node->block_hash](auto a) { return a->block_hash == hash; });
-      parent->children.erase(child_it);
+    if (parent != nullptr) {
+      parent->children.erase(std::find(parent->children.begin(), parent->children.end(), node));
     }
 
     metadata_->leaves.erase(node->block_hash);
@@ -263,6 +259,7 @@ namespace kagome::blockchain {
                      std::back_inserter(leaf_depths),
                      [this](const auto &hash) {
                        auto leaf_node = root_->findByHash(hash);
+                       BOOST_ASSERT(leaf_node != nullptr);
                        return primitives::BlockInfo{leaf_node->depth,
                                                     leaf_node->block_hash};
                      });
@@ -270,7 +267,7 @@ namespace kagome::blockchain {
           leaf_depths.begin(),
           leaf_depths.end(),
           [](auto const &p1, auto const &p2) { return p1.number > p2.number; });
-      metadata_->deepest_leaf = root_->findByHash(leaf_depths.end()->hash);
+      metadata_->deepest_leaf = root_->findByHash(leaf_depths.back().hash);
     }
   }
 }  // namespace kagome::blockchain

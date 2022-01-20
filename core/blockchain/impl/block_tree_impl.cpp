@@ -853,7 +853,7 @@ namespace kagome::blockchain {
 
   outcome::result<void> BlockTreeImpl::prune(
       const std::shared_ptr<TreeNode> &lastFinalizedNode) {
-    std::list<std::shared_ptr<TreeNode>> to_remove;
+    std::deque<std::shared_ptr<TreeNode>> to_remove;
 
     auto following_node = lastFinalizedNode;
 
@@ -863,11 +863,21 @@ namespace kagome::blockchain {
           break;
         }
 
-        // collect hashes for removing (except main chain block)
+        // DFS-on-deque
+        to_remove.emplace_back(nullptr); // Waterbreak
         for (const auto &child : current_node->children) {
           if (child->block_hash != following_node->block_hash) {
-            collectDescendants(child, to_remove);
+            to_remove.emplace_back(child);
           }
+        }
+
+        for (;;) {
+          auto last = to_remove.back();
+          to_remove.pop_back();
+          if (last == nullptr) {
+            break;
+          }
+          to_remove.emplace_front(last);
         }
 
         // remove (in memory) all child, except main chain block
@@ -898,7 +908,6 @@ namespace kagome::blockchain {
         }
       }
 
-      auto current_str = node->block_hash.toHex();
       tree_->removeFromMeta(node);
       OUTCOME_TRY(storage_->removeBlock(node->block_hash, node->depth));
     }
@@ -914,15 +923,6 @@ namespace kagome::blockchain {
     }
 
     return outcome::success();
-  }
-
-  void BlockTreeImpl::collectDescendants(
-      std::shared_ptr<TreeNode> node,
-      std::list<std::shared_ptr<TreeNode>> &container) {
-    container.emplace_front(node);
-    for (auto child : node->children) {
-      collectDescendants(child, container);
-    }
   }
 
 }  // namespace kagome::blockchain
