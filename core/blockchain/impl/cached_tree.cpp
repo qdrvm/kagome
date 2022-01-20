@@ -244,7 +244,8 @@ namespace kagome::blockchain {
   void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
     auto parent = node->parent.lock();
     if (parent != nullptr) {
-      parent->children.erase(std::find(parent->children.begin(), parent->children.end(), node));
+      parent->children.erase(
+          std::find(parent->children.begin(), parent->children.end(), node));
     }
 
     metadata_->leaves.erase(node->block_hash);
