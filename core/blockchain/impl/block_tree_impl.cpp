@@ -871,7 +871,7 @@ namespace kagome::blockchain {
           current_node->children.begin(),
           current_node->children.end(),
           std::back_inserter(to_remove),
-          [&following_node](auto child) { return child != following_node; });
+          [&following_node](const auto &child) { return child != following_node; });
       auto last = to_remove.back();
       while (last != nullptr) {
         to_remove.pop_back();
