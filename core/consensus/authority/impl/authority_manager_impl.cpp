@@ -116,11 +116,39 @@ namespace kagome::authority {
       const primitives::BlockInfo &block,
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber activate_at) {
+    SL_DEBUG(log_,
+             "Applying scheduled change for block {} to activate at block {}",
+             block,
+             activate_at);
     auto node = getAppropriateAncestor(block);
+    SL_DEBUG(
+        log_,
+        "Oldest scheduled change before block {} is at block {} with set id {}",
+        block,
+        node->block,
+        node->actual_authorities->id);
+    auto last_finalized = block_tree_->getLastFinalized();
+    bool block_in_finalized_chain =
+        block_tree_->hasDirectChain(block.hash, last_finalized.hash);
+    SL_DEBUG(log_,
+             "Last finalized is {}, is on the same chain as target block? {}",
+             last_finalized,
+             block_in_finalized_chain);
 
-    auto new_node = node->makeDescendant(block);
+    auto new_node = node->makeDescendant(
+        block,
+        block.number <= last_finalized.number && block_in_finalized_chain);
+    SL_DEBUG(log_,
+             "Make a schedule node for block {}, with actual set id {}",
+             block,
+             new_node->actual_authorities->id);
 
-    OUTCOME_TRY(new_node->ensureReadyToSchedule());
+    auto res = new_node->ensureReadyToSchedule();
+    if (!res) {
+      SL_DEBUG(
+          log_, "Node is not ready to be scheduled: {}", res.error().message());
+      return res.as_failure();
+    }
 
     auto new_authorities =
         std::make_shared<primitives::AuthorityList>(authorities);

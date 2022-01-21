@@ -209,6 +209,20 @@ namespace kagome::consensus {
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));
 
+    // apply justification if any
+    if (b.justification.has_value()) {
+      SL_VERBOSE(logger_,
+                 "Justification received for block {}",
+                 primitives::BlockInfo(block.header.number, block_hash));
+      auto res = grandpa_environment_->applyJustification(
+          primitives::BlockInfo(block.header.number, block_hash),
+          b.justification.value());
+      if (res.has_error()) {
+        // TODO(xDimon): Rolling back of block is needed here
+        return res.as_failure();
+      }
+    }
+
     // observe possible changes of authorities
     for (auto &digest_item : block_without_seal_digest.header.digest) {
       auto res = visit_in_place(
@@ -221,20 +235,6 @@ namespace kagome::consensus {
                 consensus_message);
           },
           [](const auto &) { return outcome::success(); });
-      if (res.has_error()) {
-        // TODO(xDimon): Rolling back of block is needed here
-        return res.as_failure();
-      }
-    }
-
-    // apply justification if any
-    if (b.justification.has_value()) {
-      SL_VERBOSE(logger_,
-                 "Justification received for block {}",
-                 primitives::BlockInfo(block.header.number, block_hash));
-      auto res = grandpa_environment_->applyJustification(
-          primitives::BlockInfo(block.header.number, block_hash),
-          b.justification.value());
       if (res.has_error()) {
         // TODO(xDimon): Rolling back of block is needed here
         return res.as_failure();

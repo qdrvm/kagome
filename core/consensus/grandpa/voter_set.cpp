@@ -27,10 +27,10 @@ namespace kagome::consensus::grandpa {
     if (r.second) {
       list_.emplace_back(r.first->first, weight);
       total_weight_ += weight;
-      return outcome::success();
     } else {
-      return Error::VOTER_ALREADY_EXISTS;
+      std::get<1>(list_[r.first->second]) += weight;
     }
+    return outcome::success();
   }
 
   outcome::result<Id> VoterSet::voterId(Index index) const {
