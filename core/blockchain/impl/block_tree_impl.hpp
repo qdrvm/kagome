@@ -41,7 +41,6 @@ namespace kagome::blockchain {
   class CachedTree;
 
   class BlockTreeImpl : public BlockTree {
-
    public:
     enum class Error {
       // target block number is past the given maximum number
@@ -195,11 +194,6 @@ namespace kagome::blockchain {
      */
     std::vector<primitives::BlockHash> getLeavesSorted() const;
 
-    static void collectDescendants(
-        std::shared_ptr<TreeNode> node,
-        std::vector<std::pair<primitives::BlockHash, primitives::BlockNumber>>
-            &container);
-
     outcome::result<void> prune(
         const std::shared_ptr<TreeNode> &lastFinalizedNode);
 
@@ -228,8 +222,6 @@ namespace kagome::blockchain {
     metrics::Gauge *metric_best_block_height_;
     metrics::Gauge *metric_finalized_block_height_;
     metrics::Gauge *metric_known_chain_leaves_;
-
-
   };
 }  // namespace kagome::blockchain
 

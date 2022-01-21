@@ -853,34 +853,42 @@ namespace kagome::blockchain {
 
   outcome::result<void> BlockTreeImpl::prune(
       const std::shared_ptr<TreeNode> &lastFinalizedNode) {
-    std::vector<std::pair<primitives::BlockHash, primitives::BlockNumber>>
-        to_remove;
+    std::deque<std::shared_ptr<TreeNode>> to_remove;
 
-    auto current_node = lastFinalizedNode;
+    auto following_node = lastFinalizedNode;
 
-    for (auto parent_node = current_node->parent.lock();
-         parent_node && !parent_node->finalized;
-         parent_node = current_node->parent.lock()) {
-      auto main_chain_node = current_node;
-      current_node = parent_node;
-
-      // collect hashes for removing (except main chain block)
-      for (const auto &child : current_node->children) {
-        if (child->block_hash != main_chain_node->block_hash) {
-          collectDescendants(child, to_remove);
-          to_remove.emplace_back(child->block_hash, child->depth);
-        }
+    for (auto current_node = following_node->parent.lock();
+         current_node
+         && !(current_node->finalized && current_node->children.size() == 1);
+         current_node = current_node->parent.lock()) {
+      // DFS-on-deque
+      to_remove.emplace_back();  // Waterbreak
+      std::copy_if(
+          current_node->children.begin(),
+          current_node->children.end(),
+          std::back_inserter(to_remove),
+          [&following_node](const auto &child) { return child != following_node; });
+      auto last = to_remove.back();
+      while (last != nullptr) {
+        to_remove.pop_back();
+        std::copy(last->children.begin(),
+                  last->children.end(),
+                  std::back_inserter(to_remove));
+        to_remove.emplace_front(std::move(last));
+        last = to_remove.back();
       }
+      to_remove.pop_back();  // Remove waterbreak
 
       // remove (in memory) all child, except main chain block
-      current_node->children = {main_chain_node};
+      current_node->children = {following_node};
+      following_node = current_node;
     }
 
     std::vector<primitives::Extrinsic> extrinsics;
 
     // remove from storage
-    for (const auto &[hash, number] : to_remove) {
-      auto block_body_res = storage_->getBlockBody(hash);
+    for (const auto &node : to_remove) {
+      auto block_body_res = storage_->getBlockBody(node->block_hash);
       if (block_body_res.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
         for (auto &ext : block_body_res.value()) {
@@ -889,13 +897,14 @@ namespace kagome::blockchain {
             extrinsic_events_engine_->notify(
                 key.value(),
                 primitives::events::ExtrinsicLifecycleEvent::Retracted(
-                    key.value(), hash));
+                    key.value(), node->block_hash));
           }
           extrinsics.emplace_back(std::move(ext));
         }
       }
 
-      OUTCOME_TRY(storage_->removeBlock(hash, number));
+      tree_->removeFromMeta(node);
+      OUTCOME_TRY(storage_->removeBlock(node->block_hash, node->depth));
     }
 
     // trying to return extrinsics back to transaction pool
@@ -909,23 +918,6 @@ namespace kagome::blockchain {
     }
 
     return outcome::success();
-  }
-
-  void BlockTreeImpl::collectDescendants(
-      std::shared_ptr<TreeNode> node,
-      std::vector<std::pair<primitives::BlockHash, primitives::BlockNumber>>
-          &container) {
-    // avoid deep recursion
-    while (node->children.size() == 1) {
-      container.emplace_back(node->block_hash, node->depth);
-      node = node->children.front();
-    }
-
-    // collect descendants' hashes recursively
-    for (const auto &child : node->children) {
-      collectDescendants(child, container);
-      container.emplace_back(child->block_hash, child->depth);
-    }
   }
 
 }  // namespace kagome::blockchain
