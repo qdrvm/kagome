@@ -74,7 +74,7 @@ namespace kagome::blockchain {
     // if it is yet undefined).
 
     for (;;) {
-      if (hash_tmp.empty()) {
+      if (hash_tmp == primitives::BlockHash{}) {
         if (not curr_epoch_number.has_value()) {
           curr_epoch_number = 0;
         }
@@ -243,8 +243,7 @@ namespace kagome::blockchain {
 
     metric_known_chain_leaves_ =
         metrics_registry_->registerGaugeMetric(knownChainLeavesMetricName);
-    metric_known_chain_leaves_->set(
-        static_cast<double>(tree_->getMetadata().leaves.size()));
+    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
   }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -273,8 +272,7 @@ namespace kagome::blockchain {
         block_hash, header.number, parent, epoch_number, std::move(next_epoch));
     tree_->updateMeta(new_node);
 
-    metric_known_chain_leaves_->set(
-        static_cast<double>(tree_->getMetadata().leaves.size()));
+    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
 
@@ -329,8 +327,7 @@ namespace kagome::blockchain {
       }
     }
 
-    metric_known_chain_leaves_->set(
-        static_cast<double>(tree_->getMetadata().leaves.size()));
+    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
 
@@ -373,8 +370,7 @@ namespace kagome::blockchain {
 
     tree_->updateMeta(new_node);
 
-    metric_known_chain_leaves_->set(
-        static_cast<double>(tree_->getMetadata().leaves.size()));
+    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
 
