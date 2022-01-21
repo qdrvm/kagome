@@ -74,7 +74,7 @@ namespace kagome::blockchain {
     // if it is yet undefined).
 
     for (;;) {
-      if (hash_tmp == primitives::BlockHash{}) {
+      if (hash_tmp.empty()) {
         if (not curr_epoch_number.has_value()) {
           curr_epoch_number = 0;
         }
@@ -243,7 +243,8 @@ namespace kagome::blockchain {
 
     metric_known_chain_leaves_ =
         metrics_registry_->registerGaugeMetric(knownChainLeavesMetricName);
-    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+    metric_known_chain_leaves_->set(
+        static_cast<double>(tree_->getMetadata().leaves.size()));
   }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -272,7 +273,8 @@ namespace kagome::blockchain {
         block_hash, header.number, parent, epoch_number, std::move(next_epoch));
     tree_->updateMeta(new_node);
 
-    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+    metric_known_chain_leaves_->set(
+        static_cast<double>(tree_->getMetadata().leaves.size()));
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
 
@@ -327,7 +329,8 @@ namespace kagome::blockchain {
       }
     }
 
-    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+    metric_known_chain_leaves_->set(
+        static_cast<double>(tree_->getMetadata().leaves.size()));
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
 
@@ -370,7 +373,8 @@ namespace kagome::blockchain {
 
     tree_->updateMeta(new_node);
 
-    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+    metric_known_chain_leaves_->set(
+        static_cast<double>(tree_->getMetadata().leaves.size()));
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
 
@@ -857,36 +861,31 @@ namespace kagome::blockchain {
 
     auto following_node = lastFinalizedNode;
 
-    for (auto current_node = following_node->parent.lock();;) {
-      if (current_node) {
-        if (current_node->finalized && current_node->children.size() == 1) {
-          break;
-        }
-
-        // DFS-on-deque
-        to_remove.emplace_back(nullptr); // Waterbreak
-        for (const auto &child : current_node->children) {
-          if (child->block_hash != following_node->block_hash) {
-            to_remove.emplace_back(child);
-          }
-        }
-
-        for (;;) {
-          auto last = to_remove.back();
-          to_remove.pop_back();
-          if (last == nullptr) {
-            break;
-          }
-          to_remove.emplace_front(last);
-        }
-
-        // remove (in memory) all child, except main chain block
-        current_node->children = {following_node};
-        following_node = current_node;
-        current_node = current_node->parent.lock();
-      } else {
-        break;
+    for (auto current_node = following_node->parent.lock();
+         current_node
+         && !(current_node->finalized && current_node->children.size() == 1);
+         current_node = current_node->parent.lock()) {
+      // DFS-on-deque
+      to_remove.emplace_back();  // Waterbreak
+      std::copy_if(
+          current_node->children.begin(),
+          current_node->children.end(),
+          std::back_inserter(to_remove),
+          [&following_node](auto child) { return child != following_node; });
+      auto last = to_remove.back();
+      while (last != nullptr) {
+        to_remove.pop_back();
+        std::copy(last->children.begin(),
+                  last->children.end(),
+                  std::back_inserter(to_remove));
+        to_remove.emplace_front(std::move(last));
+        last = to_remove.back();
       }
+      to_remove.pop_back();  // Remove waterbreak
+
+      // remove (in memory) all child, except main chain block
+      current_node->children = {following_node};
+      following_node = current_node;
     }
 
     std::vector<primitives::Extrinsic> extrinsics;

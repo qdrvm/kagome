@@ -69,7 +69,8 @@ namespace kagome::blockchain {
 
       enum Value { EXIT, CONTINUE } value;
 
-      ExitToken(Value value) : value{value} {}
+      ExitToken(Value value)  // NOLINT(google-explicit-constructor)
+          : value{value} {}
 
       bool operator==(Value v) const {
         return value == v;

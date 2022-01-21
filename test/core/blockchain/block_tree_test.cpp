@@ -205,7 +205,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   auto hash = addBlock(new_block);
 
   // THEN
-  auto &&[__, new_deepest_block_hash] = block_tree_->deepestLeaf();
+  auto &&[_, new_deepest_block_hash] = block_tree_->deepestLeaf();
   ASSERT_EQ(new_deepest_block_hash, hash);
 
   leaves = block_tree_->getLeaves();
