@@ -132,10 +132,46 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
+  void EnvironmentImpl::sendState(const libp2p::peer::PeerId &peer_id,
+                                  const MovableRoundState &state,
+                                  MembershipCounter voter_set_id) {
+    auto send = [&](const SignedMessage &vote) {
+      SL_DEBUG(logger_,
+               "Round #{}: Send {} signed by {} for block {} (as send state)",
+               state.round_number,
+               visit_in_place(
+                   vote.message,
+                   [&](const Prevote &) { return "prevote"; },
+                   [&](const Precommit &) { return "precommit"; },
+                   [&](const PrimaryPropose &) { return "primary propose"; }),
+               vote.id,
+               vote.getBlockInfo());
+
+      network::GrandpaVote message{{.round_number = state.round_number,
+                                    .counter = voter_set_id,
+                                    .vote = vote}};
+      transmitter_->sendVoteMessage(peer_id, std::move(message));
+    };
+
+    for (const auto &vv : state.votes) {
+      visit_in_place(
+          vv,
+          [&](const SignedMessage &vote) { send(vote); },
+          [&](const EquivocatorySignedMessage &pair_vote) {
+            send(pair_vote.first);
+            send(pair_vote.second);
+          });
+    }
+  }
+
   outcome::result<void> EnvironmentImpl::onCommitted(
       RoundNumber round,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
+    if (round == 0) {
+      return outcome::success();
+    }
+
     SL_DEBUG(logger_, "Round #{}: Send commit of block {}", round, vote);
 
     network::FullCommitMessage message{

@@ -313,9 +313,9 @@ namespace kagome::network {
             self->grandpa_observer_->onCommitMessage(peer_id, commit_message);
           },
           [&](const GrandpaNeighborMessage &neighbor_message) {
-            self->peer_manager_->updatePeerState(peer_id, neighbor_message);
             self->grandpa_observer_->onNeighborMessage(peer_id,
                                                        neighbor_message);
+            self->peer_manager_->updatePeerState(peer_id, neighbor_message);
           },
           [&](const network::CatchUpRequest &catch_up_request) {
             self->grandpa_observer_->onCatchUpRequest(peer_id,
@@ -329,16 +329,14 @@ namespace kagome::network {
     });
   }
 
-  void GrandpaProtocol::vote(network::GrandpaVote &&vote_message) {
+  void GrandpaProtocol::vote(
+      network::GrandpaVote &&vote_message,
+      std::optional<const libp2p::peer::PeerId> peer_id) {
     SL_DEBUG(log_,
              "Send vote message: grandpa round number {}",
              vote_message.round_number);
 
-    auto filter = [this,
-                   msg = vote_message,
-                   set_id = vote_message.counter,
-                   round_number =
-                       vote_message.round_number](const PeerId &peer_id) {
+    auto filter = [&, &msg = vote_message](const PeerId &peer_id) {
       auto info_opt = peer_manager_->getPeerState(peer_id);
       if (not info_opt.has_value()) {
         SL_DEBUG(
@@ -356,7 +354,7 @@ namespace kagome::network {
       // If a peer is at a given voter set, it is impolite to send messages
       // from an earlier voter set. It is extremely impolite to send messages
       // from a future voter set.
-      if (set_id != info.set_id) {
+      if (msg.counter != info.set_id) {
         SL_DEBUG(
             log_,
             "Vote signed by {} with set_id={} in round={} has not sent to {} "
@@ -371,7 +369,7 @@ namespace kagome::network {
 
       // If a peer is at round r, is impolite to send messages about r-2 or
       // earlier
-      if (round_number + 2 < info.round_number) {
+      if (msg.round_number + 2 < info.round_number) {
         SL_DEBUG(
             log_,
             "Vote signed by {} with set_id={} in round={} has not sent to {} "
@@ -386,7 +384,7 @@ namespace kagome::network {
 
       // If a peer is at round r, is extremely impolite to send messages about
       // r+1 or later
-      if (round_number > info.round_number) {
+      if (msg.round_number > info.round_number) {
         SL_DEBUG(
             log_,
             "Vote signed by {} with set_id={} in round={} has not sent to {} "
@@ -406,8 +404,13 @@ namespace kagome::network {
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
     (*shared_msg) = GrandpaMessage(std::move(vote_message));
 
-    stream_engine_->broadcast<GrandpaMessage>(
-        shared_from_this(), std::move(shared_msg), filter);
+    if (not peer_id.has_value()) {
+      stream_engine_->broadcast<GrandpaMessage>(
+          shared_from_this(), std::move(shared_msg), filter);
+    } else {
+      stream_engine_->send(
+          peer_id.value(), shared_from_this(), std::move(shared_msg));
+    };
   }
 
   void GrandpaProtocol::neighbor(GrandpaNeighborMessage &&msg) {
@@ -425,7 +428,9 @@ namespace kagome::network {
                                               std::move(shared_msg));
   }
 
-  void GrandpaProtocol::finalize(FullCommitMessage &&msg) {
+  void GrandpaProtocol::finalize(
+      FullCommitMessage &&msg,
+      std::optional<const libp2p::peer::PeerId> peer_id) {
     SL_DEBUG(log_, "Send commit message: grandpa round number {}", msg.round);
 
     auto filter = [this,
@@ -494,8 +499,13 @@ namespace kagome::network {
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
     (*shared_msg) = GrandpaMessage(std::move(msg));
 
-    stream_engine_->broadcast<GrandpaMessage>(
-        shared_from_this(), std::move(shared_msg), filter);
+    if (not peer_id.has_value()) {
+      stream_engine_->broadcast<GrandpaMessage>(
+          shared_from_this(), std::move(shared_msg), filter);
+    } else {
+      stream_engine_->send(
+          peer_id.value(), shared_from_this(), std::move(shared_msg));
+    }
   }
 
   void GrandpaProtocol::catchUpRequest(const libp2p::peer::PeerId &peer_id,

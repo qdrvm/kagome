@@ -22,6 +22,7 @@
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
+#include "network/peer_manager.hpp"
 #include "network/synchronizer.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
 #include "storage/buffer_map_types.hpp"
@@ -80,7 +81,8 @@ namespace kagome::consensus::grandpa {
                 std::shared_ptr<Clock> clock,
                 std::shared_ptr<libp2p::basic::Scheduler> scheduler,
                 std::shared_ptr<authority::AuthorityManager> authority_manager,
-                std::shared_ptr<network::Synchronizer> synchronizer);
+                std::shared_ptr<network::Synchronizer> synchronizer,
+                std::shared_ptr<network::PeerManager> peer_manager);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -118,7 +120,7 @@ namespace kagome::consensus::grandpa {
 
     // Round processing method
 
-    void executeNextRound(const std::shared_ptr<VotingRound> &round) override;
+    void executeNextRound(RoundNumber round_number) override;
 
    private:
     std::shared_ptr<VotingRound> selectRound(
@@ -152,6 +154,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
+    std::shared_ptr<network::PeerManager> peer_manager_;
 
     std::vector<FullRound> neighbor_msgs_{};
 

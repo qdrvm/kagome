@@ -590,9 +590,6 @@ namespace kagome::network {
 
     stream_engine_->add(peer_id, grandpa_protocol);
     stream_engine_->add(peer_id, transaction_protocol);
-
-    grandpa_protocol->newOutgoingStream(PeerInfo{.id = peer_id},
-                                        [](const auto &...) {});
   }
 
   bool PeerManagerImpl::isSelfPeer(const PeerId &peer_id) const {

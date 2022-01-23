@@ -10,8 +10,6 @@
 
 namespace kagome::consensus::grandpa {
 
-  class VotingRound;
-
   /**
    * Launches grandpa voting rounds
    */
@@ -19,8 +17,7 @@ namespace kagome::consensus::grandpa {
    public:
     virtual ~Grandpa() = default;
 
-    virtual void executeNextRound(
-        const std::shared_ptr<VotingRound> &round) = 0;
+    virtual void executeNextRound(RoundNumber round_number) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

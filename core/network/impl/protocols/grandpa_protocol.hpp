@@ -63,9 +63,11 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
-    void vote(network::GrandpaVote &&vote_message);
+    void vote(network::GrandpaVote &&vote_message,
+              std::optional<const libp2p::peer::PeerId> peer_id);
     void neighbor(GrandpaNeighborMessage &&msg);
-    void finalize(FullCommitMessage &&msg);
+    void finalize(FullCommitMessage &&msg,
+                  std::optional<const libp2p::peer::PeerId> peer_id);
     void catchUpRequest(const libp2p::peer::PeerId &peer_id,
                         CatchUpRequest &&catch_up_request);
     void catchUpResponse(const libp2p::peer::PeerId &peer_id,

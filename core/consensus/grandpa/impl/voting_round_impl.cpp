@@ -423,16 +423,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(finalizable());
     attemptToFinalizeRound();
 
-    stage_ = Stage::END_WAITING;
-
-    SL_DEBUG(logger_, "Round #{}: End final stage", round_number_);
-
-    // Play new round
-    // spec: Play-Grandpa-round(r + 1);
-
-    if (auto grandpa = grandpa_.lock()) {
-      grandpa->executeNextRound();
-    }
+    end();
   }
 
   void VotingRoundImpl::end() {
@@ -628,16 +619,6 @@ namespace kagome::consensus::grandpa {
               "Round #{}: Finalizing on block {} is failed",
               round_number_,
               block);
-    }
-
-    // Note: this is hack for behavior like in substrate
-    if (block.number != last_finalized_block_.number) {
-      auto res = env_->onNeighborMessageSent(
-          round_number_, voter_set_->id(), block.number);
-      if (res.has_error()) {
-        logger_->warn("Neighbor message was not sent: {}",
-                      res.error().message());
-      }
     }
 
     env_->onCompleted(state());
@@ -1166,7 +1147,19 @@ namespace kagome::consensus::grandpa {
 
       finalized_ = graph_->findAncestor(
           VoteType::Precommit, prevote_ghost, std::move(possible_to_finalize));
-    };
+
+      BOOST_ASSERT(finalized_.has_value());
+
+      // Play new round
+      // spec: Play-Grandpa-round(r + 1);
+
+      scheduler_->schedule(
+          [grandpa_wp = std::move(grandpa_), round_number = round_number_] {
+            if (auto grandpa = grandpa_wp.lock()) {
+              grandpa->executeNextRound(round_number);
+            }
+          });
+    }
 
     // find how many more equivocations we could still get.
     //
@@ -1295,7 +1288,7 @@ namespace kagome::consensus::grandpa {
   }
 
   bool VotingRoundImpl::finalizable() const {
-    return completable_ && finalized_.has_value();
+    return finalized_.has_value();
   }
 
   BlockInfo VotingRoundImpl::bestPrevoteCandidate() {
@@ -1336,16 +1329,15 @@ namespace kagome::consensus::grandpa {
   }
 
   MovableRoundState VotingRoundImpl::state() const {
-    BOOST_ASSERT(finalized_.has_value());
     MovableRoundState round_state{.round_number = round_number_,
                                   .last_finalized_block = last_finalized_block_,
-                                  .votes = precommits_->getMessages(),
+                                  .votes = prevotes_->getMessages(),
                                   .finalized = finalized_};
 
-    auto prevotes = prevotes_->getMessages();
-    round_state.votes.reserve(round_state.votes.size() + prevotes.size());
-    std::move(prevotes.begin(),
-              prevotes.end(),
+    auto precommits = precommits_->getMessages();
+    round_state.votes.reserve(round_state.votes.size() + precommits.size());
+    std::move(precommits.begin(),
+              precommits.end(),
               std::back_inserter(round_state.votes));
 
     return round_state;

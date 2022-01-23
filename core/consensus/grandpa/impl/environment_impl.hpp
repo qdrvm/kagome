@@ -69,9 +69,13 @@ namespace kagome::consensus::grandpa {
         std::vector<SignedPrecommit> precommit_justification,
         BlockInfo best_final_candidate) override;
 
+    void sendState(const libp2p::peer::PeerId &peer_id,
+                   const MovableRoundState &state,
+                   MembershipCounter voter_set_id) override;
+
     outcome::result<void> onVoted(RoundNumber round,
-                                     MembershipCounter set_id,
-                                     const SignedMessage &propose) override;
+                                  MembershipCounter set_id,
+                                  const SignedMessage &vote) override;
 
     outcome::result<void> onCommitted(
         RoundNumber round,

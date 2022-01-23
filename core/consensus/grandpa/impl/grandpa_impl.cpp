@@ -32,7 +32,8 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Clock> clock,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<authority::AuthorityManager> authority_manager,
-      std::shared_ptr<network::Synchronizer> synchronizer)
+      std::shared_ptr<network::Synchronizer> synchronizer,
+      std::shared_ptr<network::PeerManager> peer_manager)
       : environment_{std::move(environment)},
         storage_{std::move(storage)},
         crypto_provider_{std::move(crypto_provider)},
@@ -41,7 +42,8 @@ namespace kagome::consensus::grandpa {
         clock_{std::move(clock)},
         scheduler_{std::move(scheduler)},
         authority_manager_(std::move(authority_manager)),
-        synchronizer_(std::move(synchronizer)) {
+        synchronizer_(std::move(synchronizer)),
+        peer_manager_(std::move(peer_manager)) {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
@@ -50,6 +52,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(synchronizer_ != nullptr);
+    BOOST_ASSERT(peer_manager_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
 
@@ -125,7 +128,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(current_round_->finalizable());
     BOOST_ASSERT(current_round_->finalizedBlock() == round_state.finalized);
 
-    executeNextRound(current_round_);
+    executeNextRound(current_round_->roundNumber());
 
     if (not current_round_) {
       return false;
@@ -270,13 +273,11 @@ namespace kagome::consensus::grandpa {
                              .finalized = {{0, genesis_hash}}};
   }
 
-  void GrandpaImpl::executeNextRound(
-      const std::shared_ptr<VotingRound> &round) {
-    if (current_round_ != round) {
+  void GrandpaImpl::executeNextRound(RoundNumber round_number) {
+    if (current_round_->roundNumber() != round_number) {
       return;
     }
 
-    current_round_->end();
     current_round_ = makeNextRound(current_round_);
 
     // Truncate chain of rounds
@@ -306,10 +307,21 @@ namespace kagome::consensus::grandpa {
              peer_id);
 
     if (msg.voter_set_id == current_round_->voterSetId()) {
+      // Check if needed to catch-up peer, then do that
       if (msg.round_number
           >= current_round_->roundNumber() + kCatchUpThreshold) {
         std::ignore = environment_->onCatchUpRequested(
-            peer_id, msg.voter_set_id, msg.round_number - 1);
+            peer_id, msg.voter_set_id, msg.round_number);
+        return;
+      }
+
+      // Iff peer just reached one of recent round, then share known votes
+      auto info = peer_manager_->getPeerState(peer_id);
+      if (not info.has_value() || msg.voter_set_id != info->set_id
+          || msg.round_number > info.has_value()) {
+        if (auto round = selectRound(msg.round_number, msg.voter_set_id)) {
+          environment_->sendState(peer_id, round->state(), msg.voter_set_id);
+        }
       }
     }
   }
@@ -485,7 +497,7 @@ namespace kagome::consensus::grandpa {
                    neighbor_msgs_.end(),
                    [&current](const auto &msg) { return msg < current; });
 
-    executeNextRound(current_round_);
+    executeNextRound(current_round_->roundNumber());
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
@@ -757,7 +769,7 @@ namespace kagome::consensus::grandpa {
     if (current_round_->getPreviousRound() != round) {
       current_round_ = std::move(round);
 
-      executeNextRound(current_round_);
+      executeNextRound(current_round_->roundNumber());
     }
 
     return outcome::success();

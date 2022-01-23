@@ -1330,7 +1330,8 @@ namespace {
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<authority::AuthorityManager>>(),
-        injector.template create<sptr<network::Synchronizer>>());
+        injector.template create<sptr<network::Synchronizer>>(),
+        injector.template create<sptr<network::PeerManager>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();

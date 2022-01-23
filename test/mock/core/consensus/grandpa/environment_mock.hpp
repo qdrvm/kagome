@@ -27,6 +27,13 @@ namespace kagome::consensus::grandpa {
                  const SignedMessage &propose),
                 (override));
 
+    MOCK_METHOD(void,
+                sendState,
+                (const libp2p::peer::PeerId &peer_id,
+                 const MovableRoundState &state,
+                 MembershipCounter set_id),
+                (override));
+
     MOCK_METHOD(outcome::result<void>,
                 onCommitted,
                 (RoundNumber round,
