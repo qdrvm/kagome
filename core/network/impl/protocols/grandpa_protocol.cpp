@@ -464,8 +464,7 @@ namespace kagome::network {
         return false;
       }
 
-      // If a peer is at round r, is impolite to send messages about r-2 or
-      // earlier and extremely impolite to send messages about r+1 or later.
+      // Don't send commit if that has not actual for remote peer already
       if (round_number < info.round_number) {
         SL_DEBUG(
             log_,

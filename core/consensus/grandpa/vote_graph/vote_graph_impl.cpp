@@ -442,7 +442,7 @@ namespace kagome::consensus::grandpa {
         // The block has a vote-node in the graph.
         const Entry &node = entries_.at(block.hash);
 
-        // If the weight is sufficient, we are done.
+        // If the condition is fulfilled, we are done.
         if (condition(node.cumulative_vote)) {
           return block;
         }
