@@ -332,7 +332,7 @@ namespace kagome::consensus::grandpa {
     // different Set ID.
     if (msg.voter_set_id != current_round_->voterSetId()) {
       SL_DEBUG(logger_,
-               "Catch-up request upto round #{} received from {} was rejected: "
+               "Catch-up request to round #{} received from {} was rejected: "
                "impolite, because voter set id are differ (our: {}, their: {})",
                msg.round_number,
                peer_id,
@@ -345,7 +345,7 @@ namespace kagome::consensus::grandpa {
     // announced view is behind `R`.
     if (msg.round_number > current_round_->roundNumber()) {
       SL_DEBUG(logger_,
-               "Catch-up request upto round #{} received from {} was rejected: "
+               "Catch-up request to round #{} received from {} was rejected: "
                "impolite, because our current round is less - {}",
                msg.round_number,
                peer_id,
@@ -356,25 +356,16 @@ namespace kagome::consensus::grandpa {
     auto round = selectRound(msg.round_number, msg.voter_set_id);
     if (round == nullptr) {
       SL_DEBUG(logger_,
-               "Catch-up request upto round #{} received from {} was rejected: "
+               "Catch-up request to round #{} received from {} was rejected: "
                "target round not found",
                msg.round_number,
                peer_id);
       return;
     }
 
-    if (not round->completable()) {
-      SL_DEBUG(logger_,
-               "Catch-up request upto round #{} received from {} was rejected: "
-               "round is not completable",
-               msg.round_number,
-               peer_id);
-      throw std::runtime_error("Need not ensure if it is correct");
-      return;
-    }
     if (not round->finalizable()) {
       SL_DEBUG(logger_,
-               "Catch-up request upto round #{} received from {} was rejected: "
+               "Catch-up request to round #{} received from {} was rejected: "
                "round is not finalizable",
                msg.round_number,
                peer_id);
@@ -383,7 +374,7 @@ namespace kagome::consensus::grandpa {
     }
 
     SL_DEBUG(logger_,
-             "Catch-up request upto round #{} received from {}",
+             "Catch-up request to round #{} received from {}",
              msg.round_number,
              peer_id);
     round->doCatchUpResponse(peer_id);
