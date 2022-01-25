@@ -17,6 +17,9 @@ namespace kagome::consensus::grandpa {
    public:
     virtual ~Grandpa() = default;
 
+    /**
+     * Tries to execute next round for round presented by {@param round_number}
+     */
     virtual void executeNextRound(RoundNumber round_number) = 0;
   };
 

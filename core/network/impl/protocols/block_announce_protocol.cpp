@@ -366,6 +366,8 @@ namespace kagome::network {
 
           self->observer_->onBlockAnnounce(peer_id, block_announce);
 
+          BOOST_ASSERT_MSG(stream->remotePeerId().has_value(),
+                           "peer_id must be known at this moment");
           self->peer_manager_->updatePeerState(stream->remotePeerId().value(),
                                                block_announce);
 

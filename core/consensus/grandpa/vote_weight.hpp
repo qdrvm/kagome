@@ -82,7 +82,7 @@ namespace kagome::consensus::grandpa {
       }
     };
 
-    inline Weight sum(VoteType vote_type) const {
+    Weight sum(VoteType vote_type) const {
       switch (vote_type) {
         case VoteType::Prevote:
           return pv.sum;
@@ -92,7 +92,7 @@ namespace kagome::consensus::grandpa {
       BOOST_UNREACHABLE_RETURN({});
     }
 
-    inline void set(VoteType vote_type, size_t index, size_t weight) {
+    void set(VoteType vote_type, size_t index, size_t weight) {
       switch (vote_type) {
         case VoteType::Prevote:
           return pv.set(index, weight);
@@ -102,7 +102,7 @@ namespace kagome::consensus::grandpa {
       BOOST_UNREACHABLE_RETURN();
     }
 
-    inline void unset(VoteType vote_type, size_t index, size_t weight) {
+    void unset(VoteType vote_type, size_t index, size_t weight) {
       switch (vote_type) {
         case VoteType::Prevote:
           return pv.unset(index, weight);
@@ -112,7 +112,7 @@ namespace kagome::consensus::grandpa {
       BOOST_UNREACHABLE_RETURN();
     }
 
-    inline Weight total(VoteType vote_type,
+    Weight total(VoteType vote_type,
                         const std::vector<bool> &equivocators,
                         const VoterSet &voter_set) const {
       switch (vote_type) {

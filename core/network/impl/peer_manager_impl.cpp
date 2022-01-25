@@ -412,33 +412,6 @@ namespace kagome::network {
     it->second.time = clock_->now();
     it->second.roles = status.roles;
     it->second.best_block = status.best_block;
-
-    //  // Remove from connecting peer list
-    //  connecting_peers_.erase(peer_id);
-    //
-    //  // Remove from queue for connection
-    //  if (auto piq_it = peers_in_queue_.find(peer_id);
-    //      piq_it != peers_in_queue_.end()) {
-    //    auto qtc_it = std::find_if(queue_to_connect_.cbegin(),
-    //                               queue_to_connect_.cend(),
-    //                               [&peer_id = peer_id](const auto &item) {
-    //                                 return peer_id == item.get();
-    //                               });
-    //    queue_to_connect_.erase(qtc_it);
-    //    peers_in_queue_.erase(piq_it);
-    //    BOOST_ASSERT(queue_to_connect_.size() == peers_in_queue_.size());
-    //
-    //    SL_DEBUG(log_,
-    //             "Remained peers in queue for connect: {}",
-    //             peers_in_queue_.size());
-    //  }
-    //
-    //  // Add as active peer
-    //  active_peers_.emplace(peer_id, clock_->now());
-    //  PeerManagerImpl::updatePeerState(peer_id, status);
-    //
-    //  sync_peer_num_->set(active_peers_.size());
-    //  recently_active_peers_.insert(peer_id);
   }
 
   void PeerManagerImpl::updatePeerState(const PeerId &peer_id,

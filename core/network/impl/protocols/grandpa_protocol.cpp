@@ -170,7 +170,7 @@ namespace kagome::network {
                        self->protocol_,
                        stream->remotePeerId().value());
 
-            // Send must first neighbor message
+            // Send neighbor message first
             auto own_peer_state =
                 self->peer_manager_->getPeerState(self->own_info_.id);
             if (own_peer_state.has_value()) {
@@ -341,8 +341,8 @@ namespace kagome::network {
       if (not info_opt.has_value()) {
         SL_DEBUG(
             log_,
-            "Vote signed by {} with set_id={} in round={} has not sent to {}: "
-            "peen is not connected",
+            "Vote signed by {} with set_id={} in round={} "
+            "has not been sent to {}: peen is not connected",
             msg.id(),
             msg.counter,
             msg.round_number,
@@ -357,8 +357,8 @@ namespace kagome::network {
       if (msg.counter != info.set_id) {
         SL_DEBUG(
             log_,
-            "Vote signed by {} with set_id={} in round={} has not sent to {} "
-            "as impolite: their set id is {}",
+            "Vote signed by {} with set_id={} in round={} "
+            "has not been sent to {} as impolite: their set id is {}",
             msg.id(),
             msg.counter,
             msg.round_number,
@@ -372,8 +372,8 @@ namespace kagome::network {
       if (msg.round_number + 2 < info.round_number) {
         SL_DEBUG(
             log_,
-            "Vote signed by {} with set_id={} in round={} has not sent to {} "
-            "as impolite: their round is already {}",
+            "Vote signed by {} with set_id={} in round={} "
+            "has not been sent to {} as impolite: their round is already {}",
             msg.id(),
             msg.counter,
             msg.round_number,
@@ -387,8 +387,8 @@ namespace kagome::network {
       if (msg.round_number > info.round_number) {
         SL_DEBUG(
             log_,
-            "Vote signed by {} with set_id={} in round={} has not sent to {} "
-            "as impolite: their round too old: {}",
+            "Vote signed by {} with set_id={} in round={} "
+            "has not been sent to {} as impolite: their round too old: {}",
             msg.id(),
             msg.counter,
             msg.round_number,
@@ -441,8 +441,8 @@ namespace kagome::network {
       auto info_opt = peer_manager_->getPeerState(peer_id);
       if (not info_opt.has_value()) {
         SL_DEBUG(log_,
-                 "Commit with set_id={} in round={} has not sent to {}: "
-                 "peen is not connected",
+                 "Commit with set_id={} in round={} "
+                 "has not been sent to {}: peen is not connected",
                  set_id,
                  round_number,
                  peer_id);
@@ -455,8 +455,8 @@ namespace kagome::network {
       if (set_id != info.set_id) {
         SL_DEBUG(
             log_,
-            "Commit with set_id={} in round={} has not sent to {} as impolite: "
-            "their set id is {}",
+            "Commit with set_id={} in round={} "
+            "has not been sent to {} as impolite: their set id is {}",
             set_id,
             round_number,
             peer_id,
@@ -468,8 +468,8 @@ namespace kagome::network {
       if (round_number < info.round_number) {
         SL_DEBUG(
             log_,
-            "Commit with set_id={} in round={} has not sent to {} as impolite: "
-            "their round is already {}",
+            "Commit with set_id={} in round={} "
+            "has not been sent to {} as impolite: their round is already {}",
             set_id,
             round_number,
             peer_id,
@@ -482,8 +482,8 @@ namespace kagome::network {
       if (finalizing < info.last_finalized) {
         SL_DEBUG(
             log_,
-            "Commit with set_id={} in round={} has not sent to {} as impolite: "
-            "their round is already {}",
+            "Commit with set_id={} in round={} "
+            "has not been sent to {} as impolite: their round is already {}",
             set_id,
             round_number,
             peer_id,
@@ -517,8 +517,8 @@ namespace kagome::network {
     if (not info_opt.has_value()) {
       SL_DEBUG(
           log_,
-          "Catch-up-request with set_id={} in round={} has not sent to {}: "
-          "peen is not connected",
+          "Catch-up-request with set_id={} in round={} "
+          "has not been sent to {}: peen is not connected",
           catch_up_request.voter_set_id,
           catch_up_request.round_number,
           peer_id);
@@ -530,8 +530,8 @@ namespace kagome::network {
     if (catch_up_request.voter_set_id != info.set_id) {
       SL_DEBUG(
           log_,
-          "Catch-up-request with set_id={} in round={} has not sent to {}: "
-          "different set id",
+          "Catch-up-request with set_id={} in round={} "
+          "has not been sent to {}: different set id",
           catch_up_request.voter_set_id,
           catch_up_request.round_number,
           peer_id);
@@ -543,8 +543,8 @@ namespace kagome::network {
     if (catch_up_request.round_number < info.round_number - 1) {
       SL_DEBUG(
           log_,
-          "Catch-up-request with set_id={} in round={} has not sent to {}: "
-          "too old round for requested",
+          "Catch-up-request with set_id={} in round={} "
+          "has not been sent to {}: too old round for requested",
           catch_up_request.voter_set_id,
           catch_up_request.round_number,
           peer_id);
@@ -568,8 +568,8 @@ namespace kagome::network {
     if (not info_opt.has_value()) {
       SL_DEBUG(
           log_,
-          "Catch-up-response with set_id={} in round={} has not sent to {}: "
-          "peen is not connected",
+          "Catch-up-response with set_id={} in round={} "
+          "has not been sent to {}: peen is not connected",
           catch_up_response.voter_set_id,
           catch_up_response.round_number,
           peer_id);
@@ -581,8 +581,8 @@ namespace kagome::network {
     if (catch_up_response.voter_set_id != info.set_id) {
       SL_DEBUG(
           log_,
-          "Catch-up-response with set_id={} in round={} has not sent to {}: "
-          "different set id",
+          "Catch-up-response with set_id={} in round={} "
+          "has not been sent to {}: different set id",
           catch_up_response.voter_set_id,
           catch_up_response.round_number,
           peer_id);
@@ -593,8 +593,8 @@ namespace kagome::network {
     if (catch_up_response.round_number < info.round_number) {
       SL_DEBUG(
           log_,
-          "Catch-up-response with set_id={} in round={} has not sent to {}: "
-          "is already not actual",
+          "Catch-up-response with set_id={} in round={} "
+          "has not been sent to {}: is already not actual",
           catch_up_response.voter_set_id,
           catch_up_response.round_number,
           peer_id);

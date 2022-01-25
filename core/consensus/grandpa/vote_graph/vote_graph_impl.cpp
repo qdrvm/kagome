@@ -157,7 +157,8 @@ namespace kagome::consensus::grandpa {
                                       return entry_it = entries_.find(ancestor),
                                              entry_it != entries_.end();
                                     });
-    BOOST_ASSERT(ancestry_it != ancestry.end());
+    BOOST_ASSERT_MSG(ancestry_it != ancestry.end(),
+                     "at least one entry presents ancestor of appending block");
 
     // Found entry is got block as descendant
     if (entry_it != entries_.end()) {
