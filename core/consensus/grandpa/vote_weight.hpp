@@ -85,9 +85,9 @@ namespace kagome::consensus::grandpa {
     Weight sum(VoteType vote_type) const {
       switch (vote_type) {
         case VoteType::Prevote:
-          return pv.sum;
+          return prevotes_weight.sum;
         case VoteType::Precommit:
-          return pc.sum;
+          return precommits_weight.sum;
       }
       BOOST_UNREACHABLE_RETURN({});
     }
@@ -95,9 +95,9 @@ namespace kagome::consensus::grandpa {
     void set(VoteType vote_type, size_t index, size_t weight) {
       switch (vote_type) {
         case VoteType::Prevote:
-          return pv.set(index, weight);
+          return prevotes_weight.set(index, weight);
         case VoteType::Precommit:
-          return pc.set(index, weight);
+          return precommits_weight.set(index, weight);
       }
       BOOST_UNREACHABLE_RETURN();
     }
@@ -105,38 +105,39 @@ namespace kagome::consensus::grandpa {
     void unset(VoteType vote_type, size_t index, size_t weight) {
       switch (vote_type) {
         case VoteType::Prevote:
-          return pv.unset(index, weight);
+          return prevotes_weight.unset(index, weight);
         case VoteType::Precommit:
-          return pc.unset(index, weight);
+          return precommits_weight.unset(index, weight);
       }
       BOOST_UNREACHABLE_RETURN();
     }
 
     Weight total(VoteType vote_type,
-                        const std::vector<bool> &equivocators,
-                        const VoterSet &voter_set) const {
+                 const std::vector<bool> &equivocators,
+                 const VoterSet &voter_set) const {
       switch (vote_type) {
         case VoteType::Prevote:
-          return pv.total(equivocators, voter_set);
+          return prevotes_weight.total(equivocators, voter_set);
         case VoteType::Precommit:
-          return pc.total(equivocators, voter_set);
+          return precommits_weight.total(equivocators, voter_set);
       }
       BOOST_UNREACHABLE_RETURN({});
     }
 
     void merge(const VoteWeight &other,
                const std::shared_ptr<VoterSet> &voter_set) {
-      pv.merge(other.pv, voter_set);
-      pc.merge(other.pc, voter_set);
+      prevotes_weight.merge(other.prevotes_weight, voter_set);
+      precommits_weight.merge(other.precommits_weight, voter_set);
     }
 
     bool operator==(const VoteWeight &other) const {
-      return pv == other.pv and pc == other.pc;
+      return prevotes_weight == other.prevotes_weight
+             and precommits_weight == other.precommits_weight;
     }
 
    private:
-    OneTypeVoteWeight pv;
-    OneTypeVoteWeight pc;
+    OneTypeVoteWeight prevotes_weight;
+    OneTypeVoteWeight precommits_weight;
   };
 
 }  // namespace kagome::consensus::grandpa
