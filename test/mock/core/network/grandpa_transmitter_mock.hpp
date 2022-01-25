@@ -14,17 +14,35 @@ namespace kagome::network {
 
   class GrandpaTransmitterMock : public GrandpaTransmitter {
    public:
-    MOCK_METHOD(void, sendVoteMessage, (network::GrandpaVote &), ());
-    void sendVoteMessage(network::GrandpaVote &&msg) override {
-      sendVoteMessage(msg);
-    }
-
     MOCK_METHOD(void,
                 sendNeighborMessage,
                 (network::GrandpaNeighborMessage &),
                 ());
     void sendNeighborMessage(network::GrandpaNeighborMessage &&msg) override {
       sendNeighborMessage(msg);
+    }
+
+    MOCK_METHOD(void,
+                sendVoteMessage,
+                (const libp2p::peer::PeerId &, network::GrandpaVote &),
+                ());
+    void sendVoteMessage(const libp2p::peer::PeerId &peer_id,
+                         network::GrandpaVote &&msg) override {
+      sendVoteMessage(peer_id, msg);
+    }
+
+    MOCK_METHOD(void, sendVoteMessage, (network::GrandpaVote &), ());
+    void sendVoteMessage(network::GrandpaVote &&msg) override {
+      sendVoteMessage(msg);
+    }
+
+    MOCK_METHOD(void,
+                sendCommitMessage,
+                (const libp2p::peer::PeerId &, network::FullCommitMessage &),
+                ());
+    void sendCommitMessage(const libp2p::peer::PeerId &peer_id,
+                           network::FullCommitMessage &&msg) override {
+      sendCommitMessage(peer_id, msg);
     }
 
     MOCK_METHOD(void, sendCommitMessage, (network::FullCommitMessage &), ());
