@@ -311,7 +311,7 @@ namespace kagome::consensus::grandpa {
       if (msg.round_number
           >= current_round_->roundNumber() + kCatchUpThreshold) {
         std::ignore = environment_->onCatchUpRequested(
-            peer_id, msg.voter_set_id, msg.round_number);
+            peer_id, msg.voter_set_id, msg.round_number - 1);
         return;
       }
 
