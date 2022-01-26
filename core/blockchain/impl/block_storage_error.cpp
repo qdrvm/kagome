@@ -22,6 +22,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockStorageError, e) {
       return "Genesis block already exists";
     case E::FINALIZED_BLOCK_NOT_FOUND:
       return "Finalized block not found. Possible storage corrupted";
+    case E::BLOCK_TREE_LEAVES_NOT_FOUND:
+      return "Block tree leaves not found";
     case E::GENESIS_BLOCK_NOT_FOUND:
       return "Genesis block not found";
   }

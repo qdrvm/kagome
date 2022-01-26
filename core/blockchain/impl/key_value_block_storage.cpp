@@ -282,6 +282,43 @@ namespace kagome::blockchain {
     return hash_res.as_failure();
   }
 
+  outcome::result<std::vector<primitives::BlockHash>>
+  KeyValueBlockStorage::loadBlockTreeLeaves() const {
+    if (block_tree_leaves_.has_value()) {
+      return block_tree_leaves_.value();
+    }
+
+    OUTCOME_TRY(leaves_opt,
+                storage_->tryGet(storage::kBlockTreeLeavesLookupKey));
+    if (not leaves_opt.has_value()) {
+      return BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND;
+    }
+
+    OUTCOME_TRY(
+        leaves,
+        scale::decode<std::vector<primitives::BlockHash>>(leaves_opt.value()));
+
+    block_tree_leaves_.emplace(std::move(leaves));
+
+    return block_tree_leaves_.value();
+  }
+
+  outcome::result<void> KeyValueBlockStorage::saveBlockTreeLeaves(
+      std::vector<primitives::BlockHash> leaves) {
+    if (block_tree_leaves_.has_value()
+        and block_tree_leaves_.value() == leaves) {
+      return outcome::success();
+    }
+
+    OUTCOME_TRY(encoded_leaves, scale::encode(leaves));
+    OUTCOME_TRY(storage_->put(storage::kBlockTreeLeavesLookupKey,
+                              Buffer{std::move(encoded_leaves)}));
+
+    block_tree_leaves_.emplace(std::move(leaves));
+
+    return outcome::success();
+  }
+
   outcome::result<primitives::BlockHash>
   KeyValueBlockStorage::getLastFinalizedBlockHash() const {
     if (last_finalized_block_hash_.has_value()) {

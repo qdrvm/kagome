@@ -51,6 +51,11 @@ namespace kagome::blockchain {
 
     outcome::result<primitives::BlockHash> getGenesisBlockHash() const override;
 
+    outcome::result<std::vector<primitives::BlockHash>> loadBlockTreeLeaves()
+        const override;
+    outcome::result<void> saveBlockTreeLeaves(
+        std::vector<primitives::BlockHash> leaves) override;
+
     outcome::result<primitives::BlockHash> getLastFinalizedBlockHash()
         const override;
     outcome::result<void> setLastFinalizedBlockHash(
@@ -96,6 +101,8 @@ namespace kagome::blockchain {
     log::Logger logger_;
     std::optional<primitives::BlockHash> genesis_block_hash_;
     mutable std::optional<primitives::BlockHash> last_finalized_block_hash_;
+    mutable std::optional<std::vector<primitives::BlockHash>>
+        block_tree_leaves_;
   };
 }  // namespace kagome::blockchain
 

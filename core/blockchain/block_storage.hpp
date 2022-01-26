@@ -25,6 +25,11 @@ namespace kagome::blockchain {
     virtual outcome::result<primitives::BlockHash> getGenesisBlockHash()
         const = 0;
 
+    virtual outcome::result<std::vector<primitives::BlockHash>>
+    loadBlockTreeLeaves() const = 0;
+    virtual outcome::result<void> saveBlockTreeLeaves(
+        std::vector<primitives::BlockHash> leaves) = 0;
+
     virtual outcome::result<primitives::BlockHash> getLastFinalizedBlockHash()
         const = 0;
     virtual outcome::result<void> setLastFinalizedBlockHash(
