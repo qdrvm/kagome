@@ -49,7 +49,7 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*app_state_manager, atShutdown(_));
 
     authority_manager = std::make_shared<AuthorityManager>(
-        app_state_manager, block_tree, storage);
+        AuthorityManager::Config{}, app_state_manager, block_tree, storage);
 
     ON_CALL(*block_tree, hasDirectChain(_, _))
         .WillByDefault(testing::Invoke([](auto &anc, auto &des) {

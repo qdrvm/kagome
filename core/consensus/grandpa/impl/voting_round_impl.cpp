@@ -1004,7 +1004,7 @@ namespace kagome::consensus::grandpa {
     // Check if voter is contained in current voter set
     auto inw_res = voter_set_->indexAndWeight(vote.id);
     if (inw_res.has_error()) {
-      logger_->warn("Can't get weight for voter {}: {}",
+      SL_DEBUG(logger_, "Can't get weight for voter {}: {}",
                     vote.id,
                     inw_res.error().message());
       return inw_res.as_failure();

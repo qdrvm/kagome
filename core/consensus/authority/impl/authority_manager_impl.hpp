@@ -33,13 +33,13 @@ namespace kagome::authority {
     inline static const std::vector<primitives::ConsensusEngineId>
         kKnownEngines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
 
-    struct AuthorityManagerConfig {
+    struct Config {
       // e. g. disabled in Polkadot, enabled in Kusama
       bool on_disable_enabled = false;
     };
 
     AuthorityManagerImpl(
-        AuthorityManagerConfig config,
+        Config config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::BufferStorage> storage);
@@ -109,7 +109,7 @@ namespace kagome::authority {
     outcome::result<void> save();
 
     log::Logger log_;
-    AuthorityManagerConfig config_;
+    Config config_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::BufferStorage> storage_;

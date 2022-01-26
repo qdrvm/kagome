@@ -17,7 +17,7 @@
 namespace kagome::authority {
 
   AuthorityManagerImpl::AuthorityManagerImpl(
-      AuthorityManagerConfig config,
+      Config config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::BufferStorage> storage)
