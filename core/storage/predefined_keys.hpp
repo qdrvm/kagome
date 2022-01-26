@@ -15,12 +15,9 @@ namespace kagome::storage {
 
   inline const common::Buffer kExtrinsicIndexKey = ":extrinsic_index"_buf;
 
-  inline const common::Buffer kAuthoritySetKey = "grandpa_voters"_buf;
-
-  inline const common::Buffer kSetStateKey = "grandpa_completed_round"_buf;
-
   inline const common::Buffer kGenesisBlockHashLookupKey =
       ":kagome:genesis_block_hash"_buf;
+
   inline const common::Buffer kLastFinalizedBlockHashLookupKey =
       ":kagome:last_finalized_block_hash"_buf;
 

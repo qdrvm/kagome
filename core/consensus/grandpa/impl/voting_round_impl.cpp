@@ -143,6 +143,7 @@ namespace kagome::consensus::grandpa {
                         clock,
                         scheduler) {
     last_finalized_block_ = round_state.last_finalized_block;
+    finalized_ = round_state.finalized;
 
     if (round_number_ != 0) {
       bool isPrevotesChanged = false;
@@ -180,7 +181,6 @@ namespace kagome::consensus::grandpa {
     } else {
       // Zero-round is always self-finalized
       completable_ = true;
-      finalized_ = round_state.finalized;
     }
   }
 
@@ -574,8 +574,6 @@ namespace kagome::consensus::grandpa {
       sendPrecommit(convertToPrecommit(precommit_.value()));
       return;
     }
-
-    env_->onCompleted(VotingRoundError::LAST_ESTIMATE_BETTER_THAN_PREVOTE);
   }
 
   void VotingRoundImpl::sendPrecommit(const Precommit &precommit) {
@@ -620,8 +618,6 @@ namespace kagome::consensus::grandpa {
               round_number_,
               block);
     }
-
-    env_->onCompleted(state());
   }
 
   void VotingRoundImpl::doCommit() {
@@ -657,11 +653,7 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> VotingRoundImpl::applyJustification(
       const BlockInfo &block_info, const GrandpaJustification &justification) {
     // validate message
-    auto result = validatePrecommitJustification(block_info, justification);
-    if (not result.has_value()) {
-      env_->onCompleted(result.as_failure());
-      return result.as_failure();
-    }
+    OUTCOME_TRY(validatePrecommitJustification(block_info, justification));
 
     SL_DEBUG(logger_,
              "Round #{}: Finalisation of round is received for block {}",
@@ -701,8 +693,6 @@ namespace kagome::consensus::grandpa {
     }
 
     std::ignore = authority_manager_->prune(last_finalized_block_);
-
-    env_->onCompleted(state());
 
     return outcome::success();
   }
