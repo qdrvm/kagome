@@ -31,9 +31,15 @@ namespace kagome::authority {
                                public AuthorityUpdateObserver {
    public:
     inline static const std::vector<primitives::ConsensusEngineId>
-        known_engines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
+        kKnownEngines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
+
+    struct AuthorityManagerConfig {
+      // e. g. disabled in Polkadot, enabled in Kusama
+      bool on_disable_enabled = false;
+    };
 
     AuthorityManagerImpl(
+        AuthorityManagerConfig config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::BufferStorage> storage);
@@ -103,6 +109,7 @@ namespace kagome::authority {
     outcome::result<void> save();
 
     log::Logger log_;
+    AuthorityManagerConfig config_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::BufferStorage> storage_;

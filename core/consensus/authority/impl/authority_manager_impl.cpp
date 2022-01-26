@@ -17,10 +17,12 @@
 namespace kagome::authority {
 
   AuthorityManagerImpl::AuthorityManagerImpl(
+      AuthorityManagerConfig config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::BufferStorage> storage)
       : log_{log::createLogger("AuthorityManager", "authority")},
+        config_{std::move(config)},
         app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
         storage_(std::move(storage)) {
@@ -204,16 +206,9 @@ namespace kagome::authority {
     new_authorities->id = new_node->actual_authorities->id + 1;
 
     // Force changes
-    if (new_node->block.number >= activate_at) {
-      new_node->actual_authorities = std::move(new_authorities);
-    } else {
-      new_node->forced_authorities =
-          std::make_shared<primitives::AuthorityList>(authorities);
-      new_node->forced_for = activate_at;
-    }
 
     SL_VERBOSE(
-        log_, "Change is forced on block #{}", new_node->scheduled_after);
+        log_, "Change is forced on block #{}", activate_at);
     for (auto &authority : *new_node->forced_authorities) {
       SL_VERBOSE(log_,
                  "New authority id={}, weight={}",
@@ -226,7 +221,7 @@ namespace kagome::authority {
       auto &ancestor =
           directChainExists(block, descendant->block) ? new_node : node;
 
-      // Apply forced changes if dalay will be passed for descendant
+      // Apply forced changes if delay has passed for descendant
       if (descendant->block.number >= ancestor->forced_for) {
         descendant->actual_authorities = ancestor->forced_authorities;
         descendant->forced_authorities.reset();
@@ -248,6 +243,9 @@ namespace kagome::authority {
 
   outcome::result<void> AuthorityManagerImpl::applyOnDisabled(
       const primitives::BlockInfo &block, uint64_t authority_index) {
+    if (!config_.on_disable_enabled) {
+      return outcome::success();
+    }
     auto node = getAppropriateAncestor(block);
 
     auto new_node = node->makeDescendant(block);
@@ -264,14 +262,14 @@ namespace kagome::authority {
     new_node->actual_authorities = std::move(authorities);
 
     SL_VERBOSE(log_,
-               "Authotity id={} is disabled on block #{}",
+               "Authority id={} is disabled on block #{}",
                (*authorities)[authority_index].id.id,
                new_node->block.number);
 
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
       if (directChainExists(block, descendant->block)) {
-        // Propogate change to descendants
+        // Propagate change to descendants
         if (descendant->actual_authorities == node->actual_authorities) {
           descendant->actual_authorities = new_node->actual_authorities;
         }
@@ -364,7 +362,7 @@ namespace kagome::authority {
             return outcome::success();
           },
           [](const primitives::OnDisabled &msg) {
-            // Note: This event type wount be used anymore and must be ignored
+            // Note: This event type won't be used anymore and must be ignored
             return outcome::success();
           },
           [](const primitives::NextConfigData &msg) {
@@ -385,9 +383,8 @@ namespace kagome::authority {
             return applyForcedChange(
                 block, msg.authorities, block.number + msg.subchain_length);
           },
-          [](const primitives::OnDisabled &msg) {
-            // Note: This event type wount be used anymore and must be ignored
-            return outcome::success();
+          [this, &block](const primitives::OnDisabled &msg) {
+            return applyOnDisabled(block, msg.authority_index);
           },
           [this, &block](const primitives::Pause &msg) {
             return applyPause(block, block.number + msg.subchain_length);

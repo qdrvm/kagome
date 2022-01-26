@@ -88,9 +88,13 @@ namespace kagome::consensus {
     }
     auto &header = b.header.value();
 
-    if (not block_tree_->getBlockBody(header.parent_hash)) {
+    if (auto body_res = block_tree_->getBlockBody(header.parent_hash);
+        body_res.has_error()
+        && body_res.error() == blockchain::BlockTreeError::NO_SUCH_BLOCK) {
       logger_->warn("Skipping a block with unknown parent");
       return Error::PARENT_NOT_FOUND;
+    } else if (body_res.has_error()) {
+      return body_res.as_failure();
     }
 
     // get current time to measure performance if block execution
@@ -99,7 +103,8 @@ namespace kagome::consensus {
     auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
 
     // check if block body already exists. If so, do not apply
-    if (block_tree_->getBlockBody(block_hash)) {
+    if (auto body_res = block_tree_->getBlockBody(block_hash);
+        body_res.has_value()) {
       SL_DEBUG(logger_,
                "Skip existing block: {}",
                primitives::BlockInfo(header.number, block_hash));
@@ -107,6 +112,10 @@ namespace kagome::consensus {
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
 
       return blockchain::BlockTreeError::BLOCK_EXISTS;
+    } else if (body_res.has_error()
+               && body_res.error()
+                      != blockchain::BlockTreeError::NO_SUCH_BLOCK) {
+      return body_res.as_failure();
     }
 
     if (not b.body.has_value()) {
