@@ -1323,7 +1323,7 @@ namespace {
         injector.template create<sptr<authority::AuthorityManager>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<network::PeerManager>>(),
-        injector.template create<sptr<blockchain::BlockStorage>>());
+        injector.template create<sptr<blockchain::BlockTree>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();

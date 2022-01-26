@@ -12,7 +12,6 @@
 #include <boost/operators.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/grandpa/environment.hpp"
@@ -52,7 +51,7 @@ namespace kagome::consensus::grandpa {
                 std::shared_ptr<authority::AuthorityManager> authority_manager,
                 std::shared_ptr<network::Synchronizer> synchronizer,
                 std::shared_ptr<network::PeerManager> peer_manager,
-                std::shared_ptr<blockchain::BlockStorage> block_storage);
+                std::shared_ptr<blockchain::BlockTree> block_tree);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -122,7 +121,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;
-    std::shared_ptr<blockchain::BlockStorage> block_storage_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
