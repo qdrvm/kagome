@@ -27,7 +27,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
 })");
 
     expect_getAncestry(GENESIS_HASH, "B"_H, vec("B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({2, "B"_H}, "w0_a"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {2, "B"_H}, "w0_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -59,7 +59,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
 
     expect_getAncestry(
         GENESIS_HASH, "C"_H, vec("C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({3, "C"_H}, "w5_a"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {3, "C"_H}, "w5_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -102,7 +102,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
     expect_getAncestry(GENESIS_HASH,
                        "E1"_H,
                        vec("E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({5, "E1"_H}, "w5_b"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {5, "E1"_H}, "w5_b"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -157,7 +157,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         GENESIS_HASH,
         "F2"_H,
         vec("F2"_H, "E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({6, "F2"_H}, "w5_c"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {6, "F2"_H}, "w5_c"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -223,7 +223,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
 
   auto check = [&](const std::optional<BlockInfo> &block) {
     auto ghostOpt =
-        graph->findGhost(block, [](auto &&x) { return x.sum >= 7; });
+        graph->findGhost(vt, block, [](auto &&x) { return x.sum(vt) >= 7; });
     ASSERT_TRUE(ghostOpt);
     BlockInfo EXPECTED(3, "C"_H);
     ASSERT_EQ(*ghostOpt, EXPECTED);

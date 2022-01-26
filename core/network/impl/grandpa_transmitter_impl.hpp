@@ -15,11 +15,21 @@ namespace kagome::network {
    public:
     GrandpaTransmitterImpl(std::shared_ptr<Router> router);
 
-    void sendVoteMessage(GrandpaVote &&message) override;
     void sendNeighborMessage(GrandpaNeighborMessage &&message) override;
+
+    void sendVoteMessage(const libp2p::peer::PeerId &peer_id,
+                         GrandpaVote &&message) override;
+
+    void sendVoteMessage(GrandpaVote &&message) override;
+
+    void sendCommitMessage(const libp2p::peer::PeerId &peer_id,
+                           FullCommitMessage &&message) override;
+
     void sendCommitMessage(FullCommitMessage &&message) override;
+
     void sendCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                             CatchUpRequest &&message) override;
+
     void sendCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                              CatchUpResponse &&message) override;
 

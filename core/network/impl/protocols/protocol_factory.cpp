@@ -47,7 +47,6 @@ namespace kagome::network {
                                                    block_tree_.lock(),
                                                    storage_,
                                                    babe_.lock(),
-                                                   hasher_,
                                                    peer_manager_.lock());
   }
 
@@ -58,7 +57,8 @@ namespace kagome::network {
                                              app_config_,
                                              grandpa_observer_.lock(),
                                              own_info_,
-                                             stream_engine_);
+                                             stream_engine_,
+                                             peer_manager_.lock());
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>

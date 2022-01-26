@@ -26,8 +26,6 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(BlockInfo, bestPrevoteCandidate, (), (override));
 
-    MOCK_METHOD(BlockInfo, bestPrecommitCandidate, (), (override));
-
     MOCK_METHOD(BlockInfo, bestFinalCandidate, (), (override));
 
     MOCK_METHOD(std::optional<BlockInfo>,
@@ -51,8 +49,6 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(void, doCommit, (), (override));
 
-    MOCK_METHOD(void, doCatchUpRequest, (const libp2p::peer::PeerId &), ());
-
     MOCK_METHOD(void,
                 doCatchUpResponse,
                 (const libp2p::peer::PeerId &),
@@ -74,6 +70,13 @@ namespace kagome::consensus::grandpa {
                 (override));
 
     MOCK_METHOD(void, update, (bool, bool), (override));
+
+    MOCK_METHOD(std::shared_ptr<VotingRound>,
+                getPreviousRound,
+                (),
+                (const, override));
+
+    MOCK_METHOD(void, forgetPreviousRound, (), (override));
 
     MOCK_METHOD(outcome::result<void>,
                 applyJustification,
