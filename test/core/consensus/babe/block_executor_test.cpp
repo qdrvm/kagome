@@ -132,7 +132,7 @@ TEST_F(BlockExecutorTest, DigestsFollowJustification) {
   kagome::primitives::BlockData block_data{
       .hash = "some_block"_hash256,
       .header = header,
-      .body{kagome::primitives::BlockBody{}},
+      .body = kagome::primitives::BlockBody{},
       .justification = justification};
   EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"parent_hash"_hash256}))
       .WillOnce(testing::Return(kagome::primitives::BlockBody{}));
