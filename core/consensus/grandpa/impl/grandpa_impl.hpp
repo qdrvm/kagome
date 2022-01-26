@@ -22,6 +22,7 @@
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
+#include "network/peer_manager.hpp"
 #include "network/synchronizer.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
 #include "storage/buffer_map_types.hpp"
@@ -62,6 +63,13 @@ namespace kagome::consensus::grandpa {
                       public GrandpaObserver,
                       public std::enable_shared_from_this<GrandpaImpl> {
    public:
+    /// Maximum number of rounds we are behind a peer before issuing a catch up
+    /// request.
+    static const size_t kCatchUpThreshold = 2;
+
+    /// Maximum number of rounds we are keep to communication
+    static const size_t kKeepRecentRounds = 3;
+
     ~GrandpaImpl() override = default;
 
     GrandpaImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -71,9 +79,10 @@ namespace kagome::consensus::grandpa {
                 std::shared_ptr<runtime::GrandpaApi> grandpa_api,
                 const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
                 std::shared_ptr<Clock> clock,
-                std::shared_ptr<boost::asio::io_context> io_context,
+                std::shared_ptr<libp2p::basic::Scheduler> scheduler,
                 std::shared_ptr<authority::AuthorityManager> authority_manager,
-                std::shared_ptr<network::Synchronizer> synchronizer);
+                std::shared_ptr<network::Synchronizer> synchronizer,
+                std::shared_ptr<network::PeerManager> peer_manager);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -111,7 +120,7 @@ namespace kagome::consensus::grandpa {
 
     // Round processing method
 
-    void executeNextRound() override;
+    void executeNextRound(RoundNumber round_number) override;
 
    private:
     std::shared_ptr<VotingRound> selectRound(
@@ -129,16 +138,11 @@ namespace kagome::consensus::grandpa {
 
     void onCompletedRound(outcome::result<MovableRoundState> round_state_res);
 
-    void tryCatchUp(const libp2p::peer::PeerId &peer_id,
-                    const FullRound &next,
-                    const FullRound &curr);
-
     // Note: Duration value was gotten from substrate
     // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166
     // Perhaps, 333ms is not enough for normal communication during the round
     const Clock::Duration round_time_factor_ = std::chrono::milliseconds(333);
 
-    std::shared_ptr<VotingRound> previous_round_;
     std::shared_ptr<VotingRound> current_round_;
 
     std::shared_ptr<Environment> environment_;
@@ -147,9 +151,10 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
     std::shared_ptr<Clock> clock_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
+    std::shared_ptr<network::PeerManager> peer_manager_;
 
     std::vector<FullRound> neighbor_msgs_{};
 

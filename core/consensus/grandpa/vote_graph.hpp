@@ -9,6 +9,7 @@
 #include <boost/operators.hpp>
 
 #include "consensus/grandpa/chain.hpp"
+#include "consensus/grandpa/vote_types.hpp"
 #include "consensus/grandpa/vote_weight.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -21,6 +22,8 @@ namespace kagome::consensus::grandpa {
     // graph entry
     struct Entry : public boost::equality_comparable<Entry> {
       BlockNumber number{};
+      /// ancestor hashes in reverse order, e.g. ancestors[0] is the parent and
+      /// the last entry is the hash of the parent vote-node.
       std::vector<BlockHash> ancestors{};
       std::vector<BlockHash> descendants{};
       VoteWeight cumulative_vote;
@@ -68,16 +71,20 @@ namespace kagome::consensus::grandpa {
     /// should be in reverse order from the old base's parent.
     virtual void adjustBase(const std::vector<BlockHash> &ancestry_proof) = 0;
 
-    /// Insert a {@param vote} of {@param voter}
-    virtual outcome::result<void> insert(const BlockInfo &vote, Id voter) = 0;
+    /// Insert vote {@param vote_type} of {@param voter} for {@param block}
+    virtual outcome::result<void> insert(VoteType vote_type,
+                                         const BlockInfo &block,
+                                         const Id &voter) = 0;
 
-    /// Remove a {@param vote} of {@param voter}
-    virtual void remove(Id voter) = 0;
+    /// Remove vote {@param vote_type} of {@param voter}
+    virtual void remove(VoteType vote_type, const Id &voter) = 0;
 
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
     virtual std::optional<BlockInfo> findAncestor(
-        const BlockInfo &block, const Condition &condition) const = 0;
+        VoteType vote_type,
+        const BlockInfo &block,
+        const Condition &condition) const = 0;
 
     /// Find the best GHOST descendant of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
@@ -93,6 +100,7 @@ namespace kagome::consensus::grandpa {
     /// Returns `None` when the given `current_best` does not fulfill the
     /// condition.
     virtual std::optional<BlockInfo> findGhost(
+        VoteType vote_type,
         const std::optional<BlockInfo> &current_best,
         const Condition &condition) const = 0;
   };

@@ -31,7 +31,7 @@ struct WalkBackFromBlockInEdgeForkBelow
 })");
 
     expect_getAncestry(GENESIS_HASH, "B"_H, vec("B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({2, "B"_H}, "w10_a"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {2, "B"_H}, "w10_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -65,7 +65,7 @@ struct WalkBackFromBlockInEdgeForkBelow
         GENESIS_HASH,
         "F1"_H,
         vec("F1"_H, "E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({6, "F1"_H}, "w5_a"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {6, "F1"_H}, "w5_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -112,7 +112,7 @@ struct WalkBackFromBlockInEdgeForkBelow
         GENESIS_HASH,
         "G2"_H,
         vec("G2"_H, "F2"_H, "E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({7, "G2"_H}, "w5_b"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {7, "G2"_H}, "w5_b"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -173,12 +173,22 @@ struct WalkBackFromBlockInEdgeForkBelow
 
 TEST_P(WalkBackFromBlockInEdgeForkBelow, FindAncestor) {
   BlockInfo block = GetParam();
-  auto ancestorOpt =
-      graph->findAncestor(block, [](auto &&x) { return x.sum > 5; });
 
-  ASSERT_TRUE(ancestorOpt) << "number: " << block.number << " "
-                           << "hash: " << block.hash.toHex();
-  ASSERT_EQ(*ancestorOpt, EXPECTED);
+  auto result =
+      graph->findAncestor(vt, block, [](auto &&x) { return x.sum(vt) > 5; });
+
+  ASSERT_TRUE(result.has_value())
+      << '#' << block.number << ' ' << block.hash.toString().c_str()
+      << " - none\n";
+
+  const auto &actual = result.value();
+  const auto &expected = EXPECTED;
+
+  ASSERT_EQ(actual, expected)
+      << '#' << block.number << ' ' << block.hash.toString().c_str() << " - "
+      << "actual: #" << actual.number << ' ' << actual.hash.toString().c_str()
+      << ", expected: #" << expected.number << " "
+      << expected.hash.toString().c_str() << "\n";
 }
 
 const std::vector<BlockInfo> test_cases = {{

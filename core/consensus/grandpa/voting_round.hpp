@@ -14,7 +14,8 @@ namespace kagome::consensus::grandpa {
   /**
    * Handles execution of one grandpa round. For details @see VotingRoundImpl
    */
-  struct VotingRound : public std::enable_shared_from_this<VotingRound> {
+  class VotingRound : public std::enable_shared_from_this<VotingRound> {
+   public:
     virtual ~VotingRound() = default;
 
     // Getters
@@ -39,13 +40,6 @@ namespace kagome::consensus::grandpa {
      * @see spec: Best-PreVote-Candidate
      */
     virtual BlockInfo bestPrevoteCandidate() = 0;
-
-    /**
-     * Block what has prevote supermajority.
-     * @see spec: Best-PreVote-Candidate
-     * @see spec: Ghost-Function
-     */
-    virtual BlockInfo bestPrecommitCandidate() = 0;
 
     /**
      * Block what has precommit supermajority.
@@ -128,6 +122,16 @@ namespace kagome::consensus::grandpa {
     virtual void update(bool isPrevotesChanged, bool isPrecommitsChanged) = 0;
 
     // Auxiliary methods
+
+    /**
+     * @returns previous known round for current
+     */
+    virtual std::shared_ptr<VotingRound> getPreviousRound() const = 0;
+
+    /**
+     * Removes previous round to limit chain of rounds
+     */
+    virtual void forgetPreviousRound() = 0;
 
     virtual outcome::result<void> applyJustification(
         const BlockInfo &block_info,

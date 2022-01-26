@@ -8,9 +8,10 @@
 
 #include "consensus/grandpa/vote_weight.hpp"
 
-inline kagome::consensus::grandpa::VoteWeight makeVoteWeight(uint64_t s) {
+inline kagome::consensus::grandpa::VoteWeight makeVoteWeight(uint64_t w) {
   kagome::consensus::grandpa::VoteWeight v;
-  v.sum = s;
+  v.set(kagome::consensus::grandpa::VoteType::Prevote, 0, w);
+  v.set(kagome::consensus::grandpa::VoteType::Precommit, 0, w);
   return v;
 }
 

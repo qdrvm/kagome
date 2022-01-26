@@ -20,16 +20,30 @@ namespace kagome::network {
     protocol->neighbor(std::move(message));
   }
 
+  void GrandpaTransmitterImpl::sendVoteMessage(
+      const libp2p::peer::PeerId &peer_id, GrandpaVote &&message) {
+    auto protocol = router_->getGrandpaProtocol();
+    BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
+    protocol->vote(std::move(message), peer_id);
+  }
+
   void GrandpaTransmitterImpl::sendVoteMessage(GrandpaVote &&message) {
     auto protocol = router_->getGrandpaProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
-    protocol->vote(std::move(message));
+    protocol->vote(std::move(message), std::nullopt);
+  }
+
+  void GrandpaTransmitterImpl::sendCommitMessage(
+      const libp2p::peer::PeerId &peer_id, FullCommitMessage &&message) {
+    auto protocol = router_->getGrandpaProtocol();
+    BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
+    protocol->finalize(std::move(message), peer_id);
   }
 
   void GrandpaTransmitterImpl::sendCommitMessage(FullCommitMessage &&message) {
     auto protocol = router_->getGrandpaProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide grandpa protocol");
-    protocol->finalize(std::move(message));
+    protocol->finalize(std::move(message), std::nullopt);
   }
 
   void GrandpaTransmitterImpl::sendCatchUpRequest(const PeerId &peer_id,

@@ -20,7 +20,7 @@ namespace kagome::metrics {
 
   /**
    * @brief A counter metric to represent a monotonically increasing value.
-   * 
+   *
    * This class represents the metric type counter:
    * https://prometheus.io/docs/concepts/metric_types/#counter
    */
@@ -42,7 +42,7 @@ namespace kagome::metrics {
   /**
    * @brief A gauge metric to represent a value that can arbitrarily go up and
    * down.
-   * 
+   *
    * The class represents the metric type gauge:
    * https://prometheus.io/docs/concepts/metric_types/#gauge
    */
@@ -74,12 +74,17 @@ namespace kagome::metrics {
      * @brief Set the gauge to the given value.
      */
     virtual void set(double val) = 0;
+
+    template <typename T>
+    void set(T val) {
+      set(static_cast<double>(val));
+    }
   };
 
   /**
    * @brief A summary metric samples observations over a sliding window of
    * time.
-   * 
+   *
    * This class represents the metric type summary:
    * https://prometheus.io/docs/instrumenting/writing_clientlibs/#summary
    */
@@ -96,7 +101,7 @@ namespace kagome::metrics {
   /**
    * @brief A histogram metric to represent aggregatable distributions of
    * events.
-   * 
+   *
    * This class represents the metric type histogram:
    * https://prometheus.io/docs/concepts/metric_types/#histogram
    */

@@ -38,7 +38,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
                            "B"_H,
                            "A"_H,
                            GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({9, "FC"_H}, "w5_a"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {9, "FC"_H}, "w5_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -87,7 +87,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
                            "B"_H,
                            "A"_H,
                            GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({9, "ED"_H}, "w7_a"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {9, "ED"_H}, "w7_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -144,16 +144,16 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
   }
 
   {
-    auto ghostOpt =
-        graph->findGhost(std::nullopt, [](auto &&x) { return x.sum >= 5; });
+    auto ghostOpt = graph->findGhost(
+        vt, std::nullopt, [](auto &&x) { return x.sum(vt) >= 5; });
     ASSERT_TRUE(ghostOpt);
     ASSERT_EQ(*ghostOpt, BlockInfo(9, "ED"_H))
         << "The best block of blocks with enough weight should be selected";
   }
 
   {
-    auto ghostOpt =
-        graph->findGhost(std::nullopt, [](auto &&x) { return x.sum >= 10; });
+    auto ghostOpt = graph->findGhost(
+        vt, std::nullopt, [](auto &&x) { return x.sum(vt) >= 10; });
     ASSERT_TRUE(ghostOpt);
     ASSERT_EQ(*ghostOpt, BlockInfo(5, "E"_H))
         << "A highest-weighted of blocks with enough weight should be selected";
@@ -161,7 +161,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
 
   {  // introduce branch in the middle
     // do not expect that insert is calling getAncestry
-    EXPECT_OUTCOME_TRUE_1(graph->insert({5, "E"_H}, "w3_a"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {5, "E"_H}, "w3_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -226,7 +226,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
                    const std::optional<BlockInfo> &expected,
                    std::string_view comment) {
     auto ghostOpt = graph->findGhost(
-        block, [&weight](auto &&x) { return x.sum >= weight; });
+        vt, block, [&weight](auto &&x) { return x.sum(vt) >= weight; });
     ASSERT_TRUE(ghostOpt) << comment;
     ASSERT_EQ(*ghostOpt, *expected) << comment;
   };
