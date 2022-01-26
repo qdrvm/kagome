@@ -50,6 +50,9 @@ struct BlockTreeTest : public testing::Test {
 
   void SetUp() override {
     // for LevelDbBlockTree::create(..)
+    EXPECT_CALL(*storage_, getLastFinalizedBlockHash())
+        .WillOnce(Return(kFinalizedBlockInfo.hash));
+
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillOnce(Return(finalized_block_header_));
 
@@ -81,7 +84,6 @@ struct BlockTreeTest : public testing::Test {
 
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
-                                        kLastFinalizedBlockId,
                                         extrinsic_observer_,
                                         hasher_,
                                         chain_events_engine,

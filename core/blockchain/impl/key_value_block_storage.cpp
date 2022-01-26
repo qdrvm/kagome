@@ -5,34 +5,10 @@
 
 #include "blockchain/impl/key_value_block_storage.hpp"
 
+#include "blockchain/block_storage_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "scale/scale.hpp"
 #include "storage/database_error.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain,
-                            KeyValueBlockStorage::Error,
-                            e) {
-  using E = kagome::blockchain::KeyValueBlockStorage::Error;
-  switch (e) {
-    case E::BLOCK_EXISTS:
-      return "Block already exists on the chain";
-    case E::HEADER_DOES_NOT_EXIST:
-      return "Block header was not found";
-    case E::BODY_DOES_NOT_EXIST:
-      return "Block body was not found";
-    case E::BLOCK_DATA_DOES_NOT_EXIST:
-      return "Block data was not found";
-    case E::JUSTIFICATION_DOES_NOT_EXIST:
-      return "Justification was not found";
-    case E::GENESIS_BLOCK_ALREADY_EXISTS:
-      return "Genesis block already exists";
-    case E::FINALIZED_BLOCK_NOT_FOUND:
-      return "Finalized block not found. Possible storage corrupted";
-    case E::GENESIS_BLOCK_NOT_FOUND:
-      return "Genesis block not found exists";
-  }
-  return "Unknown error";
-}
 
 namespace kagome::blockchain {
   using primitives::Block;
@@ -66,7 +42,7 @@ namespace kagome::blockchain {
     }
 
     if (last_finalized_block_hash_res
-        == outcome::failure(Error::FINALIZED_BLOCK_NOT_FOUND)) {
+        == outcome::failure(BlockStorageError::FINALIZED_BLOCK_NOT_FOUND)) {
       return createWithGenesis(
           std::move(state_root), storage, hasher, on_finalized_block_found);
     }
@@ -140,7 +116,7 @@ namespace kagome::blockchain {
           scale::decode<primitives::BlockHeader>(encoded_header_opt.value()));
       return std::move(header);
     }
-    return Error::HEADER_DOES_NOT_EXIST;
+    return BlockStorageError::HEADER_DOES_NOT_EXIST;
   }
 
   outcome::result<primitives::BlockBody> KeyValueBlockStorage::getBlockBody(
@@ -149,7 +125,7 @@ namespace kagome::blockchain {
     if (block_data.body) {
       return block_data.body.value();
     }
-    return Error::BODY_DOES_NOT_EXIST;
+    return BlockStorageError::BODY_DOES_NOT_EXIST;
   }
 
   outcome::result<primitives::BlockData> KeyValueBlockStorage::getBlockData(
@@ -162,7 +138,7 @@ namespace kagome::blockchain {
           scale::decode<primitives::BlockData>(encoded_block_data_opt.value()));
       return std::move(block_data);
     }
-    return Error::BLOCK_DATA_DOES_NOT_EXIST;
+    return BlockStorageError::BLOCK_DATA_DOES_NOT_EXIST;
   }
 
   outcome::result<primitives::Justification>
@@ -172,7 +148,7 @@ namespace kagome::blockchain {
     if (block_data.justification) {
       return block_data.justification.value();
     }
-    return Error::JUSTIFICATION_DOES_NOT_EXIST;
+    return BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST;
   }
 
   outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlockHeader(
@@ -233,7 +209,7 @@ namespace kagome::blockchain {
     auto block_in_storage_res =
         getWithPrefix(*storage_, Prefix::HEADER, block_hash);
     if (block_in_storage_res.has_value()) {
-      return Error::BLOCK_EXISTS;
+      return BlockStorageError::BLOCK_EXISTS;
     }
     if (block_in_storage_res
         != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
@@ -300,7 +276,7 @@ namespace kagome::blockchain {
     }
 
     if (hash_res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-      return Error::GENESIS_BLOCK_NOT_FOUND;
+      return BlockStorageError::GENESIS_BLOCK_NOT_FOUND;
     }
 
     return hash_res.as_failure();
@@ -308,13 +284,21 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHash>
   KeyValueBlockStorage::getLastFinalizedBlockHash() const {
+    if (last_finalized_block_hash_.has_value()) {
+      return last_finalized_block_hash_.value();
+    }
+
     OUTCOME_TRY(hash_opt,
                 storage_->tryGet(storage::kLastFinalizedBlockHashLookupKey));
     if (not hash_opt.has_value()) {
-      return Error::FINALIZED_BLOCK_NOT_FOUND;
+      return BlockStorageError::FINALIZED_BLOCK_NOT_FOUND;
     }
+
     primitives::BlockHash hash;
     std::copy(hash_opt.value().begin(), hash_opt.value().end(), hash.begin());
+
+    last_finalized_block_hash_.emplace(hash);
+
     return hash;
   }
 
@@ -322,14 +306,14 @@ namespace kagome::blockchain {
       const primitives::BlockHash &hash) {
     OUTCOME_TRY(
         storage_->put(storage::kLastFinalizedBlockHashLookupKey, Buffer{hash}));
-
+    last_finalized_block_hash_.emplace(hash);
     return outcome::success();
   }
 
   outcome::result<void> KeyValueBlockStorage::ensureGenesisNotExists() const {
     auto res = getLastFinalizedBlockHash();
     if (res.has_value()) {
-      return Error::GENESIS_BLOCK_ALREADY_EXISTS;
+      return BlockStorageError::GENESIS_BLOCK_ALREADY_EXISTS;
     }
     return outcome::success();
   }

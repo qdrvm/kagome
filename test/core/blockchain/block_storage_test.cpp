@@ -6,6 +6,8 @@
 #include "blockchain/impl/key_value_block_storage.hpp"
 
 #include <gtest/gtest.h>
+
+#include "blockchain/block_storage_error.hpp"
 #include "blockchain/impl/common.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
@@ -14,6 +16,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::blockchain::BlockStorageError;
 using kagome::blockchain::KeyValueBlockStorage;
 using kagome::common::Buffer;
 using kagome::crypto::HasherMock;
@@ -23,9 +26,9 @@ using kagome::primitives::BlockData;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
-using scale::encode;
 using kagome::storage::face::GenericStorageMock;
 using kagome::storage::trie::RootHash;
+using scale::encode;
 using testing::_;
 using testing::Return;
 
@@ -99,11 +102,10 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
       // trying to get last finalized block hash to ensure he not exists yet
       .WillOnce(Return(Buffer{genesis_block_hash}));
 
-  EXPECT_OUTCOME_ERROR(
-      res,
-      KeyValueBlockStorage::createWithGenesis(
-          root_hash, storage, hasher, block_handler),
-      KeyValueBlockStorage::Error::GENESIS_BLOCK_ALREADY_EXISTS);
+  EXPECT_OUTCOME_ERROR(res,
+                       KeyValueBlockStorage::createWithGenesis(
+                           root_hash, storage, hasher, block_handler),
+                       BlockStorageError::GENESIS_BLOCK_ALREADY_EXISTS);
 }
 
 /**
@@ -136,12 +138,12 @@ TEST_F(BlockStorageTest, LoadFromEmptyStorage) {
 
   EXPECT_CALL(*empty_storage, tryGet(_))
       // trying to get last finalized block hash to ensure he not exists yet
-      .WillOnce(Return(KeyValueBlockStorage::Error::FINALIZED_BLOCK_NOT_FOUND));
+      .WillOnce(Return(BlockStorageError::FINALIZED_BLOCK_NOT_FOUND));
 
   EXPECT_OUTCOME_ERROR(
       res,
       KeyValueBlockStorage::loadExisting(empty_storage, hasher, block_handler),
-      KeyValueBlockStorage::Error::FINALIZED_BLOCK_NOT_FOUND);
+      BlockStorageError::FINALIZED_BLOCK_NOT_FOUND);
 }
 
 /**
@@ -201,7 +203,7 @@ TEST_F(BlockStorageTest, PutExistingBlock) {
   Block block;
 
   EXPECT_OUTCOME_FALSE(res, block_storage->putBlock(block));
-  ASSERT_EQ(res, KeyValueBlockStorage::Error::BLOCK_EXISTS);
+  ASSERT_EQ(res, BlockStorageError::BLOCK_EXISTS);
 }
 
 /**

@@ -19,17 +19,6 @@ namespace kagome::blockchain {
    public:
     using BlockHandler = std::function<void(const primitives::Block &)>;
 
-    enum class Error {
-      BLOCK_EXISTS = 1,
-      HEADER_DOES_NOT_EXIST,
-      BODY_DOES_NOT_EXIST,
-      BLOCK_DATA_DOES_NOT_EXIST,
-      JUSTIFICATION_DOES_NOT_EXIST,
-      GENESIS_BLOCK_ALREADY_EXISTS,
-      GENESIS_BLOCK_NOT_FOUND,
-      FINALIZED_BLOCK_NOT_FOUND,
-    };
-
     ~KeyValueBlockStorage() override = default;
 
     static outcome::result<std::shared_ptr<KeyValueBlockStorage>> create(
@@ -106,9 +95,8 @@ namespace kagome::blockchain {
     std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger_;
     std::optional<primitives::BlockHash> genesis_block_hash_;
+    mutable std::optional<primitives::BlockHash> last_finalized_block_hash_;
   };
 }  // namespace kagome::blockchain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, KeyValueBlockStorage::Error);
 
 #endif  // KAGOME_KEY_VALUE_BLOCK_STORAGE_HPP

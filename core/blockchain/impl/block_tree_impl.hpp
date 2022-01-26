@@ -64,7 +64,6 @@ namespace kagome::blockchain {
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
-        const primitives::BlockId &last_finalized_block,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,

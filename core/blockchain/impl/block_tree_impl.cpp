@@ -7,6 +7,7 @@
 
 #include <algorithm>
 
+#include "blockchain/block_storage_error.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
 #include "blockchain/impl/common.hpp"
@@ -43,7 +44,6 @@ namespace kagome::blockchain {
   outcome::result<std::shared_ptr<BlockTreeImpl>> BlockTreeImpl::create(
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
-      const primitives::BlockId &last_finalized_block,
       std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -55,11 +55,28 @@ namespace kagome::blockchain {
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
       std::shared_ptr<consensus::BabeUtil> babe_util) {
+    BOOST_ASSERT(storage != nullptr);
+
+    log::Logger log = log::createLogger("BlockTree", "blockchain");
+
+    primitives::BlockId last_finalized_block;
+
+    // fallback way to get last finalized
+    auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
+    if (last_finalized_block_res.has_value()) {
+      last_finalized_block = last_finalized_block_res.value();
+    } else if (last_finalized_block_res
+               == outcome::failure(
+                   BlockStorageError::FINALIZED_BLOCK_NOT_FOUND)) {
+      OUTCOME_TRY(genesis_hash, storage->getGenesisBlockHash());
+      last_finalized_block = std::move(genesis_hash);
+    } else {
+      return last_finalized_block_res.as_failure();
+    }
+
     // create meta structures from the retrieved header
     OUTCOME_TRY(hash, header_repo->getHashById(last_finalized_block));
     OUTCOME_TRY(number, header_repo->getNumberById(last_finalized_block));
-
-    log::Logger log = log::createLogger("BlockTree", "blockchain");
 
     std::optional<consensus::EpochNumber> curr_epoch_number;
     std::optional<consensus::EpochDigest> curr_epoch;

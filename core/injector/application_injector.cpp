@@ -581,13 +581,6 @@ namespace {
 
     auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
 
-    auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
-
-    const auto block_id =
-        last_finalized_block_res.has_value()
-            ? primitives::BlockId{last_finalized_block_res.value()}
-            : primitives::BlockId{0};
-
     auto extrinsic_observer =
         injector.template create<sptr<network::ExtrinsicObserver>>();
 
@@ -614,7 +607,6 @@ namespace {
     auto block_tree_res =
         blockchain::BlockTreeImpl::create(header_repo,
                                           std::move(storage),
-                                          std::move(block_id),
                                           std::move(extrinsic_observer),
                                           std::move(hasher),
                                           chain_events_engine,
