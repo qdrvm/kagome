@@ -59,11 +59,42 @@ namespace kagome::blockchain {
 
     log::Logger log = log::createLogger("BlockTree", "blockchain");
 
+    std::vector<primitives::BlockHash> block_tree_leaves;
+    auto block_tree_leaves_res = storage->loadBlockTreeLeaves();
+    if (block_tree_leaves_res.has_value()) {
+      std::swap(block_tree_leaves, block_tree_leaves_res.value());
+    } else if (block_tree_leaves_res
+               == outcome::failure(
+                   BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND)) {
+      OUTCOME_TRY(genesis_hash, storage->getGenesisBlockHash());
+      block_tree_leaves.emplace_back(std::move(genesis_hash));
+    } else {
+      return block_tree_leaves_res.as_failure();
+    }
+
     primitives::BlockId last_finalized_block;
+
+    // Find the least leaf
+    primitives::BlockInfo least_leaf(
+        std::numeric_limits<primitives::BlockNumber>::max(), {});
+    for (auto hash : block_tree_leaves) {
+      OUTCOME_TRY(number, header_repo->getNumberById(hash));
+      if (number < least_leaf.number) {
+        least_leaf = {number, hash};
+      }
+    }
+
+    // TODO: Implement search of last finalized block using leaves
 
     // fallback way to get last finalized
     auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
     if (last_finalized_block_res.has_value()) {
+      // TODO: Uncomment after search of last finalized block
+      //       using leaves will be implemented
+      // BOOST_ASSERT_MSG(
+      //     last_finalized_block
+      //         == primitives::BlockId{last_finalized_block_res.value()},
+      //     "Saved finalized and calculated using leaves must be equal");
       last_finalized_block = last_finalized_block_res.value();
     } else if (last_finalized_block_res
                == outcome::failure(
@@ -880,11 +911,12 @@ namespace kagome::blockchain {
          current_node = current_node->parent.lock()) {
       // DFS-on-deque
       to_remove.emplace_back();  // Waterbreak
-      std::copy_if(
-          current_node->children.begin(),
-          current_node->children.end(),
-          std::back_inserter(to_remove),
-          [&following_node](const auto &child) { return child != following_node; });
+      std::copy_if(current_node->children.begin(),
+                   current_node->children.end(),
+                   std::back_inserter(to_remove),
+                   [&following_node](const auto &child) {
+                     return child != following_node;
+                   });
       auto last = to_remove.back();
       while (last != nullptr) {
         to_remove.pop_back();
