@@ -314,7 +314,7 @@ namespace kagome::consensus::grandpa {
     // Iff peer just reached one of recent round, then share known votes
     auto info = peer_manager_->getPeerState(peer_id);
     if (not info.has_value() || msg.voter_set_id != info->set_id
-        || msg.round_number > info.has_value()) {
+        || msg.round_number > info->round_number) {
       if (auto round = selectRound(msg.round_number, msg.voter_set_id)) {
         environment_->sendState(peer_id, round->state(), msg.voter_set_id);
       }
