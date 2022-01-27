@@ -42,15 +42,6 @@ namespace kagome::blockchain {
 
   class BlockTreeImpl : public BlockTree {
    public:
-    enum class Error {
-      // target block number is past the given maximum number
-      TARGET_IS_PAST_MAX = 1,
-      // block resides on a dead fork
-      BLOCK_ON_DEAD_END,
-      // block exists in chain but not found when following all
-      // leaves backwards.
-      BLOCK_NOT_FOUND,
-    };
 
     /**
      * Create an instance of block tree
@@ -224,7 +215,5 @@ namespace kagome::blockchain {
     metrics::Gauge *metric_known_chain_leaves_;
   };
 }  // namespace kagome::blockchain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockTreeImpl::Error);
 
 #endif  // KAGOME_BLOCK_TREE_IMPL_HPP

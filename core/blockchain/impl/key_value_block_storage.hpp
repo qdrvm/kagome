@@ -21,10 +21,7 @@ namespace kagome::blockchain {
 
     enum class Error {
       BLOCK_EXISTS = 1,
-      HEADER_DOES_NOT_EXIST,
-      BODY_DOES_NOT_EXIST,
-      BLOCK_DATA_DOES_NOT_EXIST,
-      JUSTIFICATION_DOES_NOT_EXIST,
+      HEADER_NOT_FOUND,
       GENESIS_BLOCK_ALREADY_EXISTS,
       GENESIS_BLOCK_NOT_FOUND,
       FINALIZED_BLOCK_NOT_FOUND,
@@ -70,13 +67,13 @@ namespace kagome::blockchain {
     outcome::result<bool> hasBlockHeader(
         const primitives::BlockId &id) const override;
 
-    outcome::result<primitives::BlockHeader> getBlockHeader(
+    outcome::result<std::optional<primitives::BlockHeader>> getBlockHeader(
         const primitives::BlockId &id) const override;
-    outcome::result<primitives::BlockBody> getBlockBody(
+    outcome::result<std::optional<primitives::BlockBody>> getBlockBody(
         const primitives::BlockId &id) const override;
-    outcome::result<primitives::BlockData> getBlockData(
+    outcome::result<std::optional<primitives::BlockData>> getBlockData(
         const primitives::BlockId &id) const override;
-    outcome::result<primitives::Justification> getJustification(
+    outcome::result<std::optional<primitives::Justification>> getJustification(
         const primitives::BlockId &block) const override;
 
     outcome::result<primitives::BlockHash> putBlockHeader(

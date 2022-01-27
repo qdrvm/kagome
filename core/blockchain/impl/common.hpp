@@ -16,6 +16,10 @@ namespace kagome::blockchain {
   using ReadableBufferMap =
       storage::face::Readable<common::Buffer, common::Buffer>;
 
+  /// TODO(Harrm): This seriously has to be refactored into
+  /// result<optional<...>>, for now we actually have a zoo of such errors over
+  /// the blockchain module and it's really hard to pick the right error const
+  /// in client code
   enum class Error {
     // it's important to convert storage errors of this type to this one to
     // enable a user to discern between cases when a header with provided id

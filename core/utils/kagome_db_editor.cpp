@@ -221,9 +221,10 @@ int main(int argc, char *argv[]) {
             storage, hasher, [](const auto &block) {}));
     auto block_storage = block_storage_res.value();
     auto header =
-        check(block_storage->getBlockHeader(
-                  check(common::Hash256::fromSpan(block_hash_res.value()))
-                      .value()))
+        check(check(block_storage->getBlockHeader(
+                        check(common::Hash256::fromSpan(block_hash_res.value()))
+                            .value()))
+                  .value())
             .value();
     finalized_hash = header.state_root;
     log->trace("Autodetected finalized block is #{}, state root is 0x{}",
@@ -251,10 +252,11 @@ int main(int argc, char *argv[]) {
       auto block_number = header.number + 1;
       for (;;) {
         auto header_res = block_storage->getBlockHeader(block_number++);
-        if (not header_res.has_value()) {
+        if (not header_res.has_value()
+            || not header_res.value().has_value()) {
           break;
         }
-        hash = header_res.value().state_root;
+        hash = header_res.value().value().state_root;
       }
       log->trace("Autodetected best block number is #{}, state root is 0x{}",
                  block_number - 1,

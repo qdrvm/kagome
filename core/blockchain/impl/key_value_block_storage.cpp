@@ -16,14 +16,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain,
   switch (e) {
     case E::BLOCK_EXISTS:
       return "Block already exists on the chain";
-    case E::HEADER_DOES_NOT_EXIST:
-      return "Block header was not found";
-    case E::BODY_DOES_NOT_EXIST:
-      return "Block body was not found";
-    case E::BLOCK_DATA_DOES_NOT_EXIST:
-      return "Block data was not found";
-    case E::JUSTIFICATION_DOES_NOT_EXIST:
-      return "Justification was not found";
+    case E::HEADER_NOT_FOUND:
+      return "A block header, assumed present in the storage, is not";
     case E::GENESIS_BLOCK_ALREADY_EXISTS:
       return "Genesis block already exists";
     case E::FINALIZED_BLOCK_NOT_FOUND:
@@ -87,9 +81,11 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(block_header,
                 block_storage->getBlockHeader(last_finalized_block_hash));
-
+    if(!block_header.has_value()) {
+      return Error::HEADER_NOT_FOUND;
+    }
     primitives::Block finalized_block;
-    finalized_block.header = block_header;
+    finalized_block.header = block_header.value();
 
     on_finalized_block_found(finalized_block);
 
@@ -130,8 +126,8 @@ namespace kagome::blockchain {
     return hasWithPrefix(*storage_, Prefix::HEADER, id);
   }
 
-  outcome::result<primitives::BlockHeader> KeyValueBlockStorage::getBlockHeader(
-      const primitives::BlockId &id) const {
+  outcome::result<std::optional<primitives::BlockHeader>>
+  KeyValueBlockStorage::getBlockHeader(const primitives::BlockId &id) const {
     OUTCOME_TRY(encoded_header_opt,
                 getWithPrefix(*storage_, Prefix::HEADER, id));
     if (encoded_header_opt.has_value()) {
@@ -140,20 +136,20 @@ namespace kagome::blockchain {
           scale::decode<primitives::BlockHeader>(encoded_header_opt.value()));
       return std::move(header);
     }
-    return Error::HEADER_DOES_NOT_EXIST;
+    return std::nullopt;
   }
 
-  outcome::result<primitives::BlockBody> KeyValueBlockStorage::getBlockBody(
-      const primitives::BlockId &id) const {
+  outcome::result<std::optional<primitives::BlockBody>>
+  KeyValueBlockStorage::getBlockBody(const primitives::BlockId &id) const {
     OUTCOME_TRY(block_data, getBlockData(id));
-    if (block_data.body) {
-      return block_data.body.value();
+    if (block_data.has_value() && block_data.value().body.has_value()) {
+      return block_data.value().body.value();
     }
-    return Error::BODY_DOES_NOT_EXIST;
+    return std::nullopt;
   }
 
-  outcome::result<primitives::BlockData> KeyValueBlockStorage::getBlockData(
-      const primitives::BlockId &id) const {
+  outcome::result<std::optional<primitives::BlockData>>
+  KeyValueBlockStorage::getBlockData(const primitives::BlockId &id) const {
     OUTCOME_TRY(encoded_block_data_opt,
                 getWithPrefix(*storage_, Prefix::BLOCK_DATA, id));
     if (encoded_block_data_opt.has_value()) {
@@ -162,17 +158,17 @@ namespace kagome::blockchain {
           scale::decode<primitives::BlockData>(encoded_block_data_opt.value()));
       return std::move(block_data);
     }
-    return Error::BLOCK_DATA_DOES_NOT_EXIST;
+    return std::nullopt;
   }
 
-  outcome::result<primitives::Justification>
+  outcome::result<std::optional<primitives::Justification>>
   KeyValueBlockStorage::getJustification(
       const primitives::BlockId &block) const {
     OUTCOME_TRY(block_data, getBlockData(block));
-    if (block_data.justification) {
-      return block_data.justification.value();
+    if (block_data.has_value() && block_data.value().justification.has_value()) {
+      return block_data.value().justification.value();
     }
-    return Error::JUSTIFICATION_DOES_NOT_EXIST;
+    return std::nullopt;
   }
 
   outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlockHeader(
@@ -195,11 +191,11 @@ namespace kagome::blockchain {
     // if block data does not exist, put a new one. Otherwise get the old one
     // and merge with the new one. During the merge new block data fields have
     // higher priority over the old ones (old ones should be rewritten)
-    auto existing_block_data_res = getBlockData(block_data.hash);
-    if (not existing_block_data_res) {
+    OUTCOME_TRY(existing_block_data_opt, getBlockData(block_data.hash));
+    if (not existing_block_data_opt.has_value()) {
       to_insert = block_data;
     } else {
-      auto existing_data = existing_block_data_res.value();
+      auto& existing_data = existing_block_data_opt.value();
 
       // add all the fields from the new block_data
       to_insert.header =

@@ -8,6 +8,7 @@
 #include <chrono>
 
 #include "blockchain/block_tree_error.hpp"
+#include "blockchain/impl/common.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/slot.hpp"
@@ -90,7 +91,7 @@ namespace kagome::consensus {
 
     if (auto body_res = block_tree_->getBlockBody(header.parent_hash);
         body_res.has_error()
-        && body_res.error() == blockchain::BlockTreeError::NO_SUCH_BLOCK) {
+        && body_res.error() == blockchain::BlockTreeError::BODY_NOT_FOUND) {
       logger_->warn("Skipping a block with unknown parent");
       return Error::PARENT_NOT_FOUND;
     } else if (body_res.has_error()) {
@@ -112,9 +113,7 @@ namespace kagome::consensus {
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
 
       return blockchain::BlockTreeError::BLOCK_EXISTS;
-    } else if (body_res.has_error()
-               && body_res.error()
-                      != blockchain::BlockTreeError::NO_SUCH_BLOCK) {
+    } else if (body_res.error() != blockchain::Error::BLOCK_NOT_FOUND) {
       return body_res.as_failure();
     }
 

@@ -21,7 +21,6 @@ namespace kagome::blockchain {
    public:
     virtual ~BlockStorage() = default;
 
-    /// Get hash of genesis block
     virtual outcome::result<primitives::BlockHash> getGenesisBlockHash()
         const = 0;
 
@@ -33,13 +32,13 @@ namespace kagome::blockchain {
     virtual outcome::result<bool> hasBlockHeader(
         const primitives::BlockId &id) const = 0;
 
-    virtual outcome::result<primitives::BlockHeader> getBlockHeader(
+    virtual outcome::result<std::optional<primitives::BlockHeader>> getBlockHeader(
         const primitives::BlockId &id) const = 0;
-    virtual outcome::result<primitives::BlockBody> getBlockBody(
+    virtual outcome::result<std::optional<primitives::BlockBody>> getBlockBody(
         const primitives::BlockId &id) const = 0;
-    virtual outcome::result<primitives::BlockData> getBlockData(
+    virtual outcome::result<std::optional<primitives::BlockData>> getBlockData(
         const primitives::BlockId &id) const = 0;
-    virtual outcome::result<primitives::Justification> getJustification(
+    virtual outcome::result<std::optional<primitives::Justification>> getJustification(
         const primitives::BlockId &block) const = 0;
 
     virtual outcome::result<primitives::BlockHash> putBlockHeader(

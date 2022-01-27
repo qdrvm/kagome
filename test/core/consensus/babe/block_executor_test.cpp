@@ -137,7 +137,7 @@ TEST_F(BlockExecutorTest, DigestsFollowJustification) {
   EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"parent_hash"_hash256}))
       .WillOnce(testing::Return(kagome::primitives::BlockBody{}));
   EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"some_hash"_hash256}))
-      .WillOnce(testing::Return(BlockTreeError::NO_SUCH_BLOCK));
+      .WillOnce(testing::Return(BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND));
   EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(testing::Return("some_hash"_hash256));
   EXPECT_CALL(*block_tree_, getEpochDescriptor(0, "parent_hash"_hash256))

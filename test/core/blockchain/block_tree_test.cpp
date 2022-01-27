@@ -647,7 +647,7 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
 
   EXPECT_OUTCOME_FALSE(
       best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
-  ASSERT_EQ(best_info, BlockTreeImpl::Error::BLOCK_NOT_FOUND);
+  ASSERT_EQ(best_info, BlockTreeError::EXISTING_BLOCK_NOT_FOUND);
 }
 
 /**
@@ -703,5 +703,5 @@ TEST_F(BlockTreeTest, GetBestChain_TargetPastMax) {
   auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
 
   EXPECT_OUTCOME_FALSE(err, block_tree_->getBestContaining(target_hash, 42));
-  ASSERT_EQ(err, BlockTreeImpl::Error::TARGET_IS_PAST_MAX);
+  ASSERT_EQ(err, BlockTreeError::TARGET_IS_PAST_MAX);
 }

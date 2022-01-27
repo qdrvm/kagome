@@ -114,12 +114,15 @@ int main(int argc, char **argv) {
           return;
         }
         if (auto res = block_storage->getBlockHeader(opt_id.value()); res) {
-          std::cout << "#: " << res.value().number << "\n";
-          std::cout << "Parent hash: " << res.value().parent_hash.toHex()
+          if (!res.value().has_value()) {
+            std::cerr << "Error: Block header not found\n";
+          }
+          std::cout << "#: " << res.value()->number << "\n";
+          std::cout << "Parent hash: " << res.value()->parent_hash.toHex()
                     << "\n";
-          std::cout << "State root: " << res.value().state_root.toHex() << "\n";
+          std::cout << "State root: " << res.value()->state_root.toHex() << "\n";
           std::cout << "Extrinsics root: "
-                    << res.value().extrinsics_root.toHex() << "\n";
+                    << res.value()->extrinsics_root.toHex() << "\n";
         } else {
           std::cerr << "Error: " << res.error().message() << "\n";
           return;
@@ -141,8 +144,11 @@ int main(int argc, char **argv) {
         if (!data) {
           std::cerr << "Error: " << data.error().message() << "\n";
         }
-        if (auto res = block_storage->removeBlock(data.value().hash,
-                                                  data.value().header->number);
+        if(!data.value().has_value()) {
+          std::cerr << "Error: block data not found\n";
+        }
+        if (auto res = block_storage->removeBlock(data.value()->hash,
+                                                  data.value()->header->number);
             !res) {
           std::cerr << "Error: " << res.error().message() << "\n";
           return;
