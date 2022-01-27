@@ -103,6 +103,7 @@ namespace kagome::api {
       }
 
       stop();
+      return;
     }
 
     handleRequest(parser_->release());
