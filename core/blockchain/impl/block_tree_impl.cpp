@@ -67,8 +67,8 @@ namespace kagome::blockchain {
                == outcome::failure(
                    BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND)) {
       // Fallback way to get last finalized
-      // TODO(xDimon): After deploy this change, getting of finalized block from
-      //               storage should be removed
+      // TODO(xDimon): After deploy of this change,
+      //  getting of finalized block from storage should be removed
       auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
       if (last_finalized_block_res.has_value()) {
         auto &last_finalized_block = last_finalized_block_res.value();
@@ -331,6 +331,10 @@ namespace kagome::blockchain {
         block_hash, header.number, parent, epoch_number, std::move(next_epoch));
     tree_->updateMeta(new_node);
 
+    OUTCOME_TRY(
+        storage_->saveBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
+                                       tree_->getMetadata().leaves.end()}));
+
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
@@ -373,6 +377,11 @@ namespace kagome::blockchain {
                                                std::move(next_epoch));
 
     tree_->updateMeta(new_node);
+
+    OUTCOME_TRY(
+        storage_->saveBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
+                                       tree_->getMetadata().leaves.end()}));
+
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
     trie_changes_tracker_->onBlockAdded(block_hash);
@@ -429,6 +438,10 @@ namespace kagome::blockchain {
 
     tree_->updateMeta(new_node);
 
+    OUTCOME_TRY(
+        storage_->saveBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
+                                       tree_->getMetadata().leaves.end()}));
+
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
@@ -467,7 +480,14 @@ namespace kagome::blockchain {
 
     tree_->updateTreeRoot(node);
 
+    OUTCOME_TRY(
+        storage_->saveBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
+                                       tree_->getMetadata().leaves.end()}));
+
+    // TODO(xDimon): After deploy of this change,
+    //  setting of finalized block to storage should be removed
     OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
+
     OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
 
     chain_events_engine_->notify(
