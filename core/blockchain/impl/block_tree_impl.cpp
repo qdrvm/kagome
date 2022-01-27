@@ -66,13 +66,23 @@ namespace kagome::blockchain {
     } else if (block_tree_leaves_res
                == outcome::failure(
                    BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND)) {
-      OUTCOME_TRY(genesis_hash, storage->getGenesisBlockHash());
-      block_tree_leaves.emplace_back(std::move(genesis_hash));
+      // Fallback way to get last finalized
+      // TODO(xDimon): After deploy this change, getting of finalized block from
+      //               storage should be removed
+      auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
+      if (last_finalized_block_res.has_value()) {
+        auto &last_finalized_block = last_finalized_block_res.value();
+        block_tree_leaves.emplace_back(std::move(last_finalized_block));
+      } else {
+        OUTCOME_TRY(genesis_hash, storage->getGenesisBlockHash());
+        block_tree_leaves.emplace_back(std::move(genesis_hash));
+      }
     } else {
       return block_tree_leaves_res.as_failure();
     }
 
-    primitives::BlockId last_finalized_block;
+    BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
+                     "Must be known or calculated at least one leaf");
 
     // Find the least leaf
     primitives::BlockInfo least_leaf(
@@ -84,25 +94,26 @@ namespace kagome::blockchain {
       }
     }
 
-    // TODO: Implement search of last finalized block using leaves
+    primitives::BlockHash last_finalized_block;
 
-    // fallback way to get last finalized
-    auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
-    if (last_finalized_block_res.has_value()) {
-      // TODO: Uncomment after search of last finalized block
-      //       using leaves will be implemented
-      // BOOST_ASSERT_MSG(
-      //     last_finalized_block
-      //         == primitives::BlockId{last_finalized_block_res.value()},
-      //     "Saved finalized and calculated using leaves must be equal");
-      last_finalized_block = last_finalized_block_res.value();
-    } else if (last_finalized_block_res
-               == outcome::failure(
-                   BlockStorageError::FINALIZED_BLOCK_NOT_FOUND)) {
-      OUTCOME_TRY(genesis_hash, storage->getGenesisBlockHash());
-      last_finalized_block = std::move(genesis_hash);
-    } else {
-      return last_finalized_block_res.as_failure();
+    // Backward search of finalized block
+    for (auto block_info = least_leaf;;) {
+      if (block_info.number == 0) {
+        last_finalized_block = block_info.hash;
+        break;
+      }
+      auto j_res = storage->getJustification(block_info.hash);
+      if (j_res.has_value()) {
+        last_finalized_block = block_info.hash;
+        break;
+      }
+      if (j_res
+          != outcome::failure(
+              BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST)) {
+        return j_res.as_failure();
+      }
+      OUTCOME_TRY(header, storage->getBlockHeader(block_info.hash));
+      block_info = {header.number - 1, header.parent_hash};
     }
 
     // create meta structures from the retrieved header
