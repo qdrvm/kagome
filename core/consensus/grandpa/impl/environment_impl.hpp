@@ -8,8 +8,6 @@
 
 #include "consensus/grandpa/environment.hpp"
 
-#include <boost/signals2/signal.hpp>
-
 #include "log/logger.hpp"
 
 namespace kagome::network {
@@ -19,10 +17,6 @@ namespace kagome::network {
 namespace kagome::consensus::grandpa {
 
   class EnvironmentImpl : public Environment {
-    using OnCompleted =
-        boost::signals2::signal<void(outcome::result<MovableRoundState>)>;
-    using OnCompletedSlotType = OnCompleted::slot_type;
-
    public:
     EnvironmentImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -87,10 +81,6 @@ namespace kagome::consensus::grandpa {
         MembershipCounter set_id,
         BlockNumber last_finalized) override;
 
-    void doOnCompleted(const CompleteHandler &) override;
-
-    void onCompleted(outcome::result<MovableRoundState> round) override;
-
     outcome::result<void> applyJustification(
         const BlockInfo &block_info,
         const primitives::Justification &justification) override;
@@ -110,7 +100,6 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::GrandpaTransmitter> transmitter_;
     std::weak_ptr<JustificationObserver> justification_observer_;
 
-    OnCompleted on_completed_;
     log::Logger logger_;
   };
 

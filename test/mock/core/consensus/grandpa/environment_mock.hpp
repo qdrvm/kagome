@@ -48,13 +48,6 @@ namespace kagome::consensus::grandpa {
                  BlockNumber last_finalized),
                 (override));
 
-    MOCK_METHOD(void, doOnCompleted, (const CompleteHandler &), (override));
-
-    MOCK_METHOD(void,
-                onCompleted,
-                (outcome::result<MovableRoundState> state),
-                (override));
-
     MOCK_METHOD(outcome::result<void>,
                 applyJustification,
                 (const BlockInfo &block_info,

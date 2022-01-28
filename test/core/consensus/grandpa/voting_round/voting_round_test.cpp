@@ -352,7 +352,6 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
 TEST_F(VotingRoundTest, Finalization) {
   EXPECT_CALL(*env_, onCommitted(_, _, _))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*env_, onCompleted(_)).WillRepeatedly(Return());
   EXPECT_CALL(*env_, finalize(_, _)).WillRepeatedly(Return(outcome::success()));
   // given (in fixture)
 
@@ -553,50 +552,38 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
         .WillOnce(onPrecommitted(this));  // precommit;
   }
 
-  {
-    // check that round has completed
-    auto matcher = [&](const outcome::result<MovableRoundState> &result) {
-      if (not result.has_value()) {
-        return false;
-      }
-      const auto &state = result.value();
-
-      Precommit precommit{best_block.number, best_block.hash};
-
-      auto alice_precommit =
-          preparePrecommit(kAlice, kAliceSignature, precommit);
-      auto bob_precommit = preparePrecommit(kBob, kBobSignature, precommit);
-
-      bool has_alice_precommit = false;
-      bool has_bob_precommit = false;
-
-      auto lookup = [&](const auto &vote) {
-        has_alice_precommit = vote == alice_precommit or has_alice_precommit;
-        has_bob_precommit = vote == bob_precommit or has_bob_precommit;
-      };
-
-      for (auto &vote_variant : state.votes) {
-        kagome::visit_in_place(
-            vote_variant,
-            [&](const SignedMessage &vote) { lookup(vote); },
-            [&](const EquivocatorySignedMessage &pair) {
-              lookup(pair.first);
-              lookup(pair.second);
-            });
-      }
-
-      // check if completed round state is as expected
-      return state.round_number == round_number_
-             and state.last_finalized_block == finalized_block
-             and state.finalized.has_value()
-             and state.finalized.value() == best_block and has_alice_precommit
-             and has_bob_precommit;
-    };
-
-    EXPECT_CALL(*env_, onCompleted(Truly(matcher))).WillRepeatedly(Return());
-  }
-
   round_->play();
   round_->endPrevoteStage();
   round_->endPrecommitStage();
+
+  auto state = round_->state();
+
+  Precommit precommit{best_block.number, best_block.hash};
+
+  auto alice_precommit = preparePrecommit(kAlice, kAliceSignature, precommit);
+  auto bob_precommit = preparePrecommit(kBob, kBobSignature, precommit);
+
+  bool has_alice_precommit = false;
+  bool has_bob_precommit = false;
+
+  auto lookup = [&](const auto &vote) {
+    has_alice_precommit = vote == alice_precommit or has_alice_precommit;
+    has_bob_precommit = vote == bob_precommit or has_bob_precommit;
+  };
+
+  for (auto &vote_variant : state.votes) {
+    kagome::visit_in_place(
+        vote_variant,
+        [&](const SignedMessage &vote) { lookup(vote); },
+        [&](const EquivocatorySignedMessage &pair) {
+          lookup(pair.first);
+          lookup(pair.second);
+        });
+  }
+
+  EXPECT_TRUE(has_alice_precommit);
+  EXPECT_TRUE(has_bob_precommit);
+
+  ASSERT_TRUE(state.finalized.has_value());
+  EXPECT_EQ(state.finalized.value(), best_block);
 }

@@ -104,16 +104,6 @@ namespace kagome::consensus::grandpa {
         BlockNumber last_finalized) = 0;
 
     /**
-     * Provides a handler for completed round
-     */
-    virtual void doOnCompleted(const CompleteHandler &) = 0;
-
-    /**
-     * Triggered when round \param round is completed
-     */
-    virtual void onCompleted(outcome::result<MovableRoundState> round) = 0;
-
-    /**
      * Validate provided {@param justification} for finalization {@param block}.
      * If it valid finalize {@param block} and save {@param justification} in
      * storage.
