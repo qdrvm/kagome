@@ -24,9 +24,6 @@ namespace kagome::storage {
   inline const common::Buffer kBlockTreeLeavesLookupKey =
       ":kagome:block_tree_leaves"_buf;
 
-  inline const common::Buffer kLastBabeEpochNumberLookupKey =
-      ":kagome:last_babe_epoch_number"_buf;
-
   inline const common::Buffer kActivePeersKey = ":kagome:last_active_peers"_buf;
 
   inline const common::Buffer kRuntimeHashesLookupKey =

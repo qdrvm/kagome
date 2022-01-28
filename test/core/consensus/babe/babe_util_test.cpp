@@ -7,15 +7,17 @@
 #include <chrono>
 
 #include "consensus/babe/impl/babe_util_impl.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
 #include "primitives/babe_configuration.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
 using namespace clock;
 using namespace consensus;
 using namespace storage;
+using namespace blockchain;
 
 using std::chrono_literals::operator""ms;
 using testing::Return;
@@ -27,19 +29,21 @@ class BabeUtilTest : public testing::Test {
   }
 
   void SetUp() override {
+    app_state_manager_ = std::make_shared<application::AppStateManagerMock>();
     babe_config_ = std::make_shared<primitives::BabeConfiguration>();
     babe_config_->slot_duration = 6000ms;
     babe_config_->epoch_length = 2;
     clock_ = std::make_shared<SystemClockMock>();
-    storage_ = std::make_shared<InMemoryStorage>();
-    babe_util_ =
-        std::make_shared<BabeUtilImpl>(babe_config_, storage_, *clock_);
+    block_tree_ = std::make_shared<BlockTreeMock>();
+    babe_util_ = std::make_shared<BabeUtilImpl>(
+        app_state_manager_, babe_config_, block_tree_, *clock_);
   }
 
+  std::shared_ptr<application::AppStateManagerMock> app_state_manager_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<BabeUtil> babe_util_;
-  std::shared_ptr<BufferStorage> storage_;
+  std::shared_ptr<BlockTreeMock> block_tree_;
 };
 
 /**

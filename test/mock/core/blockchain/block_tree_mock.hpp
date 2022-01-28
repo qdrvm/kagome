@@ -118,7 +118,7 @@ namespace kagome::blockchain {
     MOCK_METHOD(outcome::result<void>, prune, (), ());
 
     MOCK_METHOD(outcome::result<consensus::EpochDigest>,
-                getEpochDescriptor,
+                getEpochDigest,
                 (consensus::EpochNumber, primitives::BlockHash),
                 (const, override));
   };

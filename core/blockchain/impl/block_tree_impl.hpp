@@ -146,7 +146,7 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
-    outcome::result<consensus::EpochDigest> getEpochDescriptor(
+    outcome::result<consensus::EpochDigest> getEpochDigest(
         consensus::EpochNumber epoch_number,
         primitives::BlockHash block_hash) const override;
 

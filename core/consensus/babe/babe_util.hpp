@@ -72,7 +72,7 @@ namespace kagome::consensus {
      * Get number of last active epoch
      * @return number of epoch that stored as last active, error otherwise
      */
-    virtual outcome::result<EpochDescriptor> getLastEpoch() const = 0;
+    virtual const EpochDescriptor &getLastEpoch() const = 0;
   };
 
 }  // namespace kagome::consensus

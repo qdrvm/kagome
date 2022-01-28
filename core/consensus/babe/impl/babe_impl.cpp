@@ -7,10 +7,11 @@
 
 #include <boost/assert.hpp>
 #include <boost/range/adaptor/transformed.hpp>
-#include <consensus/babe/babe_error.hpp>
 
+#include "blockchain/block_storage_error.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
+#include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
@@ -103,31 +104,15 @@ namespace kagome::consensus::babe {
 
     SL_DEBUG(log_, "Babe is starting with syncing from block {}", best_block_);
 
-    EpochDescriptor last_epoch_descriptor;
-    const auto now = clock_->now();
-    if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
-      last_epoch_descriptor = res.value();
+    auto last_epoch_descriptor = babe_util_->getLastEpoch();
 
-      SL_DEBUG(log_,
-               "Pre-saved epoch {} (started in slot {})",
-               last_epoch_descriptor.epoch_number,
-               last_epoch_descriptor.start_slot);
-
-    } else {
-      last_epoch_descriptor.epoch_number = 0;
-      last_epoch_descriptor.start_slot =
-          static_cast<BabeSlotNumber>(now.time_since_epoch()
-                                      / babe_configuration_->slot_duration)
-          + 1;
-
-      SL_DEBUG(log_,
-               "Temporary epoch {} (started in slot {})",
-               last_epoch_descriptor.epoch_number,
-               last_epoch_descriptor.start_slot);
-    }
+    SL_DEBUG(log_,
+             "Starting in epoch {} and slot {}",
+             last_epoch_descriptor.epoch_number,
+             last_epoch_descriptor.start_slot);
 
     if (keypair_) {
-      if (auto epoch_res = block_tree_->getEpochDescriptor(
+      if (auto epoch_res = block_tree_->getEpochDigest(
               last_epoch_descriptor.epoch_number, best_block_.hash);
           epoch_res.has_value()) {
         const auto &authorities = epoch_res.value().authorities;
@@ -313,17 +298,11 @@ namespace kagome::consensus::babe {
     was_synchronized_ = true;
 
     if (not active_) {
-      EpochDescriptor last_epoch_descriptor;
-      if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
-        last_epoch_descriptor = res.value();
-      } else {
-        last_epoch_descriptor.epoch_number = 0;
-        last_epoch_descriptor.start_slot = babe_util_->getCurrentSlot() + 1;
-      }
-
       best_block_ = block_tree_->deepestLeaf();
 
       SL_DEBUG(log_, "Babe is synchronized on block {}", best_block_);
+
+      auto last_epoch_descriptor = babe_util_->getLastEpoch();
 
       runEpoch(last_epoch_descriptor);
     }
@@ -422,8 +401,8 @@ namespace kagome::consensus::babe {
       BOOST_ASSERT(babe_digests_res.has_value());
     }
 
-    auto epoch_res = block_tree_->getEpochDescriptor(
-        current_epoch_.epoch_number, best_block_.hash);
+    auto epoch_res = block_tree_->getEpochDigest(current_epoch_.epoch_number,
+                                                 best_block_.hash);
     if (epoch_res.has_error()) {
       SL_ERROR(log_,
                "Fail to get epoch: {}; Skipping slot processing",

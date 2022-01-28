@@ -241,7 +241,7 @@ namespace kagome::blockchain {
      * Search starts of block with hash {@param block_hash}.
      * @returns epoch descriptor, or error if it impossible.
      */
-    virtual outcome::result<consensus::EpochDigest> getEpochDescriptor(
+    virtual outcome::result<consensus::EpochDigest> getEpochDigest(
         consensus::EpochNumber epoch_number,
         primitives::BlockHash block_hash) const = 0;
   };

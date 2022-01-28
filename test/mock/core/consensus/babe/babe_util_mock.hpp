@@ -50,10 +50,7 @@ namespace kagome::consensus {
                 (const EpochDescriptor &led),
                 (override));
 
-    MOCK_METHOD(outcome::result<EpochDescriptor>,
-                getLastEpoch,
-                (),
-                (const, override));
+    MOCK_METHOD(const EpochDescriptor &, getLastEpoch, (), (const, override));
   };
 
 }  // namespace kagome::consensus

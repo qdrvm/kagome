@@ -882,7 +882,7 @@ namespace kagome::blockchain {
     return primitives::BlockInfo{last->depth, last->block_hash};
   }
 
-  outcome::result<consensus::EpochDigest> BlockTreeImpl::getEpochDescriptor(
+  outcome::result<consensus::EpochDigest> BlockTreeImpl::getEpochDigest(
       consensus::EpochNumber epoch_number,
       primitives::BlockHash block_hash) const {
     auto node = tree_->getRoot().findByHash(block_hash);

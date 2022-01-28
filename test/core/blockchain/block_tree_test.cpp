@@ -54,11 +54,14 @@ struct BlockTreeTest : public testing::Test {
         .WillOnce(Return(
             std::vector<primitives::BlockHash>{kFinalizedBlockInfo.hash}));
 
-    EXPECT_CALL(*storage_, getLastFinalizedBlockHash())
-        .WillOnce(Return(kFinalizedBlockInfo.hash));
+    EXPECT_CALL(*storage_, saveBlockTreeLeaves(_))
+        .WillRepeatedly(Return(outcome::success()));
 
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillOnce(Return(finalized_block_header_));
+
+    EXPECT_CALL(*storage_, getJustification(kLastFinalizedBlockId))
+        .WillOnce(Return(outcome::success(Justification{})));
 
     EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.hash))
         .WillRepeatedly(Return(kFinalizedBlockInfo.number));

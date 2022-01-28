@@ -115,9 +115,7 @@ class BabeTest : public testing::Test {
         .authorities = babe_config_->genesis_authorities,
         .randomness = babe_config_->randomness};
 
-    EXPECT_CALL(*block_tree_, getEpochDescriptor(_, _))
-        .WillRepeatedly(Return(expected_epoch_digest));
-    EXPECT_CALL(*block_tree_, getEpochDescriptor(_, _))
+    EXPECT_CALL(*block_tree_, getEpochDigest(_, _))
         .WillRepeatedly(Return(expected_epoch_digest));
 
     auto block_executor = std::make_shared<BlockExecutorMock>();
