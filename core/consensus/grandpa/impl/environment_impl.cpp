@@ -200,20 +200,6 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  void EnvironmentImpl::doOnCompleted(
-      const CompleteHandler &on_completed_slot) {
-    on_completed_.disconnect_all_slots();
-    on_completed_.connect(on_completed_slot);
-  }
-
-  void EnvironmentImpl::onCompleted(
-      outcome::result<MovableRoundState> round_state) {
-    BOOST_ASSERT_MSG(
-        not on_completed_.empty(),
-        "Completed signal in environment cannot be empty when it is invoked");
-    on_completed_(round_state);
-  }
-
   outcome::result<void> EnvironmentImpl::applyJustification(
       const BlockInfo &block_info,
       const primitives::Justification &raw_justification) {
