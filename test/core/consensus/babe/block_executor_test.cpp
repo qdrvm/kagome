@@ -22,6 +22,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "blockchain/impl/common.hpp"
 
 using kagome::authority::AuthorityUpdateObserver;
 using kagome::authority::AuthorityUpdateObserverMock;
@@ -137,7 +138,7 @@ TEST_F(BlockExecutorTest, DigestsFollowJustification) {
   EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"parent_hash"_hash256}))
       .WillOnce(testing::Return(kagome::primitives::BlockBody{}));
   EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"some_hash"_hash256}))
-      .WillOnce(testing::Return(BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND));
+      .WillOnce(testing::Return(kagome::blockchain::Error::BLOCK_NOT_FOUND));
   EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(testing::Return("some_hash"_hash256));
   EXPECT_CALL(*block_tree_, getEpochDescriptor(0, "parent_hash"_hash256))

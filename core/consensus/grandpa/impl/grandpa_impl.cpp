@@ -236,8 +236,11 @@ namespace kagome::consensus::grandpa {
     OUTCOME_TRY(hash, block_storage_->getLastFinalizedBlockHash());
 
     OUTCOME_TRY(header, block_storage_->getBlockHeader(hash));
+    // safety: we've just fetched this hash from the storage, so the header must
+    // be there
+    BOOST_ASSERT(header.has_value());
 
-    auto number = header.number;
+    auto number = header.value().number;
 
     if (number == 0) {
       return MovableRoundState{.round_number = 0,
@@ -247,10 +250,13 @@ namespace kagome::consensus::grandpa {
     }
 
     OUTCOME_TRY(encoded_justification, block_storage_->getJustification(hash));
+    // safety: the hash is known to belong to a finalized block, so
+    // justification must exist
+    BOOST_ASSERT(encoded_justification.has_value());
 
     OUTCOME_TRY(
         grandpa_justification,
-        scale::decode<GrandpaJustification>(encoded_justification.data));
+        scale::decode<GrandpaJustification>(encoded_justification->data));
 
     MovableRoundState round_state{
         .round_number = grandpa_justification.round_number,
