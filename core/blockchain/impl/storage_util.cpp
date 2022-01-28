@@ -45,7 +45,8 @@ namespace kagome::blockchain {
                                       prefix::Prefix prefix,
                                       const primitives::BlockId &block_id) {
     OUTCOME_TRY(key, idToLookupKey(map, block_id));
-    return map.contains(prependPrefix(key, prefix));
+    if (!key.has_value()) return false;
+    return map.contains(prependPrefix(key.value(), prefix));
   }
 
   outcome::result<std::optional<common::Buffer>> getWithPrefix(
@@ -53,7 +54,8 @@ namespace kagome::blockchain {
       prefix::Prefix prefix,
       const primitives::BlockId &block_id) {
     OUTCOME_TRY(key, idToLookupKey(map, block_id));
-    return map.tryGet(prependPrefix(key, prefix));
+    if (!key.has_value()) return std::nullopt;
+    return map.tryGet(prependPrefix(key.value(), prefix));
   }
 
   common::Buffer numberToIndexKey(primitives::BlockNumber n) {

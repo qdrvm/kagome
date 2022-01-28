@@ -81,7 +81,7 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(block_header,
                 block_storage->getBlockHeader(last_finalized_block_hash));
-    if(!block_header.has_value()) {
+    if (!block_header.has_value()) {
       return Error::HEADER_NOT_FOUND;
     }
     primitives::Block finalized_block;
@@ -165,7 +165,8 @@ namespace kagome::blockchain {
   KeyValueBlockStorage::getJustification(
       const primitives::BlockId &block) const {
     OUTCOME_TRY(block_data, getBlockData(block));
-    if (block_data.has_value() && block_data.value().justification.has_value()) {
+    if (block_data.has_value()
+        && block_data.value().justification.has_value()) {
       return block_data.value().justification.value();
     }
     return std::nullopt;
@@ -195,7 +196,7 @@ namespace kagome::blockchain {
     if (not existing_block_data_opt.has_value()) {
       to_insert = block_data;
     } else {
-      auto& existing_data = existing_block_data_opt.value();
+      auto &existing_data = existing_block_data_opt.value();
 
       // add all the fields from the new block_data
       to_insert.header =
@@ -226,14 +227,10 @@ namespace kagome::blockchain {
     //  (in side-chains rejected by finalization)
     //  to avoid storage space leaks
     auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
-    auto block_in_storage_res =
-        getWithPrefix(*storage_, Prefix::HEADER, block_hash);
-    if (block_in_storage_res.has_value()) {
+    OUTCOME_TRY(block_in_storage_opt,
+        getWithPrefix(*storage_, Prefix::HEADER, block_hash));
+    if (block_in_storage_opt.has_value()) {
       return Error::BLOCK_EXISTS;
-    }
-    if (block_in_storage_res
-        != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
-      return block_in_storage_res.error();
     }
 
     // insert our block's parts into the database-

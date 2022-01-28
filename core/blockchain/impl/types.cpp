@@ -20,8 +20,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
 
 namespace kagome::blockchain {
 
-  outcome::result<common::Buffer> idToLookupKey(const ReadableBufferMap &map,
-                                                const primitives::BlockId &id) {
+  outcome::result<std::optional<common::Buffer>> idToLookupKey(
+      const ReadableBufferMap &map, const primitives::BlockId &id) {
     OUTCOME_TRY(
         key_opt,
         visit_in_place(
@@ -35,8 +35,7 @@ namespace kagome::blockchain {
               return map.tryGet(prependPrefix(
                   common::Buffer{hash}, prefix::Prefix::ID_TO_LOOKUP_KEY));
             }));
-    if (key_opt.has_value()) return std::move(key_opt.value());
-    return Error::BLOCK_NOT_FOUND;
+    return key_opt;
   }
 
   storage::trie::RootHash trieRoot(

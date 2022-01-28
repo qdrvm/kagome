@@ -206,6 +206,13 @@ namespace kagome::authority {
     new_authorities->id = new_node->actual_authorities->id + 1;
 
     // Force changes
+    if (new_node->block.number >= activate_at) {
+      new_node->actual_authorities = std::move(new_authorities);
+    } else {
+      new_node->forced_authorities =
+          std::make_shared<primitives::AuthorityList>(authorities);
+      new_node->forced_for = activate_at;
+    }
 
     SL_VERBOSE(
         log_, "Change is forced on block #{}", activate_at);
