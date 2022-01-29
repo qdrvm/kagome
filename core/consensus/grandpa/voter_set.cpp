@@ -34,7 +34,7 @@ namespace kagome::consensus::grandpa {
     }
     auto r = map_.emplace(voter, map_.size());
     if (r.second) {
-      list_.emplace_back(voter, weight);
+      list_.emplace_back(r.first->first, weight);
       total_weight_ += weight;
     } else {
       return Error::VOTER_ALREADY_EXISTS;
