@@ -133,13 +133,14 @@ namespace kagome::consensus {
 
     // add information about epoch to epoch storage
     if (block.header.number == 1) {
-      OUTCOME_TRY(babe_util_->setLastEpoch(EpochDescriptor{
-          .epoch_number = 0, .start_slot = babe_header.slot_number}));
+      babe_util_->syncEpoch(EpochDescriptor{
+          .epoch_number = 0, .start_slot = babe_header.slot_number});
     }
 
     EpochNumber epoch_number = babe_util_->slotToEpoch(babe_header.slot_number);
 
-    OUTCOME_TRY(this_block_epoch_descriptor,
+    OUTCOME_TRY(
+        this_block_epoch_descriptor,
         block_tree_->getEpochDigest(epoch_number, block.header.parent_hash));
 
     [[maybe_unused]] auto &slot_number = babe_header.slot_number;

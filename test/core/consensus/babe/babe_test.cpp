@@ -4,12 +4,12 @@
  */
 
 #include <gtest/gtest.h>
-#include <boost/asio/io_context.hpp>
 
 #include <chrono>
 #include <memory>
 
-#include "clock/impl/basic_waitable_timer.hpp"
+#include <boost/asio/io_context.hpp>
+
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
@@ -283,9 +283,6 @@ TEST_F(BabeTest, Success) {
 
   EXPECT_CALL(*block_announce_transmitter_, blockAnnounce(_))
       .WillOnce(CheckBlockHeader(created_block_.header));
-
-  EXPECT_CALL(*babe_util_, setLastEpoch(_))
-      .WillOnce(Return(outcome::success()));
 
   babe_->runEpoch(epoch_);
   on_process_slot_1({});

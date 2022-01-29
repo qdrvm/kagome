@@ -100,6 +100,8 @@ namespace kagome::consensus::babe {
     bool wasSynchronized() const override;
 
    private:
+    outcome::result<EpochDescriptor> getInitialEpochDescriptor();
+
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
 

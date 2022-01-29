@@ -8,10 +8,7 @@
 
 #include "consensus/babe/babe_util.hpp"
 
-#include "application/app_state_manager.hpp"
-#include "blockchain/block_tree.hpp"
 #include "consensus/babe/common.hpp"
-#include "log/logger.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "storage/buffer_map_types.hpp"
 
@@ -20,10 +17,10 @@ namespace kagome::consensus {
   class BabeUtilImpl final : public BabeUtil {
    public:
     BabeUtilImpl(
-        std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
-        std::shared_ptr<blockchain::BlockTree> block_tree,
         const BabeClock &clock);
+
+    void syncEpoch(EpochDescriptor epoch_descriptor) override;
 
     BabeSlotNumber getCurrentSlot() const override;
 
@@ -38,28 +35,13 @@ namespace kagome::consensus {
 
     BabeSlotNumber slotInEpoch(BabeSlotNumber slot) const override;
 
-    outcome::result<void> setLastEpoch(
-        const EpochDescriptor &epoch_descriptor) override;
-
-    const EpochDescriptor &getLastEpoch() const override;
-
    private:
-    bool prepare();
-
-    outcome::result<EpochDescriptor> getInitialEpochDescriptor();
-
-    BabeSlotNumber getGenesisSlotNumber();
+    BabeSlotNumber getFirstBlockSlotNumber();
 
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
     const BabeClock &clock_;
 
-    std::optional<BabeSlotNumber> genesis_slot_number_;
-
-    // optimization for storing in memory last epoch
-    std::optional<EpochDescriptor> last_epoch_;
-
-    log::Logger log_;
+    std::optional<BabeSlotNumber> first_block_slot_number_;
   };
 }  // namespace kagome::consensus
 #endif  // KAGOME_CONSENSUS_BABEUTILIMPL
