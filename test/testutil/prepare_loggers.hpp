@@ -27,24 +27,25 @@ sinks:
   - name: console
     type: console
     capacity: 4
-    buffer: 16384
     latency: 0
 groups:
   - name: main
     sink: console
     level: info
+    is_fallback: true
     children:
       - name: testing
         level: trace
+      - name: libp2p
+        level: off
 )");
 
       auto logging_system = std::make_shared<soralog::LoggingSystem>(
           std::make_shared<kagome::log::Configurator>(
-              std::make_shared<libp2p::log::Configurator>(),
-              testing_log_config));
+              std::make_shared<libp2p::log::Configurator>(testing_log_config)));
       auto r = logging_system->configure();
       if (r.has_error) {
-        throw std::runtime_error("Can't configure logger system");
+        throw std::runtime_error("Can't configure logger system: " + r.message);
       }
 
       kagome::log::setLoggingSystem(logging_system);

@@ -16,12 +16,12 @@ namespace kagome::crypto::secp256k1 {
     static constexpr size_t kGeneralPublicKeySize = 64u;
   }  // namespace constants
 
-  using EcdsaVerifyError = uint8_t;
-  namespace ecdsa_verify_error {
-    static constexpr EcdsaVerifyError kInvalidRS = 0;
-    static constexpr EcdsaVerifyError kInvalidV = 1;
-    static constexpr EcdsaVerifyError kInvalidSignature = 2;
-  }  // namespace ecdsa_verify_error
+  using Secp256k1VerifyError = uint8_t;
+  namespace secp256k1_verify_error {
+    static constexpr Secp256k1VerifyError kInvalidRS = 0;
+    static constexpr Secp256k1VerifyError kInvalidV = 1;
+    static constexpr Secp256k1VerifyError kInvalidSignature = 2;
+  }  // namespace secp256k1_verify_error
 
   /**
    * compressed form of public key

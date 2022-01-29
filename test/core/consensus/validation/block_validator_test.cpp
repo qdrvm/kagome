@@ -107,7 +107,7 @@ class BlockValidatorTest : public testing::Test {
   VRFPreOutput vrf_value_ = {1, 2, 3, 4, 5};
   VRFProof vrf_proof_{};
   AuthorityIndex authority_index_ = {1};
-  BabeBlockHeader babe_header_{BabeBlockHeader::kVRFHeader,
+  BabeBlockHeader babe_header_{SlotType::Primary,
                                slot_number_,
                                {vrf_value_, vrf_proof_},
                                authority_index_};
@@ -122,7 +122,7 @@ class BlockValidatorTest : public testing::Test {
 
   Threshold threshold_ = 3820948573;
   primitives::AuthorityList authorities_;
-  Randomness randomness_{uint256_t_to_bytes(475995757021)};
+  Randomness randomness_{uint256_to_le_bytes(475995757021)};
 };
 
 /**
@@ -154,9 +154,6 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
       .WillOnce(Return(outcome::result<bool>(true)));
   // verifyVRF
-  auto randomness_with_slot =
-      Buffer{}.put(randomness_).put(uint64_t_to_bytes(slot_number_));
-
   EXPECT_CALL(*vrf_provider_, verifyTranscript(_, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
@@ -321,9 +318,6 @@ TEST_F(BlockValidatorTest, VRFFail) {
   authorities_.emplace_back(authority);
 
   // WHEN
-  auto randomness_with_slot =
-      Buffer{}.put(randomness_).put(uint64_t_to_bytes(slot_number_));
-
   EXPECT_CALL(*vrf_provider_, verifyTranscript(_, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = false, .is_less = true}));
 
@@ -365,8 +359,6 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
   // WHEN
   threshold_ = 0;
 
-  auto randomness_with_slot =
-      Buffer{}.put(randomness_).put(uint64_t_to_bytes(slot_number_));
   EXPECT_CALL(*vrf_provider_, verifyTranscript(_, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = false}));
 

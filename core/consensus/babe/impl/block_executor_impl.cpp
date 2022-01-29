@@ -10,6 +10,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
+#include "consensus/babe/types/slot.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
@@ -119,11 +120,16 @@ namespace kagome::consensus {
 
     OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
 
-    const auto &[seal, babe_header] = babe_digests;
+    const auto &babe_header = babe_digests.second;
 
-    logger_->info("Applying block {} (slot {})",
-                  primitives::BlockInfo(block.header.number, block_hash),
-                  babe_header.slot_number);
+    logger_->info(
+        "Applying block {} ({} in slot {})",  //
+        primitives::BlockInfo(block.header.number, block_hash),
+        babe_header.slotType() == SlotType::Primary          ? "primary"
+        : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
+        : babe_header.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
+                                                             : "unknown",
+        babe_header.slot_number);
 
     // add information about epoch to epoch storage
     if (block.header.number == 1) {

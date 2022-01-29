@@ -36,7 +36,7 @@ using kagome::runtime::WasmSpan;
 class IOExtensionTest : public ::testing::Test {
  public:
   static void SetUpTestCase() {
-    testutil::prepareLoggers();
+    testutil::prepareLoggers(max_log_level_);
   }
 
   void SetUp() override {
@@ -49,6 +49,8 @@ class IOExtensionTest : public ::testing::Test {
   }
 
  protected:
+  static constexpr auto max_log_level_ = kagome::log::Level::ERROR;
+
   std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<IOExtension> io_extension_;
@@ -105,8 +107,11 @@ TEST_F(IOExtensionTest, PrintMessage) {
  * @note somehow HostApi log level is OFF
  */
 TEST_F(IOExtensionTest, GetMaxLogLevel) {
+  kagome::log::setLevelOfGroup(kagome::log::defaultGroupName, max_log_level_);
   auto res = io_extension_->ext_logging_max_level_version_1();
   ASSERT_EQ(res, static_cast<WasmEnum>(WasmLogLevel::Error));
+  kagome::log::setLevelOfGroup(kagome::log::defaultGroupName,
+                               kagome::log::Level::INFO);
 }
 
 /**

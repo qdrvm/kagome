@@ -490,7 +490,7 @@ namespace kagome::storage::trie {
     auto key_nibbles = PolkadotCodec::keyToNibbles(key);
     // delete node will fetch nodes that it needs from the storage (the
     // nodes typically are a path in the trie) and work on them in memory
-    OUTCOME_TRY(res, deleteNode(root_, key_nibbles, retrieve_node_));
+    OUTCOME_TRY(_, deleteNode(root_, key_nibbles, retrieve_node_));
     return outcome::success();
   }
 

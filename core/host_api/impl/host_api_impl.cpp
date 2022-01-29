@@ -6,6 +6,7 @@
 #include "host_api/impl/host_api_impl.hpp"
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -24,6 +25,7 @@ namespace kagome::host_api {
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
       std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
       std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<const crypto::EcdsaProvider> ecdsa_provider,
       std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<const crypto::Hasher> hasher,
@@ -41,6 +43,7 @@ namespace kagome::host_api {
         }()),
         crypto_ext_(memory_provider_,
                     std::move(sr25519_provider),
+                    std::move(ecdsa_provider),
                     std::move(ed25519_provider),
                     std::move(secp256k1_provider),
                     hasher,
@@ -227,6 +230,30 @@ namespace kagome::host_api {
       runtime::WasmPointer pubkey_data) {
     return crypto_ext_.ext_crypto_sr25519_verify_version_2(
         sig_data, msg, pubkey_data);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_crypto_ecdsa_public_keys_version_1(
+      runtime::WasmSize key_type) {
+    return crypto_ext_.ext_crypto_ecdsa_public_keys_version_1(key_type);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_crypto_ecdsa_sign_version_1(
+      runtime::WasmSize key_type,
+      runtime::WasmPointer key,
+      runtime::WasmSpan msg_data) {
+    return crypto_ext_.ext_crypto_ecdsa_sign_version_1(key_type, key, msg_data);
+  }
+
+  runtime::WasmPointer HostApiImpl::ext_crypto_ecdsa_generate_version_1(
+      runtime::WasmSize key_type_id, runtime::WasmSpan seed) {
+    return crypto_ext_.ext_crypto_ecdsa_generate_version_1(key_type_id, seed);
+  }
+
+  int32_t HostApiImpl::ext_crypto_ecdsa_verify_version_1(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg,
+      runtime::WasmPointer key) {
+    return crypto_ext_.ext_crypto_ecdsa_verify_version_1(sig, msg, key);
   }
 
   // ------------------------- Hashing extension/crypto ---------------
@@ -448,6 +475,33 @@ namespace kagome::host_api {
   runtime::WasmSpan HostApiImpl::ext_default_child_storage_root_version_1(
       runtime::WasmSpan child_storage_key) const {
     return child_storage_ext_.ext_default_child_storage_root_version_1(
+        child_storage_key);
+  }
+
+  void HostApiImpl::ext_default_child_storage_clear_prefix_version_1(
+      runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix) {
+    return child_storage_ext_.ext_default_child_storage_clear_prefix_version_1(
+        child_storage_key, prefix);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_default_child_storage_read_version_1(
+      runtime::WasmSpan child_storage_key,
+      runtime::WasmSpan key,
+      runtime::WasmSpan value_out,
+      runtime::WasmOffset offset) const {
+    return child_storage_ext_.ext_default_child_storage_read_version_1(
+        child_storage_key, key, value_out, offset);
+  }
+
+  uint32_t HostApiImpl::ext_default_child_storage_exists_version_1(
+      runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const {
+    return child_storage_ext_.ext_default_child_storage_exists_version_1(
+        child_storage_key, key);
+  }
+
+  void HostApiImpl::ext_default_child_storage_storage_kill_version_1(
+      runtime::WasmSpan child_storage_key) {
+    return child_storage_ext_.ext_default_child_storage_storage_kill_version_1(
         child_storage_key);
   }
 

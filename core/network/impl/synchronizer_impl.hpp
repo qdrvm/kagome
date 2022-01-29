@@ -26,13 +26,16 @@ namespace kagome::network {
     /// Block amount enough for applying and preloading other ones
     /// simultaneously.
     /// 256 is doubled max amount block in BlocksResponse.
-    static const size_t kMinPreloadedBlockAmount = 256;
+    static constexpr size_t kMinPreloadedBlockAmount = 256;
 
     /// Indicating how far the block can be subscribed to.
     /// In general we don't needed wait very far blocks. This limit to avoid
     /// extra memory consumption.
-    static const size_t kMaxDistanceToBlockForSubscription =
+    static constexpr size_t kMaxDistanceToBlockForSubscription =
         kMinPreloadedBlockAmount * 2;
+
+    static constexpr std::chrono::milliseconds kRecentnessDuration =
+        std::chrono::seconds(60);
 
     enum class Error {
       SHUTTING_DOWN = 1,
@@ -44,7 +47,8 @@ namespace kagome::network {
       INVALID_HASH,
       ALREADY_IN_QUEUE,
       PEER_BUSY,
-      ARRIVED_TOO_EARLY
+      ARRIVED_TOO_EARLY,
+      DUPLICATE_REQUEST
     };
 
     SynchronizerImpl(
@@ -85,7 +89,9 @@ namespace kagome::network {
                          primitives::BlockNumber lower,
                          primitives::BlockNumber upper,
                          primitives::BlockNumber hint,
-                         SyncResultHandler &&handler) const;
+                         SyncResultHandler &&handler,
+                         std::map<primitives::BlockNumber,
+                                  primitives::BlockHash> &&observed = {});
 
     /// Loads blocks from peer {@param peer_id} since block {@param from} till
     /// its best. Calls {@param handler} when process is finished or failed
@@ -161,6 +167,8 @@ namespace kagome::network {
     std::atomic_bool applying_in_progress_ = false;
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
+
+    std::set<std::tuple<libp2p::peer::PeerId, std::size_t>> recent_requests_;
   };
 
 }  // namespace kagome::network
