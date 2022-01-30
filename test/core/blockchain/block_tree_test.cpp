@@ -269,8 +269,6 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, setLastFinalizedBlockHash(hash))
-      .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(bid))
       .WillRepeatedly(Return(outcome::success(header)));
   EXPECT_CALL(*storage_, getBlockBody(bid))
@@ -329,8 +327,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_,
               putJustification(justification, B1_hash, B1_header.number))
-      .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, setLastFinalizedBlockHash(B1_hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(primitives::BlockId{B1_hash}))
       .WillRepeatedly(Return(outcome::success(B1_header)));
@@ -399,8 +395,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_,
               putJustification(justification, B_hash, B_header.number))
-      .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, setLastFinalizedBlockHash(B_hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(primitives::BlockId{B_hash}))
       .WillRepeatedly(Return(outcome::success(B_header)));

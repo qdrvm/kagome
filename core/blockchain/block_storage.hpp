@@ -30,13 +30,6 @@ namespace kagome::blockchain {
     virtual outcome::result<void> setBlockTreeLeaves(
         std::vector<primitives::BlockHash> leaves) = 0;
 
-    // TODO(xDimon): After deploy of this change,
-    //  getting of finalized block from storage should be removed
-    [[deprecated]] virtual outcome::result<primitives::BlockHash>
-    getLastFinalizedBlockHash() const = 0;
-    [[deprecated]] virtual outcome::result<void> setLastFinalizedBlockHash(
-        const primitives::BlockHash &) = 0;
-
     virtual outcome::result<bool> hasBlockHeader(
         const primitives::BlockId &id) const = 0;
 

@@ -38,13 +38,6 @@ namespace kagome::blockchain {
     outcome::result<void> setBlockTreeLeaves(
         std::vector<primitives::BlockHash> leaves) override;
 
-    // TODO(xDimon): After deploy of this change,
-    //  getting of finalized block from storage should be removed
-    [[deprecated]] outcome::result<primitives::BlockHash>
-    getLastFinalizedBlockHash() const override;
-    [[deprecated]] outcome::result<void> setLastFinalizedBlockHash(
-        const primitives::BlockHash &) override;
-
     outcome::result<bool> hasBlockHeader(
         const primitives::BlockId &id) const override;
 
@@ -82,11 +75,6 @@ namespace kagome::blockchain {
     std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger_;
     std::optional<primitives::BlockHash> genesis_block_hash_;
-
-    // TODO(xDimon): After deploy of this change,
-    //  getting of finalized block from storage should be removed
-    [[deprecated]] mutable std::optional<primitives::BlockHash>
-        last_finalized_block_hash_;
 
     mutable std::optional<std::vector<primitives::BlockHash>>
         block_tree_leaves_;

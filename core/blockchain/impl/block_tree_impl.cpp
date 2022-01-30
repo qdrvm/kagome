@@ -59,27 +59,7 @@ namespace kagome::blockchain {
 
     log::Logger log = log::createLogger("BlockTree", "blockchain");
 
-    std::vector<primitives::BlockHash> block_tree_leaves;
-    auto block_tree_leaves_res = storage->getBlockTreeLeaves();
-    if (block_tree_leaves_res.has_value()) {
-      std::swap(block_tree_leaves, block_tree_leaves_res.value());
-    } else if (block_tree_leaves_res
-               == outcome::failure(
-                   BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND)) {
-      // Fallback way to get last finalized
-      // TODO(xDimon): After deploy of this change,
-      //  getting of finalized block from storage should be removed
-      auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
-      if (last_finalized_block_res.has_value()) {
-        auto &last_finalized_block = last_finalized_block_res.value();
-        block_tree_leaves.emplace_back(std::move(last_finalized_block));
-      } else {
-        OUTCOME_TRY(genesis_hash, storage->getGenesisBlockHash());
-        block_tree_leaves.emplace_back(std::move(genesis_hash));
-      }
-    } else {
-      return block_tree_leaves_res.as_failure();
-    }
+    OUTCOME_TRY(block_tree_leaves, storage->getBlockTreeLeaves());
 
     BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
                      "Must be known or calculated at least one leaf");
@@ -483,10 +463,6 @@ namespace kagome::blockchain {
     OUTCOME_TRY(
         storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
                                       tree_->getMetadata().leaves.end()}));
-
-    // TODO(xDimon): After deploy of this change,
-    //  setting of finalized block to storage should be removed
-    OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
 
     OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
 

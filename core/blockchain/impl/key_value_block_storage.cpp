@@ -54,8 +54,26 @@ namespace kagome::blockchain {
                                Buffer{genesis_block_hash}));
 
       OUTCOME_TRY(block_storage->setBlockTreeLeaves({genesis_block_hash}));
+    }
 
-      OUTCOME_TRY(block_storage->setLastFinalizedBlockHash(genesis_block_hash));
+    // Fallback way to init block tree leaves list on existed storage
+    // TODO(xDimon): After deploy of this change, and using on existing DB,
+    //  this code block should be removed
+    if (block_storage->getBlockTreeLeaves()
+        == outcome::failure(BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND)) {
+      using namespace common::literals;
+      OUTCOME_TRY(last_finalized_block_hash_opt,
+                  storage->tryGet(":kagome:last_finalized_block_hash"_buf));
+      if (not last_finalized_block_hash_opt.has_value()) {
+        return BlockStorageError::FINALIZED_BLOCK_NOT_FOUND;
+      }
+      auto &hash = last_finalized_block_hash_opt.value();
+
+      primitives::BlockHash last_finalized_block_hash;
+      std::copy(hash.begin(), hash.end(), last_finalized_block_hash.begin());
+
+      OUTCOME_TRY(
+          block_storage->setBlockTreeLeaves({last_finalized_block_hash}));
     }
 
     return std::move(block_storage);
@@ -279,31 +297,4 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  outcome::result<primitives::BlockHash>
-  KeyValueBlockStorage::getLastFinalizedBlockHash() const {
-    if (last_finalized_block_hash_.has_value()) {
-      return last_finalized_block_hash_.value();
-    }
-
-    OUTCOME_TRY(hash_opt,
-                storage_->tryGet(storage::kLastFinalizedBlockHashLookupKey));
-    if (not hash_opt.has_value()) {
-      return BlockStorageError::FINALIZED_BLOCK_NOT_FOUND;
-    }
-
-    primitives::BlockHash hash;
-    std::copy(hash_opt.value().begin(), hash_opt.value().end(), hash.begin());
-
-    last_finalized_block_hash_.emplace(hash);
-
-    return hash;
-  }
-
-  outcome::result<void> KeyValueBlockStorage::setLastFinalizedBlockHash(
-      const primitives::BlockHash &hash) {
-    OUTCOME_TRY(
-        storage_->put(storage::kLastFinalizedBlockHashLookupKey, Buffer{hash}));
-    last_finalized_block_hash_.emplace(hash);
-    return outcome::success();
-  }
 }  // namespace kagome::blockchain
