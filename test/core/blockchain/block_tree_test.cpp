@@ -50,11 +50,11 @@ struct BlockTreeTest : public testing::Test {
 
   void SetUp() override {
     // for LevelDbBlockTree::create(..)
-    EXPECT_CALL(*storage_, loadBlockTreeLeaves())
+    EXPECT_CALL(*storage_, getBlockTreeLeaves())
         .WillOnce(Return(
             std::vector<primitives::BlockHash>{kFinalizedBlockInfo.hash}));
 
-    EXPECT_CALL(*storage_, saveBlockTreeLeaves(_))
+    EXPECT_CALL(*storage_, setBlockTreeLeaves(_))
         .WillRepeatedly(Return(outcome::success()));
 
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))

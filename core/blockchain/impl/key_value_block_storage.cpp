@@ -53,7 +53,7 @@ namespace kagome::blockchain {
       OUTCOME_TRY(storage->put(storage::kGenesisBlockHashLookupKey,
                                Buffer{genesis_block_hash}));
 
-      OUTCOME_TRY(block_storage->saveBlockTreeLeaves({genesis_block_hash}));
+      OUTCOME_TRY(block_storage->setBlockTreeLeaves({genesis_block_hash}));
 
       OUTCOME_TRY(block_storage->setLastFinalizedBlockHash(genesis_block_hash));
     }
@@ -243,7 +243,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<std::vector<primitives::BlockHash>>
-  KeyValueBlockStorage::loadBlockTreeLeaves() const {
+  KeyValueBlockStorage::getBlockTreeLeaves() const {
     if (block_tree_leaves_.has_value()) {
       return block_tree_leaves_.value();
     }
@@ -263,7 +263,7 @@ namespace kagome::blockchain {
     return block_tree_leaves_.value();
   }
 
-  outcome::result<void> KeyValueBlockStorage::saveBlockTreeLeaves(
+  outcome::result<void> KeyValueBlockStorage::setBlockTreeLeaves(
       std::vector<primitives::BlockHash> leaves) {
     if (block_tree_leaves_.has_value()
         and block_tree_leaves_.value() == leaves) {

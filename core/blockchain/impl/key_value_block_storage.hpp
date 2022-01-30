@@ -33,9 +33,9 @@ namespace kagome::blockchain {
 
     outcome::result<primitives::BlockHash> getGenesisBlockHash() const override;
 
-    outcome::result<std::vector<primitives::BlockHash>> loadBlockTreeLeaves()
+    outcome::result<std::vector<primitives::BlockHash>> getBlockTreeLeaves()
         const override;
-    outcome::result<void> saveBlockTreeLeaves(
+    outcome::result<void> setBlockTreeLeaves(
         std::vector<primitives::BlockHash> leaves) override;
 
     // TODO(xDimon): After deploy of this change,

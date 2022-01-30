@@ -26,8 +26,8 @@ namespace kagome::blockchain {
         const = 0;
 
     virtual outcome::result<std::vector<primitives::BlockHash>>
-    loadBlockTreeLeaves() const = 0;
-    virtual outcome::result<void> saveBlockTreeLeaves(
+    getBlockTreeLeaves() const = 0;
+    virtual outcome::result<void> setBlockTreeLeaves(
         std::vector<primitives::BlockHash> leaves) = 0;
 
     // TODO(xDimon): After deploy of this change,

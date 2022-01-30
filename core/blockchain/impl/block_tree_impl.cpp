@@ -60,7 +60,7 @@ namespace kagome::blockchain {
     log::Logger log = log::createLogger("BlockTree", "blockchain");
 
     std::vector<primitives::BlockHash> block_tree_leaves;
-    auto block_tree_leaves_res = storage->loadBlockTreeLeaves();
+    auto block_tree_leaves_res = storage->getBlockTreeLeaves();
     if (block_tree_leaves_res.has_value()) {
       std::swap(block_tree_leaves, block_tree_leaves_res.value());
     } else if (block_tree_leaves_res
@@ -332,8 +332,8 @@ namespace kagome::blockchain {
     tree_->updateMeta(new_node);
 
     OUTCOME_TRY(
-        storage_->saveBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
-                                       tree_->getMetadata().leaves.end()}));
+        storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
+                                      tree_->getMetadata().leaves.end()}));
 
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
@@ -379,8 +379,8 @@ namespace kagome::blockchain {
     tree_->updateMeta(new_node);
 
     OUTCOME_TRY(
-        storage_->saveBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
-                                       tree_->getMetadata().leaves.end()}));
+        storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
+                                      tree_->getMetadata().leaves.end()}));
 
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
@@ -439,8 +439,8 @@ namespace kagome::blockchain {
     tree_->updateMeta(new_node);
 
     OUTCOME_TRY(
-        storage_->saveBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
-                                       tree_->getMetadata().leaves.end()}));
+        storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
+                                      tree_->getMetadata().leaves.end()}));
 
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
@@ -481,8 +481,8 @@ namespace kagome::blockchain {
     tree_->updateTreeRoot(node);
 
     OUTCOME_TRY(
-        storage_->saveBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
-                                       tree_->getMetadata().leaves.end()}));
+        storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
+                                      tree_->getMetadata().leaves.end()}));
 
     // TODO(xDimon): After deploy of this change,
     //  setting of finalized block to storage should be removed

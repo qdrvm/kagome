@@ -19,12 +19,12 @@ namespace kagome::blockchain {
                 (const, override));
 
     MOCK_METHOD(outcome::result<std::vector<primitives::BlockHash>>,
-                loadBlockTreeLeaves,
+                getBlockTreeLeaves,
                 (),
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>,
-                saveBlockTreeLeaves,
+                setBlockTreeLeaves,
                 (std::vector<primitives::BlockHash>),
                 (override));
 
