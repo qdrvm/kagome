@@ -17,37 +17,19 @@ namespace kagome::blockchain {
 
   class KeyValueBlockStorage : public BlockStorage {
    public:
-    using BlockHandler = std::function<void(const primitives::Block &)>;
-
     ~KeyValueBlockStorage() override = default;
 
+    /**
+     * Creates block storage. Iff block storage is empty, then initializes with
+     * a genesis block which is created inside from merkle trie root
+     * @param state_root merkle root of genesis state
+     * @param storage underlying storage (must be empty)
+     * @param hasher a hasher instance
+     */
     static outcome::result<std::shared_ptr<KeyValueBlockStorage>> create(
         storage::trie::RootHash state_root,
         const std::shared_ptr<storage::BufferStorage> &storage,
-        const std::shared_ptr<crypto::Hasher> &hasher,
-        const BlockHandler &on_finalized_block_found);
-
-    /**
-     * Initialise block storage with existing data
-     * @param storage underlying storage (must be empty)
-     * @param hasher a hasher instance
-     */
-    static outcome::result<std::shared_ptr<KeyValueBlockStorage>> loadExisting(
-        const std::shared_ptr<storage::BufferStorage> &storage,
-        std::shared_ptr<crypto::Hasher> hasher,
-        const BlockHandler &on_finalized_block_found);
-
-    /**
-     * Initialise block storage with a genesis block which is created inside
-     * from merkle trie root
-     * @param storage underlying storage (must be empty)
-     * @param hasher a hasher instance
-     */
-    static outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-    createWithGenesis(storage::trie::RootHash state_root,
-                      const std::shared_ptr<storage::BufferStorage> &storage,
-                      std::shared_ptr<crypto::Hasher> hasher,
-                      const BlockHandler &on_genesis_created);
+        const std::shared_ptr<crypto::Hasher> &hasher);
 
     outcome::result<primitives::BlockHash> getGenesisBlockHash() const override;
 
@@ -56,9 +38,11 @@ namespace kagome::blockchain {
     outcome::result<void> saveBlockTreeLeaves(
         std::vector<primitives::BlockHash> leaves) override;
 
-    outcome::result<primitives::BlockHash> getLastFinalizedBlockHash()
-        const override;
-    outcome::result<void> setLastFinalizedBlockHash(
+    // TODO(xDimon): After deploy of this change,
+    //  getting of finalized block from storage should be removed
+    [[deprecated]] outcome::result<primitives::BlockHash>
+    getLastFinalizedBlockHash() const override;
+    [[deprecated]] outcome::result<void> setLastFinalizedBlockHash(
         const primitives::BlockHash &) override;
 
     outcome::result<bool> hasBlockHeader(
@@ -94,13 +78,16 @@ namespace kagome::blockchain {
     KeyValueBlockStorage(std::shared_ptr<storage::BufferStorage> storage,
                          std::shared_ptr<crypto::Hasher> hasher);
 
-    outcome::result<void> ensureGenesisNotExists() const;
-
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger_;
     std::optional<primitives::BlockHash> genesis_block_hash_;
-    mutable std::optional<primitives::BlockHash> last_finalized_block_hash_;
+
+    // TODO(xDimon): After deploy of this change,
+    //  getting of finalized block from storage should be removed
+    [[deprecated]] mutable std::optional<primitives::BlockHash>
+        last_finalized_block_hash_;
+
     mutable std::optional<std::vector<primitives::BlockHash>>
         block_tree_leaves_;
   };

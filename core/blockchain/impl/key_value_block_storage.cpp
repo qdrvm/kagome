@@ -29,76 +29,36 @@ namespace kagome::blockchain {
   KeyValueBlockStorage::create(
       storage::trie::RootHash state_root,
       const std::shared_ptr<storage::BufferStorage> &storage,
-      const std::shared_ptr<crypto::Hasher> &hasher,
-      const BlockHandler &on_finalized_block_found) {
+      const std::shared_ptr<crypto::Hasher> &hasher) {
     auto block_storage = std::make_shared<KeyValueBlockStorage>(
         KeyValueBlockStorage(storage, hasher));
 
-    auto last_finalized_block_hash_res =
-        block_storage->getLastFinalizedBlockHash();
-
-    if (last_finalized_block_hash_res.has_value()) {
-      return loadExisting(storage, hasher, on_finalized_block_found);
+    auto res = block_storage->hasBlockHeader(primitives::BlockNumber{0});
+    if (res.has_error()) {
+      return res.as_failure();
     }
 
-    if (last_finalized_block_hash_res
-        == outcome::failure(BlockStorageError::FINALIZED_BLOCK_NOT_FOUND)) {
-      return createWithGenesis(
-          std::move(state_root), storage, hasher, on_finalized_block_found);
+    if (not res.value()) {
+      auto extrinsics_root = trieRoot({});
+
+      // genesis block initialization
+      primitives::Block genesis_block;
+      genesis_block.header.number = 0;
+      genesis_block.header.extrinsics_root = extrinsics_root;
+      genesis_block.header.state_root = state_root;
+      // the rest of the fields have default value
+
+      OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
+
+      OUTCOME_TRY(storage->put(storage::kGenesisBlockHashLookupKey,
+                               Buffer{genesis_block_hash}));
+
+      OUTCOME_TRY(block_storage->saveBlockTreeLeaves({genesis_block_hash}));
+
+      OUTCOME_TRY(block_storage->setLastFinalizedBlockHash(genesis_block_hash));
     }
 
-    return last_finalized_block_hash_res.error();
-  }
-
-  outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-  KeyValueBlockStorage::loadExisting(
-      const std::shared_ptr<storage::BufferStorage> &storage,
-      std::shared_ptr<crypto::Hasher> hasher,
-      const BlockHandler &on_finalized_block_found) {
-    auto block_storage = std::make_shared<KeyValueBlockStorage>(
-        KeyValueBlockStorage(storage, std::move(hasher)));
-
-    OUTCOME_TRY(last_finalized_block_hash,
-                block_storage->getLastFinalizedBlockHash());
-
-    OUTCOME_TRY(block_header,
-                block_storage->getBlockHeader(last_finalized_block_hash));
-
-    primitives::Block finalized_block;
-    finalized_block.header = block_header;
-
-    on_finalized_block_found(finalized_block);
-
-    return block_storage;
-  }
-
-  outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-  KeyValueBlockStorage::createWithGenesis(
-      storage::trie::RootHash state_root,
-      const std::shared_ptr<storage::BufferStorage> &storage,
-      std::shared_ptr<crypto::Hasher> hasher,
-      const BlockHandler &on_genesis_created) {
-    auto block_storage = std::make_shared<KeyValueBlockStorage>(
-        KeyValueBlockStorage(storage, std::move(hasher)));
-
-    OUTCOME_TRY(block_storage->ensureGenesisNotExists());
-
-    auto extrinsics_root = trieRoot({});
-
-    // genesis block initialization
-    primitives::Block genesis_block;
-    genesis_block.header.number = 0;
-    genesis_block.header.extrinsics_root = extrinsics_root;
-    genesis_block.header.state_root = state_root;
-    // the rest of the fields have default value
-
-    OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
-    OUTCOME_TRY(storage->put(storage::kGenesisBlockHashLookupKey,
-                             Buffer{genesis_block_hash}));
-    OUTCOME_TRY(block_storage->setLastFinalizedBlockHash(genesis_block_hash));
-
-    on_genesis_created(genesis_block);
-    return block_storage;
+    return std::move(block_storage);
   }
 
   outcome::result<bool> KeyValueBlockStorage::hasBlockHeader(
@@ -344,14 +304,6 @@ namespace kagome::blockchain {
     OUTCOME_TRY(
         storage_->put(storage::kLastFinalizedBlockHashLookupKey, Buffer{hash}));
     last_finalized_block_hash_.emplace(hash);
-    return outcome::success();
-  }
-
-  outcome::result<void> KeyValueBlockStorage::ensureGenesisNotExists() const {
-    auto res = getLastFinalizedBlockHash();
-    if (res.has_value()) {
-      return BlockStorageError::GENESIS_BLOCK_ALREADY_EXISTS;
-    }
     return outcome::success();
   }
 }  // namespace kagome::blockchain

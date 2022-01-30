@@ -226,59 +226,61 @@ namespace {
       return initialized.value();
     }
 
-    auto storage_res = blockchain::KeyValueBlockStorage::create(
-        state_root, db, hasher, [&](const primitives::Block &genesis_block) {
-          auto log = log::createLogger("Injector", "injector");
+    auto storage_res =
+        blockchain::KeyValueBlockStorage::create(state_root, db, hasher);
 
-          auto res = db->tryGet(storage::kSchedulerTreeLookupKey);
-          if (res.has_value() && !res.value().has_value()) {
-            auto hash_res = db->get(storage::kGenesisBlockHashLookupKey);
-            if (not hash_res.has_value()) {
-              log->critical("Can't decode genesis block hash: {}",
-                            hash_res.error().message());
-              common::raise(hash_res.error());
-            }
+    {
+      auto log = log::createLogger("Injector", "injector");
 
-            primitives::BlockHash hash;
-            std::copy(
-                hash_res.value().begin(), hash_res.value().end(), hash.begin());
+      auto res = db->tryGet(storage::kSchedulerTreeLookupKey);
+      if (res.has_value() && !res.value().has_value()) {
+        auto hash_res = db->get(storage::kGenesisBlockHashLookupKey);
+        if (not hash_res.has_value()) {
+          log->critical("Can't decode genesis block hash: {}",
+                        hash_res.error().message());
+          common::raise(hash_res.error());
+        }
 
-            // Get initial authorities from genesis
-            auto authorities_res = grandpa_api->authorities(hash);
-            if (not authorities_res.has_value()) {
-              log->critical("Can't get genesis grandpa authorities: {}",
-                            authorities_res.error().message());
-              common::raise(authorities_res.error());
-            }
-            auto &authorities = authorities_res.value();
+        primitives::BlockHash hash;
+        std::copy(
+            hash_res.value().begin(), hash_res.value().end(), hash.begin());
 
-            for (const auto &authority : authorities) {
-              SL_DEBUG(log, "Grandpa authority: {:l}", authority.id.id);
-            }
+        // Get initial authorities from genesis
+        auto authorities_res = grandpa_api->authorities(hash);
+        if (not authorities_res.has_value()) {
+          log->critical("Can't get genesis grandpa authorities: {}",
+                        authorities_res.error().message());
+          common::raise(authorities_res.error());
+        }
+        auto &authorities = authorities_res.value();
 
-            authorities.id = 0;
+        for (const auto &authority : authorities) {
+          SL_DEBUG(log, "Grandpa authority: {:l}", authority.id.id);
+        }
 
-            auto node = authority::ScheduleNode::createAsRoot({0, hash});
-            node->actual_authorities =
-                std::make_shared<primitives::AuthorityList>(
-                    std::move(authorities));
+        authorities.id = 0;
 
-            auto data_res = scale::encode(node);
-            if (!data_res.has_value()) {
-              log->critical("Can't encode authority manager state: {}",
-                            data_res.error().message());
-              common::raise(data_res.error());
-            }
+        auto node = authority::ScheduleNode::createAsRoot({0, hash});
+        node->actual_authorities =
+            std::make_shared<primitives::AuthorityList>(std::move(authorities));
 
-            auto save_res = db->put(storage::kSchedulerTreeLookupKey,
-                                    common::Buffer(data_res.value()));
-            if (!save_res.has_value()) {
-              log->critical("Can't store current state: {}",
-                            save_res.error().message());
-              common::raise(save_res.error());
-            }
-          }
-        });
+        auto data_res = scale::encode(node);
+        if (!data_res.has_value()) {
+          log->critical("Can't encode authority manager state: {}",
+                        data_res.error().message());
+          common::raise(data_res.error());
+        }
+
+        auto save_res = db->put(storage::kSchedulerTreeLookupKey,
+                                common::Buffer(data_res.value()));
+        if (!save_res.has_value()) {
+          log->critical("Can't store current state: {}",
+                        save_res.error().message());
+          common::raise(save_res.error());
+        }
+      }
+    }
+
     if (storage_res.has_error()) {
       common::raise(storage_res.error());
     }

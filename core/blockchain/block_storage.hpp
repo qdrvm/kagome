@@ -30,9 +30,11 @@ namespace kagome::blockchain {
     virtual outcome::result<void> saveBlockTreeLeaves(
         std::vector<primitives::BlockHash> leaves) = 0;
 
-    virtual outcome::result<primitives::BlockHash> getLastFinalizedBlockHash()
-        const = 0;
-    virtual outcome::result<void> setLastFinalizedBlockHash(
+    // TODO(xDimon): After deploy of this change,
+    //  getting of finalized block from storage should be removed
+    [[deprecated]] virtual outcome::result<primitives::BlockHash>
+    getLastFinalizedBlockHash() const = 0;
+    [[deprecated]] virtual outcome::result<void> setLastFinalizedBlockHash(
         const primitives::BlockHash &) = 0;
 
     virtual outcome::result<bool> hasBlockHeader(
