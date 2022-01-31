@@ -34,7 +34,6 @@ namespace kagome::consensus::babe {
   BabeImpl::BabeImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<BabeLottery> lottery,
-      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<authorship::Proposer> proposer,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -52,7 +51,6 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api)
       : was_synchronized_{false},
         lottery_{std::move(lottery)},
-        trie_storage_{std::move(trie_storage)},
         babe_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
@@ -68,7 +66,6 @@ namespace kagome::consensus::babe {
         offchain_worker_api_(std::move(offchain_worker_api)),
         log_{log::createLogger("Babe", "babe")} {
     BOOST_ASSERT(lottery_);
-    BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_announce_transmitter_);

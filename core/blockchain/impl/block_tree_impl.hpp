@@ -78,6 +78,8 @@ namespace kagome::blockchain {
 
     ~BlockTreeImpl() override = default;
 
+    const primitives::BlockHash &getGenesisBlockHash() const override;
+
     outcome::result<bool> hasBlockHeader(
         const primitives::BlockId &block) const override;
 
@@ -168,7 +170,6 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<consensus::BabeUtil> babe_util);
 
     /**
@@ -211,9 +212,11 @@ namespace kagome::blockchain {
     std::shared_ptr<runtime::Core> runtime_core_;
     std::shared_ptr<storage::changes_trie::ChangesTracker>
         trie_changes_tracker_;
-    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<const consensus::BabeUtil> babe_util_;
+
+    std::optional<primitives::BlockHash> genesis_block_hash_;
     std::optional<primitives::Version> actual_runtime_version_;
+
     log::Logger log_ = log::createLogger("BlockTree", "blockchain");
 
     // Metrics

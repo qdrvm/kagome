@@ -50,9 +50,6 @@ namespace kagome::blockchain {
 
       OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
 
-      OUTCOME_TRY(storage->put(storage::kGenesisBlockHashLookupKey,
-                               Buffer{genesis_block_hash}));
-
       OUTCOME_TRY(block_storage->setBlockTreeLeaves({genesis_block_hash}));
     }
 
@@ -237,27 +234,6 @@ namespace kagome::blockchain {
       return rm_res;
     }
     return outcome::success();
-  }
-
-  outcome::result<primitives::BlockHash>
-  KeyValueBlockStorage::getGenesisBlockHash() const {
-    if (genesis_block_hash_.has_value()) {
-      return genesis_block_hash_.value();
-    }
-
-    auto hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
-    if (hash_res.has_value()) {
-      primitives::BlockHash hash;
-      std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
-      const_cast<decltype(genesis_block_hash_) &>(genesis_block_hash_) = hash;
-      return hash;
-    }
-
-    if (hash_res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-      return BlockStorageError::GENESIS_BLOCK_NOT_FOUND;
-    }
-
-    return hash_res.as_failure();
   }
 
   outcome::result<std::vector<primitives::BlockHash>>

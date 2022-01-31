@@ -15,9 +15,6 @@ namespace kagome::storage {
 
   inline const common::Buffer kExtrinsicIndexKey = ":extrinsic_index"_buf;
 
-  inline const common::Buffer kGenesisBlockHashLookupKey =
-      ":kagome:genesis_block_hash"_buf;
-
   inline const common::Buffer kBlockTreeLeavesLookupKey =
       ":kagome:block_tree_leaves"_buf;
 

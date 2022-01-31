@@ -21,10 +21,6 @@ namespace kagome::blockchain {
    public:
     virtual ~BlockStorage() = default;
 
-    /// Get hash of genesis block
-    virtual outcome::result<primitives::BlockHash> getGenesisBlockHash()
-        const = 0;
-
     virtual outcome::result<std::vector<primitives::BlockHash>>
     getBlockTreeLeaves() const = 0;
     virtual outcome::result<void> setBlockTreeLeaves(

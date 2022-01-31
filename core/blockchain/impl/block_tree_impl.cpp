@@ -218,7 +218,6 @@ namespace kagome::blockchain {
                           std::move(extrinsic_event_key_repo),
                           std::move(runtime_core),
                           std::move(changes_tracker),
-                          std::move(babe_configuration),
                           std::move(babe_util));
     return std::shared_ptr<BlockTreeImpl>(block_tree);
   }
@@ -236,7 +235,6 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-      std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
       std::shared_ptr<consensus::BabeUtil> babe_util)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
@@ -248,7 +246,6 @@ namespace kagome::blockchain {
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
         runtime_core_(std::move(runtime_core)),
         trie_changes_tracker_(std::move(changes_tracker)),
-        babe_configuration_(std::move(babe_configuration)),
         babe_util_(std::move(babe_util)) {
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -260,7 +257,6 @@ namespace kagome::blockchain {
     BOOST_ASSERT(extrinsic_event_key_repo_ != nullptr);
     BOOST_ASSERT(runtime_core_ != nullptr);
     BOOST_ASSERT(trie_changes_tracker_ != nullptr);
-    BOOST_ASSERT(babe_configuration_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
 
     // Register metrics
@@ -283,6 +279,21 @@ namespace kagome::blockchain {
     metric_known_chain_leaves_ =
         metrics_registry_->registerGaugeMetric(knownChainLeavesMetricName);
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+  }
+
+  const primitives::BlockHash &BlockTreeImpl::getGenesisBlockHash() const {
+    if (genesis_block_hash_.has_value()) {
+      return genesis_block_hash_.value();
+    }
+
+    auto res = header_repo_->getHashByNumber(0);
+    BOOST_ASSERT_MSG(res.has_value(),
+                     "Block tree must contain at least genesis block");
+
+    const_cast<std::decay_t<decltype(genesis_block_hash_)> &>(
+        genesis_block_hash_)
+        .emplace(res.value());
+    return genesis_block_hash_.value();
   }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(

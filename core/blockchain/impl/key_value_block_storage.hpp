@@ -31,8 +31,6 @@ namespace kagome::blockchain {
         const std::shared_ptr<storage::BufferStorage> &storage,
         const std::shared_ptr<crypto::Hasher> &hasher);
 
-    outcome::result<primitives::BlockHash> getGenesisBlockHash() const override;
-
     outcome::result<std::vector<primitives::BlockHash>> getBlockTreeLeaves()
         const override;
     outcome::result<void> setBlockTreeLeaves(

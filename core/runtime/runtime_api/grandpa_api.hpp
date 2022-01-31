@@ -27,7 +27,6 @@ namespace kagome::runtime {
     using Digest = primitives::Digest;
     using ScheduledChange = primitives::ScheduledChange;
     using BlockNumber = primitives::BlockNumber;
-    using SessionKey = primitives::GrandpaSessionKey;
     using AuthorityList = primitives::AuthorityList;
     using ForcedChange = primitives::ForcedChange;
     using BlockId = primitives::BlockId;

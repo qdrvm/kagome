@@ -52,7 +52,6 @@ namespace kagome::network {
                           const application::ChainSpec &chain_spec,
                           std::shared_ptr<StreamEngine> stream_engine,
                           std::shared_ptr<blockchain::BlockTree> block_tree,
-                          std::shared_ptr<blockchain::BlockStorage> storage,
                           std::shared_ptr<BlockAnnounceObserver> observer,
                           std::shared_ptr<PeerManager> peer_manager);
 
@@ -89,7 +88,6 @@ namespace kagome::network {
     const application::AppConfiguration &app_config_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<BlockAnnounceObserver> observer_;
     std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;

@@ -30,7 +30,6 @@
 #include "mock/core/network/synchronizer_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
-#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/block.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -78,7 +77,6 @@ class BabeTest : public testing::Test {
     app_state_manager_ = std::make_shared<AppStateManagerMock>();
     lottery_ = std::make_shared<BabeLotteryMock>();
     synchronizer_ = std::make_shared<network::SynchronizerMock>();
-    trie_db_ = std::make_shared<storage::trie::TrieStorageMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
     grandpa_environment_ = std::make_shared<grandpa::EnvironmentMock>();
     tx_pool_ = std::make_shared<transaction_pool::TransactionPoolMock>();
@@ -130,7 +128,6 @@ class BabeTest : public testing::Test {
 
     babe_ = std::make_shared<babe::BabeImpl>(app_state_manager_,
                                              lottery_,
-                                             trie_db_,
                                              babe_config_,
                                              proposer_,
                                              block_tree_,
@@ -162,7 +159,6 @@ class BabeTest : public testing::Test {
   std::shared_ptr<AppStateManagerMock> app_state_manager_;
   std::shared_ptr<BabeLotteryMock> lottery_;
   std::shared_ptr<Synchronizer> synchronizer_;
-  std::shared_ptr<storage::trie::TrieStorageMock> trie_db_;
   std::shared_ptr<BlockValidator> babe_block_validator_;
   std::shared_ptr<grandpa::EnvironmentMock> grandpa_environment_;
   std::shared_ptr<runtime::CoreMock> core_;
