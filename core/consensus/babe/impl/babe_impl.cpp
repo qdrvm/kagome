@@ -161,10 +161,8 @@ namespace kagome::consensus::babe {
 
   outcome::result<EpochDescriptor> BabeImpl::getInitialEpochDescriptor() {
     // First, look up slot number of block number 1
-    auto first_block_header_res = block_tree_->getBlockHeader(1);
-    if (first_block_header_res
-        == outcome::failure(
-            blockchain::BlockStorageError::HEADER_DOES_NOT_EXIST)) {
+    OUTCOME_TRY(first_block_header_exists, block_tree_->hasBlockHeader(1));
+    if (not first_block_header_exists) {
       EpochDescriptor epoch_descriptor{
           .epoch_number = 0,
           .start_slot =
@@ -174,7 +172,7 @@ namespace kagome::consensus::babe {
       return outcome::success(epoch_descriptor);
     }
 
-    OUTCOME_TRY(first_block_header, first_block_header_res);
+    OUTCOME_TRY(first_block_header, block_tree_->getBlockHeader(1));
     auto babe_digest_res = getBabeDigests(first_block_header);
     BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                      "Any non genesis block must be contain babe digest");
