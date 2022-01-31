@@ -10,6 +10,7 @@
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/storage/polkadot_trie_printer.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::Hash256;
@@ -323,6 +324,7 @@ TEST_F(TrieTest, ClearPrefix) {
   for (auto &entry : data) {
     ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry.first, entry.second));
   }
+  std::cout << *trie << "\n";
   ASSERT_OUTCOME_SUCCESS_TRY(
       trie->clearPrefix("bar"_buf, std::nullopt, [](const auto &, auto &&) {
         return outcome::success();

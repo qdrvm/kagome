@@ -94,9 +94,9 @@ namespace kagome::storage::trie {
     inline static outcome::result<NodePtr> defaultNodeRetrieveFunctor(
         const std::shared_ptr<OpaqueTrieNode> &node) {
       BOOST_ASSERT_MSG(
-          node != nullptr
-              and std::dynamic_pointer_cast<TrieNode>(node) != nullptr,
-          "Dummy node unexpected.");
+          node == nullptr
+              or std::dynamic_pointer_cast<TrieNode>(node) != nullptr,
+          "Unexpected Dummy node.");
       return std::dynamic_pointer_cast<TrieNode>(node);
     }
   };

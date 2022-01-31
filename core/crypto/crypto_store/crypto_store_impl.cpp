@@ -80,7 +80,7 @@ namespace kagome::crypto {
     OUTCOME_TRY(kp, ecdsa_suite_->generateKeypair(seed));
     getCache(ecdsa_suite_, ecdsa_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
-    return kp;
+    return std::move(kp);
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
@@ -88,7 +88,7 @@ namespace kagome::crypto {
     OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed));
     getCache(ed_suite_, ed_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
-    return kp;
+    return std::move(kp);
   }
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
@@ -96,7 +96,7 @@ namespace kagome::crypto {
     OUTCOME_TRY(kp, sr_suite_->generateKeypair(seed));
     getCache(sr_suite_, sr_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
-    return kp;
+    return std::move(kp);
   }
 
   outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypairOnDisk(
@@ -106,7 +106,7 @@ namespace kagome::crypto {
         .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
         file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
-    return kp;
+    return std::move(kp);
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519KeypairOnDisk(
@@ -116,7 +116,7 @@ namespace kagome::crypto {
         .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
         file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
-    return kp;
+    return std::move(kp);
   }
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519KeypairOnDisk(
@@ -126,7 +126,7 @@ namespace kagome::crypto {
         .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
         file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
-    return kp;
+    return std::move(kp);
   }
 
   outcome::result<EcdsaKeypair> CryptoStoreImpl::findEcdsaKeypair(

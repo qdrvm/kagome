@@ -55,7 +55,9 @@ namespace kagome::metrics {
 
   void MetricsWatcher::stop() {
     shutdown_requested_ = true;
-    thread_.join();
+    if (thread_.joinable()) {
+      thread_.join();
+    }
   }
 
   outcome::result<size_t> MetricsWatcher::measure_storage_size() {

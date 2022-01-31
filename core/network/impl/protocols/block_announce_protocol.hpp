@@ -54,7 +54,6 @@ namespace kagome::network {
                           std::shared_ptr<blockchain::BlockTree> block_tree,
                           std::shared_ptr<blockchain::BlockStorage> storage,
                           std::shared_ptr<BlockAnnounceObserver> observer,
-                          std::shared_ptr<crypto::Hasher> hasher,
                           std::shared_ptr<PeerManager> peer_manager);
 
     const Protocol &protocol() const override {
@@ -92,10 +91,10 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<BlockAnnounceObserver> observer_;
-    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("BlockAnnounceProtocol", "kagome_protocols");
+    log::Logger log_ =
+        log::createLogger("BlockAnnounceProtocol", "kagome_protocols");
   };
 
 }  // namespace kagome::network

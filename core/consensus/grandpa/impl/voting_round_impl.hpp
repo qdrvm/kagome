@@ -10,6 +10,7 @@
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/signals2.hpp>
+#include <libp2p/basic/scheduler.hpp>
 
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/grandpa/environment.hpp"
@@ -35,10 +36,13 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
         std::shared_ptr<VoteTracker> prevotes,
         std::shared_ptr<VoteTracker> precommits,
-        std::shared_ptr<VoteGraph> prevote_graph,
-        std::shared_ptr<VoteGraph> precommit_graph,
+        std::shared_ptr<VoteGraph> vote_graph,
         std::shared_ptr<Clock> clock,
-        std::shared_ptr<boost::asio::io_context> io_context);
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
+
+   protected:
+    // This ctor is needed only for tests purposes
+    VotingRoundImpl() : round_number_{}, duration_{} {}
 
    public:
     VotingRoundImpl(
@@ -49,10 +53,9 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
-        const std::shared_ptr<VoteGraph> &prevote_graph,
-        const std::shared_ptr<VoteGraph> &precommit_graph,
+        const std::shared_ptr<VoteGraph> &vote_graph,
         const std::shared_ptr<Clock> &clock,
-        const std::shared_ptr<boost::asio::io_context> &io_context,
+        const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const MovableRoundState &round_state);
 
     VotingRoundImpl(
@@ -63,10 +66,9 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
-        const std::shared_ptr<VoteGraph> &prevote_graph,
-        const std::shared_ptr<VoteGraph> &precommit_graph,
+        const std::shared_ptr<VoteGraph> &vote_graph,
         const std::shared_ptr<Clock> &clock,
-        const std::shared_ptr<boost::asio::io_context> &io_context,
+        const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const std::shared_ptr<VotingRound> &previous_round);
 
     enum class Stage {
@@ -157,6 +159,20 @@ namespace kagome::consensus::grandpa {
     void update(bool isPrevotesChanged, bool isPrecommitsChanged) override;
 
     /**
+     * @returns previous known round for current
+     */
+    std::shared_ptr<VotingRound> getPreviousRound() const override {
+      return previous_round_;
+    };
+
+    /**
+     * Removes previous round to limit chain of rounds
+     */
+    void forgetPreviousRound() override {
+      previous_round_.reset();
+    }
+
+    /**
      * Checks if current round is completable and finalized block differs from
      * the last round's finalized block. If so fin message is broadcasted to the
      * network
@@ -179,7 +195,6 @@ namespace kagome::consensus::grandpa {
       return last_finalized_block_;
     }
     BlockInfo bestPrevoteCandidate() override;
-    BlockInfo bestPrecommitCandidate() override;
     BlockInfo bestFinalCandidate() override;
     std::optional<BlockInfo> finalizedBlock() const override {
       return finalized_;
@@ -197,21 +212,17 @@ namespace kagome::consensus::grandpa {
 
     /**
      * Invoked during each onSingedPrevote.
-     * Updates current round's prevote ghost. New prevote-ghost is the highest
+     * Updates current round's grandpa ghost. New grandpa-ghost is the highest
      * block with supermajority of prevotes
      * @return true if prevote ghost was updated
      */
-    bool updatePrevoteGhost();
+    bool updateGrandpaGhost();
 
     /**
-     * Invoked during each onSingedPrevote.
-     * Updates current round's prevote ghost. New prevote-ghost is the highest
-     * block with supermajority of prevotes
-     * @return true if precommit ghost was updated
+     * Invoked during each onSingedPrecommit.
+     * @return true if estimate was updated
      */
-    bool updatePrecommitGhost();
-
-    bool updateCompletable();
+    bool updateEstimate();
 
     /// prepare prevote justification of \param estimate over the provided
     /// \param votes
@@ -233,26 +244,26 @@ namespace kagome::consensus::grandpa {
     void sendPrevote(const Prevote &prevote);
     void sendPrecommit(const Precommit &precommit);
     void sendCommit();
+    void pending();
 
     std::shared_ptr<VoterSet> voter_set_;
     const RoundNumber round_number_;
-    std::weak_ptr<VotingRound> previous_round_;
+    std::shared_ptr<VotingRound> previous_round_;
 
     const Duration duration_;  // length of round
     bool isPrimary_ = false;
-    size_t threshold_;            // supermajority threshold
-    const std::optional<Id> id_;  // id of current peer
-    TimePoint start_time_;        // time when round was started to play
+    size_t threshold_;                      // supermajority threshold
+    const std::optional<Id> id_;            // id of current peer
+    std::chrono::milliseconds start_time_;  // time of start round to play
 
     std::weak_ptr<Grandpa> grandpa_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
     std::shared_ptr<const primitives::AuthorityList> authorities_;
     std::shared_ptr<Environment> env_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
-    std::shared_ptr<VoteGraph> prevote_graph_;
-    std::shared_ptr<VoteGraph> precommit_graph_;
+    std::shared_ptr<VoteGraph> graph_;
     std::shared_ptr<Clock> clock_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::function<void()> on_complete_handler_;
 
@@ -262,7 +273,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VoteTracker> precommits_;
 
     // equivocators arrays. Index in vector corresponds to the index of voter in
-    // voterset, value corresponds to the weight of the voter
+    // voter set, value corresponds to the weight of the voter
     std::vector<bool> prevote_equivocators_;
     std::vector<bool> precommit_equivocators_;
 
@@ -287,16 +298,13 @@ namespace kagome::consensus::grandpa {
     // supermajority Is't also the best prevote candidate
     std::optional<BlockInfo> prevote_ghost_;
 
-    // Precommit ghost. Updating by each prevote and precommit.
-    // It's deepest descendant of best prevote candidate with precommit
-    // supermajority Is't also the best final candidate
-    std::optional<BlockInfo> precommit_ghost_;
+    std::optional<BlockInfo> estimate_;
 
     std::optional<BlockInfo> best_final_candidate_;
     std::optional<BlockInfo> finalized_;
 
-    Timer timer_;
-    Timer neighbor_msg_timer_;
+    libp2p::basic::Scheduler::Handle stage_timer_handle_;
+    libp2p::basic::Scheduler::Handle pending_timer_handle_;
 
     log::Logger logger_ = log::createLogger("VotingRound", "voting_round");
 

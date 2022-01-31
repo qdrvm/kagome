@@ -24,6 +24,8 @@ using testing::_;
 using testing::Return;
 
 struct VoteGraphFixture : public testing::Test {
+  static const VoteType vt = VoteType::Prevote;
+
   const BlockHash GENESIS_HASH = "genesis"_H;
 
   std::shared_ptr<VoterSet> voter_set = [] {
@@ -202,7 +204,9 @@ inline void AssertGraphCorrect(VoteGraphImpl &graph, std::string json) {
           std::cerr << "difference in descendants" << std::endl;
           return false;
         }
-        if (g.second.cumulative_vote.sum != j.second.cumulative_vote.sum) {
+        auto vt = VoteType::Prevote;
+        if (g.second.cumulative_vote.sum(vt)
+            != j.second.cumulative_vote.sum(vt)) {
           std::cerr << "difference in prevotes_sum" << std::endl;
           return false;
         }
@@ -210,36 +214,11 @@ inline void AssertGraphCorrect(VoteGraphImpl &graph, std::string json) {
         return g.first == j.first && g.second.number == j.second.number
                && g.second.ancestors == j.second.ancestors
                && g.second.descendants == j.second.descendants
-               && g.second.cumulative_vote.sum == j.second.cumulative_vote.sum;
+               && g.second.cumulative_vote.sum(vt)
+                      == j.second.cumulative_vote.sum(vt);
       });
 
   EXPECT_TRUE(is_equal) << "entries are incorrect";
 }
 
-/// Custom GTest Printers for custom types
-namespace std {
-  inline void PrintTo(const BlockHash &e, ostream *os) {
-    *os << e;
-  }
-
-  inline void PrintTo(const BlockInfo &e, ostream *os) {
-    *os << "BlockInfo{n=" << e.number << ", h=" << e.hash << "}";
-  }
-
-  inline void PrintTo(const VoteGraph::Entry &e, ostream *os) {
-    *os << "Entry{";
-    *os << "number=" << e.number;
-    *os << ", ancestors=[";
-    for (auto &a : e.ancestors) {
-      *os << a << ", ";
-    }
-    *os << "], ";
-    *os << "descendants=[";
-    for (auto &a : e.descendants) {
-      *os << a << ", ";
-    }
-    *os << "], ";
-    *os << "cumulative_vote=" << e.cumulative_vote.sum << "}";
-  }
-}  // namespace std
 #endif  // KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP

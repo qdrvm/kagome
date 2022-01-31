@@ -667,7 +667,8 @@ namespace {
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::Router>>(),
-        injector.template create<sptr<storage::BufferStorage>>());
+        injector.template create<sptr<storage::BufferStorage>>(),
+        injector.template create<sptr<crypto::Hasher>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1322,14 +1323,15 @@ namespace {
     initialized = std::make_shared<consensus::grandpa::GrandpaImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
-        injector.template create<sptr<storage::BufferStorage>>(),
         injector.template create<sptr<crypto::Ed25519Provider>>(),
         injector.template create<sptr<runtime::GrandpaApi>>(),
         session_keys->getGranKeyPair(),
         injector.template create<sptr<clock::SteadyClock>>(),
-        injector.template create<sptr<boost::asio::io_context>>(),
+        injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<authority::AuthorityManager>>(),
-        injector.template create<sptr<network::Synchronizer>>());
+        injector.template create<sptr<network::Synchronizer>>(),
+        injector.template create<sptr<network::PeerManager>>(),
+        injector.template create<sptr<blockchain::BlockStorage>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();

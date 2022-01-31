@@ -15,6 +15,7 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "log/logger.hpp"
+#include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/protocol_base.hpp"
 #include "subscription/subscriber.hpp"
@@ -215,16 +216,15 @@ namespace kagome::network {
             if (auto self = wp.lock()) {
               if (res.has_value()) {
                 SL_TRACE(self->logger_,
-                         "Message sent to {} stream with peer_id={}",
+                         "Message sent to {} stream with {}",
                          protocol->protocol(),
-                         peer_id.toBase58());
+                         peer_id);
               } else {
-                SL_ERROR(
-                    self->logger_,
-                    "Could not send message to {} stream with peer_id={}: {}",
-                    protocol->protocol(),
-                    peer_id.toBase58(),
-                    res.error().message());
+                SL_ERROR(self->logger_,
+                         "Could not send message to {} stream with {}: {}",
+                         protocol->protocol(),
+                         peer_id,
+                         res.error().message());
               }
             }
           });
@@ -249,21 +249,33 @@ namespace kagome::network {
     }
 
     template <typename T>
-    void broadcast(const std::shared_ptr<ProtocolBase> &protocol,
-                   std::shared_ptr<T> msg) {
+    void broadcast(
+        const std::shared_ptr<ProtocolBase> &protocol,
+        const std::shared_ptr<T> &msg,
+        const std::function<bool(const PeerId &peer_id)> &predicate) {
       BOOST_ASSERT(msg != nullptr);
       BOOST_ASSERT(protocol != nullptr);
 
       std::shared_lock cs(streams_cs_);
       forEachPeer([&](const auto &peer_id, auto &proto_map) {
-        forProtocol(proto_map, protocol, [&](auto &descr) {
-          if (descr.outgoing and not descr.outgoing->isClosed()) {
-            send(peer_id, protocol, descr.outgoing, *msg);
-            return;
-          }
-          updateStream(peer_id, protocol, msg);
-        });
+        if (predicate(peer_id)) {
+          forProtocol(proto_map, protocol, [&](auto &descr) {
+            if (descr.outgoing and not descr.outgoing->isClosed()) {
+              send(peer_id, protocol, descr.outgoing, *msg);
+              return;
+            }
+            updateStream(peer_id, protocol, msg);
+          });
+        }
       });
+    }
+
+    template <typename T>
+    void broadcast(const std::shared_ptr<ProtocolBase> &protocol,
+                   const std::shared_ptr<T> &msg) {
+      static const std::function<bool(const PeerId &)> any =
+          [](const PeerId &) { return true; };
+      broadcast(protocol, msg, any);
     }
 
     template <typename F>
@@ -421,9 +433,11 @@ namespace kagome::network {
             }
 
             if (!stream_res) {
-              self->logger_->error("Could not send message to {}: Error: {}",
-                                   peer_id.toBase58(),
-                                   stream_res.error().message());
+              self->logger_->error(
+                  "Could not send message to {} stream with {}: {}",
+                  protocol->protocol(),
+                  peer_id,
+                  stream_res.error().message());
               self->forSubscriber(
                   peer_id, protocol, [&](auto, auto &subscriber) {
                     while (not subscriber.deffered_messages.empty()) {

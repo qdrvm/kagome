@@ -29,7 +29,7 @@ struct WalkBackFromBlockNodeBelow
 })");
 
     expect_getAncestry(GENESIS_HASH, "B"_H, vec("B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({2, "B"_H}, "w10_a"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {2, "B"_H}, "w10_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -63,7 +63,7 @@ struct WalkBackFromBlockNodeBelow
         GENESIS_HASH,
         "F1"_H,
         vec("F1"_H, "E1"_H, "D"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({6, "F1"_H}, "w5_a"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {6, "F1"_H}, "w5_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -110,7 +110,7 @@ struct WalkBackFromBlockNodeBelow
         GENESIS_HASH,
         "G2"_H,
         vec("G2"_H, "F2"_H, "E2"_H, "D"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({7, "G2"_H}, "w5_b"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {7, "G2"_H}, "w5_b"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -178,7 +178,7 @@ struct WalkBackFromBlockNodeBelow
                            "B"_H,
                            "A"_H,
                            GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert({8, "H2"_H}, "w1_a"_ID));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {8, "H2"_H}, "w1_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -248,22 +248,34 @@ struct WalkBackFromBlockNodeBelow
 };
 
 TEST_P(WalkBackFromBlockNodeBelow, FindAncestor) {
-  auto &[block, ancestor] = GetParam();
-  auto ancestorOpt =
-      graph->findAncestor(block, [](auto &&x) { return x.sum > 5; });
+  auto &[block, expected] = GetParam();
 
-  ASSERT_TRUE(ancestorOpt) << "number: " << block.number << " "
-                           << "hash: " << block.hash.toHex();
-  ASSERT_EQ(*ancestorOpt, ancestor);
+  auto result =
+      graph->findAncestor(vt, block, [](auto &&x) { return x.sum(vt) > 5; });
+
+  ASSERT_TRUE(result.has_value())
+      << '#' << block.number << ' ' << block.hash.toString().c_str()
+      << " - none\n";
+
+  const auto &actual = result.value();
+  ASSERT_EQ(actual, expected)
+      << '#' << block.number << ' ' << block.hash.toString().c_str() << " - "
+      << "actual: #" << actual.number << ' ' << actual.hash.toString().c_str()
+      << ", expected: #" << expected.number << " "
+      << expected.hash.toString().c_str() << "\n";
 }
 
 const std::vector<std::tuple<BlockInfo, BlockInfo>> test_cases{{
     // clang-format off
-    {{4,  "D"_H}, {4, "D"_H}},
-    {{5, "E1"_H}, {4, "D"_H}},
-    {{5, "E2"_H}, {4, "D"_H}},
-    {{6, "F1"_H}, {4, "D"_H}},
-    {{6, "F2"_H}, {4, "D"_H}},
+    {{0,  "genesis"_H}, {0, "genesis"_H}},
+    {{1,  "A"_H}, {1,  "A"_H}},
+    {{2,  "B"_H}, {2,  "B"_H}},
+    {{3,  "C"_H}, {3,  "C"_H}},
+    {{4,  "D"_H}, {4,  "D"_H}},
+    {{5, "E1"_H}, {4,  "D"_H}},
+    {{5, "E2"_H}, {5, "E2"_H}},
+    {{6, "F1"_H}, {4,  "D"_H}},
+    {{6, "F2"_H}, {6, "F2"_H}},
     {{7, "G2"_H}, {7, "G2"_H}},
     {{8, "H2"_H}, {7, "G2"_H}},
     // clang-format on
@@ -276,10 +288,10 @@ INSTANTIATE_TEST_SUITE_P(VoteGraph,
 TEST_F(WalkBackFromBlockNodeBelow, GhostFindMergePoint_NoConstrain) {
   BlockHash node_key = "B"_H;
   auto &entries = graph->getEntries();
-  auto &active_node = entries[node_key];
+  auto &active_node = entries.at(node_key);
   auto subchain = graph->ghostFindMergePoint(
-      node_key, active_node, std::nullopt, [](auto &&x) -> bool {
-        return x.sum > 5;
+      vt, node_key, active_node, std::nullopt, [](auto &&x) -> bool {
+        return x.sum(vt) > 5;
       });
 
   EXPECT_EQ(subchain.best_number, 4);

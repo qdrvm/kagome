@@ -510,7 +510,7 @@ namespace kagome::network {
           peer_id,
           from,
           outcome::result<void>(Error::DUPLICATE_REQUEST).error().message());
-      handler(Error::DUPLICATE_REQUEST);
+      if (handler) handler(Error::DUPLICATE_REQUEST);
       return;
     }
 

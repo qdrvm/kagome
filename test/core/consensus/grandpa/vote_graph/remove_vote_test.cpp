@@ -11,7 +11,6 @@
  * @then vote retracted, sum weight is recalculated
  */
 TEST_F(VoteGraphFixture, RetractVote) {
-
   // GIVEN
 
   BlockInfo base{0, GENESIS_HASH};
@@ -36,7 +35,7 @@ TEST_F(VoteGraphFixture, RetractVote) {
   )");
 
   expect_getAncestry(GENESIS_HASH, "A"_H, vec("A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert({1, "A"_H}, "w1_a"_ID));
+  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {1, "A"_H}, "w1_a"_ID));
 
   AssertGraphCorrect(*graph, R"(
         {
@@ -67,7 +66,7 @@ TEST_F(VoteGraphFixture, RetractVote) {
   )");
 
   expect_getAncestry(GENESIS_HASH, "B"_H, vec("B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert({2, "B"_H}, "w3_a"_ID));
+  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {2, "B"_H}, "w3_a"_ID));
 
   AssertGraphCorrect(*graph, R"(
         {
@@ -109,7 +108,7 @@ TEST_F(VoteGraphFixture, RetractVote) {
 
   expect_getAncestry(
       GENESIS_HASH, "C"_H, vec("C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert({3, "C"_H}, "w7_a"_ID));
+  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {3, "C"_H}, "w7_a"_ID));
 
   AssertGraphCorrect(*graph, R"(
         {
@@ -161,7 +160,7 @@ TEST_F(VoteGraphFixture, RetractVote) {
 
   // WHEN
 
-  graph->remove("w3_a"_ID);
+  graph->remove(vt, "w3_a"_ID);
 
   // THEN
 

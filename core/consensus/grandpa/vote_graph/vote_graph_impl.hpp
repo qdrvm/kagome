@@ -27,16 +27,20 @@ namespace kagome::consensus::grandpa {
     /// should be in reverse order from the old base's parent.
     void adjustBase(const std::vector<BlockHash> &ancestry_proof) override;
 
-    /// Insert a {@param vote} of {@param voter}
-    outcome::result<void> insert(const BlockInfo &vote, Id voter) override;
+    /// Insert vote {@param vote_type} of {@param voter} for {@param block}
+    outcome::result<void> insert(VoteType vote_type,
+                                 const BlockInfo &block,
+                                 const Id &voter) override;
 
-    /// Remove a vote of {@param voter}
-    void remove(Id voter) override;
+    /// Remove vote {@param vote_type} of {@param voter}
+    void remove(VoteType vote_type, const Id &voter) override;
 
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
     std::optional<BlockInfo> findAncestor(
-        const BlockInfo &block, const Condition &condition) const override;
+        VoteType vote_type,
+        const BlockInfo &block,
+        const Condition &condition) const override;
 
     /// Find the best GHOST descendant of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
@@ -52,6 +56,7 @@ namespace kagome::consensus::grandpa {
     /// Returns `None` when the given `current_best` does not fulfill the
     /// condition.
     std::optional<BlockInfo> findGhost(
+        VoteType vote_type,
         const std::optional<BlockInfo> &current_best,
         const Condition &condition) const override;
 
@@ -74,6 +79,7 @@ namespace kagome::consensus::grandpa {
     // fulfills the condition, this function will find the highest point at
     // which its descendants merge, which may be the node itself.
     Subchain ghostFindMergePoint(
+        VoteType vote_type,
         const BlockHash &active_node_hash,
         const Entry &active_node,
         const std::optional<BlockInfo> &force_constrain,
@@ -91,8 +97,7 @@ namespace kagome::consensus::grandpa {
       return base_;
     }
 
-    // should be mutable, otherwise operator[] is not defined for const map
-    auto &getEntries() {
+    const auto &getEntries() const {
       return entries_;
     }
 

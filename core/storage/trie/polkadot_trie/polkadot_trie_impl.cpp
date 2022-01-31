@@ -6,6 +6,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 
 #include <functional>
+#include <iostream>
 #include <utility>
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
@@ -110,21 +111,63 @@ namespace {
     return outcome::success();
   }
 
+  outcome::result<std::shared_ptr<OpaqueTrieNode>> searchNodeByPrefix(
+      const std::shared_ptr<OpaqueTrieNode> &opaque_current,
+      const NibblesView &prefix,
+      const PolkadotTrieImpl::NodeRetrieveFunctor &retrieveNode) {
+    if (opaque_current == nullptr) {
+      return nullptr;
+    }
+    OUTCOME_TRY(current, retrieveNode(opaque_current));
+    // we exhausted the prefix and should either detach this node
+    if (static_cast<ssize_t>(current->key_nibbles.size()) >= prefix.size()) {
+      // if this is the node - return it
+      if (std::equal(
+              prefix.begin(), prefix.end(), current->key_nibbles.begin())) {
+        return current;
+      }
+    }
+
+    // if parent's key is smaller, and it is not a prefix of the prefix, don't
+    // change anything
+    if (not std::equal(current->key_nibbles.begin(),
+                       current->key_nibbles.end(),
+                       prefix.begin())) {
+      return nullptr;
+    }
+
+    // else just continue searching for the node to be detached in children
+    if (current->isBranch()) {
+      const auto length = current->key_nibbles.size();
+      auto &child = dynamic_cast<BranchNode &>(*current.get())
+                        .children.at(prefix[length]);
+      std::cout << "Go to child " << (int)prefix[length] << "\n";
+      OUTCOME_TRY(node,
+          searchNodeByPrefix(child, prefix.subspan(length + 1), retrieveNode));
+      if (node) {
+        return node;
+      }
+    }
+    return nullptr;
+  }
+
+  struct DetachResult {
+    uint32_t left_to_delete;
+    bool has_finished;
+  };
+
   /**
    * remove a node with its children
    * @param limit is a max number of values to remove
    * @param finished is true if all values removed, false if limit exceeded
    * @param count is a number of values deleted
    */
-  outcome::result<void> detachNode(
-      const std::shared_ptr<OpaqueTrieNode> &parent_handle,
-      const NibblesView &prefix,
+  outcome::result<DetachResult> detachNode(
+      const std::shared_ptr<OpaqueTrieNode> &opaque_current,
       std::optional<uint64_t> limit,
-      bool &finished,
-      uint32_t &count,
       const PolkadotTrie::OnDetachCallback &callback,
       const PolkadotTrieImpl::NodeRetrieveFunctor &retrieveNode) {
-    if (parent_handle == nullptr) {
+    if (opaque_current == nullptr) {
       return outcome::success();
     }
 
@@ -133,66 +176,41 @@ namespace {
       return outcome::success();
     }
 
-    OUTCOME_TRY(parent, retrieveNode(parent_handle));
+    OUTCOME_TRY(current, retrieveNode(opaque_current));
 
-    if (static_cast<ssize_t>(parent->key_nibbles.size()) >= prefix.size()) {
-      // if this is the node to be detached -- detach it
-      if (std::equal(
-              prefix.begin(), prefix.end(), parent->key_nibbles.begin())) {
-        // remove all children one by one according to limit
-        if (parent->isBranch()) {
-          auto &children = dynamic_cast<BranchNode &>(*parent.get()).children;
-          for (auto &child : children) {
-            OUTCOME_TRY(detachNode(child,
-                                   NibblesView{},
-                                   limit,
-                                   finished,
-                                   count,
-                                   callback,
-                                   retrieveNode));
-          }
-        }
-        if (not limit or count < limit.value()) {
-          if (parent->value) {
-            OUTCOME_TRY(notifyOnDetached(parent, callback));
-            ++count;
-          }
-          parent.reset();
-        } else {
-          if (parent->value) {
-            // we saw a value after limit, so not finished
-            finished = false;
-          }
-          if (parent->isBranch()) {
-            // fix block after children removal
-            OUTCOME_TRY(handleDeletion(parent, retrieveNode));
-          }
-        }
-        return outcome::success();
+    // remove all children one by one according to limit
+    if (current->isBranch()) {
+      std::cout << "Detaching this node and all its children\n";
+      auto &children = dynamic_cast<BranchNode &>(*current.get()).children;
+      for (auto &child : children) {
+        OUTCOME_TRY(res, detachNode(child,
+                               NibblesView{},
+                               limit,
+                               callback,
+                               retrieveNode));
       }
     }
+    // if we did not reach the limit yet, delete current node
+    if (not limit or count < limit.value()) {
+      if (current->value) {
+        OUTCOME_TRY(notifyOnDetached(current, callback));
+        ++count;
+      }
+      std::cout << "Didn't reach limit, delete node "
+                << current->key_nibbles.toHex() << "\n";
+      current.reset();
 
-    // if parent's key is smaller and it is not a prefix of the prefix, don't
-    // change anything
-    if (not std::equal(parent->key_nibbles.begin(),
-                       parent->key_nibbles.end(),
-                       prefix.begin())) {
-      return outcome::success();
-    }
-
-    if (parent->isBranch()) {
-      const auto length = parent->key_nibbles.size();
-      auto &child =
-          dynamic_cast<BranchNode &>(*parent.get()).children.at(prefix[length]);
-
-      OUTCOME_TRY(detachNode(child,
-                             prefix.subspan(length + 1),
-                             limit,
-                             finished,
-                             count,
-                             callback,
-                             retrieveNode));
-      OUTCOME_TRY(handleDeletion(parent, retrieveNode));
+    } else {
+      std::cout << "Reached limit, don't delete node "
+                << current->key_nibbles.toHex() << "\n";
+      if (current->value) {
+        // we saw a value after limit, so not finished
+        finished = false;
+      }
+      if (current->isBranch()) {
+        // fix the node after children removal
+        OUTCOME_TRY(handleDeletion(current, retrieveNode));
+      }
     }
     return outcome::success();
   }
@@ -381,9 +399,13 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::getNode(
       ConstNodePtr parent, const NibblesView &key_nibbles) {
+    // double const cast to avoid code duplication
+
+    // const cast is okay because we add constness
     OUTCOME_TRY(node,
                 const_cast<const PolkadotTrieImpl *>(this)->getNode(
                     parent, key_nibbles));
+    // const cast is okay because we remove artificially added constness
     return std::const_pointer_cast<TrieNode>(node);
   }
 

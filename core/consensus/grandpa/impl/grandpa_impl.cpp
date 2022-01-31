@@ -13,7 +13,6 @@
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "scale/scale.hpp"
-#include "storage/predefined_keys.hpp"
 
 namespace {
   constexpr auto highestGrandpaRoundMetricName =
@@ -25,31 +24,34 @@ namespace kagome::consensus::grandpa {
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<Environment> environment,
-      std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
       std::shared_ptr<Clock> clock,
-      std::shared_ptr<boost::asio::io_context> io_context,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<authority::AuthorityManager> authority_manager,
-      std::shared_ptr<network::Synchronizer> synchronizer)
+      std::shared_ptr<network::Synchronizer> synchronizer,
+      std::shared_ptr<network::PeerManager> peer_manager,
+      std::shared_ptr<blockchain::BlockStorage> block_storage)
       : environment_{std::move(environment)},
-        storage_{std::move(storage)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
         keypair_{keypair},
         clock_{std::move(clock)},
-        io_context_{std::move(io_context)},
+        scheduler_{std::move(scheduler)},
         authority_manager_(std::move(authority_manager)),
-        synchronizer_(std::move(synchronizer)) {
+        synchronizer_(std::move(synchronizer)),
+        peer_manager_(std::move(peer_manager)),
+        block_storage_(std::move(block_storage)) {
     BOOST_ASSERT(environment_ != nullptr);
-    BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
-    BOOST_ASSERT(io_context_ != nullptr);
+    BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(synchronizer_ != nullptr);
+    BOOST_ASSERT(peer_manager_ != nullptr);
+    BOOST_ASSERT(block_storage_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
 
@@ -66,15 +68,6 @@ namespace kagome::consensus::grandpa {
   bool GrandpaImpl::prepare() {
     // Set themselves in environment
     environment_->setJustificationObserver(shared_from_this());
-
-    // Lambda which is executed when voting round is completed.
-    environment_->doOnCompleted(
-        [wp = weak_from_this()](
-            outcome::result<MovableRoundState> completed_round_res) {
-          if (auto self = wp.lock()) {
-            self->onCompletedRound(std::move(completed_round_res));
-          }
-        });
     return true;
   }
 
@@ -122,10 +115,7 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    BOOST_ASSERT(current_round_->finalizable());
-    BOOST_ASSERT(current_round_->finalizedBlock() == round_state.finalized);
-
-    executeNextRound();
+    executeNextRound(current_round_->roundNumber());
 
     if (not current_round_) {
       return false;
@@ -138,9 +128,7 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters) {
-    auto prevote_graph = std::make_shared<VoteGraphImpl>(
-        round_state.last_finalized_block, voters, environment_);
-    auto precommit_graph = std::make_shared<VoteGraphImpl>(
+    auto vote_graph = std::make_shared<VoteGraphImpl>(
         round_state.last_finalized_block, voters, environment_);
 
     GrandpaConfig config{.voters = std::move(voters),
@@ -161,10 +149,9 @@ namespace kagome::consensus::grandpa {
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
-        std::move(prevote_graph),
-        std::move(precommit_graph),
+        std::move(vote_graph),
         clock_,
-        io_context_,
+        scheduler_,
         round_state);
 
     new_round->end();
@@ -199,9 +186,7 @@ namespace kagome::consensus::grandpa {
     const auto new_round_number =
         round->voterSetId() == voters->id() ? (round->roundNumber() + 1) : 1;
 
-    auto prevote_graph =
-        std::make_shared<VoteGraphImpl>(best_block, voters, environment_);
-    auto precommit_graph =
+    auto vote_graph =
         std::make_shared<VoteGraphImpl>(best_block, voters, environment_);
 
     GrandpaConfig config{.voters = std::move(voters),
@@ -222,83 +207,83 @@ namespace kagome::consensus::grandpa {
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
-        std::move(prevote_graph),
-        std::move(precommit_graph),
+        std::move(vote_graph),
         clock_,
-        io_context_,
+        scheduler_,
         round);
     return new_round;
   }
 
   std::shared_ptr<VotingRound> GrandpaImpl::selectRound(
       RoundNumber round_number, std::optional<MembershipCounter> voter_set_id) {
-    std::shared_ptr<VotingRound> target_round;
-    if (current_round_ && current_round_->roundNumber() == round_number) {
-      if (not voter_set_id.has_value()
-          or current_round_->voterSetId() == voter_set_id.value()) {
-        return current_round_;
+    std::shared_ptr<VotingRound> round = current_round_;
+
+    while (round != nullptr) {
+      if (round->roundNumber() == round_number) {
+        if (not voter_set_id.has_value()
+            or round->voterSetId() == voter_set_id.value()) {
+          break;
+        }
       }
+      round = round->getPreviousRound();
     }
-    if (previous_round_ && previous_round_->roundNumber() == round_number) {
-      if (not voter_set_id.has_value()
-          or previous_round_->voterSetId() == voter_set_id.value()) {
-        return previous_round_;
-      }
-    }
-    return {};
+
+    return round;
   }
 
   outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
       const {
-    OUTCOME_TRY(last_round_encoded_opt,
-                storage_->tryLoad(storage::kSetStateKey));
+    OUTCOME_TRY(hash, block_storage_->getLastFinalizedBlockHash());
+    OUTCOME_TRY(header, block_storage_->getBlockHeader(hash));
 
-    // Saved data exists
-    if (last_round_encoded_opt.has_value()) {
-      return scale::decode<MovableRoundState>(last_round_encoded_opt.value());
+    auto number = header.number;
+
+    if (number == 0) {
+      return MovableRoundState{.round_number = 0,
+                               .last_finalized_block = {number, hash},
+                               .votes = {},
+                               .finalized = {{number, hash}}};
     }
 
-    // No saved data - make from genesis
-    auto genesis_hash_res = storage_->load(storage::kGenesisBlockHashLookupKey);
-    if (not genesis_hash_res.has_value()) {
-      logger_->critical("Can't retrieve genesis block hash: {}",
-                        genesis_hash_res.error().message());
-      return genesis_hash_res.as_failure();
-    }
+    OUTCOME_TRY(encoded_justification, block_storage_->getJustification(hash));
 
-    primitives::BlockHash genesis_hash;
-    std::copy(genesis_hash_res.value().begin(),
-              genesis_hash_res.value().end(),
-              genesis_hash.begin());
+    OUTCOME_TRY(
+        grandpa_justification,
+        scale::decode<GrandpaJustification>(encoded_justification.data));
 
-    return MovableRoundState{.round_number = 0,
-                             .last_finalized_block = {0, genesis_hash},
-                             .votes = {},
-                             .finalized = {{0, genesis_hash}}};
+    MovableRoundState round_state{
+        .round_number = grandpa_justification.round_number,
+        .last_finalized_block = grandpa_justification.block_info,
+        .votes = {},
+        .finalized = {grandpa_justification.block_info}};
+
+    std::transform(std::move_iterator(grandpa_justification.items.begin()),
+                   std::move_iterator(grandpa_justification.items.end()),
+                   std::back_inserter(round_state.votes),
+                   [](auto &&item) { return std::forward<VoteVariant>(item); });
+
+    return std::move(round_state);
   }
 
-  void GrandpaImpl::executeNextRound() {
-    previous_round_.swap(current_round_);
-    previous_round_->end();
-    current_round_ = makeNextRound(previous_round_);
+  void GrandpaImpl::executeNextRound(RoundNumber round_number) {
+    if (current_round_->roundNumber() != round_number) {
+      return;
+    }
+
+    current_round_ = makeNextRound(current_round_);
+
+    // Truncate chain of rounds
+    size_t i = 0;
+    for (auto round = current_round_; round != nullptr;
+         round = round->getPreviousRound()) {
+      if (++i >= kKeepRecentRounds) {
+        round->forgetPreviousRound();
+      }
+    }
+
     metric_highest_round_->set(current_round_->roundNumber());
     if (keypair_) {
       current_round_->play();
-    }
-  }
-
-  void GrandpaImpl::tryCatchUp(const libp2p::peer::PeerId &peer_id,
-                               const FullRound &next,
-                               const FullRound &curr) {
-    if (next > curr) {
-      if (std::find(neighbor_msgs_.begin(), neighbor_msgs_.end(), next)
-          == neighbor_msgs_.end()) {
-        auto res = environment_->onCatchUpRequested(
-            peer_id, next.voter_set_id, next.round_number - 1);
-        if (res) {
-          neighbor_msgs_.push_back(next);
-        }
-      }
     }
   }
 
@@ -312,60 +297,100 @@ namespace kagome::consensus::grandpa {
              msg.round_number,
              msg.last_finalized,
              peer_id);
-    tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
+
+    // Ignore peer whose voter_set is different
+    if (msg.voter_set_id != current_round_->voterSetId()) {
+      return;
+    }
+
+    // Check if needed to catch-up peer, then do that
+    if (msg.round_number >= current_round_->roundNumber() + kCatchUpThreshold) {
+      std::ignore = environment_->onCatchUpRequested(
+          peer_id, msg.voter_set_id, msg.round_number - 1);
+      return;
+    }
+
+    // Iff peer just reached one of recent round, then share known votes
+    auto info = peer_manager_->getPeerState(peer_id);
+    if (not info.has_value() || msg.voter_set_id != info->set_id
+        || msg.round_number > info->round_number) {
+      if (auto round = selectRound(msg.round_number, msg.voter_set_id)) {
+        environment_->sendState(peer_id, round->state(), msg.voter_set_id);
+      }
+    }
   }
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                                      const network::CatchUpRequest &msg) {
-    if (previous_round_ == nullptr) {
-      SL_DEBUG(
-          logger_,
-          "Catch-up request (since round #{}) received from {} was rejected: "
-          "previous round is dummy yet",
-          msg.round_number,
-          peer_id);
+    // It is also impolite to send a catch-up request to a peer in a new
+    // different Set ID.
+    if (msg.voter_set_id != current_round_->voterSetId()) {
+      SL_DEBUG(logger_,
+               "Catch-up request to round #{} received from {} was rejected: "
+               "impolite, because voter set id are differ (our: {}, their: {})",
+               msg.round_number,
+               peer_id,
+               current_round_->voterSetId(),
+               msg.voter_set_id);
       return;
     }
-    if (FullRound{msg} > FullRound{current_round_}) {
-      // Node lags from remote peer
-      SL_DEBUG(
-          logger_,
-          "Catch-up request (since round #{}) received from {} was rejected: "
-          "catching up into the past",
-          msg.round_number,
-          peer_id);
+
+    // It is impolite to send a catch-up request for a round `R` to a peer whose
+    // announced view is behind `R`.
+    if (msg.round_number > current_round_->roundNumber()) {
+      SL_DEBUG(logger_,
+               "Catch-up request to round #{} received from {} was rejected: "
+               "impolite, because our current round is less - {}",
+               msg.round_number,
+               peer_id,
+               current_round_->roundNumber());
       return;
     }
-    if (not previous_round_->completable()) {
-      SL_DEBUG(
-          logger_,
-          "Catch-up request (since round #{}) received from {} was rejected: "
-          "round is not completable",
-          msg.round_number,
-          peer_id);
+
+    auto round = selectRound(msg.round_number, msg.voter_set_id);
+    if (round == nullptr) {
+      SL_DEBUG(logger_,
+               "Catch-up request to round #{} received from {} was rejected: "
+               "target round not found",
+               msg.round_number,
+               peer_id);
       return;
     }
-    if (not previous_round_->finalizable()) {
-      SL_DEBUG(
-          logger_,
-          "Catch-up request (since round #{}) received from {} was rejected: "
-          "round is not finalizable",
-          msg.round_number,
-          peer_id);
+
+    if (not round->finalizable()) {
+      SL_DEBUG(logger_,
+               "Catch-up request to round #{} received from {} was rejected: "
+               "round is not finalizable",
+               msg.round_number,
+               peer_id);
+      throw std::runtime_error("Need not ensure if it is correct");
       return;
     }
 
     SL_DEBUG(logger_,
-             "Catch-up request (since round #{}) received from {}",
+             "Catch-up request to round #{} received from {}",
              msg.round_number,
              peer_id);
-    previous_round_->doCatchUpResponse(peer_id);
+    round->doCatchUpResponse(peer_id);
   }
 
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
     BOOST_ASSERT(current_round_ != nullptr);
-    if (FullRound{msg} < FullRound{current_round_}) {
+    // Ignore message of peer whose round in different voter set
+    if (msg.voter_set_id != current_round_->voterSetId()) {
+      SL_DEBUG(
+          logger_,
+          "Catch-up response (till round #{}) received from {} was rejected: "
+          "impolite, because voter set id are differ (our: {}, their: {})",
+          msg.round_number,
+          peer_id,
+          current_round_->voterSetId(),
+          msg.voter_set_id);
+      return;
+    }
+
+    if (msg.round_number < current_round_->roundNumber()) {
       // Catching up in to the past
       SL_DEBUG(
           logger_,
@@ -383,7 +408,7 @@ namespace kagome::consensus::grandpa {
 
     GrandpaContext::Guard cg;
 
-    if (FullRound{msg} > FullRound{current_round_}) {
+    if (msg.round_number > current_round_->roundNumber()) {
       MovableRoundState round_state{
           .round_number = msg.round_number,
           .last_finalized_block = current_round_->lastFinalizedBlock(),
@@ -431,8 +456,7 @@ namespace kagome::consensus::grandpa {
         return;
       }
 
-      previous_round_.swap(current_round_);
-      previous_round_->end();
+      current_round_->end();
       current_round_ = std::move(round);
 
     } else {
@@ -452,6 +476,8 @@ namespace kagome::consensus::grandpa {
       }
       current_round_->update(isPrevotesChanged, isPrecommitsChanged);
 
+      SL_DEBUG(logger_, "Catch-up response applied");
+
       // Check if catch-up round is not completable
       if (not current_round_->completable()) {
         auto ctx = GrandpaContext::get().value();
@@ -464,16 +490,98 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    FullRound current(current_round_);
-    std::remove_if(neighbor_msgs_.begin(),
-                   neighbor_msgs_.end(),
-                   [&current](const auto &msg) { return msg < current; });
-
-    executeNextRound();
+    executeNextRound(current_round_->roundNumber());
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
+    // If a peer is at a given voter set, it is impolite to send messages from
+    // an earlier voter set.
+    if (msg.counter < current_round_->voterSetId()) {
+      SL_DEBUG(
+          logger_,
+          "{} signed by {} with set_id={} in round={} has received from {} "
+          "and rejected as impolite (our set id is {})",
+          msg.vote.is<Prevote>()     ? "Prevote"
+          : msg.vote.is<Precommit>() ? "Precommit"
+                                     : "PrimaryPropose",
+          msg.id(),
+          msg.counter,
+          msg.round_number,
+          peer_id,
+          current_round_->voterSetId());
+      return;
+    }
+
+    // It is extremely impolite to send messages from a future voter set.
+    // "future-set" messages can be dropped and ignored.
+    if (msg.counter > current_round_->voterSetId()) {
+      SL_WARN(logger_,
+              "{} signed by {} with set_id={} in round={} has received from {} "
+              "and rejected as extremely impolite (our set id is {})",
+              msg.vote.is<Prevote>()     ? "Prevote"
+              : msg.vote.is<Precommit>() ? "Precommit"
+                                         : "PrimaryPropose",
+              msg.id(),
+              msg.counter,
+              msg.round_number,
+              peer_id,
+              current_round_->voterSetId());
+      return;
+    }
+
+    // If a peer is at round r, is impolite to send messages about r-2 or
+    // earlier
+    if (msg.round_number + 2 < current_round_->roundNumber()) {
+      SL_DEBUG(
+          logger_,
+          "{} signed by {} with set_id={} in round={} has received from {} "
+          "and rejected as impolite (our round is {})",
+          msg.vote.is<Prevote>()     ? "Prevote"
+          : msg.vote.is<Precommit>() ? "Precommit"
+                                     : "PrimaryPropose",
+          msg.id(),
+          msg.counter,
+          msg.round_number,
+          peer_id,
+          current_round_->roundNumber());
+      return;
+    }
+
+    // If a peer is at round r, is extremely impolite to send messages about r+1
+    // or later. "future-round" messages can be dropped and ignored.
+    if (msg.round_number >= current_round_->roundNumber() + 1) {
+      SL_WARN(logger_,
+              "{} signed by {} with set_id={} in round={} has received from {} "
+              "and rejected as extremely impolite (our round is {})",
+              msg.vote.is<Prevote>()     ? "Prevote"
+              : msg.vote.is<Precommit>() ? "Precommit"
+                                         : "PrimaryPropose",
+              msg.id(),
+              msg.counter,
+              msg.round_number,
+              peer_id,
+              current_round_->roundNumber());
+      return;
+    }
+
+    std::shared_ptr<VotingRound> target_round =
+        selectRound(msg.round_number, msg.counter);
+    if (not target_round) {
+      SL_DEBUG(
+          logger_,
+          "{} signed by {} with set_id={} in round={} has received from {} "
+          "and rejected (round not found)",
+          msg.vote.is<Prevote>()     ? "Prevote"
+          : msg.vote.is<Precommit>() ? "Precommit"
+                                     : "PrimaryPropose",
+          msg.id(),
+          msg.counter,
+          msg.round_number,
+          peer_id);
+      return;
+    }
+
     SL_DEBUG(logger_,
              "{} signed by {} with set_id={} in round={} for block {} "
              "has received from {}",
@@ -485,13 +593,6 @@ namespace kagome::consensus::grandpa {
              msg.round_number,
              msg.vote.getBlockInfo(),
              peer_id);
-
-    std::shared_ptr<VotingRound> target_round =
-        selectRound(msg.round_number, msg.counter);
-    if (not target_round) {
-      tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
-      return;
-    }
 
     GrandpaContext::Guard cg;
 
@@ -529,15 +630,45 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCommitMessage(const libp2p::peer::PeerId &peer_id,
                                     const network::FullCommitMessage &msg) {
-    auto round = selectRound(msg.round, msg.set_id);
-    if (round && round == previous_round_) {
-      SL_DEBUG(logger_,
-               "Commit with set_id={} in round={} for block {} "
-               "has received from {} and skipped as fulfilled",
-               msg.set_id,
-               msg.round,
-               BlockInfo(msg.message.target_number, msg.message.target_hash),
-               peer_id);
+    // It is especially impolite to send commits which are invalid, or from
+    // a different Set ID than the receiving peer has indicated
+    if (msg.set_id != current_round_->voterSetId()) {
+      SL_DEBUG(
+          logger_,
+          "Commit with set_id={} in round={} for block {} has received from {} "
+          "and dropped as impolite: our voter set id is {}",
+          msg.set_id,
+          msg.round,
+          BlockInfo(msg.message.target_number, msg.message.target_hash),
+          peer_id,
+          current_round_->voterSetId());
+      return;
+    }
+
+    // It is impolite to send commits which are earlier than the last commit
+    // sent
+    if (msg.round + kKeepRecentRounds < current_round_->voterSetId()) {
+      SL_DEBUG(
+          logger_,
+          "Commit with set_id={} in round={} for block {} has received from {} "
+          "and dropped as impolite: too old commit, our round is {}",
+          msg.set_id,
+          msg.round,
+          BlockInfo(msg.message.target_number, msg.message.target_hash),
+          peer_id,
+          current_round_->roundNumber());
+      return;
+    }
+
+    if (msg.round < current_round_->roundNumber()) {
+      SL_DEBUG(
+          logger_,
+          "Commit with set_id={} in round={} for block {} has received from {} "
+          "and dropped as fulfilled",
+          msg.set_id,
+          msg.round,
+          BlockInfo(msg.message.target_number, msg.message.target_hash),
+          peer_id);
       return;
     }
 
@@ -568,7 +699,15 @@ namespace kagome::consensus::grandpa {
 
     auto res = applyJustification(justification.block_info, justification);
     if (not res.has_value()) {
-      logger_->warn("Commit is not applied: {}", res.error().message());
+      SL_WARN(
+          logger_,
+          "Commit with set_id={} in round={} for block {} has received from {} "
+          "and has not applied: {}",
+          msg.set_id,
+          msg.round,
+          BlockInfo(msg.message.target_number, msg.message.target_hash),
+          peer_id,
+          res.error().message());
       return;
     }
   }
@@ -620,46 +759,13 @@ namespace kagome::consensus::grandpa {
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
 
-    if (previous_round_ != round) {
-      previous_round_.swap(current_round_);
-      previous_round_->end();
+    if (current_round_->getPreviousRound() != round) {
       current_round_ = std::move(round);
 
-      executeNextRound();
+      executeNextRound(current_round_->roundNumber());
     }
 
     return outcome::success();
-  }
-
-  void GrandpaImpl::onCompletedRound(
-      outcome::result<MovableRoundState> round_state_res) {
-    if (not round_state_res) {
-      SL_DEBUG(logger_,
-               "Grandpa round was not finalized: {}",
-               round_state_res.error().message());
-      return;
-    }
-
-    const auto &round_state = round_state_res.value();
-
-    logger_->debug(
-        "Save state of finalized round #{}: finalized={}, finalizing={}",
-        round_state.round_number,
-        round_state.last_finalized_block.number,
-        round_state.finalized.value().number);
-
-    SL_DEBUG(
-        logger_, "Event OnCompleted for round #{}", round_state.round_number);
-
-    if (auto put_res =
-            storage_->put(storage::kSetStateKey,
-                          common::Buffer(scale::encode(round_state).value()));
-        not put_res) {
-      logger_->error("New round state was not added to the storage");
-      return;
-    }
-
-    BOOST_ASSERT(storage_->load(storage::kSetStateKey));
   }
 
   void GrandpaImpl::loadMissingBlocks() {
