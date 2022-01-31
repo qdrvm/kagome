@@ -113,7 +113,7 @@ namespace kagome::consensus {
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
 
       return blockchain::BlockTreeError::BLOCK_EXISTS;
-    } else if (body_res.error() != blockchain::Error::BLOCK_NOT_FOUND) {
+    } else if (body_res.error() != blockchain::BlockTreeError::BODY_NOT_FOUND) {
       return body_res.as_failure();
     }
 
