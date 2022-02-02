@@ -6,6 +6,7 @@
 #include "blockchain/impl/block_tree_impl.hpp"
 
 #include <algorithm>
+#include <stack>
 
 #include "blockchain/block_storage_error.hpp"
 #include "blockchain/block_tree_error.hpp"
@@ -236,6 +237,40 @@ namespace kagome::blockchain {
              curr_epoch.value().randomness,
              next_epoch.value().randomness);
 
+    // Load non-finalized block from block storage
+    std::stack<std::pair<primitives::BlockHash, primitives::BlockHeader>>
+        collected;
+
+    {
+      std::unordered_set<primitives::BlockHash> observed;
+      for (auto &leaf : block_tree_leaves) {
+        for (auto hash = leaf;;) {
+          if (hash == last_finalized_block_info.hash) {
+            break;
+          }
+
+          if (not observed.emplace(hash).second) {
+            break;
+          }
+
+          auto header_res = storage->getBlockHeader(hash);
+          if (header_res.has_error()) {
+            SL_WARN(log,
+                    "Can't get header of existing block {}: {}",
+                    hash,
+                    header_res.error().message());
+            break;
+          }
+
+          const auto &header = header_res.value();
+          collected.emplace(hash, header);
+
+          hash = header.parent_hash;
+        }
+      }
+    }
+
+    // Prepare and create block tree basing last finalized block
     auto tree = std::make_shared<TreeNode>(last_finalized_block_info.hash,
                                            last_finalized_block_info.number,
                                            std::move(curr_epoch.value()),
@@ -256,6 +291,23 @@ namespace kagome::blockchain {
                           std::move(runtime_core),
                           std::move(changes_tracker),
                           std::move(babe_util));
+
+    // Add non-finalized block to the block tree
+    while (not collected.empty()) {
+      const auto &args = std::move(collected.top());
+      const auto &hash = args.first;
+      const auto &header = args.second;
+
+      auto res = block_tree->addExistingBlock(hash, header);
+      if (res.has_error()) {
+        SL_WARN(log,
+                "Can't add existing block {} to block tree: {}",
+                primitives::BlockInfo(header.number, hash),
+                res.error().message());
+      }
+
+      collected.pop();
+    }
 
     return std::shared_ptr<BlockTreeImpl>(block_tree);
   }
