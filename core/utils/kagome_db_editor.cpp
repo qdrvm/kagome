@@ -9,10 +9,14 @@
 #include <boost/di.hpp>
 #include <soralog/impl/configurator_from_yaml.hpp>
 
+#include "blockchain/block_storage_error.hpp"
+#include "blockchain/impl/block_tree_impl.hpp"
+#include "blockchain/impl/key_value_block_header_repository.hpp"
 #include "blockchain/impl/key_value_block_storage.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "network/impl/extrinsic_observer_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
@@ -210,25 +214,55 @@ int main(int argc, char *argv[]) {
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory),
-        di::bind<crypto::Hasher>.template to<crypto::HasherImpl>());
+        di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
+        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
+        di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>());
 
-    RootHash finalized_hash;
-    auto block_hash_res =
-        check(storage->get(storage::kLastFinalizedBlockHashLookupKey));
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
-    auto block_storage_res =
-        check(blockchain::KeyValueBlockStorage::loadExisting(
-            storage, hasher, [](const auto &block) {}));
-    auto block_storage = block_storage_res.value();
-    auto header =
-        check(block_storage->getBlockHeader(
-                  check(common::Hash256::fromSpan(block_hash_res.value()))
-                      .value()))
+
+    auto block_storage =
+        check(blockchain::KeyValueBlockStorage::create({}, storage, hasher))
             .value();
-    finalized_hash = header.state_root;
-    log->trace("Autodetected finalized block is #{}, state root is 0x{}",
+
+    auto block_tree_leaves = check(block_storage->getBlockTreeLeaves()).value();
+
+    BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
+                     "Must be known or calculated at least one leaf");
+
+    primitives::BlockHash last_finalized_block_hash;
+    primitives::BlockHeader last_finalized_block_header;
+
+    // Backward search of finalized block
+    for (auto hash = block_tree_leaves.front();;) {
+      auto header = check(block_storage->getBlockHeader(hash)).value();
+      if (header.number == 0) {
+        last_finalized_block_hash = hash;
+        last_finalized_block_header = header;
+        break;
+      }
+
+      auto j_res = block_storage->getJustification(hash);
+      if (j_res.has_value()) {
+        last_finalized_block_hash = hash;
+        last_finalized_block_header = header;
+        break;
+      }
+
+      if (j_res
+          != outcome::failure(
+              blockchain::BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST)) {
+        check(j_res).value();
+      }
+
+      hash = header.parent_hash;
+    }
+
+    auto header = last_finalized_block_header;
+
+    auto finalized_block_state_root = header.state_root;
+    log->trace("Autodetected finalized block is #{}, state root is {:l}",
                header.number,
-               finalized_hash.toHex());
+               finalized_block_state_root);
 
     // we place the only existing state hash at runtime look up key
     // it won't work for code substitute
@@ -274,7 +308,7 @@ int main(int argc, char *argv[]) {
     if (COMPACT == cmd) {
       auto batch = check(persistent_batch(trie, hash)).value();
       auto finalized_batch =
-          check(persistent_batch(trie, finalized_hash)).value();
+          check(persistent_batch(trie, finalized_block_state_root)).value();
 
       std::vector<std::unique_ptr<PersistentTrieBatch>> child_batches;
       {
