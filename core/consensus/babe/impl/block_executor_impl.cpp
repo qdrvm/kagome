@@ -122,22 +122,23 @@ namespace kagome::consensus {
 
     const auto &babe_header = babe_digests.second;
 
-    logger_->info(
-        "Applying block {} ({} in slot {})",  //
-        primitives::BlockInfo(block.header.number, block_hash),
-        babe_header.slotType() == SlotType::Primary          ? "primary"
-        : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
-        : babe_header.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
-                                                             : "unknown",
-        babe_header.slot_number);
-
-    // add information about epoch to epoch storage
+    // sync epoch (starting slot) by slot of block number 1
     if (block.header.number == 1) {
       babe_util_->syncEpoch(EpochDescriptor{
           .epoch_number = 0, .start_slot = babe_header.slot_number});
     }
 
     EpochNumber epoch_number = babe_util_->slotToEpoch(babe_header.slot_number);
+
+    logger_->info(
+        "Applying block {} ({} in slot {}, epoch {})",  //
+        primitives::BlockInfo(block.header.number, block_hash),
+        babe_header.slotType() == SlotType::Primary          ? "primary"
+        : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
+        : babe_header.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
+                                                             : "unknown",
+        babe_header.slot_number,
+        epoch_number);
 
     OUTCOME_TRY(
         this_block_epoch_descriptor,

@@ -67,24 +67,67 @@ namespace kagome::blockchain {
     // Find the least leaf
     primitives::BlockInfo least_leaf(
         std::numeric_limits<primitives::BlockNumber>::max(), {});
+    primitives::BlockInfo best_leaf(
+        std::numeric_limits<primitives::BlockNumber>::min(), {});
     for (auto hash : block_tree_leaves) {
       OUTCOME_TRY(number, header_repo->getNumberById(hash));
       if (number < least_leaf.number) {
         least_leaf = {number, hash};
       }
+      if (number > best_leaf.number) {
+        best_leaf = {number, hash};
+      }
     }
 
-    primitives::BlockHash last_finalized_block;
+    std::optional<consensus::EpochNumber> curr_epoch_number;
+
+    // First, look up slot number of block number 1
+    OUTCOME_TRY(first_block_header_exists, storage->hasBlockHeader(1));
+    if (first_block_header_exists) {
+      OUTCOME_TRY(first_block_header, storage->getBlockHeader(1));
+      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
+                       "Any non genesis block must be contain babe digest");
+      auto first_slot_number = babe_digest_res.value().second.slot_number;
+
+      // Second, look up slot number of best block
+      auto &best_block_hash = best_leaf.hash;
+      auto best_block_header_res = storage->getBlockHeader(best_block_hash);
+      BOOST_ASSERT_MSG(best_block_header_res.has_value(),
+                       "Best block must be known whenever");
+      const auto &best_block_header = best_block_header_res.value();
+      babe_digest_res = consensus::getBabeDigests(best_block_header);
+      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
+                       "Any non genesis block must be contain babe digest");
+      auto last_slot_number = babe_digest_res.value().second.slot_number;
+
+      BOOST_ASSERT_MSG(last_slot_number >= first_slot_number,
+                       "Non genesis slot must not be less then genesis slot");
+
+      // Now we have all to get epoch number
+      auto epoch_number = (last_slot_number - first_slot_number)
+                          / babe_configuration->epoch_length;
+      consensus::EpochDescriptor epoch{
+          .epoch_number = epoch_number,
+          .start_slot = first_slot_number
+                        + epoch_number * babe_configuration->epoch_length};
+
+      babe_util->syncEpoch(epoch);
+
+      curr_epoch_number.emplace(epoch_number);
+    }
+
+    primitives::BlockInfo last_finalized_block_info;
 
     // Backward search of finalized block
     for (auto block_info = least_leaf;;) {
       if (block_info.number == 0) {
-        last_finalized_block = block_info.hash;
+        last_finalized_block_info = block_info;
         break;
       }
       auto j_res = storage->getJustification(block_info.hash);
       if (j_res.has_value()) {
-        last_finalized_block = block_info.hash;
+        last_finalized_block_info = block_info;
         break;
       }
       if (j_res
@@ -96,14 +139,9 @@ namespace kagome::blockchain {
       block_info = {header.number - 1, header.parent_hash};
     }
 
-    // create meta structures from the retrieved header
-    OUTCOME_TRY(hash, header_repo->getHashById(last_finalized_block));
-    OUTCOME_TRY(number, header_repo->getNumberById(last_finalized_block));
-
-    std::optional<consensus::EpochNumber> curr_epoch_number;
     std::optional<consensus::EpochDigest> curr_epoch;
     std::optional<consensus::EpochDigest> next_epoch;
-    auto hash_tmp = hash;
+    auto hash_tmp = last_finalized_block_info.hash;
 
     // We are going block by block to genesis direction and observes them for
     // find epoch digest. First found digest if it in the block assigned to the
@@ -191,16 +229,15 @@ namespace kagome::blockchain {
     }
 
     SL_TRACE(log,
-             "EPOCH_DIGEST_IN_BLOCKTREE: ROOT, block #{}, hash {}, "
+             "EPOCH_DIGEST_IN_BLOCKTREE: ROOT, block {}, "
              "Epoch {}, Current randomness {}, Next randomness {}",
-             number,
-             hash.toHex(),
+             last_finalized_block_info,
              curr_epoch_number.value(),
              curr_epoch.value().randomness,
              next_epoch.value().randomness);
 
-    auto tree = std::make_shared<TreeNode>(hash,
-                                           number,
+    auto tree = std::make_shared<TreeNode>(last_finalized_block_info.hash,
+                                           last_finalized_block_info.number,
                                            std::move(curr_epoch.value()),
                                            curr_epoch_number.value(),
                                            std::move(next_epoch.value()),
@@ -219,6 +256,7 @@ namespace kagome::blockchain {
                           std::move(runtime_core),
                           std::move(changes_tracker),
                           std::move(babe_util));
+
     return std::shared_ptr<BlockTreeImpl>(block_tree);
   }
 

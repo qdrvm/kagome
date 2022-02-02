@@ -160,9 +160,9 @@ namespace kagome::consensus::babe {
   }
 
   outcome::result<EpochDescriptor> BabeImpl::getInitialEpochDescriptor() {
-    // First, look up slot number of block number 1
-    OUTCOME_TRY(first_block_header_exists, block_tree_->hasBlockHeader(1));
-    if (not first_block_header_exists) {
+    auto best_block = block_tree_->deepestLeaf();
+
+    if (best_block.number == 0) {
       EpochDescriptor epoch_descriptor{
           .epoch_number = 0,
           .start_slot =
@@ -172,34 +172,20 @@ namespace kagome::consensus::babe {
       return outcome::success(epoch_descriptor);
     }
 
-    OUTCOME_TRY(first_block_header, block_tree_->getBlockHeader(1));
-    auto babe_digest_res = getBabeDigests(first_block_header);
-    BOOST_ASSERT_MSG(babe_digest_res.has_value(),
-                     "Any non genesis block must be contain babe digest");
-    auto first_slot_number = babe_digest_res.value().second.slot_number;
-
-    // Second, look up slot number of best block
-    auto best_block_number = block_tree_->deepestLeaf().number;
-    auto best_block_header_res = block_tree_->getBlockHeader(best_block_number);
+    // Look up slot number of best block
+    auto best_block_header_res = block_tree_->getBlockHeader(best_block.hash);
     BOOST_ASSERT_MSG(best_block_header_res.has_value(),
                      "Best block must be known whenever");
     const auto &best_block_header = best_block_header_res.value();
-    babe_digest_res = getBabeDigests(best_block_header);
+    auto babe_digest_res = getBabeDigests(best_block_header);
     BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                      "Any non genesis block must be contain babe digest");
     auto last_slot_number = babe_digest_res.value().second.slot_number;
 
-    BOOST_ASSERT_MSG(last_slot_number >= first_slot_number,
-                     "Non genesis slot must not be less then genesis slot");
-
-    // Now we have all to get epoch number
-    EpochNumber epoch_number = (last_slot_number - first_slot_number)
-                               / babe_configuration_->epoch_length;
-
     EpochDescriptor epoch_descriptor{
-        .epoch_number = epoch_number,
-        .start_slot = first_slot_number
-                      + epoch_number * babe_configuration_->epoch_length};
+        .epoch_number = babe_util_->slotToEpoch(last_slot_number),
+        .start_slot =
+            last_slot_number - babe_util_->slotInEpoch(last_slot_number)};
 
     return outcome::success(epoch_descriptor);
   }
