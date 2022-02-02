@@ -64,18 +64,7 @@ namespace kagome::blockchain {
      * Exit token for applyToChain method.
      * Simply a value denoting whether applyToChain should stop.
      */
-    struct ExitToken {
-      ExitToken() = delete;
-
-      enum Value { EXIT, CONTINUE } value;
-
-      ExitToken(Value value)  // NOLINT(google-explicit-constructor)
-          : value{value} {}
-
-      bool operator==(Value v) const {
-        return value == v;
-      }
-    };
+    enum class ExitToken { EXIT, CONTINUE };
 
     /**
      * Applies \arg op for each node starting from this and ending with \arg

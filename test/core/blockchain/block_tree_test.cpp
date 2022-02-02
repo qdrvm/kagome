@@ -25,9 +25,11 @@
 #include "primitives/justification.hpp"
 #include "scale/scale.hpp"
 
+#include "consensus/babe/types/babe_block_header.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "consensus/babe/types/seal.hpp"
 
 using namespace kagome;
 using namespace storage;
@@ -57,8 +59,14 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, setBlockTreeLeaves(_))
         .WillRepeatedly(Return(outcome::success()));
 
+    EXPECT_CALL(*storage_, hasBlockHeader(BlockId(1)))
+        .WillRepeatedly(Return(true));
+
+    EXPECT_CALL(*storage_, getBlockHeader(BlockId(1)))
+        .WillRepeatedly(Return(first_block_header_));
+
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
-        .WillOnce(Return(finalized_block_header_));
+        .WillRepeatedly(Return(finalized_block_header_));
 
     EXPECT_CALL(*storage_, getJustification(kLastFinalizedBlockId))
         .WillOnce(Return(outcome::success(Justification{})));
@@ -164,8 +172,30 @@ struct BlockTreeTest : public testing::Test {
 
   const BlockId kLastFinalizedBlockId = kFinalizedBlockInfo.hash;
 
-  BlockHeader finalized_block_header_{.number = kFinalizedBlockInfo.number,
-                                      .digest = {{PreRuntime{}}}};
+  static Digest make_digest(BabeSlotNumber slot) {
+    Digest digest;
+
+    BabeBlockHeader babe_header{
+        .slot_assignment_type = SlotType::SecondaryPlain,
+        .slot_number = slot,
+        .authority_index = 0,
+    };
+    common::Buffer encoded_header{scale::encode(babe_header).value()};
+    digest.emplace_back(primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
+
+    consensus::Seal seal{};
+    common::Buffer encoded_seal{scale::encode(seal).value()};
+    digest.emplace_back(primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
+
+    return digest;
+  };
+
+  BlockHeader first_block_header_{
+      .number = 1, .digest = make_digest(1)};
+
+  BlockHeader finalized_block_header_{
+      .number = kFinalizedBlockInfo.number,
+      .digest = make_digest(42)};
 
   BlockBody finalized_block_body_{{Buffer{0x22, 0x44}}, {Buffer{0x55, 0x66}}};
 };
