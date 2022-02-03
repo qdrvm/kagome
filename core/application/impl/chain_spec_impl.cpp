@@ -6,9 +6,12 @@
 #include "application/impl/chain_spec_impl.hpp"
 
 #include <boost/property_tree/json_parser.hpp>
+#include <charconv>
 #include <libp2p/multi/multiaddress.hpp>
+#include <system_error>
 
 #include "common/hexutil.hpp"
+#include "common/visitor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::application, ChainSpecImpl::Error, e) {
   using E = kagome::application::ChainSpecImpl::Error;
@@ -34,7 +37,7 @@ namespace kagome::application {
     // done so because of private constructor
     std::shared_ptr<ChainSpecImpl> config_storage{new ChainSpecImpl};
     config_storage->known_code_substitutes_ =
-        std::make_shared<primitives::CodeSubstituteHashes>();
+        std::make_shared<primitives::CodeSubstituteBlockIds>();
     OUTCOME_TRY(config_storage->loadFromJson(path));
 
     return config_storage;
@@ -163,18 +166,38 @@ namespace kagome::application {
 
     auto code_substitutes_opt = tree.get_child_optional("codeSubstitutes");
     if (code_substitutes_opt.has_value()) {
-      for (const auto &[hash, code] : code_substitutes_opt.value()) {
-        OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(hash));
-        known_code_substitutes_->emplace(hash_processed);
+      for (const auto &[block_id, code] : code_substitutes_opt.value()) {
+        OUTCOME_TRY(block_id_parsed, parseBlockId(block_id));
+        known_code_substitutes_->emplace(block_id_parsed);
       }
     }
 
     return outcome::success();
   }
 
-  outcome::result<common::Buffer> ChainSpecImpl::fetchCodeSubstituteByHash(
-      const common::Hash256 &hash) const {
-    if (!known_code_substitutes_->count(hash)) {
+  outcome::result<primitives::BlockId> ChainSpecImpl::parseBlockId(
+      const std::string_view block_id_str) const {
+    primitives::BlockId block_id;
+    if (block_id_str.rfind("0x", 0) != std::string::npos) {  // Is it hash?
+      OUTCOME_TRY(block_hash, common::Hash256::fromHexWithPrefix(block_id_str));
+      block_id = block_hash;
+    } else {
+      primitives::BlockNumber block_num;
+      auto res = std::from_chars(block_id_str.data(),
+                                 block_id_str.data() + block_id_str.size(),
+                                 block_num);
+      if (res.ec != std::errc()) {
+        return Error::PARSER_ERROR;
+      }
+      block_id = block_num;
+    }
+    return block_id;
+  }
+
+  outcome::result<common::Buffer> ChainSpecImpl::fetchCodeSubstituteByBlockInfo(
+      const primitives::BlockInfo &block_info) const {
+    if (known_code_substitutes_->count(block_info.hash) != 0
+        && known_code_substitutes_->count(block_info.number) != 0) {
       return Error::MISSING_ENTRY;
     }
 
@@ -189,9 +212,16 @@ namespace kagome::application {
 
     auto code_substitutes_opt = tree.get_child_optional("codeSubstitutes");
     if (code_substitutes_opt.has_value()) {
-      for (const auto &[_hash, _code] : code_substitutes_opt.value()) {
-        OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(_hash));
-        if (hash_processed == hash) {
+      for (const auto &[_block_id, _code] : code_substitutes_opt.value()) {
+        OUTCOME_TRY(block_id_parsed, parseBlockId(_block_id));
+        if (visit_in_place(
+                block_id_parsed,
+                [&block_info](primitives::BlockNumber &arg) {
+                  return arg == block_info.number;
+                },
+                [&block_info](primitives::BlockHash &arg) {
+                  return arg == block_info.hash;
+                })) {
           OUTCOME_TRY(code_processed, common::unhexWith0x(_code.data()));
           return outcome::success(code_processed);
         }

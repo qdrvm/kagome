@@ -59,7 +59,7 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
     block_tree_ = std::make_shared<kagome::blockchain::BlockTreeMock>();
     storage_ = std::make_shared<kagome::storage::InMemoryStorage>();
     known_code_substitutes_ =
-        std::make_shared<kagome::primitives::CodeSubstituteHashes>();
+        std::make_shared<kagome::primitives::CodeSubstituteBlockIds>();
     sub_engine_ =
         std::make_shared<kagome::primitives::events::ChainSubscriptionEngine>();
     tracker_ = kagome::runtime::RuntimeUpgradeTrackerImpl::create(
@@ -75,7 +75,7 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
       sub_engine_;
   std::shared_ptr<kagome::storage::BufferStorage> storage_;
 
-  std::shared_ptr<kagome::primitives::CodeSubstituteHashes>
+  std::shared_ptr<kagome::primitives::CodeSubstituteBlockIds>
       known_code_substitutes_{};
   kagome::primitives::BlockInfo genesis_block{0, "block_genesis_hash"_hash256};
   kagome::primitives::BlockHeader genesis_block_header{
@@ -214,7 +214,7 @@ TEST_F(RuntimeUpgradeTrackerTest, CodeSubstituteAndStore) {
               getBlockHeader(kagome::primitives::BlockId{block2.hash}))
       .WillRepeatedly(testing::Return(block2_header));
   known_code_substitutes_.reset(
-      new kagome::primitives::CodeSubstituteHashes{{block2.hash}});
+      new kagome::primitives::CodeSubstituteBlockIds{{block2.number}});
 
   // reset tracker
   tracker_ = kagome::runtime::RuntimeUpgradeTrackerImpl::create(
@@ -249,8 +249,7 @@ TEST_F(RuntimeUpgradeTrackerTest, UpgradeAfterCodeSubstitute) {
 
   auto block1 = makeBlockInfo(5203203);
   auto block1_header = makeBlockHeader(5203203);
-  known_code_substitutes_.reset(
-      new kagome::primitives::CodeSubstituteHashes{{block1.hash}});
+  known_code_substitutes_.reset(new kagome::primitives::CodeSubstituteBlockIds({block1.number}));
 
   EXPECT_CALL(*header_repo_,
               getBlockHeader(kagome::primitives::BlockId{block1.hash}))

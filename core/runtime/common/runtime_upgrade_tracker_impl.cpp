@@ -30,7 +30,7 @@ namespace kagome::runtime {
   RuntimeUpgradeTrackerImpl::create(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<storage::BufferStorage> storage,
-      std::shared_ptr<const primitives::CodeSubstituteHashes>
+      std::shared_ptr<const primitives::CodeSubstituteBlockIds>
           code_substitutes) {
     BOOST_ASSERT(header_repo);
     BOOST_ASSERT(storage);
@@ -55,7 +55,8 @@ namespace kagome::runtime {
   RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<storage::BufferStorage> storage,
-      std::shared_ptr<const primitives::CodeSubstituteHashes> code_substitutes,
+      std::shared_ptr<const primitives::CodeSubstituteBlockIds>
+          code_substitutes,
       std::vector<RuntimeUpgradeData> &&saved_data)
       : runtime_upgrades_{std::move(saved_data)},
         header_repo_{std::move(header_repo)},
@@ -64,9 +65,9 @@ namespace kagome::runtime {
         logger_{log::createLogger("StorageCodeProvider", "runtime")} {}
 
   bool RuntimeUpgradeTrackerImpl::hasCodeSubstitute(
-      const kagome::primitives::BlockHash &hash) const {
-    return known_code_substitutes_->find(hash)
-           != known_code_substitutes_->end();
+      const kagome::primitives::BlockInfo &block_info) const {
+    return known_code_substitutes_->count(block_info.number) != 0
+           || known_code_substitutes_->count(block_info.hash) != 0;
   }
 
   bool RuntimeUpgradeTrackerImpl::isStateInChain(
@@ -117,7 +118,7 @@ namespace kagome::runtime {
       return genesis.state_root;
     }
 
-    if (hasCodeSubstitute(block.hash)) {
+    if (hasCodeSubstitute(block)) {
       OUTCOME_TRY(push(block.hash));
     }
 
@@ -175,15 +176,15 @@ namespace kagome::runtime {
     return block_header.state_root;
   }
 
-  outcome::result<primitives::BlockHash>
-  RuntimeUpgradeTrackerImpl::getLastCodeUpdateHash(
+  outcome::result<primitives::BlockInfo>
+  RuntimeUpgradeTrackerImpl::getLastCodeUpdateBlockInfo(
       const storage::trie::RootHash &state) const {
     auto it = std::find_if(
         runtime_upgrades_.begin(),
         runtime_upgrades_.end(),
         [&state](const auto &item) { return state == item.state; });
     if (it != runtime_upgrades_.end()) {
-      return it->block.hash;
+      return it->block;
     }
     return outcome::failure(RuntimeUpgradeTrackerError::NOT_FOUND);
   }

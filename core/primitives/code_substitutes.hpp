@@ -8,11 +8,14 @@
 
 #include <unordered_set>
 
+#include "block_id.hpp"
+
 namespace kagome::primitives {
 
-  /// A set of valid code_substitute hashes.
-  /// You can pass them to fetchCodeSubstituteByHash() and get code_substitute.
-  using CodeSubstituteHashes = std::unordered_set<primitives::BlockHash>;
+  /// A set of valid code_substitute ids.
+  /// To get a code substitute you should get BlockInfo for this BlockId and
+  /// pass it to fetchCodeSubstituteByBlockInfo()
+  using CodeSubstituteBlockIds = std::unordered_set<primitives::BlockId>;
 
 }  // namespace kagome::primitives
 
