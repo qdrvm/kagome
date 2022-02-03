@@ -14,6 +14,8 @@ namespace kagome::consensus {
 
   class BabeUtilMock : public BabeUtil {
    public:
+    MOCK_METHOD(void, syncEpoch, (EpochDescriptor), (override));
+
     MOCK_METHOD(BabeSlotNumber, getCurrentSlot, (), (const, override));
 
     MOCK_METHOD(BabeTimePoint,
@@ -43,16 +45,6 @@ namespace kagome::consensus {
     MOCK_METHOD(BabeSlotNumber,
                 slotInEpoch,
                 (BabeSlotNumber),
-                (const, override));
-
-    MOCK_METHOD(outcome::result<void>,
-                setLastEpoch,
-                (const EpochDescriptor &led),
-                (override));
-
-    MOCK_METHOD(outcome::result<EpochDescriptor>,
-                getLastEpoch,
-                (),
                 (const, override));
   };
 

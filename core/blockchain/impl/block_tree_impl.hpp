@@ -64,7 +64,6 @@ namespace kagome::blockchain {
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
-        const primitives::BlockId &last_finalized_block,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -78,6 +77,8 @@ namespace kagome::blockchain {
         std::shared_ptr<consensus::BabeUtil> babe_util);
 
     ~BlockTreeImpl() override = default;
+
+    const primitives::BlockHash &getGenesisBlockHash() const override;
 
     outcome::result<bool> hasBlockHeader(
         const primitives::BlockId &block) const override;
@@ -147,7 +148,7 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
-    outcome::result<consensus::EpochDigest> getEpochDescriptor(
+    outcome::result<consensus::EpochDigest> getEpochDigest(
         consensus::EpochNumber epoch_number,
         primitives::BlockHash block_hash) const override;
 
@@ -169,7 +170,6 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<consensus::BabeUtil> babe_util);
 
     /**
@@ -212,9 +212,11 @@ namespace kagome::blockchain {
     std::shared_ptr<runtime::Core> runtime_core_;
     std::shared_ptr<storage::changes_trie::ChangesTracker>
         trie_changes_tracker_;
-    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<const consensus::BabeUtil> babe_util_;
+
+    std::optional<primitives::BlockHash> genesis_block_hash_;
     std::optional<primitives::Version> actual_runtime_version_;
+
     log::Logger log_ = log::createLogger("BlockTree", "blockchain");
 
     // Metrics

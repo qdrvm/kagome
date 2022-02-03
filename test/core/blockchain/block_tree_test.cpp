@@ -11,6 +11,8 @@
 #include "blockchain/impl/cached_tree.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
+#include "consensus/babe/types/babe_block_header.hpp"
+#include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
@@ -24,7 +26,6 @@
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 #include "scale/scale.hpp"
-
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -50,8 +51,24 @@ struct BlockTreeTest : public testing::Test {
 
   void SetUp() override {
     // for LevelDbBlockTree::create(..)
+    EXPECT_CALL(*storage_, getBlockTreeLeaves())
+        .WillOnce(Return(
+            std::vector<primitives::BlockHash>{kFinalizedBlockInfo.hash}));
+
+    EXPECT_CALL(*storage_, setBlockTreeLeaves(_))
+        .WillRepeatedly(Return(outcome::success()));
+
+    EXPECT_CALL(*storage_, hasBlockHeader(BlockId(1)))
+        .WillRepeatedly(Return(true));
+
+    EXPECT_CALL(*storage_, getBlockHeader(BlockId(1)))
+        .WillRepeatedly(Return(first_block_header_));
+
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
-        .WillOnce(Return(finalized_block_header_));
+        .WillRepeatedly(Return(finalized_block_header_));
+
+    EXPECT_CALL(*storage_, getJustification(kLastFinalizedBlockId))
+        .WillOnce(Return(outcome::success(Justification{})));
 
     EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.hash))
         .WillRepeatedly(Return(kFinalizedBlockInfo.number));
@@ -81,7 +98,6 @@ struct BlockTreeTest : public testing::Test {
 
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
-                                        kLastFinalizedBlockId,
                                         extrinsic_observer_,
                                         hasher_,
                                         chain_events_engine,
@@ -155,8 +171,30 @@ struct BlockTreeTest : public testing::Test {
 
   const BlockId kLastFinalizedBlockId = kFinalizedBlockInfo.hash;
 
+  static Digest make_digest(BabeSlotNumber slot) {
+    Digest digest;
+
+    BabeBlockHeader babe_header{
+        .slot_assignment_type = SlotType::SecondaryPlain,
+        .slot_number = slot,
+        .authority_index = 0,
+    };
+    common::Buffer encoded_header{scale::encode(babe_header).value()};
+    digest.emplace_back(
+        primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
+
+    consensus::Seal seal{};
+    common::Buffer encoded_seal{scale::encode(seal).value()};
+    digest.emplace_back(
+        primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
+
+    return digest;
+  };
+
+  BlockHeader first_block_header_{.number = 1, .digest = make_digest(1)};
+
   BlockHeader finalized_block_header_{.number = kFinalizedBlockInfo.number,
-                                      .digest = {{PreRuntime{}}}};
+                                      .digest = make_digest(42)};
 
   BlockBody finalized_block_body_{{Buffer{0x22, 0x44}}, {Buffer{0x55, 0x66}}};
 };
@@ -260,8 +298,6 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, setLastFinalizedBlockHash(hash))
-      .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(bid))
       .WillRepeatedly(Return(outcome::success(header)));
   EXPECT_CALL(*storage_, getBlockBody(bid))
@@ -320,8 +356,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_,
               putJustification(justification, B1_hash, B1_header.number))
-      .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, setLastFinalizedBlockHash(B1_hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(primitives::BlockId{B1_hash}))
       .WillRepeatedly(Return(outcome::success(B1_header)));
@@ -390,8 +424,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_,
               putJustification(justification, B_hash, B_header.number))
-      .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, setLastFinalizedBlockHash(B_hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(primitives::BlockId{B_hash}))
       .WillRepeatedly(Return(outcome::success(B_header)));

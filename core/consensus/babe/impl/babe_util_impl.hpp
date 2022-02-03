@@ -18,8 +18,9 @@ namespace kagome::consensus {
    public:
     BabeUtilImpl(
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
-        std::shared_ptr<storage::BufferStorage> storage,
         const BabeClock &clock);
+
+    void syncEpoch(EpochDescriptor epoch_descriptor) override;
 
     BabeSlotNumber getCurrentSlot() const override;
 
@@ -34,22 +35,13 @@ namespace kagome::consensus {
 
     BabeSlotNumber slotInEpoch(BabeSlotNumber slot) const override;
 
-    outcome::result<void> setLastEpoch(
-        const EpochDescriptor &epoch_descriptor) override;
-
-    outcome::result<EpochDescriptor> getLastEpoch() const override;
-
    private:
-    BabeSlotNumber getGenesisSlotNumber();
+    BabeSlotNumber getFirstBlockSlotNumber();
 
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
-    std::shared_ptr<kagome::storage::BufferStorage> storage_;
     const BabeClock &clock_;
 
-    std::optional<BabeSlotNumber> genesis_slot_number_;
-
-    // optimization for storing in memory last epoch
-    std::optional<EpochDescriptor> last_epoch_;
+    std::optional<BabeSlotNumber> first_block_slot_number_;
   };
 }  // namespace kagome::consensus
 #endif  // KAGOME_CONSENSUS_BABEUTILIMPL

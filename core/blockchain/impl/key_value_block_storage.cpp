@@ -5,34 +5,10 @@
 
 #include "blockchain/impl/key_value_block_storage.hpp"
 
+#include "blockchain/block_storage_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "scale/scale.hpp"
 #include "storage/database_error.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain,
-                            KeyValueBlockStorage::Error,
-                            e) {
-  using E = kagome::blockchain::KeyValueBlockStorage::Error;
-  switch (e) {
-    case E::BLOCK_EXISTS:
-      return "Block already exists on the chain";
-    case E::HEADER_DOES_NOT_EXIST:
-      return "Block header was not found";
-    case E::BODY_DOES_NOT_EXIST:
-      return "Block body was not found";
-    case E::BLOCK_DATA_DOES_NOT_EXIST:
-      return "Block data was not found";
-    case E::JUSTIFICATION_DOES_NOT_EXIST:
-      return "Justification was not found";
-    case E::GENESIS_BLOCK_ALREADY_EXISTS:
-      return "Genesis block already exists";
-    case E::FINALIZED_BLOCK_NOT_FOUND:
-      return "Finalized block not found. Possible storage corrupted";
-    case E::GENESIS_BLOCK_NOT_FOUND:
-      return "Genesis block not found exists";
-  }
-  return "Unknown error";
-}
 
 namespace kagome::blockchain {
   using primitives::Block;
@@ -53,76 +29,51 @@ namespace kagome::blockchain {
   KeyValueBlockStorage::create(
       storage::trie::RootHash state_root,
       const std::shared_ptr<storage::BufferStorage> &storage,
-      const std::shared_ptr<crypto::Hasher> &hasher,
-      const BlockHandler &on_finalized_block_found) {
+      const std::shared_ptr<crypto::Hasher> &hasher) {
     auto block_storage = std::make_shared<KeyValueBlockStorage>(
         KeyValueBlockStorage(storage, hasher));
 
-    auto last_finalized_block_hash_res =
-        block_storage->getLastFinalizedBlockHash();
-
-    if (last_finalized_block_hash_res.has_value()) {
-      return loadExisting(storage, hasher, on_finalized_block_found);
+    auto res = block_storage->hasBlockHeader(primitives::BlockNumber{0});
+    if (res.has_error()) {
+      return res.as_failure();
     }
 
-    if (last_finalized_block_hash_res
-        == outcome::failure(Error::FINALIZED_BLOCK_NOT_FOUND)) {
-      return createWithGenesis(
-          std::move(state_root), storage, hasher, on_finalized_block_found);
+    if (not res.value()) {
+      auto extrinsics_root = trieRoot({});
+
+      // genesis block initialization
+      primitives::Block genesis_block;
+      genesis_block.header.number = 0;
+      genesis_block.header.extrinsics_root = extrinsics_root;
+      genesis_block.header.state_root = state_root;
+      // the rest of the fields have default value
+
+      OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
+
+      OUTCOME_TRY(block_storage->setBlockTreeLeaves({genesis_block_hash}));
     }
 
-    return last_finalized_block_hash_res.error();
-  }
+    // Fallback way to init block tree leaves list on existed storage
+    // TODO(xDimon): After deploy of this change, and using on existing DB,
+    //  this code block should be removed
+    if (block_storage->getBlockTreeLeaves()
+        == outcome::failure(BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND)) {
+      using namespace common::literals;
+      OUTCOME_TRY(last_finalized_block_hash_opt,
+                  storage->tryGet(":kagome:last_finalized_block_hash"_buf));
+      if (not last_finalized_block_hash_opt.has_value()) {
+        return BlockStorageError::FINALIZED_BLOCK_NOT_FOUND;
+      }
+      auto &hash = last_finalized_block_hash_opt.value();
 
-  outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-  KeyValueBlockStorage::loadExisting(
-      const std::shared_ptr<storage::BufferStorage> &storage,
-      std::shared_ptr<crypto::Hasher> hasher,
-      const BlockHandler &on_finalized_block_found) {
-    auto block_storage = std::make_shared<KeyValueBlockStorage>(
-        KeyValueBlockStorage(storage, std::move(hasher)));
+      primitives::BlockHash last_finalized_block_hash;
+      std::copy(hash.begin(), hash.end(), last_finalized_block_hash.begin());
 
-    OUTCOME_TRY(last_finalized_block_hash,
-                block_storage->getLastFinalizedBlockHash());
+      OUTCOME_TRY(
+          block_storage->setBlockTreeLeaves({last_finalized_block_hash}));
+    }
 
-    OUTCOME_TRY(block_header,
-                block_storage->getBlockHeader(last_finalized_block_hash));
-
-    primitives::Block finalized_block;
-    finalized_block.header = block_header;
-
-    on_finalized_block_found(finalized_block);
-
-    return block_storage;
-  }
-
-  outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-  KeyValueBlockStorage::createWithGenesis(
-      storage::trie::RootHash state_root,
-      const std::shared_ptr<storage::BufferStorage> &storage,
-      std::shared_ptr<crypto::Hasher> hasher,
-      const BlockHandler &on_genesis_created) {
-    auto block_storage = std::make_shared<KeyValueBlockStorage>(
-        KeyValueBlockStorage(storage, std::move(hasher)));
-
-    OUTCOME_TRY(block_storage->ensureGenesisNotExists());
-
-    auto extrinsics_root = trieRoot({});
-
-    // genesis block initialization
-    primitives::Block genesis_block;
-    genesis_block.header.number = 0;
-    genesis_block.header.extrinsics_root = extrinsics_root;
-    genesis_block.header.state_root = state_root;
-    // the rest of the fields have default value
-
-    OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
-    OUTCOME_TRY(storage->put(storage::kGenesisBlockHashLookupKey,
-                             Buffer{genesis_block_hash}));
-    OUTCOME_TRY(block_storage->setLastFinalizedBlockHash(genesis_block_hash));
-
-    on_genesis_created(genesis_block);
-    return block_storage;
+    return std::move(block_storage);
   }
 
   outcome::result<bool> KeyValueBlockStorage::hasBlockHeader(
@@ -140,7 +91,7 @@ namespace kagome::blockchain {
           scale::decode<primitives::BlockHeader>(encoded_header_opt.value()));
       return std::move(header);
     }
-    return Error::HEADER_DOES_NOT_EXIST;
+    return BlockStorageError::HEADER_DOES_NOT_EXIST;
   }
 
   outcome::result<primitives::BlockBody> KeyValueBlockStorage::getBlockBody(
@@ -149,7 +100,7 @@ namespace kagome::blockchain {
     if (block_data.body) {
       return block_data.body.value();
     }
-    return Error::BODY_DOES_NOT_EXIST;
+    return BlockStorageError::BODY_DOES_NOT_EXIST;
   }
 
   outcome::result<primitives::BlockData> KeyValueBlockStorage::getBlockData(
@@ -162,7 +113,7 @@ namespace kagome::blockchain {
           scale::decode<primitives::BlockData>(encoded_block_data_opt.value()));
       return std::move(block_data);
     }
-    return Error::BLOCK_DATA_DOES_NOT_EXIST;
+    return BlockStorageError::BLOCK_DATA_DOES_NOT_EXIST;
   }
 
   outcome::result<primitives::Justification>
@@ -172,7 +123,7 @@ namespace kagome::blockchain {
     if (block_data.justification) {
       return block_data.justification.value();
     }
-    return Error::JUSTIFICATION_DOES_NOT_EXIST;
+    return BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST;
   }
 
   outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlockHeader(
@@ -233,7 +184,7 @@ namespace kagome::blockchain {
     auto block_in_storage_res =
         getWithPrefix(*storage_, Prefix::HEADER, block_hash);
     if (block_in_storage_res.has_value()) {
-      return Error::BLOCK_EXISTS;
+      return BlockStorageError::BLOCK_EXISTS;
     }
     if (block_in_storage_res
         != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
@@ -285,52 +236,41 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  outcome::result<primitives::BlockHash>
-  KeyValueBlockStorage::getGenesisBlockHash() const {
-    if (genesis_block_hash_.has_value()) {
-      return genesis_block_hash_.value();
+  outcome::result<std::vector<primitives::BlockHash>>
+  KeyValueBlockStorage::getBlockTreeLeaves() const {
+    if (block_tree_leaves_.has_value()) {
+      return block_tree_leaves_.value();
     }
 
-    auto hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
-    if (hash_res.has_value()) {
-      primitives::BlockHash hash;
-      std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
-      const_cast<decltype(genesis_block_hash_) &>(genesis_block_hash_) = hash;
-      return hash;
+    OUTCOME_TRY(leaves_opt,
+                storage_->tryGet(storage::kBlockTreeLeavesLookupKey));
+    if (not leaves_opt.has_value()) {
+      return BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND;
     }
 
-    if (hash_res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-      return Error::GENESIS_BLOCK_NOT_FOUND;
-    }
-
-    return hash_res.as_failure();
-  }
-
-  outcome::result<primitives::BlockHash>
-  KeyValueBlockStorage::getLastFinalizedBlockHash() const {
-    OUTCOME_TRY(hash_opt,
-                storage_->tryGet(storage::kLastFinalizedBlockHashLookupKey));
-    if (not hash_opt.has_value()) {
-      return Error::FINALIZED_BLOCK_NOT_FOUND;
-    }
-    primitives::BlockHash hash;
-    std::copy(hash_opt.value().begin(), hash_opt.value().end(), hash.begin());
-    return hash;
-  }
-
-  outcome::result<void> KeyValueBlockStorage::setLastFinalizedBlockHash(
-      const primitives::BlockHash &hash) {
     OUTCOME_TRY(
-        storage_->put(storage::kLastFinalizedBlockHashLookupKey, Buffer{hash}));
+        leaves,
+        scale::decode<std::vector<primitives::BlockHash>>(leaves_opt.value()));
 
-    return outcome::success();
+    block_tree_leaves_.emplace(std::move(leaves));
+
+    return block_tree_leaves_.value();
   }
 
-  outcome::result<void> KeyValueBlockStorage::ensureGenesisNotExists() const {
-    auto res = getLastFinalizedBlockHash();
-    if (res.has_value()) {
-      return Error::GENESIS_BLOCK_ALREADY_EXISTS;
+  outcome::result<void> KeyValueBlockStorage::setBlockTreeLeaves(
+      std::vector<primitives::BlockHash> leaves) {
+    if (block_tree_leaves_.has_value()
+        and block_tree_leaves_.value() == leaves) {
+      return outcome::success();
     }
+
+    OUTCOME_TRY(encoded_leaves, scale::encode(leaves));
+    OUTCOME_TRY(storage_->put(storage::kBlockTreeLeavesLookupKey,
+                              Buffer{std::move(encoded_leaves)}));
+
+    block_tree_leaves_.emplace(std::move(leaves));
+
     return outcome::success();
   }
+
 }  // namespace kagome::blockchain

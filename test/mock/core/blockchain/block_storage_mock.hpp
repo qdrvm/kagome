@@ -13,19 +13,14 @@ namespace kagome::blockchain {
 
   class BlockStorageMock : public BlockStorage {
    public:
-    MOCK_METHOD(outcome::result<primitives::BlockHash>,
-                getGenesisBlockHash,
-                (),
-                (const, override));
-
-    MOCK_METHOD(outcome::result<primitives::BlockHash>,
-                getLastFinalizedBlockHash,
+    MOCK_METHOD(outcome::result<std::vector<primitives::BlockHash>>,
+                getBlockTreeLeaves,
                 (),
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>,
-                setLastFinalizedBlockHash,
-                (const primitives::BlockHash &),
+                setBlockTreeLeaves,
+                (std::vector<primitives::BlockHash>),
                 (override));
 
     MOCK_METHOD(outcome::result<bool>,

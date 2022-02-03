@@ -9,13 +9,11 @@
 #include "consensus/babe/impl/babe_util_impl.hpp"
 #include "mock/core/clock/clock_mock.hpp"
 #include "primitives/babe_configuration.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
 using namespace clock;
 using namespace consensus;
-using namespace storage;
 
 using std::chrono_literals::operator""ms;
 using testing::Return;
@@ -31,15 +29,12 @@ class BabeUtilTest : public testing::Test {
     babe_config_->slot_duration = 6000ms;
     babe_config_->epoch_length = 2;
     clock_ = std::make_shared<SystemClockMock>();
-    storage_ = std::make_shared<InMemoryStorage>();
-    babe_util_ =
-        std::make_shared<BabeUtilImpl>(babe_config_, storage_, *clock_);
+    babe_util_ = std::make_shared<BabeUtilImpl>(babe_config_, *clock_);
   }
 
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<BabeUtil> babe_util_;
-  std::shared_ptr<BufferStorage> storage_;
 };
 
 /**

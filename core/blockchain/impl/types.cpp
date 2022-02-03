@@ -22,20 +22,22 @@ namespace kagome::blockchain {
 
   outcome::result<common::Buffer> idToLookupKey(const ReadableBufferMap &map,
                                                 const primitives::BlockId &id) {
-    OUTCOME_TRY(
-        key_opt,
-        visit_in_place(
-            id,
-            [&map](const primitives::BlockNumber &n) {
-              auto key = prependPrefix(numberToIndexKey(n),
-                                       prefix::Prefix::ID_TO_LOOKUP_KEY);
-              return map.tryGet(key);
-            },
-            [&map](const common::Hash256 &hash) {
-              return map.tryGet(prependPrefix(
-                  common::Buffer{hash}, prefix::Prefix::ID_TO_LOOKUP_KEY));
-            }));
-    if (key_opt.has_value()) return std::move(key_opt.value());
+    auto key = visit_in_place(
+        id,
+        [](const primitives::BlockNumber &n) {
+          return prependPrefix(numberToIndexKey(n),
+                               prefix::Prefix::ID_TO_LOOKUP_KEY);
+        },
+        [](const common::Hash256 &hash) {
+          return prependPrefix(common::Buffer{hash},
+                               prefix::Prefix::ID_TO_LOOKUP_KEY);
+        });
+
+    OUTCOME_TRY(key_opt, map.tryGet(key));
+
+    if (key_opt.has_value()) {
+      return std::move(key_opt.value());
+    }
     return Error::BLOCK_NOT_FOUND;
   }
 

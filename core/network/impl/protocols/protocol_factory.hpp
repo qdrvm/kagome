@@ -10,10 +10,10 @@
 #include "consensus/babe/babe.hpp"
 #include "network/impl/protocols/block_announce_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
+#include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "primitives/event_types.hpp"
-#include "network/impl/protocols/propagate_transactions_protocol.hpp"
 
 namespace kagome::network {
 
@@ -25,7 +25,6 @@ namespace kagome::network {
         const application::ChainSpec &chain_spec,
         const OwnPeerInfo &own_info,
         std::shared_ptr<boost::asio::io_context> io_context,
-        std::shared_ptr<blockchain::BlockStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
@@ -77,7 +76,6 @@ namespace kagome::network {
     const application::ChainSpec &chain_spec_;
     const OwnPeerInfo &own_info_;
     std::shared_ptr<boost::asio::io_context> io_context_;
-    std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>

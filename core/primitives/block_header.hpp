@@ -40,6 +40,11 @@ namespace kagome::primitives {
     }
   };
 
+  struct GenesisBlockHeader {
+    const BlockHeader header;
+    const BlockHash hash;
+  };
+
   /**
    * @brief outputs object of type BlockHeader to stream
    * @tparam Stream output stream type
