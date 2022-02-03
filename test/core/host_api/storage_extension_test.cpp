@@ -188,8 +188,8 @@ TEST_F(StorageExtensionTest, NextKey) {
   EXPECT_CALL(*memory_, storeBuffer(_))
       .WillOnce(Invoke(
           [&expected_next_key, &expected_key_span](auto &&buffer) -> WasmSpan {
-            EXPECT_OUTCOME_TRUE(
-                key_opt, scale::decode<std::optional<Buffer>>(buffer));
+            EXPECT_OUTCOME_TRUE(key_opt,
+                                scale::decode<std::optional<Buffer>>(buffer));
             EXPECT_TRUE(key_opt.has_value());
             EXPECT_EQ(key_opt.value(), expected_next_key);
             return expected_key_span;
@@ -223,8 +223,8 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
 
   EXPECT_CALL(*memory_, storeBuffer(_))
       .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
-        EXPECT_OUTCOME_TRUE(
-            key_opt, scale::decode<std::optional<Buffer>>(buffer));
+        EXPECT_OUTCOME_TRUE(key_opt,
+                            scale::decode<std::optional<Buffer>>(buffer));
         EXPECT_EQ(key_opt, std::nullopt);
         return 0;  // don't need the result
       }));
@@ -255,8 +255,8 @@ TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
 
   EXPECT_CALL(*memory_, storeBuffer(_))
       .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
-        EXPECT_OUTCOME_TRUE(
-            key_opt, scale::decode<std::optional<Buffer>>(buffer));
+        EXPECT_OUTCOME_TRUE(key_opt,
+                            scale::decode<std::optional<Buffer>>(buffer));
         EXPECT_EQ(key_opt, std::nullopt);
         return 0;
       }));
@@ -293,33 +293,6 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
 }
 
 /**
- * @given key_pointer, key_size, value_ptr, value_size
- * @when ext_storage_set_version_1 is invoked on given key and value
- * @then provided key and value are put to db
- */
-TEST_P(OutcomeParameterizedTest, ExtStorageSetV1Test) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  Buffer key(8, 'k');
-
-  WasmPointer value_pointer = 42;
-  WasmSize value_size = 41;
-  Buffer value(8, 'v');
-
-  // expect key and value were loaded
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
-      .WillOnce(Return(value));
-
-  // expect key-value pair was put to db
-  EXPECT_CALL(*trie_batch_, put(key, value)).WillOnce(Return(GetParam()));
-
-  storage_extension_->ext_storage_set_version_1(
-      PtrSize(key_pointer, key_size).combine(),
-      PtrSize(value_pointer, value_size).combine());
-}
-
-/**
  * @given key, value, offset
  * @when ext_storage_read_version_1 is invoked on given key and value
  * @then data read from db with given key
@@ -332,9 +305,9 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   WasmOffset offset = 4;
   Buffer offset_value_data = value_data.subbuffer(offset);
   ASSERT_EQ(offset_value_data.size(), value_data.size() - offset);
-  EXPECT_OUTCOME_TRUE(encoded_opt_offset_val_size,
-                      scale::encode(std::make_optional<uint32_t>(
-                          offset_value_data.size())));
+  EXPECT_OUTCOME_TRUE(
+      encoded_opt_offset_val_size,
+      scale::encode(std::make_optional<uint32_t>(offset_value_data.size())));
   WasmSpan res_wasm_span = 1337;
 
   // expect key loaded, than data stored
@@ -395,8 +368,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
 
     // @then storage is inserted by scale encoded vector containing
     // EncodeOpaqueValue with value1
-    vals.push_back(
-        scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
+    vals.push_back(scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
     vals_encoded = Buffer(scale::encode(vals).value());
     EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
         .WillOnce(Return(outcome::success()));
@@ -411,8 +383,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
 
     // @then storage is inserted by scale encoded vector containing two
     // EncodeOpaqueValues with value1 and value2
-    vals.push_back(
-        scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
+    vals.push_back(scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
     vals_encoded = Buffer(scale::encode(vals).value());
     EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
         .WillOnce(Return(outcome::success()));
@@ -453,8 +424,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
     EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(vals_encoded));
 
     // @when storage is inserted by one more value by the same key
-    vals.push_back(
-        scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
+    vals.push_back(scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
     vals_encoded = Buffer(scale::encode(vals).value());
 
     // @then everything fine: storage is inserted with vals with new value
@@ -550,8 +520,7 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
   WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
 
   Buffer value(8, 'v');
-  auto encoded_opt_value =
-      scale::encode<std::optional<Buffer>>(value).value();
+  auto encoded_opt_value = scale::encode<std::optional<Buffer>>(value).value();
 
   // expect key and value were loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
@@ -564,25 +533,6 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
 
   ASSERT_EQ(value_span,
             storage_extension_->ext_storage_get_version_1(key_span));
-}
-
-/**
- * @given key_pointer and key_size
- * @when ext_storage_clear_version_1 is invoked on StorageExtension with given
- * key
- * @then key is loaded from the memory @and del is invoked on storage
- */
-TEST_P(OutcomeParameterizedTest, ExtStorageClearV1Test) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  Buffer key(8, 'k');
-  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
-
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  // to ensure that it works when remove() returns success or failure
-  EXPECT_CALL(*trie_batch_, remove(key)).WillOnce(Return(GetParam()));
-
-  storage_extension_->ext_storage_clear_version_1(key_span);
 }
 
 /**
