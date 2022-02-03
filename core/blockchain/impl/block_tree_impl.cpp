@@ -88,7 +88,7 @@ namespace kagome::blockchain {
       OUTCOME_TRY(first_block_header, storage->getBlockHeader(1));
       auto babe_digest_res = consensus::getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
-                       "Any non genesis block must be contain babe digest");
+                       "Any non genesis block must contain babe digest");
       auto first_slot_number = babe_digest_res.value().second.slot_number;
 
       // Second, look up slot number of best block
@@ -99,7 +99,7 @@ namespace kagome::blockchain {
       const auto &best_block_header = best_block_header_res.value();
       babe_digest_res = consensus::getBabeDigests(best_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
-                       "Any non genesis block must be contain babe digest");
+                       "Any non genesis block must contain babe digest");
       auto last_slot_number = babe_digest_res.value().second.slot_number;
 
       BOOST_ASSERT_MSG(

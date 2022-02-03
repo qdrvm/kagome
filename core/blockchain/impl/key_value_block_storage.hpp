@@ -21,7 +21,7 @@ namespace kagome::blockchain {
 
     /**
      * Creates block storage. Iff block storage is empty, then initializes with
-     * a genesis block which is created inside from merkle trie root
+     * a genesis block which is created automatically from merkle trie root
      * @param state_root merkle root of genesis state
      * @param storage underlying storage (must be empty)
      * @param hasher a hasher instance

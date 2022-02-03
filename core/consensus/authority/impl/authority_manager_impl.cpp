@@ -119,7 +119,7 @@ namespace kagome::authority {
                          consensus_message});
                 found = true;
               },
-              [](const auto &...) {});
+              [](const auto &...) {}); // Others variants is ignored
         }
 
         if (found || header.number == 0) {

@@ -180,7 +180,7 @@ namespace kagome::consensus::babe {
     const auto &best_block_header = best_block_header_res.value();
     auto babe_digest_res = getBabeDigests(best_block_header);
     BOOST_ASSERT_MSG(babe_digest_res.has_value(),
-                     "Any non genesis block must be contain babe digest");
+                     "Any non genesis block must contain babe digest");
     auto last_slot_number = babe_digest_res.value().second.slot_number;
 
     EpochDescriptor epoch_descriptor{
