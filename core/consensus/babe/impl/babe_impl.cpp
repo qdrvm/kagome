@@ -126,11 +126,12 @@ namespace kagome::consensus::babe {
           return true;
         }
       } else {
-        SL_CRITICAL(log_,
-                    "Epoch couldn't be obtained from epoch #{}, block {}: {}",
-                    current_epoch_.epoch_number,
-                    best_block_,
-                    epoch_res.error().message());
+        SL_CRITICAL(
+            log_,
+            "Can't obtain digest of epoch {} from block tree for block {}: {}",
+            current_epoch_.epoch_number,
+            best_block_,
+            epoch_res.error().message());
         return false;
       }
     }

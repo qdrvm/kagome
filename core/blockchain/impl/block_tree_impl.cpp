@@ -65,17 +65,17 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
                      "Must be known or calculated at least one leaf");
 
-    // Find the least leaf
+    // Find the least and best leaf
     primitives::BlockInfo least_leaf(
         std::numeric_limits<primitives::BlockNumber>::max(), {});
     primitives::BlockInfo best_leaf(
         std::numeric_limits<primitives::BlockNumber>::min(), {});
     for (auto hash : block_tree_leaves) {
       OUTCOME_TRY(number, header_repo->getNumberById(hash));
-      if (number < least_leaf.number) {
+      if (number <= least_leaf.number) {
         least_leaf = {number, hash};
       }
-      if (number > best_leaf.number) {
+      if (number >= best_leaf.number) {
         best_leaf = {number, hash};
       }
     }
@@ -102,10 +102,11 @@ namespace kagome::blockchain {
                        "Any non genesis block must be contain babe digest");
       auto last_slot_number = babe_digest_res.value().second.slot_number;
 
-      BOOST_ASSERT_MSG(last_slot_number >= first_slot_number,
-                       "Non genesis slot must not be less then genesis slot");
+      BOOST_ASSERT_MSG(
+          last_slot_number >= first_slot_number,
+          "Non genesis slot must not be less then slot of block number 1");
 
-      // Now we have all to get epoch number
+      // Now we have all to calculate epoch number
       auto epoch_number = (last_slot_number - first_slot_number)
                           / babe_configuration->epoch_length;
       consensus::EpochDescriptor epoch{

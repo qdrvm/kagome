@@ -11,6 +11,8 @@
 #include "blockchain/impl/cached_tree.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
+#include "consensus/babe/types/babe_block_header.hpp"
+#include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
@@ -24,12 +26,9 @@
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 #include "scale/scale.hpp"
-
-#include "consensus/babe/types/babe_block_header.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "consensus/babe/types/seal.hpp"
 
 using namespace kagome;
 using namespace storage;
@@ -181,21 +180,21 @@ struct BlockTreeTest : public testing::Test {
         .authority_index = 0,
     };
     common::Buffer encoded_header{scale::encode(babe_header).value()};
-    digest.emplace_back(primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
+    digest.emplace_back(
+        primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
     consensus::Seal seal{};
     common::Buffer encoded_seal{scale::encode(seal).value()};
-    digest.emplace_back(primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
+    digest.emplace_back(
+        primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
 
     return digest;
   };
 
-  BlockHeader first_block_header_{
-      .number = 1, .digest = make_digest(1)};
+  BlockHeader first_block_header_{.number = 1, .digest = make_digest(1)};
 
-  BlockHeader finalized_block_header_{
-      .number = kFinalizedBlockInfo.number,
-      .digest = make_digest(42)};
+  BlockHeader finalized_block_header_{.number = kFinalizedBlockInfo.number,
+                                      .digest = make_digest(42)};
 
   BlockBody finalized_block_body_{{Buffer{0x22, 0x44}}, {Buffer{0x55, 0x66}}};
 };

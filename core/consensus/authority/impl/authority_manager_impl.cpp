@@ -71,7 +71,8 @@ namespace kagome::authority {
 
           auto header_res = block_tree_->getBlockHeader(hash);
           if (header_res.has_error()) {
-            log_->critical("Can't get header for some block: {}",
+            log_->critical("Can't get header of block {}: {}",
+                           hash,
                            header_res.error().message());
             return false;
           }
@@ -100,7 +101,7 @@ namespace kagome::authority {
       for (auto hash = finalized_block_hash;;) {
         auto header_res = block_tree_->getBlockHeader(hash);
         if (header_res.has_error()) {
-          log_->critical("Can't get header for some block {}: {}",
+          log_->critical("Can't get header of block {}: {}",
                          hash,
                          header_res.error().message());
           return false;

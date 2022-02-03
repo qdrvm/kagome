@@ -174,9 +174,6 @@ class AuthorityManagerTest : public testing::Test {
 
     EXPECT_CALL(*block_tree, getLeaves()).WillOnce(Return(leaves));
 
-    //    EXPECT_CALL(*storage, get(schedulerLookupKey))
-    //        .WillOnce(Return(encoded_data));
-
     authority_manager->prepare();
   }
 
