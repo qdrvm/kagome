@@ -260,7 +260,7 @@ namespace kagome::consensus::grandpa {
                    std::back_inserter(round_state.votes),
                    [](auto &&item) { return std::forward<VoteVariant>(item); });
 
-    return std::move(round_state);
+    return round_state;
   }
 
   void GrandpaImpl::executeNextRound(RoundNumber round_number) {
