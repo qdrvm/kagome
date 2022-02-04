@@ -286,7 +286,6 @@ TEST_F(TrieTest, Put) {
  */
 TEST_F(TrieTest, Remove) {
   FillSmallTree(*trie);
-
   for (auto i : {2, 3, 4}) {
     ASSERT_OUTCOME_SUCCESS_TRY(trie->remove(data[i].first));
   }
@@ -369,7 +368,9 @@ class DeleteTest : public testing::Test,
 
 size_t size(const PolkadotTrie::NodePtr &node) {
   size_t count = 0;
-  BOOST_ASSERT(node != nullptr);
+
+  if(node == nullptr) return 0;
+
   if (node->isBranch()) {
     auto branch =
         std::dynamic_pointer_cast<kagome::storage::trie::BranchNode>(node);
@@ -393,7 +394,9 @@ TEST_P(DeleteTest, DeleteData) {
   for (auto &entry : GetParam().data) {
     ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry, "123"_buf));
   }
+  std::cout << *trie << "\n==================\n";
   ASSERT_OUTCOME_SUCCESS_TRY(trie->remove(GetParam().key));
+  std::cout << *trie << "\n==================\n";
   ASSERT_EQ(size(trie->getRoot()), GetParam().size);
 }
 

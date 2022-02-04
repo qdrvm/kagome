@@ -13,6 +13,8 @@
 
 namespace kagome::storage::trie {
 
+  class OpaqueNodeStorage;
+
   class PolkadotTrieImpl final
       : public PolkadotTrie,
         public std::enable_shared_from_this<PolkadotTrieImpl> {
@@ -31,6 +33,7 @@ namespace kagome::storage::trie {
     explicit PolkadotTrieImpl(NodePtr root,
                               PolkadotTrie::NodeRetrieveFunctor f =
                                   PolkadotTrie::defaultNodeRetrieveFunctor);
+    ~PolkadotTrieImpl();
 
     NodePtr getRoot() override;
     ConstNodePtr getRoot() const override;
@@ -76,6 +79,11 @@ namespace kagome::storage::trie {
 
     bool empty() const override;
 
+    outcome::result<ConstNodePtr> retrieveChild(
+        const BranchNode &parent, uint8_t idx) const override;
+    outcome::result<NodePtr> retrieveChild(const BranchNode &parent,
+                                                   uint8_t idx) override;
+
    private:
     outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const NibblesView &key_nibbles,
@@ -85,13 +93,7 @@ namespace kagome::storage::trie {
                                           const NibblesView &key_nibbles,
                                           const NodePtr &node);
 
-    outcome::result<ConstNodePtr> retrieveChild(const BranchNode &parent,
-                                                uint8_t idx) const override;
-    outcome::result<NodePtr> retrieveChild(const BranchNode &parent,
-                                           uint8_t idx) override;
-
-    NodeRetrieveFunctor retrieve_node_;
-    NodePtr root_;
+    std::unique_ptr<OpaqueNodeStorage> nodes_;
   };
 
 }  // namespace kagome::storage::trie
