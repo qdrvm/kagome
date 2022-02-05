@@ -39,6 +39,7 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/recovery_mode.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
@@ -583,6 +584,7 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
+
     auto header_repo =
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
 
@@ -1146,6 +1148,8 @@ namespace {
         di::bind<primitives::GenesisBlockHeader>.to([](auto const &injector) {
           return get_genesis_block_header(injector);
         }),
+        di::bind<application::mode::RecoveryMode>.to(
+            [](auto const &injector) { return get_recovery_mode(injector); }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1320,6 +1324,36 @@ namespace {
     return initialized.value();
   }
 
+  template <typename Injector>
+  sptr<application::mode::RecoveryMode> get_recovery_mode(
+      const Injector &injector) {
+    static auto initialized =
+        std::optional<sptr<application::mode::RecoveryMode>>(std::nullopt);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    const auto &app_config =
+        injector.template create<const application::AppConfiguration &>();
+    auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
+    auto header_repo =
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
+    auto trie_storage =
+        injector.template create<sptr<const storage::trie::TrieStorage>>();
+
+    initialized.emplace(new application::mode::RecoveryMode(
+        [&app_config,
+         storage = std::move(storage),
+         header_repo = std::move(header_repo),
+         trie_storage = std::move(trie_storage)] {
+          auto res = blockchain::BlockTreeImpl::recovery(
+              app_config, storage, header_repo, trie_storage);
+          return res.has_error() ? EXIT_FAILURE : EXIT_SUCCESS;
+        }));
+
+    return initialized.value();
+  }
+
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
                               Ts &&...args) {
@@ -1432,6 +1466,11 @@ namespace kagome::injector {
   std::shared_ptr<metrics::MetricsWatcher>
   KagomeNodeInjector::injectMetricsWatcher() {
     return pimpl_->injector_.create<sptr<metrics::MetricsWatcher>>();
+  }
+
+  std::shared_ptr<application::mode::RecoveryMode>
+  KagomeNodeInjector::injectRecoveryMode() {
+    return pimpl_->injector_.create<sptr<application::mode::RecoveryMode>>();
   }
 
 }  // namespace kagome::injector

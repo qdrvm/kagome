@@ -46,6 +46,12 @@ int main(int argc, char **argv) {
 
     auto app = std::make_shared<kagome::application::KagomeApplicationImpl>(
         configuration);
+
+    // Recovery mode
+    if (configuration.recoveryState().has_value()) {
+      return app->recovery();
+    }
+
     app->run();
   }
 

@@ -10,7 +10,9 @@ namespace kagome::application {
 
   class Mode {
    public:
-    virtual int run() = 0;
+    virtual ~Mode() = default;
+
+    virtual int run() const = 0;
   };
 
 }  // namespace kagome::application

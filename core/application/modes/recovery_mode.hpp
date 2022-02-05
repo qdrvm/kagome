@@ -10,7 +10,7 @@
 
 #include <functional>
 
-namespace kagome::application {
+namespace kagome::application::mode {
 
   class RecoveryMode final : public Mode {
    public:
@@ -24,6 +24,6 @@ namespace kagome::application {
     std::function<int()> runner_;
   };
 
-}  // namespace kagome::application
+}  // namespace kagome::application::mode
 
 #endif  // KAGOME_APPLICATION_RECOVERYMODE

@@ -138,6 +138,9 @@ namespace kagome::application {
     bool isOffchainIndexingEnabled() const override {
       return enable_offchain_indexing_;
     }
+    virtual std::optional<primitives::BlockId> recoveryState() const override {
+      return recovery_state_;
+    }
 
    private:
     void parse_general_segment(rapidjson::Value &val);
@@ -244,6 +247,7 @@ namespace kagome::application {
     RuntimeExecutionMethod runtime_exec_method_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
+    std::optional<primitives::BlockId> recovery_state_;
   };
 
 }  // namespace kagome::application

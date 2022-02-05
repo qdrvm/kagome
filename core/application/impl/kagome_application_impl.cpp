@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "application/impl/util.hpp"
+#include "application/modes/recovery_mode.hpp"
 #include "consensus/babe/babe.hpp"
 #include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/metrics.hpp"
@@ -36,6 +37,13 @@ namespace kagome::application {
     jrpc_api_service_ = injector_->injectRpcApiService();
     sync_observer_ = injector_->injectSyncObserver();
     metrics_watcher_ = injector_->injectMetricsWatcher();
+  }
+
+  int KagomeApplicationImpl::recovery() {
+    logger_->info("Start as node in recovery mode with PID {}", getpid());
+
+    auto mode = injector_->injectRecoveryMode();
+    return mode->run();
   }
 
   void KagomeApplicationImpl::run() {
