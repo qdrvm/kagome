@@ -119,7 +119,6 @@ namespace kagome::api {
     };
 
     /**
-     * @brief constructor
      * @param context - reference to the io context
      * @param listener - a shared ptr to the endpoint listener instance
      * @param processors - shared ptrs to JSON processor instances
@@ -220,14 +219,14 @@ namespace kagome::api {
     }
 
     template <typename T>
-    inline SessionSubscriptions::AdditionMessageType uploadFromCache(
+    SessionSubscriptions::AdditionMessageType uploadFromCache(
         T &&value) {
       auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string);
       obj->assign(std::forward<T>(value));
       return obj;
     }
 
-    inline SessionSubscriptions::CachedAdditionMessagesList
+    SessionSubscriptions::CachedAdditionMessagesList
     uploadMessagesListFromCache() {
       auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(
           api_service, SessionSubscriptions::AdditionMessagesList);
