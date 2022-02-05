@@ -35,7 +35,7 @@ namespace kagome::blockchain {
     virtual outcome::result<void> setBlockTreeLeaves(
         std::vector<primitives::BlockHash> leaves) = 0;
 
-    /// Sets hashes of block tree leaves
+    /// Check if header existing by provided block {@param id}
     virtual outcome::result<bool> hasBlockHeader(
         const primitives::BlockId &id) const = 0;
 

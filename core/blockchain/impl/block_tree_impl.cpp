@@ -313,6 +313,86 @@ namespace kagome::blockchain {
     return std::shared_ptr<BlockTreeImpl>(block_tree);
   }
 
+  outcome::result<void> BlockTreeImpl::recovery(
+      const application::AppConfiguration &app_config,
+      std::shared_ptr<BlockStorage> storage,
+      std::shared_ptr<BlockHeaderRepository> header_repo,
+      std::shared_ptr<const storage::trie::TrieStorage> trie_storage) {
+    BOOST_ASSERT(storage != nullptr);
+    BOOST_ASSERT(header_repo != nullptr);
+    BOOST_ASSERT(trie_storage != nullptr);
+    BOOST_ASSERT_MSG(app_config.recoveryState().has_value(),
+                     "This method must be used only with --recovery CLI arg");
+
+    const auto recovery_state = app_config.recoveryState().value();
+
+    log::Logger log = log::createLogger("BlockTree", "blockchain");
+
+    std::set<primitives::BlockInfo> block_tree_leaves;
+    {
+      OUTCOME_TRY(block_tree_unordered_leaves, storage->getBlockTreeLeaves());
+
+      BOOST_ASSERT_MSG(not block_tree_unordered_leaves.empty(),
+                       "Must be known or calculated at least one leaf");
+
+      for (auto &hash : block_tree_unordered_leaves) {
+        OUTCOME_TRY(number, header_repo->getNumberById(hash));
+        block_tree_leaves.emplace(number, hash);
+      }
+    }
+
+    // Check if block has state
+    auto target_block_header_res = storage->getBlockHeader(recovery_state);
+    if (target_block_header_res.has_error()) {
+      // TODO return error: target block is not exist
+      return target_block_header_res.as_failure();
+    }
+    const auto &target_block_header = target_block_header_res.value();
+    const auto &state_root = target_block_header.state_root;
+
+    if (auto res = trie_storage->getEphemeralBatchAt(state_root);
+        res.has_error()) {
+      // TODO return error: can't get state of target block
+      return res.as_failure();
+    }
+
+    for (auto it = block_tree_leaves.rbegin(); it != block_tree_leaves.rend();
+         it = block_tree_leaves.rbegin()) {
+      auto block = *it;
+      if (target_block_header.number >= block.number) {
+        break;
+      }
+
+      auto header_res = storage->getBlockHeader(block.hash);
+      if (header_res.has_error()) {
+        // TODO return error: not found header of removing block
+        return header_res.as_failure();
+      }
+
+      const auto &header = header_res.value();
+      block_tree_leaves.emplace(block.number - 1, header.parent_hash);
+      block_tree_leaves.erase(block);
+
+      std::vector<primitives::BlockHash> leaves;
+      std::transform(block_tree_leaves.begin(),
+                     block_tree_leaves.end(),
+                     std::back_inserter(leaves),
+                     [](const auto it) { return it.hash; });
+      if (auto res = storage->setBlockTreeLeaves(leaves); res.has_error()) {
+        // TODO return error: can't save updated block tree leaves
+        return res.as_failure();
+      }
+
+      if (auto res = storage->removeBlock(block.hash, block.number);
+          res.has_error()) {
+        // TODO return error: can't remove block
+        return res.as_failure();
+      }
+    }
+
+    return outcome::success();
+  }
+
   BlockTreeImpl::BlockTreeImpl(
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,

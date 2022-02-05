@@ -15,6 +15,7 @@
 
 #include <optional>
 
+#include "application/app_configuration.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
@@ -29,6 +30,7 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
 #include "runtime/runtime_api/core.hpp"
+#include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 
 namespace kagome::storage::changes_trie {
@@ -75,6 +77,12 @@ namespace kagome::blockchain {
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<consensus::BabeUtil> babe_util);
+
+    static outcome::result<void> recovery(
+        const application::AppConfiguration &app_config,
+        std::shared_ptr<BlockStorage> storage,
+        std::shared_ptr<BlockHeaderRepository> header_repo,
+        std::shared_ptr<const storage::trie::TrieStorage> trie_storage);
 
     ~BlockTreeImpl() override = default;
 

@@ -227,6 +227,14 @@ namespace kagome::blockchain {
       return rm_res;
     }
 
+    auto justification_lookup_key =
+        prependPrefix(block_lookup_key, Prefix::JUSTIFICATION);
+    if (auto rm_res = storage_->remove(justification_lookup_key); !rm_res) {
+      logger_->error("could not remove justification from the storage: {}",
+                     rm_res.error().message());
+      return rm_res;
+    }
+
     auto body_lookup_key = prependPrefix(block_lookup_key, Prefix::BLOCK_DATA);
     if (auto rm_res = storage_->remove(body_lookup_key); !rm_res) {
       logger_->error("could not remove body from the storage: {}",
