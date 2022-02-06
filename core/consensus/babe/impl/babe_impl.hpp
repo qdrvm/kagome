@@ -57,7 +57,6 @@ namespace kagome::consensus::babe {
      */
     BabeImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
              std::shared_ptr<BabeLottery> lottery,
-             std::shared_ptr<storage::trie::TrieStorage> trie_db,
              std::shared_ptr<primitives::BabeConfiguration> configuration,
              std::shared_ptr<authorship::Proposer> proposer,
              std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -100,6 +99,8 @@ namespace kagome::consensus::babe {
     bool wasSynchronized() const override;
 
    private:
+    outcome::result<EpochDescriptor> getInitialEpochDescriptor();
+
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
 
@@ -142,7 +143,6 @@ namespace kagome::consensus::babe {
 
     bool was_synchronized_;
     std::shared_ptr<BabeLottery> lottery_;
-    std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

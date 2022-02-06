@@ -14,11 +14,19 @@ target_link_libraries(block_header_repository
     )
 kagome_install(block_header_repository)
 
+add_library(block_storage_error
+    impl/block_storage_error.cpp
+    )
+target_link_libraries(block_storage_error
+    outcome
+    )
+
 add_library(block_storage
     impl/key_value_block_storage.cpp
     )
 target_link_libraries(block_storage
     blockchain_common
+    block_storage_error
     hasher
     scale::scale
     )

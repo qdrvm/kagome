@@ -21,6 +21,11 @@ namespace kagome::consensus {
     virtual ~BabeUtil() = default;
 
     /**
+     * Init inner state by {@param epoch_descriptor}
+     */
+    virtual void syncEpoch(EpochDescriptor epoch_descriptor) = 0;
+
+    /**
      * @returns current unix time slot number
      */
     virtual BabeSlotNumber getCurrentSlot() const = 0;
@@ -60,19 +65,6 @@ namespace kagome::consensus {
      * provided {@param slot_number}
      */
     virtual BabeSlotNumber slotInEpoch(BabeSlotNumber slot_number) const = 0;
-
-    /**
-     * Stores epoch's data for last active epoch
-     * @param led LastEpochDescriptor of last active epoch
-     * @return result of store
-     */
-    virtual outcome::result<void> setLastEpoch(const EpochDescriptor &led) = 0;
-
-    /**
-     * Get number of last active epoch
-     * @return number of epoch that stored as last active, error otherwise
-     */
-    virtual outcome::result<EpochDescriptor> getLastEpoch() const = 0;
   };
 
 }  // namespace kagome::consensus

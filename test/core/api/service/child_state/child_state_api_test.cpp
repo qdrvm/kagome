@@ -72,7 +72,7 @@ namespace kagome::api {
         .WillOnce(testing::Invoke([](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
           static const auto key = "a"_buf;
-          static const common::Buffer value {"1"_hash256};
+          static const common::Buffer value{"1"_hash256};
           EXPECT_CALL(*batch, get(key.view()))
               .WillRepeatedly(testing::Return(value));
           return batch;
@@ -84,14 +84,13 @@ namespace kagome::api {
           static const common::Buffer value = "2"_buf;
           auto value_ref_opt = std::make_optional(std::cref(value));
           EXPECT_CALL(*batch, tryGet(key.view()))
-              .WillRepeatedly(testing::Return(value_ref_opt));
+              .WillRepeatedly(
+                  testing::Return(std::make_optional(std::cref(value))));
           return batch;
         }));
 
     EXPECT_OUTCOME_SUCCESS(r, api_->getStorage("a"_buf, "b"_buf, std::nullopt));
-    auto rv = r.value().value();
-    auto v = rv.get();
-    ASSERT_EQ(v, "2"_buf);
+    ASSERT_EQ(r.value().value().get(), "2"_buf);
   }
 
   TEST_F(ChildStateApiTest, GetStorageAt) {
@@ -102,16 +101,19 @@ namespace kagome::api {
         .WillOnce(testing::Invoke([](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
           static const auto key = "c"_buf;
+          static const common::Buffer value{"3"_hash256};
           EXPECT_CALL(*batch, get(key.view()))
-              .WillRepeatedly(testing::Return(common::Buffer("3"_hash256)));
+              .WillRepeatedly(testing::Return(value));
           return batch;
         }));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("3"_hash256))
         .WillOnce(testing::Invoke([](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
           static const auto key = "d"_buf;
+          static const auto value = "4"_buf;
           EXPECT_CALL(*batch, tryGet(key.view()))
-              .WillRepeatedly(testing::Return("4"_buf));
+              .WillRepeatedly(
+                  testing::Return(std::make_optional(std::cref(value))));
           return batch;
         }));
 
