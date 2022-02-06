@@ -341,18 +341,23 @@ namespace kagome::blockchain {
       }
     }
 
-    // Check if block has state
+    // Check if target block exists
     auto target_block_header_res = storage->getBlockHeader(recovery_state);
     if (target_block_header_res.has_error()) {
-      // TODO return error: target block is not exist
+      SL_CRITICAL(log,
+                  "Can't get header of target block: {}",
+                  target_block_header_res.error().message());
       return target_block_header_res.as_failure();
     }
     const auto &target_block_header = target_block_header_res.value();
     const auto &state_root = target_block_header.state_root;
 
+    // Check if target block has state
     if (auto res = trie_storage->getEphemeralBatchAt(state_root);
         res.has_error()) {
-      // TODO return error: can't get state of target block
+      SL_CRITICAL(log,
+                  "Can't get state of target block: {}",
+                  res.error().message());
       return res.as_failure();
     }
 
@@ -365,7 +370,9 @@ namespace kagome::blockchain {
 
       auto header_res = storage->getBlockHeader(block.hash);
       if (header_res.has_error()) {
-        // TODO return error: not found header of removing block
+        SL_CRITICAL(log,
+                    "Can't get header of one of removing block: {}",
+                    header_res.error().message());
         return header_res.as_failure();
       }
 
@@ -379,13 +386,16 @@ namespace kagome::blockchain {
                      std::back_inserter(leaves),
                      [](const auto it) { return it.hash; });
       if (auto res = storage->setBlockTreeLeaves(leaves); res.has_error()) {
-        // TODO return error: can't save updated block tree leaves
+        SL_CRITICAL(log,
+                    "Can't save updated block tree leaves: {}",
+                    res.error().message());
         return res.as_failure();
       }
 
       if (auto res = storage->removeBlock(block.hash, block.number);
           res.has_error()) {
-        // TODO return error: can't remove block
+        SL_CRITICAL(
+            log, "Can't remove block {}: {}", block, res.error().message());
         return res.as_failure();
       }
     }

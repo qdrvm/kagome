@@ -24,9 +24,17 @@ namespace kagome::application {
     // some of them are requested by reference and hence not copied
     chain_spec_ = injector_->injectChainSpec();
     BOOST_ASSERT(chain_spec_ != nullptr);
+  }
 
+  int KagomeApplicationImpl::recovery() {
+    logger_->info("Start in recovery mode with PID {}", getpid());
+
+    auto mode = injector_->injectRecoveryMode();
+    return mode->run();
+  }
+
+  void KagomeApplicationImpl::run() {
     app_state_manager_ = injector_->injectAppStateManager();
-
     io_context_ = injector_->injectIoContext();
     clock_ = injector_->injectSystemClock();
     babe_ = injector_->injectBabe();
@@ -37,16 +45,7 @@ namespace kagome::application {
     jrpc_api_service_ = injector_->injectRpcApiService();
     sync_observer_ = injector_->injectSyncObserver();
     metrics_watcher_ = injector_->injectMetricsWatcher();
-  }
 
-  int KagomeApplicationImpl::recovery() {
-    logger_->info("Start as node in recovery mode with PID {}", getpid());
-
-    auto mode = injector_->injectRecoveryMode();
-    return mode->run();
-  }
-
-  void KagomeApplicationImpl::run() {
     logger_->info("Start as node version '{}' named as '{}' with PID {}",
                   app_config_.nodeVersion(),
                   app_config_.nodeName(),
