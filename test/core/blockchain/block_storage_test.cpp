@@ -211,8 +211,8 @@ TEST_F(BlockStorageTest, Remove) {
   auto block_storage = createWithGenesis();
 
   EXPECT_CALL(*storage, remove(_))
-      .WillOnce(Return(outcome::success()))
-      .WillOnce(Return(outcome::success()));
+      .Times(3)
+      .WillRepeatedly(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(block_storage->removeBlock(genesis_block_hash, 0));
 
   EXPECT_CALL(*storage, remove(_))
