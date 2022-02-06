@@ -80,7 +80,7 @@ namespace kagome::authority {
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) override;
 
-    outcome::result<void> prune(const primitives::BlockInfo &block) override;
+    void prune(const primitives::BlockInfo &block) override;
 
    private:
     /**

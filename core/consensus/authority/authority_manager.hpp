@@ -95,7 +95,7 @@ namespace kagome::authority {
      * @brief Prunes data which was needed only till {@param block}
      * and won't be used anymore
      */
-    virtual outcome::result<void> prune(const primitives::BlockInfo &block) = 0;
+    virtual void prune(const primitives::BlockInfo &block) = 0;
   };
 }  // namespace kagome::authority
 

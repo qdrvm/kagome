@@ -47,7 +47,8 @@ namespace kagome::authority {
   }
 
   bool AuthorityManagerImpl::prepare() {
-    auto finalized_block_hash = block_tree_->getLastFinalized().hash;
+    const auto finalized_block = block_tree_->getLastFinalized();
+    const auto &finalized_block_hash = finalized_block.hash;
 
     struct Args {
       primitives::ConsensusEngineId engine_id;
@@ -96,7 +97,65 @@ namespace kagome::authority {
       }
     }
 
-    {  // observe last finalized blocks
+    primitives::AuthorityList authorities;
+    {  // get voter set id at last finalized block
+      const auto &hash = finalized_block_hash;
+      auto header_res = block_tree_->getBlockHeader(hash);
+      if (header_res.has_error()) {
+        log_->critical("Can't get header of block {}: {}",
+                       hash,
+                       header_res.error().message());
+        return false;
+      }
+      const auto &header = header_res.value();
+
+      auto res = trie_storage_provider_->setToEphemeralAt(header.state_root);
+      BOOST_ASSERT_MSG(
+          res.has_value(),
+          "Must be set ephemeral bath on existing state root; deq");
+      auto batch = trie_storage_provider_->getCurrentBatch();
+
+      std::optional<MembershipCounter> set_id_opt;
+      for (auto prefix : {"GrandpaFinality", "Grandpa"}) {
+        auto k1 = hasher_->twox_128(Buffer::fromString(prefix));
+        auto k2 = hasher_->twox_128(Buffer::fromString("CurrentSetId"));
+        auto set_id_key = Buffer().put(k1).put(k2);
+
+        auto val_opt_res = batch->tryGet(set_id_key);
+        if (val_opt_res.has_error()) {
+          log_->critical("Can't get grandpa set id for block {}: {}",
+                         primitives::BlockInfo(header.number, hash),
+                         val_opt_res.error().message());
+          return false;
+        }
+        auto &val_opt = val_opt_res.value();
+        if (val_opt.has_value()) {
+          auto &val = val_opt.value();
+          set_id_opt.emplace(scale::decode<MembershipCounter>(val).value());
+          break;
+        }
+      }
+
+      if (not set_id_opt.has_value()) {
+        log_->critical("Can't get grandpa set id for block {}: not found",
+                       primitives::BlockInfo(header.number, hash));
+        return false;
+      }
+      const auto &set_id = set_id_opt.value();
+
+      // Get initial authorities from genesis
+      auto authorities_res = grandpa_api_->authorities(hash);
+      if (not authorities_res.has_value()) {
+        log_->critical("Can't get grandpa authorities for block {}: {}",
+                       primitives::BlockInfo(header.number, hash),
+                       authorities_res.error().message());
+        return false;
+      }
+      authorities = std::move(authorities_res.value());
+      authorities.id = set_id;
+    }
+
+    {  // observe blocks before last finalized one
       bool found = false;
       for (auto hash = finalized_block_hash;;) {
         auto header_res = block_tree_->getBlockHeader(hash);
@@ -119,56 +178,11 @@ namespace kagome::authority {
                          consensus_message});
                 found = true;
               },
-              [](const auto &...) {}); // Others variants is ignored
+              [](const auto &...) {});  // Others variants is ignored
         }
 
         if (found || header.number == 0) {
-          auto res =
-              trie_storage_provider_->setToEphemeralAt(header.state_root);
-          BOOST_ASSERT_MSG(
-              res.has_value(),
-              "Must be set ephemeral bath on existing state root; deq");
-          auto batch = trie_storage_provider_->getCurrentBatch();
-
-          std::optional<MembershipCounter> set_id_opt;
-          for (auto prefix : {"GrandpaFinality", "Grandpa"}) {
-            auto k1 = hasher_->twox_128(Buffer::fromString(prefix));
-            auto k2 = hasher_->twox_128(Buffer::fromString("CurrentSetId"));
-            auto set_id_key = Buffer().put(k1).put(k2);
-
-            auto val_opt_res = batch->tryGet(set_id_key);
-            if (val_opt_res.has_error()) {
-              log_->critical("Can't get grandpa set id for block {}: {}",
-                             primitives::BlockInfo(header.number, hash),
-                             val_opt_res.error().message());
-              return false;
-            }
-            auto &val_opt = val_opt_res.value();
-            if (val_opt.has_value()) {
-              auto &val = val_opt.value();
-              set_id_opt.emplace(scale::decode<MembershipCounter>(val).value());
-              break;
-            }
-          }
-
-          if (not set_id_opt.has_value()) {
-            log_->critical("Can't get grandpa set id for block {}: not found",
-                           primitives::BlockInfo(header.number, hash));
-            return false;
-          }
-          auto &set_id = set_id_opt.value();
-
-          // Get initial authorities from genesis
-          auto authorities_res = grandpa_api_->authorities(hash);
-          if (not authorities_res.has_value()) {
-            log_->critical("Can't get grandpa authorities for block {}: {}",
-                           primitives::BlockInfo(header.number, hash),
-                           authorities_res.error().message());
-            return false;
-          }
-          auto &authorities = authorities_res.value();
-          authorities.id = set_id;
-
+          --authorities.id;
           auto node =
               authority::ScheduleNode::createAsRoot({header.number, hash});
           node->actual_authorities =
@@ -196,6 +210,9 @@ namespace kagome::authority {
 
       collected.pop();
     }
+
+    // prune to reorganize collected changes
+    prune(finalized_block);
 
     SL_DEBUG(log_, "Authority set id: {:l}", root_->actual_authorities->id);
     for (const auto &authority : *root_->actual_authorities) {
@@ -491,14 +508,13 @@ namespace kagome::authority {
     }
   }
 
-  outcome::result<void> AuthorityManagerImpl::prune(
-      const primitives::BlockInfo &block) {
+  void AuthorityManagerImpl::prune(const primitives::BlockInfo &block) {
     if (block == root_->block) {
-      return outcome::success();
+      return;
     }
 
     if (block.number < root_->block.number) {
-      return outcome::success();
+      return;
     }
 
     auto node = getAppropriateAncestor(block);
@@ -520,8 +536,6 @@ namespace kagome::authority {
     }
 
     SL_VERBOSE(log_, "Prune authority manager upto block #{}", block.number);
-
-    return outcome::success();
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(
