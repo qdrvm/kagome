@@ -226,8 +226,7 @@ TEST_F(AuthorityManagerTest, Prune) {
   EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
   common::Buffer encoded_data(std::move(encode_result.value()));
 
-  EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                         authority_manager->prune({20, "D"_hash256}));
+  authority_manager->prune({20, "D"_hash256});
 
   examine({30, "F"_hash256}, orig_authorities);
 }
@@ -264,8 +263,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   examine({20, "D"_hash256}, old_authorities);
   examine({25, "E"_hash256}, old_authorities);
 
-  EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                         authority_manager->prune({20, "D"_hash256}));
+  authority_manager->prune({20, "D"_hash256});
 
   examine({20, "D"_hash256}, new_authorities);
   examine({25, "E"_hash256}, new_authorities);
@@ -372,8 +370,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   examine({20, "D"_hash256}, old_authorities);
   examine({25, "E"_hash256}, old_authorities);
 
-  EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                         authority_manager->prune({20, "D"_hash256}));
+  authority_manager->prune({20, "D"_hash256});
 
   examine({20, "D"_hash256}, new_authorities);
   examine({25, "E"_hash256}, new_authorities);
@@ -411,8 +408,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
         authority_manager->onConsensus(
             engine_id, target_block, primitives::Pause(delay)));
 
-    EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                           authority_manager->prune({10, "B"_hash256}));
+    authority_manager->prune({10, "B"_hash256});
   }
 
   examine({10, "B"_hash256}, disabled_authorities);
