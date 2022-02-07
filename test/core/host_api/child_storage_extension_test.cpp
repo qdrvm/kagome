@@ -87,8 +87,6 @@ class ChildStorageExtensionTest : public ::testing::Test {
   std::shared_ptr<ChildStorageExtension> child_storage_extension_;
 };
 
-/// For the tests where it is needed to check a valid behaviour no matter if
-/// success or failure was returned by outcome::result
 class VoidOutcomeParameterizedTest
     : public ChildStorageExtensionTest,
       public ::testing::WithParamInterface<outcome::result<void>> {};
@@ -101,6 +99,11 @@ class BoolOutcomeParameterizedTest
     : public ChildStorageExtensionTest,
       public ::testing::WithParamInterface<outcome::result<bool>> {};
 
+/**
+ * @given child storage key and key
+ * @when invoke ext_default_child_storage_get_version_1
+ * @then an expected value is fetched upon success or outcome::failure otherwise
+ */
 TEST_P(ReadOutcomeParameterizedTest, GetTest) {
   // executeOnChildStorage
 
@@ -158,7 +161,14 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
                 child_storage_key_span, key_span));
 }
 
-// ext_default_child_storage_read_version_1
+/**
+ * @given child storage key, key, output buffer, offset
+ * @when invoke ext_default_child_storage_read_version_1
+ * @then upon success: read value from child storage by key, skip `offsset`
+ * bytes, write rest of it to output buffer and return number of bytes written
+ * upon failure: either TrieError::NO_VALUE or outcome::failure depending on
+ * reason
+ */
 TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
   // executeOnChildStorage
 
@@ -230,7 +240,12 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
                 child_storage_key_span, key_span, value_span, offset));
 }
 
-// ext_default_child_storage_set_version_1
+/**
+ * @given child storage key, key, value
+ * @when invoke ext_default_child_storage_set_version_1
+ * @then upon success: (over)write a value into child storage
+ * upon failure: outcome::failure
+ */
 TEST_P(VoidOutcomeParameterizedTest, SetTest) {
   // executeOnChildStorage
   WasmPointer child_storage_key_pointer = 42;
@@ -275,7 +290,12 @@ TEST_P(VoidOutcomeParameterizedTest, SetTest) {
       child_storage_key_span, key_span, value_span);
 }
 
-// ext_default_child_storage_clear_version_1
+/**
+ * @given child storage key, key
+ * @when invoke ext_default_child_storage_clear_version_1
+ * @then upon success: remove a value from child storage
+ * upon failure: outcome::failure
+ */
 TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
   // executeOnChildStorage
   WasmPointer child_storage_key_pointer = 42;
@@ -313,8 +333,14 @@ TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
       child_storage_key_span, key_span);
 }
 
-// ext_default_child_storage_clear_prefix_version_1
-// ext_default_child_storage_storage_kill_version_1
+/**
+ * @note ext_default_child_storage_storage_kill_version_1 is a subvariant
+ * of ext_default_child_storage_clear_prefix_version_1 with empty prefix
+ * @given child storage key, prefix
+ * @when invoke ext_default_child_storage_clear_prefix_version_1
+ * @then remove all values with prefix from child storage. If child storage is
+ * empty as a result, it will be pruned later.
+ */
 TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
   // executeOnChildStorage
   WasmPointer child_storage_key_pointer = 42;
@@ -353,7 +379,11 @@ TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
       child_storage_key_span, prefix_span);
 }
 
-// ext_default_child_storage_next_key_version_1
+/**
+ * @given child storage key, key
+ * @when invoke ext_default_child_storage_next_key_version_1
+ * @then return next key after given one, in lexicographical order
+ */
 TEST_F(ChildStorageExtensionTest, NextKeyTest) {
   WasmPointer child_storage_key_pointer = 42;
   WasmSize child_storage_key_size = 42;
@@ -377,14 +407,13 @@ TEST_F(ChildStorageExtensionTest, NextKeyTest) {
         EXPECT_CALL(*cursor, seekUpperBound(key))
             .WillOnce(Return(outcome::success()));
         EXPECT_CALL(*cursor, key())
-            .WillOnce(Return(std::make_optional<Buffer>({})));
+            .WillOnce(Return(std::make_optional<Buffer>("12345"_buf)));
         return cursor;
       }));
 
   WasmPointer res_pointer = 44;
   WasmSize res_size = 44;
   WasmSpan res_span = PtrSize(res_pointer, res_size).combine();
-  Buffer res(8, 'r');
   EXPECT_CALL(*memory_, storeBuffer(_)).WillOnce(Return(res_span));
 
   ASSERT_EQ(
@@ -393,7 +422,11 @@ TEST_F(ChildStorageExtensionTest, NextKeyTest) {
           child_storage_key_span, key_span));
 }
 
-// ext_default_child_storage_root_version_1
+/**
+ * @given child storage key
+ * @when invoke ext_default_child_storage_root_version_1
+ * @then returns new child root value
+ */
 TEST_F(ChildStorageExtensionTest, RootTest) {
   WasmPointer child_storage_key_pointer = 42;
   WasmSize child_storage_key_size = 42;
@@ -408,17 +441,26 @@ TEST_F(ChildStorageExtensionTest, RootTest) {
       .WillOnce(Return(child_storage_key));
 
   RootHash new_child_root = "123456"_hash256;
-  Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
-  RootHash new_root = "78910"_hash256;
-
+  WasmPointer new_child_root_ptr = 1984;
+  WasmPointer new_child_root_size = 12;
+  WasmSpan new_child_root_span =
+      PtrSize(new_child_root_ptr, new_child_root_size).combine();
+  // Buffer new_child_root_span{scale::encode(new_child_root).value()};
   EXPECT_CALL(*trie_child_storage_batch_, commit())
       .WillOnce(Return(new_child_root));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(new_child_root)))
+      .WillOnce(Return(new_child_root_span));
 
-  child_storage_extension_->ext_default_child_storage_root_version_1(
-      child_storage_key_span);
+  ASSERT_EQ(new_child_root_span,
+            child_storage_extension_->ext_default_child_storage_root_version_1(
+                child_storage_key_span));
 }
 
-// ext_default_child_storage_exists_version_1
+/**
+ * @given child storage key, key
+ * @when invoke ext_default_child_storage_exists_version_1
+ * @then return 1 if value exists, 0 otherwise
+ */
 TEST_P(BoolOutcomeParameterizedTest, ExistsTest) {
   // executeOnChildStorage
   WasmPointer child_storage_key_pointer = 42;

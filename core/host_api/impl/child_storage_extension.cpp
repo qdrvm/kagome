@@ -284,7 +284,7 @@ namespace kagome::host_api {
                          key_buffer,
                          common::Buffer{offset_data.subbuffer(0, written)});
       res = offset_data.size();
-    } else if (read.error() == TrieError::NO_VALUE){
+    } else if (read.error() == TrieError::NO_VALUE) {
       logger_->info(
           "ext_default_child_storage_clear_prefix_version_1 returned no value "
           "reason: {}",
@@ -329,8 +329,7 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);
 
     auto result = executeOnChildStorage<std::tuple<bool, uint32_t>>(
-        child_key_buffer,
-        [](auto &child_batch) {
+        child_key_buffer, [](auto &child_batch) {
           return child_batch->clearPrefix(common::Buffer{}, std::nullopt);
         });
 
