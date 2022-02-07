@@ -66,8 +66,7 @@ namespace kagome::runtime {
 
   bool RuntimeUpgradeTrackerImpl::hasCodeSubstitute(
       const kagome::primitives::BlockInfo &block_info) const {
-    return known_code_substitutes_->count(block_info.number) != 0
-           || known_code_substitutes_->count(block_info.hash) != 0;
+    return known_code_substitutes_->contains(block_info);
   }
 
   bool RuntimeUpgradeTrackerImpl::isStateInChain(

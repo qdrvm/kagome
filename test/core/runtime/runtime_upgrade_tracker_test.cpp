@@ -249,7 +249,8 @@ TEST_F(RuntimeUpgradeTrackerTest, UpgradeAfterCodeSubstitute) {
 
   auto block1 = makeBlockInfo(5203203);
   auto block1_header = makeBlockHeader(5203203);
-  known_code_substitutes_.reset(new kagome::primitives::CodeSubstituteBlockIds({block1.number}));
+  known_code_substitutes_.reset(
+      new kagome::primitives::CodeSubstituteBlockIds({block1.number}));
 
   EXPECT_CALL(*header_repo_,
               getBlockHeader(kagome::primitives::BlockId{block1.hash}))

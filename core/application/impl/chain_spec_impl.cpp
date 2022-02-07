@@ -196,8 +196,7 @@ namespace kagome::application {
 
   outcome::result<common::Buffer> ChainSpecImpl::fetchCodeSubstituteByBlockInfo(
       const primitives::BlockInfo &block_info) const {
-    if (known_code_substitutes_->count(block_info.hash) != 0
-        && known_code_substitutes_->count(block_info.number) != 0) {
+    if (!known_code_substitutes_->contains(block_info)) {
       return Error::MISSING_ENTRY;
     }
 
