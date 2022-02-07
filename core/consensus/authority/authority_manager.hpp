@@ -16,7 +16,7 @@ namespace kagome::authority {
     virtual ~AuthorityManager() = default;
 
     /**
-     * @return block that associated with root of tree of scheduled changes tree
+     * @return block associated with the root of scheduled changes tree
      */
     virtual primitives::BlockInfo base() const = 0;
 

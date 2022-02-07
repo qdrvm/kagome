@@ -112,14 +112,16 @@ namespace kagome::authority {
       auto res = trie_storage_provider_->setToEphemeralAt(header.state_root);
       BOOST_ASSERT_MSG(
           res.has_value(),
-          "Must be set ephemeral bath on existing state root; deq");
+          "Setting ephemeral bath on an existing state root must succeed; qed");
       auto batch = trie_storage_provider_->getCurrentBatch();
 
       std::optional<MembershipCounter> set_id_opt;
+      auto current_set_id_keypart =
+          hasher_->twox_128(Buffer::fromString("CurrentSetId"));
       for (auto prefix : {"GrandpaFinality", "Grandpa"}) {
-        auto k1 = hasher_->twox_128(Buffer::fromString(prefix));
-        auto k2 = hasher_->twox_128(Buffer::fromString("CurrentSetId"));
-        auto set_id_key = Buffer().put(k1).put(k2);
+        auto prefix_key_part = hasher_->twox_128(Buffer::fromString(prefix));
+        auto set_id_key =
+            Buffer().put(prefix_key_part).put(current_set_id_keypart);
 
         auto val_opt_res = batch->tryGet(set_id_key);
         if (val_opt_res.has_error()) {
@@ -137,8 +139,10 @@ namespace kagome::authority {
       }
 
       if (not set_id_opt.has_value()) {
-        log_->critical("Can't get grandpa set id for block {}: not found",
-                       primitives::BlockInfo(header.number, hash));
+        log_->critical(
+            "Can't get grandpa set id for block {}: "
+            "CurrentSetId not found in Trie storage",
+            primitives::BlockInfo(header.number, hash));
         return false;
       }
       const auto &set_id = set_id_opt.value();
@@ -178,7 +182,7 @@ namespace kagome::authority {
                          consensus_message});
                 found = true;
               },
-              [](const auto &...) {});  // Others variants is ignored
+              [](const auto &...) {});  // Other variants are ignored
         }
 
         if (found || header.number == 0) {
