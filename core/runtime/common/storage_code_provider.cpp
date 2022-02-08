@@ -35,13 +35,16 @@ namespace kagome::runtime {
     if (last_state_root_ != state) {
       last_state_root_ = state;
 
-      OUTCOME_TRY(block_info,
-                  runtime_upgrade_tracker_->getLastCodeUpdateBlockInfo(state));
-      if (known_code_substitutes_->contains(block_info)) {
-        OUTCOME_TRY(code,
-                    chain_spec_->fetchCodeSubstituteByBlockInfo(block_info));
-        OUTCOME_TRY(uncompressCodeIfNeeded(code, cached_code_));
-        return cached_code_;
+      auto block_info =
+          runtime_upgrade_tracker_->getLastCodeUpdateBlockInfo(state);
+      if (block_info.has_value()) {
+        if (known_code_substitutes_->contains(block_info.value())) {
+          OUTCOME_TRY(
+              code,
+              chain_spec_->fetchCodeSubstituteByBlockInfo(block_info.value()));
+          OUTCOME_TRY(uncompressCodeIfNeeded(code, cached_code_));
+          return cached_code_;
+        }
       }
       OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state));
       OUTCOME_TRY(setCodeFromBatch(*batch.get()));
