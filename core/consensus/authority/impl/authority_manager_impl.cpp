@@ -199,9 +199,9 @@ namespace kagome::authority {
       collected.pop();
     }
 
-    SL_DEBUG(log_, "Authority set id: {:l}", root_->actual_authorities->id);
+    SL_DEBUG(log_, "Authority set id: {}", root_->actual_authorities->id);
     for (const auto &authority : *root_->actual_authorities) {
-      SL_DEBUG(log_, "Grandpa authority: {:l}", authority.id.id);
+      SL_DEBUG(log_, "Grandpa authority: {}", authority.id.id);
     }
 
     return true;

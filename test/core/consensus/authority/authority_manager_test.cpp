@@ -78,7 +78,7 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*app_state_manager, atPrepare(_));
 
     authority_manager = std::make_shared<AuthorityManagerImpl>(
-        AuthorityManager::Config{}, app_state_manager, block_tree, storage, grandpa_api, hasher);
+        AuthorityManagerImpl::Config{}, app_state_manager, block_tree, storage, grandpa_api, hasher);
 
     ON_CALL(*block_tree, hasDirectChain(_, _))
         .WillByDefault(testing::Invoke([](auto &anc, auto &des) {
