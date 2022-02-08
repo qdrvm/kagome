@@ -37,7 +37,7 @@ namespace kagome::authorship {
             extrinsic_event_key_repo);
 
     outcome::result<primitives::Block> propose(
-        const primitives::BlockNumber &parent_block_number,
+        const primitives::BlockInfo &parent_block,
         const primitives::InherentData &inherent_data,
         const primitives::Digest &inherent_digest) override;
 

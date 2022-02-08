@@ -23,7 +23,7 @@ namespace kagome::authorship {
         std::shared_ptr<blockchain::BlockHeaderRepository> header_backend);
 
     outcome::result<std::unique_ptr<BlockBuilder>> make(
-        const kagome::primitives::BlockId &parent_id,
+        const kagome::primitives::BlockInfo &parent_block,
         primitives::Digest inherent_digest) const override;
 
    private:

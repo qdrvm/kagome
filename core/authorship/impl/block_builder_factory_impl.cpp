@@ -23,18 +23,15 @@ namespace kagome::authorship {
   }
 
   outcome::result<std::unique_ptr<BlockBuilder>> BlockBuilderFactoryImpl::make(
-      const kagome::primitives::BlockId &parent_id,
+      const kagome::primitives::BlockInfo &parent,
       primitives::Digest inherent_digest) const {
-    // based on
-    // https://github.com/paritytech/substrate/blob/dbf322620948935d2bbae214504e6c668c3073ed/core/basic-authorship/src/basic_authorship.rs#L94
+    OUTCOME_TRY(parent_number, header_backend_->getNumberById(parent.hash));
+    BOOST_ASSERT(parent_number == parent.number);
 
-    OUTCOME_TRY(parent_hash, header_backend_->getHashById(parent_id));
-    OUTCOME_TRY(parent_number, header_backend_->getNumberById(parent_id));
-
-    auto number = parent_number + 1;
+    auto number = parent.number + 1;
     primitives::BlockHeader header;
     header.number = number;
-    header.parent_hash = parent_hash;
+    header.parent_hash = parent.hash;
     header.digest = std::move(inherent_digest);
 
     if (auto res = r_core_->initialize_block(header); not res) {

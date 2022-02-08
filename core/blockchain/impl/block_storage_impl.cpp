@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/key_value_block_storage.hpp"
+#include "blockchain/impl/block_storage_impl.hpp"
 
 #include "blockchain/block_storage_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
@@ -18,20 +18,19 @@ namespace kagome::blockchain {
   using Buffer = common::Buffer;
   using Prefix = prefix::Prefix;
 
-  KeyValueBlockStorage::KeyValueBlockStorage(
+  BlockStorageImpl::BlockStorageImpl(
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher)
       : storage_{std::move(storage)},
         hasher_{std::move(hasher)},
         logger_{log::createLogger("BlockStorage", "blockchain")} {}
 
-  outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-  KeyValueBlockStorage::create(
+  outcome::result<std::shared_ptr<BlockStorageImpl>> BlockStorageImpl::create(
       storage::trie::RootHash state_root,
       const std::shared_ptr<storage::BufferStorage> &storage,
       const std::shared_ptr<crypto::Hasher> &hasher) {
-    auto block_storage = std::make_shared<KeyValueBlockStorage>(
-        KeyValueBlockStorage(storage, hasher));
+    auto block_storage =
+        std::make_shared<BlockStorageImpl>(BlockStorageImpl(storage, hasher));
 
     auto res = block_storage->hasBlockHeader(primitives::BlockNumber{0});
     if (res.has_error()) {
@@ -76,12 +75,12 @@ namespace kagome::blockchain {
     return std::move(block_storage);
   }
 
-  outcome::result<bool> KeyValueBlockStorage::hasBlockHeader(
+  outcome::result<bool> BlockStorageImpl::hasBlockHeader(
       const primitives::BlockId &id) const {
     return hasWithPrefix(*storage_, Prefix::HEADER, id);
   }
 
-  outcome::result<primitives::BlockHeader> KeyValueBlockStorage::getBlockHeader(
+  outcome::result<primitives::BlockHeader> BlockStorageImpl::getBlockHeader(
       const primitives::BlockId &id) const {
     OUTCOME_TRY(encoded_header_opt,
                 getWithPrefix(*storage_, Prefix::HEADER, id));
@@ -94,7 +93,7 @@ namespace kagome::blockchain {
     return BlockStorageError::HEADER_DOES_NOT_EXIST;
   }
 
-  outcome::result<primitives::BlockBody> KeyValueBlockStorage::getBlockBody(
+  outcome::result<primitives::BlockBody> BlockStorageImpl::getBlockBody(
       const primitives::BlockId &id) const {
     OUTCOME_TRY(block_data, getBlockData(id));
     if (block_data.body) {
@@ -103,7 +102,7 @@ namespace kagome::blockchain {
     return BlockStorageError::BODY_DOES_NOT_EXIST;
   }
 
-  outcome::result<primitives::BlockData> KeyValueBlockStorage::getBlockData(
+  outcome::result<primitives::BlockData> BlockStorageImpl::getBlockData(
       const primitives::BlockId &id) const {
     OUTCOME_TRY(encoded_block_data_opt,
                 getWithPrefix(*storage_, Prefix::BLOCK_DATA, id));
@@ -116,8 +115,7 @@ namespace kagome::blockchain {
     return BlockStorageError::BLOCK_DATA_DOES_NOT_EXIST;
   }
 
-  outcome::result<primitives::Justification>
-  KeyValueBlockStorage::getJustification(
+  outcome::result<primitives::Justification> BlockStorageImpl::getJustification(
       const primitives::BlockId &block) const {
     OUTCOME_TRY(block_data, getBlockData(block));
     if (block_data.justification) {
@@ -126,7 +124,7 @@ namespace kagome::blockchain {
     return BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST;
   }
 
-  outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlockHeader(
+  outcome::result<primitives::BlockHash> BlockStorageImpl::putBlockHeader(
       const primitives::BlockHeader &header) {
     OUTCOME_TRY(encoded_header, scale::encode(header));
     auto block_hash = hasher_->blake2b_256(encoded_header);
@@ -138,7 +136,7 @@ namespace kagome::blockchain {
     return block_hash;
   }
 
-  outcome::result<void> KeyValueBlockStorage::putBlockData(
+  outcome::result<void> BlockStorageImpl::putBlockData(
       primitives::BlockNumber block_number,
       const primitives::BlockData &block_data) {
     primitives::BlockData to_insert;
@@ -175,7 +173,7 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlock(
+  outcome::result<primitives::BlockHash> BlockStorageImpl::putBlock(
       const primitives::Block &block) {
     // TODO(xDimon): Need to implement mechanism for wiping out orphan blocks
     //  (in side-chains rejected by finalization)
@@ -206,7 +204,7 @@ namespace kagome::blockchain {
     return block_hash;
   }
 
-  outcome::result<void> KeyValueBlockStorage::putJustification(
+  outcome::result<void> BlockStorageImpl::putJustification(
       const primitives::Justification &j,
       const primitives::BlockHash &hash,
       const primitives::BlockNumber &block_number) {
@@ -216,36 +214,76 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  outcome::result<void> KeyValueBlockStorage::removeBlock(
-      const primitives::BlockHash &hash,
-      const primitives::BlockNumber &number) {
-    auto block_lookup_key = numberAndHashToLookupKey(number, hash);
-    auto header_lookup_key = prependPrefix(block_lookup_key, Prefix::HEADER);
-    if (auto rm_res = storage_->remove(header_lookup_key); !rm_res) {
-      logger_->error("could not remove header from the storage: {}",
-                     rm_res.error().message());
-      return rm_res;
-    }
+  outcome::result<void> BlockStorageImpl::removeBlock(
+      const primitives::BlockInfo &block) {
+    auto block_lookup_key = numberAndHashToLookupKey(block.number, block.hash);
+
+    SL_TRACE(logger_, "Removing block {}...", block);
+
+    // TODO(xDimon): needed to clean up trie storage if block deleted
+    // auto trie_node_lookup_key =
+    //     prependPrefix(block_lookup_key, Prefix::TRIE_NODE);
+    // if (auto rm_res = storage_->remove(trie_node_lookup_key); !rm_res) {
+    //   SL_ERROR(logger_,
+    //            "could not remove trie node of block {} from the storage:{}",
+    //            block,
+    //            rm_res.error().message());
+    //   return rm_res;
+    // }
 
     auto justification_lookup_key =
         prependPrefix(block_lookup_key, Prefix::JUSTIFICATION);
     if (auto rm_res = storage_->remove(justification_lookup_key); !rm_res) {
-      logger_->error("could not remove justification from the storage: {}",
-                     rm_res.error().message());
+      SL_ERROR(
+          logger_,
+          "could not remove justification of block {} from the storage: {}",
+          block,
+          rm_res.error().message());
       return rm_res;
     }
 
     auto body_lookup_key = prependPrefix(block_lookup_key, Prefix::BLOCK_DATA);
     if (auto rm_res = storage_->remove(body_lookup_key); !rm_res) {
-      logger_->error("could not remove body from the storage: {}",
+      SL_ERROR(logger_,
+               "could not remove body of block {} from the storage: {}",
+               block,
+               rm_res.error().message());
+      return rm_res;
+    }
+
+    auto header_lookup_key = prependPrefix(block_lookup_key, Prefix::HEADER);
+    if (auto rm_res = storage_->remove(header_lookup_key); !rm_res) {
+      SL_ERROR(logger_,
+               "could not remove header of block {} from the storage: {}",
+               block,
+               rm_res.error().message());
+      return rm_res;
+    }
+
+    // TODO(xDimon): needed to reorganize best chain instead removing num-to-idx
+    // auto num_to_idx_key = prependPrefix(numberToIndexKey(block.number),
+    //                                     Prefix::ID_TO_LOOKUP_KEY);
+    // if (auto rm_res = storage_->remove(num_to_idx_key); !rm_res) {
+    //   SL_ERROR(logger_,
+    //            "could not remove num-to-idx from the storage: {}",
+    //            block,
+    //            rm_res.error().message());
+    //   return rm_res;
+    // }
+
+    auto hash_to_idx_key =
+        prependPrefix(Buffer{block.hash}, Prefix::ID_TO_LOOKUP_KEY);
+    if (auto rm_res = storage_->remove(hash_to_idx_key); !rm_res) {
+      logger_->error("could not remove hash-to-idx from the storage: {}",
                      rm_res.error().message());
       return rm_res;
     }
+
     return outcome::success();
   }
 
   outcome::result<std::vector<primitives::BlockHash>>
-  KeyValueBlockStorage::getBlockTreeLeaves() const {
+  BlockStorageImpl::getBlockTreeLeaves() const {
     if (block_tree_leaves_.has_value()) {
       return block_tree_leaves_.value();
     }
@@ -265,7 +303,7 @@ namespace kagome::blockchain {
     return block_tree_leaves_.value();
   }
 
-  outcome::result<void> KeyValueBlockStorage::setBlockTreeLeaves(
+  outcome::result<void> BlockStorageImpl::setBlockTreeLeaves(
       std::vector<primitives::BlockHash> leaves) {
     if (block_tree_leaves_.has_value()
         and block_tree_leaves_.value() == leaves) {

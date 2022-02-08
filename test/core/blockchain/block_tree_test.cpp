@@ -365,7 +365,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
       .WillRepeatedly(Return(primitives::Version{}));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
       .WillRepeatedly(Return(outcome::success(B1_body)));
-  EXPECT_CALL(*storage_, removeBlock(B_hash, B_header.number))
+  EXPECT_CALL(*storage_, removeBlock(BlockInfo(B_header.number, B_hash)))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*author_api_, submitExtrinsic(_))
       .WillRepeatedly(
@@ -435,9 +435,9 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
       .WillRepeatedly(Return(outcome::success(B1_body)));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{C1_hash}))
       .WillRepeatedly(Return(outcome::success(C1_body)));
-  EXPECT_CALL(*storage_, removeBlock(B1_hash, B1_header.number))
+  EXPECT_CALL(*storage_, removeBlock(BlockInfo(B1_header.number, B1_hash)))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, removeBlock(C1_hash, C1_header.number))
+  EXPECT_CALL(*storage_, removeBlock(BlockInfo(C1_header.number, C1_hash)))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*author_api_, submitExtrinsic(_))
       .WillRepeatedly(

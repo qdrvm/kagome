@@ -9,6 +9,7 @@
 #include <optional>
 
 #include "common/blob.hpp"
+#include "common/visitor.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
@@ -63,16 +64,30 @@ namespace kagome::blockchain {
      * @return block number or a none optional if the corresponding block header
      * is not in storage or a storage error
      */
-    auto getNumberById(const primitives::BlockId &id) const
-        -> outcome::result<primitives::BlockNumber>;
+    outcome::result<primitives::BlockNumber> getNumberById(
+        const primitives::BlockId &id) const {
+      return visit_in_place(
+          id,
+          [](const primitives::BlockNumber &n) { return n; },
+          [this](const common::Hash256 &hash) {
+            return getNumberByHash(hash);
+          });
+    }
 
     /**
      * @param id of a block which hash is returned
      * @return block hash or a none optional if the corresponding block header
      * is not in storage or a storage error
      */
-    auto getHashById(const primitives::BlockId &id) const
-        -> outcome::result<common::Hash256>;
+    outcome::result<common::Hash256> getHashById(
+        const primitives::BlockId &id) const {
+      return visit_in_place(
+          id,
+          [this](const primitives::BlockNumber &n) {
+            return getHashByNumber(n);
+          },
+          [](const common::Hash256 &hash) { return hash; });
+    }
   };
 
 }  // namespace kagome::blockchain

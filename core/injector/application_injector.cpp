@@ -43,9 +43,9 @@
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
+#include "blockchain/impl/block_header_repository_impl.hpp"
+#include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "blockchain/impl/key_value_block_header_repository.hpp"
-#include "blockchain/impl/key_value_block_storage.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
@@ -224,7 +224,7 @@ namespace {
     }
 
     auto block_storage_res =
-        blockchain::KeyValueBlockStorage::create(state_root, storage, hasher);
+        blockchain::BlockStorageImpl::create(state_root, storage, hasher);
 
     if (block_storage_res.has_error()) {
       common::raise(block_storage_res.error());
@@ -1057,7 +1057,7 @@ namespace {
         }),
         di::bind<blockchain::BlockTree>.to(
             [](auto const &injector) { return get_block_tree(injector); }),
-        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
+        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),

@@ -10,7 +10,7 @@
 
 #include <iostream>
 
-#include "blockchain/impl/key_value_block_header_repository.hpp"
+#include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "scale/scale.hpp"
@@ -20,7 +20,7 @@
 #include "testutil/storage/base_leveldb_test.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
-using kagome::blockchain::KeyValueBlockHeaderRepository;
+using kagome::blockchain::BlockHeaderRepositoryImpl;
 using kagome::blockchain::numberAndHashToLookupKey;
 using kagome::blockchain::numberToIndexKey;
 using kagome::blockchain::prependPrefix;
@@ -45,8 +45,7 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
     open();
 
     hasher_ = std::make_shared<kagome::crypto::HasherImpl>();
-    header_repo_ =
-        std::make_shared<KeyValueBlockHeaderRepository>(db_, hasher_);
+    header_repo_ = std::make_shared<BlockHeaderRepositoryImpl>(db_, hasher_);
   }
 
   outcome::result<Hash256> storeHeader(BlockNumber num, BlockHeader h) {

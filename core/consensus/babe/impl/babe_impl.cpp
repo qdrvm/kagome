@@ -625,8 +625,8 @@ namespace kagome::consensus::babe {
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
     // create new block
-    auto pre_seal_block_res = proposer_->propose(
-        best_block_.number, inherent_data, {babe_pre_digest});
+    auto pre_seal_block_res =
+        proposer_->propose(best_block_, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
       SL_ERROR(log_,
                "Cannot propose a block: {}",

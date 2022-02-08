@@ -89,7 +89,7 @@ namespace kagome::blockchain {
         const primitives::Block &block) = 0;
 
     /**
-     * Saves {@param justification} of block with {@param number} and  {@param
+     * Saves {@param justification} of block with {@param number} and {@param
      * hash} to block storage
      * @returns result of saving
      */
@@ -99,13 +99,11 @@ namespace kagome::blockchain {
         const primitives::BlockNumber &number) = 0;
 
     /**
-     * Removes all data of block with {@param number} and  {@param
-     * hash} to block storage
+     * Removes all data of block {@param block} from block storage
      * @returns result of removing
      */
     virtual outcome::result<void> removeBlock(
-        const primitives::BlockHash &hash,
-        const primitives::BlockNumber &number) = 0;
+        const primitives::BlockInfo &block) = 0;
   };
 
 }  // namespace kagome::blockchain

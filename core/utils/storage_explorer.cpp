@@ -141,8 +141,8 @@ int main(int argc, char **argv) {
         if (!data) {
           std::cerr << "Error: " << data.error().message() << "\n";
         }
-        if (auto res = block_storage->removeBlock(data.value().hash,
-                                                  data.value().header->number);
+        if (auto res = block_storage->removeBlock(
+                {data.value().header->number, data.value().hash});
             !res) {
           std::cerr << "Error: " << res.error().message() << "\n";
           return;

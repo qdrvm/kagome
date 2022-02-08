@@ -124,19 +124,39 @@ namespace kagome::blockchain {
     // Backward search of finalized block
     for (auto block_info = least_leaf;;) {
       if (block_info.number == 0) {
+        SL_TRACE(log,
+                 "Search last finalized as block with justification. Block {} "
+                 "- genesis",
+                 block_info);
+
         last_finalized_block_info = block_info;
         break;
       }
       auto j_res = storage->getJustification(block_info.hash);
       if (j_res.has_value()) {
+        SL_TRACE(log,
+                 "Search last finalized as block with justification. Block {} "
+                 "- found!",
+                 block_info);
+
         last_finalized_block_info = block_info;
         break;
       }
       if (j_res
           != outcome::failure(
               BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST)) {
+        SL_TRACE(log,
+                 "Search last finalized as block with justification is failed. "
+                 "Block {} - fail",
+                 block_info);
+
         return j_res.as_failure();
       }
+      SL_TRACE(log,
+               "Search last finalized as block with justification. Block {} - "
+               "not found",
+               block_info);
+
       OUTCOME_TRY(header, storage->getBlockHeader(block_info.hash));
       block_info = {header.number - 1, header.parent_hash};
     }
@@ -355,9 +375,8 @@ namespace kagome::blockchain {
     // Check if target block has state
     if (auto res = trie_storage->getEphemeralBatchAt(state_root);
         res.has_error()) {
-      SL_CRITICAL(log,
-                  "Can't get state of target block: {}",
-                  res.error().message());
+      SL_CRITICAL(
+          log, "Can't get state of target block: {}", res.error().message());
       return res.as_failure();
     }
 
@@ -392,8 +411,7 @@ namespace kagome::blockchain {
         return res.as_failure();
       }
 
-      if (auto res = storage->removeBlock(block.hash, block.number);
-          res.has_error()) {
+      if (auto res = storage->removeBlock(block); res.has_error()) {
         SL_CRITICAL(
             log, "Can't remove block {}: {}", block, res.error().message());
         return res.as_failure();
@@ -861,8 +879,9 @@ namespace kagome::blockchain {
       if (res.has_error()) {
         SL_DEBUG(log_,
                  "Failed to collect a chain of blocks from {} to {}: {}",
-                 top_block.hash.toHex(),
-                 bottom_block.hash.toHex());
+                 top_block,
+                 bottom_block,
+                 res.error().message());
         return std::nullopt;
       }
       SL_TRACE(log_,
@@ -917,11 +936,9 @@ namespace kagome::blockchain {
     }
     if (descendant_depth < ancestor_depth) {
       SL_WARN(log_,
-              "Ancestor block is lower. #{} {} in comparison to #{} {}",
-              ancestor_depth,
-              ancestor.toHex(),
-              descendant_depth,
-              descendant.toHex());
+              "Ancestor block is lower. {} in comparison with {}",
+              primitives::BlockInfo(ancestor_depth, ancestor),
+              primitives::BlockInfo(descendant_depth, descendant));
       return false;
     }
 
@@ -1152,7 +1169,7 @@ namespace kagome::blockchain {
       }
 
       tree_->removeFromMeta(node);
-      OUTCOME_TRY(storage_->removeBlock(node->block_hash, node->depth));
+      OUTCOME_TRY(storage_->removeBlock({node->depth, node->block_hash}));
     }
 
     // trying to return extrinsics back to transaction pool

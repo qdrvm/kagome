@@ -10,9 +10,9 @@
 #include <soralog/impl/configurator_from_yaml.hpp>
 
 #include "blockchain/block_storage_error.hpp"
+#include "blockchain/impl/block_header_repository_impl.hpp"
+#include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "blockchain/impl/key_value_block_header_repository.hpp"
-#include "blockchain/impl/key_value_block_storage.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -215,13 +215,13 @@ int main(int argc, char *argv[]) {
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
-        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
+        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
         di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>());
 
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
 
     auto block_storage =
-        check(blockchain::KeyValueBlockStorage::create({}, storage, hasher))
+        check(blockchain::BlockStorageImpl::create({}, storage, hasher))
             .value();
 
     auto block_tree_leaves = check(block_storage->getBlockTreeLeaves()).value();

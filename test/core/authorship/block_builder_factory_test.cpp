@@ -32,7 +32,7 @@ class BlockBuilderFactoryTest : public ::testing::Test {
 
   void SetUp() override {
     parent_hash_.fill(0);
-    parent_id_ = parent_hash_;
+    parent_ = {parent_number_, parent_hash_};
 
     expected_header_.parent_hash = parent_hash_;
     expected_header_.number = expected_number_;
@@ -51,7 +51,7 @@ class BlockBuilderFactoryTest : public ::testing::Test {
   BlockNumber parent_number_{41};
   BlockNumber expected_number_{parent_number_ + 1};
   kagome::common::Hash256 parent_hash_;
-  BlockId parent_id_;
+  kagome::primitives::BlockInfo parent_;
   Digest inherent_digests_{{PreRuntime{}}};
   BlockHeader expected_header_;
 };
@@ -70,7 +70,7 @@ TEST_F(BlockBuilderFactoryTest, CreateSuccessful) {
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
-  auto block_builder_res = factory.make(parent_id_, inherent_digests_);
+  auto block_builder_res = factory.make(parent_, inherent_digests_);
 
   // then
   ASSERT_TRUE(block_builder_res);
@@ -90,7 +90,7 @@ TEST_F(BlockBuilderFactoryTest, CreateFailed) {
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
-  auto block_builder_res = factory.make(parent_id_, inherent_digests_);
+  auto block_builder_res = factory.make(parent_, inherent_digests_);
 
   // then
   ASSERT_FALSE(block_builder_res);
