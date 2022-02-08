@@ -445,7 +445,6 @@ TEST_F(ChildStorageExtensionTest, RootTest) {
   WasmPointer new_child_root_size = 12;
   WasmSpan new_child_root_span =
       PtrSize(new_child_root_ptr, new_child_root_size).combine();
-  // Buffer new_child_root_span{scale::encode(new_child_root).value()};
   EXPECT_CALL(*trie_child_storage_batch_, commit())
       .WillOnce(Return(new_child_root));
   EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(new_child_root)))
