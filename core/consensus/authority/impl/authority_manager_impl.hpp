@@ -38,7 +38,8 @@ namespace kagome::authority {
         kKnownEngines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
 
     struct Config {
-      // e. g. disabled in Polkadot, enabled in Kusama
+      // Whether OnDisabled digest message should be processed. It is disabled
+      // in Polkadot but enabled in Kusama
       bool on_disable_enabled = false;
     };
 
