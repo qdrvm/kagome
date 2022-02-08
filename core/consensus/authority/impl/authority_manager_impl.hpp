@@ -9,8 +9,9 @@
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 
+#include "crypto/hasher.hpp"
 #include "log/logger.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -25,6 +26,9 @@ namespace kagome::primitives {
   struct AuthorityList;
   struct BabeConfiguration;
 }  // namespace kagome::primitives
+namespace kagome::runtime {
+  class GrandpaApi;
+}
 
 namespace kagome::authority {
   class AuthorityManagerImpl : public AuthorityManager,
@@ -42,18 +46,14 @@ namespace kagome::authority {
         Config config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<storage::BufferStorage> storage);
+        std::shared_ptr<runtime::TrieStorageProvider> trie_storage_provider,
+        std::shared_ptr<runtime::GrandpaApi> grandpa_api,
+        std::shared_ptr<crypto::Hasher> hash);
 
     ~AuthorityManagerImpl() override = default;
 
-    /** @see AppStateManager::takeControl */
+    // Prepare for work
     bool prepare();
-
-    /** @see AppStateManager::takeControl */
-    bool start();
-
-    /** @see AppStateManager::takeControl */
-    void stop();
 
     primitives::BlockInfo base() const override;
 
@@ -112,7 +112,10 @@ namespace kagome::authority {
     Config config_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<storage::BufferStorage> storage_;
+    std::shared_ptr<runtime::TrieStorageProvider> trie_storage_provider_;
+    std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+
     std::shared_ptr<ScheduleNode> root_;
   };
 }  // namespace kagome::authority

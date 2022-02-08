@@ -130,26 +130,27 @@ namespace kagome::consensus {
 
     const auto &babe_header = babe_digests.second;
 
+    // sync epoch (starting slot) by slot of block number 1
+    if (block.header.number == 1) {
+      babe_util_->syncEpoch(EpochDescriptor{
+          .epoch_number = 0, .start_slot = babe_header.slot_number});
+    }
+
+    EpochNumber epoch_number = babe_util_->slotToEpoch(babe_header.slot_number);
+
     logger_->info(
-        "Applying block {} ({} in slot {})",  //
+        "Applying block {} ({} in slot {}, epoch {})",  //
         primitives::BlockInfo(block.header.number, block_hash),
         babe_header.slotType() == SlotType::Primary          ? "primary"
         : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
         : babe_header.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
                                                              : "unknown",
-        babe_header.slot_number);
+        babe_header.slot_number,
+        epoch_number);
 
-    // add information about epoch to epoch storage
-    if (block.header.number == 1) {
-      OUTCOME_TRY(babe_util_->setLastEpoch(EpochDescriptor{
-          .epoch_number = 0, .start_slot = babe_header.slot_number}));
-    }
-
-    EpochNumber epoch_number = babe_util_->slotToEpoch(babe_header.slot_number);
-
-    OUTCOME_TRY(this_block_epoch_descriptor,
-                block_tree_->getEpochDescriptor(epoch_number,
-                                                block.header.parent_hash));
+    OUTCOME_TRY(
+        this_block_epoch_descriptor,
+        block_tree_->getEpochDigest(epoch_number, block.header.parent_hash));
 
     [[maybe_unused]] auto &slot_number = babe_header.slot_number;
     SL_TRACE(

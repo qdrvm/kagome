@@ -12,6 +12,11 @@
 
 namespace kagome::blockchain {
   struct BlockTreeMock : public BlockTree {
+    MOCK_METHOD(const primitives::BlockHash &,
+                getGenesisBlockHash,
+                (),
+                (const, override));
+
     MOCK_METHOD(outcome::result<bool>,
                 hasBlockHeader,
                 (const primitives::BlockId &),
@@ -118,7 +123,7 @@ namespace kagome::blockchain {
     MOCK_METHOD(outcome::result<void>, prune, (), ());
 
     MOCK_METHOD(outcome::result<consensus::EpochDigest>,
-                getEpochDescriptor,
+                getEpochDigest,
                 (consensus::EpochNumber, primitives::BlockHash),
                 (const, override));
   };

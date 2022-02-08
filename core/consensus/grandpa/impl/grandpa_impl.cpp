@@ -32,7 +32,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<authority::AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<network::PeerManager> peer_manager,
-      std::shared_ptr<blockchain::BlockStorage> block_storage)
+      std::shared_ptr<blockchain::BlockTree> block_tree)
       : environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
@@ -42,7 +42,7 @@ namespace kagome::consensus::grandpa {
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)),
         peer_manager_(std::move(peer_manager)),
-        block_storage_(std::move(block_storage)) {
+        block_tree_(std::move(block_tree)) {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
@@ -51,7 +51,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(synchronizer_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
-    BOOST_ASSERT(block_storage_ != nullptr);
+    BOOST_ASSERT(block_tree_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
 
@@ -233,30 +233,21 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
       const {
-    OUTCOME_TRY(hash, block_storage_->getLastFinalizedBlockHash());
+    auto finalized_block = block_tree_->getLastFinalized();
 
-    OUTCOME_TRY(header, block_storage_->getBlockHeader(hash));
-    // safety: we've just fetched this hash from the storage, so the header must
-    // be there
-    BOOST_ASSERT(header.has_value());
-
-    auto number = header.value().number;
-
-    if (number == 0) {
+    if (finalized_block.number == 0) {
       return MovableRoundState{.round_number = 0,
-                               .last_finalized_block = {number, hash},
+                               .last_finalized_block = finalized_block,
                                .votes = {},
-                               .finalized = {{number, hash}}};
+                               .finalized = {finalized_block}};
     }
 
-    OUTCOME_TRY(encoded_justification, block_storage_->getJustification(hash));
-    // safety: the hash is known to belong to a finalized block, so
-    // justification must exist
-    BOOST_ASSERT(encoded_justification.has_value());
+    OUTCOME_TRY(encoded_justification,
+                block_tree_->getBlockJustification(finalized_block.hash));
 
     OUTCOME_TRY(
         grandpa_justification,
-        scale::decode<GrandpaJustification>(encoded_justification->data));
+        scale::decode<GrandpaJustification>(encoded_justification.data));
 
     MovableRoundState round_state{
         .round_number = grandpa_justification.round_number,

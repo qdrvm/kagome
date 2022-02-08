@@ -27,6 +27,7 @@ add_library(babe_digests_util
 target_link_libraries(babe_digests_util
     primitives
     scale::scale
+    block_storage_error
     )
 
 add_library(block_executor
@@ -50,6 +51,7 @@ add_library(babe_util
 target_link_libraries(babe_util
     primitives
     scale::scale
+    babe_digests_util
     )
 
 add_library(babe
@@ -71,4 +73,5 @@ target_link_libraries(babe
     block_executor
     polkadot_trie
     metrics
+    block_storage_error
     )

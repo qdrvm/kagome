@@ -34,6 +34,11 @@ namespace kagome::blockchain {
     virtual ~BlockTree() = default;
 
     /**
+     * @returns hash of genesis block
+     */
+    virtual const primitives::BlockHash &getGenesisBlockHash() const = 0;
+
+    /**
      * Checks containing of block header by provided block id
      * @param block id of the block header we are checking
      * @return containing block header or does not, or error
@@ -241,7 +246,7 @@ namespace kagome::blockchain {
      * Search starts of block with hash {@param block_hash}.
      * @returns epoch descriptor, or error if it impossible.
      */
-    virtual outcome::result<consensus::EpochDigest> getEpochDescriptor(
+    virtual outcome::result<consensus::EpochDigest> getEpochDigest(
         consensus::EpochNumber epoch_number,
         primitives::BlockHash block_hash) const = 0;
   };
