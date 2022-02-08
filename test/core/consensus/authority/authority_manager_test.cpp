@@ -12,9 +12,9 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
-#include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/digest.hpp"
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
@@ -57,16 +57,15 @@ class AuthorityManagerTest : public testing::Test {
 
     block_tree = std::make_shared<blockchain::BlockTreeMock>();
 
-    storage = std::make_shared<runtime::TrieStorageProviderMock>();
-    EXPECT_CALL(*storage, setToEphemeralAt(_))
-        .WillRepeatedly(Return(outcome::success()));
-    EXPECT_CALL(*storage, getCurrentBatch()).WillRepeatedly(testing::Invoke([] {
-      auto batch = std::make_shared<EphemeralTrieBatchMock>();
-      EXPECT_CALL(*batch, tryGet(_))
-          .WillRepeatedly(
-              Return(storage::Buffer::fromHex("0000000000000000").value()));
-      return batch;
-    }));
+    storage = std::make_shared<storage::trie::TrieStorageMock>();
+    EXPECT_CALL(*storage, getEphemeralBatchAt(_))
+        .WillRepeatedly(testing::Invoke([] {
+          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          EXPECT_CALL(*batch, tryGet(_))
+              .WillRepeatedly(
+                  Return(storage::Buffer::fromHex("0000000000000000").value()));
+          return batch;
+        }));
 
     grandpa_api = std::make_shared<runtime::GrandpaApiMock>();
     EXPECT_CALL(*grandpa_api, authorities(_))
@@ -147,7 +146,7 @@ class AuthorityManagerTest : public testing::Test {
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
-  std::shared_ptr<runtime::TrieStorageProviderMock> storage;
+  std::shared_ptr<storage::trie::TrieStorageMock> storage;
   std::shared_ptr<runtime::GrandpaApiMock> grandpa_api;
   std::shared_ptr<crypto::HasherMock> hasher;
   std::shared_ptr<AuthorityManagerImpl> authority_manager;

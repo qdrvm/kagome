@@ -17,9 +17,8 @@
 #include "consensus/grandpa/common.hpp"
 #include "crypto/hasher.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
-#include "runtime/trie_storage_provider.hpp"
 #include "scale/scale.hpp"
-#include "storage/predefined_keys.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 using kagome::common::Buffer;
 using kagome::consensus::grandpa::MembershipCounter;
@@ -29,17 +28,17 @@ namespace kagome::authority {
   AuthorityManagerImpl::AuthorityManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<runtime::TrieStorageProvider> trie_storage_provider,
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<crypto::Hasher> hasher)
       : block_tree_(std::move(block_tree)),
-        trie_storage_provider_(std::move(trie_storage_provider)),
+        trie_storage_(std::move(trie_storage)),
         grandpa_api_(std::move(grandpa_api)),
         hasher_(std::move(hasher)),
         log_{log::createLogger("AuthorityManager", "authority")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
-    BOOST_ASSERT(trie_storage_provider_ != nullptr);
+    BOOST_ASSERT(trie_storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
@@ -109,11 +108,14 @@ namespace kagome::authority {
       }
       const auto &header = header_res.value();
 
-      auto res = trie_storage_provider_->setToEphemeralAt(header.state_root);
-      BOOST_ASSERT_MSG(
-          res.has_value(),
-          "Setting ephemeral bath on an existing state root must succeed; qed");
-      auto batch = trie_storage_provider_->getCurrentBatch();
+      auto batch_res = trie_storage_->getEphemeralBatchAt(header.state_root);
+      if (batch_res.has_error()) {
+        log_->critical("Can't get state of block {}: {}",
+                       primitives::BlockInfo(header.number, hash),
+                       batch_res.error().message());
+        return false;
+      }
+      auto &batch = batch_res.value();
 
       std::optional<MembershipCounter> set_id_opt;
       auto current_set_id_keypart =

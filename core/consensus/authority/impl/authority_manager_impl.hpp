@@ -11,7 +11,6 @@
 
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
-#include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -29,6 +28,9 @@ namespace kagome::primitives {
 namespace kagome::runtime {
   class GrandpaApi;
 }
+namespace kagome::storage::trie {
+  class TrieStorage;
+}
 
 namespace kagome::authority {
   class AuthorityManagerImpl : public AuthorityManager,
@@ -40,7 +42,7 @@ namespace kagome::authority {
     AuthorityManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<runtime::TrieStorageProvider> trie_storage_provider,
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
         std::shared_ptr<crypto::Hasher> hash);
 
@@ -101,7 +103,7 @@ namespace kagome::authority {
                            const primitives::BlockInfo &descendant);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<runtime::TrieStorageProvider> trie_storage_provider_;
+    std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
 
