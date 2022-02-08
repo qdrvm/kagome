@@ -13,10 +13,7 @@
 
 namespace kagome::authority {
   struct AuthorityManagerMock : public AuthorityManager {
-    MOCK_METHOD(primitives::BlockInfo,
-                base,
-                (),
-                (const, override));
+    MOCK_METHOD(primitives::BlockInfo, base, (), (const, override));
 
     MOCK_METHOD(
         outcome::result<std::shared_ptr<const primitives::AuthorityList>>,
@@ -53,10 +50,7 @@ namespace kagome::authority {
                 (const primitives::BlockInfo &, primitives::BlockNumber),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
-                prune,
-                (const primitives::BlockInfo &block),
-                (override));
+    MOCK_METHOD(void, prune, (const primitives::BlockInfo &block), (override));
   };
 }  // namespace kagome::authority
 
