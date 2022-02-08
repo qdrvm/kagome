@@ -284,7 +284,7 @@ namespace kagome::host_api {
                          key_buffer,
                          common::Buffer{offset_data.subbuffer(0, written)});
       res = offset_data.size();
-    } else if (read.error() == TrieError::NO_VALUE) {
+    } else if (read == outcome::failure(TrieError::NO_VALUE)) {
       logger_->info(
           "ext_default_child_storage_clear_prefix_version_1 returned no value "
           "reason: {}",
