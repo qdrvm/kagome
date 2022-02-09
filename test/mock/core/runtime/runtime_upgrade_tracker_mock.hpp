@@ -19,8 +19,8 @@ namespace kagome::runtime {
                 (const primitives::BlockInfo &block),
                 (override));
 
-    MOCK_METHOD(outcome::result<primitives::BlockHash>,
-                getLastCodeUpdateHash,
+    MOCK_METHOD(outcome::result<primitives::BlockInfo>,
+                getLastCodeUpdateBlockInfo,
                 (const storage::trie::RootHash &state),
                 (const, override));
   };

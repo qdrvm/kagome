@@ -79,7 +79,7 @@ namespace kagome::application {
       return consensus_engine_;
     }
 
-    std::shared_ptr<const primitives::CodeSubstituteHashes> codeSubstitutes()
+    std::shared_ptr<const primitives::CodeSubstituteBlockIds> codeSubstitutes()
         const override {
       return known_code_substitutes_;
     }
@@ -88,8 +88,8 @@ namespace kagome::application {
       return genesis_;
     }
 
-    outcome::result<common::Buffer> fetchCodeSubstituteByHash(
-        const common::Hash256 &hash) const override;
+    outcome::result<common::Buffer> fetchCodeSubstituteByBlockInfo(
+        const primitives::BlockInfo &block_info) const override;
 
    private:
     outcome::result<void> loadFromJson(const std::string &file_path);
@@ -109,6 +109,9 @@ namespace kagome::application {
       return opt_entry.value();
     }
 
+    outcome::result<primitives::BlockId> parseBlockId(
+        const std::string_view block_id_str) const;
+
     ChainSpecImpl() = default;
 
     std::string name_;
@@ -122,7 +125,7 @@ namespace kagome::application {
     std::set<primitives::BlockHash> fork_blocks_;
     std::set<primitives::BlockHash> bad_blocks_;
     std::optional<std::string> consensus_engine_;
-    std::shared_ptr<primitives::CodeSubstituteHashes> known_code_substitutes_;
+    std::shared_ptr<primitives::CodeSubstituteBlockIds> known_code_substitutes_;
     GenesisRawData genesis_;
     log::Logger log_ = log::createLogger("chain_spec", "kagome");
   };

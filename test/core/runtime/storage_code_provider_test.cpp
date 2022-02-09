@@ -47,6 +47,7 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
   auto trie_db = std::make_shared<storage::trie::TrieStorageMock>();
   auto tracker = std::make_shared<runtime::RuntimeUpgradeTrackerMock>();
   storage::trie::RootHash first_state_root{{1, 1, 1, 1}};
+  primitives::BlockInfo block_info(11, primitives::BlockHash{{11, 11, 11, 11}});
 
   // given
   EXPECT_CALL(*trie_db, getEphemeralBatchAt(first_state_root))
@@ -56,12 +57,12 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
             .WillOnce(Return(state_code_));
         return batch;
       }));
-  EXPECT_CALL(*tracker, getLastCodeUpdateHash(first_state_root))
-      .WillOnce(Return(first_state_root));
+  EXPECT_CALL(*tracker, getLastCodeUpdateBlockInfo(first_state_root))
+      .WillOnce(Return(block_info));
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
       trie_db,
       tracker,
-      std::make_shared<primitives::CodeSubstituteHashes>(),
+      std::make_shared<primitives::CodeSubstituteBlockIds>(),
       std::make_shared<application::ChainSpecMock>());
 
   // when
@@ -99,7 +100,7 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
       trie_db,
       tracker,
-      std::make_shared<primitives::CodeSubstituteHashes>(),
+      std::make_shared<primitives::CodeSubstituteBlockIds>(),
       std::make_shared<application::ChainSpecMock>());
 
   common::Buffer new_state_code{{1, 3, 3, 8}};
