@@ -18,13 +18,14 @@ namespace kagome::runtime {
   StorageCodeProvider::StorageCodeProvider(
       std::shared_ptr<const storage::trie::TrieStorage> storage,
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
-      std::shared_ptr<const primitives::CodeSubstituteHashes> code_substitutes,
+      std::shared_ptr<const primitives::CodeSubstituteBlockIds>
+          code_substitutes,
       std::shared_ptr<application::ChainSpec> chain_spec)
       : storage_{std::move(storage)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
         known_code_substitutes_{std::move(code_substitutes)},
         chain_spec_{std::move(chain_spec)},
-        logger_ {log::createLogger("StorageCodeProvider", "runtime")} {
+        logger_{log::createLogger("StorageCodeProvider", "runtime")} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
   }
@@ -34,11 +35,13 @@ namespace kagome::runtime {
     if (last_state_root_ != state) {
       last_state_root_ = state;
 
-      auto hash = runtime_upgrade_tracker_->getLastCodeUpdateHash(state);
-      if (hash.has_value()) {
-        if (known_code_substitutes_->count(hash.value())) {
-          OUTCOME_TRY(code,
-                      chain_spec_->fetchCodeSubstituteByHash(hash.value()));
+      auto block_info =
+          runtime_upgrade_tracker_->getLastCodeUpdateBlockInfo(state);
+      if (block_info.has_value()) {
+        if (known_code_substitutes_->contains(block_info.value())) {
+          OUTCOME_TRY(
+              code,
+              chain_spec_->fetchCodeSubstituteByBlockInfo(block_info.value()));
           OUTCOME_TRY(uncompressCodeIfNeeded(code, cached_code_));
           return cached_code_;
         }
