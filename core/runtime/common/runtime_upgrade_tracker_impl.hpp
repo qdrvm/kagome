@@ -33,7 +33,7 @@ namespace kagome::runtime {
     static outcome::result<std::unique_ptr<RuntimeUpgradeTrackerImpl>> create(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::BufferStorage> storage,
-        std::shared_ptr<const primitives::CodeSubstituteHashes>
+        std::shared_ptr<const primitives::CodeSubstituteBlockIds>
             code_substitutes);
 
     struct RuntimeUpgradeData {
@@ -64,14 +64,14 @@ namespace kagome::runtime {
     outcome::result<storage::trie::RootHash> getLastCodeUpdateState(
         const primitives::BlockInfo &block) override;
 
-    outcome::result<primitives::BlockHash> getLastCodeUpdateHash(
+    outcome::result<primitives::BlockInfo> getLastCodeUpdateBlockInfo(
         const storage::trie::RootHash &state) const override;
 
    private:
     RuntimeUpgradeTrackerImpl(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::BufferStorage> storage,
-        std::shared_ptr<const primitives::CodeSubstituteHashes>
+        std::shared_ptr<const primitives::CodeSubstituteBlockIds>
             code_substitutes,
         std::vector<RuntimeUpgradeData> &&saved_data);
 
@@ -83,7 +83,8 @@ namespace kagome::runtime {
         std::vector<RuntimeUpgradeData>::const_reverse_iterator
             latest_upgrade_it) const;
 
-    bool hasCodeSubstitute(const kagome::primitives::BlockHash &hash) const;
+    bool hasCodeSubstitute(
+        const kagome::primitives::BlockInfo &block_info) const;
 
     outcome::result<storage::trie::RootHash> push(
         const primitives::BlockHash &hash);
@@ -99,7 +100,7 @@ namespace kagome::runtime {
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<storage::BufferStorage> storage_;
-    std::shared_ptr<const primitives::CodeSubstituteHashes>
+    std::shared_ptr<const primitives::CodeSubstituteBlockIds>
         known_code_substitutes_;
     log::Logger logger_;
   };
