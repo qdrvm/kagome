@@ -644,9 +644,7 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
   WasmSize limit_size = 43;
   uint32_t limit{22};
   WasmSpan limit_span = PtrSize(limit_pointer, limit_size).combine();
-  Buffer encoded_opt_limit{
-      scale::encode<std::optional<uint32_t>>(std::make_optional(limit))
-          .value()};
+  Buffer encoded_opt_limit{scale::encode(std::make_optional(limit)).value()};
 
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
       .WillOnce(Return(prefix));
@@ -695,7 +693,6 @@ TEST_F(StorageExtensionTest, RootTest) {
             .WillOnce(Return(outcome::failure(testutil::DummyError::ERROR)));
         return cursor;
       }));
-  ;
 
   EXPECT_CALL(*trie_batch_, get(current_key))
       .WillOnce(Return(outcome::success(empty_hash)));
