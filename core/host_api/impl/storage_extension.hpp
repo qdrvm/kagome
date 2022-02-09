@@ -11,6 +11,7 @@
 #include "log/logger.hpp"
 #include "runtime/types.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::runtime {
   class MemoryProvider;
@@ -77,7 +78,7 @@ namespace kagome::host_api {
     /**
      * @see HostApi::ext_storage_root_version_1
      */
-    runtime::WasmSpan ext_storage_root_version_1() const;
+    runtime::WasmSpan ext_storage_root_version_1();
 
     /**
      * @see HostApi::ext_storage_changes_root_version_1
@@ -155,9 +156,16 @@ namespace kagome::host_api {
     runtime::WasmSpan clearPrefix(const common::Buffer &prefix,
                                   std::optional<uint32_t> limit);
 
+    /**
+     * Removes all empty child storages from the primary storage.
+     * Such cleanup is required for the correct storage root calculation.
+     */
+    void removeEmptyChildStorages();
+
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
+    storage::trie::PolkadotCodec codec_;
     log::Logger logger_;
 
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";

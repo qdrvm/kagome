@@ -70,6 +70,7 @@ target_link_libraries(storage_extension
     ordered_trie_hash
     scale::scale_encode_append
     runtime_transaction_error
+    polkadot_codec
     )
 kagome_install(storage_extension)
 
