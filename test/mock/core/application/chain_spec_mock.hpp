@@ -57,7 +57,7 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(std::shared_ptr<const primitives::CodeSubstituteHashes>,
+    MOCK_METHOD(std::shared_ptr<const primitives::CodeSubstituteBlockIds>,
                 codeSubstitutes,
                 (),
                 (const, override));
@@ -65,8 +65,8 @@ namespace kagome::application {
     MOCK_METHOD(GenesisRawData, getGenesis, (), (const, override));
 
     MOCK_METHOD(outcome::result<common::Buffer>,
-                fetchCodeSubstituteByHash,
-                (const common::Hash256 &hash),
+                fetchCodeSubstituteByBlockInfo,
+                (const primitives::BlockInfo &block_info),
                 (const, override));
   };
 

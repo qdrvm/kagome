@@ -137,7 +137,7 @@ class RuntimeTestBase : public ::testing::Test {
         runtime::RuntimeUpgradeTrackerImpl::create(
             header_repo_,
             std::make_shared<storage::InMemoryStorage>(),
-            std::make_shared<primitives::CodeSubstituteHashes>())
+            std::make_shared<primitives::CodeSubstituteBlockIds>())
             .value();
 
     auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(

@@ -7,8 +7,8 @@
 #define KAGOME_CORE_RUNTIME_RUNTIME_UPGRADE_TRACKER_HPP
 
 #include "outcome/outcome.hpp"
-#include "primitives/common.hpp"
 #include "storage/trie/types.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::runtime {
 
@@ -27,7 +27,7 @@ namespace kagome::runtime {
     virtual outcome::result<storage::trie::RootHash> getLastCodeUpdateState(
         const primitives::BlockInfo &block) = 0;
 
-    virtual outcome::result<primitives::BlockHash> getLastCodeUpdateHash(
+    virtual outcome::result<primitives::BlockInfo> getLastCodeUpdateBlockInfo(
         const storage::trie::RootHash &state) const = 0;
   };
 

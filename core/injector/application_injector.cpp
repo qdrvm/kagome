@@ -821,7 +821,7 @@ namespace {
           auto storage =
               injector.template create<sptr<storage::BufferStorage>>();
           auto substitutes = injector.template create<
-              sptr<const primitives::CodeSubstituteHashes>>();
+              sptr<const primitives::CodeSubstituteBlockIds>>();
           auto res = runtime::RuntimeUpgradeTrackerImpl::create(
               std::move(header_repo),
               std::move(storage),
@@ -938,7 +938,7 @@ namespace {
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
-        di::bind<primitives::CodeSubstituteHashes>.to(
+        di::bind<primitives::CodeSubstituteBlockIds>.to(
             get_chain_spec(config)->codeSubstitutes()),
 
         // compose peer keypair
@@ -1349,7 +1349,7 @@ namespace kagome::injector {
     using Injector = decltype(makeKagomeNodeInjector(
         std::declval<application::AppConfiguration const &>()));
 
-    KagomeNodeInjectorImpl(Injector injector)
+    explicit KagomeNodeInjectorImpl(Injector injector)
         : injector_{std::move(injector)} {}
     Injector injector_;
   };
