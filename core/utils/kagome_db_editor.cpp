@@ -151,10 +151,11 @@ void child_storage_root_hashes(
            && key.value().subbuffer(0, child_prefix.size()) == child_prefix) {
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
+        auto& value_opt = value_res.value();
         log->trace("Found child root hash {}",
-                   value_res.value().value().toHex());
+                   value_opt.value().toHex());
         hashes.insert(
-            common::Hash256::fromSpan(value_res.value().value()).value());
+            common::Hash256::fromSpan(value_opt.value()).value());
       }
       res = cursor->next();
       key = cursor->key();
@@ -285,7 +286,8 @@ int main(int argc, char *argv[]) {
         if (not header_res.has_value() || not header_res.value().has_value()) {
           break;
         }
-        hash = header_res.value().value().state_root;
+        auto& header_opt = header_res.value();
+        hash = header_opt.value().state_root;
       }
       log->trace("Autodetected best block number is #{}, state root is 0x{}",
                  block_number - 1,

@@ -36,10 +36,9 @@ namespace kagome::consensus::grandpa {
     if (r.second) {
       list_.emplace_back(r.first->first, weight);
       total_weight_ += weight;
-    } else {
-      return Error::VOTER_ALREADY_EXISTS;
+      return outcome::success();
     }
-    return outcome::success();
+    return Error::VOTER_ALREADY_EXISTS;
   }
 
   outcome::result<Id> VoterSet::voterId(Index index) const {

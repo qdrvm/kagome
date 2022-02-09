@@ -33,7 +33,8 @@ namespace kagome::api {
       : header_repo_{std::move(block_repo)},
         block_tree_{std::move(block_tree)},
         block_storage_{std::move(block_storage)} {
-    BOOST_ASSERT_MSG(header_repo_ != nullptr, "block repo parameter is nullptr");
+    BOOST_ASSERT_MSG(header_repo_ != nullptr,
+                     "block repo parameter is nullptr");
     BOOST_ASSERT_MSG(block_tree_ != nullptr, "block tree parameter is nullptr");
     BOOST_ASSERT(block_storage_);
   }
@@ -91,8 +92,8 @@ namespace kagome::api {
   }
 
   outcome::result<primitives::BlockData> ChainApiImpl::getBlock() {
-    auto last = block_tree_->getLastFinalized();
-    OUTCOME_TRY(block, block_storage_->getBlockData(last.hash));
+    auto last_finalized_info = block_tree_->getLastFinalized();
+    OUTCOME_TRY(block, block_storage_->getBlockData(last_finalized_info.hash));
     if (block) return block.value();
     return Error::BLOCK_NOT_FOUND;
   }

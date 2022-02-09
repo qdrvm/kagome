@@ -183,13 +183,14 @@ int main(int argc, char **argv) {
           std::cerr << "Invalid key!\n";
           return;
         }
-        auto value_opt_res = batch.value()->tryGet(key);
-        if (value_opt_res.has_error()) {
+        auto value_res = batch.value()->tryGet(key);
+        if (value_res.has_error()) {
           std::cout << "Error retrieving value from Trie: "
-                    << value_opt_res.error().message() << "\n";
+                    << value_res.error().message() << "\n";
         }
-        if (value_opt_res.value().has_value()) {
-          std::cout << "Value is " << value_opt_res.value().value().toHex()
+        auto& value_opt = value_res.value();
+        if (value_opt.has_value()) {
+          std::cout << "Value is " << value_opt->toHex()
                     << "\n";
         } else {
           std::cout << "No value by provided key\n";
