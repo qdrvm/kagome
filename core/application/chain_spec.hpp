@@ -51,15 +51,16 @@ namespace kagome::application {
 
     virtual std::optional<std::string> consensusEngine() const = 0;
 
-    /// Fetches code_substitute from json config on demand, by its hash.
-    /// Hashes are being loaded on initial configuration and stored in set.
-    virtual outcome::result<common::Buffer> fetchCodeSubstituteByHash(
-        const common::Hash256 &hash) const = 0;
+    /// Fetches code_substitute from json config on demand, by its BlockInfo.
+    /// BlockInfo is being compared with BlockIds that were loaded on initial
+    /// configuration and stored in set.
+    virtual outcome::result<common::Buffer> fetchCodeSubstituteByBlockInfo(
+        const primitives::BlockInfo &block_info) const = 0;
 
     /**
      * @return runtime code substitution map
      */
-    virtual std::shared_ptr<const primitives::CodeSubstituteHashes>
+    virtual std::shared_ptr<const primitives::CodeSubstituteBlockIds>
     codeSubstitutes() const = 0;
 
     /**
