@@ -149,7 +149,7 @@ namespace kagome::authority {
       }
       const auto &set_id = set_id_opt.value();
 
-      // Get initial authorities from genesis
+      // Get initial authorities from runtime
       auto authorities_res = grandpa_api_->authorities(hash);
       if (not authorities_res.has_value()) {
         log_->critical("Can't get grandpa authorities for block {}: {}",
@@ -188,7 +188,9 @@ namespace kagome::authority {
         }
 
         if (found || header.number == 0) {
-          --authorities.id;
+          if (found) {
+            --authorities.id;
+          }
           auto node =
               authority::ScheduleNode::createAsRoot({header.number, hash});
           node->actual_authorities =

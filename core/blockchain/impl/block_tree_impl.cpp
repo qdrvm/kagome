@@ -1204,11 +1204,12 @@ namespace kagome::blockchain {
       if (block.hash == hash_res.value()) {
         return outcome::success();
       }
-    } else if (hash_res != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+    } else if (hash_res
+               != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
       return hash_res.as_failure();
     }
 
-    bool logged = false;
+    size_t count = 0;
     for (;;) {
       OUTCOME_TRY(storage_->putNumberToIndexKey(block));
       if (block.number == 0) break;
@@ -1217,12 +1218,14 @@ namespace kagome::blockchain {
       if (parent_hash == header.parent_hash) {
         break;
       }
-      if (not logged) {
-        SL_DEBUG(log_, "Reorganize best chain");
-        logged = true;
-      }
+      ++count;
       block = {block.number - 1, header.parent_hash};
     }
+
+    if (count > 1) {
+      SL_DEBUG(log_, "Best chain reorganized for {} blocks deep", count);
+    }
+
     return outcome::success();
   }
 
