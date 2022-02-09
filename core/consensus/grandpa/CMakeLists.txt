@@ -53,6 +53,7 @@ target_link_libraries(voting_round
     voter_set
     voting_round_error
     blockchain_common
+    block_tree_error
     )
 
 add_library(grandpa

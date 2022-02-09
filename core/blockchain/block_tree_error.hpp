@@ -31,7 +31,7 @@ namespace kagome::blockchain {
     BODY_NOT_FOUND,
     // block header is not found in block storage
     HEADER_NOT_FOUND,
-    // some block in the requrested chain is missing
+    // some block in the requested chain is missing
     SOME_BLOCK_IN_CHAIN_NOT_FOUND
   };
 }  // namespace kagome::blockchain

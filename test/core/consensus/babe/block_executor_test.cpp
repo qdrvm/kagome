@@ -138,14 +138,14 @@ TEST_F(BlockExecutorTest, DigestsFollowJustification) {
   EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"parent_hash"_hash256}))
       .WillOnce(testing::Return(kagome::primitives::BlockBody{}));
   EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"some_hash"_hash256}))
-      .WillOnce(testing::Return(kagome::blockchain::Error::BLOCK_NOT_FOUND));
+      .WillOnce(testing::Return(kagome::blockchain::BlockTreeError::BODY_NOT_FOUND));
   EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(testing::Return("some_hash"_hash256));
-  //EXPECT_CALL(*block_tree_, getEpochDescriptor(0, "parent_hash"_hash256))
-  //    .WillOnce(testing::Return(
-  //       EpochDigest{.authorities = {Authority{"auth2"_hash256, 1},
-  //                                    Authority{"auth3"_hash256, 1}},
-  //                    .randomness = "randomness"_hash256}));
+  EXPECT_CALL(*block_tree_, getEpochDigest(0, "parent_hash"_hash256))
+      .WillOnce(testing::Return(
+         EpochDigest{.authorities = {Authority{"auth2"_hash256, 1},
+                                      Authority{"auth3"_hash256, 1}},
+                      .randomness = "randomness"_hash256}));
   configuration_->leadership_rate.second = 42;
   EXPECT_CALL(
       *block_validator_,

@@ -10,14 +10,6 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
-  switch (e) {
-    case kagome::blockchain::Error::BLOCK_NOT_FOUND:
-      return "Block with such ID is not found";
-  }
-  return "Unknown error";
-}
-
 namespace kagome::blockchain {
 
   outcome::result<std::optional<common::Buffer>> idToLookupKey(const ReadableBufferMap &map,

@@ -169,7 +169,7 @@ class AuthorityManagerTest : public testing::Test {
     common::Buffer encoded_data(encode_result.value());
 
     EXPECT_CALL(*block_tree, getLastFinalized())
-        .WillOnce(Return(genesis_block));
+        .WillRepeatedly(Return(genesis_block));
 
     EXPECT_CALL(*block_tree, getLeaves()).WillOnce(Return(leaves));
 
