@@ -519,7 +519,10 @@ namespace kagome::blockchain {
     // update local meta with the new block
     auto new_node = std::make_shared<TreeNode>(
         block_hash, header.number, parent, epoch_number, std::move(next_epoch));
+
     tree_->updateMeta(new_node);
+
+    OUTCOME_TRY(reorganize());
 
     OUTCOME_TRY(
         storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
@@ -567,6 +570,8 @@ namespace kagome::blockchain {
                                                std::move(next_epoch));
 
     tree_->updateMeta(new_node);
+
+    OUTCOME_TRY(reorganize());
 
     OUTCOME_TRY(
         storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
@@ -628,6 +633,8 @@ namespace kagome::blockchain {
 
     tree_->updateMeta(new_node);
 
+    OUTCOME_TRY(reorganize());
+
     OUTCOME_TRY(
         storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
                                       tree_->getMetadata().leaves.end()}));
@@ -669,6 +676,8 @@ namespace kagome::blockchain {
     OUTCOME_TRY(prune(node));
 
     tree_->updateTreeRoot(node);
+
+    OUTCOME_TRY(reorganize());
 
     OUTCOME_TRY(
         storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
@@ -1182,6 +1191,38 @@ namespace kagome::blockchain {
       }
     }
 
+    return outcome::success();
+  }
+
+  outcome::result<void> BlockTreeImpl::reorganize() {
+    auto block = BlockTreeImpl::deepestLeaf();
+    if (block.number == 0) {
+      return outcome::success();
+    }
+    auto hash_res = header_repo_->getHashByNumber(block.number);
+    if (hash_res.has_value()) {
+      if (block.hash == hash_res.value()) {
+        return outcome::success();
+      }
+    } else if (hash_res != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+      return hash_res.as_failure();
+    }
+
+    bool logged = false;
+    for (;;) {
+      OUTCOME_TRY(storage_->putNumberToIndexKey(block));
+      if (block.number == 0) break;
+      OUTCOME_TRY(header, getBlockHeader(block.hash));
+      OUTCOME_TRY(parent_hash, header_repo_->getHashByNumber(block.number - 1));
+      if (parent_hash == header.parent_hash) {
+        break;
+      }
+      if (not logged) {
+        SL_DEBUG(log_, "Reorganize best chain");
+        logged = true;
+      }
+      block = {block.number - 1, header.parent_hash};
+    }
     return outcome::success();
   }
 

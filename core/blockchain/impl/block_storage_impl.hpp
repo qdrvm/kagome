@@ -48,6 +48,9 @@ namespace kagome::blockchain {
     outcome::result<primitives::Justification> getJustification(
         const primitives::BlockId &block) const override;
 
+    outcome::result<void> putNumberToIndexKey(
+        const primitives::BlockInfo &block) override;
+
     outcome::result<primitives::BlockHash> putBlockHeader(
         const primitives::BlockHeader &header) override;
     outcome::result<void> putBlockData(

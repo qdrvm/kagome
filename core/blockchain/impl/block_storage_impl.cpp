@@ -48,6 +48,7 @@ namespace kagome::blockchain {
       // the rest of the fields have default value
 
       OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
+      OUTCOME_TRY(block_storage->putNumberToIndexKey({0, genesis_block_hash}));
 
       OUTCOME_TRY(block_storage->setBlockTreeLeaves({genesis_block_hash}));
     }
@@ -124,6 +125,11 @@ namespace kagome::blockchain {
     return BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST;
   }
 
+  outcome::result<void> BlockStorageImpl::putNumberToIndexKey(
+      const primitives::BlockInfo &block) {
+    return kagome::blockchain::putNumberToIndexKey(*storage_, block);
+  }
+
   outcome::result<primitives::BlockHash> BlockStorageImpl::putBlockHeader(
       const primitives::BlockHeader &header) {
     OUTCOME_TRY(encoded_header, scale::encode(header));
@@ -141,7 +147,7 @@ namespace kagome::blockchain {
       const primitives::BlockData &block_data) {
     primitives::BlockData to_insert;
 
-    // if block data does not exist, put a new one. Otherwise get the old one
+    // if block data does not exist, put a new one. Otherwise, get the old one
     // and merge with the new one. During the merge new block data fields have
     // higher priority over the old ones (old ones should be rewritten)
     auto existing_block_data_res = getBlockData(block_data.hash);
@@ -220,64 +226,68 @@ namespace kagome::blockchain {
 
     SL_TRACE(logger_, "Removing block {}...", block);
 
+    auto hash_to_idx_key =
+        prependPrefix(Buffer{block.hash}, Prefix::ID_TO_LOOKUP_KEY);
+    if (auto res = storage_->remove(hash_to_idx_key); res.has_error()) {
+      logger_->error("could not remove hash-to-idx from the storage: {}",
+                     res.error().message());
+      return res;
+    }
+
+    auto num_to_idx_key =
+        prependPrefix(numberToIndexKey(block.number), Prefix::ID_TO_LOOKUP_KEY);
+    OUTCOME_TRY(num_to_idx_val_opt, storage_->tryGet(num_to_idx_key));
+    if (num_to_idx_val_opt == block_lookup_key) {
+      if (auto res = storage_->remove(num_to_idx_key); res.has_error()) {
+        SL_ERROR(logger_,
+                 "could not remove num-to-idx from the storage: {}",
+                 block,
+                 res.error().message());
+        return res;
+      }
+    }
+
     // TODO(xDimon): needed to clean up trie storage if block deleted
     // auto trie_node_lookup_key =
     //     prependPrefix(block_lookup_key, Prefix::TRIE_NODE);
-    // if (auto rm_res = storage_->remove(trie_node_lookup_key); !rm_res) {
+    // if (auto res = storage_->remove(trie_node_lookup_key); res.has_error()) {
     //   SL_ERROR(logger_,
     //            "could not remove trie node of block {} from the storage:{}",
     //            block,
-    //            rm_res.error().message());
-    //   return rm_res;
+    //            res.error().message());
+    //   return res;
     // }
 
-    auto justification_lookup_key =
+    auto justification_key =
         prependPrefix(block_lookup_key, Prefix::JUSTIFICATION);
-    if (auto rm_res = storage_->remove(justification_lookup_key); !rm_res) {
+    if (auto res = storage_->remove(justification_key); res.has_error()) {
       SL_ERROR(
           logger_,
           "could not remove justification of block {} from the storage: {}",
           block,
-          rm_res.error().message());
-      return rm_res;
+          res.error().message());
+      return res;
     }
 
-    auto body_lookup_key = prependPrefix(block_lookup_key, Prefix::BLOCK_DATA);
-    if (auto rm_res = storage_->remove(body_lookup_key); !rm_res) {
+    auto body_key = prependPrefix(block_lookup_key, Prefix::BLOCK_DATA);
+    if (auto res = storage_->remove(body_key); res.has_error()) {
       SL_ERROR(logger_,
                "could not remove body of block {} from the storage: {}",
                block,
-               rm_res.error().message());
-      return rm_res;
+               res.error().message());
+      return res;
     }
 
-    auto header_lookup_key = prependPrefix(block_lookup_key, Prefix::HEADER);
-    if (auto rm_res = storage_->remove(header_lookup_key); !rm_res) {
+    auto header_key = prependPrefix(block_lookup_key, Prefix::HEADER);
+    if (auto res = storage_->remove(header_key); res.has_error()) {
       SL_ERROR(logger_,
                "could not remove header of block {} from the storage: {}",
                block,
-               rm_res.error().message());
-      return rm_res;
+               res.error().message());
+      return res;
     }
 
-    // TODO(xDimon): needed to reorganize best chain instead removing num-to-idx
-    // auto num_to_idx_key = prependPrefix(numberToIndexKey(block.number),
-    //                                     Prefix::ID_TO_LOOKUP_KEY);
-    // if (auto rm_res = storage_->remove(num_to_idx_key); !rm_res) {
-    //   SL_ERROR(logger_,
-    //            "could not remove num-to-idx from the storage: {}",
-    //            block,
-    //            rm_res.error().message());
-    //   return rm_res;
-    // }
-
-    auto hash_to_idx_key =
-        prependPrefix(Buffer{block.hash}, Prefix::ID_TO_LOOKUP_KEY);
-    if (auto rm_res = storage_->remove(hash_to_idx_key); !rm_res) {
-      logger_->error("could not remove hash-to-idx from the storage: {}",
-                     rm_res.error().message());
-      return rm_res;
-    }
+    logger_->info("Removed block {}", block);
 
     return outcome::success();
   }

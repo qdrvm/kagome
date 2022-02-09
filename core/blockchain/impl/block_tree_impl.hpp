@@ -205,6 +205,8 @@ namespace kagome::blockchain {
     outcome::result<void> prune(
         const std::shared_ptr<TreeNode> &lastFinalizedNode);
 
+    outcome::result<void> reorganize();
+
     std::shared_ptr<BlockHeaderRepository> header_repo_;
     std::shared_ptr<BlockStorage> storage_;
 

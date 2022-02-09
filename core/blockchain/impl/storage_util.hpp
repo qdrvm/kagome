@@ -45,6 +45,9 @@ namespace kagome::blockchain {
    */
   enum class KeyValueRepositoryError { INVALID_KEY = 1 };
 
+  outcome::result<void> putNumberToIndexKey(storage::BufferStorage &map,
+                                            const primitives::BlockInfo &block);
+
   /**
    * Concatenate \param key_column with \param key
    * @return key_column|key

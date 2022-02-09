@@ -29,7 +29,7 @@ using kagome::blockchain::prefix::Prefix;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHeader;
-using kagome::primitives::BlockId;
+using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
 
 class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
@@ -55,6 +55,8 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
     auto hash = hasher_->blake2b_256(enc_header);
     OUTCOME_TRY(putWithPrefix(
         *db_, Prefix::HEADER, header.number, hash, Buffer{enc_header}));
+    OUTCOME_TRY(kagome::blockchain::putNumberToIndexKey(*db_, {num, hash}));
+
     return hash;
   }
 

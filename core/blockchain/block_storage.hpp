@@ -68,6 +68,13 @@ namespace kagome::blockchain {
         const primitives::BlockId &block) const = 0;
 
     /**
+     * Saves number-to-block_lookup_key for {@param block} to block storage
+     * @returns hash of saved header or error
+     */
+    virtual outcome::result<void> putNumberToIndexKey(
+        const primitives::BlockInfo &block) = 0;
+
+    /**
      * Saves block header {@param header} to block storage
      * @returns hash of saved header or error
      */
