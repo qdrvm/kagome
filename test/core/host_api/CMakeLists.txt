@@ -43,3 +43,12 @@ target_link_libraries(storage_extension_test
     dummy_error
     logger_for_tests
     )
+
+addtest(child_storage_extension_test
+    child_storage_extension_test.cpp
+    )
+target_link_libraries(child_storage_extension_test
+    child_storage_extension
+    dummy_error
+    logger_for_tests
+    )

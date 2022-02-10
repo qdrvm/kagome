@@ -297,33 +297,6 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
 }
 
 /**
- * @given key_pointer, key_size, value_ptr, value_size
- * @when ext_storage_set_version_1 is invoked on given key and value
- * @then provided key and value are put to db
- */
-TEST_P(OutcomeParameterizedTest, ExtStorageSetV1Test) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  Buffer key(8, 'k');
-
-  WasmPointer value_pointer = 42;
-  WasmSize value_size = 41;
-  Buffer value(8, 'v');
-
-  // expect key and value were loaded
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
-      .WillOnce(Return(value));
-
-  // expect key-value pair was put to db
-  EXPECT_CALL(*trie_batch_, put(key, value)).WillOnce(Return(GetParam()));
-
-  storage_extension_->ext_storage_set_version_1(
-      PtrSize(key_pointer, key_size).combine(),
-      PtrSize(value_pointer, value_size).combine());
-}
-
-/**
  * @given key, value, offset
  * @when ext_storage_read_version_1 is invoked on given key and value
  * @then data read from db with given key
@@ -564,25 +537,6 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
 
   ASSERT_EQ(value_span,
             storage_extension_->ext_storage_get_version_1(key_span));
-}
-
-/**
- * @given key_pointer and key_size
- * @when ext_storage_clear_version_1 is invoked on StorageExtension with given
- * key
- * @then key is loaded from the memory @and del is invoked on storage
- */
-TEST_P(OutcomeParameterizedTest, ExtStorageClearV1Test) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  Buffer key(8, 'k');
-  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
-
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  // to ensure that it works when remove() returns success or failure
-  EXPECT_CALL(*trie_batch_, remove(key)).WillOnce(Return(GetParam()));
-
-  storage_extension_->ext_storage_clear_version_1(key_span);
 }
 
 /**
