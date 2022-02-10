@@ -8,7 +8,6 @@
 #include "blockchain/block_storage_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "scale/scale.hpp"
-#include "storage/database_error.hpp"
 
 namespace kagome::blockchain {
   using primitives::Block;
@@ -127,6 +126,7 @@ namespace kagome::blockchain {
 
   outcome::result<void> BlockStorageImpl::putNumberToIndexKey(
       const primitives::BlockInfo &block) {
+    SL_DEBUG(logger_, "Save num-to-idx for {}", block);
     return kagome::blockchain::putNumberToIndexKey(*storage_, block);
   }
 

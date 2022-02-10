@@ -21,7 +21,6 @@
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
-#include "mock/core/storage/persistent_map_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
@@ -94,6 +93,7 @@ struct BlockTreeTest : public testing::Test {
     babe_config_->epoch_length = 2;
 
     babe_util_ = std::make_shared<BabeUtilMock>();
+    EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return());
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
     block_tree_ = BlockTreeImpl::create(header_repo_,
@@ -117,16 +117,26 @@ struct BlockTreeTest : public testing::Test {
   BlockHash addBlock(const Block &block) {
     auto encoded_block = scale::encode(block).value();
     auto hash = hasher_->blake2b_256(encoded_block);
+    primitives::BlockInfo block_info(block.header.number, hash);
 
-    EXPECT_CALL(*storage_, putBlock(block)).WillRepeatedly(Return(hash));
-    EXPECT_TRUE(block_tree_->addBlock(block));
-
-    EXPECT_CALL(*header_repo_, getBlockHeader(primitives::BlockId(hash)))
+    EXPECT_CALL(*header_repo_, getBlockHeader(BlockId(hash)))
         .WillRepeatedly(Return(block.header));
     EXPECT_CALL(*header_repo_, getHashByNumber(block.header.number))
         .WillRepeatedly(Return(hash));
     EXPECT_CALL(*header_repo_, getNumberByHash(hash))
         .WillRepeatedly(Return(block.header.number));
+
+    EXPECT_CALL(*storage_, putBlock(block)).WillRepeatedly(Return(hash));
+
+    // for reorganizing
+    EXPECT_CALL(*storage_, putNumberToIndexKey(block_info))
+        .WillRepeatedly(Return(outcome::success()));
+    EXPECT_CALL(*storage_, getBlockHeader(BlockId(hash)))
+        .WillRepeatedly(Return(block.header));
+    EXPECT_CALL(*header_repo_, getHashByNumber(block.header.number - 1))
+        .WillRepeatedly(Return(block.header.parent_hash));
+
+    EXPECT_TRUE(block_tree_->addBlock(block));
 
     return hash;
   }
@@ -243,8 +253,8 @@ TEST_F(BlockTreeTest, AddBlock) {
   auto hash = addBlock(new_block);
 
   // THEN
-  auto &&[_, new_deepest_block_hash] = block_tree_->deepestLeaf();
-  ASSERT_EQ(new_deepest_block_hash, hash);
+  auto new_deepest_block = block_tree_->deepestLeaf();
+  ASSERT_EQ(new_deepest_block.hash, hash);
 
   leaves = block_tree_->getLeaves();
   ASSERT_EQ(leaves.size(), 1);
@@ -266,11 +276,9 @@ TEST_F(BlockTreeTest, AddBlockNoParent) {
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
 
-  // WHEN
-  EXPECT_OUTCOME_FALSE(err, block_tree_->addBlock(new_block));
-
-  // THEN
-  ASSERT_EQ(err, BlockTreeError::NO_PARENT);
+  // WHEN-THEN
+  ASSERT_OUTCOME_ERROR(block_tree_->addBlock(new_block),
+                       BlockTreeError::NO_PARENT);
 }
 
 /**
@@ -495,7 +503,7 @@ TEST_F(BlockTreeTest, TreeNode_applyToChain_lastLeaf) {
   EXPECT_CALL(p, foo(*tree->children[1]));
   EXPECT_CALL(p, foo(*tree->children[1]->children[1]));
 
-  EXPECT_OUTCOME_TRUE_1(tree->applyToChain(
+  ASSERT_OUTCOME_SUCCESS_TRY(tree->applyToChain(
       {2, tree->children[1]->children[1]->block_hash}, [&p](auto &node) {
         p.foo(node);
         return TreeNode::ExitToken::CONTINUE;
@@ -511,7 +519,7 @@ TEST_F(BlockTreeTest, TreeNode_applyToChain_root) {
   NodeProcessor p;
   EXPECT_CALL(p, foo(*tree));
 
-  EXPECT_OUTCOME_TRUE_1(
+  ASSERT_OUTCOME_SUCCESS_TRY(
       tree->applyToChain({0, tree->block_hash}, [&p](auto &node) {
         p.foo(node);
         return TreeNode::ExitToken::CONTINUE;
@@ -527,7 +535,7 @@ TEST_F(BlockTreeTest, TreeNode_applyToChain_invalidNode) {
   // p.foo() should not be called
   testing::StrictMock<NodeProcessor> p;
 
-  EXPECT_OUTCOME_FALSE_1(
+  ASSERT_OUTCOME_SOME_ERROR(
       tree->applyToChain({42, "213232"_hash256}, [&p](auto &node) {
         p.foo(node);
         return outcome::success(TreeNode::ExitToken::CONTINUE);
@@ -548,7 +556,7 @@ TEST_F(BlockTreeTest, TreeNode_applyToChain_exitTokenWorks) {
   // EXPECT_CALL(p, foo(*tree->children[1]->children[1]));
 
   size_t counter = 0;
-  EXPECT_OUTCOME_TRUE_1(
+  ASSERT_OUTCOME_SUCCESS_TRY(
       tree->applyToChain({2, tree->children[1]->children[1]->block_hash},
                          [&p, &counter](auto &node) {
                            p.foo(node);
@@ -613,7 +621,7 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
   std::vector<BlockHash> expected_chain{kFinalizedBlockInfo.hash, hash1, hash2};
 
   // WHEN
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       chain,
       block_tree_->getChainByBlock(
           kFinalizedBlockInfo.hash, BlockTree::GetChainDirection::ASCEND, 5));
@@ -677,9 +685,9 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
   EXPECT_CALL(*header_repo_, getHashByNumber(target_header.number))
       .WillRepeatedly(Return(target_hash));
 
-  EXPECT_OUTCOME_FALSE(
-      best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
-  ASSERT_EQ(best_info, BlockTreeImpl::Error::BLOCK_NOT_FOUND);
+  ASSERT_OUTCOME_ERROR(
+      block_tree_->getBestContaining(target_hash, std::nullopt),
+      BlockTreeImpl::Error::BLOCK_NOT_FOUND);
 }
 
 /**
@@ -709,16 +717,24 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
   EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
       .WillRepeatedly(Return(finalized_block_header_));
 
-  auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
-  auto header00_hash = addHeaderToRepository(target_hash, 1338);
-  addHeaderToRepository(header00_hash, 1339);
-  auto header10_hash = addHeaderToRepository(target_hash, 1340);
-  auto header11_hash = addHeaderToRepository(header10_hash, 1340);
-  auto header12_hash = addHeaderToRepository(header11_hash, 1341);
+  /*
+          42   43  44  45  46   47
 
-  EXPECT_OUTCOME_TRUE(
-      best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
-  ASSERT_EQ(best_info.hash, header12_hash);
+          LF - T - A - B - C1
+                         \
+                           C2 - D2
+   */
+
+  auto T_hash = addHeaderToRepository(kLastFinalizedBlockId, 43);
+  auto A_hash = addHeaderToRepository(T_hash, 44);
+  auto B_hash = addHeaderToRepository(A_hash, 45);
+  auto C1_hash = addHeaderToRepository(B_hash, 46);
+  auto C2_hash = addHeaderToRepository(B_hash, 46);
+  auto D2_hash = addHeaderToRepository(C2_hash, 47);
+
+  ASSERT_OUTCOME_SUCCESS(best_info,
+                         block_tree_->getBestContaining(T_hash, std::nullopt));
+  ASSERT_EQ(best_info.hash, D2_hash);
 }
 
 /**
@@ -734,6 +750,6 @@ TEST_F(BlockTreeTest, GetBestChain_TargetPastMax) {
 
   auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
 
-  EXPECT_OUTCOME_FALSE(err, block_tree_->getBestContaining(target_hash, 42));
-  ASSERT_EQ(err, BlockTreeImpl::Error::TARGET_IS_PAST_MAX);
+  ASSERT_OUTCOME_ERROR(block_tree_->getBestContaining(target_hash, 42),
+                       BlockTreeImpl::Error::TARGET_IS_PAST_MAX);
 }
