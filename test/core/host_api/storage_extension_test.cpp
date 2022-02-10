@@ -18,6 +18,7 @@
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
 #include "storage/changes_trie/changes_trie_config.hpp"
+#include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -39,7 +40,9 @@ using kagome::runtime::WasmSpan;
 using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::PersistentTrieBatchMock;
+using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieCursorMock;
+using kagome::storage::trie::RootHash;
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -79,6 +82,7 @@ class StorageExtensionTest : public ::testing::Test {
   std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<StorageExtension> storage_extension_;
   std::shared_ptr<ChangesTrackerMock> changes_tracker_;
+  PolkadotCodec codec_;
 
   constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
 };
@@ -559,7 +563,8 @@ TEST_F(StorageExtensionTest, ExtStorageExistsV1Test) {
 
 /**
  * @given prefix_pointer with prefix_length
- * @when ext_clear_prefix is invoked on StorageExtension with given prefix
+ * @when ext_clear_prefix is invoked on StorageExtension with given prefix, up
+ * to given limit
  * @then prefix is loaded from the memory @and clearPrefix is invoked on storage
  */
 TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
@@ -575,6 +580,90 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
       .WillOnce(Return(outcome::success()));
 
   storage_extension_->ext_storage_clear_prefix_version_1(prefix_span);
+}
+
+/**
+ * @given prefix_pointer with prefix_length
+ * @when ext_clear_prefix is invoked on StorageExtension with given prefix
+ * @then prefix/limit is loaded from the memory @and clearPrefix is invoked on
+ * storage with limit
+ */
+TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
+  WasmPointer prefix_pointer = 42;
+  WasmSize prefix_size = 42;
+  Buffer prefix(8, 'p');
+  WasmSpan prefix_span = PtrSize(prefix_pointer, prefix_size).combine();
+
+  WasmPointer limit_pointer = 43;
+  WasmSize limit_size = 43;
+  uint32_t limit{22};
+  WasmSpan limit_span = PtrSize(limit_pointer, limit_size).combine();
+  Buffer encoded_opt_limit{scale::encode(std::make_optional(limit)).value()};
+
+  EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
+      .WillOnce(Return(prefix));
+  EXPECT_CALL(*memory_, loadN(limit_pointer, limit_size))
+      .WillOnce(Return(encoded_opt_limit));
+
+  std::tuple<bool, uint32_t> result(true, 22);
+  EXPECT_CALL(*trie_batch_,
+              clearPrefix(prefix, std::make_optional<uint64_t>(limit)))
+      .WillOnce(Return(outcome::success(result)));
+
+  auto enc_result = scale::encode(result).value();
+  WasmPointer result_pointer = 43;
+  WasmSize result_size = 43;
+  WasmSpan result_span = PtrSize(result_pointer, result_size).combine();
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(enc_result)))
+      .WillOnce(Return(result_span));
+
+  ASSERT_EQ(result_span,
+            storage_extension_->ext_storage_clear_prefix_version_2(prefix_span,
+                                                                   limit_span));
+}
+
+/**
+ * @given
+ * @when invoke ext_storage_root_version_1
+ * @then returns new root value
+ */
+TEST_F(StorageExtensionTest, RootTest) {
+  // removeEmptyChildStorages
+  Buffer prefix = kagome::storage::kChildStorageDefaultPrefix;
+  Buffer current_key = Buffer{prefix}.putBuffer("QWERTY"_buf);
+  static const auto empty_hash = Buffer(codec_.hash256({0}));
+
+  EXPECT_CALL(*trie_batch_, trieCursor())
+      .WillOnce(Invoke([&prefix, &current_key]() {
+        auto cursor = std::make_unique<PolkadotTrieCursorMock>();
+        EXPECT_CALL(*cursor, seekUpperBound(prefix))
+            .WillOnce(Return(outcome::success()));
+        EXPECT_CALL(*cursor, key()).WillOnce(Return(current_key));
+        return cursor;
+      }))
+      .WillOnce(Invoke([]() {
+        auto cursor = std::make_unique<PolkadotTrieCursorMock>();
+        EXPECT_CALL(*cursor, seekUpperBound(_))
+            .WillOnce(Return(outcome::failure(testutil::DummyError::ERROR)));
+        return cursor;
+      }));
+
+  EXPECT_CALL(*trie_batch_, get(current_key))
+      .WillOnce(Return(outcome::success(empty_hash)));
+  EXPECT_CALL(*trie_batch_, remove(current_key))
+      .WillOnce(Return(outcome::success()));
+
+  // rest of ext_storage_root_version_1
+  WasmPointer root_pointer = 43;
+  WasmSize root_size = 43;
+  RootHash root_val = "123456"_hash256;
+  WasmSpan root_span = PtrSize(root_pointer, root_size).combine();
+  EXPECT_CALL(*trie_batch_, commit())
+      .WillOnce(Return(outcome::success(root_val)));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(root_val)))
+      .WillOnce(Return(root_span));
+
+  ASSERT_EQ(root_span, storage_extension_->ext_storage_root_version_1());
 }
 
 /**
