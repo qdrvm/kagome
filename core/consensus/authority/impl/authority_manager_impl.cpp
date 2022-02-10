@@ -190,7 +190,7 @@ namespace kagome::authority {
         }
 
         if (found || header.number == 0) {
-          --authorities.id;
+          if(found) --authorities.id;
           auto node =
               authority::ScheduleNode::createAsRoot({header.number, hash});
           node->actual_authorities =
@@ -222,9 +222,9 @@ namespace kagome::authority {
     // prune to reorganize collected changes
     prune(finalized_block);
 
-    SL_DEBUG(log_, "Authority set id: {:l}", root_->actual_authorities->id);
+    SL_DEBUG(log_, "Authority set id: {}", root_->actual_authorities->id);
     for (const auto &authority : *root_->actual_authorities) {
-      SL_DEBUG(log_, "Grandpa authority: {:l}", authority.id.id);
+      SL_DEBUG(log_, "Grandpa authority: {}", authority.id.id);
     }
 
     return true;
