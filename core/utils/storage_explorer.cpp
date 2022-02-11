@@ -114,12 +114,15 @@ int main(int argc, char **argv) {
           return;
         }
         if (auto res = block_storage->getBlockHeader(opt_id.value()); res) {
-          std::cout << "#: " << res.value().number << "\n";
-          std::cout << "Parent hash: " << res.value().parent_hash.toHex()
+          if (!res.value().has_value()) {
+            std::cerr << "Error: Block header not found\n";
+          }
+          std::cout << "#: " << res.value()->number << "\n";
+          std::cout << "Parent hash: " << res.value()->parent_hash.toHex()
                     << "\n";
-          std::cout << "State root: " << res.value().state_root.toHex() << "\n";
+          std::cout << "State root: " << res.value()->state_root.toHex() << "\n";
           std::cout << "Extrinsics root: "
-                    << res.value().extrinsics_root.toHex() << "\n";
+                    << res.value()->extrinsics_root.toHex() << "\n";
         } else {
           std::cerr << "Error: " << res.error().message() << "\n";
           return;
@@ -141,8 +144,11 @@ int main(int argc, char **argv) {
         if (!data) {
           std::cerr << "Error: " << data.error().message() << "\n";
         }
-        if (auto res = block_storage->removeBlock(data.value().hash,
-                                                  data.value().header->number);
+        if(!data.value().has_value()) {
+          std::cerr << "Error: block data not found\n";
+        }
+        if (auto res = block_storage->removeBlock(data.value()->hash,
+                                                  data.value()->header->number);
             !res) {
           std::cerr << "Error: " << res.error().message() << "\n";
           return;
@@ -177,13 +183,14 @@ int main(int argc, char **argv) {
           std::cerr << "Invalid key!\n";
           return;
         }
-        auto value_opt_res = batch.value()->tryGet(key);
-        if (value_opt_res.has_error()) {
+        auto value_res = batch.value()->tryGet(key);
+        if (value_res.has_error()) {
           std::cout << "Error retrieving value from Trie: "
-                    << value_opt_res.error().message() << "\n";
+                    << value_res.error().message() << "\n";
         }
-        if (value_opt_res.value().has_value()) {
-          std::cout << "Value is " << value_opt_res.value().value().toHex()
+        auto& value_opt = value_res.value();
+        if (value_opt.has_value()) {
+          std::cout << "Value is " << value_opt->toHex()
                     << "\n";
         } else {
           std::cout << "No value by provided key\n";

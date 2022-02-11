@@ -10,6 +10,7 @@
 #include <optional>
 
 #include "blockchain/impl/storage_util.hpp"
+#include "blockchain/block_tree_error.hpp"
 #include "common/hexutil.hpp"
 #include "scale/scale.hpp"
 
@@ -30,8 +31,8 @@ namespace kagome::blockchain {
   outcome::result<BlockNumber> KeyValueBlockHeaderRepository::getNumberByHash(
       const Hash256 &hash) const {
     OUTCOME_TRY(key, idToLookupKey(*map_, hash));
-
-    auto maybe_number = lookupKeyToNumber(key);
+    if (!key.has_value()) return BlockTreeError::HEADER_NOT_FOUND;
+    auto maybe_number = lookupKeyToNumber(key.value());
 
     return maybe_number;
   }
@@ -50,7 +51,7 @@ namespace kagome::blockchain {
     if (header_opt.has_value()) {
       return scale::decode<primitives::BlockHeader>(header_opt.value());
     }
-    return Error::BLOCK_NOT_FOUND;
+    return BlockTreeError::HEADER_NOT_FOUND;
   }
 
   outcome::result<BlockStatus> KeyValueBlockHeaderRepository::getBlockStatus(

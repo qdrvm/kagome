@@ -17,6 +17,8 @@ namespace kagome::blockchain {
 
   class KeyValueBlockStorage : public BlockStorage {
    public:
+    using BlockHandler = std::function<void(const primitives::Block &)>;
+
     ~KeyValueBlockStorage() override = default;
 
     /**
@@ -39,13 +41,13 @@ namespace kagome::blockchain {
     outcome::result<bool> hasBlockHeader(
         const primitives::BlockId &id) const override;
 
-    outcome::result<primitives::BlockHeader> getBlockHeader(
+    outcome::result<std::optional<primitives::BlockHeader>> getBlockHeader(
         const primitives::BlockId &id) const override;
-    outcome::result<primitives::BlockBody> getBlockBody(
+    outcome::result<std::optional<primitives::BlockBody>> getBlockBody(
         const primitives::BlockId &id) const override;
-    outcome::result<primitives::BlockData> getBlockData(
+    outcome::result<std::optional<primitives::BlockData>> getBlockData(
         const primitives::BlockId &id) const override;
-    outcome::result<primitives::Justification> getJustification(
+    outcome::result<std::optional<primitives::Justification>> getJustification(
         const primitives::BlockId &block) const override;
 
     outcome::result<primitives::BlockHash> putBlockHeader(

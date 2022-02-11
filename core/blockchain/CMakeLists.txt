@@ -11,6 +11,7 @@ add_library(block_header_repository
     )
 target_link_libraries(block_header_repository
     blockchain_common
+    block_tree_error
     )
 kagome_install(block_header_repository)
 
@@ -38,3 +39,4 @@ add_library(block_tree_error
 target_link_libraries(block_tree_error
     outcome
     )
+kagome_install(block_tree_error)

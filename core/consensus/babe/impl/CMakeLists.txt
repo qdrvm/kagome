@@ -40,6 +40,9 @@ target_link_libraries(block_executor
     block_tree_error
     threshold_util
     transaction_pool_error
+    babe_digests_util
+    metrics
+    blockchain_common
     )
 
 add_library(babe_util

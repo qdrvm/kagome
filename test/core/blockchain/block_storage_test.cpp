@@ -153,8 +153,8 @@ TEST_F(BlockStorageTest, PutBlock) {
       .WillOnce(Return(regular_block_hash));
 
   EXPECT_CALL(*storage, tryGet(_))
-      .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND))
-      .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND));
+      .WillOnce(Return(std::nullopt))
+      .WillOnce(Return(std::nullopt));
 
   Block block;
   block.header.number = 1;

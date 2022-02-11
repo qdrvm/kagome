@@ -8,25 +8,29 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeError, e) {
   using E = kagome::blockchain::BlockTreeError;
   switch (e) {
-    case E::INVALID_DB:
-      return "genesis block is not provided, and the database is either empty "
-             "or does not contain valid block tree";
     case E::NO_PARENT:
       return "block, which should have been added, has no known parent";
     case E::BLOCK_EXISTS:
       return "block, which should have been inserted, already exists in the "
              "tree";
-    case E::HASH_FAILED:
-      return "attempt to hash block part has failed";
-    case E::NO_SUCH_BLOCK:
-      return "block with such hash cannot be found in the local storage";
-    case E::INCORRECT_ARGS:
-      return "arguments, which were provided, are incorrect";
-    case E::NO_SOME_BLOCK_IN_CHAIN:
+    case E::SOME_BLOCK_IN_CHAIN_NOT_FOUND:
       return "one of the blocks for getting the chain was not found in the "
              "local storage";
-    case E::INTERNAL_ERROR:
-      return "internal error happened";
+    case E::TARGET_IS_PAST_MAX:
+      return "target block number is past the given maximum number";
+    case E::BLOCK_ON_DEAD_END:
+      return "block resides on a dead fork";
+    case E::EXISTING_BLOCK_NOT_FOUND:
+      return "block exists in chain but not found when following all leaves "
+             "backwards";
+    case E::NON_FINALIZED_BLOCK_NOT_FOUND:
+      return "a non-finalized block is not found";
+    case E::JUSTIFICATION_NOT_FOUND:
+      return "the requested justification is not found in block storage";
+    case E::HEADER_NOT_FOUND:
+      return "the requested block header is not found in block storage";
+    case E::BODY_NOT_FOUND:
+      return "the requested block body is not found in block storage";
   }
   return "unknown error";
 }

@@ -77,7 +77,7 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*app_state_manager, atPrepare(_));
 
     authority_manager = std::make_shared<AuthorityManagerImpl>(
-        app_state_manager, block_tree, storage, grandpa_api, hasher);
+        AuthorityManagerImpl::Config{}, app_state_manager, block_tree, storage, grandpa_api, hasher);
 
     ON_CALL(*block_tree, hasDirectChain(_, _))
         .WillByDefault(testing::Invoke([](auto &anc, auto &des) {
@@ -169,7 +169,7 @@ class AuthorityManagerTest : public testing::Test {
     common::Buffer encoded_data(encode_result.value());
 
     EXPECT_CALL(*block_tree, getLastFinalized())
-        .WillOnce(Return(genesis_block));
+        .WillRepeatedly(Return(genesis_block));
 
     EXPECT_CALL(*block_tree, getLeaves()).WillOnce(Return(leaves));
 
