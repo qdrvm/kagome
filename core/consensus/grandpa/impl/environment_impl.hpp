@@ -73,6 +73,7 @@ namespace kagome::consensus::grandpa {
 
     outcome::result<void> onCommitted(
         RoundNumber round,
+        MembershipCounter voter_ser_id,
         const BlockInfo &vote,
         const GrandpaJustification &justification) override;
 

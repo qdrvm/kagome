@@ -614,9 +614,10 @@ namespace kagome::consensus::grandpa {
     auto res = env_->finalize(voter_set_->id(), justification);
     if (res.has_error()) {
       SL_WARN(logger_,
-              "Round #{}: Finalizing on block {} is failed",
+              "Round #{}: Finalizing on block {} is failed: {}",
               round_number_,
-              block);
+              block,
+              res.error().message());
     }
   }
 
@@ -636,7 +637,8 @@ namespace kagome::consensus::grandpa {
              round_number_,
              block);
 
-    auto committed = env_->onCommitted(round_number_, block, justification);
+    auto committed = env_->onCommitted(
+        round_number_, voter_set_->id(), block, justification);
     if (not committed) {
       logger_->error("Round #{}: Commit message was not sent: {}",
                      round_number_,
