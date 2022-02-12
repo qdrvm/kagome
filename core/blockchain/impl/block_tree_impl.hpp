@@ -44,16 +44,7 @@ namespace kagome::blockchain {
 
   class BlockTreeImpl : public BlockTree {
    public:
-
-    /**
-     * Create an instance of block tree
-     * @param header_repo - block headers repository
-     * @param storage - block storage for the tree to be put in
-     * @param last_finalized_block - last finalized block, from which the tree
-     * is going to grow
-     * @param hasher - pointer to the hasher
-     * @return ptr to the created instance or error
-     */
+    /// Create an instance of block tree
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
@@ -69,7 +60,8 @@ namespace kagome::blockchain {
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<consensus::BabeUtil> babe_util);
 
-    static outcome::result<void> recovery(
+    /// Do recover block tree stare to provided block
+    static outcome::result<void> recover(
         const application::AppConfiguration &app_config,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<BlockHeaderRepository> header_repo,

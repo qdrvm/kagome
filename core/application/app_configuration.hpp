@@ -164,7 +164,7 @@ namespace kagome::application {
 
     virtual bool isOffchainIndexingEnabled() const = 0;
 
-    virtual std::optional<primitives::BlockId> recoveryState() const = 0;
+    virtual std::optional<primitives::BlockId> recoverState() const = 0;
   };
 
 }  // namespace kagome::application

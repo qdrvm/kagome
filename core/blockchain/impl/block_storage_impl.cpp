@@ -116,8 +116,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<std::optional<primitives::Justification>>
-  BlockStorageImpl::getJustification(
-      const primitives::BlockId &block) const {
+  BlockStorageImpl::getJustification(const primitives::BlockId &block) const {
     OUTCOME_TRY(block_data, getBlockData(block));
     if (block_data.has_value()
         && block_data.value().justification.has_value()) {
@@ -188,7 +187,7 @@ namespace kagome::blockchain {
     //  to avoid storage space leaks
     auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
     OUTCOME_TRY(block_in_storage_opt,
-        getWithPrefix(*storage_, Prefix::HEADER, block_hash));
+                getWithPrefix(*storage_, Prefix::HEADER, block_hash));
     if (block_in_storage_opt.has_value()) {
       return BlockStorageError::BLOCK_EXISTS;
     }
@@ -248,15 +247,7 @@ namespace kagome::blockchain {
     }
 
     // TODO(xDimon): needed to clean up trie storage if block deleted
-    // auto trie_node_lookup_key =
-    //     prependPrefix(block_lookup_key, Prefix::TRIE_NODE);
-    // if (auto res = storage_->remove(trie_node_lookup_key); res.has_error()) {
-    //   SL_ERROR(logger_,
-    //            "could not remove trie node of block {} from the storage:{}",
-    //            block,
-    //            res.error().message());
-    //   return res;
-    // }
+    //  issue: https://github.com/soramitsu/kagome/issues/1128
 
     auto justification_key =
         prependPrefix(block_lookup_key, Prefix::JUSTIFICATION);

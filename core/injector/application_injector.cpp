@@ -1347,7 +1347,7 @@ namespace {
          storage = std::move(storage),
          header_repo = std::move(header_repo),
          trie_storage = std::move(trie_storage)] {
-          auto res = blockchain::BlockTreeImpl::recovery(
+          auto res = blockchain::BlockTreeImpl::recover(
               app_config, storage, header_repo, trie_storage);
           return res.has_error() ? EXIT_FAILURE : EXIT_SUCCESS;
         }));

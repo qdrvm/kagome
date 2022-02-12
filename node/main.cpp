@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
         configuration);
 
     // Recovery mode
-    if (configuration.recoveryState().has_value()) {
+    if (configuration.recoverState().has_value()) {
       return app->recovery();
     }
 

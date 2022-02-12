@@ -55,7 +55,7 @@ namespace {
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
   const bool def_enable_offchain_indexing = false;
-  const std::optional<kagome::primitives::BlockId> def_recovery_state =
+  const std::optional<kagome::primitives::BlockId> def_block_to_recover =
       std::nullopt;
 
   /**
@@ -105,14 +105,14 @@ namespace {
   std::optional<kagome::primitives::BlockId> str_to_recovery_state(
       std::string_view str) {
     kagome::primitives::BlockNumber bn;
-    auto result = std::from_chars(str.data(), str.data() + str.size(), bn);
-    if (result.ec != std::errc::invalid_argument && std::to_string(bn) == str) {
-      return {{bn}};
-    }
-
     auto res = kagome::primitives::BlockHash::fromHex(str);
     if (res.has_value()) {
       return {{res.value()}};
+    }
+
+    auto result = std::from_chars(str.data(), str.data() + str.size(), bn);
+    if (result.ec != std::errc::invalid_argument && std::to_string(bn) == str) {
+      return {{bn}};
     }
 
     return std::nullopt;
@@ -139,7 +139,7 @@ namespace kagome::application {
         runtime_exec_method_{def_runtime_exec_method},
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
-        recovery_state_{def_recovery_state} {}
+        recovery_state_{def_block_to_recover} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();

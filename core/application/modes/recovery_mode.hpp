@@ -12,6 +12,7 @@
 
 namespace kagome::application::mode {
 
+  /// Mode for recover state to provided block
   class RecoveryMode final : public Mode {
    public:
     RecoveryMode(std::function<int()> &&runner) : runner_(std::move(runner)) {}

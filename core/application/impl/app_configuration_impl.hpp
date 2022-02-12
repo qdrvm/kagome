@@ -138,7 +138,7 @@ namespace kagome::application {
     bool isOffchainIndexingEnabled() const override {
       return enable_offchain_indexing_;
     }
-    virtual std::optional<primitives::BlockId> recoveryState() const override {
+    virtual std::optional<primitives::BlockId> recoverState() const override {
       return recovery_state_;
     }
 

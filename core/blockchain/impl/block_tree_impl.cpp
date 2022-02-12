@@ -324,7 +324,7 @@ namespace kagome::blockchain {
     return std::shared_ptr<BlockTreeImpl>(block_tree);
   }
 
-  outcome::result<void> BlockTreeImpl::recovery(
+  outcome::result<void> BlockTreeImpl::recover(
       const application::AppConfiguration &app_config,
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<BlockHeaderRepository> header_repo,
@@ -332,10 +332,10 @@ namespace kagome::blockchain {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
     BOOST_ASSERT(trie_storage != nullptr);
-    BOOST_ASSERT_MSG(app_config.recoveryState().has_value(),
+    BOOST_ASSERT_MSG(app_config.recoverState().has_value(),
                      "This method must be used only with --recovery CLI arg");
 
-    const auto recovery_state = app_config.recoveryState().value();
+    const auto recovery_state = app_config.recoverState().value();
 
     log::Logger log = log::createLogger("BlockTree", "blockchain");
 
