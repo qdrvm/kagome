@@ -794,7 +794,7 @@ namespace kagome::network {
             if (handler) handler(Error::DISCARDED_BLOCK);
           } else {
             SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
-            if (handler) handler(applying_res.as_failure());
+            if (handler) handler(block_info);
           }
         } else {
           if (handler) handler(block_info);
