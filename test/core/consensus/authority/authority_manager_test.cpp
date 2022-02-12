@@ -99,15 +99,15 @@ class AuthorityManagerTest : public testing::Test {
           };
           static bool ancestry[][14] = {
               // clang-format off
-	      //
-	      //                                 - FA - FB - FC
-	      //                               /   35   40   45
-	      // GEN - A - B - C - D - E +--- F
-	      //   1   5   10  15  20  25 \   30
-	      //                           \
-	      //                            - EA - EB - EC - ED
-	      //                              30   35   40   45
-              //
+	    /*
+	                                         - FA - FB - FC
+	                                       /   35   40   45
+	         GEN - A - B - C - D - E +--- F
+	           1   5   10  15  20  25 \   30
+	                                   \
+	                                    - EA - EB - EC - ED
+	                                      30   35   40   45
+            */
             /* A\\D  GEN A  B  C  D  E EA EB EC ED  F FA FB FC */
             /* GEN*/ {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
             /* A  */ {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
