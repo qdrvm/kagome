@@ -204,9 +204,10 @@ namespace kagome::blockchain {
     block_data.body = block.body;
 
     OUTCOME_TRY(putBlockData(block.header.number, block_data));
-    logger_->info("Added block {}. State root: {}",
+    logger_->info("Added block {} as child of {}",
                   primitives::BlockInfo(block.header.number, block_hash),
-                  block.header.state_root);
+                  primitives::BlockInfo(block.header.number - 1,
+                                        block.header.parent_hash));
     return block_hash;
   }
 
@@ -245,6 +246,7 @@ namespace kagome::blockchain {
                  res.error().message());
         return res;
       }
+      SL_DEBUG(logger_, "Removed num-to-idx of {}", block);
     }
 
     // TODO(xDimon): needed to clean up trie storage if block deleted

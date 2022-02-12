@@ -20,7 +20,9 @@ namespace kagome::blockchain {
     // it's important to convert storage errors of this type to this one to
     // enable a user to discern between cases when a header with provided id
     // is not found and when an internal storage error occurs
-    BLOCK_NOT_FOUND = 1
+    BLOCK_NOT_FOUND = 1,
+    LOOKUP_KEY_BY_NUMBER_NOT_FOUND,
+    LOOKUP_KEY_BY_HASH_NOT_FOUND,
   };
 
   /**

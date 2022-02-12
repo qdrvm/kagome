@@ -920,8 +920,8 @@ namespace kagome::blockchain {
      * check that ancestor is above descendant
      * optimization that prevents reading blockDB up the genesis
      * TODO (xDimon) it could be not right place for this check
-     * or changing logic may make it obsolete
-     * block numbers may be obtained somewhere else
+     *  or changing logic may make it obsolete
+     *  block numbers may be obtained somewhere else
      */
     primitives::BlockNumber ancestor_depth = 0u;
     primitives::BlockNumber descendant_depth = 0u;
@@ -1131,17 +1131,14 @@ namespace kagome::blockchain {
     auto following_node = lastFinalizedNode;
 
     for (auto current_node = following_node->parent.lock();
-         current_node
-         && !(current_node->finalized && current_node->children.size() == 1);
+         current_node && !current_node->finalized;
          current_node = current_node->parent.lock()) {
       // DFS-on-deque
       to_remove.emplace_back();  // Waterbreak
       std::copy_if(current_node->children.begin(),
                    current_node->children.end(),
                    std::back_inserter(to_remove),
-                   [&following_node](const auto &child) {
-                     return child != following_node;
-                   });
+                   [&](const auto &child) { return child != following_node; });
       auto last = to_remove.back();
       while (last != nullptr) {
         to_remove.pop_back();
@@ -1200,13 +1197,12 @@ namespace kagome::blockchain {
       return outcome::success();
     }
     auto hash_res = header_repo_->getHashByNumber(block.number);
-    if (hash_res.has_value()) {
-      if (block.hash == hash_res.value()) {
-        return outcome::success();
+    if (hash_res.has_error()) {
+      if (hash_res != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+        return hash_res.as_failure();
       }
-    } else if (hash_res
-               != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
-      return hash_res.as_failure();
+    } else if (block.hash == hash_res.value()) {
+      return outcome::success();
     }
 
     size_t count = 0;
@@ -1214,8 +1210,13 @@ namespace kagome::blockchain {
       OUTCOME_TRY(storage_->putNumberToIndexKey(block));
       if (block.number == 0) break;
       OUTCOME_TRY(header, getBlockHeader(block.hash));
-      OUTCOME_TRY(parent_hash, header_repo_->getHashByNumber(block.number - 1));
-      if (parent_hash == header.parent_hash) {
+      auto parent_hash_res = header_repo_->getHashByNumber(block.number - 1);
+      if (parent_hash_res.has_error()) {
+        if (parent_hash_res
+            != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+          return parent_hash_res.as_failure();
+        }
+      } else if (header.parent_hash == parent_hash_res.value()) {
         break;
       }
       ++count;

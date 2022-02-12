@@ -17,7 +17,6 @@
 #include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
-#include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
@@ -27,6 +26,7 @@
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
@@ -36,11 +36,13 @@ using namespace clock;
 using namespace consensus;
 using namespace primitives;
 using namespace blockchain;
+using namespace testutil;
 
 using namespace std::chrono_literals;
 
 using prefix::Prefix;
 using testing::_;
+using testing::Invoke;
 using testing::Return;
 
 struct BlockTreeTest : public testing::Test {
@@ -69,11 +71,33 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, getJustification(kLastFinalizedBlockId))
         .WillOnce(Return(outcome::success(Justification{})));
 
+    EXPECT_CALL(*storage_, removeBlock(_))
+        .WillRepeatedly(Invoke([&](const auto &b) {
+          delNumToHash(b.number, b.hash);
+          return outcome::success();
+        }));
+
     EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.hash))
         .WillRepeatedly(Return(kFinalizedBlockInfo.number));
 
-    EXPECT_CALL(*header_repo_, getHashByNumber(kFinalizedBlockInfo.number))
-        .WillRepeatedly(Return(kFinalizedBlockInfo.hash));
+    EXPECT_CALL(*header_repo_, getHashByNumber(_))
+        .WillRepeatedly(
+            Invoke([&](const BlockNumber &n) -> outcome::result<BlockHash> {
+              auto it = num_to_hash_.find(n);
+              if (it == num_to_hash_.end()) {
+                return blockchain::Error::BLOCK_NOT_FOUND;
+              }
+              return it->second;
+            }));
+
+    EXPECT_CALL(*storage_, putNumberToIndexKey(_))
+        .WillRepeatedly(
+            Invoke([&](const BlockInfo &b) -> outcome::result<void> {
+              putNumToHash(b);
+              return outcome::success();
+            }));
+
+    putNumToHash(kFinalizedBlockInfo);
 
     auto chain_events_engine =
         std::make_shared<primitives::events::ChainSubscriptionEngine>();
@@ -83,7 +107,7 @@ struct BlockTreeTest : public testing::Test {
     auto extrinsic_event_key_repo =
         std::make_shared<subscription::ExtrinsicEventKeyRepository>();
 
-    clock_ = std::make_shared<SystemClockMock>();
+    EXPECT_CALL(*changes_tracker_, onBlockAdded(_)).WillRepeatedly(Return());
 
     babe_config_ = std::make_shared<primitives::BabeConfiguration>();
     babe_config_->slot_duration = 60ms;
@@ -121,30 +145,40 @@ struct BlockTreeTest : public testing::Test {
 
     EXPECT_CALL(*header_repo_, getBlockHeader(BlockId(hash)))
         .WillRepeatedly(Return(block.header));
-    EXPECT_CALL(*header_repo_, getHashByNumber(block.header.number))
-        .WillRepeatedly(Return(hash));
     EXPECT_CALL(*header_repo_, getNumberByHash(hash))
         .WillRepeatedly(Return(block.header.number));
 
-    EXPECT_CALL(*storage_, putBlock(block)).WillRepeatedly(Return(hash));
+    EXPECT_CALL(*storage_, putBlock(block))
+        .WillRepeatedly(Invoke([&](const auto &block) {
+          putNumToHash(block_info);
+          return hash;
+        }));
 
     // for reorganizing
-    EXPECT_CALL(*storage_, putNumberToIndexKey(block_info))
-        .WillRepeatedly(Return(outcome::success()));
     EXPECT_CALL(*storage_, getBlockHeader(BlockId(hash)))
         .WillRepeatedly(Return(block.header));
-    EXPECT_CALL(*header_repo_, getHashByNumber(block.header.number - 1))
-        .WillRepeatedly(Return(block.header.parent_hash));
 
     EXPECT_TRUE(block_tree_->addBlock(block));
 
     return hash;
   }
 
-  BlockHash addHeaderToRepository(const BlockId &parent, BlockNumber number) {
+  /**
+   * Creates block and add it to block tree
+   * @param parent - hash of parent block
+   * @param number - number of new block
+   * @param state - hash of state root
+   * @return hash newly created block
+   * @note To create different block with same number and parent, use different
+   * hash ot state root
+   */
+  BlockHash addHeaderToRepository(const BlockId &parent,
+                                  BlockNumber number,
+                                  storage::trie::RootHash state = {}) {
     BlockHeader header;
     header.parent_hash = boost::get<BlockHash>(parent);
     header.number = number;
+    header.state_root = state;
 
     return addBlock(Block{header, {}});
   }
@@ -173,7 +207,6 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
       std::make_shared<storage::changes_trie::ChangesTrackerMock>();
 
-  std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeUtilMock> babe_util_;
 
@@ -207,6 +240,18 @@ struct BlockTreeTest : public testing::Test {
                                       .digest = make_digest(42)};
 
   BlockBody finalized_block_body_{{Buffer{0x22, 0x44}}, {Buffer{0x55, 0x66}}};
+
+  std::map<BlockNumber, BlockHash> num_to_hash_;
+
+  void putNumToHash(const BlockInfo &b) {
+    num_to_hash_.emplace(b.number, b.hash);
+  }
+  void delNumToHash(BlockNumber n, BlockHash h) {
+    if (auto it = num_to_hash_.find(n);
+        it != num_to_hash_.end() && it->second == h) {
+      num_to_hash_.erase(it);
+    }
+  }
 };
 
 /**
@@ -217,11 +262,11 @@ struct BlockTreeTest : public testing::Test {
 TEST_F(BlockTreeTest, GetBody) {
   // GIVEN
   // WHEN
-  EXPECT_CALL(*storage_, getBlockBody(_))
+  EXPECT_CALL(*storage_, getBlockBody(kLastFinalizedBlockId))
       .WillOnce(Return(finalized_block_body_));
 
   // THEN
-  EXPECT_OUTCOME_TRUE(body, block_tree_->getBlockBody(kLastFinalizedBlockId))
+  ASSERT_OUTCOME_SUCCESS(body, block_tree_->getBlockBody(kLastFinalizedBlockId))
   ASSERT_EQ(body, finalized_block_body_);
 }
 
@@ -373,8 +418,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
       .WillRepeatedly(Return(primitives::Version{}));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
       .WillRepeatedly(Return(outcome::success(B1_body)));
-  EXPECT_CALL(*storage_, removeBlock(BlockInfo(B_header.number, B_hash)))
-      .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*author_api_, submitExtrinsic(_))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
@@ -443,10 +486,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
       .WillRepeatedly(Return(outcome::success(B1_body)));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{C1_hash}))
       .WillRepeatedly(Return(outcome::success(C1_body)));
-  EXPECT_CALL(*storage_, removeBlock(BlockInfo(B1_header.number, B1_hash)))
-      .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, removeBlock(BlockInfo(C1_header.number, C1_hash)))
-      .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*author_api_, submitExtrinsic(_))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
@@ -591,7 +630,7 @@ TEST_F(BlockTreeTest, GetChainByBlockOnly) {
   std::vector<BlockHash> expected_chain{kFinalizedBlockInfo.hash, hash1, hash2};
 
   // WHEN
-  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2))
+  ASSERT_OUTCOME_SUCCESS(chain, block_tree_->getChainByBlock(hash2))
 
   // THEN
   ASSERT_EQ(chain, expected_chain);
@@ -659,9 +698,9 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockInfo.hash};
 
   // WHEN
-  EXPECT_OUTCOME_TRUE(chain,
-                      block_tree_->getChainByBlock(
-                          hash2, BlockTree::GetChainDirection::DESCEND, 5));
+  ASSERT_OUTCOME_SUCCESS(chain,
+                         block_tree_->getChainByBlock(
+                             hash2, BlockTree::GetChainDirection::DESCEND, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);
@@ -701,7 +740,7 @@ TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
 
   auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
 
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
   ASSERT_EQ(best_info.hash, target_hash);
 }
@@ -735,6 +774,73 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
   ASSERT_OUTCOME_SUCCESS(best_info,
                          block_tree_->getBestContaining(T_hash, std::nullopt));
   ASSERT_EQ(best_info.hash, D2_hash);
+}
+
+/**
+ * @given a block tree with two branches-chains
+ * @when trying to obtain the best chain containing the root of the split on
+ two
+ * chains
+ * @then the longest chain with is returned
+ */
+TEST_F(BlockTreeTest, Reorganize) {
+  EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
+      .WillRepeatedly(Return(finalized_block_header_));
+
+  // GIVEN
+  auto A_hash = addHeaderToRepository(kLastFinalizedBlockId, 43);
+  auto B_hash = addHeaderToRepository(A_hash, 44);
+
+  //   42   43  44  45   46   47
+  //
+  //   LF - A - B
+
+  // WHEN.1
+  auto C1_hash = addHeaderToRepository(B_hash, 45, "1"_hash256);
+  auto D1_hash = addHeaderToRepository(C1_hash, 46, "1"_hash256);
+  auto E1_hash = addHeaderToRepository(D1_hash, 47, "1"_hash256);
+
+  //   42   43  44  45   46   47
+  //
+  //   LF - A - B - C1 - D1 - E1
+
+  // THEN.2
+  ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E1_hash));
+
+  // WHEN.2
+  auto C2_hash = addHeaderToRepository(B_hash, 45, "2"_hash256);
+  auto D2_hash = addHeaderToRepository(C2_hash, 46, "2"_hash256);
+  auto E2_hash = addHeaderToRepository(D2_hash, 47, "2"_hash256);
+
+  //   42   43  44  45   46   47
+  //
+  //                C2 - D2 - E2
+  //              /
+  //   LF - A - B - C1 - D1 - E1
+
+  // THEN.2
+  ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E1_hash));
+
+  // WHEN.3
+  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(C2_hash)))
+      .WillOnce(Return(outcome::failure(DummyError::ERROR)));
+  EXPECT_CALL(*storage_, putJustification(_, _, _))
+      .WillOnce(Return(outcome::success()));
+
+  EXPECT_CALL(*storage_, getBlockBody(_))
+      .WillRepeatedly(Return(outcome::success(BlockBody{})));
+
+  EXPECT_CALL(*runtime_core_, version(C2_hash))
+      .WillRepeatedly(Return(primitives::Version{}));
+
+  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->finalize(C2_hash, {}));
+
+  //   42   43  44  45   46   47
+  //
+  //   LF - A - B - C2 - D2 - E2
+
+  // THEN.3
+  ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E2_hash));
 }
 
 /**

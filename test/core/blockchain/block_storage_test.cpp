@@ -159,7 +159,7 @@ TEST_F(BlockStorageTest, PutBlock) {
   block.header.number = 1;
   block.header.parent_hash = genesis_block_hash;
 
-  EXPECT_OUTCOME_TRUE_1(block_storage->putBlock(block));
+  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->putBlock(block));
 }
 
 /**

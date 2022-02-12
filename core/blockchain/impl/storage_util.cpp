@@ -56,7 +56,8 @@ namespace kagome::blockchain {
     if (key_res.has_value()) {
       return map.contains(prependPrefix(key_res.value(), prefix));
     }
-    if (key_res == outcome::failure(Error::BLOCK_NOT_FOUND)) {
+    if (key_res == outcome::failure(Error::LOOKUP_KEY_BY_NUMBER_NOT_FOUND)
+        or key_res == outcome::failure(Error::LOOKUP_KEY_BY_HASH_NOT_FOUND)) {
       return false;
     }
     return key_res.as_failure();
@@ -66,8 +67,15 @@ namespace kagome::blockchain {
       const storage::BufferStorage &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id) {
-    OUTCOME_TRY(key, idToLookupKey(map, block_id));
-    return map.tryGet(prependPrefix(key, prefix));
+    auto key_res = idToLookupKey(map, block_id);
+    if (key_res.has_error()) {
+      if (key_res == outcome::failure(Error::LOOKUP_KEY_BY_NUMBER_NOT_FOUND)
+          || key_res == outcome::failure(Error::LOOKUP_KEY_BY_HASH_NOT_FOUND)) {
+        return Error::BLOCK_NOT_FOUND;
+      }
+      return key_res.as_failure();
+    }
+    return map.tryGet(prependPrefix(key_res.value(), prefix));
   }
 
   common::Buffer numberToIndexKey(primitives::BlockNumber n) {
