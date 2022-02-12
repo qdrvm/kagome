@@ -71,7 +71,18 @@ namespace kagome::blockchain {
     primitives::BlockInfo best_leaf(
         std::numeric_limits<primitives::BlockNumber>::min(), {});
     for (auto hash : block_tree_leaves) {
-      OUTCOME_TRY(number, header_repo->getNumberById(hash));
+      auto res = header_repo->getNumberById(hash);
+      if (res.has_error()) {
+        if (res
+            == outcome::failure(
+                blockchain::Error::LOOKUP_KEY_BY_HASH_NOT_FOUND)) {
+          SL_TRACE(log, "Leaf {} not found", hash);
+          continue;
+        }
+        return res.as_failure();
+      }
+      auto number = res.value();
+      SL_TRACE(log, "Leaf {} found", primitives::BlockInfo(number, hash));
       if (number <= least_leaf.number) {
         least_leaf = {number, hash};
       }
@@ -125,37 +136,25 @@ namespace kagome::blockchain {
     for (auto block_info = least_leaf;;) {
       if (block_info.number == 0) {
         SL_TRACE(log,
-                 "Search last finalized as block with justification. Block {} "
-                 "- genesis",
-                 block_info);
-
+                 "Not found block with justification. "
+                 "Genesis block will be used as last finalized");
         last_finalized_block_info = block_info;
         break;
       }
       auto j_res = storage->getJustification(block_info.hash);
       if (j_res.has_value()) {
         SL_TRACE(log,
-                 "Search last finalized as block with justification. Block {} "
-                 "- found!",
+                 "Justification is found in block {}. "
+                 "This block will be used as last finalized",
                  block_info);
-
         last_finalized_block_info = block_info;
         break;
       }
       if (j_res
           != outcome::failure(
               BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST)) {
-        SL_TRACE(log,
-                 "Search last finalized as block with justification is failed. "
-                 "Block {} - fail",
-                 block_info);
-
         return j_res.as_failure();
       }
-      SL_TRACE(log,
-               "Search last finalized as block with justification. Block {} - "
-               "not found",
-               block_info);
 
       OUTCOME_TRY(header, storage->getBlockHeader(block_info.hash));
       block_info = {header.number - 1, header.parent_hash};
@@ -182,7 +181,8 @@ namespace kagome::blockchain {
               .authorities = babe_configuration->genesis_authorities,
               .randomness = babe_configuration->randomness});
           SL_TRACE(log,
-                   "EPOCH_DIGEST_IN_BLOCKTREE: CURR EPOCH #{}, Randomness: {}",
+                   "Current epoch data has got basing genesis: "
+                   "Epoch #{}, Randomness: {}",
                    curr_epoch_number.value(),
                    curr_epoch.value().randomness.toHex());
         }
@@ -191,8 +191,8 @@ namespace kagome::blockchain {
               .authorities = babe_configuration->genesis_authorities,
               .randomness = babe_configuration->randomness});
           SL_TRACE(log,
-                   "EPOCH_DIGEST_IN_BLOCKTREE: NEXT EPOCH #{}+, Randomness: {}",
-                   1,
+                   "Next epoch data has got basing genesis: "
+                   "Epoch #1+, Randomness: {}",
                    next_epoch.value().randomness.toHex());
         }
         break;
@@ -209,40 +209,38 @@ namespace kagome::blockchain {
       auto slot_number = babe_digests_res.value().second.slot_number;
       auto epoch_number = babe_util->slotToEpoch(slot_number);
 
-      SL_TRACE(log,
-               "EPOCH_DIGEST_IN_BLOCKTREE: BLOCK, slot {}, epoch {}, block #{},"
-               " hash {}",
-               slot_number,
-               epoch_number,
-               header_tmp.number,
-               hash_tmp.toHex());
-
       if (not curr_epoch_number.has_value()) {
         curr_epoch_number = epoch_number;
         SL_TRACE(log,
-                 "EPOCH_DIGEST_IN_BLOCKTREE: CURRENT EPOCH #{}",
+                 "Current epoch number has gotten by slot number: {}",
                  curr_epoch_number.value());
       }
 
       if (auto digest = consensus::getNextEpochDigest(header_tmp);
           digest.has_value()) {
         SL_TRACE(log,
-                 "EPOCH_DIGEST_IN_BLOCKTREE: DIGEST, Randomness: {}",
-                 digest.value().randomness.toHex());
+                 "Epoch digest found in block {} (slot {}, epoch {}). "
+                 "Randomness: {}",
+                 primitives::BlockInfo(header_tmp.number, hash_tmp),
+                 slot_number,
+                 epoch_number,
+                 digest.value().randomness);
 
         if (not next_epoch.has_value()) {
           next_epoch.emplace(digest.value());
           SL_TRACE(log,
-                   "EPOCH_DIGEST_IN_BLOCKTREE: NEXT EPOCH #{}+, Randomness: {}",
+                   "Next epoch data is set by obtained digest: "
+                   "Epoch #{}+, Randomness: {}",
                    epoch_number + 1,
-                   next_epoch.value().randomness.toHex());
+                   next_epoch.value().randomness);
         }
         if (epoch_number != curr_epoch_number) {
           curr_epoch.emplace(digest.value());
           SL_TRACE(log,
-                   "EPOCH_DIGEST_IN_BLOCKTREE: CURR EPOCH #{}, Randomness: {}",
+                   "Current epoch data is set by obtained digest: "
+                   "Epoch #{}, Randomness: {}",
                    curr_epoch_number.value(),
-                   curr_epoch.value().randomness.toHex());
+                   curr_epoch.value().randomness);
           break;
         }
       }
@@ -250,17 +248,8 @@ namespace kagome::blockchain {
       hash_tmp = header_tmp.parent_hash;
     }
 
-    SL_TRACE(log,
-             "EPOCH_DIGEST_IN_BLOCKTREE: ROOT, block {}, "
-             "Epoch {}, Current randomness {}, Next randomness {}",
-             last_finalized_block_info,
-             curr_epoch_number.value(),
-             curr_epoch.value().randomness,
-             next_epoch.value().randomness);
-
     // Load non-finalized block from block storage
-    std::stack<std::pair<primitives::BlockHash, primitives::BlockHeader>>
-        collected;
+    std::multimap<primitives::BlockInfo, primitives::BlockHeader> collected;
 
     {
       std::unordered_set<primitives::BlockHash> observed;
@@ -277,14 +266,16 @@ namespace kagome::blockchain {
           auto header_res = storage->getBlockHeader(hash);
           if (header_res.has_error()) {
             SL_WARN(log,
-                    "Can't get header of existing block {}: {}",
+                    "Can't get header of existing non-finalized block {}: {}",
                     hash,
                     header_res.error().message());
             break;
           }
 
           const auto &header = header_res.value();
-          collected.emplace(hash, header);
+          primitives::BlockInfo block(header.number, hash);
+
+          collected.emplace(block, header);
 
           hash = header.parent_hash;
         }
@@ -314,20 +305,19 @@ namespace kagome::blockchain {
                           std::move(babe_util));
 
     // Add non-finalized block to the block tree
-    while (not collected.empty()) {
-      const auto &args = std::move(collected.top());
-      const auto &hash = args.first;
-      const auto &header = args.second;
+    for (auto &e : collected) {
+      const auto &block = e.first;
+      const auto header = std::move(e.second);
 
-      auto res = block_tree->addExistingBlock(hash, header);
+      auto res = block_tree->addExistingBlock(block.hash, header);
       if (res.has_error()) {
         SL_WARN(log,
-                "Can't add existing block {} to block tree: {}",
-                primitives::BlockInfo(header.number, hash),
+                "Can't add existing non-finalized block {} to block tree: {}",
+                block,
                 res.error().message());
       }
-
-      collected.pop();
+      SL_TRACE(
+          log, "Existing non-finalized block {} is added to block tree", block);
     }
 
     return std::shared_ptr<BlockTreeImpl>(block_tree);
