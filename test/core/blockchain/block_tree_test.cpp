@@ -85,7 +85,7 @@ struct BlockTreeTest : public testing::Test {
             Invoke([&](const BlockNumber &n) -> outcome::result<BlockHash> {
               auto it = num_to_hash_.find(n);
               if (it == num_to_hash_.end()) {
-                return blockchain::Error::BLOCK_NOT_FOUND;
+                return blockchain::BlockTreeError::HEADER_NOT_FOUND;
               }
               return it->second;
             }));
@@ -724,9 +724,9 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
   EXPECT_CALL(*header_repo_, getHashByNumber(target_header.number))
       .WillRepeatedly(Return(target_hash));
 
-  ASSERT_OUTCOME_ERROR(
-      block_tree_->getBestContaining(target_hash, std::nullopt),
-      BlockTreeImpl::Error::BLOCK_NOT_FOUND);
+  EXPECT_OUTCOME_FALSE(
+      best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
+  ASSERT_EQ(best_info, BlockTreeError::EXISTING_BLOCK_NOT_FOUND);
 }
 
 /**
@@ -856,6 +856,6 @@ TEST_F(BlockTreeTest, GetBestChain_TargetPastMax) {
 
   auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
 
-  ASSERT_OUTCOME_ERROR(block_tree_->getBestContaining(target_hash, 42),
-                       BlockTreeImpl::Error::TARGET_IS_PAST_MAX);
+  EXPECT_OUTCOME_FALSE(err, block_tree_->getBestContaining(target_hash, 42));
+  ASSERT_EQ(err, BlockTreeError::TARGET_IS_PAST_MAX);
 }

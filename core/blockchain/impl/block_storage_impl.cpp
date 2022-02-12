@@ -80,8 +80,8 @@ namespace kagome::blockchain {
     return hasWithPrefix(*storage_, Prefix::HEADER, id);
   }
 
-  outcome::result<primitives::BlockHeader> BlockStorageImpl::getBlockHeader(
-      const primitives::BlockId &id) const {
+  outcome::result<std::optional<primitives::BlockHeader>>
+  BlockStorageImpl::getBlockHeader(const primitives::BlockId &id) const {
     OUTCOME_TRY(encoded_header_opt,
                 getWithPrefix(*storage_, Prefix::HEADER, id));
     if (encoded_header_opt.has_value()) {
@@ -90,20 +90,20 @@ namespace kagome::blockchain {
           scale::decode<primitives::BlockHeader>(encoded_header_opt.value()));
       return std::move(header);
     }
-    return BlockStorageError::HEADER_DOES_NOT_EXIST;
+    return std::nullopt;
   }
 
-  outcome::result<primitives::BlockBody> BlockStorageImpl::getBlockBody(
-      const primitives::BlockId &id) const {
+  outcome::result<std::optional<primitives::BlockBody>>
+  BlockStorageImpl::getBlockBody(const primitives::BlockId &id) const {
     OUTCOME_TRY(block_data, getBlockData(id));
-    if (block_data.body) {
-      return block_data.body.value();
+    if (block_data.has_value() && block_data.value().body.has_value()) {
+      return block_data.value().body.value();
     }
-    return BlockStorageError::BODY_DOES_NOT_EXIST;
+    return std::nullopt;
   }
 
-  outcome::result<primitives::BlockData> BlockStorageImpl::getBlockData(
-      const primitives::BlockId &id) const {
+  outcome::result<std::optional<primitives::BlockData>>
+  BlockStorageImpl::getBlockData(const primitives::BlockId &id) const {
     OUTCOME_TRY(encoded_block_data_opt,
                 getWithPrefix(*storage_, Prefix::BLOCK_DATA, id));
     if (encoded_block_data_opt.has_value()) {
@@ -112,16 +112,18 @@ namespace kagome::blockchain {
           scale::decode<primitives::BlockData>(encoded_block_data_opt.value()));
       return std::move(block_data);
     }
-    return BlockStorageError::BLOCK_DATA_DOES_NOT_EXIST;
+    return std::nullopt;
   }
 
-  outcome::result<primitives::Justification> BlockStorageImpl::getJustification(
+  outcome::result<std::optional<primitives::Justification>>
+  BlockStorageImpl::getJustification(
       const primitives::BlockId &block) const {
     OUTCOME_TRY(block_data, getBlockData(block));
-    if (block_data.justification) {
-      return block_data.justification.value();
+    if (block_data.has_value()
+        && block_data.value().justification.has_value()) {
+      return block_data.value().justification.value();
     }
-    return BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST;
+    return std::nullopt;
   }
 
   outcome::result<void> BlockStorageImpl::putNumberToIndexKey(
@@ -150,11 +152,11 @@ namespace kagome::blockchain {
     // if block data does not exist, put a new one. Otherwise, get the old one
     // and merge with the new one. During the merge new block data fields have
     // higher priority over the old ones (old ones should be rewritten)
-    auto existing_block_data_res = getBlockData(block_data.hash);
-    if (not existing_block_data_res) {
+    OUTCOME_TRY(existing_block_data_opt, getBlockData(block_data.hash));
+    if (not existing_block_data_opt.has_value()) {
       to_insert = block_data;
     } else {
-      auto existing_data = existing_block_data_res.value();
+      auto &existing_data = existing_block_data_opt.value();
 
       // add all the fields from the new block_data
       to_insert.header =
@@ -185,14 +187,10 @@ namespace kagome::blockchain {
     //  (in side-chains rejected by finalization)
     //  to avoid storage space leaks
     auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
-    auto block_in_storage_res =
-        getWithPrefix(*storage_, Prefix::HEADER, block_hash);
-    if (block_in_storage_res.has_value()) {
+    OUTCOME_TRY(block_in_storage_opt,
+        getWithPrefix(*storage_, Prefix::HEADER, block_hash));
+    if (block_in_storage_opt.has_value()) {
       return BlockStorageError::BLOCK_EXISTS;
-    }
-    if (block_in_storage_res
-        != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
-      return block_in_storage_res.error();
     }
 
     // insert our block's parts into the database-

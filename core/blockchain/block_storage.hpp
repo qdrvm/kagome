@@ -43,28 +43,28 @@ namespace kagome::blockchain {
      * Tries to get block header by {@param id}
      * @returns block header or error
      */
-    virtual outcome::result<primitives::BlockHeader> getBlockHeader(
+    virtual outcome::result<std::optional<primitives::BlockHeader>> getBlockHeader(
         const primitives::BlockId &id) const = 0;
 
     /**
      * Tries to get block body by {@param id}
      * @returns block body or error
      */
-    virtual outcome::result<primitives::BlockBody> getBlockBody(
+    virtual outcome::result<std::optional<primitives::BlockBody>> getBlockBody(
         const primitives::BlockId &id) const = 0;
 
     /**
      * Tries to get block data by {@param id}
      * @returns block data or error
      */
-    virtual outcome::result<primitives::BlockData> getBlockData(
+    virtual outcome::result<std::optional<primitives::BlockData>> getBlockData(
         const primitives::BlockId &id) const = 0;
 
     /**
      * Tries to get justification of block finality by {@param id}
      * @returns justification or error
      */
-    virtual outcome::result<primitives::Justification> getJustification(
+    virtual outcome::result<std::optional<primitives::Justification>> getJustification(
         const primitives::BlockId &block) const = 0;
 
     /**

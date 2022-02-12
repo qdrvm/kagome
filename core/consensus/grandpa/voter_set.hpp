@@ -14,14 +14,15 @@
 namespace kagome::consensus::grandpa {
 
   /**
-   * Stores voters with their correspondend weights
+   * Stores voters with their corresponding weights
    */
   struct VoterSet final {
    public:
     enum class Error {
       VOTER_ALREADY_EXISTS = 1,
       VOTER_NOT_FOUND,
-      INDEX_OUTBOUND
+      INDEX_OUTBOUND,
+      QUERYING_ZERO_VOTER
     };
 
     using Index = size_t;
@@ -37,7 +38,7 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> insert(Id voter, Weight weight);
 
     /**
-     * \return uniqie voter set membership
+     * \return unique voter set membership id
      */
     inline MembershipCounter id() const {
       return id_;
@@ -61,7 +62,7 @@ namespace kagome::consensus::grandpa {
     /**
      * \return weight of voter by index \param voter_index
      */
-    outcome::result<Weight> voterWeight(size_t voter_index) const;
+    outcome::result<Weight> voterWeight(Index voter_index) const;
 
     inline size_t size() const {
       return list_.size();

@@ -474,8 +474,9 @@ namespace kagome::host_api {
     static const auto empty_hash = Buffer(codec_.hash256({0}));
     auto current_key = prefix;
     auto key_res = getStorageNextKey(current_key);
-    while (key_res and key_res.value()) {
-      current_key = key_res.value().value();
+    while (key_res.has_value() and key_res.value().has_value()) {
+      auto& key_opt = key_res.value();
+      current_key = key_opt.value();
 
       bool contains_prefix =
           std::equal(prefix.begin(), prefix.end(), current_key.begin());

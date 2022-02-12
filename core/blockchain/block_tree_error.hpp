@@ -14,14 +14,25 @@ namespace kagome::blockchain {
    * example, to compare a received error with those
    */
   enum class BlockTreeError {
-    INVALID_DB = 1,
-    NO_PARENT,
+    NO_PARENT = 1,
     BLOCK_EXISTS,
-    HASH_FAILED,
-    NO_SUCH_BLOCK,
-    INCORRECT_ARGS,
-    NO_SOME_BLOCK_IN_CHAIN,
-    INTERNAL_ERROR
+    // target block number is past the given maximum number
+    TARGET_IS_PAST_MAX,
+    // block resides on a dead fork
+    BLOCK_ON_DEAD_END,
+    // block exists in chain but not found when following all
+    // leaves backwards
+    EXISTING_BLOCK_NOT_FOUND,
+    // non-finalized block is not found
+    NON_FINALIZED_BLOCK_NOT_FOUND,
+    // justification is not found in block storage
+    JUSTIFICATION_NOT_FOUND,
+    // block body is not found in block storage
+    BODY_NOT_FOUND,
+    // block header is not found in block storage
+    HEADER_NOT_FOUND,
+    // some block in the requested chain is missing
+    SOME_BLOCK_IN_CHAIN_NOT_FOUND
   };
 }  // namespace kagome::blockchain
 

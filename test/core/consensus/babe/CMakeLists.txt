@@ -31,3 +31,11 @@ addtest(threshold_util_test
 target_link_libraries(threshold_util_test
     threshold_util
     )
+
+addtest(block_executor_test
+    block_executor_test.cpp
+    )
+target_link_libraries(block_executor_test
+    block_executor
+    log_configurator
+    )

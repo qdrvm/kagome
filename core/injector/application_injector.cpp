@@ -1316,10 +1316,11 @@ namespace {
 
     auto header_res = block_storage->getBlockHeader(hash);
     BOOST_ASSERT(header_res.has_value());
-    auto &header = header_res.value();
+    auto &header_opt = header_res.value();
+    BOOST_ASSERT(header_opt.has_value());
 
-    initialized.emplace(
-        new primitives::GenesisBlockHeader({.header = header, .hash = hash}));
+    initialized.emplace(new primitives::GenesisBlockHeader(
+        {.header = header_opt.value(), .hash = hash}));
 
     return initialized.value();
   }

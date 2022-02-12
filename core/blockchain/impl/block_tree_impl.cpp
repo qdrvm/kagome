@@ -18,20 +18,6 @@
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/database_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
-  using E = kagome::blockchain::BlockTreeImpl::Error;
-  switch (e) {
-    case E::TARGET_IS_PAST_MAX:
-      return "target block number is past the given maximum number";
-    case E::BLOCK_ON_DEAD_END:
-      return "block resides on a dead fork";
-    case E::BLOCK_NOT_FOUND:
-      return "block exists in chain but not found when following all leaves "
-             "backwards.";
-  }
-  return "unknown error";
-}
-
 namespace {
   constexpr auto blockHeightMetricName = "kagome_block_height";
   constexpr auto knownChainLeavesMetricName = "kagome_known_chain_leaves";
@@ -75,7 +61,7 @@ namespace kagome::blockchain {
       if (res.has_error()) {
         if (res
             == outcome::failure(
-                blockchain::Error::LOOKUP_KEY_BY_HASH_NOT_FOUND)) {
+                blockchain::BlockTreeError::EXISTING_BLOCK_NOT_FOUND)) {
           SL_TRACE(log, "Leaf {} not found", hash);
           continue;
         }
@@ -97,17 +83,21 @@ namespace kagome::blockchain {
     OUTCOME_TRY(first_block_header_exists, storage->hasBlockHeader(1));
     if (first_block_header_exists) {
       OUTCOME_TRY(first_block_header, storage->getBlockHeader(1));
-      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      BOOST_ASSERT_MSG(first_block_header.has_value(),
+                       "Existence of this header has been checked");
+      auto babe_digest_res =
+          consensus::getBabeDigests(first_block_header.value());
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
       auto first_slot_number = babe_digest_res.value().second.slot_number;
 
       // Second, look up slot number of best block
       auto &best_block_hash = best_leaf.hash;
-      auto best_block_header_res = storage->getBlockHeader(best_block_hash);
-      BOOST_ASSERT_MSG(best_block_header_res.has_value(),
+      OUTCOME_TRY(best_block_header_opt,
+                  storage->getBlockHeader(best_block_hash));
+      BOOST_ASSERT_MSG(best_block_header_opt.has_value(),
                        "Best block must be known whenever");
-      const auto &best_block_header = best_block_header_res.value();
+      const auto &best_block_header = best_block_header_opt.value();
       babe_digest_res = consensus::getBabeDigests(best_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
@@ -141,7 +131,7 @@ namespace kagome::blockchain {
         last_finalized_block_info = block_info;
         break;
       }
-      auto j_res = storage->getJustification(block_info.hash);
+      OUTCOME_TRY(j_res, storage->getJustification(block_info.hash));
       if (j_res.has_value()) {
         SL_TRACE(log,
                  "Justification is found in block {}. "
@@ -150,14 +140,11 @@ namespace kagome::blockchain {
         last_finalized_block_info = block_info;
         break;
       }
-      if (j_res
-          != outcome::failure(
-              BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST)) {
-        return j_res.as_failure();
-      }
-
       OUTCOME_TRY(header, storage->getBlockHeader(block_info.hash));
-      block_info = {header.number - 1, header.parent_hash};
+      BOOST_ASSERT_MSG(
+          header.has_value(),
+          "Header is sought by info from block tree and must exist in storage");
+      block_info = {header->number - 1, header->parent_hash};
     }
 
     std::optional<consensus::EpochDigest> curr_epoch;
@@ -198,7 +185,12 @@ namespace kagome::blockchain {
         break;
       }
 
-      OUTCOME_TRY(header_tmp, storage->getBlockHeader(hash_tmp));
+      OUTCOME_TRY(header_opt_tmp, storage->getBlockHeader(hash_tmp));
+      BOOST_ASSERT_MSG(
+          header_opt_tmp.has_value(),
+          "Header retrieved by hash previously retrieved from "
+          "HeaderRepository, thus the header should be present there");
+      auto &header_tmp = header_opt_tmp.value();
 
       auto babe_digests_res = consensus::getBabeDigests(header_tmp);
       if (not babe_digests_res) {
@@ -271,8 +263,17 @@ namespace kagome::blockchain {
                     header_res.error().message());
             break;
           }
+          auto &header_opt = header_res.value();
+          if (!header_opt.has_value()) {
+            SL_WARN(log,
+                    "Can't get header of existing block {}: not found in block "
+                    "storage",
+                    hash,
+                    header_res.error().message());
+            break;
+          }
 
-          const auto &header = header_res.value();
+          const auto &header = header_opt.value();
           primitives::BlockInfo block(header.number, hash);
 
           collected.emplace(block, header);
@@ -352,14 +353,19 @@ namespace kagome::blockchain {
     }
 
     // Check if target block exists
-    auto target_block_header_res = storage->getBlockHeader(recovery_state);
-    if (target_block_header_res.has_error()) {
+    auto target_block_header_opt_res = storage->getBlockHeader(recovery_state);
+    if (target_block_header_opt_res.has_error()) {
       SL_CRITICAL(log,
                   "Can't get header of target block: {}",
-                  target_block_header_res.error().message());
-      return target_block_header_res.as_failure();
+                  target_block_header_opt_res.error().message());
+      return target_block_header_opt_res.as_failure();
     }
-    const auto &target_block_header = target_block_header_res.value();
+    const auto &target_block_header_opt = target_block_header_opt_res.value();
+    if (not target_block_header_opt.has_value()) {
+      return BlockTreeError::HEADER_NOT_FOUND;
+    }
+
+    const auto &target_block_header = target_block_header_opt.value();
     const auto &state_root = target_block_header.state_root;
 
     // Check if target block has state
@@ -377,15 +383,19 @@ namespace kagome::blockchain {
         break;
       }
 
-      auto header_res = storage->getBlockHeader(block.hash);
-      if (header_res.has_error()) {
+      auto header_opt_res = storage->getBlockHeader(block.hash);
+      if (header_opt_res.has_error()) {
         SL_CRITICAL(log,
                     "Can't get header of one of removing block: {}",
-                    header_res.error().message());
-        return header_res.as_failure();
+                    header_opt_res.error().message());
+        return header_opt_res.as_failure();
+      }
+      const auto &header_opt = header_opt_res.value();
+      if (not header_opt.has_value()) {
+        return BlockTreeError::HEADER_NOT_FOUND;
       }
 
-      const auto &header = header_res.value();
+      const auto &header = header_opt.value();
       block_tree_leaves.emplace(block.number - 1, header.parent_hash);
       block_tree_leaves.erase(block);
 
@@ -649,9 +659,10 @@ namespace kagome::blockchain {
       const primitives::Justification &justification) {
     auto node = tree_->getRoot().findByHash(block_hash);
     if (!node) {
-      return BlockTreeError::NO_SUCH_BLOCK;
+      return BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND;
     }
-    if (storage_->getJustification(block_hash)) {
+    if (auto res = storage_->getJustification(block_hash);
+        res.has_value() && res.value().has_value()) {
       // block was already finalized, fine
       return outcome::success();
     }
@@ -674,9 +685,12 @@ namespace kagome::blockchain {
                                       tree_->getMetadata().leaves.end()}));
 
     OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
+    if (!header.has_value()) {
+      return BlockTreeError::HEADER_NOT_FOUND;
+    }
 
     chain_events_engine_->notify(
-        primitives::events::ChainEventType::kFinalizedHeads, header);
+        primitives::events::ChainEventType::kFinalizedHeads, header.value());
 
     OUTCOME_TRY(new_runtime_version, runtime_core_->version(block_hash));
     if (not actual_runtime_version_.has_value()
@@ -687,8 +701,10 @@ namespace kagome::blockchain {
           new_runtime_version);
     }
     OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
-
-    for (auto &ext : body) {
+    if (!body.has_value()) {
+      return BlockTreeError::BODY_NOT_FOUND;
+    }
+    for (auto &ext : body.value()) {
       if (auto key =
               extrinsic_event_key_repo_->get(hasher_->blake2b_256(ext.data))) {
         extrinsic_events_engine_->notify(
@@ -711,17 +727,23 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHeader> BlockTreeImpl::getBlockHeader(
       const primitives::BlockId &block) const {
-    return storage_->getBlockHeader(block);
+    OUTCOME_TRY(header, storage_->getBlockHeader(block));
+    if (header.has_value()) return header.value();
+    return BlockTreeError::HEADER_NOT_FOUND;
   }
 
   outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(
       const primitives::BlockId &block) const {
-    return storage_->getBlockBody(block);
+    OUTCOME_TRY(body, storage_->getBlockBody(block));
+    if (body.has_value()) return body.value();
+    return BlockTreeError::BODY_NOT_FOUND;
   }
 
   outcome::result<primitives::Justification>
   BlockTreeImpl::getBlockJustification(const primitives::BlockId &block) const {
-    return storage_->getJustification(block);
+    OUTCOME_TRY(justification, storage_->getJustification(block));
+    if (justification.has_value()) return justification.value();
+    return BlockTreeError::JUSTIFICATION_NOT_FOUND;
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
@@ -739,7 +761,7 @@ namespace kagome::blockchain {
       log_->error("cannot retrieve block with hash {}: {}",
                   block.toHex(),
                   block_number_res.error().message());
-      return BlockTreeError::NO_SUCH_BLOCK;
+      return BlockTreeError::HEADER_NOT_FOUND;
     }
     auto start_block_number = block_number_res.value();
 
@@ -766,7 +788,7 @@ namespace kagome::blockchain {
       log_->error("cannot retrieve block with number {}: {}",
                   finish_block_number,
                   finish_block_hash_res.error().message());
-      return BlockTreeError::NO_SUCH_BLOCK;
+      return BlockTreeError::HEADER_NOT_FOUND;
     }
     auto &finish_block_hash = finish_block_hash_res.value();
 
@@ -839,7 +861,7 @@ namespace kagome::blockchain {
             "impossible to get chain by blocks: "
             "intermediate block {} was not added to block tree before",
             current_hash);
-        return BlockTreeError::NO_SOME_BLOCK_IN_CHAIN;
+        return BlockTreeError::SOME_BLOCK_IN_CHAIN_NOT_FOUND;
       }
       current_hash = header_res.value().parent_hash;
       if (chain.size() >= response_length) {
@@ -983,7 +1005,7 @@ namespace kagome::blockchain {
       const std::optional<primitives::BlockNumber> &max_number) const {
     OUTCOME_TRY(target_header, header_repo_->getBlockHeader(target_hash));
     if (max_number.has_value() && target_header.number > max_number.value()) {
-      return Error::TARGET_IS_PAST_MAX;
+      return BlockTreeError::TARGET_IS_PAST_MAX;
     }
     OUTCOME_TRY(canon_hash,
                 header_repo_->getHashByNumber(target_header.number));
@@ -1003,7 +1025,7 @@ namespace kagome::blockchain {
       OUTCOME_TRY(last_finalized,
                   header_repo_->getNumberByHash(getLastFinalized().hash));
       if (last_finalized >= target_header.number) {
-        return Error::BLOCK_ON_DEAD_END;
+        return BlockTreeError::BLOCK_ON_DEAD_END;
       }
     }
     for (auto &leaf_hash : getLeavesSorted()) {
@@ -1031,7 +1053,7 @@ namespace kagome::blockchain {
         "backwards. Max block number = {}",
         target_hash.toHex(),
         max_number.has_value() ? max_number.value() : -1);
-    return Error::BLOCK_NOT_FOUND;
+    return BlockTreeError::EXISTING_BLOCK_NOT_FOUND;
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeaves() const {
@@ -1055,8 +1077,10 @@ namespace kagome::blockchain {
       return result;
     }
     OUTCOME_TRY(header, storage_->getBlockHeader(block));
+    if (!header.has_value()) return BlockTreeError::HEADER_NOT_FOUND;
     // if node is not in tree_ it must be finalized and thus have only one child
-    OUTCOME_TRY(child_hash, header_repo_->getHashByNumber(header.number + 1));
+    OUTCOME_TRY(child_hash,
+                header_repo_->getHashByNumber(header.value().number + 1));
     return outcome::success(std::vector<primitives::BlockHash>{child_hash});
   }
 
@@ -1076,7 +1100,7 @@ namespace kagome::blockchain {
       }
       return *node->epoch_digest;
     }
-    return BlockTreeError::NO_SUCH_BLOCK;
+    return BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND;
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSorted() const {
@@ -1149,7 +1173,7 @@ namespace kagome::blockchain {
 
     // remove from storage
     for (const auto &node : to_remove) {
-      auto block_body_res = storage_->getBlockBody(node->block_hash);
+      OUTCOME_TRY(block_body_res, storage_->getBlockBody(node->block_hash));
       if (block_body_res.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
         for (auto &ext : block_body_res.value()) {
@@ -1188,7 +1212,8 @@ namespace kagome::blockchain {
     }
     auto hash_res = header_repo_->getHashByNumber(block.number);
     if (hash_res.has_error()) {
-      if (hash_res != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+      if (hash_res
+          != outcome::failure(blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
         return hash_res.as_failure();
       }
     } else if (block.hash == hash_res.value()) {
@@ -1203,7 +1228,7 @@ namespace kagome::blockchain {
       auto parent_hash_res = header_repo_->getHashByNumber(block.number - 1);
       if (parent_hash_res.has_error()) {
         if (parent_hash_res
-            != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+            != outcome::failure(blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
           return parent_hash_res.as_failure();
         }
       } else if (header.parent_hash == parent_hash_res.value()) {

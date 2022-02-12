@@ -16,21 +16,12 @@ namespace kagome::blockchain {
   using ReadableBufferMap =
       storage::face::Readable<common::Buffer, common::Buffer>;
 
-  enum class Error {
-    // it's important to convert storage errors of this type to this one to
-    // enable a user to discern between cases when a header with provided id
-    // is not found and when an internal storage error occurs
-    BLOCK_NOT_FOUND = 1,
-    LOOKUP_KEY_BY_NUMBER_NOT_FOUND,
-    LOOKUP_KEY_BY_HASH_NOT_FOUND,
-  };
-
   /**
    * Convert a block ID into a key, which is a first part of a key, by which the
    * columns are stored in the database
    */
-  outcome::result<common::Buffer> idToLookupKey(const ReadableBufferMap &map,
-                                                const primitives::BlockId &id);
+  outcome::result<std::optional<common::Buffer>> idToLookupKey(
+      const ReadableBufferMap &map, const primitives::BlockId &id);
 
   /**
    * Instantiate empty merkle trie, insert \param key_vals pairs and \return
@@ -39,7 +30,5 @@ namespace kagome::blockchain {
   storage::trie::RootHash trieRoot(
       const std::vector<std::pair<common::Buffer, common::Buffer>> &key_vals);
 }  // namespace kagome::blockchain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, Error)
 
 #endif  // KAGOME_BLOCKCHAIN_COMMON_HPP

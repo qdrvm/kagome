@@ -52,30 +52,18 @@ namespace kagome::blockchain {
   outcome::result<bool> hasWithPrefix(const storage::BufferStorage &map,
                                       prefix::Prefix prefix,
                                       const primitives::BlockId &block_id) {
-    auto key_res = idToLookupKey(map, block_id);
-    if (key_res.has_value()) {
-      return map.contains(prependPrefix(key_res.value(), prefix));
-    }
-    if (key_res == outcome::failure(Error::LOOKUP_KEY_BY_NUMBER_NOT_FOUND)
-        or key_res == outcome::failure(Error::LOOKUP_KEY_BY_HASH_NOT_FOUND)) {
-      return false;
-    }
-    return key_res.as_failure();
+    OUTCOME_TRY(key, idToLookupKey(map, block_id));
+    if (!key.has_value()) return false;
+    return map.contains(prependPrefix(key.value(), prefix));
   }
 
   outcome::result<std::optional<common::Buffer>> getWithPrefix(
       const storage::BufferStorage &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id) {
-    auto key_res = idToLookupKey(map, block_id);
-    if (key_res.has_error()) {
-      if (key_res == outcome::failure(Error::LOOKUP_KEY_BY_NUMBER_NOT_FOUND)
-          || key_res == outcome::failure(Error::LOOKUP_KEY_BY_HASH_NOT_FOUND)) {
-        return Error::BLOCK_NOT_FOUND;
-      }
-      return key_res.as_failure();
-    }
-    return map.tryGet(prependPrefix(key_res.value(), prefix));
+    OUTCOME_TRY(key, idToLookupKey(map, block_id));
+    if (!key.has_value()) return std::nullopt;
+    return map.tryGet(prependPrefix(key.value(), prefix));
   }
 
   common::Buffer numberToIndexKey(primitives::BlockNumber n) {
