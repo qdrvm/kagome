@@ -154,7 +154,7 @@ namespace kagome::host_api {
     std::optional<common::Buffer> calcStorageChangesRoot(
         common::Hash256 parent) const;
 
-    runtime::WasmSpan clearPrefix(const common::BufferView &prefix,
+    runtime::WasmSpan clearPrefix(common::BufferView prefix,
                                   std::optional<uint32_t> limit);
 
     /**

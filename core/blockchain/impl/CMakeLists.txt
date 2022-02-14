@@ -4,10 +4,8 @@
 #
 
 add_library(blockchain_common
-        common.cpp
-    common.hpp
+    common.cpp
     storage_util.cpp
-    storage_util.hpp
     )
 target_link_libraries(blockchain_common
     blob

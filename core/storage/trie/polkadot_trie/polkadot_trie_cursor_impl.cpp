@@ -111,11 +111,11 @@ namespace kagome::storage::trie {
       auto type = current->getTrieType();
       if (type == NodeType::BranchEmptyValue
           or type == NodeType::BranchWithValue) {
-        auto *branch = dynamic_cast<const BranchNode *>(current);
+        auto &branch = dynamic_cast<const BranchNode &>(*current);
         // find the rightmost child
         for (int8_t i = BranchNode::kMaxChildren - 1; i >= 0; i--) {
-          if (branch->children.at(i) != nullptr) {
-            SAFE_CALL(child, trie_->retrieveChild(*branch, i))
+          if (branch.children.at(i) != nullptr) {
+            SAFE_CALL(child, trie_->retrieveChild(branch, i))
             SAFE_VOID_CALL(search_state.visitChild(i, *child))
             current = &search_state.getCurrent();
             break;
@@ -132,7 +132,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PolkadotTrieCursorImpl::seekLowerBoundInternal(
       const TrieNode &current, gsl::span<const uint8_t> sought_nibbles) {
-    BOOST_ASSERT(std::holds_alternative<SearchState>(state_));
+    BOOST_ASSERT(isValid());
     auto [sought_nibbles_mismatch, current_mismatch] =
         std::mismatch(sought_nibbles.begin(),
                       sought_nibbles.end(),
@@ -172,9 +172,9 @@ namespace kagome::storage::trie {
         case NodeType::BranchEmptyValue:
         case NodeType::BranchWithValue: {
           auto mismatch_pos = sought_nibbles_mismatch - sought_nibbles.begin();
-          auto *branch = dynamic_cast<const BranchNode *>(&current);
+          auto &branch = dynamic_cast<const BranchNode &>(current);
           SAFE_CALL(child,
-                    visitChildWithMinIdx(*branch, sought_nibbles[mismatch_pos]))
+                    visitChildWithMinIdx(branch, sought_nibbles[mismatch_pos]))
           if (child) {
             return seekLowerBoundInternal(*child,
                                           sought_nibbles.subspan(mismatch_pos + 1));
@@ -262,9 +262,9 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(std::holds_alternative<SearchState>(state_));
     auto &search_state = std::get<SearchState>(state_);
     for (uint8_t i = min_idx; i < BranchNode::kMaxChildren; i++) {
-      auto *branch = dynamic_cast<const BranchNode *>(&parent);
-      if (branch->children.at(i)) {
-        OUTCOME_TRY(child, trie_->retrieveChild(*branch, i));
+      auto &branch = dynamic_cast<const BranchNode &>(parent);
+      if (branch.children.at(i)) {
+        OUTCOME_TRY(child, trie_->retrieveChild(branch, i));
         BOOST_ASSERT(child != nullptr);
         OUTCOME_TRY(search_state.visitChild(i, *child));
         return child.get();

@@ -71,9 +71,7 @@ namespace kagome::offchain {
       existing = get_opt.value();
     }
 
-    if ((not existing.has_value() and not expected.has_value())
-        or (existing.has_value() and expected.has_value()
-            and existing == expected)) {
+    if (existing == expected) {
       OUTCOME_TRY(storage_->put(iKey, std::move(value)));
       return true;
     }

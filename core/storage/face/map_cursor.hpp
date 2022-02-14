@@ -16,6 +16,7 @@ namespace kagome::storage::face {
    * @brief An abstraction over generic map cursor.
    * @tparam K key type
    * @tparam V value type
+   * @tparam KView key view type
    */
   template <typename K, typename V, typename KView = K>
   struct MapCursor {
