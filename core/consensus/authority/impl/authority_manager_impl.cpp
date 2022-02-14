@@ -184,7 +184,10 @@ namespace kagome::authority {
                     Args{consensus_message.consensus_engine_id,
                          primitives::BlockInfo(header.number, hash),
                          consensus_message});
-                found = true;
+                if (consensus_message.consensus_engine_id
+                    == primitives::kGrandpaEngineId) {
+                  found = true;
+                }
               },
               [](const auto &...) {});  // Other variants are ignored
         }
@@ -363,8 +366,7 @@ namespace kagome::authority {
       new_node->forced_for = activate_at;
     }
 
-    SL_VERBOSE(
-        log_, "Change is forced on block #{}", activate_at);
+    SL_VERBOSE(log_, "Change is forced on block #{}", activate_at);
     for (auto &authority : *new_node->forced_authorities) {
       SL_VERBOSE(log_,
                  "New authority id={}, weight={}",
