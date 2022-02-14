@@ -85,7 +85,6 @@ namespace kagome::authority {
         primitives::BlockNumber activate_at) override;
 
     outcome::result<void> onConsensus(
-        const primitives::ConsensusEngineId &engine_id,
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) override;
 

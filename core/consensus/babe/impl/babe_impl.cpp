@@ -689,9 +689,7 @@ namespace kagome::consensus::babe {
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
             auto res = authority_update_observer_->onConsensus(
-                consensus_message.consensus_engine_id,
-                best_block_,
-                consensus_message);
+                best_block_, consensus_message);
             if (res.has_error()) {
               SL_WARN(log_,
                       "Can't process consensus message digest: {}",

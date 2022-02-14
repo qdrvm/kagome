@@ -239,7 +239,6 @@ namespace kagome::consensus {
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
             return authority_update_observer_->onConsensus(
-                consensus_message.consensus_engine_id,
                 primitives::BlockInfo{block.header.number, block_hash},
                 consensus_message);
           },
