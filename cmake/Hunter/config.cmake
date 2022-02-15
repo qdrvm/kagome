@@ -31,6 +31,12 @@ hunter_config(
 )
 
 hunter_config(
+    leveldb
+    URL  https://github.com/google/leveldb/archive/refs/tags/1.23.tar.gz
+    SHA1 042e267eae6ab522fe29274f79ad45cde3977655
+)
+
+hunter_config(
     libp2p
     URL https://github.com/libp2p/cpp-libp2p/archive/69299a8182a976fbe6654ed367ba1fb5d89800e0.tar.gz
     SHA1 024b4dad4afc900ed15e41fef85ff90e2ea2f00a
