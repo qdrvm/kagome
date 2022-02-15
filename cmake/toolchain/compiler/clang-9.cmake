@@ -1,7 +1,7 @@
-if(DEFINED POLLY_COMPILER_CLANG_10_CMAKE)
+if(DEFINED POLLY_COMPILER_CLANG_9_CMAKE)
   return()
 else()
-  set(POLLY_COMPILER_CLANG_10_CMAKE 1)
+  set(POLLY_COMPILER_CLANG_9_CMAKE 1)
 endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../print.cmake)
@@ -13,15 +13,15 @@ if(XCODE_VERSION)
   fatal_error(${_err})
 endif()
 
-find_program(CMAKE_C_COMPILER clang-10)
-find_program(CMAKE_CXX_COMPILER clang++-10)
+find_program(CMAKE_C_COMPILER clang-9)
+find_program(CMAKE_CXX_COMPILER clang++-9)
 
 if(NOT CMAKE_C_COMPILER)
-  fatal_error("clang-10 not found")
+  fatal_error("clang-9 not found")
 endif()
 
 if(NOT CMAKE_CXX_COMPILER)
-  fatal_error("clang++-10 not found")
+  fatal_error("clang++-9 not found")
 endif()
 
 set(
