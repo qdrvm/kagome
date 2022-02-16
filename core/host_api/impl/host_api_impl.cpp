@@ -244,6 +244,14 @@ namespace kagome::host_api {
     return crypto_ext_.ext_crypto_ecdsa_sign_version_1(key_type, key, msg_data);
   }
 
+  runtime::WasmSpan HostApiImpl::ext_crypto_ecdsa_sign_prehashed_version_1(
+      runtime::WasmSize key_type,
+      runtime::WasmPointer key,
+      runtime::WasmSpan msg_data) {
+    return crypto_ext_.ext_crypto_ecdsa_sign_prehashed_version_1(
+        key_type, key, msg_data);
+  }
+
   runtime::WasmPointer HostApiImpl::ext_crypto_ecdsa_generate_version_1(
       runtime::WasmSize key_type_id, runtime::WasmSpan seed) {
     return crypto_ext_.ext_crypto_ecdsa_generate_version_1(key_type_id, seed);
@@ -254,6 +262,14 @@ namespace kagome::host_api {
       runtime::WasmSpan msg,
       runtime::WasmPointer key) {
     return crypto_ext_.ext_crypto_ecdsa_verify_version_1(sig, msg, key);
+  }
+
+  int32_t HostApiImpl::ext_crypto_ecdsa_verify_prehashed_version_1(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg,
+      runtime::WasmPointer key) {
+    return crypto_ext_.ext_crypto_ecdsa_verify_prehashed_version_1(
+        sig, msg, key);
   }
 
   // ------------------------- Hashing extension/crypto ---------------

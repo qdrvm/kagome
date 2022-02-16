@@ -32,8 +32,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/69299a8182a976fbe6654ed367ba1fb5d89800e0.tar.gz
-    SHA1 024b4dad4afc900ed15e41fef85ff90e2ea2f00a
+    URL https://github.com/igor-egorov/cpp-libp2p/archive/feature/ecdsa-prehashed-face.tar.gz
+    SHA1 e45549cf6b8e22b6769766044354fc2493050493
     KEEP_PACKAGE_SOURCES
 )
 
