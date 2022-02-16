@@ -32,8 +32,8 @@ hunter_config(
 
 hunter_config(
     leveldb
-    URL  https://github.com/google/leveldb/archive/refs/tags/1.22.tar.gz
-    SHA1 8d310af5cfb53dc836bfb412ff4b3c8aea578627
+    URL  https://github.com/google/leveldb/archive/refs/tags/1.23.tar.gz
+    SHA1 042e267eae6ab522fe29274f79ad45cde3977655
 )
 
 hunter_config(
