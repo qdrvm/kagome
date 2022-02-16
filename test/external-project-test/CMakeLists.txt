@@ -30,6 +30,17 @@ HunterGate(
     LOCAL
 )
 
+#hunter_config(
+#    leveldb
+#    URL  https://github.com/soramitsu/leveldb/archive/c88a9e3757f795630db5cb9a1c2442a4e5ccaed3.tar.gz
+#    SHA1 3af764d4596a3ca07f892c1508c917e2692d8ec1
+#)
+
+hunter_config(
+    Сrc32c
+    URL "https://github.com/google/crc32c/archive/1.1.1.tar.gz"
+    SHA1 "46f18ed84a12c49c42dc77fff54491a9f8b9dce8")
+
 project(KagomeFromExternalProject)
 
 hunter_add_package(kagome)
