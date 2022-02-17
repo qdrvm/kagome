@@ -17,3 +17,5 @@ add_cache_flag(CMAKE_C_FLAGS "-g")
 
 add_cache_flag(CMAKE_EXE_LINKER_FLAGS "-fsanitize=thread")
 add_cache_flag(CMAKE_SHARED_LINKER_FLAGS "-fsanitize=thread")
+
+message(STATUS "Thread sanitizer has activated")

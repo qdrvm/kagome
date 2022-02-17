@@ -19,10 +19,10 @@
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 
+#include "blockchain/impl/common.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "blockchain/impl/common.hpp"
 
 using kagome::authority::AuthorityUpdateObserver;
 using kagome::authority::AuthorityUpdateObserverMock;
@@ -138,12 +138,13 @@ TEST_F(BlockExecutorTest, DigestsFollowJustification) {
   EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"parent_hash"_hash256}))
       .WillOnce(testing::Return(kagome::primitives::BlockBody{}));
   EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"some_hash"_hash256}))
-      .WillOnce(testing::Return(kagome::blockchain::BlockTreeError::BODY_NOT_FOUND));
+      .WillOnce(
+          testing::Return(kagome::blockchain::BlockTreeError::BODY_NOT_FOUND));
   EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(testing::Return("some_hash"_hash256));
   EXPECT_CALL(*block_tree_, getEpochDigest(0, "parent_hash"_hash256))
       .WillOnce(testing::Return(
-         EpochDigest{.authorities = {Authority{"auth2"_hash256, 1},
+          EpochDigest{.authorities = {Authority{"auth2"_hash256, 1},
                                       Authority{"auth3"_hash256, 1}},
                       .randomness = "randomness"_hash256}));
   configuration_->leadership_rate.second = 42;
@@ -178,7 +179,7 @@ TEST_F(BlockExecutorTest, DigestsFollowJustification) {
         applyJustification(BlockInfo{42, "some_hash"_hash256}, justification))
         .WillOnce(testing::Return(outcome::success()));
     EXPECT_CALL(*authority_update_observer_,
-                onConsensus(_, BlockInfo{42, "some_hash"_hash256}, _))
+                onConsensus(BlockInfo{42, "some_hash"_hash256}, _))
         .WillOnce(testing::Return(outcome::success()));
   }
   EXPECT_CALL(

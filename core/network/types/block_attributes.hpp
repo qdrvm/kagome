@@ -135,7 +135,7 @@ namespace kagome::network {
     static constexpr uint8_t mask_ = 0b00011111;
     uint8_t attributes = 0;
 
-    friend class std::hash<BlockAttributes>;
+    friend struct std::hash<BlockAttributes>;
   };
 
   inline constexpr BlockAttributes operator|(const BlockAttribute &lhs,

@@ -21,7 +21,6 @@ namespace kagome::authority {
      * @return failure or nothing
      */
     virtual outcome::result<void> onConsensus(
-        const primitives::ConsensusEngineId &engine_id,
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) = 0;
   };

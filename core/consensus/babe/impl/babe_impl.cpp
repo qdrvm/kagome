@@ -625,8 +625,8 @@ namespace kagome::consensus::babe {
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
     // create new block
-    auto pre_seal_block_res = proposer_->propose(
-        best_block_.number, inherent_data, {babe_pre_digest});
+    auto pre_seal_block_res =
+        proposer_->propose(best_block_, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
       SL_ERROR(log_,
                "Cannot propose a block: {}",
@@ -689,9 +689,7 @@ namespace kagome::consensus::babe {
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
             auto res = authority_update_observer_->onConsensus(
-                consensus_message.consensus_engine_id,
-                best_block_,
-                consensus_message);
+                best_block_, consensus_message);
             if (res.has_error()) {
               SL_WARN(log_,
                       "Can't process consensus message digest: {}",

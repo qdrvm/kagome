@@ -14,6 +14,7 @@
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <charconv>
 
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
@@ -54,6 +55,8 @@ namespace {
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
   const bool def_enable_offchain_indexing = false;
+  const std::optional<kagome::primitives::BlockId> def_block_to_recover =
+      std::nullopt;
 
   /**
    * Generate once at run random node name if form of UUID
@@ -98,6 +101,22 @@ namespace {
     }
     return std::nullopt;
   }
+
+  std::optional<kagome::primitives::BlockId> str_to_recovery_state(
+      std::string_view str) {
+    kagome::primitives::BlockNumber bn;
+    auto res = kagome::primitives::BlockHash::fromHex(str);
+    if (res.has_value()) {
+      return {{res.value()}};
+    }
+
+    auto result = std::from_chars(str.data(), str.data() + str.size(), bn);
+    if (result.ec != std::errc::invalid_argument && std::to_string(bn) == str) {
+      return {{bn}};
+    }
+
+    return std::nullopt;
+  }
 }  // namespace
 
 namespace kagome::application {
@@ -119,7 +138,8 @@ namespace kagome::application {
         max_ws_connections_(def_ws_max_connections),
         runtime_exec_method_{def_runtime_exec_method},
         offchain_worker_mode_{def_offchain_worker_mode},
-        enable_offchain_indexing_{def_enable_offchain_indexing} {}
+        enable_offchain_indexing_{def_enable_offchain_indexing},
+        recovery_state_{def_block_to_recover} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -472,6 +492,7 @@ namespace kagome::application {
     storage_desc.add_options()
         ("base-path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
+        ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
         ;
 
     po::options_description network_desc("Network options");
@@ -838,6 +859,18 @@ namespace kagome::application {
 
     if (vm.count("enable-offchain-indexing") > 0) {
       enable_offchain_indexing_ = true;
+    }
+
+    bool has_recovery = false;
+    find_argument<std::string>(vm, "recovery", [&](const std::string &val) {
+      has_recovery = true;
+      recovery_state_ = str_to_recovery_state(val);
+      if (not offchain_worker_mode_opt) {
+        SL_ERROR(logger_, "Invalid recovery state specified: '{}'", val);
+      }
+    });
+    if (has_recovery and not recovery_state_.has_value()) {
+      return false;
     }
 
     // if something wrong with config print help message

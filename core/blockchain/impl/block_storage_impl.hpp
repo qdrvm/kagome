@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_KEY_VALUE_BLOCK_STORAGE_HPP
-#define KAGOME_KEY_VALUE_BLOCK_STORAGE_HPP
+#ifndef KAGOME_BLOCKCHAIN_BLOCKSTORAGEIMPL
+#define KAGOME_BLOCKCHAIN_BLOCKSTORAGEIMPL
 
 #include "blockchain/block_storage.hpp"
 
@@ -15,11 +15,9 @@
 
 namespace kagome::blockchain {
 
-  class KeyValueBlockStorage : public BlockStorage {
+  class BlockStorageImpl : public BlockStorage {
    public:
-    using BlockHandler = std::function<void(const primitives::Block &)>;
-
-    ~KeyValueBlockStorage() override = default;
+    ~BlockStorageImpl() override = default;
 
     /**
      * Creates block storage. Iff block storage is empty, then initializes with
@@ -28,7 +26,7 @@ namespace kagome::blockchain {
      * @param storage underlying storage (must be empty)
      * @param hasher a hasher instance
      */
-    static outcome::result<std::shared_ptr<KeyValueBlockStorage>> create(
+    static outcome::result<std::shared_ptr<BlockStorageImpl>> create(
         storage::trie::RootHash state_root,
         const std::shared_ptr<storage::BufferStorage> &storage,
         const std::shared_ptr<crypto::Hasher> &hasher);
@@ -50,6 +48,9 @@ namespace kagome::blockchain {
     outcome::result<std::optional<primitives::Justification>> getJustification(
         const primitives::BlockId &block) const override;
 
+    outcome::result<void> putNumberToIndexKey(
+        const primitives::BlockInfo &block) override;
+
     outcome::result<primitives::BlockHash> putBlockHeader(
         const primitives::BlockHeader &header) override;
     outcome::result<void> putBlockData(
@@ -64,21 +65,19 @@ namespace kagome::blockchain {
         const primitives::BlockNumber &number) override;
 
     outcome::result<void> removeBlock(
-        const primitives::BlockHash &hash,
-        const primitives::BlockNumber &number) override;
+        const primitives::BlockInfo &block) override;
 
    private:
-    KeyValueBlockStorage(std::shared_ptr<storage::BufferStorage> storage,
-                         std::shared_ptr<crypto::Hasher> hasher);
+    BlockStorageImpl(std::shared_ptr<storage::BufferStorage> storage,
+                     std::shared_ptr<crypto::Hasher> hasher);
 
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger_;
-    std::optional<primitives::BlockHash> genesis_block_hash_;
 
     mutable std::optional<std::vector<primitives::BlockHash>>
         block_tree_leaves_;
   };
 }  // namespace kagome::blockchain
 
-#endif  // KAGOME_KEY_VALUE_BLOCK_STORAGE_HPP
+#endif  // KAGOME_BLOCKCHAIN_BLOCKSTORAGEIMPL

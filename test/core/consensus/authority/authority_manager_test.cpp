@@ -76,8 +76,13 @@ class AuthorityManagerTest : public testing::Test {
 
     EXPECT_CALL(*app_state_manager, atPrepare(_));
 
-    authority_manager = std::make_shared<AuthorityManagerImpl>(
-        AuthorityManagerImpl::Config{}, app_state_manager, block_tree, storage, grandpa_api, hasher);
+    authority_manager =
+        std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
+                                               app_state_manager,
+                                               block_tree,
+                                               storage,
+                                               grandpa_api,
+                                               hasher);
 
     ON_CALL(*block_tree, hasDirectChain(_, _))
         .WillByDefault(testing::Invoke([](auto &anc, auto &des) {
@@ -99,15 +104,15 @@ class AuthorityManagerTest : public testing::Test {
           };
           static bool ancestry[][14] = {
               // clang-format off
-	      //
-	      //                                 - FA - FB - FC
-	      //                               /   35   40   45
-	      // GEN - A - B - C - D - E +--- F
-	      //   1   5   10  15  20  25 \   30
-	      //                           \
-	      //                            - EA - EB - EC - ED
-	      //                              30   35   40   45
-              //
+	    /*
+	                                         - FA - FB - FC
+	                                       /   35   40   45
+	         GEN - A - B - C - D - E +--- F
+	           1   5   10  15  20  25 \   30
+	                                   \
+	                                    - EA - EB - EC - ED
+	                                      30   35   40   45
+            */
             /* A\\D  GEN A  B  C  D  E EA EB EC ED  F FA FB FC */
             /* GEN*/ {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
             /* A  */ {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -244,7 +249,6 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
       old_auth_r, authority_manager->authorities({20, "D"_hash256}, true));
   auto &old_authorities = *old_auth_r.value();
 
-  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{5, "A"_hash256};
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
   uint32_t subchain_length = 10;
@@ -252,7 +256,6 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   EXPECT_OUTCOME_SUCCESS(
       r1,
       authority_manager->onConsensus(
-          engine_id,
           target_block,
           primitives::ScheduledChange(new_authorities, subchain_length)));
 
@@ -281,7 +284,6 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
       old_auth_r, authority_manager->authorities({35, "F"_hash256}, false));
   auto &old_authorities = *old_auth_r.value();
 
-  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{10, "B"_hash256};
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
   uint32_t subchain_length = 10;
@@ -289,7 +291,6 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   EXPECT_OUTCOME_SUCCESS(
       r1,
       authority_manager->onConsensus(
-          engine_id,
           target_block,
           primitives::ForcedChange(new_authorities, subchain_length)));
 
@@ -316,7 +317,6 @@ TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
       authority_manager->authorities({35, "F"_hash256}, true));
   auto &old_authorities = *old_authorities_result.value();
 
-  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{10, "B"_hash256};
   uint32_t authority_index = 1;
 
@@ -327,7 +327,7 @@ TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
   EXPECT_OUTCOME_SUCCESS(
       r1,
       authority_manager->onConsensus(
-          engine_id, target_block, primitives::OnDisabled({authority_index})));
+          target_block, primitives::OnDisabled({authority_index})));
 
   examine({5, "A"_hash256}, old_authorities);
   examine({10, "B"_hash256}, new_authorities);
@@ -349,14 +349,12 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
       authority_manager->authorities({35, "F"_hash256}, true));
   auto &old_authorities = *old_authorities_result.value();
 
-  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{5, "A"_hash256};
   uint32_t delay = 10;
 
   EXPECT_OUTCOME_SUCCESS(
       r1,
-      authority_manager->onConsensus(
-          engine_id, target_block, primitives::Pause(delay)));
+      authority_manager->onConsensus(target_block, primitives::Pause(delay)));
 
   primitives::AuthorityList new_authorities = old_authorities;
   for (auto &authority : new_authorities) {
@@ -398,14 +396,12 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   ASSERT_NE(enabled_authorities, disabled_authorities);
 
   {
-    auto engine_id = primitives::kGrandpaEngineId;
     primitives::BlockInfo target_block{5, "A"_hash256};
     uint32_t delay = 5;
 
     EXPECT_OUTCOME_SUCCESS(
         r1,
-        authority_manager->onConsensus(
-            engine_id, target_block, primitives::Pause(delay)));
+        authority_manager->onConsensus(target_block, primitives::Pause(delay)));
 
     authority_manager->prune({10, "B"_hash256});
   }
@@ -416,14 +412,12 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   examine({25, "E"_hash256}, disabled_authorities);
 
   {
-    auto engine_id = primitives::kGrandpaEngineId;
     primitives::BlockInfo target_block{15, "C"_hash256};
     uint32_t delay = 10;
 
-    EXPECT_OUTCOME_SUCCESS(
-        r1,
-        authority_manager->onConsensus(
-            engine_id, target_block, primitives::Resume(delay)));
+    EXPECT_OUTCOME_SUCCESS(r1,
+                           authority_manager->onConsensus(
+                               target_block, primitives::Resume(delay)));
   }
 
   examine({10, "B"_hash256}, disabled_authorities);

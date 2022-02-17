@@ -84,7 +84,7 @@ namespace kagome::offchain {
 
   struct OpaqueNetworkState {
     libp2p::peer::PeerId peer_id;
-    std::list<libp2p::multi::Multiaddress> address;
+    std::list<libp2p::multi::Multiaddress> address{};
   };
 
   template <class Stream,

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/key_value_block_storage.hpp"
+#include "blockchain/impl/block_storage_impl.hpp"
 
 #include <gtest/gtest.h>
 
@@ -17,7 +17,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockStorageError;
-using kagome::blockchain::KeyValueBlockStorage;
+using kagome::blockchain::BlockStorageImpl;
 using kagome::common::Buffer;
 using kagome::crypto::HasherMock;
 using kagome::primitives::Block;
@@ -49,7 +49,7 @@ class BlockStorageTest : public testing::Test {
   BlockHash regular_block_hash{{'r', 'e', 'g', 'u', 'l', 'a', 'r'}};
   RootHash root_hash;
 
-  std::shared_ptr<KeyValueBlockStorage> createWithGenesis() {
+  std::shared_ptr<BlockStorageImpl> createWithGenesis() {
     // calculate hash of genesis block at put block header
     EXPECT_CALL(*hasher, blake2b_256(_))
         .WillRepeatedly(Return(genesis_block_hash));
@@ -60,9 +60,8 @@ class BlockStorageTest : public testing::Test {
     // put genesis block into storage
     EXPECT_CALL(*storage, put(_, _)).WillRepeatedly(Return(outcome::success()));
 
-    EXPECT_OUTCOME_TRUE(
-        new_block_storage,
-        KeyValueBlockStorage::create(root_hash, storage, hasher));
+    EXPECT_OUTCOME_TRUE(new_block_storage,
+                        BlockStorageImpl::create(root_hash, storage, hasher));
 
     return new_block_storage;
   }
@@ -98,7 +97,7 @@ TEST_F(BlockStorageTest, CreateWithEmptyStorage) {
       .WillRepeatedly(Return(outcome::success()));
 
   ASSERT_OUTCOME_SUCCESS_TRY(
-      KeyValueBlockStorage::create(root_hash, empty_storage, hasher));
+      BlockStorageImpl::create(root_hash, empty_storage, hasher));
 }
 
 /**
@@ -118,7 +117,7 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
       .WillOnce(Return(Buffer{}));
 
   ASSERT_OUTCOME_SUCCESS_TRY(
-      KeyValueBlockStorage::create(root_hash, storage, hasher));
+      BlockStorageImpl::create(root_hash, storage, hasher));
 }
 
 /**
@@ -136,7 +135,7 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
 
   EXPECT_OUTCOME_ERROR(
       res,
-      KeyValueBlockStorage::create(root_hash, empty_storage, hasher),
+      BlockStorageImpl::create(root_hash, empty_storage, hasher),
       kagome::storage::DatabaseError::IO_ERROR);
 }
 
@@ -160,7 +159,7 @@ TEST_F(BlockStorageTest, PutBlock) {
   block.header.number = 1;
   block.header.parent_hash = genesis_block_hash;
 
-  EXPECT_OUTCOME_TRUE_1(block_storage->putBlock(block));
+  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->putBlock(block));
 }
 
 /**
@@ -211,16 +210,16 @@ TEST_F(BlockStorageTest, Remove) {
   auto block_storage = createWithGenesis();
 
   EXPECT_CALL(*storage, remove(_))
-      .WillOnce(Return(outcome::success()))
-      .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(block_storage->removeBlock(genesis_block_hash, 0));
+      .Times(4)  // 4 removals: justification + data + header + hash-to-idx
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_OUTCOME_TRUE_1(block_storage->removeBlock({0, genesis_block_hash}));
 
   EXPECT_CALL(*storage, remove(_))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
-  EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock(genesis_block_hash, 0));
+  EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock({0, genesis_block_hash}));
 
   EXPECT_CALL(*storage, remove(_))
       .WillOnce(Return(outcome::success()))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
-  EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock(genesis_block_hash, 0));
+  EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock({0, genesis_block_hash}));
 }

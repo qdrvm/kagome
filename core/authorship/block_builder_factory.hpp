@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "authorship/block_builder.hpp"
-#include "primitives/block_id.hpp"
+#include "primitives/common.hpp"
 #include "runtime/runtime_api/block_builder.hpp"
 #include "runtime/runtime_api/core.hpp"
 
@@ -28,7 +28,7 @@ namespace kagome::authorship {
      * provided digests. Also initialises the block created in BlockBuilder
      */
     virtual outcome::result<std::unique_ptr<BlockBuilder>> make(
-        const primitives::BlockId &parent_id,
+        const primitives::BlockInfo &parent_block,
         primitives::Digest inherent_digest) const = 0;
   };
 

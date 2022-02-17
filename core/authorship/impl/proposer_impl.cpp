@@ -38,12 +38,12 @@ namespace kagome::authorship {
   }
 
   outcome::result<primitives::Block> ProposerImpl::propose(
-      const primitives::BlockNumber &parent_block_number,
+      const primitives::BlockInfo &parent_block,
       const primitives::InherentData &inherent_data,
       const primitives::Digest &inherent_digest) {
     OUTCOME_TRY(
         block_builder,
-        block_builder_factory_->make(parent_block_number, inherent_digest));
+        block_builder_factory_->make(parent_block, inherent_digest));
 
     auto inherent_xts_res = block_builder->getInherentExtrinsics(inherent_data);
     if (not inherent_xts_res) {
@@ -76,13 +76,13 @@ namespace kagome::authorship {
       }
     }
 
-    auto remove_res = transaction_pool_->removeStale(parent_block_number);
+    auto remove_res = transaction_pool_->removeStale(parent_block.number);
     if (remove_res.has_error()) {
       SL_ERROR(
           logger_,
-          "Stale transactions remove failure: {}, Parent block number is {}",
+          "Stale transactions remove failure: {}, Parent is {}",
           remove_res.error().message(),
-          parent_block_number);
+          parent_block);
     }
     const auto &ready_txs = transaction_pool_->getReadyTransactions();
 

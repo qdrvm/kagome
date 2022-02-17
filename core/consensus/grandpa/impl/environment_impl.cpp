@@ -166,6 +166,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> EnvironmentImpl::onCommitted(
       RoundNumber round,
+      MembershipCounter voter_ser_id,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
     if (round == 0) {
@@ -176,6 +177,7 @@ namespace kagome::consensus::grandpa {
 
     network::FullCommitMessage message{
         .round = round,
+        .set_id = voter_ser_id,
         .message = {.target_hash = vote.hash, .target_number = vote.number}};
     for (const auto &item : justification.items) {
       BOOST_ASSERT(item.is<Precommit>());

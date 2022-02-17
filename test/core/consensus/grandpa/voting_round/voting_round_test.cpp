@@ -350,7 +350,7 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
  * "EA"_H) (as this will become the highest block with supermajority)
  */
 TEST_F(VotingRoundTest, Finalization) {
-  EXPECT_CALL(*env_, onCommitted(_, _, _))
+  EXPECT_CALL(*env_, onCommitted(_, _,_, _))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*env_, finalize(_, _)).WillRepeatedly(Return(outcome::success()));
   // given (in fixture)

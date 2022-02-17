@@ -37,6 +37,7 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD(outcome::result<void>,
                 onCommitted,
                 (RoundNumber round,
+                 MembershipCounter set_id,
                  const BlockInfo &vote,
                  const GrandpaJustification &justification),
                 (override));

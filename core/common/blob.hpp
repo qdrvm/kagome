@@ -270,7 +270,7 @@ struct std::hash<kagome::common::Blob<N>> {
 template <size_t N>
 struct fmt::formatter<kagome::common::Blob<N>> {
   // Presentation format: 's' - short, 'l' - long.
-  char presentation = 's';
+  char presentation = N > 4 ? 's' : 'l';
 
   // Parses format specifications of the form ['s' | 'l'].
   constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
@@ -297,7 +297,6 @@ struct fmt::formatter<kagome::common::Blob<N>> {
     // ctx.out() is an output iterator to write to.
 
     if (presentation == 's') {
-      static_assert(N > 4);
       return format_to(
           ctx.out(),
           "0x{:04x}…{:04x}",

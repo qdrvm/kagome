@@ -16,8 +16,8 @@ namespace kagome::authorship {
    public:
     MOCK_METHOD(outcome::result<std::unique_ptr<BlockBuilder>>,
                 make,
-                (const primitives::BlockId &, primitives::Digest),
-                (const));
+                (const primitives::BlockInfo &, primitives::Digest),
+                (const override));
   };
 
 }  // namespace kagome::authorship

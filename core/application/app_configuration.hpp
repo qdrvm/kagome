@@ -7,17 +7,18 @@
 #define KAGOME_APP_CONFIGURATION_HPP
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/filesystem.hpp>
 #include <libp2p/multi/multiaddress.hpp>
-#include <optional>
 
 #include "crypto/ed25519_types.hpp"
 #include "log/logger.hpp"
 #include "network/peering_config.hpp"
 #include "network/types/roles.hpp"
+#include "primitives/block_id.hpp"
 
 namespace kagome::application {
 
@@ -162,6 +163,8 @@ namespace kagome::application {
     virtual OffchainWorkerMode offchainWorkerMode() const = 0;
 
     virtual bool isOffchainIndexingEnabled() const = 0;
+
+    virtual std::optional<primitives::BlockId> recoverState() const = 0;
   };
 
 }  // namespace kagome::application
