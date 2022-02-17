@@ -14,7 +14,7 @@ env:
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
   INDOCKER_IMAGE: soramitsu/kagome-dev:3-minideb
-  CACHE_VERSION: v08
+  CACHE_VERSION: v06
   CACHE_PATHS: |
     ~/Library/Caches/pip
     ~/.cargo

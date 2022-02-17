@@ -30,13 +30,6 @@ hunter_config(
 )
 
 hunter_config(
-    leveldb
-    URL  https://github.com/soramitsu/leveldb/archive/a0a3e5ad36437b864d6e5e537fada8ba8dce8ed0.tar.gz
-    SHA1 14af25d08099f2140667a0618157b9f86770646c
-    CMAKE_ARGS HUNTER_ENABLED=ON LEVELDB_BUILD_TESTS=OFF LEVELDB_BUILD_BENCHMARKS=OFF
-)
-
-hunter_config(
     libp2p
     URL https://github.com/libp2p/cpp-libp2p/archive/69299a8182a976fbe6654ed367ba1fb5d89800e0.tar.gz
     SHA1 024b4dad4afc900ed15e41fef85ff90e2ea2f00a
