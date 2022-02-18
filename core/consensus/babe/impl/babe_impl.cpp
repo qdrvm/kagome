@@ -699,6 +699,9 @@ namespace kagome::consensus::babe {
             return res;
           },
           [](const auto &) { return outcome::success(); });
+      if (res.has_error()) {
+        return;
+      }
     }
 
     auto last_finalized_block = block_tree_->getLastFinalized();
