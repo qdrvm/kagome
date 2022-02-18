@@ -597,6 +597,26 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<void> BlockTreeImpl::removeBlock(
+      const primitives::BlockHash &block_hash) {
+    // Check if block is leaf
+    if (tree_->getMetadata().leaves.count(block_hash) == 0) {
+      return BlockTreeError::BLOCK_IS_NOT_LEAF;
+    }
+
+    auto node = tree_->getRoot().findByHash(block_hash);
+    BOOST_ASSERT_MSG(node != nullptr,
+                     "As checked before, block exists as one of leaves");
+
+    // Remove from block tree
+    tree_->removeFromMeta(node);
+
+    // Remove from storage
+    OUTCOME_TRY(storage_->removeBlock({node->depth, node->block_hash}));
+
+    return outcome::success();
+  }
+
   outcome::result<void> BlockTreeImpl::addExistingBlock(
       const primitives::BlockHash &block_hash,
       const primitives::BlockHeader &block_header) {
