@@ -32,7 +32,9 @@ namespace kagome::blockchain {
     // block header is not found in block storage
     HEADER_NOT_FOUND,
     // some block in the requested chain is missing
-    SOME_BLOCK_IN_CHAIN_NOT_FOUND
+    SOME_BLOCK_IN_CHAIN_NOT_FOUND,
+    // block is not a leaf
+    BLOCK_IS_NOT_LEAF
   };
 }  // namespace kagome::blockchain
 

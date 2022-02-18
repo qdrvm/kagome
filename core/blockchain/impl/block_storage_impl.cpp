@@ -182,18 +182,8 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHash> BlockStorageImpl::putBlock(
       const primitives::Block &block) {
-    // TODO(xDimon): Need to implement mechanism for wiping out orphan blocks
-    //  (in side-chains rejected by finalization)
-    //  to avoid storage space leaks
-    auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
-    OUTCOME_TRY(block_in_storage_opt,
-                getWithPrefix(*storage_, Prefix::HEADER, block_hash));
-    if (block_in_storage_opt.has_value()) {
-      return BlockStorageError::BLOCK_EXISTS;
-    }
-
     // insert our block's parts into the database-
-    OUTCOME_TRY(putBlockHeader(block.header));
+    OUTCOME_TRY(block_hash, putBlockHeader(block.header));
 
     primitives::BlockData block_data;
     block_data.hash = block_hash;
