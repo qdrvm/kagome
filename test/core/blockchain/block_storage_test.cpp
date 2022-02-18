@@ -148,11 +148,9 @@ TEST_F(BlockStorageTest, PutBlock) {
   auto block_storage = createWithGenesis();
 
   EXPECT_CALL(*hasher, blake2b_256(_))
-      .WillOnce(Return(regular_block_hash))
       .WillOnce(Return(regular_block_hash));
 
   EXPECT_CALL(*storage, tryGet(_))
-      .WillOnce(Return(std::nullopt))
       .WillOnce(Return(std::nullopt));
 
   Block block;
@@ -160,26 +158,6 @@ TEST_F(BlockStorageTest, PutBlock) {
   block.header.parent_hash = genesis_block_hash;
 
   ASSERT_OUTCOME_SUCCESS_TRY(block_storage->putBlock(block));
-}
-
-/**
- * @given a block storage and a block that is in storage already
- * @when putting a block in the storage
- * @then block is not put and an error is returned
- */
-TEST_F(BlockStorageTest, PutExistingBlock) {
-  auto block_storage = createWithGenesis();
-
-  EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_block_hash));
-
-  EXPECT_CALL(*storage, tryGet(_))
-      .WillOnce(Return(Buffer{scale::encode(BlockHeader{}).value()}))
-      .WillOnce(Return(Buffer{scale::encode(BlockBody{}).value()}));
-
-  Block block;
-
-  EXPECT_OUTCOME_FALSE(res, block_storage->putBlock(block));
-  ASSERT_EQ(res, BlockStorageError::BLOCK_EXISTS);
 }
 
 /**
