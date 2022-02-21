@@ -31,6 +31,7 @@ using kagome::host_api::OffchainExtensionConfig;
 using kagome::offchain::Failure;
 using kagome::offchain::HttpError;
 using kagome::offchain::HttpMethod;
+using kagome::offchain::HttpStatus;
 using kagome::offchain::OffchainPersistentStorageMock;
 using kagome::offchain::OffchainWorkerMock;
 using kagome::offchain::OffchainWorkerPoolMock;
@@ -127,6 +128,10 @@ class BinaryParameterizedTest : public OffchainExtensionTest,
 class TernaryParametrizedTest : public OffchainExtensionTest,
                                 public ::testing::WithParamInterface<WasmI32> {
 };
+
+class HttpMethodsParametrizedTest
+    : public OffchainExtensionTest,
+      public ::testing::WithParamInterface<Buffer> {};
 
 class HttpResultParametrizedTest
     : public OffchainExtensionTest,
@@ -344,17 +349,197 @@ INSTANTIATE_TEST_SUITE_P(Instance,
                          TernaryParametrizedTest,
                          testing::Values(0, 1, 2));
 
-// // ext_offchain_http_request_start_version_1
-// TEST_P(HttpResultParametrizedTest, HttpRequestStart) {}
-//
-// // ext_offchain_http_request_add_header_version_1
-// TEST_P(HttpResultParametrizedTest, HttpRequestAddHeader) {}
-//
-// // ext_offchain_http_request_write_body_version_1
-// TEST_P(HttpResultParametrizedTest, HttpRequestWriteBody) {}
-//
-// // ext_offchain_http_response_wait_version_1
-// TEST_P(HttpResultParametrizedTest, HttpResponseWait) {}
+/**
+ * @given method, uri, meta
+ * @when ext_offchain_http_request_start_version_1 is invoked on
+ * OffchainExtension
+ * @then Attempts to start request on uri with given method. Meta is reserved.
+ */
+TEST_P(HttpMethodsParametrizedTest, HttpRequestStart) {
+  WasmPointer method_pointer = 42;
+  WasmSize method_size = 42;
+  WasmSpan method_span = PtrSize(method_pointer, method_size).combine();
+  Buffer method = GetParam();
+
+  WasmPointer uri_pointer = 43;
+  WasmSize uri_size = 43;
+  WasmSpan uri_span = PtrSize(uri_pointer, uri_size).combine();
+  Buffer uri = "name"_buf;
+
+  WasmPointer meta_pointer = 44;
+  WasmSize meta_size = 44;
+  WasmSpan meta_span = PtrSize(meta_pointer, meta_size).combine();
+  Buffer meta = "value"_buf;
+
+  Result<RequestId, Failure> result{22};
+  WasmSpan return_span = 45;
+
+  EXPECT_CALL(*memory_, loadN(method_pointer, method_size))
+      .WillOnce(Return(method));
+  EXPECT_CALL(*memory_, loadN(uri_pointer, uri_size)).WillOnce(Return(uri));
+  EXPECT_CALL(*memory_, loadN(meta_pointer, meta_size)).WillOnce(Return(meta));
+  EXPECT_CALL(*offchain_worker_, httpRequestStart(_, uri.toString(), meta))
+      .WillOnce(Return(result));
+
+  {
+    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+      auto actual_result =
+          scale::decode<Result<RequestId, Failure>>(data).value();
+      return actual_result.isSuccess();
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(return_span));
+  }
+
+  ASSERT_EQ(return_span,
+            offchain_extension_->ext_offchain_http_request_start_version_1(
+                method_span, uri_span, meta_span));
+}
+
+INSTANTIATE_TEST_SUITE_P(Instance,
+                         HttpMethodsParametrizedTest,
+                         testing::Values("Post"_buf,
+                                         "Get"_buf,
+                                         "Undefined"_buf));
+
+/**
+ * @given request_id, name, value
+ * @when ext_offchain_http_request_add_header_version_1 is invoked on
+ * OffchainExtension
+ * @then Attempts to add header name:value to request
+ */
+TEST_F(OffchainExtensionTest, HttpRequestAddHeader) {
+  RequestId id{22};
+
+  WasmPointer name_pointer = 43;
+  WasmSize name_size = 43;
+  WasmSpan name_span = PtrSize(name_pointer, name_size).combine();
+  Buffer name = "name"_buf;
+
+  WasmPointer value_pointer = 44;
+  WasmSize value_size = 44;
+  WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
+  Buffer value = "value"_buf;
+
+  Result<Success, Failure> result{Success{}};
+  WasmSpan return_span = 45;
+
+  EXPECT_CALL(*memory_, loadN(name_pointer, name_size)).WillOnce(Return(name));
+  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
+      .WillOnce(Return(value));
+  EXPECT_CALL(*offchain_worker_,
+              httpRequestAddHeader(id, name.toString(), value.toString()))
+      .WillOnce(Return(result));
+
+  {
+    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+      auto actual_result =
+          scale::decode<Result<Success, Failure>>(data).value();
+      return actual_result.isSuccess();
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(return_span));
+  }
+
+  ASSERT_EQ(return_span,
+            offchain_extension_->ext_offchain_http_request_add_header_version_1(
+                id, name_span, value_span));
+}
+
+/**
+ * @given request_id, chunk_ptr, deadline
+ * @when ext_offchain_http_request_write_body_version_1 is invoked on
+ * OffchainExtension
+ * @then Attempts to write request body to chunk, returns result
+ */
+TEST_F(OffchainExtensionTest, HttpRequestWriteBody) {
+  RequestId id{22};
+
+  WasmPointer chunk_pointer = 43;
+  WasmSize chunk_size = 43;
+  WasmSpan chunk_span = PtrSize(chunk_pointer, chunk_size).combine();
+  Buffer chunk{8, 'c'};
+
+  WasmPointer deadline_pointer = 44;
+  WasmSize deadline_size = 44;
+  WasmSpan deadline_span = PtrSize(deadline_pointer, deadline_size).combine();
+  Timestamp deadline{300000};
+  auto deadline_opt = std::make_optional(deadline);
+
+  Result<Success, HttpError> result{Success{}};
+  WasmSpan return_span = 45;
+
+  EXPECT_CALL(*memory_, loadN(chunk_pointer, chunk_size))
+      .WillOnce(Return(chunk));
+  EXPECT_CALL(*memory_, loadN(deadline_pointer, deadline_size))
+      .WillOnce(
+          Return(Buffer{gsl::make_span(scale::encode(deadline_opt).value())}));
+  EXPECT_CALL(*offchain_worker_, httpRequestWriteBody(id, chunk, deadline_opt))
+      .WillOnce(Return(result));
+
+  {
+    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+      auto actual_result =
+          scale::decode<Result<Success, HttpError>>(data).value();
+      return actual_result.isSuccess();
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(return_span));
+  }
+
+  ASSERT_EQ(return_span,
+            offchain_extension_->ext_offchain_http_request_write_body_version_1(
+                id, chunk_span, deadline_span));
+}
+
+/**
+ * @given request_ids, deadline
+ * @when ext_offchain_http_response_wait_version_1 is invoked on
+ * OffchainExtension
+ * @then Waits for response of listed requests until deadline and returns
+ * HttpResults
+ */
+TEST_F(OffchainExtensionTest, HttpResponseWait) {
+  WasmPointer ids_pointer = 43;
+  WasmSize ids_size = 43;
+  WasmSpan ids_span = PtrSize(ids_pointer, ids_size).combine();
+  std::vector<RequestId> ids{22, 23};
+
+  WasmPointer deadline_pointer = 44;
+  WasmSize deadline_size = 44;
+  WasmSpan deadline_span = PtrSize(deadline_pointer, deadline_size).combine();
+  Timestamp deadline{300000};
+  auto deadline_opt = std::make_optional(deadline);
+
+  std::vector<HttpStatus> result{200};
+  WasmSpan return_span = 45;
+
+  EXPECT_CALL(*memory_, loadN(ids_pointer, ids_size))
+      .WillOnce(Return(Buffer{gsl::make_span(scale::encode(ids).value())}));
+  EXPECT_CALL(*memory_, loadN(deadline_pointer, deadline_size))
+      .WillOnce(
+          Return(Buffer{gsl::make_span(scale::encode(deadline_opt).value())}));
+  EXPECT_CALL(*offchain_worker_, httpResponseWait(ids, deadline_opt))
+      .WillOnce(Return(result));
+
+  {
+    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+      auto actual_result = scale::decode<std::vector<RequestId>>(data).value();
+      return std::equal(
+          actual_result.begin(), actual_result.end(), result.begin());
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(return_span));
+  }
+
+  ASSERT_EQ(return_span,
+            offchain_extension_->ext_offchain_http_response_wait_version_1(
+                ids_span, deadline_span));
+}
 
 /**
  * @given request_id
