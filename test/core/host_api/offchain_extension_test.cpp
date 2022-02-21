@@ -221,10 +221,17 @@ TEST_F(OffchainExtensionTest, SleepUntil) {
 TEST_F(OffchainExtensionTest, RandomSeed) {
   Timestamp result{300000};
   WasmSpan result_span = 42;
+
   EXPECT_CALL(*offchain_worker_, timestamp()).WillOnce(Return(result));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::make_span(scale::encode(result).value())))
-      .WillOnce(Return(result_span));
+  {
+    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+      auto actual_result = scale::decode<Timestamp>(data).value();
+      return actual_result == result;
+    };
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(result_span));
+  }
+
   ASSERT_EQ(result_span,
             offchain_extension_->ext_offchain_random_seed_version_1());
 }
