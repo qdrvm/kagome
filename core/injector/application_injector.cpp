@@ -94,6 +94,7 @@
 #include "offchain/impl/offchain_persistent_storage.hpp"
 #include "offchain/impl/offchain_worker_factory_impl.hpp"
 #include "offchain/impl/offchain_worker_impl.hpp"
+#include "offchain/impl/offchain_worker_pool_impl.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
@@ -889,6 +890,7 @@ namespace {
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
         di::bind<offchain::OffchainWorkerFactory>.template to<offchain::OffchainWorkerFactoryImpl>(),
         di::bind<offchain::OffchainWorker>.template to<offchain::OffchainWorkerImpl>(),
+        di::bind<offchain::OffchainWorkerPool>.template to<offchain::OffchainWorkerPoolImpl>(),
         di::bind<offchain::OffchainPersistentStorage>.template to<offchain::OffchainPersistentStorageImpl>(),
         di::bind<offchain::OffchainLocalStorage>.template to<offchain::OffchainLocalStorageImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),

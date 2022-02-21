@@ -52,3 +52,14 @@ target_link_libraries(child_storage_extension_test
     dummy_error
     logger_for_tests
     )
+
+addtest(offchain_extension_test
+    offchain_extension_test.cpp
+    )
+target_link_libraries(offchain_extension_test
+    Boost::boost
+    scale::scale_encode_append
+    offchain_extension
+    dummy_error
+    logger_for_tests
+    )
