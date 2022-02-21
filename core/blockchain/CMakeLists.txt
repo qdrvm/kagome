@@ -6,11 +6,11 @@
 add_subdirectory(impl)
 
 add_library(block_header_repository
-    impl/key_value_block_header_repository.cpp
-    impl/block_header_repository.cpp
+    impl/block_header_repository_impl.cpp
     )
 target_link_libraries(block_header_repository
     blockchain_common
+    block_tree_error
     )
 kagome_install(block_header_repository)
 
@@ -22,7 +22,7 @@ target_link_libraries(block_storage_error
     )
 
 add_library(block_storage
-    impl/key_value_block_storage.cpp
+    impl/block_storage_impl.cpp
     )
 target_link_libraries(block_storage
     blockchain_common
@@ -38,3 +38,4 @@ add_library(block_tree_error
 target_link_libraries(block_tree_error
     outcome
     )
+kagome_install(block_tree_error)

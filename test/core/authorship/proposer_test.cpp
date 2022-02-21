@@ -31,7 +31,7 @@ using kagome::authorship::ProposerImpl;
 using kagome::common::Buffer;
 using kagome::primitives::Block;
 using kagome::primitives::BlockId;
-using kagome::primitives::BlockNumber;
+using kagome::primitives::BlockInfo;
 using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
@@ -72,7 +72,7 @@ class ProposerTest : public ::testing::Test {
     EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
         .WillOnce(Return(inherent_xts));
     EXPECT_CALL(*block_builder_factory_,
-                make(expected_block_id_, inherent_digests_))
+                make(expected_block_, inherent_digests_))
         .WillOnce(Invoke([this](auto &&, auto &&) {
           return std::unique_ptr<BlockBuilderMock>{block_builder_};
         }));
@@ -95,8 +95,7 @@ class ProposerTest : public ::testing::Test {
                          extrinsic_sub_engine_,
                          extrinsic_event_key_repo_};
 
-  BlockNumber expected_number_{42};
-  BlockId expected_block_id_{expected_number_};
+  BlockInfo expected_block_{42, {}};
 
   Digest inherent_digests_{PreRuntime{}};
 
@@ -129,7 +128,7 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
   EXPECT_CALL(*transaction_pool_, removeOne("fakeHash"_hash256))
       .WillOnce(Return(outcome::success()));
 
-  EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_number_)))
+  EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
       .WillOnce(Return(outcome::success()));
 
   EXPECT_CALL(*block_builder_, estimateBlockSize()).WillOnce(Return(1));
@@ -138,7 +137,7 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
 
   // when
   auto block_res =
-      proposer_.propose(expected_number_, inherent_data_, inherent_digests_);
+      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
 
   // then
   ASSERT_TRUE(block_res);
@@ -159,7 +158,7 @@ TEST_F(ProposerTest, CreateBlockFailsWhenXtNotPushed) {
 
   // when
   auto block_res =
-      proposer_.propose(expected_number_, inherent_data_, inherent_digests_);
+      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
 
   // then
   ASSERT_FALSE(block_res);
@@ -193,12 +192,12 @@ TEST_F(ProposerTest, PushFailed) {
       .WillOnce(Return(Transaction{}));
   EXPECT_CALL(*transaction_pool_, getReadyTransactions())
       .WillOnce(Return(ready_transactions));
-  EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_number_)))
+  EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
       .WillOnce(Return(outcome::success()));
 
   // when
   auto block_res =
-      proposer_.propose(expected_number_, inherent_data_, inherent_digests_);
+      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
 
   // then
   ASSERT_TRUE(block_res);

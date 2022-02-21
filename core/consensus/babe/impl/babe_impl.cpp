@@ -9,6 +9,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "blockchain/block_storage_error.hpp"
+#include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -625,8 +626,8 @@ namespace kagome::consensus::babe {
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
     // create new block
-    auto pre_seal_block_res = proposer_->propose(
-        best_block_.number, inherent_data, {babe_pre_digest});
+    auto pre_seal_block_res =
+        proposer_->propose(best_block_, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
       SL_ERROR(log_,
                "Cannot propose a block: {}",
@@ -689,9 +690,7 @@ namespace kagome::consensus::babe {
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
             auto res = authority_update_observer_->onConsensus(
-                consensus_message.consensus_engine_id,
-                best_block_,
-                consensus_message);
+                best_block_, consensus_message);
             if (res.has_error()) {
               SL_WARN(log_,
                       "Can't process consensus message digest: {}",
@@ -701,8 +700,6 @@ namespace kagome::consensus::babe {
           },
           [](const auto &) { return outcome::success(); });
       if (res.has_error()) {
-        // TODO(xDimon): Rolling back of block is needed here
-        //  issue: https://github.com/soramitsu/kagome/issues/996
         return;
       }
     }
@@ -713,11 +710,25 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(previous_best_block_res.has_value());
     const auto &previous_best_block = previous_best_block_res.value();
 
+    const auto block_hash =
+        hasher_->blake2b_256(scale::encode(block.header).value());
+    const primitives::BlockInfo block_info(block.header.number, block_hash);
+
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
-      SL_ERROR(log_, "Could not add block: {}", add_res.error().message());
-      // TODO(xDimon): Rolling back of block is needed here
-      //  issue: https://github.com/soramitsu/kagome/issues/996
+      SL_ERROR(log_,
+               "Could not add block {}: {}",
+               block_info,
+               add_res.error().message());
+      auto removal_res = block_tree_->removeBlock(block_hash);
+      if (removal_res.has_error()
+          and removal_res
+                  != outcome::failure(
+                      blockchain::BlockTreeError::BLOCK_IS_NOT_LEAF)) {
+        SL_WARN(log_,
+                "Rolling back of block {} is failed: {}",
+                removal_res.error().message());
+      }
       return;
     }
 
@@ -742,9 +753,6 @@ namespace kagome::consensus::babe {
         babe_util_->slotToEpoch(current_slot_),
         now);
 
-    const auto block_hash =
-        hasher_->blake2b_256(scale::encode(block.header).value());
-
     last_finalized_block = block_tree_->getLastFinalized();
     auto current_best_block_res =
         block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
@@ -757,7 +765,7 @@ namespace kagome::consensus::babe {
           block.header.parent_hash, block.header);
       if (ocw_res.has_failure()) {
         log_->error("Can't spawn offchain worker for block {}: {}",
-                    primitives::BlockInfo(block.header.number, block_hash),
+                    block_info,
                     ocw_res.error().message());
       }
     }

@@ -14,9 +14,7 @@ namespace kagome::authority {
   struct AuthorityUpdateObserverMock : public AuthorityUpdateObserver {
     MOCK_METHOD(outcome::result<void>,
                 onConsensus,
-                (const primitives::ConsensusEngineId &,
-                 const primitives::BlockInfo &,
-                 const primitives::Consensus &),
+                (const primitives::BlockInfo &, const primitives::Consensus &),
                 (override));
   };
 }  // namespace kagome::authority

@@ -35,7 +35,7 @@ namespace kagome::blockchain {
     virtual outcome::result<void> setBlockTreeLeaves(
         std::vector<primitives::BlockHash> leaves) = 0;
 
-    /// Sets hashes of block tree leaves
+    /// Check if header existing by provided block {@param id}
     virtual outcome::result<bool> hasBlockHeader(
         const primitives::BlockId &id) const = 0;
 
@@ -43,29 +43,36 @@ namespace kagome::blockchain {
      * Tries to get block header by {@param id}
      * @returns block header or error
      */
-    virtual outcome::result<primitives::BlockHeader> getBlockHeader(
+    virtual outcome::result<std::optional<primitives::BlockHeader>> getBlockHeader(
         const primitives::BlockId &id) const = 0;
 
     /**
      * Tries to get block body by {@param id}
      * @returns block body or error
      */
-    virtual outcome::result<primitives::BlockBody> getBlockBody(
+    virtual outcome::result<std::optional<primitives::BlockBody>> getBlockBody(
         const primitives::BlockId &id) const = 0;
 
     /**
      * Tries to get block data by {@param id}
      * @returns block data or error
      */
-    virtual outcome::result<primitives::BlockData> getBlockData(
+    virtual outcome::result<std::optional<primitives::BlockData>> getBlockData(
         const primitives::BlockId &id) const = 0;
 
     /**
      * Tries to get justification of block finality by {@param id}
      * @returns justification or error
      */
-    virtual outcome::result<primitives::Justification> getJustification(
+    virtual outcome::result<std::optional<primitives::Justification>> getJustification(
         const primitives::BlockId &block) const = 0;
+
+    /**
+     * Saves number-to-block_lookup_key for {@param block} to block storage
+     * @returns hash of saved header or error
+     */
+    virtual outcome::result<void> putNumberToIndexKey(
+        const primitives::BlockInfo &block) = 0;
 
     /**
      * Saves block header {@param header} to block storage
@@ -89,7 +96,7 @@ namespace kagome::blockchain {
         const primitives::Block &block) = 0;
 
     /**
-     * Saves {@param justification} of block with {@param number} and  {@param
+     * Saves {@param justification} of block with {@param number} and {@param
      * hash} to block storage
      * @returns result of saving
      */
@@ -99,13 +106,11 @@ namespace kagome::blockchain {
         const primitives::BlockNumber &number) = 0;
 
     /**
-     * Removes all data of block with {@param number} and  {@param
-     * hash} to block storage
+     * Removes all data of block {@param block} from block storage
      * @returns result of removing
      */
     virtual outcome::result<void> removeBlock(
-        const primitives::BlockHash &hash,
-        const primitives::BlockNumber &number) = 0;
+        const primitives::BlockInfo &block) = 0;
   };
 
 }  // namespace kagome::blockchain

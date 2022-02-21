@@ -19,7 +19,8 @@
 namespace kagome::consensus {
 
   enum class DigestError {
-    INVALID_DIGESTS = 1,
+    REQUIRED_DIGESTS_NOT_FOUND = 1,
+    NO_TRAILING_SEAL_DIGEST,
     MULTIPLE_EPOCH_CHANGE_DIGESTS,
     NEXT_EPOCH_DIGEST_DOES_NOT_EXIST
   };

@@ -15,9 +15,10 @@ namespace kagome::application {
    public:
     virtual ~KagomeApplication() = default;
 
-    /**
-     * @brief runs application
-     */
+    /// Runs recovery mode
+    virtual int recovery() = 0;
+
+    /// Runs node
     virtual void run() = 0;
   };
 }  // namespace kagome::application

@@ -7,7 +7,7 @@
 
 #include <unordered_set>
 
-#include "blockchain/impl/common.hpp"
+#include "blockchain/block_tree_error.hpp"
 #include "common/visitor.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
@@ -614,9 +614,10 @@ namespace kagome::consensus::grandpa {
     auto res = env_->finalize(voter_set_->id(), justification);
     if (res.has_error()) {
       SL_WARN(logger_,
-              "Round #{}: Finalizing on block {} is failed",
+              "Round #{}: Finalizing on block {} is failed: {}",
               round_number_,
-              block);
+              block,
+              res.error().message());
     }
   }
 
@@ -636,7 +637,8 @@ namespace kagome::consensus::grandpa {
              round_number_,
              block);
 
-    auto committed = env_->onCommitted(round_number_, block, justification);
+    auto committed = env_->onCommitted(
+        round_number_, voter_set_->id(), block, justification);
     if (not committed) {
       logger_->error("Round #{}: Commit message was not sent: {}",
                      round_number_,
@@ -985,9 +987,10 @@ namespace kagome::consensus::grandpa {
     // Check if voter is contained in current voter set
     auto inw_res = voter_set_->indexAndWeight(vote.id);
     if (inw_res.has_error()) {
-      logger_->warn("Can't get weight for voter {}: {}",
-                    vote.id,
-                    inw_res.error().message());
+      SL_DEBUG(logger_,
+               "Can't get weight for voter {}: {}",
+               vote.id,
+               inw_res.error().message());
       return inw_res.as_failure();
     }
     const auto &[index, weight] = inw_res.value();
@@ -1027,7 +1030,11 @@ namespace kagome::consensus::grandpa {
         if (result.has_error()) {
           tracker.unpush(vote, weight);
           auto log_lvl = log::Level::WARN;
-          if (result == outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+          // TODO(Harrm): this looks like a kind of a crutch, think of a better
+          // way to pass this information pass this information
+          if (result
+              == outcome::failure(
+                  blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
             if (auto ctx_opt = GrandpaContext::get(); ctx_opt.has_value()) {
               auto &ctx = ctx_opt.value();
               ctx->missing_blocks.emplace(vote.getBlockInfo());

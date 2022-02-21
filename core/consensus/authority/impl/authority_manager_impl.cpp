@@ -26,12 +26,14 @@ using kagome::consensus::grandpa::MembershipCounter;
 namespace kagome::authority {
 
   AuthorityManagerImpl::AuthorityManagerImpl(
+      Config config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<crypto::Hasher> hasher)
-      : block_tree_(std::move(block_tree)),
+      : config_{std::move(config)},
+        block_tree_(std::move(block_tree)),
         trie_storage_(std::move(trie_storage)),
         grandpa_api_(std::move(grandpa_api)),
         hasher_(std::move(hasher)),
@@ -49,13 +51,12 @@ namespace kagome::authority {
     const auto finalized_block = block_tree_->getLastFinalized();
     const auto &finalized_block_hash = finalized_block.hash;
 
-    struct Args {
-      primitives::ConsensusEngineId engine_id;
+    struct ConsensusMessages {
       primitives::BlockInfo block;
       primitives::Consensus message;
     };
 
-    std::stack<Args> collected;
+    std::stack<ConsensusMessages> collected;
 
     {  // observe non-finalized blocks
       std::unordered_set<primitives::BlockHash> observed;
@@ -83,10 +84,9 @@ namespace kagome::authority {
             visit_in_place(
                 digest,
                 [&](const primitives::Consensus &consensus_message) {
-                  collected.emplace(
-                      Args{consensus_message.consensus_engine_id,
-                           primitives::BlockInfo(header.number, hash),
-                           consensus_message});
+                  collected.emplace(ConsensusMessages{
+                      primitives::BlockInfo(header.number, hash),
+                      consensus_message});
                 },
                 [](const auto &) {});
           }
@@ -149,7 +149,7 @@ namespace kagome::authority {
       }
       const auto &set_id = set_id_opt.value();
 
-      // Get initial authorities from genesis
+      // Get initial authorities from runtime
       auto authorities_res = grandpa_api_->authorities(hash);
       if (not authorities_res.has_value()) {
         log_->critical("Can't get grandpa authorities for block {}: {}",
@@ -178,17 +178,21 @@ namespace kagome::authority {
           visit_in_place(
               digest,
               [&](const primitives::Consensus &consensus_message) {
-                collected.emplace(
-                    Args{consensus_message.consensus_engine_id,
-                         primitives::BlockInfo(header.number, hash),
-                         consensus_message});
-                found = true;
+                collected.emplace(ConsensusMessages{
+                    primitives::BlockInfo(header.number, hash),
+                    consensus_message});
+                if (consensus_message.consensus_engine_id
+                    == primitives::kGrandpaEngineId) {
+                  found = true;
+                }
               },
               [](const auto &...) {});  // Other variants are ignored
         }
 
         if (found || header.number == 0) {
-          --authorities.id;
+          if (found) {
+            --authorities.id;
+          }
           auto node =
               authority::ScheduleNode::createAsRoot({header.number, hash});
           node->actual_authorities =
@@ -205,9 +209,7 @@ namespace kagome::authority {
 
     while (not collected.empty()) {
       const auto &args = collected.top();
-
-      auto res = AuthorityManagerImpl::onConsensus(
-          args.engine_id, args.block, args.message);
+      auto res = AuthorityManagerImpl::onConsensus(args.block, args.message);
       if (res.has_error()) {
         log_->critical("Can't apply previous scheduled change: {}",
                        res.error().message());
@@ -220,9 +222,9 @@ namespace kagome::authority {
     // prune to reorganize collected changes
     prune(finalized_block);
 
-    SL_DEBUG(log_, "Authority set id: {:l}", root_->actual_authorities->id);
+    SL_DEBUG(log_, "Authority set id: {}", root_->actual_authorities->id);
     for (const auto &authority : *root_->actual_authorities) {
-      SL_DEBUG(log_, "Grandpa authority: {:l}", authority.id.id);
+      SL_DEBUG(log_, "Grandpa authority: {}", authority.id.id);
     }
 
     return true;
@@ -265,11 +267,39 @@ namespace kagome::authority {
       const primitives::BlockInfo &block,
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber activate_at) {
+    SL_DEBUG(log_,
+             "Applying scheduled change for block {} to activate at block {}",
+             block,
+             activate_at);
     auto node = getAppropriateAncestor(block);
+    SL_DEBUG(
+        log_,
+        "Oldest scheduled change before block {} is at block {} with set id {}",
+        block,
+        node->block,
+        node->actual_authorities->id);
+    auto last_finalized = block_tree_->getLastFinalized();
+    bool block_in_finalized_chain =
+        block_tree_->hasDirectChain(block.hash, last_finalized.hash);
+    SL_DEBUG(log_,
+             "Last finalized is {}, is on the same chain as target block? {}",
+             last_finalized,
+             block_in_finalized_chain);
 
-    auto new_node = node->makeDescendant(block);
+    auto new_node = node->makeDescendant(
+        block,
+        block.number <= last_finalized.number && block_in_finalized_chain);
+    SL_DEBUG(log_,
+             "Make a schedule node for block {}, with actual set id {}",
+             block,
+             new_node->actual_authorities->id);
 
-    OUTCOME_TRY(new_node->ensureReadyToSchedule());
+    auto res = new_node->ensureReadyToSchedule();
+    if (!res) {
+      SL_DEBUG(
+          log_, "Node is not ready to be scheduled: {}", res.error().message());
+      return res.as_failure();
+    }
 
     auto new_authorities =
         std::make_shared<primitives::AuthorityList>(authorities);
@@ -283,9 +313,12 @@ namespace kagome::authority {
                "Change is scheduled after block #{} (set id={})",
                new_node->scheduled_after,
                new_node->scheduled_authorities->id);
+    size_t index = 0;
     for (auto &authority : *new_node->scheduled_authorities) {
       SL_VERBOSE(log_,
-                 "New authority id={}, weight={}",
+                 "New authority ({}/{}): id={} weight={}",
+                 ++index,
+                 new_node->scheduled_authorities->size(),
                  authority.id.id,
                  authority.weight);
     }
@@ -331,11 +364,13 @@ namespace kagome::authority {
       new_node->forced_for = activate_at;
     }
 
-    SL_VERBOSE(
-        log_, "Change is forced on block #{}", new_node->scheduled_after);
+    SL_VERBOSE(log_, "Change is forced on block #{}", activate_at);
+    size_t index = 0;
     for (auto &authority : *new_node->forced_authorities) {
       SL_VERBOSE(log_,
-                 "New authority id={}, weight={}",
+                 "New authority ({}/{}): id={} weight={}",
+                 ++index,
+                 new_node->forced_authorities->size(),
                  authority.id.id,
                  authority.weight);
     }
@@ -345,7 +380,7 @@ namespace kagome::authority {
       auto &ancestor =
           directChainExists(block, descendant->block) ? new_node : node;
 
-      // Apply forced changes if dalay will be passed for descendant
+      // Apply forced changes if delay has passed for descendant
       if (descendant->block.number >= ancestor->forced_for) {
         descendant->actual_authorities = ancestor->forced_authorities;
         descendant->forced_authorities.reset();
@@ -365,6 +400,9 @@ namespace kagome::authority {
 
   outcome::result<void> AuthorityManagerImpl::applyOnDisabled(
       const primitives::BlockInfo &block, uint64_t authority_index) {
+    if (!config_.on_disable_enabled) {
+      return outcome::success();
+    }
     auto node = getAppropriateAncestor(block);
 
     auto new_node = node->makeDescendant(block);
@@ -381,14 +419,14 @@ namespace kagome::authority {
     new_node->actual_authorities = std::move(authorities);
 
     SL_VERBOSE(log_,
-               "Authotity id={} is disabled on block #{}",
+               "Authority id={} is disabled on block #{}",
                (*authorities)[authority_index].id.id,
                new_node->block.number);
 
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
       if (directChainExists(block, descendant->block)) {
-        // Propogate change to descendants
+        // Propagate change to descendants
         if (descendant->actual_authorities == node->actual_authorities) {
           descendant->actual_authorities = new_node->actual_authorities;
         }
@@ -461,11 +499,10 @@ namespace kagome::authority {
   }
 
   outcome::result<void> AuthorityManagerImpl::onConsensus(
-      const primitives::ConsensusEngineId &engine_id,
       const primitives::BlockInfo &block,
       const primitives::Consensus &message) {
-    OUTCOME_TRY(message.decode());
-    if (engine_id == primitives::kBabeEngineId) {
+    if (message.consensus_engine_id == primitives::kBabeEngineId) {
+      OUTCOME_TRY(message.decode());
       // TODO(xDimon): Perhaps it needs to be refactored.
       //  It is better handle babe digests here
       //  Issue: https://github.com/soramitsu/kagome/issues/740
@@ -475,7 +512,7 @@ namespace kagome::authority {
             return outcome::success();
           },
           [](const primitives::OnDisabled &msg) {
-            // Note: This event type wount be used anymore and must be ignored
+            // Note: This event type won't be used anymore and must be ignored
             return outcome::success();
           },
           [](const primitives::NextConfigData &msg) {
@@ -484,7 +521,8 @@ namespace kagome::authority {
           [](auto &) {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
-    } else if (engine_id == primitives::kGrandpaEngineId) {
+    } else if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
+      OUTCOME_TRY(message.decode());
       return visit_in_place(
           message.asGrandpaDigest(),
           [this, &block](
@@ -496,9 +534,8 @@ namespace kagome::authority {
             return applyForcedChange(
                 block, msg.authorities, block.number + msg.subchain_length);
           },
-          [](const primitives::OnDisabled &msg) {
-            // Note: This event type wount be used anymore and must be ignored
-            return outcome::success();
+          [this, &block](const primitives::OnDisabled &msg) {
+            return applyOnDisabled(block, msg.authority_index);
           },
           [this, &block](const primitives::Pause &msg) {
             return applyPause(block, block.number + msg.subchain_length);
@@ -510,7 +547,11 @@ namespace kagome::authority {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
     } else {
-      return AuthorityManagerError::UNKNOWN_ENGINE_ID;
+      SL_WARN(log_,
+              "Unknown consensus engine id in block {}: {}",
+              block,
+              message.consensus_engine_id.toString());
+      return outcome::success();
     }
   }
 

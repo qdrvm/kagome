@@ -22,6 +22,7 @@ target_link_libraries(block_tree_test
     extrinsic_observer
     babe_digests_util
     logger_for_tests
+    dummy_error
     )
 
 addtest(block_storage_test
