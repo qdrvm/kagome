@@ -153,10 +153,15 @@ namespace kagome::consensus::grandpa {
                      Propagation propagation) override;
 
     /**
-     * Updates inner state if {@param isPrevotesChanged} or
-     * {@param isPrecommitsChanged} was changed since last call
+     * Updates inner state if something (see params) was changed since last call
+     * @param is_previous_round_changed is true if previous round is changed
+     * @param is_prevotes_changed is true if new prevote was accepted
+     * @param is_precommits_changed is true if new precommits was accepted
+     * @return true if finalized block was changed during update
      */
-    void update(bool isPrevotesChanged, bool isPrecommitsChanged) override;
+    void update(bool is_previous_round_changed,
+                bool is_prevotes_changed,
+                bool is_precommits_changed) override;
 
     /**
      * @returns previous known round for current

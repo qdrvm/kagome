@@ -116,10 +116,15 @@ namespace kagome::consensus::grandpa {
                              Propagation propagation) = 0;
 
     /**
-     * Updates inner state if {@param prevote} or {@param precommit} was changed
-     * since last call
+     * Updates inner state if something (see params) was changed since last call
+     * @param is_previous_round_changed is true if previous round is changed
+     * @param is_prevotes_changed is true if new prevote was accepted
+     * @param is_precommits_changed is true if new precommits was accepted
+     * @return true if finalized block was changed during update
      */
-    virtual void update(bool isPrevotesChanged, bool isPrecommitsChanged) = 0;
+    virtual void update(bool is_previous_round_changed,
+                        bool is_prevotes_changed,
+                        bool is_precommits_changed) = 0;
 
     // Auxiliary methods
 

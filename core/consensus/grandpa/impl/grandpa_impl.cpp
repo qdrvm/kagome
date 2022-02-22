@@ -285,6 +285,12 @@ namespace kagome::consensus::grandpa {
     }
   }
 
+  void GrandpaImpl::updateNextRound(RoundNumber round_number) {
+    if (auto round = selectRound(round_number, std::nullopt)) {
+      round->update(true, false, false);
+    }
+  }
+
   void GrandpaImpl::onNeighborMessage(
       const libp2p::peer::PeerId &peer_id,
       const network::GrandpaNeighborMessage &msg) {
@@ -458,21 +464,24 @@ namespace kagome::consensus::grandpa {
       current_round_ = std::move(round);
 
     } else {
-      bool isPrevotesChanged = false;
-      bool isPrecommitsChanged = false;
+      bool is_prevotes_changed = false;
+      bool is_precommits_changed = false;
       for (auto &vote : msg.prevote_justification) {
         if (current_round_->onPrevote(vote,
                                       VotingRound::Propagation::NEEDLESS)) {
-          isPrevotesChanged = true;
+          is_prevotes_changed = true;
         }
       }
       for (auto &vote : msg.precommit_justification) {
         if (current_round_->onPrecommit(vote,
                                         VotingRound::Propagation::NEEDLESS)) {
-          isPrecommitsChanged = true;
+          is_precommits_changed = true;
         }
       }
-      current_round_->update(isPrevotesChanged, isPrecommitsChanged);
+      if (is_prevotes_changed or is_precommits_changed) {
+        current_round_->update(
+            false, is_prevotes_changed, is_precommits_changed);
+      }
 
       SL_DEBUG(logger_, "Catch-up response applied");
 
@@ -594,8 +603,8 @@ namespace kagome::consensus::grandpa {
 
     GrandpaContext::Guard cg;
 
-    bool isPrevotesChanged = false;
-    bool isPrecommitsChanged = false;
+    bool is_prevotes_changed = false;
+    bool is_precommits_changed = false;
     visit_in_place(
         msg.vote.message,
         [&](const PrimaryPropose &) {
@@ -605,16 +614,18 @@ namespace kagome::consensus::grandpa {
         [&](const Prevote &) {
           if (target_round->onPrevote(msg.vote,
                                       VotingRound::Propagation::REQUESTED)) {
-            isPrevotesChanged = true;
+            is_prevotes_changed = true;
           }
         },
         [&](const Precommit &) {
           if (target_round->onPrecommit(msg.vote,
                                         VotingRound::Propagation::REQUESTED)) {
-            isPrecommitsChanged = true;
+            is_precommits_changed = true;
           }
         });
-    target_round->update(isPrevotesChanged, isPrecommitsChanged);
+    if (is_prevotes_changed or is_precommits_changed) {
+      target_round->update(false, is_prevotes_changed, is_precommits_changed);
+    }
 
     if (not target_round->finalizable()) {
       auto ctx = GrandpaContext::get().value();

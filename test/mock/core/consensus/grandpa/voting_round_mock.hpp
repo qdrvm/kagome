@@ -69,7 +69,7 @@ namespace kagome::consensus::grandpa {
                 (const SignedMessage &, Propagation),
                 (override));
 
-    MOCK_METHOD(void, update, (bool, bool), (override));
+    MOCK_METHOD(void, update, (bool, bool, bool), (override));
 
     MOCK_METHOD(std::shared_ptr<VotingRound>,
                 getPreviousRound,

@@ -146,8 +146,8 @@ namespace kagome::consensus::grandpa {
     finalized_ = round_state.finalized;
 
     if (round_number_ != 0) {
-      bool isPrevotesChanged = false;
-      bool isPrecommitsChanged = false;
+      bool is_prevotes_changed = false;
+      bool is_precommits_changed = false;
 
       // Apply stored votes
       auto apply = [&](const auto &vote) {
@@ -155,12 +155,12 @@ namespace kagome::consensus::grandpa {
             vote.message,
             [&](const Prevote &) {
               if (VotingRoundImpl::onPrevote(vote, Propagation::NEEDLESS)) {
-                isPrevotesChanged = true;
+                is_prevotes_changed = true;
               }
             },
             [&](const Precommit &) {
               if (VotingRoundImpl::onPrecommit(vote, Propagation::NEEDLESS)) {
-                isPrecommitsChanged = true;
+                is_precommits_changed = true;
               }
             },
             [](auto...) {});
@@ -176,8 +176,10 @@ namespace kagome::consensus::grandpa {
             });
       }
 
-      VotingRoundImpl::update(isPrevotesChanged, isPrecommitsChanged);
-
+      if (is_prevotes_changed or is_precommits_changed) {
+        VotingRoundImpl::update(
+            false, is_prevotes_changed, is_precommits_changed);
+      }
     } else {
       // Zero-round is always self-finalized
       completable_ = true;
@@ -662,26 +664,29 @@ namespace kagome::consensus::grandpa {
              round_number_,
              block_info);
 
-    bool isPrevotesChanged = false;
-    bool isPrecommitsChanged = false;
+    bool is_prevotes_changed = false;
+    bool is_precommits_changed = false;
 
     for (auto &vote : justification.items) {
       visit_in_place(
           vote.message,
           [&](const Prevote &) {
             if (VotingRoundImpl::onPrevote(vote, Propagation::NEEDLESS)) {
-              isPrevotesChanged = true;
+              is_prevotes_changed = true;
             }
           },
           [&](const Precommit &) {
             if (VotingRoundImpl::onPrecommit(vote, Propagation::NEEDLESS)) {
-              isPrecommitsChanged = true;
+              is_precommits_changed = true;
             }
           },
           [](auto...) {});
     }
 
-    update(isPrevotesChanged, isPrecommitsChanged);
+    if (is_prevotes_changed or is_precommits_changed) {
+      VotingRoundImpl::update(
+          false, is_prevotes_changed, is_precommits_changed);
+    }
 
     if (not finalizable()) {
       return VotingRoundError::ROUND_IS_NOT_FINALIZABLE;
@@ -972,12 +977,59 @@ namespace kagome::consensus::grandpa {
     return true;
   }
 
-  void VotingRoundImpl::update(bool isPrevotesChanged,
-                               bool isPrecommitsChanged) {
-    if (not isPrevotesChanged and not isPrecommitsChanged) return;
-    updateGrandpaGhost();
-    updateEstimate();
-    attemptToFinalizeRound();
+  void VotingRoundImpl::update(bool is_previous_round_changed,
+                               bool is_prevotes_changed,
+                               bool is_precommits_changed) {
+    bool need_to_update_grandpa_ghost =
+        is_previous_round_changed or is_prevotes_changed;
+
+    bool need_to_update_estimate =
+        is_precommits_changed or need_to_update_grandpa_ghost;
+
+    if (need_to_update_grandpa_ghost) {
+      if (updateGrandpaGhost()) {
+        need_to_update_estimate = true;
+      }
+    }
+
+    if (need_to_update_estimate) {
+      if (updateEstimate()) {
+        attemptToFinalizeRound();
+
+        if (auto grandpa = grandpa_.lock()) {
+          grandpa->updateNextRound(round_number_);
+        }
+      }
+    }
+
+    bool can_start_next_round;
+
+    // Start next round only when previous round estimate is finalized
+    if (previous_round_) {
+      // Either it was already finalized in the previous round or it must be
+      // finalized in the current round
+      can_start_next_round = previous_round_->finalizable();
+    } else {
+      // When we catch up to a round we complete the round without any last
+      // round state. in this case we already started a new round after we
+      // caught up so this guard is unneeded.
+      can_start_next_round = true;
+    }
+
+    // Start next round only when current round has estimation
+    can_start_next_round = can_start_next_round and estimate_.has_value();
+
+    // Play new round
+    // spec: Play-Grandpa-round(r + 1);
+
+    if (can_start_next_round) {
+      scheduler_->schedule(
+          [grandpa_wp = std::move(grandpa_), round_number = round_number_] {
+            if (auto grandpa = grandpa_wp.lock()) {
+              grandpa->executeNextRound(round_number);
+            }
+          });
+    }
   }
 
   template <typename T>
@@ -1146,16 +1198,6 @@ namespace kagome::consensus::grandpa {
           VoteType::Precommit, prevote_ghost, std::move(possible_to_finalize));
 
       BOOST_ASSERT(finalized_.has_value());
-
-      // Play new round
-      // spec: Play-Grandpa-round(r + 1);
-
-      scheduler_->schedule(
-          [grandpa_wp = std::move(grandpa_), round_number = round_number_] {
-            if (auto grandpa = grandpa_wp.lock()) {
-              grandpa->executeNextRound(round_number);
-            }
-          });
     }
 
     // find how many more equivocations we could still get.
