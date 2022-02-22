@@ -15,6 +15,7 @@
 #     CMAKE_ARGS "CMAKE_VARIABLE=value"
 # )
 
+
 hunter_config(
     backward-cpp
     URL https://github.com/bombela/backward-cpp/archive/refs/tags/v1.6.zip
@@ -31,7 +32,7 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.1
+    VERSION 0.1.2
     KEEP_PACKAGE_SOURCES
 )
 

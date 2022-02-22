@@ -44,6 +44,7 @@ namespace kagome::crypto {
 
   using EcdsaSignature = std::vector<uint8_t>;
   using EcdsaSeed = common::Blob<constants::ecdsa::SEED_SIZE>;
+  using EcdsaPrehashedMessage = PrehashedMessage;
 
 }  // namespace kagome::crypto
 
