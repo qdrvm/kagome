@@ -33,7 +33,7 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::Bip39Provider> bip39_provider,
       std::shared_ptr<offchain::OffchainPersistentStorage>
           offchain_persistent_storage,
-      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_repo)
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
       : memory_provider_([&] {
           BOOST_ASSERT(memory_provider);
           return std::move(memory_provider);
@@ -61,7 +61,7 @@ namespace kagome::host_api {
         offchain_ext_(offchain_config,
                       memory_provider_,
                       std::move(offchain_persistent_storage),
-                      std::move(offchain_worker_repo)) {}
+                      std::move(offchain_worker_pool)) {}
 
   void HostApiImpl::reset() {
     storage_ext_.reset();

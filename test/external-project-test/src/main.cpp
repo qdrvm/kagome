@@ -18,6 +18,7 @@
 #include <kagome/host_api/impl/host_api_factory_impl.hpp>
 #include <kagome/log/configurator.hpp>
 #include <kagome/offchain/impl/offchain_persistent_storage.hpp>
+#include <kagome/offchain/impl/offchain_worker_pool_impl.hpp>
 #include <kagome/runtime/common/module_repository_impl.hpp>
 #include <kagome/runtime/common/runtime_upgrade_tracker_impl.hpp>
 #include <kagome/runtime/common/storage_code_provider.hpp>
@@ -162,6 +163,9 @@ int main() {
       std::make_shared<kagome::offchain::OffchainPersistentStorageImpl>(
           database);
 
+  auto offchain_worker_pool =
+      std::make_shared<kagome::offchain::OffchainWorkerPoolImpl>();
+
   auto host_api_factory =
       std::make_shared<kagome::host_api::HostApiFactoryImpl>(
           kagome::host_api::OffchainExtensionConfig{},
@@ -173,7 +177,8 @@ int main() {
           hasher,
           crypto_store,
           bip39_provider,
-          offchain_persistent_storage);
+          offchain_persistent_storage,
+          offchain_worker_pool);
 
   auto instance_env_factory =
       std::make_shared<const kagome::runtime::wavm::InstanceEnvironmentFactory>(

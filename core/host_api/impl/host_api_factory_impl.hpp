@@ -41,7 +41,7 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::Bip39Provider> bip39_provider,
         std::shared_ptr<offchain::OffchainPersistentStorage>
             offchain_persistent_storage,
-        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_repo);
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
 
     std::unique_ptr<HostApi> make(
         std::shared_ptr<const runtime::CoreApiFactory> core_factory,
