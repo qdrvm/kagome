@@ -129,10 +129,14 @@ namespace kagome::runtime::binaryen {
       "ext_crypto_ecdsa_public_keys_version_1";
   const static wasm::Name ext_crypto_ecdsa_sign_version_1 =
       "ext_crypto_ecdsa_sign_version_1";
+  const static wasm::Name ext_crypto_ecdsa_sign_prehashed_version_1 =
+      "ext_crypto_ecdsa_sign_prehashed_version_1";
   const static wasm::Name ext_crypto_ecdsa_generate_version_1 =
       "ext_crypto_ecdsa_generate_version_1";
   const static wasm::Name ext_crypto_ecdsa_verify_version_1 =
       "ext_crypto_ecdsa_verify_version_1";
+  const static wasm::Name ext_crypto_ecdsa_verify_prehashed_version_1 =
+      "ext_crypto_ecdsa_verify_prehashed_version_1";
 
   const static wasm::Name ext_crypto_secp256k1_ecdsa_recover_version_1 =
       "ext_crypto_secp256k1_ecdsa_recover_version_1";
@@ -421,6 +425,16 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
+      /// ext_crypto_ecdsa_sign_prehashed_version_1
+      if (import->base == ext_crypto_ecdsa_sign_prehashed_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = host_api_->ext_crypto_ecdsa_sign_prehashed_version_1(
+            arguments.at(0).geti32(),
+            arguments.at(1).geti32(),
+            arguments.at(2).geti64());
+        return wasm::Literal(res);
+      }
+
       /// ext_crypto_ecdsa_generate_version_1
       if (import->base == ext_crypto_ecdsa_generate_version_1) {
         checkArguments(import->base.c_str(), 2, arguments.size());
@@ -433,6 +447,16 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_crypto_ecdsa_verify_version_1) {
         checkArguments(import->base.c_str(), 3, arguments.size());
         auto res = host_api_->ext_crypto_ecdsa_verify_version_1(
+            arguments.at(0).geti32(),
+            arguments.at(1).geti64(),
+            arguments.at(2).geti32());
+        return wasm::Literal(res);
+      }
+
+      /// ext_crypto_ecdsa_verify_version_1
+      if (import->base == ext_crypto_ecdsa_verify_prehashed_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = host_api_->ext_crypto_ecdsa_verify_prehashed_version_1(
             arguments.at(0).geti32(),
             arguments.at(1).geti64(),
             arguments.at(2).geti32());
