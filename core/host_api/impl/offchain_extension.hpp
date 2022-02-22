@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_HOSTAPI_OFFCHAINEXTENSION
-#define KAGOME_HOSTAPI_OFFCHAINEXTENSION
+#ifndef KAGOME_OFFCHAIN_EXTENSION_HPP
+#define KAGOME_OFFCHAIN_EXTENSION_HPP
 
 #include "clock/clock.hpp"
 #include "crypto/random_generator.hpp"
@@ -14,7 +14,8 @@
 
 namespace kagome::offchain {
   class OffchainWorker;
-}
+  class OffchainWorkerPool;
+}  // namespace kagome::offchain
 
 namespace kagome::runtime {
   class MemoryProvider;
@@ -31,7 +32,8 @@ namespace kagome::host_api {
     OffchainExtension(
         const OffchainExtensionConfig &config,
         std::shared_ptr<const runtime::MemoryProvider> memory_provider,
-        std::shared_ptr<offchain::OffchainStorage> offchain_storage);
+        std::shared_ptr<offchain::OffchainStorage> offchain_storage,
+        std::shared_ptr<offchain::OffchainWorkerPool> ocw_pool);
 
     /**
      * @brief Check whether the local node is a potential validator. Even if
@@ -372,15 +374,16 @@ namespace kagome::host_api {
     void ext_offchain_index_clear_version_1(runtime::WasmSpan key);
 
    private:
-    offchain::OffchainWorker &getWorker();
+    std::shared_ptr<offchain::OffchainWorker> getWorker();
 
     const OffchainExtensionConfig &config_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<offchain::OffchainStorage> offchain_storage_;
+    std::shared_ptr<offchain::OffchainWorkerPool> ocw_pool_;
 
     log::Logger log_;
   };
 
 }  // namespace kagome::host_api
 
-#endif  // KAGOME_HOSTAPI_OFFCHAINEXTENSION
+#endif /* KAGOME_OFFCHAIN_EXTENSION_HPP */

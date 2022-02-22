@@ -25,6 +25,7 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
+#include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
@@ -90,6 +91,8 @@ class RuntimeTestBase : public ::testing::Test {
         std::make_shared<storage::changes_trie::ChangesTrackerMock>();
     offchain_storage_ =
         std::make_shared<offchain::OffchainPersistentStorageMock>();
+    offchain_worker_pool_ =
+        std::make_shared<offchain::OffchainWorkerPoolMock>();
 
     host_api_factory_ = std::make_shared<host_api::HostApiFactoryImpl>(
         kagome::host_api::OffchainExtensionConfig{},
@@ -101,7 +104,8 @@ class RuntimeTestBase : public ::testing::Test {
         hasher_,
         crypto_store,
         bip39_provider,
-        offchain_storage_);
+        offchain_storage_,
+        offchain_worker_pool_);
 
     header_repo_ = std::make_shared<
         testing::NiceMock<blockchain::BlockHeaderRepositoryMock>>();
@@ -230,6 +234,7 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<runtime::Executor> executor_;
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_;
   std::shared_ptr<offchain::OffchainPersistentStorageMock> offchain_storage_;
+  std::shared_ptr<offchain::OffchainWorkerPoolMock> offchain_worker_pool_;
   std::shared_ptr<crypto::Hasher> hasher_;
   std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
 };
