@@ -20,6 +20,7 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
+#include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "runtime/common/module_repository_impl.hpp"
@@ -131,6 +132,8 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
     auto offchain_persistent_storage =
         std::make_shared<kagome::offchain::OffchainPersistentStorageMock>();
+    auto offchain_worker_pool =
+        std::make_shared<kagome::offchain::OffchainWorkerPoolMock>();
     auto host_api_factory =
         std::make_shared<kagome::host_api::HostApiFactoryImpl>(
             kagome::host_api::OffchainExtensionConfig{},
@@ -142,7 +145,8 @@ class WasmExecutorTest : public ::testing::Test {
             hasher,
             crypto_store,
             bip39_provider,
-            offchain_persistent_storage);
+            offchain_persistent_storage,
+            offchain_worker_pool);
 
     header_repo_ =
         std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();

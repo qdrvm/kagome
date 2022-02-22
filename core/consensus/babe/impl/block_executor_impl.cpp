@@ -227,7 +227,7 @@ namespace kagome::consensus {
           primitives::BlockInfo(block.header.number, block_hash),
           b.justification.value());
       if (res.has_error()) {
-        // TODO(xDimon): Rolling back of block is needed here
+        rollbackBlock(block_hash);
         return res.as_failure();
       }
     }
@@ -239,13 +239,12 @@ namespace kagome::consensus {
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
             return authority_update_observer_->onConsensus(
-                consensus_message.consensus_engine_id,
                 primitives::BlockInfo{block.header.number, block_hash},
                 consensus_message);
           },
           [](const auto &) { return outcome::success(); });
       if (res.has_error()) {
-        // TODO(xDimon): Rolling back of block is needed here
+        rollbackBlock(block_hash);
         return res.as_failure();
       }
     }
@@ -287,6 +286,16 @@ namespace kagome::consensus {
     }
 
     return outcome::success();
+  }
+
+  void BlockExecutorImpl::rollbackBlock(
+      const primitives::BlockHash &block_hash) {
+    auto removal_res = block_tree_->removeBlock(block_hash);
+    if (removal_res.has_error()) {
+      SL_WARN(logger_,
+              "Rolling back of block {} is failed: {}",
+              removal_res.error().message());
+    }
   }
 
 }  // namespace kagome::consensus

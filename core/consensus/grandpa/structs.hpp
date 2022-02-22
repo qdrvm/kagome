@@ -211,9 +211,9 @@ namespace kagome::consensus::grandpa {
     primitives::BlockNumber target_number;
     // Precommits for target block or any block after it that justify this
     // commit.
-    std::vector<Precommit> precommits;
+    std::vector<Precommit> precommits{};
     // Authentication data for the commit.
-    std::vector<std::pair<Signature, Id>> auth_data;
+    std::vector<std::pair<Signature, Id>> auth_data{};
   };
 
   template <class Stream,

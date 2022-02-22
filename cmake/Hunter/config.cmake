@@ -32,15 +32,13 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/igor-egorov/cpp-libp2p/archive/feature/ecdsa-prehashed-face.tar.gz
-    SHA1 e45549cf6b8e22b6769766044354fc2493050493
+    VERSION 0.1.2
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     wavm
-    URL "https://github.com/soramitsu/WAVM/archive/refs/tags/1.0.3.zip"
-    SHA1 67cafaec3c810a5e8d7bb9416148d7532a0071ed
+    VERSION 1.0.3
     CMAKE_ARGS
       TESTING=OFF
       WAVM_ENABLE_FUZZ_TARGETS=OFF

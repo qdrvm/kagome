@@ -85,7 +85,6 @@ namespace kagome::authority {
         primitives::BlockNumber activate_at) override;
 
     outcome::result<void> onConsensus(
-        const primitives::ConsensusEngineId &engine_id,
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) override;
 
@@ -109,17 +108,14 @@ namespace kagome::authority {
     bool directChainExists(const primitives::BlockInfo &ancestor,
                            const primitives::BlockInfo &descendant);
 
-    outcome::result<void> save();
-
-    log::Logger log_;
     Config config_;
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
 
     std::shared_ptr<ScheduleNode> root_;
+    log::Logger log_;
   };
 }  // namespace kagome::authority
 

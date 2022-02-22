@@ -28,6 +28,7 @@ namespace kagome::runtime {
 }
 
 namespace kagome::offchain {
+  class OffchainWorkerPool;
   class OffchainWorkerFactoryImpl final : public OffchainWorkerFactory {
    public:
     OffchainWorkerFactoryImpl(
@@ -38,8 +39,8 @@ namespace kagome::offchain {
         std::shared_ptr<crypto::CSPRNG> random_generator,
         std::shared_ptr<api::AuthorApi> author_api,
         const network::OwnPeerInfo &current_peer_info,
-        std::shared_ptr<offchain::OffchainPersistentStorage>
-            persistent_storage);
+        std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage,
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
 
     std::shared_ptr<OffchainWorker> make(
         std::shared_ptr<runtime::Executor> executor,
@@ -54,6 +55,7 @@ namespace kagome::offchain {
     std::shared_ptr<api::AuthorApi> author_api_;
     const network::OwnPeerInfo &current_peer_info_;
     std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage_;
+    std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
   };
 
 }  // namespace kagome::offchain

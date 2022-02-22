@@ -15,6 +15,7 @@
 
 #include <optional>
 
+#include "application/app_configuration.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
@@ -29,6 +30,7 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
 #include "runtime/runtime_api/core.hpp"
+#include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 
 namespace kagome::storage::changes_trie {
@@ -42,16 +44,7 @@ namespace kagome::blockchain {
 
   class BlockTreeImpl : public BlockTree {
    public:
-
-    /**
-     * Create an instance of block tree
-     * @param header_repo - block headers repository
-     * @param storage - block storage for the tree to be put in
-     * @param last_finalized_block - last finalized block, from which the tree
-     * is going to grow
-     * @param hasher - pointer to the hasher
-     * @return ptr to the created instance or error
-     */
+    /// Create an instance of block tree
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
@@ -66,6 +59,13 @@ namespace kagome::blockchain {
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<consensus::BabeUtil> babe_util);
+
+    /// Do recover block tree stare to provided block
+    static outcome::result<void> recover(
+        const application::AppConfiguration &app_config,
+        std::shared_ptr<BlockStorage> storage,
+        std::shared_ptr<BlockHeaderRepository> header_repo,
+        std::shared_ptr<const storage::trie::TrieStorage> trie_storage);
 
     ~BlockTreeImpl() override = default;
 
@@ -87,6 +87,9 @@ namespace kagome::blockchain {
         const primitives::BlockHeader &header) override;
 
     outcome::result<void> addBlock(const primitives::Block &block) override;
+
+    outcome::result<void> removeBlock(
+        const primitives::BlockHash &block_hash) override;
 
     outcome::result<void> addExistingBlock(
         const primitives::BlockHash &block_hash,
@@ -187,6 +190,8 @@ namespace kagome::blockchain {
 
     outcome::result<void> prune(
         const std::shared_ptr<TreeNode> &lastFinalizedNode);
+
+    outcome::result<void> reorganize();
 
     std::shared_ptr<BlockHeaderRepository> header_repo_;
     std::shared_ptr<BlockStorage> storage_;

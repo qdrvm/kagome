@@ -39,12 +39,13 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/recovery_mode.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
+#include "blockchain/impl/block_header_repository_impl.hpp"
+#include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "blockchain/impl/key_value_block_header_repository.hpp"
-#include "blockchain/impl/key_value_block_storage.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
@@ -93,6 +94,7 @@
 #include "offchain/impl/offchain_persistent_storage.hpp"
 #include "offchain/impl/offchain_worker_factory_impl.hpp"
 #include "offchain/impl/offchain_worker_impl.hpp"
+#include "offchain/impl/offchain_worker_pool_impl.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
@@ -223,7 +225,7 @@ namespace {
     }
 
     auto block_storage_res =
-        blockchain::KeyValueBlockStorage::create(state_root, storage, hasher);
+        blockchain::BlockStorageImpl::create(state_root, storage, hasher);
 
     if (block_storage_res.has_error()) {
       common::raise(block_storage_res.error());
@@ -583,6 +585,7 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
+
     auto header_repo =
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
 
@@ -887,6 +890,7 @@ namespace {
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
         di::bind<offchain::OffchainWorkerFactory>.template to<offchain::OffchainWorkerFactoryImpl>(),
         di::bind<offchain::OffchainWorker>.template to<offchain::OffchainWorkerImpl>(),
+        di::bind<offchain::OffchainWorkerPool>.template to<offchain::OffchainWorkerPoolImpl>(),
         di::bind<offchain::OffchainPersistentStorage>.template to<offchain::OffchainPersistentStorageImpl>(),
         di::bind<offchain::OffchainLocalStorage>.template to<offchain::OffchainLocalStorageImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
@@ -1055,7 +1059,7 @@ namespace {
         }),
         di::bind<blockchain::BlockTree>.to(
             [](auto const &injector) { return get_block_tree(injector); }),
-        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
+        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
@@ -1146,6 +1150,8 @@ namespace {
         di::bind<primitives::GenesisBlockHeader>.to([](auto const &injector) {
           return get_genesis_block_header(injector);
         }),
+        di::bind<application::mode::RecoveryMode>.to(
+            [](auto const &injector) { return get_recovery_mode(injector); }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1321,6 +1327,36 @@ namespace {
     return initialized.value();
   }
 
+  template <typename Injector>
+  sptr<application::mode::RecoveryMode> get_recovery_mode(
+      const Injector &injector) {
+    static auto initialized =
+        std::optional<sptr<application::mode::RecoveryMode>>(std::nullopt);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    const auto &app_config =
+        injector.template create<const application::AppConfiguration &>();
+    auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
+    auto header_repo =
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
+    auto trie_storage =
+        injector.template create<sptr<const storage::trie::TrieStorage>>();
+
+    initialized.emplace(new application::mode::RecoveryMode(
+        [&app_config,
+         storage = std::move(storage),
+         header_repo = std::move(header_repo),
+         trie_storage = std::move(trie_storage)] {
+          auto res = blockchain::BlockTreeImpl::recover(
+              app_config, storage, header_repo, trie_storage);
+          return res.has_error() ? EXIT_FAILURE : EXIT_SUCCESS;
+        }));
+
+    return initialized.value();
+  }
+
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
                               Ts &&...args) {
@@ -1433,6 +1469,11 @@ namespace kagome::injector {
   std::shared_ptr<metrics::MetricsWatcher>
   KagomeNodeInjector::injectMetricsWatcher() {
     return pimpl_->injector_.create<sptr<metrics::MetricsWatcher>>();
+  }
+
+  std::shared_ptr<application::mode::RecoveryMode>
+  KagomeNodeInjector::injectRecoveryMode() {
+    return pimpl_->injector_.create<sptr<application::mode::RecoveryMode>>();
   }
 
 }  // namespace kagome::injector

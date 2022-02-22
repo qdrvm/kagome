@@ -44,4 +44,11 @@ target_link_libraries(offchain_worker_factory
     offchain_worker
     )
 
+add_library(offchain_worker_pool
+    offchain_worker_pool_impl.cpp
+    )
+target_link_libraries(offchain_worker_pool
+    offchain_worker
+    )
+
 

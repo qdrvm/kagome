@@ -616,7 +616,7 @@ namespace kagome::consensus::grandpa {
         });
     target_round->update(isPrevotesChanged, isPrecommitsChanged);
 
-    if (not target_round->completable()) {
+    if (not target_round->finalizable()) {
       auto ctx = GrandpaContext::get().value();
       if (not ctx->missing_blocks.empty()) {
         ctx->peer_id.emplace(peer_id);
