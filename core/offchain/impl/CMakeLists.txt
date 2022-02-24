@@ -29,6 +29,7 @@ target_link_libraries(http_request
     OpenSSL::SSL
     buffer
     )
+kagome_install(http_request)
 
 add_library(offchain_worker
     offchain_worker_impl.cpp
