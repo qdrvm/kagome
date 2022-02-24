@@ -30,6 +30,7 @@ namespace kagome::storage::trie {
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;
     outcome::result<void> remove(const Buffer &key) override;
+    outcome::result<RootHash> hash() override;
 
    private:
     std::shared_ptr<Codec> codec_;
