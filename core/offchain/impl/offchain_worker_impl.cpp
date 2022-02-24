@@ -13,6 +13,7 @@
 #include "application/app_configuration.hpp"
 #include "crypto/hasher.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
+#include "offchain/offchain_worker_pool.hpp"
 #include "runtime/executor.hpp"
 #include "storage/database_error.hpp"
 
@@ -28,7 +29,8 @@ namespace kagome::offchain {
       const network::OwnPeerInfo &current_peer_info,
       std::shared_ptr<OffchainPersistentStorage> persistent_storage,
       std::shared_ptr<runtime::Executor> executor,
-      const primitives::BlockHeader &header)
+      const primitives::BlockHeader &header,
+      std::shared_ptr<OffchainWorkerPool> ocw_pool)
       : app_config_(app_config),
         clock_(std::move(clock)),
         hasher_(std::move(hasher)),
@@ -38,6 +40,7 @@ namespace kagome::offchain {
         persistent_storage_(std::move(persistent_storage)),
         executor_(std::move(executor)),
         header_(header),
+        ocw_pool_(std::move(ocw_pool)),
         log_(log::createLogger(
             "OffchainWorker#" + std::to_string(header_.number), "offchain")) {
     BOOST_ASSERT(clock_);
@@ -47,6 +50,7 @@ namespace kagome::offchain {
     BOOST_ASSERT(author_api_);
     BOOST_ASSERT(persistent_storage_);
     BOOST_ASSERT(executor_);
+    BOOST_ASSERT(ocw_pool_);
 
     auto hash = hasher_->blake2b_256(scale::encode(header_).value());
     const_cast<primitives::BlockInfo &>(block_) =
@@ -57,12 +61,12 @@ namespace kagome::offchain {
   }
 
   outcome::result<void> OffchainWorkerImpl::run() {
-    BOOST_ASSERT(not worker_of_this_thread().has_value());
+    BOOST_ASSERT(not ocw_pool_->getWorker());
 
-    auto main_thread_func = [ocw = shared_from_this()] {
+    auto main_thread_func = [ocw = shared_from_this(), ocw_pool = ocw_pool_] {
       soralog::util::setThreadName("ocw." + std::to_string(ocw->block_.number));
 
-      worker_of_this_thread(*ocw);
+      ocw_pool->addWorker(ocw);
 
       SL_TRACE(
           ocw->log_, "Offchain worker is started for block {}", ocw->block_);
@@ -70,7 +74,7 @@ namespace kagome::offchain {
       auto res = ocw->executor_->callAt<void>(
           ocw->block_.hash, "OffchainWorkerApi_offchain_worker", ocw->header_);
 
-      worker_of_this_thread(std::nullopt);
+      ocw_pool->removeWorker();
 
       if (res.has_failure()) {
         SL_ERROR(ocw->log_,
@@ -111,7 +115,7 @@ namespace kagome::offchain {
   }
 
   Result<OpaqueNetworkState, Failure> OffchainWorkerImpl::networkState() {
-    OpaqueNetworkState result{.peer_id = current_peer_info_.id};
+    OpaqueNetworkState result(current_peer_info_.id, {});
 
     std::list<libp2p::multi::Multiaddress> address(
         current_peer_info_.addresses.begin(),

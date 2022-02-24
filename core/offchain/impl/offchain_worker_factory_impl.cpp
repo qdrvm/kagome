@@ -6,6 +6,7 @@
 #include "offchain/impl/offchain_worker_factory_impl.hpp"
 
 #include "offchain/impl/offchain_worker_impl.hpp"
+#include "offchain/offchain_worker_pool.hpp"
 
 namespace kagome::offchain {
 
@@ -17,7 +18,8 @@ namespace kagome::offchain {
       std::shared_ptr<crypto::CSPRNG> random_generator,
       std::shared_ptr<api::AuthorApi> author_api,
       const network::OwnPeerInfo &current_peer_info,
-      std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage)
+      std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage,
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
       : app_config_(app_config),
         clock_(std::move(clock)),
         hasher_(std::move(hasher)),
@@ -25,13 +27,15 @@ namespace kagome::offchain {
         random_generator_(std::move(random_generator)),
         author_api_(std::move(author_api)),
         current_peer_info_(current_peer_info),
-        persistent_storage_(std::move(persistent_storage)) {
+        persistent_storage_(std::move(persistent_storage)),
+        offchain_worker_pool_(std::move(offchain_worker_pool)) {
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(random_generator_);
     BOOST_ASSERT(author_api_);
     BOOST_ASSERT(persistent_storage_);
+    BOOST_ASSERT(offchain_worker_pool_);
   }
 
   std::shared_ptr<OffchainWorker> OffchainWorkerFactoryImpl::make(
@@ -46,7 +50,8 @@ namespace kagome::offchain {
                                                 current_peer_info_,
                                                 persistent_storage_,
                                                 executor,
-                                                header);
+                                                header,
+                                                offchain_worker_pool_);
   }
 
 }  // namespace kagome::offchain

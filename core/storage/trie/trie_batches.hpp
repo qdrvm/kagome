@@ -61,7 +61,13 @@ namespace kagome::storage::trie {
    * A temporary in-memory trie built on top of a persistent one
    * All changes to it are simply discarded when the batch is destroyed
    */
-  class EphemeralTrieBatch : public TrieBatch {};
+  class EphemeralTrieBatch : public TrieBatch {
+   public:
+    /**
+     * Calculates the hash of the state represented by a batch
+     */
+    virtual outcome::result<RootHash> hash() = 0;
+  };
 
   /**
    * A batch on top of another batch

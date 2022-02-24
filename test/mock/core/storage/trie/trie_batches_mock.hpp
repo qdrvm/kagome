@@ -105,6 +105,8 @@ namespace kagome::storage::trie {
                 (override));
 
     MOCK_METHOD(bool, empty, (), (const, override));
+
+    MOCK_METHOD(outcome::result<RootHash>, hash, (), (override));
   };
 
   class TopperTrieBatchMock : public TopperTrieBatch {

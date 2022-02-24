@@ -7,6 +7,7 @@
 
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
+#include "storage/trie/trie_batches.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
                             TrieStorageProviderImpl::Error,
@@ -74,10 +75,9 @@ namespace kagome::runtime {
   outcome::result<std::shared_ptr<TrieStorageProvider::PersistentBatch>>
   TrieStorageProviderImpl::getChildBatchAt(const common::Buffer &root_path) {
     if (!child_batches_.count(root_path)) {
-      SL_DEBUG(
-          logger_,
-          "Creating new persistent batch for child storage {}",
-          root_path.toHex());
+      SL_DEBUG(logger_,
+               "Creating new persistent batch for child storage {}",
+               root_path.toHex());
       OUTCOME_TRY(child_root_value, getCurrentBatch()->tryGet(root_path));
       auto child_root_hash =
           child_root_value ? common::Hash256::fromSpan(
@@ -100,8 +100,15 @@ namespace kagome::runtime {
 
   outcome::result<storage::trie::RootHash>
   TrieStorageProviderImpl::forceCommit() {
-    if (persistent_batch_ != nullptr) {
+    if (persistent_batch_) {
       return persistent_batch_->commit();
+    }
+    if (auto ephemeral =
+            std::dynamic_pointer_cast<storage::trie::EphemeralTrieBatch>(
+                current_batch_)) {
+      // won't actually write any data to the storage but will calculate the
+      // root hash for the state represented by the batch
+      return ephemeral->hash();
     }
     return Error::NO_BATCH;
   }

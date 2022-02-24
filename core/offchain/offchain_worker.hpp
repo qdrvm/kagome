@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_OFFCHAINWORKER
-#define KAGOME_OFFCHAIN_OFFCHAINWORKER
+#ifndef KAGOME_OFFCHAIN_WORKER_HPP
+#define KAGOME_OFFCHAIN_WORKER_HPP
 
 #include <boost/optional.hpp>
 #include <libp2p/multi/multiaddress.hpp>
@@ -30,11 +30,6 @@ namespace kagome::offchain {
    */
   class OffchainWorker {
    public:
-    static const std::optional<std::reference_wrapper<OffchainWorker>>
-        &worker_of_this_thread() {
-      return worker_of_this_thread_opt();
-    }
-
     virtual ~OffchainWorker() = default;
 
     virtual outcome::result<void> run() = 0;
@@ -95,22 +90,8 @@ namespace kagome::offchain {
 
     virtual void setAuthorizedNodes(std::vector<libp2p::peer::PeerId> nodes,
                                     bool authorized_only) = 0;
-
-   protected:
-    static void worker_of_this_thread(
-        std::optional<std::reference_wrapper<OffchainWorker>> worker) {
-      worker_of_this_thread_opt() = std::move(worker);
-    }
-
-   private:
-    static std::optional<std::reference_wrapper<OffchainWorker>>
-        &worker_of_this_thread_opt() {
-      static thread_local std::optional<std::reference_wrapper<OffchainWorker>>
-          worker_of_this_thread_opt = std::nullopt;
-      return worker_of_this_thread_opt;
-    }
   };
 
 }  // namespace kagome::offchain
 
-#endif  // KAGOME_OFFCHAIN_OFFCHAINWORKER
+#endif /* KAGOME_OFFCHAIN_WORKER_HPP */

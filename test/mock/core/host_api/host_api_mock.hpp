@@ -258,6 +258,13 @@ namespace kagome::host_api {
                  runtime::WasmSpan msg_data),
                 (override));
 
+    MOCK_METHOD(runtime::WasmSpan,
+                ext_crypto_ecdsa_sign_prehashed_version_1,
+                (runtime::WasmSize key_type,
+                 runtime::WasmPointer key,
+                 runtime::WasmSpan msg_data),
+                (override));
+
     MOCK_METHOD(runtime::WasmPointer,
                 ext_crypto_ecdsa_generate_version_1,
                 (runtime::WasmSize key_type_id, runtime::WasmSpan seed),
@@ -265,6 +272,13 @@ namespace kagome::host_api {
 
     MOCK_METHOD(int32_t,
                 ext_crypto_ecdsa_verify_version_1,
+                (runtime::WasmPointer sig,
+                 runtime::WasmSpan msg,
+                 runtime::WasmPointer key),
+                (override));
+
+    MOCK_METHOD(int32_t,
+                ext_crypto_ecdsa_verify_prehashed_version_1,
                 (runtime::WasmPointer sig,
                  runtime::WasmSpan msg,
                  runtime::WasmPointer key),

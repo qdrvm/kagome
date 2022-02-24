@@ -20,7 +20,8 @@
 
 namespace kagome::offchain {
   class OffchainPersistentStorage;
-}
+  class OffchainWorkerPool;
+}  // namespace kagome::offchain
 
 namespace kagome::host_api {
 
@@ -39,7 +40,8 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::CryptoStore> crypto_store,
         std::shared_ptr<crypto::Bip39Provider> bip39_provider,
         std::shared_ptr<offchain::OffchainPersistentStorage>
-            offchain_persistent_storage);
+            offchain_persistent_storage,
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
 
     std::unique_ptr<HostApi> make(
         std::shared_ptr<const runtime::CoreApiFactory> core_factory,
@@ -59,6 +61,7 @@ namespace kagome::host_api {
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
     std::shared_ptr<offchain::OffchainPersistentStorage>
         offchain_persistent_storage_;
+    std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
   };
 
 }  // namespace kagome::host_api
