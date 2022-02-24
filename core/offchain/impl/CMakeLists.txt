@@ -36,6 +36,7 @@ add_library(offchain_worker
 target_link_libraries(offchain_worker
     http_request
     )
+kagome_install(offchain_worker)
 
 add_library(offchain_worker_factory
     offchain_worker_factory_impl.cpp
@@ -43,6 +44,7 @@ add_library(offchain_worker_factory
 target_link_libraries(offchain_worker_factory
     offchain_worker
     )
+kagome_install(offchain_worker_factory)
 
 add_library(offchain_worker_pool
     offchain_worker_pool_impl.cpp
@@ -50,5 +52,5 @@ add_library(offchain_worker_pool
 target_link_libraries(offchain_worker_pool
     offchain_worker
     )
-
+kagome_install(offchain_worker_pool)
 
