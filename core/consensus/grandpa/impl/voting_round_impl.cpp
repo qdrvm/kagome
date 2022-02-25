@@ -143,7 +143,6 @@ namespace kagome::consensus::grandpa {
                         clock,
                         scheduler) {
     last_finalized_block_ = round_state.last_finalized_block;
-    finalized_ = round_state.finalized;
 
     if (round_number_ != 0) {
       bool is_prevotes_changed = false;
@@ -183,6 +182,7 @@ namespace kagome::consensus::grandpa {
       }
     } else {
       // Zero-round is always self-finalized
+      finalized_ = last_finalized_block_;
       completable_ = true;
     }
   }
@@ -691,8 +691,22 @@ namespace kagome::consensus::grandpa {
     }
 
     if (not finalizable()) {
-      return VotingRoundError::ROUND_IS_NOT_FINALIZABLE;
+      if (precommits_->getTotalWeight() >= threshold_) {
+        auto possible_to_finalize = [&](const VoteWeight &weight) {
+          return weight.total(
+                     VoteType::Precommit, precommit_equivocators_, *voter_set_)
+                 >= threshold_;
+        };
+
+        finalized_ = graph_->findAncestor(
+            VoteType::Precommit, block_info, std::move(possible_to_finalize));
+
+        BOOST_ASSERT(finalized_.has_value());
+      } else {
+        return VotingRoundError::ROUND_IS_NOT_FINALIZABLE;
+      }
     }
+
     BOOST_ASSERT(
         env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
 
@@ -1084,8 +1098,8 @@ namespace kagome::consensus::grandpa {
         if (result.has_error()) {
           tracker.unpush(vote, weight);
           auto log_lvl = log::Level::WARN;
-          // TODO(Harrm): this looks like a kind of a crutch, think of a better
-          // way to pass this information pass this information
+          // TODO(Harrm): this looks like a kind of a crutch,
+          //  think of a better way to pass this information
           if (result
               == outcome::failure(
                   blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
