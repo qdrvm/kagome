@@ -454,7 +454,9 @@ namespace kagome::consensus::grandpa {
 
       if (not round->completable()) {
         auto ctx = GrandpaContext::get().value();
-        if (not ctx->missing_blocks.empty()) {
+        // Check if missed block are detected and if this is first attempt
+        // (considering by definition peer id in context)
+        if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
           ctx->peer_id.emplace(peer_id);
           ctx->catch_up_response.emplace(msg);
           loadMissingBlocks();
@@ -492,7 +494,9 @@ namespace kagome::consensus::grandpa {
       // Check if catch-up round is not completable
       if (not current_round_->completable()) {
         auto ctx = GrandpaContext::get().value();
-        if (not ctx->missing_blocks.empty()) {
+        // Check if missed block are detected and if this is first attempt
+        // (considering by definition peer id in context)
+        if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
           ctx->peer_id.emplace(peer_id);
           ctx->catch_up_response.emplace(msg);
           loadMissingBlocks();
@@ -636,11 +640,14 @@ namespace kagome::consensus::grandpa {
 
     if (not target_round->finalizable()) {
       auto ctx = GrandpaContext::get().value();
-      if (not ctx->missing_blocks.empty()) {
+      // Check if missed block are detected and if this is first attempt
+      // (considering by definition peer id in context)
+      if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
         ctx->peer_id.emplace(peer_id);
         ctx->vote.emplace(msg);
         loadMissingBlocks();
       }
+      return;
     }
   }
 
@@ -798,6 +805,7 @@ namespace kagome::consensus::grandpa {
 
     auto final = [wp = weak_from_this(), ctx] {
       if (auto self = wp.lock()) {
+        GrandpaContext::set(ctx);
         if (ctx->vote.has_value()) {
           self->onVoteMessage(ctx->peer_id.value(), ctx->vote.value());
         } else if (ctx->catch_up_response.has_value()) {
