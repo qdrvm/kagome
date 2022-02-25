@@ -6,6 +6,7 @@
 #ifndef KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
 #define KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
 
+#include "common/tagged.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/round_observer.hpp"
 
@@ -115,6 +116,10 @@ namespace kagome::consensus::grandpa {
     virtual bool onPrecommit(const SignedMessage &precommit,
                              Propagation propagation) = 0;
 
+    using IsPreviousRoundChanged = Tagged<bool, struct IsPreviousRoundChanged>;
+    using IsPrevotesChanged = Tagged<bool, struct IsPrevotesChanged>;
+    using IsPrecommitsChanged = Tagged<bool, struct IsPrecommitsChanged>;
+
     /**
      * Updates inner state if something (see params) was changed since last call
      * @param is_previous_round_changed is true if previous round is changed
@@ -122,9 +127,9 @@ namespace kagome::consensus::grandpa {
      * @param is_precommits_changed is true if new precommits was accepted
      * @return true if finalized block was changed during update
      */
-    virtual void update(bool is_previous_round_changed,
-                        bool is_prevotes_changed,
-                        bool is_precommits_changed) = 0;
+    virtual void update(IsPreviousRoundChanged is_previous_round_changed,
+                        IsPrevotesChanged is_prevotes_changed,
+                        IsPrecommitsChanged is_precommits_changed) = 0;
 
     // Auxiliary methods
 

@@ -177,8 +177,9 @@ namespace kagome::consensus::grandpa {
       }
 
       if (is_prevotes_changed or is_precommits_changed) {
-        VotingRoundImpl::update(
-            false, is_prevotes_changed, is_precommits_changed);
+        VotingRoundImpl::update(IsPreviousRoundChanged{false},
+                                IsPrevotesChanged{is_prevotes_changed},
+                                IsPrecommitsChanged{is_precommits_changed});
       }
     } else {
       // Zero-round is always self-finalized
@@ -684,8 +685,9 @@ namespace kagome::consensus::grandpa {
     }
 
     if (is_prevotes_changed or is_precommits_changed) {
-      VotingRoundImpl::update(
-          false, is_prevotes_changed, is_precommits_changed);
+      VotingRoundImpl::update(IsPreviousRoundChanged{false},
+                              IsPrevotesChanged{is_prevotes_changed},
+                              IsPrecommitsChanged{is_precommits_changed});
     }
 
     if (not finalizable()) {
@@ -977,9 +979,9 @@ namespace kagome::consensus::grandpa {
     return true;
   }
 
-  void VotingRoundImpl::update(bool is_previous_round_changed,
-                               bool is_prevotes_changed,
-                               bool is_precommits_changed) {
+  void VotingRoundImpl::update(IsPreviousRoundChanged is_previous_round_changed,
+                               IsPrevotesChanged is_prevotes_changed,
+                               IsPrecommitsChanged is_precommits_changed) {
     bool need_to_update_grandpa_ghost =
         is_previous_round_changed or is_prevotes_changed;
 

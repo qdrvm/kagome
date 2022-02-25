@@ -159,9 +159,9 @@ namespace kagome::consensus::grandpa {
      * @param is_precommits_changed is true if new precommits was accepted
      * @return true if finalized block was changed during update
      */
-    void update(bool is_previous_round_changed,
-                bool is_prevotes_changed,
-                bool is_precommits_changed) override;
+    void update(IsPreviousRoundChanged is_previous_round_changed,
+                IsPrevotesChanged is_prevotes_changed,
+                IsPrecommitsChanged is_precommits_changed) override;
 
     /**
      * @returns previous known round for current

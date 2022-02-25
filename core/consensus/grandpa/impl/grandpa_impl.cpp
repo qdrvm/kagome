@@ -286,8 +286,10 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::updateNextRound(RoundNumber round_number) {
-    if (auto round = selectRound(round_number, std::nullopt)) {
-      round->update(true, false, false);
+    if (auto round = selectRound(round_number + 1, std::nullopt)) {
+      round->update(VotingRound::IsPreviousRoundChanged{true},
+                    VotingRound::IsPrevotesChanged{false},
+                    VotingRound::IsPrecommitsChanged{false});
     }
   }
 
@@ -480,7 +482,9 @@ namespace kagome::consensus::grandpa {
       }
       if (is_prevotes_changed or is_precommits_changed) {
         current_round_->update(
-            false, is_prevotes_changed, is_precommits_changed);
+            VotingRound::IsPreviousRoundChanged{false},
+            VotingRound::IsPrevotesChanged{is_prevotes_changed},
+            VotingRound::IsPrecommitsChanged{is_precommits_changed});
       }
 
       SL_DEBUG(logger_, "Catch-up response applied");
@@ -624,7 +628,10 @@ namespace kagome::consensus::grandpa {
           }
         });
     if (is_prevotes_changed or is_precommits_changed) {
-      target_round->update(false, is_prevotes_changed, is_precommits_changed);
+      target_round->update(
+          VotingRound::IsPreviousRoundChanged{false},
+          VotingRound::IsPrevotesChanged{is_prevotes_changed},
+          VotingRound::IsPrecommitsChanged{is_precommits_changed});
     }
 
     if (not target_round->finalizable()) {

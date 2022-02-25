@@ -302,12 +302,16 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   // Alice prevotes
   auto alice_vote = preparePrevote(kAlice, kAliceSignature, Prevote{9, "FC"_H});
   round_->onPrevote(alice_vote, Propagation::NEEDLESS);
-  round_->update(false, true, false);
+  round_->update(VotingRound::IsPreviousRoundChanged{false},
+                 VotingRound::IsPrevotesChanged{true},
+                 VotingRound::IsPrecommitsChanged{false});
 
   // Bob prevotes
   auto bob_vote = preparePrevote(kBob, kBobSignature, Prevote{9, "ED"_H});
   round_->onPrevote(bob_vote, Propagation::NEEDLESS);
-  round_->update(false, true, false);
+  round_->update(VotingRound::IsPreviousRoundChanged{false},
+                 VotingRound::IsPrevotesChanged{true},
+                 VotingRound::IsPrecommitsChanged{false});
 
   // then 1.
   ASSERT_EQ(round_->bestFinalCandidate(), BlockInfo(5, "E"_H));
@@ -318,7 +322,9 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   auto eve_vote = preparePrevote(kEve, kEveSignature, Prevote{6, "F"_H});
 
   round_->onPrevote(eve_vote, Propagation::NEEDLESS);
-  round_->update(false, true, false);
+  round_->update(VotingRound::IsPreviousRoundChanged{false},
+                 VotingRound::IsPrevotesChanged{true},
+                 VotingRound::IsPrecommitsChanged{false});
 
   // then 2.
   ASSERT_EQ(round_->bestFinalCandidate(), BlockInfo(5, "E"_H));
@@ -359,13 +365,17 @@ TEST_F(VotingRoundTest, Finalization) {
   // Alice Prevotes FC
   auto alice_prevote = preparePrevote(kAlice, kAliceSignature, {9, "FC"_H});
   round_->onPrevote(alice_prevote, Propagation::NEEDLESS);
-  round_->update(false, true, false);
+  round_->update(VotingRound::IsPreviousRoundChanged{false},
+                 VotingRound::IsPrevotesChanged{true},
+                 VotingRound::IsPrecommitsChanged{false});
 
   // when 2.
   // Bob prevotes ED
   auto bob_prevote = preparePrevote(kBob, kBobSignature, {9, "ED"_H});
   round_->onPrevote(bob_prevote, Propagation::NEEDLESS);
-  round_->update(false, true, false);
+  round_->update(VotingRound::IsPreviousRoundChanged{false},
+                 VotingRound::IsPrevotesChanged{true},
+                 VotingRound::IsPrecommitsChanged{false});
 
   // then 1.
   ASSERT_FALSE(round_->finalizedBlock().has_value());
@@ -376,13 +386,17 @@ TEST_F(VotingRoundTest, Finalization) {
   // Alice precommits FC
   auto alice_precommit = preparePrecommit(kAlice, kAliceSignature, {9, "FC"_H});
   round_->onPrecommit(alice_precommit, Propagation::NEEDLESS);
-  round_->update(false, false, true);
+  round_->update(VotingRound::IsPreviousRoundChanged{false},
+                 VotingRound::IsPrevotesChanged{false},
+                 VotingRound::IsPrecommitsChanged{true});
 
   // when 4.
   // Bob precommits ED
   auto bob_precommit = preparePrecommit(kBob, kBobSignature, {9, "ED"_H});
   round_->onPrecommit(bob_precommit, Propagation::NEEDLESS);
-  round_->update(false, false, true);
+  round_->update(VotingRound::IsPreviousRoundChanged{false},
+                 VotingRound::IsPrevotesChanged{false},
+                 VotingRound::IsPrecommitsChanged{true});
 
   // then 2.
   ASSERT_EQ(round_->finalizedBlock(), BlockInfo(5, "E"_H));
@@ -391,7 +405,9 @@ TEST_F(VotingRoundTest, Finalization) {
   // Eve prevotes
   round_->onPrevote(preparePrevote(kEve, kEveSignature, {6, "EA"_H}),
                     Propagation::NEEDLESS);
-  round_->update(false, true, false);
+  round_->update(VotingRound::IsPreviousRoundChanged{false},
+                 VotingRound::IsPrevotesChanged{true},
+                 VotingRound::IsPrecommitsChanged{false});
   // then 3.
   ASSERT_EQ(round_->finalizedBlock(), BlockInfo(5, "E"_H));
 
@@ -399,7 +415,9 @@ TEST_F(VotingRoundTest, Finalization) {
   // Eve precommits
   round_->onPrecommit(preparePrecommit(kEve, kEveSignature, {6, "EA"_H}),
                       Propagation::NEEDLESS);
-  round_->update(false, false, true);
+  round_->update(VotingRound::IsPreviousRoundChanged{false},
+                 VotingRound::IsPrevotesChanged{false},
+                 VotingRound::IsPrecommitsChanged{true});
 
   // then 3.
   ASSERT_EQ(round_->finalizedBlock(), BlockInfo(6, "EA"_H));
@@ -429,7 +447,9 @@ ACTION_P(onPrevoted, test_fixture) {
                     .signature = test_fixture->kEveSignature,
                     .id = test_fixture->kEve},
       Propagation::NEEDLESS);
-  test_fixture->round_->update(false, true, false);
+  test_fixture->round_->update(VotingRound::IsPreviousRoundChanged{false},
+                               VotingRound::IsPrevotesChanged{true},
+                               VotingRound::IsPrecommitsChanged{false});
   return outcome::success();
 }
 
@@ -450,7 +470,9 @@ ACTION_P(onPrecommitted, test_fixture) {
   //      SignedMessage{.message = signed_precommit.message,
   //                    .signature = test_fixture->kEveSignature,
   //                    .id = test_fixture->kEve}, Propagation::NEEDLESS);
-  test_fixture->round_->update(false, false, true);
+  test_fixture->round_->update(VotingRound::IsPreviousRoundChanged{false},
+                               VotingRound::IsPrevotesChanged{false},
+                               VotingRound::IsPrecommitsChanged{true});
   return outcome::success();
 }
 
