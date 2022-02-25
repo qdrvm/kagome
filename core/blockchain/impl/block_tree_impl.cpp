@@ -611,6 +611,8 @@ namespace kagome::blockchain {
     // Remove from block tree
     tree_->removeFromMeta(node);
 
+    OUTCOME_TRY(reorganize());
+
     // Remove from storage
     OUTCOME_TRY(storage_->removeBlock({node->depth, node->block_hash}));
 
