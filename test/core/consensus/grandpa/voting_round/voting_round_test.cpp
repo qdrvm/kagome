@@ -45,6 +45,7 @@ using testing::_;
 using testing::AnyNumber;
 using testing::Invoke;
 using testing::Return;
+using testing::ReturnRef;
 using testing::Truly;
 
 ACTION_P(onVerify, fixture) {
@@ -179,7 +180,7 @@ class VotingRoundTest : public testing::Test,
         .WillRepeatedly(Return());
     EXPECT_CALL(*previous_round_, finalizedBlock())
         .Times(AnyNumber())
-        .WillRepeatedly(Return(BlockInfo{2, "B"_H}));
+        .WillRepeatedly(ReturnRef(finalized_in_prev_round_));
     ON_CALL(*previous_round_, doCommit()).WillByDefault(Return());
 
     round_ = std::make_shared<VotingRoundImpl>(grandpa_,
@@ -252,6 +253,7 @@ class VotingRoundTest : public testing::Test,
 
   std::shared_ptr<libp2p::basic::SchedulerMock> scheduler_;
 
+  const std::optional<BlockInfo> finalized_in_prev_round_{{2, "B"_H}};
   std::shared_ptr<VotingRoundMock> previous_round_;
   std::shared_ptr<VotingRoundImpl> round_;
 };

@@ -194,14 +194,13 @@ namespace kagome::consensus::grandpa {
     MembershipCounter voterSetId() const override;
 
     bool completable() const override;
-    bool finalizable() const override;
 
     BlockInfo lastFinalizedBlock() const override {
       return last_finalized_block_;
     }
     BlockInfo bestPrevoteCandidate() override;
     BlockInfo bestFinalCandidate() override;
-    std::optional<BlockInfo> finalizedBlock() const override {
+    const std::optional<BlockInfo> &finalizedBlock() const override {
       return finalized_;
     };
 

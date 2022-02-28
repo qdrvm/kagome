@@ -31,8 +31,6 @@ namespace kagome::consensus::grandpa {
      */
     virtual bool completable() const = 0;
 
-    virtual bool finalizable() const = 0;
-
     /// Block finalized in previous round (when current one was created)
     virtual BlockInfo lastFinalizedBlock() const = 0;
 
@@ -51,7 +49,7 @@ namespace kagome::consensus::grandpa {
     virtual BlockInfo bestFinalCandidate() = 0;
 
     /// Block is finalized at the round
-    virtual std::optional<BlockInfo> finalizedBlock() const = 0;
+    virtual const std::optional<BlockInfo>& finalizedBlock() const = 0;
 
     virtual MovableRoundState state() const = 0;
 
@@ -86,7 +84,7 @@ namespace kagome::consensus::grandpa {
     /// Broadcast commit message
     virtual void doCommit() = 0;
 
-    /// Make Cathc-Up-Response based on current round and send to requesting
+    /// Make Catch-Up-Response based on current round and send to requesting
     /// peer
     virtual void doCatchUpResponse(const libp2p::peer::PeerId &peer_id) = 0;
 

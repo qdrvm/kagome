@@ -363,7 +363,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (not round->finalizable()) {
+    if (not round->finalizedBlock().has_value()) {
       SL_DEBUG(logger_,
                "Catch-up request to round #{} received from {} was rejected: "
                "round is not finalizable",
@@ -638,7 +638,7 @@ namespace kagome::consensus::grandpa {
           VotingRound::IsPrecommitsChanged{is_precommits_changed});
     }
 
-    if (not target_round->finalizable()) {
+    if (not target_round->finalizedBlock().has_value()) {
       auto ctx = GrandpaContext::get().value();
       // Check if missed block are detected and if this is first attempt
       // (considering by definition peer id in context)
