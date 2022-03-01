@@ -243,12 +243,14 @@ namespace kagome::blockchain {
 
   void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
     auto parent = node->parent.lock();
-    if (parent != nullptr) {
-      auto it =
-          std::find(parent->children.begin(), parent->children.end(), node);
-      if (it != parent->children.end()) {
-        parent->children.erase(it);
-      }
+    if (parent == nullptr) {
+      // Already removed with removed subtree
+      return;
+    }
+
+    auto it = std::find(parent->children.begin(), parent->children.end(), node);
+    if (it != parent->children.end()) {
+      parent->children.erase(it);
     }
 
     metadata_->leaves.erase(node->block_hash);
@@ -259,10 +261,14 @@ namespace kagome::blockchain {
     BOOST_ASSERT(not metadata_->deepest_leaf.expired());
     if (node == metadata_->deepest_leaf.lock()) {
       metadata_->deepest_leaf = parent;
-      for (auto &hash : metadata_->leaves) {
+      for (auto it = metadata_->leaves.begin();
+           it != metadata_->leaves.end();) {
+        auto &hash = *it++;
         const auto leaf_node = root_->findByHash(hash);
-        BOOST_ASSERT(leaf_node != nullptr);
-        if (leaf_node->depth > parent->depth) {
+        if (leaf_node == nullptr) {
+          // Already removed with removed subtree
+          metadata_->leaves.erase(hash);
+        } else if (leaf_node->depth > parent->depth) {
           metadata_->deepest_leaf = leaf_node;
           break;
         }
