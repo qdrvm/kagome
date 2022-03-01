@@ -610,12 +610,12 @@ namespace kagome::blockchain {
       next_epoch.emplace(std::move(digest.value()));
     }
 
-      // Update local meta with the block
-      auto new_node = std::make_shared<TreeNode>(block_hash,
-                                                 block.header.number,
-                                                 parent,
-                                                 epoch_number,
-                                                 std::move(next_epoch));
+    // Update local meta with the block
+    auto new_node = std::make_shared<TreeNode>(block_hash,
+                                               block.header.number,
+                                               parent,
+                                               epoch_number,
+                                               std::move(next_epoch));
 
     tree_->updateMeta(new_node);
 
