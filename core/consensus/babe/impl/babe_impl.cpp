@@ -727,6 +727,7 @@ namespace kagome::consensus::babe {
                       blockchain::BlockTreeError::BLOCK_IS_NOT_LEAF)) {
         SL_WARN(log_,
                 "Rolling back of block {} is failed: {}",
+                block_info,
                 removal_res.error().message());
       }
       return;

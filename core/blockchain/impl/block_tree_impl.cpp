@@ -342,14 +342,55 @@ namespace kagome::blockchain {
     std::set<primitives::BlockInfo> block_tree_leaves;
     {
       OUTCOME_TRY(block_tree_unordered_leaves, storage->getBlockTreeLeaves());
+      SL_TRACE(log,
+               "List of leaves has loaded: {} pcs.",
+               block_tree_unordered_leaves.size());
 
       BOOST_ASSERT_MSG(not block_tree_unordered_leaves.empty(),
                        "Must be known or calculated at least one leaf");
 
       for (auto &hash : block_tree_unordered_leaves) {
-        OUTCOME_TRY(number, header_repo->getNumberById(hash));
-        block_tree_leaves.emplace(number, hash);
+        auto number_res = header_repo->getNumberById(hash);
+        if (number_res.has_error()) {
+          if (number_res
+              == outcome::failure(BlockTreeError::HEADER_NOT_FOUND)) {
+            SL_WARN(log, "One of leaves not found in block storage: {}", hash);
+            continue;
+          }
+          return number_res.as_failure();
+        }
+        block_tree_leaves.emplace(number_res.value(), hash);
       }
+    }
+
+    if (block_tree_leaves.empty()) {
+      SL_CRITICAL(log, "No one leaf was found");
+
+      primitives::BlockNumber number = 0;
+      auto lower = std::numeric_limits<primitives::BlockNumber>::min();
+      auto upper = std::numeric_limits<primitives::BlockNumber>::max();
+
+      while (lower < upper) {
+        number = lower + (upper - lower) / 2 + 1;
+
+        auto res = storage->hasBlockHeader(number);
+        if (res.has_failure()) {
+          SL_CRITICAL(
+              log, "Search best block has failed: {}", res.error().message());
+          return BlockTreeError::HEADER_NOT_FOUND;
+        }
+
+        if (res.value()) {
+          SL_TRACE(log, "bisect {} -> found", number);
+          lower = number;
+        } else {
+          SL_TRACE(log, "bisect {} -> not found", number);
+          upper = number - 1;
+        }
+      }
+
+      OUTCOME_TRY(hash, header_repo->getHashById(number));
+      block_tree_leaves.emplace(number, hash);
     }
 
     // Check if target block exists
@@ -608,11 +649,24 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(node != nullptr,
                      "As checked before, block exists as one of leaves");
 
+    BOOST_ASSERT_MSG(not tree_->getMetadata().deepest_leaf.expired(),
+                     "removeBlock-1");
+
     // Remove from block tree
     tree_->removeFromMeta(node);
+    BOOST_ASSERT_MSG(not tree_->getMetadata().deepest_leaf.expired(),
+                     "removeBlock-2");
+
+    OUTCOME_TRY(reorganize());
+
+    BOOST_ASSERT_MSG(not tree_->getMetadata().deepest_leaf.expired(),
+                     "removeBlock-3");
 
     // Remove from storage
     OUTCOME_TRY(storage_->removeBlock({node->depth, node->block_hash}));
+
+    BOOST_ASSERT_MSG(not tree_->getMetadata().deepest_leaf.expired(),
+                     "removeBlock-4");
 
     return outcome::success();
   }
@@ -686,6 +740,9 @@ namespace kagome::blockchain {
       // block was already finalized, fine
       return outcome::success();
     }
+
+    log_->info("Finalizing block {}",
+               primitives::BlockInfo(node->depth, block_hash));
 
     // insert justification into the database
     OUTCOME_TRY(

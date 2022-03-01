@@ -294,6 +294,7 @@ namespace kagome::consensus {
     if (removal_res.has_error()) {
       SL_WARN(logger_,
               "Rolling back of block {} is failed: {}",
+              block_hash,
               removal_res.error().message());
     }
   }

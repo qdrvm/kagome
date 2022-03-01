@@ -285,6 +285,14 @@ namespace kagome::consensus::grandpa {
     }
   }
 
+  void GrandpaImpl::updateNextRound(RoundNumber round_number) {
+    if (auto round = selectRound(round_number + 1, std::nullopt)) {
+      round->update(VotingRound::IsPreviousRoundChanged{true},
+                    VotingRound::IsPrevotesChanged{false},
+                    VotingRound::IsPrecommitsChanged{false});
+    }
+  }
+
   void GrandpaImpl::onNeighborMessage(
       const libp2p::peer::PeerId &peer_id,
       const network::GrandpaNeighborMessage &msg) {
@@ -355,7 +363,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (not round->finalizable()) {
+    if (not round->finalizedBlock().has_value()) {
       SL_DEBUG(logger_,
                "Catch-up request to round #{} received from {} was rejected: "
                "round is not finalizable",
@@ -446,7 +454,9 @@ namespace kagome::consensus::grandpa {
 
       if (not round->completable()) {
         auto ctx = GrandpaContext::get().value();
-        if (not ctx->missing_blocks.empty()) {
+        // Check if missed block are detected and if this is first attempt
+        // (considering by definition peer id in context)
+        if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
           ctx->peer_id.emplace(peer_id);
           ctx->catch_up_response.emplace(msg);
           loadMissingBlocks();
@@ -458,28 +468,35 @@ namespace kagome::consensus::grandpa {
       current_round_ = std::move(round);
 
     } else {
-      bool isPrevotesChanged = false;
-      bool isPrecommitsChanged = false;
+      bool is_prevotes_changed = false;
+      bool is_precommits_changed = false;
       for (auto &vote : msg.prevote_justification) {
         if (current_round_->onPrevote(vote,
                                       VotingRound::Propagation::NEEDLESS)) {
-          isPrevotesChanged = true;
+          is_prevotes_changed = true;
         }
       }
       for (auto &vote : msg.precommit_justification) {
         if (current_round_->onPrecommit(vote,
                                         VotingRound::Propagation::NEEDLESS)) {
-          isPrecommitsChanged = true;
+          is_precommits_changed = true;
         }
       }
-      current_round_->update(isPrevotesChanged, isPrecommitsChanged);
+      if (is_prevotes_changed or is_precommits_changed) {
+        current_round_->update(
+            VotingRound::IsPreviousRoundChanged{false},
+            VotingRound::IsPrevotesChanged{is_prevotes_changed},
+            VotingRound::IsPrecommitsChanged{is_precommits_changed});
+      }
 
       SL_DEBUG(logger_, "Catch-up response applied");
 
       // Check if catch-up round is not completable
       if (not current_round_->completable()) {
         auto ctx = GrandpaContext::get().value();
-        if (not ctx->missing_blocks.empty()) {
+        // Check if missed block are detected and if this is first attempt
+        // (considering by definition peer id in context)
+        if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
           ctx->peer_id.emplace(peer_id);
           ctx->catch_up_response.emplace(msg);
           loadMissingBlocks();
@@ -594,8 +611,8 @@ namespace kagome::consensus::grandpa {
 
     GrandpaContext::Guard cg;
 
-    bool isPrevotesChanged = false;
-    bool isPrecommitsChanged = false;
+    bool is_prevotes_changed = false;
+    bool is_precommits_changed = false;
     visit_in_place(
         msg.vote.message,
         [&](const PrimaryPropose &) {
@@ -605,24 +622,32 @@ namespace kagome::consensus::grandpa {
         [&](const Prevote &) {
           if (target_round->onPrevote(msg.vote,
                                       VotingRound::Propagation::REQUESTED)) {
-            isPrevotesChanged = true;
+            is_prevotes_changed = true;
           }
         },
         [&](const Precommit &) {
           if (target_round->onPrecommit(msg.vote,
                                         VotingRound::Propagation::REQUESTED)) {
-            isPrecommitsChanged = true;
+            is_precommits_changed = true;
           }
         });
-    target_round->update(isPrevotesChanged, isPrecommitsChanged);
+    if (is_prevotes_changed or is_precommits_changed) {
+      target_round->update(
+          VotingRound::IsPreviousRoundChanged{false},
+          VotingRound::IsPrevotesChanged{is_prevotes_changed},
+          VotingRound::IsPrecommitsChanged{is_precommits_changed});
+    }
 
-    if (not target_round->finalizable()) {
+    if (not target_round->finalizedBlock().has_value()) {
       auto ctx = GrandpaContext::get().value();
-      if (not ctx->missing_blocks.empty()) {
+      // Check if missed block are detected and if this is first attempt
+      // (considering by definition peer id in context)
+      if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
         ctx->peer_id.emplace(peer_id);
         ctx->vote.emplace(msg);
         loadMissingBlocks();
       }
+      return;
     }
   }
 
@@ -780,6 +805,7 @@ namespace kagome::consensus::grandpa {
 
     auto final = [wp = weak_from_this(), ctx] {
       if (auto self = wp.lock()) {
+        GrandpaContext::set(ctx);
         if (ctx->vote.has_value()) {
           self->onVoteMessage(ctx->peer_id.value(), ctx->vote.value());
         } else if (ctx->catch_up_response.has_value()) {
