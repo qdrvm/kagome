@@ -369,7 +369,12 @@ namespace kagome::network {
     auto conn =
         host_.getNetwork().getConnectionManager().getBestConnectionForPeer(
             peer_id);
-
+    if (conn == nullptr) {
+      SL_DEBUG(log_,
+               "Failed to start pinging {}: No connection to this peer exists",
+               peer_id.toBase58());
+      return;
+    }
     auto [_, is_emplaced] = pinging_connections_.emplace(conn);
     if (not is_emplaced) {
       // Pinging is already going

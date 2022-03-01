@@ -6,7 +6,7 @@
 #include <filesystem>
 
 #include <kagome/application/impl/chain_spec_impl.hpp>
-#include <kagome/blockchain/impl/key_value_block_header_repository.hpp>
+#include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
 #include <kagome/crypto/crypto_store/crypto_store_impl.hpp>
 #include <kagome/crypto/ecdsa/ecdsa_provider_impl.hpp>
@@ -18,6 +18,7 @@
 #include <kagome/host_api/impl/host_api_factory_impl.hpp>
 #include <kagome/log/configurator.hpp>
 #include <kagome/offchain/impl/offchain_persistent_storage.hpp>
+#include <kagome/offchain/impl/offchain_worker_pool_impl.hpp>
 #include <kagome/runtime/common/module_repository_impl.hpp>
 #include <kagome/runtime/common/runtime_upgrade_tracker_impl.hpp>
 #include <kagome/runtime/common/storage_code_provider.hpp>
@@ -75,8 +76,8 @@ int main() {
           .value();
   auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
   auto header_repo =
-      std::make_shared<kagome::blockchain::KeyValueBlockHeaderRepository>(
-          database, hasher);
+      std::make_shared<kagome::blockchain::BlockHeaderRepositoryImpl>(database,
+                                                                      hasher);
 
   using std::string_literals::operator""s;
 
@@ -137,8 +138,7 @@ int main() {
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
   auto sr25519_provider =
       std::make_shared<kagome::crypto::Sr25519ProviderImpl>(generator);
-  auto ecdsa_provider =
-      std::make_shared<kagome::crypto::EcdsaProviderImpl>();
+  auto ecdsa_provider = std::make_shared<kagome::crypto::EcdsaProviderImpl>();
   auto ed25519_provider =
       std::make_shared<kagome::crypto::Ed25519ProviderImpl>(generator);
   auto secp256k1_provider =
@@ -163,6 +163,9 @@ int main() {
       std::make_shared<kagome::offchain::OffchainPersistentStorageImpl>(
           database);
 
+  auto offchain_worker_pool =
+      std::make_shared<kagome::offchain::OffchainWorkerPoolImpl>();
+
   auto host_api_factory =
       std::make_shared<kagome::host_api::HostApiFactoryImpl>(
           kagome::host_api::OffchainExtensionConfig{},
@@ -174,7 +177,8 @@ int main() {
           hasher,
           crypto_store,
           bip39_provider,
-          offchain_persistent_storage);
+          offchain_persistent_storage,
+          offchain_worker_pool);
 
   auto instance_env_factory =
       std::make_shared<const kagome::runtime::wavm::InstanceEnvironmentFactory>(

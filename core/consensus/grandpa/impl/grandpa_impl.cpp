@@ -260,7 +260,7 @@ namespace kagome::consensus::grandpa {
                    std::back_inserter(round_state.votes),
                    [](auto &&item) { return std::forward<VoteVariant>(item); });
 
-    return std::move(round_state);
+    return round_state;
   }
 
   void GrandpaImpl::executeNextRound(RoundNumber round_number) {
@@ -616,7 +616,7 @@ namespace kagome::consensus::grandpa {
         });
     target_round->update(isPrevotesChanged, isPrecommitsChanged);
 
-    if (not target_round->completable()) {
+    if (not target_round->finalizable()) {
       auto ctx = GrandpaContext::get().value();
       if (not ctx->missing_blocks.empty()) {
         ctx->peer_id.emplace(peer_id);

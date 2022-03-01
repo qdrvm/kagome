@@ -8,7 +8,7 @@
 
 #include "clock/clock.hpp"
 #include "primitives/block.hpp"
-#include "primitives/block_id.hpp"
+#include "primitives/common.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/inherent_data.hpp"
 
@@ -23,13 +23,13 @@ namespace kagome::authorship {
 
     /**
      * Creates block from provided parameters
-     * @param parent_block_number number of parent
+     * @param parent_block number and hash of parent block
      * @param inherent_data additional data on block from unsigned extrinsics
      * @param inherent_digests - chain-specific block auxiliary data
      * @return proposed block or error
      */
     virtual outcome::result<primitives::Block> propose(
-        const primitives::BlockNumber &parent_block_number,
+        const primitives::BlockInfo &parent_block,
         const primitives::InherentData &inherent_data,
         const primitives::Digest &inherent_digest) = 0;
   };

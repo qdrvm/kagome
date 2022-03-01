@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/key_value_block_header_repository.hpp"
+#include "blockchain/impl/block_header_repository_impl.hpp"
 
 #include <string_view>
 
 #include <optional>
 
 #include "blockchain/impl/storage_util.hpp"
+#include "blockchain/block_tree_error.hpp"
 #include "common/hexutil.hpp"
 #include "scale/scale.hpp"
 
@@ -20,24 +21,23 @@ using kagome::primitives::BlockNumber;
 
 namespace kagome::blockchain {
 
-  KeyValueBlockHeaderRepository::KeyValueBlockHeaderRepository(
+  BlockHeaderRepositoryImpl::BlockHeaderRepositoryImpl(
       std::shared_ptr<storage::BufferStorage> map,
       std::shared_ptr<crypto::Hasher> hasher)
       : map_{std::move(map)}, hasher_{std::move(hasher)} {
     BOOST_ASSERT(hasher_);
   }
 
-  outcome::result<BlockNumber> KeyValueBlockHeaderRepository::getNumberByHash(
+  outcome::result<BlockNumber> BlockHeaderRepositoryImpl::getNumberByHash(
       const Hash256 &hash) const {
     OUTCOME_TRY(key, idToLookupKey(*map_, hash));
-
-    auto maybe_number = lookupKeyToNumber(key);
+    if (!key.has_value()) return BlockTreeError::HEADER_NOT_FOUND;
+    auto maybe_number = lookupKeyToNumber(key.value());
 
     return maybe_number;
   }
 
-  outcome::result<common::Hash256>
-  KeyValueBlockHeaderRepository::getHashByNumber(
+  outcome::result<common::Hash256> BlockHeaderRepositoryImpl::getHashByNumber(
       const primitives::BlockNumber &number) const {
     OUTCOME_TRY(header, getBlockHeader(number));
     OUTCOME_TRY(enc_header, scale::encode(header));
@@ -45,15 +45,15 @@ namespace kagome::blockchain {
   }
 
   outcome::result<primitives::BlockHeader>
-  KeyValueBlockHeaderRepository::getBlockHeader(const BlockId &id) const {
+  BlockHeaderRepositoryImpl::getBlockHeader(const BlockId &id) const {
     OUTCOME_TRY(header_opt, getWithPrefix(*map_, Prefix::HEADER, id));
     if (header_opt.has_value()) {
       return scale::decode<primitives::BlockHeader>(header_opt.value());
     }
-    return Error::BLOCK_NOT_FOUND;
+    return BlockTreeError::HEADER_NOT_FOUND;
   }
 
-  outcome::result<BlockStatus> KeyValueBlockHeaderRepository::getBlockStatus(
+  outcome::result<BlockStatus> BlockHeaderRepositoryImpl::getBlockStatus(
       const primitives::BlockId &id) const {
     return getBlockHeader(id).has_value() ? BlockStatus::InChain
                                           : BlockStatus::Unknown;

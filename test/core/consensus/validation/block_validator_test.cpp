@@ -176,7 +176,7 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
       err,
       validator_.validateHeader(
           valid_block_.header, 0ull, authority.id, threshold_, randomness_));
-  ASSERT_EQ(err, kagome::consensus::DigestError::INVALID_DIGESTS);
+  ASSERT_EQ(err, kagome::consensus::DigestError::REQUIRED_DIGESTS_NOT_FOUND);
 }
 
 /**
@@ -207,7 +207,7 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
       err,
       validator_.validateHeader(
           valid_block_.header, 0ull, authority.id, threshold_, randomness_));
-  ASSERT_EQ(err, consensus::DigestError::INVALID_DIGESTS);
+  ASSERT_EQ(err, consensus::DigestError::REQUIRED_DIGESTS_NOT_FOUND);
 }
 
 /**

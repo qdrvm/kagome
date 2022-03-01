@@ -635,6 +635,46 @@ namespace kagome::host_api {
     return getMemory().storeBuffer(buffer);
   }
 
+  runtime::WasmSpan CryptoExtension::ext_crypto_ecdsa_sign_prehashed_version_1(
+      runtime::WasmSize key_type,
+      runtime::WasmPointer key,
+      runtime::WasmSpan msg) {
+    using ResultType = std::optional<crypto::EcdsaSignature>;
+
+    auto key_type_id =
+        static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
+    if (!crypto::isSupportedKeyType(key_type_id)) {
+      logger_->warn("key type '{}' is not officially supported",
+                    common::int_to_hex(key_type_id, 8));
+    }
+    auto public_buffer = getMemory().loadN(key, sizeof(crypto::EcdsaPublicKey));
+    auto [msg_data, msg_len] = runtime::PtrSize(msg);
+    auto msg_buffer = getMemory().loadN(msg_data, msg_len);
+
+    crypto::EcdsaPublicKey pk;
+    std::copy(public_buffer.begin(), public_buffer.end(), pk.begin());
+    auto key_pair = crypto_store_->findEcdsaKeypair(key_type_id, pk);
+    if (!key_pair) {
+      logger_->error("failed to find required key");
+      auto error_result = scale::encode(ResultType(std::nullopt)).value();
+      return getMemory().storeBuffer(error_result);
+    }
+
+    crypto::EcdsaPrehashedMessage digest;
+    std::copy(msg_buffer.begin(), msg_buffer.end(), digest.begin());
+    auto sign =
+        ecdsa_provider_->signPrehashed(digest, key_pair.value().secret_key);
+    if (!sign) {
+      throw_with_error(logger_,
+                       "failed to sign message, error = {}",
+                       sign.error().message());
+    }
+    SL_TRACE_FUNC_CALL(
+        logger_, sign.value(), key_pair.value().public_key, msg_buffer);
+    auto buffer = scale::encode(ResultType(sign.value())).value();
+    return getMemory().storeBuffer(buffer);
+  }
+
   runtime::WasmPointer CryptoExtension::ext_crypto_ecdsa_generate_version_1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) const {
     auto key_type_id =
@@ -692,6 +732,35 @@ namespace kagome::host_api {
     auto &&pubkey = key_res.value();
 
     auto verify_res = ecdsa_provider_->verify(msg, signature, pubkey);
+
+    auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
+
+    SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
+    return res;
+  }
+
+  int32_t CryptoExtension::ext_crypto_ecdsa_verify_prehashed_version_1(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg_span,
+      runtime::WasmPointer pubkey_data) const {
+    auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
+    auto msg = getMemory().loadN(msg_data, msg_len);
+    auto signature =
+        getMemory().loadN(sig, ecdsa_constants::SIGNATURE_SIZE).toVector();
+
+    auto pubkey_buffer =
+        getMemory().loadN(pubkey_data, ecdsa_constants::PUBKEY_SIZE);
+    auto key_res = crypto::EcdsaPublicKey::fromSpan(pubkey_buffer);
+    if (!key_res) {
+      BOOST_UNREACHABLE_RETURN(kVerifyFail)
+    }
+    auto &&pubkey = key_res.value();
+
+    crypto::EcdsaPrehashedMessage digest;
+    std::copy(msg.begin(), msg.end(), digest.begin());
+
+    auto verify_res =
+        ecdsa_provider_->verifyPrehashed(digest, signature, pubkey);
 
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 

@@ -358,6 +358,24 @@ namespace kagome::host_api {
         runtime::WasmSpan msg_data) = 0;
 
     /**
+     * Signs the given message digest with a specified key
+     * @param key_type a 32-bit pointer to the key identifier
+     * @param key a 32-bit pointer to the buffer containing the 33-byte
+     * compressed public key
+     * @param msg_data a pointer-size indicating the message that is to be
+     * signed
+     * @return a pointer-size indicating the SCALE encoded Option containing the
+     * signature. The signature is 65-bytes in size, where the first 512-bits
+     * represent the signature and the other 8 bits represent the recovery ID.
+     * This function returns None if the public key cannot be found in the key
+     * store.
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_crypto_ecdsa_sign_prehashed_version_1(runtime::WasmSize key_type,
+                                              runtime::WasmPointer key,
+                                              runtime::WasmSpan msg_data) = 0;
+
+    /**
      * @brief Generates an ecdsa key for the given key type using an optional
      * BIP-39 seed and stores it in the keystore. Warning: Panics if the key
      * cannot be generated, such as when an invalid key type or invalid seed was
@@ -391,6 +409,29 @@ namespace kagome::host_api {
      * otherwise.
      */
     [[nodiscard]] virtual int32_t ext_crypto_ecdsa_verify_version_1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) = 0;
+
+    /**
+     * @brief Verifies an ecdsa signature. Returns true when the verification is
+     * either successful or batched. If no batching verification extension is
+     * registered, this function will fully verify the signature and return the
+     * result. If batching verification is registered, this function will push
+     * the data to the batch and return immediately. The caller can then get the
+     * result by calling ext_crypto_finish_batch_verify. The verification
+     * extension is explained more in detail in ext_crypto_start_batch_verify
+     * @param sig a 32-bit pointer to the buffer containing the 65-byte
+     * signature. The signature is 65- bytes in size, where the first 512-bits
+     * represent the signature and the other 8 bits represent the recovery ID.
+     * @param msg a pointer-size as defined in Definition D.3 indicating the
+     * message that is to be verified.
+     * @param key a 32-bit pointer to the buffer containing the 33-byte
+     * compressed public key.
+     * @return a boolean equal to true if the signature is valid, false if
+     * otherwise.
+     */
+    [[nodiscard]] virtual int32_t ext_crypto_ecdsa_verify_prehashed_version_1(
         runtime::WasmPointer sig_data,
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;

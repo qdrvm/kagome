@@ -153,7 +153,7 @@ namespace kagome::api {
       storage::trie::PolkadotCodec codec;
       auto hash = codec.hash256(
           common::Buffer(gsl::make_span(value_opt.value().get())));
-      return std::move(hash);
+      return hash;
     }
     return std::nullopt;
   }

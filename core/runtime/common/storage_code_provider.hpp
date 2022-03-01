@@ -19,6 +19,7 @@ namespace kagome::storage::trie {
 namespace kagome::runtime {
 
   class RuntimeUpgradeTracker;
+  using  primitives::CodeSubstituteBlockIds;
 
   class StorageCodeProvider final : public RuntimeCodeProvider {
    public:
@@ -27,8 +28,7 @@ namespace kagome::runtime {
     explicit StorageCodeProvider(
         std::shared_ptr<const storage::trie::TrieStorage> storage,
         std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
-        std::shared_ptr<const primitives::CodeSubstituteHashes>
-            code_substitutes,
+        std::shared_ptr<const CodeSubstituteBlockIds> code_substitutes,
         std::shared_ptr<application::ChainSpec> chain_spec);
 
     outcome::result<gsl::span<const uint8_t>> getCodeAt(
@@ -39,8 +39,7 @@ namespace kagome::runtime {
         const storage::trie::EphemeralTrieBatch &batch) const;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
-    std::shared_ptr<const primitives::CodeSubstituteHashes>
-        known_code_substitutes_;
+    std::shared_ptr<const CodeSubstituteBlockIds> known_code_substitutes_;
     std::shared_ptr<application::ChainSpec> chain_spec_;
     mutable common::Buffer cached_code_;
     mutable storage::trie::RootHash last_state_root_;

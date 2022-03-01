@@ -84,11 +84,13 @@ namespace kagome::consensus::grandpa {
                                           const SignedMessage &vote) = 0;
 
     /**
-     * Triggered when current peer appears in round \param round intends to
-     * send committed \param vote justified by \param justification
+     * Triggered when current peer appears in round \param round with \param
+     * voter_ser_id intends to send committed \param vote justified by \param
+     * justification
      */
     virtual outcome::result<void> onCommitted(
         RoundNumber round,
+        MembershipCounter voter_ser_id,
         const BlockInfo &vote,
         const GrandpaJustification &justification) = 0;
 

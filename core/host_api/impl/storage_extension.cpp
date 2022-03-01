@@ -5,6 +5,7 @@
 
 #include "host_api/impl/storage_extension.hpp"
 
+#include <algorithm>
 #include <forward_list>
 
 #include "clock/impl/clock_impl.hpp"
@@ -15,6 +16,7 @@
 #include "runtime/ptr_size.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
+#include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
@@ -204,8 +206,9 @@ namespace kagome::host_api {
     return clearPrefix(prefix, limit_opt);
   }
 
-  runtime::WasmSpan StorageExtension::ext_storage_root_version_1() const {
+  runtime::WasmSpan StorageExtension::ext_storage_root_version_1() {
     outcome::result<storage::trie::RootHash> res{{}};
+    removeEmptyChildStorages();
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
         opt_batch.has_value() and opt_batch.value() != nullptr) {
       res = opt_batch.value()->commit();
@@ -474,6 +477,36 @@ namespace kagome::host_api {
       throw std::runtime_error(msg);
     }
     return memory.storeBuffer(enc_res.value());
+  }
+
+  void StorageExtension::removeEmptyChildStorages() {
+    static const auto &prefix = storage::kChildStorageDefaultPrefix;
+    static const auto empty_hash = Buffer(codec_.hash256(common::Buffer{0}));
+    auto current_key = prefix;
+    auto key_res = getStorageNextKey(current_key);
+    while (key_res.has_value() and key_res.value().has_value()) {
+      auto& key_opt = key_res.value();
+      current_key = key_opt.value();
+
+      bool contains_prefix =
+          std::equal(prefix.begin(), prefix.end(), current_key.begin());
+      if (not contains_prefix) {
+        break;
+      }
+      // SAFETY: key obtained by getStorageNextKey method, thus must exist in the storage
+      auto value_opt = get(current_key).value();
+      if (value_opt and value_opt.value().get() == empty_hash) {
+        auto batch = storage_provider_->getCurrentBatch();
+        auto remove_res = batch->remove(current_key);
+        if (not remove_res) {
+          logger_->error(
+              "Unable to remove empty child storage under key {}, error is {}",
+              current_key,
+              remove_res.error().message());
+        }
+      }
+      key_res = getStorageNextKey(current_key);
+    }
   }
 
 }  // namespace kagome::host_api

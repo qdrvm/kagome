@@ -134,7 +134,7 @@ namespace kagome::primitives {
           digest = std::move(payload);
           decoded = true;
         }
-      } else {
+      } else if (consensus_engine_id == primitives::kGrandpaEngineId) {
         if (not decoded) {
           OUTCOME_TRY(payload, scale::decode<GrandpaDigest>(data));
           digest = std::move(payload);

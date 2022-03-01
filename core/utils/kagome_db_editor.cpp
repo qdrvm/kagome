@@ -10,9 +10,9 @@
 #include <soralog/impl/configurator_from_yaml.hpp>
 
 #include "blockchain/block_storage_error.hpp"
+#include "blockchain/impl/block_header_repository_impl.hpp"
+#include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "blockchain/impl/key_value_block_header_repository.hpp"
-#include "blockchain/impl/key_value_block_storage.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -68,6 +68,11 @@ groups:
     is_fallback: true
     children:
       - name: kagome-db-editor
+      - name: trie
+      - name: storage
+      - name: changes_trie
+      - name: blockchain
+      - name: profile
 # ----------------
 )");
 }
@@ -151,10 +156,11 @@ void child_storage_root_hashes(
            && key.value().subbuffer(0, child_prefix.size()) == child_prefix) {
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
+        auto &value_opt = value_res.value();
         log->trace("Found child root hash {}",
-                   value_res.value().value().get().toHex());
+                   value_opt.value().get().toHex());
         hashes.insert(
-            common::Hash256::fromSpan(value_res.value().value().get()).value());
+            common::Hash256::fromSpan(value_opt.value().get()).value());
       }
       res = cursor->next();
       key = cursor->key();
@@ -215,86 +221,104 @@ int main(int argc, char *argv[]) {
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
-        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
+        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
         di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>());
 
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
 
     auto block_storage =
-        check(blockchain::KeyValueBlockStorage::create({}, storage, hasher))
+        check(blockchain::BlockStorageImpl::create({}, storage, hasher))
             .value();
 
-    auto block_tree_leaves = check(block_storage->getBlockTreeLeaves()).value();
+    auto block_tree_leaf_hashes =
+        check(block_storage->getBlockTreeLeaves()).value();
 
-    BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
+    BOOST_ASSERT_MSG(not block_tree_leaf_hashes.empty(),
                      "Must be known or calculated at least one leaf");
 
-    primitives::BlockHash last_finalized_block_hash;
-    primitives::BlockHeader last_finalized_block_header;
-
-    // Backward search of finalized block
-    for (auto hash = block_tree_leaves.front();;) {
-      auto header = check(block_storage->getBlockHeader(hash)).value();
-      if (header.number == 0) {
-        last_finalized_block_hash = hash;
-        last_finalized_block_header = header;
-        break;
+    // Find the least and best leaf
+    std::set<primitives::BlockInfo> leafs;
+    primitives::BlockInfo least_leaf(
+        std::numeric_limits<primitives::BlockNumber>::max(), {});
+    primitives::BlockInfo best_leaf(
+        std::numeric_limits<primitives::BlockNumber>::min(), {});
+    for (auto hash : block_tree_leaf_hashes) {
+      auto number = check(check(block_storage->getBlockHeader(hash)).value())
+                        .value()
+                        .number;
+      const auto &leaf = *leafs.emplace(number, hash).first;
+      SL_TRACE(log, "Leaf {} found", leaf);
+      if (leaf.number <= least_leaf.number) {
+        least_leaf = leaf;
       }
-
-      auto j_res = block_storage->getJustification(hash);
-      if (j_res.has_value()) {
-        last_finalized_block_hash = hash;
-        last_finalized_block_header = header;
-        break;
+      if (leaf.number >= best_leaf.number) {
+        best_leaf = leaf;
       }
-
-      if (j_res
-          != outcome::failure(
-              blockchain::BlockStorageError::JUSTIFICATION_DOES_NOT_EXIST)) {
-        check(j_res).value();
-      }
-
-      hash = header.parent_hash;
     }
 
-    auto header = last_finalized_block_header;
+    primitives::BlockInfo last_finalized_block;
+    primitives::BlockHeader last_finalized_block_header;
+    storage::trie::RootHash last_finalized_block_state_root;
+    storage::trie::RootHash after_finalized_block_state_root;
 
-    auto finalized_block_state_root = header.state_root;
-    log->trace("Autodetected finalized block is #{}, state root is {:l}",
-               header.number,
-               finalized_block_state_root);
+    std::set<primitives::BlockInfo> to_remove;
+
+    // Backward search of finalized block and connect blocks to remove
+    for (;;) {
+      auto it = leafs.rbegin();
+      auto node = leafs.extract((++it).base());
+      auto &block = node.value();
+
+      auto header =
+          check(check(block_storage->getBlockHeader(block.hash)).value())
+              .value();
+      if (header.number == 0) {
+        last_finalized_block = block;
+        last_finalized_block_header = header;
+        last_finalized_block_state_root = header.state_root;
+        break;
+      }
+
+      auto justifications =
+          check(block_storage->getJustification(block.hash)).value();
+      if (justifications.has_value()) {
+
+
+        last_finalized_block = block;
+        last_finalized_block_header = header;
+        last_finalized_block_state_root = header.state_root;
+        break;
+      }
+
+      after_finalized_block_state_root = header.state_root;
+
+      leafs.emplace(header.number - 1, header.parent_hash);
+      to_remove.insert(std::move(node));
+    }
+
+    log->trace("Autodetected finalized block is {}, state root is {:l}",
+               last_finalized_block,
+               last_finalized_block_state_root);
+
+    for (auto it = to_remove.rbegin(); it != to_remove.rend(); ++it) {
+      check(block_storage->removeBlock(*it)).value();
+    }
+
+    SL_TRACE(log, "Save {} as single leaf", last_finalized_block);
+    check(block_storage->setBlockTreeLeaves({last_finalized_block.hash}))
+        .value();
 
     // we place the only existing state hash at runtime look up key
     // it won't work for code substitute
     {
       std::vector<runtime::RuntimeUpgradeTrackerImpl::RuntimeUpgradeData>
           runtime_upgrade_data{};
-      runtime_upgrade_data.emplace_back(
-          primitives::BlockInfo{
-              header.number,
-              hasher->blake2b_256(check(scale::encode(header)).value())},
-          header.state_root);
+      runtime_upgrade_data.emplace_back(last_finalized_block,
+                                        last_finalized_block_header.state_root);
       auto encoded_res = check(scale::encode(runtime_upgrade_data));
-      [[maybe_unused]] auto res =
-          check(storage->put(storage::kRuntimeHashesLookupKey,
-                             common::Buffer(encoded_res.value())));
-    }
-
-    RootHash hash;
-    if (argc == 2) {
-      auto block_number = header.number + 1;
-      for (;;) {
-        auto header_res = block_storage->getBlockHeader(block_number++);
-        if (not header_res.has_value()) {
-          break;
-        }
-        hash = header_res.value().state_root;
-      }
-      log->trace("Autodetected best block number is #{}, state root is 0x{}",
-                 block_number - 1,
-                 hash.toHex());
-    } else {
-      hash = check(RootHash::fromHexWithPrefix(argv[STATE_HASH])).value();
+      check(storage->put(storage::kRuntimeHashesLookupKey,
+                         common::Buffer(encoded_res.value())))
+          .value();
     }
 
     auto trie =
@@ -306,9 +330,11 @@ int main(int argc, char *argv[]) {
             .value();
 
     if (COMPACT == cmd) {
-      auto batch = check(persistent_batch(trie, hash)).value();
+      auto batch =
+          check(persistent_batch(trie, last_finalized_block_state_root)).value();
       auto finalized_batch =
-          check(persistent_batch(trie, finalized_block_state_root)).value();
+          check(persistent_batch(trie, last_finalized_block_state_root))
+              .value();
 
       std::vector<std::unique_ptr<PersistentTrieBatch>> child_batches;
       {
@@ -353,13 +379,10 @@ int main(int argc, char *argv[]) {
 
       {
         TicToc t3("Commit state.", log);
-        auto res3 = check(finalized_batch->commit());
-        log->trace("{}", res3.value().toHex());
-        res3 = check(batch->commit());
-        log->trace("{}", res3.value().toHex());
+        check(finalized_batch->commit()).value();
+        check(batch->commit()).value();
         for (const auto &child_batch : child_batches) {
-          res3 = check(child_batch->commit());
-          log->trace("{}", res3.value().toHex());
+          check(child_batch->commit()).value();
         }
       }
 
@@ -371,7 +394,8 @@ int main(int argc, char *argv[]) {
 
       need_additional_compaction = true;
     } else if (DUMP == cmd) {
-      auto batch = check(trie->getEphemeralBatchAt(hash)).value();
+      auto batch =
+          check(trie->getEphemeralBatchAt(last_finalized_block.hash)).value();
       auto cursor = batch->trieCursor();
       auto res = check(cursor->next());
       {

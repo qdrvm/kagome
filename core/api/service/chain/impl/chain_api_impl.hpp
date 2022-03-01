@@ -17,6 +17,11 @@ namespace kagome::api {
 
   class ChainApiImpl : public ChainApi {
    public:
+    enum class Error {
+      BLOCK_NOT_FOUND = 1,
+      HEADER_NOT_FOUND,
+    };
+
     ~ChainApiImpl() override = default;
 
     ChainApiImpl(std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
@@ -39,24 +44,17 @@ namespace kagome::api {
     outcome::result<primitives::BlockHeader> getHeader(
         std::string_view hash) override {
       OUTCOME_TRY(h, primitives::BlockHash::fromHexWithPrefix(hash));
-      return block_repo_->getBlockHeader(h);
+      return header_repo_->getBlockHeader(h);
     }
 
     outcome::result<primitives::BlockHeader> getHeader() override {
       auto last = block_tree_->getLastFinalized();
-      return block_repo_->getBlockHeader(last.hash);
+      return header_repo_->getBlockHeader(last.hash);
     }
 
     outcome::result<primitives::BlockData> getBlock(
-        std::string_view hash) override {
-      OUTCOME_TRY(h, primitives::BlockHash::fromHexWithPrefix(hash));
-      return block_storage_->getBlockData(h);
-    }
-
-    outcome::result<primitives::BlockData> getBlock() override {
-      auto last = block_tree_->getLastFinalized();
-      return block_storage_->getBlockData(last.hash);
-    }
+        std::string_view hash) override;
+    outcome::result<primitives::BlockData> getBlock() override;
 
     outcome::result<primitives::BlockHash> getFinalizedHead() const override;
 
@@ -69,11 +67,13 @@ namespace kagome::api {
         uint32_t subscription_id) override;
 
    private:
-    std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
+    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<api::ApiService> api_service_;
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
   };
 }  // namespace kagome::api
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::api, ChainApiImpl::Error);
 
 #endif  // KAGOME_CHAIN_API_IMPL_HPP

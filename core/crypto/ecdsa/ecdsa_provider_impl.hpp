@@ -21,8 +21,7 @@ namespace kagome::crypto {
 
     EcdsaProviderImpl();
 
-    explicit EcdsaProviderImpl(
-        std::shared_ptr<Libp2pEcdsaProvider> provider);
+    explicit EcdsaProviderImpl(std::shared_ptr<Libp2pEcdsaProvider> provider);
 
     outcome::result<EcdsaKeypair> generate() const override;
 
@@ -33,8 +32,17 @@ namespace kagome::crypto {
         gsl::span<const uint8_t> message,
         const EcdsaPrivateKey &key) const override;
 
+    outcome::result<EcdsaSignature> signPrehashed(
+        const EcdsaPrehashedMessage &message,
+        const EcdsaPrivateKey &key) const override;
+
     outcome::result<bool> verify(
         gsl::span<const uint8_t> message,
+        const EcdsaSignature &signature,
+        const EcdsaPublicKey &publicKey) const override;
+
+    outcome::result<bool> verifyPrehashed(
+        const EcdsaPrehashedMessage &message,
         const EcdsaSignature &signature,
         const EcdsaPublicKey &publicKey) const override;
 

@@ -36,6 +36,7 @@ cmake-build*
 /.gtm/
 
 *.deb
+*.idx
 
 build
 dist
@@ -44,3 +45,4 @@ _builds
 _logs
 _build
 examples/**/db
+.cache/**

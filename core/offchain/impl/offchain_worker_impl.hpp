@@ -33,6 +33,7 @@ namespace kagome::runtime {
 using namespace std::chrono_literals;
 
 namespace kagome::offchain {
+  class OffchainWorkerPool;
 
   class OffchainWorkerImpl final
       : public OffchainWorker,
@@ -52,7 +53,8 @@ namespace kagome::offchain {
         const network::OwnPeerInfo &current_peer_info,
         std::shared_ptr<OffchainPersistentStorage> persistent_storage,
         std::shared_ptr<runtime::Executor> executor,
-        const primitives::BlockHeader &header);
+        const primitives::BlockHeader &header,
+        std::shared_ptr<OffchainWorkerPool> ocw_pool);
 
     outcome::result<void> run() override;
 
@@ -125,6 +127,7 @@ namespace kagome::offchain {
     std::shared_ptr<runtime::Executor> executor_;
     const primitives::BlockHeader header_;
     const primitives::BlockInfo block_;
+    std::shared_ptr<OffchainWorkerPool> ocw_pool_;
     log::Logger log_;
 
     int16_t request_id_ = 0;
