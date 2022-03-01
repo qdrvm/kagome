@@ -82,7 +82,6 @@ namespace kagome::api {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
           static const auto key = "b"_buf;
           static const common::Buffer value = "2"_buf;
-          auto value_ref_opt = std::make_optional(std::cref(value));
           EXPECT_CALL(*batch, tryGet(key.view()))
               .WillRepeatedly(
                   testing::Return(std::make_optional(std::cref(value))));

@@ -14,7 +14,9 @@ namespace kagome::storage::face {
 
   /**
    * @brief A mixin for an iterable map.
-   * @tparam Cursor cursor type
+   * @tparam K map key type
+   * @tparam V map value type
+   * @tparam KView map key view type
    */
   template <typename K, typename V, typename KView = K >
   struct Iterable {

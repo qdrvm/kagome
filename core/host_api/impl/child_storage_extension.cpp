@@ -124,6 +124,7 @@ namespace kagome::host_api {
                      key_buffer.toHex(),
                      result.error().message());
     }
+    // okay to throw, we want to end this runtime call with error
     return memory.storeBuffer(scale::encode(result.value()).value());
   }
 
@@ -262,15 +263,26 @@ namespace kagome::host_api {
         loadBuffer(memory, child_storage_key, key);
     auto [value_ptr, value_size] = runtime::PtrSize(value_out);
 
-    auto read = executeOnChildStorage<common::BufferConstRef>(
+    auto value = executeOnChildStorage<std::optional<common::BufferConstRef>>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) { return child_batch->get(key); },
+        [](auto &child_batch, auto &key) { return child_batch->tryGet(key); },
         key_buffer);
     std::optional<uint32_t> res{std::nullopt};
-    if (read) {
-      auto data = read.value();
-      auto offset_data =
-          data.get().subbuffer(std::min<size_t>(offset, data.get().size()));
+    if (!value) {
+      auto msg = fmt::format(
+          "ext_default_child_storage_read_version_1 failed: {}",
+          value.error().message());
+      logger_->error(msg);
+      throw std::runtime_error{msg};
+    }
+    auto value_opt = value.value();
+    if (!value_opt) {
+      logger_->debug(
+          "ext_default_child_storage_read_version_1: key {} not found",
+          key_buffer.toHex());
+    } else {
+      auto offset_data = value_opt.value().get().subbuffer(
+          std::min<size_t>(offset, value_opt.value().get().size()));
       auto written = std::min<size_t>(offset_data.size(), value_size);
       memory.storeBuffer(value_ptr,
                          gsl::make_span(offset_data).subspan(0, written));
@@ -280,16 +292,6 @@ namespace kagome::host_api {
                          common::Buffer{offset_data.subbuffer(0, written)});
       res = offset_data.size();
 
-    } else if (read == outcome::failure(TrieError::NO_VALUE)) {
-      logger_->info(
-          "ext_default_child_storage_clear_prefix_version_1 returned no value "
-          "reason: {}",
-          read.error().message());
-    } else {
-      logger_->error(
-          "ext_default_child_storage_clear_prefix_version_1 failed with "
-          "reason: {}",
-          read.error().message());
     }
     return memory.storeBuffer(scale::encode(res).value());
   }

@@ -323,7 +323,8 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   EXPECT_CALL(*memory_, loadN(key.ptr, key.size)).WillOnce(Return(key_data));
   EXPECT_CALL(*storage_provider_, getCurrentBatch())
       .WillOnce(Return(trie_batch_));
-  EXPECT_CALL(*trie_batch_, tryGet(key_data.view())).WillOnce(Return(value_data));
+  EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
+      .WillOnce(Return(value_data));
   EXPECT_CALL(
       *memory_,
       storeBuffer(value.ptr, gsl::span<const uint8_t>(offset_value_data)));
@@ -638,6 +639,7 @@ TEST_F(StorageExtensionTest, RootTest) {
   // removeEmptyChildStorages
   Buffer prefix = kagome::storage::kChildStorageDefaultPrefix;
   Buffer current_key = Buffer{prefix}.putBuffer("QWERTY"_buf);
+
   static const auto empty_hash = Buffer(codec_.hash256(Buffer{0}));
 
   EXPECT_CALL(*trie_batch_, trieCursor())
@@ -655,8 +657,9 @@ TEST_F(StorageExtensionTest, RootTest) {
         return cursor;
       }));
 
-  EXPECT_CALL(*trie_batch_, get(current_key.view()))
-      .WillOnce(Return(outcome::success(empty_hash)));
+  EXPECT_CALL(*trie_batch_, tryGet(current_key.view()))
+      .WillOnce(
+          Return(outcome::success(std::make_optional(std::cref(empty_hash)))));
   EXPECT_CALL(*trie_batch_, remove(current_key.view()))
       .WillOnce(Return(outcome::success()));
 
@@ -716,8 +719,7 @@ TEST_F(StorageExtensionTest, ChangesRootEmpty) {
       .WillOnce(Return(parent_hash_buf));
 
   auto changes_trie_buf = kagome::common::Buffer{}.put(":changes_trie");
-  EXPECT_CALL(*trie_batch_,
-              tryGet(changes_trie_buf.view()))
+  EXPECT_CALL(*trie_batch_, tryGet(changes_trie_buf.view()))
       .WillOnce(Return(std::nullopt));
 
   WasmPointer result = 1984;
@@ -751,8 +753,7 @@ TEST_F(StorageExtensionTest, ChangesRootNotEmpty) {
   kagome::storage::changes_trie::ChangesTrieConfig config{.digest_interval = 0,
                                                           .digest_levels = 0};
   auto changes_trie_buf = kagome::common::Buffer{}.put(":changes_trie");
-  EXPECT_CALL(*trie_batch_,
-              tryGet(changes_trie_buf.view()))
+  EXPECT_CALL(*trie_batch_, tryGet(changes_trie_buf.view()))
       .WillOnce(Return(Buffer(scale::encode(config).value())));
 
   auto trie_hash = "deadbeef"_hash256;

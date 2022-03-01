@@ -69,7 +69,7 @@ namespace kagome::storage::changes_trie {
     for (auto it = actual_val_.lower_bound(prefix);
          it != actual_val_.end()
          && prefix.size() <= static_cast<ssize_t>(it->first.size())
-         && it->first.subbuffer(0, prefix.size()) == prefix;
+         && it->first.view(0, prefix.size()) == prefix;
          ++it) {
       it->second.clear();
     }
@@ -111,7 +111,7 @@ namespace kagome::storage::changes_trie {
     // if key was already changed in the same block, just add extrinsic to
     // the changers list
     if (change_it != extrinsics_changes_.end()) {
-      // if new entry, i. e. it doesn't exist in the persistent storage, then
+      // if new entry, i.e. it doesn't exist in the persistent storage, then
       // don't track it, because it's just temporary
       if (auto i = new_entries_.find(key); i != new_entries_.end()) {
         extrinsics_changes_.erase(change_it);

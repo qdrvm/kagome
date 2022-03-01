@@ -68,7 +68,7 @@ namespace kagome::host_api {
     auto key = memory.loadN(key_ptr, key_size);
     std::optional<uint32_t> res{std::nullopt};
     if (auto data_opt_res = get(key); data_opt_res.has_value()) {
-      auto& data_opt = data_opt_res.value();
+      auto &data_opt = data_opt_res.value();
       if (data_opt.has_value()) {
         common::BufferView data = data_opt.value().get();
         data = data.subspan(std::min<size_t>(offset, data.size()));
@@ -155,8 +155,7 @@ namespace kagome::host_api {
     if (not del_result) {
       logger_->warn(
           "ext_storage_clear_version_1 did not delete key {} from trie db "
-          "with "
-          "reason: {}",
+          "with reason: {}",
           key_data,
           del_result.error().message());
     }
@@ -296,8 +295,7 @@ namespace kagome::host_api {
       if (not put_result) {
         logger_->error(
             "ext_storage_append_version_1 failed, due to fail in trie db "
-            "with "
-            "reason: {}",
+            "with reason: {}",
             put_result.error().message());
       }
       return;
@@ -457,7 +455,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan StorageExtension::clearPrefix(
-      const common::BufferView &prefix, std::optional<uint32_t> limit) {
+      common::BufferView prefix, std::optional<uint32_t> limit) {
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 

@@ -72,6 +72,6 @@ namespace kagome::storage::changes_trie {
 }  // namespace kagome::storage::changes_trie
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::storage::changes_trie,
-                          StorageChangesTrackerImpl::Error)
+                          StorageChangesTrackerImpl::Error);
 
 #endif  // KAGOME_STORAGE_CHANGES_TRIE_STORAGE_CHANGES_TRACKER_IMPL
