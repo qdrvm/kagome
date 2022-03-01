@@ -1351,7 +1351,14 @@ namespace {
          trie_storage = std::move(trie_storage)] {
           auto res = blockchain::BlockTreeImpl::recover(
               app_config, storage, header_repo, trie_storage);
-          return res.has_error() ? EXIT_FAILURE : EXIT_SUCCESS;
+          auto log = log::createLogger("RecoveryMode", "main");
+          if (res.has_error()) {
+            SL_ERROR(
+                log, "Recovery mode has failed: {}", res.error().message());
+            log->flush();
+            return EXIT_FAILURE;
+          }
+          return EXIT_SUCCESS;
         }));
 
     return initialized.value();
