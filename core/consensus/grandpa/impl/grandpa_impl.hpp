@@ -91,6 +91,8 @@ namespace kagome::consensus::grandpa {
 
     void executeNextRound(RoundNumber round_number) override;
 
+    void updateNextRound(RoundNumber round_number) override;
+
    private:
     std::shared_ptr<VotingRound> selectRound(
         RoundNumber round_number,

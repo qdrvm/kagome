@@ -21,6 +21,11 @@ namespace kagome::consensus::grandpa {
      * Tries to execute next round for round presented by {@param round_number}
      */
     virtual void executeNextRound(RoundNumber round_number) = 0;
+
+    /**
+     * Force update round for round presented by {@param round_number}
+     */
+    virtual void updateNextRound(RoundNumber round_number) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

@@ -6,6 +6,7 @@
 #ifndef KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
 #define KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
 
+#include "common/tagged.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/round_observer.hpp"
 
@@ -30,8 +31,6 @@ namespace kagome::consensus::grandpa {
      */
     virtual bool completable() const = 0;
 
-    virtual bool finalizable() const = 0;
-
     /// Block finalized in previous round (when current one was created)
     virtual BlockInfo lastFinalizedBlock() const = 0;
 
@@ -50,7 +49,7 @@ namespace kagome::consensus::grandpa {
     virtual BlockInfo bestFinalCandidate() = 0;
 
     /// Block is finalized at the round
-    virtual std::optional<BlockInfo> finalizedBlock() const = 0;
+    virtual const std::optional<BlockInfo>& finalizedBlock() const = 0;
 
     virtual MovableRoundState state() const = 0;
 
@@ -85,7 +84,7 @@ namespace kagome::consensus::grandpa {
     /// Broadcast commit message
     virtual void doCommit() = 0;
 
-    /// Make Cathc-Up-Response based on current round and send to requesting
+    /// Make Catch-Up-Response based on current round and send to requesting
     /// peer
     virtual void doCatchUpResponse(const libp2p::peer::PeerId &peer_id) = 0;
 
@@ -115,11 +114,20 @@ namespace kagome::consensus::grandpa {
     virtual bool onPrecommit(const SignedMessage &precommit,
                              Propagation propagation) = 0;
 
+    using IsPreviousRoundChanged = Tagged<bool, struct IsPreviousRoundChanged>;
+    using IsPrevotesChanged = Tagged<bool, struct IsPrevotesChanged>;
+    using IsPrecommitsChanged = Tagged<bool, struct IsPrecommitsChanged>;
+
     /**
-     * Updates inner state if {@param prevote} or {@param precommit} was changed
-     * since last call
+     * Updates inner state if something (see params) was changed since last call
+     * @param is_previous_round_changed is true if previous round is changed
+     * @param is_prevotes_changed is true if new prevote was accepted
+     * @param is_precommits_changed is true if new precommits was accepted
+     * @return true if finalized block was changed during update
      */
-    virtual void update(bool isPrevotesChanged, bool isPrecommitsChanged) = 0;
+    virtual void update(IsPreviousRoundChanged is_previous_round_changed,
+                        IsPrevotesChanged is_prevotes_changed,
+                        IsPrecommitsChanged is_precommits_changed) = 0;
 
     // Auxiliary methods
 

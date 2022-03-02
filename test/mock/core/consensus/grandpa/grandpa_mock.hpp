@@ -52,6 +52,8 @@ namespace kagome::consensus::grandpa {
                 (override));
 
     MOCK_METHOD(void, executeNextRound, (RoundNumber round_number), (override));
+
+    MOCK_METHOD(void, updateNextRound, (RoundNumber round_number), (override));
   };
 
 }  // namespace kagome::consensus::grandpa
