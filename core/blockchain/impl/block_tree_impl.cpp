@@ -391,6 +391,13 @@ namespace kagome::blockchain {
 
       OUTCOME_TRY(hash, header_repo->getHashById(number));
       block_tree_leaves.emplace(number, hash);
+
+      if (auto res = storage->setBlockTreeLeaves({hash}); res.has_error()) {
+        SL_CRITICAL(log,
+                    "Can't save recovered block tree leaves: {}",
+                    res.error().message());
+        return res.as_failure();
+      }
     }
 
     // Check if target block exists
@@ -649,24 +656,13 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(node != nullptr,
                      "As checked before, block exists as one of leaves");
 
-    BOOST_ASSERT_MSG(not tree_->getMetadata().deepest_leaf.expired(),
-                     "removeBlock-1");
-
     // Remove from block tree
     tree_->removeFromMeta(node);
-    BOOST_ASSERT_MSG(not tree_->getMetadata().deepest_leaf.expired(),
-                     "removeBlock-2");
 
     OUTCOME_TRY(reorganize());
 
-    BOOST_ASSERT_MSG(not tree_->getMetadata().deepest_leaf.expired(),
-                     "removeBlock-3");
-
     // Remove from storage
     OUTCOME_TRY(storage_->removeBlock({node->depth, node->block_hash}));
-
-    BOOST_ASSERT_MSG(not tree_->getMetadata().deepest_leaf.expired(),
-                     "removeBlock-4");
 
     return outcome::success();
   }

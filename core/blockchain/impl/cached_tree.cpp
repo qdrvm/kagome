@@ -172,8 +172,8 @@ namespace kagome::blockchain {
           // is a leaf
           if (node->children.empty()) {
             leaves.emplace(node->block_hash);
-            BOOST_ASSERT(  // NOLINT(bugprone-lambda-function-name)
-                deepest_leaf.lock() != nullptr);
+            // NOLINTNEXTLINE(bugprone-lambda-function-name)
+            BOOST_ASSERT(not deepest_leaf.expired());
             if (node->depth > deepest_leaf.lock()->depth) {
               deepest_leaf = node;
             }
@@ -243,37 +243,36 @@ namespace kagome::blockchain {
 
   void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
     auto parent = node->parent.lock();
-    if (parent != nullptr) {
-      auto it =
-          std::find(parent->children.begin(), parent->children.end(), node);
-      if (it != parent->children.end()) {
-        parent->children.erase(it);
-      }
+    if (parent == nullptr) {
+      // Already removed with removed subtree
+      return;
+    }
+
+    auto it = std::find(parent->children.begin(), parent->children.end(), node);
+    if (it != parent->children.end()) {
+      parent->children.erase(it);
     }
 
     metadata_->leaves.erase(node->block_hash);
-    if ((parent != nullptr) && parent->children.empty()) {
+    if (parent->children.empty()) {
       metadata_->leaves.insert(parent->block_hash);
     }
-    if (metadata_->deepest_leaf.expired()) {
-      std::vector<primitives::BlockInfo> leaf_depths;
-      leaf_depths.reserve(metadata_->leaves.size());
-      std::transform(
-          metadata_->leaves.begin(),
-          metadata_->leaves.end(),
-          std::back_inserter(leaf_depths),
-          [this](const auto &hash) {
-            auto leaf_node = root_->findByHash(hash);
-            BOOST_ASSERT(leaf_node  // NOLINT(bugprone-lambda-function-name)
-                         != nullptr);
-            return primitives::BlockInfo{leaf_node->depth,
-                                         leaf_node->block_hash};
-          });
-      std::sort(
-          leaf_depths.begin(),
-          leaf_depths.end(),
-          [](auto const &p1, auto const &p2) { return p1.number > p2.number; });
-      metadata_->deepest_leaf = root_->findByHash(leaf_depths.back().hash);
+
+    BOOST_ASSERT(not metadata_->deepest_leaf.expired());
+    if (node == metadata_->deepest_leaf.lock()) {
+      metadata_->deepest_leaf = parent;
+      for (auto it = metadata_->leaves.begin();
+           it != metadata_->leaves.end();) {
+        auto &hash = *it++;
+        const auto leaf_node = root_->findByHash(hash);
+        if (leaf_node == nullptr) {
+          // Already removed with removed subtree
+          metadata_->leaves.erase(hash);
+        } else if (leaf_node->depth > parent->depth) {
+          metadata_->deepest_leaf = leaf_node;
+          break;
+        }
+      }
     }
   }
 }  // namespace kagome::blockchain
