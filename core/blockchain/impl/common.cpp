@@ -12,8 +12,8 @@
 
 namespace kagome::blockchain {
 
-  outcome::result<std::optional<common::Buffer>> idToLookupKey(const ReadableBufferStorage &map,
-                                                const primitives::BlockId &id) {
+  outcome::result<std::optional<common::Buffer>> idToLookupKey(
+      const ReadableBufferStorage &map, const primitives::BlockId &id) {
     auto key = visit_in_place(
         id,
         [](const primitives::BlockNumber &n) {
