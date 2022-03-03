@@ -346,12 +346,13 @@ TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
       .WillOnce(Return(child_storage_key));
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
+  Buffer prefixed_child_storage_key;
   if (GetParam()) {
     RootHash new_child_root = "123456"_hash256;
     Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
     EXPECT_CALL(*trie_child_storage_batch_, commit())
         .WillOnce(Return(new_child_root));
-    Buffer prefixed_child_storage_key =
+    prefixed_child_storage_key =
         Buffer{kagome::storage::kChildStorageDefaultPrefix}.putBuffer(
             child_storage_key);
     EXPECT_CALL(*trie_batch_,
