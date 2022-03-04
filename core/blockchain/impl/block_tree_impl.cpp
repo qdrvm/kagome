@@ -370,8 +370,8 @@ namespace kagome::blockchain {
       auto lower = std::numeric_limits<primitives::BlockNumber>::min();
       auto upper = std::numeric_limits<primitives::BlockNumber>::max();
 
-      while (lower < upper) {
-        number = lower + (upper - lower) / 2 + 1;
+      for (;;) {
+        number = lower + (upper - lower) / 2;
 
         auto res = storage->hasBlockHeader(number);
         if (res.has_failure()) {
@@ -386,6 +386,10 @@ namespace kagome::blockchain {
         } else {
           SL_TRACE(log, "bisect {} -> not found", number);
           upper = number - 1;
+        }
+        if (lower + 1 == upper) {
+          number = lower;
+          break;
         }
       }
 
