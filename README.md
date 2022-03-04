@@ -1,6 +1,5 @@
 ![logo](/docs/image_assets/kagome-logo-(new-2020).svg)
 
-[![code inspector](https://www.code-inspector.com/project/74/status/svg)](https://www.code-inspector.com/public/project/74/kagome/dashboard)
 [![CodeFactor](https://www.codefactor.io/repository/github/soramitsu/kagome/badge)](https://www.codefactor.io/repository/github/soramitsu/kagome)
 [![codecov](https://codecov.io/gh/soramitsu/kagome/branch/master/graph/badge.svg)](https://codecov.io/gh/soramitsu/kagome)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/ad6fa504-99d6-48fb-9a05-869ba1d9a7c3/deploy-status)](https://app.netlify.com/sites/kagome/deploys)
@@ -8,12 +7,12 @@
 
 ## Intro
 
-Kagome is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/host-spec) (former Polkadot Runtime Environment) developed by [Soramitsu](https://soramitsu.co.jp/) and funded by Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md). 
+Kagome is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/host-spec) (former Polkadot Runtime Environment) developed by [Soramitsu](https://soramitsu.co.jp/) and funded by Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md).
 
 
 ## Status
 
-Kagome is early-stage software, you can already execute a block production process.
+Kagome is getting closer to the first official release. You may
 
 A simple status-report can be found within section [supported features](./README.md/#supported-features).
 
@@ -81,15 +80,6 @@ kagome --dev-with-wipe
 
 ### Execute Kagome node with validator mode
 
----
-**Note**
-
-At the moment launch from the existing db is not implemented, so you should clean up previous db before every launch using the following command from the chain folder in the base path:
-```
-rm -rf base_path/dev/db
-```
----
-
 To launch Kagome validator execute:
 ```
 cd examples/first_kagome_chain
@@ -97,43 +87,23 @@ PATH=$PATH:../../build/node/
 kagome --validator --chain localchain.json --base-path base_path
 ```
 
-This command executes Kagome full node with authority role which can receive extrinsics locally on port using http: `9933`. Simple transfer transaction can be sent as follows:
-```
-curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_submitExtrinsic", "params": ["0x290284ffdc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a01e2f2be0a634faeb8401ed2392731df803877dcb2422bb396d48ca24f18661059e3dde41d14b87eb929ec41ab36e6d63be5a1f5c3c5c092c79646a453f4b392890000000600ff488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a972404"]}' http://localhost:9933/
-```
-If transaction was successfully applied we should see the following output:
-```
-{"jsonrpc":"2.0","id":1,"result":[194,108,28,60,223,55,48,163,134,182,201,23,144,126,167,123,33,119,187,164,61,50,203,175,230,189,71,245,120,104,18,38]}% 
-```
+This command executes Kagome full node with authority role.
 
 
 ### Execute Kagome Polkadot archive node
 
-You can synchronize with Polkadot using Kagome and obtain archive node that can be used to query Polkadot network at any state. 
-
----
-**Note**
-
-Same note as for validating node. At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the chain folder in the base path:
-```
-rm -rf syncing_chain
-```
----
+You can synchronize with Polkadot using Kagome and obtain archive node that can be used to query Polkadot network at any state.
 
 To launch Kagome Polkadot archive node execute:
 ```
 cd examples/polkadot/
 PATH=$PATH:../../build/node/
-kagome --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543
+kagome --chain polkadot.json --base-path syncing_chain
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.
 
 
----
-**Note**
-The ports, which are not set in the app arguments, will take a default value. In case of running two nodes on the same address, this may lead to address collision and one node will node be able to start. To avoid this, please set all ports when running several nodes on one machine.
-___
 
 ### Configuration Details
 To run a Kagome node, you need to provide to it a genesis config, cryptographic keys and a place to store db files.
@@ -159,7 +129,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j
 ```
 
-Tests can be run with: 
+Tests can be run with:
 ```
 cd build
 ctest
@@ -179,7 +149,7 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
     * Creates a block from provided inherents and digest
     * Interacts with Polkadot Runtime to initialize and finalize block
 * Runtime
-    * Uses [Binaryen](https://github.com/WebAssembly/binaryen) WASM interpreter to invoke Polkadot Runtime entries
+    * Uses [Binaryen](https://github.com/WebAssembly/binaryen) (default) or [WAVM](https://wavm.github.io/) (experimental) WASM interpreters to invoke Polkadot Runtime entries
     * Current runtime entries include:
         * BlockBuilder – checks inherents, applies extrinsics, derives inherent extrinsics, initializes and finalizes blocks
         * Core – gets version of runtime, executes blocks, gets authorities
@@ -193,9 +163,9 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
         * Management of the content
         * Memory allocation
         * Cryptography
-* SCALE (polkadot-codec)
+* [SCALE](https://github.com/soramitsu/scale-codec-cpp) (polkadot-codec)
     * Implements SCALE codec for data types serialization according to [spec](https://substrate.dev/docs/en/conceptual/core/codec).
-* Storage  
+* Storage
     * Contains of key-value storage interfaces with LevelDB- and inmemory-based implementations
     * Merkle-Patricia trie implementation, described in spec
 * Clock
@@ -213,9 +183,9 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
 * Networking
     * Kagome uses [cpp-libp2p](https://github.com/soramitsu/libp2p) for peer-to-peer interactions and peer discovery
     * Gossiper and Gossiper observer
-    * SyncClient and SyncServer 
-    
-You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). 
+    * SyncClient and SyncServer
+
+You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). Check out tutorials and more examples in official documentation: https://kagome.readthedocs.io/
 
 ## Kagome in media
 
