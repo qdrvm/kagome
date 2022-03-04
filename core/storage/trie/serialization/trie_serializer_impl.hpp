@@ -15,7 +15,7 @@ namespace kagome::storage::trie {
   class PolkadotTrieFactory;
   class TrieStorageBackend;
   struct BranchNode;
-  struct PolkadotNode;
+  struct TrieNode;
 }  // namespace kagome::storage::trie
 
 namespace kagome::storage::trie {
@@ -40,8 +40,8 @@ namespace kagome::storage::trie {
      * descendants as well. Then replaces the node children to dummy nodes to
      * avoid memory waste
      */
-    outcome::result<RootHash> storeRootNode(PolkadotNode &node);
-    outcome::result<common::Buffer> storeNode(PolkadotNode &node,
+    outcome::result<RootHash> storeRootNode(TrieNode &node);
+    outcome::result<common::Buffer> storeNode(TrieNode &node,
                                               BufferBatch &batch);
     outcome::result<void> storeChildren(BranchNode &branch, BufferBatch &batch);
     /**
@@ -55,7 +55,8 @@ namespace kagome::storage::trie {
      * Retrieves a node, replacing a dummy node to an actual node if
      * needed
      */
-    outcome::result<void> retrieveNode(PolkadotTrie::NodePtr &parent) const;
+    outcome::result<PolkadotTrie::NodePtr> retrieveNode(
+        const std::shared_ptr<OpaqueTrieNode> &node) const;
 
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;

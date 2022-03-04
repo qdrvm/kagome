@@ -259,7 +259,7 @@ TEST_P(TernaryParametrizedTest, LocalStorageSet) {
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
       .WillOnce(Return(value));
-  EXPECT_CALL(*offchain_worker_, localStorageSet(_, key, value));
+  EXPECT_CALL(*offchain_worker_, localStorageSet(_, key.view(), value));
   offchain_extension_->ext_offchain_local_storage_set_version_1(
       GetParam(), key_span, value_span);
 }
@@ -276,7 +276,7 @@ TEST_P(TernaryParametrizedTest, LocalStorageClear) {
   WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*offchain_worker_, localStorageClear(_, key));
+  EXPECT_CALL(*offchain_worker_, localStorageClear(_, key.view()));
   offchain_extension_->ext_offchain_local_storage_clear_version_1(GetParam(),
                                                                   key_span);
 }
@@ -305,7 +305,7 @@ TEST_P(TernaryParametrizedTest, LocalStorageCAS) {
       .WillOnce(Return(value));
   EXPECT_CALL(*memory_, loadN(expected_pointer, expected_size))
       .WillOnce(Return(expected));
-  EXPECT_CALL(*offchain_worker_, localStorageCompareAndSet(_, key, _, value))
+  EXPECT_CALL(*offchain_worker_, localStorageCompareAndSet(_, key.view(), _, value))
       .WillOnce(Return(true));
   offchain_extension_->ext_offchain_local_storage_compare_and_set_version_1(
       GetParam(), key_span, expected_span, value_span);
@@ -327,7 +327,7 @@ TEST_P(TernaryParametrizedTest, LocalStorageGet) {
   auto result_opt = std::make_optional(result.value());
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*offchain_worker_, localStorageGet(_, key))
+  EXPECT_CALL(*offchain_worker_, localStorageGet(_, key.view()))
       .WillOnce(Return(result));
 
   {
@@ -661,7 +661,7 @@ TEST_P(OutcomeParameterizedTest, IndexSet) {
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
       .WillOnce(Return(value));
-  EXPECT_CALL(*offchain_storage_, set(key, value)).WillOnce(Return(GetParam()));
+  EXPECT_CALL(*offchain_storage_, set(key.view(), value)).WillOnce(Return(GetParam()));
   offchain_extension_->ext_offchain_index_set_version_1(
       PtrSize{key_pointer, key_size}.combine(),
       PtrSize{value_pointer, value_size}.combine());
@@ -678,7 +678,7 @@ TEST_P(OutcomeParameterizedTest, IndexClear) {
   WasmSize key_size = 43;
   Buffer key(8, 'k');
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*offchain_storage_, clear(key)).WillOnce(Return(GetParam()));
+  EXPECT_CALL(*offchain_storage_, clear(key.view())).WillOnce(Return(GetParam()));
   offchain_extension_->ext_offchain_index_clear_version_1(
       PtrSize{key_pointer, key_size}.combine());
 }

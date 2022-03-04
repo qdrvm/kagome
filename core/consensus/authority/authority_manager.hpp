@@ -34,7 +34,7 @@ namespace kagome::authority {
      * blocks, after next one would be finalized by the finality consensus
      * engine
      * @param block is info of block which representing this change
-     * @param authorities is authotity set for renewal
+     * @param authorities is authority set for renewal
      * @param activateAt is number of block when changes will applied
      */
     virtual outcome::result<void> applyScheduledChange(

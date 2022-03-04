@@ -29,7 +29,7 @@ namespace kagome::common {
     }
 
     template <size_t size, typename uint>
-    inline uint le_bytes_to_uint(gsl::span<uint8_t, size> bytes) {
+    inline uint le_bytes_to_uint(gsl::span<const uint8_t, size> bytes) {
       if (bytes.empty()) {
         return uint(0);
       }
@@ -39,7 +39,7 @@ namespace kagome::common {
     }
 
     template <size_t size, typename uint>
-    inline uint be_bytes_to_uint(gsl::span<uint8_t, size> bytes) {
+    inline uint be_bytes_to_uint(gsl::span<const uint8_t, size> bytes) {
       if (bytes.empty()) {
         return uint(0);
       }
@@ -55,7 +55,7 @@ namespace kagome::common {
     return result;
   }
 
-  uint64_t le_bytes_to_uint64(gsl::span<uint8_t, 8> bytes) {
+  uint64_t le_bytes_to_uint64(gsl::span<const uint8_t, 8> bytes) {
     uint64_t number;
     memcpy(&number, bytes.data(), 8);
     return le64toh(number);
@@ -67,7 +67,7 @@ namespace kagome::common {
     return result;
   }
 
-  uint64_t be_bytes_to_uint64(gsl::span<uint8_t, 8> bytes) {
+  uint64_t be_bytes_to_uint64(gsl::span<const uint8_t, 8> bytes) {
     uint64_t number;
     memcpy(&number, bytes.data(), 8);
     return be64toh(number);
@@ -79,7 +79,7 @@ namespace kagome::common {
   }
 
   boost::multiprecision::uint128_t le_bytes_to_uint128(
-      gsl::span<uint8_t, 16> bytes) {
+      gsl::span<const uint8_t, 16> bytes) {
     return le_bytes_to_uint<16, boost::multiprecision::uint128_t>(bytes);
   }
 
@@ -89,7 +89,7 @@ namespace kagome::common {
   }
 
   boost::multiprecision::uint128_t be_bytes_to_uint128(
-      gsl::span<uint8_t, 16> bytes) {
+      gsl::span<const uint8_t, 16> bytes) {
     return be_bytes_to_uint<16, boost::multiprecision::uint128_t>(bytes);
   }
 
@@ -99,7 +99,7 @@ namespace kagome::common {
   }
 
   boost::multiprecision::uint256_t le_bytes_to_uint256(
-      gsl::span<uint8_t, 32> bytes) {
+      gsl::span<const uint8_t, 32> bytes) {
     return le_bytes_to_uint<32, boost::multiprecision::uint256_t>(bytes);
   }
 
@@ -109,7 +109,7 @@ namespace kagome::common {
   }
 
   boost::multiprecision::uint256_t be_bytes_to_uint256(
-      gsl::span<uint8_t, 32> bytes) {
+      gsl::span<const uint8_t, 32> bytes) {
     return be_bytes_to_uint<32, boost::multiprecision::uint256_t>(bytes);
   }
 

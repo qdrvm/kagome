@@ -11,18 +11,18 @@ namespace kagome::storage {
 
   LevelDB::Batch::Batch(LevelDB &db) : db_(db) {}
 
-  outcome::result<void> LevelDB::Batch::put(const Buffer &key,
+  outcome::result<void> LevelDB::Batch::put(const BufferView &key,
                                             const Buffer &value) {
     batch_.Put(make_slice(key), make_slice(value));
     return outcome::success();
   }
 
-  outcome::result<void> LevelDB::Batch::put(const Buffer &key,
+  outcome::result<void> LevelDB::Batch::put(const BufferView &key,
                                             Buffer &&value) {
-    return put(key, static_cast<const Buffer&>(value));
+    return put(key, static_cast<const Buffer &>(value));
   }
 
-  outcome::result<void> LevelDB::Batch::remove(const Buffer &key) {
+  outcome::result<void> LevelDB::Batch::remove(const BufferView &key) {
     batch_.Delete(make_slice(key));
     return outcome::success();
   }

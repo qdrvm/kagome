@@ -14,34 +14,38 @@
 
 namespace kagome::storage::trie {
 
+  using NibblesView = common::BufferView;
+
   struct KeyNibbles : public common::Buffer {
     KeyNibbles() = default;
 
     explicit KeyNibbles(common::Buffer b) : Buffer{std::move(b)} {}
     KeyNibbles(std::initializer_list<uint8_t> b) : Buffer{b} {}
+    KeyNibbles(NibblesView b) : Buffer{b} {}
 
     KeyNibbles &operator=(common::Buffer b) {
       Buffer::operator=(std::move(b));
       return *this;
     }
 
-    KeyNibbles subspan(size_t offset = 0, size_t length = -1) const {
-      return KeyNibbles{Buffer::subbuffer(offset, length)};
+    NibblesView subspan(size_t offset = 0, size_t length = -1) const {
+      return NibblesView{*this}.subspan(offset, length);
     }
   };
 
   /**
    * For specification see
-   * https://github.com/w3f/polkadot-re-spec/blob/master/polkadot_re_spec.pdf
-   * 5.3 The Trie structure
+   * 5.3 The Trie structure in the Polkadot Host specification
    */
 
-  struct PolkadotNode : public Node {
-    PolkadotNode() = default;
-    PolkadotNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
+  struct OpaqueTrieNode : public Node {};
+
+  struct TrieNode : public OpaqueTrieNode {
+    TrieNode() = default;
+    TrieNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
         : key_nibbles{std::move(key_nibbles)}, value{std::move(value)} {}
 
-    ~PolkadotNode() override = default;
+    ~TrieNode() override = default;
 
     enum class Type {
       Special = 0b00,
@@ -49,9 +53,6 @@ namespace kagome::storage::trie {
       BranchEmptyValue = 0b10,
       BranchWithValue = 0b11
     };
-
-    // dummy nodes are used to avoid unnecessary reads from the storage
-    virtual bool isDummy() const = 0;
 
     // just to avoid static_casts every time you need a switch on a node type
     Type getTrieType() const noexcept {
@@ -67,19 +68,16 @@ namespace kagome::storage::trie {
     std::optional<common::Buffer> value;
   };
 
-  struct BranchNode : public PolkadotNode {
-    static constexpr int kMaxChildren = 16;
+  struct BranchNode : public TrieNode {
+    static constexpr uint8_t kMaxChildren = 16;
 
     BranchNode() = default;
     explicit BranchNode(KeyNibbles key_nibbles,
                         std::optional<common::Buffer> value = std::nullopt)
-        : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
+        : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
     ~BranchNode() override = default;
 
-    bool isDummy() const override {
-      return false;
-    }
     int getType() const override;
 
     uint16_t childrenBitmap() const;
@@ -88,19 +86,16 @@ namespace kagome::storage::trie {
     // Has 1..16 children.
     // Stores their hashes to search for them in a storage and encode them more
     // easily. @see DummyNode
-    std::array<std::shared_ptr<PolkadotNode>, kMaxChildren> children;
+    std::array<std::shared_ptr<OpaqueTrieNode>, kMaxChildren> children;
   };
 
-  struct LeafNode : public PolkadotNode {
+  struct LeafNode : public TrieNode {
     LeafNode() = default;
     LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
-        : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
+        : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
     ~LeafNode() override = default;
 
-    bool isDummy() const override {
-      return false;
-    }
     int getType() const override;
   };
 
@@ -108,7 +103,7 @@ namespace kagome::storage::trie {
    * Used in branch nodes to indicate that there is a node, but this node is not
    * interesting at the moment and need not be retrieved from the storage.
    */
-  struct DummyNode : public PolkadotNode {
+  struct DummyNode : public OpaqueTrieNode {
     /**
      * Constructs a dummy node
      * @param key a storage key, which is a hash of an encoded node according to
@@ -116,15 +111,11 @@ namespace kagome::storage::trie {
      */
     explicit DummyNode(common::Buffer key) : db_key{std::move(key)} {}
 
-    bool isDummy() const override {
-      return true;
-    }
-
     int getType() const override {
       // Special only because a node has to have a type. Actually this is not
       // the real node and the type of the underlying node is inaccessible
       // before reading from the storage
-      return static_cast<int>(Type::Special);
+      return static_cast<int>(TrieNode::Type::Special);
     }
 
     common::Buffer db_key;

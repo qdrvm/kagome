@@ -65,7 +65,7 @@ namespace kagome::api {
      * @param block_hash_opt (OPTIONAL) The block hash indicating the state. NULL implies the current state.
      * @return (OPTIONAL) Storage data, if found.
      */
-    virtual outcome::result<std::optional<common::Buffer>> getStorage(
+    virtual outcome::result<std::optional<common::BufferConstRef>> getStorage(
         const common::Buffer &child_storage_key,
         const common::Buffer &key,
         const std::optional<primitives::BlockHash> &block_hash_opt) const = 0;

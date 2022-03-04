@@ -58,6 +58,7 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const common::Blob<N> &);
 
   inline jsonrpc::Value makeValue(const common::Buffer &);
+  inline jsonrpc::Value makeValue(common::BufferView);
   inline jsonrpc::Value makeValue(const primitives::Extrinsic &);
   inline jsonrpc::Value makeValue(const primitives::RuntimeDispatchInfo &v);
   inline jsonrpc::Value makeValue(const primitives::DigestItem &);
@@ -141,6 +142,10 @@ namespace kagome::api {
 
   inline jsonrpc::Value makeValue(const common::Buffer &val) {
     return common::hex_lower_0x(val.asVector().data(), val.asVector().size());
+  }
+
+  inline jsonrpc::Value makeValue(common::BufferView val) {
+    return common::hex_lower_0x(val.data(), val.size());
   }
 
   inline jsonrpc::Value makeValue(const primitives::DigestItem &val) {

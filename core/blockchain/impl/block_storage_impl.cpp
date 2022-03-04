@@ -59,7 +59,7 @@ namespace kagome::blockchain {
         == outcome::failure(BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND)) {
       using namespace common::literals;
       OUTCOME_TRY(last_finalized_block_hash_opt,
-                  storage->tryGet(":kagome:last_finalized_block_hash"_buf));
+                  storage->tryLoad(":kagome:last_finalized_block_hash"_buf));
       if (not last_finalized_block_hash_opt.has_value()) {
         return BlockStorageError::FINALIZED_BLOCK_NOT_FOUND;
       }
@@ -224,7 +224,7 @@ namespace kagome::blockchain {
 
     auto num_to_idx_key =
         prependPrefix(numberToIndexKey(block.number), Prefix::ID_TO_LOOKUP_KEY);
-    OUTCOME_TRY(num_to_idx_val_opt, storage_->tryGet(num_to_idx_key));
+    OUTCOME_TRY(num_to_idx_val_opt, storage_->tryLoad(num_to_idx_key.view()));
     if (num_to_idx_val_opt == block_lookup_key) {
       if (auto res = storage_->remove(num_to_idx_key); res.has_error()) {
         SL_ERROR(logger_,
@@ -280,7 +280,7 @@ namespace kagome::blockchain {
     }
 
     OUTCOME_TRY(leaves_opt,
-                storage_->tryGet(storage::kBlockTreeLeavesLookupKey));
+                storage_->tryLoad(storage::kBlockTreeLeavesLookupKey));
     if (not leaves_opt.has_value()) {
       return BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND;
     }

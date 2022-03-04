@@ -64,19 +64,21 @@ namespace kagome::storage::changes_trie {
     }
   }
 
-  void StorageChangesTrackerImpl::onClearPrefix(const common::Buffer &prefix) {
+  void StorageChangesTrackerImpl::onClearPrefix(
+      const common::BufferView &prefix) {
     for (auto it = actual_val_.lower_bound(prefix);
-         it != actual_val_.end() && prefix.size() <= it->first.size()
-         && it->first.subbuffer(0, prefix.size()) == prefix;
+         it != actual_val_.end()
+         && prefix.size() <= static_cast<ssize_t>(it->first.size())
+         && it->first.view(0, prefix.size()) == prefix;
          ++it) {
       it->second.clear();
     }
   }
 
   outcome::result<void> StorageChangesTrackerImpl::onPut(
-      const common::Buffer &extrinsic_index,
-      const common::Buffer &key,
-      const common::Buffer &value,
+      common::BufferView extrinsic_index,
+      const common::BufferView &key,
+      const common::BufferView &value,
       bool is_new_entry) {
     auto change_it = extrinsics_changes_.find(key);
     OUTCOME_TRY(idx,
@@ -89,16 +91,18 @@ namespace kagome::storage::changes_trie {
     } else {
       extrinsics_changes_.insert(std::make_pair(key, std::vector{idx}));
       if (is_new_entry) {
-        new_entries_.insert(key);
+        new_entries_.insert(common::Buffer{key});
       }
     }
-    actual_val_[key] = value;
+    actual_val_.insert_or_assign(common::Buffer{key}, common::Buffer{value});
     return outcome::success();
   }
 
   outcome::result<void> StorageChangesTrackerImpl::onRemove(
-      const common::Buffer &extrinsic_index, const common::Buffer &key) {
-    actual_val_[key].clear();
+      common::BufferView extrinsic_index, const common::BufferView &key) {
+    if (auto it = actual_val_.find(key); it != actual_val_.end()) {
+      it->second.clear();
+    }
 
     auto change_it = extrinsics_changes_.find(key);
     OUTCOME_TRY(idx,
@@ -107,7 +111,7 @@ namespace kagome::storage::changes_trie {
     // if key was already changed in the same block, just add extrinsic to
     // the changers list
     if (change_it != extrinsics_changes_.end()) {
-      // if new entry, i. e. it doesn't exist in the persistent storage, then
+      // if new entry, i.e. it doesn't exist in the persistent storage, then
       // don't track it, because it's just temporary
       if (auto i = new_entries_.find(key); i != new_entries_.end()) {
         extrinsics_changes_.erase(change_it);

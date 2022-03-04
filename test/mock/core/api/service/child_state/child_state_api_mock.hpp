@@ -39,7 +39,7 @@ namespace kagome::api {
                  const std::optional<primitives::BlockHash> &block_hash_opt),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
+    MOCK_METHOD(outcome::result<std::optional<common::BufferConstRef>>,
                 getStorage,
                 (const common::Buffer &child_storage_key,
                  const common::Buffer &key,
