@@ -12,9 +12,9 @@ Kagome is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
 
 ## Status
 
-Kagome is getting closer to the first official release. You may
+Kagome is getting closer to the first official release. Team is currently focused on stabilizing faetures required to run syncing and validating full nodes.
 
-A simple status-report can be found within section [supported features](./README.md/#supported-features).
+A simple status of Kagome development can be found within section [supported features](./README.md/#supported-features).
 
 
 
