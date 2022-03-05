@@ -28,6 +28,86 @@ namespace kagome::blockchain {
   using Prefix = prefix::Prefix;
   using DatabaseError = kagome::storage::DatabaseError;
 
+  namespace {
+    outcome::result<std::set<primitives::BlockInfo>> loadLeaves(
+        const std::shared_ptr<BlockStorage> &storage,
+        const std::shared_ptr<BlockHeaderRepository> &header_repo,
+        const log::Logger &log) {
+      BOOST_ASSERT(storage != nullptr);
+      BOOST_ASSERT(header_repo != nullptr);
+
+      std::set<primitives::BlockInfo> block_tree_leaves;
+      {
+        OUTCOME_TRY(block_tree_unordered_leaves, storage->getBlockTreeLeaves());
+        SL_TRACE(log,
+                 "List of leaves has loaded: {} leaves",
+                 block_tree_unordered_leaves.size());
+
+        BOOST_ASSERT_MSG(not block_tree_unordered_leaves.empty(),
+                         "Must be known or calculated at least one leaf");
+
+        for (auto &hash : block_tree_unordered_leaves) {
+          auto res = header_repo->getNumberById(hash);
+          if (res.has_error()) {
+            if (res
+                == outcome::failure(
+                    blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
+              SL_TRACE(log, "Leaf {} not found", hash);
+              continue;
+            }
+            return res.as_failure();
+          }
+          auto number = res.value();
+          SL_TRACE(log, "Leaf {} found", primitives::BlockInfo(number, hash));
+          block_tree_leaves.emplace(number, hash);
+        }
+      }
+
+      if (block_tree_leaves.empty()) {
+        SL_WARN(log, "No one leaf was found. Trying to repair");
+
+        primitives::BlockNumber number = 0;
+        auto lower = std::numeric_limits<primitives::BlockNumber>::min();
+        auto upper = std::numeric_limits<primitives::BlockNumber>::max();
+
+        for (;;) {
+          number = lower + (upper - lower) / 2;
+
+          auto res = storage->hasBlockHeader(number);
+          if (res.has_failure()) {
+            SL_CRITICAL(
+                log, "Search best block has failed: {}", res.error().message());
+            return BlockTreeError::HEADER_NOT_FOUND;
+          }
+
+          if (res.value()) {
+            SL_TRACE(log, "bisect {} -> found", number);
+            lower = number;
+          } else {
+            SL_TRACE(log, "bisect {} -> not found", number);
+            upper = number - 1;
+          }
+          if (lower + 1 == upper) {
+            number = lower;
+            break;
+          }
+        }
+
+        OUTCOME_TRY(hash, header_repo->getHashById(number));
+        block_tree_leaves.emplace(number, hash);
+
+        if (auto res = storage->setBlockTreeLeaves({hash}); res.has_error()) {
+          SL_CRITICAL(log,
+                      "Can't save recovered block tree leaves: {}",
+                      res.error().message());
+          return res.as_failure();
+        }
+      }
+
+      return block_tree_leaves;
+    }
+  }  // namespace
+
   outcome::result<std::shared_ptr<BlockTreeImpl>> BlockTreeImpl::create(
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
@@ -43,39 +123,18 @@ namespace kagome::blockchain {
       std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
       std::shared_ptr<consensus::BabeUtil> babe_util) {
     BOOST_ASSERT(storage != nullptr);
+    BOOST_ASSERT(header_repo != nullptr);
 
     log::Logger log = log::createLogger("BlockTree", "blockchain");
 
-    OUTCOME_TRY(block_tree_leaves, storage->getBlockTreeLeaves());
+    OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
 
     BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
                      "Must be known or calculated at least one leaf");
 
     // Find the least and best leaf
-    primitives::BlockInfo least_leaf(
-        std::numeric_limits<primitives::BlockNumber>::max(), {});
-    primitives::BlockInfo best_leaf(
-        std::numeric_limits<primitives::BlockNumber>::min(), {});
-    for (auto hash : block_tree_leaves) {
-      auto res = header_repo->getNumberById(hash);
-      if (res.has_error()) {
-        if (res
-            == outcome::failure(
-                blockchain::BlockTreeError::EXISTING_BLOCK_NOT_FOUND)) {
-          SL_TRACE(log, "Leaf {} not found", hash);
-          continue;
-        }
-        return res.as_failure();
-      }
-      auto number = res.value();
-      SL_TRACE(log, "Leaf {} found", primitives::BlockInfo(number, hash));
-      if (number <= least_leaf.number) {
-        least_leaf = {number, hash};
-      }
-      if (number >= best_leaf.number) {
-        best_leaf = {number, hash};
-      }
-    }
+    auto least_leaf = *block_tree_leaves.begin();
+    auto best_leaf = *block_tree_leaves.rbegin();
 
     std::optional<consensus::EpochNumber> curr_epoch_number;
 
@@ -246,7 +305,7 @@ namespace kagome::blockchain {
     {
       std::unordered_set<primitives::BlockHash> observed;
       for (auto &leaf : block_tree_leaves) {
-        for (auto hash = leaf;;) {
+        for (auto hash = leaf.hash;;) {
           if (hash == last_finalized_block_info.hash) {
             break;
           }
@@ -335,74 +394,14 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(app_config.recoverState().has_value(),
                      "This method must be used only with --recovery CLI arg");
 
-    const auto recovery_state = app_config.recoverState().value();
-
     log::Logger log = log::createLogger("BlockTree", "blockchain");
 
-    std::set<primitives::BlockInfo> block_tree_leaves;
-    {
-      OUTCOME_TRY(block_tree_unordered_leaves, storage->getBlockTreeLeaves());
-      SL_TRACE(log,
-               "List of leaves has loaded: {} pcs.",
-               block_tree_unordered_leaves.size());
+    const auto &recovery_state = app_config.recoverState().value();
 
-      BOOST_ASSERT_MSG(not block_tree_unordered_leaves.empty(),
-                       "Must be known or calculated at least one leaf");
+    OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
 
-      for (auto &hash : block_tree_unordered_leaves) {
-        auto number_res = header_repo->getNumberById(hash);
-        if (number_res.has_error()) {
-          if (number_res
-              == outcome::failure(BlockTreeError::HEADER_NOT_FOUND)) {
-            SL_WARN(log, "One of leaves not found in block storage: {}", hash);
-            continue;
-          }
-          return number_res.as_failure();
-        }
-        block_tree_leaves.emplace(number_res.value(), hash);
-      }
-    }
-
-    if (block_tree_leaves.empty()) {
-      SL_CRITICAL(log, "No one leaf was found");
-
-      primitives::BlockNumber number = 0;
-      auto lower = std::numeric_limits<primitives::BlockNumber>::min();
-      auto upper = std::numeric_limits<primitives::BlockNumber>::max();
-
-      for (;;) {
-        number = lower + (upper - lower) / 2;
-
-        auto res = storage->hasBlockHeader(number);
-        if (res.has_failure()) {
-          SL_CRITICAL(
-              log, "Search best block has failed: {}", res.error().message());
-          return BlockTreeError::HEADER_NOT_FOUND;
-        }
-
-        if (res.value()) {
-          SL_TRACE(log, "bisect {} -> found", number);
-          lower = number;
-        } else {
-          SL_TRACE(log, "bisect {} -> not found", number);
-          upper = number - 1;
-        }
-        if (lower + 1 == upper) {
-          number = lower;
-          break;
-        }
-      }
-
-      OUTCOME_TRY(hash, header_repo->getHashById(number));
-      block_tree_leaves.emplace(number, hash);
-
-      if (auto res = storage->setBlockTreeLeaves({hash}); res.has_error()) {
-        SL_CRITICAL(log,
-                    "Can't save recovered block tree leaves: {}",
-                    res.error().message());
-        return res.as_failure();
-      }
-    }
+    BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
+                     "Must be known or calculated at least one leaf");
 
     // Check if target block exists
     auto target_block_header_opt_res = storage->getBlockHeader(recovery_state);
