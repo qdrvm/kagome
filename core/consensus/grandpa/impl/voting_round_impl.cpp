@@ -180,6 +180,24 @@ namespace kagome::consensus::grandpa {
                                 IsPrevotesChanged{is_prevotes_changed},
                                 IsPrecommitsChanged{is_precommits_changed});
       }
+
+      if (not finalized_.has_value()) {
+        if (precommits_->getTotalWeight() >= threshold_) {
+          auto possible_to_finalize = [&](const VoteWeight &weight) {
+            return weight.total(VoteType::Precommit,
+                                precommit_equivocators_,
+                                *voter_set_)
+                   >= threshold_;
+          };
+
+          finalized_ = graph_->findAncestor(VoteType::Precommit,
+                                            last_finalized_block_,
+                                            std::move(possible_to_finalize));
+
+          BOOST_ASSERT(finalized_.has_value());
+        }
+      }
+
     } else {
       // Zero-round is always self-finalized
       finalized_ = last_finalized_block_;
@@ -395,11 +413,10 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    on_complete_handler_ = [this] {
+    on_complete_handler_ = [this, previous_round = previous_round_] {
       const bool is_ready_to_end =
           finalized_.has_value()
-          and finalized_->number
-                  >= previous_round_->bestFinalCandidate().number;
+          and finalized_->number >= previous_round->bestFinalCandidate().number;
 
       if (is_ready_to_end) {
         SL_DEBUG(logger_,
@@ -493,9 +510,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(previous_round_ != nullptr);
 
     // spec: L <- Best-Final-Candidate(r-1)
-    const auto best_final_candicate =
-        previous_round_ ? previous_round_->bestFinalCandidate()
-                        : last_finalized_block_;
+    const auto best_final_candicate = previous_round_->bestFinalCandidate();
 
     // spec: Bpv <- GRANDPA-GHOST(r)
     const auto best_chain =
@@ -557,9 +572,8 @@ namespace kagome::consensus::grandpa {
 
     BOOST_ASSERT(previous_round_ != nullptr);
 
-    const auto &prevote_ghost = prevote_ghost_.value_or(
-        previous_round_ ? previous_round_->bestFinalCandidate()
-                        : last_finalized_block_);
+    const auto &prevote_ghost =
+        prevote_ghost_.value_or(previous_round_->bestFinalCandidate());
 
     auto last_round_estimate = previous_round_->bestFinalCandidate();
 
@@ -603,7 +617,7 @@ namespace kagome::consensus::grandpa {
   void VotingRoundImpl::doFinalize() {
     BOOST_ASSERT(finalized_.has_value());
 
-    const auto& block = finalized_.value();
+    const auto &block = finalized_.value();
 
     SL_DEBUG(
         logger_, "Round #{}: Finalizing on block {}", round_number_, block);
