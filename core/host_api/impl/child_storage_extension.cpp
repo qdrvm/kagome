@@ -5,6 +5,7 @@
 
 #include "host_api/impl/child_storage_extension.hpp"
 
+#include "common/monadic_utils.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
@@ -111,9 +112,11 @@ namespace kagome::host_api {
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    auto result = executeOnChildStorage<std::optional<BufferConstRef>>(
+    auto result = executeOnChildStorage<std::optional<Buffer>>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) { return child_batch->tryGet(key); },
+        [](auto &child_batch, auto &key) { return common::map_optional(child_batch->tryGet(key).value(), [](auto& v) {
+          return common::Buffer(v.get());
+        }); },
         key_buffer);
 
     if (result) {
