@@ -513,3 +513,31 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
                          author_api->submitAndWatchExtrinsic(*extrinsic));
   ASSERT_EQ(sub_id, ret_sub_id);
 }
+
+/**
+ * @when requesting list of extrinsics
+ * @then extrinsics are fetched from transaction pool and returned as a vector
+ */
+TEST_F(AuthorApiTest, PendingExtrinsics) {
+  std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>> trxs;
+  std::vector<Extrinsic> expected_result;
+
+  EXPECT_CALL(*transaction_pool, getPendingTransactions())
+      .WillOnce(ReturnRef(trxs));
+
+  ASSERT_EQ(expected_result, author_api->pendingExtrinsics().value());
+}
+
+/**
+ * @given subscription id
+ * @when requesting to unwatch extrinsic
+ * @then request is forwarded to api service, result returned
+ */
+TEST_F(AuthorApiTest, UnwatchExtrinsic) {
+  kagome::primitives::SubscriptionId sub_id;
+
+  EXPECT_CALL(*api_service_mock, unsubscribeFromExtrinsicLifecycle(sub_id))
+      .WillOnce(Return(true));
+
+  ASSERT_TRUE(author_api->unwatchExtrinsic(sub_id));
+}

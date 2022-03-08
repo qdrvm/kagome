@@ -8,6 +8,7 @@
 
 #include "api/service/chain/impl/chain_api_impl.hpp"
 #include "api/service/chain/requests/subscribe_finalized_heads.hpp"
+#include "mock/core/api/service/api_service_mock.hpp"
 #include "mock/core/api/service/chain/chain_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
@@ -19,6 +20,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using kagome::api::ApiServiceMock;
 using kagome::api::ChainApi;
 using kagome::api::ChainApiImpl;
 using kagome::api::ChainApiMock;
@@ -205,4 +207,70 @@ TEST(StateApiTest, SubscribeStorage) {
   EXPECT_OUTCOME_SUCCESS(r, sub->init(params));
   EXPECT_OUTCOME_TRUE(result, sub->execute());
   ASSERT_EQ(result, 55);
+}
+
+/**
+ * @when requesting to get finalized head
+ * @then request is forwarded to BlockTree, head hash returned (on success)
+ */
+TEST_F(ChainApiTest, GetFinalizedHead) {
+  auto expected_result = "1234"_hash256;
+
+  EXPECT_CALL(*block_tree, getLastFinalized())
+      .WillOnce(Return(BlockInfo{10, expected_result}));
+
+  EXPECT_OUTCOME_SUCCESS(result, api->getFinalizedHead());
+  ASSERT_TRUE(std::equal(
+      expected_result.begin(), expected_result.end(), result.value().begin()));
+}
+
+/**
+ * @given subscription id
+ * @when requesting to unsubscribe head finalization by id
+ * @then unsubscribtion is performed through ApiService, success reported as
+ * bool
+ */
+TEST_F(ChainApiTest, UnsubscribeFinalizedHeads) {
+  auto subscription_id = 32u;
+  auto api_service = std::make_shared<ApiServiceMock>();
+
+  EXPECT_CALL(*api_service, unsubscribeFinalizedHeads(subscription_id))
+      .WillOnce(Return(true));
+
+  api->setApiService(api_service);
+  ASSERT_TRUE(api->unsubscribeFinalizedHeads(subscription_id).has_value());
+}
+
+/**
+ * @when request subscription on new heads event
+ * @then subscribe on event through ApiService, return subscription id on
+ * success
+ */
+TEST_F(ChainApiTest, SubscribeNewHeads) {
+  auto api_service = std::make_shared<ApiServiceMock>();
+  auto expected_result = 42u;
+
+  EXPECT_CALL(*api_service, subscribeNewHeads())
+      .WillOnce(Return(expected_result));
+
+  api->setApiService(api_service);
+  ASSERT_EQ(expected_result, api->subscribeNewHeads().value());
+}
+
+/**
+ * @given subscription id
+ * @when request unsubscription from new heads event
+ * @then froward request to ApiService
+ */
+TEST_F(ChainApiTest, UnsubscribeNewHeads) {
+  auto api_service = std::make_shared<ApiServiceMock>();
+  auto subscription_id = 42u;
+  auto expected_return = ChainApiImpl::Error::BLOCK_NOT_FOUND;
+
+  EXPECT_CALL(*api_service, unsubscribeNewHeads(subscription_id))
+      .WillOnce(Return(expected_return));
+
+  api->setApiService(api_service);
+  EXPECT_OUTCOME_ERROR(
+      result, api->unsubscribeNewHeads(subscription_id), expected_return);
 }
