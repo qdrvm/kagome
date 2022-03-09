@@ -22,7 +22,6 @@ namespace kagome::storage {
   class LevelDB : public BufferStorage {
    public:
     class Batch;
-    class Cursor;
 
     ~LevelDB() override = default;
 
@@ -48,25 +47,26 @@ namespace kagome::storage {
      */
     void setWriteOptions(leveldb::WriteOptions wo);
 
-    std::unique_ptr<BufferMapCursor> cursor() override;
+    std::unique_ptr<Cursor> cursor() override;
 
     std::unique_ptr<BufferBatch> batch() override;
 
-    outcome::result<Buffer> get(const Buffer &key) const override;
+    outcome::result<Buffer> load(const BufferView &key) const override;
 
-    outcome::result<std::optional<Buffer>> tryGet(
-        const Buffer &key) const override;
+    outcome::result<std::optional<Buffer>> tryLoad(
+        const BufferView &key) const override;
 
-    outcome::result<bool> contains(const Buffer &key) const override;
+    outcome::result<bool> contains(const BufferView &key) const override;
 
     bool empty() const override;
 
-    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
+    outcome::result<void> put(const BufferView &key,
+                              const Buffer &value) override;
 
     // value will be copied, not moved, due to internal structure of LevelDB
-    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
+    outcome::result<void> put(const BufferView &key, Buffer &&value) override;
 
-    outcome::result<void> remove(const Buffer &key) override;
+    outcome::result<void> remove(const BufferView &key) override;
 
     void compact(const Buffer &first, const Buffer &last);
 

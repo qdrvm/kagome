@@ -6,7 +6,7 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-#include "storage/trie/polkadot_trie/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/buffer_stream.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "testutil/literals.hpp"
@@ -19,7 +19,7 @@ using namespace trie;
 using namespace testing;
 
 struct NodeDecodingTest
-    : public ::testing::TestWithParam<std::shared_ptr<PolkadotNode>> {
+    : public ::testing::TestWithParam<std::shared_ptr<TrieNode>> {
   std::unique_ptr<PolkadotCodec> codec = std::make_unique<PolkadotCodec>();
 };
 
@@ -28,13 +28,13 @@ TEST_P(NodeDecodingTest, GetHeader) {
 
   EXPECT_OUTCOME_TRUE(encoded, codec->encodeNode(*node));
   EXPECT_OUTCOME_TRUE(decoded, codec->decodeNode(encoded));
-  auto decoded_node = std::dynamic_pointer_cast<PolkadotNode>(decoded);
+  auto decoded_node = std::dynamic_pointer_cast<TrieNode>(decoded);
   EXPECT_EQ(decoded_node->key_nibbles, node->key_nibbles);
   EXPECT_EQ(decoded_node->value, node->value);
 }
 
 template <typename T>
-std::shared_ptr<PolkadotNode> make(const common::Buffer &key_nibbles,
+std::shared_ptr<TrieNode> make(const common::Buffer &key_nibbles,
                                    const common::Buffer &value) {
   auto node = std::make_shared<T>();
   node->key_nibbles = key_nibbles;
@@ -42,7 +42,7 @@ std::shared_ptr<PolkadotNode> make(const common::Buffer &key_nibbles,
   return node;
 }
 
-std::shared_ptr<PolkadotNode> branch_with_2_children = []() {
+std::shared_ptr<TrieNode> branch_with_2_children = []() {
   auto node =
       std::make_shared<BranchNode>(KeyNibbles{"010203"_hex2buf}, "0a"_hex2buf);
   auto child1 =
@@ -54,9 +54,9 @@ std::shared_ptr<PolkadotNode> branch_with_2_children = []() {
   return node;
 }();
 
-using T = PolkadotNode::Type;
+using T = TrieNode::Type;
 
-static const std::vector<std::shared_ptr<PolkadotNode>> CASES = {
+static const std::vector<std::shared_ptr<TrieNode>> CASES = {
     make<LeafNode>("010203"_hex2buf, "abcdef"_hex2buf),
     make<LeafNode>("0a0b0c"_hex2buf, "abcdef"_hex2buf),
     make<BranchNode>("010203"_hex2buf, "abcdef"_hex2buf),

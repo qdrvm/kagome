@@ -16,29 +16,29 @@ namespace kagome::storage::trie {
    * @see TrieStorageBackend
    */
   class TrieStorageBackendBatch
-      : public face::WriteBatch<common::Buffer, common::Buffer> {
+      : public face::WriteBatch<common::BufferView, common::Buffer> {
    public:
     TrieStorageBackendBatch(
-        std::unique_ptr<face::WriteBatch<common::Buffer, common::Buffer>>
+        std::unique_ptr<face::WriteBatch<common::BufferView, common::Buffer>>
             storage_batch,
         common::Buffer node_prefix);
     ~TrieStorageBackendBatch() override = default;
 
     outcome::result<void> commit() override;
 
-    outcome::result<void> put(const common::Buffer &key,
+    outcome::result<void> put(const common::BufferView &key,
                               const common::Buffer &value) override;
 
-    outcome::result<void> put(const common::Buffer &key,
+    outcome::result<void> put(const common::BufferView &key,
                               common::Buffer &&value) override;
 
-    outcome::result<void> remove(const common::Buffer &key) override;
+    outcome::result<void> remove(const common::BufferView &key) override;
     void clear() override;
 
    private:
-    common::Buffer prefixKey(const common::Buffer &key) const;
+    common::Buffer prefixKey(const common::BufferView &key) const;
 
-    std::unique_ptr<face::WriteBatch<common::Buffer, common::Buffer>>
+    std::unique_ptr<face::WriteBatch<common::BufferView, common::Buffer>>
         storage_batch_;
     common::Buffer node_prefix_;
   };

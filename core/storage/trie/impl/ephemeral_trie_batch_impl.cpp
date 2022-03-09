@@ -16,21 +16,22 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(trie_ != nullptr);
   }
 
-  outcome::result<Buffer> EphemeralTrieBatchImpl::get(const Buffer &key) const {
+  outcome::result<BufferConstRef> EphemeralTrieBatchImpl::get(
+      const BufferView &key) const {
     return trie_->get(key);
   }
 
-  outcome::result<std::optional<Buffer>> EphemeralTrieBatchImpl::tryGet(
-      const Buffer &key) const {
+  outcome::result<std::optional<BufferConstRef>> EphemeralTrieBatchImpl::tryGet(
+      const BufferView &key) const {
     return trie_->tryGet(key);
   }
 
   std::unique_ptr<PolkadotTrieCursor> EphemeralTrieBatchImpl::trieCursor() {
-    return std::make_unique<PolkadotTrieCursorImpl>(*trie_);
+    return std::make_unique<PolkadotTrieCursorImpl>(trie_);
   }
 
   outcome::result<bool> EphemeralTrieBatchImpl::contains(
-      const Buffer &key) const {
+      const BufferView &key) const {
     return trie_->contains(key);
   }
 
@@ -39,29 +40,29 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::tuple<bool, uint32_t>>
-  EphemeralTrieBatchImpl::clearPrefix(const Buffer &prefix,
+  EphemeralTrieBatchImpl::clearPrefix(const BufferView &prefix,
                                       std::optional<uint64_t> limit) {
     return trie_->clearPrefix(prefix, limit, [](const auto &, auto &&) {
       return outcome::success();
     });
   }
 
-  outcome::result<void> EphemeralTrieBatchImpl::put(const Buffer &key,
+  outcome::result<void> EphemeralTrieBatchImpl::put(const BufferView &key,
                                                     const Buffer &value) {
     return trie_->put(key, value);
   }
 
-  outcome::result<void> EphemeralTrieBatchImpl::put(const Buffer &key,
+  outcome::result<void> EphemeralTrieBatchImpl::put(const BufferView &key,
                                                     Buffer &&value) {
     return trie_->put(key, std::move(value));
   }
 
-  outcome::result<void> EphemeralTrieBatchImpl::remove(const Buffer &key) {
+  outcome::result<void> EphemeralTrieBatchImpl::remove(const BufferView &key) {
     return trie_->remove(key);
   }
 
   outcome::result<RootHash> EphemeralTrieBatchImpl::hash() {
-    static const auto empty_hash = codec_->hash256({0});
+    static const auto empty_hash = codec_->hash256(common::Buffer{0});
     if (auto root = trie_->getRoot()) {
       OUTCOME_TRY(encoded, codec_->encodeNode(*root));
       auto hash = codec_->hash256(encoded);

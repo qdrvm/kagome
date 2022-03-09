@@ -25,20 +25,26 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<std::vector<common::Buffer>>,
                 getKeysPaged,
-                (const std::optional<common::Buffer> &,
+                (const std::optional<common::BufferView> &,
                  uint32_t,
-                 const std::optional<common::Buffer> &,
+                 const std::optional<common::BufferView> &,
                  const std::optional<primitives::BlockHash> &),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
+    MOCK_METHOD(outcome::result<std::optional<common::BufferConstRef>>,
                 getStorage,
-                (const common::Buffer &key),
+                (const common::BufferView &key),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
+    outcome::result<std::optional<common::BufferConstRef>>
+    getStorage(const common::Buffer &key) const {
+      return getStorage(common::BufferView{key});
+    }
+
+    MOCK_METHOD(outcome::result<std::optional<common::BufferConstRef>>,
                 getStorageAt,
-                (const common::Buffer &key, const primitives::BlockHash &at),
+                (const common::BufferView &key,
+                 const primitives::BlockHash &at),
                 (const, override));
 
     MOCK_METHOD(outcome::result<std::vector<StorageChangeSet>>,
