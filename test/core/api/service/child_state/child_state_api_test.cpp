@@ -130,7 +130,7 @@ namespace kagome::api {
    * @then locate return all keys with prefix in child storage
    */
   TEST_F(ChildStateApiTest, GetKeys) {
-    Buffer child_storage_key = "something"_buf;
+    auto child_storage_key = "something"_buf;
     auto prefix = "ABC"_buf;
     auto prefix_opt = std::make_optional(prefix);
     auto block_hash = "12345"_hash256;
@@ -145,7 +145,7 @@ namespace kagome::api {
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, get(child_storage_key))
+          EXPECT_CALL(*batch, get(child_storage_key.view()))
               .WillOnce(testing::Return(common::Buffer("2020"_hash256)));
           return batch;
         }));
@@ -155,7 +155,7 @@ namespace kagome::api {
           EXPECT_CALL(*batch, trieCursor())
               .WillOnce(testing::Invoke([&prefix]() {
                 auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-                EXPECT_CALL(*cursor, seekLowerBound(prefix))
+                EXPECT_CALL(*cursor, seekLowerBound(prefix.view()))
                     .WillOnce(Return(outcome::success()));
                 EXPECT_CALL(*cursor, isValid())
                     .WillOnce(Return(true))
@@ -201,7 +201,7 @@ namespace kagome::api {
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, get(child_storage_key))
+          EXPECT_CALL(*batch, get(child_storage_key.view()))
               .WillOnce(testing::Return(common::Buffer("2020"_hash256)));
           return batch;
         }));
@@ -211,7 +211,7 @@ namespace kagome::api {
           EXPECT_CALL(*batch, trieCursor())
               .WillOnce(testing::Invoke([&prev_key]() {
                 auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-                EXPECT_CALL(*cursor, seekUpperBound(prev_key))
+                EXPECT_CALL(*cursor, seekUpperBound(prev_key.view()))
                     .WillOnce(Return(outcome::success()));
                 EXPECT_CALL(*cursor, isValid())
                     .WillOnce(Return(true))
@@ -236,9 +236,9 @@ namespace kagome::api {
   }
 
   /**
- * @given child storage key, key, optional block hash
- * @when query value size in child storage
- * @then fetch value from child storage by key and get its size
+   * @given child storage key, key, optional block hash
+   * @when query value size in child storage
+   * @then fetch value from child storage by key and get its size
    */
   TEST_F(ChildStateApiTest, GetStorageSize) {
     auto child_storage_key = "ABC"_buf;
@@ -254,14 +254,14 @@ namespace kagome::api {
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, get(child_storage_key))
+          EXPECT_CALL(*batch, get(child_storage_key.view()))
               .WillOnce(testing::Return(common::Buffer("2020"_hash256)));
           return batch;
         }));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("2020"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, get(key))
+          EXPECT_CALL(*batch, get(key.view()))
               .WillOnce(testing::Return(expected_result));
           return batch;
         }));

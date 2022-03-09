@@ -332,6 +332,11 @@ namespace kagome::api {
     ASSERT_EQ(result, data);
   }
 
+  MATCHER_P(ContainedIn, container, "") {
+    return ::testing::ExplainMatchResult(
+        ::testing::Contains(arg), container, result_listener);
+  }
+
   /**
    * @given that every queried key changed in every queired block
    * @when querying these changes through queryStorage
@@ -456,9 +461,9 @@ namespace kagome::api {
   }
 
   /**
- * @given subscription id
- * @when request to unsubscribe from storage events
- * @then unsubscribe using ApiService and return if operation succeeded
+   * @given subscription id
+   * @when request to unsubscribe from storage events
+   * @then unsubscribe using ApiService and return if operation succeeded
    */
   TEST_F(StateApiTest, UnsubscribeStorage) {
     std::vector<uint32_t> subscription_id;
@@ -473,9 +478,9 @@ namespace kagome::api {
   }
 
   /**
- * @when request subscription on runtime version event
- * @then subscribe on event through ApiService, return subscription id on
- * success
+   * @when request subscription on runtime version event
+   * @then subscribe on event through ApiService, return subscription id on
+   * success
    */
   TEST_F(StateApiTest, SubscribeRuntimeVersion) {
     auto expected_return = 22u;
@@ -489,9 +494,9 @@ namespace kagome::api {
   }
 
   /**
- * @given subscription id
- * @when request unsubscription from runtime version event
- * @then froward request to ApiService
+   * @given subscription id
+   * @when request unsubscription from runtime version event
+   * @then froward request to ApiService
    */
   TEST_F(StateApiTest, UnsubscribeRuntimeVersion) {
     auto subscription_id = 42u;
@@ -501,7 +506,9 @@ namespace kagome::api {
         .WillOnce(Return(expected_return));
 
     api_->setApiService(api_service_);
-    EXPECT_OUTCOME_ERROR(result, api_->unsubscribeRuntimeVersion(subscription_id), expected_return);
+    EXPECT_OUTCOME_ERROR(result,
+                         api_->unsubscribeRuntimeVersion(subscription_id),
+                         expected_return);
   }
 
 }  // namespace kagome::api
