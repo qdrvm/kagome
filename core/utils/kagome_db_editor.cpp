@@ -1,6 +1,7 @@
 #include <boost/throw_exception.hpp>
 #include <chrono>
 #include <fstream>
+#include <string_view>
 #include <thread>
 
 #include <backward.hpp>
@@ -172,10 +173,13 @@ int main(int argc, char *argv[]) {
   backward::SignalHandling sh;
 
   Command cmd;
-  if (argc == 2 or argc == 3
-      or (argc == 4 and not std::strcmp(argv[MODE], "compact"))) {
+  auto is_hash = [](const char* s) {
+    return std::strlen(s) == common::Hash256::size() + 2 && std::equal(s, s + 2, "0x");
+  };
+  if (argc == 2 or (argc == 3 && is_hash(argv[2]))
+      or (argc == 4 and std::strcmp(argv[MODE], "compact") == 0)) {
     cmd = COMPACT;
-  } else if (argc == 4 and not std::strcmp(argv[MODE], "dump")) {
+  } else if (argc == 4 and std::strcmp(argv[MODE], "dump") == 0) {
     cmd = DUMP;
   } else {
     usage();

@@ -131,14 +131,18 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = memory.loadN(key_ptr, key_size);
 
+    constexpr auto error_message =
+        "ext_storage_get_version_1( {} ) => value was not obtained. Reason: {}";
+
     auto result = get(key_buffer);
-    if (!result) {
-      SL_ERROR(logger_,
-               "ext_storage_get_version_1( {} ) => value was not obtained. "
-               "Reason: {}",
-               key_buffer.toHex(),
-               result.error().message());
+
+    if (result) {
+      SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
+    } else {
+      logger_->error(
+          error_message, key_buffer.toHex(), result.error().message());
     }
+
     auto &option = result.value();
 
     return memory.storeBuffer(scale::encode(option).value());
@@ -501,6 +505,8 @@ namespace kagome::host_api {
               "Unable to remove empty child storage under key {}, error is {}",
               current_key,
               remove_res.error().message());
+        } else {
+          SL_TRACE(logger_, "Removed empty child trie under key {}", current_key);
         }
       }
       key_res = getStorageNextKey(current_key);

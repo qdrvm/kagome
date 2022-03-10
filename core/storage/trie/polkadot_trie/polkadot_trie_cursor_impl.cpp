@@ -3,11 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <iostream>
-
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 
-#include <iostream>
 #include <utility>
 
 #include "common/buffer_back_insert_iterator.hpp"
@@ -148,14 +145,17 @@ namespace kagome::storage::trie {
         sought_is_prefix
         or (not current_is_prefix
             and *sought_nibbles_mismatch < *current_mismatch);
+    SL_TRACE(log_, "The sought key is {} than current", sought_less_or_eq ? "less or eq" : "greater");
     if (sought_less_or_eq) {
       switch (current.getTrieType()) {
         case NodeType::BranchEmptyValue:
         case NodeType::BranchWithValue: {
+          SL_TRACE(log_, "We're in a branch and search next node in subtree");
           SAFE_VOID_CALL(nextNodeWithValueInSubTree(current))
           return outcome::success();
         }
         case NodeType::Leaf:
+          SL_TRACE(log_, "We're in a leaf {} and done", key().value());
           return outcome::success();
         default:
           return Error::INVALID_NODE_TYPE;
@@ -176,6 +176,7 @@ namespace kagome::storage::trie {
           SAFE_CALL(child,
                     visitChildWithMinIdx(branch, sought_nibbles[mismatch_pos]))
           if (child) {
+            SL_TRACE(log_, "We're in a branch and proceed to child {}", (int)std::get<SearchState>(state_).getPath().back().child_idx);
             return seekLowerBoundInternal(*child,
                                           sought_nibbles.subspan(mismatch_pos + 1));
           }
@@ -196,10 +197,12 @@ namespace kagome::storage::trie {
         or (not(sought_is_prefix or current_is_prefix)
             and *sought_nibbles_mismatch > *current_mismatch);
     if (longer_or_greater) {
+      SL_TRACE(log_, "We're looking for next node with value in outer tree");
       SAFE_CALL(found, nextNodeWithValueInOuterTree())
       if (!found) {
         state_ = ReachedEndState{};
       }
+      SL_TRACE(log_, "Done at {}", key().value());
       return outcome::success();
     }
     UNREACHABLE
@@ -208,6 +211,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieCursorImpl::seekLowerBound(
       const common::BufferView &key) {
     if (trie_->getRoot() == nullptr) {
+      SL_TRACE(log_, "Seek lower bound for {} -> null root", key);
       state_ = UninitializedState{};
       return outcome::success();
     }
@@ -228,6 +232,7 @@ namespace kagome::storage::trie {
                        "Guaranteed by the loop condition");
       SAFE_CALL(child, visitChildWithMinIdx(parent, idx + 1))
       if (child != nullptr) {
+        SL_TRACE(log_, "A greater child exists (idx {}), proceed to it", search_path.back().child_idx);
         SAFE_VOID_CALL(nextNodeWithValueInSubTree(*child))
         return true;
       }
@@ -243,6 +248,7 @@ namespace kagome::storage::trie {
         return Error::INVALID_NODE_TYPE;
       }
       SAFE_CALL(child, visitChildWithMinIdx(*current))
+      SL_TRACE(log_, "Proceed to child {}", (int)std::get<SearchState>(state_).getPath().back().child_idx);
       BOOST_ASSERT_MSG(child != nullptr, "Branch node must contain a leaf");
       current = child;
     }
@@ -251,6 +257,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PolkadotTrieCursorImpl::seekUpperBound(
       const common::BufferView &key) {
+    SL_TRACE(log_, "Seek upper bound for {}", key);
     SAFE_VOID_CALL(seekLowerBound(key))
     SAFE_VOID_CALL(next())
     return outcome::success();

@@ -56,6 +56,7 @@ namespace kagome::host_api {
     OUTCOME_TRY(new_child_root, child_batch->commit());
     OUTCOME_TRY(storage_provider_->getCurrentBatch()->put(
         prefixed_child_key, Buffer{scale::encode(new_child_root).value()}));
+    SL_TRACE(logger_, "Update child trie root: prefix is {}, new root is", child_storage_key, new_child_root);
     storage_provider_->clearChildBatches();
     if constexpr (!std::is_void_v<R>) {
       return result;
@@ -211,8 +212,6 @@ namespace kagome::host_api {
     auto [child_key_buffer] = loadBuffer(memory, child_storage_key);
     auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
 
-    SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);
-
     if (auto child_batch =
             storage_provider_->getChildBatchAt(prefixed_child_key.value());
         child_batch.has_value() and child_batch.value() != nullptr) {
@@ -229,6 +228,7 @@ namespace kagome::host_api {
           res.error().message());
     }
     const auto &root = res.value();
+    SL_TRACE_FUNC_CALL(logger_, root, child_key_buffer);
     return memory.storeBuffer(root);
   }
 
