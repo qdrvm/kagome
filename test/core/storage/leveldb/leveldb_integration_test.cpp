@@ -40,7 +40,7 @@ TEST_F(LevelDB_Integration_Test, Put_Get) {
   ASSERT_OUTCOME_SUCCESS_TRY(db_->put(key_, value_));
   ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
   EXPECT_TRUE(contains);
-  EXPECT_OUTCOME_TRUE_2(val, db_->load(key_));
+  EXPECT_OUTCOME_TRUE_2(val, db_->get(key_));
   EXPECT_EQ(val, value_);
 }
 
@@ -53,7 +53,7 @@ TEST_F(LevelDB_Integration_Test, Get_NonExistent) {
   ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
   EXPECT_FALSE(contains);
   ASSERT_OUTCOME_SUCCESS_TRY(db_->remove(key_));
-  auto r = db_->load(key_);
+  auto r = db_->get(key_);
   EXPECT_FALSE(r);
   EXPECT_EQ(r.error().value(), (int)DatabaseError::NOT_FOUND);
 }
@@ -82,7 +82,7 @@ TEST_F(LevelDB_Integration_Test, WriteBatch) {
   for (const auto &item : expected) {
     ASSERT_OUTCOME_SUCCESS(contains, db_->contains(item));
     EXPECT_TRUE(contains);
-    ASSERT_OUTCOME_SUCCESS(val, db_->load(item));
+    ASSERT_OUTCOME_SUCCESS(val, db_->get(item));
     EXPECT_EQ(val, item);
   }
 

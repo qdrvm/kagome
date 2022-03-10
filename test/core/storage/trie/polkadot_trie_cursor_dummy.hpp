@@ -13,12 +13,12 @@ namespace kagome::storage::trie {
   // Dummy implementation of cursor that wraps std::map
   class PolkadotTrieCursorDummy : public PolkadotTrieCursor {
    private:
-    std::map<common::Buffer, common::Buffer, std::less<>> key_val_;
+    std::map<common::Buffer, common::Buffer> key_val_;
     decltype(key_val_.begin()) current_;
 
    public:
     explicit PolkadotTrieCursorDummy(
-        const std::map<common::Buffer, common::Buffer, std::less<>> &key_val)
+        const std::map<common::Buffer, common::Buffer> &key_val)
         : key_val_{key_val} {}
 
     outcome::result<bool> seekFirst() override {
@@ -26,19 +26,17 @@ namespace kagome::storage::trie {
       return true;
     }
 
-    outcome::result<bool> seek(const common::BufferView &key) override {
+    outcome::result<bool> seek(const common::Buffer &key) override {
       current_ = key_val_.find(key);
       return current_ != key_val_.end();
     }
 
-    outcome::result<void> seekLowerBound(
-        const common::BufferView &key) override {
+    outcome::result<void> seekLowerBound(const common::Buffer &key) override {
       current_ = key_val_.lower_bound(key);
       return outcome::success();
     }
 
-    outcome::result<void> seekUpperBound(
-        const common::BufferView &key) override {
+    outcome::result<void> seekUpperBound(const common::Buffer &key) override {
       current_ = key_val_.upper_bound(key);
       return outcome::success();
     }
@@ -61,7 +59,7 @@ namespace kagome::storage::trie {
       return current_->first;
     }
 
-    std::optional<common::BufferConstRef> value() const override {
+    std::optional<common::Buffer> value() const override {
       return current_->second;
     }
   };

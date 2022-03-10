@@ -133,8 +133,7 @@ namespace kagome::host_api {
      * @param key Buffer representation of the key
      * @return result containing Buffer with the value
      */
-    outcome::result<std::optional<common::BufferConstRef>> get(
-        const common::BufferView &key) const;
+    outcome::result<common::Buffer> get(const common::Buffer &key) const;
 
     /**
      * Read key in form of [ptr; size] and load its value
@@ -154,7 +153,7 @@ namespace kagome::host_api {
     std::optional<common::Buffer> calcStorageChangesRoot(
         common::Hash256 parent) const;
 
-    runtime::WasmSpan clearPrefix(common::BufferView prefix,
+    runtime::WasmSpan clearPrefix(const common::Buffer &prefix,
                                   std::optional<uint32_t> limit);
 
     /**

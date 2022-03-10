@@ -51,7 +51,7 @@ namespace kagome::storage::changes_trie {
     auto root = changes_trie_->getRoot();
     if (root == nullptr) {
       logger_->warn("Get root of empty changes trie");
-      return codec_->hash256(common::Buffer{0});
+      return codec_->hash256({0});
     }
     auto enc_res = codec_->encodeNode(*root);
     if (enc_res.has_error()) {

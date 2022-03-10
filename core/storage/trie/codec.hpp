@@ -34,21 +34,21 @@ namespace kagome::storage::trie {
      * @return a node in the trie
      */
     virtual outcome::result<std::shared_ptr<Node>> decodeNode(
-        gsl::span<const uint8_t> encoded_data) const = 0;
+        const common::Buffer &encoded_data) const = 0;
 
     /**
      * @brief Get the merkle value of a node
      * @param buf byte representation of the node
      * @return hash of \param buf or \param buf if it is shorter than the hash
      */
-    virtual common::Buffer merkleValue(const common::BufferView &buf) const = 0;
+    virtual common::Buffer merkleValue(const common::Buffer &buf) const = 0;
 
     /**
      * @brief Get the hash of a node
      * @param buf byte representation of the node
      * @return hash of \param buf
      */
-    virtual common::Hash256 hash256(const common::BufferView &buf) const = 0;
+    virtual common::Hash256 hash256(const common::Buffer &buf) const = 0;
   };
 
 }  // namespace kagome::storage::trie

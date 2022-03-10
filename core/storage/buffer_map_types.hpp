@@ -11,30 +11,27 @@
  * are mostly used with Buffer key and value types
  */
 
+#include <gsl/span>
+
 #include "common/buffer.hpp"
-#include "storage/face/batch_writeable.hpp"
-#include "storage/face/generic_maps.hpp"
+#include "storage/face/batchable.hpp"
+#include "storage/face/generic_storage.hpp"
 #include "storage/face/write_batch.hpp"
 
 namespace kagome::storage {
 
   using Buffer = common::Buffer;
-  using BufferView = common::BufferView;
-  using BufferConstRef = common::BufferConstRef;
 
-  using BufferBatch = face::WriteBatch<BufferView, Buffer>;
+  using BufferMap = face::GenericMap<Buffer, Buffer>;
 
-  using ReadOnlyBufferMap = face::ReadOnlyMap<BufferView, Buffer>;
+  using BufferBatch = face::WriteBatch<Buffer, Buffer>;
 
-  using BufferStorage = face::GenericStorage<Buffer, Buffer, BufferView>;
+  using ReadOnlyBufferMap = face::ReadOnlyMap<Buffer, Buffer>;
+  using BatchWriteBufferMap = face::BatchWriteMap<Buffer, Buffer>;
 
-  using BufferMap = face::GenericMap<BufferView, Buffer>;
+  using BufferStorage = face::GenericStorage<Buffer, Buffer>;
 
-  using BufferMapCursor =
-      face::MapCursor<BufferView, BufferConstRef, BufferView>;
-
-  using BufferStorageCursor =
-      face::MapCursor<Buffer, Buffer, BufferView>;
+  using BufferMapCursor = face::MapCursor<Buffer, Buffer>;
 
 }  // namespace kagome::storage
 

@@ -15,15 +15,15 @@ namespace kagome::storage {
    * @brief Instance of cursor can be used as bidirectional iterator over
    * key-value bindings of the Map.
    */
-  class LevelDBCursor : public BufferStorageCursor {
+  class LevelDB::Cursor : public BufferMapCursor {
    public:
-    ~LevelDBCursor() override = default;
+    ~Cursor() override = default;
 
-    explicit LevelDBCursor(std::shared_ptr<leveldb::Iterator> it);
+    explicit Cursor(std::shared_ptr<leveldb::Iterator> it);
 
     outcome::result<bool> seekFirst() override;
 
-    outcome::result<bool> seek(const BufferView &key) override;
+    outcome::result<bool> seek(const Buffer &key) override;
 
     outcome::result<bool> seekLast() override;
 

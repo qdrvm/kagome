@@ -52,7 +52,7 @@ namespace kagome::blockchain {
    * Concatenate \param key_column with \param key
    * @return key_column|key
    */
-  common::Buffer prependPrefix(common::BufferView key,
+  common::Buffer prependPrefix(const common::Buffer &key,
                                prefix::Prefix key_column);
 
   /**
@@ -114,7 +114,7 @@ namespace kagome::blockchain {
    * Convert lookup key to a block number
    */
   outcome::result<primitives::BlockNumber> lookupKeyToNumber(
-      const common::BufferView &key);
+      const common::Buffer &key);
 
 }  // namespace kagome::blockchain
 

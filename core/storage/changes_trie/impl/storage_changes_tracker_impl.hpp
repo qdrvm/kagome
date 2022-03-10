@@ -3,8 +3,8 @@
 
 #include "storage/changes_trie/changes_tracker.hpp"
 
-#include "log/logger.hpp"
 #include "primitives/event_types.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::storage::trie {
   class Codec;
@@ -35,14 +35,14 @@ namespace kagome::storage::changes_trie {
         primitives::BlockHash new_parent_hash,
         primitives::BlockNumber new_parent_number) override;
 
-    outcome::result<void> onPut(common::BufferView extrinsic_index,
-                                const common::BufferView &key,
-                                const common::BufferView &value,
+    outcome::result<void> onPut(const common::Buffer &extrinsic_index,
+                                const common::Buffer &key,
+                                const common::Buffer &value,
                                 bool new_entry) override;
     void onBlockAdded(const primitives::BlockHash &hash) override;
-    void onClearPrefix(const common::BufferView &prefix) override;
-    outcome::result<void> onRemove(common::BufferView extrinsic_index,
-                                   const common::BufferView &key) override;
+    void onClearPrefix(const common::Buffer &prefix) override;
+    outcome::result<void> onRemove(const common::Buffer &extrinsic_index,
+                                   const common::Buffer &key) override;
 
     outcome::result<common::Hash256> constructChangesTrie(
         const primitives::BlockHash &parent,
@@ -52,14 +52,11 @@ namespace kagome::storage::changes_trie {
     std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<storage::trie::Codec> codec_;
 
-    std::map<common::Buffer,
-             std::vector<primitives::ExtrinsicIndex>,
-             std::less<>>
+    std::map<common::Buffer, std::vector<primitives::ExtrinsicIndex>>
         extrinsics_changes_;
-    std::set<common::Buffer, std::less<>>
-        new_entries_;  // entries that do not yet exist in
-                       // the underlying storage
-    std::map<common::Buffer, common::Buffer, std::less<>> actual_val_;
+    std::set<common::Buffer> new_entries_;  // entries that do not yet exist in
+                                            // the underlying storage
+    std::map<common::Buffer, common::Buffer> actual_val_;
 
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;

@@ -135,7 +135,7 @@ namespace kagome::authority {
         auto &val_opt = val_opt_res.value();
         if (val_opt.has_value()) {
           auto &val = val_opt.value();
-          set_id_opt.emplace(scale::decode<MembershipCounter>(val.get()).value());
+          set_id_opt.emplace(scale::decode<MembershipCounter>(val).value());
           break;
         }
       }

@@ -1387,7 +1387,6 @@ namespace {
 }  // namespace
 
 namespace kagome::injector {
-
   class KagomeNodeInjectorImpl {
    public:
     using Injector = decltype(makeKagomeNodeInjector(

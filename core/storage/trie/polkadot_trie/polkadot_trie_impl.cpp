@@ -22,62 +22,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieImpl::Error, e) {
   return "Unknown error";
 }
 
-namespace kagome::storage::trie {
-
-  class OpaqueNodeStorage final {
-   public:
-    OpaqueNodeStorage(PolkadotTrie::NodeRetrieveFunctor node_retriever,
-                      std::shared_ptr<TrieNode> root) noexcept
-        : retrieve_node_{std::move(node_retriever)}, root_{std::move(root)} {}
-
-    static outcome::result<std::unique_ptr<OpaqueNodeStorage>> createAt(
-        std::shared_ptr<OpaqueTrieNode> root,
-        PolkadotTrie::NodeRetrieveFunctor node_retriever) {
-      OUTCOME_TRY(root_node, node_retriever(root));
-      return std::unique_ptr<OpaqueNodeStorage>{
-          new OpaqueNodeStorage{node_retriever, root_node}};
-    }
-
-    [[nodiscard]] const std::shared_ptr<TrieNode> &getRoot() {
-      return root_;
-    }
-
-    [[nodiscard]] std::shared_ptr<const TrieNode> getRoot() const {
-      return root_;
-    }
-
-    void setRoot(const std::shared_ptr<TrieNode> &root) {
-      root_ = root;
-    }
-
-    [[nodiscard]] outcome::result<std::shared_ptr<const TrieNode>>
-    getChild(BranchNode const &parent, uint8_t idx) const {
-      // SAFETY: changing a parent's opaque child node from a handle to a node
-      // to the actual node doesn't break it's const correctness, because opaque
-      // nodes are meant to hide their content
-      auto &mut_parent = const_cast<BranchNode &>(parent);
-      auto &opaque_child = parent.children.at(idx);
-      OUTCOME_TRY(child, retrieve_node_(opaque_child));
-      mut_parent.children.at(idx) = child;
-      return child;
-    }
-
-    [[nodiscard]] outcome::result<std::shared_ptr<TrieNode>> getChild(
-        BranchNode const &parent, uint8_t idx) {
-      // SAFETY: adding constness, not removing
-      auto const_this = const_cast<const OpaqueNodeStorage *>(this);
-      OUTCOME_TRY(const_child, const_this->getChild(parent, idx));
-      // SAFETY: removing constness we manually added
-      auto child = std::const_pointer_cast<TrieNode>(const_child);
-      return child;
-    }
-
-   private:
-    PolkadotTrie::NodeRetrieveFunctor retrieve_node_;
-    std::shared_ptr<TrieNode> root_;
-  };
-}  // namespace kagome::storage::trie
-
 namespace {
   using namespace kagome::storage::trie;
 
@@ -96,29 +40,31 @@ namespace {
    * 3. if node has 1 child and is not a value, merge it with this child, update
    its key, and copy children if any
    */
-  [[nodiscard]] outcome::result<void> handleDeletion(
-      PolkadotTrie::NodePtr & parent, OpaqueNodeStorage &node_storage) {
-    if (!parent->isBranch()) return outcome::success();
-    auto& branch = dynamic_cast<BranchNode&>(*parent);
-    auto bitmap = branch.childrenBitmap();
+  outcome::result<void> handleDeletion(
+      PolkadotTrie::NodePtr &parent,
+      const PolkadotTrieImpl::NodeRetrieveFunctor &retrieveNode) {
+    auto branch = std::dynamic_pointer_cast<BranchNode>(parent);
+    auto bitmap = branch->childrenBitmap();
     if (bitmap == 0) {
       if (parent->value) {
         // turn branch node left with no children to a leaf node
         parent = std::make_shared<LeafNode>(parent->key_nibbles, parent->value);
       } else {
         // this case actual only for clearPrefix, unreal situation in deletion
-        parent = nullptr;
+        parent.reset();
       }
-    } else if (branch.childrenNum() == 1 && !branch.value) {
+    } else if (branch->childrenNum() == 1 && !parent->value) {
       size_t idx = 0;
       while (bitmap >>= 1u) ++idx;
-      OUTCOME_TRY(child, node_storage.getChild(branch, idx));
+      auto child = branch->children.at(idx);
 
-      using T = TrieNode::Type;
+      OUTCOME_TRY(retrieveNode(child));
+
+      using T = PolkadotNode::Type;
       if (child->getTrieType() == T::Leaf) {
         parent = std::make_shared<LeafNode>(parent->key_nibbles, child->value);
       } else if (child->isBranch()) {
-        branch.children = dynamic_cast<BranchNode &>(*child).children;
+        branch->children = dynamic_cast<BranchNode &>(*child.get()).children;
         parent->value = child->value;
       }
       parent->key_nibbles.putUint8(idx).putBuffer(child->key_nibbles);
@@ -126,30 +72,28 @@ namespace {
     return outcome::success();
   }
 
-  /**
-   * @return if the node should be deleted itself from parent
-   */
-  [[nodiscard]] outcome::result<void> deleteNode(
-      PolkadotTrie::NodePtr & node,
-      const NibblesView &sought_key,
-      OpaqueNodeStorage &node_storage) {
-    if (node == nullptr) {
+  outcome::result<void> deleteNode(
+      PolkadotTrie::NodePtr &parent,
+      const KeyNibbles &key,
+      const PolkadotTrieImpl::NodeRetrieveFunctor &retrieveNode) {
+    if (parent == nullptr) {
       return outcome::success();
     }
 
-    if (node->isBranch()) {
-      auto &branch = dynamic_cast<BranchNode &>(*node);
-      if (node->key_nibbles == sought_key) {
-        node->value = std::nullopt;
+    OUTCOME_TRY(retrieveNode(parent));
+
+    if (parent->isBranch()) {
+      if (parent->key_nibbles == key) {
+        parent->value = std::nullopt;
       } else {
-        auto length = getCommonPrefixLength(node->key_nibbles, sought_key);
-        OUTCOME_TRY(child, node_storage.getChild(branch, sought_key[length]));
-        OUTCOME_TRY(deleteNode(child, sought_key.subspan(length + 1), node_storage));
-        branch.children[sought_key[length]] = child;
+        auto length = getCommonPrefixLength(parent->key_nibbles, key);
+        auto &child =
+            dynamic_cast<BranchNode &>(*parent.get()).children.at(key[length]);
+        OUTCOME_TRY(deleteNode(child, key.subspan(length + 1), retrieveNode));
       }
-      OUTCOME_TRY(handleDeletion(node, node_storage));
-    } else if (node->key_nibbles == sought_key) {
-      node = nullptr;
+      OUTCOME_TRY(handleDeletion(parent, retrieveNode));
+    } else if (parent->key_nibbles == key) {
+      parent.reset();
     }
     return outcome::success();
   }
@@ -168,14 +112,14 @@ namespace {
    * @param finished is true if all values removed, false if limit exceeded
    * @param count is a number of values deleted
    */
-  [[nodiscard]] outcome::result<void> detachNode(
-      std::shared_ptr<TrieNode> & parent,
+  outcome::result<void> detachNode(
+      PolkadotTrie::NodePtr &parent,
       const KeyNibbles &prefix,
       std::optional<uint64_t> limit,
       bool &finished,
       uint32_t &count,
       const PolkadotTrie::OnDetachCallback &callback,
-      OpaqueNodeStorage &node_storage) {
+      const PolkadotTrieImpl::NodeRetrieveFunctor &retrieveNode) {
     if (parent == nullptr) {
       return outcome::success();
     }
@@ -185,26 +129,23 @@ namespace {
       return outcome::success();
     }
 
+    OUTCOME_TRY(retrieveNode(parent));
+
     if (parent->key_nibbles.size() >= prefix.size()) {
       // if this is the node to be detached -- detach it
       if (std::equal(
               prefix.begin(), prefix.end(), parent->key_nibbles.begin())) {
         // remove all children one by one according to limit
         if (parent->isBranch()) {
-          auto &branch = dynamic_cast<BranchNode &>(*parent);
-          for (uint8_t child_idx = 0; child_idx < branch.kMaxChildren;
-               child_idx++) {
-            if (branch.children[child_idx] != nullptr) {
-              OUTCOME_TRY(child_node, node_storage.getChild(branch, child_idx));
-              OUTCOME_TRY(detachNode(child_node,
-                                     KeyNibbles(),
-                                     limit,
-                                     finished,
-                                     count,
-                                     callback,
-                                     node_storage));
-              branch.children[child_idx] = child_node;
-            }
+          auto &children = dynamic_cast<BranchNode &>(*parent.get()).children;
+          for (auto &child : children) {
+            OUTCOME_TRY(detachNode(child,
+                                   KeyNibbles(),
+                                   limit,
+                                   finished,
+                                   count,
+                                   callback,
+                                   retrieveNode));
           }
         }
         if (not limit or count < limit.value()) {
@@ -212,7 +153,7 @@ namespace {
             OUTCOME_TRY(notifyOnDetached(parent, callback));
             ++count;
           }
-          parent = nullptr;
+          parent.reset();
         } else {
           if (parent->value) {
             // we saw a value after limit, so not finished
@@ -220,14 +161,14 @@ namespace {
           }
           if (parent->isBranch()) {
             // fix block after children removal
-            OUTCOME_TRY(handleDeletion(parent, node_storage));
+            OUTCOME_TRY(handleDeletion(parent, retrieveNode));
           }
         }
         return outcome::success();
       }
     }
 
-    // if parent's key is smaller, and it is not a prefix of the prefix, don't
+    // if parent's key is smaller and it is not a prefix of the prefix, don't
     // change anything
     if (not std::equal(parent->key_nibbles.begin(),
                        parent->key_nibbles.end(),
@@ -237,20 +178,17 @@ namespace {
 
     if (parent->isBranch()) {
       const auto length = parent->key_nibbles.size();
-      auto &branch = dynamic_cast<BranchNode &>(*parent);
-      auto &child = branch.children.at(prefix[length]);
-      if (child != nullptr) {
-        OUTCOME_TRY(child_node, node_storage.getChild(branch, prefix[length]));
-        OUTCOME_TRY(detachNode(child_node,
-                               prefix.subspan(length + 1),
-                               limit,
-                               finished,
-                               count,
-                               callback,
-                               node_storage));
-        branch.children[prefix[length]] = child_node;
-        OUTCOME_TRY(handleDeletion(parent, node_storage));
-      }
+      auto &child =
+          dynamic_cast<BranchNode &>(*parent.get()).children.at(prefix[length]);
+
+      OUTCOME_TRY(detachNode(child,
+                             prefix.subspan(length + 1),
+                             limit,
+                             finished,
+                             count,
+                             callback,
+                             retrieveNode));
+      OUTCOME_TRY(handleDeletion(parent, retrieveNode));
     }
     return outcome::success();
   }
@@ -260,60 +198,56 @@ namespace {
 namespace kagome::storage::trie {
 
   PolkadotTrieImpl::PolkadotTrieImpl(NodeRetrieveFunctor f)
-      : nodes_{std::make_unique<OpaqueNodeStorage>(std::move(f), nullptr)} {}
+      : retrieve_node_{std::move(f)} {
+    BOOST_ASSERT(retrieve_node_);
+  }
 
   PolkadotTrieImpl::PolkadotTrieImpl(NodePtr root, NodeRetrieveFunctor f)
-      : nodes_{std::make_unique<OpaqueNodeStorage>(std::move(f), root)} {}
+      : retrieve_node_{std::move(f)}, root_{std::move(root)} {
+    BOOST_ASSERT(retrieve_node_);
+  }
 
-  PolkadotTrieImpl::~PolkadotTrieImpl() {}
-
-  outcome::result<void> PolkadotTrieImpl::put(const BufferView &key,
+  outcome::result<void> PolkadotTrieImpl::put(const Buffer &key,
                                               const Buffer &value) {
     auto value_copy = value;
     return put(key, std::move(value_copy));
   }
 
-  PolkadotTrie::ConstNodePtr PolkadotTrieImpl::getRoot() const {
-    return nodes_->getRoot();
+  PolkadotTrie::NodePtr PolkadotTrieImpl::getRoot() const {
+    return root_;
   }
 
-  PolkadotTrie::NodePtr PolkadotTrieImpl::getRoot() {
-    return nodes_->getRoot();
-  }
-
-  outcome::result<void> PolkadotTrieImpl::put(const BufferView &key,
+  outcome::result<void> PolkadotTrieImpl::put(const Buffer &key,
                                               Buffer &&value) {
     auto k_enc = PolkadotCodec::keyToNibbles(key);
 
-    NodePtr root = nodes_->getRoot();
+    NodePtr root = root_;
 
     // insert fetches a sequence of nodes (a path) from the storage and
     // these nodes are processed in memory, so any changes applied to them
     // will be written back to the storage only on storeNode call
     OUTCOME_TRY(n,
                 insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
-    nodes_->setRoot(n);
+    root_ = n;
 
     return outcome::success();
   }
 
   outcome::result<std::tuple<bool, uint32_t>> PolkadotTrieImpl::clearPrefix(
-      const common::BufferView &prefix,
+      const common::Buffer &prefix,
       std::optional<uint64_t> limit,
       const OnDetachCallback &callback) {
     bool finished = true;
     uint32_t count = 0;
     auto key_nibbles = PolkadotCodec::keyToNibbles(prefix);
-    auto root = nodes_->getRoot();
     OUTCOME_TRY(detachNode(
-        root, key_nibbles, limit, finished, count, callback, *nodes_));
-    nodes_->setRoot(root);
+        root_, key_nibbles, limit, finished, count, callback, retrieve_node_));
     return {finished, count};
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::insert(
-      const NodePtr &parent, const NibblesView &key_nibbles, NodePtr node) {
-    using T = TrieNode::Type;
+      const NodePtr &parent, const KeyNibbles &key_nibbles, NodePtr node) {
+    using T = PolkadotNode::Type;
 
     // just update the node key and return it as the new root
     if (parent == nullptr) {
@@ -338,7 +272,7 @@ namespace kagome::storage::trie {
           return node;
         }
 
-        br->key_nibbles = KeyNibbles{key_nibbles.subspan(0, length)};
+        br->key_nibbles = key_nibbles.subbuffer(0, length);
         auto parentKey = parent->key_nibbles;
 
         // value goes at this branch
@@ -347,8 +281,7 @@ namespace kagome::storage::trie {
 
           // if we are not replacing previous leaf, then add it as a
           // child to the new branch
-          if (static_cast<std::ptrdiff_t>(parent->key_nibbles.size())
-              > key_nibbles.size()) {
+          if (parent->key_nibbles.size() > key_nibbles.size()) {
             parent->key_nibbles = parent->key_nibbles.subbuffer(length + 1);
             br->children.at(parentKey[length]) = parent;
           }
@@ -356,7 +289,7 @@ namespace kagome::storage::trie {
           return br;
         }
 
-        node->key_nibbles = KeyNibbles{key_nibbles.subspan(length + 1)};
+        node->key_nibbles = key_nibbles.subbuffer(length + 1);
 
         if (length == parent->key_nibbles.size()) {
           // if leaf's key is covered by this branch, then make the leaf's
@@ -379,7 +312,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::updateBranch(
-      BranchPtr parent, const NibblesView &key_nibbles, const NodePtr &node) {
+      BranchPtr parent, const KeyNibbles &key_nibbles, const NodePtr &node) {
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
 
     if (length == parent->key_nibbles.size()) {
@@ -388,18 +321,17 @@ namespace kagome::storage::trie {
         parent->value = node->value;
         return parent;
       }
-      OUTCOME_TRY(child, retrieveChild(*parent, key_nibbles[length]));
+      OUTCOME_TRY(child, retrieveChild(parent, key_nibbles[length]));
       if (child) {
         OUTCOME_TRY(n, insert(child, key_nibbles.subspan(length + 1), node));
         parent->children.at(key_nibbles[length]) = n;
         return parent;
       }
-      node->key_nibbles = KeyNibbles{key_nibbles.subspan(length + 1)};
+      node->key_nibbles = key_nibbles.subbuffer(length + 1);
       parent->children.at(key_nibbles[length]) = node;
       return parent;
     }
-    auto br = std::make_shared<BranchNode>(
-        KeyNibbles{key_nibbles.subspan(0, length)});
+    auto br = std::make_shared<BranchNode>(key_nibbles.subspan(0, length));
     auto parentIdx = parent->key_nibbles[length];
     OUTCOME_TRY(
         new_branch,
@@ -415,8 +347,8 @@ namespace kagome::storage::trie {
     return br;
   }
 
-  outcome::result<common::BufferConstRef> PolkadotTrieImpl::get(
-      const common::BufferView &key) const {
+  outcome::result<common::Buffer> PolkadotTrieImpl::get(
+      const common::Buffer &key) const {
     OUTCOME_TRY(opt_value, tryGet(key));
     if (opt_value.has_value()) {
       return opt_value.value();
@@ -424,13 +356,13 @@ namespace kagome::storage::trie {
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  PolkadotTrieImpl::tryGet(const common::BufferView &key) const {
-    if (not nodes_->getRoot()) {
+  outcome::result<std::optional<common::Buffer>> PolkadotTrieImpl::tryGet(
+      const common::Buffer &key) const {
+    if (not root_) {
       return std::nullopt;
     }
     auto nibbles = PolkadotCodec::keyToNibbles(key);
-    OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
+    OUTCOME_TRY(node, getNode(root_, nibbles));
     if (node && node->value) {
       return node->value.value();
     }
@@ -438,41 +370,28 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::getNode(
-      ConstNodePtr parent, const NibblesView &key_nibbles) {
-    // SAFETY: changing a parent's opaque child node from a handle to a node
-    // to the actual node doesn't break it's const correctness, because opaque
-    // nodes are meant to hide their content
-    auto const_this = const_cast<const PolkadotTrieImpl *>(this);
-    OUTCOME_TRY(const_node, const_this->getNode(parent, key_nibbles));
-    // SAFETY: removing constness we manually added
-    auto node = std::const_pointer_cast<TrieNode>(const_node);
-    return node;
-  }
-
-  outcome::result<PolkadotTrie::ConstNodePtr> PolkadotTrieImpl::getNode(
-      ConstNodePtr current, const NibblesView &nibbles) const {
-    using T = TrieNode::Type;
-    if (current == nullptr) {
+      NodePtr parent, const KeyNibbles &key_nibbles) const {
+    using T = PolkadotNode::Type;
+    if (parent == nullptr) {
       return nullptr;
     }
-    switch (current->getTrieType()) {
+    switch (parent->getTrieType()) {
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
-        if (current->key_nibbles == nibbles or nibbles.empty()) {
-          return current;
+        if (parent->key_nibbles == key_nibbles or key_nibbles.empty()) {
+          return parent;
         }
-        if (nibbles.size() < static_cast<long>(current->key_nibbles.size())) {
+        if (key_nibbles.size() < parent->key_nibbles.size()) {
           return nullptr;
         }
-        auto parent_as_branch =
-            std::dynamic_pointer_cast<const BranchNode>(current);
-        auto length = getCommonPrefixLength(current->key_nibbles, nibbles);
-        OUTCOME_TRY(n, retrieveChild(*parent_as_branch, nibbles[length]));
-        return getNode(n, nibbles.subspan(length + 1));
+        auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
+        auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
+        OUTCOME_TRY(n, retrieveChild(parent_as_branch, key_nibbles[length]));
+        return getNode(n, key_nibbles.subspan(length + 1));
       }
       case T::Leaf:
-        if (current->key_nibbles == nibbles) {
-          return current;
+        if (parent->key_nibbles == key_nibbles) {
+          return parent;
         }
         break;
       case T::Special:
@@ -481,42 +400,36 @@ namespace kagome::storage::trie {
     return nullptr;
   }
 
-  outcome::result<void> PolkadotTrieImpl::forNodeInPath(
-      ConstNodePtr parent,
-      const NibblesView &path,
-      const std::function<outcome::result<void>(BranchNode const &,
-                                                uint8_t idx)> &callback) const {
-    using T = TrieNode::Type;
+  outcome::result<std::list<std::pair<PolkadotTrieImpl::BranchPtr, uint8_t>>>
+  PolkadotTrieImpl::getPath(NodePtr parent,
+                            const KeyNibbles &key_nibbles) const {
+    using Path = std::list<std::pair<PolkadotTrieImpl::BranchPtr, uint8_t>>;
+    using T = PolkadotNode::Type;
     if (parent == nullptr) {
       return TrieError::NO_VALUE;
     }
     switch (parent->getTrieType()) {
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
-        // path is completely covered by the parent key
-        if (parent->key_nibbles == path or path.empty()) {
-          return outcome::success();
+        auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
+        if (parent->key_nibbles == key_nibbles or key_nibbles.empty()) {
+          return Path{};
         }
-        auto common_length = getCommonPrefixLength(parent->key_nibbles, path);
         auto common_nibbles =
-            gsl::make_span(parent->key_nibbles.data(), common_length);
-        // path is even less than the parent key (path is the prefix of the
-        // parent key)
-        if (path == common_nibbles
-            and path.size()
-                    < static_cast<ssize_t>(parent->key_nibbles.size())) {
-          return outcome::success();
+            gsl::make_span(parent->key_nibbles.data(), length);
+        if (key_nibbles == common_nibbles
+            and key_nibbles.size() < parent->key_nibbles.size()) {
+          return Path{};
         }
-        auto parent_as_branch =
-            std::dynamic_pointer_cast<const BranchNode>(parent);
-        OUTCOME_TRY(child,
-                    retrieveChild(*parent_as_branch, path[common_length]));
-        OUTCOME_TRY(callback(*parent_as_branch, path[common_length]));
-        return forNodeInPath(child, path.subspan(common_length + 1), callback);
+        auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
+        OUTCOME_TRY(n, retrieveChild(parent_as_branch, key_nibbles[length]));
+        OUTCOME_TRY(path, getPath(n, key_nibbles.subspan(length + 1)));
+        path.push_front({parent_as_branch, key_nibbles[length]});
+        return std::move(path);
       }
       case T::Leaf:
-        if (parent->key_nibbles == path) {
-          return outcome::success();
+        if (parent->key_nibbles == key_nibbles) {
+          return Path{};
         }
         break;
       default:
@@ -526,44 +439,35 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<PolkadotTrieCursor> PolkadotTrieImpl::trieCursor() {
-    return std::make_unique<PolkadotTrieCursorImpl>(shared_from_this());
+    return std::make_unique<PolkadotTrieCursorImpl>(*this);
   }
 
   outcome::result<bool> PolkadotTrieImpl::contains(
-      const common::BufferView &key) const {
-    if (not nodes_->getRoot()) {
+      const common::Buffer &key) const {
+    if (not root_) {
       return false;
     }
 
-    OUTCOME_TRY(node,
-                getNode(nodes_->getRoot(), PolkadotCodec::keyToNibbles(key)));
+    OUTCOME_TRY(node, getNode(root_, PolkadotCodec::keyToNibbles(key)));
     return node != nullptr && node->value;
   }
 
   bool PolkadotTrieImpl::empty() const {
-    return nodes_->getRoot() == nullptr;
+    return root_ == nullptr;
   }
 
-  outcome::result<void> PolkadotTrieImpl::remove(
-      const common::BufferView &key) {
+  outcome::result<void> PolkadotTrieImpl::remove(const common::Buffer &key) {
     auto key_nibbles = PolkadotCodec::keyToNibbles(key);
     // delete node will fetch nodes that it needs from the storage (the
     // nodes typically are a path in the trie) and work on them in memory
-    auto root = nodes_->getRoot();
-    OUTCOME_TRY(deleteNode(root, key_nibbles, *nodes_));
-    nodes_->setRoot(root);
-    return outcome::success();
-  }
-
-  outcome::result<PolkadotTrie::ConstNodePtr> PolkadotTrieImpl::retrieveChild(
-      const BranchNode &parent, uint8_t idx) const {
-    OUTCOME_TRY(node, nodes_->getChild(parent, idx));
-    return node;
+    return deleteNode(root_, key_nibbles, retrieve_node_);
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::retrieveChild(
-      const BranchNode &parent, uint8_t idx) {
-    return nodes_->getChild(parent, idx);
+      BranchPtr parent, uint8_t idx) const {
+    auto &child = parent->children.at(idx);
+    OUTCOME_TRY(retrieve_node_(child));
+    return child;
   }
 
 }  // namespace kagome::storage::trie

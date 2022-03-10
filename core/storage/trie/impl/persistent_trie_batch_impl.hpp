@@ -33,19 +33,18 @@ namespace kagome::storage::trie {
     outcome::result<RootHash> commit() override;
     std::unique_ptr<TopperTrieBatch> batchOnTop() override;
 
-    outcome::result<BufferConstRef> get(const BufferView &key) const override;
-    outcome::result<std::optional<BufferConstRef>> tryGet(
-        const BufferView &key) const override;
+    outcome::result<Buffer> get(const Buffer &key) const override;
+    outcome::result<std::optional<Buffer>> tryGet(
+        const Buffer &key) const override;
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
-    outcome::result<bool> contains(const BufferView &key) const override;
+    outcome::result<bool> contains(const Buffer &key) const override;
     bool empty() const override;
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
-        const BufferView &prefix,
+        const Buffer &prefix,
         std::optional<uint64_t> limit = std::nullopt) override;
-    outcome::result<void> put(const BufferView &key,
-                              const Buffer &value) override;
-    outcome::result<void> put(const BufferView &key, Buffer &&value) override;
-    outcome::result<void> remove(const BufferView &key) override;
+    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
+    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
+    outcome::result<void> remove(const Buffer &key) override;
 
    private:
     PersistentTrieBatchImpl(
@@ -55,7 +54,7 @@ namespace kagome::storage::trie {
         std::shared_ptr<PolkadotTrie> trie);
 
     // retrieves the current extrinsic index from the storage
-    outcome::result<common::BufferConstRef> getExtrinsicIndex() const;
+    outcome::result<common::Buffer> getExtrinsicIndex() const;
 
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
