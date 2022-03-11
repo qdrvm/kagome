@@ -43,7 +43,7 @@ namespace kagome::storage::trie {
 
   PolkadotTrieCursorImpl::PolkadotTrieCursorImpl(
       std::shared_ptr<const PolkadotTrie> trie)
-      : log_{log::createLogger("TrieCursor", "trie", soralog::Level::TRACE)},
+      : log_{log::createLogger("TrieCursor", "trie")},
         trie_{std::move(trie)},
         state_{UninitializedState{}} {
     BOOST_ASSERT(trie_);
@@ -267,10 +267,12 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PolkadotTrieCursorImpl::seekUpperBound(
-      const common::BufferView &key) {
-    SL_TRACE(log_, "Seek upper bound for {}", key);
-    SAFE_VOID_CALL(seekLowerBound(key))
-    SAFE_VOID_CALL(next())
+      const common::BufferView &sought_key) {
+    SL_TRACE(log_, "Seek upper bound for {}", sought_key);
+    SAFE_VOID_CALL(seekLowerBound(sought_key))
+    if (auto key = this->key(); key.has_value() && key.value() == sought_key) {
+      SAFE_VOID_CALL(next())
+    }
     return outcome::success();
   }
 
