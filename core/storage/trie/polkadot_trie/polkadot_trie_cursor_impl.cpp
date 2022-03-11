@@ -145,7 +145,11 @@ namespace kagome::storage::trie {
         sought_is_prefix
         or (not current_is_prefix
             and *sought_nibbles_mismatch < *current_mismatch);
-    SL_TRACE(log_, "The sought key is {} than current", sought_less_or_eq ? "less or eq" : "greater");
+    SL_TRACE(log_,
+             "The sought key '{}' is {} than current '{}'",
+             common::hex_lower(sought_nibbles),
+             sought_less_or_eq ? "less or eq" : "greater",
+             common::hex_lower(current.key_nibbles));
     if (sought_less_or_eq) {
       switch (current.getTrieType()) {
         case NodeType::BranchEmptyValue:
@@ -176,9 +180,12 @@ namespace kagome::storage::trie {
           SAFE_CALL(child,
                     visitChildWithMinIdx(branch, sought_nibbles[mismatch_pos]))
           if (child) {
-            SL_TRACE(log_, "We're in a branch and proceed to child {}", (int)std::get<SearchState>(state_).getPath().back().child_idx);
-            return seekLowerBoundInternal(*child,
-                                          sought_nibbles.subspan(mismatch_pos + 1));
+            SL_TRACE(
+                log_,
+                "We're in a branch and proceed to child {}",
+                (int)std::get<SearchState>(state_).getPath().back().child_idx);
+            return seekLowerBoundInternal(
+                *child, sought_nibbles.subspan(mismatch_pos + 1));
           }
           break;  // go to case3
         }
@@ -232,7 +239,9 @@ namespace kagome::storage::trie {
                        "Guaranteed by the loop condition");
       SAFE_CALL(child, visitChildWithMinIdx(parent, idx + 1))
       if (child != nullptr) {
-        SL_TRACE(log_, "A greater child exists (idx {}), proceed to it", search_path.back().child_idx);
+        SL_TRACE(log_,
+                 "A greater child exists (idx {}), proceed to it",
+                 search_path.back().child_idx);
         SAFE_VOID_CALL(nextNodeWithValueInSubTree(*child))
         return true;
       }
@@ -248,7 +257,9 @@ namespace kagome::storage::trie {
         return Error::INVALID_NODE_TYPE;
       }
       SAFE_CALL(child, visitChildWithMinIdx(*current))
-      SL_TRACE(log_, "Proceed to child {}", (int)std::get<SearchState>(state_).getPath().back().child_idx);
+      SL_TRACE(log_,
+               "Proceed to child {}",
+               (int)std::get<SearchState>(state_).getPath().back().child_idx);
       BOOST_ASSERT_MSG(child != nullptr, "Branch node must contain a leaf");
       current = child;
     }
@@ -293,6 +304,8 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
 
+    SL_TRACE(log_, "Searching next key, current is {}", key().value());
+
     if (std::holds_alternative<UninitializedState>(state_)) {
       state_ = SearchState{*trie_->getRoot()};
       if (trie_->getRoot()->value) {
@@ -304,17 +317,23 @@ namespace kagome::storage::trie {
 
     // if we're in a branch, means nodes in its subtree are not visited yet
     if (search_state.getCurrent().isBranch()) {
+      SL_TRACE(log_, "We're in a branch and looking for next value in subtree");
       SAFE_CALL(child, visitChildWithMinIdx(search_state.getCurrent()))
       BOOST_ASSERT_MSG(child != nullptr,
                        "Since parent is branch, there must be a child");
+      SL_TRACE(log_, "Go to child {}", search_state.getPath().back().child_idx);
       SAFE_VOID_CALL(nextNodeWithValueInSubTree(*child))
+      SL_TRACE(log_, "Found {}", key().value());
       return outcome::success();
     }
     // we're in a leaf, should go up the tree and search there
+    SL_TRACE(log_, "We're in a leaf and looking for next value in outer tree");
     SAFE_CALL(found, nextNodeWithValueInOuterTree())
     if (not found) {
+      SL_TRACE(log_, "Not found anything");
       state_ = ReachedEndState{};
     }
+    SL_TRACE(log_, "Found {}", key().value());
     return outcome::success();
   }
 
