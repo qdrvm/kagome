@@ -54,6 +54,10 @@ namespace kagome::network {
       return protocol_;
     }
 
+    /**
+     * Sets handler for `parytytech/grandpa/1` protocol
+     * @return true if handler set successfully
+     */
     bool start() override;
     bool stop() override;
 

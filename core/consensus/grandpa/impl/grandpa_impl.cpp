@@ -545,8 +545,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    // If a peer is at round r, is impolite to send messages about r-2 or
-    // earlier
+    // If current peer is at round r, it is impolite to receive messages about
+    // r-2 or earlier
     if (msg.round_number + 2 < current_round_->roundNumber()) {
       SL_DEBUG(
           logger_,
@@ -782,12 +782,16 @@ namespace kagome::consensus::grandpa {
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
 
+    // TODO(kamilsa) 11.03.22 https://github.com/soramitsu/kagome/issues/1147
+    // Not clear why this if is needed
     if (current_round_->getPreviousRound() != round) {
       current_round_ = std::move(round);
 
       executeNextRound(current_round_->roundNumber());
     }
 
+    // if round == current round, then execution of the next round will be
+    // elsewhere
     return outcome::success();
   }
 

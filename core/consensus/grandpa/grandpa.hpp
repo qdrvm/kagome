@@ -11,19 +11,24 @@
 namespace kagome::consensus::grandpa {
 
   /**
-   * Launches grandpa voting rounds
+   * Interface for launching new grandpa rounds
+   *
    */
   class Grandpa {
    public:
     virtual ~Grandpa() = default;
 
     /**
-     * Tries to execute next round for round presented by {@param round_number}
+     * Tries to execute the next round
+     * @param round_number new round number
      */
     virtual void executeNextRound(RoundNumber round_number) = 0;
 
     /**
-     * Force update round for round presented by {@param round_number}
+     * Force update for the round. Next round to the provided one will be
+     * checked and updated to the new prevote ghost (if any), round estimate (if
+     * any), finalized block (if any) and completability
+     * @param round_number the round number the following to which is updated
      */
     virtual void updateNextRound(RoundNumber round_number) = 0;
   };
