@@ -119,6 +119,7 @@ namespace kagome::api {
     };
 
     /**
+     * @brief constructor
      * @param context - reference to the io context
      * @param listener - a shared ptr to the endpoint listener instance
      * @param processors - shared ptrs to JSON processor instances
@@ -172,8 +173,8 @@ namespace kagome::api {
         PubsubSubscriptionId subscription_id) override;
 
    private:
-    jsonrpc::Value createStateStorageEvent(common::BufferView key,
-                                           common::BufferView value,
+    jsonrpc::Value createStateStorageEvent(const common::Buffer &key,
+                                           const common::Buffer &value,
                                            const primitives::BlockHash &block);
 
     std::optional<std::shared_ptr<SessionSubscriptions>> findSessionById(
@@ -219,14 +220,14 @@ namespace kagome::api {
     }
 
     template <typename T>
-    SessionSubscriptions::AdditionMessageType uploadFromCache(
+    inline SessionSubscriptions::AdditionMessageType uploadFromCache(
         T &&value) {
       auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string);
       obj->assign(std::forward<T>(value));
       return obj;
     }
 
-    SessionSubscriptions::CachedAdditionMessagesList
+    inline SessionSubscriptions::CachedAdditionMessagesList
     uploadMessagesListFromCache() {
       auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(
           api_service, SessionSubscriptions::AdditionMessagesList);

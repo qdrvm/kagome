@@ -72,19 +72,20 @@ namespace kagome::offchain {
     RandomSeed randomSeed() override;
 
     void localStorageSet(StorageType storage_type,
-                         const common::BufferView &key,
+                         const common::Buffer &key,
                          common::Buffer value) override;
 
     void localStorageClear(StorageType storage_type,
-                           const common::BufferView &key) override;
+                           const common::Buffer &key) override;
 
-    bool localStorageCompareAndSet(StorageType storage_type,
-                                   const common::BufferView &key,
-                                   std::optional<common::BufferView> expected,
-                                   common::Buffer value) override;
+    bool localStorageCompareAndSet(
+        StorageType storage_type,
+        const common::Buffer &key,
+        std::optional<std::reference_wrapper<const common::Buffer>> expected,
+        common::Buffer value) override;
 
     outcome::result<common::Buffer> localStorageGet(
-        StorageType storage_type, const common::BufferView &key) override;
+        StorageType storage_type, const common::Buffer &key) override;
 
     Result<RequestId, Failure> httpRequestStart(HttpMethod method,
                                                 std::string_view uri,

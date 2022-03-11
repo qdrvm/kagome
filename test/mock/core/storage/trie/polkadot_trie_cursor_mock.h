@@ -14,16 +14,16 @@ namespace kagome::storage::trie {
    public:
     MOCK_METHOD(outcome::result<bool>, seekFirst, (), (override));
 
-    MOCK_METHOD(outcome::result<bool>, seek, (const BufferView &), (override));
+    MOCK_METHOD(outcome::result<bool>, seek, (const Buffer &), (override));
 
     MOCK_METHOD(outcome::result<void>,
                 seekLowerBound,
-                (const BufferView &),
+                (const Buffer &),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 seekUpperBound,
-                (const BufferView &),
+                (const Buffer &),
                 (override));
 
     MOCK_METHOD(outcome::result<bool>, seekLast, (), (override));
@@ -34,10 +34,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(std::optional<common::Buffer>, key, (), (const, override));
 
-    MOCK_METHOD(std::optional<common::BufferConstRef>,
-                value,
-                (),
-                (const, override));
+    MOCK_METHOD(std::optional<common::Buffer>, value, (), (const, override));
   };
 }  // namespace kagome::storage::trie
 

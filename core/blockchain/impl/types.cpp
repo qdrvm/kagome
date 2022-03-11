@@ -13,7 +13,7 @@
 namespace kagome::blockchain {
 
   outcome::result<std::optional<common::Buffer>> idToLookupKey(
-      const ReadableBufferStorage &map, const primitives::BlockId &id) {
+      const ReadableBufferMap &map, const primitives::BlockId &id) {
     auto key = visit_in_place(
         id,
         [](const primitives::BlockNumber &n) {
@@ -25,7 +25,7 @@ namespace kagome::blockchain {
                                prefix::Prefix::ID_TO_LOOKUP_KEY);
         });
 
-    OUTCOME_TRY(key_opt, map.tryLoad(key));
+    OUTCOME_TRY(key_opt, map.tryGet(key));
 
     return key_opt;
   }
@@ -41,7 +41,7 @@ namespace kagome::blockchain {
     }
     auto root = trie.getRoot();
     if (root == nullptr) {
-      return codec.hash256(common::Buffer{0});
+      return codec.hash256({0});
     }
     auto encode_res = codec.encodeNode(*root);
     BOOST_ASSERT_MSG(encode_res.has_value(), "Trie encoding failed");

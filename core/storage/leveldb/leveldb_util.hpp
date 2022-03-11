@@ -39,7 +39,7 @@ namespace kagome::storage {
     return DatabaseError::UNKNOWN;
   }
 
-  inline leveldb::Slice make_slice(const common::BufferView &buf) {
+  inline leveldb::Slice make_slice(const common::Buffer &buf) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const char *>(buf.data());
     size_t n = buf.size();
@@ -56,7 +56,7 @@ namespace kagome::storage {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    return Buffer{ptr, ptr + s.size()};
+    return common::Buffer(ptr, ptr + s.size());
   }
 
 }  // namespace kagome::storage

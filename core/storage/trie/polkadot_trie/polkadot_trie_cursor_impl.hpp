@@ -17,167 +17,89 @@ namespace kagome::storage::trie {
 
   class PolkadotTrieCursorImpl : public PolkadotTrieCursor {
    public:
-    using NodeType = TrieNode::Type;
+    using NodeType = PolkadotNode::Type;
 
     enum class Error {
-      // cursor stumbled upon a node with a type invalid in the given context
-      // (e.g. a leaf node where a branch node should've been)
-      INVALID_NODE_TYPE = 1,
       // operation cannot be performed for cursor position is not valid
       // due to an error, reaching the end or not calling next() after
       // initialization
-      INVALID_CURSOR_ACCESS,
-      KEY_NOT_FOUND
+      INVALID_NODE_TYPE = 1,
+      METHOD_NOT_IMPLEMENTED
     };
 
-    explicit PolkadotTrieCursorImpl(std::shared_ptr<const PolkadotTrie> trie);
+    explicit PolkadotTrieCursorImpl(const PolkadotTrie &trie);
 
     ~PolkadotTrieCursorImpl() override = default;
 
-    [[nodiscard]] static outcome::result<
-        std::unique_ptr<PolkadotTrieCursorImpl>>
-    createAt(const common::BufferView &key,
-             const std::shared_ptr<const PolkadotTrie> &trie);
+    static outcome::result<std::unique_ptr<PolkadotTrieCursorImpl>> createAt(
+        const common::Buffer &key, const PolkadotTrie &trie);
 
-    [[nodiscard]] outcome::result<bool> seekFirst() override;
+    outcome::result<bool> seekFirst() override;
 
-    [[nodiscard]] outcome::result<bool> seek(
-        const common::BufferView &key) override;
+    outcome::result<bool> seek(const common::Buffer &key) override;
 
-    [[nodiscard]] outcome::result<bool> seekLast() override;
+    outcome::result<bool> seekLast() override;
 
     /**
      * Seek the first element with key not less than \arg key
      */
-    [[nodiscard]] outcome::result<void> seekLowerBound(
-        const common::BufferView &key) override;
+    outcome::result<void> seekLowerBound(const common::Buffer &key) override;
 
     /**
      * Seek the first element with key greater than \arg key
      */
-    [[nodiscard]] outcome::result<void> seekUpperBound(
-        const common::BufferView &key) override;
+    outcome::result<void> seekUpperBound(const common::Buffer &key) override;
 
-    [[nodiscard]] bool isValid() const override;
+    bool isValid() const override;
 
-    [[nodiscard]] outcome::result<void> next() override;
+    outcome::result<void> next() override;
 
-    [[nodiscard]] std::optional<common::Buffer> key() const override;
+    std::optional<common::Buffer> key() const override;
 
-    [[nodiscard]] std::optional<common::BufferConstRef> value() const override;
+    std::optional<common::Buffer> value() const override;
 
    private:
-    outcome::result<void> seekLowerBoundInternal(
-        const TrieNode &current, gsl::span<const uint8_t> left_nibbles);
-    outcome::result<bool> nextNodeWithValueInOuterTree();
-    outcome::result<void> nextNodeWithValueInSubTree(
-        const TrieNode &subtree_root);
-    outcome::result<const TrieNode *> visitChildWithMinIdx(const TrieNode &node,
-                                                           uint8_t min_idx = 0);
-
     /**
      * An element of a path in trie. A node that is a part of the path and the
      * index of its child which is the next node in the path
      */
     struct TriePathEntry {
-      TriePathEntry(const BranchNode &parent, uint8_t child_idx)
-          : parent{parent}, child_idx{child_idx} {}
+      TriePathEntry(BranchPtr parent, uint8_t child_idx)
+          : parent{std::move(parent)}, child_idx{child_idx} {}
 
-      const BranchNode &parent;
+      BranchPtr parent;
       uint8_t child_idx;
     };
 
-    class SearchState {
-     public:
-      explicit SearchState(const TrieNode &root) : current_{&root} {}
+    // will either put a new entry or update the top entry (in case that parent
+    // in the top entry is the same as \param parent
+    void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
 
-      SearchState(SearchState &&state) noexcept
-          : current_{state.current_}, path_{std::move(state.path_)} {}
-
-      SearchState &operator=(SearchState &&state) noexcept {
-        current_ = state.current_;
-        path_ = std::move(state.path_);
-        return *this;
-      }
-
-      SearchState(const SearchState &state) = delete;
-      SearchState &operator=(const SearchState &state) = delete;
-
-      ~SearchState() = default;
-
-      // need to pass child because of DummyNode logic (cannot obtain child
-      // directly, need to call retrieveChild of PolkadotTrie)
-      [[nodiscard]] outcome::result<void> visitChild(uint8_t index,
-                                                     const TrieNode &child);
-
-      [[nodiscard]] bool leaveChild() {
-        if (isAtRoot()) return false;
-        current_ = &path_.back().parent;
-        path_.pop_back();
-        return true;
-      }
-
-      bool isAtRoot() const {
-        return path_.empty();
-      }
-
-      const TrieNode &getCurrent() const {
-        BOOST_ASSERT_MSG(current_ != nullptr,
-                         "SearchState implementation should guarantee it");
-        return *current_;
-      }
-
-      std::vector<TriePathEntry> const &getPath() const {
-        return path_;
-      }
-
-     private:
-      const TrieNode *current_;
-      std::vector<TriePathEntry> path_;  // from root to current
-    };
-
-    // cursor state was invalidated and not restored
-    struct InvalidState {
-      std::error_code code;
-    };
-
-    // cursor was created but no seek was performed
-    struct UninitializedState {};
-
-    struct ReachedEndState {};
-
+    outcome::result<void> seekLowerBoundInternal(
+        NodePtr current, gsl::span<const uint8_t> left_nibbles);
+    outcome::result<bool> seekNodeWithValueBothDirections();
+    outcome::result<void> seekNodeWithValue(NodePtr &node);
+    outcome::result<bool> setChildWithMinIdx(NodePtr &node,
+                                             uint8_t min_idx = 0);
     /**
      * Constructs a list of branch nodes on the path from the root to the node
      * with the given \arg key
      */
-    auto makeSearchStateAt(const common::BufferView &key)
-        -> outcome::result<SearchState>;
+    auto constructLastVisitedChildPath(const common::Buffer &key)
+        -> outcome::result<std::list<TriePathEntry>>;
 
     common::Buffer collectKey() const;
 
     PolkadotCodec codec_;
+    std::list<TriePathEntry> last_visited_child_;
+    const PolkadotTrie &trie_;
+    NodePtr current_;
+    bool visited_root_ = false;
     log::Logger log_;
-
-    template <typename Res>
-    outcome::result<Res> safeAccess(outcome::result<Res> &&result) {
-      if (result.has_error()) {
-        state_ = InvalidState{result.error()};
-      }
-      return std::move(result);
-    }
-#define SAFE_VOID_CALL(expr) OUTCOME_TRY(safeAccess((expr)));
-
-#define SAFE_CALL(res, expr) OUTCOME_TRY(res, safeAccess((expr)));
-
-    std::shared_ptr<const PolkadotTrie> trie_;
-
-    using CursorState = std::
-        variant<UninitializedState, SearchState, InvalidState, ReachedEndState>;
-    CursorState state_;
   };
 
 }  // namespace kagome::storage::trie
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PolkadotTrieCursorImpl::Error)
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PolkadotTrieCursorImpl::Error);
 
 #endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_POLKADOT_TRIE_CURSOR_IMPL

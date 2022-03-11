@@ -11,7 +11,7 @@
 namespace kagome::runtime {
   enum class UncompressError : uint8_t { ZSTD_ERROR };
 
-  outcome::result<void> uncompressCodeIfNeeded(common::BufferView buf,
+  outcome::result<void> uncompressCodeIfNeeded(const common::Buffer &buf,
                                                common::Buffer &res);
 }  // namespace kagome::runtime
 

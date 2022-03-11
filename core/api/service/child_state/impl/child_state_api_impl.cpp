@@ -50,7 +50,7 @@ namespace kagome::api {
                 storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, initial_trie_reader->get(child_storage_key));
     OUTCOME_TRY(child_root_hash,
-                common::Hash256::fromSpan(gsl::make_span(child_root.get())));
+                common::Hash256::fromSpan(gsl::make_span(child_root)));
     OUTCOME_TRY(child_storage_trie_reader,
                 storage_->getEphemeralBatchAt(child_root_hash));
     auto cursor = child_storage_trie_reader->trieCursor();
@@ -91,7 +91,7 @@ namespace kagome::api {
                 storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, initial_trie_reader->get(child_storage_key));
     OUTCOME_TRY(child_root_hash,
-                common::Hash256::fromSpan(gsl::make_span(child_root.get())));
+                common::Hash256::fromSpan(gsl::make_span(child_root)));
     OUTCOME_TRY(child_storage_trie_reader,
                 storage_->getEphemeralBatchAt(child_root_hash));
     auto cursor = child_storage_trie_reader->trieCursor();
@@ -125,8 +125,7 @@ namespace kagome::api {
     return result;
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  ChildStateApiImpl::getStorage(
+  outcome::result<std::optional<common::Buffer>> ChildStateApiImpl::getStorage(
       const common::Buffer &child_storage_key,
       const common::Buffer &key,
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
@@ -136,7 +135,7 @@ namespace kagome::api {
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, trie_reader->get(child_storage_key));
     OUTCOME_TRY(child_root_hash,
-                common::Hash256::fromSpan(gsl::make_span(child_root.get())));
+                common::Hash256::fromSpan(gsl::make_span(child_root)));
     OUTCOME_TRY(child_storage_trie_reader,
                 storage_->getEphemeralBatchAt(child_root_hash));
     return child_storage_trie_reader->tryGet(key);
@@ -151,9 +150,9 @@ namespace kagome::api {
     std::optional<primitives::BlockHash> hash_opt;
     if (value_opt.has_value()) {
       storage::trie::PolkadotCodec codec;
-      auto hash = codec.hash256(
-          common::Buffer(gsl::make_span(value_opt.value().get())));
-      return std::move(hash);
+      auto hash =
+          codec.hash256(common::Buffer(gsl::make_span(value_opt.value())));
+      return hash;
     }
     return std::nullopt;
   }
@@ -168,10 +167,10 @@ namespace kagome::api {
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, trie_reader->get(child_storage_key));
     OUTCOME_TRY(child_root_hash,
-                common::Hash256::fromSpan(gsl::make_span(child_root.get())));
+                common::Hash256::fromSpan(gsl::make_span(child_root)));
     OUTCOME_TRY(child_storage_trie_reader,
                 storage_->getEphemeralBatchAt(child_root_hash));
     OUTCOME_TRY(value, child_storage_trie_reader->get(key));
-    return value.get().size();
+    return value.size();
   }
 }  // namespace kagome::api

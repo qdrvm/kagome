@@ -12,8 +12,7 @@ using kagome::common::Buffer;
 
 namespace kagome::storage {
 
-  outcome::result<common::Buffer> InMemoryStorage::load(
-      const BufferView &key) const {
+  outcome::result<Buffer> InMemoryStorage::get(const Buffer &key) const {
     if (storage.find(key.toHex()) != storage.end()) {
       return storage.at(key.toHex());
     }
@@ -21,8 +20,8 @@ namespace kagome::storage {
     return DatabaseError::NOT_FOUND;
   }
 
-  outcome::result<std::optional<Buffer>> InMemoryStorage::tryLoad(
-      const common::BufferView &key) const {
+  outcome::result<std::optional<common::Buffer>> InMemoryStorage::tryGet(
+      const common::Buffer &key) const {
     if (storage.find(key.toHex()) != storage.end()) {
       return storage.at(key.toHex());
     }
@@ -30,19 +29,19 @@ namespace kagome::storage {
     return std::nullopt;
   }
 
-  outcome::result<void> InMemoryStorage::put(const BufferView &key,
+  outcome::result<void> InMemoryStorage::put(const Buffer &key,
                                              const Buffer &value) {
     storage[key.toHex()] = value;
     return outcome::success();
   }
 
-  outcome::result<void> InMemoryStorage::put(const BufferView &key,
+  outcome::result<void> InMemoryStorage::put(const Buffer &key,
                                              Buffer &&value) {
     storage[key.toHex()] = std::move(value);
     return outcome::success();
   }
 
-  outcome::result<bool> InMemoryStorage::contains(const BufferView &key) const {
+  outcome::result<bool> InMemoryStorage::contains(const Buffer &key) const {
     return storage.find(key.toHex()) != storage.end();
   }
 
@@ -50,17 +49,18 @@ namespace kagome::storage {
     return storage.empty();
   }
 
-  outcome::result<void> InMemoryStorage::remove(const BufferView &key) {
+  outcome::result<void> InMemoryStorage::remove(const Buffer &key) {
     storage.erase(key.toHex());
     return outcome::success();
   }
 
-  std::unique_ptr<kagome::storage::face::WriteBatch<BufferView, Buffer>>
+  std::unique_ptr<kagome::storage::face::WriteBatch<Buffer, Buffer>>
   InMemoryStorage::batch() {
     return std::make_unique<InMemoryBatch>(*this);
   }
 
-  std::unique_ptr<InMemoryStorage::Cursor> InMemoryStorage::cursor() {
+  std::unique_ptr<kagome::storage::face::MapCursor<Buffer, Buffer>>
+  InMemoryStorage::cursor() {
     return nullptr;
   }
 }  // namespace kagome::storage

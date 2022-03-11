@@ -10,7 +10,6 @@
 #include <boost/filesystem.hpp>
 
 #include "log/logger.hpp"
-#include "testutil/prepare_loggers.hpp"
 
 // intentionally here, so users can use fs shortcut
 namespace fs = boost::filesystem;
@@ -36,10 +35,6 @@ namespace test {
     void TearDown() override;
 
     void SetUp() override;
-
-    static void SetUpTestCase() {
-      testutil::prepareLoggers();
-    }
 
    protected:
     fs::path base_path;

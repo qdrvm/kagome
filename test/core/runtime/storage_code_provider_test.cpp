@@ -53,13 +53,12 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
   EXPECT_CALL(*trie_db, getEphemeralBatchAt(first_state_root))
       .WillOnce(Invoke([this]() {
         auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-        EXPECT_CALL(*batch, get(common::BufferView{storage::kRuntimeCodeKey}))
+        EXPECT_CALL(*batch, get(storage::kRuntimeCodeKey))
             .WillOnce(Return(state_code_));
         return batch;
       }));
   EXPECT_CALL(*tracker, getLastCodeUpdateBlockInfo(first_state_root))
       .WillOnce(Return(block_info));
-      
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
       trie_db,
       tracker,
@@ -91,12 +90,13 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
   storage::trie::RootHash second_state_root{{2, 2, 2, 2}};
 
   // given
-  EXPECT_CALL(*trie_db, getEphemeralBatchAt(first_state_root)).WillOnce(Invoke([this]() {
-    auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-    EXPECT_CALL(*batch, get(common::BufferView{storage::kRuntimeCodeKey}))
-        .WillOnce(Return(state_code_));
-    return batch;
-  }));
+  EXPECT_CALL(*trie_db, getEphemeralBatchAt(first_state_root))
+      .WillOnce(Invoke([this]() {
+        auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
+        EXPECT_CALL(*batch, get(storage::kRuntimeCodeKey))
+            .WillOnce(Return(state_code_));
+        return batch;
+      }));
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
       trie_db,
       tracker,
@@ -107,7 +107,7 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
   EXPECT_CALL(*trie_db, getEphemeralBatchAt(second_state_root))
       .WillOnce(Invoke([&new_state_code](auto &) {
         auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-        EXPECT_CALL(*batch, get(common::BufferView{storage::kRuntimeCodeKey}))
+        EXPECT_CALL(*batch, get(storage::kRuntimeCodeKey))
             .WillOnce(Return(new_state_code));
         return batch;
       }));

@@ -27,7 +27,7 @@ namespace kagome::runtime {
   // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/maybe-compressed-blob/src/lib.rs#L35
   constexpr size_t kCodeBlobBombLimit = 50 * 1024 * 1024;
 
-  outcome::result<void> uncompressCodeIfNeeded(common::BufferView buf,
+  outcome::result<void> uncompressCodeIfNeeded(const common::Buffer &buf,
                                                common::Buffer &res) {
     if (buf.size() > kZstdPrefixSize
         && std::equal(buf.begin(),
@@ -49,7 +49,7 @@ namespace kagome::runtime {
                                   buf.size() - kZstdPrefixSize);
       res.resize(size);
     } else {
-      res = common::Buffer{buf};
+      res = buf;
     }
     return outcome::success();
   }
