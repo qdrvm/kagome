@@ -76,9 +76,8 @@ TEST_F(SynchronizerTest, ProcessRequest) {
                                  std::nullopt};
 
   EXPECT_CALL(*tree_,
-              getChainByBlock(block3_hash_,
-                              BlockTree::GetChainDirection::ASCEND,
-                              AppConfiguration::kAbsolutMaxBlocksInResponse))
+              getBestChainFromBlock(
+                  block3_hash_, AppConfiguration::kAbsolutMaxBlocksInResponse))
       .WillOnce(Return(std::vector<BlockHash>{block3_hash_, block4_hash_}));
 
   EXPECT_CALL(*headers_, getBlockHeader(BlockId{block3_hash_}))

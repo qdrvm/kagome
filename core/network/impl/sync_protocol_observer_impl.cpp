@@ -110,11 +110,18 @@ namespace kagome::network {
 
     // Note: request.to is not used in substrate
 
-    OUTCOME_TRY(
-        chain_hash,
-        block_tree_->getChainByBlock(from_hash, direction, request_count));
-
-    return std::move(chain_hash);
+    if (direction == blockchain::BlockTree::GetChainDirection::ASCEND) {
+      OUTCOME_TRY(chain_hash,
+                  block_tree_->getBestChainFromBlock(from_hash, request_count));
+      return std::move(chain_hash);
+    }
+    if (direction == blockchain::BlockTree::GetChainDirection::DESCEND) {
+      OUTCOME_TRY(
+          chain_hash,
+          block_tree_->getDescendingChainToBlock(from_hash, request_count));
+      return std::move(chain_hash);
+    }
+    BOOST_UNREACHABLE_RETURN({});
   }
 
   void SyncProtocolObserverImpl::fillBlocksResponse(

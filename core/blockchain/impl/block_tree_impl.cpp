@@ -828,12 +828,10 @@ namespace kagome::blockchain {
         tree_->getMetadata().last_finalized.lock()->block_hash, block);
   }
 
-  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
-      const primitives::BlockHash &block,
-      GetChainDirection direction,
-      uint64_t maximum) const {
+  BlockTree::BlockHashVecRes BlockTreeImpl::getBestChainFromBlock(
+      const primitives::BlockHash &block, uint64_t maximum) const {
     auto block_number_res = header_repo_->getNumberByHash(block);
-    if (!block_number_res) {
+    if (block_number_res.has_error()) {
       log_->error("cannot retrieve block with hash {}: {}",
                   block.toHex(),
                   block_number_res.error().message());
@@ -841,26 +839,16 @@ namespace kagome::blockchain {
     }
     auto start_block_number = block_number_res.value();
 
-    primitives::BlockNumber finish_block_number;  // NOLINT
-    if (direction == GetChainDirection::DESCEND) {
-      if (start_block_number < maximum) {
-        // we want to finish at the root
-        finish_block_number = 0;
-      } else {
-        // some non-root block
-        finish_block_number = start_block_number - maximum + 1;
-      }
-    } else {
-      finish_block_number = start_block_number + maximum - 1;
-      auto current_depth = tree_->getMetadata().deepest_leaf.lock()->depth;
-      if (current_depth < finish_block_number) {
-        finish_block_number = current_depth;
-      }
+    primitives::BlockNumber finish_block_number =
+        start_block_number + maximum - 1;
+    auto current_depth = tree_->getMetadata().deepest_leaf.lock()->depth;
+    if (current_depth < finish_block_number) {
+      finish_block_number = current_depth;
     }
 
     auto finish_block_hash_res =
         header_repo_->getHashByNumber(finish_block_number);
-    if (not finish_block_hash_res.has_value()) {
+    if (finish_block_hash_res.has_error()) {
       log_->error("cannot retrieve block with number {}: {}",
                   finish_block_number,
                   finish_block_hash_res.error().message());
@@ -868,15 +856,50 @@ namespace kagome::blockchain {
     }
     auto &finish_block_hash = finish_block_hash_res.value();
 
-    if (direction == GetChainDirection::ASCEND) {
-      return getChainByBlocks(block, finish_block_hash, maximum);
+    return getChainByBlocks(block, finish_block_hash, maximum);
+  }
+
+  BlockTree::BlockHashVecRes BlockTreeImpl::getDescendingChainToBlock(
+      const primitives::BlockHash &to_block, uint64_t maximum) const {
+    std::deque<primitives::BlockHash> chain;
+
+    auto hash = to_block;
+
+    // Try to retrieve from cached tree
+    if (auto node = tree_->getRoot().findByHash(hash)) {
+      chain.emplace_back(hash);
+      while (maximum > chain.size()) {
+        auto parent = node->parent.lock();
+        if (not parent) {
+          hash = node->block_hash;
+          break;
+        }
+        chain.emplace_back(parent->block_hash);
+        node = parent;
+      }
     }
 
-    // the function returns the blocks in the chronological order, but we want a
-    // reverted one in this case
-    OUTCOME_TRY(chain, getChainByBlocks(finish_block_hash, block, maximum));
-    std::reverse(chain.begin(), chain.end());
-    return std::move(chain);
+    while (maximum > chain.size()) {
+      auto header_res = header_repo_->getBlockHeader(hash);
+      if (header_res.has_error()) {
+        if (chain.empty()) {
+          log_->error("cannot retrieve block with hash {}: {}",
+                      hash,
+                      header_res.error().message());
+          return BlockTreeError::HEADER_NOT_FOUND;
+        }
+        break;
+      }
+      const auto &header = header_res.value();
+
+      if (header.parent_hash == primitives::BlockHash{}) {
+        break;
+      }
+
+      chain.emplace_back(header.parent_hash);
+    }
+
+    return std::vector<primitives::BlockHash>(chain.begin(), chain.end());
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(

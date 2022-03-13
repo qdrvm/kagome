@@ -90,6 +90,13 @@ struct BlockTreeTest : public testing::Test {
               return it->second;
             }));
 
+    EXPECT_CALL(*header_repo_,
+                getBlockHeader({finalized_block_header_.parent_hash}))
+        .WillRepeatedly(Return(BlockTreeError::HEADER_NOT_FOUND));
+
+    EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
+        .WillRepeatedly(Return(finalized_block_header_));
+
     EXPECT_CALL(*storage_, putNumberToIndexKey(_))
         .WillRepeatedly(
             Invoke([&](const BlockInfo &b) -> outcome::result<void> {
@@ -143,8 +150,8 @@ struct BlockTreeTest : public testing::Test {
     auto hash = hasher_->blake2b_256(encoded_block);
     primitives::BlockInfo block_info(block.header.number, hash);
 
-    EXPECT_CALL(*header_repo_, getBlockHeader(BlockId(hash)))
-        .WillRepeatedly(Return(block.header));
+    //    EXPECT_CALL(*header_repo_, getBlockHeader(BlockId(hash)))
+    //        .WillRepeatedly(Return(block.header));
     EXPECT_CALL(*header_repo_, getNumberByHash(hash))
         .WillRepeatedly(Return(block.header.number));
 
@@ -180,7 +187,12 @@ struct BlockTreeTest : public testing::Test {
     header.number = number;
     header.state_root = state;
 
-    return addBlock(Block{header, {}});
+    auto hash = addBlock(Block{header, {}});
+
+    EXPECT_CALL(*header_repo_, getBlockHeader({hash}))
+        .WillRepeatedly(Return(header));
+
+    return hash;
   }
 
   const BlockInfo kFinalizedBlockInfo{
@@ -661,9 +673,7 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
 
   // WHEN
   ASSERT_OUTCOME_SUCCESS(
-      chain,
-      block_tree_->getChainByBlock(
-          kFinalizedBlockInfo.hash, BlockTree::GetChainDirection::ASCEND, 5));
+      chain, block_tree_->getBestChainFromBlock(kFinalizedBlockInfo.hash, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);
@@ -692,15 +702,16 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(0));
   EXPECT_CALL(*header_repo_, getNumberByHash(hash2)).WillRepeatedly(Return(2));
-  EXPECT_CALL(*header_repo_, getHashByNumber(0))
-      .WillOnce(Return(kFinalizedBlockInfo.hash));
+  //  EXPECT_CALL(*header_repo_, getHashByNumber(0))
+  //      .WillOnce(Return(kFinalizedBlockInfo.hash));
+  EXPECT_CALL(*header_repo_, getBlockHeader({kFinalizedBlockInfo.hash}))
+      .WillOnce(Return(BlockTreeError::HEADER_NOT_FOUND));
 
   std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockInfo.hash};
 
   // WHEN
   ASSERT_OUTCOME_SUCCESS(chain,
-                         block_tree_->getChainByBlock(
-                             hash2, BlockTree::GetChainDirection::DESCEND, 5));
+                         block_tree_->getDescendingChainToBlock(hash2, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);
@@ -713,9 +724,6 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
  * @then BLOCK_NOT_FOUND error is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
-  EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
-      .WillRepeatedly(Return(finalized_block_header_));
-
   BlockHash target_hash({1, 1, 1});
   BlockHeader target_header;
   target_header.number = 1337;
@@ -735,9 +743,6 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
  * @then the second block hash is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
-  EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
-      .WillRepeatedly(Return(finalized_block_header_));
-
   auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
 
   ASSERT_OUTCOME_SUCCESS(
@@ -753,9 +758,6 @@ TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
  * @then the longest chain with is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
-  EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
-      .WillRepeatedly(Return(finalized_block_header_));
-
   /*
           42   43  44  45  46   47
 
@@ -784,9 +786,6 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
  * @then the longest chain with is returned
  */
 TEST_F(BlockTreeTest, Reorganize) {
-  EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
-      .WillRepeatedly(Return(finalized_block_header_));
-
   // GIVEN
   auto A_hash = addHeaderToRepository(kLastFinalizedBlockId, 43);
   auto B_hash = addHeaderToRepository(A_hash, 44);
@@ -851,9 +850,6 @@ TEST_F(BlockTreeTest, Reorganize) {
  * @then TARGET_IS_PAST_MAX error is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_TargetPastMax) {
-  EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
-      .WillRepeatedly(Return(finalized_block_header_));
-
   auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
 
   EXPECT_OUTCOME_FALSE(err, block_tree_->getBestContaining(target_hash, 42));
