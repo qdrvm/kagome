@@ -673,15 +673,77 @@ namespace kagome::blockchain {
   outcome::result<void> BlockTreeImpl::addExistingBlock(
       const primitives::BlockHash &block_hash,
       const primitives::BlockHeader &block_header) {
+    SL_TRACE(log_,
+             "Trying to add block {} into block tree",
+             primitives::BlockInfo(block_header.number, block_hash));
+
     auto node = tree_->getRoot().findByHash(block_hash);
     // Check if tree doesn't have this block; if not, we skip that
     if (node != nullptr) {
+      SL_TRACE(log_,
+               "Block {} exists in block tree",
+               primitives::BlockInfo(block_header.number, block_hash));
       return BlockTreeError::BLOCK_EXISTS;
     }
-    // Check if we know parent of this block; if not, we cannot insert it
+
     auto parent = tree_->getRoot().findByHash(block_header.parent_hash);
+
+    // Check if we know parent of this block; if not, we cannot insert it
     if (parent == nullptr) {
-      return BlockTreeError::NO_PARENT;
+      SL_TRACE(log_,
+               "Block {} parent of {} has not found in block tree. "
+               "Trying to restore missed branch",
+               primitives::BlockInfo(block_header.number - 1,
+                                     block_header.parent_hash),
+               primitives::BlockInfo(block_header.number, block_hash));
+
+      // Trying to restore missed branch
+      std::stack<std::pair<primitives::BlockHash, primitives::BlockHeader>>
+          to_add;
+
+      for (auto hash = block_header.parent_hash;;) {
+        OUTCOME_TRY(header_opt, storage_->getBlockHeader(hash));
+        if (not header_opt.has_value()) {
+          return BlockTreeError::NO_PARENT;
+        }
+
+        auto &header = header_opt.value();
+        SL_TRACE(log_,
+                 "Block {} has found in storage and enqueued to add",
+                 primitives::BlockInfo(header.number, hash));
+
+        to_add.emplace(hash, std::move(header));
+
+        if (tree_->getRoot().findByHash(header.parent_hash) != nullptr) {
+          SL_TRACE(log_,
+                   "Block {} parent of {} has found in block tree",
+                   primitives::BlockInfo(header.number - 1, header.parent_hash),
+                   primitives::BlockInfo(header.number, hash));
+
+          break;
+        }
+
+        SL_TRACE(log_,
+                 "Block {} has not found in block tree. "
+                 "Trying to restore from storage",
+                 primitives::BlockInfo(header.number - 1, header.parent_hash));
+
+        hash = header.parent_hash;
+      }
+
+      while (not to_add.empty()) {
+        const auto &[hash, header] = to_add.top();
+        OUTCOME_TRY(addExistingBlock(hash, header));
+        to_add.pop();
+      }
+
+      parent = tree_->getRoot().findByHash(block_header.parent_hash);
+      BOOST_ASSERT_MSG(parent != nullptr,
+                       "Parent must be restored at this moment");
+
+      SL_TRACE(log_,
+               "Trying to add block {} into block tree",
+               primitives::BlockInfo(block_header.number, block_hash));
     }
 
     consensus::EpochNumber epoch_number = 0;
