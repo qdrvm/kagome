@@ -128,7 +128,12 @@ namespace kagome::log {
     }
   }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
+
+#define SL_TRACE_FUNC_CALL(logger, ret, ...)
+#define SL_TRACE_VOID_FUNC_CALL(logger, ...)
+
+#else
 
 #define SL_TRACE_FUNC_CALL(logger, ret, ...) \
   ::kagome::log::trace_function_call(        \
@@ -136,11 +141,6 @@ namespace kagome::log {
 
 #define SL_TRACE_VOID_FUNC_CALL(logger, ...) \
   ::kagome::log::trace_void_function_call((logger), __FUNCTION__, ##__VA_ARGS__)
-
-#else
-
-#define SL_TRACE_FUNC_CALL(logger, ret, ...)
-#define SL_TRACE_VOID_FUNC_CALL(logger, ...)
 
 #endif
 

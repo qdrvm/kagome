@@ -5,6 +5,7 @@
 
 #include "host_api/impl/child_storage_extension.hpp"
 
+#include "common/monadic_utils.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
@@ -55,6 +56,7 @@ namespace kagome::host_api {
     OUTCOME_TRY(new_child_root, child_batch->commit());
     OUTCOME_TRY(storage_provider_->getCurrentBatch()->put(
         prefixed_child_key, Buffer{scale::encode(new_child_root).value()}));
+    SL_TRACE(logger_, "Update child trie root: prefix is {}, new root is", child_storage_key, new_child_root);
     storage_provider_->clearChildBatches();
     if constexpr (!std::is_void_v<R>) {
       return result;
@@ -111,9 +113,11 @@ namespace kagome::host_api {
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    auto result = executeOnChildStorage<std::optional<BufferConstRef>>(
+    auto result = executeOnChildStorage<std::optional<Buffer>>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) { return child_batch->tryGet(key); },
+        [](auto &child_batch, auto &key) { return common::map_optional(child_batch->tryGet(key).value(), [](auto& v) {
+          return common::Buffer(v.get());
+        }); },
         key_buffer);
 
     if (result) {
@@ -208,8 +212,6 @@ namespace kagome::host_api {
     auto [child_key_buffer] = loadBuffer(memory, child_storage_key);
     auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
 
-    SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);
-
     if (auto child_batch =
             storage_provider_->getChildBatchAt(prefixed_child_key.value());
         child_batch.has_value() and child_batch.value() != nullptr) {
@@ -226,6 +228,7 @@ namespace kagome::host_api {
           res.error().message());
     }
     const auto &root = res.value();
+    SL_TRACE_FUNC_CALL(logger_, root, child_key_buffer);
     return memory.storeBuffer(root);
   }
 

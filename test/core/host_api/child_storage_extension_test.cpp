@@ -9,7 +9,7 @@
 #include <optional>
 #include <scale/scale.hpp>
 
-#include "common/monadic_utils.h"
+#include "common/monadic_utils.hpp"
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
