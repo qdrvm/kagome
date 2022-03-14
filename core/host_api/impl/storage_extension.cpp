@@ -73,10 +73,13 @@ namespace kagome::host_api {
         common::BufferView data = data_opt.value().get();
         data = data.subspan(std::min<size_t>(offset, data.size()));
         auto written = std::min<size_t>(data.size(), value.size);
-        data = data.subspan(0, written);
-        memory.storeBuffer(value.ptr, data);
-        SL_TRACE_FUNC_CALL(logger_, data, key, value.ptr, value.size, offset);
+        memory.storeBuffer(value.ptr, data.subspan(0, written));
         res = data.size();
+
+        SL_TRACE_FUNC_CALL(
+            logger_, data, key, common::Buffer{data.subspan(0, written)});
+      } else {
+        SL_TRACE_FUNC_CALL(logger_, std::string_view{"none"}, key, value_out, offset);
       }
     } else {
       SL_ERROR(logger_,
@@ -137,7 +140,12 @@ namespace kagome::host_api {
     auto result = get(key_buffer);
 
     if (result) {
-      SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
+      auto& opt_buf = result.value();
+      if (opt_buf.has_value()) {
+        SL_TRACE_FUNC_CALL(logger_, opt_buf.value().get().toHex(), key_buffer);
+      } else {
+        SL_TRACE_FUNC_CALL(logger_, std::string_view{"none"}, key_buffer);
+      }
     } else {
       logger_->error(
           error_message, key_buffer.toHex(), result.error().message());
@@ -204,7 +212,7 @@ namespace kagome::host_api {
     if (limit_opt) {
       SL_TRACE_VOID_FUNC_CALL(logger_, prefix, limit_opt.value());
     } else {
-      SL_TRACE_VOID_FUNC_CALL(logger_, prefix, "none");
+      SL_TRACE_VOID_FUNC_CALL(logger_, prefix, std::string_view{"none"});
     }
     return clearPrefix(prefix, limit_opt);
   }
