@@ -108,7 +108,7 @@ ACTION_P(blockTree_getBlockHeader, local_blocks) {
       block_id,
       [&](const BlockNumber &n) -> std::optional<BlockInfo> {
         std::cout << "GetHeader: #" << n << ", ";
-        if (local_blocks.size() >= n) {
+        if (local_blocks.size() > n) {
           auto &bi = local_blocks[n];
           std::cout << "Result: " << bi.hash.data() << std::endl;
           return bi;
@@ -145,7 +145,7 @@ ACTION_P(syncProtocol_request, remote_blocks) {
       request.from,
       [&](const BlockNumber &n) -> std::optional<BlockInfo> {
         std::cout << "Requested: #" << n << ", ";
-        if (remote_blocks.size() >= n) {
+        if (remote_blocks.size() > n) {
           auto &bi = remote_blocks[n];
           std::cout << "Result: " << bi.hash.data() << std::endl;
           return bi;
