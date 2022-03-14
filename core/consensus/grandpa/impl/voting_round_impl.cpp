@@ -720,8 +720,11 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    BOOST_ASSERT(
-        env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
+    if (not env_->isEqualOrDescendOf(block_info.hash,
+                                     finalized_.value().hash)) {
+      return VotingRoundError::
+          JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED;
+    }
 
     auto finalized = env_->finalize(voter_set_->id(), justification);
     if (not finalized) {
@@ -772,7 +775,7 @@ namespace kagome::consensus::grandpa {
           SL_DEBUG(logger_,
                    "Vote does not have ancestry with target block: "
                    "vote={} target={}",
-                   vote.hash.toHex(),
+                   vote.hash,
                    signed_precommit.getBlockHash());
         }
 

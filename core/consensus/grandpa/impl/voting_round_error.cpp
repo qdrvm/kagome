@@ -21,6 +21,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
     case E::LAST_ESTIMATE_BETTER_THAN_PREVOTE:
       return "Current state does not contain prevote which is equal to the "
              "last round estimate or is descendant of it";
+    case E::JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED:
+      return "Justified block is greater than actually finalized";
     case E::UNKNOWN_VOTER:
       return "Provided vote is the vote of unknown voter";
     case E::ZERO_WEIGHT_VOTER:
