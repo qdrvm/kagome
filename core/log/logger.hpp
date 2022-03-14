@@ -52,12 +52,6 @@ namespace kagome::log {
   auto format_arg(T const *t) {
     return fmt::ptr(t);
   }
-
-  template <typename T>
-  auto format_arg(const std::optional<T> &t) {
-    return t ? format_arg(t.value()) : "none";
-  }
-
   inline std::string_view format_arg(std::string_view s) {
     return s;
   }
@@ -84,6 +78,16 @@ namespace kagome::log {
       return res.substr(0, 256) + "...";
     }
     return res;
+  }
+
+  template <typename T>
+  auto format_arg(std::reference_wrapper<T> t) {
+    return format_arg(t.get());
+  }
+
+  template <typename T>
+  auto format_arg(const std::optional<T> &t) {
+    return t ? format_arg(t.value()) : "none";
   }
 
   template <typename Ret, typename... Args>

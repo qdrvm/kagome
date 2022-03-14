@@ -26,15 +26,16 @@ namespace kagome::api {
         const std::shared_ptr<api::ApiService> &api_service) = 0;
 
     virtual outcome::result<std::vector<common::Buffer>> getKeysPaged(
-        const std::optional<common::Buffer> &prefix,
+        const std::optional<common::BufferView> &prefix,
         uint32_t keys_amount,
-        const std::optional<common::Buffer> &prev_key,
+        const std::optional<common::BufferView> &prev_key,
         const std::optional<primitives::BlockHash> &block_hash_opt) const = 0;
 
-    virtual outcome::result<std::optional<common::Buffer>> getStorage(
-        const common::Buffer &key) const = 0;
-    virtual outcome::result<std::optional<common::Buffer>> getStorageAt(
-        const common::Buffer &key, const primitives::BlockHash &at) const = 0;
+    virtual outcome::result<std::optional<common::BufferConstRef>> getStorage(
+        const common::BufferView &key) const = 0;
+    virtual outcome::result<std::optional<common::BufferConstRef>> getStorageAt(
+        const common::BufferView &key,
+        const primitives::BlockHash &at) const = 0;
 
     struct StorageChangeSet {
       primitives::BlockHash block;

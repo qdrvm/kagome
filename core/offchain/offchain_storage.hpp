@@ -27,7 +27,7 @@ namespace kagome::offchain {
      * @param value a pointer-size indicating the value
      * @return success or error
      */
-    virtual outcome::result<void> set(const common::Buffer &key,
+    virtual outcome::result<void> set(const common::BufferView &key,
                                       common::Buffer value) = 0;
 
     /**
@@ -35,7 +35,7 @@ namespace kagome::offchain {
      * @param key a pointer-size indicating the key
      * @return success or error
      */
-    virtual outcome::result<void> clear(const common::Buffer &key) = 0;
+    virtual outcome::result<void> clear(const common::BufferView &key) = 0;
 
     /**
      * @brief Sets a new value in the local storage if the condition matches the
@@ -46,8 +46,8 @@ namespace kagome::offchain {
      * @return bool as result, or error at failure
      */
     virtual outcome::result<bool> compare_and_set(
-        const common::Buffer &key,
-        std::optional<std::reference_wrapper<const common::Buffer>> expected,
+        const common::BufferView &key,
+        const std::optional<common::BufferView> &expected,
         common::Buffer value) = 0;
 
     /**
@@ -55,7 +55,8 @@ namespace kagome::offchain {
      * @param key a pointer-size indicating the key
      * @return value for success, or error at failure
      */
-    virtual outcome::result<common::Buffer> get(const common::Buffer &key) = 0;
+    virtual outcome::result<common::Buffer> get(
+        const common::BufferView &key) = 0;
   };
 
 }  // namespace kagome::offchain

@@ -19,13 +19,16 @@
 
 namespace kagome::common {
 
+  class BufferView;
+
   /**
    * @brief Class represents arbitrary (including empty) byte buffer.
    */
   class Buffer : public boost::equality_comparable<Buffer>,
-                 public boost::equality_comparable<gsl::span<uint8_t>>,
+                 public boost::equality_comparable<gsl::span<const uint8_t>>,
                  public boost::equality_comparable<std::vector<uint8_t>>,
-                 public boost::less_than_comparable<Buffer> {
+                 public boost::less_than_comparable<Buffer>,
+                 public boost::less_than_comparable<gsl::span<const uint8_t>> {
    public:
     using iterator = std::vector<uint8_t>::iterator;
     using const_iterator = std::vector<uint8_t>::const_iterator;
@@ -91,6 +94,8 @@ namespace kagome::common {
      * @brief Lexicographical comparison of two buffers
      */
     bool operator<(const Buffer &b) const noexcept;
+
+    bool operator<(gsl::span<const uint8_t> b) const noexcept;
 
     /**
      * @brief Iterator, which points to begin of this buffer.
@@ -206,6 +211,8 @@ namespace kagome::common {
      */
     Buffer subbuffer(size_t offset = 0, size_t length = -1) const;
 
+    BufferView view(size_t offset = 0, size_t length = -1) const;
+
     /**
      * @brief encode bytearray as hex
      * @return hex-encoded string
@@ -231,14 +238,14 @@ namespace kagome::common {
      * @note Does not ensure correct encoding
      * @return string
      */
-    const std::string_view toString() const;
+    std::string toString() const;
 
     /**
      * @brief return content of bytearray as a string copy data
      * @note Does not ensure correct encoding
      * @return string
      */
-    std::string asString() const;
+    std::string_view asString() const;
 
     /**
      * @brief stores content of a string to byte array
@@ -250,6 +257,41 @@ namespace kagome::common {
 
     template <typename T>
     Buffer &putRange(const T &begin, const T &end);
+  };
+
+  using BufferMutRef = std::reference_wrapper<Buffer>;
+  using BufferConstRef = std::reference_wrapper<const Buffer>;
+
+  class BufferView : public gsl::span<const uint8_t>,
+                     public boost::equality_comparable<Buffer>,
+                     public boost::less_than_comparable<Buffer> {
+   public:
+    BufferView() = default;
+
+    BufferView(const Buffer &buf) noexcept
+        : gsl::span<const uint8_t>{buf.data(),
+                                   static_cast<index_type>(buf.size())} {}
+
+    BufferView(gsl::span<const uint8_t> span) noexcept
+        : gsl::span<const uint8_t>{span} {}
+
+    std::string toHex() const;
+
+    BufferView &operator=(gsl::span<const uint8_t> span) noexcept {
+      *this = BufferView{span};
+      return *this;
+    }
+
+    BufferView &operator=(Buffer &&buf) = delete;
+
+    bool operator==(const common::Buffer &buf) const noexcept {
+      return std::equal(begin(), end(), buf.begin(), buf.end());
+    }
+
+    bool operator<(const common::Buffer &buf) const noexcept {
+      return std::lexicographical_compare(
+          begin(), end(), buf.begin(), buf.end());
+    }
   };
 
   /**
@@ -282,6 +324,7 @@ namespace kagome::common {
   }
 
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
+  std::ostream &operator<<(std::ostream &os, BufferView view);
 
   namespace literals {
     /// creates a buffer filled with characters from the original string

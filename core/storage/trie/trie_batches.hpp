@@ -12,13 +12,16 @@
 
 namespace kagome::storage::trie {
 
-  class TrieBatch : public face::Readable<Buffer, Buffer>,
-                    public face::Writeable<Buffer, Buffer>,
-                    public face::Iterable<Buffer, Buffer> {
+  class TrieBatch
+      : public face::ReadableMap<BufferView, Buffer>,
+        public face::Writeable<BufferView, Buffer>,
+        public face::Iterable<Buffer, common::BufferConstRef, BufferView> {
    public:
     ~TrieBatch() override = default;
 
-    std::unique_ptr<BufferMapCursor> cursor() final {
+    using Cursor =
+        face::Iterable<Buffer, common::BufferConstRef, BufferView>::Cursor;
+    std::unique_ptr<Cursor> cursor() final {
       return trieCursor();
     }
 
@@ -28,7 +31,8 @@ namespace kagome::storage::trie {
      * Remove all trie entries which key begins with the supplied prefix
      */
     virtual outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
-        const Buffer &prefix, std::optional<uint64_t> limit = std::nullopt) = 0;
+        const BufferView &prefix,
+        std::optional<uint64_t> limit = std::nullopt) = 0;
   };
 
   class TopperTrieBatch;
