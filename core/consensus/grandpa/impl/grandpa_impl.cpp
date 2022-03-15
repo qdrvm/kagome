@@ -160,7 +160,10 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeNextRound(
       const std::shared_ptr<VotingRound> &round) {
-    auto best_block = authority_manager_->base();
+    BOOST_ASSERT(round->finalizedBlock().has_value());
+
+    BlockInfo best_block = round->finalizedBlock().value();
+
     auto authorities_res = authority_manager_->authorities(best_block, true);
     if (authorities_res.has_error()) {
       SL_CRITICAL(logger_,
