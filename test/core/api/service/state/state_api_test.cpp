@@ -9,6 +9,7 @@
 #include "api/service/state/requests/get_metadata.hpp"
 #include "api/service/state/requests/subscribe_storage.hpp"
 #include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
+#include "mock/core/api/service/api_service_mock.hpp"
 #include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -21,6 +22,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using kagome::api::ApiServiceMock;
 using kagome::api::StateApiMock;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTreeMock;
@@ -54,6 +56,8 @@ namespace kagome::api {
         std::make_shared<BlockTreeMock>();
     std::shared_ptr<CoreMock> runtime_core_ = std::make_shared<CoreMock>();
     std::shared_ptr<MetadataMock> metadata_ = std::make_shared<MetadataMock>();
+    std::shared_ptr<ApiServiceMock> api_service_ =
+        std::make_shared<ApiServiceMock>();
 
     std::unique_ptr<api::StateApiImpl> api_{};
   };
@@ -452,6 +456,57 @@ namespace kagome::api {
         changes[0].changes,
         ::testing::Each(::testing::Field(
             &StateApiImpl::StorageChangeSet::Change::key, ContainedIn(keys))));
+  }
+
+  /**
+   * @given subscription id
+   * @when request to unsubscribe from storage events
+   * @then unsubscribe using ApiService and return if operation succeeded
+   */
+  TEST_F(StateApiTest, UnsubscribeStorage) {
+    std::vector<uint32_t> subscription_id;
+    auto expected_return = true;
+
+    EXPECT_CALL(*api_service_, unsubscribeSessionFromIds(subscription_id))
+        .WillOnce(Return(expected_return));
+
+    api_->setApiService(api_service_);
+    ASSERT_OUTCOME_SUCCESS(result, api_->unsubscribeStorage(subscription_id));
+    ASSERT_EQ(expected_return, result);
+  }
+
+  /**
+   * @when request subscription on runtime version event
+   * @then subscribe on event through ApiService, return subscription id on
+   * success
+   */
+  TEST_F(StateApiTest, SubscribeRuntimeVersion) {
+    auto expected_return = 22u;
+
+    EXPECT_CALL(*api_service_, subscribeRuntimeVersion())
+        .WillOnce(Return(expected_return));
+
+    api_->setApiService(api_service_);
+    ASSERT_OUTCOME_SUCCESS(result, api_->subscribeRuntimeVersion());
+    ASSERT_EQ(expected_return, result);
+  }
+
+  /**
+   * @given subscription id
+   * @when request unsubscription from runtime version event
+   * @then froward request to ApiService
+   */
+  TEST_F(StateApiTest, UnsubscribeRuntimeVersion) {
+    auto subscription_id = 42u;
+    auto expected_return = StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED;
+
+    EXPECT_CALL(*api_service_, unsubscribeRuntimeVersion(subscription_id))
+        .WillOnce(Return(expected_return));
+
+    api_->setApiService(api_service_);
+    EXPECT_OUTCOME_ERROR(result,
+                         api_->unsubscribeRuntimeVersion(subscription_id),
+                         expected_return);
   }
 
 }  // namespace kagome::api
