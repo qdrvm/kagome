@@ -36,17 +36,16 @@ namespace kagome::api {
         std::shared_ptr<api::ApiService> const &api_service) override;
 
     outcome::result<std::vector<common::Buffer>> getKeysPaged(
-        const std::optional<common::BufferView> &prefix,
+        const std::optional<common::Buffer> &prefix,
         uint32_t keys_amount,
-        const std::optional<common::BufferView> &prev_key,
+        const std::optional<common::Buffer> &prev_key,
         const std::optional<primitives::BlockHash> &block_hash_opt)
         const override;
 
-    outcome::result<std::optional<common::BufferConstRef>> getStorage(
-        const common::BufferView &key) const override;
-
-    outcome::result<std::optional<common::BufferConstRef>> getStorageAt(
-        const common::BufferView &key,
+    outcome::result<std::optional<common::Buffer>> getStorage(
+        const common::Buffer &key) const override;
+    outcome::result<std::optional<common::Buffer>> getStorageAt(
+        const common::Buffer &key,
         const primitives::BlockHash &at) const override;
 
     outcome::result<std::vector<StorageChangeSet>> queryStorage(
@@ -60,7 +59,6 @@ namespace kagome::api {
 
     outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) override;
-
     outcome::result<bool> unsubscribeStorage(
         const std::vector<uint32_t> &subscription_id) override;
 

@@ -12,11 +12,15 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/storage/std_list_adapter.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
+using kagome::face::ForwardIterator;
+using kagome::face::GenericIterator;
+using kagome::face::GenericList;
 using kagome::primitives::Transaction;
 using kagome::primitives::events::ExtrinsicSubscriptionEngine;
 using kagome::subscription::ExtrinsicEventKeyRepository;
@@ -25,6 +29,7 @@ using kagome::transaction_pool::PoolModeratorMock;
 using kagome::transaction_pool::TransactionPoolError;
 using kagome::transaction_pool::TransactionPoolImpl;
 
+using test::StdListAdapter;
 using testing::NiceMock;
 using testing::Return;
 

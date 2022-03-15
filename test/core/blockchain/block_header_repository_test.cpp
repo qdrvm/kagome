@@ -88,21 +88,21 @@ TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
   auto chosen_number = ParamValues[0];
   for (auto &c : ParamValues) {
     if (c != chosen_number) {
-      EXPECT_OUTCOME_TRUE_1(storeHeader(c, getDefaultHeader()))
+      EXPECT_OUTCOME_TRUE_1(storeHeader(c, getDefaultHeader()));
     }
   }
   BlockHeader not_in_storage = getDefaultHeader();
   not_in_storage.number = chosen_number;
-  EXPECT_OUTCOME_TRUE(enc_header, scale::encode(not_in_storage))
+  EXPECT_OUTCOME_TRUE(enc_header, scale::encode(not_in_storage));
   auto hash = hasher_->blake2b_256(enc_header);
-  EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(chosen_number))
-  EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(hash))
-  EXPECT_OUTCOME_FALSE_1(header_repo_->getHashById(chosen_number))
-  EXPECT_OUTCOME_FALSE_1(header_repo_->getNumberById(hash))
+  EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(chosen_number));
+  EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(hash));
+  EXPECT_OUTCOME_FALSE_1(header_repo_->getHashById(chosen_number));
+  EXPECT_OUTCOME_FALSE_1(header_repo_->getNumberById(hash));
 
   // doesn't require access to storage, as it basically returns its argument
-  EXPECT_OUTCOME_TRUE_1(header_repo_->getHashById(hash))
-  EXPECT_OUTCOME_TRUE_1(header_repo_->getNumberById(chosen_number))
+  EXPECT_OUTCOME_TRUE_1(header_repo_->getHashById(hash));
+  EXPECT_OUTCOME_TRUE_1(header_repo_->getNumberById(chosen_number));
 }
 
 /**
@@ -112,11 +112,11 @@ TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
  * retrieval through getHashByNumber and getHashById
  */
 TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetHashByNumber) {
-  EXPECT_OUTCOME_TRUE(hash, storeHeader(GetParam(), getDefaultHeader()))
-  EXPECT_OUTCOME_TRUE(maybe_hash, header_repo_->getHashByNumber(GetParam()))
+  EXPECT_OUTCOME_TRUE(hash, storeHeader(GetParam(), getDefaultHeader()));
+  EXPECT_OUTCOME_TRUE(maybe_hash, header_repo_->getHashByNumber(GetParam()));
   ASSERT_THAT(hash, testing::ContainerEq(maybe_hash));
   EXPECT_OUTCOME_TRUE(maybe_another_hash,
-                      header_repo_->getHashById(GetParam()))
+                      header_repo_->getHashById(GetParam()));
   ASSERT_THAT(hash, testing::ContainerEq(maybe_another_hash));
 }
 
@@ -127,11 +127,11 @@ TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetHashByNumber) {
  * retrieval through getNumberByHash and getNumberById
  */
 TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetNumberByHash) {
-  EXPECT_OUTCOME_TRUE(hash, storeHeader(GetParam(), getDefaultHeader()))
-  EXPECT_OUTCOME_TRUE(maybe_number, header_repo_->getNumberByHash(hash))
+  EXPECT_OUTCOME_TRUE(hash, storeHeader(GetParam(), getDefaultHeader()));
+  EXPECT_OUTCOME_TRUE(maybe_number, header_repo_->getNumberByHash(hash));
   ASSERT_EQ(GetParam(), maybe_number);
   EXPECT_OUTCOME_TRUE(maybe_another_number,
-                      header_repo_->getNumberById(GetParam()))
+                      header_repo_->getNumberById(GetParam()));
   ASSERT_EQ(GetParam(), maybe_another_number);
 }
 
@@ -142,9 +142,9 @@ TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetNumberByHash) {
  * of whether the id contained a number or a hash
  */
 TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetHeader) {
-  EXPECT_OUTCOME_TRUE(hash, storeHeader(GetParam(), getDefaultHeader()))
-  EXPECT_OUTCOME_TRUE(header_by_num, header_repo_->getBlockHeader(GetParam()))
-  EXPECT_OUTCOME_TRUE(header_by_hash, header_repo_->getBlockHeader(hash))
+  EXPECT_OUTCOME_TRUE(hash, storeHeader(GetParam(), getDefaultHeader()));
+  EXPECT_OUTCOME_TRUE(header_by_num, header_repo_->getBlockHeader(GetParam()));
+  EXPECT_OUTCOME_TRUE(header_by_hash, header_repo_->getBlockHeader(hash));
   auto header_should_be = getDefaultHeader();
   header_should_be.number = GetParam();
   ASSERT_EQ(header_by_hash, header_should_be);

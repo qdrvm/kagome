@@ -19,24 +19,21 @@ namespace kagome::storage::trie {
 
     ~TrieStorageBackendImpl() override = default;
 
-    std::unique_ptr<Cursor> cursor() override;
-    std::unique_ptr<face::WriteBatch<BufferView, Buffer>> batch()
-        override;
+    std::unique_ptr<face::MapCursor<Buffer, Buffer>> cursor() override;
+    std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
 
-    outcome::result<Buffer> load(const BufferView &key) const override;
-    outcome::result<std::optional<Buffer>> tryLoad(
-        const BufferView &key) const override;
-    outcome::result<bool> contains(const BufferView &key) const override;
+    outcome::result<Buffer> get(const Buffer &key) const override;
+    outcome::result<std::optional<Buffer>> tryGet(
+        const Buffer &key) const override;
+    outcome::result<bool> contains(const Buffer &key) const override;
     bool empty() const override;
 
-    outcome::result<void> put(const BufferView &key,
-                              const Buffer &value) override;
-    outcome::result<void> put(const BufferView &key,
-                              Buffer &&value) override;
-    outcome::result<void> remove(const common::BufferView &key) override;
+    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
+    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
+    outcome::result<void> remove(const Buffer &key) override;
 
    private:
-    common::Buffer prefixKey(const common::BufferView &key) const;
+    common::Buffer prefixKey(const common::Buffer &key) const;
 
     std::shared_ptr<BufferStorage> storage_;
     common::Buffer node_prefix_;

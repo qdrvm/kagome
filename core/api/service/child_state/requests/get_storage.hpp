@@ -31,7 +31,7 @@ namespace kagome::api::child_state::request {
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
 
-    outcome::result<std::optional<common::BufferConstRef>> execute();
+    outcome::result<std::optional<common::Buffer>> execute();
 
    private:
     std::shared_ptr<ChildStateApi> api_;

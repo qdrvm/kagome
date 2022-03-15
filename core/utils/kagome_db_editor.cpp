@@ -157,10 +157,8 @@ void child_storage_root_hashes(
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
         auto &value_opt = value_res.value();
-        log->trace("Found child root hash {}",
-                   value_opt.value().get().toHex());
-        hashes.insert(
-            common::Hash256::fromSpan(value_opt.value().get()).value());
+        log->trace("Found child root hash {}", value_opt.value().toHex());
+        hashes.insert(common::Hash256::fromSpan(value_opt.value()).value());
       }
       res = cursor->next();
       key = cursor->key();

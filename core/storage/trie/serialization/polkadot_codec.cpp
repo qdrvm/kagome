@@ -8,7 +8,7 @@
 #include "crypto/blake2/blake2b.h"
 #include "scale/scale.hpp"
 #include "scale/scale_decoder_stream.hpp"
-#include "storage/trie/polkadot_trie/trie_node.hpp"
+#include "storage/trie/polkadot_trie/polkadot_node.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
   using E = kagome::storage::trie::PolkadotCodec::Error;
@@ -59,7 +59,7 @@ namespace kagome::storage::trie {
     return res;
   }
 
-  KeyNibbles PolkadotCodec::keyToNibbles(const common::BufferView &key) {
+  KeyNibbles PolkadotCodec::keyToNibbles(const common::Buffer &key) {
     if (key.empty()) {
       return {};
     }
@@ -69,7 +69,7 @@ namespace kagome::storage::trie {
 
     auto l = key.size() * 2;
     KeyNibbles res(common::Buffer(l, 0));
-    for (ssize_t i = 0; i < key.size(); i++) {
+    for (size_t i = 0; i < key.size(); i++) {
       res[2 * i] = key[i] >> 4u;
       res[2 * i + 1] = key[i] & 0xfu;
     }
@@ -77,18 +77,17 @@ namespace kagome::storage::trie {
     return res;
   }
 
-  common::Buffer PolkadotCodec::merkleValue(
-      const common::BufferView &buf) const {
+  common::Buffer PolkadotCodec::merkleValue(const common::Buffer &buf) const {
     // if a buffer size is less than the size of a would-be hash, just return
     // this buffer to save space
-    if (static_cast<size_t>(buf.size()) < common::Hash256::size()) {
-      return common::Buffer{buf};
+    if (buf.size() < common::Hash256::size()) {
+      return buf;
     }
 
     return Buffer{hash256(buf)};
   }
 
-  common::Hash256 PolkadotCodec::hash256(const common::BufferView &buf) const {
+  common::Hash256 PolkadotCodec::hash256(const common::Buffer &buf) const {
     common::Hash256 out;
 
     BOOST_VERIFY(crypto::blake2b(out.data(),
@@ -103,14 +102,14 @@ namespace kagome::storage::trie {
 
   outcome::result<common::Buffer> PolkadotCodec::encodeNode(
       const Node &node) const {
-    switch (static_cast<TrieNode::Type>(node.getType())) {
-      case TrieNode::Type::BranchEmptyValue:
-      case TrieNode::Type::BranchWithValue:
+    switch (static_cast<PolkadotNode::Type>(node.getType())) {
+      case PolkadotNode::Type::BranchEmptyValue:
+      case PolkadotNode::Type::BranchWithValue:
         return encodeBranch(dynamic_cast<const BranchNode &>(node));
-      case TrieNode::Type::Leaf:
+      case PolkadotNode::Type::Leaf:
         return encodeLeaf(dynamic_cast<const LeafNode &>(node));
 
-      case TrieNode::Type::Special:
+      case PolkadotNode::Type::Special:
         // special node is not handled right now
       default:
         return std::errc::invalid_argument;
@@ -118,17 +117,17 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeHeader(
-      const TrieNode &node) const {
+      const PolkadotNode &node) const {
     if (node.key_nibbles.size() > 0xffffu) {
       return Error::TOO_MANY_NIBBLES;
     }
 
     uint8_t head = 0;
     // set bits 6..7
-    switch (static_cast<TrieNode::Type>(node.getType())) {
-      case TrieNode::Type::BranchEmptyValue:
-      case TrieNode::Type::BranchWithValue:
-      case TrieNode::Type::Leaf:
+    switch (static_cast<PolkadotNode::Type>(node.getType())) {
+      case PolkadotNode::Type::BranchEmptyValue:
+      case PolkadotNode::Type::BranchWithValue:
+      case PolkadotNode::Type::Leaf:
         head = node.getType();
         break;
       default:
@@ -172,7 +171,7 @@ namespace kagome::storage::trie {
     // children bitmap
     encoding += ushortToBytes(node.childrenBitmap());
 
-    if (node.getTrieType() == TrieNode::Type::BranchWithValue) {
+    if (node.getTrieType() == PolkadotNode::Type::BranchWithValue) {
       // scale encoded value
       OUTCOME_TRY(encNodeValue, scale::encode(node.value.value()));
       encoding += Buffer(std::move(encNodeValue));
@@ -181,9 +180,9 @@ namespace kagome::storage::trie {
     // encode each child
     for (auto &child : node.children) {
       if (child) {
-        if (auto dummy = std::dynamic_pointer_cast<DummyNode>(child);
-            dummy != nullptr) {
-          auto merkle_value = dummy->db_key;
+        if (child->isDummy()) {
+          auto merkle_value =
+              std::dynamic_pointer_cast<DummyNode>(child)->db_key;
           OUTCOME_TRY(scale_enc, scale::encode(std::move(merkle_value)));
           encoding.put(scale_enc);
         } else {
@@ -213,7 +212,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeNode(
-      gsl::span<const uint8_t> encoded_data) const {
+      const common::Buffer &encoded_data) const {
     BufferStream stream{encoded_data};
     // decode the header with the node type and the partial key length
     OUTCOME_TRY(header, decodeHeader(stream));
@@ -223,12 +222,12 @@ namespace kagome::storage::trie {
     // decode the node subvalue (see Definition 28 of the polkadot
     // specification)
     switch (type) {
-      case TrieNode::Type::Leaf: {
+      case PolkadotNode::Type::Leaf: {
         OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
         return std::make_shared<LeafNode>(partial_key, value);
       }
-      case TrieNode::Type::BranchEmptyValue:
-      case TrieNode::Type::BranchWithValue: {
+      case PolkadotNode::Type::BranchEmptyValue:
+      case PolkadotNode::Type::BranchWithValue: {
         return decodeBranch(type, partial_key, stream);
       }
       default:
@@ -236,16 +235,16 @@ namespace kagome::storage::trie {
     }
   }
 
-  outcome::result<std::pair<TrieNode::Type, size_t>>
+  outcome::result<std::pair<PolkadotNode::Type, size_t>>
   PolkadotCodec::decodeHeader(BufferStream &stream) const {
-    TrieNode::Type type;
+    PolkadotNode::Type type;
     size_t pk_length = 0;
     if (not stream.hasMore(1)) {
       return Error::INPUT_TOO_SMALL;
     }
     auto first = stream.next();
     // decode type, which is in the first two bits
-    type = static_cast<TrieNode::Type>((first & 0xC0u) >> 6u);
+    type = static_cast<PolkadotNode::Type>((first & 0xC0u) >> 6u);
     first &= 0x3Fu;
     // decode partial key length, which is stored in the last 6 bits and, if its
     // greater than 62, in the following bytes
@@ -286,7 +285,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeBranch(
-      TrieNode::Type type,
+      PolkadotNode::Type type,
       const KeyNibbles &partial_key,
       BufferStream &stream) const {
     constexpr uint8_t kChildrenBitmapSize = 2;
@@ -303,7 +302,7 @@ namespace kagome::storage::trie {
 
     // decode the branch value if needed
     common::Buffer value;
-    if (type == TrieNode::Type::BranchWithValue) {
+    if (type == PolkadotNode::Type::BranchWithValue) {
       try {
         ss >> value;
       } catch (std::system_error &e) {

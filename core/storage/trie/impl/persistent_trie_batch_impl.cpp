@@ -58,13 +58,13 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(trie_ != nullptr);
   }
 
-  outcome::result<common::BufferConstRef>
-  PersistentTrieBatchImpl::getExtrinsicIndex() const {
-    OUTCOME_TRY(res, trie_->tryGet(kExtrinsicIndexKey));
-    if (res) {
-      return res.value();
+  outcome::result<common::Buffer> PersistentTrieBatchImpl::getExtrinsicIndex()
+      const {
+    auto res = trie_->get(kExtrinsicIndexKey);
+    if (res.has_error() and res.error() == TrieError::NO_VALUE) {
+      return NO_EXTRINSIC_INDEX_VALUE;
     }
-    return NO_EXTRINSIC_INDEX_VALUE;
+    return res;
   }
 
   outcome::result<RootHash> PersistentTrieBatchImpl::commit() {
@@ -77,22 +77,22 @@ namespace kagome::storage::trie {
     return std::make_unique<TopperTrieBatchImpl>(shared_from_this());
   }
 
-  outcome::result<BufferConstRef> PersistentTrieBatchImpl::get(
-      const BufferView &key) const {
+  outcome::result<Buffer> PersistentTrieBatchImpl::get(
+      const Buffer &key) const {
     return trie_->get(key);
   }
 
-  outcome::result<std::optional<BufferConstRef>>
-  PersistentTrieBatchImpl::tryGet(const BufferView &key) const {
+  outcome::result<std::optional<Buffer>> PersistentTrieBatchImpl::tryGet(
+      const Buffer &key) const {
     return trie_->tryGet(key);
   }
 
   std::unique_ptr<PolkadotTrieCursor> PersistentTrieBatchImpl::trieCursor() {
-    return std::make_unique<PolkadotTrieCursorImpl>(trie_);
+    return std::make_unique<PolkadotTrieCursorImpl>(*trie_);
   }
 
   outcome::result<bool> PersistentTrieBatchImpl::contains(
-      const BufferView &key) const {
+      const Buffer &key) const {
     return trie_->contains(key);
   }
 
@@ -101,7 +101,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::tuple<bool, uint32_t>>
-  PersistentTrieBatchImpl::clearPrefix(const BufferView &prefix,
+  PersistentTrieBatchImpl::clearPrefix(const Buffer &prefix,
                                        std::optional<uint64_t> limit) {
     if (changes_.has_value()) changes_.value()->onClearPrefix(prefix);
     SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
@@ -109,13 +109,13 @@ namespace kagome::storage::trie {
     return trie_->clearPrefix(
         prefix, limit, [&](const auto &key, auto &&) -> outcome::result<void> {
           if (changes_.has_value()) {
-            OUTCOME_TRY(changes_.value()->onRemove(ext_idx.get(), key));
+            OUTCOME_TRY(changes_.value()->onRemove(ext_idx, key));
           }
           return outcome::success();
         });
   }
 
-  outcome::result<void> PersistentTrieBatchImpl::put(const BufferView &key,
+  outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,
                                                      const Buffer &value) {
     OUTCOME_TRY(contains, trie_->contains(key));
     bool is_new_entry = not contains;
@@ -123,24 +123,23 @@ namespace kagome::storage::trie {
     if (res and changes_.has_value()) {
       OUTCOME_TRY(ext_idx, getExtrinsicIndex());
       SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
-      OUTCOME_TRY(
-          changes_.value()->onPut(ext_idx.get(), key, value, is_new_entry));
+      OUTCOME_TRY(changes_.value()->onPut(ext_idx, key, value, is_new_entry));
     }
     return res;
   }
 
-  outcome::result<void> PersistentTrieBatchImpl::put(const BufferView &key,
+  outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,
                                                      Buffer &&value) {
     return put(key, value);  // cannot take possession of value, check the
                              // const-ref version definition
   }
 
-  outcome::result<void> PersistentTrieBatchImpl::remove(const BufferView &key) {
+  outcome::result<void> PersistentTrieBatchImpl::remove(const Buffer &key) {
     auto res = trie_->remove(key);
     if (res and changes_.has_value()) {
       SL_TRACE_VOID_FUNC_CALL(logger_, key);
       OUTCOME_TRY(ext_idx, getExtrinsicIndex());
-      OUTCOME_TRY(changes_.value()->onRemove(ext_idx.get(), key));
+      OUTCOME_TRY(changes_.value()->onRemove(ext_idx, key));
     }
     return res;
   }

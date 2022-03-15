@@ -14,14 +14,14 @@ namespace kagome::storage::trie {
 
   class PersistentTrieBatchMock : public PersistentTrieBatch {
    public:
-    MOCK_METHOD(outcome::result<common::BufferConstRef>,
+    MOCK_METHOD(outcome::result<common::Buffer>,
                 get,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<std::optional<common::BufferConstRef>>,
+    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
                 tryGet,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (const, override));
 
     MOCK_METHOD(std::unique_ptr<PolkadotTrieCursor>,
@@ -31,26 +31,26 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<bool>,
                 contains,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>,
                 put,
-                (const common::BufferView &, const common::Buffer &),
+                (const common::Buffer &, const common::Buffer &),
                 (override));
-    outcome::result<void> put(const common::BufferView &k,
+    outcome::result<void> put(const common::Buffer &k,
                               common::Buffer &&v) override {
       return put(k, v);
     }
 
     MOCK_METHOD(outcome::result<void>,
                 remove,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (override));
 
     MOCK_METHOD((outcome::result<std::tuple<bool, uint32_t>>),
                 clearPrefix,
-                (const common::BufferView &buf, std::optional<uint64_t> limit),
+                (const common::Buffer &buf, std::optional<uint64_t> limit),
                 (override));
 
     MOCK_METHOD(bool, empty, (), (const, override));
@@ -65,14 +65,14 @@ namespace kagome::storage::trie {
 
   class EphemeralTrieBatchMock : public EphemeralTrieBatch {
    public:
-    MOCK_METHOD(outcome::result<common::BufferConstRef>,
+    MOCK_METHOD(outcome::result<common::Buffer>,
                 get,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<std::optional<common::BufferConstRef>>,
+    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
                 tryGet,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (const, override));
 
     MOCK_METHOD(std::unique_ptr<PolkadotTrieCursor>,
@@ -82,26 +82,26 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<bool>,
                 contains,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>,
                 put,
-                (const common::BufferView &, const common::Buffer &),
+                (const common::Buffer &, const common::Buffer &),
                 (override));
-    outcome::result<void> put(const common::BufferView &k,
+    outcome::result<void> put(const common::Buffer &k,
                               common::Buffer &&v) override {
       return put(k, v);
     }
 
     MOCK_METHOD(outcome::result<void>,
                 remove,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (override));
 
     MOCK_METHOD((outcome::result<std::tuple<bool, uint32_t>>),
                 clearPrefix,
-                (const common::BufferView &buf, std::optional<uint64_t> limit),
+                (const common::Buffer &buf, std::optional<uint64_t> limit),
                 (override));
 
     MOCK_METHOD(bool, empty, (), (const, override));
@@ -113,30 +113,30 @@ namespace kagome::storage::trie {
    public:
     MOCK_METHOD(outcome::result<void>, writeBack, (), (override));
 
-    MOCK_METHOD(outcome::result<common::BufferConstRef>,
+    MOCK_METHOD(outcome::result<common::Buffer>,
                 get,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<bool>,
                 contains,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (const, override));
 
     MOCK_METHOD(bool, empty, (), (const, override));
 
     MOCK_METHOD(outcome::result<void>,
                 put,
-                (const common::BufferView &, const common::Buffer &),
+                (const common::Buffer &, const common::Buffer &),
                 (override));
-    outcome::result<void> put(const common::BufferView &k,
+    outcome::result<void> put(const common::Buffer &k,
                               common::Buffer &&v) override {
       return put(k, v);
     }
 
     MOCK_METHOD(outcome::result<void>,
                 remove,
-                (const common::BufferView &),
+                (const common::Buffer &),
                 (override));
 
     MOCK_METHOD(std::unique_ptr<PolkadotTrieCursor>,
@@ -146,7 +146,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD((outcome::result<std::tuple<bool, uint32_t>>),
                 clearPrefix,
-                (const common::BufferView &buf, std::optional<uint64_t> limit),
+                (const common::Buffer &buf, std::optional<uint64_t> limit),
                 (override));
   };
 

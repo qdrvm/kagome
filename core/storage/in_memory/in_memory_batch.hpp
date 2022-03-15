@@ -13,24 +13,24 @@ namespace kagome::storage {
   using kagome::common::Buffer;
 
   class InMemoryBatch
-      : public kagome::storage::face::WriteBatch<BufferView,
+      : public kagome::storage::face::WriteBatch<Buffer,
                                                  Buffer> {
    public:
     explicit InMemoryBatch(InMemoryStorage &db) : db{db} {}
 
-    outcome::result<void> put(const BufferView &key,
+    outcome::result<void> put(const Buffer &key,
                               const Buffer &value) override {
       entries[key.toHex()] = value;
       return outcome::success();
     }
 
-    outcome::result<void> put(const BufferView &key,
+    outcome::result<void> put(const Buffer &key,
                               Buffer &&value) override {
       entries[key.toHex()] = std::move(value);
       return outcome::success();
     }
 
-    outcome::result<void> remove(const BufferView &key) override {
+    outcome::result<void> remove(const Buffer &key) override {
       entries.erase(key.toHex());
       return outcome::success();
     }

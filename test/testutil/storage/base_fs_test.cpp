@@ -4,9 +4,7 @@
  */
 
 #include "testutil/storage/base_fs_test.hpp"
-
 #include "log/logger.hpp"
-#include "testutil/prepare_loggers.hpp"
 
 namespace test {
 
@@ -31,6 +29,7 @@ namespace test {
   BaseFS_Test::BaseFS_Test(fs::path path) : base_path(std::move(path)) {
     clear();
     mkdir();
+
     logger = kagome::log::createLogger(getPathString(), "testing");
     logger->setLevel(kagome::log::Level::DEBUG);
   }

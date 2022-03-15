@@ -12,14 +12,13 @@
 
 #include "storage/trie/serialization/buffer_stream.hpp"
 #include "storage/trie/codec.hpp"
-#include "storage/trie/polkadot_trie/trie_node.hpp"
+#include "storage/trie/polkadot_trie/polkadot_node.hpp"
 
 namespace kagome::storage::trie {
 
   class PolkadotCodec : public Codec {
    public:
     using Buffer = common::Buffer;
-    using BufferView = common::BufferView;
 
     enum class Error {
       SUCCESS = 0,
@@ -34,17 +33,17 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeNode(const Node &node) const override;
 
     outcome::result<std::shared_ptr<Node>> decodeNode(
-        gsl::span<const uint8_t> encoded_data) const override;
+        const common::Buffer &encoded_data) const override;
 
-    common::Buffer merkleValue(const BufferView &buf) const override;
+    common::Buffer merkleValue(const Buffer &buf) const override;
 
-    common::Hash256 hash256(const BufferView &buf) const override;
+    common::Hash256 hash256(const Buffer &buf) const override;
 
     /**
      * Def. 14 KeyEncode
      * Splits a key to an array of nibbles (a nibble is a half of a byte)
      */
-    static KeyNibbles keyToNibbles(const BufferView &key);
+    static KeyNibbles keyToNibbles(const Buffer &key);
 
     /**
      * Collects an array of nibbles to a key
@@ -55,20 +54,20 @@ namespace kagome::storage::trie {
      * Encodes a node header according to the specification
      * @see Algorithm 3: partial key length encoding
      */
-    outcome::result<Buffer> encodeHeader(const TrieNode &node) const;
+    outcome::result<Buffer> encodeHeader(const PolkadotNode &node) const;
 
    private:
     outcome::result<Buffer> encodeBranch(const BranchNode &node) const;
     outcome::result<Buffer> encodeLeaf(const LeafNode &node) const;
 
-    outcome::result<std::pair<TrieNode::Type, size_t>> decodeHeader(
+    outcome::result<std::pair<PolkadotNode::Type, size_t>> decodeHeader(
         BufferStream &stream) const;
 
     outcome::result<KeyNibbles> decodePartialKey(size_t nibbles_num,
                                              BufferStream &stream) const;
 
     outcome::result<std::shared_ptr<Node>> decodeBranch(
-        TrieNode::Type type,
+        PolkadotNode::Type type,
         const KeyNibbles &partial_key,
         BufferStream &stream) const;
   };

@@ -30,9 +30,9 @@ namespace kagome::storage::changes_trie {
      * @arg new_entry states whether the entry is new, or just an update of a
      * present value
      */
-    virtual outcome::result<void> onPut(common::BufferView extrinsic_index,
-                                        const common::BufferView &key,
-                                        const common::BufferView &value,
+    virtual outcome::result<void> onPut(const common::Buffer &extrinsic_index,
+                                        const common::Buffer &key,
+                                        const common::Buffer &value,
                                         bool new_entry) = 0;
 
     /**
@@ -43,13 +43,13 @@ namespace kagome::storage::changes_trie {
     /**
      * Supposed to be called when clear by prefix called.
      */
-    virtual void onClearPrefix(const common::BufferView &prefix) = 0;
+    virtual void onClearPrefix(const common::Buffer &prefix) = 0;
 
     /**
      * Supposed to be called when an entry is removed from the tracked storage
      */
-    virtual outcome::result<void> onRemove(common::BufferView extrinsic_index,
-                                           const common::BufferView &key) = 0;
+    virtual outcome::result<void> onRemove(
+        const common::Buffer &extrinsic_index, const common::Buffer &key) = 0;
 
     /**
      * Sinks accumulated changes for the latest registered block to the changes

@@ -211,7 +211,7 @@ TEST_F(AuthorityManagerTest, Init) {
 /**
  * @given initialized manager has some state
  * @when do pruning upto block
- * @then actual state will be saved to storage
+ * @then aclual state will be saved to storage
  */
 TEST_F(AuthorityManagerTest, Prune) {
   prepareAuthorityManager();

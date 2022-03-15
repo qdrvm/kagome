@@ -15,6 +15,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/metadata_mock.hpp"
+#include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block_header.hpp"
@@ -72,26 +73,23 @@ namespace kagome::api {
     primitives::BlockId did = "D"_hash256;
     EXPECT_CALL(*block_header_repo_, getBlockHeader(did))
         .WillOnce(testing::Return(BlockHeader{.state_root = "CDE"_hash256}));
-    auto in_buf = "a"_buf;
-    auto out_buf = "1"_buf;
     EXPECT_CALL(*storage_, getEphemeralBatchAt(_))
-        .WillRepeatedly(testing::Invoke([&in_buf, &out_buf](auto &root) {
+        .WillRepeatedly(testing::Invoke([](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, tryGet(in_buf.view()))
-              .WillRepeatedly(testing::Return(std::cref(out_buf)));
+          EXPECT_CALL(*batch, tryGet("a"_buf))
+              .WillRepeatedly(testing::Return("1"_buf));
           return batch;
         }));
 
-    auto key = "a"_buf;
-    EXPECT_OUTCOME_TRUE(r, api_->getStorage(key.view()))
-    ASSERT_EQ(r.value().get(), "1"_buf);
+    EXPECT_OUTCOME_TRUE(r, api_->getStorage("a"_buf));
+    ASSERT_EQ(r.value(), "1"_buf);
 
     primitives::BlockId bid = "B"_hash256;
     EXPECT_CALL(*block_header_repo_, getBlockHeader(bid))
         .WillOnce(testing::Return(BlockHeader{.state_root = "ABC"_hash256}));
 
-    EXPECT_OUTCOME_TRUE(r1, api_->getStorageAt(key.view(), "B"_hash256));
-    ASSERT_EQ(r1.value().get(), "1"_buf);
+    EXPECT_OUTCOME_TRUE(r1, api_->getStorageAt("a"_buf, "B"_hash256));
+    ASSERT_EQ(r1.value(), "1"_buf);
   }
 
   class GetKeysPagedTest : public ::testing::Test {
@@ -130,7 +128,7 @@ namespace kagome::api {
     std::shared_ptr<BlockTreeMock> block_tree_;
     std::shared_ptr<api::StateApiImpl> api_;
 
-    const std::map<Buffer, Buffer, std::less<>> lex_sorted_vals{
+    const std::map<Buffer, Buffer> lex_sorted_vals{
         {"0102"_hex2buf, "0102"_hex2buf},
         {"0103"_hex2buf, "0103"_hex2buf},
         {"010304"_hex2buf, "010304"_hex2buf},
@@ -370,7 +368,7 @@ namespace kagome::api {
             auto batch =
                 std::make_unique<storage::trie::EphemeralTrieBatchMock>();
             for (auto &key : keys) {
-              EXPECT_CALL(*batch, tryGet(key.view()))
+              EXPECT_CALL(*batch, tryGet(key))
                   .WillOnce(testing::Return(common::Buffer(root)));
             }
             return batch;
@@ -442,7 +440,7 @@ namespace kagome::api {
           auto batch =
               std::make_unique<storage::trie::EphemeralTrieBatchMock>();
           for (auto &key : keys) {
-            EXPECT_CALL(*batch, tryGet(key.view()))
+            EXPECT_CALL(*batch, tryGet(key))
                 .WillOnce(testing::Return(common::Buffer(root)));
           }
           return batch;

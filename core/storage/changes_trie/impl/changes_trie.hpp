@@ -23,9 +23,8 @@ namespace kagome::storage::changes_trie {
 
   class ChangesTrie {
    public:
-    using ExtrinsicsChanges = std::map<common::Buffer,
-                                       std::vector<primitives::ExtrinsicIndex>,
-                                       std::less<>>;
+    using ExtrinsicsChanges =
+        std::map<common::Buffer, std::vector<primitives::ExtrinsicIndex>>;
 
     static outcome::result<std::unique_ptr<ChangesTrie>> buildFromChanges(
         const primitives::BlockNumber &parent_block,

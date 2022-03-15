@@ -8,7 +8,7 @@
 namespace kagome::storage::trie {
 
   TrieStorageBackendBatch::TrieStorageBackendBatch(
-      std::unique_ptr<face::WriteBatch<common::BufferView, common::Buffer>>
+      std::unique_ptr<face::WriteBatch<common::Buffer, common::Buffer>>
           storage_batch,
       common::Buffer node_prefix)
       : storage_batch_{std::move(storage_batch)},
@@ -25,22 +25,22 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TrieStorageBackendBatch::put(
-      const common::BufferView &key, const common::Buffer &value) {
+      const common::Buffer &key, const common::Buffer &value) {
     return storage_batch_->put(prefixKey(key), value);
   }
 
-  outcome::result<void> TrieStorageBackendBatch::put(
-      const common::BufferView &key, common::Buffer &&value) {
+  outcome::result<void> TrieStorageBackendBatch::put(const common::Buffer &key,
+                                                     common::Buffer &&value) {
     return storage_batch_->put(prefixKey(key), std::move(value));
   }
 
   outcome::result<void> TrieStorageBackendBatch::remove(
-      const common::BufferView &key) {
+      const common::Buffer &key) {
     return storage_batch_->remove(prefixKey(key));
   }
 
   common::Buffer TrieStorageBackendBatch::prefixKey(
-      const common::BufferView &key) const {
+      const common::Buffer &key) const {
     auto prefixed_key = node_prefix_;
     prefixed_key.put(key);
     return prefixed_key;
