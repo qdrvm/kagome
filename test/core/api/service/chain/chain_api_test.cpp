@@ -254,7 +254,8 @@ TEST_F(ChainApiTest, SubscribeNewHeads) {
       .WillOnce(Return(expected_result));
 
   api->setApiService(api_service);
-  ASSERT_EQ(expected_result, api->subscribeNewHeads().value());
+  ASSERT_OUTCOME_SUCCESS(actual_result, api->subscribeNewHeads());
+  ASSERT_EQ(expected_result, actual_result);
 }
 
 /**

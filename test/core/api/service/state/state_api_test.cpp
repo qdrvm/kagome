@@ -471,8 +471,8 @@ namespace kagome::api {
         .WillOnce(Return(expected_return));
 
     api_->setApiService(api_service_);
-    EXPECT_OUTCOME_SUCCESS(result, api_->unsubscribeStorage(subscription_id));
-    ASSERT_EQ(expected_return, result.value());
+    ASSERT_OUTCOME_SUCCESS(result, api_->unsubscribeStorage(subscription_id));
+    ASSERT_EQ(expected_return, result);
   }
 
   /**
@@ -487,8 +487,8 @@ namespace kagome::api {
         .WillOnce(Return(expected_return));
 
     api_->setApiService(api_service_);
-    EXPECT_OUTCOME_SUCCESS(result, api_->subscribeRuntimeVersion());
-    ASSERT_EQ(expected_return, result.value());
+    ASSERT_OUTCOME_SUCCESS(result, api_->subscribeRuntimeVersion());
+    ASSERT_EQ(expected_return, result);
   }
 
   /**

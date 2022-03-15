@@ -525,7 +525,8 @@ TEST_F(AuthorApiTest, PendingExtrinsics) {
   EXPECT_CALL(*transaction_pool, getPendingTransactions())
       .WillOnce(ReturnRef(trxs));
 
-  ASSERT_EQ(expected_result, author_api->pendingExtrinsics().value());
+  ASSERT_OUTCOME_SUCCESS(actual_result, author_api->pendingExtrinsics());
+  ASSERT_EQ(expected_result, actual_result);
 }
 
 /**

@@ -65,7 +65,7 @@ TEST_F(PaymentApiTest, QueryInfo) {
               query_info(deepest_hash, extrinsic, len))
       .WillOnce(Return(expected_result));
 
-  EXPECT_OUTCOME_SUCCESS(result,
+  ASSERT_OUTCOME_SUCCESS(result,
                          payment_api_->queryInfo(extrinsic, len, std::nullopt));
-  ASSERT_EQ(result.value(), expected_result);
+  ASSERT_EQ(result, expected_result);
 }
