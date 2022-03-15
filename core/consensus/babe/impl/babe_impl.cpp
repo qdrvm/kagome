@@ -683,6 +683,10 @@ namespace kagome::consensus::babe {
       return;
     }
 
+    const auto block_hash =
+        hasher_->blake2b_256(scale::encode(block.header).value());
+    const primitives::BlockInfo block_info(block.header.number, block_hash);
+
     // observe possible changes of authorities
     for (auto &digest_item : block.header.digest) {
       auto res = visit_in_place(
@@ -690,7 +694,7 @@ namespace kagome::consensus::babe {
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
             auto res = authority_update_observer_->onConsensus(
-                best_block_, consensus_message);
+                block_info, consensus_message);
             if (res.has_error()) {
               SL_WARN(log_,
                       "Can't process consensus message digest: {}",
@@ -709,10 +713,6 @@ namespace kagome::consensus::babe {
         block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(previous_best_block_res.has_value());
     const auto &previous_best_block = previous_best_block_res.value();
-
-    const auto block_hash =
-        hasher_->blake2b_256(scale::encode(block.header).value());
-    const primitives::BlockInfo block_info(block.header.number, block_hash);
 
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {

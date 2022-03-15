@@ -524,7 +524,7 @@ namespace kagome::consensus::grandpa {
 
     // spec: Bpv <- GRANDPA-GHOST(r)
     const auto best_chain =
-        env_->bestChainContaining(best_final_candicate.hash);
+        env_->bestChainContaining(best_final_candicate.hash, voter_set_->id());
     const auto best_prevote_candidate =
         best_chain.has_value() ? convertToBlockInfo(best_chain.value())
                                : last_finalized_block_;
@@ -1382,7 +1382,8 @@ namespace kagome::consensus::grandpa {
                                     : last_finalized_block_;
 
     // spec: Bpv <- GRANDPA-GHOST(r)
-    auto best_chain = env_->bestChainContaining(best_final_candidate.hash);
+    auto best_chain =
+        env_->bestChainContaining(best_final_candidate.hash, voter_set_->id());
     auto best_prevote_candidate = best_chain.has_value()
                                       ? convertToBlockInfo(best_chain.value())
                                       : last_finalized_block_;
