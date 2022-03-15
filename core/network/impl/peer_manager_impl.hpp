@@ -41,6 +41,16 @@
 
 namespace kagome::network {
 
+  enum class PeerType {
+    PEER_TYPE_IN = 0,
+    PEER_TYPE_OUT
+  };
+
+  struct PeerDescriptor {
+    PeerType peer_type;
+    clock::SteadyClock::TimePoint time_point;
+  };
+
   class PeerManagerImpl : public PeerManager,
                           public std::enable_shared_from_this<PeerManagerImpl> {
    public:
@@ -151,7 +161,7 @@ namespace kagome::network {
     std::unordered_set<libp2p::network::ConnectionManager::ConnectionSPtr>
         pinging_connections_;
 
-    std::map<PeerId, clock::SteadyClock::TimePoint> active_peers_;
+    std::map<PeerId, PeerDescriptor> active_peers_;
     std::unordered_map<PeerId, PeerState> peer_states_;
     libp2p::basic::Scheduler::Handle align_timer_;
     std::set<PeerId> recently_active_peers_;

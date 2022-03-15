@@ -98,6 +98,15 @@ namespace kagome::application {
     uint16_t p2pPort() const override {
       return p2p_port_;
     }
+    uint16_t outPeers() const override {
+      return out_peers_;
+    }
+    uint16_t inPeers() const override {
+      return in_peers_;
+    }
+    uint16_t inPeersLite() const override {
+      return in_peers_light_;
+    }
     const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const override {
       return rpc_http_endpoint_;
     }
@@ -239,6 +248,9 @@ namespace kagome::application {
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
     uint16_t openmetrics_http_port_;
+    uint16_t out_peers_;
+    uint16_t in_peers_;
+    uint16_t in_peers_light_;
     network::PeeringConfig peering_config_;
     bool dev_mode_;
     std::string node_name_;

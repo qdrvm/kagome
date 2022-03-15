@@ -80,6 +80,21 @@ namespace kagome::application {
     virtual uint16_t p2pPort() const = 0;
 
     /**
+     * @return number of outgoing connections we're trying to maintain
+     */
+    virtual uint16_t outPeers() const = 0;
+
+    /**
+     * @return maximum number of inbound full nodes peers
+     */
+    virtual uint16_t inPeers() const = 0;
+
+    /**
+     * @return maximum number of inbound light nodes peers
+     */
+    virtual uint16_t inPeersLite() const = 0;
+
+    /**
      * @return multiaddresses of bootstrat nodes
      */
     virtual const std::vector<libp2p::multi::Multiaddress> &bootNodes()

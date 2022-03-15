@@ -276,6 +276,9 @@ namespace kagome::application {
     load_str(val, "prometheus-host", openmetrics_http_host_);
     load_u16(val, "prometheus-port", openmetrics_http_port_);
     load_str(val, "name", node_name_);
+    load_u16(val, "out-peers", out_peers_);
+    load_u16(val, "in-peers", in_peers_);
+    load_u16(val, "in-peers-light", in_peers_light_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
@@ -510,6 +513,9 @@ namespace kagome::application {
         ("ws-max-connections", po::value<uint32_t>(), "maximum number of WS RPC server connections")
         ("prometheus-host", po::value<std::string>(), "address for OpenMetrics over HTTP")
         ("prometheus-port", po::value<uint16_t>(), "port for OpenMetrics over HTTP")
+        ("out-peers", po::value<uint16_t>()->default_value(25), "number of outgoing connections we're trying to maintain")
+        ("in-peers", po::value<uint16_t>()->default_value(25), "maximum number of inbound full nodes peers")
+        ("in-peers-light", po::value<uint16_t>()->default_value(100), "maximum number of inbound light nodes peers")
         ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
@@ -810,6 +816,18 @@ namespace kagome::application {
 
     find_argument<uint16_t>(vm, "prometheus-port", [&](uint16_t val) {
       openmetrics_http_port_ = val;
+    });
+
+    find_argument<uint16_t>(vm, "out-peers", [&](uint16_t val) {
+      out_peers_ = val;
+    });
+
+    find_argument<uint16_t>(vm, "in-peers", [&](uint16_t val) {
+      in_peers_ = val;
+    });
+
+    find_argument<uint16_t>(vm, "in-peers-light", [&](uint16_t val) {
+      in_peers_light_ = val;
     });
 
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
