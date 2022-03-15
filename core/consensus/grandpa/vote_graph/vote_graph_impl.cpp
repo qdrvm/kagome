@@ -5,6 +5,8 @@
 
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 
+#include <stack>
+
 namespace kagome::consensus::grandpa {
 
   namespace {
@@ -281,19 +283,18 @@ namespace kagome::consensus::grandpa {
       return std::nullopt;
     }
 
-    std::deque<std::reference_wrapper<const Entry>> observing_entries;
+    /// entries to be processed
+    std::stack<std::reference_wrapper<const Entry>> nodes;
 
-    auto start_node = active_node;
-    observing_entries.emplace_back(start_node);
+    nodes.push(active_node);
+    while (not nodes.empty()) {
+      auto &node = nodes.top().get();
+      nodes.pop();
 
-    while (not observing_entries.empty()) {
-      auto &entry = observing_entries.front().get();
-      observing_entries.pop_front();
-
-      for (auto &descendant_hash : entry.descendants) {
+      for (auto &descendant_hash : node.descendants) {
         auto &descendant = entries_.at(descendant_hash);
 
-        if (force_constrain && current_best) {
+        if (force_constrain and current_best) {
           if (not inDirectAncestry(
                   descendant, current_best->hash, current_best->number)) {
             continue;
@@ -310,7 +311,7 @@ namespace kagome::consensus::grandpa {
           node_key = descendant_hash;
           active_node = descendant;
 
-          observing_entries.emplace_back(descendant);
+          nodes.push(descendant);
         }
       }
 
