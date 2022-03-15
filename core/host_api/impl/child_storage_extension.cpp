@@ -271,25 +271,36 @@ namespace kagome::host_api {
         loadBuffer(memory, child_storage_key, key);
     auto [value_ptr, value_size] = runtime::PtrSize(value_out);
 
-    auto value = executeOnChildStorage<std::optional<common::BufferConstRef>>(
+    auto value = executeOnChildStorage<std::optional<common::Buffer>>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) { return child_batch->tryGet(key); },
+        [](auto &child_batch, auto &key) {
+          return common::map_result_optional(
+              child_batch->tryGet(key),
+              [](auto &v) -> common::Buffer { return v.get(); });
+        },
         key_buffer);
     std::optional<uint32_t> res{std::nullopt};
     if (auto data_opt_res = value; data_opt_res.has_value()) {
       auto &data_opt = data_opt_res.value();
       if (data_opt.has_value()) {
-        common::BufferView data = data_opt.value().get();
+        common::BufferView data = data_opt.value();
         data = data.subspan(std::min<size_t>(offset, data.size()));
         auto written = std::min<size_t>(data.size(), value_size);
         memory.storeBuffer(value_ptr, data.subspan(0, written));
         res = data.size();
 
-        SL_TRACE_FUNC_CALL(
-            logger_, data, child_key_buffer, key, common::Buffer{data.subspan(0, written)});
+        SL_TRACE_FUNC_CALL(logger_,
+                           data,
+                           child_key_buffer,
+                           key,
+                           common::Buffer{data.subspan(0, written)});
       } else {
-        SL_TRACE_FUNC_CALL(
-            logger_, std::string_view{"none"}, child_key_buffer, key, value_out, offset);
+        SL_TRACE_FUNC_CALL(logger_,
+                           std::string_view{"none"},
+                           child_key_buffer,
+                           key,
+                           value_out,
+                           offset);
       }
     } else {
       SL_ERROR(logger_,
