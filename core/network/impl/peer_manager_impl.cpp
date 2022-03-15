@@ -503,7 +503,8 @@ namespace kagome::network {
                              [](const auto &el) {
                                return el.second.peer_type
                                       == PeerType::PEER_TYPE_IN;
-                             }) > app_config_.inPeers()) {
+                             })
+               > app_config_.inPeers()) {
       connecting_peers_.erase(peer_id);
       disconnectFromPeer(peer_id);
       return;
