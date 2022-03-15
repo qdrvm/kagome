@@ -56,7 +56,10 @@ namespace kagome::host_api {
     OUTCOME_TRY(new_child_root, child_batch->commit());
     OUTCOME_TRY(storage_provider_->getCurrentBatch()->put(
         prefixed_child_key, Buffer{scale::encode(new_child_root).value()}));
-    SL_TRACE(logger_, "Update child trie root: prefix is {}, new root is", child_storage_key, new_child_root);
+    SL_TRACE(logger_,
+             "Update child trie root: prefix is {}, new root is",
+             child_storage_key,
+             new_child_root);
     storage_provider_->clearChildBatches();
     if constexpr (!std::is_void_v<R>) {
       return result;
@@ -115,9 +118,11 @@ namespace kagome::host_api {
 
     auto result = executeOnChildStorage<std::optional<Buffer>>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) { return common::map_optional(child_batch->tryGet(key).value(), [](auto& v) {
-          return common::Buffer(v.get());
-        }); },
+        [](auto &child_batch, auto &key) {
+          return common::map_optional(
+              child_batch->tryGet(key).value(),
+              [](auto &v) { return common::Buffer(v.get()); });
+        },
         key_buffer);
 
     if (result) {
@@ -271,31 +276,27 @@ namespace kagome::host_api {
         [](auto &child_batch, auto &key) { return child_batch->tryGet(key); },
         key_buffer);
     std::optional<uint32_t> res{std::nullopt};
-    if (!value) {
-      auto msg = fmt::format(
-          "ext_default_child_storage_read_version_1 failed: {}",
-          value.error().message());
-      logger_->error(msg);
-      throw std::runtime_error{msg};
-    }
-    auto value_opt = value.value();
-    if (!value_opt) {
-      logger_->debug(
-          "ext_default_child_storage_read_version_1: key {} not found",
-          key_buffer.toHex());
-    } else {
-      auto offset_data = value_opt.value().get().subbuffer(
-          std::min<size_t>(offset, value_opt.value().get().size()));
-      auto written = std::min<size_t>(offset_data.size(), value_size);
-      memory.storeBuffer(value_ptr,
-                         gsl::make_span(offset_data).subspan(0, written));
-      SL_TRACE_FUNC_CALL(logger_,
-                         child_key_buffer,
-                         key_buffer,
-                         common::Buffer{offset_data.subbuffer(0, written)});
-      res = offset_data.size();
+    if (auto data_opt_res = value; data_opt_res.has_value()) {
+      auto &data_opt = data_opt_res.value();
+      if (data_opt.has_value()) {
+        common::BufferView data = data_opt.value().get();
+        data = data.subspan(std::min<size_t>(offset, data.size()));
+        auto written = std::min<size_t>(data.size(), value_size);
+        memory.storeBuffer(value_ptr, data.subspan(0, written));
+        res = data.size();
 
+        SL_TRACE_FUNC_CALL(
+            logger_, data, child_key_buffer, key, common::Buffer{data.subspan(0, written)});
+      } else {
+        SL_TRACE_FUNC_CALL(
+            logger_, std::string_view{"none"}, child_key_buffer, key, value_out, offset);
+      }
+    } else {
+      SL_ERROR(logger_,
+               "Error in ext_storage_read_version_1: {}",
+               data_opt_res.error().message());
     }
+
     return memory.storeBuffer(scale::encode(res).value());
   }
 
