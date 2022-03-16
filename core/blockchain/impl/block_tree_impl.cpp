@@ -230,7 +230,7 @@ namespace kagome::blockchain {
                    "Current epoch data has got basing genesis: "
                    "Epoch #{}, Randomness: {}",
                    curr_epoch_number.value(),
-                   curr_epoch.value().randomness.toHex());
+                   curr_epoch.value().randomness);
         }
         if (not next_epoch.has_value()) {
           next_epoch.emplace(consensus::EpochDigest{
@@ -239,7 +239,7 @@ namespace kagome::blockchain {
           SL_TRACE(log,
                    "Next epoch data has got basing genesis: "
                    "Epoch #1+, Randomness: {}",
-                   next_epoch.value().randomness.toHex());
+                   next_epoch.value().randomness);
         }
         break;
       }
@@ -802,8 +802,9 @@ namespace kagome::blockchain {
       return outcome::success();
     }
 
-    log_->info("Finalizing block {}",
-               primitives::BlockInfo(node->depth, block_hash));
+    SL_DEBUG(log_,
+             "Finalizing block {}",
+             primitives::BlockInfo(node->depth, block_hash));
 
     // insert justification into the database
     OUTCOME_TRY(

@@ -202,9 +202,9 @@ namespace kagome::consensus::babe {
 
     SL_DEBUG(
         log_,
-        "Starting an epoch {}. Session key: {}. Secondary slots allowed={}",
+        "Starting an epoch {}. Session key: {:l}. Secondary slots allowed={}",
         epoch.epoch_number,
-        keypair_->public_key.toHex(),
+        keypair_->public_key,
         isSecondarySlotsAllowed());
     current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
@@ -464,10 +464,10 @@ namespace kagome::consensus::babe {
     if (slot_leadership.has_value()) {
       const auto &vrf_result = slot_leadership.value();
       SL_DEBUG(log_,
-               "Peer {} is leader (vrfOutput: {}, proof: {})",
-               keypair_->public_key.toHex(),
-               common::Buffer(vrf_result.output).toHex(),
-               common::Buffer(vrf_result.proof).toHex());
+               "Babe author {} is leader (vrfOutput: {}, proof: {})",
+               keypair_->public_key,
+               common::Buffer(vrf_result.output),
+               common::Buffer(vrf_result.proof));
 
       processSlotLeadership(
           SlotType::Primary, std::cref(vrf_result), authority_index);
@@ -740,7 +740,7 @@ namespace kagome::consensus::babe {
                  "Got next epoch digest in slot {} (block #{}). Randomness: {}",
                  current_slot_,
                  block.header.number,
-                 next_epoch_digest.randomness.toHex());
+                 next_epoch_digest.randomness);
     }
 
     // finally, broadcast the sealed block
@@ -784,7 +784,7 @@ namespace kagome::consensus::babe {
       SL_CRITICAL(log_,
                   "Block production failed: This node is not in the list of "
                   "authorities. (public key: {})",
-                  keypair_->public_key.toHex());
+                  keypair_->public_key);
       return;
     }
 

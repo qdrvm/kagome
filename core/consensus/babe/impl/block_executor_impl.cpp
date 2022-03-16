@@ -136,7 +136,8 @@ namespace kagome::consensus {
           .epoch_number = 0, .start_slot = babe_header.slot_number});
     }
 
-    EpochNumber epoch_number = babe_util_->slotToEpoch(babe_header.slot_number);
+    auto slot_number = babe_header.slot_number;
+    auto epoch_number = babe_util_->slotToEpoch(slot_number);
 
     logger_->info(
         "Applying block {} ({} in slot {}, epoch {})",  //
@@ -145,35 +146,24 @@ namespace kagome::consensus {
         : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
         : babe_header.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
                                                              : "unknown",
-        babe_header.slot_number,
+        slot_number,
         epoch_number);
 
     OUTCOME_TRY(
         this_block_epoch_descriptor,
         block_tree_->getEpochDigest(epoch_number, block.header.parent_hash));
 
-    [[maybe_unused]] auto &slot_number = babe_header.slot_number;
-    SL_TRACE(
-        logger_,
-        "EPOCH_DIGEST: Actual epoch digest for epoch {} in slot {} (to apply "
-        "block #{}). Randomness: {}",
-        epoch_number,
-        slot_number,
-        block.header.number,
-        this_block_epoch_descriptor.randomness.toHex());
+    SL_TRACE(logger_,
+             "Actual epoch digest to apply block {} (slot {}, epoch {}). "
+             "Randomness: {}",
+             primitives::BlockInfo(block.header.number, block_hash),
+             slot_number,
+             epoch_number,
+             this_block_epoch_descriptor.randomness);
 
     auto threshold = calculateThreshold(babe_configuration_->leadership_rate,
                                         this_block_epoch_descriptor.authorities,
                                         babe_header.authority_index);
-
-    if (auto next_epoch_digest_res = getNextEpochDigest(block.header)) {
-      auto &next_epoch_digest = next_epoch_digest_res.value();
-      SL_VERBOSE(logger_,
-                 "Got next epoch digest in slot {} (block #{}). Randomness: {}",
-                 slot_number,
-                 block.header.number,
-                 next_epoch_digest.randomness.toHex());
-    }
 
     OUTCOME_TRY(block_validator_->validateHeader(
         block.header,
@@ -181,6 +171,16 @@ namespace kagome::consensus {
         this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
         threshold,
         this_block_epoch_descriptor.randomness));
+
+    if (auto next_epoch_digest_res = getNextEpochDigest(block.header)) {
+      auto &next_epoch_digest = next_epoch_digest_res.value();
+      SL_VERBOSE(logger_,
+                 "Next epoch digest has gotten in block {} (slot {}). "
+                 "Randomness: {}",
+                 slot_number,
+                 primitives::BlockInfo(block.header.number, block_hash),
+                 next_epoch_digest.randomness);
+    }
 
     auto block_without_seal_digest = block;
 
