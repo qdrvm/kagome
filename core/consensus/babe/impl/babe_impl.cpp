@@ -687,27 +687,6 @@ namespace kagome::consensus::babe {
         hasher_->blake2b_256(scale::encode(block.header).value());
     const primitives::BlockInfo block_info(block.header.number, block_hash);
 
-    // observe possible changes of authorities
-    for (auto &digest_item : block.header.digest) {
-      auto res = visit_in_place(
-          digest_item,
-          [&](const primitives::Consensus &consensus_message)
-              -> outcome::result<void> {
-            auto res = authority_update_observer_->onConsensus(
-                block_info, consensus_message);
-            if (res.has_error()) {
-              SL_WARN(log_,
-                      "Can't process consensus message digest: {}",
-                      res.error().message());
-            }
-            return res;
-          },
-          [](const auto &) { return outcome::success(); });
-      if (res.has_error()) {
-        return;
-      }
-    }
-
     auto last_finalized_block = block_tree_->getLastFinalized();
     auto previous_best_block_res =
         block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
@@ -731,6 +710,28 @@ namespace kagome::consensus::babe {
                 removal_res.error().message());
       }
       return;
+    }
+
+    // observe possible changes of authorities
+    // (must be done strictly after block will be added)
+    for (auto &digest_item : block.header.digest) {
+      auto res = visit_in_place(
+          digest_item,
+          [&](const primitives::Consensus &consensus_message)
+              -> outcome::result<void> {
+            auto res = authority_update_observer_->onConsensus(
+                block_info, consensus_message);
+            if (res.has_error()) {
+              SL_WARN(log_,
+                      "Can't process consensus message digest: {}",
+                      res.error().message());
+            }
+            return res;
+          },
+          [](const auto &) { return outcome::success(); });
+      if (res.has_error()) {
+        return;
+      }
     }
 
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header);

@@ -272,6 +272,11 @@ namespace kagome::authority {
              block,
              activate_at);
     auto node = getAppropriateAncestor(block);
+
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+    }
+
     SL_DEBUG(
         log_,
         "Oldest scheduled change before block {} is at block {} with set id {}",
@@ -347,6 +352,10 @@ namespace kagome::authority {
       primitives::BlockNumber activate_at) {
     auto node = getAppropriateAncestor(block);
 
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+    }
+
     auto new_node = node->makeDescendant(block);
 
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
@@ -405,6 +414,10 @@ namespace kagome::authority {
     }
     auto node = getAppropriateAncestor(block);
 
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+    }
+
     auto new_node = node->makeDescendant(block);
 
     // Check if index not out of bound
@@ -444,6 +457,10 @@ namespace kagome::authority {
       const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
     auto node = getAppropriateAncestor(block);
 
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+    }
+
     auto new_node = node->makeDescendant(block);
 
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
@@ -466,6 +483,10 @@ namespace kagome::authority {
   outcome::result<void> AuthorityManagerImpl::applyResume(
       const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
     auto node = getAppropriateAncestor(block);
+
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+    }
 
     auto new_node = node->makeDescendant(block);
 
@@ -566,6 +587,10 @@ namespace kagome::authority {
 
     auto node = getAppropriateAncestor(block);
 
+    if (not node) {
+      return;
+    }
+
     if (node->block == block) {
       // Rebase
       root_ = std::move(node);
@@ -582,7 +607,7 @@ namespace kagome::authority {
       root_ = std::move(new_node);
     }
 
-    SL_VERBOSE(log_, "Prune authority manager upto block #{}", block.number);
+    SL_VERBOSE(log_, "Prune authority manager upto block {}", block);
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(
