@@ -487,27 +487,34 @@ namespace kagome::network {
     auto connection =
         host_.getNetwork().getConnectionManager().getBestConnectionForPeer(
             peer_id);
-    if (connection->isInitiator()
-        and std::count_if(active_peers_.begin(),
-                          active_peers_.end(),
-                          [](const auto &el) {
-                            return el.second.peer_type
-                                   == PeerType::PEER_TYPE_OUT;
-                          })
-                > app_config_.outPeers()) {
-      connecting_peers_.erase(peer_id);
-      disconnectFromPeer(peer_id);
-      return;
-    } else if (std::count_if(active_peers_.begin(),
-                             active_peers_.end(),
-                             [](const auto &el) {
-                               return el.second.peer_type
-                                      == PeerType::PEER_TYPE_IN;
-                             })
-               > app_config_.inPeers()) {
-      connecting_peers_.erase(peer_id);
-      disconnectFromPeer(peer_id);
-      return;
+    if (connection->isInitiator()) {
+      auto out_peers_count = std::count_if(
+          active_peers_.begin(), active_peers_.end(), [](const auto &el) {
+            return el.second.peer_type == PeerType::PEER_TYPE_OUT;
+          });
+      if (out_peers_count > app_config_.outPeers()) {
+        connecting_peers_.erase(peer_id);
+        disconnectFromPeer(peer_id);
+        return;
+      }
+    } else {
+      auto in_peers_count = std::count_if(
+          active_peers_.begin(), active_peers_.end(), [](const auto &el) {
+            return el.second.peer_type == PeerType::PEER_TYPE_IN;
+          });
+      auto in_light_peers_count = std::count_if(
+          active_peers_.begin(),
+          active_peers_.end(),
+          [&peer_states = peer_states_](const auto &el) {
+            return el.second.peer_type == PeerType::PEER_TYPE_IN
+                   and peer_states[el.first].roles.flags.light == 1;
+          });
+      if (in_peers_count >= app_config_.inPeers()
+          or in_light_peers_count >= app_config_.inPeersLite()) {
+        connecting_peers_.erase(peer_id);
+        disconnectFromPeer(peer_id);
+        return;
+      }
     }
 
     PeerInfo peer_info{.id = peer_id, .addresses = {}};
