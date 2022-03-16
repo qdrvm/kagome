@@ -498,22 +498,32 @@ namespace kagome::network {
         return;
       }
     } else {
-      auto in_peers_count = std::count_if(
-          active_peers_.begin(), active_peers_.end(), [](const auto &el) {
-            return el.second.peer_type == PeerType::PEER_TYPE_IN;
-          });
-      auto in_light_peers_count = std::count_if(
-          active_peers_.begin(),
-          active_peers_.end(),
-          [&peer_states = peer_states_](const auto &el) {
-            return el.second.peer_type == PeerType::PEER_TYPE_IN
-                   and peer_states[el.first].roles.flags.light == 1;
-          });
-      if (in_peers_count >= app_config_.inPeers()
-          or in_light_peers_count >= app_config_.inPeersLite()) {
-        connecting_peers_.erase(peer_id);
-        disconnectFromPeer(peer_id);
-        return;
+      auto in_peers_count = 0u;
+      auto in_light_peers_count = 0u;
+      if (peer_states_[peer_id].roles.flags.full == 1) {
+        for (const auto &peer : active_peers_) {
+          if (peer.second.peer_type == PeerType::PEER_TYPE_IN
+              and peer_states_[peer.first].roles.flags.full == 1) {
+            ++in_peers_count;
+          }
+        }
+        if (in_peers_count >= app_config_.inPeers()) {
+          connecting_peers_.erase(peer_id);
+          disconnectFromPeer(peer_id);
+          return;
+        }
+      } else if (peer_states_[peer_id].roles.flags.light == 1) {
+        for (const auto &peer : active_peers_) {
+          if (peer.second.peer_type == PeerType::PEER_TYPE_IN
+              and peer_states_[peer.first].roles.flags.light == 1) {
+            ++in_light_peers_count;
+          }
+        }
+        if (in_light_peers_count >= app_config_.inPeersLght()) {
+          connecting_peers_.erase(peer_id);
+          disconnectFromPeer(peer_id);
+          return;
+        }
       }
     }
 

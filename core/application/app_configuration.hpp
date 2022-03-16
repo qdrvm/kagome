@@ -92,7 +92,7 @@ namespace kagome::application {
     /**
      * @return maximum number of inbound light nodes peers
      */
-    virtual uint16_t inPeersLite() const = 0;
+    virtual uint16_t inPeersLght() const = 0;
 
     /**
      * @return multiaddresses of bootstrat nodes

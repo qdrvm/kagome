@@ -104,7 +104,7 @@ namespace kagome::application {
     uint16_t inPeers() const override {
       return in_peers_;
     }
-    uint16_t inPeersLite() const override {
+    uint16_t inPeersLght() const override {
       return in_peers_light_;
     }
     const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const override {

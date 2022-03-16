@@ -113,7 +113,7 @@ namespace kagome::application {
 
     MOCK_METHOD(uint16_t, inPeers, (), (const, override));
 
-    MOCK_METHOD(uint16_t, inPeersLite, (), (const, override));
+    MOCK_METHOD(uint16_t, inPeersLght, (), (const, override));
   };
 
 }  // namespace kagome::application
