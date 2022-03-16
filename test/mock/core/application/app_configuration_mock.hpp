@@ -109,11 +109,11 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(uint16_t, outPeers, (), (const, override));
+    MOCK_METHOD(uint32_t, outPeers, (), (const, override));
 
-    MOCK_METHOD(uint16_t, inPeers, (), (const, override));
+    MOCK_METHOD(uint32_t, inPeers, (), (const, override));
 
-    MOCK_METHOD(uint16_t, inPeersLght, (), (const, override));
+    MOCK_METHOD(uint32_t, inPeersLght, (), (const, override));
   };
 
 }  // namespace kagome::application
