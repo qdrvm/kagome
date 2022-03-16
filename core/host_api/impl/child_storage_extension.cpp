@@ -68,15 +68,17 @@ namespace kagome::host_api {
     }
   }
 
-  template <typename... Args>
-  auto ChildStorageExtension::loadBuffer(runtime::Memory &memory,
-                                         Args &&...spans) const {
-    auto f = [&memory](auto &&span) {
-      auto [span_ptr, span_size] = runtime::PtrSize(span);
-      return memory.loadN(span_ptr, span_size);
-    };
-    return std::make_tuple(f(std::forward<Args>(spans))...);
+  template <typename Arg>
+  auto loadBuffer(runtime::Memory &memory, Arg &&span) {
+    auto [span_ptr, span_size] = runtime::PtrSize(span);
+    return memory.loadN(span_ptr, span_size);
   }
+
+  template <typename... Args>
+  auto loadBuffer(runtime::Memory &memory, Args &&...spans) {
+    return std::make_tuple(loadBuffer(memory, std::forward<Args>(spans))...);
+  }
+
 
   void ChildStorageExtension::ext_default_child_storage_set_version_1(
       runtime::WasmSpan child_storage_key,
@@ -108,33 +110,36 @@ namespace kagome::host_api {
   ChildStorageExtension::ext_default_child_storage_get_version_1(
       runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const {
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_key_buffer, key_buffer] =
-        loadBuffer(memory, child_storage_key, key);
-    constexpr auto error_message =
-        "ext_default_child_storage_get_version_1( {}, {} ) => value was not "
-        "obtained. Reason: {}";
+    auto child_key_buffer = loadBuffer(memory, child_storage_key);
+    auto key_buffer = loadBuffer(memory, key);
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    auto result = executeOnChildStorage<std::optional<Buffer>>(
-        child_key_buffer,
-        [](auto &child_batch, auto &key) {
-          return common::map_optional(
-              child_batch->tryGet(key).value(),
-              [](auto &v) { return common::Buffer(v.get()); });
-        },
-        key_buffer);
+    return executeOnChildStorage<runtime::WasmSpan>(
+               child_key_buffer,
+               [&memory, &child_key_buffer, &key_buffer, this](
+                   auto &child_batch, auto &key) {
+                 constexpr auto error_message =
+                     "ext_default_child_storage_get_version_1( {}, {} ) => "
+                     "value was not "
+                     "obtained. Reason: {}";
 
-    if (result) {
-      SL_TRACE_FUNC_CALL(logger_, result.value(), child_key_buffer, key_buffer);
-    } else {
-      logger_->error(error_message,
-                     child_key_buffer.toHex(),
-                     key_buffer.toHex(),
-                     result.error().message());
-    }
-    // okay to throw, we want to end this runtime call with error
-    return memory.storeBuffer(scale::encode(result.value()).value());
+                 auto result = child_batch->tryGet(key);
+                 if (result) {
+                   SL_TRACE_FUNC_CALL(
+                       logger_, result.value(), child_key_buffer, key_buffer);
+                 } else {
+                   logger_->error(error_message,
+                                  child_key_buffer.toHex(),
+                                  key_buffer.toHex(),
+                                  result.error().message());
+                 }
+                 // okay to throw, we want to end this runtime call with error
+                 return memory.storeBuffer(
+                     scale::encode(result.value()).value());
+               },
+               key_buffer)
+        .value();
   }
 
   void ChildStorageExtension::ext_default_child_storage_clear_version_1(
@@ -214,7 +219,7 @@ namespace kagome::host_api {
       runtime::WasmSpan child_storage_key) const {
     outcome::result<storage::trie::RootHash> res{{}};
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_key_buffer] = loadBuffer(memory, child_storage_key);
+    auto child_key_buffer = loadBuffer(memory, child_storage_key);
     auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
 
     if (auto child_batch =
@@ -306,6 +311,7 @@ namespace kagome::host_api {
       SL_ERROR(logger_,
                "Error in ext_storage_read_version_1: {}",
                data_opt_res.error().message());
+      throw std::runtime_error{data_opt_res.error().message()};
     }
 
     return memory.storeBuffer(scale::encode(res).value());
@@ -337,7 +343,7 @@ namespace kagome::host_api {
   void ChildStorageExtension::ext_default_child_storage_storage_kill_version_1(
       runtime::WasmSpan child_storage_key) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_key_buffer] = loadBuffer(memory, child_storage_key);
+    auto child_key_buffer = loadBuffer(memory, child_storage_key);
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);
 

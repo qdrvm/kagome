@@ -254,8 +254,9 @@ namespace kagome::api {
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          static auto v = common::Buffer("2020"_hash256);
           EXPECT_CALL(*batch, get(child_storage_key.view()))
-              .WillOnce(testing::Return(common::Buffer("2020"_hash256)));
+              .WillOnce(testing::Return(v));
           return batch;
         }));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("2020"_hash256))
