@@ -513,9 +513,9 @@ namespace kagome::application {
         ("ws-max-connections", po::value<uint32_t>(), "maximum number of WS RPC server connections")
         ("prometheus-host", po::value<std::string>(), "address for OpenMetrics over HTTP")
         ("prometheus-port", po::value<uint16_t>(), "port for OpenMetrics over HTTP")
-        ("out-peers", po::value<uint16_t>()->default_value(25), "number of outgoing connections we're trying to maintain")
-        ("in-peers", po::value<uint16_t>()->default_value(25), "maximum number of inbound full nodes peers")
-        ("in-peers-light", po::value<uint16_t>()->default_value(100), "maximum number of inbound light nodes peers")
+        ("out-peers", po::value<uint32_t>()->default_value(25), "number of outgoing connections we're trying to maintain")
+        ("in-peers", po::value<uint32_t>()->default_value(25), "maximum number of inbound full nodes peers")
+        ("in-peers-light", po::value<uint32_t>()->default_value(100), "maximum number of inbound light nodes peers")
         ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
