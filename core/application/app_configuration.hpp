@@ -82,17 +82,17 @@ namespace kagome::application {
     /**
      * @return number of outgoing connections we're trying to maintain
      */
-    virtual uint16_t outPeers() const = 0;
+    virtual uint32_t outPeers() const = 0;
 
     /**
      * @return maximum number of inbound full nodes peers
      */
-    virtual uint16_t inPeers() const = 0;
+    virtual uint32_t inPeers() const = 0;
 
     /**
      * @return maximum number of inbound light nodes peers
      */
-    virtual uint16_t inPeersLght() const = 0;
+    virtual uint32_t inPeersLght() const = 0;
 
     /**
      * @return multiaddresses of bootstrat nodes

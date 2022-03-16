@@ -276,9 +276,9 @@ namespace kagome::application {
     load_str(val, "prometheus-host", openmetrics_http_host_);
     load_u16(val, "prometheus-port", openmetrics_http_port_);
     load_str(val, "name", node_name_);
-    load_u16(val, "out-peers", out_peers_);
-    load_u16(val, "in-peers", in_peers_);
-    load_u16(val, "in-peers-light", in_peers_light_);
+    load_u32(val, "out-peers", out_peers_);
+    load_u32(val, "in-peers", in_peers_);
+    load_u32(val, "in-peers-light", in_peers_light_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
@@ -818,17 +818,14 @@ namespace kagome::application {
       openmetrics_http_port_ = val;
     });
 
-    find_argument<uint16_t>(vm, "out-peers", [&](uint16_t val) {
-      out_peers_ = val;
-    });
+    find_argument<uint32_t>(
+        vm, "out-peers", [&](uint32_t val) { out_peers_ = val; });
 
-    find_argument<uint16_t>(vm, "in-peers", [&](uint16_t val) {
-      in_peers_ = val;
-    });
+    find_argument<uint32_t>(
+        vm, "in-peers", [&](uint32_t val) { in_peers_ = val; });
 
-    find_argument<uint16_t>(vm, "in-peers-light", [&](uint16_t val) {
-      in_peers_light_ = val;
-    });
+    find_argument<uint32_t>(
+        vm, "in-peers-light", [&](uint32_t val) { in_peers_light_ = val; });
 
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;

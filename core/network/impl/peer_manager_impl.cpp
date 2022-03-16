@@ -345,9 +345,6 @@ namespace kagome::network {
   void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
-      auto connection =
-          host_.getNetwork().getConnectionManager().getBestConnectionForPeer(
-              peer_id);
       SL_DEBUG(log_, "Disconnect from peer_id={}", peer_id.toBase58());
       stream_engine_->del(peer_id);
       active_peers_.erase(it);
