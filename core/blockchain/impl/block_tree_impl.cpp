@@ -66,7 +66,7 @@ namespace kagome::blockchain {
           continue;
         }
         SL_ERROR(log, "Leaf {} is corrupted: {}", hash, res.error().message());
-        continue;
+        return res.as_failure();
       }
       auto number = res.value();
       SL_TRACE(log, "Leaf {} found", primitives::BlockInfo(number, hash));
