@@ -126,7 +126,7 @@ namespace kagome::blockchain {
     virtual outcome::result<void> addBlock(const primitives::Block &block) = 0;
 
     /**
-     * Remove block
+     * Remove leaf
      * @param block_hash - hash of block to be deleted. The block must be leaf.
      * @return nothing or error
      */
