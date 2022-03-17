@@ -103,6 +103,8 @@ namespace kagome::consensus {
 
     auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
 
+    bool block_already_exists = false;
+
     // check if block body already exists. If so, do not apply
     if (auto body_res = block_tree_->getBlockBody(block_hash);
         body_res.has_value()) {
@@ -111,8 +113,7 @@ namespace kagome::consensus {
                primitives::BlockInfo(header.number, block_hash));
 
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
-
-      return blockchain::BlockTreeError::BLOCK_EXISTS;
+      block_already_exists = true;
     } else if (body_res.error() != blockchain::BlockTreeError::BODY_NOT_FOUND) {
       return body_res.as_failure();
     }
@@ -189,34 +190,36 @@ namespace kagome::consensus {
 
     auto parent = block_tree_->getBlockHeader(block.header.parent_hash).value();
 
-    auto exec_start = std::chrono::high_resolution_clock::now();
-    // apply block
-    SL_DEBUG(logger_,
-             "Execute block {}, state {}, a child of block {}, state {}",
-             primitives::BlockInfo(block.header.number, block_hash),
-             block.header.state_root,
-             primitives::BlockInfo(parent.number, block.header.parent_hash),
-             parent.state_root);
-
     auto last_finalized_block = block_tree_->getLastFinalized();
-    auto previous_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
+    auto previous_best_block_res = block_tree_->getBestContaining(
+        last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(previous_best_block_res.has_value());
     const auto &previous_best_block = previous_best_block_res.value();
 
-    OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
+    if (not block_already_exists) {
+      auto exec_start = std::chrono::high_resolution_clock::now();
+      // apply block
+      SL_DEBUG(logger_,
+               "Execute block {}, state {}, a child of block {}, state {}",
+               primitives::BlockInfo(block.header.number, block_hash),
+               block.header.state_root,
+               primitives::BlockInfo(parent.number, block.header.parent_hash),
+               parent.state_root);
 
-    auto exec_end = std::chrono::high_resolution_clock::now();
-    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           exec_end - exec_start)
-                           .count();
-    SL_DEBUG(logger_, "Core_execute_block: {} ms", duration_ms);
+      OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
 
-    metric_block_execution_time_->observe(static_cast<double>(duration_ms)
-                                          / 1000);
+      auto exec_end = std::chrono::high_resolution_clock::now();
+      auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             exec_end - exec_start)
+                             .count();
+      SL_DEBUG(logger_, "Core_execute_block: {} ms", duration_ms);
 
-    // add block header if it does not exist
-    OUTCOME_TRY(block_tree_->addBlock(block));
+      metric_block_execution_time_->observe(static_cast<double>(duration_ms)
+                                            / 1000);
+
+      // add block header if it does not exist
+      OUTCOME_TRY(block_tree_->addBlock(block));
+    }
 
     // apply justification if any
     if (b.justification.has_value()) {
