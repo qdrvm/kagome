@@ -24,8 +24,8 @@ namespace kagome::network {
   outcome::result<KademliaStorageBackend::Value>
   KademliaStorageBackend::getValue(
       const KademliaStorageBackend::ContentId &key) const {
-    OUTCOME_TRY(result, storage_->get(common::Buffer{key.data}));
-    return std::move(result).toVector();
+    OUTCOME_TRY(result, storage_->load(common::BufferView{key.data}));
+    return std::vector<uint8_t>(result.begin(), result.end());
   }
 
   outcome::result<void> KademliaStorageBackend::erase(

@@ -11,10 +11,6 @@
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
-/**
- * IMPORTANT: This module is meant only for test usage and is not exception-safe
- */
-
 namespace kagome::storage::trie {
 
   namespace printer_internal {
@@ -35,15 +31,16 @@ namespace kagome::storage::trie {
      public:
       explicit NodePrinter(Stream &s) : stream_{s} {}
 
-      Stream &printNode(const PolkadotTrie::NodePtr &node,
+      Stream &printNode(const PolkadotTrie::ConstNodePtr &node,
                         const PolkadotTrie &trie,
                         size_t nest_level = 0) {
-        using T = PolkadotNode::Type;
+        using T = TrieNode::Type;
         switch (node->getTrieType()) {
           case T::BranchWithValue:
           case T::BranchEmptyValue: {
-            printBranch(
-                std::static_pointer_cast<BranchNode>(node), trie, nest_level);
+            printBranch(std::static_pointer_cast<const BranchNode>(node),
+                        trie,
+                        nest_level);
             break;
           }
           case T::Leaf: {
@@ -60,13 +57,13 @@ namespace kagome::storage::trie {
       }
 
      private:
-      void printBranch(const PolkadotTrie::BranchPtr &node,
+      void printBranch(const PolkadotTrie::ConstBranchPtr &node,
                        const PolkadotTrie &trie,
                        size_t nest_level) {
         std::string indent(nest_level, '\t');
         auto value =
             (node->value ? "\"" + node->value.value().toHex() + "\"" : "NONE");
-        auto branch = std::dynamic_pointer_cast<BranchNode>(node);
+        auto branch = std::dynamic_pointer_cast<const BranchNode>(node);
         stream_ << std::setfill('-') << std::setw(nest_level) << ""
                 << std::setw(0) << "(branch) key: <"
                 << hex_lower(codec_.nibblesToKey(node->key_nibbles))
@@ -77,21 +74,22 @@ namespace kagome::storage::trie {
           }
         }
         stream_ << "\n";
-        printEncAndHash(node, nest_level);
+        // printEncAndHash(node, nest_level);
         for (size_t i = 0; i < branch->children.size(); i++) {
           auto child = branch->children.at(i);
           if (child) {
-            if (not child->isDummy()) {
-              printNode(child, trie, nest_level + 1);
+            if (auto child_node = std::dynamic_pointer_cast<TrieNode>(child);
+                child_node != nullptr) {
+              printNode(child_node, trie, nest_level + 1);
             } else {
-              auto fetched_child = trie.retrieveChild(branch, i).value();
+              auto fetched_child = trie.retrieveChild(*branch, i).value();
               printNode(fetched_child, trie, nest_level + 1);
             }
           }
         }
       }
 
-      void printEncAndHash(const PolkadotTrie::NodePtr &node,
+      void printEncAndHash(const PolkadotTrie::ConstNodePtr &node,
                            size_t nest_level) {
         auto enc = codec_.encodeNode(*node).value();
         if (print_enc_) {

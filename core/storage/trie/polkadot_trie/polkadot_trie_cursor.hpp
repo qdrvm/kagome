@@ -9,29 +9,29 @@
 #include "storage/face/map_cursor.hpp"
 
 #include "common/buffer.hpp"
-#include "storage/trie/polkadot_trie/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
 
-  class PolkadotTrieCursor
-      : public face::MapCursor<common::Buffer, common::Buffer> {
+  class PolkadotTrieCursor : public face::MapCursor<common::Buffer,
+                                                    common::BufferConstRef,
+                                                    common::BufferView> {
    public:
-    using NodePtr = std::shared_ptr<PolkadotNode>;
-    using BranchPtr = std::shared_ptr<BranchNode>;
-
-    ~PolkadotTrieCursor() override = default;
+    virtual ~PolkadotTrieCursor() override = default;
 
     /**
      * Seek the first element with key not less than \arg key
      * @return true if the trie is not empty
      */
-    virtual outcome::result<void> seekLowerBound(const common::Buffer &key) = 0;
+    virtual outcome::result<void> seekLowerBound(
+        const common::BufferView &key) = 0;
 
     /**
      * Seek the first element with key greater than \arg key
      * @return true if the trie is not empty
      */
-    virtual outcome::result<void> seekUpperBound(const common::Buffer &key) = 0;
+    virtual outcome::result<void> seekUpperBound(
+        const common::BufferView &key) = 0;
   };
 
 }  // namespace kagome::storage::trie

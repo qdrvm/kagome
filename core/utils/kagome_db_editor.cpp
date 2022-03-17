@@ -1,6 +1,7 @@
 #include <boost/throw_exception.hpp>
 #include <chrono>
 #include <fstream>
+#include <string_view>
 #include <thread>
 
 #include <backward.hpp>
@@ -157,8 +158,10 @@ void child_storage_root_hashes(
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
         auto &value_opt = value_res.value();
-        log->trace("Found child root hash {}", value_opt.value().toHex());
-        hashes.insert(common::Hash256::fromSpan(value_opt.value()).value());
+        log->trace("Found child root hash {}",
+                   value_opt.value().get().toHex());
+        hashes.insert(
+            common::Hash256::fromSpan(value_opt.value().get()).value());
       }
       res = cursor->next();
       key = cursor->key();
@@ -170,10 +173,13 @@ int main(int argc, char *argv[]) {
   backward::SignalHandling sh;
 
   Command cmd;
-  if (argc == 2 or argc == 3
-      or (argc == 4 and not std::strcmp(argv[MODE], "compact"))) {
+  auto is_hash = [](const char* s) {
+    return std::strlen(s) == common::Hash256::size() + 2 && std::equal(s, s + 2, "0x");
+  };
+  if (argc == 2 or (argc == 3 && is_hash(argv[2]))
+      or (argc == 4 and std::strcmp(argv[MODE], "compact") == 0)) {
     cmd = COMPACT;
-  } else if (argc == 4 and not std::strcmp(argv[MODE], "dump")) {
+  } else if (argc == 4 and std::strcmp(argv[MODE], "dump") == 0) {
     cmd = DUMP;
   } else {
     usage();

@@ -248,7 +248,6 @@ namespace kagome::host_api {
           method_buffer.toString(),
           uri,
           meta_buffer.toString());
-      std::runtime_error("Unknown method '" + method_buffer.asString() + "'");
     }
 
     auto result = worker->httpRequestStart(method, uri, meta_buffer);

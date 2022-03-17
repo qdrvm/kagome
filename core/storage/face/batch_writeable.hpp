@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BATCHABLE_HPP
-#define KAGOME_BATCHABLE_HPP
+#ifndef KAGOME_BATCH_WRITEABLE_HPP
+#define KAGOME_BATCH_WRITEABLE_HPP
 
 #include <memory>
 
@@ -20,8 +20,8 @@ namespace kagome::storage::face {
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct Batchable {
-    virtual ~Batchable() = default;
+  struct BatchWriteable {
+    virtual ~BatchWriteable() = default;
 
     /**
      * @brief Creates new Write Batch - an object, which can be used to
@@ -32,4 +32,4 @@ namespace kagome::storage::face {
 
 }  // namespace kagome::storage::face
 
-#endif  // KAGOME_BATCHABLE_HPP
+#endif  // KAGOME_BATCH_WRITEABLE_HPP
