@@ -108,6 +108,12 @@ namespace kagome::application {
                 recoverState,
                 (),
                 (const, override));
+
+    MOCK_METHOD(uint32_t, outPeers, (), (const, override));
+
+    MOCK_METHOD(uint32_t, inPeers, (), (const, override));
+
+    MOCK_METHOD(uint32_t, inPeersLght, (), (const, override));
   };
 
 }  // namespace kagome::application
