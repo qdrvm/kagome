@@ -210,16 +210,17 @@ namespace kagome::network {
       auto it = std::min_element(active_peers_.begin(),
                                  active_peers_.end(),
                                  [](const auto &item1, const auto &item2) {
-                                   return item1.second < item2.second;
+                                   return item1.second.time_point
+                                          < item2.second.time_point;
                                  });
-      auto &[oldest_peer_id, oldest_timepoint] = *it;
+      auto &[oldest_peer_id, oldest_descr] = *it;
 
       if (active_peers_.size() > hard_limit) {
         // Hard limit is exceeded
         SL_DEBUG(log_, "Hard limit of of active peers is exceeded");
         disconnectFromPeer(oldest_peer_id);
 
-      } else if (oldest_timepoint + peer_ttl < clock_->now()) {
+      } else if (oldest_descr.time_point + peer_ttl < clock_->now()) {
         // Peer is inactive long time
         auto &oldest_peer_id_ref = oldest_peer_id;
         SL_DEBUG(
@@ -306,7 +307,7 @@ namespace kagome::network {
 
     host_.connect(
         peer_info,
-        [wp = weak_from_this(), peer_id = peer_info.id](auto res) mutable {
+        [wp = weak_from_this(), peer_id](auto res) mutable {
           auto self = wp.lock();
           if (not self) {
             return;
@@ -358,7 +359,7 @@ namespace kagome::network {
   void PeerManagerImpl::keepAlive(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
-      it->second = clock_->now();
+      it->second.time_point = clock_->now();
     }
   }
 
@@ -480,6 +481,49 @@ namespace kagome::network {
       return;
     }
 
+    auto connection =
+        host_.getNetwork().getConnectionManager().getBestConnectionForPeer(
+            peer_id);
+    if (connection->isInitiator()) {
+      auto out_peers_count = std::count_if(
+          active_peers_.begin(), active_peers_.end(), [](const auto &el) {
+            return el.second.peer_type == PeerType::PEER_TYPE_OUT;
+          });
+      if (out_peers_count > app_config_.outPeers()) {
+        connecting_peers_.erase(peer_id);
+        disconnectFromPeer(peer_id);
+        return;
+      }
+    } else {
+      auto in_peers_count = 0u;
+      auto in_light_peers_count = 0u;
+      if (peer_states_[peer_id].roles.flags.full == 1) {
+        for (const auto &peer : active_peers_) {
+          if (peer.second.peer_type == PeerType::PEER_TYPE_IN
+              and peer_states_[peer.first].roles.flags.full == 1) {
+            ++in_peers_count;
+          }
+        }
+        if (in_peers_count >= app_config_.inPeers()) {
+          connecting_peers_.erase(peer_id);
+          disconnectFromPeer(peer_id);
+          return;
+        }
+      } else if (peer_states_[peer_id].roles.flags.light == 1) {
+        for (const auto &peer : active_peers_) {
+          if (peer.second.peer_type == PeerType::PEER_TYPE_IN
+              and peer_states_[peer.first].roles.flags.light == 1) {
+            ++in_light_peers_count;
+          }
+        }
+        if (in_light_peers_count >= app_config_.inPeersLght()) {
+          connecting_peers_.erase(peer_id);
+          disconnectFromPeer(peer_id);
+          return;
+        }
+      }
+    }
+
     PeerInfo peer_info{.id = peer_id, .addresses = {}};
 
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
@@ -491,7 +535,8 @@ namespace kagome::network {
           peer_info,
           [wp = weak_from_this(),
            peer_id = peer_info.id,
-           protocol = block_announce_protocol](auto &&stream_res) {
+           protocol = block_announce_protocol,
+           connection](auto &&stream_res) {
             auto self = wp.lock();
             if (not self) {
               return;
@@ -506,10 +551,13 @@ namespace kagome::network {
               self->disconnectFromPeer(peer_id);
               return;
             }
+            PeerType peer_type = connection->isInitiator()
+                                     ? PeerType::PEER_TYPE_OUT
+                                     : PeerType::PEER_TYPE_IN;
 
             // Add to active peer list
-            if (auto [ap_it, added] =
-                    self->active_peers_.emplace(peer_id, self->clock_->now());
+            if (auto [ap_it, added] = self->active_peers_.emplace(
+                    peer_id, PeerDescriptor{peer_type, self->clock_->now()});
                 added) {
               self->recently_active_peers_.insert(peer_id);
 
