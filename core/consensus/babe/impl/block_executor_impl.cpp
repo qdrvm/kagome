@@ -131,12 +131,6 @@ namespace kagome::consensus {
 
     const auto &babe_header = babe_digests.second;
 
-    // sync epoch (starting slot) by slot of block number 1
-    if (block.header.number == 1) {
-      babe_util_->syncEpoch(EpochDescriptor{
-          .epoch_number = 0, .start_slot = babe_header.slot_number});
-    }
-
     auto slot_number = babe_header.slot_number;
     auto epoch_number = babe_util_->slotToEpoch(slot_number);
 
@@ -191,8 +185,8 @@ namespace kagome::consensus {
     auto parent = block_tree_->getBlockHeader(block.header.parent_hash).value();
 
     auto last_finalized_block = block_tree_->getLastFinalized();
-    auto previous_best_block_res = block_tree_->getBestContaining(
-        last_finalized_block.hash, std::nullopt);
+    auto previous_best_block_res =
+        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(previous_best_block_res.has_value());
     const auto &previous_best_block = previous_best_block_res.value();
 
@@ -236,6 +230,7 @@ namespace kagome::consensus {
     }
 
     // observe possible changes of authorities
+    // (must be done strictly after block will be added)
     for (auto &digest_item : block_without_seal_digest.header.digest) {
       auto res = visit_in_place(
           digest_item,

@@ -192,6 +192,39 @@ namespace kagome::consensus::babe {
     return outcome::success(epoch_descriptor);
   }
 
+  void BabeImpl::adjustEpochDescriptor() {
+    if (current_epoch_.epoch_number > 1) {
+      return;
+    }
+
+    auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
+    if (res.has_error()) {
+      return;
+    }
+
+    auto &first_block_header = res.value();
+    auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+    BOOST_ASSERT_MSG(babe_digest_res.has_value(),
+                     "Any non genesis block must contain babe digest");
+    auto first_slot_number = babe_digest_res.value().second.slot_number;
+
+    auto current_epoch_start_slot =
+        first_slot_number
+        + current_epoch_.epoch_number * babe_configuration_->epoch_length;
+
+    if (current_epoch_.start_slot != current_epoch_start_slot) {
+      SL_WARN(log_,
+              "Start-slot of current epoch {} has updated from {} to {}",
+              current_epoch_.epoch_number,
+              current_epoch_start_slot,
+              current_epoch_.start_slot);
+
+      current_epoch_.start_slot =current_epoch_start_slot;
+
+      babe_util_->syncEpoch(current_epoch_);
+    }
+  }
+
   void BabeImpl::runEpoch(EpochDescriptor epoch) {
     bool already_active = false;
     if (not active_.compare_exchange_strong(already_active, true)) {
@@ -372,6 +405,8 @@ namespace kagome::consensus::babe {
         if (current_epoch_.epoch_number
             != babe_util_->slotToEpoch(current_slot_)) {
           startNextEpoch();
+        } else {
+          adjustEpochDescriptor();
         }
       } else if (slot < current_slot_) {
         SL_VERBOSE(log_, "Slots {}..{} was skipped", slot, current_slot_ - 1);
@@ -498,6 +533,8 @@ namespace kagome::consensus::babe {
 
     if (current_epoch_.epoch_number != babe_util_->slotToEpoch(current_slot_)) {
       startNextEpoch();
+    } else {
+      adjustEpochDescriptor();
     }
 
     auto start_time = babe_util_->slotStartTime(current_slot_);
