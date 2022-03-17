@@ -88,7 +88,7 @@ namespace kagome::blockchain {
 
     outcome::result<void> addBlock(const primitives::Block &block) override;
 
-    outcome::result<void> removeBlock(
+    outcome::result<void> removeLeaf(
         const primitives::BlockHash &block_hash) override;
 
     outcome::result<void> addExistingBlock(

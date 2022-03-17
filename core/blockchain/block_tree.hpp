@@ -130,7 +130,7 @@ namespace kagome::blockchain {
      * @param block_hash - hash of block to be deleted. The block must be leaf.
      * @return nothing or error
      */
-    virtual outcome::result<void> removeBlock(
+    virtual outcome::result<void> removeLeaf(
         const primitives::BlockHash &block_hash) = 0;
 
     /**

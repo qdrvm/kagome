@@ -720,7 +720,7 @@ namespace kagome::consensus::babe {
                "Could not add block {}: {}",
                block_info,
                add_res.error().message());
-      auto removal_res = block_tree_->removeBlock(block_hash);
+      auto removal_res = block_tree_->removeLeaf(block_hash);
       if (removal_res.has_error()
           and removal_res
                   != outcome::failure(
