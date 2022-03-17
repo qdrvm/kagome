@@ -20,7 +20,7 @@ namespace kagome::storage::trie {
     using index_type = gsl::span<const uint8_t>::index_type;
 
    public:
-    explicit BufferStream(const common::Buffer &buf) : data_{buf.asVector()} {}
+    explicit BufferStream(gsl::span<const uint8_t> buf) : data_{buf} {}
 
     bool hasMore(index_type num_bytes) const {
       return data_.size() >= num_bytes;

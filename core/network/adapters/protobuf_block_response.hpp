@@ -38,14 +38,14 @@ namespace kagome::network {
                 vector_to_string(scale::encode(ext_body).value()));
 
         if (src_block.receipt)
-          dst_block->set_receipt(src_block.receipt->asString());
+          dst_block->set_receipt(src_block.receipt->toString());
 
         if (src_block.message_queue)
-          dst_block->set_message_queue(src_block.message_queue->asString());
+          dst_block->set_message_queue(src_block.message_queue->toString());
 
         if (src_block.justification) {
           dst_block->set_justification(
-              src_block.justification->data.asString());
+              src_block.justification->data.toString());
 
           dst_block->set_is_empty_justification(
               src_block.justification->data.empty());

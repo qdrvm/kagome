@@ -14,18 +14,21 @@ namespace kagome::storage::face {
 
   /**
    * @brief A mixin for an iterable map.
-   * @tparam K key type
-   * @tparam V value type
+   * @tparam K map key type
+   * @tparam V map value type
+   * @tparam KView map key view type
    */
-  template <typename K, typename V>
+  template <typename K, typename V, typename KView = K >
   struct Iterable {
+    using Cursor = MapCursor<K, V, KView>;
+
     virtual ~Iterable() = default;
 
     /**
      * @brief Returns new key-value iterator.
      * @return kv iterator
      */
-    virtual std::unique_ptr<MapCursor<K, V>> cursor() = 0;
+    virtual std::unique_ptr<Cursor> cursor() = 0;
   };
 
 }  // namespace kagome::storage::face

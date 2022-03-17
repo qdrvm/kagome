@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/polkadot_trie/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
 
   int BranchNode::getType() const {
-    return static_cast<int>(value ? PolkadotNode::Type::BranchWithValue
-                                  : PolkadotNode::Type::BranchEmptyValue);
+    return static_cast<int>(value ? TrieNode::Type::BranchWithValue
+                                  : TrieNode::Type::BranchEmptyValue);
   }
 
   uint16_t BranchNode::childrenBitmap() const {
@@ -30,7 +30,7 @@ namespace kagome::storage::trie {
   }
 
   int LeafNode::getType() const {
-    return static_cast<int>(PolkadotNode::Type::Leaf);
+    return static_cast<int>(TrieNode::Type::Leaf);
   }
 
 }  // namespace kagome::storage::trie

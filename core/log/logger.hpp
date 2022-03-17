@@ -52,12 +52,6 @@ namespace kagome::log {
   auto format_arg(T const *t) {
     return fmt::ptr(t);
   }
-
-  template <typename T>
-  auto format_arg(const std::optional<T> &t) {
-    return t ? format_arg(t.value()) : "none";
-  }
-
   inline std::string_view format_arg(std::string_view s) {
     return s;
   }
@@ -84,6 +78,16 @@ namespace kagome::log {
       return res.substr(0, 256) + "...";
     }
     return res;
+  }
+
+  template <typename T>
+  auto format_arg(std::reference_wrapper<T> t) {
+    return format_arg(t.get());
+  }
+
+  template <typename T>
+  auto format_arg(const std::optional<T> &t) {
+    return t ? format_arg(t.value()) : "none";
   }
 
   template <typename Ret, typename... Args>
@@ -124,7 +128,12 @@ namespace kagome::log {
     }
   }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
+
+#define SL_TRACE_FUNC_CALL(logger, ret, ...)
+#define SL_TRACE_VOID_FUNC_CALL(logger, ...)
+
+#else
 
 #define SL_TRACE_FUNC_CALL(logger, ret, ...) \
   ::kagome::log::trace_function_call(        \
@@ -132,11 +141,6 @@ namespace kagome::log {
 
 #define SL_TRACE_VOID_FUNC_CALL(logger, ...) \
   ::kagome::log::trace_void_function_call((logger), __FUNCTION__, ##__VA_ARGS__)
-
-#else
-
-#define SL_TRACE_FUNC_CALL(logger, ret, ...)
-#define SL_TRACE_VOID_FUNC_CALL(logger, ...)
 
 #endif
 

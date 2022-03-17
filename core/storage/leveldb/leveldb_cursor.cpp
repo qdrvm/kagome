@@ -9,44 +9,44 @@
 
 namespace kagome::storage {
 
-  LevelDB::Cursor::Cursor(std::shared_ptr<leveldb::Iterator> it)
+  LevelDBCursor::LevelDBCursor(std::shared_ptr<leveldb::Iterator> it)
       : i_(std::move(it)) {}
 
-  outcome::result<bool> LevelDB::Cursor::seekFirst() {
+  outcome::result<bool> LevelDBCursor::seekFirst() {
     i_->SeekToFirst();
     return isValid();
   }
 
-  outcome::result<bool> LevelDB::Cursor::seek(const Buffer &key) {
+  outcome::result<bool> LevelDBCursor::seek(const BufferView &key) {
     i_->Seek(make_slice(key));
     return isValid();
   }
 
-  outcome::result<bool> LevelDB::Cursor::seekLast() {
+  outcome::result<bool> LevelDBCursor::seekLast() {
     i_->SeekToLast();
     return isValid();
   }
 
-  bool LevelDB::Cursor::isValid() const {
+  bool LevelDBCursor::isValid() const {
     return i_->Valid();
   }
 
-  outcome::result<void> LevelDB::Cursor::next() {
+  outcome::result<void> LevelDBCursor::next() {
     i_->Next();
     return outcome::success();
   }
 
-  outcome::result<void> LevelDB::Cursor::prev() {
+  outcome::result<void> LevelDBCursor::prev() {
     i_->Prev();
     return outcome::success();
   }
 
-  std::optional<Buffer> LevelDB::Cursor::key() const {
+  std::optional<Buffer> LevelDBCursor::key() const {
     return isValid() ? std::make_optional(make_buffer(i_->key()))
                      : std::nullopt;
   }
 
-  std::optional<Buffer> LevelDB::Cursor::value() const {
+  std::optional<Buffer> LevelDBCursor::value() const {
     return isValid() ? std::make_optional(make_buffer(i_->value()))
                      : std::nullopt;
   }

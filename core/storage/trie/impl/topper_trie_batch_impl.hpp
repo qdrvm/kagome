@@ -24,35 +24,37 @@ namespace kagome::storage::trie {
 
     explicit TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent);
 
-    outcome::result<Buffer> get(const Buffer &key) const override;
-    outcome::result<std::optional<Buffer>> tryGet(
-        const Buffer &key) const override;
+    outcome::result<common::BufferConstRef> get(
+        const BufferView &key) const override;
+    outcome::result<std::optional<common::BufferConstRef>> tryGet(
+        const BufferView &key) const override;
 
     /**
      * Won't consider changes not written back to the parent batch
      */
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
-    outcome::result<bool> contains(const Buffer &key) const override;
+    outcome::result<bool> contains(const BufferView &key) const override;
     bool empty() const override;
 
-    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
-    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
-    outcome::result<void> remove(const Buffer &key) override;
+    outcome::result<void> put(const BufferView &key,
+                              const Buffer &value) override;
+    outcome::result<void> put(const BufferView &key, Buffer &&value) override;
+    outcome::result<void> remove(const BufferView &key) override;
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
-        const Buffer &prefix, std::optional<uint64_t> limit) override;
+        const BufferView &prefix, std::optional<uint64_t> limit) override;
 
     outcome::result<void> writeBack() override;
 
    private:
-    bool wasClearedByPrefix(const Buffer &key) const;
+    bool wasClearedByPrefix(const BufferView &key) const;
 
-    std::map<Buffer, std::optional<Buffer>> cache_;
+    std::map<Buffer, std::optional<Buffer>, std::less<>> cache_;
     std::deque<Buffer> cleared_prefixes_;
     std::weak_ptr<TrieBatch> parent_;
   };
 
 }  // namespace kagome::storage::trie
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, TopperTrieBatchImpl::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, TopperTrieBatchImpl::Error)
 
 #endif  // KAGOME_CORE_STORAGE_TRIE_IMPL_TOPPER_TRIE_BATCH_IMPL

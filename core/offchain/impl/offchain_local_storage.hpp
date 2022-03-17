@@ -18,17 +18,18 @@ namespace kagome::offchain {
     explicit OffchainLocalStorageImpl(
         std::shared_ptr<storage::BufferStorage> storage);
 
-    outcome::result<void> set(const common::Buffer &key,
+    outcome::result<void> set(const common::BufferView &key,
                               common::Buffer value) override;
 
-    outcome::result<void> clear(const common::Buffer &key) override;
+    outcome::result<void> clear(const common::BufferView &key) override;
 
     outcome::result<bool> compare_and_set(
-        const common::Buffer &key,
-        std::optional<std::reference_wrapper<const common::Buffer>> expected,
+        const common::BufferView &key,
+        const std::optional<common::BufferView> &expected,
         common::Buffer value) override;
 
-    outcome::result<common::Buffer> get(const common::Buffer &key) override;
+    outcome::result<common::Buffer> get(
+        const common::BufferView &key) override;
 
    private:
     std::shared_ptr<storage::BufferStorage> storage_;

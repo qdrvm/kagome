@@ -6,7 +6,7 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-#include "storage/trie/polkadot_trie/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "testutil/outcome.hpp"
 
@@ -17,7 +17,7 @@ using namespace trie;
 using namespace testing;
 
 struct Case {
-  std::shared_ptr<PolkadotNode> node;
+  std::shared_ptr<TrieNode> node;
   Buffer encoded;
 };
 
@@ -33,7 +33,7 @@ TEST_P(NodeEncodingTest, GetHeader) {
 }
 
 template <typename T>
-std::shared_ptr<PolkadotNode> make(const common::Buffer &key_nibbles,
+std::shared_ptr<TrieNode> make(const common::Buffer &key_nibbles,
                                    std::optional<common::Buffer> value) {
   auto node = std::make_shared<T>();
   node->key_nibbles = key_nibbles;
@@ -41,7 +41,7 @@ std::shared_ptr<PolkadotNode> make(const common::Buffer &key_nibbles,
   return node;
 }
 
-using T = PolkadotNode::Type;
+using T = TrieNode::Type;
 
 constexpr uint8_t LEAF = (uint8_t)T::Leaf << 6u;
 constexpr uint8_t BRANCH_VAL = (uint8_t)T::BranchWithValue << 6u;

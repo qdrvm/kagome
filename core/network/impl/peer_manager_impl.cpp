@@ -624,7 +624,7 @@ namespace kagome::network {
 
   std::vector<scale::PeerInfoSerializable>
   PeerManagerImpl::loadLastActivePeers() {
-    auto get_res = storage_->get(storage::kActivePeersKey);
+    auto get_res = storage_->load(storage::kActivePeersKey);
     if (not get_res) {
       SL_ERROR(log_,
                "List of last active peers cannot be obtained from storage. "
@@ -634,7 +634,7 @@ namespace kagome::network {
     }
 
     std::vector<scale::PeerInfoSerializable> last_active_peers;
-    scale::ScaleDecoderStream s{get_res.value().asVector()};
+    scale::ScaleDecoderStream s{get_res.value()};
     try {
       s >> last_active_peers;
     } catch (...) {

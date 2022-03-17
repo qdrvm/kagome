@@ -8,8 +8,8 @@
 
 #include "storage/buffer_map_types.hpp"
 
-#include "storage/trie/polkadot_trie/polkadot_node.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
 
@@ -17,18 +17,24 @@ namespace kagome::storage::trie {
    * For specification see Polkadot Runtime Environment Protocol Specification
    * '2.1.2 The General Tree Structure' and further
    */
-  class PolkadotTrie : public face::GenericMap<common::Buffer, common::Buffer> {
+  class PolkadotTrie
+      : public face::
+            ReadOnlyMap<common::Buffer, common::Buffer, common::BufferView>,
+        public face::Writeable<common::BufferView, common::Buffer> {
    public:
-    using NodePtr = std::shared_ptr<PolkadotNode>;
+    using NodePtr = std::shared_ptr<TrieNode>;
+    using ConstNodePtr = std::shared_ptr<const TrieNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
-    using NodeRetrieveFunctor = std::function<outcome::result<void>(NodePtr &)>;
+    using ConstBranchPtr = std::shared_ptr<const BranchNode>;
+    using NodeRetrieveFunctor = std::function<outcome::result<NodePtr>(
+        std::shared_ptr<OpaqueTrieNode> const &)>;
 
     /**
      * This callback is called when a node is detached from a trie. It is called
      * for each leaf from the detached node subtree
      */
     using OnDetachCallback = std::function<outcome::result<void>(
-        const common::Buffer &key, std::optional<common::Buffer> &&value)>;
+        const common::BufferView &key, std::optional<common::Buffer> &&value)>;
 
     /**
      * Remove all trie entries which key begins with the supplied prefix
@@ -40,46 +46,58 @@ namespace kagome::storage::trie {
      */
 
     virtual outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
-        const common::Buffer &prefix,
+        const common::BufferView &prefix,
         std::optional<uint64_t> limit,
         const OnDetachCallback &callback) = 0;
 
     /**
      * @return the root node of the trie
      */
-    virtual NodePtr getRoot() const = 0;
+    virtual NodePtr getRoot() = 0;
+    virtual ConstNodePtr getRoot() const = 0;
 
     /**
      * @returns a child node pointer of a provided \arg parent node
      * at the index \idx
      */
-    virtual outcome::result<NodePtr> retrieveChild(BranchPtr parent,
-                                                   uint8_t idx) const = 0;
+    virtual outcome::result<ConstNodePtr> retrieveChild(
+        const BranchNode &parent, uint8_t idx) const = 0;
+    virtual outcome::result<NodePtr> retrieveChild(const BranchNode &parent,
+                                                   uint8_t idx) = 0;
 
     /**
      * @returns a node which is a descendant of \arg parent found by following
      * \arg key_nibbles (includes parent's key nibbles)
      */
-    virtual outcome::result<NodePtr> getNode(
-        NodePtr parent, const KeyNibbles &key_nibbles) const = 0;
+    virtual outcome::result<NodePtr> getNode(ConstNodePtr parent,
+                                             const NibblesView &key_nibbles) = 0;
+    virtual outcome::result<ConstNodePtr> getNode(
+        ConstNodePtr parent, const NibblesView &key_nibbles) const = 0;
+
     /**
-     * @returns a sequence of nodes in between \arg parent and the node found by
-     * following \arg key_nibbles. The parent is included, the end node isn't.
+     * Invokes callback on each node starting from \arg parent and ending on the
+     * node corresponding to the \arg path
+     * @returns error, if any call errored, success otherwise
      */
-    virtual outcome::result<std::list<std::pair<BranchPtr, uint8_t>>> getPath(
-        NodePtr parent, const KeyNibbles &key_nibbles) const = 0;
+    virtual outcome::result<void> forNodeInPath(
+        ConstNodePtr parent,
+        const NibblesView &path,
+        const std::function<outcome::result<void>(
+            BranchNode const &, uint8_t idx)> &callback) const = 0;
 
     virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() = 0;
 
-    std::unique_ptr<BufferMapCursor> cursor() final {
+    std::unique_ptr<Cursor> cursor() final {
       return trieCursor();
     }
 
-    inline static outcome::result<void> defaultNodeRetrieveFunctor(
-        NodePtr &node) {
-      BOOST_ASSERT_MSG(not node or not node->isDummy(),
-                       "Dummy node unexpected.");
-      return outcome::success();
+    inline static outcome::result<NodePtr> defaultNodeRetrieveFunctor(
+        const std::shared_ptr<OpaqueTrieNode> &node) {
+      BOOST_ASSERT_MSG(
+          node == nullptr
+              or std::dynamic_pointer_cast<TrieNode>(node) != nullptr,
+          "Unexpected Dummy node.");
+      return std::dynamic_pointer_cast<TrieNode>(node);
     }
   };
 

@@ -18,18 +18,19 @@ namespace kagome::storage::trie {
                            std::shared_ptr<PolkadotTrie> trie);
     ~EphemeralTrieBatchImpl() override = default;
 
-    outcome::result<Buffer> get(const Buffer &key) const override;
-    outcome::result<std::optional<Buffer>> tryGet(
-        const Buffer &key) const override;
+    outcome::result<BufferConstRef> get(const BufferView &key) const override;
+    outcome::result<std::optional<BufferConstRef>> tryGet(
+        const BufferView &key) const override;
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
-    outcome::result<bool> contains(const Buffer &key) const override;
+    outcome::result<bool> contains(const BufferView &key) const override;
     bool empty() const override;
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
-        const Buffer &prefix,
+        const BufferView &prefix,
         std::optional<uint64_t> limit = std::nullopt) override;
-    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
-    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
-    outcome::result<void> remove(const Buffer &key) override;
+    outcome::result<void> put(const BufferView &key,
+                              const Buffer &value) override;
+    outcome::result<void> put(const BufferView &key, Buffer &&value) override;
+    outcome::result<void> remove(const BufferView &key) override;
     outcome::result<RootHash> hash() override;
 
    private:
