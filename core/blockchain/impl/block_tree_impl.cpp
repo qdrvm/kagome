@@ -29,6 +29,7 @@ namespace kagome::blockchain {
   using DatabaseError = kagome::storage::DatabaseError;
 
   namespace {
+    /// Function-helper for loading (and repair if it needed) of leaves
     outcome::result<std::set<primitives::BlockInfo>> loadLeaves(
         const std::shared_ptr<BlockStorage> &storage,
         const std::shared_ptr<BlockHeaderRepository> &header_repo,
@@ -902,9 +903,12 @@ namespace kagome::blockchain {
     }
     auto start_block_number = block_number_res.value();
 
+    auto deepest_leaf = tree_->getMetadata().deepest_leaf.lock();
+    BOOST_ASSERT(deepest_leaf != nullptr);
+    auto current_depth = deepest_leaf->depth;
+
     primitives::BlockNumber finish_block_number =
         start_block_number + maximum - 1;
-    auto current_depth = tree_->getMetadata().deepest_leaf.lock()->depth;
     if (current_depth < finish_block_number) {
       finish_block_number = current_depth;
     }

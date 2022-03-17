@@ -135,7 +135,8 @@ namespace kagome::authority {
         auto &val_opt = val_opt_res.value();
         if (val_opt.has_value()) {
           auto &val = val_opt.value();
-          set_id_opt.emplace(scale::decode<MembershipCounter>(val.get()).value());
+          set_id_opt.emplace(
+              scale::decode<MembershipCounter>(val.get()).value());
           break;
         }
       }
@@ -244,7 +245,7 @@ namespace kagome::authority {
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
-      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
     auto adjusted_node = node->makeDescendant(block, finalized);
@@ -274,7 +275,7 @@ namespace kagome::authority {
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
-      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
     SL_DEBUG(
@@ -353,7 +354,7 @@ namespace kagome::authority {
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
-      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
     auto new_node = node->makeDescendant(block);
@@ -415,7 +416,7 @@ namespace kagome::authority {
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
-      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
     auto new_node = node->makeDescendant(block);
@@ -458,7 +459,7 @@ namespace kagome::authority {
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
-      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
     auto new_node = node->makeDescendant(block);
@@ -485,7 +486,7 @@ namespace kagome::authority {
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
-      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
     auto new_node = node->makeDescendant(block);

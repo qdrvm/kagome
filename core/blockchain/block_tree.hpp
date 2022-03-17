@@ -156,7 +156,7 @@ namespace kagome::blockchain {
     enum class GetChainDirection { ASCEND, DESCEND };
 
     /**
-     * Get a chain of blocks from the (\param block) to best block direction
+     * Get a chain of blocks from provided block to best block direction
      * @param block, from which the chain is started
      * @param maximum number of blocks to be retrieved
      * @return chain or blocks or error
@@ -165,13 +165,13 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block, uint64_t maximum) const = 0;
 
     /**
-     * Get a chain of blocks before the (\param block) including its
+     * Get a chain of blocks before provided block including its
      * @param block, to which the chain is ended
      * @param maximum number of blocks to be retrieved
      * @return chain or blocks or error
      */
-    virtual BlockHashVecRes getDescendingChainToBlock(const primitives::BlockHash &block,
-                                            uint64_t maximum) const = 0;
+    virtual BlockHashVecRes getDescendingChainToBlock(
+        const primitives::BlockHash &block, uint64_t maximum) const = 0;
 
     /**
      * Get a chain of blocks

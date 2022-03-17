@@ -702,8 +702,6 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(0));
   EXPECT_CALL(*header_repo_, getNumberByHash(hash2)).WillRepeatedly(Return(2));
-  //  EXPECT_CALL(*header_repo_, getHashByNumber(0))
-  //      .WillOnce(Return(kFinalizedBlockInfo.hash));
   EXPECT_CALL(*header_repo_, getBlockHeader({kFinalizedBlockInfo.hash}))
       .WillOnce(Return(BlockTreeError::HEADER_NOT_FOUND));
 

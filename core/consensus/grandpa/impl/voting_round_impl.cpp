@@ -181,6 +181,10 @@ namespace kagome::consensus::grandpa {
                                 IsPrecommitsChanged{is_precommits_changed});
       }
 
+      // Round might be no finalized, if provided state has not enough prevotes
+      // (i.e. state was made by justification in commit). In this case we have
+      // fallback way to finalize than basing on supermajority of precommits. It
+      // is enough to be finalized, but no completable.
       if (not finalized_.has_value()) {
         if (precommits_->getTotalWeight() >= threshold_) {
           auto possible_to_finalize = [&](const VoteWeight &weight) {
@@ -1488,21 +1492,21 @@ namespace kagome::consensus::grandpa {
 
   void VotingRoundImpl::doCatchUpResponse(const libp2p::peer::PeerId &peer_id) {
     BOOST_ASSERT(finalized_.has_value());
-    const auto &finalised_block = finalized_.value();
+    const auto &finalized_block = finalized_.value();
 
     auto estimate = estimate_.value_or(last_finalized_block_);
     auto prevote_justification =
         getPrevoteJustification(estimate, prevotes_->getMessages());
 
     auto precommit_justification =
-        getPrecommitJustification(finalised_block, precommits_->getMessages());
+        getPrecommitJustification(finalized_block, precommits_->getMessages());
 
     auto result = env_->onCatchUpRespond(peer_id,
                                          voter_set_->id(),
                                          round_number_,
                                          std::move(prevote_justification),
                                          std::move(precommit_justification),
-                                         finalised_block);
+                                         finalized_block);
     if (not result) {
       logger_->warn("Catch-Up-Response was not sent: {}",
                     result.error().message());
