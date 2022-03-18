@@ -35,7 +35,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make kagome -j 
 
 ```
-## Build with docker
+### Build with docker
 
 ```sh
 git clone https://github.com/soramitsu/kagome

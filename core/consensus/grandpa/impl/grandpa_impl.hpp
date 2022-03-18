@@ -31,21 +31,13 @@ namespace kagome::consensus::grandpa {
   // clang-format off
   /*!
    * Main entry point to grandpa consensus implementation in kagome:
-   *
-   * #### keeps track of current rounds
-   *   we should be able to receive votes for current and previous rounds
-   * #### processes incoming grandpa messages
-   *   we are checking if it is polite to process incoming messages and only then process it
+   * - starts grandpa consensus execution
+   * - keeps track of current rounds
+   *   - we should be able to receive votes for current and previous rounds
+   * - processes incoming grandpa messages
+   *   - we are checking if it is polite to process incoming messages and only then process it
    *        (see @link kagome::consensus::grandpa::RoundObserver#onVoteMessage() RoundObserver::onVoteMessage @endlink for more details)
-   *  #### processes rounds catch ups
-   *
-   *
-   *
-   * Implements:
-   *    - Grandpa
-   *    - GrandpaObserver
-   *
-   * # Usage
+   *  - processes rounds catch ups
    *
    * GrandpaImpl entity is registered in kagome::application::AppStateManager,
    * which executes prepare(), start() and stop() functions to start consensus algorithm
@@ -56,10 +48,7 @@ namespace kagome::consensus::grandpa {
    * If we notice that we are lagging behind the most recent grandpa round in the network, then catch up procedure is executed (see GrandpaImpl::onNeighborMessage() and EnvironmentImpl::onCatchUpRequested()).
    * Catch up process is also described in the [spec](https://w3f.github.io/polkadot-spec/develop/sect-block-finalization.html#sect-grandpa-catchup)
    *
-   *
    * Otherwise if no catch up is needed, we proceed executing grandpa round until it is completable and previous round has finalized block
-   *
-   *
    */
   // clang-format on
 
@@ -201,8 +190,8 @@ namespace kagome::consensus::grandpa {
     // Round processing method
 
     /**
-     * Creates and executes round following the round with provided
-     * round_number.
+     * Creates and executes round that follows the round with provided
+     * round_number
      *
      * Also this method removes old round, so that only 3 rounds in total are
      * stored at any moment
@@ -211,8 +200,9 @@ namespace kagome::consensus::grandpa {
     void executeNextRound(RoundNumber round_number) override;
 
     /**
-     * Selects round next to provided one and updates it. @see
-     * VotingRound::update()
+     * Selects round next to provided one and updates it by checking if
+     * prevote_ghost, estimate and finalized block were updated.
+     * @see VotingRound::update()
      * @param round_number the round after which we select the round for update
      */
     void updateNextRound(RoundNumber round_number) override;
@@ -235,7 +225,9 @@ namespace kagome::consensus::grandpa {
     outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     /**
-     * Initializes new round by provided round state and voter
+     * Initializes new round by provided round state and voter. Note that round
+     * created that way is instantly ended. Because it is needed only to become
+     * basis of the next round
      * @param round_state information required to execute the round
      * @param voters set of voters for this round
      * @return VotingRound the we can execute

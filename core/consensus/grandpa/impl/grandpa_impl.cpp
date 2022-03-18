@@ -62,6 +62,8 @@ namespace kagome::consensus::grandpa {
         metrics_registry_->registerGaugeMetric(highestGrandpaRoundMetricName);
     metric_highest_round_->set(0);
 
+    // allow app state mananger to prepare, start and stop grandpa consensus
+    // pipeline
     app_state_manager->takeControl(*this);
   }
 
@@ -154,7 +156,8 @@ namespace kagome::consensus::grandpa {
         scheduler_,
         round_state);
 
-    new_round->end();
+    new_round->end();  // it is okay, because we do not want to actually execute
+                       // this round
     return new_round;
   }
 
