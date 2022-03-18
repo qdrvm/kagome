@@ -109,13 +109,10 @@ namespace kagome::consensus::grandpa {
     }
 
     current_round_ = makeInitialRound(round_state, std::move(voters));
-    if (current_round_ == nullptr) {
-      logger_->critical(
-          "Next round hasn't been made. Stopping grandpa execution");
-      return false;
-    }
+    BOOST_ASSERT_MSG(current_round_ != nullptr,
+                     "Initial round must create successful in any case");
 
-    executeNextRound(current_round_->roundNumber());
+    GrandpaImpl::executeNextRound(current_round_->roundNumber());
 
     if (not current_round_) {
       return false;
@@ -741,6 +738,7 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> GrandpaImpl::applyJustification(
       const BlockInfo &block_info, const GrandpaJustification &justification) {
     auto round = selectRound(justification.round_number, std::nullopt);
+    bool need_to_make_round_current = false;
     if (round == nullptr) {
       // This is justification for non-actual round
       if (justification.round_number < current_round_->roundNumber()) {
@@ -791,6 +789,7 @@ namespace kagome::consensus::grandpa {
         }
 
         round = makeInitialRound(round_state, std::move(voters));
+        need_to_make_round_current = true;
         BOOST_ASSERT(round);
 
         SL_DEBUG(logger_,
@@ -800,6 +799,12 @@ namespace kagome::consensus::grandpa {
     }
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
+
+    if (need_to_make_round_current) {
+      current_round_->end();
+      current_round_ = std::move(round);
+      executeNextRound(current_round_->roundNumber());
+    }
 
     return outcome::success();
   }

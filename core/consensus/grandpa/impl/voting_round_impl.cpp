@@ -114,10 +114,10 @@ namespace kagome::consensus::grandpa {
                         clock,
                         scheduler) {
     BOOST_ASSERT(previous_round != nullptr);
+    BOOST_ASSERT(previous_round->finalizedBlock().has_value());
 
     previous_round_ = previous_round;
-    last_finalized_block_ =
-        previous_round->finalizedBlock().value_or(authority_manager->base());
+    last_finalized_block_ = previous_round->finalizedBlock().value();
   }
 
   VotingRoundImpl::VotingRoundImpl(
@@ -772,9 +772,10 @@ namespace kagome::consensus::grandpa {
 
       // Verify signatures
       if (not vote_crypto_provider_->verifyPrecommit(signed_precommit)) {
-        logger_->error("Round #{}: Received invalid signed precommit from {}",
-                       round_number_,
-                       signed_precommit.id);
+        logger_->error(
+            "Round #{}: Precommit signed by {} was rejected: invalid signature",
+            round_number_,
+            signed_precommit.id);
         return VotingRoundError::INVALID_SIGNATURE;
       }
 
@@ -1410,7 +1411,7 @@ namespace kagome::consensus::grandpa {
   }
 
   BlockInfo VotingRoundImpl::bestFinalCandidate() {
-    return estimate_.value_or(prevote_ghost_.value_or(last_finalized_block_));
+    return estimate_.value_or(finalized_.value_or(last_finalized_block_));
   }
 
   MovableRoundState VotingRoundImpl::state() const {
