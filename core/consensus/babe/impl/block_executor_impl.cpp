@@ -290,7 +290,7 @@ namespace kagome::consensus {
 
   void BlockExecutorImpl::rollbackBlock(
       const primitives::BlockHash &block_hash) {
-    auto removal_res = block_tree_->removeBlock(block_hash);
+    auto removal_res = block_tree_->removeLeaf(block_hash);
     if (removal_res.has_error()) {
       SL_WARN(logger_,
               "Rolling back of block {} is failed: {}",

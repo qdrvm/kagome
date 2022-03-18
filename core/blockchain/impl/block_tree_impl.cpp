@@ -65,6 +65,7 @@ namespace kagome::blockchain {
           SL_TRACE(log, "Leaf {} not found", hash);
           continue;
         }
+        SL_ERROR(log, "Leaf {} is corrupted: {}", hash, res.error().message());
         return res.as_failure();
       }
       auto number = res.value();
@@ -645,7 +646,7 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  outcome::result<void> BlockTreeImpl::removeBlock(
+  outcome::result<void> BlockTreeImpl::removeLeaf(
       const primitives::BlockHash &block_hash) {
     // Check if block is leaf
     if (tree_->getMetadata().leaves.count(block_hash) == 0) {
@@ -663,6 +664,9 @@ namespace kagome::blockchain {
 
     // Remove from storage
     OUTCOME_TRY(storage_->removeBlock({node->depth, node->block_hash}));
+
+    OUTCOME_TRY(storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
+                                  tree_->getMetadata().leaves.end()}));
 
     return outcome::success();
   }
