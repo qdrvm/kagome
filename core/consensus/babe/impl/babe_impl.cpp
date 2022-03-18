@@ -266,7 +266,7 @@ namespace kagome::consensus::babe {
     }
 
     // Remote peer is lagged
-    if (current_best_block.number > status.best_block.number) {
+    if (status.best_block.number <= last_finalized_block.number) {
       return;
     }
 
