@@ -1046,6 +1046,9 @@ namespace kagome::blockchain {
       const primitives::BlockInfo &bottom_block,
       std::optional<uint32_t> max_count) const {
     if (auto from = tree_->getRoot().findByHash(top_block.hash)) {
+      if (bottom_block.number < from->depth) {
+        return std::nullopt;
+      }
       const auto in_tree_branch_len = bottom_block.number - from->depth + 1;
       const auto response_length =
           max_count ? std::min(in_tree_branch_len, max_count.value())
