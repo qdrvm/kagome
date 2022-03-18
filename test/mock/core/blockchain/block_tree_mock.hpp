@@ -66,7 +66,7 @@ namespace kagome::blockchain {
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
-                removeBlock,
+                removeLeaf,
                 (const primitives::BlockHash &),
                 (override));
 
