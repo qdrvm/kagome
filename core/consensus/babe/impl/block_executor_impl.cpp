@@ -215,20 +215,6 @@ namespace kagome::consensus {
       OUTCOME_TRY(block_tree_->addBlock(block));
     }
 
-    // apply justification if any
-    if (b.justification.has_value()) {
-      SL_VERBOSE(logger_,
-                 "Justification received for block {}",
-                 primitives::BlockInfo(block.header.number, block_hash));
-      auto res = grandpa_environment_->applyJustification(
-          primitives::BlockInfo(block.header.number, block_hash),
-          b.justification.value());
-      if (res.has_error()) {
-        rollbackBlock(block_hash);
-        return res.as_failure();
-      }
-    }
-
     // observe possible changes of authorities
     // (must be done strictly after block will be added)
     for (auto &digest_item : block_without_seal_digest.header.digest) {
@@ -241,6 +227,21 @@ namespace kagome::consensus {
                 consensus_message);
           },
           [](const auto &) { return outcome::success(); });
+      if (res.has_error()) {
+        rollbackBlock(block_hash);
+        return res.as_failure();
+      }
+    }
+
+    // apply justification if any (must be done strictly after block will be
+    // added and his consensus-digests will be handled)
+    if (b.justification.has_value()) {
+      SL_VERBOSE(logger_,
+                 "Justification received for block {}",
+                 primitives::BlockInfo(block.header.number, block_hash));
+      auto res = grandpa_environment_->applyJustification(
+          primitives::BlockInfo(block.header.number, block_hash),
+          b.justification.value());
       if (res.has_error()) {
         rollbackBlock(block_hash);
         return res.as_failure();
