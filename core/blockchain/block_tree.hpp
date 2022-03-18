@@ -197,8 +197,8 @@ namespace kagome::blockchain {
 
     /**
      * Check if one block is ancestor of second one (direct chain exists)
-     * @param ancestor - block, which is at the top of the chain
-     * @param descendant - block, which is the bottom of the chain
+     * @param ancestor - block, which is closest to the genesis
+     * @param descendant - block, which is farthest from the genesis
      * @return true if \param ancestor is ancestor of \param descendant
      */
     virtual bool hasDirectChain(
