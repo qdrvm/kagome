@@ -135,7 +135,8 @@ namespace kagome::authority {
         auto &val_opt = val_opt_res.value();
         if (val_opt.has_value()) {
           auto &val = val_opt.value();
-          set_id_opt.emplace(scale::decode<MembershipCounter>(val.get()).value());
+          set_id_opt.emplace(
+              scale::decode<MembershipCounter>(val.get()).value());
           break;
         }
       }
@@ -244,10 +245,13 @@ namespace kagome::authority {
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
-      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
-    auto adjusted_node = node->makeDescendant(block, finalized);
+    bool node_in_finalized_chain =
+        not directChainExists(block_tree_->getLastFinalized(), node->block);
+
+    auto adjusted_node = node->makeDescendant(block, node_in_finalized_chain);
 
     if (adjusted_node->enabled) {
       // Original authorities
@@ -272,6 +276,11 @@ namespace kagome::authority {
              block,
              activate_at);
     auto node = getAppropriateAncestor(block);
+
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
+    }
+
     SL_DEBUG(
         log_,
         "Oldest scheduled change before block {} is at block {} with set id {}",
@@ -279,16 +288,15 @@ namespace kagome::authority {
         node->block,
         node->actual_authorities->id);
     auto last_finalized = block_tree_->getLastFinalized();
-    bool block_in_finalized_chain =
-        block_tree_->hasDirectChain(block.hash, last_finalized.hash);
+    bool node_in_finalized_chain =
+        not directChainExists(last_finalized, node->block);
+
     SL_DEBUG(log_,
              "Last finalized is {}, is on the same chain as target block? {}",
              last_finalized,
-             block_in_finalized_chain);
+             node_in_finalized_chain);
 
-    auto new_node = node->makeDescendant(
-        block,
-        block.number <= last_finalized.number && block_in_finalized_chain);
+    auto new_node = node->makeDescendant(block, node_in_finalized_chain);
     SL_DEBUG(log_,
              "Make a schedule node for block {}, with actual set id {}",
              block,
@@ -324,19 +332,7 @@ namespace kagome::authority {
     }
 
     // Reorganize ancestry
-    for (auto &descendant : std::move(node->descendants)) {
-      auto &ancestor =
-          directChainExists(block, descendant->block) ? new_node : node;
-
-      if (descendant->block.number >= ancestor->forced_for) {
-        descendant->actual_authorities = ancestor->forced_authorities;
-        descendant->forced_authorities.reset();
-        descendant->forced_for = ScheduleNode::INACTIVE;
-      }
-
-      ancestor->descendants.emplace_back(std::move(descendant));
-    }
-    node->descendants.emplace_back(std::move(new_node));
+    reorganize(node, new_node);
 
     return outcome::success();
   }
@@ -346,6 +342,10 @@ namespace kagome::authority {
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber activate_at) {
     auto node = getAppropriateAncestor(block);
+
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
+    }
 
     auto new_node = node->makeDescendant(block);
 
@@ -376,24 +376,7 @@ namespace kagome::authority {
     }
 
     // Reorganize ancestry
-    for (auto &descendant : std::move(node->descendants)) {
-      auto &ancestor =
-          directChainExists(block, descendant->block) ? new_node : node;
-
-      // Apply forced changes if delay has passed for descendant
-      if (descendant->block.number >= ancestor->forced_for) {
-        descendant->actual_authorities = ancestor->forced_authorities;
-        descendant->forced_authorities.reset();
-        descendant->forced_for = ScheduleNode::INACTIVE;
-      }
-      if (descendant->block.number >= ancestor->resume_for) {
-        descendant->enabled = true;
-        descendant->resume_for = ScheduleNode::INACTIVE;
-      }
-
-      ancestor->descendants.emplace_back(std::move(descendant));
-    }
-    node->descendants.emplace_back(std::move(new_node));
+    reorganize(node, new_node);
 
     return outcome::success();
   }
@@ -404,6 +387,10 @@ namespace kagome::authority {
       return outcome::success();
     }
     auto node = getAppropriateAncestor(block);
+
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
+    }
 
     auto new_node = node->makeDescendant(block);
 
@@ -424,7 +411,8 @@ namespace kagome::authority {
                new_node->block.number);
 
     // Reorganize ancestry
-    for (auto &descendant : std::move(node->descendants)) {
+    auto descendants = std::move(node->descendants);
+    for (auto &descendant : descendants) {
       if (directChainExists(block, descendant->block)) {
         // Propagate change to descendants
         if (descendant->actual_authorities == node->actual_authorities) {
@@ -444,7 +432,14 @@ namespace kagome::authority {
       const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
     auto node = getAppropriateAncestor(block);
 
-    auto new_node = node->makeDescendant(block);
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
+    }
+
+    bool node_in_finalized_chain =
+        not directChainExists(block_tree_->getLastFinalized(), node->block);
+
+    auto new_node = node->makeDescendant(block, node_in_finalized_chain);
 
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
 
@@ -453,7 +448,8 @@ namespace kagome::authority {
     SL_VERBOSE(log_, "Scheduled pause after block #{}", new_node->block.number);
 
     // Reorganize ancestry
-    for (auto &descendant : std::move(node->descendants)) {
+    auto descendants = std::move(node->descendants);
+    for (auto &descendant : descendants) {
       auto &ancestor =
           directChainExists(block, descendant->block) ? new_node : node;
       ancestor->descendants.emplace_back(std::move(descendant));
@@ -467,6 +463,10 @@ namespace kagome::authority {
       const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
     auto node = getAppropriateAncestor(block);
 
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
+    }
+
     auto new_node = node->makeDescendant(block);
 
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
@@ -476,24 +476,7 @@ namespace kagome::authority {
     SL_VERBOSE(log_, "Scheduled resume on block #{}", new_node->block.number);
 
     // Reorganize ancestry
-    for (auto &descendant : std::move(node->descendants)) {
-      auto &ancestor =
-          directChainExists(block, descendant->block) ? new_node : node;
-
-      // Apply resume if delay will be passed for descendant
-      if (descendant->block.number >= ancestor->forced_for) {
-        descendant->actual_authorities = ancestor->forced_authorities;
-        descendant->forced_authorities.reset();
-        descendant->forced_for = ScheduleNode::INACTIVE;
-      }
-      if (descendant->block.number >= ancestor->resume_for) {
-        descendant->enabled = true;
-        descendant->resume_for = ScheduleNode::INACTIVE;
-      }
-
-      ancestor->descendants.emplace_back(std::move(descendant));
-    }
-    node->descendants.emplace_back(std::move(new_node));
+    reorganize(node, new_node);
 
     return outcome::success();
   }
@@ -566,6 +549,10 @@ namespace kagome::authority {
 
     auto node = getAppropriateAncestor(block);
 
+    if (not node) {
+      return;
+    }
+
     if (node->block == block) {
       // Rebase
       root_ = std::move(node);
@@ -573,7 +560,8 @@ namespace kagome::authority {
     } else {
       // Reorganize ancestry
       auto new_node = node->makeDescendant(block, true);
-      for (auto &descendant : std::move(node->descendants)) {
+      auto descendants = std::move(node->descendants);
+      for (auto &descendant : descendants) {
         if (directChainExists(block, descendant->block)) {
           new_node->descendants.emplace_back(std::move(descendant));
         }
@@ -582,7 +570,7 @@ namespace kagome::authority {
       root_ = std::move(new_node);
     }
 
-    SL_VERBOSE(log_, "Prune authority manager upto block #{}", block.number);
+    SL_VERBOSE(log_, "Prune authority manager upto block {}", block);
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(
@@ -624,4 +612,34 @@ namespace kagome::authority {
         && block_tree_->hasDirectChain(ancestor.hash, descendant.hash);
     return result;
   }
+
+  void AuthorityManagerImpl::reorganize(
+      std::shared_ptr<ScheduleNode> node,
+      std::shared_ptr<ScheduleNode> new_node) {
+    auto descendants = std::move(node->descendants);
+    for (auto &descendant : descendants) {
+      auto &ancestor = directChainExists(new_node->block, descendant->block)
+                           ? new_node
+                           : node;
+
+      // Apply if delay will be passed for descendant
+      if (ancestor->forced_for != ScheduleNode::INACTIVE) {
+        if (descendant->block.number >= ancestor->forced_for) {
+          descendant->actual_authorities = ancestor->forced_authorities;
+          descendant->forced_authorities.reset();
+          descendant->forced_for = ScheduleNode::INACTIVE;
+        }
+      }
+      if (ancestor->resume_for != ScheduleNode::INACTIVE) {
+        if (descendant->block.number >= ancestor->resume_for) {
+          descendant->enabled = true;
+          descendant->resume_for = ScheduleNode::INACTIVE;
+        }
+      }
+
+      ancestor->descendants.emplace_back(std::move(descendant));
+    }
+    node->descendants.emplace_back(std::move(new_node));
+  }
+
 }  // namespace kagome::authority

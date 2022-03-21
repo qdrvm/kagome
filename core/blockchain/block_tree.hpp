@@ -156,16 +156,22 @@ namespace kagome::blockchain {
     enum class GetChainDirection { ASCEND, DESCEND };
 
     /**
-     * Get a chain of blocks from the (\param block)
+     * Get a chain of blocks from provided block to best block direction
      * @param block, from which the chain is started
-     * @param ascending - if true, the chain will grow up from the provided
-     * block (it is the lowest one); if false, down
      * @param maximum number of blocks to be retrieved
      * @return chain or blocks or error
      */
-    virtual BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
-                                            GetChainDirection ascending,
-                                            uint64_t maximum) const = 0;
+    virtual BlockHashVecRes getBestChainFromBlock(
+        const primitives::BlockHash &block, uint64_t maximum) const = 0;
+
+    /**
+     * Get a chain of blocks before provided block including its
+     * @param block, to which the chain is ended
+     * @param maximum number of blocks to be retrieved
+     * @return chain or blocks or error
+     */
+    virtual BlockHashVecRes getDescendingChainToBlock(
+        const primitives::BlockHash &block, uint64_t maximum) const = 0;
 
     /**
      * Get a chain of blocks
@@ -191,8 +197,8 @@ namespace kagome::blockchain {
 
     /**
      * Check if one block is ancestor of second one (direct chain exists)
-     * @param ancestor - block, which is at the top of the chain
-     * @param descendant - block, which is the bottom of the chain
+     * @param ancestor - block, which is closest to the genesis
+     * @param descendant - block, which is farthest from the genesis
      * @return true if \param ancestor is ancestor of \param descendant
      */
     virtual bool hasDirectChain(

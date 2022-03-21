@@ -108,6 +108,9 @@ namespace kagome::authority {
     bool directChainExists(const primitives::BlockInfo &ancestor,
                            const primitives::BlockInfo &descendant);
 
+    void reorganize(std::shared_ptr<ScheduleNode> node,
+                    std::shared_ptr<ScheduleNode> new_node);
+
     Config config_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;

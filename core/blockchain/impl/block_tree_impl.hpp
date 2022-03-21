@@ -111,9 +111,11 @@ namespace kagome::blockchain {
                                      const primitives::BlockHash &bottom_block,
                                      uint32_t max_count) const override;
 
-    BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
-                                    GetChainDirection ascending,
-                                    uint64_t maximum) const override;
+    BlockHashVecRes getBestChainFromBlock(const primitives::BlockHash &block,
+                                          uint64_t maximum) const override;
+
+    BlockHashVecRes getDescendingChainToBlock(
+        const primitives::BlockHash &block, uint64_t maximum) const override;
 
     BlockHashVecRes getChainByBlocks(
         const primitives::BlockHash &top_block,

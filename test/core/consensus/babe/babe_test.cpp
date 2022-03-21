@@ -10,7 +10,6 @@
 
 #include <boost/asio/io_context.hpp>
 
-#include "clock/impl/clock_impl.hpp"
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -66,6 +65,26 @@ namespace kagome::primitives {
     return s;
   }
 }  // namespace kagome::primitives
+
+static Digest make_digest(BabeSlotNumber slot) {
+  Digest digest;
+
+  BabeBlockHeader babe_header{
+      .slot_assignment_type = SlotType::SecondaryPlain,
+      .slot_number = slot,
+      .authority_index = 0,
+  };
+  common::Buffer encoded_header{scale::encode(babe_header).value()};
+  digest.emplace_back(
+      primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
+
+  consensus::Seal seal{};
+  common::Buffer encoded_seal{scale::encode(seal).value()};
+  digest.emplace_back(
+      primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
+
+  return digest;
+};
 
 class BabeTest : public testing::Test {
  public:
@@ -189,25 +208,28 @@ class BabeTest : public testing::Test {
 
   BlockHash best_block_hash_ = "block#0"_hash256;
   BlockNumber best_block_number_ = 0u;
+  BlockHeader best_block_header_{.parent_hash = {},
+                                 .number = best_block_number_,
+                                 .state_root = "state_root#0"_hash256,
+                                 .extrinsics_root = "extrinsic_root#0"_hash256,
+                                 .digest = {}};
 
   primitives::BlockInfo best_leaf{best_block_number_, best_block_hash_};
 
-  BlockHeader block_header_{best_block_hash_,
-                            best_block_number_ + 1,
-                            "state_root"_hash256,
-                            "extrinsic_root"_hash256,
-                            {PreRuntime{}}};
+  BlockHeader block_header_{.parent_hash = best_block_hash_,
+                            .number = best_block_number_ + 1,
+                            .state_root = "state_root#1"_hash256,
+                            .extrinsics_root = "extrinsic_root#1"_hash256,
+                            .digest = make_digest(0)};
   Extrinsic extrinsic_{{1, 2, 3}};
   Block created_block_{block_header_, {extrinsic_}};
 
   Hash256 created_block_hash_{"block#1"_hash256};
-
-  SystemClockImpl real_clock_{};
 };
 
 ACTION_P(CheckBlockHeader, expected_block_header) {
   auto header_to_check = arg0.header;
-  ASSERT_EQ(header_to_check.digest.size(), 2);
+  ASSERT_EQ(header_to_check.digest.size(), 3);
   header_to_check.digest.pop_back();
   ASSERT_EQ(header_to_check, expected_block_header);
 }
@@ -241,12 +263,16 @@ TEST_F(BabeTest, Success) {
       .WillRepeatedly(Return(clock::SystemClockMock::zero()));
   EXPECT_CALL(*babe_util_, remainToStartOfSlot(_)).WillRepeatedly(Return(1ms));
   EXPECT_CALL(*babe_util_, remainToFinishOfSlot(_)).WillRepeatedly(Return(1ms));
+  EXPECT_CALL(*babe_util_, syncEpoch(_)).Times(testing::AnyNumber());
 
   testing::Sequence s;
-  std::function<void(const std::error_code &ec)> on_process_slot_1;
-  std::function<void(const std::error_code &ec)> on_run_slot_2;
-  std::function<void(const std::error_code &ec)> on_process_slot_2;
-  std::function<void(const std::error_code &ec)> on_run_slot_3;
+  auto breaker = [](const std::error_code &ec) {
+    throw std::logic_error("Must not be called");
+  };
+  std::function<void(const std::error_code &ec)> on_process_slot_1 = breaker;
+  std::function<void(const std::error_code &ec)> on_run_slot_2 = breaker;
+  std::function<void(const std::error_code &ec)> on_process_slot_2 = breaker;
+  std::function<void(const std::error_code &ec)> on_run_slot_3 = breaker;
   EXPECT_CALL(*timer_, asyncWait(_))
       .InSequence(s)
       .WillOnce(testing::SaveArg<0>(&on_process_slot_1))
@@ -267,8 +293,10 @@ TEST_F(BabeTest, Success) {
       .WillOnce(
           Return(BlockInfo(created_block_.header.number, created_block_hash_)));
 
-  EXPECT_CALL(*block_tree_, getBlockHeader(_))
-      .WillRepeatedly(Return(outcome::success(BlockHeader{})));
+  EXPECT_CALL(*block_tree_, getBlockHeader(BlockId(best_block_hash_)))
+      .WillRepeatedly(Return(outcome::success(best_block_header_)));
+  EXPECT_CALL(*block_tree_, getBlockHeader(BlockId(BlockNumber(1))))
+      .WillRepeatedly(Return(outcome::success(block_header_)));
 
   EXPECT_CALL(*proposer_, propose(best_leaf, _, _))
       .WillOnce(Return(created_block_));
@@ -281,7 +309,7 @@ TEST_F(BabeTest, Success) {
       .WillOnce(CheckBlockHeader(created_block_.header));
 
   babe_->runEpoch(epoch_);
-  on_process_slot_1({});
-  on_run_slot_2({});
-  on_process_slot_2({});
+  ASSERT_NO_THROW(on_process_slot_1({}));
+  ASSERT_NO_THROW(on_run_slot_2({}));
+  ASSERT_NO_THROW(on_process_slot_2({}));
 }

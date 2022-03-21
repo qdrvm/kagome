@@ -192,6 +192,39 @@ namespace kagome::consensus::babe {
     return outcome::success(epoch_descriptor);
   }
 
+  void BabeImpl::adjustEpochDescriptor() {
+    if (current_epoch_.epoch_number > 1) {
+      return;
+    }
+
+    auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
+    if (res.has_error()) {
+      return;
+    }
+
+    auto &first_block_header = res.value();
+    auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+    BOOST_ASSERT_MSG(babe_digest_res.has_value(),
+                     "Any non genesis block must contain babe digest");
+    auto first_slot_number = babe_digest_res.value().second.slot_number;
+
+    auto current_epoch_start_slot =
+        first_slot_number
+        + current_epoch_.epoch_number * babe_configuration_->epoch_length;
+
+    if (current_epoch_.start_slot != current_epoch_start_slot) {
+      SL_WARN(log_,
+              "Start-slot of current epoch {} has updated from {} to {}",
+              current_epoch_.epoch_number,
+              current_epoch_start_slot,
+              current_epoch_.start_slot);
+
+      current_epoch_.start_slot =current_epoch_start_slot;
+
+      babe_util_->syncEpoch(current_epoch_);
+    }
+  }
+
   void BabeImpl::runEpoch(EpochDescriptor epoch) {
     bool already_active = false;
     if (not active_.compare_exchange_strong(already_active, true)) {
@@ -202,9 +235,9 @@ namespace kagome::consensus::babe {
 
     SL_DEBUG(
         log_,
-        "Starting an epoch {}. Session key: {}. Secondary slots allowed={}",
+        "Starting an epoch {}. Session key: {:l}. Secondary slots allowed={}",
         epoch.epoch_number,
-        keypair_->public_key.toHex(),
+        keypair_->public_key,
         isSecondarySlotsAllowed());
     current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
@@ -233,7 +266,7 @@ namespace kagome::consensus::babe {
     }
 
     // Remote peer is lagged
-    if (current_best_block.number > status.best_block.number) {
+    if (status.best_block.number <= last_finalized_block.number) {
       return;
     }
 
@@ -372,6 +405,8 @@ namespace kagome::consensus::babe {
         if (current_epoch_.epoch_number
             != babe_util_->slotToEpoch(current_slot_)) {
           startNextEpoch();
+        } else {
+          adjustEpochDescriptor();
         }
       } else if (slot < current_slot_) {
         SL_VERBOSE(log_, "Slots {}..{} was skipped", slot, current_slot_ - 1);
@@ -464,10 +499,10 @@ namespace kagome::consensus::babe {
     if (slot_leadership.has_value()) {
       const auto &vrf_result = slot_leadership.value();
       SL_DEBUG(log_,
-               "Peer {} is leader (vrfOutput: {}, proof: {})",
-               keypair_->public_key.toHex(),
-               common::Buffer(vrf_result.output).toHex(),
-               common::Buffer(vrf_result.proof).toHex());
+               "Babe author {} is leader (vrfOutput: {}, proof: {})",
+               keypair_->public_key,
+               common::Buffer(vrf_result.output),
+               common::Buffer(vrf_result.proof));
 
       processSlotLeadership(
           SlotType::Primary, std::cref(vrf_result), authority_index);
@@ -498,6 +533,8 @@ namespace kagome::consensus::babe {
 
     if (current_epoch_.epoch_number != babe_util_->slotToEpoch(current_slot_)) {
       startNextEpoch();
+    } else {
+      adjustEpochDescriptor();
     }
 
     auto start_time = babe_util_->slotStartTime(current_slot_);
@@ -683,36 +720,15 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    // observe possible changes of authorities
-    for (auto &digest_item : block.header.digest) {
-      auto res = visit_in_place(
-          digest_item,
-          [&](const primitives::Consensus &consensus_message)
-              -> outcome::result<void> {
-            auto res = authority_update_observer_->onConsensus(
-                best_block_, consensus_message);
-            if (res.has_error()) {
-              SL_WARN(log_,
-                      "Can't process consensus message digest: {}",
-                      res.error().message());
-            }
-            return res;
-          },
-          [](const auto &) { return outcome::success(); });
-      if (res.has_error()) {
-        return;
-      }
-    }
+    const auto block_hash =
+        hasher_->blake2b_256(scale::encode(block.header).value());
+    const primitives::BlockInfo block_info(block.header.number, block_hash);
 
     auto last_finalized_block = block_tree_->getLastFinalized();
     auto previous_best_block_res =
         block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(previous_best_block_res.has_value());
     const auto &previous_best_block = previous_best_block_res.value();
-
-    const auto block_hash =
-        hasher_->blake2b_256(scale::encode(block.header).value());
-    const primitives::BlockInfo block_info(block.header.number, block_hash);
 
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
@@ -733,6 +749,28 @@ namespace kagome::consensus::babe {
       return;
     }
 
+    // observe possible changes of authorities
+    // (must be done strictly after block will be added)
+    for (auto &digest_item : block.header.digest) {
+      auto res = visit_in_place(
+          digest_item,
+          [&](const primitives::Consensus &consensus_message)
+              -> outcome::result<void> {
+            auto res = authority_update_observer_->onConsensus(
+                block_info, consensus_message);
+            if (res.has_error()) {
+              SL_WARN(log_,
+                      "Can't process consensus message digest: {}",
+                      res.error().message());
+            }
+            return res;
+          },
+          [](const auto &) { return outcome::success(); });
+      if (res.has_error()) {
+        return;
+      }
+    }
+
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
         next_epoch_digest_res.has_value()) {
       auto &next_epoch_digest = next_epoch_digest_res.value();
@@ -740,7 +778,7 @@ namespace kagome::consensus::babe {
                  "Got next epoch digest in slot {} (block #{}). Randomness: {}",
                  current_slot_,
                  block.header.number,
-                 next_epoch_digest.randomness.toHex());
+                 next_epoch_digest.randomness);
     }
 
     // finally, broadcast the sealed block
@@ -784,7 +822,7 @@ namespace kagome::consensus::babe {
       SL_CRITICAL(log_,
                   "Block production failed: This node is not in the list of "
                   "authorities. (public key: {})",
-                  keypair_->public_key.toHex());
+                  keypair_->public_key);
       return;
     }
 

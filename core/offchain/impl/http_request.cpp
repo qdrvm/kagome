@@ -249,7 +249,7 @@ namespace kagome::offchain {
     }
 
     if (not request_is_ready_) {
-      SL_TRACE(log_, "Request not ready (body is not finalised)");
+      SL_TRACE(log_, "Request not ready (body is not finalized)");
       return;
     }
     if (not connected_) {

@@ -11,7 +11,7 @@
 namespace kagome::authority {
   enum class AuthorityManagerError {
     UNKNOWN_ENGINE_ID = 1,
-    ORPHAN_BLOCK_OR_ALREADY_FINALISED,
+    ORPHAN_BLOCK_OR_ALREADY_FINALIZED,
     CAN_NOT_SAVE_STATE,
   };
 }

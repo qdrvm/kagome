@@ -41,9 +41,8 @@ namespace kagome::authorship {
       const primitives::BlockInfo &parent_block,
       const primitives::InherentData &inherent_data,
       const primitives::Digest &inherent_digest) {
-    OUTCOME_TRY(
-        block_builder,
-        block_builder_factory_->make(parent_block, inherent_digest));
+    OUTCOME_TRY(block_builder,
+                block_builder_factory_->make(parent_block, inherent_digest));
 
     auto inherent_xts_res = block_builder->getInherentExtrinsics(inherent_data);
     if (not inherent_xts_res) {
@@ -54,7 +53,7 @@ namespace kagome::authorship {
     auto inherent_xts = inherent_xts_res.value();
 
     for (const auto &xt : inherent_xts) {
-      SL_DEBUG(logger_, "Adding inherent extrinsic: {}", xt.data.toHex());
+      SL_DEBUG(logger_, "Adding inherent extrinsic: {}", xt.data);
       auto inserted_res = block_builder->pushExtrinsic(xt);
       if (not inserted_res) {
         if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
@@ -78,11 +77,10 @@ namespace kagome::authorship {
 
     auto remove_res = transaction_pool_->removeStale(parent_block.number);
     if (remove_res.has_error()) {
-      SL_ERROR(
-          logger_,
-          "Stale transactions remove failure: {}, Parent is {}",
-          remove_res.error().message(),
-          parent_block);
+      SL_ERROR(logger_,
+               "Stale transactions remove failure: {}, Parent is {}",
+               remove_res.error().message(),
+               parent_block);
     }
     const auto &ready_txs = transaction_pool_->getReadyTransactions();
 
@@ -121,7 +119,7 @@ namespace kagome::authorship {
         break;
       }
 
-      SL_DEBUG(logger_, "Adding extrinsic: {}", tx_ref->ext.data.toHex());
+      SL_DEBUG(logger_, "Adding extrinsic: {}", tx_ref->ext.data);
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
         if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
@@ -137,7 +135,7 @@ namespace kagome::authorship {
           }
         } else {  // any other error than exhausted resources
           logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
-                        tx->ext.data.toHex().substr(0, 8),
+                        tx->ext.data,
                         inserted_res.error().message());
         }
       } else {  // tx was pushed successfully

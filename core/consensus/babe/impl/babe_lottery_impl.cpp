@@ -37,6 +37,14 @@ namespace kagome::consensus {
                                     const Randomness &randomness,
                                     const Threshold &threshold,
                                     const crypto::Sr25519Keypair &keypair) {
+    SL_TRACE(logger_,
+             "Epoch changed "
+             "FROM epoch {} with randomness {} TO epoch {} with randomness {}",
+             epoch_.epoch_number,
+             randomness_,
+             epoch.epoch_number,
+             randomness);
+
     epoch_ = epoch;
     randomness_ = randomness;
     threshold_ = threshold;
@@ -49,6 +57,10 @@ namespace kagome::consensus {
 
   std::optional<crypto::VRFOutput> BabeLotteryImpl::getSlotLeadership(
       primitives::BabeSlotNumber slot) const {
+    BOOST_ASSERT_MSG(
+        epoch_.epoch_number != std::numeric_limits<uint64_t>::max(),
+        "Epoch must be initialized before this point");
+
     primitives::Transcript transcript;
     prepareTranscript(transcript, randomness_, slot, epoch_.epoch_number);
 
@@ -67,6 +79,10 @@ namespace kagome::consensus {
 
   crypto::VRFOutput BabeLotteryImpl::slotVrfSignature(
       primitives::BabeSlotNumber slot) const {
+    BOOST_ASSERT_MSG(
+        epoch_.epoch_number != std::numeric_limits<uint64_t>::max(),
+        "Epoch must be initialized before this point");
+
     primitives::Transcript transcript;
     prepareTranscript(transcript, randomness_, slot, epoch_.epoch_number);
     auto res = vrf_provider_->signTranscript(transcript, keypair_);
@@ -130,12 +146,12 @@ namespace kagome::consensus {
                      .convert_to<primitives::AuthorityIndex>();
 
     SL_TRACE(logger_,
-             "Secondary slot author for slot {}, authorities count {}, "
-             "randomness {} is {}",
+             "Secondary author for slot {} has index {}. "
+             "({} authorities. Randomness: {})",
              slot,
+             index,
              authorities_count,
-             randomness.toHex(),
-             index);
+             randomness);
     return index;
   }
 

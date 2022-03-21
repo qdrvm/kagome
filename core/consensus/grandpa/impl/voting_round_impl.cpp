@@ -114,10 +114,10 @@ namespace kagome::consensus::grandpa {
                         clock,
                         scheduler) {
     BOOST_ASSERT(previous_round != nullptr);
+    BOOST_ASSERT(previous_round->finalizedBlock().has_value());
 
     previous_round_ = previous_round;
-    last_finalized_block_ =
-        previous_round->finalizedBlock().value_or(authority_manager->base());
+    last_finalized_block_ = previous_round->finalizedBlock().value();
   }
 
   VotingRoundImpl::VotingRoundImpl(
@@ -180,6 +180,28 @@ namespace kagome::consensus::grandpa {
                                 IsPrevotesChanged{is_prevotes_changed},
                                 IsPrecommitsChanged{is_precommits_changed});
       }
+
+      // Round might be no finalized, if provided state has not enough prevotes
+      // (i.e. state was made by justification in commit). In this case we have
+      // fallback way to finalize than basing on supermajority of precommits. It
+      // is enough to be finalized, but no completable.
+      if (not finalized_.has_value()) {
+        if (precommits_->getTotalWeight() >= threshold_) {
+          auto possible_to_finalize = [&](const VoteWeight &weight) {
+            return weight.total(VoteType::Precommit,
+                                precommit_equivocators_,
+                                *voter_set_)
+                   >= threshold_;
+          };
+
+          finalized_ = graph_->findAncestor(VoteType::Precommit,
+                                            last_finalized_block_,
+                                            std::move(possible_to_finalize));
+
+          BOOST_ASSERT(finalized_.has_value());
+        }
+      }
+
     } else {
       // Zero-round is always self-finalized
       finalized_ = last_finalized_block_;
@@ -368,8 +390,6 @@ namespace kagome::consensus::grandpa {
 
     stage_ = Stage::START_WAITING;
 
-    SL_DEBUG(logger_, "Round #{}: Start final stage", round_number_);
-
     // Continue to receive messages until current round is completable and
     // previous one is finalizable and last finalized better than the best final
     // candidate of previous round
@@ -380,26 +400,31 @@ namespace kagome::consensus::grandpa {
     //    and Last-Finalized-Block>Best-Final-Candidate(r-1)
     // )
 
-    BOOST_ASSERT(previous_round_ != nullptr);
-
     const bool is_ready_to_end =
         finalized_.has_value()
-        and finalized_->number >= previous_round_->bestFinalCandidate().number;
+        and finalized_->number
+                >= (previous_round_
+                        ? previous_round_->bestFinalCandidate().number
+                        : last_finalized_block_.number);
 
     if (is_ready_to_end) {
       SL_DEBUG(logger_,
-               "Round #{}: Conditions for final stage are met already",
+               "Round #{}: Conditions for final stage are satisfied already",
                round_number_);
       stage_ = Stage::WAITING_RUNS;
       endWaitingStage();
       return;
     }
 
-    on_complete_handler_ = [this] {
+    SL_DEBUG(logger_, "Round #{}: Start final stage", round_number_);
+
+    on_complete_handler_ = [&] {
       const bool is_ready_to_end =
           finalized_.has_value()
           and finalized_->number
-                  >= previous_round_->bestFinalCandidate().number;
+                  >= (previous_round_
+                          ? previous_round_->bestFinalCandidate().number
+                          : last_finalized_block_.number);
 
       if (is_ready_to_end) {
         SL_DEBUG(logger_,
@@ -439,6 +464,11 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::doProposal() {
+    // Doing primary proposal is no longer actual
+    if (not previous_round_) {
+      return;
+    }
+
     // Don't change early defined primary vote
     if (primary_vote_.has_value()) {
       sendProposal(convertToPrimaryPropose(primary_vote_.value()));
@@ -450,8 +480,6 @@ namespace kagome::consensus::grandpa {
 
     BOOST_ASSERT_MSG(not primary_vote_.has_value(),
                      "Primary proposal must be once for a round");
-
-    BOOST_ASSERT(previous_round_ != nullptr);
 
     primary_vote_ = previous_round_->bestFinalCandidate();
 
@@ -484,22 +512,23 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::doPrevote() {
+    // Doing prevote is no longer actual
+    if (not previous_round_) {
+      return;
+    }
+
     // Don't change defined vote to avoid equivocation
     if (prevote_.has_value()) {
       sendPrevote(convertToPrevote(prevote_.value()));
       return;
     }
 
-    BOOST_ASSERT(previous_round_ != nullptr);
-
     // spec: L <- Best-Final-Candidate(r-1)
-    const auto best_final_candicate =
-        previous_round_ ? previous_round_->bestFinalCandidate()
-                        : last_finalized_block_;
+    const auto best_final_candicate = previous_round_->bestFinalCandidate();
 
     // spec: Bpv <- GRANDPA-GHOST(r)
     const auto best_chain =
-        env_->bestChainContaining(best_final_candicate.hash);
+        env_->bestChainContaining(best_final_candicate.hash, voter_set_->id());
     const auto best_prevote_candidate =
         best_chain.has_value() ? convertToBlockInfo(best_chain.value())
                                : last_finalized_block_;
@@ -546,6 +575,11 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::doPrecommit() {
+    // Doing precommit is no longer actual
+    if (not previous_round_) {
+      return;
+    }
+
     // Don't change defined vote to avoid equivocation
     if (precommit_.has_value()) {
       sendPrecommit(convertToPrecommit(precommit_.value()));
@@ -555,15 +589,12 @@ namespace kagome::consensus::grandpa {
     // we wait for the last round's estimate to be equal to or
     // the ancestor of the current round's p-Ghost before precommitting.
 
-    BOOST_ASSERT(previous_round_ != nullptr);
-
-    const auto &prevote_ghost = prevote_ghost_.value_or(
-        previous_round_ ? previous_round_->bestFinalCandidate()
-                        : last_finalized_block_);
+    const auto &prevote_ghost =
+        prevote_ghost_.value_or(previous_round_->bestFinalCandidate());
 
     auto last_round_estimate = previous_round_->bestFinalCandidate();
 
-    // We should precommit if current state contains prevote and it is
+    // We should precommit if current state contains prevote, and it is
     // either equal to the last round estimate or is descendant of it
     const bool should_precommit =
         prevote_ghost == last_round_estimate
@@ -603,7 +634,7 @@ namespace kagome::consensus::grandpa {
   void VotingRoundImpl::doFinalize() {
     BOOST_ASSERT(finalized_.has_value());
 
-    const auto& block = finalized_.value();
+    const auto &block = finalized_.value();
 
     SL_DEBUG(
         logger_, "Round #{}: Finalizing on block {}", round_number_, block);
@@ -706,8 +737,11 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    BOOST_ASSERT(
-        env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
+    if (not env_->isEqualOrDescendOf(block_info.hash,
+                                     finalized_.value().hash)) {
+      return VotingRoundError::
+          JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED;
+    }
 
     auto finalized = env_->finalize(voter_set_->id(), justification);
     if (not finalized) {
@@ -738,9 +772,10 @@ namespace kagome::consensus::grandpa {
 
       // Verify signatures
       if (not vote_crypto_provider_->verifyPrecommit(signed_precommit)) {
-        logger_->error("Round #{}: Received invalid signed precommit from {}",
-                       round_number_,
-                       signed_precommit.id);
+        logger_->error(
+            "Round #{}: Precommit signed by {} was rejected: invalid signature",
+            round_number_,
+            signed_precommit.id);
         return VotingRoundError::INVALID_SIGNATURE;
       }
 
@@ -758,7 +793,7 @@ namespace kagome::consensus::grandpa {
           SL_DEBUG(logger_,
                    "Vote does not have ancestry with target block: "
                    "vote={} target={}",
-                   vote.hash.toHex(),
+                   vote.hash,
                    signed_precommit.getBlockHash());
         }
 
@@ -1352,7 +1387,8 @@ namespace kagome::consensus::grandpa {
                                     : last_finalized_block_;
 
     // spec: Bpv <- GRANDPA-GHOST(r)
-    auto best_chain = env_->bestChainContaining(best_final_candidate.hash);
+    auto best_chain =
+        env_->bestChainContaining(best_final_candidate.hash, voter_set_->id());
     auto best_prevote_candidate = best_chain.has_value()
                                       ? convertToBlockInfo(best_chain.value())
                                       : last_finalized_block_;
@@ -1375,7 +1411,7 @@ namespace kagome::consensus::grandpa {
   }
 
   BlockInfo VotingRoundImpl::bestFinalCandidate() {
-    return estimate_.value_or(prevote_ghost_.value_or(last_finalized_block_));
+    return estimate_.value_or(finalized_.value_or(last_finalized_block_));
   }
 
   MovableRoundState VotingRoundImpl::state() const {
@@ -1399,8 +1435,7 @@ namespace kagome::consensus::grandpa {
         votes.begin(),
         votes.end(),
         std::vector<SignedPrevote>(),
-        [this, &estimate](std::vector<SignedPrevote> &prevotes,
-                          const auto &voting_variant) {
+        [this, &estimate](auto &prevotes, const auto &voting_variant) {
           visit_in_place(
               voting_variant,
               [this, &prevotes, &estimate](
@@ -1431,8 +1466,7 @@ namespace kagome::consensus::grandpa {
         votes.begin(),
         votes.end(),
         std::vector<SignedPrecommit>(),
-        [this, &estimate](std::vector<SignedPrecommit> &precommits,
-                          const auto &voting_variant) {
+        [this, &estimate](auto &precommits, const auto &voting_variant) {
           visit_in_place(
               voting_variant,
               [this, &precommits, &estimate](
@@ -1459,21 +1493,21 @@ namespace kagome::consensus::grandpa {
 
   void VotingRoundImpl::doCatchUpResponse(const libp2p::peer::PeerId &peer_id) {
     BOOST_ASSERT(finalized_.has_value());
-    const auto &finalised_block = finalized_.value();
+    const auto &finalized_block = finalized_.value();
 
-    auto best_prevote_candidate = bestPrevoteCandidate();
-    auto prevote_justification = getPrevoteJustification(
-        best_prevote_candidate, prevotes_->getMessages());
+    auto estimate = estimate_.value_or(last_finalized_block_);
+    auto prevote_justification =
+        getPrevoteJustification(estimate, prevotes_->getMessages());
 
     auto precommit_justification =
-        getPrecommitJustification(finalised_block, precommits_->getMessages());
+        getPrecommitJustification(finalized_block, precommits_->getMessages());
 
     auto result = env_->onCatchUpRespond(peer_id,
                                          voter_set_->id(),
                                          round_number_,
                                          std::move(prevote_justification),
                                          std::move(precommit_justification),
-                                         finalised_block);
+                                         finalized_block);
     if (not result) {
       logger_->warn("Catch-Up-Response was not sent: {}",
                     result.error().message());
