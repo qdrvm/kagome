@@ -484,6 +484,10 @@ namespace kagome::network {
     auto connection =
         host_.getNetwork().getConnectionManager().getBestConnectionForPeer(
             peer_id);
+    if (connection == nullptr) {
+      connecting_peers_.erase(peer_id);
+      return;
+    }
     if (connection->isInitiator()) {
       auto out_peers_count = std::count_if(
           active_peers_.begin(), active_peers_.end(), [](const auto &el) {
