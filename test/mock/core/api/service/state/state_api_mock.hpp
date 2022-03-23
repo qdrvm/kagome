@@ -31,17 +31,17 @@ namespace kagome::api {
                  const std::optional<primitives::BlockHash> &),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<std::optional<common::BufferConstRef>>,
+    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
                 getStorage,
                 (const common::BufferView &key),
                 (const, override));
 
-    outcome::result<std::optional<common::BufferConstRef>>
-    getStorage(const common::Buffer &key) const {
+    outcome::result<std::optional<common::Buffer>> getStorage(
+        const common::Buffer &key) const {
       return getStorage(common::BufferView{key});
     }
 
-    MOCK_METHOD(outcome::result<std::optional<common::BufferConstRef>>,
+    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
                 getStorageAt,
                 (const common::BufferView &key,
                  const primitives::BlockHash &at),

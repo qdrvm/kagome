@@ -84,14 +84,14 @@ namespace kagome::api {
 
     auto key = "a"_buf;
     EXPECT_OUTCOME_TRUE(r, api_->getStorage(key.view()))
-    ASSERT_EQ(r.value().get(), "1"_buf);
+    ASSERT_EQ(r.value(), "1"_buf);
 
     primitives::BlockId bid = "B"_hash256;
     EXPECT_CALL(*block_header_repo_, getBlockHeader(bid))
         .WillOnce(testing::Return(BlockHeader{.state_root = "ABC"_hash256}));
 
     EXPECT_OUTCOME_TRUE(r1, api_->getStorageAt(key.view(), "B"_hash256));
-    ASSERT_EQ(r1.value().get(), "1"_buf);
+    ASSERT_EQ(r1.value(), "1"_buf);
   }
 
   class GetKeysPagedTest : public ::testing::Test {

@@ -11,6 +11,7 @@
 #include <jsonrpc-lean/fault.h>
 
 #include "common/hexutil.hpp"
+#include "common/monadic_utils.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
   using E = kagome::api::StateApiImpl::Error;
@@ -100,19 +101,19 @@ namespace kagome::api {
     return result;
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  StateApiImpl::getStorage(const common::BufferView &key) const {
+  outcome::result<std::optional<common::Buffer>> StateApiImpl::getStorage(
+      const common::BufferView &key) const {
     auto last_finalized = block_tree_->getLastFinalized();
     return getStorageAt(key, last_finalized.hash);
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  StateApiImpl::getStorageAt(const common::BufferView &key,
-                             const primitives::BlockHash &at) const {
+  outcome::result<std::optional<common::Buffer>> StateApiImpl::getStorageAt(
+      const common::BufferView &key, const primitives::BlockHash &at) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     auto res = trie_reader->tryGet(key);
-    return res;
+    return common::map_result_optional(res,
+                                       [](const auto &r) { return r.get(); });
   }
 
   outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
