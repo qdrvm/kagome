@@ -750,52 +750,42 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
       }
 
-      // This is justification for next round of current
-      if (justification.round_number - 1 == current_round_->roundNumber()) {
-        executeNextRound(current_round_->roundNumber());
-        round = current_round_;
+      MovableRoundState round_state{
+          .round_number = justification.round_number,
+          .last_finalized_block = current_round_->lastFinalizedBlock(),
+          .votes = {},
+          .finalized = block_info};
 
-      } else {
-        // This is justification for round in the future.
-        // Rounds chain will be restarted
-
-        MovableRoundState round_state{
-            .round_number = justification.round_number,
-            .last_finalized_block = current_round_->lastFinalizedBlock(),
-            .votes = {},
-            .finalized = block_info};
-
-        auto authorities_res = authority_manager_->authorities(
-            round_state.last_finalized_block, true);
-        if (authorities_res.has_error()) {
-          SL_WARN(logger_,
-                  "Can't retrieve authorities for applying justification "
-                  "of block {}: {}",
-                  block_info,
-                  authorities_res.error().message());
-          return authorities_res.as_failure();
-        }
-        auto &authorities = authorities_res.value();
-
-        auto voters = std::make_shared<VoterSet>(authorities->id);
-        for (const auto &authority : *authorities) {
-          auto res = voters->insert(
-              primitives::GrandpaSessionKey(authority.id.id), authority.weight);
-          if (res.has_error()) {
-            SL_CRITICAL(
-                logger_, "Can't make voter set: {}", res.error().message());
-            return res.as_failure();
-          }
-        }
-
-        round = makeInitialRound(round_state, std::move(voters));
-        need_to_make_round_current = true;
-        BOOST_ASSERT(round);
-
-        SL_DEBUG(logger_,
-                 "Rewind grandpa till round #{} by received justification",
-                 justification.round_number);
+      auto authorities_res = authority_manager_->authorities(
+          round_state.last_finalized_block, true);
+      if (authorities_res.has_error()) {
+        SL_WARN(logger_,
+                "Can't retrieve authorities for applying justification "
+                "of block {}: {}",
+                block_info,
+                authorities_res.error().message());
+        return authorities_res.as_failure();
       }
+      auto &authorities = authorities_res.value();
+
+      auto voters = std::make_shared<VoterSet>(authorities->id);
+      for (const auto &authority : *authorities) {
+        auto res = voters->insert(
+            primitives::GrandpaSessionKey(authority.id.id), authority.weight);
+        if (res.has_error()) {
+          SL_CRITICAL(
+              logger_, "Can't make voter set: {}", res.error().message());
+          return res.as_failure();
+        }
+      }
+
+      round = makeInitialRound(round_state, std::move(voters));
+      need_to_make_round_current = true;
+      BOOST_ASSERT(round);
+
+      SL_DEBUG(logger_,
+               "Rewind grandpa till round #{} by received justification",
+               justification.round_number);
     }
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
