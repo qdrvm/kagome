@@ -90,7 +90,7 @@ namespace kagome::api {
         }));
 
     EXPECT_OUTCOME_SUCCESS(r, api_->getStorage("a"_buf, "b"_buf, std::nullopt));
-    ASSERT_EQ(r.value().value().get(), "2"_buf);
+    ASSERT_EQ(r.value().value(), "2"_buf);
   }
 
   TEST_F(ChildStateApiTest, GetStorageAt) {
@@ -121,7 +121,7 @@ namespace kagome::api {
         r1,
         api_->getStorage(
             "c"_buf, "d"_buf, std::optional<BlockHash>{"B"_hash256}));
-    ASSERT_EQ(r1.value().get(), "4"_buf);
+    ASSERT_EQ(r1.value(), "4"_buf);
   }
 
   /**
