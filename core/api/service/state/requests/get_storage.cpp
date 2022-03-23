@@ -41,7 +41,7 @@ namespace kagome::api::state::request {
     return outcome::success();
   }
 
-  outcome::result<std::optional<common::BufferConstRef>> GetStorage::execute() {
+  outcome::result<std::optional<common::Buffer>> GetStorage::execute() {
     return at_ ? api_->getStorageAt(key_, at_.value()) : api_->getStorage(key_);
   }
 

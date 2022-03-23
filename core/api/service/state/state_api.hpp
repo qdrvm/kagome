@@ -31,9 +31,9 @@ namespace kagome::api {
         const std::optional<common::BufferView> &prev_key,
         const std::optional<primitives::BlockHash> &block_hash_opt) const = 0;
 
-    virtual outcome::result<std::optional<common::BufferConstRef>> getStorage(
+    virtual outcome::result<std::optional<common::Buffer>> getStorage(
         const common::BufferView &key) const = 0;
-    virtual outcome::result<std::optional<common::BufferConstRef>> getStorageAt(
+    virtual outcome::result<std::optional<common::Buffer>> getStorageAt(
         const common::BufferView &key,
         const primitives::BlockHash &at) const = 0;
 

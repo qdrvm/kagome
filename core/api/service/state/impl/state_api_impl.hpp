@@ -42,10 +42,10 @@ namespace kagome::api {
         const std::optional<primitives::BlockHash> &block_hash_opt)
         const override;
 
-    outcome::result<std::optional<common::BufferConstRef>> getStorage(
+    outcome::result<std::optional<common::Buffer>> getStorage(
         const common::BufferView &key) const override;
 
-    outcome::result<std::optional<common::BufferConstRef>> getStorageAt(
+    outcome::result<std::optional<common::Buffer>> getStorageAt(
         const common::BufferView &key,
         const primitives::BlockHash &at) const override;
 
