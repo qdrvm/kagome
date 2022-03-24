@@ -247,7 +247,6 @@ namespace kagome::consensus::grandpa {
     void sendProposal(const PrimaryPropose &primary_proposal);
     void sendPrevote(const Prevote &prevote);
     void sendPrecommit(const Precommit &precommit);
-    void sendCommit();
     void pending();
 
     std::shared_ptr<VoterSet> voter_set_;
@@ -270,6 +269,15 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::function<void()> on_complete_handler_;
+
+    // Note: Pending interval must be longer than total voting time:
+    //  2*Duration + 2*Duration + Gap
+    // Spec says to send at least once per five minutes.
+    // Substrate sends at least once per two minutes.
+    const std::chrono::milliseconds pending_interval_ =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::max<Clock::Duration>(duration_ * 10,
+                                      std::chrono::seconds(12)));
 
     Stage stage_ = Stage::INIT;
 
@@ -303,8 +311,6 @@ namespace kagome::consensus::grandpa {
     std::optional<BlockInfo> prevote_ghost_;
 
     std::optional<BlockInfo> estimate_;
-
-    std::optional<BlockInfo> best_final_candidate_;
     std::optional<BlockInfo> finalized_;
 
     libp2p::basic::Scheduler::Handle stage_timer_handle_;

@@ -218,14 +218,8 @@ namespace kagome::consensus::grandpa {
 
     SL_DEBUG(logger_, "Round #{}: Start round", round_number_);
 
-    // Note: Pending interval must be longer than total voting time:
-    //  2*Duration + 2*Duration + Gap
-    // Spec says to send at least once per five minutes.
-    // Substrate sends at least once per two minutes.
-    pending_timer_handle_ = scheduler_->scheduleWithHandle(
-        [&] { pending(); },
-        toMilliseconds(std::max<Clock::Duration>(duration_ * 10,
-                                                 std::chrono::seconds(30))));
+    pending_timer_handle_ =
+        scheduler_->scheduleWithHandle([&] { pending(); }, pending_interval_);
 
     sendNeighborMessage();
 
@@ -1558,13 +1552,7 @@ namespace kagome::consensus::grandpa {
     SL_DEBUG(logger_, "Resend votes of recent rounds");
     resend(shared_from_this());
 
-    // Note: Pending interval must be longer than total voting time:
-    //  2*Duration + 2*Duration + Gap
-    // Spec says to send at least once per five minutes.
-    // Substrate sends at least once per two minutes.
-    pending_timer_handle_ = scheduler_->scheduleWithHandle(
-        [&] { pending(); },
-        toMilliseconds(std::max<Clock::Duration>(duration_ * 10,
-                                                 std::chrono::seconds(30))));
+    pending_timer_handle_ =
+        scheduler_->scheduleWithHandle([&] { pending(); }, pending_interval_);
   }
 }  // namespace kagome::consensus::grandpa
