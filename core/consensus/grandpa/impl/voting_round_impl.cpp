@@ -225,7 +225,7 @@ namespace kagome::consensus::grandpa {
     pending_timer_handle_ = scheduler_->scheduleWithHandle(
         [&] { pending(); },
         toMilliseconds(std::max<Clock::Duration>(duration_ * 10,
-                                                 std::chrono::seconds(30))));
+                                                 std::chrono::seconds(12))));
 
     sendNeighborMessage();
 
@@ -1565,6 +1565,6 @@ namespace kagome::consensus::grandpa {
     pending_timer_handle_ = scheduler_->scheduleWithHandle(
         [&] { pending(); },
         toMilliseconds(std::max<Clock::Duration>(duration_ * 10,
-                                                 std::chrono::seconds(30))));
+                                                 std::chrono::seconds(12))));
   }
 }  // namespace kagome::consensus::grandpa
