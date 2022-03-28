@@ -81,6 +81,7 @@ namespace kagome::api {
     void setApiService(sptr<api::ApiService> const &api_service) override;
 
     outcome::result<common::Hash256> submitExtrinsic(
+        TransactionSource source,
         const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<void> insertKey(
@@ -108,7 +109,7 @@ namespace kagome::api {
 
    private:
     outcome::result<primitives::Transaction> constructTransaction(
-        primitives::Extrinsic ext) const;
+        TransactionSource source, primitives::Extrinsic ext) const;
 
     sptr<runtime::TaggedTransactionQueue> api_;
     sptr<transaction_pool::TransactionPool> pool_;
