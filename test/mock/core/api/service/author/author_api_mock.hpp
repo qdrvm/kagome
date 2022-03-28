@@ -23,7 +23,7 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<common::Hash256>,
                 submitExtrinsic,
-                (const Extrinsic &),
+                (TransactionSource, const Extrinsic &),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,

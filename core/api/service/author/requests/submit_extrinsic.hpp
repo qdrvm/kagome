@@ -25,7 +25,8 @@ namespace kagome::api::author::request {
       auto ext_hex = getParam<0>();
       OUTCOME_TRY(buffer, common::unhexWith0x(ext_hex));
       OUTCOME_TRY(extrinsic, scale::decode<primitives::Extrinsic>(buffer));
-      return api_->submitExtrinsic(extrinsic);
+      return api_->submitExtrinsic(primitives::TransactionSource::External,
+                                   extrinsic);
     }
 
    private:

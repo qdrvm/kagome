@@ -185,6 +185,7 @@ namespace kagome::runtime {
       PtrSize args_span{memory.storeBuffer(encoded_args)};
 
       KAGOME_PROFILE_START(call_execution)
+      SL_TRACE(logger_, "Executing {}", name);
       OUTCOME_TRY(result,
                   env.module_instance->callExportFunction(name, args_span));
       KAGOME_PROFILE_END(call_execution)

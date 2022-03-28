@@ -17,7 +17,8 @@ namespace kagome::network {
 
   outcome::result<common::Hash256> ExtrinsicObserverImpl::onTxMessage(
       const primitives::Extrinsic &extrinsic) {
-    return api_->submitExtrinsic(extrinsic);
+    return api_->submitExtrinsic(primitives::TransactionSource::External,
+                                 extrinsic);
   }
 
 }  // namespace kagome::network
