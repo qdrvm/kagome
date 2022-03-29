@@ -69,7 +69,7 @@ namespace kagome::consensus {
           [&epoch_digest](const primitives::Consensus &consensus) {
             if (consensus.consensus_engine_id == primitives::kBabeEngineId) {
               auto consensus_log_res =
-                  scale::decode<primitives::Consensus::BabeDigest>(
+                  scale::decode<primitives::BabeDigest>(
                       consensus.data);
               if (not consensus_log_res) {
                 return;

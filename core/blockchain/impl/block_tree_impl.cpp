@@ -399,7 +399,7 @@ namespace kagome::blockchain {
 
     log::Logger log = log::createLogger("BlockTree", "blockchain");
 
-    const auto &recovery_state = app_config.recoverState().value();
+    const auto recovery_state = app_config.recoverState().value();
 
     OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
 
