@@ -42,7 +42,8 @@ class WavmRuntimeTest : public RuntimeTestBase {
             intrinsic_module,
             host_api_factory_,
             header_repo_,
-            changes_tracker);
+            changes_tracker,
+            nullptr);
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(

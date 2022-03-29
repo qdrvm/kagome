@@ -22,14 +22,16 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<const IntrinsicModule> intrinsic_module,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
+      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
+      std::shared_ptr<kagome::runtime::SingleModuleCache> single_module_cache)
       : storage_{std::move(storage)},
         serializer_{std::move(serializer)},
         compartment_{std::move(compartment)},
         intrinsic_module_{std::move(intrinsic_module)},
         host_api_factory_{std::move(host_api_factory)},
         block_header_repo_{std::move(block_header_repo)},
-        changes_tracker_{std::move(changes_tracker)} {
+        changes_tracker_{std::move(changes_tracker)},
+        single_module_cache_{std::move(single_module_cache)} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
@@ -37,6 +39,7 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(host_api_factory_ != nullptr);
     BOOST_ASSERT(block_header_repo_ != nullptr);
     BOOST_ASSERT(changes_tracker_ != nullptr);
+    BOOST_ASSERT(single_module_cache_ != nullptr);
   }
 
   InstanceEnvironment InstanceEnvironmentFactory::make(
@@ -45,12 +48,14 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<IntrinsicModuleInstance> intrinsic_instance) const {
     auto new_storage_provider =
         std::make_shared<TrieStorageProviderImpl>(storage_, serializer_);
-    auto core_factory = std::make_shared<CoreApiFactoryImpl>(compartment_,
-                                                             intrinsic_module_,
-                                                             storage_,
-                                                             block_header_repo_,
-                                                             shared_from_this(),
-                                                             changes_tracker_);
+    auto core_factory =
+        std::make_shared<CoreApiFactoryImpl>(compartment_,
+                                             intrinsic_module_,
+                                             storage_,
+                                             block_header_repo_,
+                                             shared_from_this(),
+                                             changes_tracker_,
+                                             single_module_cache_);
 
     std::shared_ptr<MemoryProvider> memory_provider;
     switch (memory_origin) {

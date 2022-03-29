@@ -145,7 +145,7 @@ class RuntimeTestBase : public ::testing::Test {
             .value();
 
     auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(
-        upgrade_tracker, module_factory);
+        upgrade_tracker, module_factory, nullptr);
 
     runtime_env_factory_ = std::make_shared<runtime::RuntimeEnvironmentFactory>(
         std::move(wasm_provider_), std::move(module_repo), header_repo_);

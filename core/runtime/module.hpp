@@ -27,6 +27,11 @@ namespace kagome::runtime {
         const = 0;
   };
 
+  struct SingleModuleCache {
+    SingleModuleCache() : module{std::nullopt} {};
+    std::optional<std::shared_ptr<Module>> module;
+  };
+
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_MODULE_HPP

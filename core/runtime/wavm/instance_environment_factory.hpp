@@ -19,7 +19,7 @@ namespace kagome::storage::changes_trie {
 namespace kagome::storage::trie {
   class TrieStorage;
   class TrieSerializer;
-}
+}  // namespace kagome::storage::trie
 
 namespace kagome::blockchain {
   class BlockHeaderRepository;
@@ -27,6 +27,10 @@ namespace kagome::blockchain {
 
 namespace WAVM::Runtime {
   struct Instance;
+}
+
+namespace kagome::runtime {
+  struct SingleModuleCache;
 }
 
 namespace kagome::runtime::wavm {
@@ -47,7 +51,8 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<const IntrinsicModule> intrinsic_module,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
+        std::shared_ptr<SingleModuleCache> single_module_cache);
 
     enum class MemoryOrigin { EXTERNAL, INTERNAL };
     [[nodiscard]] InstanceEnvironment make(
@@ -63,6 +68,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
+    std::shared_ptr<SingleModuleCache> single_module_cache_;
   };
 
 }  // namespace kagome::runtime::wavm

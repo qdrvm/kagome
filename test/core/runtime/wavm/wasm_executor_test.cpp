@@ -171,13 +171,14 @@ class WasmExecutorTest : public ::testing::Test {
             intrinsic_module,
             host_api_factory,
             header_repo_,
-            changes_tracker);
+            changes_tracker,
+            nullptr);
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
             compartment_wrapper, instance_env_factory, intrinsic_module);
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
-        runtime_upgrade_tracker_, module_factory);
+        runtime_upgrade_tracker_, module_factory, nullptr);
 
     auto core_provider =
         std::make_shared<kagome::runtime::wavm::CoreApiFactoryImpl>(
@@ -186,7 +187,8 @@ class WasmExecutorTest : public ::testing::Test {
             trie_db,
             header_repo_,
             instance_env_factory,
-            changes_tracker);
+            changes_tracker,
+            nullptr);
     auto host_api =
         std::shared_ptr<kagome::host_api::HostApi>{host_api_factory->make(
             core_provider, memory_provider, storage_provider_)};
