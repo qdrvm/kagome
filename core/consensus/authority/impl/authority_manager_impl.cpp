@@ -194,14 +194,18 @@ namespace kagome::authority {
                                     == primitives::kGrandpaEngineId;
                   auto decoded_res = consensus_message.decode();
                   if (decoded_res.has_error()) {
-                    log_->critical("Error decoding consensus digest message: {}", decoded_res.error().message());
+                    log_->critical(
+                        "Error decoding consensus digest message: {}",
+                        decoded_res.error().message());
                     return;
                   }
                   if (is_grandpa) {
                     bool is_scheduled_change =
-                        decoded_res.value().isGrandpaDigestOf<primitives::ScheduledChange>();
+                        decoded_res.value()
+                            .isGrandpaDigestOf<primitives::ScheduledChange>();
                     bool is_forced_change =
-                        decoded_res.value().isGrandpaDigestOf<primitives::ForcedChange>();
+                        decoded_res.value()
+                            .isGrandpaDigestOf<primitives::ForcedChange>();
                     found_set_change = is_forced_change or is_scheduled_change;
                   }
                 },
@@ -216,7 +220,10 @@ namespace kagome::authority {
                    hash);
           if (header.number != 0) {
             --authorities.id;
-            SL_TRACE(log_, "Decrease authority ID to {}", authorities.id);
+            SL_TRACE(log_,
+                     "Decrease authority ID to {}, as the found digest is an "
+                     "authority set update",
+                     authorities.id);
           }
           auto node =
               authority::ScheduleNode::createAsRoot({header.number, hash});
