@@ -107,7 +107,8 @@ namespace kagome::offchain {
 
   Result<Success, Failure> OffchainWorkerImpl::submitTransaction(
       const primitives::Extrinsic &ext) {
-    auto result = author_api_->submitExtrinsic(ext);
+    auto result =
+        author_api_->submitExtrinsic(primitives::TransactionSource::Local, ext);
     if (result.has_value()) {
       return Success();
     }

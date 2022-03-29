@@ -60,8 +60,9 @@ namespace kagome::api {
   }
 
   outcome::result<common::Hash256> AuthorApiImpl::submitExtrinsic(
+      primitives::TransactionSource source,
       const primitives::Extrinsic &extrinsic) {
-    OUTCOME_TRY(tx, constructTransaction(extrinsic));
+    OUTCOME_TRY(tx, constructTransaction(source, extrinsic));
 
     if (tx.should_propagate) {
       transactions_transmitter_->propagateTransactions(
@@ -162,7 +163,11 @@ namespace kagome::api {
 
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
-    OUTCOME_TRY(tx, constructTransaction(extrinsic));
+    OUTCOME_TRY(tx,
+                constructTransaction(
+                    TransactionSource::External,
+                    extrinsic));  // submit and watch could be executed only
+                                  // from RPC call, so External source is chosen
 
     SubscriptionId sub_id{};
     if (auto service = api_service_.lock()) {
@@ -196,6 +201,7 @@ namespace kagome::api {
   }
 
   outcome::result<primitives::Transaction> AuthorApiImpl::constructTransaction(
+      primitives::TransactionSource source,
       primitives::Extrinsic extrinsic) const {
     OUTCOME_TRY(res,
                 api_->validate_transaction(

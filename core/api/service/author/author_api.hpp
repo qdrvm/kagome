@@ -10,6 +10,7 @@
 #include "common/buffer.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 #include "primitives/author_api_primitives.hpp"
+#include "primitives/transaction_validity.hpp"
 
 namespace kagome::api {
   class ApiService;
@@ -28,6 +29,7 @@ namespace kagome::api {
     using Metadata = primitives::Metadata;
     using SubscriptionId = primitives::SubscriptionId;
     using ExtrinsicKey = primitives::ExtrinsicKey;
+    using TransactionSource = primitives::TransactionSource;
 
    public:
     virtual ~AuthorApi() = default;
@@ -37,12 +39,14 @@ namespace kagome::api {
 
     /**
      * @brief validates and sends extrinsic to transaction pool
-     * @param bytes encoded extrinsic
+     * @param source how extrinsic was received (for example external or
+     * submitted through offchain worker)
+     * @param extrinsic set of bytes representing either transaction or inherent
      * @return hash of successfully validated extrinsic
      * or error if state is invalid or unknown
      */
     virtual outcome::result<common::Hash256> submitExtrinsic(
-        const Extrinsic &extrinsic) = 0;
+        TransactionSource source, const Extrinsic &extrinsic) = 0;
 
     /**
      * @brief insert an anonimous key pair into the keystore
