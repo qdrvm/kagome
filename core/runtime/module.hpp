@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_MODULE_HPP
 #define KAGOME_CORE_RUNTIME_MODULE_HPP
 
+#include <optional>
+
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
 
