@@ -239,17 +239,6 @@ namespace kagome::blockchain {
     // TODO(xDimon): needed to clean up trie storage if block deleted
     //  issue: https://github.com/soramitsu/kagome/issues/1128
 
-    auto justification_key =
-        prependPrefix(block_lookup_key, Prefix::JUSTIFICATION);
-    if (auto res = storage_->remove(justification_key); res.has_error()) {
-      SL_ERROR(
-          logger_,
-          "could not remove justification of block {} from the storage: {}",
-          block,
-          res.error().message());
-      return res;
-    }
-
     auto body_key = prependPrefix(block_lookup_key, Prefix::BLOCK_DATA);
     if (auto res = storage_->remove(body_key); res.has_error()) {
       SL_ERROR(logger_,
