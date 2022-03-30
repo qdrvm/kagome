@@ -18,7 +18,7 @@ namespace kagome::runtime {
 
   class RuntimeUpgradeTracker;
   class ModuleFactory;
-  struct SingleModuleCache;
+  class SingleModuleCache;
 
   /**
    * LRU cache designed for small amounts of data (as its get() is O(N))
@@ -94,7 +94,7 @@ namespace kagome::runtime {
     ModuleRepositoryImpl(
         std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
         std::shared_ptr<const ModuleFactory> module_factory,
-        std::shared_ptr<SingleModuleCache> single_module_cache);
+        std::shared_ptr<SingleModuleCache> last_compiled_module);
 
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider> code_provider,
@@ -117,7 +117,7 @@ namespace kagome::runtime {
 
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;
-    std::shared_ptr<SingleModuleCache> single_module_cache_;
+    std::shared_ptr<SingleModuleCache> last_compiled_module_;
     log::Logger logger_;
   };
 

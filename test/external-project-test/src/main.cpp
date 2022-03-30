@@ -23,6 +23,7 @@
 #include <kagome/runtime/common/runtime_upgrade_tracker_impl.hpp>
 #include <kagome/runtime/common/storage_code_provider.hpp>
 #include <kagome/runtime/executor.hpp>
+#include <kagome/runtime/module.hpp>
 #include <kagome/runtime/wavm/compartment_wrapper.hpp>
 #include <kagome/runtime/wavm/instance_environment_factory.hpp>
 #include <kagome/runtime/wavm/intrinsics/intrinsic_module.hpp>
@@ -180,6 +181,7 @@ int main() {
           offchain_persistent_storage,
           offchain_worker_pool);
 
+  auto smc = std::make_shared<kagome::runtime::SingleModuleCache>();
   auto instance_env_factory =
       std::make_shared<const kagome::runtime::wavm::InstanceEnvironmentFactory>(
           trie_storage,
@@ -189,12 +191,12 @@ int main() {
           host_api_factory,
           header_repo,
           changes_tracker,
-          nullptr);
+          smc);
   auto module_factory =
       std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
           compartment, instance_env_factory, intrinsic_module);
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
-      runtime_upgrade_tracker, module_factory, nullptr);
+      runtime_upgrade_tracker, module_factory, smc);
   auto env_factory =
       std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
           code_provider, module_repo, header_repo);

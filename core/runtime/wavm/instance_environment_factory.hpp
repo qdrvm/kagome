@@ -30,7 +30,7 @@ namespace WAVM::Runtime {
 }
 
 namespace kagome::runtime {
-  struct SingleModuleCache;
+  class SingleModuleCache;
 }
 
 namespace kagome::runtime::wavm {
@@ -52,7 +52,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<SingleModuleCache> single_module_cache);
+        std::shared_ptr<SingleModuleCache> last_compiled_module);
 
     enum class MemoryOrigin { EXTERNAL, INTERNAL };
     [[nodiscard]] InstanceEnvironment make(
@@ -68,7 +68,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
-    std::shared_ptr<SingleModuleCache> single_module_cache_;
+    std::shared_ptr<SingleModuleCache> last_compiled_module_;
   };
 
 }  // namespace kagome::runtime::wavm

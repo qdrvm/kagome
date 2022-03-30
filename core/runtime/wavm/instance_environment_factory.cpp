@@ -23,7 +23,7 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-      std::shared_ptr<kagome::runtime::SingleModuleCache> single_module_cache)
+      std::shared_ptr<kagome::runtime::SingleModuleCache> last_compiled_module)
       : storage_{std::move(storage)},
         serializer_{std::move(serializer)},
         compartment_{std::move(compartment)},
@@ -31,7 +31,7 @@ namespace kagome::runtime::wavm {
         host_api_factory_{std::move(host_api_factory)},
         block_header_repo_{std::move(block_header_repo)},
         changes_tracker_{std::move(changes_tracker)},
-        single_module_cache_{std::move(single_module_cache)} {
+        last_compiled_module_{std::move(last_compiled_module)} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
@@ -39,7 +39,7 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(host_api_factory_ != nullptr);
     BOOST_ASSERT(block_header_repo_ != nullptr);
     BOOST_ASSERT(changes_tracker_ != nullptr);
-    BOOST_ASSERT(single_module_cache_ != nullptr);
+    BOOST_ASSERT(last_compiled_module_ != nullptr);
   }
 
   InstanceEnvironment InstanceEnvironmentFactory::make(
@@ -55,7 +55,7 @@ namespace kagome::runtime::wavm {
                                              block_header_repo_,
                                              shared_from_this(),
                                              changes_tracker_,
-                                             single_module_cache_);
+                                             last_compiled_module_);
 
     std::shared_ptr<MemoryProvider> memory_provider;
     switch (memory_origin) {

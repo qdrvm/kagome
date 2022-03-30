@@ -25,7 +25,7 @@ namespace kagome::blockchain {
 namespace kagome::runtime {
   class Memory;
   class ModuleRepository;
-  struct SingleModuleCache;
+  class SingleModuleCache;
 }  // namespace kagome::runtime
 
 namespace kagome::runtime::wavm {
@@ -45,7 +45,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<SingleModuleCache> single_module_cache);
+        std::shared_ptr<SingleModuleCache> last_compiled_module);
 
     [[nodiscard]] std::unique_ptr<Core> make(
         std::shared_ptr<const crypto::Hasher> hasher,
@@ -58,7 +58,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
-    std::shared_ptr<SingleModuleCache> single_module_cache_;
+    std::shared_ptr<SingleModuleCache> last_compiled_module_;
   };
 
 }  // namespace kagome::runtime::wavm

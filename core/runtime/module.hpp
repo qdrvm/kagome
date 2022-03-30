@@ -29,9 +29,35 @@ namespace kagome::runtime {
         const = 0;
   };
 
-  struct SingleModuleCache {
-    SingleModuleCache() : module{std::nullopt} {};
-    std::optional<std::shared_ptr<Module>> module;
+  /**
+   * A wrapper for compiled module. Used when we update WAVM runtime in order to
+   * skip double compilation which takes significant time (see issue #1104).
+   * Currently it's shared through DI.
+   */
+  class SingleModuleCache {
+   public:
+    SingleModuleCache() : module_{std::nullopt} {};  // Removes copy ctor
+
+    /**
+     * @brief Sets new cached value, scrapping previous if any
+     * @param module New compiled module to store
+     */
+    void set(std::shared_ptr<Module> module) {
+      module_ = module;
+    }
+
+    /**
+     * Pops stored module (if any), clears cache in process.
+     * @return Value if any, std::nullopt otherwise.
+     */
+    std::optional<std::shared_ptr<Module>> try_extract() {
+      auto module = module_;
+      module_.reset();
+      return module;
+    }
+
+   private:
+    std::optional<std::shared_ptr<Module>> module_;
   };
 
 }  // namespace kagome::runtime

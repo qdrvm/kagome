@@ -26,6 +26,7 @@
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/executor.hpp"
+#include "runtime/module.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
@@ -163,6 +164,7 @@ class WasmExecutorTest : public ::testing::Test {
             intrinsic_module->instantiate());
     runtime_upgrade_tracker_ =
         std::make_shared<kagome::runtime::RuntimeUpgradeTrackerMock>();
+    auto bogus_smc = std::make_shared<kagome::runtime::SingleModuleCache>();
     auto instance_env_factory =
         std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
             trie_db,
@@ -172,13 +174,13 @@ class WasmExecutorTest : public ::testing::Test {
             host_api_factory,
             header_repo_,
             changes_tracker,
-            nullptr);
+            bogus_smc);
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
             compartment_wrapper, instance_env_factory, intrinsic_module);
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
-        runtime_upgrade_tracker_, module_factory, nullptr);
+        runtime_upgrade_tracker_, module_factory, bogus_smc);
 
     auto core_provider =
         std::make_shared<kagome::runtime::wavm::CoreApiFactoryImpl>(
@@ -188,7 +190,7 @@ class WasmExecutorTest : public ::testing::Test {
             header_repo_,
             instance_env_factory,
             changes_tracker,
-            nullptr);
+            std::make_shared<kagome::runtime::SingleModuleCache>());
     auto host_api =
         std::shared_ptr<kagome::host_api::HostApi>{host_api_factory->make(
             core_provider, memory_provider, storage_provider_)};

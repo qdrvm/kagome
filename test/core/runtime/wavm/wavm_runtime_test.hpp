@@ -9,6 +9,7 @@
 #include "core/runtime/runtime_test_base.hpp"
 
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "runtime/module.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
@@ -43,7 +44,7 @@ class WavmRuntimeTest : public RuntimeTestBase {
             host_api_factory_,
             header_repo_,
             changes_tracker,
-            nullptr);
+            std::make_shared<kagome::runtime::SingleModuleCache>());
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(

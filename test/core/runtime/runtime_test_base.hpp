@@ -40,6 +40,7 @@
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/core_api_factory.hpp"
 #include "runtime/executor.hpp"
+#include "runtime/module.hpp"
 #include "runtime/runtime_environment_factory.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
@@ -145,7 +146,9 @@ class RuntimeTestBase : public ::testing::Test {
             .value();
 
     auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(
-        upgrade_tracker, module_factory, nullptr);
+        upgrade_tracker,
+        module_factory,
+        std::make_shared<runtime::SingleModuleCache>());
 
     runtime_env_factory_ = std::make_shared<runtime::RuntimeEnvironmentFactory>(
         std::move(wasm_provider_), std::move(module_repo), header_repo_);
