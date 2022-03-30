@@ -111,6 +111,7 @@ namespace kagome::primitives {
         OUTCOME_TRY(payload, scale::decode<GrandpaDigest>(data));
         return DecodedConsensusMessage{engine_id, std::move(payload)};
       }
+      BOOST_ASSERT_MSG(false, "Invalid consensus engine id");
       BOOST_UNREACHABLE_RETURN({})
     }
 
