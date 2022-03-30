@@ -188,12 +188,13 @@ int main() {
           intrinsic_module,
           host_api_factory,
           header_repo,
-          changes_tracker);
+          changes_tracker,
+          nullptr);
   auto module_factory =
       std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
           compartment, instance_env_factory, intrinsic_module);
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
-      runtime_upgrade_tracker, module_factory);
+      runtime_upgrade_tracker, module_factory, nullptr);
   auto env_factory =
       std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
           code_provider, module_repo, header_repo);
