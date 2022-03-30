@@ -64,6 +64,7 @@ namespace kagome::authority {
           break;
         }
 
+        // if we already checked this block (and thus the rest of the branch)
         if (not observed.emplace(hash).second) {
           break;
         }
