@@ -21,9 +21,9 @@ namespace kagome::common {
     std::string Query;
     std::string Fragment;
 
-    static Uri Parse(std::string_view uri);
+    static Uri parse(std::string_view uri);
 
-    std::string toString() const;
+    std::string to_string() const;
 
     const std::optional<std::string_view> &error() const {
       return error_;

@@ -11,6 +11,7 @@
 #include <system_error>
 
 #include "common/hexutil.hpp"
+#include "common/uri.hpp"
 #include "common/visitor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::application, ChainSpecImpl::Error, e) {
@@ -88,8 +89,18 @@ namespace kagome::application {
         if (auto it = endpoint.begin(); endpoint.size() >= 2) {
           auto &uri = it->second;
           auto &priority = (++it)->second;
-          telemetry_endpoints_.emplace_back(uri.get<std::string>(""),
-                                            priority.get<size_t>(""));
+          auto uri_candidate = uri.get<std::string>("");
+          auto parsed_uri = common::Uri::parse(uri_candidate);
+          if (parsed_uri.error().has_value()) {
+            log_->warn(
+                "Telemetry endpoint '{}' cannot be interpreted as a valid URI "
+                "and was skipped: {}",
+                uri_candidate,
+                parsed_uri.error().value());
+            continue;
+          }
+          telemetry_endpoints_.emplace_back(std::move(parsed_uri),
+                                            priority.get<uint8_t>(""));
         }
       }
     }

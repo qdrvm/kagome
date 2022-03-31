@@ -9,7 +9,7 @@
 
 namespace kagome::common {
 
-  std::string Uri::toString() const {
+  std::string Uri::to_string() const {
     std::string result;
     if (not Schema.empty()) {
       result += Schema;
@@ -39,7 +39,7 @@ namespace kagome::common {
     return result;
   }
 
-  Uri Uri::Parse(std::string_view uri) {
+  Uri Uri::parse(std::string_view uri) {
     Uri result;
 
     if (uri.empty()) {

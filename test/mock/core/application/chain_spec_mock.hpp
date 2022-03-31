@@ -25,7 +25,7 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD((const std::vector<std::pair<std::string, size_t>> &),
+    MOCK_METHOD((const std::vector<telemetry::TelemetryEndpoint> &),
                 telemetryEndpoints,
                 (),
                 (const));

@@ -12,6 +12,7 @@
 #include "crypto/sr25519_types.hpp"
 #include "primitives/block.hpp"
 #include "primitives/code_substitutes.hpp"
+#include "telemetry/endpoint.hpp"
 
 namespace kagome::application {
 
@@ -35,7 +36,7 @@ namespace kagome::application {
     virtual const std::vector<libp2p::multi::Multiaddress> &bootNodes()
         const = 0;
 
-    virtual const std::vector<std::pair<std::string, size_t>>
+    virtual const std::vector<telemetry::TelemetryEndpoint>
         &telemetryEndpoints() const = 0;
 
     virtual const std::string &protocolId() const = 0;
