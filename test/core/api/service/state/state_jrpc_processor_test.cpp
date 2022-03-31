@@ -287,7 +287,8 @@ TEST_F(StateJrpcProcessorTest, ProcessGetVersionRequest) {
                                            .impl_name = "dummy_in",
                                            .authoring_version = 0x101,
                                            .spec_version = 0x111,
-                                           .impl_version = 0x202};
+                                           .impl_version = 0x202,
+                                           .apis = {}};
 
   std::optional<kagome::primitives::BlockHash> hash = std::nullopt;
   EXPECT_CALL(*state_api, getRuntimeVersion(hash))

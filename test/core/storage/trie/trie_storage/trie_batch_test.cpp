@@ -95,10 +95,13 @@ class MockDb : public kagome::storage::InMemoryStorage {
               (const BufferView &, const Buffer &),
               (override));
 
+  outcome::result<void> put(const BufferView &k, Buffer &&v) override {
+    return put(k, v);
+  }
+
   // to retain the ability to call the actual implementation of put from the
   // superclass
-  outcome::result<void> true_put(const BufferView &key,
-                                 const Buffer &value) {
+  outcome::result<void> true_put(const BufferView &key, const Buffer &value) {
     return InMemoryStorage::put(key, value);
   }
 };
