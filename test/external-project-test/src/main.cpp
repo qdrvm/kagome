@@ -7,7 +7,7 @@
 
 #include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
-#include <kagome/core/blockchain/impl/block_storage_impl.hpp>
+#include <kagome/blockchain/impl/block_storage_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
 #include <kagome/crypto/crypto_store/crypto_store_impl.hpp>
 #include <kagome/crypto/ecdsa/ecdsa_provider_impl.hpp>
