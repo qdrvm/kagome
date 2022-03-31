@@ -36,8 +36,6 @@ namespace kagome::runtime {
    */
   class SingleModuleCache {
    public:
-    SingleModuleCache() : module_{std::nullopt} {};  // Removes copy ctor
-
     /**
      * @brief Sets new cached value, scrapping previous if any
      * @param module New compiled module to store

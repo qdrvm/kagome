@@ -46,6 +46,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
+#include "mock/core/blockchain/block_storage_mock.hpp"
 
 using testing::_;
 using testing::Return;
@@ -142,7 +143,8 @@ class RuntimeTestBase : public ::testing::Test {
         runtime::RuntimeUpgradeTrackerImpl::create(
             header_repo_,
             std::make_shared<storage::InMemoryStorage>(),
-            std::make_shared<primitives::CodeSubstituteBlockIds>())
+            std::make_shared<primitives::CodeSubstituteBlockIds>(),
+            std::make_shared<blockchain::BlockStorageMock>())
             .value();
 
     auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(

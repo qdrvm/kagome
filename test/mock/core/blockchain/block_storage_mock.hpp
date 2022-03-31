@@ -80,6 +80,12 @@ namespace kagome::blockchain {
                 removeBlock,
                 (const primitives::BlockInfo &),
                 (override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockInfo>,
+                getLastFinalized,
+                (),
+                (const, override));
+
   };
 
 }  // namespace kagome::blockchain

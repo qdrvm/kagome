@@ -106,8 +106,8 @@ namespace kagome::blockchain {
         const primitives::BlockNumber &number) = 0;
 
     /**
-     *
-     * @return
+     * Get the last finalized block
+     * @return BlockInfo of the block
      */
     virtual outcome::result<primitives::BlockInfo> getLastFinalized() const = 0;
 
