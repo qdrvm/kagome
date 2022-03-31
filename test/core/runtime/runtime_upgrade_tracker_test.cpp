@@ -99,13 +99,13 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
 /*
  * GIVEN uninitialized upgrade tracker
  * WHEN querying the latest code update from it
- * THEN genesis state is returned
+ * THEN first encountered state is returned
  */
 TEST_F(RuntimeUpgradeTrackerTest, NullBlockTree) {
-  EXPECT_CALL(*header_repo_, getBlockHeader(kagome::primitives::BlockId{0}))
-      .WillOnce(testing::Return(genesis_block_header));
+  EXPECT_CALL(*header_repo_, getBlockHeader({block_42.hash}))
+      .WillOnce(testing::Return(block_42_header));
   EXPECT_OUTCOME_TRUE(state, tracker_->getLastCodeUpdateState(block_42));
-  ASSERT_EQ(state, genesis_block_header.state_root);
+  ASSERT_EQ(state, block_42_header.state_root);
 }
 
 /*

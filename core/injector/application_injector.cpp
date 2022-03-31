@@ -913,7 +913,7 @@ namespace {
     if (auto last = storage->getLastFinalized(); last.has_value()) {
       return last.value().hash;
     } else {
-      throw std::runtime_error("Error choosing proper finalized block: "
+      throw std::runtime_error("Cannot lookup last finalized block: "
                                + last.error().message());
     }
   };

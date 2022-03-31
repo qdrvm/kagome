@@ -29,6 +29,7 @@
 #include <kagome/runtime/wavm/intrinsics/intrinsic_module.hpp>
 #include <kagome/runtime/wavm/module_factory_impl.hpp>
 #include <kagome/storage/changes_trie/impl/storage_changes_tracker_impl.hpp>
+#include <kagome/storage/in_memory/in_memory_storage.hpp>
 #include <kagome/storage/leveldb/leveldb.hpp>
 #include <kagome/storage/trie/impl/trie_storage_backend_impl.hpp>
 #include <kagome/storage/trie/impl/trie_storage_impl.hpp>

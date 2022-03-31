@@ -330,6 +330,9 @@ namespace kagome::blockchain {
         }
         current_hash = header.parent_hash;
       } else {
+        SL_ERROR(
+            logger_, "Failed to fetch header for block ({})", current_hash);
+        return BlockStorageError::HEADER_NOT_FOUND;
       }
     }
 
