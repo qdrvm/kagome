@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "offchain/impl/uri.hpp"
+#include "common/uri.hpp"
 
 #include <algorithm>
 
-namespace kagome::offchain {
+namespace kagome::common {
 
   std::string Uri::toString() const {
     std::string result;
@@ -126,4 +126,4 @@ namespace kagome::offchain {
 
     return result;
   }
-}  // namespace kagome::offchain
+}  // namespace kagome::common

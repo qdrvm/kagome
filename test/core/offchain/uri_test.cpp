@@ -5,9 +5,9 @@
 
 #include <gtest/gtest.h>
 
-#include "offchain/impl/uri.hpp"
+#include "common/uri.hpp"
 
-using kagome::offchain::Uri;
+using kagome::common::Uri;
 
 TEST(UriTest, CorrectFullURL) {
   auto original_url =

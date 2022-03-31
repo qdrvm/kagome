@@ -47,7 +47,7 @@ namespace kagome::offchain {
   bool HttpRequest::init(HttpMethod method,
                          std::string_view uri_arg,
                          common::Buffer meta) {
-    uri_ = Uri::Parse(uri_arg);
+    uri_ = common::Uri::Parse(uri_arg);
     if (uri_.error().has_value()) {
       error_message_ =
           fmt::format("URI parsing was failed: {}", uri_.error().value());
