@@ -91,12 +91,6 @@ int main() {
 
   auto code_substitutes = chain_spec->codeSubstitutes();
   auto storage = std::make_shared<kagome::storage::InMemoryStorage>();
-  auto block_storage =
-      std::make_shared<kagome::blockchain::BlockStorageImpl>(storage, hasher);
-  auto runtime_upgrade_tracker = std::shared_ptr(
-      kagome::runtime::RuntimeUpgradeTrackerImpl::create(
-          header_repo, database, code_substitutes, block_storage)
-          .value());
 
   auto trie_factory =
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
@@ -122,6 +116,17 @@ int main() {
       std::shared_ptr(kagome::storage::trie::TrieStorageImpl::createEmpty(
                           trie_factory, codec, serializer, changes_tracker)
                           .value());
+
+  auto batch =
+      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash());
+  auto root_hash = batch.value()->commit();
+  auto block_storage = kagome::blockchain::BlockStorageImpl::create(
+      root_hash.value(), storage, hasher);
+  auto runtime_upgrade_tracker = std::shared_ptr(
+      kagome::runtime::RuntimeUpgradeTrackerImpl::create(
+          header_repo, database, code_substitutes, block_storage)
+          .value());
+
   auto storage_batch =
       trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
           .value();
