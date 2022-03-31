@@ -88,10 +88,13 @@ int main() {
                         .value();
 
   auto code_substitutes = chain_spec->codeSubstitutes();
-  auto runtime_upgrade_tracker =
-      std::shared_ptr(kagome::runtime::RuntimeUpgradeTrackerImpl::create(
-                          header_repo, database, code_substitutes)
-                          .value());
+  auto storage = std::make_shared<kagome::storage::InMemoryStorage>();
+  auto block_storage =
+      std::make_shared<kagome::blockchain::BlockStorageImpl>(storage, hasher);
+  auto runtime_upgrade_tracker = std::shared_ptr(
+      kagome::runtime::RuntimeUpgradeTrackerImpl::create(
+          header_repo, database, code_substitutes, block_storage)
+          .value());
 
   auto trie_factory =
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
