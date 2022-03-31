@@ -6,6 +6,7 @@
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 
 #include "blockchain/block_header_repository.hpp"
+#include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/storage_code_provider.hpp"
@@ -31,12 +32,15 @@ namespace kagome::runtime {
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<const primitives::CodeSubstituteBlockIds>
-          code_substitutes) {
+          code_substitutes,
+      std::shared_ptr<blockchain::BlockStorage> block_storage) {
     BOOST_ASSERT(header_repo);
     BOOST_ASSERT(storage);
     BOOST_ASSERT(code_substitutes);
+    BOOST_ASSERT(block_storage);
 
-    OUTCOME_TRY(encoded_opt, storage->tryLoad(storage::kRuntimeHashesLookupKey));
+    OUTCOME_TRY(encoded_opt,
+                storage->tryLoad(storage::kRuntimeHashesLookupKey));
 
     std::vector<RuntimeUpgradeData> saved_data{};
     if (encoded_opt.has_value()) {
@@ -49,7 +53,8 @@ namespace kagome::runtime {
         new RuntimeUpgradeTrackerImpl(std::move(header_repo),
                                       std::move(storage),
                                       std::move(code_substitutes),
-                                      std::move(saved_data))};
+                                      std::move(saved_data),
+                                      std::move(block_storage))};
   }
 
   RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
@@ -57,11 +62,13 @@ namespace kagome::runtime {
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<const primitives::CodeSubstituteBlockIds>
           code_substitutes,
-      std::vector<RuntimeUpgradeData> &&saved_data)
+      std::vector<RuntimeUpgradeData> &&saved_data,
+      std::shared_ptr<blockchain::BlockStorage> block_storage)
       : runtime_upgrades_{std::move(saved_data)},
         header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         known_code_substitutes_{std::move(code_substitutes)},
+        block_storage_{std::move(block_storage)},
         logger_{log::createLogger("StorageCodeProvider", "runtime")} {}
 
   bool RuntimeUpgradeTrackerImpl::hasCodeSubstitute(
@@ -74,7 +81,13 @@ namespace kagome::runtime {
       const primitives::BlockInfo &chain_end) const {
     // if the found state is finalized, it is guaranteed to not belong to a
     // different fork
-    if (block_tree_->getLastFinalized().number >= state.number) {
+    primitives::BlockInfo last_finalized;
+    if (block_tree_) {
+      last_finalized = block_tree_->getLastFinalized();  // less expensive
+    } else {
+      last_finalized = block_storage_->getLastFinalized().value();
+    }
+    if (last_finalized.number >= state.number) {
       return true;
     }
     // a non-finalized state may belong to a different fork, need to check
@@ -109,14 +122,6 @@ namespace kagome::runtime {
   outcome::result<storage::trie::RootHash>
   RuntimeUpgradeTrackerImpl::getLastCodeUpdateState(
       const primitives::BlockInfo &block) {
-    // if the block tree is not yet initialized, means we can only access the
-    // genesis block
-    if (block_tree_ == nullptr) {
-      OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
-      SL_DEBUG(logger_, "Pick runtime state at genesis for block {}", block);
-      return genesis.state_root;
-    }
-
     if (hasCodeSubstitute(block)) {
       OUTCOME_TRY(push(block.hash));
     }

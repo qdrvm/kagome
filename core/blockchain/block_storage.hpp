@@ -106,6 +106,12 @@ namespace kagome::blockchain {
         const primitives::BlockNumber &number) = 0;
 
     /**
+     *
+     * @return
+     */
+    virtual outcome::result<primitives::BlockInfo> getLastFinalized() const = 0;
+
+    /**
      * Removes all data of block {@param block} from block storage
      * @returns result of removing
      */

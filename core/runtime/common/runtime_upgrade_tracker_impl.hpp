@@ -20,6 +20,7 @@
 namespace kagome::blockchain {
   class BlockHeaderRepository;
   class BlockTree;
+  class BlockStorage;
 }  // namespace kagome::blockchain
 
 namespace kagome::runtime {
@@ -34,7 +35,8 @@ namespace kagome::runtime {
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<const primitives::CodeSubstituteBlockIds>
-            code_substitutes);
+            code_substitutes,
+        std::shared_ptr<blockchain::BlockStorage> block_storage);
 
     struct RuntimeUpgradeData {
       RuntimeUpgradeData() = default;
@@ -73,7 +75,8 @@ namespace kagome::runtime {
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<const primitives::CodeSubstituteBlockIds>
             code_substitutes,
-        std::vector<RuntimeUpgradeData> &&saved_data);
+        std::vector<RuntimeUpgradeData> &&saved_data,
+        std::shared_ptr<blockchain::BlockStorage> block_storage);
 
     bool isStateInChain(const primitives::BlockInfo &state,
                         const primitives::BlockInfo &chain_end) const;
@@ -102,6 +105,7 @@ namespace kagome::runtime {
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<const primitives::CodeSubstituteBlockIds>
         known_code_substitutes_;
+    std::shared_ptr<blockchain::BlockStorage> block_storage_;
     log::Logger logger_;
   };
 

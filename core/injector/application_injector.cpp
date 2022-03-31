@@ -825,10 +825,13 @@ namespace {
               injector.template create<sptr<storage::BufferStorage>>();
           auto substitutes = injector.template create<
               sptr<const primitives::CodeSubstituteBlockIds>>();
+          auto block_storage =
+              injector.template create<sptr<blockchain::BlockStorage>>();
           auto res = runtime::RuntimeUpgradeTrackerImpl::create(
               std::move(header_repo),
               std::move(storage),
-              std::move(substitutes));
+              std::move(substitutes),
+              std::move(block_storage));
           if (res.has_error()) {
             throw std::runtime_error(
                 "Error creating RuntimeUpgradeTrackerImpl: "
@@ -903,6 +906,17 @@ namespace {
         di::bind<runtime::SingleModuleCache>.template to<runtime::SingleModuleCache>(),
         std::forward<Ts>(args)...);
   }
+
+  template <typename Injector>
+  primitives::BlockHash get_last_finalized_hash(const Injector &injector) {
+    auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
+    if (auto last = storage->getLastFinalized(); last.has_value()) {
+      return last.value().hash;
+    } else {
+      throw std::runtime_error("Error choosing proper finalized block: "
+                               + last.error().message());
+    }
+  };
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
@@ -1071,10 +1085,9 @@ namespace {
         }),
         di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
           // need it to add genesis block if it's not there
-          auto genesis_block_header =
-              injector.template create<sptr<primitives::GenesisBlockHeader>>();
           auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
-          return get_babe_configuration(genesis_block_header->hash, babe_api);
+          static auto last_finalized_hash = get_last_finalized_hash(injector);
+          return get_babe_configuration(last_finalized_hash, babe_api);
         }),
         di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
@@ -1294,36 +1307,6 @@ namespace {
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
     protocol_factory->setGrandpaObserver(initialized.value());
-
-    return initialized.value();
-  }
-
-  template <typename Injector>
-  sptr<primitives::GenesisBlockHeader> get_genesis_block_header(
-      const Injector &injector) {
-    static auto initialized =
-        std::optional<sptr<primitives::GenesisBlockHeader>>(std::nullopt);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto block_storage =
-        injector.template create<sptr<blockchain::BlockStorage>>();
-    auto block_header_repository =
-        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
-
-    auto hash_res =
-        block_header_repository->getHashByNumber(primitives::BlockNumber(0));
-    BOOST_ASSERT(hash_res.has_value());
-    auto &hash = hash_res.value();
-
-    auto header_res = block_storage->getBlockHeader(hash);
-    BOOST_ASSERT(header_res.has_value());
-    auto &header_opt = header_res.value();
-    BOOST_ASSERT(header_opt.has_value());
-
-    initialized.emplace(new primitives::GenesisBlockHeader(
-        {.header = header_opt.value(), .hash = hash}));
 
     return initialized.value();
   }

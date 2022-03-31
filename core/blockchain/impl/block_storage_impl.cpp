@@ -310,4 +310,35 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<primitives::BlockInfo> BlockStorageImpl::getLastFinalized()
+      const {
+    OUTCOME_TRY(leaves, getBlockTreeLeaves());
+    auto current_hash = leaves[0];
+    for (;;) {
+      OUTCOME_TRY(j_opt, getJustification(current_hash));
+      if (j_opt.has_value()) {
+        break;
+      }
+      OUTCOME_TRY(header_opt, getBlockHeader(current_hash));
+      if (header_opt.has_value()) {
+        auto header = header_opt.value();
+        if (header.number == 0) {
+          SL_DEBUG(logger_,
+                   "Genesis block picked as last finalized ({})",
+                   current_hash);
+          return {0, current_hash};  // genesis
+        }
+        current_hash = header.parent_hash;
+      } else {
+      }
+    }
+
+    OUTCOME_TRY(header, getBlockHeader(current_hash));
+    SL_DEBUG(logger_,
+             "Last finalized block #{} ({})",
+             header.value().number,
+             current_hash);
+    return {header.value().number, current_hash};
+  }
+
 }  // namespace kagome::blockchain
