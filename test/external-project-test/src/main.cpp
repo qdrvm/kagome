@@ -120,10 +120,10 @@ int main() {
   auto batch =
       trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
           .value();
-  auto root_hash = batch.value()->commit().value();
-  auto block_storage = kagome::blockchain::BlockStorageImpl::create(
-                           root_hash.value(), storage, hasher)
-                           .value();
+  auto root_hash = batch->commit().value();
+  auto block_storage =
+      kagome::blockchain::BlockStorageImpl::create(root_hash, storage, hasher)
+          .value();
   std::shared_ptr<kagome::runtime::RuntimeUpgradeTracker>
       runtime_upgrade_tracker =
           std::move(kagome::runtime::RuntimeUpgradeTrackerImpl::create(
