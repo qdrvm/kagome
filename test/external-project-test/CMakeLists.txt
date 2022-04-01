@@ -62,5 +62,4 @@ target_link_libraries(main
     kagome::offchain_worker_pool
     kagome::block_header_repository
     kagome::runtime_upgrade_tracker
-    kagome::block_storage
     )

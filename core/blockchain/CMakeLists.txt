@@ -20,6 +20,7 @@ add_library(block_storage_error
 target_link_libraries(block_storage_error
     outcome
     )
+kagome_install(block_storage_error)
 
 add_library(block_storage
     impl/block_storage_impl.cpp
@@ -30,6 +31,7 @@ target_link_libraries(block_storage
     hasher
     scale::scale
     )
+kagome_install(block_storage)
 
 add_library(block_tree_error
     block_tree_error.hpp
