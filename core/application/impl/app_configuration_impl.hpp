@@ -191,6 +191,9 @@ namespace kagome::application {
     bool load_ma(const rapidjson::Value &val,
                  char const *name,
                  std::vector<libp2p::multi::Multiaddress> &target);
+    bool load_telemetry_uris(const rapidjson::Value &val,
+                             char const *name,
+                             std::vector<telemetry::TelemetryEndpoint> &target);
     bool load_str(const rapidjson::Value &val,
                   char const *name,
                   std::string &target);
@@ -227,6 +230,16 @@ namespace kagome::application {
      * address is not available
      */
     bool testListenAddresses() const;
+
+    /**
+     * Parses telemetry endpoint URI and verbosity level from a single string
+     * record of format: "<endpoint URI> <verbosity: 0-9>"
+     * @param record - input string
+     * @return - constructed instance of kagome::telemetry::TelemetryEndpoint or
+     * std::nullopt in case of error
+     */
+    std::optional<telemetry::TelemetryEndpoint> parseTelemetryEndpoint(
+        const std::string &record) const;
 
     FilePtr open_file(const std::string &filepath);
 

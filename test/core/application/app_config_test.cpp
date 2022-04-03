@@ -49,7 +49,11 @@ class AppConfigurationTest : public testing::Test {
               "rpc-port" : 1234,
               "ws-host" : "2.2.2.2",
               "ws-port" : 3456,
-              "name" : "Bob's node"
+              "name" : "Bob's node",
+              "telemetry-endpoints": [
+                  "ws://localhost/submit 0",
+                  "wss://telemetry.soramitsu.co.jp/submit 4"
+              ]
         },
         "additional" : {
           "single-finalizing-node" : true
@@ -238,6 +242,26 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
 
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+}
+
+/**
+ * @given new created AppConfigurationImpl
+ * @when correct telemetry endpoints data provided in config file
+ * @then endpoints are correctly initialized
+ */
+TEST_F(AppConfigurationTest, TelemetryEndpointsFromConfig) {
+  std::vector reference = {
+      get_telemetry_endpoint("ws://localhost/submit", 0),
+      get_telemetry_endpoint("wss://telemetry.soramitsu.co.jp/submit", 4),
+  };
+  char const *args[] = {
+      "/path/",
+      "--config-file",
+      config_path.c_str(),
+  };
+
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_EQ(app_config_->telemetryEndpoints(), reference);
 }
 
 /**
