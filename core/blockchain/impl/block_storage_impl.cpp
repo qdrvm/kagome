@@ -323,8 +323,9 @@ namespace kagome::blockchain {
       if (header_opt.has_value()) {
         auto header = header_opt.value();
         if (header.number == 0) {
-          SL_DEBUG(logger_,
-                   "Genesis block picked as last finalized ({})",
+          SL_TRACE(logger_,
+                   "Not found block with justification. "
+                   "Genesis block will be used as last finalized ({})",
                    current_hash);
           return {0, current_hash};  // genesis
         }
@@ -337,11 +338,12 @@ namespace kagome::blockchain {
     }
 
     OUTCOME_TRY(header, getBlockHeader(current_hash));
-    SL_DEBUG(logger_,
-             "Last finalized block #{} ({})",
-             header.value().number,
-             current_hash);
-    return {header.value().number, current_hash};
+    primitives::BlockInfo found_block{header.value().number, current_hash};
+    SL_TRACE(logger_,
+             "Justification is found in block {}. "
+             "This block will be used as last finalized",
+             found_block);
+    return found_block;
   }
 
 }  // namespace kagome::blockchain

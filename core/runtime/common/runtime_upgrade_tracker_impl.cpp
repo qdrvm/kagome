@@ -85,7 +85,15 @@ namespace kagome::runtime {
     if (block_tree_) {
       last_finalized = block_tree_->getLastFinalized();  // less expensive
     } else {
-      last_finalized = block_storage_->getLastFinalized().value();
+      auto block_info = block_storage_->getLastFinalized();
+      if (block_info.has_value()) {
+        last_finalized = block_info.value();
+      } else {
+        SL_ERROR(logger_,
+                 "Could not store hashes of blocks changing runtime: {}",
+                 block_info.error().message());
+        throw std::runtime_error(block_info.error().message());
+      }
     }
     if (last_finalized.number >= state.number) {
       return true;
