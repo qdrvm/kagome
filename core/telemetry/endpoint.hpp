@@ -27,6 +27,15 @@ namespace kagome::telemetry {
       return verbosity_level_;
     };
 
+    bool operator==(const TelemetryEndpoint &other) const {
+      return uri_.to_string() == other.uri_.to_string()
+             and verbosity_level_ == other.verbosity_level_;
+    }
+
+    bool operator!=(const TelemetryEndpoint &other) const {
+      return not operator==(other);
+    }
+
    private:
     common::Uri uri_;
     uint8_t verbosity_level_;

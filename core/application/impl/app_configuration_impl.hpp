@@ -138,6 +138,10 @@ namespace kagome::application {
     const std::string &nodeVersion() const override {
       return node_version_;
     }
+    const std::vector<telemetry::TelemetryEndpoint> &telemetryEndpoints()
+        const override {
+      return telemetry_endpoints_;
+    }
     RuntimeExecutionMethod runtimeExecMethod() const override {
       return runtime_exec_method_;
     }
@@ -234,6 +238,7 @@ namespace kagome::application {
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
     std::vector<libp2p::multi::Multiaddress> public_addresses_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;
+    std::vector<telemetry::TelemetryEndpoint> telemetry_endpoints_;
     uint16_t p2p_port_;
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;

@@ -21,6 +21,7 @@
 #include "assets/assets.hpp"
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
+#include "common/uri.hpp"
 #include "filesystem/directories.hpp"
 
 namespace {
@@ -518,6 +519,9 @@ namespace kagome::application {
         ("in-peers-light", po::value<uint32_t>()->default_value(100), "maximum number of inbound light nodes peers")
         ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
+        ("telemetry-url", po::value<std::vector<std::string>>()->multitoken(),
+                          "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
+                          "e.g. --telemetry-url 'wss://foo/bar 0'")
         ;
 
     po::options_description development_desc("Additional options");
@@ -838,6 +842,89 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "name", [&](std::string const &val) { node_name_ = val; });
+
+    auto parse_telemetry_urls =
+        [&](const std::string &param_name,
+            std::vector<telemetry::TelemetryEndpoint> &output_field) -> bool {
+      std::vector<std::string> tokens;
+      find_argument<std::vector<std::string>>(
+          vm, param_name.c_str(), [&](const auto &val) { tokens = val; });
+
+      /*
+       * The only form a telemetry endpoint could be specified is
+       * "<endpoint uri> <verbosity level>", where verbosity level is a single
+       * numeric character in a range from 0 to 9 inclusively.
+       *
+       * Thus, every token must satisfy the specified format.
+       */
+
+      for (const auto &token : tokens) {
+        // check there is a space char preceding the verbosity level number
+        const auto len = token.length();
+        constexpr auto kSpaceChar = ' ';
+        if (kSpaceChar != token.at(len - 2)) {
+          SL_ERROR(
+              logger_,
+              "Token '{}' could not be parsed as a valid telemetry endpoint. "
+              "The desired format is '<endpoint uri> <verbosity: 0-9>'",
+              token);
+          return false;
+        }
+
+        // try to parse verbosity level
+        uint8_t verbosity_level{0};
+        try {
+          auto verbosity_char = token.substr(len - 1);
+          int verbosity_level_parsed = std::stoi(verbosity_char);
+          // the following check is left intentionally
+          // despite possible redundancy
+          if (verbosity_level_parsed < 0 or verbosity_level_parsed > 9) {
+            throw std::out_of_range("verbosity level value is out of range");
+          }
+          verbosity_level = static_cast<uint8_t>(verbosity_level_parsed);
+        } catch (std::invalid_argument const &e) {
+          SL_ERROR(
+              logger_,
+              "Token '{}' could not be parsed as a valid telemetry endpoint. "
+              "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
+              "Verbosity level does not meet the format: {}",
+              token,
+              e.what());
+          return false;
+        } catch (std::out_of_range const &e) {
+          SL_ERROR(
+              logger_,
+              "Token '{}' could not be parsed as a valid telemetry endpoint. "
+              "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
+              "Verbosity level does not meet the format: {}",
+              token,
+              e.what());
+          return false;
+        }
+
+        // try to parse endpoint uri
+        auto uri_part = token.substr(0, len - 2);
+        auto uri = common::Uri::parse(uri_part);
+        if (uri.error().has_value()) {
+          SL_ERROR(
+              logger_,
+              "Token '{}' could not be parsed as a valid telemetry endpoint. "
+              "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
+              "Endpoint URI parsing failed: {}",
+              token,
+              uri.error().value());
+          return false;
+        }
+
+        // all checks passed successfully
+        telemetry_endpoints_.emplace_back(std::move(uri), verbosity_level);
+      }  //  for
+      return true;
+    };
+
+    if (not parse_telemetry_urls("telemetry-url", telemetry_endpoints_)) {
+      return false;  // just proxy erroneous case to the top level
+    }
 
     std::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
     find_argument<std::string>(
