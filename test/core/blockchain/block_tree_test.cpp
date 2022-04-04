@@ -68,8 +68,8 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillRepeatedly(Return(finalized_block_header_));
 
-    EXPECT_CALL(*storage_, getJustification(kLastFinalizedBlockId))
-        .WillOnce(Return(outcome::success(Justification{})));
+    EXPECT_CALL(*storage_, getLastFinalized())
+        .WillOnce(Return(outcome::success(kFinalizedBlockInfo)));
 
     EXPECT_CALL(*storage_, removeBlock(_))
         .WillRepeatedly(Invoke([&](const auto &b) {
