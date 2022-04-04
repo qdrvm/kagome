@@ -267,13 +267,13 @@ namespace kagome::authority {
     return root_->block;
   }
 
-  outcome::result<std::shared_ptr<const primitives::AuthorityList>>
+  std::optional<std::shared_ptr<const primitives::AuthorityList>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &block,
-                                    bool finalized) {
+                                    bool finalized) const {
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
-      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
+      return std::nullopt;
     }
 
     bool node_in_finalized_chain =
@@ -603,7 +603,7 @@ namespace kagome::authority {
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(
-      const primitives::BlockInfo &block) {
+      const primitives::BlockInfo &block) const {
     BOOST_ASSERT(root_ != nullptr);
     std::shared_ptr<ScheduleNode> ancestor;
     // Target block is not descendant of the current root
@@ -631,7 +631,7 @@ namespace kagome::authority {
 
   bool AuthorityManagerImpl::directChainExists(
       const primitives::BlockInfo &ancestor,
-      const primitives::BlockInfo &descendant) {
+      const primitives::BlockInfo &descendant) const {
     // Any block is descendant of genesis
     if (ancestor.number <= 1 && ancestor.number < descendant.number) {
       return true;

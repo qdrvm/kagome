@@ -52,6 +52,7 @@ namespace kagome::application {
                   getpid());
 
     auto chain_path = app_config_.chainPath(chain_spec_->id());
+    logger_->verbose("Chain path is {}", chain_path);
     auto res = util::init_directory(chain_path);
     if (not res) {
       logger_->critical("Error initializing chain directory {}: {}",

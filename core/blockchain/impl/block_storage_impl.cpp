@@ -22,14 +22,17 @@ namespace kagome::blockchain {
       std::shared_ptr<crypto::Hasher> hasher)
       : storage_{std::move(storage)},
         hasher_{std::move(hasher)},
-        logger_{log::createLogger("BlockStorage", "blockchain")} {}
+        logger_{log::createLogger("BlockStorage", "blockchain")} {
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+  }
 
   outcome::result<std::shared_ptr<BlockStorageImpl>> BlockStorageImpl::create(
       storage::trie::RootHash state_root,
       const std::shared_ptr<storage::BufferStorage> &storage,
       const std::shared_ptr<crypto::Hasher> &hasher) {
-    auto block_storage =
-        std::make_shared<BlockStorageImpl>(BlockStorageImpl(storage, hasher));
+    auto block_storage = std::shared_ptr<BlockStorageImpl>(
+        new BlockStorageImpl(storage, hasher));
 
     auto res = block_storage->hasBlockHeader(primitives::BlockNumber{0});
     if (res.has_error()) {
@@ -180,6 +183,40 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<void> BlockStorageImpl::removeBlockData(
+      primitives::BlockNumber block_number,
+      const primitives::BlockDataFlags &remove_flags) {
+    primitives::BlockData to_insert;
+
+    // if block data does not exist, put a new one. Otherwise, get the old one
+    // and merge with the new one. During the merge new block data fields have
+    // higher priority over the old ones (old ones should be rewritten)
+    OUTCOME_TRY(existing_block_data_opt, getBlockData(remove_flags.hash));
+    if (not existing_block_data_opt.has_value()) {
+      return outcome::success();
+    }
+    auto &existing_data = existing_block_data_opt.value();
+
+    // add all the fields from the new block_data
+    to_insert.header =
+        remove_flags.header ? std::nullopt : existing_data.header;
+    to_insert.body = remove_flags.body ? std::nullopt : existing_data.body;
+    to_insert.justification =
+        remove_flags.justification ? std::nullopt : existing_data.justification;
+    to_insert.message_queue =
+        remove_flags.message_queue ? std::nullopt : existing_data.message_queue;
+    to_insert.receipt =
+        remove_flags.receipt ? std::nullopt : existing_data.receipt;
+
+    OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));
+    OUTCOME_TRY(putWithPrefix(*storage_,
+                              Prefix::BLOCK_DATA,
+                              block_number,
+                              remove_flags.hash,
+                              Buffer{encoded_block_data}));
+    return outcome::success();
+  }
+
   outcome::result<primitives::BlockHash> BlockStorageImpl::putBlock(
       const primitives::Block &block) {
     // insert our block's parts into the database-
@@ -201,10 +238,19 @@ namespace kagome::blockchain {
   outcome::result<void> BlockStorageImpl::putJustification(
       const primitives::Justification &j,
       const primitives::BlockHash &hash,
-      const primitives::BlockNumber &block_number) {
+      primitives::BlockNumber block_number) {
     // insert justification into the database as a part of BlockData
     primitives::BlockData block_data{.hash = hash, .justification = j};
     OUTCOME_TRY(putBlockData(block_number, block_data));
+    return outcome::success();
+  }
+
+  outcome::result<void> BlockStorageImpl::removeJustification(
+      const primitives::BlockHash &hash, primitives::BlockNumber number) {
+    primitives::BlockDataFlags flags =
+        primitives::BlockDataFlags::allUnset(hash);
+    flags.justification = true;
+    OUTCOME_TRY(removeBlockData(number, flags));
     return outcome::success();
   }
 

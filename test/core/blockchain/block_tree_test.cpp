@@ -15,8 +15,10 @@
 #include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/api/service/author/author_api_mock.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
+#include "mock/core/blockchain/justification_storage_policy.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
@@ -127,6 +129,10 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return());
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
+    EXPECT_CALL(*app_state_manager_, atPrepare(_)).WillOnce(Return());
+    EXPECT_CALL(*app_state_manager_, atLaunch(_)).WillOnce(Return());
+    EXPECT_CALL(*app_state_manager_, atShutdown(_)).WillOnce(Return());
+
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         extrinsic_observer_,
@@ -137,7 +143,9 @@ struct BlockTreeTest : public testing::Test {
                                         runtime_core_,
                                         changes_tracker_,
                                         babe_config_,
-                                        babe_util_)
+                                        babe_util_,
+                                        justification_storage_policy_,
+                                        app_state_manager_)
                       .value();
   }
 
@@ -179,11 +187,11 @@ struct BlockTreeTest : public testing::Test {
    * @note To create different block with same number and parent, use different
    * hash ot state root
    */
-  BlockHash addHeaderToRepository(const BlockId &parent,
+  BlockHash addHeaderToRepository(const BlockHash &parent,
                                   BlockNumber number,
                                   storage::trie::RootHash state = {}) {
     BlockHeader header;
-    header.parent_hash = boost::get<BlockHash>(parent);
+    header.parent_hash = parent;
     header.number = number;
     header.state_root = state;
 
@@ -221,6 +229,13 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeUtilMock> babe_util_;
+
+  std::shared_ptr<JustificationStoragePolicyMock>
+      justification_storage_policy_ =
+          std::make_shared<JustificationStoragePolicyMock>();
+
+  std::shared_ptr<application::AppStateManagerMock> app_state_manager_ =
+      std::make_shared<application::AppStateManagerMock>();
 
   std::shared_ptr<BlockTreeImpl> block_tree_;
 
@@ -741,7 +756,7 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
  * @then the second block hash is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
-  auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
+  auto target_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
 
   ASSERT_OUTCOME_SUCCESS(
       best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
@@ -764,7 +779,7 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
                            C2 - D2
    */
 
-  auto T_hash = addHeaderToRepository(kLastFinalizedBlockId, 43);
+  auto T_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto A_hash = addHeaderToRepository(T_hash, 44);
   auto B_hash = addHeaderToRepository(A_hash, 45);
   auto C1_hash = addHeaderToRepository(B_hash, 46);
@@ -785,7 +800,7 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
  */
 TEST_F(BlockTreeTest, Reorganize) {
   // GIVEN
-  auto A_hash = addHeaderToRepository(kLastFinalizedBlockId, 43);
+  auto A_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto B_hash = addHeaderToRepository(A_hash, 44);
 
   //   42   43  44  45   46   47
@@ -848,8 +863,23 @@ TEST_F(BlockTreeTest, Reorganize) {
  * @then TARGET_IS_PAST_MAX error is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_TargetPastMax) {
-  auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
+  auto target_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
 
   EXPECT_OUTCOME_FALSE(err, block_tree_->getBestContaining(target_hash, 42));
   ASSERT_EQ(err, BlockTreeError::TARGET_IS_PAST_MAX);
+}
+
+TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
+  auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
+  auto b55 = addHeaderToRepository(b43, 55);
+  auto b56 = addHeaderToRepository(b55, 56);
+
+  Justification new_justification{"justification_56"_buf};
+
+  EXPECT_CALL(*runtime_core_, version(b56))
+      .WillOnce(Return(primitives::Version{}));
+
+  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
+
+  block_tree_->stop();
 }

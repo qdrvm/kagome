@@ -6,6 +6,7 @@
 add_library(blockchain_common
     common.cpp
     storage_util.cpp
+    justification_storage_policy.cpp
     )
 target_link_libraries(blockchain_common
     blob

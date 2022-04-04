@@ -23,6 +23,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
              "last round estimate or is descendant of it";
     case E::JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED:
       return "Justified block is greater than actually finalized";
+    case E::NO_KNOWN_AUTHORITIES_FOR_BLOCK:
+      return "Can't retrieve authorities for the given block. Likely indicates "
+             "the block is invalid.";
     case E::UNKNOWN_VOTER:
       return "Provided vote is the vote of unknown voter";
     case E::ZERO_WEIGHT_VOTER:

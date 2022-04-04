@@ -8,7 +8,7 @@
 
 namespace kagome::authority {
 
-  ScheduleNode::ScheduleNode(const std::shared_ptr<ScheduleNode> &ancestor,
+  ScheduleNode::ScheduleNode(const std::shared_ptr<const ScheduleNode> &ancestor,
                              primitives::BlockInfo block)
       : block(block), parent(ancestor) {
     BOOST_ASSERT((bool)ancestor);
@@ -37,11 +37,11 @@ namespace kagome::authority {
   }
 
   std::shared_ptr<ScheduleNode> ScheduleNode::makeDescendant(
-      const primitives::BlockInfo &block, bool finalized) {
-    auto node = std::make_shared<ScheduleNode>(shared_from_this(), block);
+      const primitives::BlockInfo &target_block, bool finalized) const {
+    auto node = std::make_shared<ScheduleNode>(shared_from_this(), target_block);
     // Has ScheduledChange
     if (scheduled_after != INACTIVE) {
-      if (finalized && scheduled_after <= block.number) {
+      if (finalized && scheduled_after <= target_block.number) {
         node->actual_authorities = scheduled_authorities;
       } else {
         node->actual_authorities = actual_authorities;
@@ -52,7 +52,7 @@ namespace kagome::authority {
     }
     // Has ForcedChange
     else if (forced_for != INACTIVE) {
-      if (forced_for <= block.number) {
+      if (forced_for <= target_block.number) {
         node->actual_authorities = forced_authorities;
       } else {
         node->actual_authorities = actual_authorities;
@@ -64,7 +64,7 @@ namespace kagome::authority {
     // Has planned pause
     else if (pause_after != INACTIVE) {
       node->actual_authorities = actual_authorities;
-      if (finalized && pause_after <= block.number) {
+      if (finalized && pause_after <= target_block.number) {
         node->enabled = false;
       } else {
         node->enabled = enabled;
@@ -74,7 +74,7 @@ namespace kagome::authority {
     // Has planned resume
     else if (resume_for != INACTIVE) {
       node->actual_authorities = actual_authorities;
-      if (resume_for <= block.number) {
+      if (resume_for <= target_block.number) {
         node->enabled = true;
       } else {
         node->enabled = enabled;
