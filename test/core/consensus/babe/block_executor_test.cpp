@@ -17,6 +17,7 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
+#include "mock/core/telemetry/telemetry_service_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 
 #include "blockchain/impl/common.hpp"
@@ -54,6 +55,7 @@ using kagome::runtime::Core;
 using kagome::runtime::CoreMock;
 using kagome::runtime::OffchainWorkerApi;
 using kagome::runtime::OffchainWorkerApiMock;
+using kagome::telemetry::TelemetryServiceMock;
 using kagome::transaction_pool::TransactionPool;
 using kagome::transaction_pool::TransactionPoolMock;
 
@@ -77,6 +79,7 @@ class BlockExecutorTest : public testing::Test {
         std::make_shared<AuthorityUpdateObserverMock>();
     babe_util_ = std::make_shared<BabeUtilMock>();
     offchain_worker_api_ = std::make_shared<OffchainWorkerApiMock>();
+    telemetry_ = std::make_shared<TelemetryServiceMock>();
 
     block_executor_ =
         std::make_shared<BlockExecutorImpl>(block_tree_,
@@ -88,7 +91,8 @@ class BlockExecutorTest : public testing::Test {
                                             hasher_,
                                             authority_update_observer_,
                                             babe_util_,
-                                            offchain_worker_api_);
+                                            offchain_worker_api_,
+                                            telemetry_);
   }
 
  protected:
@@ -102,6 +106,7 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<AuthorityUpdateObserverMock> authority_update_observer_;
   std::shared_ptr<BabeUtilMock> babe_util_;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api_;
+  std::shared_ptr<TelemetryServiceMock> telemetry_;
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
 };

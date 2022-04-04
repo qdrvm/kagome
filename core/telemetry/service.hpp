@@ -6,12 +6,19 @@
 #ifndef KAGOME_TELEMETRY_SERVICE_HPP
 #define KAGOME_TELEMETRY_SERVICE_HPP
 
+#include <string>
+
 namespace kagome::telemetry {
 
   class TelemetryService {
    public:
     virtual ~TelemetryService() = default;
 
+    virtual std::string connectedMessage() const = 0;
+
+    virtual void blockImported(const std::string &hash, uint32_t height) = 0;
+
+   protected:
     virtual bool prepare() = 0;
 
     virtual bool start() = 0;

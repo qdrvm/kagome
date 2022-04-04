@@ -9,5 +9,6 @@ add_library(telemetry
     )
 target_link_libraries(telemetry
     Boost::boost
+    Boost::date_time
     OpenSSL::SSL
     )

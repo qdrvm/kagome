@@ -42,6 +42,7 @@ target_link_libraries(block_executor
     transaction_pool_error
     babe_digests_util
     metrics
+    telemetry
     blockchain_common
     )
 

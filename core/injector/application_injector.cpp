@@ -701,7 +701,8 @@ namespace {
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<consensus::BabeUtil>>(),
-        injector.template create<sptr<runtime::OffchainWorkerApi>>());
+        injector.template create<sptr<runtime::OffchainWorkerApi>>(),
+        injector.template create<sptr<telemetry::TelemetryService>>());
 
     initialized.emplace(std::move(block_executor));
     return initialized.value();
