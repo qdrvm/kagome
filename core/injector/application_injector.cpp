@@ -134,6 +134,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "telemetry/impl/service_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
@@ -1152,6 +1153,7 @@ namespace {
         }),
         di::bind<application::mode::RecoveryMode>.to(
             [](auto const &injector) { return get_recovery_mode(injector); }),
+        di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1477,6 +1479,11 @@ namespace kagome::injector {
   std::shared_ptr<metrics::MetricsWatcher>
   KagomeNodeInjector::injectMetricsWatcher() {
     return pimpl_->injector_.create<sptr<metrics::MetricsWatcher>>();
+  }
+
+  std::shared_ptr<telemetry::TelemetryService>
+  KagomeNodeInjector::injectTelemetryService() {
+    return pimpl_->injector_.create<sptr<telemetry::TelemetryService>>();
   }
 
   std::shared_ptr<application::mode::RecoveryMode>

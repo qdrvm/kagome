@@ -70,6 +70,7 @@ groups:
               - name: binaryen
               - name: wavm
           - name: metrics
+          - name: telemetry
           - name: network
             children:
               - name: synchronizer

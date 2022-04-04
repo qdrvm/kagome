@@ -45,6 +45,7 @@ namespace kagome::application {
     jrpc_api_service_ = injector_->injectRpcApiService();
     sync_observer_ = injector_->injectSyncObserver();
     metrics_watcher_ = injector_->injectMetricsWatcher();
+    telemetry_service_ = injector_->injectTelemetryService();
 
     logger_->info("Start as node version '{}' named as '{}' with PID {}",
                   app_config_.nodeVersion(),

@@ -3,3 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(telemetry
+    impl/service_impl.cpp
+    impl/connection_impl.cpp
+    )
+target_link_libraries(telemetry
+    Boost::boost
+    OpenSSL::SSL
+    )

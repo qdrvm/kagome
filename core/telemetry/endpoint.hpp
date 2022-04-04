@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ENDPOINT_HPP
-#define KAGOME_ENDPOINT_HPP
+#ifndef KAGOME_TELEMETRY_ENDPOINT_HPP
+#define KAGOME_TELEMETRY_ENDPOINT_HPP
 
 #include "common/uri.hpp"
 
 namespace kagome::telemetry {
 
   /**
-   * Represents a single record of telemetry endpoint with verbosity level
-   * specified
+   * Represents a single record of telemetry URI endpoint
+   * with verbosity level specified
    */
   class TelemetryEndpoint {
    public:
@@ -42,4 +42,4 @@ namespace kagome::telemetry {
   };
 }  // namespace kagome::telemetry
 
-#endif  // KAGOME_ENDPOINT_HPP
+#endif  // KAGOME_TELEMETRY_ENDPOINT_HPP
