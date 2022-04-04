@@ -104,14 +104,29 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotCodec::encodeNode(
       const Node &node) const {
     switch (static_cast<TrieNode::Type>(node.getType())) {
-      case TrieNode::Type::BranchEmptyValue:
-      case TrieNode::Type::BranchWithValue:
-        return encodeBranch(dynamic_cast<const BranchNode &>(node));
       case TrieNode::Type::Leaf:
         return encodeLeaf(dynamic_cast<const LeafNode &>(node));
 
+      case TrieNode::Type::BranchEmptyValue:
+      case TrieNode::Type::BranchWithValue:
+        return encodeBranch(dynamic_cast<const BranchNode &>(node));
+
+      case TrieNode::Type::LeafContainingHashes:
+        return encodeLeaf(dynamic_cast<const LeafNode &>(node));
+
+      case TrieNode::Type::BranchContainingHashes:
+        return encodeBranch(dynamic_cast<const BranchNode &>(node));
+
+      case TrieNode::Type::Empty:
+        return std::errc::invalid_argument;
+
+      case TrieNode::Type::ReservedForCompactEncoding:
+        return std::errc::invalid_argument;
+
       case TrieNode::Type::Special:
         // special node is not handled right now
+        return std::errc::invalid_argument;
+
       default:
         return std::errc::invalid_argument;
     }
@@ -123,34 +138,57 @@ namespace kagome::storage::trie {
       return Error::TOO_MANY_NIBBLES;
     }
 
-    uint8_t head = 0;
-    // set bits 6..7
-    switch (static_cast<TrieNode::Type>(node.getType())) {
-      case TrieNode::Type::BranchEmptyValue:
-      case TrieNode::Type::BranchWithValue:
+    uint8_t head;
+    uint8_t partial_length_mask;  // max partial key length
+
+    // set bits of type
+    switch (node.getTrieType()) {
       case TrieNode::Type::Leaf:
-        head = node.getType();
+        head = 0b01'000000;
+        partial_length_mask = 0b00'111111;  // 63
+        break;
+      case TrieNode::Type::BranchEmptyValue:
+        head = 0b10'000000;
+        partial_length_mask = 0b00'111111;  // 63
+        break;
+      case TrieNode::Type::BranchWithValue:
+        head = 0b11'000000;
+        partial_length_mask = 0b00'111111;  // 63
+        break;
+      case TrieNode::Type::LeafContainingHashes:
+        head = 0b001'00000;
+        partial_length_mask = 0b000'11111;  // 31
+        break;
+      case TrieNode::Type::BranchContainingHashes:
+        head = 0b0001'0000;
+        partial_length_mask = 0b0000'1111;  // 15
+        break;
+      case TrieNode::Type::Empty:
+        head = 0b00000000;
+        partial_length_mask = 0;
+        break;
+      case TrieNode::Type::ReservedForCompactEncoding:
+        head = 0b00010000;
+        partial_length_mask = 0;
         break;
       default:
         return Error::UNKNOWN_NODE_TYPE;
     }
-    // the first two bits are a node type
-    head <<= 6u;  // head_{6..7} * 64
 
-    // set bits 0..5, partial key length
-    if (node.key_nibbles.size() < 63u) {
+    // set bits of partial key length
+    if (node.key_nibbles.size() < partial_length_mask) {
       head |= uint8_t(node.key_nibbles.size());
       return Buffer{head};  // header contains 1 byte
     }
-    // if partial key length is greater than 62, then the rest of the length is
-    // stored in consequent bytes
-    head += 63u;
+    // if partial key length is greater than max partial key length, then the
+    // rest of the length is stored in consequent bytes
+    head += partial_length_mask;
 
-    size_t l = node.key_nibbles.size() - 63u;
-    Buffer out(1u +             /// 1 byte head
-                   l / 0xffu +  /// number of 255 in l
-                   1u,          /// for last byte
-               0xffu            /// fill array with 255
+    size_t l = node.key_nibbles.size() - partial_length_mask;
+    Buffer out(1u +             // 1 byte head
+                   l / 0xffu +  // number of 255 in l
+                   1u,          // for last byte
+               0xffu            // fill array with 255
     );
 
     // first byte is head
@@ -220,17 +258,32 @@ namespace kagome::storage::trie {
     auto [type, pk_length] = header;
     // decode the partial key
     OUTCOME_TRY(partial_key, decodePartialKey(pk_length, stream));
-    // decode the node subvalue (see Definition 28 of the polkadot
+    // decode the node sub-value (see Definition 28 of the polkadot
     // specification)
     switch (type) {
       case TrieNode::Type::Leaf: {
         OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
         return std::make_shared<LeafNode>(partial_key, value);
       }
+
       case TrieNode::Type::BranchEmptyValue:
-      case TrieNode::Type::BranchWithValue: {
+      case TrieNode::Type::BranchWithValue:
         return decodeBranch(type, partial_key, stream);
+
+      case TrieNode::Type::LeafContainingHashes: {
+        OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
+        return std::make_shared<LeafСontainingHashesNode>(partial_key, value);
       }
+
+      case TrieNode::Type::BranchContainingHashes:
+        return decodeBranch(type, partial_key, stream);
+
+      case TrieNode::Type::Empty:
+        return Error::UNKNOWN_NODE_TYPE;
+
+      case TrieNode::Type::ReservedForCompactEncoding:
+        return Error::UNKNOWN_NODE_TYPE;
+
       default:
         return Error::UNKNOWN_NODE_TYPE;
     }
@@ -239,19 +292,44 @@ namespace kagome::storage::trie {
   outcome::result<std::pair<TrieNode::Type, size_t>>
   PolkadotCodec::decodeHeader(BufferStream &stream) const {
     TrieNode::Type type;
-    size_t pk_length = 0;
     if (not stream.hasMore(1)) {
       return Error::INPUT_TOO_SMALL;
     }
     auto first = stream.next();
-    // decode type, which is in the first two bits
-    type = static_cast<TrieNode::Type>((first & 0xC0u) >> 6u);
-    first &= 0x3Fu;
-    // decode partial key length, which is stored in the last 6 bits and, if its
-    // greater than 62, in the following bytes
-    pk_length += first;
 
-    if (pk_length == 63) {
+    uint8_t partial_key_length_mask = 0;
+    if (first & 0b1100'0000) {
+      if ((first >> 6 & 0b11) == 0b01) {
+        type = TrieNode::Type::Leaf;
+      } else if ((first >> 6 & 0b11) == 0b10) {
+        type = TrieNode::Type::BranchEmptyValue;
+      } else if ((first >> 6 & 0b11) == 0b11) {
+        type = TrieNode::Type::BranchWithValue;
+      } else {
+        BOOST_UNREACHABLE_RETURN();
+      }
+      partial_key_length_mask = 0b00'111111;
+    } else if (first & 0b0010'0000) {
+      type = TrieNode::Type::LeafContainingHashes;
+      partial_key_length_mask = 0b000'11111;
+    } else if (first & 0b0001'0000) {
+      if (first & 0b0000'1111) {
+        type = TrieNode::Type::BranchContainingHashes;
+        partial_key_length_mask = 0b0000'1111;
+      } else {
+        type = TrieNode::Type::ReservedForCompactEncoding;
+      }
+    } else if (first == 0) {
+      type = TrieNode::Type::Empty;
+    } else {
+      BOOST_UNREACHABLE_RETURN();
+    }
+
+    // decode partial key length, which is stored in the last bits and,
+    // if it's greater than max partial key length, in the following bytes
+    size_t pk_length = first & partial_key_length_mask;
+
+    if (pk_length == partial_key_length_mask) {
       uint8_t read_length = 0;
       do {
         if (not stream.hasMore(1)) {

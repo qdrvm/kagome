@@ -50,8 +50,8 @@ namespace kagome::storage::trie {
       root_ = root;
     }
 
-    [[nodiscard]] outcome::result<std::shared_ptr<const TrieNode>>
-    getChild(BranchNode const &parent, uint8_t idx) const {
+    [[nodiscard]] outcome::result<std::shared_ptr<const TrieNode>> getChild(
+        BranchNode const &parent, uint8_t idx) const {
       // SAFETY: changing a parent's opaque child node from a handle to a node
       // to the actual node doesn't break it's const correctness, because opaque
       // nodes are meant to hide their content
@@ -97,9 +97,9 @@ namespace {
    its key, and copy children if any
    */
   [[nodiscard]] outcome::result<void> handleDeletion(
-      PolkadotTrie::NodePtr & parent, OpaqueNodeStorage &node_storage) {
+      PolkadotTrie::NodePtr &parent, OpaqueNodeStorage &node_storage) {
     if (!parent->isBranch()) return outcome::success();
-    auto& branch = dynamic_cast<BranchNode&>(*parent);
+    auto &branch = dynamic_cast<BranchNode &>(*parent);
     auto bitmap = branch.childrenBitmap();
     if (bitmap == 0) {
       if (parent->value) {
@@ -130,7 +130,7 @@ namespace {
    * @return if the node should be deleted itself from parent
    */
   [[nodiscard]] outcome::result<void> deleteNode(
-      PolkadotTrie::NodePtr & node,
+      PolkadotTrie::NodePtr &node,
       const NibblesView &sought_key,
       OpaqueNodeStorage &node_storage) {
     if (node == nullptr) {
@@ -144,7 +144,8 @@ namespace {
       } else {
         auto length = getCommonPrefixLength(node->key_nibbles, sought_key);
         OUTCOME_TRY(child, node_storage.getChild(branch, sought_key[length]));
-        OUTCOME_TRY(deleteNode(child, sought_key.subspan(length + 1), node_storage));
+        OUTCOME_TRY(
+            deleteNode(child, sought_key.subspan(length + 1), node_storage));
         branch.children[sought_key[length]] = child;
       }
       OUTCOME_TRY(handleDeletion(node, node_storage));
@@ -169,7 +170,7 @@ namespace {
    * @param count is a number of values deleted
    */
   [[nodiscard]] outcome::result<void> detachNode(
-      std::shared_ptr<TrieNode> & parent,
+      std::shared_ptr<TrieNode> &parent,
       const KeyNibbles &prefix,
       std::optional<uint64_t> limit,
       bool &finished,
@@ -321,12 +322,15 @@ namespace kagome::storage::trie {
       return node;
     }
 
-    switch (parent->getTrieType()) {
+    const auto node_type = parent->getTrieType();
+
+    switch (node_type) {
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
         auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
         return updateBranch(parent_as_branch, key_nibbles, node);
       }
+
       case T::Leaf: {
         // need to convert this leaf into a branch
         auto br = std::make_shared<BranchNode>();
@@ -373,6 +377,19 @@ namespace kagome::storage::trie {
 
         return br;
       }
+
+      case T::LeafContainingHashes:
+        return Error::INVALID_NODE_TYPE;
+
+      case T::BranchContainingHashes:
+        return Error::INVALID_NODE_TYPE;
+
+      case T::Empty:
+        return Error::INVALID_NODE_TYPE;
+
+      case T::ReservedForCompactEncoding:
+        return Error::INVALID_NODE_TYPE;
+
       default:
         return Error::INVALID_NODE_TYPE;
     }
@@ -444,7 +461,7 @@ namespace kagome::storage::trie {
     // nodes are meant to hide their content
     auto const_this = const_cast<const PolkadotTrieImpl *>(this);
     OUTCOME_TRY(const_node, const_this->getNode(parent, key_nibbles));
-    // SAFETY: removing constness we manually added
+    // SAFETY: removing constancy we manually added
     auto node = std::const_pointer_cast<TrieNode>(const_node);
     return node;
   }
@@ -455,7 +472,9 @@ namespace kagome::storage::trie {
     if (current == nullptr) {
       return nullptr;
     }
-    switch (current->getTrieType()) {
+
+    const auto node_type = current->getTrieType();
+    switch (node_type) {
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
         if (current->key_nibbles == nibbles or nibbles.empty()) {
@@ -470,12 +489,26 @@ namespace kagome::storage::trie {
         OUTCOME_TRY(n, retrieveChild(*parent_as_branch, nibbles[length]));
         return getNode(n, nibbles.subspan(length + 1));
       }
+
       case T::Leaf:
         if (current->key_nibbles == nibbles) {
           return current;
         }
         break;
-      case T::Special:
+
+      case T::LeafContainingHashes:
+        return Error::INVALID_NODE_TYPE;
+
+      case T::BranchContainingHashes:
+        return Error::INVALID_NODE_TYPE;
+
+      case T::Empty:
+        return Error::INVALID_NODE_TYPE;
+
+      case T::ReservedForCompactEncoding:
+        return Error::INVALID_NODE_TYPE;
+
+      default:
         return Error::INVALID_NODE_TYPE;
     }
     return nullptr;
@@ -490,7 +523,9 @@ namespace kagome::storage::trie {
     if (parent == nullptr) {
       return TrieError::NO_VALUE;
     }
-    switch (parent->getTrieType()) {
+
+    const auto node_type = parent->getTrieType();
+    switch (node_type) {
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
         // path is completely covered by the parent key
@@ -514,11 +549,25 @@ namespace kagome::storage::trie {
         OUTCOME_TRY(callback(*parent_as_branch, path[common_length]));
         return forNodeInPath(child, path.subspan(common_length + 1), callback);
       }
+
       case T::Leaf:
         if (parent->key_nibbles == path) {
           return outcome::success();
         }
         break;
+
+      case T::LeafContainingHashes:
+        return Error::INVALID_NODE_TYPE;
+
+      case T::BranchContainingHashes:
+        return Error::INVALID_NODE_TYPE;
+
+      case T::Empty:
+        return Error::INVALID_NODE_TYPE;
+
+      case T::ReservedForCompactEncoding:
+        return Error::INVALID_NODE_TYPE;
+
       default:
         return Error::INVALID_NODE_TYPE;
     }

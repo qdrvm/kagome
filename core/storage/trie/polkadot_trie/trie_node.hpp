@@ -48,10 +48,14 @@ namespace kagome::storage::trie {
     ~TrieNode() override = default;
 
     enum class Type {
-      Special = 0b00,
-      Leaf = 0b01,
-      BranchEmptyValue = 0b10,
-      BranchWithValue = 0b11
+      Special,                    // -
+      Leaf,                       // 01
+      BranchEmptyValue,           // 10
+      BranchWithValue,            // 11
+      LeafContainingHashes,       // 001
+      BranchContainingHashes,     // 0001
+      Empty,                      // 0000 0000
+      ReservedForCompactEncoding  // 0001 0000
     };
 
     // just to avoid static_casts every time you need a switch on a node type
@@ -61,7 +65,8 @@ namespace kagome::storage::trie {
 
     bool isBranch() const noexcept {
       auto type = getTrieType();
-      return type == Type::BranchWithValue or type == Type::BranchEmptyValue;
+      return type == Type::BranchWithValue or type == Type::BranchEmptyValue
+             or type == Type::BranchContainingHashes;
     }
 
     KeyNibbles key_nibbles;
@@ -95,6 +100,39 @@ namespace kagome::storage::trie {
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
     ~LeafNode() override = default;
+
+    int getType() const override;
+  };
+
+  struct BranchСontainingHashesNode : public TrieNode {
+    static constexpr uint8_t kMaxChildren = 16;
+
+    BranchСontainingHashesNode() = default;
+    explicit BranchСontainingHashesNode(
+        KeyNibbles key_nibbles,
+        std::optional<common::Buffer> value = std::nullopt)
+        : TrieNode{std::move(key_nibbles), std::move(value)} {}
+
+    ~BranchСontainingHashesNode() override = default;
+
+    int getType() const override;
+
+    uint16_t childrenBitmap() const;
+    uint8_t childrenNum() const;
+
+    // Has 1..16 children.
+    // Stores their hashes to search for them in a storage and encode them more
+    // easily. @see DummyNode
+    std::array<std::shared_ptr<OpaqueTrieNode>, kMaxChildren> children;
+  };
+
+  struct LeafСontainingHashesNode : public TrieNode {
+    LeafСontainingHashesNode() = default;
+    LeafСontainingHashesNode(KeyNibbles key_nibbles,
+                             std::optional<common::Buffer> value)
+        : TrieNode{std::move(key_nibbles), std::move(value)} {}
+
+    ~LeafСontainingHashesNode() override = default;
 
     int getType() const override;
   };
