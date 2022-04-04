@@ -199,6 +199,8 @@ struct BlockTreeTest : public testing::Test {
 
     EXPECT_CALL(*header_repo_, getBlockHeader({hash}))
         .WillRepeatedly(Return(header));
+    EXPECT_CALL(*header_repo_, getBlockHeader({number}))
+        .WillRepeatedly(Return(header));
 
     return hash;
   }
@@ -873,6 +875,8 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto b55 = addHeaderToRepository(b43, 55);
   auto b56 = addHeaderToRepository(b55, 56);
+  EXPECT_CALL(*storage_, getBlockBody(BlockId{b56}))
+      .WillOnce(Return(primitives::BlockBody{}));
 
   Justification new_justification{"justification_56"_buf};
 
