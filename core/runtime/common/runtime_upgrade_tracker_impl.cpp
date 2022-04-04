@@ -76,24 +76,17 @@ namespace kagome::runtime {
     return known_code_substitutes_->contains(block_info);
   }
 
-  bool RuntimeUpgradeTrackerImpl::isStateInChain(
+  outcome::result<bool> RuntimeUpgradeTrackerImpl::isStateInChain(
       const primitives::BlockInfo &state,
-      const primitives::BlockInfo &chain_end) const {
+      const primitives::BlockInfo &chain_end) const noexcept {
     // if the found state is finalized, it is guaranteed to not belong to a
     // different fork
     primitives::BlockInfo last_finalized;
     if (block_tree_) {
       last_finalized = block_tree_->getLastFinalized();  // less expensive
     } else {
-      auto block_info = block_storage_->getLastFinalized();
-      if (block_info.has_value()) {
-        last_finalized = block_info.value();
-      } else {
-        SL_ERROR(logger_,
-                 "Could not store hashes of blocks changing runtime: {}",
-                 block_info.error().message());
-        throw std::runtime_error(block_info.error().message());
-      }
+      OUTCOME_TRY(block_info,  block_storage_->getLastFinalized());
+      last_finalized = block_info;
     }
     if (last_finalized.number >= state.number) {
       return true;
@@ -113,7 +106,8 @@ namespace kagome::runtime {
       std::vector<RuntimeUpgradeData>::const_reverse_iterator latest_upgrade_it)
       const {
     for (; latest_upgrade_it != runtime_upgrades_.rend(); latest_upgrade_it++) {
-      if (isStateInChain(latest_upgrade_it->block, block)) {
+      OUTCOME_TRY(in_chain, isStateInChain(latest_upgrade_it->block, block));
+      if (in_chain) {
         SL_TRACE_FUNC_CALL(
             logger_, latest_upgrade_it->state, block.hash, block.number);
         SL_DEBUG(logger_,
