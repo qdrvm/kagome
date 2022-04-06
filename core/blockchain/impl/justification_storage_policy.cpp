@@ -7,39 +7,55 @@
 
 #include <memory>
 
+#include "blockchain/block_tree.hpp"
 #include "consensus/authority/authority_manager.hpp"
 
 namespace kagome::blockchain {
 
-  bool JustificationStoragePolicyImpl::shouldStore(
+  outcome::result<std::vector<primitives::BlockNumber>>
+  JustificationStoragePolicyImpl::shouldStoreWhatWhenFinalized(
       primitives::BlockInfo block) const {
+    if (block.number == 0) return std::vector<primitives::BlockNumber>{0};
+
+    BOOST_ASSERT_MSG(block_tree_ != nullptr,
+                     "Block tree must have been initialized with "
+                     "JustificationStoragePolicyImpl::initBlockchainInfo()");
+
+    auto last_finalized = block_tree_->getLastFinalized();
+    BOOST_ASSERT_MSG(last_finalized.number >= block.number,
+                     "Target block must be finalized");
     BOOST_ASSERT_MSG(auth_manager_ != nullptr,
-                     "Authority manager should be initialized with "
-                     "JustificationStoragePolicyImpl::initAuthorityManager()");
-    bool authority_set_change = false;
-    auto prev_block_auth = auth_manager_->authorities(block, false);
-    auto this_block_auth = auth_manager_->authorities(block, false);
-    // if authority set was updated in previous block
+                     "Authority manager must have been initialized with "
+                     "JustificationStoragePolicyImpl::initBlockchainInfo()");
+
+    OUTCOME_TRY(block_header, block_tree_->getBlockHeader(block.hash));
+    primitives::BlockInfo parent_block{block.number - 1,
+                                       block_header.parent_hash};
+    auto prev_block_auth = auth_manager_->authorities(last_finalized, true);
+    auto this_block_auth = auth_manager_->authorities(block, true);
+    // if authority set was updated between finalizations
     if (prev_block_auth.has_value() && this_block_auth.has_value()
         && prev_block_auth.value()->id != this_block_auth.value()->id) {
-      authority_set_change = true;
-    } else {
-      auto next_block_auth = auth_manager_->authorities(block, false);
-      // if authority set was updated in this block
-      if (next_block_auth.has_value() && this_block_auth.has_value()
-          && next_block_auth.value()->id != this_block_auth.value()->id) {
-        authority_set_change = true;
-      }
+      return std::vector<primitives::BlockNumber>{last_finalized.number,
+                                                  block.number};
     }
-    return block.number % 512 == 0 or authority_set_change;
+    if (block.number % 512 == 0) {
+      return std::vector<primitives::BlockNumber>{block.number};
+    }
+    return {{}};
   }
 
-  void JustificationStoragePolicyImpl::initAuthorityManager(
-      std::shared_ptr<const authority::AuthorityManager> auth_manager) {
+  void JustificationStoragePolicyImpl::initBlockchainInfo(
+      std::shared_ptr<const authority::AuthorityManager> auth_manager,
+      std::shared_ptr<const blockchain::BlockTree> block_tree) {
     BOOST_ASSERT_MSG(auth_manager_ == nullptr,
                      "Authority manager should be initialized once");
+    BOOST_ASSERT_MSG(block_tree_ == nullptr,
+                     "Block tree should be initialized once");
     BOOST_ASSERT(auth_manager != nullptr);
+    BOOST_ASSERT(block_tree != nullptr);
     auth_manager_ = auth_manager;
+    block_tree_ = block_tree;
   }
 
 }  // namespace kagome::blockchain

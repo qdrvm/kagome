@@ -13,25 +13,32 @@ namespace kagome::authority {
 }
 
 namespace kagome::blockchain {
+  class BlockTree;
+}
+
+namespace kagome::blockchain {
 
   class JustificationStoragePolicy {
    public:
     virtual ~JustificationStoragePolicy() = default;
 
-    virtual bool shouldStore(primitives::BlockInfo block) const = 0;
+    virtual outcome::result<std::vector<primitives::BlockNumber>>
+    shouldStoreWhatWhenFinalized(primitives::BlockInfo block) const = 0;
   };
 
   class JustificationStoragePolicyImpl final
       : public JustificationStoragePolicy {
    public:
-    virtual bool shouldStore(primitives::BlockInfo block) const override;
+    virtual outcome::result<std::vector<primitives::BlockNumber>>
+    shouldStoreWhatWhenFinalized(primitives::BlockInfo block) const override;
 
-    virtual void initAuthorityManager(
-        std::shared_ptr<const authority::AuthorityManager>
-            auth_manager);
+    virtual void initBlockchainInfo(
+        std::shared_ptr<const authority::AuthorityManager> auth_manager,
+        std::shared_ptr<const blockchain::BlockTree> block_tree);
 
    private:
     std::shared_ptr<const authority::AuthorityManager> auth_manager_;
+    std::shared_ptr<const blockchain::BlockTree> block_tree_;
   };
 
 }  // namespace kagome::blockchain

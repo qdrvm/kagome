@@ -11,6 +11,7 @@
 #include "primitives/authority.hpp"
 
 namespace kagome::authority {
+
   class AuthorityManager {
    public:
     virtual ~AuthorityManager() = default;

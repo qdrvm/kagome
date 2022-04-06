@@ -46,6 +46,7 @@ using prefix::Prefix;
 using testing::_;
 using testing::Invoke;
 using testing::Return;
+using testing::StrictMock;
 
 struct BlockTreeTest : public testing::Test {
   static void SetUpTestCase() {
@@ -197,9 +198,11 @@ struct BlockTreeTest : public testing::Test {
 
     auto hash = addBlock(Block{header, {}});
 
+    // hash for header repo and number for block storage just because tests
+    // currently require so
     EXPECT_CALL(*header_repo_, getBlockHeader({hash}))
         .WillRepeatedly(Return(header));
-    EXPECT_CALL(*header_repo_, getBlockHeader({number}))
+    EXPECT_CALL(*storage_, getBlockHeader(BlockId{number}))
         .WillRepeatedly(Return(header));
 
     return hash;
@@ -234,7 +237,7 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<JustificationStoragePolicyMock>
       justification_storage_policy_ =
-          std::make_shared<JustificationStoragePolicyMock>();
+          std::make_shared<StrictMock<JustificationStoragePolicyMock>>();
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager_ =
       std::make_shared<application::AppStateManagerMock>();
@@ -883,7 +886,61 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   EXPECT_CALL(*runtime_core_, version(b56))
       .WillOnce(Return(primitives::Version{}));
 
+  // should store new justification
+  EXPECT_CALL(*justification_storage_policy_, shouldStore(BlockInfo{56, b56}))
+      .WillOnce(Return(true));
+  // shouldn't keep old justification
+  EXPECT_CALL(*justification_storage_policy_, shouldStore(kFinalizedBlockInfo))
+      .WillOnce(Return(false));
+  // store new justification
+  EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
+      .WillOnce(Return(outcome::success()));
+  // query whether old justification is stored
+  EXPECT_CALL(*storage_, getJustification({kFinalizedBlockInfo.hash}))
+      .WillOnce(
+          Return(outcome::success(Justification{"justification_55"_buf})));
+  // remove old justification
+  EXPECT_CALL(
+      *storage_,
+      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+      .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
 
+  // yes, we put it twice, we could avoid it, but it's a rare and cheap case,
+  // so why bother
+  EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
+      .WillOnce(Return(outcome::success()));
+  block_tree_->stop();
+}
+
+
+
+TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
+  auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
+  auto b55 = addHeaderToRepository(b43, 55);
+  auto b56 = addHeaderToRepository(b55, 56);
+  EXPECT_CALL(*storage_, getBlockBody(BlockId{b56}))
+      .WillOnce(Return(primitives::BlockBody{}));
+
+  Justification new_justification{"justification_56"_buf};
+
+  EXPECT_CALL(*runtime_core_, version(b56))
+      .WillOnce(Return(primitives::Version{}));
+
+  // should store new justification
+  EXPECT_CALL(*justification_storage_policy_, shouldStore(BlockInfo{56, b56}))
+      .WillOnce(Return(true));
+  // shouldn't keep old justification
+  EXPECT_CALL(*justification_storage_policy_, shouldStore(kFinalizedBlockInfo))
+      .WillOnce(Return(true));
+  // store new justification
+  EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
+      .WillOnce(Return(outcome::success()));
+  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
+
+  // yes, we put it twice, we could avoid it, but it's a rare and cheap case,
+  // so why bother
+  EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
+      .WillOnce(Return(outcome::success()));
   block_tree_->stop();
 }

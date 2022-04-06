@@ -553,6 +553,7 @@ namespace kagome::blockchain {
           log_,
           "No justification for the last finalized block exists, if the last "
           "finalized block is not genesis this probably indicates an error");
+      return;
     }
     auto res = storage_->putJustification(justification_opt.value(),
                                           last_finalized_info.hash,
