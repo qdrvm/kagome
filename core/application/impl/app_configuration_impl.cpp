@@ -55,6 +55,8 @@ namespace {
     roles.flags.full = 1;
     return roles;
   }();
+  const auto def_sync_method =
+      kagome::application::AppConfiguration::SyncMethod::Full;
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_use_wavm_cache_ = false;
@@ -70,6 +72,7 @@ namespace {
   const uint32_t def_in_peers = 25;
   const uint32_t def_in_peers_light = 100;
   const uint32_t def_random_walk_interval = 15;
+  const auto def_full_sync = "Full";
   const auto def_wasm_execution = "Interpreted";
 
   /**
@@ -87,6 +90,18 @@ namespace {
       name = name.substr(0, max_len);
     }
     return name;
+  }
+
+  std::optional<kagome::application::AppConfiguration::SyncMethod>
+  str_to_sync_method(std::string_view str) {
+    using SM = kagome::application::AppConfiguration::SyncMethod;
+    if (str == "Full") {
+      return SM::Full;
+    }
+    if (str == "Fast") {
+      return SM::Fast;
+    }
+    return std::nullopt;
   }
 
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
@@ -155,6 +170,7 @@ namespace kagome::application {
         node_version_(buildVersion()),
         max_ws_connections_(def_ws_max_connections),
         random_walk_interval_(def_random_walk_interval),
+        sync_method_{def_sync_method},
         runtime_exec_method_{def_runtime_exec_method},
         use_wavm_cache_(def_use_wavm_cache_),
         purge_wavm_cache_(def_purge_wavm_cache_),
@@ -697,6 +713,8 @@ namespace kagome::application {
     development_desc.add_options()
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
+        ("sync", po::value<std::string>()->default_value(def_full_sync),
+          "choose the desired sync method (Full, Fast). Full is used by default.")
         ("wasm-execution", po::value<std::string>()->default_value(def_wasm_execution),
           "choose the desired wasm execution method (Compiled, Interpreted)")
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
@@ -1078,6 +1096,21 @@ namespace kagome::application {
       if (not parse_telemetry_urls("telemetry-url", telemetry_endpoints_)) {
         return false;  // just proxy erroneous case to the top level
       }
+    }
+
+    bool sync_method_value_error = false;
+    find_argument<std::string>(
+        vm, "sync", [this, &sync_method_value_error](std::string const &val) {
+          auto sync_method_opt = str_to_sync_method(val);
+          if (not sync_method_opt) {
+            sync_method_value_error = true;
+            SL_ERROR(logger_, "Invalid sync method specified: '{}'", val);
+          } else {
+            sync_method_ = sync_method_opt.value();
+          }
+        });
+    if (sync_method_value_error) {
+      return false;
     }
 
     bool exec_method_value_error = false;
