@@ -71,11 +71,10 @@ namespace kagome::crypto {
     auto key_type = keyTypeFromBytes(
         gsl::make_span(key_type_str.begin(), key_type_str.end()));
     if (!isSupportedKeyType(key_type)) {
-      logger_->warn("key type <ascii: {}, hex: {}> is not officially supported",
-                    key_type_str,
-                    kagome::common::hex_lower(gsl::make_span(
-                        reinterpret_cast<const uint8_t *>(key_type_str.data()),
-                        key_type_str.size())));
+
+      logger_->warn("key type <ascii: {}, hex: {:08x}> is not officially supported",
+                key_type_str,
+                key_type);
     }
     auto public_key_hex = file_name.substr(4);
 
