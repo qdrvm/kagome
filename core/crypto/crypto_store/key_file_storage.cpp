@@ -6,6 +6,7 @@
 #include "crypto/crypto_store/key_file_storage.hpp"
 
 #include "common/hexutil.hpp"
+#include "crypto/crypto_store/key_type.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyFileStorage::Error, e) {
   using E = kagome::crypto::KeyFileStorage::Error;
@@ -30,22 +31,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyFileStorage::Error, e) {
   return "unknown KeyFileStorage error";
 }
 
-namespace {
-  template <class T,
-            typename = std::enable_if<std::is_integral_v<T> and sizeof(T) == 1>>
-  kagome::crypto::KeyTypeId keyTypeFromBytes(gsl::span<const T> bytes) {
-    BOOST_ASSERT_MSG(bytes.size() == 4, "Wrong span size");
-
-    kagome::crypto::KeyTypeId res = static_cast<uint32_t>(bytes[3])
-                                    + (static_cast<uint32_t>(bytes[2]) << 8)
-                                    + (static_cast<uint32_t>(bytes[1]) << 16)
-                                    + (static_cast<uint32_t>(bytes[0]) << 24);
-
-    return res;
-  }
-
-}  // namespace
-
 namespace kagome::crypto {
 
   using common::Buffer;
@@ -68,13 +53,12 @@ namespace kagome::crypto {
     }
 
     auto key_type_str = file_name.substr(0, 4);
-    auto key_type = keyTypeFromBytes(
-        gsl::make_span(key_type_str.begin(), key_type_str.end()));
+    auto key_type = decodeKeyTypeIdFromStr(key_type_str);
     if (!isSupportedKeyType(key_type)) {
-
-      logger_->warn("key type <ascii: {}, hex: {:08x}> is not officially supported",
-                key_type_str,
-                key_type);
+      logger_->warn(
+          "key type <ascii: {}, hex: {:08x}> is not officially supported",
+          key_type_str,
+          key_type);
     }
     auto public_key_hex = file_name.substr(4);
 
@@ -85,7 +69,7 @@ namespace kagome::crypto {
 
   KeyFileStorage::Path KeyFileStorage::composeKeyPath(
       KeyTypeId key_type, gsl::span<const uint8_t> public_key) const {
-    auto &&key_type_str = decodeKeyTypeId(key_type);
+    auto &&key_type_str = encodeKeyTypeIdToStr(key_type);
     auto &&public_key_hex = common::hex_lower(public_key);
 
     return keystore_path_ / (key_type_str + public_key_hex);

@@ -52,7 +52,7 @@ namespace kagome::host_api {
   namespace ecdsa_constants = crypto::constants::ecdsa;
   namespace secp256k1 = crypto::secp256k1;
 
-  using crypto::decodeKeyTypeId;
+  using crypto::encodeKeyTypeIdToStr;
   using crypto::Secp256k1ProviderError;
   using secp256k1::CompressedPublicKey;
   using secp256k1::MessageHash;

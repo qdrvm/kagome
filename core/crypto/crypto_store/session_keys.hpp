@@ -19,7 +19,7 @@ namespace kagome::crypto {
   // hardcoded keys order for polkadot
   // otherwise it could be read from chainspec palletSession/keys
   // nevertheless they are hardcoded in polkadot
-  // https://github.com/paritytech/polkadot/blob/master/node/service/src/chain_spec.rs#L197
+  // https://github.com/paritytech/polkadot/blob/634520cd3cf4b2b850db807daaaa32e480099981/node/service/src/chain_spec.rs#L230
   constexpr KnownKeyTypeId polkadot_key_order[6]{KEY_TYPE_GRAN,
                                                  KEY_TYPE_BABE,
                                                  KEY_TYPE_IMON,
@@ -40,12 +40,12 @@ namespace kagome::crypto {
     /**
      * @return current BABE session key pair
      */
-    const std::shared_ptr<Sr25519Keypair>& getBabeKeyPair();
+    const std::shared_ptr<Sr25519Keypair> &getBabeKeyPair();
 
     /**
      * @return current GRANDPA session key pair
      */
-    const std::shared_ptr<Ed25519Keypair>& getGranKeyPair();
+    const std::shared_ptr<Ed25519Keypair> &getGranKeyPair();
   };
 }  // namespace kagome::crypto
 

@@ -225,9 +225,10 @@ MATCHER_P(eventsAreEqual, n, "") {
  * @then corresponing error is returned
  */
 TEST_F(AuthorApiTest, InsertKeyUnsupported) {
-  EXPECT_OUTCOME_ERROR(res,
-                       author_api->insertKey(encodeKeyTypeId("dumy"), {}, {}),
-                       CryptoStoreError::UNSUPPORTED_KEY_TYPE);
+  EXPECT_OUTCOME_ERROR(
+      res,
+      author_api->insertKey(decodeKeyTypeIdFromStr("dumy"), {}, {}),
+      CryptoStoreError::UNSUPPORTED_KEY_TYPE);
 }
 
 /**
