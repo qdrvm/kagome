@@ -21,5 +21,7 @@ add_library(transaction_payment_api transaction_payment_api.cpp)
 target_link_libraries(transaction_payment_api executor)
 add_library(offchain_worker_api offchain_worker_api.cpp)
 target_link_libraries(offchain_worker_api offchain_worker)
+add_library(session_keys_api session_keys_api.cpp)
+target_link_libraries(session_keys_api executor)
 
 
