@@ -145,6 +145,9 @@ namespace kagome::application {
         const override {
       return telemetry_endpoints_;
     }
+    SyncMethod syncMethod() const override {
+      return sync_method_;
+    }
     RuntimeExecutionMethod runtimeExecMethod() const override {
       return runtime_exec_method_;
     }
@@ -278,6 +281,7 @@ namespace kagome::application {
     std::string node_name_;
     std::string node_version_;
     uint32_t max_ws_connections_;
+    SyncMethod sync_method_;
     RuntimeExecutionMethod runtime_exec_method_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;

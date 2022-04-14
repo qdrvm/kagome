@@ -97,6 +97,8 @@ namespace kagome::application {
                 (),
                 (const, override));
 
+    MOCK_METHOD(AppConfiguration::SyncMethod, syncMethod, (), (const, override));
+
     MOCK_METHOD(AppConfiguration::RuntimeExecutionMethod,
                 runtimeExecMethod,
                 (),

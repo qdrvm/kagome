@@ -76,6 +76,18 @@ namespace {
     return name;
   }
 
+  std::optional<kagome::application::AppConfiguration::SyncMethod>
+  str_to_sync_method(std::string_view str) {
+    using SM = kagome::application::AppConfiguration::SyncMethod;
+    if (str == "Full") {
+      return SM::Full;
+    }
+    if (str == "Fast") {
+      return SM::Fast;
+    }
+    return std::nullopt;
+  }
+
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
     using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
@@ -615,6 +627,8 @@ namespace kagome::application {
     development_desc.add_options()
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
+        ("sync", po::value<std::string>()->default_value("Full"),
+          "choose the desired sync method (Full, Fast). Full is used by default.")
         ("wasm-execution", po::value<std::string>()->default_value("Interpreted"),
           "choose the desired wasm execution method (Compiled, Interpreted)")
         ;
@@ -961,6 +975,19 @@ namespace kagome::application {
         return false;  // just proxy erroneous case to the top level
       }
     }
+
+    std::optional<SyncMethod> sync_method_opt;
+    find_argument<std::string>(
+        vm, "sync", [this, &sync_method_opt](std::string const &val) {
+          sync_method_opt = str_to_sync_method(val);
+          if (not sync_method_opt) {
+            SL_ERROR(logger_, "Invalid sync method specified: '{}'", val);
+          }
+        });
+    if (not sync_method_opt) {
+      return false;
+    }
+    sync_method_ = sync_method_opt.value();
 
     std::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
     find_argument<std::string>(
