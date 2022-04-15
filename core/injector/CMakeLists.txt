@@ -32,6 +32,7 @@ target_link_libraries(application_injector
     binaryen_module_factory
     bip39_provider
     block_announce_protocol
+    block_appender
     block_builder_api
     block_executor
     block_header_repository

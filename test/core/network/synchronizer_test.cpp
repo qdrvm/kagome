@@ -9,8 +9,10 @@
 #include <mock/libp2p/basic/scheduler_mock.hpp>
 #include <stdexcept>
 
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/consensus/babe/block_appender_mock.hpp"
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
@@ -65,18 +67,23 @@ class SynchronizerTest
     EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
 
     synchronizer =
-        std::make_shared<network::SynchronizerImpl>(app_state_manager,
+        std::make_shared<network::SynchronizerImpl>(app_config,
+                                                    app_state_manager,
                                                     block_tree,
+                                                    block_appender,
                                                     block_executor,
                                                     router,
                                                     scheduler,
                                                     hasher);
   }
 
+  application::AppConfigurationMock app_config;
   std::shared_ptr<application::AppStateManagerMock> app_state_manager =
       std::make_shared<application::AppStateManagerMock>();
   std::shared_ptr<blockchain::BlockTreeMock> block_tree =
       std::make_shared<blockchain::BlockTreeMock>();
+  std::shared_ptr<BlockAppenderMock> block_appender =
+      std::make_shared<BlockAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
       std::make_shared<BlockExecutorMock>();
   std::shared_ptr<network::SyncProtocolMock> sync_protocol =

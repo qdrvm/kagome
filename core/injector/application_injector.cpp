@@ -60,6 +60,7 @@
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
+#include "consensus/babe/impl/block_appender_impl.hpp"
 #include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/babe/impl/consistency_keeper_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -1265,6 +1266,7 @@ namespace {
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
+        di::bind<consensus::BlockAppender>.template to<consensus::BlockAppenderImpl>(),
         di::bind<consensus::BlockExecutor>.to(
             [](auto const &injector) { return get_block_executor(injector); }),
         di::bind<consensus::grandpa::Grandpa>.to(
