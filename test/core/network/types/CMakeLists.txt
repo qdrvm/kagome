@@ -35,6 +35,17 @@ target_link_libraries(proto_block_request_test
     p2p::p2p_uvarint
     )
 
+addtest(proto_state_request_test
+    protobuf_state_request_test.cpp
+    )
+target_link_libraries(proto_state_request_test
+    node_api_proto
+    blob
+    buffer
+    adapter_errors
+    p2p::p2p_uvarint
+    )
+
 addtest(block_announce_test
     block_announce_test.cpp
     )

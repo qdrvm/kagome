@@ -16,6 +16,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, AdaptersError, e) {
       return "Got an error while parsing.";
     case E::UNEXPECTED_VARIANT:
       return "Unexpected variant type.";
+    case E::CAST_FAILED:
+      return "Got an error while casting.";
   }
   return "unknown error (invalid AdaptersError)";
 }
