@@ -7,9 +7,9 @@
 
 #include <random>
 
+#include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
-#include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
@@ -44,18 +44,35 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
 namespace {
   constexpr const char *kImportQueueLength =
       "kagome_import_queue_blocks_submitted";
-}
+
+  kagome::network::BlockAttributes attributesForSync(
+      kagome::application::AppConfiguration::SyncMethod method) {
+    using SM = kagome::application::AppConfiguration::SyncMethod;
+    switch (method) {
+      case SM::Full:
+        return kagome::network::BlocksRequest::kBasicAttributes;
+      case SM::Fast:
+        return kagome::network::BlockAttribute::HEADER;
+               // | kagome::network::BlockAttribute::JUSTIFICATION;
+    }
+    return kagome::network::BlocksRequest::kBasicAttributes;
+  }
+}  // namespace
 
 namespace kagome::network {
 
   SynchronizerImpl::SynchronizerImpl(
+      const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<consensus::BlockAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher)
-      : block_tree_(std::move(block_tree)),
+      : app_config_(app_config),
+        block_tree_(std::move(block_tree)),
+        block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
         router_(std::move(router)),
         scheduler_(std::move(scheduler)),
@@ -490,9 +507,7 @@ namespace kagome::network {
       return;
     }
 
-    network::BlocksRequest request{network::BlockAttribute::HEADER
-                                       | network::BlockAttribute::BODY
-                                       | network::BlockAttribute::JUSTIFICATION,
+    network::BlocksRequest request{attributesForSync(app_config_.syncMethod()),
                                    from.hash,
                                    std::nullopt,
                                    network::Direction::ASCENDING,
@@ -773,7 +788,12 @@ namespace kagome::network {
       } else {
         const BlockInfo block_info(block.header->number, block.hash);
 
-        auto applying_res = block_executor_->applyBlock(std::move(block));
+        auto applying_res =
+            app_config_.syncMethod()
+                    == application::AppConfiguration::SyncMethod::Full
+                ? block_executor_->applyBlock(std::move(block))
+                : block_appender_->appendBlock(std::move(block));
+
         notifySubscribers({number, hash}, applying_res);
 
         if (not applying_res.has_value()) {

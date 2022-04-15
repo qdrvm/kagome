@@ -14,9 +14,14 @@
 
 #include "application/app_state_manager.hpp"
 #include "consensus/babe/block_executor.hpp"
+#include "consensus/babe/block_appender.hpp"
 #include "metrics/metrics.hpp"
 #include "network/router.hpp"
 #include "telemetry/service.hpp"
+
+namespace kagome::application {
+  class AppConfiguration;
+}
 
 namespace kagome::network {
 
@@ -53,8 +58,10 @@ namespace kagome::network {
     };
 
     SynchronizerImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<consensus::BlockAppender> block_appender,
         std::shared_ptr<consensus::BlockExecutor> block_executor,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
@@ -125,7 +132,9 @@ namespace kagome::network {
     /// side-branch for provided finalized block {@param finalized_block}
     void prune(const primitives::BlockInfo &finalized_block);
 
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<consensus::BlockAppender> block_appender_;
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;

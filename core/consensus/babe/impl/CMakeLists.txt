@@ -30,6 +30,19 @@ target_link_libraries(babe_digests_util
     block_storage_error
     )
 
+add_library(block_appender
+    block_appender_impl.cpp
+    )
+target_link_libraries(block_appender
+    logger
+    primitives
+    scale::scale
+    block_tree_error
+    threshold_util
+    babe_digests_util
+    blockchain_common
+    )
+
 add_library(block_executor
     block_executor_impl.cpp
     )
