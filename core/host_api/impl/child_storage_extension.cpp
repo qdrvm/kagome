@@ -189,6 +189,7 @@ namespace kagome::host_api {
     auto child_batch = child_batch_outcome.value();
     auto cursor = child_batch->trieCursor();
     storage_provider_->clearChildBatches();
+
     auto seek_result = cursor->seekUpperBound(key_buffer);
     if (seek_result.has_error()) {
       logger_->error(

@@ -180,12 +180,17 @@ namespace kagome::storage::trie {
           SAFE_CALL(child,
                     visitChildWithMinIdx(branch, sought_nibbles[mismatch_pos]))
           if (child) {
+            uint8_t child_idx = std::get<SearchState>(state_).getPath().back().child_idx;
             SL_TRACE(
                 log_,
-                "We're in a branch and proceed to child {}",
-                (int)std::get<SearchState>(state_).getPath().back().child_idx);
-            return seekLowerBoundInternal(
-                *child, sought_nibbles.subspan(mismatch_pos + 1));
+                "We're in a branch and proceed to child {:x}",
+                (int)child_idx);
+            if (child_idx > sought_nibbles[mismatch_pos]) {
+              return nextNodeWithValueInSubTree(*child);
+            } else {
+              return seekLowerBoundInternal(
+                  *child, sought_nibbles.subspan(mismatch_pos + 1));
+            }
           }
           break;  // go to case3
         }
@@ -223,7 +228,7 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
     state_ = SearchState{*trie_->getRoot()};
-    auto nibbles = PolkadotCodec::keyToNibbles(key);
+    auto nibbles = KeyNibbles::fromByteBuffer(key);
     SAFE_VOID_CALL(seekLowerBoundInternal(*trie_->getRoot(), nibbles))
     return outcome::success();
   }
@@ -258,7 +263,7 @@ namespace kagome::storage::trie {
       }
       SAFE_CALL(child, visitChildWithMinIdx(*current))
       SL_TRACE(log_,
-               "Proceed to child {}",
+               "Proceed to child {:x}",
                (int)std::get<SearchState>(state_).getPath().back().child_idx);
       BOOST_ASSERT_MSG(child != nullptr, "Branch node must contain a leaf");
       current = child;
@@ -353,7 +358,7 @@ namespace kagome::storage::trie {
     }
     key_nibbles.put(search_state.getCurrent().key_nibbles);
     using Codec = kagome::storage::trie::PolkadotCodec;
-    return Codec::nibblesToKey(key_nibbles);
+    return key_nibbles.toByteBuffer();
   }
 
   std::optional<common::Buffer> PolkadotTrieCursorImpl::key() const {
@@ -393,13 +398,12 @@ namespace kagome::storage::trie {
       return outcome::success();
     };
     auto res = trie_->forNodeInPath(
-        trie_->getRoot(), codec_.keyToNibbles(key), add_visited_child);
+        trie_->getRoot(), KeyNibbles::fromByteBuffer(key), add_visited_child);
     if (res.has_error()) {
       if (res.error() == TrieError::NO_VALUE) {
         return Error::KEY_NOT_FOUND;
-      } else {
-        return res.error();
       }
+      return res.error();
     }
     return search_state;
   }

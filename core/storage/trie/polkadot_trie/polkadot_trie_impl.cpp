@@ -157,7 +157,7 @@ namespace {
   outcome::result<void> notifyOnDetached(
       PolkadotTrie::NodePtr &node,
       const PolkadotTrie::OnDetachCallback &callback) {
-    auto key = PolkadotCodec::nibblesToKey(node->key_nibbles);
+    auto key = node->key_nibbles.toByteBuffer();
     OUTCOME_TRY(callback(key, std::move(node->value)));
     return outcome::success();
   }
@@ -283,7 +283,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PolkadotTrieImpl::put(const BufferView &key,
                                               Buffer &&value) {
-    auto k_enc = PolkadotCodec::keyToNibbles(key);
+    auto k_enc = KeyNibbles::fromByteBuffer(key);
 
     NodePtr root = nodes_->getRoot();
 
@@ -303,7 +303,7 @@ namespace kagome::storage::trie {
       const OnDetachCallback &callback) {
     bool finished = true;
     uint32_t count = 0;
-    auto key_nibbles = PolkadotCodec::keyToNibbles(prefix);
+    auto key_nibbles = KeyNibbles::fromByteBuffer(prefix);
     auto root = nodes_->getRoot();
     OUTCOME_TRY(detachNode(
         root, key_nibbles, limit, finished, count, callback, *nodes_));
@@ -429,7 +429,7 @@ namespace kagome::storage::trie {
     if (not nodes_->getRoot()) {
       return std::nullopt;
     }
-    auto nibbles = PolkadotCodec::keyToNibbles(key);
+    auto nibbles = KeyNibbles::fromByteBuffer(key);
     OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
     if (node && node->value) {
       return node->value.value();
@@ -536,7 +536,7 @@ namespace kagome::storage::trie {
     }
 
     OUTCOME_TRY(node,
-                getNode(nodes_->getRoot(), PolkadotCodec::keyToNibbles(key)));
+                getNode(nodes_->getRoot(), KeyNibbles::fromByteBuffer(key)));
     return node != nullptr && node->value;
   }
 
@@ -546,7 +546,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PolkadotTrieImpl::remove(
       const common::BufferView &key) {
-    auto key_nibbles = PolkadotCodec::keyToNibbles(key);
+    auto key_nibbles = KeyNibbles::fromByteBuffer(key);
     // delete node will fetch nodes that it needs from the storage (the
     // nodes typically are a path in the trie) and work on them in memory
     auto root = nodes_->getRoot();

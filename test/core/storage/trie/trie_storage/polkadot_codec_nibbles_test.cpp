@@ -24,14 +24,14 @@ struct KeyToNibbles
 TEST_P(NibblesToKey, nibblesToKey) {
   auto codec = std::make_unique<PolkadotCodec>();
   auto [nibbles, key] = GetParam();
-  auto actualKey = codec->nibblesToKey(nibbles);
+  auto actualKey = nibbles.toByteBuffer();
   ASSERT_EQ(key, actualKey);
 }
 
 TEST_P(KeyToNibbles, keyToNibbles) {
   auto codec = std::make_unique<PolkadotCodec>();
   auto [nibbles, key] = GetParam();
-  auto actualNibbles = codec->keyToNibbles(key);
+  auto actualNibbles = KeyNibbles::fromByteBuffer(key);
   ASSERT_EQ(nibbles, actualNibbles);
 }
 
