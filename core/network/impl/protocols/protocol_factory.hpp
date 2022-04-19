@@ -11,6 +11,7 @@
 #include "network/impl/protocols/block_announce_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/state_protocol_impl.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/rating_repository.hpp"
@@ -70,6 +71,7 @@ namespace kagome::network {
     std::shared_ptr<PropagateTransactionsProtocol>
     makePropagateTransactionsProtocol() const;
 
+    std::shared_ptr<StateProtocol> makeStateProtocol() const;
     std::shared_ptr<SyncProtocol> makeSyncProtocol() const;
 
    private:

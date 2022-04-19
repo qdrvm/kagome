@@ -72,6 +72,10 @@ namespace kagome::network {
         ext_event_key_repo_);
   }
 
+  std::shared_ptr<StateProtocol> ProtocolFactory::makeStateProtocol() const {
+    return std::make_shared<StateProtocolImpl>(host_, chain_spec_);
+  }
+
   std::shared_ptr<SyncProtocol> ProtocolFactory::makeSyncProtocol() const {
     return std::make_shared<SyncProtocolImpl>(
         host_, chain_spec_, sync_observer_.lock(), peer_rating_repository_);

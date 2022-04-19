@@ -13,8 +13,8 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "consensus/babe/block_executor.hpp"
 #include "consensus/babe/block_appender.hpp"
+#include "consensus/babe/block_executor.hpp"
 #include "metrics/metrics.hpp"
 #include "network/router.hpp"
 #include "telemetry/service.hpp"

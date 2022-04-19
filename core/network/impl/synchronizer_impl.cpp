@@ -53,7 +53,6 @@ namespace {
         return kagome::network::BlocksRequest::kBasicAttributes;
       case SM::Fast:
         return kagome::network::BlockAttribute::HEADER;
-               // | kagome::network::BlockAttribute::JUSTIFICATION;
     }
     return kagome::network::BlocksRequest::kBasicAttributes;
   }
@@ -710,7 +709,27 @@ namespace kagome::network {
       }
 
       SL_TRACE(self->log_, "Block loading is finished");
-      if (handler) handler(last_loaded_block);
+      if (handler) {
+        if (self->app_config_.syncMethod()
+            == application::AppConfiguration::SyncMethod::Fast) {
+          network::StateRequest request{last_loaded_block.hash, {}, true};
+
+          auto protocol = self->router_->getStateProtocol();
+          BOOST_ASSERT_MSG(protocol, "Router did not provide state protocol");
+          protocol->request(
+              peer_id,
+              std::move(request),
+              [self](outcome::result<StateResponse> response_res) {
+                if (response_res.has_error()) {
+                  SL_WARN(self->log_,
+                          "State syncing failed with error: {}",
+                          response_res.error().message());
+                }
+              });
+        } else {
+          handler(last_loaded_block);
+        }
+      }
 
       if (some_blocks_added) {
         SL_TRACE(self->log_, "Enqueued some new blocks: schedule applying");
