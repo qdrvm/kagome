@@ -31,9 +31,9 @@ struct ProtobufStateRequestAdapterTest : public ::testing::Test {
 };
 
 /**
- * @given sample `BlocksRequest` instance
+ * @given sample `StateRequest` instance
  * @when protobuf serialized into buffer
- * @then deserialization `BlocksRequest` from this buffer will contain exactly
+ * @then deserialization `StateRequest` from this buffer will contain exactly
  * the same fields with the same values
  */
 TEST_F(ProtobufStateRequestAdapterTest, Serialization) {

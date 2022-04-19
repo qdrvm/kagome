@@ -53,6 +53,21 @@ namespace kagome::network {
                                    SyncResultHandler &&handler) override {
       return syncMissingJustifications(peer_id, target_block, limit, handler);
     }
+
+    MOCK_METHOD(void,
+                syncState,
+                (const libp2p::peer::PeerId &,
+                 const primitives::BlockInfo &,
+                 const common::Buffer &,
+                 const SyncResultHandler &),
+                ());
+
+    void syncState(const libp2p::peer::PeerId &peer_id,
+                   const primitives::BlockInfo &block_info,
+                   common::Buffer &&key,
+                   SyncResultHandler &&handler) override {
+      return syncState(peer_id, block_info, key, handler);
+    }
   };
 
 }  // namespace kagome::network

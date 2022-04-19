@@ -8,14 +8,15 @@
 
 #include "network/synchronizer.hpp"
 
+#include <atomic>
 #include <mutex>
 #include <queue>
 
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "consensus/babe/block_executor.hpp"
 #include "consensus/babe/block_appender.hpp"
+#include "consensus/babe/block_executor.hpp"
 #include "metrics/metrics.hpp"
 #include "network/router.hpp"
 #include "telemetry/service.hpp"
@@ -23,6 +24,11 @@
 namespace kagome::application {
   class AppConfiguration;
 }
+
+namespace kagome::storage::trie {
+  class TrieSerializer;
+  class TrieStorage;
+}  // namespace kagome::storage::trie
 
 namespace kagome::network {
 
@@ -64,6 +70,8 @@ namespace kagome::network {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<consensus::BlockAppender> block_appender,
         std::shared_ptr<consensus::BlockExecutor> block_executor,
+        std::shared_ptr<storage::trie::TrieSerializer> serializer,
+        std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher);
@@ -91,6 +99,11 @@ namespace kagome::network {
                                    primitives::BlockInfo target_block,
                                    std::optional<uint32_t> limit,
                                    SyncResultHandler &&handler) override;
+
+    void syncState(const libp2p::peer::PeerId &peer_id,
+                   const primitives::BlockInfo &block,
+                   common::Buffer &&key,
+                   SyncResultHandler &&handler) override;
 
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
@@ -160,9 +173,12 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockAppender> block_appender_;
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
+    std::shared_ptr<storage::trie::TrieSerializer> serializer_;
+    std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    application::AppConfiguration::SyncMethod sync_method_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
@@ -171,6 +187,7 @@ namespace kagome::network {
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
+    std::atomic_bool state_syncing_ = false;
     bool node_is_shutting_down_ = false;
 
     struct KnownBlock {

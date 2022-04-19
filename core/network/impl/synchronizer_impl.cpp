@@ -11,6 +11,8 @@
 #include "blockchain/block_tree_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
+#include "storage/trie/serialization/trie_serializer.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
   using E = kagome::network::SynchronizerImpl::Error;
@@ -67,23 +69,30 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<consensus::BlockAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
+      std::shared_ptr<storage::trie::TrieSerializer> serializer,
+      std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher)
-      : app_config_(app_config),
-        block_tree_(std::move(block_tree)),
+      : block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
+        serializer_(std::move(serializer)),
+        storage_(std::move(storage)),
         router_(std::move(router)),
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)) {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
+    BOOST_ASSERT(serializer_);
+    BOOST_ASSERT(storage_);
     BOOST_ASSERT(router_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
 
     BOOST_ASSERT(app_state_manager);
+
+    sync_method_ = app_config.syncMethod();
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -531,7 +540,7 @@ namespace kagome::network {
       return;
     }
 
-    network::BlocksRequest request{attributesForSync(app_config_.syncMethod()),
+    network::BlocksRequest request{attributesForSync(sync_method_),
                                    from.hash,
                                    std::nullopt,
                                    network::Direction::ASCENDING,
@@ -727,7 +736,9 @@ namespace kagome::network {
       }
 
       SL_TRACE(self->log_, "Block loading is finished");
-      if (handler) handler(last_loaded_block);
+      if(handler) {
+        handler(last_loaded_block);
+      }
 
       if (some_blocks_added) {
         SL_TRACE(self->log_, "Enqueued some new blocks: schedule applying");
@@ -860,6 +871,64 @@ namespace kagome::network {
     protocol->request(peer_id, std::move(request), std::move(response_handler));
   }
 
+  void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
+                                   const primitives::BlockInfo& block,
+                                   common::Buffer &&key,
+                                   SyncResultHandler &&handler) {
+    if (sync_method_ == application::AppConfiguration::SyncMethod::Fast && not state_syncing_.load()) {
+      state_syncing_.store(true);
+      network::StateRequest request{block.hash, {key}, true};
+
+      auto protocol = router_->getStateProtocol();
+      BOOST_ASSERT_MSG(protocol, "Router did not provide state protocol");
+
+      SL_TRACE(log_, "State syncing started.");
+
+      auto response_handler = [wp = weak_from_this(),
+                               block,
+                               peer_id,
+                               handler = std::move(handler)](
+                                  auto &&response_res) mutable {
+        auto self = wp.lock();
+        if (not self) {
+          return;
+        }
+
+        if (response_res.has_error()) {
+          SL_WARN(self->log_,
+                  "State syncing failed with error: {}",
+                  response_res.error().message());
+          if (handler) handler(response_res.as_failure());
+          return;
+        }
+
+        auto batch =
+            self->storage_
+                ->getPersistentBatchAt(self->serializer_->getEmptyRootHash())
+                .value();
+        for (const auto &entry : response_res.value().entries[0].entries) {
+          std::ignore = batch->put(entry.key, entry.value);
+        }
+        auto res = batch->commit();
+        SL_TRACE(self->log_,
+                 "State syncing finished. Root hash: {}",
+                 res.value().toHex());
+        self->sync_method_ = application::AppConfiguration::SyncMethod::Full;
+        if(handler) {
+          handler(block);
+          self->state_syncing_.store(false);
+        }
+      };
+
+      protocol->request(
+          peer_id, std::move(request), std::move(response_handler));
+    } else {
+      if (handler) {
+        handler(block);
+      }
+    }
+  }
+
   void SynchronizerImpl::applyNextBlock() {
     if (generations_.empty()) {
       SL_TRACE(log_, "No block for applying");
@@ -922,8 +991,7 @@ namespace kagome::network {
         const BlockInfo block_info(block.header->number, block.hash);
 
         auto applying_res =
-            app_config_.syncMethod()
-                    == application::AppConfiguration::SyncMethod::Full
+            sync_method_ == application::AppConfiguration::SyncMethod::Full
                 ? block_executor_->applyBlock(std::move(block))
                 : block_appender_->appendBlock(std::move(block));
 

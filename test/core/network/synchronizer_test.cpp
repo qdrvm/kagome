@@ -17,6 +17,8 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
+#include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
 #include "testutil/literals.hpp"
@@ -72,6 +74,8 @@ class SynchronizerTest
                                                     block_tree,
                                                     block_appender,
                                                     block_executor,
+                                                    serializer,
+                                                    storage,
                                                     router,
                                                     scheduler,
                                                     hasher);
@@ -86,6 +90,10 @@ class SynchronizerTest
       std::make_shared<BlockAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
       std::make_shared<BlockExecutorMock>();
+  std::shared_ptr<trie::TrieStorageMock> storage =
+      std::make_shared<trie::TrieStorageMock>();
+  std::shared_ptr<trie::TrieSerializerMock> serializer =
+      std::make_shared<trie::TrieSerializerMock>();
   std::shared_ptr<network::SyncProtocolMock> sync_protocol =
       std::make_shared<network::SyncProtocolMock>();
   std::shared_ptr<network::RouterMock> router =
