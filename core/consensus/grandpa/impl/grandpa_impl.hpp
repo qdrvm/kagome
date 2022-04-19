@@ -30,7 +30,7 @@ namespace kagome::consensus::grandpa {
 
   // clang-format off
   /*!
-   * Main entry point to grandpa consensus implementation in kagome:
+   * Main entry point to grandpa consensus implementation in KAGOME:
    * - starts grandpa consensus execution
    * - keeps track of current rounds
    *   - we should be able to receive votes for current and previous rounds
@@ -95,7 +95,7 @@ namespace kagome::consensus::grandpa {
     bool start();
 
     /**
-     * Does nothing. Needed only for AppStateManafer
+     * Does nothing. Needed only for AppStateManager
      * @see kagome::application::AppStateManager::takeControl()
      */
     void stop();

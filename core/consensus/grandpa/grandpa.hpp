@@ -11,8 +11,8 @@
 namespace kagome::consensus::grandpa {
 
   /**
-   * Interface for launching new grandpa rounds
-   *
+   * Interface for launching new grandpa rounds. See more details in
+   * kagome::consensus::grandpa::GrandpaImpl
    */
   class Grandpa {
    public:
