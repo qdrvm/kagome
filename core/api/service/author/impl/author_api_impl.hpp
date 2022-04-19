@@ -40,9 +40,6 @@ namespace kagome::network {
 namespace kagome::primitives {
   struct Extrinsic;
 }
-namespace kagome::runtime {
-  class TaggedTransactionQueue;
-}
 namespace kagome::transaction_pool {
   class TransactionPool;
 }
@@ -67,14 +64,11 @@ namespace kagome::api {
      * @param hasher hasher instance shared ptr
      * @param block_tree block tree instance shared ptr
      */
-    AuthorApiImpl(
-        sptr<runtime::TaggedTransactionQueue> api,
-        sptr<transaction_pool::TransactionPool> pool,
-        sptr<crypto::Hasher> hasher,
-        sptr<network::TransactionsTransmitter> transactions_transmitter,
-        sptr<crypto::CryptoStore> store,
-        sptr<crypto::SessionKeys> keys,
-        sptr<crypto::KeyFileStorage> key_store);
+    AuthorApiImpl(sptr<transaction_pool::TransactionPool> pool,
+                  sptr<crypto::CryptoStore> store,
+                  sptr<crypto::SessionKeys> keys,
+                  sptr<crypto::KeyFileStorage> key_store,
+                  sptr<blockchain::BlockTree> block_tree);
 
     ~AuthorApiImpl() override = default;
 
@@ -108,17 +102,10 @@ namespace kagome::api {
         SubscriptionId subscription_id) override;
 
    private:
-    outcome::result<primitives::Transaction> constructTransaction(
-        TransactionSource source, primitives::Extrinsic ext) const;
-
-    sptr<runtime::TaggedTransactionQueue> api_;
     sptr<transaction_pool::TransactionPool> pool_;
-    sptr<crypto::Hasher> hasher_;
-    sptr<network::TransactionsTransmitter> transactions_transmitter_;
     sptr<crypto::CryptoStore> store_;
     sptr<crypto::SessionKeys> keys_;
     sptr<crypto::KeyFileStorage> key_store_;
-    sptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<api::ApiService> api_service_;
 
     log::Logger logger_;

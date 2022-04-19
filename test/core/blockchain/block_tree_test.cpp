@@ -14,12 +14,12 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-#include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
@@ -36,6 +36,7 @@ using namespace clock;
 using namespace consensus;
 using namespace primitives;
 using namespace blockchain;
+using namespace transaction_pool;
 using namespace testutil;
 
 using namespace std::chrono_literals;
@@ -204,11 +205,11 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<BlockStorageMock> storage_ =
       std::make_shared<BlockStorageMock>();
 
-  std::shared_ptr<api::AuthorApiMock> author_api_ =
-      std::make_shared<api::AuthorApiMock>();
+  std::shared_ptr<transaction_pool::TransactionPoolMock> pool_ =
+      std::make_shared<transaction_pool::TransactionPoolMock>();
 
   std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_ =
-      std::make_shared<network::ExtrinsicObserverImpl>(author_api_);
+      std::make_shared<network::ExtrinsicObserverImpl>(pool_);
 
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
@@ -430,7 +431,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
       .WillRepeatedly(Return(primitives::Version{}));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
       .WillRepeatedly(Return(outcome::success(B1_body)));
-  EXPECT_CALL(*author_api_, submitExtrinsic(_, _))
+  EXPECT_CALL(*pool_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
 
@@ -498,7 +499,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
       .WillRepeatedly(Return(outcome::success(B1_body)));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{C1_hash}))
       .WillRepeatedly(Return(outcome::success(C1_body)));
-  EXPECT_CALL(*author_api_, submitExtrinsic(_, _))
+  EXPECT_CALL(*pool_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
 

@@ -1271,7 +1271,7 @@ namespace {
     }
 
     initialized = std::make_shared<network::ExtrinsicObserverImpl>(
-        injector.template create<sptr<api::AuthorApi>>());
+        injector.template create<sptr<transaction_pool::TransactionPool>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();

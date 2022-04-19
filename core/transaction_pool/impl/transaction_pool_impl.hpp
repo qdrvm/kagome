@@ -11,15 +11,29 @@
 #include "metrics/metrics.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
+#include "primitives/transaction_validity.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/pool_moderator.hpp"
 #include "transaction_pool/transaction_pool.hpp"
+
+namespace kagome::runtime {
+  class TaggedTransactionQueue;
+}
+namespace kagome::crypto {
+  class Hasher;
+}
+namespace kagome::network {
+  class TransactionsTransmitter;
+}
 
 namespace kagome::transaction_pool {
 
   class TransactionPoolImpl : public TransactionPool {
    public:
     TransactionPoolImpl(
+        std::shared_ptr<runtime::TaggedTransactionQueue> ttq,
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<network::TransactionsTransmitter> tx_transmitter,
         std::unique_ptr<PoolModerator> moderator,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
@@ -38,6 +52,10 @@ namespace kagome::transaction_pool {
     const std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>>
         &getPendingTransactions() const override;
 
+    outcome::result<Transaction::Hash> submitExtrinsic(
+        primitives::TransactionSource source,
+        primitives::Extrinsic extrinsic) override;
+
     outcome::result<void> submitOne(Transaction &&tx) override;
 
     outcome::result<Transaction> removeOne(
@@ -52,6 +70,10 @@ namespace kagome::transaction_pool {
     Status getStatus() const override;
 
    private:
+    outcome::result<primitives::Transaction> constructTransaction(
+        primitives::TransactionSource source,
+        primitives::Extrinsic extrinsic) const;
+
     outcome::result<void> submitOne(const std::shared_ptr<Transaction> &tx);
 
     outcome::result<void> processTransaction(
@@ -104,6 +126,10 @@ namespace kagome::transaction_pool {
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
         sub_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository> ext_key_repo_;
+
+    std::shared_ptr<runtime::TaggedTransactionQueue> ttq_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<network::TransactionsTransmitter> tx_transmitter_;
 
     /// bans stale and invalid transactions for some amount of time
     std::unique_ptr<PoolModerator> moderator_;
