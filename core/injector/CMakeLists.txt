@@ -111,7 +111,6 @@ target_link_libraries(application_injector
     grandpa_protocol
     grandpa_api
     grandpa
-    sync_protocol
     protocol_factory
     p2p::p2p_loopback_stream
     grandpa_transmitter
