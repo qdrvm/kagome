@@ -100,9 +100,8 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::remove(const BufferView &key) {
-    if (auto it = cache_.find(key); it != cache_.end()) {
-      it->second = std::nullopt;
-    }
+    cache_.insert_or_assign(Buffer{key}, std::nullopt);
+
     return outcome::success();
   }
 

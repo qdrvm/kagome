@@ -11,13 +11,13 @@
 #include "clock/impl/clock_impl.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
-#include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
@@ -126,6 +126,8 @@ namespace kagome::host_api {
           "ext_set_storage failed, due to fail in trie db with reason: {}",
           put_result.error().message());
     }
+    auto root = batch->calculateRoot().value();
+    SL_TRACE(logger_, "Root: {}", root.toHex());
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
@@ -140,12 +142,7 @@ namespace kagome::host_api {
     auto result = get(key_buffer);
 
     if (result) {
-      auto& opt_buf = result.value();
-      if (opt_buf.has_value()) {
-        SL_TRACE_FUNC_CALL(logger_, opt_buf.value().get().toHex(), key_buffer);
-      } else {
-        SL_TRACE_FUNC_CALL(logger_, std::string_view{"none"}, key_buffer);
-      }
+      SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
     } else {
       logger_->error(
           error_message, key_buffer.toHex(), result.error().message());
@@ -162,6 +159,10 @@ namespace kagome::host_api {
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key = memory.loadN(key_ptr, key_size);
+    if (key.toHex() == "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9a094f85c668358da445fc075a634d9d4402d3faf81bd73f954786c979879ab6350a53adf0e84499c01bf98d63c429453") {
+      SL_INFO(logger_, "FLAAAAG");
+    }
+    SL_TRACE(logger_, "batch: {}, persistent batch: {}", fmt::ptr(batch.get()), fmt::ptr(dynamic_cast<storage::trie::TopperTrieBatchImpl*>(batch.get())));
     auto del_result = batch->remove(key);
     SL_TRACE_FUNC_CALL(logger_, del_result.has_value(), key);
     if (not del_result) {
@@ -171,6 +172,8 @@ namespace kagome::host_api {
           key_data,
           del_result.error().message());
     }
+    auto root = batch->calculateRoot().value();
+    SL_TRACE(logger_, "Root: {}", root.toHex());
   }
 
   runtime::WasmSize StorageExtension::ext_storage_exists_version_1(
@@ -212,7 +215,7 @@ namespace kagome::host_api {
     if (limit_opt) {
       SL_TRACE_VOID_FUNC_CALL(logger_, prefix, limit_opt.value());
     } else {
-      SL_TRACE_VOID_FUNC_CALL(logger_, prefix, std::string_view{"none"});
+      SL_TRACE_VOID_FUNC_CALL(logger_, prefix, std::string_view {"none"});
     }
     return clearPrefix(prefix, limit_opt);
   }
@@ -222,6 +225,8 @@ namespace kagome::host_api {
     removeEmptyChildStorages();
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
         opt_batch.has_value() and opt_batch.value() != nullptr) {
+      auto root = opt_batch.value()->calculateRoot().value();
+      SL_TRACE(logger_, "Root: {}", root.toHex());
       res = opt_batch.value()->commit();
     } else {
       logger_->warn("ext_storage_root called in an ephemeral extension");
@@ -310,6 +315,8 @@ namespace kagome::host_api {
             "with reason: {}",
             put_result.error().message());
       }
+      auto root = batch->calculateRoot().value();
+      SL_TRACE(logger_, "Root: {}", root.toHex());
       return;
     }
   }
@@ -486,6 +493,8 @@ namespace kagome::host_api {
       logger_->error(msg);
       throw std::runtime_error(msg);
     }
+    auto root = batch->calculateRoot().value();
+    SL_TRACE(logger_, "Root: {}", root.toHex());
     return memory.storeBuffer(enc_res.value());
   }
 

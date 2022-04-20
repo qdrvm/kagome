@@ -108,13 +108,16 @@ namespace kagome::runtime {
                 current_batch_)) {
       // won't actually write any data to the storage but will calculate the
       // root hash for the state represented by the batch
-      return ephemeral->hash();
+      OUTCOME_TRY(root, ephemeral->hash());
+      SL_TRACE(logger_, "Force commit ephemeral batch, root: {}", root);
+      return root;
     }
     return Error::NO_BATCH;
   }
 
   outcome::result<void> TrieStorageProviderImpl::startTransaction() {
     stack_of_batches_.emplace(current_batch_);
+    SL_TRACE(logger_, "Start storage transaction, depth {}", stack_of_batches_.size());
     current_batch_ =
         std::make_shared<TopperTrieBatchImpl>(std::move(current_batch_));
     return outcome::success();
@@ -126,6 +129,7 @@ namespace kagome::runtime {
     }
 
     current_batch_ = std::move(stack_of_batches_.top());
+    SL_TRACE(logger_, "Rollback storage transaction, depth {}", stack_of_batches_.size());
     stack_of_batches_.pop();
     return outcome::success();
   }
@@ -141,6 +145,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(commitee_batch->writeBack());
 
     current_batch_ = std::move(stack_of_batches_.top());
+    SL_TRACE(logger_, "Commit storage transaction, depth {}", stack_of_batches_.size());
     stack_of_batches_.pop();
     return outcome::success();
   }

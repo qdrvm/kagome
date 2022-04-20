@@ -36,6 +36,11 @@ namespace kagome::storage::trie {
     outcome::result<bool> contains(const BufferView &key) const override;
     bool empty() const override;
 
+    outcome::result<RootHash> calculateRoot() const override {
+      OUTCOME_TRY(const_cast<TopperTrieBatchImpl*>(this)->writeBack());
+      return parent_.lock()->calculateRoot();
+    }
+
     outcome::result<void> put(const BufferView &key,
                               const Buffer &value) override;
     outcome::result<void> put(const BufferView &key, Buffer &&value) override;
