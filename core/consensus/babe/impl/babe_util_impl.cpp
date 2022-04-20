@@ -17,11 +17,9 @@ namespace kagome::consensus {
   }
 
   void BabeUtilImpl::syncEpoch(EpochDescriptor epoch_descriptor) {
-    if (not first_block_slot_number_.has_value()) {
-      first_block_slot_number_.emplace(
-          epoch_descriptor.start_slot
-          - epoch_descriptor.epoch_number * babe_configuration_->epoch_length);
-    }
+    first_block_slot_number_.emplace(
+        epoch_descriptor.start_slot
+        - epoch_descriptor.epoch_number * babe_configuration_->epoch_length);
   }
 
   BabeSlotNumber BabeUtilImpl::getCurrentSlot() const {

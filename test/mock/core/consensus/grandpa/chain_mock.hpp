@@ -31,7 +31,7 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(outcome::result<BlockInfo>,
                 bestChainContaining,
-                (const BlockHash &base),
+                (const BlockHash &, std::optional<MembershipCounter> set_id),
                 (const, override));
   };
 

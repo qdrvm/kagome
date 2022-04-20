@@ -101,6 +101,8 @@ namespace kagome::consensus::babe {
    private:
     outcome::result<EpochDescriptor> getInitialEpochDescriptor();
 
+    void adjustEpochDescriptor();
+
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
 

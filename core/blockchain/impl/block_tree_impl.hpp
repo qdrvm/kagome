@@ -88,7 +88,7 @@ namespace kagome::blockchain {
 
     outcome::result<void> addBlock(const primitives::Block &block) override;
 
-    outcome::result<void> removeBlock(
+    outcome::result<void> removeLeaf(
         const primitives::BlockHash &block_hash) override;
 
     outcome::result<void> addExistingBlock(
@@ -111,9 +111,11 @@ namespace kagome::blockchain {
                                      const primitives::BlockHash &bottom_block,
                                      uint32_t max_count) const override;
 
-    BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
-                                    GetChainDirection ascending,
-                                    uint64_t maximum) const override;
+    BlockHashVecRes getBestChainFromBlock(const primitives::BlockHash &block,
+                                          uint64_t maximum) const override;
+
+    BlockHashVecRes getDescendingChainToBlock(
+        const primitives::BlockHash &block, uint64_t maximum) const override;
 
     BlockHashVecRes getChainByBlocks(
         const primitives::BlockHash &top_block,

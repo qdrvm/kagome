@@ -223,7 +223,7 @@ namespace kagome::api {
 
     jStruct data;
     data["block"] = std::move(block);
-    data["justification"] = makeValue(val.justification);
+    data["justifications"] = makeValue(val.justification);
     return data;
   }
 

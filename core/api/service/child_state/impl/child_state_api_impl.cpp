@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "common/hexutil.hpp"
+#include "common/monadic_utils.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::api {
@@ -125,8 +126,7 @@ namespace kagome::api {
     return result;
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  ChildStateApiImpl::getStorage(
+  outcome::result<std::optional<common::Buffer>> ChildStateApiImpl::getStorage(
       const common::Buffer &child_storage_key,
       const common::Buffer &key,
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
@@ -139,7 +139,9 @@ namespace kagome::api {
                 common::Hash256::fromSpan(gsl::make_span(child_root.get())));
     OUTCOME_TRY(child_storage_trie_reader,
                 storage_->getEphemeralBatchAt(child_root_hash));
-    return child_storage_trie_reader->tryGet(key);
+    auto res = child_storage_trie_reader->tryGet(key);
+    return common::map_result_optional(res,
+                                       [](const auto &r) { return r.get(); });
   }
 
   outcome::result<std::optional<primitives::BlockHash>>
@@ -151,9 +153,9 @@ namespace kagome::api {
     std::optional<primitives::BlockHash> hash_opt;
     if (value_opt.has_value()) {
       storage::trie::PolkadotCodec codec;
-      auto hash = codec.hash256(
-          common::Buffer(gsl::make_span(value_opt.value().get())));
-      return std::move(hash);
+      auto hash =
+          codec.hash256(common::Buffer(gsl::make_span(value_opt.value())));
+      return hash;
     }
     return std::nullopt;
   }
