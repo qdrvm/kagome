@@ -93,6 +93,11 @@ namespace kagome::network {
                            const libp2p::peer::PeerId &peer_id,
                            SyncResultHandler &&handler) override;
 
+    void syncState(const libp2p::peer::PeerId &peer_id,
+                   const primitives::BlockInfo &block,
+                   common::Buffer &&key,
+                   SyncResultHandler &&handler) override;
+
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
     /// the needed block
@@ -114,11 +119,6 @@ namespace kagome::network {
     void loadBlocks(const libp2p::peer::PeerId &peer_id,
                     primitives::BlockInfo from,
                     SyncResultHandler &&handler);
-
-    void syncState(const libp2p::peer::PeerId &peer_id,
-                   primitives::BlockInfo block,
-                   common::Buffer &&key,
-                   SyncResultHandler &&handler);
 
    private:
     /// Subscribes handler for block with provided {@param block_info}

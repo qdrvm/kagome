@@ -313,7 +313,7 @@ namespace kagome::consensus::babe {
     synchronizer_->syncByBlockHeader(
         announce.header,
         peer_id,
-        [wp = weak_from_this(), announce = announce](
+        [wp = weak_from_this(), announce = announce, peer_id](
             outcome::result<primitives::BlockInfo> block_res) mutable {
           if (auto self = wp.lock()) {
             if (block_res.has_error()) {
@@ -322,10 +322,20 @@ namespace kagome::consensus::babe {
 
             if (self->current_state_ == Babe::State::CATCHING_UP) {
               const auto &block = block_res.value();
-              SL_INFO(self->log_, "Catching up is finished on block {}", block);
-              self->current_state_ = Babe::State::SYNCHRONIZED;
-              self->was_synchronized_ = true;
-              self->telemetry_->notifyWasSynchronized();
+              self->synchronizer_->syncState(
+                  peer_id,
+                  block,
+                  common::Buffer(),
+                  [self](outcome::result<primitives::BlockInfo>
+                             block_res) mutable {
+                    const auto &block = block_res.value();
+                    SL_INFO(self->log_,
+                            "Catching up is finished on block {}",
+                            block);
+                    self->current_state_ = Babe::State::SYNCHRONIZED;
+                    self->was_synchronized_ = true;
+                    self->telemetry_->notifyWasSynchronized();
+                  });
             }
             self->onSynchronized();
 

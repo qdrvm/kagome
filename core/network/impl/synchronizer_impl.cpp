@@ -718,8 +718,9 @@ namespace kagome::network {
       }
 
       SL_TRACE(self->log_, "Block loading is finished");
-      self->syncState(
-          peer_id, last_loaded_block, common::Buffer(), std::move(handler));
+      if(handler) {
+        handler(last_loaded_block);
+      }
 
       if (some_blocks_added) {
         SL_TRACE(self->log_, "Enqueued some new blocks: schedule applying");
@@ -737,7 +738,7 @@ namespace kagome::network {
   }
 
   void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
-                                   primitives::BlockInfo block,
+                                   const primitives::BlockInfo& block,
                                    common::Buffer &&key,
                                    SyncResultHandler &&handler) {
     if (sync_method_ == application::AppConfiguration::SyncMethod::Fast && not state_syncing_.load()) {

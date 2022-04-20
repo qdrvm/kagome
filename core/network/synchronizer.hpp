@@ -40,6 +40,11 @@ namespace kagome::network {
     virtual bool syncByBlockHeader(const primitives::BlockHeader &header,
                                    const libp2p::peer::PeerId &peer_id,
                                    SyncResultHandler &&handler) = 0;
+
+    virtual void syncState(const libp2p::peer::PeerId &peer_id,
+                           const primitives::BlockInfo &block,
+                           common::Buffer &&key,
+                           SyncResultHandler &&handler) = 0;
   };
 
 }  // namespace kagome::network
