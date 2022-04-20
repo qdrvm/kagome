@@ -7,6 +7,7 @@
 #define KAGOME_TEST_CORE_RUNTIME_MOCK_HOST_API_HPP_
 
 #include "host_api/host_api.hpp"
+#include "runtime/types.hpp"
 
 #include <gmock/gmock.h>
 

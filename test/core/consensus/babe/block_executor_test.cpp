@@ -136,8 +136,6 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       .header = header,
       .body = kagome::primitives::BlockBody{},
       .justification = justification};
-  EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"parent_hash"_hash256}))
-      .WillOnce(testing::Return(kagome::primitives::BlockBody{}));
   EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"some_hash"_hash256}))
       .WillOnce(
           testing::Return(kagome::blockchain::BlockTreeError::BODY_NOT_FOUND));
@@ -159,7 +157,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
                      "randomness"_hash256))
       .WillOnce(testing::Return(outcome::success()));
   EXPECT_CALL(*block_tree_, getBlockHeader(BlockId{"parent_hash"_hash256}))
-      .WillOnce(testing::Return(kagome::primitives::BlockHeader{
+      .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
           .parent_hash = "grandparent_hash"_hash256, .number = 40}));
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillOnce(testing::Return(BlockInfo{40, "grandparent_hash"_hash256}))

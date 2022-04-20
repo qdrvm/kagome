@@ -39,6 +39,22 @@ namespace kagome::network {
       if (!msg.ParseFromArray(from.base(), remains))
         return AdaptersError::PARSE_FAILED;
 
+      for (const auto &kvEntry : msg.entries()) {
+        KeyValueStateEntry kv;
+        auto root = kvEntry.state_root();
+        if(!root.empty()) {
+          kv.state_root = storage::trie::RootHash::fromString(root).value();
+        }
+        for (const auto &sEntry : kvEntry.entries()) {
+          kv.entries.emplace_back(StateEntry{common::Buffer().put(sEntry.key()),
+                                   common::Buffer().put(sEntry.value())});
+        }
+        kv.complete = kvEntry.complete();
+
+        out.entries.emplace_back(std::move(kv));
+      }
+      out.proof = common::Buffer().put(msg.proof());
+
       std::advance(from, msg.ByteSizeLong());
       return from;
     }
