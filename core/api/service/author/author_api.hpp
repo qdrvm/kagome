@@ -60,6 +60,13 @@ namespace kagome::api {
         const gsl::span<const uint8_t> &public_key) = 0;
 
     /**
+     * @brief Generate new session keys and
+     * returns the corresponding public keys
+     * @return The SCALE encoded, concatenated keys
+     */
+    virtual outcome::result<common::Buffer> rotateKeys() = 0;
+
+    /**
      * @brief checks if the keystore has private keys for the given session
      * public keys
      * @param keys SCALE encoded concatenated keys

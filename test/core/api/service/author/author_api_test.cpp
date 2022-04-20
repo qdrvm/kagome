@@ -21,7 +21,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/crypto_store_mock.hpp"
 #include "mock/core/network/transactions_transmitter_mock.hpp"
-#include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
+#include "mock/core/runtime/session_keys_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "primitives/extrinsic.hpp"
@@ -103,6 +103,7 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<SessionKeys> keys;
   sptr<KeyFileStorage> key_store;
   Sr25519Keypair key_pair;
+  sptr<SessionKeysApi> key_api;
   sptr<TransactionPoolMock> transaction_pool;
   sptr<ApiServiceMock> api_service_mock;
   sptr<AuthorApiImpl> author_api;
@@ -142,11 +143,12 @@ struct AuthorApiTest : public ::testing::Test {
         gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1)));
     role.flags.authority = 1;
     keys = std::make_shared<SessionKeys>(store, role);
+    key_api = std::make_shared<SessionKeysApiMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     block_tree = std::make_shared<BlockTreeMock>();
     api_service_mock = std::make_shared<ApiServiceMock>();
     author_api = std::make_shared<AuthorApiImpl>(
-        transaction_pool, store, keys, key_store, block_tree);
+        key_api, transaction_pool, store, keys, key_store, block_tree);
     author_api->setApiService(api_service_mock);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});

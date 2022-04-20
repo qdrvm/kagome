@@ -16,7 +16,7 @@ namespace kagome::runtime {
    public:
     explicit SessionKeysApiImpl(std::shared_ptr<Executor> executor);
 
-    outcome::result<std::vector<common::Buffer>> generate_session_keys(
+    outcome::result<common::Buffer> generate_session_keys(
         const primitives::BlockHash &block_hash,
         std::optional<common::Buffer> seed) override;
 

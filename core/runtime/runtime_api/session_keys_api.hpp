@@ -27,7 +27,7 @@ namespace kagome::runtime {
      * @param seed - optional seed, which needs to be a valid `utf8` string.
      * @return the concatenated SCALE encoded public keys.
      */
-    virtual outcome::result<std::vector<common::Buffer>> generate_session_keys(
+    virtual outcome::result<common::Buffer> generate_session_keys(
         const primitives::BlockHash &block_hash,
         std::optional<common::Buffer> seed) = 0;
 

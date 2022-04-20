@@ -11,8 +11,9 @@
 #include <gmock/gmock.h>
 
 namespace kagome::runtime {
+
   struct SessionKeysApiMock : public SessionKeysApi {
-    MOCK_METHOD(outcome::result<std::vector<common::Buffer>>,
+    MOCK_METHOD(outcome::result<common::Buffer>,
                 generate_session_keys,
                 (const primitives::BlockHash &, std::optional<common::Buffer>),
                 (override));
@@ -24,6 +25,7 @@ namespace kagome::runtime {
                 (const primitives::BlockHash &, common::BufferConstRef),
                 (const, override));
   };
+
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_RUNTIME_SESSIONKEYSAPIMOCK

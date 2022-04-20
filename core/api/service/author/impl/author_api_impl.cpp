@@ -19,26 +19,31 @@
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
 #include "primitives/transaction.hpp"
-#include "runtime/runtime_api/tagged_transaction_queue.hpp"
+#include "runtime/runtime_api/session_keys_api.hpp"
 #include "scale/scale_decoder_stream.hpp"
 #include "subscription/subscriber.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
-  AuthorApiImpl::AuthorApiImpl(sptr<transaction_pool::TransactionPool> pool,
+  AuthorApiImpl::AuthorApiImpl(sptr<runtime::SessionKeysApi> key_api,
+                               sptr<transaction_pool::TransactionPool> pool,
                                sptr<crypto::CryptoStore> store,
                                sptr<crypto::SessionKeys> keys,
                                sptr<crypto::KeyFileStorage> key_store,
                                sptr<blockchain::BlockTree> block_tree)
-      : pool_{std::move(pool)},
+      : keys_api_(std::move(key_api)),
+        pool_{std::move(pool)},
         store_{std::move(store)},
         keys_{std::move(keys)},
         key_store_{std::move(key_store)},
+        block_tree_{std::move(block_tree)},
         logger_{log::createLogger("AuthorApi", "author_api")} {
+    BOOST_ASSERT_MSG(keys_api_ != nullptr, "session keys api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
     BOOST_ASSERT_MSG(store_ != nullptr, "crypto store is nullptr");
     BOOST_ASSERT_MSG(keys_ != nullptr, "session keys store is nullptr");
     BOOST_ASSERT_MSG(key_store_ != nullptr, "key store is nullptr");
+    BOOST_ASSERT_MSG(block_tree_ != nullptr, "block tree is nullptr");
     BOOST_ASSERT_MSG(logger_ != nullptr, "logger is nullptr");
   }
 
@@ -76,6 +81,13 @@ namespace kagome::api {
     keys_->getBabeKeyPair();
     keys_->getGranKeyPair();
     return res;
+  }
+
+  outcome::result<common::Buffer> AuthorApiImpl::rotateKeys() {
+    OUTCOME_TRY(encoded_session_keys,
+                keys_api_->generate_session_keys(
+                    block_tree_->deepestLeaf().hash, std::nullopt));
+    return std::move(encoded_session_keys);
   }
 
   // logic here is polkadot specific only!
