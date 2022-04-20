@@ -143,7 +143,7 @@ namespace {
     }
     SL_TRACE(logger,
              "deleteNode: currently in {}, sought key is {}",
-             node->key_nibbles,
+             node->key_nibbles.toHex(),
              sought_key);
 
     if (node->isBranch()) {
@@ -568,7 +568,7 @@ namespace kagome::storage::trie {
     // delete node will fetch nodes that it needs from the storage (the
     // nodes typically are a path in the trie) and work on them in memory
     auto root = nodes_->getRoot();
-    SL_TRACE(logger_, "Remove by key {:l} (nibbles {:l})", key, key_nibbles);
+    SL_TRACE(logger_, "Remove by key {:l} (nibbles {})", key, key_nibbles.toHex());
     OUTCOME_TRY(deleteNode(logger_, root, key_nibbles, *nodes_));
     nodes_->setRoot(root);
     return outcome::success();

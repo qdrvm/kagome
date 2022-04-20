@@ -357,7 +357,6 @@ namespace kagome::storage::trie {
       key_nibbles.putUint8(idx);
     }
     key_nibbles.put(search_state.getCurrent().key_nibbles);
-    using Codec = kagome::storage::trie::PolkadotCodec;
     return key_nibbles.toByteBuffer();
   }
 
