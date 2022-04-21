@@ -71,10 +71,4 @@ namespace kagome::storage::trie {
     return empty_hash;
   }
 
-  outcome::result<RootHash> EphemeralTrieBatchImpl::calculateRoot() const {
-    OUTCOME_TRY(enc, codec_->encodeNode(*trie_->getRoot()));
-    auto root = codec_->hash256(enc);
-    return root;
-  }
-
 }  // namespace kagome::storage::trie

@@ -126,8 +126,6 @@ namespace kagome::host_api {
           "ext_set_storage failed, due to fail in trie db with reason: {}",
           put_result.error().message());
     }
-    auto root = batch->calculateRoot().value();
-    SL_TRACE(logger_, "Root: {}", root.toHex());
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
@@ -219,8 +217,6 @@ namespace kagome::host_api {
     removeEmptyChildStorages();
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
         opt_batch.has_value() and opt_batch.value() != nullptr) {
-      auto root = opt_batch.value()->calculateRoot().value();
-      SL_TRACE(logger_, "Root: {}", root.toHex());
       res = opt_batch.value()->commit();
     } else {
       logger_->warn("ext_storage_root called in an ephemeral extension");
@@ -309,8 +305,6 @@ namespace kagome::host_api {
             "with reason: {}",
             put_result.error().message());
       }
-      auto root = batch->calculateRoot().value();
-      SL_TRACE(logger_, "Root: {}", root.toHex());
       return;
     }
   }
@@ -326,6 +320,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_commit_transaction_version_1() {
     auto res = storage_provider_->commitTransaction();
+    SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction rollback has failed: {}",
                      res.error().message());
@@ -335,6 +330,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_rollback_transaction_version_1() {
     auto res = storage_provider_->rollbackTransaction();
+    SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction commit has failed: {}",
                      res.error().message());
@@ -487,8 +483,6 @@ namespace kagome::host_api {
       logger_->error(msg);
       throw std::runtime_error(msg);
     }
-    auto root = batch->calculateRoot().value();
-    SL_TRACE(logger_, "Root: {}", root.toHex());
     return memory.storeBuffer(enc_res.value());
   }
 

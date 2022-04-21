@@ -33,8 +33,6 @@ namespace kagome::storage::trie {
     outcome::result<RootHash> commit() override;
     std::unique_ptr<TopperTrieBatch> batchOnTop() override;
 
-    outcome::result<RootHash> calculateRoot() const override;
-
     outcome::result<BufferConstRef> get(const BufferView &key) const override;
     outcome::result<std::optional<BufferConstRef>> tryGet(
         const BufferView &key) const override;

@@ -27,8 +27,6 @@ namespace kagome::storage::trie {
 
     virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() = 0;
 
-    virtual outcome::result<RootHash> calculateRoot() const = 0;
-
     /**
      * Remove all trie entries which key begins with the supplied prefix
      */

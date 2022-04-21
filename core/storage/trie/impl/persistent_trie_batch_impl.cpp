@@ -73,12 +73,6 @@ namespace kagome::storage::trie {
     return std::move(root);
   }
 
-  outcome::result<RootHash> PersistentTrieBatchImpl::calculateRoot() const {
-    OUTCOME_TRY(enc, codec_->encodeNode(*trie_->getRoot()));
-    auto root = codec_->hash256(enc);
-    return root;
-  }
-
   std::unique_ptr<TopperTrieBatch> PersistentTrieBatchImpl::batchOnTop() {
     return std::make_unique<TopperTrieBatchImpl>(shared_from_this());
   }

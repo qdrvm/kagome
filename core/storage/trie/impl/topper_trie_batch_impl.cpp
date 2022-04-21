@@ -112,7 +112,7 @@ namespace kagome::storage::trie {
          ++it)
       it->second = std::nullopt;
 
-    cleared_prefixes_.push_back(Buffer{prefix});
+    cleared_prefixes_.emplace_back(prefix);
     if (parent_.lock() != nullptr) {
       return outcome::success(std::make_tuple(true, 0ULL));
     }
