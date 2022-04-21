@@ -311,7 +311,11 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
 
-    SL_TRACE(log_, "Searching next key, current is {}", key().value());
+    if (key().has_value()) {
+      SL_TRACE(log_, "Searching next key, current is {}", key().value());
+    } else {
+      SL_TRACE(log_, "Searching next key, no current key");
+    }
 
     if (std::holds_alternative<UninitializedState>(state_)) {
       state_ = SearchState{*trie_->getRoot()};
@@ -339,8 +343,9 @@ namespace kagome::storage::trie {
     if (not found) {
       SL_TRACE(log_, "Not found anything");
       state_ = ReachedEndState{};
+    } else {
+      SL_TRACE(log_, "Found {}", key().value());
     }
-    SL_TRACE(log_, "Found {}", key().value());
     return outcome::success();
   }
 
