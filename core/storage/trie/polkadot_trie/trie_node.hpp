@@ -104,16 +104,16 @@ namespace kagome::storage::trie {
     int getType() const override;
   };
 
-  struct BranchСontainingHashesNode : public TrieNode {
+  struct BranchContainingHashesNode : public TrieNode {
     static constexpr uint8_t kMaxChildren = 16;
 
-    BranchСontainingHashesNode() = default;
-    explicit BranchСontainingHashesNode(
+    BranchContainingHashesNode() = default;
+    explicit BranchContainingHashesNode(
         KeyNibbles key_nibbles,
         std::optional<common::Buffer> value = std::nullopt)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
-    ~BranchСontainingHashesNode() override = default;
+    ~BranchContainingHashesNode() override = default;
 
     int getType() const override;
 
@@ -126,13 +126,13 @@ namespace kagome::storage::trie {
     std::array<std::shared_ptr<OpaqueTrieNode>, kMaxChildren> children;
   };
 
-  struct LeafСontainingHashesNode : public TrieNode {
-    LeafСontainingHashesNode() = default;
-    LeafСontainingHashesNode(KeyNibbles key_nibbles,
+  struct LeafContainingHashesNode : public TrieNode {
+    LeafContainingHashesNode() = default;
+    LeafContainingHashesNode(KeyNibbles key_nibbles,
                              std::optional<common::Buffer> value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
-    ~LeafСontainingHashesNode() override = default;
+    ~LeafContainingHashesNode() override = default;
 
     int getType() const override;
   };
