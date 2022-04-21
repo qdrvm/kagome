@@ -21,9 +21,11 @@ namespace kagome::consensus {
     virtual ~BabeUtil() = default;
 
     /**
-     * Init inner state by {@param epoch_descriptor}
+     * Init inner state by call {@param f} returning first block slot and flag
+     * if first block is already finalized
      */
-    virtual void syncEpoch(EpochDescriptor epoch_descriptor) = 0;
+    virtual BabeSlotNumber syncEpoch(
+        std::function<std::tuple<BabeSlotNumber, bool>()> &&f) = 0;
 
     /**
      * @returns current unix time slot number
