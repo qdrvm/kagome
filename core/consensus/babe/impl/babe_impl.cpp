@@ -253,8 +253,6 @@ namespace kagome::consensus::babe {
     current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
 
-    babe_util_->syncEpoch(current_epoch_);
-
     runSlot();
   }
 
