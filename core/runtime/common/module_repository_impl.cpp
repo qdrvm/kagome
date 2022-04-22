@@ -17,13 +17,16 @@ namespace kagome::runtime {
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
-      std::shared_ptr<const ModuleFactory> module_factory)
+      std::shared_ptr<const ModuleFactory> module_factory,
+      std::shared_ptr<SingleModuleCache> last_compiled_module)
       : modules_{MODULES_CACHE_SIZE},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
         module_factory_{std::move(module_factory)},
+        last_compiled_module_{std::move(last_compiled_module)},
         logger_{log::createLogger("Module Repository", "runtime")} {
     BOOST_ASSERT(runtime_upgrade_tracker_);
     BOOST_ASSERT(module_factory_);
+    BOOST_ASSERT(last_compiled_module_);
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
@@ -70,14 +73,18 @@ namespace kagome::runtime {
     // either found existed or emplaced a new one
     BOOST_ASSERT(thread_local_cache != instances_cache_.end());
 
+    if (auto module = last_compiled_module_->try_extract();
+        module.has_value()) {
+      BOOST_VERIFY(modules_.put(state, module.value()));
+    }
+
     KAGOME_PROFILE_START(module_retrieval)
     std::shared_ptr<Module> module;
     {
       std::lock_guard guard{modules_mutex_};
       if (auto opt_module = modules_.get(state); !opt_module.has_value()) {
-        SL_DEBUG(logger_,
-                 "Runtime module cache miss for state {}",
-                 state.toHex());
+        SL_DEBUG(
+            logger_, "Runtime module cache miss for state {}", state.toHex());
         auto code = code_provider->getCodeAt(state);
         if (not code.has_value()) {
           code = code_provider->getCodeAt(header.state_root);
@@ -101,7 +108,10 @@ namespace kagome::runtime {
       OUTCOME_TRY(instance, module->instantiate());
       shared_instance = std::move(instance);
     }
-    SL_DEBUG(logger_, "Instantiated a new runtime instance for state {}, thread", state.toHex(), tid);
+    SL_DEBUG(logger_,
+             "Instantiated a new runtime instance for state {}, thread",
+             state.toHex(),
+             tid);
     // thread_local_cache is an iterator into instances_cache_
     BOOST_VERIFY(thread_local_cache->second.put(state, shared_instance));
 

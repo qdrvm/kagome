@@ -188,7 +188,9 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
   EXPECT_CALL(*transaction_pool, submitOne(tr))
       .WillOnce(Return(outcome::success()));
   EXPECT_CALL(*transactions_transmitter, propagateTransactions(_)).Times(1);
-  EXPECT_OUTCOME_SUCCESS(hash, author_api->submitExtrinsic(*extrinsic));
+  EXPECT_OUTCOME_SUCCESS(
+      hash,
+      author_api->submitExtrinsic(TransactionSource::External, *extrinsic));
   ASSERT_EQ(hash.value(), Hash256{});
 }
 
@@ -208,7 +210,9 @@ TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
   EXPECT_CALL(*transaction_pool, submitOne(_)).Times(0);
   EXPECT_CALL(*transactions_transmitter, propagateTransactions(_)).Times(0);
   EXPECT_OUTCOME_ERROR(
-      res, author_api->submitExtrinsic(*extrinsic), DummyError::ERROR);
+      res,
+      author_api->submitExtrinsic(TransactionSource::External, *extrinsic),
+      DummyError::ERROR);
 }
 
 MATCHER_P(eventsAreEqual, n, "") {
@@ -535,7 +539,7 @@ TEST_F(AuthorApiTest, PendingExtrinsics) {
  * @then request is forwarded to api service, result returned
  */
 TEST_F(AuthorApiTest, UnwatchExtrinsic) {
-  kagome::primitives::SubscriptionId sub_id;
+  kagome::primitives::SubscriptionId sub_id = 0;
 
   EXPECT_CALL(*api_service_mock, unsubscribeFromExtrinsicLifecycle(sub_id))
       .WillOnce(Return(true));

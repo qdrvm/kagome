@@ -183,32 +183,7 @@ namespace kagome::blockchain {
       curr_epoch_number.emplace(epoch_number);
     }
 
-    primitives::BlockInfo last_finalized_block_info;
-
-    // Backward search of finalized block
-    for (auto block_info = least_leaf;;) {
-      if (block_info.number == 0) {
-        SL_TRACE(log,
-                 "Not found block with justification. "
-                 "Genesis block will be used as last finalized");
-        last_finalized_block_info = block_info;
-        break;
-      }
-      OUTCOME_TRY(j_res, storage->getJustification(block_info.hash));
-      if (j_res.has_value()) {
-        SL_TRACE(log,
-                 "Justification is found in block {}. "
-                 "This block will be used as last finalized",
-                 block_info);
-        last_finalized_block_info = block_info;
-        break;
-      }
-      OUTCOME_TRY(header, storage->getBlockHeader(block_info.hash));
-      BOOST_ASSERT_MSG(
-          header.has_value(),
-          "Header is sought by info from block tree and must exist in storage");
-      block_info = {header->number - 1, header->parent_hash};
-    }
+    OUTCOME_TRY(last_finalized_block_info, storage->getLastFinalized());
 
     std::optional<consensus::EpochDigest> curr_epoch;
     std::optional<consensus::EpochDigest> next_epoch;
@@ -401,7 +376,7 @@ namespace kagome::blockchain {
 
     log::Logger log = log::createLogger("BlockTree", "blockchain");
 
-    const auto &recovery_state = app_config.recoverState().value();
+    const auto recovery_state = app_config.recoverState().value();
 
     OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
 

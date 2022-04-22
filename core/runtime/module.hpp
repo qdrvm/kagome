@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_MODULE_HPP
 #define KAGOME_CORE_RUNTIME_MODULE_HPP
 
+#include <optional>
+
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
 
@@ -25,6 +27,35 @@ namespace kagome::runtime {
 
     virtual outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const = 0;
+  };
+
+  /**
+   * A wrapper for compiled module. Used when we update WAVM runtime in order to
+   * skip double compilation which takes significant time (see issue #1104).
+   * Currently it's shared through DI.
+   */
+  class SingleModuleCache {
+   public:
+    /**
+     * @brief Sets new cached value, scrapping previous if any
+     * @param module New compiled module to store
+     */
+    void set(std::shared_ptr<Module> module) {
+      module_ = module;
+    }
+
+    /**
+     * Pops stored module (if any), clears cache in process.
+     * @return Value if any, std::nullopt otherwise.
+     */
+    std::optional<std::shared_ptr<Module>> try_extract() {
+      auto module = module_;
+      module_.reset();
+      return module;
+    }
+
+   private:
+    std::optional<std::shared_ptr<Module>> module_;
   };
 
 }  // namespace kagome::runtime

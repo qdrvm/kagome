@@ -69,8 +69,8 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillRepeatedly(Return(finalized_block_header_));
 
-    EXPECT_CALL(*storage_, getJustification(kLastFinalizedBlockId))
-        .WillOnce(Return(outcome::success(Justification{})));
+    EXPECT_CALL(*storage_, getLastFinalized())
+        .WillOnce(Return(outcome::success(kFinalizedBlockInfo)));
 
     EXPECT_CALL(*storage_, removeBlock(_))
         .WillRepeatedly(Invoke([&](const auto &b) {
@@ -440,7 +440,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
       .WillRepeatedly(Return(primitives::Version{}));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
       .WillRepeatedly(Return(outcome::success(B1_body)));
-  EXPECT_CALL(*author_api_, submitExtrinsic(_))
+  EXPECT_CALL(*author_api_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
 
@@ -508,7 +508,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
       .WillRepeatedly(Return(outcome::success(B1_body)));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{C1_hash}))
       .WillRepeatedly(Return(outcome::success(C1_body)));
-  EXPECT_CALL(*author_api_, submitExtrinsic(_))
+  EXPECT_CALL(*author_api_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
 
