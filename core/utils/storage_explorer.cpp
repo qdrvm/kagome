@@ -278,7 +278,7 @@ class SearchChainCommand : public Command {
       : Command{"search-chain",
                 "target [start block/0] [end block/deepest finalized] - search "
                 "the finalized chain for the target entity. Currently, "
-                "'justification' or 'authority_update' are supported "},
+                "'justification' or 'authority-update' are supported "},
         block_storage{block_storage} {}
 
   enum class Target { Justification, AuthorityUpdate };
@@ -334,7 +334,6 @@ class SearchChainCommand : public Command {
         throwError("Block header #{} not found", current);
       }
       searchBlock(out, current_header_opt.value(), target);
-      out << "\n";
     }
   }
 
@@ -389,15 +388,23 @@ class SearchChainCommand : public Command {
     using namespace kagome::primitives;
     if (auto *scheduled_change = boost::get<ScheduledChange>(&digest);
         scheduled_change) {
-      out << "ScheduledChange at #" << digest_origin << " for #"
-          << digest_origin + scheduled_change->subchain_length << " set id #"
-          << scheduled_change->authorities.id << "\n";
+      out << "ScheduledChange at #" << digest_origin << " for ";
+      if (scheduled_change->subchain_length > 0) {
+        out << "#" << digest_origin + scheduled_change->subchain_length;
+      } else {
+        out << "the same block";
+      }
+      out << "\n";
 
     } else if (auto *forced_change = boost::get<ForcedChange>(&digest);
                forced_change) {
-      out << "ForcedChange at " << digest_origin << " for "
-          << digest_origin + forced_change->subchain_length << " set id #"
-          << scheduled_change->authorities.id << "\n";
+      out << "ForcedChange at " << digest_origin << " for ";
+      if (forced_change->subchain_length > 0) {
+        out << "#" << digest_origin + forced_change->subchain_length;
+      } else {
+        out << "the same block";
+      }
+      out << "\n";
 
     } else if (auto *pause = boost::get<Pause>(&digest); pause) {
       out << "Pause at " << digest_origin << " for "
@@ -409,7 +416,7 @@ class SearchChainCommand : public Command {
 
     } else if (auto *disabled = boost::get<OnDisabled>(&digest); disabled) {
       out << "Disabled at " << digest_origin << " for authority "
-          << digest_origin + disabled->authority_index << "\n";
+          << disabled->authority_index << "\n";
     }
   }
 

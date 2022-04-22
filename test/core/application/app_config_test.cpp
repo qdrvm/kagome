@@ -144,7 +144,7 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
                         "--base-path",
                         base_path.native().c_str()};
 
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
