@@ -46,6 +46,7 @@ target_link_libraries(chain_spec
     buffer
     sr25519_types
     kagome_uri
+    telemetry
     )
 kagome_install(chain_spec)
 
