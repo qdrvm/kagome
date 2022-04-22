@@ -16,11 +16,10 @@ namespace kagome::consensus {
    public:
     using SyncFunctor = std::function<std::tuple<BabeSlotNumber, bool>()>;
 
-    MOCK_METHOD(BabeSlotNumber, syncEpoch, (SyncFunctor), ());
+    MOCK_METHOD(BabeSlotNumber, syncEpoch, (SyncFunctor &), ());
 
-    BabeSlotNumber syncEpoch(SyncFunctor &f_arg) override {
-      SyncFunctor f = f_arg;
-      return syncEpoch(f);
+    BabeSlotNumber syncEpoch(SyncFunctor &&func) override {
+      return syncEpoch(func);
     }
 
     MOCK_METHOD(BabeSlotNumber, getCurrentSlot, (), (const, override));
