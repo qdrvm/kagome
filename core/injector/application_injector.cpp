@@ -614,6 +614,9 @@ namespace {
             .template create<std::shared_ptr<primitives::BabeConfiguration>>();
     auto babe_util =
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
+    auto telemetry =
+        injector
+            .template create<std::shared_ptr<telemetry::TelemetryService>>();
 
     auto block_tree_res =
         blockchain::BlockTreeImpl::create(header_repo,
@@ -626,7 +629,8 @@ namespace {
                                           std::move(runtime_core),
                                           std::move(changes_tracker),
                                           std::move(babe_configuration),
-                                          std::move(babe_util));
+                                          std::move(babe_util),
+                                          std::move(telemetry));
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());
     }

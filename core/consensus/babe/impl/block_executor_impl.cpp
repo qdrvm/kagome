@@ -271,13 +271,13 @@ namespace kagome::consensus {
             .count());
 
     last_finalized_block = block_tree_->getLastFinalized();
+    telemetry_->notifyBlockFinalized(last_finalized_block);
     auto current_best_block_res =
         block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(current_best_block_res.has_value());
     const auto &current_best_block = current_best_block_res.value();
-
-    telemetry_->blockImported(current_best_block.hash.toHex(),
-                              current_best_block.number);
+    telemetry_->notifyBlockImported(current_best_block,
+                                    telemetry::BlockOrigin::kNetworkBroadcast);
 
     // Create new offchain worker for block if it is best only
     if (current_best_block.number > previous_best_block.number) {

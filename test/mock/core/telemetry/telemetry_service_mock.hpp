@@ -13,18 +13,20 @@
 namespace kagome::telemetry {
 
   class TelemetryServiceMock : public TelemetryService {
-    MOCK_METHOD(std::string, connectedMessage, (), (const override));
-
     MOCK_METHOD(void,
-                blockImported,
-                (const std::string &, uint32_t),
+                setGenesisBlockHash,
+                (const primitives::BlockHash &),
                 (override));
 
-    MOCK_METHOD(bool, prepare, (), (override));
+    MOCK_METHOD(void,
+                notifyBlockImported,
+                (const primitives::BlockInfo &, telemetry::BlockOrigin),
+                (override));
 
-    MOCK_METHOD(bool, start, (), (override));
-
-    MOCK_METHOD(void, stop, (), (override));
+    MOCK_METHOD(void,
+                notifyBlockFinalized,
+                (const primitives::BlockInfo &),
+                (override));
   };
 }  // namespace kagome::telemetry
 

@@ -124,7 +124,8 @@ namespace kagome::blockchain {
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
-      std::shared_ptr<consensus::BabeUtil> babe_util) {
+      std::shared_ptr<consensus::BabeUtil> babe_util,
+      std::shared_ptr<telemetry::TelemetryService> telemetry) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
@@ -365,7 +366,8 @@ namespace kagome::blockchain {
                           std::move(extrinsic_event_key_repo),
                           std::move(runtime_core),
                           std::move(changes_tracker),
-                          std::move(babe_util));
+                          std::move(babe_util),
+                          std::move(telemetry));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -488,7 +490,8 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-      std::shared_ptr<consensus::BabeUtil> babe_util)
+      std::shared_ptr<consensus::BabeUtil> babe_util,
+      std::shared_ptr<telemetry::TelemetryService> telemetry)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(cached_tree)},
@@ -499,7 +502,8 @@ namespace kagome::blockchain {
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
         runtime_core_(std::move(runtime_core)),
         trie_changes_tracker_(std::move(changes_tracker)),
-        babe_util_(std::move(babe_util)) {
+        babe_util_(std::move(babe_util)),
+        telemetry_(std::move(telemetry)) {
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(tree_ != nullptr);
@@ -511,6 +515,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT(runtime_core_ != nullptr);
     BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
+    BOOST_ASSERT(telemetry_ != nullptr);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(blockHeightMetricName,
@@ -532,6 +537,8 @@ namespace kagome::blockchain {
     metric_known_chain_leaves_ =
         metrics_registry_->registerGaugeMetric(knownChainLeavesMetricName);
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+
+    telemetry_->setGenesisBlockHash(getGenesisBlockHash());
   }
 
   const primitives::BlockHash &BlockTreeImpl::getGenesisBlockHash() const {
@@ -860,8 +867,9 @@ namespace kagome::blockchain {
       }
     }
 
-    log_->info("Finalized block {}",
-               primitives::BlockInfo(node->depth, block_hash));
+    primitives::BlockInfo finalized_block(node->depth, block_hash);
+    log_->info("Finalized block {}", finalized_block);
+    telemetry_->notifyBlockFinalized(finalized_block);
     metric_finalized_block_height_->set(node->depth);
     return outcome::success();
   }

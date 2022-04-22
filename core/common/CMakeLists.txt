@@ -45,3 +45,9 @@ add_library(kagome_uri
     uri.cpp
     )
 kagome_install(kagome_uri)
+
+add_library(spin_lock
+    spin_lock.hpp
+    spin_lock.cpp
+    )
+kagome_install(spin_lock)

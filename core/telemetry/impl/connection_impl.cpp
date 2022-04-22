@@ -9,38 +9,27 @@
 
 namespace kagome::telemetry {
 
-  size_t TelemetryConnectionImpl::instance_ = 0;
+  std::size_t TelemetryConnectionImpl::instance_ = 0;
 
   TelemetryConnectionImpl::TelemetryConnectionImpl(
       std::shared_ptr<boost::asio::io_context> io_context,
       const TelemetryEndpoint &endpoint,
-      OnConnectedCallback callback)
+      OnConnectedCallback callback,
+      MessagePool &message_pool,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : io_context_{std::move(io_context)},
         endpoint_{endpoint},
         callback_{std::move(callback)},
+        message_pool_{message_pool},
+        scheduler_{std::move(scheduler)},
         ssl_ctx_{boost::asio::ssl::context::sslv23},
         resolver_{boost::asio::make_strand(*io_context_)} {
     BOOST_ASSERT(io_context_);
+    BOOST_ASSERT(scheduler_);
     auto instance_number = std::to_string(++instance_);
+    queue_.set_capacity(message_pool_.size());
     log_ = log::createLogger("TelemetryConnection#" + instance_number,
                              "telemetry");
-
-    ssl_ctx_.set_default_verify_paths();
-    ssl_ctx_.set_verify_mode(
-        boost::asio::ssl::context::verify_peer
-        | boost::asio::ssl::context::verify_fail_if_no_peer_cert);
-    ssl_ctx_.set_verify_callback(
-        [log = log_](bool preverified, boost::asio::ssl::verify_context &ctx) {
-          // We will simply print the certificate's subject name here
-          char subject_name[256];
-          X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
-          X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-          SL_TRACE(log,
-                   "Verifying [{}] was {}",
-                   subject_name,
-                   preverified ? "successful" : "failed");
-          return true;  // TODO employ boost::certify to make it work on macos
-        });
   }
 
   void TelemetryConnectionImpl::connect() {
@@ -81,7 +70,7 @@ namespace kagome::telemetry {
         }
         port_ = static_cast<uint16_t>(port_int);
       } catch (...) {
-        // std::invalid_argument or std::out_of_range
+        // only std::invalid_argument or std::out_of_range are possible
         SL_ERROR(log_,
                  "Specified port value is not valid for endpoint {}",
                  endpoint_.uri().to_string());
@@ -100,7 +89,7 @@ namespace kagome::telemetry {
           std::make_unique<WsTcpStream>(boost::asio::make_strand(*io_context_));
     }
 
-    SL_DEBUG(log_, "Initialized for endpoint {}", endpoint_.uri().to_string());
+    SL_DEBUG(log_, "Connecting to endpoint {}", endpoint_.uri().to_string());
     resolver_.async_resolve(
         endpoint_.uri().Host,
         std::to_string(port_),
@@ -116,10 +105,31 @@ namespace kagome::telemetry {
     if (not is_connected_) {
       return;
     }
-    if (secure_) {
-      write(*boost::relaxed_get<WsSslStreamPtr>(ws_), data);
+    auto push = message_pool_.push(data);
+    if (not push) {
+      return;
+    }
+    send(*push);
+  }
+
+  void TelemetryConnectionImpl::send(MessageHandle message_handle) {
+    if (not is_connected_) {
+      message_pool_.release(message_handle);
+      return;
+    }
+    if (busy_) {
+      if (queue_.full()) {
+        message_pool_.release(message_handle);
+        return;
+      }
+      queue_.push_back(message_handle);
     } else {
-      write(*boost::relaxed_get<WsTcpStreamPtr>(ws_), data);
+      busy_ = true;
+      if (secure_) {
+        write(*boost::relaxed_get<WsSslStreamPtr>(ws_), message_handle);
+      } else {
+        write(*boost::relaxed_get<WsTcpStreamPtr>(ws_), message_handle);
+      }
     }
   }
 
@@ -143,21 +153,33 @@ namespace kagome::telemetry {
   }
 
   template <typename WsStreamT>
-  void TelemetryConnectionImpl::write(WsStreamT &ws, const std::string &data) {
-    // TODO substitute dynamic allocations approach with circular buffer
-    auto data_holder = std::make_shared<std::string>(data);
-    auto write_handler = [data_holder, self{shared_from_this()}](
+  void TelemetryConnectionImpl::write(WsStreamT &ws,
+                                      MessageHandle message_handle) {
+    auto write_handler = [self{shared_from_this()}, message_handle, &ws](
                              boost::beast::error_code ec,
                              std::size_t bytes_transferred) {
+      boost::ignore_unused(bytes_transferred);
+      self->message_pool_.release(message_handle);
       if (ec) {
         self->is_connected_ = false;
+        self->busy_ = false;
+        self->releaseQueue();
         SL_ERROR(self->log_,
                  "Unable to send data through websocket: {}",
                  ec.message());
+        self->reconnect();
+        return;
       }
-      boost::ignore_unused(bytes_transferred);
+      if (self->queue_.empty()) {
+        self->busy_ = false;
+      } else {
+        auto next = self->queue_.front();
+        self->queue_.pop_front();
+        self->write(ws, next);
+      }
     };
-    ws.async_write(boost::asio::buffer(*data_holder), write_handler);
+
+    ws.async_write(message_pool_[message_handle], write_handler);
   }
 
   void TelemetryConnectionImpl::onResolve(
@@ -165,7 +187,7 @@ namespace kagome::telemetry {
       boost::asio::ip::tcp::resolver::results_type results) {
     if (ec) {
       SL_ERROR(log_, "Unable to resolve host: {}", ec.message());
-      // TODO reschedule connection attempt
+      reconnect();
       return;
     }
 
@@ -181,6 +203,7 @@ namespace kagome::telemetry {
       boost::asio::ip::tcp::resolver::results_type::endpoint_type endpoint) {
     if (ec) {
       SL_ERROR(log_, "Unable to connect to endpoint: {}", ec.message());
+      reconnect();
       return;
     }
 
@@ -190,6 +213,7 @@ namespace kagome::telemetry {
                                        endpoint_.uri().Host.c_str())) {
         ec = boost::beast::error_code(static_cast<int>(::ERR_get_error()),
                                       boost::asio::error::get_ssl_category());
+        reconnect();
         SL_ERROR(log_, "Unable to set SNI hostname: {}", ec.message());
       }
     }
@@ -232,6 +256,7 @@ namespace kagome::telemetry {
   void TelemetryConnectionImpl::onSslHandshake(boost::beast::error_code ec) {
     if (ec) {
       SL_ERROR(log_, "Unable to perform SSL handshake: {}", ec.message());
+      reconnect();
       return;
     }
     BOOST_VERIFY(secure_);
@@ -241,6 +266,7 @@ namespace kagome::telemetry {
   void TelemetryConnectionImpl::onHandshake(boost::beast::error_code ec) {
     if (ec) {
       SL_ERROR(log_, "Websocket handshake failed: {}", ec.message());
+      reconnect();
       return;
     }
     if (shutdown_requested_) {
@@ -248,8 +274,16 @@ namespace kagome::telemetry {
       return;
     }
     is_connected_ = true;
-    SL_DEBUG(log_, "Connection established");
+    SL_INFO(log_, "Connection established");
+    reconnect_timeout_ = kInitialReconnectTimeout;
     callback_(shared_from_this());
+  }
+
+  void TelemetryConnectionImpl::releaseQueue() {
+    for (auto handle : queue_) {
+      message_pool_.release(handle);
+    }
+    queue_.clear();
   }
 
   void TelemetryConnectionImpl::close() {
@@ -261,6 +295,17 @@ namespace kagome::telemetry {
       auto &ws = *boost::relaxed_get<WsTcpStreamPtr>(ws_);
       ws.async_close(boost::beast::websocket::close_code::normal, [](auto) {});
     }
+  }
+
+  void TelemetryConnectionImpl::reconnect() {
+    if (shutdown_requested_ or is_connected_) {
+      return;
+    }
+    SL_DEBUG(
+        log_, "Trying to reconnect in {} seconds", reconnect_timeout_.count());
+    scheduler_->schedule([self{shared_from_this()}] { self->connect(); },
+                         reconnect_timeout_);
+    reconnect_timeout_ *= 2;
   }
 
 }  // namespace kagome::telemetry

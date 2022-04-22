@@ -20,6 +20,7 @@
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/telemetry/telemetry_service_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
@@ -104,6 +105,7 @@ struct BlockTreeTest : public testing::Test {
               return outcome::success();
             }));
 
+    putNumToHash(kGenesisBlockInfo);
     putNumToHash(kFinalizedBlockInfo);
 
     auto chain_events_engine =
@@ -127,6 +129,8 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return());
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
+    telemetry_ = std::make_shared<telemetry::TelemetryServiceMock>();
+
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         extrinsic_observer_,
@@ -137,7 +141,8 @@ struct BlockTreeTest : public testing::Test {
                                         runtime_core_,
                                         changes_tracker_,
                                         babe_config_,
-                                        babe_util_)
+                                        babe_util_,
+                                        telemetry_)
                       .value();
   }
 
@@ -194,6 +199,9 @@ struct BlockTreeTest : public testing::Test {
 
     return hash;
   }
+
+  const BlockInfo kGenesisBlockInfo{
+      0ul, BlockHash::fromString("66dj4kdn4odnfkslfn3k4jdnbmeod555").value()};
 
   const BlockInfo kFinalizedBlockInfo{
       42ul, BlockHash::fromString("andj4kdn4odnfkslfn3k4jdnbmeodkv4").value()};
@@ -264,6 +272,8 @@ struct BlockTreeTest : public testing::Test {
       num_to_hash_.erase(it);
     }
   }
+
+  std::shared_ptr<telemetry::TelemetryServiceMock> telemetry_;
 };
 
 /**

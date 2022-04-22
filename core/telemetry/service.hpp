@@ -8,22 +8,59 @@
 
 #include <string>
 
+#include "primitives/common.hpp"
+
 namespace kagome::telemetry {
 
+  enum class BlockOrigin {
+    /// Genesis block built into the client.
+    kGenesis,
+
+    /// Block is part of the initial sync with the network.
+    kNetworkInitialSync,
+
+    /// Block was broadcasted on the network.
+    kNetworkBroadcast,
+
+    /// Block that was received from the network and validated in the consensus
+    /// process.
+    kConsensusBroadcast,
+
+    /// Block that was collated by this node.
+    kOwn,
+
+    /// Block was imported from a file.
+    kFile,
+  };
+
+  /**
+   * Telemetry service interface
+   */
   class TelemetryService {
    public:
     virtual ~TelemetryService() = default;
 
-    virtual std::string connectedMessage() const = 0;
+    /**
+     * Used to initially inform the service about the genesis hash.
+     * @param hash genesis hash for the network
+     *
+     * Allows to avoid circular references in classes dependency tree
+     */
+    virtual void setGenesisBlockHash(const primitives::BlockHash &hash) = 0;
 
-    virtual void blockImported(const std::string &hash, uint32_t height) = 0;
+    /**
+     * Inform about last known block
+     * @param info - block info
+     * @param origin - source of the block
+     */
+    virtual void notifyBlockImported(const primitives::BlockInfo &info,
+                                     BlockOrigin origin) = 0;
 
-   protected:
-    virtual bool prepare() = 0;
-
-    virtual bool start() = 0;
-
-    virtual void stop() = 0;
+    /**
+     * Inform about the last finalized block
+     * @param info - block info
+     */
+    virtual void notifyBlockFinalized(const primitives::BlockInfo &info) = 0;
   };
 
 }  // namespace kagome::telemetry

@@ -63,4 +63,12 @@ namespace kagome::storage {
   std::unique_ptr<InMemoryStorage::Cursor> InMemoryStorage::cursor() {
     return nullptr;
   }
+
+  size_t InMemoryStorage::size() const {
+    size_t size = 0;
+    for (auto it = storage.begin(); it != storage.end(); ++it) {
+      size += it->second.size();
+    }
+    return size;
+  }
 }  // namespace kagome::storage
