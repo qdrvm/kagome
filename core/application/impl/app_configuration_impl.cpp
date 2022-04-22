@@ -468,7 +468,7 @@ namespace kagome::application {
     return true;
   }
 
-  bool AppConfigurationImpl::initializeFromArgs(int argc, char **argv) {
+  bool AppConfigurationImpl::initializeFromArgs(int argc, const char **argv) {
     namespace po = boost::program_options;
 
     // clang-format off

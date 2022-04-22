@@ -38,10 +38,4 @@ TEST(JustificationStoragePolicyTest, ShouldStore512Multiples) {
 TEST(JustificationStoragePolicyTest, ShouldStoreOnAuthorityChange) {
   JustificationStoragePolicyImpl policy{};
   auto authority_manager = std::make_shared<AuthorityManagerMock>();
-  policy.initBlockchainInfo(authority_manager);
-  EXPECT_CALL(*authority_manager, authorities(, true));
-  ASSERT_THAT(policy.shouldStoreWhatWhenFinalized({34, "hash34"_hash256}));
-  ASSERT_THAT(policy.shouldStoreWhatWhenFinalized({35, "hash35"_hash256}));
-  ASSERT_THAT(policy.shouldStoreWhatWhenFinalized({36, "hash36"_hash256}));
-  ASSERT_THAT(policy.shouldStoreWhatWhenFinalized({37, "hash37"_hash256}));
 }

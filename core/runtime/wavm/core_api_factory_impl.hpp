@@ -25,6 +25,7 @@ namespace kagome::blockchain {
 namespace kagome::runtime {
   class Memory;
   class ModuleRepository;
+  class SingleModuleCache;
 }  // namespace kagome::runtime
 
 namespace kagome::runtime::wavm {
@@ -35,7 +36,7 @@ namespace kagome::runtime::wavm {
 
   class CoreApiFactoryImpl final
       : public runtime::CoreApiFactory,
-      public std::enable_shared_from_this<CoreApiFactoryImpl> {
+        public std::enable_shared_from_this<CoreApiFactoryImpl> {
    public:
     CoreApiFactoryImpl(
         std::shared_ptr<CompartmentWrapper> compartment,
@@ -43,7 +44,8 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
+        std::shared_ptr<SingleModuleCache> last_compiled_module);
 
     [[nodiscard]] std::unique_ptr<Core> make(
         std::shared_ptr<const crypto::Hasher> hasher,
@@ -56,6 +58,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
+    std::shared_ptr<SingleModuleCache> last_compiled_module_;
   };
 
 }  // namespace kagome::runtime::wavm

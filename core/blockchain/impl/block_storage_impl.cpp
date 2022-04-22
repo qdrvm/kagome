@@ -345,4 +345,40 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<primitives::BlockInfo> BlockStorageImpl::getLastFinalized()
+      const {
+    OUTCOME_TRY(leaves, getBlockTreeLeaves());
+    auto current_hash = leaves[0];
+    for (;;) {
+      OUTCOME_TRY(j_opt, getJustification(current_hash));
+      if (j_opt.has_value()) {
+        break;
+      }
+      OUTCOME_TRY(header_opt, getBlockHeader(current_hash));
+      if (header_opt.has_value()) {
+        auto header = header_opt.value();
+        if (header.number == 0) {
+          SL_TRACE(logger_,
+                   "Not found block with justification. "
+                   "Genesis block will be used as last finalized ({})",
+                   current_hash);
+          return {0, current_hash};  // genesis
+        }
+        current_hash = header.parent_hash;
+      } else {
+        SL_ERROR(
+            logger_, "Failed to fetch header for block ({})", current_hash);
+        return BlockStorageError::HEADER_NOT_FOUND;
+      }
+    }
+
+    OUTCOME_TRY(header, getBlockHeader(current_hash));
+    primitives::BlockInfo found_block{header.value().number, current_hash};
+    SL_TRACE(logger_,
+             "Justification is found in block {}. "
+             "This block will be used as last finalized",
+             found_block);
+    return found_block;
+  }
+
 }  // namespace kagome::blockchain
