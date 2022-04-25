@@ -26,6 +26,7 @@ namespace kagome::application {
 }
 
 namespace kagome::storage::trie {
+  class PersistentTrieBatch;
   class TrieSerializer;
   class TrieStorage;
 }  // namespace kagome::storage::trie
@@ -102,7 +103,7 @@ namespace kagome::network {
 
     void syncState(const libp2p::peer::PeerId &peer_id,
                    const primitives::BlockInfo &block,
-                   common::Buffer &&key,
+                   const common::Buffer &key,
                    SyncResultHandler &&handler) override;
 
     /// Finds best common block with peer {@param peer_id} in provided interval.
@@ -228,6 +229,9 @@ namespace kagome::network {
 
     std::set<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>>
         recent_requests_;
+
+    std::shared_ptr<storage::trie::PersistentTrieBatch> batch_;
+    size_t entries_{0};
   };
 
 }  // namespace kagome::network

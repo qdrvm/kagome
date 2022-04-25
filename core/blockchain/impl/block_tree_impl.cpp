@@ -824,25 +824,28 @@ namespace kagome::blockchain {
     chain_events_engine_->notify(
         primitives::events::ChainEventType::kFinalizedHeads, header);
 
-    OUTCOME_TRY(new_runtime_version, runtime_core_->version(block_hash));
-    if (not actual_runtime_version_.has_value()
-        || actual_runtime_version_ != new_runtime_version) {
-      actual_runtime_version_ = new_runtime_version;
-      chain_events_engine_->notify(
-          primitives::events::ChainEventType::kFinalizedRuntimeVersion,
-          new_runtime_version);
+    // it has failure result when fast sync is in progress
+    auto new_runtime_version = runtime_core_->version(block_hash);
+    if (new_runtime_version.has_value()) {
+      if (not actual_runtime_version_.has_value()
+          || actual_runtime_version_ != new_runtime_version.value()) {
+        actual_runtime_version_ = new_runtime_version.value();
+        chain_events_engine_->notify(
+            primitives::events::ChainEventType::kFinalizedRuntimeVersion,
+            new_runtime_version.value());
+      }
     }
+
     OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
-    if (!body.has_value()) {
-      return BlockTreeError::BODY_NOT_FOUND;
-    }
-    for (auto &ext : body.value()) {
-      if (auto key =
-              extrinsic_event_key_repo_->get(hasher_->blake2b_256(ext.data))) {
-        extrinsic_events_engine_->notify(
-            key.value(),
-            primitives::events::ExtrinsicLifecycleEvent::Finalized(key.value(),
-                                                                   block_hash));
+    if (body.has_value()) {
+      for (auto &ext : body.value()) {
+        if (auto key = extrinsic_event_key_repo_->get(
+                hasher_->blake2b_256(ext.data))) {
+          extrinsic_events_engine_->notify(
+              key.value(),
+              primitives::events::ExtrinsicLifecycleEvent::Finalized(
+                  key.value(), block_hash));
+        }
       }
     }
 

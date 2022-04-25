@@ -23,9 +23,9 @@ class TicToc {
       str += "at line " + std::to_string(line);
     }
     log_->info(
-        "{} lasted for {} sec",
+        "{} lasted for {} microsec",
         str,
-        std::chrono::duration_cast<std::chrono::seconds>(t_ - prev).count());
+        std::chrono::duration_cast<std::chrono::microseconds>(t_ - prev).count());
   }
 
   ~TicToc() {

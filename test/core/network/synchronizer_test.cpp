@@ -18,9 +18,11 @@
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
+#include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -67,6 +69,19 @@ class SynchronizerTest
         .WillRepeatedly(Return(sync_protocol));
 
     EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
+
+    EXPECT_CALL(app_config, syncMethod())
+        .WillOnce(Return(application::AppConfiguration::SyncMethod::Full));
+
+    EXPECT_CALL(*serializer, getEmptyRootHash())
+        .Times(2)
+        .WillRepeatedly(
+            Return(trie::PolkadotCodec().hash256(common::Buffer{0})));
+
+    outcome::result<std::unique_ptr<trie::PersistentTrieBatch>> batch =
+        std::make_unique<trie::PersistentTrieBatchMock>();
+    EXPECT_CALL(*storage, getPersistentBatchAt(serializer->getEmptyRootHash()))
+        .WillOnce(Return(testing::ByMove(std::move(batch))));
 
     synchronizer =
         std::make_shared<network::SynchronizerImpl>(app_config,
