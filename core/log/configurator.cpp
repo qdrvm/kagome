@@ -50,6 +50,7 @@ groups:
               - name: babe
                 children:
                   - name: babe_lottery
+                  - name: block_appender
                   - name: block_executor
                   - name: block_validator
               - name: grandpa

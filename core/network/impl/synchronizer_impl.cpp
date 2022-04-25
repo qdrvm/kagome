@@ -10,6 +10,7 @@
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
+#include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -54,7 +55,8 @@ namespace {
       case SM::Full:
         return kagome::network::BlocksRequest::kBasicAttributes;
       case SM::Fast:
-        return kagome::network::BlockAttribute::HEADER;
+        return kagome::network::BlockAttribute::HEADER
+               | kagome::network::BlockAttribute::JUSTIFICATION;
     }
     return kagome::network::BlocksRequest::kBasicAttributes;
   }
@@ -718,7 +720,7 @@ namespace kagome::network {
       }
 
       SL_TRACE(self->log_, "Block loading is finished");
-      if(handler) {
+      if (handler) {
         handler(last_loaded_block);
       }
 
@@ -738,10 +740,11 @@ namespace kagome::network {
   }
 
   void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
-                                   const primitives::BlockInfo& block,
+                                   const primitives::BlockInfo &block,
                                    common::Buffer &&key,
                                    SyncResultHandler &&handler) {
-    if (sync_method_ == application::AppConfiguration::SyncMethod::Fast && not state_syncing_.load()) {
+    if (sync_method_ == application::AppConfiguration::SyncMethod::Fast
+        && not state_syncing_.load()) {
       state_syncing_.store(true);
       network::StateRequest request{block.hash, {key}, true};
 
@@ -780,7 +783,7 @@ namespace kagome::network {
                  "State syncing finished. Root hash: {}",
                  res.value().toHex());
         self->sync_method_ = application::AppConfiguration::SyncMethod::Full;
-        if(handler) {
+        if (handler) {
           handler(block);
           self->state_syncing_.store(false);
         }

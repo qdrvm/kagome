@@ -51,7 +51,7 @@ namespace kagome::consensus {
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
         babe_util_(std::move(babe_util)),
-        logger_{log::createLogger("BlockExecutor", "block_executor")} {
+        logger_{log::createLogger("BlockAppender", "block_appender")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(babe_configuration_ != nullptr);
     BOOST_ASSERT(block_validator_ != nullptr);
@@ -158,12 +158,6 @@ namespace kagome::consensus {
 
     auto parent = block_tree_->getBlockHeader(block.header.parent_hash).value();
 
-    auto last_finalized_block = block_tree_->getLastFinalized();
-    auto previous_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(previous_best_block_res.has_value());
-    const auto &previous_best_block = previous_best_block_res.value();
-
     if (not block_already_exists) {
       OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
     }
@@ -208,11 +202,6 @@ namespace kagome::consensus {
         primitives::BlockInfo(block.header.number, block_hash),
         std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
             .count());
-
-    last_finalized_block = block_tree_->getLastFinalized();
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(current_best_block_res.has_value());
 
     return outcome::success();
   }
