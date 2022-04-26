@@ -20,10 +20,7 @@ using kagome::primitives::BlockNumber;
 using kagome::primitives::GrandpaDigest;
 using kagome::storage::trie::TrieStorage;
 
-struct ArgumentList {
-  int count;
-  const char **params;
-};
+using ArgumentList = gsl::span<const char*>;
 
 class CommandExecutionError : public std::runtime_error {
  public:
@@ -59,13 +56,13 @@ class Command {
 
  protected:
   void assertArgumentCount(const ArgumentList &args, int min, int max) {
-    if (args.count < min or args.count > max) {
+    if (args.size() < min or args.size() > max) {
       throw CommandExecutionError{
           name,
           fmt::format("Argument count mismatch: expected {} to {}, got {}",
                       min,
                       max,
-                      args.count)};
+                      args.size())};
     }
   }
 
@@ -97,20 +94,22 @@ class CommandParser {
   }
 
   void invoke(const ArgumentList &args) const noexcept {
-    if (args.count < 2) {
+    if (args.size() < 2) {
       std::cerr << "Unspecified command!\nAvailable commands are:\n";
       printCommands(std::cerr);
     }
-    if (auto command = commands_.find(args.params[1]);
+    if (auto command = commands_.find(args[1]);
         command != commands_.cend()) {
-      ArgumentList cmd_args{args.count - 1, args.params + 1};
+      ArgumentList cmd_args{args.subspan(1)};
       try {
         command->second->execute(std::cout, cmd_args);
       } catch (CommandExecutionError &e) {
         std::cerr << e;
+      } catch(std::exception& e) {
+        std::cerr << e.what();
       }
     } else {
-      std::cerr << "Unknown command '" << args.params[1]
+      std::cerr << "Unknown command '" << args[1]
                 << "'!\nAvailable commands are:\n";
       printCommands(std::cerr);
     }
@@ -174,13 +173,13 @@ class InspectBlockCommand : public Command {
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 2);
-    auto opt_id = parseBlockId(args.params[1]);
+    auto opt_id = parseBlockId(args[1]);
     if (!opt_id) {
-      throwError("Failed to parse block id '{}'", args.params[1]);
+      throwError("Failed to parse block id '{}'", args[1]);
     }
     if (auto res = block_storage->getBlockHeader(opt_id.value()); res) {
       if (!res.value().has_value()) {
-        throwError("Block header not found for '{}'", args.params[1]);
+        throwError("Block header not found for '{}'", args[1]);
       }
       std::cout << "#: " << res.value()->number << "\n";
       std::cout << "Parent hash: " << res.value()->parent_hash.toHex() << "\n";
@@ -205,9 +204,9 @@ class RemoveBlockCommand : public Command {
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 2);
-    auto opt_id = parseBlockId(args.params[1]);
+    auto opt_id = parseBlockId(args[1]);
     if (!opt_id) {
-      throwError("Failed to parse block id '{}'", args.params[1]);
+      throwError("Failed to parse block id '{}'", args[1]);
     }
     auto data = block_storage->getBlockData(opt_id.value());
     if (!data) {
@@ -238,7 +237,7 @@ class QueryStateCommand : public Command {
     assertArgumentCount(args, 3, 3);
 
     kagome::storage::trie::RootHash state_root{};
-    if (auto id_bytes = kagome::common::unhex(args.params[1]); id_bytes) {
+    if (auto id_bytes = kagome::common::unhex(args[1]); id_bytes) {
       std::copy_n(id_bytes.value().begin(),
                   kagome::primitives::BlockHash::size(),
                   state_root.begin());
@@ -250,7 +249,7 @@ class QueryStateCommand : public Command {
       throwError("Failed getting trie batch: {}", batch.error().message());
     }
     kagome::common::Buffer key{};
-    if (auto key_bytes = kagome::common::unhex(args.params[2]); key_bytes) {
+    if (auto key_bytes = kagome::common::unhex(args[2]); key_bytes) {
       key = kagome::common::Buffer{std::move(key_bytes.value())};
     } else {
       throwError("Invalid key!");
@@ -285,23 +284,23 @@ class SearchChainCommand : public Command {
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 4);
-    Target target = parseTarget(args.params[1]);
+    Target target = parseTarget(args[1]);
 
     BlockId start, end;
 
-    if (args.count > 2) {
-      auto start_id_opt = parseBlockId(args.params[2]);
+    if (args.size() > 2) {
+      auto start_id_opt = parseBlockId(args[2]);
       if (!start_id_opt) {
-        throwError("Failed to parse block id '{}'", args.params[2]);
+        throwError("Failed to parse block id '{}'", args[2]);
       }
       start = start_id_opt.value();
     } else {
       start = 0;
     }
-    if (args.count > 3) {
-      auto end_id_opt = parseBlockId(args.params[3]);
+    if (args.size() > 3) {
+      auto end_id_opt = parseBlockId(args[3]);
       if (!end_id_opt) {
-        throwError("Failed to parse block id '{}'", args.params[3]);
+        throwError("Failed to parse block id '{}'", args[3]);
       }
       end = end_id_opt.value();
     } else {
@@ -323,14 +322,14 @@ class SearchChainCommand : public Command {
       throwError("'End' block header not found");
     }
     auto &end_header = end_header_opt.value();
-    ;
-    for (BlockNumber current = end_header.number, stop = start_header.number;
+
+    for (int64_t current = end_header.number, stop = start_header.number;
          current >= stop;
          current--) {
       auto current_header_opt =
           unwrapResult(fmt::format("Getting header of block #{}", current),
                        block_storage->getBlockHeader(current));
-      if (!start_header_opt) {
+      if (!current_header_opt) {
         throwError("Block header #{} not found", current);
       }
       searchBlock(out, current_header_opt.value(), target);
@@ -424,6 +423,8 @@ class SearchChainCommand : public Command {
 };
 
 int main(int argc, const char **argv) {
+  ArgumentList args{argv, argc};
+
   CommandParser parser;
   parser.addCommand(std::make_unique<PrintHelpCommand>(parser));
 
@@ -445,8 +446,8 @@ int main(int argc, const char **argv) {
   kagome::application::AppConfigurationImpl configuration{logger};
 
   int kagome_args_start = -1;
-  for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "--") == 0) {
+  for (int i = 1; i < args.size(); i++) {
+    if (strcmp(args[i], "--") == 0) {
       kagome_args_start = i;
     }
   }
@@ -457,7 +458,7 @@ int main(int argc, const char **argv) {
   }
 
   if (!configuration.initializeFromArgs(argc - kagome_args_start,
-                                        argv + kagome_args_start)) {
+                                        args.subspan(kagome_args_start).data())) {
     std::cerr << "Failed to initialize kagome!\n";
     return -1;
   }
@@ -471,8 +472,7 @@ int main(int argc, const char **argv) {
   parser.addCommand(std::make_unique<QueryStateCommand>(trie_storage));
   parser.addCommand(std::make_unique<SearchChainCommand>(block_storage));
 
-  ArgumentList args{argc - kagome_args_start - 1, argv};
-  parser.invoke(args);
+  parser.invoke(args.subspan(0, kagome_args_start));
 
   return 0;
 }
