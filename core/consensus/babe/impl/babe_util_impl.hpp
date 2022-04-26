@@ -20,7 +20,8 @@ namespace kagome::consensus {
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         const BabeClock &clock);
 
-    void syncEpoch(EpochDescriptor epoch_descriptor) override;
+    BabeSlotNumber syncEpoch(
+        std::function<std::tuple<BabeSlotNumber, bool>()> &&f) override;
 
     BabeSlotNumber getCurrentSlot() const override;
 
@@ -42,6 +43,7 @@ namespace kagome::consensus {
     const BabeClock &clock_;
 
     std::optional<BabeSlotNumber> first_block_slot_number_;
+    bool is_first_block_finalized_ = false;
   };
 }  // namespace kagome::consensus
 #endif  // KAGOME_CONSENSUS_BABEUTILIMPL
