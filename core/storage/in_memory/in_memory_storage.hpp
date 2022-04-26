@@ -52,6 +52,7 @@ namespace kagome::storage {
 
    private:
     std::map<std::string, common::Buffer> storage;
+    size_t size_ = 0;
   };
 
 }  // namespace kagome::storage

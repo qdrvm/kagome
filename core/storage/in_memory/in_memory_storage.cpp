@@ -32,13 +32,27 @@ namespace kagome::storage {
 
   outcome::result<void> InMemoryStorage::put(const BufferView &key,
                                              const Buffer &value) {
+    auto it = storage.find(key.toHex());
+    if (it != storage.end()) {
+      size_t old_value_size = it->second.size();
+      BOOST_ASSERT(size_ > old_value_size);
+      size_ -= old_value_size;
+    }
     storage[key.toHex()] = value;
+    size_ += value.size();
     return outcome::success();
   }
 
   outcome::result<void> InMemoryStorage::put(const BufferView &key,
                                              Buffer &&value) {
+    auto it = storage.find(key.toHex());
+    if (it != storage.end()) {
+      size_t old_value_size = it->second.size();
+      BOOST_ASSERT(size_ > old_value_size);
+      size_ -= old_value_size;
+    }
     storage[key.toHex()] = std::move(value);
+    size_ += value.size();
     return outcome::success();
   }
 
@@ -51,7 +65,11 @@ namespace kagome::storage {
   }
 
   outcome::result<void> InMemoryStorage::remove(const BufferView &key) {
-    storage.erase(key.toHex());
+    auto it = storage.find(key.toHex());
+    if (it != storage.end()) {
+      size_ -= it->second.size();
+      storage.erase(it);
+    }
     return outcome::success();
   }
 
@@ -65,10 +83,6 @@ namespace kagome::storage {
   }
 
   size_t InMemoryStorage::size() const {
-    size_t size = 0;
-    for (auto it = storage.begin(); it != storage.end(); ++it) {
-      size += it->second.size();
-    }
-    return size;
+    return size_;
   }
 }  // namespace kagome::storage
