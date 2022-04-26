@@ -140,6 +140,8 @@ namespace kagome::blockchain {
     auto least_leaf = *block_tree_leaves.begin();
     auto best_leaf = *block_tree_leaves.rbegin();
 
+    OUTCOME_TRY(last_finalized_block_info, storage->getLastFinalized());
+
     std::optional<consensus::EpochNumber> curr_epoch_number;
 
     // First, look up slot number of block number 1
@@ -173,17 +175,14 @@ namespace kagome::blockchain {
       // Now we have all to calculate epoch number
       auto epoch_number = (last_slot_number - first_slot_number)
                           / babe_configuration->epoch_length;
-      consensus::EpochDescriptor epoch{
-          .epoch_number = epoch_number,
-          .start_slot = first_slot_number
-                        + epoch_number * babe_configuration->epoch_length};
 
-      babe_util->syncEpoch(epoch);
+      babe_util->syncEpoch([&] {
+        auto is_first_block_finalized = last_finalized_block_info.number > 0;
+        return std::tuple(first_slot_number, is_first_block_finalized);
+      });
 
       curr_epoch_number.emplace(epoch_number);
     }
-
-    OUTCOME_TRY(last_finalized_block_info, storage->getLastFinalized());
 
     std::optional<consensus::EpochDigest> curr_epoch;
     std::optional<consensus::EpochDigest> next_epoch;
