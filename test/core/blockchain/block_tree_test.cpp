@@ -125,7 +125,7 @@ struct BlockTreeTest : public testing::Test {
     babe_config_->epoch_length = 2;
 
     babe_util_ = std::make_shared<BabeUtilMock>();
-    EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return());
+    EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return(1));
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
     block_tree_ = BlockTreeImpl::create(header_repo_,
