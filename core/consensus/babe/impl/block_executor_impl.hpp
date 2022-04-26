@@ -48,8 +48,7 @@ namespace kagome::consensus {
         std::shared_ptr<authority::AuthorityUpdateObserver>
             authority_update_observer,
         std::shared_ptr<BabeUtil> babe_util,
-        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-        std::shared_ptr<telemetry::TelemetryService> telemetry);
+        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api);
 
     outcome::result<void> applyBlock(primitives::BlockData &&block) override;
 
@@ -67,13 +66,13 @@ namespace kagome::consensus {
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
-    std::shared_ptr<telemetry::TelemetryService> telemetry_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Histogram *metric_block_execution_time_;
 
     log::Logger logger_;
+    telemetry::Telemetry telemetry_;
   };
 
 }  // namespace kagome::consensus

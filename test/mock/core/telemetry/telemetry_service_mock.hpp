@@ -27,6 +27,8 @@ namespace kagome::telemetry {
                 notifyBlockFinalized,
                 (const primitives::BlockInfo &),
                 (override));
+
+    MOCK_METHOD(void, notifyWasSynchronized, (), (override));
   };
 }  // namespace kagome::telemetry
 

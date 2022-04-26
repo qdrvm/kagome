@@ -124,8 +124,7 @@ namespace kagome::blockchain {
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
-      std::shared_ptr<consensus::BabeUtil> babe_util,
-      std::shared_ptr<telemetry::TelemetryService> telemetry) {
+      std::shared_ptr<consensus::BabeUtil> babe_util) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
@@ -340,8 +339,7 @@ namespace kagome::blockchain {
                           std::move(extrinsic_event_key_repo),
                           std::move(runtime_core),
                           std::move(changes_tracker),
-                          std::move(babe_util),
-                          std::move(telemetry));
+                          std::move(babe_util));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -464,8 +462,7 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-      std::shared_ptr<consensus::BabeUtil> babe_util,
-      std::shared_ptr<telemetry::TelemetryService> telemetry)
+      std::shared_ptr<consensus::BabeUtil> babe_util)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(cached_tree)},
@@ -476,8 +473,7 @@ namespace kagome::blockchain {
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
         runtime_core_(std::move(runtime_core)),
         trie_changes_tracker_(std::move(changes_tracker)),
-        babe_util_(std::move(babe_util)),
-        telemetry_(std::move(telemetry)) {
+        babe_util_(std::move(babe_util)) {
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(tree_ != nullptr);

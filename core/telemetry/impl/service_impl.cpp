@@ -275,7 +275,8 @@ namespace kagome::telemetry {
           origin_val = str_val("Genesis");
           break;
         case o::kNetworkInitialSync:
-          origin_val = str_val("NetworkInitialSync");
+          origin_val = was_synchronized_ ? str_val("NetworkBroadcast")
+                                         : str_val("NetworkInitialSync");
           break;
         case o::kNetworkBroadcast:
           origin_val = str_val("NetworkBroadcast");
@@ -389,5 +390,9 @@ namespace kagome::telemetry {
   void TelemetryServiceImpl::setGenesisBlockHash(
       const primitives::BlockHash &hash) {
     genesis_hash_ = fmt::format("{:l}", hash);
+  }
+
+  void TelemetryServiceImpl::notifyWasSynchronized() {
+    was_synchronized_ = true;
   }
 }  // namespace kagome::telemetry

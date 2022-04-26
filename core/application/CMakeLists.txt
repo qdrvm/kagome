@@ -64,4 +64,5 @@ target_link_libraries(kagome_application
     application_injector
     application_util
     log_configurator
+    telemetry
    )

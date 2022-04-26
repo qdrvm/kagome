@@ -12,6 +12,7 @@
 #include "consensus/babe/babe.hpp"
 #include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/metrics.hpp"
+#include "telemetry/service.hpp"
 
 namespace kagome::application {
 
@@ -46,6 +47,7 @@ namespace kagome::application {
     sync_observer_ = injector_->injectSyncObserver();
     metrics_watcher_ = injector_->injectMetricsWatcher();
     telemetry_service_ = injector_->injectTelemetryService();
+    kagome::telemetry::setTelemetryService(telemetry_service_);
 
     logger_->info("Start as node version '{}' named as '{}' with PID {}",
                   app_config_.nodeVersion(),

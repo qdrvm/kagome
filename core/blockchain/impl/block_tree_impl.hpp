@@ -59,8 +59,7 @@ namespace kagome::blockchain {
         std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
-        std::shared_ptr<consensus::BabeUtil> babe_util,
-        std::shared_ptr<telemetry::TelemetryService> telemetry);
+        std::shared_ptr<consensus::BabeUtil> babe_util);
 
     /// Do recover block tree stare to provided block
     static outcome::result<void> recover(
@@ -168,8 +167,7 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<consensus::BabeUtil> babe_util,
-        std::shared_ptr<telemetry::TelemetryService> telemetry);
+        std::shared_ptr<consensus::BabeUtil> babe_util);
 
     /**
      * Walks the chain backwards starting from \param start until the current
@@ -225,7 +223,7 @@ namespace kagome::blockchain {
     metrics::Gauge *metric_best_block_height_;
     metrics::Gauge *metric_finalized_block_height_;
     metrics::Gauge *metric_known_chain_leaves_;
-    std::shared_ptr<telemetry::TelemetryService> telemetry_;
+    telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain
 

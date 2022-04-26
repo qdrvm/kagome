@@ -75,4 +75,5 @@ target_link_libraries(babe
     polkadot_trie
     metrics
     block_storage_error
+    telemetry
     )

@@ -20,7 +20,6 @@
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
-#include "mock/core/telemetry/telemetry_service_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
@@ -129,8 +128,6 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return(1));
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
-    telemetry_ = std::make_shared<telemetry::TelemetryServiceMock>();
-
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         extrinsic_observer_,
@@ -141,8 +138,7 @@ struct BlockTreeTest : public testing::Test {
                                         runtime_core_,
                                         changes_tracker_,
                                         babe_config_,
-                                        babe_util_,
-                                        telemetry_)
+                                        babe_util_)
                       .value();
   }
 
@@ -273,7 +269,6 @@ struct BlockTreeTest : public testing::Test {
     }
   }
 
-  std::shared_ptr<telemetry::TelemetryServiceMock> telemetry_;
 };
 
 /**

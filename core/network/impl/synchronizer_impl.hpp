@@ -16,6 +16,7 @@
 #include "consensus/babe/block_executor.hpp"
 #include "metrics/metrics.hpp"
 #include "network/router.hpp"
+#include "telemetry/service.hpp"
 
 namespace kagome::network {
 
@@ -135,6 +136,7 @@ namespace kagome::network {
     metrics::Gauge *metric_import_queue_length_;
 
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
+    telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
     bool node_is_shutting_down_ = false;
 

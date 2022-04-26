@@ -54,6 +54,15 @@ namespace kagome::telemetry {
     virtual void setGenesisBlockHash(const primitives::BlockHash &hash) = 0;
 
     /**
+     * Let the telemetry service know that the node has been in a synchronized
+     * state at least once.
+     *
+     * After this call all kNetworkInitialSync events will be treated as
+     * kNetworkBroadcast
+     */
+    virtual void notifyWasSynchronized() = 0;
+
+    /**
      * Inform about last known block
      * @param info - block info
      * @param origin - source of the block
@@ -67,6 +76,14 @@ namespace kagome::telemetry {
      */
     virtual void notifyBlockFinalized(const primitives::BlockInfo &info) = 0;
   };
+
+  using Telemetry = std::shared_ptr<TelemetryService>;
+
+  /// Sets an instance of telemetry service for latter usage by reporters
+  void setTelemetryService(Telemetry service);
+
+  /// Returns preliminary initialized instance of telemetry service
+  Telemetry createTelemetryService();
 
 }  // namespace kagome::telemetry
 

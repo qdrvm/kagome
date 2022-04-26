@@ -68,6 +68,8 @@ namespace kagome::telemetry {
 
     void setGenesisBlockHash(const primitives::BlockHash &hash) override;
 
+    void notifyWasSynchronized() override;
+
    private:
     // handlers for AppStateManager
     bool prepare();
@@ -152,6 +154,7 @@ namespace kagome::telemetry {
     rapidjson::Document greeting_json_;
     std::string genesis_hash_;
     MessagePool message_pool_;
+    bool was_synchronized_ = false;
   };
 
 }  // namespace kagome::telemetry

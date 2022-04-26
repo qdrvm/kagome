@@ -12,6 +12,7 @@ target_link_libraries(synchronizer
     logger
     primitives
     metrics
+    telemetry
     )
 
 add_library(grandpa_transmitter

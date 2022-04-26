@@ -49,8 +49,7 @@ namespace kagome::consensus {
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util,
-      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      std::shared_ptr<telemetry::TelemetryService> telemetry)
+      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         babe_configuration_{std::move(configuration)},
@@ -61,8 +60,8 @@ namespace kagome::consensus {
         authority_update_observer_{std::move(authority_update_observer)},
         babe_util_(std::move(babe_util)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        telemetry_(std::move(telemetry)),
-        logger_{log::createLogger("BlockExecutor", "block_executor")} {
+        logger_{log::createLogger("BlockExecutor", "block_executor")},
+        telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
     BOOST_ASSERT(babe_configuration_ != nullptr);
@@ -73,8 +72,8 @@ namespace kagome::consensus {
     BOOST_ASSERT(authority_update_observer_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
     BOOST_ASSERT(offchain_worker_api_ != nullptr);
-    BOOST_ASSERT(telemetry_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
+    BOOST_ASSERT(telemetry_ != nullptr);
 
     // Register metrics
     metrics_registry_->registerHistogramFamily(
@@ -310,8 +309,8 @@ namespace kagome::consensus {
         block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(current_best_block_res.has_value());
     const auto &current_best_block = current_best_block_res.value();
-    telemetry_->notifyBlockImported(current_best_block,
-                                    telemetry::BlockOrigin::kNetworkBroadcast);
+    telemetry_->notifyBlockImported(
+        current_best_block, telemetry::BlockOrigin::kNetworkInitialSync);
 
     // Create new offchain worker for block if it is best only
     if (current_best_block.number > previous_best_block.number) {
