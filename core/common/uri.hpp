@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_URI
-#define KAGOME_OFFCHAIN_URI
+#ifndef KAGOME_COMMON_URI
+#define KAGOME_COMMON_URI
 
 #include <optional>
 #include <string>
@@ -35,4 +35,4 @@ namespace kagome::common {
 
 }  // namespace kagome::common
 
-#endif  // KAGOME_OFFCHAIN_URI
+#endif  // KAGOME_COMMON_URI
