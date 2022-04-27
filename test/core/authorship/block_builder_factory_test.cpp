@@ -38,8 +38,8 @@ class BlockBuilderFactoryTest : public ::testing::Test {
     expected_header_.number = expected_number_;
     expected_header_.digest = inherent_digests_;
 
-    EXPECT_CALL(*header_backend_, getNumberByHash(parent_hash_))
-        .WillOnce(Return(parent_number_));
+    ON_CALL(*header_backend_, getNumberByHash(parent_hash_))
+        .WillByDefault(Return(parent_number_));
   }
 
   std::shared_ptr<CoreMock> core_ = std::make_shared<CoreMock>();

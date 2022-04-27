@@ -46,7 +46,7 @@ namespace kagome::storage::trie {
           case T::Leaf: {
             stream_ << std::setfill('-') << std::setw(nest_level) << ""
                     << std::setw(0) << "(leaf) key: <"
-                    << hex_lower(codec_.nibblesToKey(node->key_nibbles))
+                    << hex_lower(node->key_nibbles.toByteBuffer())
                     << "> value: " << node->value.value().toHex() << "\n";
             break;
           }
@@ -66,7 +66,7 @@ namespace kagome::storage::trie {
         auto branch = std::dynamic_pointer_cast<const BranchNode>(node);
         stream_ << std::setfill('-') << std::setw(nest_level) << ""
                 << std::setw(0) << "(branch) key: <"
-                << hex_lower(codec_.nibblesToKey(node->key_nibbles))
+                << hex_lower(node->key_nibbles.toByteBuffer())
                 << "> value: " << value << " children: ";
         for (size_t i = 0; i < branch->children.size(); i++) {
           if (branch->children[i]) {
