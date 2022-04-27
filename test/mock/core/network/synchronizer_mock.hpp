@@ -50,7 +50,7 @@ namespace kagome::network {
 
     void syncState(const libp2p::peer::PeerId &peer_id,
                    const primitives::BlockInfo &block_info,
-                   common::Buffer &&key,
+                   const common::Buffer &key,
                    SyncResultHandler &&handler) override {
       return syncState(peer_id, block_info, key, handler);
     }

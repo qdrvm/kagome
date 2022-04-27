@@ -922,6 +922,36 @@ namespace {
   }
 
   template <typename Injector>
+  sptr<primitives::GenesisBlockHeader> get_genesis_block_header(
+      const Injector &injector) {
+    static auto initialized =
+        std::optional<sptr<primitives::GenesisBlockHeader>>(std::nullopt);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    auto block_storage =
+        injector.template create<sptr<blockchain::BlockStorage>>();
+    auto block_header_repository =
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
+
+    auto hash_res =
+        block_header_repository->getHashByNumber(primitives::BlockNumber(0));
+    BOOST_ASSERT(hash_res.has_value());
+    auto &hash = hash_res.value();
+
+    auto header_res = block_storage->getBlockHeader(hash);
+    BOOST_ASSERT(header_res.has_value());
+    auto &header_opt = header_res.value();
+    BOOST_ASSERT(header_opt.has_value());
+
+    initialized.emplace(new primitives::GenesisBlockHeader(
+        {.header = header_opt.value(), .hash = hash}));
+
+    return initialized.value();
+  }
+
+  template <typename Injector>
   primitives::BlockHash get_last_finalized_hash(const Injector &injector) {
     auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
     if (auto last = storage->getLastFinalized(); last.has_value()) {
@@ -1101,6 +1131,14 @@ namespace {
         di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
           // need it to add genesis block if it's not there
           auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
+          if (injector.template create<application::AppConfiguration const &>()
+                  .syncMethod()
+              == application::AppConfiguration::SyncMethod::Fast) {
+            auto genesis_block_header =
+                injector
+                    .template create<sptr<primitives::GenesisBlockHeader>>();
+            return get_babe_configuration(genesis_block_header->hash, babe_api);
+          }
           static auto last_finalized_hash = get_last_finalized_hash(injector);
           return get_babe_configuration(last_finalized_hash, babe_api);
         }),

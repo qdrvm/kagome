@@ -747,60 +747,64 @@ namespace kagome::network {
                                    const primitives::BlockInfo &block,
                                    const common::Buffer &key,
                                    SyncResultHandler &&handler) {
-    if (sync_method_ == application::AppConfiguration::SyncMethod::Fast
-        && (not state_syncing_.load() || not key.empty())) {
-      state_syncing_.store(true);
-      network::StateRequest request{block.hash, {key}, true};
+    if (sync_method_ == application::AppConfiguration::SyncMethod::Fast) {
+      if (not state_syncing_.load() || not key.empty()) {
+        state_syncing_.store(true);
+        network::StateRequest request{block.hash, {key}, true};
 
-      auto protocol = router_->getStateProtocol();
-      BOOST_ASSERT_MSG(protocol, "Router did not provide state protocol");
+        auto protocol = router_->getStateProtocol();
+        BOOST_ASSERT_MSG(protocol, "Router did not provide state protocol");
 
-      SL_TRACE(log_, "State syncing started.");
+        SL_TRACE(log_, "State syncing started.");
 
-      auto response_handler = [wp = weak_from_this(),
-                               block,
-                               peer_id,
-                               handler = std::move(handler)](
-                                  auto &&response_res) mutable {
-        auto self = wp.lock();
-        if (not self) {
-          return;
-        }
+        auto response_handler =
+            [wp = weak_from_this(),
+             block,
+             peer_id,
+             handler = std::move(handler)](auto &&response_res) mutable {
+              auto self = wp.lock();
+              if (not self) {
+                return;
+              }
 
-        if (response_res.has_error()) {
-          SL_WARN(self->log_,
-                  "State syncing failed with error: {}",
-                  response_res.error().message());
-          if (handler) handler(response_res.as_failure());
-          return;
-        }
+              if (response_res.has_error()) {
+                SL_WARN(self->log_,
+                        "State syncing failed with error: {}",
+                        response_res.error().message());
+                if (handler) handler(response_res.as_failure());
+                return;
+              }
 
-        auto response = response_res.value().entries[0];
-        for (const auto &entry : response.entries) {
-          std::ignore = self->batch_->put(entry.key, entry.value);
-        }
-        self->entries_ += response.entries.size();
-        if (response.complete) {
-          auto res = self->batch_->commit();
-          SL_TRACE(self->log_,
-                   "State syncing finished. Root hash: {}",
-                   res.value().toHex());
-          self->sync_method_ = application::AppConfiguration::SyncMethod::Full;
-          if (handler) {
-            handler(block);
-            self->state_syncing_.store(false);
-          }
-        } else {
-          SL_TRACE(self->log_,
-                   "State syncing continues. {} entries loaded",
-                   self->entries_);
-          self->syncState(
-              peer_id, block, response.entries.back().key, std::move(handler));
-        }
-      };
+              auto response = response_res.value().entries[0];
+              for (const auto &entry : response.entries) {
+                std::ignore = self->batch_->put(entry.key, entry.value);
+              }
+              self->entries_ += response.entries.size();
+              if (response.complete) {
+                auto res = self->batch_->commit();
+                SL_INFO(self->log_,
+                        "State syncing finished. Root hash: {}",
+                        res.value().toHex());
+                self->sync_method_ =
+                    application::AppConfiguration::SyncMethod::Full;
+                if (handler) {
+                  handler(block);
+                  self->state_syncing_.store(false);
+                }
+              } else {
+                SL_TRACE(self->log_,
+                         "State syncing continues. {} entries loaded",
+                         self->entries_);
+                self->syncState(peer_id,
+                                block,
+                                response.entries.back().key,
+                                std::move(handler));
+              }
+            };
 
-      protocol->request(
-          peer_id, std::move(request), std::move(response_handler));
+        protocol->request(
+            peer_id, std::move(request), std::move(response_handler));
+      }
     } else {
       if (handler) {
         handler(block);

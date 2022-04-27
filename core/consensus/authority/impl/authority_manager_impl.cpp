@@ -5,6 +5,8 @@
 
 #include "consensus/authority/impl/authority_manager_impl.hpp"
 
+#include <boost/range/algorithm.hpp>
+#include <boost/range/algorithm/reverse.hpp>
 #include <stack>
 #include <unordered_set>
 
@@ -226,14 +228,19 @@ namespace kagome::authority {
                   hash,
                   error.message());
 
-      PREPARE_TRY(
-          set_id_opt,
-          fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header),
-          "Error fetching authority set id from trie storage for block #{} "
-          "({}): {}",
-          header.number,
-          hash,
-          error.message());
+      auto &&set_id_opt_res =
+          fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header);
+      if (set_id_opt_res.has_error()) {
+        auto &error = set_id_opt_res.error();
+        log_->warn(
+            "Couldn't fetch authority set id from trie storage for block #{} "
+            "({}): {}. Recalculating from genesis.",
+            header.number,
+            hash,
+            error.message());
+        return prepareFromGenesis();
+      }
+      auto &set_id_opt = set_id_opt_res.value();
 
       if (not set_id_opt.has_value()) {
         log_->critical(
@@ -708,6 +715,64 @@ namespace kagome::authority {
       ancestor->descendants.emplace_back(std::move(descendant));
     }
     node->descendants.emplace_back(std::move(new_node));
+  }
+
+  bool AuthorityManagerImpl::prepareFromGenesis() {
+    auto t_start = std::chrono::high_resolution_clock::now();
+    std::vector<std::pair<primitives::BlockHash, primitives::BlockHeader>>
+        headers;
+    const auto finalized_block = block_tree_->getLastFinalized();
+    auto header = block_tree_->getBlockHeader(finalized_block.hash);
+    headers.emplace_back(finalized_block.hash, header.value());
+    size_t count1 = 0;
+    while (header.has_value()) {
+      auto hash = header.value().parent_hash;
+      header = block_tree_->getBlockHeader(hash);
+      if (header.has_value()) {
+        if (not(++count1 % 10000)) {
+          SL_WARN(log_, "{} headers loaded", count1);
+        }
+        headers.emplace_back(hash, header.value());
+      }
+    }
+
+    root_ = authority::ScheduleNode::createAsRoot(
+        {headers.back().second.number, headers.back().first});
+    auto authorities = grandpa_api_->authorities(headers.back().first).value();
+    authorities.id = 0;
+    root_->actual_authorities =
+        std::make_shared<primitives::AuthorityList>(std::move(authorities));
+
+    count1 = 0;
+    size_t count2 = 0;
+    for (const auto &[hash, header] : boost::range::reverse(headers)) {
+      if (not(++count1 % 10000)) {
+        SL_WARN(log_, "{} digests applied ({})", count1, count2);
+        count2 = 0;
+      }
+      for (const auto &digest_item : header.digest) {
+        std::ignore = visit_in_place(
+            digest_item,
+            [&](const primitives::Consensus &consensus_message)
+                -> outcome::result<void> {
+              ++count2;
+              return onConsensus(primitives::BlockInfo{header.number, hash},
+                                 consensus_message);
+            },
+            [](const auto &) { return outcome::success(); });
+      }
+      if (not(count1 % 10000)) {
+        prune(primitives::BlockInfo{header.number, hash});
+      }
+    }
+
+    auto t_end = std::chrono::high_resolution_clock::now();
+
+    log_->warn(
+        "Applied authorities within {} ms",
+        std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
+            .count());
+    return true;
   }
 
 }  // namespace kagome::authority
