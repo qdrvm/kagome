@@ -116,6 +116,12 @@ namespace kagome::authority {
     void reorganize(std::shared_ptr<ScheduleNode> node,
                     std::shared_ptr<ScheduleNode> new_node);
 
+    /**
+     * @brief Calculates authorities for last finalized block
+     * starting from genesis
+     */
+    bool prepareFromGenesis();
+
     Config config_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
