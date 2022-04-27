@@ -13,6 +13,7 @@
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
+#include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
@@ -94,6 +95,9 @@ namespace kagome::network {
     BOOST_ASSERT(app_state_manager);
 
     sync_method_ = app_config.syncMethod();
+
+    batch_ =
+        storage_->getPersistentBatchAt(serializer_->getEmptyRootHash()).value();
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -741,10 +745,10 @@ namespace kagome::network {
 
   void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
                                    const primitives::BlockInfo &block,
-                                   common::Buffer &&key,
+                                   const common::Buffer &key,
                                    SyncResultHandler &&handler) {
     if (sync_method_ == application::AppConfiguration::SyncMethod::Fast
-        && not state_syncing_.load()) {
+        && (not state_syncing_.load() || not key.empty())) {
       state_syncing_.store(true);
       network::StateRequest request{block.hash, {key}, true};
 
@@ -771,21 +775,27 @@ namespace kagome::network {
           return;
         }
 
-        auto batch =
-            self->storage_
-                ->getPersistentBatchAt(self->serializer_->getEmptyRootHash())
-                .value();
-        for (const auto &entry : response_res.value().entries[0].entries) {
-          std::ignore = batch->put(entry.key, entry.value);
+        auto response = response_res.value().entries[0];
+        for (const auto &entry : response.entries) {
+          std::ignore = self->batch_->put(entry.key, entry.value);
         }
-        auto res = batch->commit();
-        SL_TRACE(self->log_,
-                 "State syncing finished. Root hash: {}",
-                 res.value().toHex());
-        self->sync_method_ = application::AppConfiguration::SyncMethod::Full;
-        if (handler) {
-          handler(block);
-          self->state_syncing_.store(false);
+        self->entries_ += response.entries.size();
+        if (response.complete) {
+          auto res = self->batch_->commit();
+          SL_TRACE(self->log_,
+                   "State syncing finished. Root hash: {}",
+                   res.value().toHex());
+          self->sync_method_ = application::AppConfiguration::SyncMethod::Full;
+          if (handler) {
+            handler(block);
+            self->state_syncing_.store(false);
+          }
+        } else {
+          SL_TRACE(self->log_,
+                   "State syncing continues. {} entries loaded",
+                   self->entries_);
+          self->syncState(
+              peer_id, block, response.entries.back().key, std::move(handler));
         }
       };
 

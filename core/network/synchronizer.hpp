@@ -43,7 +43,7 @@ namespace kagome::network {
 
     virtual void syncState(const libp2p::peer::PeerId &peer_id,
                            const primitives::BlockInfo &block,
-                           common::Buffer &&key,
+                           const common::Buffer &key,
                            SyncResultHandler &&handler) = 0;
   };
 
