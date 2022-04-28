@@ -85,6 +85,7 @@
 #include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/peer_manager_impl.hpp"
+#include "network/impl/rating_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
@@ -670,7 +671,8 @@ namespace {
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::Router>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
-        injector.template create<sptr<crypto::Hasher>>());
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<network::PeerRatingRepository>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1098,6 +1100,7 @@ namespace {
         di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
         di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
+        di::bind<network::PeerRatingRepository>.template to<network::PeerRatingRepositoryImpl>(),
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),

@@ -127,12 +127,15 @@ namespace kagome::network {
   SyncProtocolImpl::SyncProtocolImpl(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
-      std::shared_ptr<SyncProtocolObserver> sync_observer)
+      std::shared_ptr<SyncProtocolObserver> sync_observer,
+      std::shared_ptr<PeerRatingRepository> rating_repository)
       : host_(host),
         sync_observer_(std::move(sync_observer)),
+        rating_repository_(std::move(rating_repository)),
         response_cache_(kResponsesCacheCapacity,
                         kResponsesCacheExpirationTimeout) {
     BOOST_ASSERT(sync_observer_ != nullptr);
+    BOOST_ASSERT(rating_repository_ != nullptr);
     const_cast<Protocol &>(protocol_) =
         fmt::format(kSyncProtocol.data(), chain_spec.protocolId());
   }
@@ -277,38 +280,19 @@ namespace kagome::network {
       }
       auto &block_response = block_response_res.value();
 
-      // the commented code will be removed in the following commit
-      //      if (not block_response.blocks.empty()) {
-      //        for (auto i = 0; i < 5; ++i) {
-      //          block_response.blocks[0].header->state_root.at(i) = 0xa;
-      //        }
-      //        std::cout << block_request.fingerprint() << std::endl;
-      //      }
-
       if ((not block_response.blocks.empty()) and stream->remotePeerId()
           and self->response_cache_.isDuplicate(stream->remotePeerId().value(),
                                                 block_request.fingerprint())) {
+        auto peer_id = stream->remotePeerId().value();
+        SL_DEBUG(self->log_,
+                 "Stream {} to {} reset due to repeating non-polite block "
+                 "request with fingerprint {}",
+                 self->protocol_,
+                 peer_id,
+                 block_request.fingerprint());
+        self->rating_repository_->downvoteForATime(
+            peer_id, kResponsesCacheExpirationTimeout);
         stream->reset();
-        //        auto peer_id = stream->remotePeerId().value();
-        //        SL_DEBUG(self->log_,
-        //                 "Stream {} to {} scheduled to be reset in {} seconds
-        //                 due to " "repeating non-polite block request with
-        //                 fingerprint {}", self->protocol_, peer_id,
-        //                 kResponsesCacheExpirationTimeout.count(),
-        //                 block_request.fingerprint());
-        //        self->scheduler_->schedule(
-        //            [stream, wp, peer_id] {
-        //              if (not stream->isClosed()) {
-        //                stream->reset();
-        //              }
-        //              if (auto self = wp.lock()) {
-        //                SL_DEBUG(self->log_,
-        //                         "Stream {} to {} was reset by timeout",
-        //                         self->protocol_,
-        //                         peer_id);
-        //              }
-        //            },
-        //            kResponsesCacheExpirationTimeout);
         return;
       }
 

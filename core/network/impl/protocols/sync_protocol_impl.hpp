@@ -19,6 +19,7 @@
 #include <libp2p/host/host.hpp>
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
+#include "network/rating_repository.hpp"
 #include "network/sync_protocol_observer.hpp"
 
 namespace kagome::network {
@@ -106,7 +107,8 @@ namespace kagome::network {
    public:
     SyncProtocolImpl(libp2p::Host &host,
                      const application::ChainSpec &chain_spec,
-                     std::shared_ptr<SyncProtocolObserver> sync_observer);
+                     std::shared_ptr<SyncProtocolObserver> sync_observer,
+                     std::shared_ptr<PeerRatingRepository> rating_repository);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -142,6 +144,7 @@ namespace kagome::network {
    private:
     libp2p::Host &host_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
+    std::shared_ptr<PeerRatingRepository> rating_repository_;
     const libp2p::peer::Protocol protocol_;
     detail::BlocksResponseCache response_cache_;
     log::Logger log_ = log::createLogger("SyncProtocol", "sync_protocol");
