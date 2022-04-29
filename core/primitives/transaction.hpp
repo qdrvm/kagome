@@ -31,13 +31,13 @@ namespace kagome::primitives {
     using Tag = std::vector<uint8_t>;
 
     /// Raw extrinsic representing that transaction.
-    Extrinsic ext;
+    Extrinsic ext{};
 
     /// Number of bytes encoding of the transaction requires.
     size_t bytes{};
 
     /// Extrinsic hash (non-unique)
-    Hash hash;
+    Hash hash{};
 
     /// Transaction priority (higher = better)
     Priority priority{};
@@ -46,10 +46,10 @@ namespace kagome::primitives {
     Longevity valid_till{};
 
     /// Tags required by the transaction.
-    std::vector<Tag> requires;
+    std::vector<Tag> requires{};
 
     /// Tags that this transaction provides.
-    std::vector<Tag> provides;
+    std::vector<Tag> provides{};
 
     /// Should that transaction be propagated.
     bool should_propagate{false};

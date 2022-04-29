@@ -69,8 +69,8 @@ namespace kagome::storage::trie {
      * @returns a node which is a descendant of \arg parent found by following
      * \arg key_nibbles (includes parent's key nibbles)
      */
-    virtual outcome::result<NodePtr> getNode(ConstNodePtr parent,
-                                             const NibblesView &key_nibbles) = 0;
+    virtual outcome::result<NodePtr> getNode(
+        ConstNodePtr parent, const NibblesView &key_nibbles) = 0;
     virtual outcome::result<ConstNodePtr> getNode(
         ConstNodePtr parent, const NibblesView &key_nibbles) const = 0;
 

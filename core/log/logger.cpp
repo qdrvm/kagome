@@ -97,13 +97,13 @@ namespace kagome::log {
 
   Logger createLogger(const std::string &tag) {
     ensure_logger_system_is_initialized();
-    return std::dynamic_pointer_cast<soralog::LoggerFactory>(logging_system_)
+    return std::static_pointer_cast<soralog::LoggerFactory>(logging_system_)
         ->getLogger(tag, defaultGroupName);
   }
 
   Logger createLogger(const std::string &tag, const std::string &group) {
     ensure_logger_system_is_initialized();
-    return std::dynamic_pointer_cast<soralog::LoggerFactory>(logging_system_)
+    return std::static_pointer_cast<soralog::LoggerFactory>(logging_system_)
         ->getLogger(tag, group);
   }
 
@@ -111,7 +111,7 @@ namespace kagome::log {
                       const std::string &group,
                       Level level) {
     ensure_logger_system_is_initialized();
-    return std::dynamic_pointer_cast<soralog::LoggerFactory>(logging_system_)
+    return std::static_pointer_cast<soralog::LoggerFactory>(logging_system_)
         ->getLogger(tag, group, level);
   }
 

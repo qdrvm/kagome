@@ -81,6 +81,12 @@ namespace kagome::host_api {
     runtime::WasmSpan ext_storage_root_version_1();
 
     /**
+     * @see HostApi::ext_storage_root_version_2
+     */
+    runtime::WasmSpan ext_storage_root_version_2(
+        runtime::WasmI32 state_version);
+
+    /**
      * @see HostApi::ext_storage_changes_root_version_1
      */
     runtime::WasmSpan ext_storage_changes_root_version_1(
@@ -124,6 +130,12 @@ namespace kagome::host_api {
      */
     runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_1(
         runtime::WasmSpan values_data);
+
+    /**
+     * @see HostApi::ext_trie_blake2_256_ordered_root_version_2
+     */
+    runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_2(
+        runtime::WasmSpan values_data, runtime::WasmI32 state_version);
 
    private:
     /**
@@ -174,4 +186,4 @@ namespace kagome::host_api {
 
 }  // namespace kagome::host_api
 
-#endif  // KAGOME_STORAGE_HostApiS_HostApi_HPP
+#endif  // KAGOME_HOST_API_STORAGE_EXTENSION_HPP
