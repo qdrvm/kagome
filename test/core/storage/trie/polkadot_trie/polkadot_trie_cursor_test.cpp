@@ -359,3 +359,34 @@ TEST_F(PolkadotTrieCursorTest, SeekLowerBoundLeaf) {
   EXPECT_OUTCOME_TRUE_1(cursor->seekLowerBound(lex_sorted_vals[3].first))
   ASSERT_TRUE(cursor->isValid());
 }
+
+/**
+ * GIVEN A tree where the beginning of upper bound key for the given key lays
+ * through child indices (and not in key parts inside nodes).
+ * WHEN Searching for upper bound.
+ * THEN Correct upper bound is returned.
+ * @note There was a bug in the cursor implementation, where the cursor ignored
+ * the fact that it followed through a child index larger than required and thus
+ * could return any node with value that it finds next. Instead, it continued
+ * searching for nibbles larger or equal than in the required key, thus skipping
+ * the actual upper bound in corner cases
+ */
+TEST_F(PolkadotTrieCursorTest, Broken) {
+  kagome::log::setLevelOfGroup(kagome::log::defaultGroupName, soralog::Level::TRACE);
+  std::vector<std::pair<Buffer, Buffer>> vals = {
+      {"00289e629fac633384f461a8e9a7bc63bce825350e4548ed2a06ab661909af3c"_hex2buf,
+       "00"_hex2buf},
+      {"002f7f49bfd6648427ffdbce670e4019fa96f7a96031763ad241c981c85de627"_hex2buf,
+       "00"_hex2buf},
+      {"11"_hex2buf, "00"_hex2buf},
+      {"01"_hex2buf, "00"_hex2buf},
+      {"10"_hex2buf, "00"_hex2buf},
+      {"0000"_hex2buf, "00"_hex2buf},
+      {"0030"_hex2buf, "00"_hex2buf}
+  };
+  auto trie = makeTrie(vals);
+  auto cursor = trie->trieCursor();
+  cursor->seekUpperBound(
+      "001bc05a925467574025104b405941493d67d3d3cbf1a66bc21aea056916463c"_hex2buf).value();
+  ASSERT_EQ(cursor->key().value(), vals[0].first);
+}

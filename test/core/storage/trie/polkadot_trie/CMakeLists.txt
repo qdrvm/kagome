@@ -10,6 +10,7 @@ target_link_libraries(polkadot_trie_test
     Boost::boost
     trie_serializer
     trie_error
+    log_configurator
     )
 
 addtest(polkadot_trie_cursor_test

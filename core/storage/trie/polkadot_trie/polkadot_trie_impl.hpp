@@ -8,6 +8,7 @@
 
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 
+#include "log/logger.hpp"
 #include "storage/buffer_map_types.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
@@ -94,6 +95,8 @@ namespace kagome::storage::trie {
                                           const NodePtr &node);
 
     std::unique_ptr<OpaqueNodeStorage> nodes_;
+
+    log::Logger logger_;
   };
 
 }  // namespace kagome::storage::trie

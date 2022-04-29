@@ -25,7 +25,9 @@ namespace kagome::authorship {
   outcome::result<std::unique_ptr<BlockBuilder>> BlockBuilderFactoryImpl::make(
       const kagome::primitives::BlockInfo &parent,
       primitives::Digest inherent_digest) const {
+#ifndef BOOST_ASSERT_IS_VOID
     OUTCOME_TRY(parent_number, header_backend_->getNumberById(parent.hash));
+#endif
     BOOST_ASSERT(parent_number == parent.number);
 
     auto number = parent.number + 1;

@@ -41,17 +41,6 @@ namespace kagome::storage::trie {
     common::Hash256 hash256(const BufferView &buf) const override;
 
     /**
-     * Def. 14 KeyEncode
-     * Splits a key to an array of nibbles (a nibble is a half of a byte)
-     */
-    static KeyNibbles keyToNibbles(const BufferView &key);
-
-    /**
-     * Collects an array of nibbles to a key
-     */
-    static Buffer nibblesToKey(const KeyNibbles &nibbles);
-
-    /**
      * Encodes a node header according to the specification
      * @see Algorithm 3: partial key length encoding
      */
