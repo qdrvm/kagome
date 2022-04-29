@@ -86,6 +86,8 @@ namespace kagome::runtime::binaryen {
       "ext_storage_clear_prefix_version_2";
   const static wasm::Name ext_storage_root_version_1 =
       "ext_storage_root_version_1";
+  const static wasm::Name ext_storage_root_version_2 =
+      "ext_storage_root_version_2";
   const static wasm::Name ext_storage_changes_root_version_1 =
       "ext_storage_changes_root_version_1";
   const static wasm::Name ext_storage_next_key_version_1 =
@@ -153,6 +155,8 @@ namespace kagome::runtime::binaryen {
       "ext_trie_blake2_256_root_version_1";
   const static wasm::Name ext_trie_blake2_256_ordered_root_version_1 =
       "ext_trie_blake2_256_ordered_root_version_1";
+  const static wasm::Name ext_trie_blake2_256_ordered_root_version_2 =
+      "ext_trie_blake2_256_ordered_root_version_2";
 
   // --------------------------- Offchain extension ----------------------------
 
@@ -641,6 +645,14 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
+      /// ext_storage_root_version_2
+      if (import->base == ext_storage_root_version_2) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res =
+            host_api_->ext_storage_root_version_2(arguments.at(0).geti32());
+        return wasm::Literal(res);
+      }
+
       /// ext_storage_changes_root_version_1
       if (import->base == ext_storage_changes_root_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
@@ -696,6 +708,14 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res = host_api_->ext_trie_blake2_256_ordered_root_version_1(
             arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_trie_blake2_256_ordered_root_version_2
+      if (import->base == ext_trie_blake2_256_ordered_root_version_2) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = host_api_->ext_trie_blake2_256_ordered_root_version_2(
+            arguments.at(0).geti64(), arguments.at(1).geti32());
         return wasm::Literal(res);
       }
 

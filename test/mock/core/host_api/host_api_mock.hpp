@@ -106,6 +106,11 @@ namespace kagome::host_api {
     MOCK_METHOD(runtime::WasmSpan, ext_storage_root_version_1, (), (override));
 
     MOCK_METHOD(runtime::WasmSpan,
+                ext_storage_root_version_2,
+                (runtime::WasmI32),
+                (override));
+
+    MOCK_METHOD(runtime::WasmSpan,
                 ext_storage_changes_root_version_1,
                 (runtime::WasmSpan),
                 (override));
@@ -137,6 +142,11 @@ namespace kagome::host_api {
     MOCK_METHOD(runtime::WasmPointer,
                 ext_trie_blake2_256_ordered_root_version_1,
                 (runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(runtime::WasmPointer,
+                ext_trie_blake2_256_ordered_root_version_2,
+                (runtime::WasmSpan, runtime::WasmI32),
                 (override));
 
     // -------------------------- hashing methods v1 ---------------------------

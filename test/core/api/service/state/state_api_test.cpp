@@ -208,7 +208,8 @@ namespace kagome::api {
                                      .impl_name = "dummy_in",
                                      .authoring_version = 0x101,
                                      .spec_version = 0x111,
-                                     .impl_version = 0x202};
+                                     .impl_version = 0x202,
+                                     .apis = {}};
 
     EXPECT_CALL(*block_tree_, deepestLeaf())
         .WillOnce(Return(primitives::BlockInfo{42, "block42"_hash256}));

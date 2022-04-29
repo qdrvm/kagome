@@ -36,7 +36,13 @@ struct BabeLotteryTest : public testing::Test {
   std::shared_ptr<VRFProviderMock> vrf_provider_ =
       std::make_shared<VRFProviderMock>();
   std::shared_ptr<BabeConfiguration> babe_config_ =
-      std::make_shared<BabeConfiguration>(BabeConfiguration{.epoch_length = 3});
+      std::make_shared<BabeConfiguration>(BabeConfiguration{
+          .epoch_length = 3,
+          .leadership_rate = {},
+          .genesis_authorities = {},
+          .randomness = {},
+          .allowed_slots = {},
+      });
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
 
   BabeLotteryImpl lottery_{vrf_provider_, babe_config_, hasher_};
