@@ -14,6 +14,7 @@ add_library(telemetry
     )
 target_link_libraries(telemetry
     spin_lock
+    kagome_uri
     Boost::boost
     Boost::date_time
     OpenSSL::SSL

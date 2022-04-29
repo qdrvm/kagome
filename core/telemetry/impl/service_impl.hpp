@@ -76,6 +76,9 @@ namespace kagome::telemetry {
     bool start();
     void stop();
 
+    /// parse telemetry endpoints from chain specification
+    std::vector<TelemetryEndpoint> chainSpecEndpoints() const;
+
     /// produces the greeting message for the (re-)established connections
     std::string connectedMessage();
 

@@ -45,8 +45,6 @@ target_link_libraries(chain_spec
     p2p::p2p_peer_id
     buffer
     sr25519_types
-    kagome_uri
-    telemetry
     )
 kagome_install(chain_spec)
 

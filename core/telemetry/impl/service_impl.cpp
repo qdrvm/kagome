@@ -17,6 +17,7 @@ namespace rapidjson {
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include "common/uri.hpp"
 #include "telemetry/impl/connection_impl.hpp"
 
 namespace {
@@ -65,7 +66,7 @@ namespace kagome::telemetry {
 
   bool TelemetryServiceImpl::prepare() {
     prepareGreetingMessage();
-    auto &chain_spec = chain_spec_.telemetryEndpoints();
+    auto chain_spec = chainSpecEndpoints();
     auto &cli_config = app_configuration_.telemetryEndpoints();
     auto &endpoints = cli_config.empty() ? chain_spec : cli_config;
 
@@ -109,6 +110,37 @@ namespace kagome::telemetry {
       connection->shutdown();
     }
     io_context_->stop();
+  }
+
+  std::vector<TelemetryEndpoint> TelemetryServiceImpl::chainSpecEndpoints()
+      const {
+    std::vector<TelemetryEndpoint> endpoints;
+    auto &from_spec = chain_spec_.telemetryEndpoints();
+    endpoints.reserve(from_spec.size());
+    for (const auto &endpoint : from_spec) {
+      // unfortunately, cannot use structured binding due to clang limitations
+      auto &uri_candidate = endpoint.first;
+      auto &verbosity = endpoint.second;
+      auto parsed_uri = common::Uri::parse(uri_candidate);
+      if (parsed_uri.error().has_value()) {
+        SL_WARN(log_,
+                "Telemetry endpoint '{}' cannot be interpreted as a valid URI "
+                "and was skipped: {}",
+                uri_candidate,
+                parsed_uri.error().value());
+        continue;
+      }
+      if (verbosity > 9) {
+        SL_WARN(log_,
+                "Telemetry endpoint '{}' is not valid, its verbosity level is "
+                "above the maximum possible {} > 9",
+                uri_candidate,
+                verbosity);
+        continue;
+      }
+      endpoints.emplace_back(std::move(parsed_uri), verbosity);
+    }
+    return endpoints;
   }
 
   void TelemetryServiceImpl::frequentNotificationsRoutine() {

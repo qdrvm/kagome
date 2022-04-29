@@ -45,7 +45,7 @@ namespace kagome::application {
       return boot_nodes_;
     }
 
-    const std::vector<telemetry::TelemetryEndpoint> &telemetryEndpoints()
+    const std::vector<std::pair<std::string, size_t>> &telemetryEndpoints()
         const override {
       return telemetry_endpoints_;
     }
@@ -119,7 +119,7 @@ namespace kagome::application {
     std::string chain_type_;
     std::string config_path_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;
-    std::vector<telemetry::TelemetryEndpoint> telemetry_endpoints_;
+    std::vector<std::pair<std::string, size_t>> telemetry_endpoints_;
     std::string protocol_id_{"sup"};
     std::map<std::string, std::string> properties_;
     std::set<primitives::BlockHash> fork_blocks_;
