@@ -117,6 +117,11 @@ namespace kagome::host_api {
     return storage_ext_.ext_storage_root_version_1();
   }
 
+  runtime::WasmSpan HostApiImpl::ext_storage_root_version_2(
+      runtime::WasmI32 state_version) {
+    return storage_ext_.ext_storage_root_version_2(state_version);
+  }
+
   runtime::WasmSpan HostApiImpl::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash) {
     return storage_ext_.ext_storage_changes_root_version_1(parent_hash);
@@ -142,6 +147,12 @@ namespace kagome::host_api {
   runtime::WasmPointer HostApiImpl::ext_trie_blake2_256_ordered_root_version_1(
       runtime::WasmSpan values_data) {
     return storage_ext_.ext_trie_blake2_256_ordered_root_version_1(values_data);
+  }
+
+  runtime::WasmPointer HostApiImpl::ext_trie_blake2_256_ordered_root_version_2(
+      runtime::WasmSpan values_data, runtime::WasmI32 state_version) {
+    return storage_ext_.ext_trie_blake2_256_ordered_root_version_2(
+        values_data, state_version);
   }
 
   // ------------------------Memory extensions v1-------------------------
