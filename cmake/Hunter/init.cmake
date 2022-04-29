@@ -38,6 +38,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/HunterGate.cmake)
 
 HunterGate(
     URL  https://github.com/GaroRobe/soramitsu-hunter/archive/refs/heads/scale_1.0.4.tar.gz
-    SHA1 7fe9e38fd2588401fcc138096da4ef73b786481d
+    SHA1 6790e6fb941d3b87679f9890209f219285c73279
     LOCAL
 )
