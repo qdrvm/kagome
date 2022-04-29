@@ -33,6 +33,8 @@ namespace kagome::api {
                  const gsl::span<const uint8_t> &),
                 (override));
 
+    MOCK_METHOD(outcome::result<common::Buffer>, rotateKeys, (), (override));
+
     MOCK_METHOD(outcome::result<bool>,
                 hasSessionKeys,
                 (const gsl::span<const uint8_t> &),

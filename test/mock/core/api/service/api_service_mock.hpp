@@ -62,7 +62,7 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<PubsubSubscriptionId>,
                 subscribeForExtrinsicLifecycle,
-                (const primitives::Transaction &),
+                (const primitives::Transaction::Hash &),
                 (override));
 
     MOCK_METHOD(outcome::result<bool>,

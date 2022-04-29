@@ -115,6 +115,7 @@
 #include "runtime/runtime_api/impl/metadata.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
+#include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
@@ -902,6 +903,7 @@ namespace {
         di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::BabeApiImpl>(),
+        di::bind<runtime::SessionKeysApi>.template to<runtime::SessionKeysApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderImpl>(),
         di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
@@ -1272,7 +1274,7 @@ namespace {
     }
 
     initialized = std::make_shared<network::ExtrinsicObserverImpl>(
-        injector.template create<sptr<api::AuthorApi>>());
+        injector.template create<sptr<transaction_pool::TransactionPool>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
