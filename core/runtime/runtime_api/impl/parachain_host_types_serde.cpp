@@ -9,7 +9,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const ScheduledCore &val) {
-    s << std::tie(val.para_id, val.collator);
+    s << val.para_id << val.collator;
     return s;
   }
 
@@ -23,15 +23,9 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const CandidateDescriptor &val) {
-    s << std::tie(val.para_id,
-                  val.relay_parent,
-                  val.collator,
-                  val.persisted_validation_data_hash,
-                  val.pov_hash,
-                  val.erasure_root,
-                  val.signature,
-                  val.para_head,
-                  val.validation_code_hash);
+    s << val.para_id << val.relay_parent << val.collator
+      << val.persisted_validation_data_hash << val.pov_hash << val.erasure_root
+      << val.signature << val.para_head << val.validation_code_hash;
     return s;
   }
 
@@ -62,14 +56,9 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const OccupiedCore &val) {
-    s << std::tie(val.next_up_on_available,
-                  val.occupied_since,
-                  val.time_out_at,
-                  val.next_up_on_time_out,
-                  val.availability,
-                  val.group_responsible,
-                  val.candidate_hash,
-                  val.candidate_descriptor);
+    s << val.next_up_on_available << val.occupied_since << val.time_out_at
+      << val.next_up_on_time_out << val.availability << val.group_responsible
+      << val.candidate_hash << val.candidate_descriptor;
     return s;
   }
 
@@ -98,10 +87,8 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const PersistedValidationData &val) {
-    s << std::tie(val.parent_head,
-                  val.relay_parent_number,
-                  val.relay_parent_storage_root,
-                  val.max_pov_size);
+    s << val.parent_head << val.relay_parent_number
+      << val.relay_parent_storage_root << val.max_pov_size;
     return s;
   }
 
@@ -118,7 +105,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const OutboundHrmpMessage &val) {
-    s << std::tie(val.recipient, val.data);
+    s << val.recipient << val.data;
     return s;
   }
 
@@ -132,12 +119,9 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const CandidateCommitments &val) {
-    s << std::tie(val.upward_messages,
-                  val.horizontal_messages,
-                  val.new_validation_code,
-                  val.head_data,
-                  val.processed_downward_messages,
-                  val.hrmp_watermark);
+    s << val.upward_messages << val.horizontal_messages
+      << val.new_validation_code << val.head_data
+      << val.processed_downward_messages << val.hrmp_watermark;
     return s;
   }
 
@@ -162,7 +146,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(
       ::scale::ScaleEncoderStream &s, const CommittedCandidateReceipt &val) {
-    s << std::tie(val.descriptor, val.commitments);
+    s << val.descriptor << val.commitments;
     return s;
   }
 
@@ -176,7 +160,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const CandidateReceipt &val) {
-    s << std::tie(val.descriptor, val.commitments_hash);
+    s << val.descriptor << val.commitments_hash;
     return s;
   }
 
@@ -190,7 +174,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const Candidate &val) {
-    s << std::tie(val.candidate_receipt, val.head_data, val.core_index);
+    s << val.candidate_receipt << val.head_data << val.core_index;
     return s;
   }
 
@@ -205,8 +189,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const CandidateBacked &val) {
-    s << static_cast<Candidate>(val);
-    s << val.group_index;
+    s << static_cast<Candidate>(val) << val.group_index;
     return s;
   }
 
@@ -214,8 +197,7 @@ namespace kagome::runtime {
                                           CandidateBacked &val) {
     Candidate fetched;
     GroupIndex group_index;
-    s >> fetched;
-    s >> group_index;
+    s >> fetched >> group_index;
     val = CandidateBacked{fetched.candidate_receipt,
                           fetched.head_data,
                           fetched.core_index,
@@ -234,8 +216,7 @@ namespace kagome::runtime {
                                           CandidateIncluded &val) {
     Candidate fetched;
     GroupIndex group_index;
-    s >> fetched;
-    s >> group_index;
+    s >> fetched >> group_index;
     val = CandidateIncluded{fetched.candidate_receipt,
                             fetched.head_data,
                             fetched.core_index,
@@ -245,19 +226,11 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const SessionInfo &val) {
-    s << std::tie(val.active_validator_indices,
-                  val.random_seed,
-                  val.dispute_period,
-                  val.validators,
-                  val.discovery_keys,
-                  val.assignment_keys,
-                  val.validator_groups,
-                  val.n_cores,
-                  val.zeroth_delay_tranche_width,
-                  val.relay_vrf_modulo_samples,
-                  val.n_delay_tranches,
-                  val.no_show_slots,
-                  val.needed_approvals);
+    s << val.active_validator_indices << val.random_seed << val.dispute_period
+      << val.validators << val.discovery_keys << val.assignment_keys
+      << val.validator_groups << val.n_cores << val.zeroth_delay_tranche_width
+      << val.relay_vrf_modulo_samples << val.n_delay_tranches
+      << val.no_show_slots << val.needed_approvals;
     return s;
   }
 
@@ -296,7 +269,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const InboundDownwardMessage &val) {
-    s << std::tie(val.sent_at, val.msg);
+    s << val.sent_at << val.msg;
     return s;
   }
 
@@ -310,7 +283,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const InboundHrmpMessage &val) {
-    s << std::tie(val.sent_at, val.data);
+    s << val.sent_at << val.data;
     return s;
   }
 
@@ -319,21 +292,6 @@ namespace kagome::runtime {
     std::tuple<BlockNumber, Buffer> fetched;
     s >> fetched;
     val = InboundHrmpMessage{std::get<0>(fetched), std::get<1>(fetched)};
-    return s;
-  }
-
-  ::scale::ScaleEncoderStream &operator<<(
-      ::scale::ScaleEncoderStream &s,
-      const std::map<unsigned int,
-                     std::vector<kagome::runtime::InboundHrmpMessage>>
-          &hrmp_map) {
-    return s;
-  }
-
-  ::scale::ScaleDecoderStream &operator>>(
-      ::scale::ScaleDecoderStream &s,
-      std::map<unsigned int, std::vector<kagome::runtime::InboundHrmpMessage>>
-          &hrmp_map) {
     return s;
   }
 }  // namespace kagome::runtime

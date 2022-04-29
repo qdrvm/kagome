@@ -104,6 +104,7 @@ namespace kagome::common {
   template <size_t size_>
   class Blob : public std::array<byte_t, size_> {
    public:
+    static constexpr bool is_static_collection = true;
     using const_narref = const byte_t (&)[size_];
     using const_narptr = const byte_t (*)[size_];
     /**
@@ -216,42 +217,6 @@ namespace kagome::common {
   using Hash128 = Blob<16>;
   using Hash256 = Blob<32>;
   using Hash512 = Blob<64>;
-
-  /**
-   * @brief scale-encodes blob instance to stream
-   * @tparam Stream output stream type
-   * @tparam size blob size
-   * @param s output stream reference
-   * @param blob value to encode
-   * @return reference to stream
-   */
-  template <class Stream,
-            size_t size,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Blob<size> &blob) {
-    for (auto &&it = blob.begin(), end = blob.end(); it != end; ++it) {
-      s << *it;
-    }
-    return s;
-  }
-
-  /**
-   * @brief decodes blob instance from stream
-   * @tparam Stream output stream type
-   * @tparam size blob size
-   * @param s input stream reference
-   * @param blob value to encode
-   * @return reference to stream
-   */
-  template <class Stream,
-            size_t size,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, Blob<size> &blob) {
-    for (auto &&it = blob.begin(), end = blob.end(); it != end; ++it) {
-      s >> *it;
-    }
-    return s;
-  }
 
   template <size_t N>
   inline std::ostream &operator<<(std::ostream &os, const Blob<N> &blob) {

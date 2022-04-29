@@ -67,15 +67,6 @@ namespace kagome::runtime {
                                           const InboundHrmpMessage &val);
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           InboundHrmpMessage &val);
-  ::scale::ScaleEncoderStream &operator<<(
-      ::scale::ScaleEncoderStream &s,
-      const std::map<unsigned int,
-                     std::vector<kagome::runtime::InboundHrmpMessage>>
-          &hrmp_map);
-  ::scale::ScaleDecoderStream &operator>>(
-      ::scale::ScaleDecoderStream &s,
-      std::map<unsigned int, std::vector<kagome::runtime::InboundHrmpMessage>>
-          &hrmp_map);
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_SERDE_HPP
