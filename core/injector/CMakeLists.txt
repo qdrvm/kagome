@@ -119,4 +119,5 @@ target_link_libraries(application_injector
     offchain_worker_api
     offchain_persistent_storage
     offchain_local_storage
+    session_keys_api
     )

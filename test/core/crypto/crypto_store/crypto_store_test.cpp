@@ -110,7 +110,8 @@ struct CryptoStoreTest : public test::BaseFS_Test {
   }
 
   bool isStoredOnDisk(KeyTypeId kt, const Blob<32> &public_key) {
-    auto file_name = kagome::crypto::decodeKeyTypeId(kt) + public_key.toHex();
+    auto file_name =
+        kagome::crypto::encodeKeyTypeIdToStr(kt) + public_key.toHex();
     auto file_path = crypto_store_test_directory / file_name;
     return boost::filesystem::exists(file_path);
   }

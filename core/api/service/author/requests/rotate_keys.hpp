@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_REQUESTS_HAS_KEY_HPP
-#define KAGOME_REQUESTS_HAS_KEY_HPP
+#ifndef KAGOME_REQUESTS_ROTATE_KEYS_HPP
+#define KAGOME_REQUESTS_ROTATE_KEYS_HPP
 
 #include <jsonrpc-lean/request.h>
 
@@ -14,17 +14,14 @@
 
 namespace kagome::api::author::request {
 
-  class HasKey final
-      : public details::RequestType<bool, std::string, std::string> {
+  class RotateKeys final : public details::RequestType<common::Buffer> {
    public:
-    explicit HasKey(std::shared_ptr<AuthorApi> api) : api_(std::move(api)) {
+    explicit RotateKeys(std::shared_ptr<AuthorApi> api) : api_(std::move(api)) {
       BOOST_ASSERT(api_);
     };
 
     outcome::result<Return> execute() override {
-      OUTCOME_TRY(public_key, common::unhexWith0x(getParam<0>()));
-      return api_->hasKey(gsl::span(public_key.data(), public_key.size()),
-                          crypto::decodeKeyTypeIdFromStr(getParam<1>()));
+      return api_->rotateKeys();
     }
 
    private:
@@ -33,4 +30,4 @@ namespace kagome::api::author::request {
 
 }  // namespace kagome::api::author::request
 
-#endif  // KAGOME_REQUESTS_HAS_KEY_HPP
+#endif  // KAGOME_REQUESTS_ROTATE_KEYS_HPP
