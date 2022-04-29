@@ -40,6 +40,23 @@ namespace kagome {
       }
     }
   };
+
+  template <class Stream,
+            typename T,
+            typename Tag,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const Tagged<T, Tag> &tagged) {
+    return s << (const T &)tagged;
+  }
+
+  template <class Stream,
+            typename T,
+            typename Tag,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, Tagged<T, Tag> &tagged) {
+    return s >> (T &)tagged;
+  }
+
 }  // namespace kagome
 
 #endif  // KAGOME_TAGGED
