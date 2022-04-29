@@ -15,6 +15,7 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
@@ -153,12 +154,7 @@ namespace kagome::host_api {
     auto result = get(key_buffer);
 
     if (result) {
-      auto &opt_buf = result.value();
-      if (opt_buf.has_value()) {
-        SL_TRACE_FUNC_CALL(logger_, opt_buf.value().get().toHex(), key_buffer);
-      } else {
-        SL_TRACE_FUNC_CALL(logger_, std::string_view{"none"}, key_buffer);
-      }
+      SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
     } else {
       logger_->error(
           error_message, key_buffer.toHex(), result.error().message());
@@ -345,6 +341,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_commit_transaction_version_1() {
     auto res = storage_provider_->commitTransaction();
+    SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction rollback has failed: {}",
                      res.error().message());
@@ -354,6 +351,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_rollback_transaction_version_1() {
     auto res = storage_provider_->rollbackTransaction();
+    SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction commit has failed: {}",
                      res.error().message());

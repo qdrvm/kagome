@@ -243,4 +243,24 @@ TEST_F(TrieBatchTest, TopperBatchAtomic) {
   ASSERT_OUTCOME_IS_FALSE(p_batch->contains("123"_buf))
 }
 
+/**
+ * GIVEN a key present in a persistent batch but not present in its child topper
+ * batch WHEN issuing a remove of this key from the topper batch THEN the key
+ * must be removed from the persistent batch after a writeback of the topper
+ * batch
+ */
+TEST_F(TrieBatchTest, TopperBatchRemove) {
+  std::shared_ptr<PersistentTrieBatch> p_batch =
+      trie->getPersistentBatchAt(empty_hash).value();
+
+  ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("102030"_hex2buf, "010203"_hex2buf));
+
+  auto t_batch = p_batch->batchOnTop();
+
+  t_batch->remove("102030"_hex2buf).value();
+  t_batch->writeBack().value();
+
+  ASSERT_FALSE(p_batch->contains("102030"_hex2buf).value());
+}
+
 // TODO(Harrm): #595 test clearPrefix

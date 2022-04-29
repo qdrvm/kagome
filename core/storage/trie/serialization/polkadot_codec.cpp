@@ -30,51 +30,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
 
 namespace kagome::storage::trie {
 
-  inline uint8_t byteFromNibbles(uint8_t high, uint8_t low) {
-    // get low4 from nibbles to avoid check: if(low > 0xff) return error
-    return (high << 4u) | (low & 0xfu);
-  }
-
   inline common::Buffer ushortToBytes(uint16_t b) {
     common::Buffer out(2, 0);
     out[1] = (b >> 8u) & 0xffu;
     out[0] = b & 0xffu;
     return out;
-  }
-
-  common::Buffer PolkadotCodec::nibblesToKey(const KeyNibbles &nibbles) {
-    Buffer res;
-    if (nibbles.size() % 2 == 0) {
-      res = Buffer(nibbles.size() / 2, 0);
-      for (size_t i = 0; i < nibbles.size(); i += 2) {
-        res[i / 2] = byteFromNibbles(nibbles[i], nibbles[i + 1]);
-      }
-    } else {
-      res = Buffer(nibbles.size() / 2 + 1, 0);
-      res[0] = nibbles[0];
-      for (size_t i = 2; i < nibbles.size(); i += 2) {
-        res[i / 2] = byteFromNibbles(nibbles[i - 1], nibbles[i]);
-      }
-    }
-    return res;
-  }
-
-  KeyNibbles PolkadotCodec::keyToNibbles(const common::BufferView &key) {
-    if (key.empty()) {
-      return {};
-    }
-    if (key.size() == 1 && key[0] == 0) {
-      return KeyNibbles{common::Buffer{0, 0}};
-    }
-
-    auto l = key.size() * 2;
-    KeyNibbles res(common::Buffer(l, 0));
-    for (ssize_t i = 0; i < key.size(); i++) {
-      res[2 * i] = key[i] >> 4u;
-      res[2 * i + 1] = key[i] & 0xfu;
-    }
-
-    return res;
   }
 
   common::Buffer PolkadotCodec::merkleValue(
@@ -205,7 +165,7 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(encoding, encodeHeader(node));
 
     // key
-    encoding += nibblesToKey(node.key_nibbles);
+    encoding += node.key_nibbles.toByteBuffer();
 
     // children bitmap
     encoding += ushortToBytes(node.childrenBitmap());
@@ -240,7 +200,7 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(encoding, encodeHeader(node));
 
     // key
-    encoding += nibblesToKey(node.key_nibbles);
+    encoding += node.key_nibbles.toByteBuffer();
 
     if (!node.value) return Error::NO_NODE_VALUE;
     // scale encoded value
@@ -356,7 +316,7 @@ namespace kagome::storage::trie {
     }
     // array of nibbles is much more convenient than array of bytes, though it
     // wastes some memory
-    KeyNibbles partial_key_nibbles = keyToNibbles(partial_key);
+    auto partial_key_nibbles = KeyNibbles::fromByteBuffer(partial_key);
     if (nibbles_num % 2 == 1) {
       partial_key_nibbles = partial_key_nibbles.subbuffer(1);
     }
