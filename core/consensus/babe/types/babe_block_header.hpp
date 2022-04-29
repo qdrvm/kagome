@@ -20,13 +20,13 @@ namespace kagome::consensus {
    * https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/consensus/babe/src/digests.rs#L74
    */
   struct BabeBlockHeader {
-    SlotType slot_assignment_type;
+    SlotType slot_assignment_type{};
 
     /// slot, in which the block was produced
     BabeSlotNumber slot_number;
 
     /// output of VRF function
-    crypto::VRFOutput vrf_output;
+    crypto::VRFOutput vrf_output{};
 
     /// authority index of the producer
     primitives::AuthorityIndex authority_index;

@@ -21,7 +21,6 @@
 #include "scale/encode_append.hpp"
 #include "storage/changes_trie/changes_trie_config.hpp"
 #include "storage/predefined_keys.hpp"
-#include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -665,7 +664,7 @@ TEST_F(StorageExtensionTest, RootTest) {
 
   // rest of ext_storage_root_version_1
   WasmPointer root_pointer = 43;
-  WasmSize root_size = 43;
+  WasmSize root_size = Hash256::size();
   RootHash root_val = "123456"_hash256;
   WasmSpan root_span = PtrSize(root_pointer, root_size).combine();
   EXPECT_CALL(*trie_batch_, commit())

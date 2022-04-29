@@ -167,7 +167,7 @@ namespace kagome::api {
         PubsubSubscriptionId subscription_id) override;
 
     outcome::result<PubsubSubscriptionId> subscribeForExtrinsicLifecycle(
-        const primitives::Transaction &tx) override;
+        const primitives::Transaction::Hash &tx_hash) override;
     outcome::result<bool> unsubscribeFromExtrinsicLifecycle(
         PubsubSubscriptionId subscription_id) override;
 

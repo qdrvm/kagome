@@ -11,45 +11,39 @@
 #include <stdexcept>
 
 #include "api/service/api_service.hpp"
-#include "common/visitor.hpp"
+#include "blockchain/block_tree.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/crypto_store/crypto_suites.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
-#include "network/transactions_transmitter.hpp"
 #include "primitives/transaction.hpp"
-#include "runtime/runtime_api/tagged_transaction_queue.hpp"
+#include "runtime/runtime_api/session_keys_api.hpp"
 #include "scale/scale_decoder_stream.hpp"
 #include "subscription/subscriber.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
-  AuthorApiImpl::AuthorApiImpl(
-      sptr<runtime::TaggedTransactionQueue> api,
-      sptr<transaction_pool::TransactionPool> pool,
-      sptr<crypto::Hasher> hasher,
-      sptr<network::TransactionsTransmitter> transactions_transmitter,
-      sptr<crypto::CryptoStore> store,
-      sptr<crypto::SessionKeys> keys,
-      sptr<crypto::KeyFileStorage> key_store)
-      : api_{std::move(api)},
+  AuthorApiImpl::AuthorApiImpl(sptr<runtime::SessionKeysApi> key_api,
+                               sptr<transaction_pool::TransactionPool> pool,
+                               sptr<crypto::CryptoStore> store,
+                               sptr<crypto::SessionKeys> keys,
+                               sptr<crypto::KeyFileStorage> key_store,
+                               sptr<blockchain::BlockTree> block_tree)
+      : keys_api_(std::move(key_api)),
         pool_{std::move(pool)},
-        hasher_{std::move(hasher)},
-        transactions_transmitter_{std::move(transactions_transmitter)},
         store_{std::move(store)},
         keys_{std::move(keys)},
         key_store_{std::move(key_store)},
+        block_tree_{std::move(block_tree)},
         logger_{log::createLogger("AuthorApi", "author_api")} {
-    BOOST_ASSERT_MSG(api_ != nullptr, "author api is nullptr");
+    BOOST_ASSERT_MSG(keys_api_ != nullptr, "session keys api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
-    BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
-    BOOST_ASSERT_MSG(transactions_transmitter_ != nullptr,
-                     "transactions_transmitter is nullptr");
     BOOST_ASSERT_MSG(store_ != nullptr, "crypto store is nullptr");
     BOOST_ASSERT_MSG(keys_ != nullptr, "session keys store is nullptr");
     BOOST_ASSERT_MSG(key_store_ != nullptr, "key store is nullptr");
+    BOOST_ASSERT_MSG(block_tree_ != nullptr, "block tree is nullptr");
     BOOST_ASSERT_MSG(logger_ != nullptr, "logger is nullptr");
   }
 
@@ -62,16 +56,7 @@ namespace kagome::api {
   outcome::result<common::Hash256> AuthorApiImpl::submitExtrinsic(
       primitives::TransactionSource source,
       const primitives::Extrinsic &extrinsic) {
-    OUTCOME_TRY(tx, constructTransaction(source, extrinsic));
-
-    if (tx.should_propagate) {
-      transactions_transmitter_->propagateTransactions(
-          gsl::make_span(std::vector{tx}));
-    }
-    auto hash = tx.hash;
-    // send to pool
-    OUTCOME_TRY(pool_->submitOne(std::move(tx)));
-    return hash;
+    return pool_->submitExtrinsic(source, extrinsic);
   }
 
   outcome::result<void> AuthorApiImpl::insertKey(
@@ -96,6 +81,13 @@ namespace kagome::api {
     keys_->getBabeKeyPair();
     keys_->getGranKeyPair();
     return res;
+  }
+
+  outcome::result<common::Buffer> AuthorApiImpl::rotateKeys() {
+    OUTCOME_TRY(encoded_session_keys,
+                keys_api_->generate_session_keys(
+                    block_tree_->deepestLeaf().hash, std::nullopt));
+    return std::move(encoded_session_keys);
   }
 
   // logic here is polkadot specific only!
@@ -163,33 +155,22 @@ namespace kagome::api {
 
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
-    OUTCOME_TRY(tx,
-                constructTransaction(
-                    TransactionSource::External,
-                    extrinsic));  // submit and watch could be executed only
-                                  // from RPC call, so External source is chosen
-
-    SubscriptionId sub_id{};
     if (auto service = api_service_.lock()) {
-      OUTCOME_TRY(res_sub_id, service->subscribeForExtrinsicLifecycle(tx));
-      SL_DEBUG(logger_,
-               "Subscribe for ex #{} 0x{}",
-               tx.hash.toHex(),
-               tx.ext.data.toHex());
-      sub_id = res_sub_id;
-    } else {
-      throw jsonrpc::InternalErrorFault(
-          "Internal error. Api service not initialized.");
-    }
-    if (tx.should_propagate) {
-      transactions_transmitter_->propagateTransactions(
-          gsl::make_span(std::vector{tx}));
+      OUTCOME_TRY(tx_hash,
+                  submitExtrinsic(
+                      // submit and watch could be executed only
+                      // from RPC call, so External source is chosen
+                      TransactionSource::External,
+                      extrinsic));
+
+      OUTCOME_TRY(sub_id, service->subscribeForExtrinsicLifecycle(tx_hash));
+      SL_DEBUG(logger_, "Subscribe for ex hash={}", tx_hash);
+
+      return sub_id;
     }
 
-    // send to pool
-    OUTCOME_TRY(pool_->submitOne(std::move(tx)));
-
-    return sub_id;
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
   }
 
   outcome::result<bool> AuthorApiImpl::unwatchExtrinsic(SubscriptionId sub_id) {
@@ -198,40 +179,6 @@ namespace kagome::api {
     }
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");
-  }
-
-  outcome::result<primitives::Transaction> AuthorApiImpl::constructTransaction(
-      primitives::TransactionSource source,
-      primitives::Extrinsic extrinsic) const {
-    OUTCOME_TRY(res,
-                api_->validate_transaction(
-                    primitives::TransactionSource::External, extrinsic));
-
-    return visit_in_place(
-        res,
-        [&](const primitives::TransactionValidityError &e) {
-          return visit_in_place(
-              e,
-              // return either invalid or unknown validity error
-              [](const auto &validity_error)
-                  -> outcome::result<primitives::Transaction> {
-                return validity_error;
-              });
-        },
-        [&](const primitives::ValidTransaction &v)
-            -> outcome::result<primitives::Transaction> {
-          common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
-          size_t length = extrinsic.data.size();
-
-          return primitives::Transaction{extrinsic,
-                                         length,
-                                         hash,
-                                         v.priority,
-                                         v.longevity,
-                                         v.requires,
-                                         v.provides,
-                                         v.propagate};
-        });
   }
 
 }  // namespace kagome::api

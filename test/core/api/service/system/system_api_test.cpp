@@ -108,7 +108,7 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
   constexpr auto kInitialNonce = 42;
 
   EXPECT_CALL(*block_tree_mock_, deepestLeaf())
-  .WillOnce(Return(kagome::primitives::BlockInfo{1, "block1"_hash256}));
+      .WillOnce(Return(kagome::primitives::BlockInfo{1, "block1"_hash256}));
   EXPECT_CALL(*account_nonce_api_mock_,
               account_nonce("block1"_hash256, kAccountId))
       .WillOnce(Return(kInitialNonce));
@@ -121,8 +121,7 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
   std::array<std::vector<uint8_t>, kReadyTxNum> encoded_nonces;
   std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_txs;
   for (size_t i = 0; i < kReadyTxNum; i++) {
-    EXPECT_OUTCOME_TRUE(enc_nonce,
-                        scale::encode(kAccountId, kInitialNonce + i))
+    EXPECT_OUTCOME_TRUE(enc_nonce, scale::encode(kAccountId, kInitialNonce + i))
     encoded_nonces[i] = std::move(enc_nonce);
     ready_txs[Hash256{{static_cast<uint8_t>(i)}}] =
         std::make_shared<Transaction>(

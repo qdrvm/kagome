@@ -70,4 +70,5 @@ namespace kagome::storage::trie {
     }
     return empty_hash;
   }
+
 }  // namespace kagome::storage::trie

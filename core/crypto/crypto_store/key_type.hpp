@@ -26,25 +26,31 @@ namespace kagome::crypto {
    */
   enum KnownKeyTypeId : KeyTypeId {
     // clang-format off
-    KEY_TYPE_BABE = 0x62616265u, // BABE, sr25519
-    KEY_TYPE_GRAN = 0x6772616eu, // GRANDPA, ed25519
-    KEY_TYPE_ACCO = 0x6163636fu, // Account control [sr25519, ed25519, secp256k1]
-    KEY_TYPE_IMON = 0x696d6f6eu, // I'm Online, sr25519
-    KEY_TYPE_AUDI = 0x61756469u, // Account discovery [sr25519, ed25519, secp256k1]
-    KEY_TYPE_LP2P = 0x6c703270u, // LibP2P
-    KEY_TYPE_ASGN = 0x6173676eu, // ASGN
-    KEY_TYPE_PARA = 0x70617261u, // PARA
+    KEY_TYPE_BABE = 0x65626162u, // BABE, sr25519
+    KEY_TYPE_GRAN = 0x6e617267u, // GRANDPA, ed25519
+    KEY_TYPE_ACCO = 0x6f636361u, // Account control [sr25519, ed25519, secp256k1]
+    KEY_TYPE_IMON = 0x6e6f6d69u, // I'm Online, sr25519
+    KEY_TYPE_AUDI = 0x69647561u, // Account discovery [sr25519, ed25519, secp256k1]
+    KEY_TYPE_LP2P = 0x7032706cu, // LibP2P
+    KEY_TYPE_ASGN = 0x6e677361u, // ASGN
+    KEY_TYPE_PARA = 0x61726170u, // PARA
     // clang-format on
   };
 
   /**
    * @brief makes string representation of KeyTypeId
-   * @param param param key type
-   * @return string representation of key type value
+   * @param key_type_id KeyTypeId
+   * @return string representation of KeyTypeId
    */
-  std::string decodeKeyTypeId(KeyTypeId param);
+  std::string encodeKeyTypeIdToStr(KeyTypeId key_type_id);
 
-  KeyTypeId encodeKeyTypeId(std::string str);
+  /**
+   * @brief restores KeyTypeId from its string representation
+   * @param param string representation of key type
+   * @return KeyTypeId
+   */
+  KeyTypeId decodeKeyTypeIdFromStr(std::string_view str);
+
   /**
    * @brief checks whether key type value is supported
    * @param k key type value

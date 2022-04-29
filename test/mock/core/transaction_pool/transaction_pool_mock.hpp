@@ -20,6 +20,11 @@ namespace kagome::transaction_pool {
         (),
         (const));
 
+    MOCK_METHOD(outcome::result<Transaction::Hash>,
+                submitExtrinsic,
+                (primitives::TransactionSource, primitives::Extrinsic),
+                (override));
+
     MOCK_METHOD(outcome::result<void>, submitOne, (Transaction), ());
     outcome::result<void> submitOne(Transaction &&tx) override {
       return submitOne(tx);

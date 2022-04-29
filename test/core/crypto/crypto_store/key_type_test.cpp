@@ -18,8 +18,8 @@ using kagome::crypto::KEY_TYPE_IMON;
 using kagome::crypto::KEY_TYPE_LP2P;
 using kagome::crypto::KEY_TYPE_PARA;
 
-using kagome::crypto::decodeKeyTypeId;
-using kagome::crypto::encodeKeyTypeId;
+using kagome::crypto::decodeKeyTypeIdFromStr;
+using kagome::crypto::encodeKeyTypeIdToStr;
 using kagome::crypto::KeyTypeId;
 
 namespace {
@@ -40,7 +40,7 @@ struct KeyTypeTest : public ::testing::TestWithParam<
 
 TEST_P(KeyTypeTest, DecodeSuccess) {
   auto [key_type, repr, should_succeed] = GetParam();
-  auto &&key_type_str = decodeKeyTypeId(key_type);
+  auto &&key_type_str = encodeKeyTypeIdToStr(key_type);
 
   if (should_succeed) {
     ASSERT_EQ(key_type_str, repr);
@@ -51,7 +51,7 @@ TEST_P(KeyTypeTest, DecodeSuccess) {
 
 TEST_P(KeyTypeTest, EncodeSuccess) {
   auto [repr, key_type_str, should_succeed] = GetParam();
-  auto key_type = encodeKeyTypeId(std::string(key_type_str));
+  auto key_type = decodeKeyTypeIdFromStr(std::string(key_type_str));
 
   if (should_succeed) {
     ASSERT_EQ(key_type, repr);

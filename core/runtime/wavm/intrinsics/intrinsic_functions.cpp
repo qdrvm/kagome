@@ -224,6 +224,14 @@ namespace kagome::runtime::wavm {
         values_data);
   }
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_trie_blake2_256_ordered_root_version_2,
+                                 WAVM::I64 values_data,
+                                 WAVM::I32 state_version) {
+    return peekHostApi()->ext_trie_blake2_256_ordered_root_version_2(
+        values_data, state_version);
+  }
+
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
                                  ext_misc_print_hex_version_1,
                                  WAVM::I64 values_data) {
@@ -572,6 +580,12 @@ namespace kagome::runtime::wavm {
     return peekHostApi()->ext_storage_root_version_1();
   }
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_storage_root_version_2,
+                                 WAVM::I32 state_version) {
+    return peekHostApi()->ext_storage_root_version_2(state_version);
+  }
+
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
                                  ext_storage_set_version_1,
                                  WAVM::I64 key,
@@ -710,6 +724,7 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I32, ext_sandbox_memory_set_version_1, I32, I32, I32, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_storage_exists_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_1, I64)
+    REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_2, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_root_version_1, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_ed25519_public_keys_version_1, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_ed25519_sign_version_1, I32, I32, I64)
@@ -730,6 +745,7 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I64, ext_storage_next_key_version_1, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_storage_read_version_1, I64, I64, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_storage_root_version_1)
+    REGISTER_HOST_INTRINSIC(I64, ext_storage_root_version_2, I32)
 
     // -------------------------- Offchain extension ---------------------------
     REGISTER_HOST_INTRINSIC(I32, ext_offchain_is_validator_version_1)

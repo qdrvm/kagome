@@ -55,7 +55,8 @@ namespace kagome::api {
         PubsubSubscriptionId subscription_id) = 0;
 
     virtual outcome::result<PubsubSubscriptionId>
-    subscribeForExtrinsicLifecycle(const primitives::Transaction &tx) = 0;
+    subscribeForExtrinsicLifecycle(
+        const primitives::Transaction::Hash &tx_hash) = 0;
 
     virtual outcome::result<bool> unsubscribeFromExtrinsicLifecycle(
         PubsubSubscriptionId subscription_id) = 0;

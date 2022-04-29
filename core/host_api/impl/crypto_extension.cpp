@@ -31,6 +31,19 @@ namespace {
     logger->error(msg);
     throw std::runtime_error(msg);
   }
+
+  void checkIfKeyIsSupported(kagome::crypto::KeyTypeId key_type,
+                             kagome::log::Logger log) {
+    if (not kagome::crypto::isSupportedKeyType(key_type)) {
+      const auto *p = reinterpret_cast<const char *>(&key_type);
+      std::string key_type_str(p, p + sizeof(key_type));
+
+      log->warn("key type <ascii: {}, hex: {:08x}> is not officially supported",
+                key_type_str,
+                key_type);
+    }
+  }
+
 }  // namespace
 
 namespace kagome::host_api {
@@ -39,7 +52,7 @@ namespace kagome::host_api {
   namespace ecdsa_constants = crypto::constants::ecdsa;
   namespace secp256k1 = crypto::secp256k1;
 
-  using crypto::decodeKeyTypeId;
+  using crypto::encodeKeyTypeIdToStr;
   using crypto::Secp256k1ProviderError;
   using secp256k1::CompressedPublicKey;
   using secp256k1::MessageHash;
@@ -166,10 +179,7 @@ namespace kagome::host_api {
 
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-    if (!crypto::isSupportedKeyType(key_type_id)) {
-      auto kt = crypto::decodeKeyTypeId(key_type_id);
-      logger_->warn("key type '{}' is not officially supported ", kt);
-    }
+    checkIfKeyIsSupported(key_type_id, logger_);
 
     auto public_keys = crypto_store_->getEd25519PublicKeys(key_type_id);
     if (not public_keys) {
@@ -226,10 +236,7 @@ namespace kagome::host_api {
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-    if (!crypto::isSupportedKeyType(key_type_id)) {
-      logger_->warn("key type '{}' is not officially supported",
-                    common::int_to_hex(key_type_id, 8));
-    }
+    checkIfKeyIsSupported(key_type_id, logger_);
 
     auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
     auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
@@ -265,10 +272,7 @@ namespace kagome::host_api {
 
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-    if (!crypto::isSupportedKeyType(key_type_id)) {
-      logger_->warn("key type '{}' is not officially supported",
-                    common::int_to_hex(key_type_id, 8));
-    }
+    checkIfKeyIsSupported(key_type_id, logger_);
 
     auto public_buffer =
         getMemory().loadN(key, crypto::Ed25519PublicKey::size());
@@ -336,10 +340,8 @@ namespace kagome::host_api {
 
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-    if (!crypto::isSupportedKeyType(key_type_id)) {
-      logger_->warn("key type '{}' is not officially supported",
-                    common::int_to_hex(key_type_id, 8));
-    }
+    checkIfKeyIsSupported(key_type_id, logger_);
+
     auto public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
     if (not public_keys) {
       throw_with_error(logger_,
@@ -357,10 +359,7 @@ namespace kagome::host_api {
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-    if (!crypto::isSupportedKeyType(key_type_id)) {
-      logger_->warn("key type '{}' is not officially supported",
-                    common::int_to_hex(key_type_id, 8));
-    }
+    checkIfKeyIsSupported(key_type_id, logger_);
 
     auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
     auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
@@ -399,13 +398,10 @@ namespace kagome::host_api {
     using ResultType = std::optional<crypto::Sr25519Signature>;
     static const auto error_result =
         scale::encode(ResultType(std::nullopt)).value();
+
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-
-    if (!crypto::isSupportedKeyType(key_type_id)) {
-      logger_->warn("key type '{}' is not officially supported",
-                    common::int_to_hex(key_type_id, 8));
-    }
+    checkIfKeyIsSupported(key_type_id, logger_);
 
     auto public_buffer =
         getMemory().loadN(key, crypto::Sr25519PublicKey::size());
@@ -581,10 +577,8 @@ namespace kagome::host_api {
 
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-    if (!crypto::isSupportedKeyType(key_type_id)) {
-      logger_->warn("key type '{}' is not officially supported",
-                    common::int_to_hex(key_type_id, 8));
-    }
+    checkIfKeyIsSupported(key_type_id, logger_);
+
     auto public_keys = crypto_store_->getEcdsaPublicKeys(key_type_id);
     if (not public_keys) {
       throw_with_error(logger_,
@@ -606,10 +600,8 @@ namespace kagome::host_api {
 
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-    if (!crypto::isSupportedKeyType(key_type_id)) {
-      logger_->warn("key type '{}' is not officially supported",
-                    common::int_to_hex(key_type_id, 8));
-    }
+    checkIfKeyIsSupported(key_type_id, logger_);
+
     auto public_buffer = getMemory().loadN(key, sizeof(crypto::EcdsaPublicKey));
     auto [msg_data, msg_len] = runtime::PtrSize(msg);
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
@@ -643,10 +635,8 @@ namespace kagome::host_api {
 
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-    if (!crypto::isSupportedKeyType(key_type_id)) {
-      logger_->warn("key type '{}' is not officially supported",
-                    common::int_to_hex(key_type_id, 8));
-    }
+    checkIfKeyIsSupported(key_type_id, logger_);
+
     auto public_buffer = getMemory().loadN(key, sizeof(crypto::EcdsaPublicKey));
     auto [msg_data, msg_len] = runtime::PtrSize(msg);
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
@@ -679,10 +669,7 @@ namespace kagome::host_api {
       runtime::WasmSize key_type, runtime::WasmSpan seed) const {
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
-    if (!crypto::isSupportedKeyType(key_type_id)) {
-      logger_->warn("key type '{}' is not officially supported",
-                    common::int_to_hex(key_type_id, 8));
-    }
+    checkIfKeyIsSupported(key_type_id, logger_);
 
     auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
     auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);

@@ -97,6 +97,17 @@ namespace kagome::host_api {
     [[nodiscard]] virtual runtime::WasmSpan ext_storage_root_version_1() = 0;
 
     /**
+     * @brief Commits all existing operations and computes the resulting storage
+     * root.
+     * @param state_version - is using state version, where
+     *   0 - state version 1
+     *   1 - node hashes
+     * @return pointer to memory containing scale-encoded storage root
+     */
+    [[nodiscard]] virtual runtime::WasmSpan ext_storage_root_version_2(
+        runtime::WasmI32 state_version) = 0;
+
+    /**
      * Commits all existing operations and gets the resulting change
      * root. The parent hash is a SCALE encoded change root.
      * @param parent_hash wasm span containing parent hash
@@ -160,7 +171,7 @@ namespace kagome::host_api {
      * Conducts a 256-bit Blake2 trie root formed from the enumerated items.
      * @param values_data wasm span containing the enumerated items from which
      * the trie root gets formed. The items consist of a SCALE encoded array
-     * containing only values, where the corre-sponding key of each value is the
+     * containing only values, where the corresponding key of each value is the
      * index of the item in the array, starting at 0. The keys are
      * little-endian, fixed-size integers.
      * @return wasm span containing the 256-bit trie root result
@@ -168,6 +179,11 @@ namespace kagome::host_api {
     [[nodiscard]] virtual runtime::WasmPointer
     ext_trie_blake2_256_ordered_root_version_1(
         runtime::WasmSpan values_data) = 0;
+
+    // TODO(xDimon): add doc-comment
+    [[nodiscard]] virtual runtime::WasmPointer
+    ext_trie_blake2_256_ordered_root_version_2(
+        runtime::WasmSpan values_data, runtime::WasmI32 state_version) = 0;
 
     // ------------------------- Memory extensions v1 --------------------------
     /**
