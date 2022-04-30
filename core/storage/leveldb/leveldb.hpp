@@ -70,6 +70,8 @@ namespace kagome::storage {
 
     void compact(const Buffer &first, const Buffer &last);
 
+    size_t size() const override;
+
    private:
     LevelDB() = default;
 

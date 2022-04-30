@@ -85,6 +85,7 @@
 #include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/peer_manager_impl.hpp"
+#include "network/impl/rating_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
@@ -135,6 +136,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "telemetry/impl/service_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
@@ -614,7 +616,6 @@ namespace {
             .template create<std::shared_ptr<primitives::BabeConfiguration>>();
     auto babe_util =
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
-
     auto block_tree_res =
         blockchain::BlockTreeImpl::create(header_repo,
                                           std::move(storage),
@@ -671,7 +672,8 @@ namespace {
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::Router>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
-        injector.template create<sptr<crypto::Hasher>>());
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<network::PeerRatingRepository>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1100,6 +1102,7 @@ namespace {
         di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
         di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
+        di::bind<network::PeerRatingRepository>.template to<network::PeerRatingRepositoryImpl>(),
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
@@ -1168,6 +1171,7 @@ namespace {
         }),
         di::bind<application::mode::RecoveryMode>.to(
             [](auto const &injector) { return get_recovery_mode(injector); }),
+        di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1463,6 +1467,11 @@ namespace kagome::injector {
   std::shared_ptr<metrics::MetricsWatcher>
   KagomeNodeInjector::injectMetricsWatcher() {
     return pimpl_->injector_.create<sptr<metrics::MetricsWatcher>>();
+  }
+
+  std::shared_ptr<telemetry::TelemetryService>
+  KagomeNodeInjector::injectTelemetryService() {
+    return pimpl_->injector_.create<sptr<telemetry::TelemetryService>>();
   }
 
   std::shared_ptr<application::mode::RecoveryMode>

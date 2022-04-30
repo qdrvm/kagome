@@ -19,6 +19,7 @@
 #include "network/peering_config.hpp"
 #include "network/types/roles.hpp"
 #include "primitives/block_id.hpp"
+#include "telemetry/endpoint.hpp"
 
 namespace kagome::application {
 
@@ -164,6 +165,13 @@ namespace kagome::application {
      * The version of node is going to be used in telemetry, etc.
      */
     virtual const std::string &nodeVersion() const = 0;
+
+    /**
+     * List of telemetry endpoints specified via CLI argument or config file
+     * @return a vector of parsed telemetry endpoints
+     */
+    virtual const std::vector<telemetry::TelemetryEndpoint>
+        &telemetryEndpoints() const = 0;
 
     enum class RuntimeExecutionMethod { Compile, Interpret };
     /**

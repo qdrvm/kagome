@@ -29,6 +29,7 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "telemetry/service.hpp"
 
 namespace kagome::network {
   class Synchronizer;
@@ -176,6 +177,7 @@ namespace kagome::consensus::babe {
     metrics::Histogram *metric_block_proposal_time_;
 
     log::Logger log_;
+    telemetry::Telemetry telemetry_;  // telemetry
   };
 }  // namespace kagome::consensus::babe
 

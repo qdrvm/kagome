@@ -793,6 +793,8 @@ namespace kagome::network {
             if (handler) handler(block_info);
           }
         } else {
+          telemetry_->notifyBlockImported(
+              block_info, telemetry::BlockOrigin::kNetworkInitialSync);
           if (handler) handler(block_info);
         }
       }

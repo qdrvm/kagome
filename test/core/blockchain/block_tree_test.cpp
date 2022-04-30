@@ -105,6 +105,7 @@ struct BlockTreeTest : public testing::Test {
               return outcome::success();
             }));
 
+    putNumToHash(kGenesisBlockInfo);
     putNumToHash(kFinalizedBlockInfo);
 
     auto chain_events_engine =
@@ -196,6 +197,9 @@ struct BlockTreeTest : public testing::Test {
     return hash;
   }
 
+  const BlockInfo kGenesisBlockInfo{
+      0ul, BlockHash::fromString("66dj4kdn4odnfkslfn3k4jdnbmeod555").value()};
+
   const BlockInfo kFinalizedBlockInfo{
       42ul, BlockHash::fromString("andj4kdn4odnfkslfn3k4jdnbmeodkv4").value()};
 
@@ -265,6 +269,7 @@ struct BlockTreeTest : public testing::Test {
       num_to_hash_.erase(it);
     }
   }
+
 };
 
 /**

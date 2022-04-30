@@ -20,10 +20,10 @@ target_link_libraries(offchain_local_storage
 kagome_install(offchain_local_storage)
 
 add_library(http_request
-    uri.cpp
     http_request.cpp
     )
 target_link_libraries(http_request
+    kagome_uri
     Boost::boost
     OpenSSL::Crypto
     OpenSSL::SSL

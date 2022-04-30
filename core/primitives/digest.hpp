@@ -9,6 +9,7 @@
 #include <boost/variant.hpp>
 
 #include "common/buffer.hpp"
+#include "common/tagged.hpp"
 #include "common/unused.hpp"
 #include "primitives/scheduled_change.hpp"
 #include "scale/scale.hpp"
@@ -26,6 +27,9 @@ namespace kagome::primitives {
 
   inline const auto kUnsupportedEngineId_POL1 =
       ConsensusEngineId::fromString("POL1").value();
+
+  inline const auto kUnsupportedEngineId_BEEF =
+      ConsensusEngineId::fromString("BEEF").value();
 
   /// System digest item that contains the root of changes trie at given
   /// block. It is created for every block iff runtime supports changes
@@ -103,7 +107,8 @@ namespace kagome::primitives {
                      Pause,            // 4: N delay
                      Resume>;          // 5: N delay
 
-  using UnsupportedDigest_POL1 = Empty;
+  using UnsupportedDigest_POL1 = Tagged<Empty, struct POL1>;
+  using UnsupportedDigest_BEEF = Tagged<Empty, struct BEEF>;
 
   struct DecodedConsensusMessage {
     static outcome::result<DecodedConsensusMessage> create(
@@ -116,6 +121,9 @@ namespace kagome::primitives {
         return DecodedConsensusMessage{engine_id, std::move(payload)};
       } else if (engine_id == primitives::kUnsupportedEngineId_POL1) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_POL1>(data));
+        return DecodedConsensusMessage{engine_id, std::move(payload)};
+      } else if (engine_id == primitives::kUnsupportedEngineId_BEEF) {
+        OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_BEEF>(data));
         return DecodedConsensusMessage{engine_id, std::move(payload)};
       }
       BOOST_ASSERT_MSG(false, "Invalid consensus engine id");
@@ -145,7 +153,11 @@ namespace kagome::primitives {
     }
 
     ConsensusEngineId consensus_engine_id;
-    boost::variant<BabeDigest, GrandpaDigest, UnsupportedDigest_POL1> digest{};
+    boost::variant<BabeDigest,
+                   GrandpaDigest,
+                   UnsupportedDigest_POL1,
+                   UnsupportedDigest_BEEF>
+        digest{};
 
    private:
     DecodedConsensusMessage() = default;

@@ -5,6 +5,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <boost/assert.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <fstream>
@@ -48,7 +49,11 @@ class AppConfigurationTest : public testing::Test {
               "rpc-port" : 1234,
               "ws-host" : "2.2.2.2",
               "ws-port" : 3456,
-              "name" : "Bob's node"
+              "name" : "Bob's node",
+              "telemetry-endpoints": [
+                  "ws://localhost/submit 0",
+                  "wss://telemetry.soramitsu.co.jp/submit 4"
+              ]
         },
         "additional" : {
           "single-finalizing-node" : true
@@ -96,6 +101,13 @@ class AppConfigurationTest : public testing::Test {
     endpoint.address(boost::asio::ip::address::from_string(host, err));
     endpoint.port(port);
     return endpoint;
+  }
+
+  kagome::telemetry::TelemetryEndpoint get_telemetry_endpoint(
+      char const *endpoint_uri, uint8_t verbosity_level) {
+    auto uri = kagome::common::Uri::parse(endpoint_uri);
+    BOOST_VERIFY(not uri.error().has_value());
+    return {std::move(uri), verbosity_level};
   }
 
   void SetUp() override {
@@ -230,6 +242,26 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
 
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+}
+
+/**
+ * @given new created AppConfigurationImpl
+ * @when correct telemetry endpoints data provided in config file
+ * @then endpoints are correctly initialized
+ */
+TEST_F(AppConfigurationTest, TelemetryEndpointsFromConfig) {
+  std::vector reference = {
+      get_telemetry_endpoint("ws://localhost/submit", 0),
+      get_telemetry_endpoint("wss://telemetry.soramitsu.co.jp/submit", 4),
+  };
+  char const *args[] = {
+      "/path/",
+      "--config-file",
+      config_path.c_str(),
+  };
+
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_EQ(app_config_->telemetryEndpoints(), reference);
 }
 
 /**
@@ -489,4 +521,47 @@ TEST_F(AppConfigurationTest, NodeNameAsCommandLineOption) {
                         "Alice's node"};
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
   ASSERT_EQ(app_config_->nodeName(), "Alice's node");
+}
+
+/**
+ * @given newly created AppConfigurationImpl
+ * @when single telemetry endpoint set in command line arguments
+ * @then the endpoint and verbosity level is correctly passed to configuration
+ */
+TEST_F(AppConfigurationTest, SingleTelemetryCliArg) {
+  const auto reference = get_telemetry_endpoint("ws://localhost/submit", 0);
+  char const *args[] = {"/path/",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
+                        base_path.native().c_str(),
+                        "--telemetry-url",
+                        "ws://localhost/submit 0"};
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+
+  auto parsed_endpoints = app_config_->telemetryEndpoints();
+  ASSERT_EQ(parsed_endpoints.size(), 1);
+  ASSERT_EQ(parsed_endpoints[0], reference);
+}
+
+/**
+ * @given newly created AppConfigurationImpl
+ * @when several telemetry endpoints passed as command line argument
+ * @then endpoints and verbosity levels are correctly passed to configuration
+ */
+TEST_F(AppConfigurationTest, MultipleTelemetryCliArgs) {
+  std::vector reference = {
+      get_telemetry_endpoint("ws://localhost/submit", 0),
+      get_telemetry_endpoint("wss://telemetry.soramitsu.co.jp/submit", 4),
+  };
+  char const *args[] = {"/path/",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
+                        base_path.native().c_str(),
+                        "--telemetry-url",
+                        "ws://localhost/submit 0",
+                        "wss://telemetry.soramitsu.co.jp/submit 4"};
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_EQ(app_config_->telemetryEndpoints(), reference);
 }
