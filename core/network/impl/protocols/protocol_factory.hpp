@@ -13,6 +13,7 @@
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "network/rating_repository.hpp"
 #include "primitives/event_types.hpp"
 
 namespace kagome::network {
@@ -30,7 +31,8 @@ namespace kagome::network {
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
-            ext_event_key_repo);
+            ext_event_key_repo,
+        std::shared_ptr<PeerRatingRepository> peer_rating_repository);
 
     void setBlockTree(
         const std::shared_ptr<blockchain::BlockTree> &block_tree) {
@@ -82,6 +84,7 @@ namespace kagome::network {
         extrinsic_events_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         ext_event_key_repo_;
+    std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
 
     std::weak_ptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<consensus::babe::Babe> babe_;

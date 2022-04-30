@@ -18,7 +18,8 @@ namespace kagome::network {
       std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
-          ext_event_key_repo)
+          ext_event_key_repo,
+      std::shared_ptr<PeerRatingRepository> peer_rating_repository)
       : host_(host),
         app_config_(app_config),
         chain_spec_(chain_spec),
@@ -27,12 +28,14 @@ namespace kagome::network {
         hasher_(std::move(hasher)),
         stream_engine_(std::move(stream_engine)),
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
-        ext_event_key_repo_{std::move(ext_event_key_repo)} {
+        ext_event_key_repo_{std::move(ext_event_key_repo)},
+        peer_rating_repository_{std::move(peer_rating_repository)} {
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(ext_event_key_repo_ != nullptr);
+    BOOST_ASSERT(peer_rating_repository_ != nullptr);
   }
 
   std::shared_ptr<BlockAnnounceProtocol>
@@ -71,7 +74,7 @@ namespace kagome::network {
 
   std::shared_ptr<SyncProtocol> ProtocolFactory::makeSyncProtocol() const {
     return std::make_shared<SyncProtocolImpl>(
-        host_, chain_spec_, sync_observer_.lock());
+        host_, chain_spec_, sync_observer_.lock(), peer_rating_repository_);
   }
 
 }  // namespace kagome::network
