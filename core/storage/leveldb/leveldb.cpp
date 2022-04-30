@@ -122,7 +122,8 @@ namespace kagome::storage {
     return it->Valid();
   }
 
-  outcome::result<void> LevelDB::put(const BufferView &key, const Buffer &value) {
+  outcome::result<void> LevelDB::put(const BufferView &key,
+                                     const Buffer &value) {
     auto status = db_->Put(wo_, make_slice(key), make_slice(value));
     if (status.ok()) {
       return outcome::success();
@@ -157,6 +158,25 @@ namespace kagome::storage {
       delete begin;
       delete end;
     }
+  }
+
+  size_t LevelDB::size() const {
+    size_t usage_bytes = 0;
+    if (db_) {
+      std::string usage;
+      bool result =
+          db_->GetProperty("leveldb.approximate-memory-usage", &usage);
+      if (result) {
+        try {
+          usage_bytes = std::stoul(usage);
+        } catch (...) {
+          logger_->error("Unable to parse memory usage value");
+        }
+      } else {
+        logger_->error("Unable to retrieve memory usage value");
+      }
+    }
+    return usage_bytes;
   }
 
 }  // namespace kagome::storage

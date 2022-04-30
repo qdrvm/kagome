@@ -65,7 +65,8 @@ namespace kagome::consensus::babe {
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        log_{log::createLogger("Babe", "babe")} {
+        log_{log::createLogger("Babe", "babe")},
+        telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
@@ -323,6 +324,7 @@ namespace kagome::consensus::babe {
               SL_INFO(self->log_, "Catching up is finished on block {}", block);
               self->current_state_ = Babe::State::SYNCHRONIZED;
               self->was_synchronized_ = true;
+              self->telemetry_->notifyWasSynchronized();
             }
             self->onSynchronized();
 
@@ -374,6 +376,7 @@ namespace kagome::consensus::babe {
 
     current_state_ = State::SYNCHRONIZED;
     was_synchronized_ = true;
+    telemetry_->notifyWasSynchronized();
 
     if (not active_) {
       best_block_ = block_tree_->deepestLeaf();
@@ -757,6 +760,7 @@ namespace kagome::consensus::babe {
       }
       return;
     }
+    telemetry_->notifyBlockImported(block_info, telemetry::BlockOrigin::kOwn);
 
     // observe possible changes of authorities
     // (must be done strictly after block will be added)

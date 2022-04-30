@@ -485,6 +485,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT(runtime_core_ != nullptr);
     BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
+    BOOST_ASSERT(telemetry_ != nullptr);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(blockHeightMetricName,
@@ -506,6 +507,8 @@ namespace kagome::blockchain {
     metric_known_chain_leaves_ =
         metrics_registry_->registerGaugeMetric(knownChainLeavesMetricName);
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+
+    telemetry_->setGenesisBlockHash(getGenesisBlockHash());
   }
 
   const primitives::BlockHash &BlockTreeImpl::getGenesisBlockHash() const {
@@ -834,8 +837,9 @@ namespace kagome::blockchain {
       }
     }
 
-    log_->info("Finalized block {}",
-               primitives::BlockInfo(node->depth, block_hash));
+    primitives::BlockInfo finalized_block(node->depth, block_hash);
+    log_->info("Finalized block {}", finalized_block);
+    telemetry_->notifyBlockFinalized(finalized_block);
     metric_finalized_block_height_->set(node->depth);
     return outcome::success();
   }
