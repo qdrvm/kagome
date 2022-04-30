@@ -27,13 +27,13 @@ namespace kagome::telemetry {
   }
 
   std::optional<MessageHandle> MessagePool::push(const std::string &message,
-                                                 std::size_t ref_count) {
+                                                 int16_t ref_count) {
     bool message_exceeds_max_size = message.length() + 1 > entry_size_;
     BOOST_ASSERT(not message_exceeds_max_size);
     if (message_exceeds_max_size) {
       return std::nullopt;
     }
-    BOOST_ASSERT(ref_count > 0);
+    BOOST_VERIFY(ref_count >= 0);
     if (ref_count == 0) {
       return std::nullopt;
     }
@@ -70,7 +70,6 @@ namespace kagome::telemetry {
     }
 
     auto &entry = pool_[handle];
-    BOOST_ASSERT(entry.ref_count > 0);
     if (entry.ref_count > 0 and --entry.ref_count == 0) {
       memset(entry.data.data(), '\0', entry.data.size());
       entry.data_size = 0;

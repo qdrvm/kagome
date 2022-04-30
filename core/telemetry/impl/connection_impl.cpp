@@ -105,7 +105,7 @@ namespace kagome::telemetry {
     if (not is_connected_) {
       return;
     }
-    auto push = message_pool_.push(data);
+    auto push = message_pool_.push(data, 1);
     if (not push) {
       return;
     }

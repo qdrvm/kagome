@@ -52,7 +52,7 @@ namespace kagome::telemetry {
      * calls the release method for the handle ref_count-many times
      */
     std::optional<MessageHandle> push(const std::string &message,
-                                      std::size_t ref_count = 1);
+                                      int16_t ref_count);
 
     /**
      * Increase reference counter for the specified handle
