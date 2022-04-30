@@ -8,13 +8,18 @@
 
 #include "network/protocols/sync_protocol.hpp"
 
+#include <chrono>
 #include <memory>
+#include <optional>
+#include <unordered_map>
+#include <unordered_set>
 
+#include <boost/circular_buffer.hpp>
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
-
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
+#include "network/rating_repository.hpp"
 #include "network/sync_protocol_observer.hpp"
 
 namespace kagome::network {
@@ -24,13 +29,86 @@ namespace kagome::network {
   using PeerId = libp2p::peer::PeerId;
   using PeerInfo = libp2p::peer::PeerInfo;
 
+  static constexpr auto kResponsesCacheCapacity = 500;
+  static constexpr auto kResponsesCacheExpirationTimeout =
+      std::chrono::seconds(30);
+  static constexpr auto kMaxCacheEntriesPerPeer = 5;
+
+  namespace detail {
+
+    /**
+     * Container to store the most recent block requests by peers we replied to
+     * with non empty responses.
+     */
+    class BlocksResponseCache {
+     public:
+      /**
+       * Initialize the cache
+       * @param capacity - max amount of cache entries
+       * @param expiration_time - cache entry expiry time in seconds
+       */
+      BlocksResponseCache(std::size_t capacity,
+                          std::chrono::seconds expiration_time);
+
+      /**
+       * Checks whether specified request came from the peer more than once.
+       *
+       * Some repeating request done past "expiration_time" seconds since last
+       * request from the peer would not be considered as duplicating request.
+       *
+       * @param peer_id - peer identifier
+       * @param request_fingerprint - request identifier
+       * @return true when the request is found in a list of last peers'
+       * requests of size kMaxCacheEntriesPerPeer and the last request
+       * took a place not later than "expiration_time" seconds.
+       * Otherwise - false.
+       */
+      bool isDuplicate(const PeerId &peer_id,
+                       BlocksRequest::Fingerprint request_fingerprint);
+
+     private:
+      using ExpirationTimepoint =
+          std::chrono::time_point<std::chrono::system_clock>;
+      using CacheRecordIndex = std::size_t;
+
+      /**
+       * Save a record about peer's request to cache
+       * @param peer_id - peer identifier
+       * @param request_fingerprint - request identifier
+       * @param target_slot - (optional) a slot of internal storage to put a
+       * record into
+       */
+      void cache(const PeerId &peer_id,
+                 BlocksRequest::Fingerprint request_fingerprint,
+                 std::optional<CacheRecordIndex> target_slot = std::nullopt);
+
+      /// removes all stale records
+      void purge();
+
+      struct CacheRecord {
+        PeerId peer_id;
+        ExpirationTimepoint valid_till;
+        boost::circular_buffer<BlocksRequest::Fingerprint> fingerprints{
+            kMaxCacheEntriesPerPeer};
+      };
+
+      const std::size_t capacity_;
+      const std::chrono::seconds expiration_time_;
+      std::unordered_map<PeerId, CacheRecordIndex> lookup_table_;
+      std::vector<std::optional<CacheRecord>> storage_;
+      std::unordered_set<CacheRecordIndex> free_slots_;
+    };
+
+  }  // namespace detail
+
   class SyncProtocolImpl final
       : public SyncProtocol,
         public std::enable_shared_from_this<SyncProtocolImpl> {
    public:
     SyncProtocolImpl(libp2p::Host &host,
                      const application::ChainSpec &chain_spec,
-                     std::shared_ptr<SyncProtocolObserver> sync_observer);
+                     std::shared_ptr<SyncProtocolObserver> sync_observer,
+                     std::shared_ptr<PeerRatingRepository> rating_repository);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -66,7 +144,9 @@ namespace kagome::network {
    private:
     libp2p::Host &host_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
+    std::shared_ptr<PeerRatingRepository> rating_repository_;
     const libp2p::peer::Protocol protocol_;
+    detail::BlocksResponseCache response_cache_;
     log::Logger log_ = log::createLogger("SyncProtocol", "sync_protocol");
   };
 

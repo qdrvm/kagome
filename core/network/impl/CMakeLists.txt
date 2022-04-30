@@ -77,3 +77,11 @@ target_link_libraries(peer_manager
     logger
     scale_libp2p_types
     )
+
+add_library(rating_repository
+    rating_repository_impl.cpp
+    )
+target_link_libraries(rating_repository
+    p2p::p2p_peer_id
+    p2p::p2p_basic_scheduler
+    )

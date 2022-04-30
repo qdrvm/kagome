@@ -18,12 +18,124 @@
 
 namespace kagome::network {
 
+  namespace detail {
+    BlocksResponseCache::BlocksResponseCache(
+        std::size_t capacity, std::chrono::seconds expiration_time)
+        : capacity_{capacity}, expiration_time_{expiration_time} {
+      // resize to preallocate elements
+      storage_.resize(capacity_);
+      // preallocate internal storage of containers
+      lookup_table_.reserve(capacity_);
+      free_slots_.reserve(capacity_);
+      for (std::size_t i = 0; i < capacity_; ++i) {
+        free_slots_.emplace(i);
+      }
+    }
+
+    bool BlocksResponseCache::isDuplicate(
+        const PeerId &peer_id, BlocksRequest::Fingerprint request_fingerprint) {
+      auto found = lookup_table_.find(peer_id);
+
+      // the peer is not cached yet
+      if (found == lookup_table_.end()) {
+        cache(peer_id, request_fingerprint);
+        return false;
+      }
+
+      // the peer was previously cached
+      auto slot = found->second;
+      auto &entry = storage_[slot];
+      auto now = std::chrono::system_clock::now();
+      if (not storage_[slot]          // dangling reference was found
+          or now > entry->valid_till  // the record was expired
+      ) {
+        cache(peer_id, request_fingerprint, slot);
+        return false;
+      }
+
+      // peer record in cache is valid and not expired
+      entry->valid_till = now + expiration_time_;  // prolong expiry time
+      auto &requests = entry->fingerprints;
+      if (std::find(requests.begin(), requests.end(), request_fingerprint)
+          != requests.end()) {
+        return true;
+      }
+      requests.push_back(request_fingerprint);
+      return false;
+    }
+
+    void BlocksResponseCache::cache(
+        const PeerId &peer_id,
+        BlocksRequest::Fingerprint request_fingerprint,
+        std::optional<CacheRecordIndex> target_slot) {
+      CacheRecordIndex slot;
+      if (target_slot) {
+        slot = *target_slot;
+      } else {
+        if (free_slots_.empty()) {
+          purge();
+        }
+        if (free_slots_.empty()) {
+          return;
+        }
+        auto free_slot = free_slots_.begin();
+        slot = *free_slot;
+        free_slots_.erase(free_slot);
+      }
+
+      boost::circular_buffer<BlocksRequest::Fingerprint> fingerprints(
+          kMaxCacheEntriesPerPeer);
+      if (target_slot and storage_[*target_slot]) {
+        fingerprints = std::move(storage_[*target_slot]->fingerprints);
+      }
+      fingerprints.push_back(request_fingerprint);
+
+      CacheRecord record{
+          .peer_id = peer_id,
+          .valid_till = std::chrono::system_clock::now() + expiration_time_,
+          .fingerprints = std::move(fingerprints),
+      };
+
+      storage_[slot] = std::move(record);
+      lookup_table_[peer_id] = slot;
+    }
+
+    void BlocksResponseCache::purge() {
+      auto it = lookup_table_.begin();
+      while (it != lookup_table_.end()) {
+        auto slot = it->second;
+        // remove dangling reference from lookup table
+        if (not storage_[slot]) {
+          free_slots_.insert(slot);
+          it = lookup_table_.erase(it);  // points to the following element
+          continue;
+        }
+        auto &record = storage_[slot].value();
+        // remove expired entries
+        if (std::chrono::system_clock::now() > record.valid_till) {
+          storage_[slot] = std::nullopt;
+          free_slots_.insert(slot);
+          it = lookup_table_.erase(it);  // points to the following element
+          continue;
+        }
+        it++;
+      }
+    }
+
+  }  // namespace detail
+
   SyncProtocolImpl::SyncProtocolImpl(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
-      std::shared_ptr<SyncProtocolObserver> sync_observer)
-      : host_(host), sync_observer_(std::move(sync_observer)) {
+      std::shared_ptr<SyncProtocolObserver> sync_observer,
+      std::shared_ptr<PeerRatingRepository> rating_repository)
+      : host_(host),
+        sync_observer_(std::move(sync_observer)),
+        rating_repository_(std::move(rating_repository)),
+        response_cache_(kResponsesCacheCapacity,
+                        kResponsesCacheExpirationTimeout) {
     BOOST_ASSERT(sync_observer_ != nullptr);
+    BOOST_ASSERT(rating_repository_ != nullptr);
     const_cast<Protocol &>(protocol_) =
         fmt::format(kSyncProtocol.data(), chain_spec.protocolId());
   }
@@ -167,6 +279,22 @@ namespace kagome::network {
         return;
       }
       auto &block_response = block_response_res.value();
+
+      if ((not block_response.blocks.empty()) and stream->remotePeerId()
+          and self->response_cache_.isDuplicate(stream->remotePeerId().value(),
+                                                block_request.fingerprint())) {
+        auto peer_id = stream->remotePeerId().value();
+        SL_DEBUG(self->log_,
+                 "Stream {} to {} reset due to repeating non-polite block "
+                 "request with fingerprint {}",
+                 self->protocol_,
+                 peer_id,
+                 block_request.fingerprint());
+        self->rating_repository_->downvoteForATime(
+            peer_id, kResponsesCacheExpirationTimeout);
+        stream->reset();
+        return;
+      }
 
       self->writeResponse(std::move(stream), block_response);
     });

@@ -31,7 +31,8 @@ namespace kagome::network {
       const OwnPeerInfo &own_peer_info,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<storage::BufferStorage> storage,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<PeerRatingRepository> peer_rating_repository)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -45,6 +46,7 @@ namespace kagome::network {
         router_{std::move(router)},
         storage_{std::move(storage)},
         hasher_{std::move(hasher)},
+        peer_rating_repository_{std::move(peer_rating_repository)},
         log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -54,6 +56,7 @@ namespace kagome::network {
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(peer_rating_repository_ != nullptr);
 
     // Register metrics
     registry_->registerGaugeFamily(syncPeerMetricName,
@@ -93,6 +96,17 @@ namespace kagome::network {
             .getChannel<libp2p::event::protocol::kademlia::PeerAddedChannel>()
             .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
               if (auto self = wp.lock()) {
+                if (auto rating =
+                        self->peer_rating_repository_->rating(peer_id);
+                    rating < 0) {
+                  SL_DEBUG(self->log_,
+                           "Disconnecting from peer_id={} due to its negative "
+                           "rating {}",
+                           peer_id.toBase58(),
+                           rating);
+                  self->disconnectFromPeer(peer_id);
+                  return;
+                }
                 self->processDiscoveredPeer(peer_id);
               }
             });
@@ -103,7 +117,16 @@ namespace kagome::network {
             SL_DEBUG(self->log_,
                      "Identify received from peer_id={}",
                      peer_id.toBase58());
-
+            if (auto rating = self->peer_rating_repository_->rating(peer_id);
+                rating < 0) {
+              SL_DEBUG(
+                  self->log_,
+                  "Disconnecting from peer_id={} due to its negative rating {}",
+                  peer_id.toBase58(),
+                  rating);
+              self->disconnectFromPeer(peer_id);
+              return;
+            }
             self->processFullyConnectedPeer(peer_id);
           }
         });
@@ -179,6 +202,23 @@ namespace kagome::network {
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
     BOOST_ASSERT_MSG(block_announce_protocol,
                      "Router did not provide block announce protocol");
+
+    // disconnect from peers with negative rating
+    std::vector<PeerId> peers_to_disconnect;
+    for (const auto &[peer_id, _] : active_peers_) {
+      if (peer_rating_repository_->rating(peer_id) < 0) {
+        peers_to_disconnect.emplace_back(peer_id);
+        // we have to store peers somewhere first due to inability to iterate
+        // over active_peers_ and do disconnectFromPeers (which modifies
+        // active_peers_) at the same time
+      }
+    }
+    for (const auto &peer_id : peers_to_disconnect) {
+      SL_DEBUG(log_,
+               "Disconnecting from peer_id={} due to its negative rating",
+               peer_id.toBase58());
+      disconnectFromPeer(peer_id);
+    }
 
     std::optional<PeerId> disconnected_peer;
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
@@ -353,6 +393,7 @@ namespace kagome::network {
     }
     if (peer_id != own_peer_info_.id) {
       peer_states_.erase(peer_id);
+      host_.disconnect(peer_id);
     }
   }
 
@@ -616,7 +657,7 @@ namespace kagome::network {
 
     auto transaction_protocol = router_->getPropagateTransactionsProtocol();
     BOOST_ASSERT_MSG(transaction_protocol,
-                     "Router did not provide propogate transaction protocol");
+                     "Router did not provide propagate transaction protocol");
 
     stream_engine_->add(peer_id, grandpa_protocol);
     stream_engine_->add(peer_id, transaction_protocol);
