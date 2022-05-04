@@ -15,7 +15,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           ScheduledCore &val) {
-    return s >> val.parachainId >> val.collatorId;
+    return s >> val.para_id >> val.collator;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -28,27 +28,10 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           CandidateDescriptor &val) {
-    std::tuple<ParachainId,
-               Hash,
-               CollatorId,
-               Hash,
-               Hash,
-               Hash,
-               CollatorSignature,
-               Hash,
-               ValidationCodeHash>
-        fetched;
-    s >> fetched;
-    val = CandidateDescriptor{std::get<0>(fetched),
-                              std::get<1>(fetched),
-                              std::get<2>(fetched),
-                              std::get<3>(fetched),
-                              std::get<4>(fetched),
-                              std::get<5>(fetched),
-                              std::get<6>(fetched),
-                              std::get<7>(fetched),
-                              std::get<8>(fetched)};
-    return s;
+    return s >> val.para_id >> val.relay_parent >> val.collator
+           >> val.persisted_validation_data_hash >> val.pov_hash
+           >> val.erasure_root >> val.signature >> val.para_head
+           >> val.validation_code_hash;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -61,25 +44,10 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           OccupiedCore &val) {
-    std::tuple<std::optional<ScheduledCore>,
-               BlockNumber,
-               BlockNumber,
-               std::optional<ScheduledCore>,
-               Bitvec,
-               GroupIndex,
-               CandidateHash,
-               CandidateDescriptor>
-        fetched;
-    // s >> fetched;
-    val = OccupiedCore{std::get<0>(fetched),
-                       std::get<1>(fetched),
-                       std::get<2>(fetched),
-                       std::get<3>(fetched),
-                       std::get<4>(fetched),
-                       std::get<5>(fetched),
-                       std::get<6>(fetched),
-                       std::get<7>(fetched)};
-    return s;
+    return s >> val.next_up_on_available >> val.occupied_since
+           >> val.time_out_at >> val.next_up_on_time_out >> val.availability
+           >> val.group_responsible >> val.candidate_hash
+           >> val.candidate_descriptor;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -91,13 +59,8 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           PersistedValidationData &val) {
-    std::tuple<HeadData, BlockNumber, Hash, uint32_t> fetched;
-    s >> fetched;
-    val = PersistedValidationData{std::get<0>(fetched),
-                                  std::get<1>(fetched),
-                                  std::get<2>(fetched),
-                                  std::get<3>(fetched)};
-    return s;
+    return s >> val.parent_head >> val.relay_parent_number
+           >> val.relay_parent_storage_root >> val.max_pov_size;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -108,10 +71,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           OutboundHrmpMessage &val) {
-    std::tuple<ParachainId, Buffer> fetched;
-    s >> fetched;
-    val = OutboundHrmpMessage{std::get<0>(fetched), std::get<1>(fetched)};
-    return s;
+    return s >> val.recipient >> val.data;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -124,21 +84,9 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           CandidateCommitments &val) {
-    std::tuple<std::vector<UpwardMessage>,
-               std::vector<OutboundHrmpMessage>,
-               std::optional<ValidationCode>,
-               HeadData,
-               uint32_t,
-               BlockNumber>
-        fetched;
-    s >> fetched;
-    val = CandidateCommitments{std::get<0>(fetched),
-                               std::get<1>(fetched),
-                               std::get<2>(fetched),
-                               std::get<3>(fetched),
-                               std::get<4>(fetched),
-                               std::get<5>(fetched)};
-    return s;
+    return s >> val.upward_messages >> val.horizontal_messages
+           >> val.new_validation_code >> val.head_data
+           >> val.processed_downward_messages >> val.hrmp_watermark;
   }
 
   ::scale::ScaleEncoderStream &operator<<(
@@ -149,10 +97,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           CommittedCandidateReceipt &val) {
-    std::tuple<CandidateDescriptor, CandidateCommitments> fetched;
-    s >> fetched;
-    val = CommittedCandidateReceipt{std::get<0>(fetched), std::get<1>(fetched)};
-    return s;
+    return s >> val.descriptor >> val.commitments;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -163,10 +108,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           CandidateReceipt &val) {
-    std::tuple<CandidateDescriptor, Hash> fetched;
-    s >> fetched;
-    val = CandidateReceipt{std::get<0>(fetched), std::get<1>(fetched)};
-    return s;
+    return s >> val.descriptor >> val.commitments_hash;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -177,11 +119,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           Candidate &val) {
-    std::tuple<CandidateReceipt, HeadData, CoreIndex> fetched;
-    s >> fetched;
-    val = Candidate{
-        std::get<0>(fetched), std::get<1>(fetched), std::get<2>(fetched)};
-    return s;
+    return s >> val.candidate_receipt >> val.head_data >> val.core_index;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -192,14 +130,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           CandidateBacked &val) {
-    Candidate fetched;
-    GroupIndex group_index;
-    s >> fetched >> group_index;
-    val = CandidateBacked{fetched.candidate_receipt,
-                          fetched.head_data,
-                          fetched.core_index,
-                          group_index};
-    return s;
+    return s >> static_cast<Candidate &>(val) >> val.group_index;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -211,14 +142,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           CandidateIncluded &val) {
-    Candidate fetched;
-    GroupIndex group_index;
-    s >> fetched >> group_index;
-    val = CandidateIncluded{fetched.candidate_receipt,
-                            fetched.head_data,
-                            fetched.core_index,
-                            group_index};
-    return s;
+    return s >> static_cast<Candidate &>(val) >> val.group_index;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -233,35 +157,11 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           SessionInfo &val) {
-    std::tuple<std::vector<ValidatorIndex>,
-               common::Blob<32>,
-               SessionIndex,
-               std::vector<ValidatorId>,
-               std::vector<AuthorityDiscoveryId>,
-               std::vector<AssignmentId>,
-               std::vector<std::vector<ValidatorIndex>>,
-               uint32_t,
-               uint32_t,
-               uint32_t,
-               uint32_t,
-               uint32_t,
-               uint32_t>
-        fetched;
-    s >> fetched;
-    val = SessionInfo{std::get<0>(fetched),
-                      std::get<1>(fetched),
-                      std::get<2>(fetched),
-                      std::get<3>(fetched),
-                      std::get<4>(fetched),
-                      std::get<5>(fetched),
-                      std::get<6>(fetched),
-                      std::get<7>(fetched),
-                      std::get<8>(fetched),
-                      std::get<9>(fetched),
-                      std::get<10>(fetched),
-                      std::get<11>(fetched),
-                      std::get<12>(fetched)};
-    return s;
+    return s >> val.active_validator_indices >> val.random_seed
+           >> val.dispute_period >> val.validators >> val.discovery_keys
+           >> val.assignment_keys >> val.validator_groups >> val.n_cores
+           >> val.zeroth_delay_tranche_width >> val.relay_vrf_modulo_samples
+           >> val.n_delay_tranches >> val.no_show_slots >> val.needed_approvals;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -272,10 +172,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           InboundDownwardMessage &val) {
-    std::tuple<BlockNumber, DownwardMessage> fetched;
-    s >> fetched;
-    val = InboundDownwardMessage{std::get<0>(fetched), std::get<1>(fetched)};
-    return s;
+    return s >> val.sent_at >> val.msg;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -286,9 +183,6 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           InboundHrmpMessage &val) {
-    std::tuple<BlockNumber, Buffer> fetched;
-    s >> fetched;
-    val = InboundHrmpMessage{std::get<0>(fetched), std::get<1>(fetched)};
-    return s;
+    return s >> val.sent_at >> val.data;
   }
 }  // namespace kagome::runtime
