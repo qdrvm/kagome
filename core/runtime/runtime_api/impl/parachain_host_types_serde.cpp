@@ -15,10 +15,7 @@ namespace kagome::runtime {
 
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           ScheduledCore &val) {
-    std::tuple<ParachainId, std::optional<CollatorId>> fetched;
-    s >> fetched;
-    val = ScheduledCore{std::get<0>(fetched), std::get<1>(fetched)};
-    return s;
+    return s >> val.parachainId >> val.collatorId;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
