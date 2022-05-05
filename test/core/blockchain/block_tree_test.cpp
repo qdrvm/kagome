@@ -188,9 +188,10 @@ struct BlockTreeTest : public testing::Test {
    * @note To create different block with same number and parent, use different
    * hash ot state root
    */
-  BlockHash addHeaderToRepository(const BlockHash &parent,
-                                  BlockNumber number,
-                                  storage::trie::RootHash state = {}) {
+  std::tuple<BlockHash, BlockHeader> addHeaderToRepositoryAndGet(
+      const BlockHash &parent,
+      BlockNumber number,
+      storage::trie::RootHash state = {}) {
     BlockHeader header;
     header.parent_hash = parent;
     header.number = number;
@@ -205,8 +206,16 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, getBlockHeader(BlockId{number}))
         .WillRepeatedly(Return(header));
 
-    return hash;
+    return {hash, header};
   }
+
+  BlockHash addHeaderToRepository(
+    const BlockHash &parent,
+    BlockNumber number,
+    storage::trie::RootHash state = {}) {
+    return std::get<0>(addHeaderToRepositoryAndGet(parent, number, state));
+  }
+
 
   const BlockInfo kFinalizedBlockInfo{
       42ul, BlockHash::fromString("andj4kdn4odnfkslfn3k4jdnbmeodkv4").value()};
@@ -761,7 +770,8 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
  * @then the second block hash is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
-  auto target_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
+  auto target_hash=
+      addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
 
   ASSERT_OUTCOME_SUCCESS(
       best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
@@ -875,9 +885,9 @@ TEST_F(BlockTreeTest, GetBestChain_TargetPastMax) {
 }
 
 TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
-  auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
-  auto b55 = addHeaderToRepository(b43, 55);
-  auto b56 = addHeaderToRepository(b55, 56);
+  auto [b43, h43] = addHeaderToRepositoryAndGet(kFinalizedBlockInfo.hash, 43);
+  auto [b55, h55] = addHeaderToRepositoryAndGet(b43, 55);
+  auto [b56, h56] = addHeaderToRepositoryAndGet(b55, 56);
   EXPECT_CALL(*storage_, getBlockBody(BlockId{b56}))
       .WillOnce(Return(primitives::BlockBody{}));
 
@@ -887,10 +897,12 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
       .WillOnce(Return(primitives::Version{}));
 
   // should store new justification
-  EXPECT_CALL(*justification_storage_policy_, shouldStore(BlockInfo{56, b56}))
+  EXPECT_CALL(*justification_storage_policy_,
+              shouldStoreFor(h56))
       .WillOnce(Return(true));
   // shouldn't keep old justification
-  EXPECT_CALL(*justification_storage_policy_, shouldStore(kFinalizedBlockInfo))
+  EXPECT_CALL(*justification_storage_policy_,
+              shouldStoreFor(finalized_block_header_))
       .WillOnce(Return(false));
   // store new justification
   EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
@@ -913,12 +925,10 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   block_tree_->stop();
 }
 
-
-
 TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
-  auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
-  auto b55 = addHeaderToRepository(b43, 55);
-  auto b56 = addHeaderToRepository(b55, 56);
+  auto [b43, h43] = addHeaderToRepositoryAndGet(kFinalizedBlockInfo.hash, 43);
+  auto [b55, h55] = addHeaderToRepositoryAndGet(b43, 55);
+  auto [b56, h56] = addHeaderToRepositoryAndGet(b55, 56);
   EXPECT_CALL(*storage_, getBlockBody(BlockId{b56}))
       .WillOnce(Return(primitives::BlockBody{}));
 
@@ -928,10 +938,11 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
       .WillOnce(Return(primitives::Version{}));
 
   // should store new justification
-  EXPECT_CALL(*justification_storage_policy_, shouldStore(BlockInfo{56, b56}))
+  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(h56))
       .WillOnce(Return(true));
   // shouldn't keep old justification
-  EXPECT_CALL(*justification_storage_policy_, shouldStore(kFinalizedBlockInfo))
+  EXPECT_CALL(*justification_storage_policy_,
+              shouldStoreFor(finalized_block_header_))
       .WillOnce(Return(true));
   // store new justification
   EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))

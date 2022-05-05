@@ -1157,8 +1157,7 @@ namespace {
               injector.template create<sptr<blockchain::BlockTree>>();
           auto justification_storage_policy = injector.template create<
               sptr<blockchain::JustificationStoragePolicyImpl>>();
-          justification_storage_policy->initBlockchainInfo(auth_manager_impl,
-                                                           block_tree_impl);
+          justification_storage_policy->initBlockchainInfo(block_tree_impl);
           return auth_manager_impl;
         }),
         di::bind<network::PeerManager>.to(

@@ -571,7 +571,8 @@ namespace kagome::authority {
           [](auto &) {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
-    } else if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
+    }
+    if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
       OUTCOME_TRY(decoded, message.decode());
       return visit_in_place(
           decoded.asGrandpaDigest(),

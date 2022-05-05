@@ -820,8 +820,14 @@ namespace kagome::blockchain {
              "Finalizing block {}",
              primitives::BlockInfo(node->depth, block_hash));
 
+    OUTCOME_TRY(header_opt, storage_->getBlockHeader(node->block_hash));
+    if (!header_opt.has_value()) {
+      return BlockTreeError::HEADER_NOT_FOUND;
+    }
+    auto& header = header_opt.value();
+
     KAGOME_PROFILE_START(justification_store)
-    if (justification_storage_policy_->shouldStoreWhatWhenFinalized({node->depth, block_hash})) {
+    if (justification_storage_policy_->shouldStoreFor(header)) {
       // insert justification into the database
       OUTCOME_TRY(
           storage_->putJustification(justification, block_hash, node->depth));
@@ -832,8 +838,10 @@ namespace kagome::blockchain {
         // e.g. its number a multiple of 512)
         auto last_finalized_block_info =
             tree_->getMetadata().last_finalized.lock()->getBlockInfo();
-        if (!justification_storage_policy_->shouldStoreWhatWhenFinalized(
-                last_finalized_block_info)) {
+        OUTCOME_TRY(last_finalized_header_opt, storage_->getBlockHeader(node->block_hash));
+        // SAFETY: header for the last finalized block must be present
+        auto& last_finalized_header = last_finalized_header_opt.value();
+        if (!justification_storage_policy_->shouldStoreFor(last_finalized_header)) {
           OUTCOME_TRY(
               justification_opt,
               storage_->getJustification(last_finalized_block_info.hash));
@@ -860,13 +868,8 @@ namespace kagome::blockchain {
         storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
                                       tree_->getMetadata().leaves.end()}));
 
-    OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
-    if (!header.has_value()) {
-      return BlockTreeError::HEADER_NOT_FOUND;
-    }
-
     chain_events_engine_->notify(
-        primitives::events::ChainEventType::kFinalizedHeads, header.value());
+        primitives::events::ChainEventType::kFinalizedHeads, header);
 
     OUTCOME_TRY(new_runtime_version, runtime_core_->version(block_hash));
     if (not actual_runtime_version_.has_value()

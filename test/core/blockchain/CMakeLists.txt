@@ -38,4 +38,6 @@ addtest(justification_storage_policy_test
         )
 target_link_libraries(justification_storage_policy_test
         justification_storage_policy
+        buffer
+        scale::scale
         )

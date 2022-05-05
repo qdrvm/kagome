@@ -756,7 +756,7 @@ namespace kagome::consensus::grandpa {
           .finalized = block_info};
 
       auto authorities_opt = authority_manager_->authorities(
-          round_state.last_finalized_block, true);
+          block_info, true);
       if (!authorities_opt) {
         SL_WARN(logger_,
                 "Can't retrieve authorities to apply a justification "

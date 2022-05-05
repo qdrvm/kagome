@@ -11,23 +11,38 @@
 
 using kagome::authority::AuthorityManagerMock;
 using kagome::blockchain::JustificationStoragePolicyImpl;
+using kagome::common::Hash256;
+using kagome::primitives::BlockHash;
+using kagome::primitives::BlockHeader;
+using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
-using testing::ContainerEq;
+
+BlockHeader makeBlockHeader(const BlockNumber &number) {
+  BlockHeader header;
+  header.number = number;
+  if (number == 0) {
+    header.parent_hash = {};
+  } else if (number == 1) {
+    header.parent_hash = "genesis_hash"_hash256;
+  } else {
+    header.parent_hash =
+        Hash256::fromString("hash_" + std::to_string(number)).value();
+  }
+  return header;
+}
 
 TEST(JustificationStoragePolicyTest, ShouldStore512Multiples) {
   JustificationStoragePolicyImpl policy{};
 
-  ASSERT_THAT(
-      policy.shouldStoreWhatWhenFinalized({0, "genesis"_hash256}).value(),
-      ContainerEq(std::vector<BlockNumber>{0}));
-  ASSERT_THAT(policy.shouldStoreWhatWhenFinalized({1, "hash1"_hash256}),
-              ContainerEq(std::vector<BlockNumber>{}));
-  ASSERT_THAT(policy.shouldStoreWhatWhenFinalized({2, "hash2"_hash256}),
-              ContainerEq(std::vector<BlockNumber>{}));
-  ASSERT_THAT(policy.shouldStoreWhatWhenFinalized({512, "hash512"_hash256}),
-              ContainerEq(std::vector<BlockNumber>{512}));
-  ASSERT_THAT(policy.shouldStoreWhatWhenFinalized({1024, "hash1024"_hash256}),
-              ContainerEq(std::vector<BlockNumber>{1024}));
+  ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(0)).value(), true);
+
+  ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(1)).value(), false);
+
+  ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(2)).value(), false);
+
+  ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(512)).value(), true);
+
+  ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(1024)).value(), true);
 }
 
 /**
