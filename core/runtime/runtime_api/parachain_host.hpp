@@ -6,18 +6,17 @@
 #ifndef KAGOME_CORE_RUNTIME_PARACHAIN_HOST_HPP
 #define KAGOME_CORE_RUNTIME_PARACHAIN_HOST_HPP
 
+#include "common/blob.hpp"
+#include "common/unused.hpp"
 #include "primitives/block_id.hpp"
+#include "primitives/common.hpp"
 #include "primitives/parachain_host.hpp"
+#include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::runtime {
 
   class ParachainHost {
    protected:
-    using Buffer = common::Buffer;
-    using ValidatorId = primitives::parachain::ValidatorId;
-    using DutyRoster = primitives::parachain::DutyRoster;
-    using ParachainId = primitives::parachain::ParaId;
-
    public:
     virtual ~ParachainHost() = default;
 
@@ -57,6 +56,130 @@ namespace kagome::runtime {
      */
     virtual outcome::result<std::vector<ValidatorId>> validators(
         const primitives::BlockHash &block) = 0;
+
+    /**
+     * @brief Returns the validator groups and rotation info localized based on
+     * the hypothetical child of a block whose state  this is invoked on. Note
+     * that `now` in the `GroupRotationInfo`should be the successor of the
+     * number of the block.
+     * @return vector of validator groups
+     */
+    virtual outcome::result<std::vector<ValidatorGroup>> validator_groups(
+        const primitives::BlockHash &block) = 0;
+
+    /**
+     * @brief Yields information on all availability cores as relevant to the
+     * child block. Cores are either free or occupied. Free cores can have paras
+     * assigned to them.
+     * @return vector of core states
+     */
+    virtual outcome::result<std::vector<CoreState>> availability_cores(
+        const primitives::BlockHash &block) = 0;
+
+    /**
+     * @brief Yields the persisted validation data for the given `ParaId` along
+     * with an assumption that should be used if the para currently occupies a
+     * core.
+     * @param id parachain id
+     * @param assumption occupied core assumption
+     * @return Returns nullopt if either the para is not registered or the
+     * assumption is `Freed` (not `Included`) and the para already occupies a
+     * core.
+     */
+    virtual outcome::result<std::optional<PersistedValidationData>>
+    persisted_validation_data(const primitives::BlockHash &block,
+                              ParachainId id,
+                              OccupiedCoreAssumption assumption) = 0;
+
+    /**
+     * @brief Checks if the given validation outputs pass the acceptance
+     * criteria.
+     * @param id parachain id
+     * @param outputs candidate commitments
+     * @return validity (bool)
+     */
+    virtual outcome::result<bool> check_validation_outputs(
+        const primitives::BlockHash &block,
+        ParachainId id,
+        CandidateCommitments outputs) = 0;
+
+    /**
+     * @brief Returns the session index expected at a child of the block. This
+     * can be used to instantiate a `SigningContext`.
+     * @return session index
+     */
+    virtual outcome::result<SessionIndex> session_index_for_child(
+        const primitives::BlockHash &block) = 0;
+
+    /**
+     * @brief Fetch the validation code used by a para, making the given
+     * `OccupiedCoreAssumption`.
+     * @param id parachain id
+     * @param assumption occupied core assumption
+     * @return nullopt if either the para is not registered or the assumption is
+     * `Freed` (TimedOut or Unused) and the para already occupies a core.
+     */
+    virtual outcome::result<std::optional<ValidationCode>> validation_code(
+        const primitives::BlockHash &block,
+        ParachainId id,
+        OccupiedCoreAssumption assumption) = 0;
+
+    /**
+     * @brief Get the validation code (runtime) from its hash.
+     * @param hash validation code hash
+     * @return validation code, if found
+     */
+    virtual outcome::result<std::optional<ValidationCode>>
+    validation_code_by_hash(const primitives::BlockHash &block,
+                            ValidationCodeHash hash) = 0;
+
+    /**
+     * @brief Get the receipt of a candidate pending availability.
+     * @param id parachain id
+     * @return This returns CommittedCandidateReceipt for any paras assigned to
+     * occupied cores in `availability_cores` and nullopt otherwise.
+     */
+    virtual outcome::result<std::optional<CommittedCandidateReceipt>>
+    candidate_pending_availability(const primitives::BlockHash &block,
+                                   ParachainId id) = 0;
+
+    ///
+    /**
+     * @brief Get a vector of events concerning candidates that occurred within
+     * a block.
+     * @return vector of events
+     */
+    virtual outcome::result<std::vector<CandidateEvent>> candidate_events(
+        const primitives::BlockHash &block) = 0;
+
+    /**
+     * @brief  Get the session info for the given session, if stored.
+     * @note This function is only available since parachain host version 2.
+     * @param index session index
+     * @return SessionInfo, optional
+     */
+    virtual outcome::result<std::optional<SessionInfo>> session_info(
+        const primitives::BlockHash &block, SessionIndex index) = 0;
+
+    /**
+     * @brief Get all the pending inbound messages in the downward message queue
+     * for a para.
+     * @param id parachain id
+     * @return vector of messages
+     */
+    virtual outcome::result<std::vector<InboundDownwardMessage>> dmq_contents(
+        const primitives::BlockHash &block, ParachainId id) = 0;
+
+    /**
+     * @brief Get the contents of all channels addressed to the given recipient.
+     * Channels that have no messages in them are also included.
+     * @return Map of vectors of an inbound HRMP messages (Horizontal
+     * Relay-routed Message Passing) per parachain
+     */
+    virtual outcome::result<
+        std::map<ParachainId, std::vector<InboundHrmpMessage>>>
+    inbound_hrmp_channels_contents(const primitives::BlockHash &block,
+                                   ParachainId id) = 0;
   };
 
 }  // namespace kagome::runtime

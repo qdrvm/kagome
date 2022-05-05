@@ -32,6 +32,50 @@ namespace kagome::runtime {
     outcome::result<std::vector<ValidatorId>> validators(
         const primitives::BlockHash &block) override;
 
+    outcome::result<std::vector<ValidatorGroup>> validator_groups(
+        const primitives::BlockHash &block) override;
+
+    outcome::result<std::vector<CoreState>> availability_cores(
+        const primitives::BlockHash &block) override;
+
+    outcome::result<std::optional<PersistedValidationData>>
+    persisted_validation_data(const primitives::BlockHash &block,
+                              ParachainId id,
+                              OccupiedCoreAssumption assumption) override;
+
+    outcome::result<bool> check_validation_outputs(
+        const primitives::BlockHash &block,
+        ParachainId id,
+        CandidateCommitments outputs) override;
+
+    outcome::result<SessionIndex> session_index_for_child(
+        const primitives::BlockHash &block) override;
+
+    outcome::result<std::optional<ValidationCode>> validation_code(
+        const primitives::BlockHash &block,
+        ParachainId id,
+        OccupiedCoreAssumption assumption) override;
+
+    outcome::result<std::optional<ValidationCode>> validation_code_by_hash(
+        const primitives::BlockHash &block, ValidationCodeHash hash) override;
+
+    outcome::result<std::optional<CommittedCandidateReceipt>>
+    candidate_pending_availability(const primitives::BlockHash &block,
+                                   ParachainId id) override;
+
+    outcome::result<std::vector<CandidateEvent>> candidate_events(
+        const primitives::BlockHash &block) override;
+
+    outcome::result<std::optional<SessionInfo>> session_info(
+        const primitives::BlockHash &block, SessionIndex index) override;
+
+    outcome::result<std::vector<InboundDownwardMessage>> dmq_contents(
+        const primitives::BlockHash &block, ParachainId id) override;
+
+    outcome::result<std::map<ParachainId, std::vector<InboundHrmpMessage>>>
+    inbound_hrmp_channels_contents(const primitives::BlockHash &block,
+                                   ParachainId id) override;
+
    private:
     std::shared_ptr<Executor> executor_;
   };

@@ -30,12 +30,14 @@ namespace kagome::common {
                  public boost::less_than_comparable<Buffer>,
                  public boost::less_than_comparable<gsl::span<const uint8_t>> {
    public:
+    static constexpr bool is_static_collection = false;
     using iterator = std::vector<uint8_t>::iterator;
     using const_iterator = std::vector<uint8_t>::const_iterator;
     using value_type = uint8_t;
     // with this gsl::span can be built from Buffer
     using pointer = typename std::vector<uint8_t>::pointer;
     using const_pointer = typename std::vector<uint8_t>::const_pointer;
+    using size_type = typename std::vector<uint8_t>::size_type;
 
     /**
      * @brief allocates buffer of size={@param size}, filled with {@param byte}
@@ -293,35 +295,6 @@ namespace kagome::common {
           begin(), end(), buf.begin(), buf.end());
     }
   };
-
-  /**
-   * @brief override operator<< for all streams except std::ostream
-   * @tparam Stream stream type
-   * @param s stream reference
-   * @param buffer value to encode
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Buffer &buffer) {
-    return s << buffer.asVector();
-  }
-
-  /**
-   * @brief decodes buffer object from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param buffer value to decode
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, Buffer &buffer) {
-    std::vector<uint8_t> data;
-    s >> data;
-    buffer.put(data);
-    return s;
-  }
 
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
   std::ostream &operator<<(std::ostream &os, BufferView view);
