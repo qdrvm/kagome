@@ -32,6 +32,10 @@ namespace kagome::telemetry {
 
   /// starting value for reconnection timeout in case line failure
   static constexpr auto kInitialReconnectTimeout = std::chrono::seconds(5);
+  /// an addition to to reconnect timeout after failed attempt
+  static constexpr auto kReconnectTimeoutIncrement = std::chrono::seconds(5);
+  /// maximum reconnect timeout value despite reconnect attempts number
+  static constexpr auto kMaxReconnectTimeout = std::chrono::seconds(60);
 
   /**
    * Telemetry connection class implementation.

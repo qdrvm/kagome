@@ -306,7 +306,9 @@ namespace kagome::telemetry {
         log_, "Trying to reconnect in {} seconds", reconnect_timeout_.count());
     scheduler_->schedule([self{shared_from_this()}] { self->connect(); },
                          reconnect_timeout_);
-    reconnect_timeout_ *= 2;
+    if (reconnect_timeout_ < kMaxReconnectTimeout) {
+      reconnect_timeout_ += kReconnectTimeoutIncrement;
+    }
   }
 
 }  // namespace kagome::telemetry
