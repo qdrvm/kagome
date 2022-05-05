@@ -72,5 +72,6 @@ namespace kagome::primitives::parachain {
   Stream &operator>>(Stream &s, Relay &v) {
     return s;
   }
+
 }  // namespace kagome::primitives::parachain
 #endif  // KAGOME_CORE_PRIMITIVES_PARACHAIN_HOST_HPP
