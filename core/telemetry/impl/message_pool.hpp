@@ -36,6 +36,14 @@ namespace kagome::telemetry {
   class MessagePool {
    public:
     /**
+     * Type for reference external reference counters.
+     * Normally cannot be negative.
+     * That sized and signed type is chosen to easily catch illegal cases
+     * (negative and too hign numbers -> will more likely result in an
+     * overflow).
+     */
+    using RefCount = int16_t;
+    /**
      * Contruct the pool
      * @param entry_size_bytes - max size of a single record
      * @param entries_count - max amount of records to hold at the same time
@@ -60,7 +68,7 @@ namespace kagome::telemetry {
      *
      * Would be useful in case when many verbosity level would be developed.
      */
-    void add_ref(MessageHandle handle);
+    RefCount add_ref(MessageHandle handle);
 
     /**
      * Decrement reference counter for the handled record.
@@ -68,7 +76,7 @@ namespace kagome::telemetry {
      *
      * The record would be disposed when counter decreases to zero.
      */
-    void release(MessageHandle handle);
+    RefCount release(MessageHandle handle);
 
     /**
      * Access the record by the handle.
@@ -82,7 +90,7 @@ namespace kagome::telemetry {
      * Reports a number of records the pool was initialized for.
      * @return pool capacity
      */
-    std::size_t size() const;
+    std::size_t capacity() const;
 
    private:
     /// performs quick lookup for a free slot

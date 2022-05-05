@@ -27,7 +27,7 @@ namespace kagome::telemetry {
     BOOST_ASSERT(io_context_);
     BOOST_ASSERT(scheduler_);
     auto instance_number = std::to_string(++instance_);
-    queue_.set_capacity(message_pool_.size());
+    queue_.set_capacity(message_pool_.capacity());
     log_ = log::createLogger("TelemetryConnection#" + instance_number,
                              "telemetry");
   }

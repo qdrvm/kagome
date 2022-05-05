@@ -28,7 +28,7 @@ namespace kagome::telemetry {
 
   std::optional<MessageHandle> MessagePool::push(const std::string &message,
                                                  int16_t ref_count) {
-    bool message_exceeds_max_size = message.length() + 1 > entry_size_;
+    bool message_exceeds_max_size = message.length() > entry_size_;
     BOOST_ASSERT(not message_exceeds_max_size);
     if (message_exceeds_max_size) {
       return std::nullopt;
@@ -53,33 +53,36 @@ namespace kagome::telemetry {
     return slot;
   }
 
-  void MessagePool::add_ref(MessageHandle handle) {
-    BOOST_ASSERT(handle < pool_.size());
+  MessagePool::RefCount MessagePool::add_ref(MessageHandle handle) {
+    bool handle_is_valid =
+        (handle < pool_.size()) and (free_slots_.count(handle) == 0);
+    BOOST_VERIFY(handle_is_valid);
     std::lock_guard lock(mutex_);
     // allowed to call only over already occupied slots
     BOOST_ASSERT(free_slots_.count(handle) == 0);
     auto &entry = pool_[handle];
-    ++entry.ref_count;
+    return ++entry.ref_count;
   }
 
-  void MessagePool::release(MessageHandle handle) {
-    BOOST_ASSERT(handle < pool_.size());
+  MessagePool::RefCount MessagePool::release(MessageHandle handle) {
+    bool handle_is_valid =
+        (handle < pool_.size()) and (free_slots_.count(handle) == 0);
+    BOOST_VERIFY(handle_is_valid);
     std::lock_guard lock(mutex_);
-    if (free_slots_.count(handle) == 1) {
-      return;
-    }
-
     auto &entry = pool_[handle];
     if (entry.ref_count > 0 and --entry.ref_count == 0) {
       memset(entry.data.data(), '\0', entry.data.size());
       entry.data_size = 0;
       free_slots_.emplace(handle);
     }
+    return entry.ref_count;
   }
 
   boost::asio::mutable_buffer MessagePool::operator[](
       MessageHandle handle) const {
-    BOOST_VERIFY(handle < pool_.size());
+    bool handle_is_valid =
+        (handle < pool_.size()) and (free_slots_.count(handle) == 0);
+    BOOST_VERIFY(handle_is_valid);
     // No synchronization required due to the design of its use way.
     // Read access might be requested only when a handle is already acquired.
     // => There would be no race during initialization and read.
@@ -91,7 +94,7 @@ namespace kagome::telemetry {
                                entry.data_size);
   }
 
-  std::size_t MessagePool::size() const {
+  std::size_t MessagePool::capacity() const {
     return entries_count_;
   }
 
