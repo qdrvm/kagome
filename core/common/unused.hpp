@@ -7,6 +7,7 @@
 #define KAGOME_UNUSED
 
 #include "common/empty.hpp"
+#include "common/tagged.hpp"
 
 namespace kagome {
 
