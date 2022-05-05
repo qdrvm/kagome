@@ -15,19 +15,20 @@ namespace kagome::telemetry {
       std::shared_ptr<boost::asio::io_context> io_context,
       const TelemetryEndpoint &endpoint,
       OnConnectedCallback callback,
-      MessagePool &message_pool,
+      std::shared_ptr<MessagePool> message_pool,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : io_context_{std::move(io_context)},
         endpoint_{endpoint},
         callback_{std::move(callback)},
-        message_pool_{message_pool},
+        message_pool_{std::move(message_pool)},
         scheduler_{std::move(scheduler)},
         ssl_ctx_{boost::asio::ssl::context::sslv23},
         resolver_{boost::asio::make_strand(*io_context_)} {
     BOOST_ASSERT(io_context_);
+    BOOST_ASSERT(message_pool_);
     BOOST_ASSERT(scheduler_);
     auto instance_number = std::to_string(++instance_);
-    queue_.set_capacity(message_pool_.capacity());
+    queue_.set_capacity(message_pool_->capacity());
     log_ = log::createLogger("TelemetryConnection#" + instance_number,
                              "telemetry");
   }
@@ -105,7 +106,7 @@ namespace kagome::telemetry {
     if (not is_connected_) {
       return;
     }
-    auto push = message_pool_.push(data, 1);
+    auto push = message_pool_->push(data, 1);
     if (not push) {
       return;
     }
@@ -114,12 +115,12 @@ namespace kagome::telemetry {
 
   void TelemetryConnectionImpl::send(MessageHandle message_handle) {
     if (not is_connected_) {
-      message_pool_.release(message_handle);
+      message_pool_->release(message_handle);
       return;
     }
     if (busy_) {
       if (queue_.full()) {
-        message_pool_.release(message_handle);
+        message_pool_->release(message_handle);
         return;
       }
       queue_.push_back(message_handle);
@@ -159,7 +160,7 @@ namespace kagome::telemetry {
                              boost::beast::error_code ec,
                              std::size_t bytes_transferred) {
       boost::ignore_unused(bytes_transferred);
-      self->message_pool_.release(message_handle);
+      self->message_pool_->release(message_handle);
       if (ec) {
         self->is_connected_ = false;
         self->busy_ = false;
@@ -179,7 +180,7 @@ namespace kagome::telemetry {
       }
     };
 
-    ws.async_write(message_pool_[message_handle], write_handler);
+    ws.async_write((*message_pool_)[message_handle], write_handler);
   }
 
   void TelemetryConnectionImpl::onResolve(
@@ -281,7 +282,7 @@ namespace kagome::telemetry {
 
   void TelemetryConnectionImpl::releaseQueue() {
     for (auto handle : queue_) {
-      message_pool_.release(handle);
+      message_pool_->release(handle);
     }
     queue_.clear();
   }

@@ -46,9 +46,8 @@ namespace kagome::telemetry {
         tx_pool_{std::move(tx_pool)},
         buffer_storage_{std::move(buffer_storage)},
         peer_manager_{std::move(peer_manager)},
-        log_{log::createLogger("TelemetryService", "telemetry")},
-        message_pool_{kTelemetryMessageMaxLengthBytes,
-                      kTelemetryMessagePoolSize} {
+        enabled_{app_configuration_.isTelemetryEnabled()},
+        log_{log::createLogger("TelemetryService", "telemetry")} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(tx_pool_);
     BOOST_ASSERT(buffer_storage_);
@@ -59,9 +58,15 @@ namespace kagome::telemetry {
     scheduler_ = std::make_shared<libp2p::basic::SchedulerImpl>(
         scheduler_asio_backend, libp2p::basic::Scheduler::Config{});
     work_guard_ = std::make_shared<WorkGuardT>(io_context_->get_executor());
-    app_state_manager_->registerHandlers([&]() { return prepare(); },
-                                         [&]() { return start(); },
-                                         [&]() { stop(); });
+    if (enabled_) {
+      message_pool_ = std::make_shared<MessagePool>(
+          kTelemetryMessageMaxLengthBytes, kTelemetryMessagePoolSize);
+      app_state_manager_->registerHandlers([&]() { return prepare(); },
+                                           [&]() { return start(); },
+                                           [&]() { stop(); });
+    } else {
+      SL_INFO(log_, "Telemetry disabled");
+    }
   }
 
   bool TelemetryServiceImpl::prepare() {
@@ -158,12 +163,12 @@ namespace kagome::telemetry {
         last_imported_.is_set = false;
         auto msg =
             blockNotification(last_imported_.block, last_imported_.origin);
-        last_imported_msg = message_pool_.push(msg, refs);
+        last_imported_msg = message_pool_->push(msg, refs);
       }
       // prepare last finalized message if there is a need to
       if (last_finalized_.reported < last_finalized_.block.number) {
         auto msg = blockNotification(last_finalized_.block, std::nullopt);
-        last_finalized_msg = message_pool_.push(msg, refs);
+        last_finalized_msg = message_pool_->push(msg, refs);
         last_finalized_.reported = last_finalized_.block.number;
       }
     }
@@ -186,8 +191,8 @@ namespace kagome::telemetry {
     }
     std::optional<MessageHandle> system_msg_1, system_msg_2;
     auto refs = connections_.size();
-    system_msg_1 = message_pool_.push(systemIntervalMessage1(), refs);
-    system_msg_2 = message_pool_.push(systemIntervalMessage2(), refs);
+    system_msg_1 = message_pool_->push(systemIntervalMessage1(), refs);
+    system_msg_2 = message_pool_->push(systemIntervalMessage2(), refs);
 
     for (auto &conn : connections_) {
       if (system_msg_1) {
@@ -257,7 +262,7 @@ namespace kagome::telemetry {
 
   void TelemetryServiceImpl::notifyBlockImported(
       const primitives::BlockInfo &info, BlockOrigin origin) {
-    if (shutdown_requested_) {
+    if (shutdown_requested_ or not enabled_) {
       return;
     }
     std::lock_guard lock(cache_mutex_);
@@ -268,7 +273,7 @@ namespace kagome::telemetry {
 
   void TelemetryServiceImpl::notifyBlockFinalized(
       const primitives::BlockInfo &info) {
-    if (shutdown_requested_) {
+    if (shutdown_requested_ or not enabled_) {
       return;
     }
     if (info.number > last_finalized_.block.number) {
@@ -426,5 +431,9 @@ namespace kagome::telemetry {
 
   void TelemetryServiceImpl::notifyWasSynchronized() {
     was_synchronized_ = true;
+  }
+
+  bool TelemetryServiceImpl::isEnabled() const {
+    return enabled_;
   }
 }  // namespace kagome::telemetry
