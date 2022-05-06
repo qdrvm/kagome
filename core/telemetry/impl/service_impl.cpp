@@ -262,7 +262,7 @@ namespace kagome::telemetry {
 
   void TelemetryServiceImpl::notifyBlockImported(
       const primitives::BlockInfo &info, BlockOrigin origin) {
-    if (shutdown_requested_ or not enabled_) {
+    if (not enabled_ or shutdown_requested_) {
       return;
     }
     std::lock_guard lock(cache_mutex_);
@@ -273,7 +273,7 @@ namespace kagome::telemetry {
 
   void TelemetryServiceImpl::notifyBlockFinalized(
       const primitives::BlockInfo &info) {
-    if (shutdown_requested_ or not enabled_) {
+    if (not enabled_ or shutdown_requested_) {
       return;
     }
     if (info.number > last_finalized_.block.number) {
