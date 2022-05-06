@@ -602,7 +602,7 @@ namespace kagome::application {
         ("out-peers", po::value<uint32_t>()->default_value(25), "number of outgoing connections we're trying to maintain")
         ("in-peers", po::value<uint32_t>()->default_value(25), "maximum number of inbound full nodes peers")
         ("in-peers-light", po::value<uint32_t>()->default_value(100), "maximum number of inbound light nodes peers")
-        ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
+        ("max-blocks-in-response", po::value<uint32_t>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ("telemetry-url", po::value<std::vector<std::string>>()->multitoken(),
                           "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
