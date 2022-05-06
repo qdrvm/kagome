@@ -75,6 +75,13 @@ namespace kagome::telemetry {
      * @param info - block info
      */
     virtual void notifyBlockFinalized(const primitives::BlockInfo &info) = 0;
+
+
+    /**
+     * Telemetry service status
+     * @return true - when application configured to broadcast telemetry
+     */
+    virtual bool isEnabled() const = 0;
   };
 
   using Telemetry = std::shared_ptr<TelemetryService>;

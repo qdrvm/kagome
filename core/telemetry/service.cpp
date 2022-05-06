@@ -36,6 +36,9 @@ namespace kagome::telemetry {
         }
         was_synchronized_ = true;
       }
+      bool isEnabled() const override {
+        return false;
+      }
 
       void setActualImplementation(Telemetry service) {
         service_ = std::move(service);
