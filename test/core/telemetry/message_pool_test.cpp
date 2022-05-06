@@ -234,23 +234,21 @@ TEST_F(MessagePoolTest, BadRefCount) {
 /**
  * @given an attempt to initialize message pool of zero capacity
  * @when initialization takes a place
- * @then runtime execution would be failed in debug
+ * @then no entries can be pushed
  */
 TEST(MessagePoolFreeTest, ZeroCapacity) {
-  [[maybe_unused]] auto get_pool = [] {
-    return MessagePool(kMaxRecordSizeBytes, 0);
-  };
-  EXPECT_DEBUG_DEATH(get_pool(), "entries_count > 0");
+  MessagePool pool(kMaxRecordSizeBytes, 0);
+  auto handle = pool.push("test", 1);
+  ASSERT_FALSE(handle);
 }
 
 /**
  * @given an attempt to initialize message pool with zero messages size
  * @when initialization takes a place
- * @then runtime execution would be failed in debug
+ * @then no entries can be pushed
  */
 TEST(MessagePoolFreeTest, ZeroSizeEntries) {
-  [[maybe_unused]] auto get_pool = [] {
-    return MessagePool(0, kMaxPoolCapacity);
-  };
-  EXPECT_DEBUG_DEATH(get_pool(), "entry_size_bytes > 0");
+  MessagePool pool(0, kMaxPoolCapacity);
+  auto handle = pool.push("test", 1);
+  ASSERT_FALSE(handle);
 }
