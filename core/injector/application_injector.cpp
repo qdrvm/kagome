@@ -325,6 +325,7 @@ namespace {
       return initialized.value();
     }
     auto options = leveldb::Options{};
+    options.max_open_files = 1500; // 1000 was the default value
     options.create_if_missing = true;
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
