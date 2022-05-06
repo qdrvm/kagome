@@ -598,3 +598,21 @@ TEST_F(AppConfigurationTest, MultipleTelemetryCliArgs) {
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
   ASSERT_EQ(app_config_->telemetryEndpoints(), reference);
 }
+
+/**
+ * @given initialized instance of AppConfigurationImpl
+ * @when --max-blocks-in-response is specified
+ * @then the correct value is parsed
+ */
+TEST_F(AppConfigurationTest, MaxBlocksInResponse) {
+  char const *args[] = {"/path/",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
+                        base_path.native().c_str(),
+                        "--max-blocks-in-response",
+                        "122"};
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+
+  ASSERT_EQ(app_config_->maxBlocksInResponse(), 122);
+}
