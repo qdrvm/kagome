@@ -29,6 +29,8 @@ namespace kagome::telemetry {
                 (override));
 
     MOCK_METHOD(void, notifyWasSynchronized, (), (override));
+
+    MOCK_METHOD(bool, isEnabled, (), (const override));
   };
 }  // namespace kagome::telemetry
 

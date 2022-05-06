@@ -32,6 +32,10 @@ namespace kagome::telemetry {
 
   /// starting value for reconnection timeout in case line failure
   static constexpr auto kInitialReconnectTimeout = std::chrono::seconds(5);
+  /// an addition to to reconnect timeout after failed attempt
+  static constexpr auto kReconnectTimeoutIncrement = std::chrono::seconds(5);
+  /// maximum reconnect timeout value despite reconnect attempts number
+  static constexpr auto kMaxReconnectTimeout = std::chrono::seconds(60);
 
   /**
    * Telemetry connection class implementation.
@@ -52,7 +56,7 @@ namespace kagome::telemetry {
         std::shared_ptr<boost::asio::io_context> io_context,
         const TelemetryEndpoint &endpoint,
         OnConnectedCallback callback,
-        MessagePool &message_pool,
+        std::shared_ptr<MessagePool> message_pool,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
     TelemetryConnectionImpl(const TelemetryConnectionImpl &) = delete;
     TelemetryConnectionImpl(TelemetryConnectionImpl &&) = delete;
@@ -91,7 +95,6 @@ namespace kagome::telemetry {
     using WsTcpStreamPtr = std::unique_ptr<WsTcpStream>;
     using WsSslStreamPtr = std::unique_ptr<WsSslStream>;
 
-
     boost::beast::lowest_layer_type<SslStream> &stream_lowest_layer();
 
     template <typename WsStreamT>
@@ -120,7 +123,7 @@ namespace kagome::telemetry {
     std::shared_ptr<boost::asio::io_context> io_context_;
     const TelemetryEndpoint endpoint_;
     OnConnectedCallback callback_;
-    MessagePool &message_pool_;
+    std::shared_ptr<MessagePool> message_pool_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     bool is_connected_ = false;
     bool shutdown_requested_ = false;
