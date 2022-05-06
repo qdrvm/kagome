@@ -190,8 +190,8 @@ TEST_F(MessagePoolTest, AccessBadHandle) {
   MessageHandle more_than_capacity = kMaxPoolCapacity + 1;
   auto access = [&](MessageHandle handle) { return pool_[handle]; };
 
-  EXPECT_DEATH(access(non_existing), "handle_is_valid");
-  EXPECT_DEATH(access(more_than_capacity), "handle_is_valid");
+  EXPECT_THROW(access(non_existing), std::runtime_error);
+  EXPECT_THROW(access(more_than_capacity), std::runtime_error);
 }
 
 /**
@@ -204,8 +204,8 @@ TEST_F(MessagePoolTest, AddRefBadHandle) {
   MessageHandle more_than_capacity = kMaxPoolCapacity + 1;
   auto add_ref = [&](MessageHandle handle) { return pool_.add_ref(handle); };
 
-  EXPECT_DEATH(add_ref(non_existing), "handle_is_valid");
-  EXPECT_DEATH(add_ref(more_than_capacity), "handle_is_valid");
+  ASSERT_EQ(add_ref(non_existing), 0);
+  ASSERT_EQ(add_ref(more_than_capacity), 0);
 }
 
 /**
@@ -218,8 +218,8 @@ TEST_F(MessagePoolTest, ReleaseBadHandle) {
   MessageHandle more_than_capacity = kMaxPoolCapacity + 1;
   auto release = [&](MessageHandle handle) { return pool_.release(handle); };
 
-  EXPECT_DEATH(release(non_existing), "handle_is_valid");
-  EXPECT_DEATH(release(more_than_capacity), "handle_is_valid");
+  ASSERT_EQ(release(non_existing), 0);
+  ASSERT_EQ(release(more_than_capacity), 0);
 }
 
 /**
@@ -228,10 +228,7 @@ TEST_F(MessagePoolTest, ReleaseBadHandle) {
  * @then runtime execution gets failed
  */
 TEST_F(MessagePoolTest, BadRefCount) {
-  auto push = [&] {
-    pool_.push("test", -1);
-  };
-  EXPECT_DEATH(push(), "ref_count >= 0");
+  ASSERT_FALSE(pool_.push("test", -1));
 }
 
 /**

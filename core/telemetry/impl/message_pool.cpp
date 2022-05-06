@@ -13,8 +13,6 @@ namespace kagome::telemetry {
   MessagePool::MessagePool(std::size_t entry_size_bytes,
                            std::size_t entries_count)
       : entry_size_{entry_size_bytes}, entries_count_{entries_count} {
-    BOOST_ASSERT(entry_size_bytes > 0);
-    BOOST_ASSERT(entries_count > 0);
     // preallocate all the buffers
     pool_.resize(entries_count);
     for (auto &entry : pool_) {
@@ -29,12 +27,10 @@ namespace kagome::telemetry {
   std::optional<MessageHandle> MessagePool::push(const std::string &message,
                                                  int16_t ref_count) {
     bool message_exceeds_max_size = message.length() > entry_size_;
-    BOOST_ASSERT(not message_exceeds_max_size);
     if (message_exceeds_max_size) {
       return std::nullopt;
     }
-    BOOST_VERIFY(ref_count >= 0);
-    if (ref_count == 0) {
+    if (ref_count <= 0) {
       return std::nullopt;
     }
     auto has_free_slot = nextFreeSlot();  // quick blocking lookup
@@ -56,7 +52,9 @@ namespace kagome::telemetry {
   MessagePool::RefCount MessagePool::add_ref(MessageHandle handle) {
     bool handle_is_valid =
         (handle < pool_.size()) and (free_slots_.count(handle) == 0);
-    BOOST_VERIFY(handle_is_valid);
+    if (not handle_is_valid) {
+      return 0;  // zero references for bad handle
+    }
     std::lock_guard lock(mutex_);
     // allowed to call only over already occupied slots
     BOOST_ASSERT(free_slots_.count(handle) == 0);
@@ -67,7 +65,9 @@ namespace kagome::telemetry {
   MessagePool::RefCount MessagePool::release(MessageHandle handle) {
     bool handle_is_valid =
         (handle < pool_.size()) and (free_slots_.count(handle) == 0);
-    BOOST_VERIFY(handle_is_valid);
+    if (not handle_is_valid) {
+      return 0;  // zero references for bad handle
+    }
     std::lock_guard lock(mutex_);
     auto &entry = pool_[handle];
     if (entry.ref_count > 0 and --entry.ref_count == 0) {
@@ -82,7 +82,9 @@ namespace kagome::telemetry {
       MessageHandle handle) const {
     bool handle_is_valid =
         (handle < pool_.size()) and (free_slots_.count(handle) == 0);
-    BOOST_VERIFY(handle_is_valid);
+    if (not handle_is_valid) {
+      throw std::runtime_error("Bad access through invalid handle");
+    }
     // No synchronization required due to the design of its use way.
     // Read access might be requested only when a handle is already acquired.
     // => There would be no race during initialization and read.

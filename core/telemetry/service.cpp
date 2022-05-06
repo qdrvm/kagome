@@ -36,7 +36,7 @@ namespace kagome::telemetry {
         }
         was_synchronized_ = true;
       }
-      bool isEnabled() const {
+      bool isEnabled() const override {
         return false;
       }
 
