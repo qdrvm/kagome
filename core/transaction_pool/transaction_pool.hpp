@@ -10,6 +10,7 @@
 
 #include "primitives/block_id.hpp"
 #include "primitives/transaction.hpp"
+#include "primitives/transaction_validity.hpp"
 
 namespace kagome::transaction_pool {
 
@@ -28,6 +29,19 @@ namespace kagome::transaction_pool {
     virtual const std::unordered_map<Transaction::Hash,
                                      std::shared_ptr<Transaction>>
         &getPendingTransactions() const = 0;
+
+    /**
+     * Builds and validates transaction for provided extrinsic, and submit
+     * result transaction into pool
+     * @param source how extrinsic was received (for example external or
+     * submitted through offchain worker)
+     * @param extrinsic set of bytes representing either transaction or inherent
+     * @return hash of successfully submitted transaction
+     * or error if state is invalid or unknown
+     */
+    virtual outcome::result<Transaction::Hash> submitExtrinsic(
+        primitives::TransactionSource source,
+        primitives::Extrinsic extrinsic) = 0;
 
     /**
      * Import one verified transaction to the pool. If it has unresolved

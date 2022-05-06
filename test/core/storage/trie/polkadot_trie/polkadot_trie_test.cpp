@@ -8,6 +8,7 @@
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/polkadot_trie_printer.hpp"
@@ -39,6 +40,8 @@ class TrieTest
   TrieTest() {}
 
   void SetUp() override {
+    testutil::prepareLoggers(soralog::Level::OFF);
+
     trie = std::make_unique<PolkadotTrieImpl>();
   }
 
@@ -323,7 +326,6 @@ TEST_F(TrieTest, ClearPrefix) {
   for (auto &entry : data) {
     ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry.first, entry.second));
   }
-  std::cout << *trie << "\n";
   ASSERT_OUTCOME_SUCCESS_TRY(
       trie->clearPrefix("bar"_buf, std::nullopt, [](const auto &, auto &&) {
         return outcome::success();
@@ -394,9 +396,7 @@ TEST_P(DeleteTest, DeleteData) {
   for (auto &entry : GetParam().data) {
     ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry, "123"_buf));
   }
-  std::cout << *trie << "\n==================\n";
   ASSERT_OUTCOME_SUCCESS_TRY(trie->remove(GetParam().key));
-  std::cout << *trie << "\n==================\n";
   ASSERT_EQ(size(trie->getRoot()), GetParam().size);
 }
 

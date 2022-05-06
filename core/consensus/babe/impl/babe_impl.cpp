@@ -65,7 +65,8 @@ namespace kagome::consensus::babe {
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        log_{log::createLogger("Babe", "babe")} {
+        log_{log::createLogger("Babe", "babe")},
+        telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
@@ -193,20 +194,31 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::adjustEpochDescriptor() {
-    if (current_epoch_.epoch_number > 1) {
-      return;
-    }
+    auto first_slot_number = babe_util_->syncEpoch([&]() {
+      auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
+      if (res.has_error()) {
+        SL_TRACE(log_,
+                 "First block slot is {}: no first block (at adjusting)",
+                 babe_util_->getCurrentSlot());
+        return std::tuple(babe_util_->getCurrentSlot(), false);
+      }
 
-    auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
-    if (res.has_error()) {
-      return;
-    }
+      auto &first_block_header = res.value();
+      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
+                       "Any non genesis block must contain babe digest");
+      auto first_slot_number = babe_digest_res.value().second.slot_number;
 
-    auto &first_block_header = res.value();
-    auto babe_digest_res = consensus::getBabeDigests(first_block_header);
-    BOOST_ASSERT_MSG(babe_digest_res.has_value(),
-                     "Any non genesis block must contain babe digest");
-    auto first_slot_number = babe_digest_res.value().second.slot_number;
+      auto is_first_block_finalized =
+          block_tree_->getLastFinalized().number > 0;
+
+      SL_TRACE(
+          log_,
+          "First block slot is {}: by {}finalized first block (at adjusting)",
+          first_slot_number,
+          is_first_block_finalized ? "" : "non-");
+      return std::tuple(first_slot_number, is_first_block_finalized);
+    });
 
     auto current_epoch_start_slot =
         first_slot_number
@@ -216,12 +228,10 @@ namespace kagome::consensus::babe {
       SL_WARN(log_,
               "Start-slot of current epoch {} has updated from {} to {}",
               current_epoch_.epoch_number,
-              current_epoch_start_slot,
-              current_epoch_.start_slot);
+              current_epoch_.start_slot,
+              current_epoch_start_slot);
 
-      current_epoch_.start_slot =current_epoch_start_slot;
-
-      babe_util_->syncEpoch(current_epoch_);
+      current_epoch_.start_slot = current_epoch_start_slot;
     }
   }
 
@@ -233,6 +243,8 @@ namespace kagome::consensus::babe {
 
     BOOST_ASSERT(keypair_ != nullptr);
 
+    adjustEpochDescriptor();
+
     SL_DEBUG(
         log_,
         "Starting an epoch {}. Session key: {:l}. Secondary slots allowed={}",
@@ -241,8 +253,6 @@ namespace kagome::consensus::babe {
         isSecondarySlotsAllowed());
     current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
-
-    babe_util_->syncEpoch(current_epoch_);
 
     runSlot();
   }
@@ -314,6 +324,7 @@ namespace kagome::consensus::babe {
               SL_INFO(self->log_, "Catching up is finished on block {}", block);
               self->current_state_ = Babe::State::SYNCHRONIZED;
               self->was_synchronized_ = true;
+              self->telemetry_->notifyWasSynchronized();
             }
             self->onSynchronized();
 
@@ -365,6 +376,7 @@ namespace kagome::consensus::babe {
 
     current_state_ = State::SYNCHRONIZED;
     was_synchronized_ = true;
+    telemetry_->notifyWasSynchronized();
 
     if (not active_) {
       best_block_ = block_tree_->deepestLeaf();
@@ -748,6 +760,7 @@ namespace kagome::consensus::babe {
       }
       return;
     }
+    telemetry_->notifyBlockImported(block_info, telemetry::BlockOrigin::kOwn);
 
     // observe possible changes of authorities
     // (must be done strictly after block will be added)
@@ -842,7 +855,31 @@ namespace kagome::consensus::babe {
     ++current_epoch_.epoch_number;
     current_epoch_.start_slot = current_slot_;
 
-    babe_util_->syncEpoch(current_epoch_);
+    babe_util_->syncEpoch([&]() {
+      auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
+      if (res.has_error()) {
+        SL_WARN(log_,
+                "First block slot is {}: no first block (at start next epoch)",
+                babe_util_->getCurrentSlot());
+        return std::tuple(babe_util_->getCurrentSlot(), false);
+      }
+
+      auto &first_block_header = res.value();
+      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
+                       "Any non genesis block must contain babe digest");
+      auto first_slot_number = babe_digest_res.value().second.slot_number;
+
+      auto is_first_block_finalized =
+          block_tree_->getLastFinalized().number > 0;
+
+      SL_WARN(log_,
+              "First block slot is {}: by {}finalized first block (at start "
+              "next epoch)",
+              first_slot_number,
+              is_first_block_finalized ? "" : "non-");
+      return std::tuple(first_slot_number, is_first_block_finalized);
+    });
   }
 
   bool BabeImpl::isSecondarySlotsAllowed() const {

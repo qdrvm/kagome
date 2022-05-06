@@ -41,4 +41,5 @@ target_link_libraries(block_tree
     hasher
     metrics
     justification_storage_policy
+    telemetry
     )

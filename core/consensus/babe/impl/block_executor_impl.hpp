@@ -22,6 +22,7 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
 #include "runtime/runtime_api/core.hpp"
+#include "telemetry/service.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::runtime {
@@ -71,6 +72,7 @@ namespace kagome::consensus {
     metrics::Histogram *metric_block_execution_time_;
 
     log::Logger logger_;
+    telemetry::Telemetry telemetry_;
   };
 
 }  // namespace kagome::consensus

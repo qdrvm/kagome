@@ -121,7 +121,8 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       .digest = kagome::primitives::Digest{
           kagome::primitives::PreRuntime{
               kagome::primitives::kBabeEngineId,
-              Buffer{scale::encode(BabeBlockHeader{.authority_index = 1})
+              Buffer{scale::encode(BabeBlockHeader{.slot_number = 0,
+                                                   .authority_index = 1})
                          .value()}},
           kagome::primitives::Consensus{
               kagome::primitives::ScheduledChange{authorities, 0}},

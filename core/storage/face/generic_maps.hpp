@@ -20,9 +20,7 @@ namespace kagome::storage::face {
    */
   template <typename K, typename V, typename KView = K>
   struct ReadOnlyMap
-      : public Iterable<K,
-                        typename ReadableMap<K, V>::ConstValueView,
-                        KView>,
+      : public Iterable<K, typename ReadableMap<K, V>::ConstValueView, KView>,
         public ReadableMap<KView, V> {};
 
   template <typename K, typename V, typename KView = K>
@@ -42,7 +40,13 @@ namespace kagome::storage::face {
   template <typename K, typename V, typename KView = K>
   struct GenericStorage : public ReadOnlyStorage<K, V, KView>,
                           public Writeable<KView, V>,
-                          public BatchWriteable<KView, V> {};
+                          public BatchWriteable<KView, V> {
+    /**
+     * Reports RAM state size
+     * @return size in bytes
+     */
+    virtual size_t size() const = 0;
+  };
 
 }  // namespace kagome::storage::face
 

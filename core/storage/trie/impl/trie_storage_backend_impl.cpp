@@ -67,4 +67,8 @@ namespace kagome::storage::trie {
     return common::Buffer{node_prefix_}.put(key);
   }
 
+  size_t TrieStorageBackendImpl::size() const {
+    return storage_->size();
+  }
+
 }  // namespace kagome::storage::trie

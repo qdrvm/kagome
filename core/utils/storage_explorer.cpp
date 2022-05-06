@@ -280,11 +280,15 @@ class SearchChainCommand : public Command {
                 "'justification' or 'authority-update' are supported "},
         block_storage{block_storage} {}
 
-  enum class Target { Justification, AuthorityUpdate };
+  enum class Target { Justification, AuthorityUpdate, LastBlock };
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
     assertArgumentCount(args, 2, 4);
     Target target = parseTarget(args[1]);
+    if (target == Target::LastBlock) {
+      std::cout << "#" << block_storage->getLastFinalized().value().number << " " << block_storage->getLastFinalized().value().hash.toHex() << "\n";
+      return;
+    }
 
     BlockId start, end;
 
@@ -340,6 +344,7 @@ class SearchChainCommand : public Command {
   Target parseTarget(const char *arg) const {
     if (strcmp(arg, "justification") == 0) return Target::Justification;
     if (strcmp(arg, "authority-update") == 0) return Target::AuthorityUpdate;
+    if (strcmp(arg, "last-finalized") == 0) return Target::LastBlock;
     throwError("Invalid target '{}'", arg);
   }
 

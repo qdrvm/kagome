@@ -7,19 +7,26 @@
 #define KAGOME_UNUSED
 
 #include "common/empty.hpp"
+#include "common/tagged.hpp"
 
 namespace kagome {
+
+  /// Number-based marker-type for using as tag
+  template <size_t Num>
+  struct NumTag {
+   private:
+    static constexpr size_t tag = Num;
+  };
 
   /// Special zero-size-type for some things
   ///  (e.g., unsupported and experimental).
   template <size_t N>
-  struct Unused : public Empty {
-    inline static constexpr size_t index = N;
+  using Unused = Tagged<Empty, NumTag<N>>;
 
-    bool operator==(const Unused &) const {
-      return true;
-    }
-  };
+  template <size_t N>
+  bool operator==(const Unused<N> &, const Unused<N> &) {
+    return true;
+  }
 
 }  // namespace kagome
 

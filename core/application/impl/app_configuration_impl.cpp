@@ -21,6 +21,7 @@
 #include "assets/assets.hpp"
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
+#include "common/uri.hpp"
 #include "filesystem/directories.hpp"
 
 namespace {
@@ -188,9 +189,28 @@ namespace kagome::application {
         return false;
       }
       target.emplace_back(std::move(ma_res.value()));
-      return true;
     }
     return not target.empty();
+  }
+
+  bool AppConfigurationImpl::load_telemetry_uris(
+      const rapidjson::Value &val,
+      char const *name,
+      std::vector<telemetry::TelemetryEndpoint> &target) {
+    auto it = val.FindMember(name);
+    if (it != val.MemberEnd() and it->value.IsArray()) {
+      for (auto &v : it->value.GetArray()) {
+        if (v.IsString()) {
+          auto result = parseTelemetryEndpoint(v.GetString());
+          if (result.has_value()) {
+            target.emplace_back(std::move(result.value()));
+            continue;
+          }
+        }
+        return false;
+      }  // for
+    }
+    return true;
   }
 
   bool AppConfigurationImpl::load_str(const rapidjson::Value &val,
@@ -279,6 +299,7 @@ namespace kagome::application {
     load_u32(val, "out-peers", out_peers_);
     load_u32(val, "in-peers", in_peers_);
     load_u32(val, "in-peers-light", in_peers_light_);
+    load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
@@ -468,6 +489,71 @@ namespace kagome::application {
     return true;
   }
 
+  std::optional<telemetry::TelemetryEndpoint>
+  AppConfigurationImpl::parseTelemetryEndpoint(
+      const std::string &record) const {
+    /*
+     * The only form a telemetry endpoint could be specified is
+     * "<endpoint uri> <verbosity level>", where verbosity level is a single
+     * numeric character in a range from 0 to 9 inclusively.
+     */
+
+    // check there is a space char preceding the verbosity level number
+    const auto len = record.length();
+    constexpr auto kSpaceChar = ' ';
+    if (kSpaceChar != record.at(len - 2)) {
+      SL_ERROR(logger_,
+               "record '{}' could not be parsed as a valid telemetry endpoint. "
+               "The desired format is '<endpoint uri> <verbosity: 0-9>'",
+               record);
+      return std::nullopt;
+    }
+
+    // try to parse verbosity level
+    uint8_t verbosity_level{0};
+    try {
+      auto verbosity_char = record.substr(len - 1);
+      int verbosity_level_parsed = std::stoi(verbosity_char);
+      // the following check is left intentionally
+      // despite possible redundancy
+      if (verbosity_level_parsed < 0 or verbosity_level_parsed > 9) {
+        throw std::out_of_range("verbosity level value is out of range");
+      }
+      verbosity_level = static_cast<uint8_t>(verbosity_level_parsed);
+    } catch (std::invalid_argument const &e) {
+      SL_ERROR(logger_,
+               "record '{}' could not be parsed as a valid telemetry endpoint. "
+               "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
+               "Verbosity level does not meet the format: {}",
+               record,
+               e.what());
+      return std::nullopt;
+    } catch (std::out_of_range const &e) {
+      SL_ERROR(logger_,
+               "record '{}' could not be parsed as a valid telemetry endpoint. "
+               "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
+               "Verbosity level does not meet the format: {}",
+               record,
+               e.what());
+      return std::nullopt;
+    }
+
+    // try to parse endpoint uri
+    auto uri_part = record.substr(0, len - 2);
+    auto uri = common::Uri::parse(uri_part);
+    if (uri.error().has_value()) {
+      SL_ERROR(logger_,
+               "record '{}' could not be parsed as a valid telemetry endpoint. "
+               "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
+               "Endpoint URI parsing failed: {}",
+               record,
+               uri.error().value());
+      return std::nullopt;
+    }
+
+    return telemetry::TelemetryEndpoint{std::move(uri), verbosity_level};
+  }
+
   bool AppConfigurationImpl::initializeFromArgs(int argc, const char **argv) {
     namespace po = boost::program_options;
 
@@ -518,6 +604,9 @@ namespace kagome::application {
         ("in-peers-light", po::value<uint32_t>()->default_value(100), "maximum number of inbound light nodes peers")
         ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
+        ("telemetry-url", po::value<std::vector<std::string>>()->multitoken(),
+                          "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
+                          "e.g. --telemetry-url 'wss://foo/bar 0'")
         ;
 
     po::options_description development_desc("Additional options");
@@ -838,6 +927,28 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "name", [&](std::string const &val) { node_name_ = val; });
+
+    auto parse_telemetry_urls =
+        [&](const std::string &param_name,
+            std::vector<telemetry::TelemetryEndpoint> &output_field) -> bool {
+      std::vector<std::string> tokens;
+      find_argument<std::vector<std::string>>(
+          vm, param_name.c_str(), [&](const auto &val) { tokens = val; });
+
+      for (const auto &token : tokens) {
+        auto result = parseTelemetryEndpoint(token);
+        if (result.has_value()) {
+          telemetry_endpoints_.emplace_back(std::move(result.value()));
+        } else {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    if (not parse_telemetry_urls("telemetry-url", telemetry_endpoints_)) {
+      return false;  // just proxy erroneous case to the top level
+    }
 
     std::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
     find_argument<std::string>(

@@ -75,7 +75,7 @@ namespace kagome::blockchain {
           block_storage->setBlockTreeLeaves({last_finalized_block_hash}));
     }
 
-    return std::move(block_storage);
+    return block_storage;
   }
 
   outcome::result<bool> BlockStorageImpl::hasBlockHeader(

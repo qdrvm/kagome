@@ -16,7 +16,7 @@
 #include <boost/beast/ssl/ssl_stream.hpp>
 
 #include "log/logger.hpp"
-#include "offchain/impl/uri.hpp"
+#include "common/uri.hpp"
 #include "offchain/types.hpp"
 
 namespace kagome::offchain {
@@ -71,7 +71,7 @@ namespace kagome::offchain {
     using SslStreamPtr = std::unique_ptr<SslStream>;
     boost::variant<TcpStreamPtr, SslStreamPtr> stream_;
 
-    Uri uri_;
+    common::Uri uri_;
     bool adding_headers_is_allowed_ = true;
     bool request_has_sent_ = false;
     bool secure_;

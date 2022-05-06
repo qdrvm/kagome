@@ -5,7 +5,10 @@
 
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
+#include "crypto/hasher.hpp"
+#include "network/transactions_transmitter.hpp"
 #include "primitives/block_id.hpp"
+#include "runtime/runtime_api/tagged_transaction_queue.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
 using kagome::primitives::BlockNumber;
@@ -22,6 +25,9 @@ namespace kagome::transaction_pool {
   using primitives::events::ExtrinsicLifecycleEvent;
 
   TransactionPoolImpl::TransactionPoolImpl(
+      std::shared_ptr<runtime::TaggedTransactionQueue> ttq,
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<network::TransactionsTransmitter> tx_transmitter,
       std::unique_ptr<PoolModerator> moderator,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
@@ -31,9 +37,15 @@ namespace kagome::transaction_pool {
       : header_repo_{std::move(header_repo)},
         sub_engine_{std::move(sub_engine)},
         ext_key_repo_{std::move(ext_key_repo)},
+        ttq_{std::move(ttq)},
+        hasher_{std::move(hasher)},
+        tx_transmitter_{std::move(tx_transmitter)},
         moderator_{std::move(moderator)},
         limits_{limits} {
     BOOST_ASSERT_MSG(header_repo_ != nullptr, "header repo is nullptr");
+    BOOST_ASSERT_MSG(ttq_ != nullptr, "tagged-transaction queue is nullptr");
+    BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
+    BOOST_ASSERT_MSG(tx_transmitter_ != nullptr, "tx_transmitter is nullptr");
     BOOST_ASSERT_MSG(moderator_ != nullptr, "moderator is nullptr");
     BOOST_ASSERT_MSG(sub_engine_ != nullptr, "sub engine is nullptr");
     BOOST_ASSERT_MSG(ext_key_repo_ != nullptr,
@@ -46,6 +58,53 @@ namespace kagome::transaction_pool {
     metric_ready_txs_ =
         metrics_registry_->registerGaugeMetric(readyTransactionsMetricName);
     metric_ready_txs_->set(0);
+  }
+
+  outcome::result<primitives::Transaction>
+  TransactionPoolImpl::constructTransaction(
+      primitives::TransactionSource source,
+      primitives::Extrinsic extrinsic) const {
+    OUTCOME_TRY(res, ttq_->validate_transaction(source, extrinsic));
+
+    return visit_in_place(
+        res,
+        [&](const primitives::TransactionValidityError &e) {
+          return visit_in_place(
+              e,
+              // return either invalid or unknown validity error
+              [](const auto &validity_error)
+                  -> outcome::result<primitives::Transaction> {
+                return validity_error;
+              });
+        },
+        [&](const primitives::ValidTransaction &v)
+            -> outcome::result<primitives::Transaction> {
+          common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
+          size_t length = extrinsic.data.size();
+
+          return primitives::Transaction{extrinsic,
+                                         length,
+                                         hash,
+                                         v.priority,
+                                         v.longevity,
+                                         v.requires,
+                                         v.provides,
+                                         v.propagate};
+        });
+  }
+
+  outcome::result<Transaction::Hash> TransactionPoolImpl::submitExtrinsic(
+      primitives::TransactionSource source, primitives::Extrinsic extrinsic) {
+    OUTCOME_TRY(tx, constructTransaction(source, extrinsic));
+
+    if (tx.should_propagate) {
+      tx_transmitter_->propagateTransactions(gsl::make_span(std::vector{tx}));
+    }
+    auto hash = tx.hash;
+    // send to pool
+    OUTCOME_TRY(submitOne(std::move(tx)));
+
+    return hash;
   }
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {

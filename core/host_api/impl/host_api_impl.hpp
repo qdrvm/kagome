@@ -78,6 +78,9 @@ namespace kagome::host_api {
 
     runtime::WasmSpan ext_storage_root_version_1() override;
 
+    runtime::WasmSpan ext_storage_root_version_2(
+        runtime::WasmI32 state_version) override;
+
     runtime::WasmSpan ext_storage_changes_root_version_1(
         runtime::WasmSpan parent_hash) override;
 
@@ -98,6 +101,9 @@ namespace kagome::host_api {
 
     runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_1(
         runtime::WasmSpan values_data) override;
+
+    runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_2(
+        runtime::WasmSpan values_data, runtime::WasmI32 state_version) override;
 
     // ------------------------Memory extensions v1-------------------------
     runtime::WasmPointer ext_allocator_malloc_version_1(

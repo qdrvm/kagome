@@ -86,6 +86,7 @@
 #include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/peer_manager_impl.hpp"
+#include "network/impl/rating_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
@@ -115,6 +116,7 @@
 #include "runtime/runtime_api/impl/metadata.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
+#include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
@@ -135,6 +137,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "telemetry/impl/service_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
@@ -620,20 +623,21 @@ namespace {
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
 
-    auto block_tree_res = blockchain::BlockTreeImpl::create(
-        header_repo,
-        std::move(storage),
-        std::move(extrinsic_observer),
-        std::move(hasher),
-        chain_events_engine,
-        std::move(ext_events_engine),
-        std::move(ext_events_key_repo),
-        std::move(runtime_core),
-        std::move(changes_tracker),
-        std::move(babe_configuration),
-        std::move(babe_util),
-        std::move(justification_storage_policy),
-        std::move(app_state_manager));
+    auto block_tree_res =
+        blockchain::BlockTreeImpl::create(header_repo,
+                                          std::move(storage),
+                                          std::move(extrinsic_observer),
+                                          std::move(hasher),
+                                          chain_events_engine,
+                                          std::move(ext_events_engine),
+                                          std::move(ext_events_key_repo),
+                                          std::move(runtime_core),
+                                          std::move(changes_tracker),
+                                          std::move(babe_configuration),
+                                          std::move(babe_util),
+                                          std::move(justification_storage_policy),
+                                          std::move(app_state_manager));
+
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());
     }
@@ -678,7 +682,8 @@ namespace {
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::Router>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
-        injector.template create<sptr<crypto::Hasher>>());
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<network::PeerRatingRepository>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -908,6 +913,7 @@ namespace {
         di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::BabeApiImpl>(),
+        di::bind<runtime::SessionKeysApi>.template to<runtime::SessionKeysApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderImpl>(),
         di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
@@ -1107,6 +1113,7 @@ namespace {
         di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
         di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
+        di::bind<network::PeerRatingRepository>.template to<network::PeerRatingRepositoryImpl>(),
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
@@ -1184,6 +1191,7 @@ namespace {
         }),
         di::bind<application::mode::RecoveryMode>.to(
             [](auto const &injector) { return get_recovery_mode(injector); }),
+        di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1287,7 +1295,7 @@ namespace {
     }
 
     initialized = std::make_shared<network::ExtrinsicObserverImpl>(
-        injector.template create<sptr<api::AuthorApi>>());
+        injector.template create<sptr<transaction_pool::TransactionPool>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1483,6 +1491,11 @@ namespace kagome::injector {
   std::shared_ptr<metrics::MetricsWatcher>
   KagomeNodeInjector::injectMetricsWatcher() {
     return pimpl_->injector_.create<sptr<metrics::MetricsWatcher>>();
+  }
+
+  std::shared_ptr<telemetry::TelemetryService>
+  KagomeNodeInjector::injectTelemetryService() {
+    return pimpl_->injector_.create<sptr<telemetry::TelemetryService>>();
   }
 
   std::shared_ptr<application::mode::RecoveryMode>

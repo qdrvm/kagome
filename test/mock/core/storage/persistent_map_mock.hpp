@@ -38,6 +38,8 @@ namespace kagome::storage::face {
     }
 
     MOCK_METHOD1_T(remove, outcome::result<void>(const KView &));
+
+    MOCK_CONST_METHOD0_T(size, size_t());
   };
 }  // namespace kagome::storage::face
 

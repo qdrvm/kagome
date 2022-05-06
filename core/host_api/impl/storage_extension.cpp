@@ -6,17 +6,16 @@
 #include "host_api/impl/storage_extension.hpp"
 
 #include <algorithm>
-#include <forward_list>
 
 #include "clock/impl/clock_impl.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
-#include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
@@ -24,7 +23,21 @@ using kagome::common::Buffer;
 
 namespace {
   const auto CHANGES_CONFIG_KEY = kagome::common::Buffer{}.put(":changes_trie");
-}
+
+  [[nodiscard]] kagome::storage::trie::StateVersion toStateVersion(
+      kagome::runtime::WasmI32 state_version_int) {
+    if (state_version_int == 0) {
+      return kagome::storage::trie::StateVersion::V0;
+    } else if (state_version_int == 1) {
+      // TODO(xDimon): remove exception when new version will be implemented
+      throw std::runtime_error("StateVersion::V1 has met first time");
+      return kagome::storage::trie::StateVersion::V1;
+    } else {
+      throw std::runtime_error(fmt::format(
+          "Invalid state version: {}. Expected 0 or 1", state_version_int));
+    }
+  }
+}  // namespace
 
 namespace kagome::host_api {
   StorageExtension::StorageExtension(
@@ -79,7 +92,8 @@ namespace kagome::host_api {
         SL_TRACE_FUNC_CALL(
             logger_, data, key, common::Buffer{data.subspan(0, written)});
       } else {
-        SL_TRACE_FUNC_CALL(logger_, std::string_view{"none"}, key, value_out, offset);
+        SL_TRACE_FUNC_CALL(
+            logger_, std::string_view{"none"}, key, value_out, offset);
       }
     } else {
       SL_ERROR(logger_,
@@ -140,12 +154,7 @@ namespace kagome::host_api {
     auto result = get(key_buffer);
 
     if (result) {
-      auto& opt_buf = result.value();
-      if (opt_buf.has_value()) {
-        SL_TRACE_FUNC_CALL(logger_, opt_buf.value().get().toHex(), key_buffer);
-      } else {
-        SL_TRACE_FUNC_CALL(logger_, std::string_view{"none"}, key_buffer);
-      }
+      SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
     } else {
       logger_->error(
           error_message, key_buffer.toHex(), result.error().message());
@@ -218,6 +227,13 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_root_version_1() {
+    return ext_storage_root_version_2(runtime::WasmI32(0));
+  }
+
+  runtime::WasmSpan StorageExtension::ext_storage_root_version_2(
+      runtime::WasmI32 version) {
+    auto state_version = toStateVersion(version);
+
     outcome::result<storage::trie::RootHash> res{{}};
     removeEmptyChildStorages();
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
@@ -325,6 +341,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_commit_transaction_version_1() {
     auto res = storage_provider_->commitTransaction();
+    SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction rollback has failed: {}",
                      res.error().message());
@@ -334,6 +351,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_rollback_transaction_version_1() {
     auto res = storage_provider_->rollbackTransaction();
+    SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction commit has failed: {}",
                      res.error().message());
@@ -402,6 +420,13 @@ namespace kagome::host_api {
   runtime::WasmPointer
   StorageExtension::ext_trie_blake2_256_ordered_root_version_1(
       runtime::WasmSpan values_data) {
+    return ext_trie_blake2_256_ordered_root_version_2(values_data,
+                                                      runtime::WasmI32(0));
+  }
+
+  runtime::WasmPointer
+  StorageExtension::ext_trie_blake2_256_ordered_root_version_2(
+      runtime::WasmSpan values_data, runtime::WasmI32 version) {
     auto [address, size] = runtime::PtrSize(values_data);
     auto &memory = memory_provider_->getCurrentMemory()->get();
     const auto &buffer = memory.loadN(address, size);
@@ -410,8 +435,10 @@ namespace kagome::host_api {
       logger_->error("failed to decode values: {}", values.error().message());
       throw std::runtime_error(values.error().message());
     }
-
     const auto &collection = values.value();
+
+    auto state_version = toStateVersion(version);
+
     auto ordered_hash = storage::trie::calculateOrderedTrieHash(
         collection.begin(), collection.end());
     if (!ordered_hash.has_value()) {
@@ -495,7 +522,7 @@ namespace kagome::host_api {
     auto current_key = prefix;
     auto key_res = getStorageNextKey(current_key);
     while (key_res.has_value() and key_res.value().has_value()) {
-      auto& key_opt = key_res.value();
+      auto &key_opt = key_res.value();
       current_key = key_opt.value();
 
       bool contains_prefix =
@@ -503,7 +530,8 @@ namespace kagome::host_api {
       if (not contains_prefix) {
         break;
       }
-      // SAFETY: key obtained by getStorageNextKey method, thus must exist in the storage
+      // SAFETY: key obtained by getStorageNextKey method, thus must exist in
+      // the storage
       auto value_opt = get(current_key).value();
       if (value_opt and value_opt.value().get() == empty_hash) {
         auto batch = storage_provider_->getCurrentBatch();
@@ -514,7 +542,8 @@ namespace kagome::host_api {
               current_key,
               remove_res.error().message());
         } else {
-          SL_TRACE(logger_, "Removed empty child trie under key {}", current_key);
+          SL_TRACE(
+              logger_, "Removed empty child trie under key {}", current_key);
         }
       }
       key_res = getStorageNextKey(current_key);
