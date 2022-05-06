@@ -356,6 +356,8 @@ class SearchChainCommand : public Command {
         return searchForJustification(out, header);
       case Target::AuthorityUpdate:
         return searchForAuthorityUpdate(out, header);
+      case Target::LastBlock:
+        return;
     }
     BOOST_UNREACHABLE_RETURN();
   }

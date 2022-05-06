@@ -260,7 +260,7 @@ TEST_F(AppConfigurationTest, TelemetryEndpointsFromConfig) {
       config_path.c_str(),
   };
 
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_EQ(app_config_->telemetryEndpoints(), reference);
 }
 
@@ -537,7 +537,7 @@ TEST_F(AppConfigurationTest, SingleTelemetryCliArg) {
                         base_path.native().c_str(),
                         "--telemetry-url",
                         "ws://localhost/submit 0"};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   auto parsed_endpoints = app_config_->telemetryEndpoints();
   ASSERT_EQ(parsed_endpoints.size(), 1);
@@ -562,6 +562,6 @@ TEST_F(AppConfigurationTest, MultipleTelemetryCliArgs) {
                         "--telemetry-url",
                         "ws://localhost/submit 0",
                         "wss://telemetry.soramitsu.co.jp/submit 4"};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_EQ(app_config_->telemetryEndpoints(), reference);
 }
