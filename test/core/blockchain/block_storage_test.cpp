@@ -191,7 +191,7 @@ TEST_F(BlockStorageTest, Remove) {
   auto block_storage = createWithGenesis();
 
   EXPECT_CALL(*storage, remove(_))
-      .Times(4)  // 4 removals: justification + data + header + hash-to-idx
+      .Times(3)  // 4 removals: data + header + hash-to-idx
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(block_storage->removeBlock({0, genesis_block_hash}));
 

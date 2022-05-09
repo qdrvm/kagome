@@ -36,55 +36,59 @@ BlockHeader makeBlockHeader(const BlockNumber &number) {
   return header;
 }
 
-TEST(JustificationStoragePolicyTest, ShouldStore512Multiples) {
-  JustificationStoragePolicyImpl policy{};
-  auto tree = std::make_shared<kagome::blockchain::BlockTreeMock>();
-  policy.initBlockchainInfo(tree);
+class JustificationStoragePolicyTest : public testing::Test {
+ public:
+  void SetUp() override {
+    tree_ = std::make_shared<kagome::blockchain::BlockTreeMock>();
+    policy_.initBlockchainInfo(tree_);
+    EXPECT_CALL(*tree_, getLastFinalized())
+        .WillRepeatedly(Return(BlockInfo{"finalized"_hash256, 2000}));
+  }
 
-  EXPECT_CALL(*tree, getLastFinalized())
-      .WillRepeatedly(Return(BlockInfo{"finalized"_hash256, 2000}));
-
-  ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(0)).value(), true);
-
-  ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(1)).value(), false);
-
-  ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(2)).value(), false);
-
-  ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(512)).value(), true);
-
-  ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(1024)).value(), true);
+ protected:
+  JustificationStoragePolicyImpl policy_{};
+  std::shared_ptr<kagome::blockchain::BlockTreeMock> tree_;
+};
+TEST_F(JustificationStoragePolicyTest, ShouldStore512Multiples) {
+  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(0)).value(), true);
+  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(1)).value(), false);
+  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(2)).value(), false);
+  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(512)).value(), true);
+  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(1024)).value(), true);
 }
 
 /**
- * GIVEN finalized block 34
- * WHEN finalizing block 36, which changes authority set
- * THEN justifications of blocks 34 and 36 must be stored
+ * GIVEN finalized block 13, which contains a ScheduledChange
+ * WHEN finalizing block 13
+ * THEN justifications of block 13 must be stored
  */
-TEST(JustificationStoragePolicyTest, ShouldStoreOnAuthorityChange) {
-  JustificationStoragePolicyImpl policy{};
-  auto tree = std::make_shared<kagome::blockchain::BlockTreeMock>();
-  policy.initBlockchainInfo(tree);
+TEST_F(JustificationStoragePolicyTest, ShouldStoreOnScheduledChange) {
+  auto header = makeBlockHeader(13);
+  header.digest.emplace_back(
+      kagome::primitives::Consensus{kagome::primitives::ScheduledChange{}});
+  ASSERT_EQ(policy_.shouldStoreFor(header).value(), true);
+}
 
-  EXPECT_CALL(*tree, getLastFinalized())
-      .WillRepeatedly(Return(BlockInfo{"finalized"_hash256, 2000}));
+/**
+ * GIVEN finalized block 13, which contains a ForcedChange
+ * WHEN finalizing block 13
+ * THEN justifications of block 13 must be stored
+ */
+TEST_F(JustificationStoragePolicyTest, ShouldStoreOnForcedChange) {
+  auto header = makeBlockHeader(13);
+  header.digest.emplace_back(
+      kagome::primitives::Consensus{kagome::primitives::ForcedChange{}});
+  ASSERT_EQ(policy_.shouldStoreFor(header).value(), true);
+}
 
-  {
-    auto header = makeBlockHeader(13);
-    header.digest.emplace_back(
-        kagome::primitives::Consensus{kagome::primitives::ScheduledChange{}});
-    ASSERT_EQ(policy.shouldStoreFor(header).value(), true);
-  }
-  {
-    auto header = makeBlockHeader(13);
-    header.digest.emplace_back(
-        kagome::primitives::Consensus{kagome::primitives::ForcedChange{}});
-    ASSERT_EQ(policy.shouldStoreFor(header).value(), true);
-  }
-  {
-    auto header = makeBlockHeader(13);
-    header.digest.emplace_back(
-        kagome::primitives::Consensus{kagome::primitives::OnDisabled{}});
-    ASSERT_EQ(policy.shouldStoreFor(header).value(), false);
-  }
-
+/**
+ * GIVEN finalized block 13, which contains a Disabled authority set event
+ * WHEN finalizing block 13
+ * THEN justifications of block 13 must not be stored
+ */
+TEST_F(JustificationStoragePolicyTest, ShouldStoreOnDisabledChange) {
+  auto header = makeBlockHeader(13);
+  header.digest.emplace_back(
+      kagome::primitives::Consensus{kagome::primitives::OnDisabled{}});
+  ASSERT_EQ(policy_.shouldStoreFor(header).value(), false);
 }
