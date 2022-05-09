@@ -265,6 +265,39 @@ TEST_F(AppConfigurationTest, TelemetryEndpointsFromConfig) {
 }
 
 /**
+ * @given an instance of AppConfigurationImpl
+ * @when telemetry disabling flag is not passed
+ * @then telemetry broadcasting considered to be enabled
+ */
+TEST_F(AppConfigurationTest, TelemetryDefaultlyEnabled) {
+  char const *args[] = {
+      "/path/",
+      "--config-file",
+      config_path.c_str(),
+  };
+
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->isTelemetryEnabled());
+}
+
+/**
+ * @given an instance of AppConfigurationImpl
+ * @when --no-telemetry flag is specified
+ * @then telemetry broadcasting reported to be disabled
+ */
+TEST_F(AppConfigurationTest, TelemetryExplicitlyDisabled) {
+  char const *args[] = {
+      "/path/",
+      "--config-file",
+      config_path.c_str(),
+      "--no-telemetry",
+  };
+
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_FALSE(app_config_->isTelemetryEnabled());
+}
+
+/**
  * @given new created AppConfigurationImpl
  * @when --config_file cmd line arg is provided
  * @then we must put to config data from file
@@ -564,4 +597,22 @@ TEST_F(AppConfigurationTest, MultipleTelemetryCliArgs) {
                         "wss://telemetry.soramitsu.co.jp/submit 4"};
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_EQ(app_config_->telemetryEndpoints(), reference);
+}
+
+/**
+ * @given initialized instance of AppConfigurationImpl
+ * @when --max-blocks-in-response is specified
+ * @then the correct value is parsed
+ */
+TEST_F(AppConfigurationTest, MaxBlocksInResponse) {
+  char const *args[] = {"/path/",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
+                        base_path.native().c_str(),
+                        "--max-blocks-in-response",
+                        "122"};
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+
+  ASSERT_EQ(app_config_->maxBlocksInResponse(), 122);
 }

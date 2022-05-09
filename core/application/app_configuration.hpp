@@ -167,6 +167,11 @@ namespace kagome::application {
     virtual const std::string &nodeVersion() const = 0;
 
     /**
+     * @return true when telemetry broadcasting is enabled, otherwise - false
+     */
+    virtual bool isTelemetryEnabled() const = 0;
+
+    /**
      * List of telemetry endpoints specified via CLI argument or config file
      * @return a vector of parsed telemetry endpoints
      */

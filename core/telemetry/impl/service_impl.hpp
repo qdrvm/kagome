@@ -70,6 +70,8 @@ namespace kagome::telemetry {
 
     void notifyWasSynchronized() override;
 
+    bool isEnabled() const override;
+
    private:
     // handlers for AppStateManager
     bool prepare();
@@ -127,6 +129,7 @@ namespace kagome::telemetry {
     std::shared_ptr<const transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<const storage::BufferStorage> buffer_storage_;
     std::shared_ptr<const network::PeerManager> peer_manager_;
+    const bool enabled_;
 
     // connections thread fields
     volatile bool shutdown_requested_ = false;
@@ -156,7 +159,7 @@ namespace kagome::telemetry {
     log::Logger log_;
     rapidjson::Document greeting_json_;
     std::string genesis_hash_;
-    MessagePool message_pool_;
+    std::shared_ptr<MessagePool> message_pool_;
     bool was_synchronized_ = false;
   };
 

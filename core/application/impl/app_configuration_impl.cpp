@@ -125,6 +125,7 @@ namespace kagome::application {
   AppConfigurationImpl::AppConfigurationImpl(log::Logger logger)
       : logger_(std::move(logger)),
         roles_(def_roles),
+        is_telemetry_enabled_(true),
         p2p_port_(def_p2p_port),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
         rpc_http_host_(def_rpc_http_host),
@@ -602,8 +603,9 @@ namespace kagome::application {
         ("out-peers", po::value<uint32_t>()->default_value(25), "number of outgoing connections we're trying to maintain")
         ("in-peers", po::value<uint32_t>()->default_value(25), "maximum number of inbound full nodes peers")
         ("in-peers-light", po::value<uint32_t>()->default_value(100), "maximum number of inbound light nodes peers")
-        ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
+        ("max-blocks-in-response", po::value<uint32_t>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
+        ("no-telemetry", po::bool_switch()->default_value(false), "Disables telemetry broadcasting")
         ("telemetry-url", po::value<std::vector<std::string>>()->multitoken(),
                           "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
                           "e.g. --telemetry-url 'wss://foo/bar 0'")
@@ -620,6 +622,8 @@ namespace kagome::application {
     // clang-format on
 
     po::variables_map vm;
+    // first-run parse to read only general options and to lookup for "help"
+    // all the rest options are ignored
     po::parsed_options parsed = po::command_line_parser(argc, argv)
                                     .options(desc)
                                     .allow_unregistered()
@@ -638,6 +642,8 @@ namespace kagome::application {
     }
 
     try {
+      // second-run parse to gather all known options
+      // with reporting about any unrecognized input
       po::store(po::parse_command_line(argc, argv, desc), vm);
       po::store(parsed, vm);
       po::notify(vm);
@@ -946,8 +952,14 @@ namespace kagome::application {
       return true;
     };
 
-    if (not parse_telemetry_urls("telemetry-url", telemetry_endpoints_)) {
-      return false;  // just proxy erroneous case to the top level
+    find_argument<bool>(vm, "no-telemetry", [&](bool telemetry_disabled) {
+      is_telemetry_enabled_ = not telemetry_disabled;
+    });
+
+    if (is_telemetry_enabled_) {
+      if (not parse_telemetry_urls("telemetry-url", telemetry_endpoints_)) {
+        return false;  // just proxy erroneous case to the top level
+      }
     }
 
     std::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
