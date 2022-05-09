@@ -50,6 +50,16 @@ using testing::Invoke;
 using testing::Return;
 using testing::StrictMock;
 
+namespace kagome::primitives {
+  void PrintTo(const BlockHeader &header, std::ostream *os) {
+    *os << "BlockHeader {\n"
+        << "\tnumber: " << header.number << ",\n"
+        << "\tparent: " << header.parent_hash << ",\n"
+        << "\tstate_root: " << header.state_root << ",\n"
+        << "\text_root: " << header.extrinsics_root << "\n}";
+  }
+}
+
 struct BlockTreeTest : public testing::Test {
   static void SetUpTestCase() {
     testutil::prepareLoggers();
@@ -72,6 +82,9 @@ struct BlockTreeTest : public testing::Test {
 
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillRepeatedly(Return(finalized_block_header_));
+
+    EXPECT_CALL(*storage_, getJustification(kLastFinalizedBlockId))
+        .WillRepeatedly(Return(outcome::success(primitives::Justification{})));
 
     EXPECT_CALL(*storage_, getLastFinalized())
         .WillOnce(Return(outcome::success(kFinalizedBlockInfo)));
@@ -100,6 +113,8 @@ struct BlockTreeTest : public testing::Test {
         .WillRepeatedly(Return(BlockTreeError::HEADER_NOT_FOUND));
 
     EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
+        .WillRepeatedly(Return(finalized_block_header_));
+    EXPECT_CALL(*storage_, getBlockHeader(BlockId{kFinalizedBlockInfo.number}))
         .WillRepeatedly(Return(finalized_block_header_));
 
     EXPECT_CALL(*storage_, putNumberToIndexKey(_))
@@ -133,10 +148,6 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return(1));
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
-    EXPECT_CALL(*app_state_manager_, atPrepare(_)).WillOnce(Return());
-    EXPECT_CALL(*app_state_manager_, atLaunch(_)).WillOnce(Return());
-    EXPECT_CALL(*app_state_manager_, atShutdown(_)).WillOnce(Return());
-
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         extrinsic_observer_,
@@ -148,8 +159,7 @@ struct BlockTreeTest : public testing::Test {
                                         changes_tracker_,
                                         babe_config_,
                                         babe_util_,
-                                        justification_storage_policy_,
-                                        app_state_manager_)
+                                        justification_storage_policy_)
                       .value();
   }
 
@@ -162,8 +172,6 @@ struct BlockTreeTest : public testing::Test {
     auto hash = hasher_->blake2b_256(encoded_block);
     primitives::BlockInfo block_info(block.header.number, hash);
 
-    //    EXPECT_CALL(*header_repo_, getBlockHeader(BlockId(hash)))
-    //        .WillRepeatedly(Return(block.header));
     EXPECT_CALL(*header_repo_, getNumberByHash(hash))
         .WillRepeatedly(Return(block.header.number));
 
@@ -395,9 +403,13 @@ TEST_F(BlockTreeTest, Finalize) {
 
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
+  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(kFinalizedBlockInfo.hash)))
+      .WillRepeatedly(Return(outcome::success(justification)));
   EXPECT_CALL(*storage_, getJustification(primitives::BlockId(hash)))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+      .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(bid))
       .WillRepeatedly(Return(outcome::success(header)));
@@ -405,9 +417,10 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success(body)));
   EXPECT_CALL(*runtime_core_, version(hash))
       .WillRepeatedly(Return(primitives::Version{}));
+  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
 
   // WHEN
-  ASSERT_TRUE(block_tree_->finalize(hash, justification));
+  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(hash, justification));
 
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, hash);
@@ -454,7 +467,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
   EXPECT_CALL(*storage_, getJustification(primitives::BlockId(B1_hash)))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+      .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_,
               putJustification(justification, B1_hash, B1_header.number))
       .WillRepeatedly(Return(outcome::success()));
@@ -469,6 +482,9 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   EXPECT_CALL(*pool_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(B1_hash, justification));
@@ -519,8 +535,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
 
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
-  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(B_hash)))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_,
               putJustification(justification, B_hash, B_header.number))
       .WillRepeatedly(Return(outcome::success()));
@@ -537,6 +551,9 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
   EXPECT_CALL(*pool_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(B_hash, justification));
@@ -823,7 +840,7 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
 TEST_F(BlockTreeTest, Reorganize) {
   // GIVEN
   auto A_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
-  auto B_hash = addHeaderToRepository(A_hash, 44);
+  auto [B_hash, B_header] = addHeaderToRepositoryAndGet(A_hash, 44);
 
   //   42   43  44  45   46   47
   //
@@ -856,8 +873,6 @@ TEST_F(BlockTreeTest, Reorganize) {
   ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E1_hash));
 
   // WHEN.3
-  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(C2_hash)))
-      .WillOnce(Return(outcome::failure(DummyError::ERROR)));
   EXPECT_CALL(*storage_, putJustification(_, _, _))
       .WillOnce(Return(outcome::success()));
 
@@ -866,6 +881,10 @@ TEST_F(BlockTreeTest, Reorganize) {
 
   EXPECT_CALL(*runtime_core_, version(C2_hash))
       .WillRepeatedly(Return(primitives::Version{}));
+
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
 
   ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->finalize(C2_hash, {}));
 
@@ -903,10 +922,6 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   EXPECT_CALL(*runtime_core_, version(b56))
       .WillOnce(Return(primitives::Version{}));
 
-  // should store new justification
-  EXPECT_CALL(*justification_storage_policy_,
-              shouldStoreFor(h56))
-      .WillOnce(Return(true));
   // shouldn't keep old justification
   EXPECT_CALL(*justification_storage_policy_,
               shouldStoreFor(finalized_block_header_))
@@ -914,22 +929,12 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   // store new justification
   EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
       .WillOnce(Return(outcome::success()));
-  // query whether old justification is stored
-  EXPECT_CALL(*storage_, getJustification({kFinalizedBlockInfo.hash}))
-      .WillOnce(
-          Return(outcome::success(Justification{"justification_55"_buf})));
   // remove old justification
   EXPECT_CALL(
       *storage_,
       removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
-
-  // yes, we put it twice, we could avoid it, but it's a rare and cheap case,
-  // so why bother
-  EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
-      .WillOnce(Return(outcome::success()));
-  block_tree_->stop();
 }
 
 TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
@@ -944,9 +949,6 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
   EXPECT_CALL(*runtime_core_, version(b56))
       .WillOnce(Return(primitives::Version{}));
 
-  // should store new justification
-  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(h56))
-      .WillOnce(Return(true));
   // shouldn't keep old justification
   EXPECT_CALL(*justification_storage_policy_,
               shouldStoreFor(finalized_block_header_))
@@ -955,10 +957,4 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
   EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
-
-  // yes, we put it twice, we could avoid it, but it's a rare and cheap case,
-  // so why bother
-  EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
-      .WillOnce(Return(outcome::success()));
-  block_tree_->stop();
 }

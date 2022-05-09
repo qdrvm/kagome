@@ -65,8 +65,7 @@ namespace kagome::blockchain {
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<consensus::BabeUtil> babe_util,
         std::shared_ptr<const class JustificationStoragePolicy>
-            justification_storage_policy,
-        std::shared_ptr<application::AppStateManager> app_state_manager);
+            justification_storage_policy);
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
@@ -77,13 +76,6 @@ namespace kagome::blockchain {
 
     ~BlockTreeImpl() override = default;
 
-    bool prepare() {
-      return true;
-    }
-    bool start() {
-      return true;
-    }
-    void stop();
 
     const primitives::BlockHash &getGenesisBlockHash() const override;
 

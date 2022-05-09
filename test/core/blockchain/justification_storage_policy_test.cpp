@@ -5,9 +5,13 @@
 
 #include <gtest/gtest.h>
 
+#include "mock/core/blockchain/block_tree_mock.hpp"
+
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "mock/core/consensus/authority/authority_manager_mock.hpp"
 #include "testutil/literals.hpp"
+
+using testing::Return;
 
 using kagome::authority::AuthorityManagerMock;
 using kagome::blockchain::JustificationStoragePolicyImpl;
@@ -25,14 +29,20 @@ BlockHeader makeBlockHeader(const BlockNumber &number) {
   } else if (number == 1) {
     header.parent_hash = "genesis_hash"_hash256;
   } else {
-    header.parent_hash =
-        Hash256::fromString("hash_" + std::to_string(number)).value();
+    auto hash_str = "hash_" + std::to_string(number);
+    std::fill_n(hash_str.begin(), hash_str.size(), 0);
+    std::copy_n(hash_str.begin(), hash_str.size(), header.parent_hash.begin());
   }
   return header;
 }
 
 TEST(JustificationStoragePolicyTest, ShouldStore512Multiples) {
   JustificationStoragePolicyImpl policy{};
+  auto tree = std::make_shared<kagome::blockchain::BlockTreeMock>();
+  policy.initBlockchainInfo(tree);
+
+  EXPECT_CALL(*tree, getLastFinalized())
+      .WillRepeatedly(Return(BlockInfo{"finalized"_hash256, 2000}));
 
   ASSERT_EQ(policy.shouldStoreFor(makeBlockHeader(0)).value(), true);
 
@@ -52,5 +62,29 @@ TEST(JustificationStoragePolicyTest, ShouldStore512Multiples) {
  */
 TEST(JustificationStoragePolicyTest, ShouldStoreOnAuthorityChange) {
   JustificationStoragePolicyImpl policy{};
-  auto authority_manager = std::make_shared<AuthorityManagerMock>();
+  auto tree = std::make_shared<kagome::blockchain::BlockTreeMock>();
+  policy.initBlockchainInfo(tree);
+
+  EXPECT_CALL(*tree, getLastFinalized())
+      .WillRepeatedly(Return(BlockInfo{"finalized"_hash256, 2000}));
+
+  {
+    auto header = makeBlockHeader(13);
+    header.digest.emplace_back(
+        kagome::primitives::Consensus{kagome::primitives::ScheduledChange{}});
+    ASSERT_EQ(policy.shouldStoreFor(header).value(), true);
+  }
+  {
+    auto header = makeBlockHeader(13);
+    header.digest.emplace_back(
+        kagome::primitives::Consensus{kagome::primitives::ForcedChange{}});
+    ASSERT_EQ(policy.shouldStoreFor(header).value(), true);
+  }
+  {
+    auto header = makeBlockHeader(13);
+    header.digest.emplace_back(
+        kagome::primitives::Consensus{kagome::primitives::OnDisabled{}});
+    ASSERT_EQ(policy.shouldStoreFor(header).value(), false);
+  }
+
 }

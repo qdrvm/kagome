@@ -619,10 +619,7 @@ namespace {
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
     auto justification_storage_policy = injector.template create<
         std::shared_ptr<blockchain::JustificationStoragePolicy>>();
-    auto app_state_manager =
-        injector
-            .template create<std::shared_ptr<application::AppStateManager>>();
-
+    
     auto block_tree_res =
         blockchain::BlockTreeImpl::create(header_repo,
                                           std::move(storage),
@@ -635,8 +632,7 @@ namespace {
                                           std::move(changes_tracker),
                                           std::move(babe_configuration),
                                           std::move(babe_util),
-                                          std::move(justification_storage_policy),
-                                          std::move(app_state_manager));
+                                          std::move(justification_storage_policy));
 
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());
