@@ -228,11 +228,6 @@ namespace kagome::blockchain {
     std::optional<primitives::BlockHash> genesis_block_hash_;
     std::optional<primitives::Version> actual_runtime_version_;
 
-    // used to cleanup the justification of the last finalized block after
-    // finalization of a new block, if this justification should not be
-    // permanently stored
-    bool refreshed_stored_justification = false;
-
     log::Logger log_ = log::createLogger("BlockTree", "blockchain");
 
     // Metrics
