@@ -612,7 +612,7 @@ TEST_F(AppConfigurationTest, MaxBlocksInResponse) {
                         base_path.native().c_str(),
                         "--max-blocks-in-response",
                         "122"};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->maxBlocksInResponse(), 122);
 }
