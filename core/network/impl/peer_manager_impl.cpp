@@ -14,7 +14,7 @@
 #include "storage/predefined_keys.hpp"
 
 namespace {
-  constexpr const char *syncPeerMetricName = "kagome_sync_peer";
+  constexpr const char *syncPeerMetricName = "kagome_sync_peers";
 }
 
 namespace kagome::network {

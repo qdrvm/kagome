@@ -20,7 +20,7 @@
 
 namespace {
   constexpr auto blockHeightMetricName = "kagome_block_height";
-  constexpr auto knownChainLeavesMetricName = "kagome_known_chain_leaves";
+  constexpr auto knownChainLeavesMetricName = "kagome_number_leaves";
 }  // namespace
 
 namespace kagome::blockchain {
