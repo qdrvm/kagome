@@ -13,6 +13,7 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/memory_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm, ModuleInstance::Error, e) {
   using E = kagome::runtime::wavm::ModuleInstance::Error;
@@ -35,18 +36,22 @@ namespace kagome::runtime::wavm {
   ModuleInstance::ModuleInstance(
       InstanceEnvironment &&env,
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
+      WAVM::Runtime::ModuleRef module,
       std::shared_ptr<const CompartmentWrapper> compartment)
       : env_{std::move(env)},
         instance_{std::move(instance)},
+        module_{std::move(module)},
         compartment_{std::move(compartment)},
         logger_{log::createLogger("ModuleInstance", "wavm")} {
     BOOST_ASSERT(instance_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
+    BOOST_ASSERT(module_ != nullptr);
   }
 
   outcome::result<PtrSize> ModuleInstance::callExportFunction(
       std::string_view name, common::BufferView encoded_args) const {
     auto memory = env_.memory_provider->getCurrentMemory().value();
+    static_cast<MemoryImpl&>(memory.get()).init(module_);
 
     PtrSize args_span{memory.get().storeBuffer(encoded_args)};
 
@@ -100,7 +105,7 @@ namespace kagome::runtime::wavm {
         return PtrSize{untaggedInvokeResults[0].u64};
       } catch (WAVM::Runtime::Exception *e) {
         const auto desc = WAVM::Runtime::describeException(e);
-        logger_->debug(desc);
+        logger_->error(desc);
         WAVM::Runtime::destroyException(e);
         return Error::EXECUTION_ERROR;
       }

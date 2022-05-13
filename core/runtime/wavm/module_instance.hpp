@@ -36,6 +36,7 @@ namespace kagome::runtime::wavm {
     };
     ModuleInstance(InstanceEnvironment &&env,
                    WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
+                   WAVM::Runtime::ModuleRef module,
                    std::shared_ptr<const CompartmentWrapper> compartment);
 
     outcome::result<PtrSize> callExportFunction(std::string_view name,
@@ -50,6 +51,7 @@ namespace kagome::runtime::wavm {
    private:
     InstanceEnvironment env_;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance_;
+    WAVM::Runtime::ModuleRef module_;
     std::shared_ptr<const CompartmentWrapper> compartment_;
     log::Logger logger_;
   };

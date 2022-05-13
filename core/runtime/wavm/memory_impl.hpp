@@ -22,6 +22,42 @@ namespace kagome::runtime {
   class MemoryAllocator;
 }
 
+
+static WAVM::IR::Value evaluateInitializer(WAVM::IR::InitializerExpression expression)
+{
+  using WAVM::IR::InitializerExpression;
+  switch(expression.type)
+  {
+    case InitializerExpression::Type::i32_const: return expression.i32;
+    case InitializerExpression::Type::i64_const: return expression.i64;
+    case InitializerExpression::Type::f32_const: return expression.f32;
+    case InitializerExpression::Type::f64_const: return expression.f64;
+    case InitializerExpression::Type::v128_const: return expression.v128;
+    case InitializerExpression::Type::global_get: {
+      throw std::runtime_error{"not implemented"};
+    }
+    case InitializerExpression::Type::ref_null:
+      return WAVM::IR::Value(asValueType(expression.nullReferenceType), WAVM::IR::UntaggedValue());
+
+    case InitializerExpression::Type::ref_func:
+      // instantiateModule delays evaluating ref.func initializers until the module is loaded and
+      // we have addresses for its functions.
+
+    case InitializerExpression::Type::invalid:
+    default: WAVM_UNREACHABLE();
+  };
+}
+
+static WAVM::Uptr getIndexValue(const WAVM::IR::Value& value, WAVM::IR::IndexType indexType)
+{
+  switch(indexType)
+  {
+    case WAVM::IR::IndexType::i32: WAVM_ASSERT(value.type == WAVM::IR::ValueType::i32); return value.u32;
+    case WAVM::IR::IndexType::i64: WAVM_ASSERT(value.type == WAVM::IR::ValueType::i64); return value.u64;
+    default: WAVM_UNREACHABLE();
+  };
+}
+
 namespace kagome::runtime::wavm {
 
   class MemoryImpl final : public kagome::runtime::Memory {
@@ -37,6 +73,29 @@ namespace kagome::runtime::wavm {
     WasmPointer allocate(WasmSize size) override;
     std::optional<WasmSize> deallocate(WasmPointer ptr) override;
 
+    void init(WAVM::Runtime::ModuleRef const& module) {
+      using WAVM::Uptr;
+      using WAVM::IR::MemoryType;
+      using WAVM::IR::Value;
+      using WAVM::IR::DataSegment;
+      auto ir = getModuleIR(module);
+      // Copy the module's data segments into their designated memory instances.
+      for (Uptr segmentIndex = 0; segmentIndex < ir.dataSegments.size();
+           ++segmentIndex) {
+        const DataSegment &dataSegment = ir.dataSegments[segmentIndex];
+        if (dataSegment.isActive) {
+//          WAVM_ASSERT(instance->dataSegments[segmentIndex] == nullptr);
+
+          const Value baseOffsetValue =
+              evaluateInitializer(dataSegment.baseOffset);
+          const MemoryType &memoryType =
+              ir.memories.getType(dataSegment.memoryIndex);
+          Uptr baseOffset =
+              getIndexValue(baseOffsetValue, memoryType.indexType);
+          memcpy(getValidatedMemoryOffsetRange(memory_, baseOffset, dataSegment.data->size()), dataSegment.data->data(), dataSegment.data->size());
+        }
+      }
+    }
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     T load(WasmPointer addr) const {
       auto res = WAVM::Runtime::memoryRef<T>(memory_, addr);
@@ -102,10 +161,12 @@ namespace kagome::runtime::wavm {
        * We use this condition to avoid deallocated_ pointers fixup
        */
       if (new_size >= size()) {
+        auto old_size = size();
         auto new_page_number = (new_size / kPageSize) + 1;
         WAVM::Runtime::growMemory(
             memory_,
             new_page_number - WAVM::Runtime::getMemoryNumPages(memory_));
+        fill(PtrSize{old_size, size()}, 0);
       }
     }
 
@@ -113,10 +174,22 @@ namespace kagome::runtime::wavm {
       auto pageNum = getMemoryNumPages(memory_);
       auto baseAddr = getMemoryBaseAddress(memory_);
       auto type = getMemoryType(memory_);
-      return fmt::format("WavmMemory{{ internal: {}, pageNum: {}, baseAddr: {}, type: {}, pageSize: {} }}", fmt::ptr(memory_), pageNum, baseAddr, asString(type), kPageSize);
+      return fmt::format(
+          "WavmMemory{{ internal: {}, pageNum: {}, baseAddr: {}, type: {}, "
+          "pageSize: {} }}",
+          fmt::ptr(memory_),
+          pageNum,
+          baseAddr,
+          asString(type),
+          kPageSize);
     }
 
    private:
+    void fill(PtrSize span, uint8_t value) {
+      auto native_ptr =
+          WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, span.ptr, span.size);
+      memset(native_ptr, value, span.size);
+    }
 
     constexpr static uint32_t kPageSize = 4096;
     std::unique_ptr<MemoryAllocator> allocator_;
