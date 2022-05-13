@@ -5,7 +5,42 @@
 
 #include "runtime/binaryen/module/module_instance_impl.hpp"
 
+#include "runtime/memory_provider.hpp"
+#include "runtime/binaryen/memory_impl.hpp"
+
+//#define WASM_INTERPRETER_DEBUG
+
 #include <binaryen/wasm-interpreter.h>
+
+#ifdef WASM_INTERPRETER_DEBUG
+
+namespace wasm {
+  int Indenter::indentLevel = 0;
+
+  std::vector<std::string> indents = [](){
+    std::vector<std::string> indents;
+    for (size_t i = 0; i < 128; i++) {
+      indents.push_back(std::string(i, '-'));
+    }
+    return indents;
+  }();
+
+  Indenter::Indenter(const char *entry) : entryName(entry) {
+    ++indentLevel;
+  }
+
+  Indenter::~Indenter() {
+    print();
+    std::cout << "exit " << entryName << '\n';
+    --indentLevel;
+  }
+
+  void Indenter::print() {
+    std::cout << indentLevel << ':' << indents[indentLevel];
+  }
+}  // namespace wasm
+#endif
+
 #include <binaryen/wasm.h>
 
 #include "host_api/host_api.hpp"
@@ -26,6 +61,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
   return "Unknown ModuleInstance error";
 }
 
+namespace {
+  template <class CharT = char, class Traits = std::char_traits<CharT>>
+  class noop_streambuf : public std::basic_streambuf<CharT, Traits> {
+   public:
+    noop_streambuf() {}
+  };
+}
+
 namespace kagome::runtime::binaryen {
 
   ModuleInstanceImpl::ModuleInstanceImpl(
@@ -44,14 +87,22 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
-      std::string_view name, PtrSize args) const {
+      std::string_view name, common::BufferView encoded_args) const {
+    auto memory = env_.memory_provider->getCurrentMemory().value();
+    static_cast<MemoryImpl&>(memory.get()).init(*parent_, *module_instance_);
+
+    PtrSize args{memory.get().storeBuffer(encoded_args)};
+
     const auto args_list =
         wasm::LiteralList{wasm::Literal{args.ptr}, wasm::Literal{args.size}};
     try {
+
       const auto res = static_cast<uint64_t>(
           module_instance_->callExport(wasm::Name{name.data()}, args_list)
               .geti64());
+
       return PtrSize{res};
+
     } catch (wasm::ExitException &e) {
       return Error::UNEXPECTED_EXIT;
     } catch (wasm::TrapException &e) {
@@ -73,7 +124,7 @@ namespace kagome::runtime::binaryen {
         case wasm::Type::f64:
           return WasmValue{val.geti64()};
         default:
-          logger_->debug(
+          logger_->error(
               "Runtime function returned result of unsupported type: {}",
               wasm::printType(val.type));
           return std::nullopt;

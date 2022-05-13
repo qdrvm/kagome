@@ -11,6 +11,7 @@
 #include "host_api/host_api.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/trie_storage_provider.hpp"
+#include "runtime/memory_provider.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm, ModuleInstance::Error, e) {
@@ -44,8 +45,12 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<PtrSize> ModuleInstance::callExportFunction(
-      std::string_view name, PtrSize args) const {
-    auto res = [this, name, args]() -> outcome::result<PtrSize> {
+      std::string_view name, common::BufferView encoded_args) const {
+    auto memory = env_.memory_provider->getCurrentMemory().value();
+
+    PtrSize args_span{memory.get().storeBuffer(encoded_args)};
+
+    auto res = [this, name, args_span]() -> outcome::result<PtrSize> {
       WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
           WAVM::Runtime::createContext(compartment_->getCompartment());
       WAVM::Runtime::Function *function = WAVM::Runtime::asFunctionNullable(
@@ -81,7 +86,7 @@ namespace kagome::runtime::wavm {
             [&context,
              &function,
              &invokeSig,
-             args,
+             args=args_span,
              resultsDestination = untaggedInvokeResults.data()] {
               std::array<WAVM::IR::UntaggedValue, 2> untaggedInvokeArgs{
                   static_cast<WAVM::U32>(args.ptr),

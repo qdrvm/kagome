@@ -109,7 +109,15 @@ namespace kagome::runtime::wavm {
       }
     }
 
+    virtual std::string debugDescription() const override {
+      auto pageNum = getMemoryNumPages(memory_);
+      auto baseAddr = getMemoryBaseAddress(memory_);
+      auto type = getMemoryType(memory_);
+      return fmt::format("WavmMemory{{ internal: {}, pageNum: {}, baseAddr: {}, type: {}, pageSize: {} }}", fmt::ptr(memory_), pageNum, baseAddr, asString(type), kPageSize);
+    }
+
    private:
+
     constexpr static uint32_t kPageSize = 4096;
     std::unique_ptr<MemoryAllocator> allocator_;
     WAVM::Runtime::Memory *memory_;

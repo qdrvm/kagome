@@ -11,6 +11,7 @@
 #include <boost/variant.hpp>
 #include <optional>
 
+#include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/ptr_size.hpp"
@@ -37,7 +38,7 @@ namespace kagome::runtime {
      * @return a pointer-size with the buffer returned by the call
      */
     virtual outcome::result<PtrSize> callExportFunction(std::string_view name,
-                                                        PtrSize args) const = 0;
+                                                        common::BufferView encoded_args) const = 0;
 
     virtual outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const = 0;

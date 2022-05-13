@@ -116,6 +116,8 @@ namespace kagome::runtime {
      * @return full wasm pointer to allocated buffer
      */
     virtual WasmSpan storeBuffer(gsl::span<const uint8_t> value) = 0;
+
+    virtual std::string debugDescription() const = 0;
   };
 }  // namespace kagome::runtime
 

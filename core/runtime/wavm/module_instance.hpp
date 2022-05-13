@@ -39,7 +39,7 @@ namespace kagome::runtime::wavm {
                    std::shared_ptr<const CompartmentWrapper> compartment);
 
     outcome::result<PtrSize> callExportFunction(std::string_view name,
-                                                PtrSize args) const override;
+                                                common::BufferView encoded_args) const override;
 
     outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const override;

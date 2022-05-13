@@ -30,7 +30,7 @@ namespace {
       return kagome::storage::trie::StateVersion::V0;
     } else if (state_version_int == 1) {
       // TODO(xDimon): remove exception when new version will be implemented
-      throw std::runtime_error("StateVersion::V1 has met first time");
+      throw std::runtime_error("StateVersion::V1 is not implemented");
       return kagome::storage::trie::StateVersion::V1;
     } else {
       throw std::runtime_error(fmt::format(

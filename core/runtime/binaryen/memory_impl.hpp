@@ -12,8 +12,9 @@
 #include <cstring>  // for std::memset in gcc
 #include <memory>
 #include <unordered_map>
-
 #include <optional>
+
+#include "binaryen/wasm.h"
 
 #include "common/literals.hpp"
 #include "log/logger.hpp"
@@ -44,6 +45,21 @@ namespace kagome::runtime::binaryen {
     MemoryImpl(MemoryImpl &&move) = delete;
     MemoryImpl &operator=(MemoryImpl &&move) = delete;
     ~MemoryImpl() override = default;
+
+    void init(wasm::Module const& wasm, wasm::ModuleInstance & instance) {
+      for (size_t i = 0; i < size_; i++) {
+        memory_->set(i, 0);
+      }
+      for (auto& segment : wasm.memory.segments) {
+        wasm::Address offset = (uint32_t)wasm::ConstantExpressionRunner<wasm::TrivialGlobalManager>(instance.globals).visit(segment.offset).value.geti32();
+        if (offset + segment.data.size() > wasm.memory.initial * wasm::Memory::kPageSize) {
+          throw std::runtime_error("invalid offset when initializing memory");
+        }
+        for (size_t i = 0; i != segment.data.size(); ++i) {
+          memory_->set(offset + i, segment.data[i]);
+        }
+      }
+    }
 
     WasmPointer allocate(WasmSize size) override;
     std::optional<WasmSize> deallocate(WasmPointer ptr) override;
@@ -79,13 +95,22 @@ namespace kagome::runtime::binaryen {
        * deallocated_ pointers fixup
        */
       if (new_size >= size_) {
+        auto old_size = size_;
         size_ = new_size;
         memory_->resize(new_size);
+
+        for(size_t i = old_size; i < size_; i++) {
+          memory_->set(i, 0);
+        }
       }
     }
 
     WasmSize size() const override {
       return size_;
+    }
+
+    virtual std::string debugDescription() const override {
+      return fmt::format("BinaryenMemory{{ internal: {}, size: {}, pageSize: {} }}", fmt::ptr(memory_), size_, kMemoryPageSize);
     }
 
    private:
