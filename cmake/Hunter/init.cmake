@@ -31,7 +31,7 @@ set(
 include(${CMAKE_CURRENT_LIST_DIR}/HunterGate.cmake)
 
 HunterGate(
-    URL  "https://github.com/soramitsu/soramitsu-hunter/archive/v0.23.257-soramitsu24.tar.gz"
-    SHA1 "7476c4de9fdfb184e2ac29e5dd26ca3441e6fc61"
+    URL  "https://github.com/igor-egorov/soramitsu-hunter/archive/feature/update-rocksdb-7.2.2.tar.gz"
+    SHA1 "b8c54d8bcf33aaa05802f66e517348232423e461"
     LOCAL
 )

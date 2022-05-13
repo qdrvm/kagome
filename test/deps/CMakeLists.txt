@@ -5,3 +5,6 @@ target_link_libraries(outcome_test
     )
 
 addtest(di_test di_test.cpp)
+
+
+add_subdirectory(rocksdb)
