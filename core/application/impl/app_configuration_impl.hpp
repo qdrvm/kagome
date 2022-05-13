@@ -154,8 +154,11 @@ namespace kagome::application {
     bool isOffchainIndexingEnabled() const override {
       return enable_offchain_indexing_;
     }
-    virtual std::optional<primitives::BlockId> recoverState() const override {
+    std::optional<primitives::BlockId> recoverState() const override {
       return recovery_state_;
+    }
+    StorageBackend storageBackend() const override {
+      return storage_backend_;
     }
 
    private:
@@ -282,6 +285,7 @@ namespace kagome::application {
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
     std::optional<primitives::BlockId> recovery_state_;
+    StorageBackend storage_backend_;
   };
 
 }  // namespace kagome::application

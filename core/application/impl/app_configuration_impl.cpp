@@ -583,6 +583,7 @@ namespace kagome::application {
         ("base-path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
+        ("rocks", "Use RocksDB as a backed instead of default LevelDB")
         ;
 
     po::options_description network_desc("Network options");
@@ -998,6 +999,9 @@ namespace kagome::application {
     if (vm.count("enable-offchain-indexing") > 0) {
       enable_offchain_indexing_ = true;
     }
+
+    storage_backend_ = vm.count("rocks") > 0 ? StorageBackend::RocksDB
+                                             : StorageBackend::LevelDB;
 
     bool has_recovery = false;
     find_argument<std::string>(vm, "recovery", [&](const std::string &val) {

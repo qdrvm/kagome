@@ -193,6 +193,13 @@ namespace kagome::application {
     virtual bool isOffchainIndexingEnabled() const = 0;
 
     virtual std::optional<primitives::BlockId> recoverState() const = 0;
+
+    enum class StorageBackend { LevelDB, RocksDB };
+
+    /**
+     * @return enum constant of the chosen storage backend
+     */
+    virtual StorageBackend storageBackend() const = 0;
   };
 
 }  // namespace kagome::application
