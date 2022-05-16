@@ -121,7 +121,7 @@ namespace kagome::consensus {
     }
 
     if (not b.body.has_value()) {
-      logger_->warn("Skipping a block without header.");
+      logger_->warn("Skipping a block without body.");
       return Error::INVALID_BLOCK;
     }
     auto &body = b.body.value();
