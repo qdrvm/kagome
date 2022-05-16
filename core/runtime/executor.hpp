@@ -183,7 +183,6 @@ namespace kagome::runtime {
       }
 
       KAGOME_PROFILE_START(call_execution)
-      SL_TRACE(logger_, "Executing call {} with memory {} on instance {}", name, memory.debugDescription(), fmt::ptr(env.module_instance.get()));
       auto result_span =
                   env.module_instance->callExportFunction(name, encoded_args);
       KAGOME_PROFILE_END(call_execution)

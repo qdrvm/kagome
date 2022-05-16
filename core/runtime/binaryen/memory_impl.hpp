@@ -94,10 +94,6 @@ namespace kagome::runtime::binaryen {
       return size_;
     }
 
-    virtual std::string debugDescription() const override {
-      return fmt::format("BinaryenMemory{{ internal: {}, size: {}, pageSize: {} }}", fmt::ptr(memory_), size_, kMemoryPageSize);
-    }
-
    private:
     wasm::ShellExternalInterface::Memory *memory_;
     WasmSize size_;

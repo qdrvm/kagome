@@ -132,9 +132,9 @@ namespace kagome::runtime {
     }
 
     const auto node = deallocated_.extract(ptr);
-    BOOST_ASSERT_MSG(node != nullptr,
+    BOOST_ASSERT_MSG(!node.empty(),
                      "pointer to the node was received by searching list of "
-                     "deallocated nodes, must not be null");
+                     "deallocated nodes, must not be none");
 
     auto old_size = node.mapped();
     if (old_size > size) {
