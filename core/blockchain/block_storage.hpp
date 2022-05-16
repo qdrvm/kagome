@@ -89,9 +89,10 @@ namespace kagome::blockchain {
         primitives::BlockNumber, const primitives::BlockData &block_data) = 0;
 
     /**
-     * Removes data parts according to {@param remove_flags} of block with
-     * {@param number} from block storage
-     * @returns result of removing
+     * Removes data parts from storage
+     * @arg remove_flags - parts to remove
+     * @arg number - block number
+     * @returns result of removal
      */
     virtual outcome::result<void> removeBlockData(
         primitives::BlockNumber block_number,
