@@ -89,7 +89,6 @@ namespace kagome::runtime::binaryen {
   outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
       std::string_view name, common::BufferView encoded_args) const {
     auto memory = env_.memory_provider->getCurrentMemory().value();
-    static_cast<MemoryImpl&>(memory.get()).init(*parent_, *module_instance_);
 
     PtrSize args{memory.get().storeBuffer(encoded_args)};
 
@@ -141,6 +140,16 @@ namespace kagome::runtime::binaryen {
   outcome::result<void> ModuleInstanceImpl::resetEnvironment() {
     env_.host_api->reset();
     return outcome::success();
+  }
+
+  void ModuleInstanceImpl::forDataSegment(DataSegmentProcessor const &callback) const {
+    for (auto& segment : parent_->memory.segments) {
+      wasm::Address offset = (uint32_t)wasm::ConstantExpressionRunner<wasm::TrivialGlobalManager>(module_instance_->globals).visit(segment.offset).value.geti32();
+      if (offset + segment.data.size() > parent_->memory.initial * wasm::Memory::kPageSize) {
+        throw std::runtime_error("invalid offset when initializing memory");
+      }
+      callback(offset, gsl::span<const uint8_t>(reinterpret_cast<const uint8_t*>(segment.data.data()), segment.data.size()));
+    }
   }
 
 }  // namespace kagome::runtime::binaryen

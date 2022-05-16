@@ -39,11 +39,13 @@ namespace kagome::runtime::wavm {
                    WAVM::Runtime::ModuleRef module,
                    std::shared_ptr<const CompartmentWrapper> compartment);
 
-    outcome::result<PtrSize> callExportFunction(std::string_view name,
-                                                common::BufferView encoded_args) const override;
+    outcome::result<PtrSize> callExportFunction(
+        std::string_view name, common::BufferView encoded_args) const override;
 
     outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const override;
+
+    void forDataSegment(DataSegmentProcessor const &callback) const override;
 
     InstanceEnvironment const &getEnvironment() const override;
     outcome::result<void> resetEnvironment() override;

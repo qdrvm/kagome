@@ -142,6 +142,11 @@ namespace kagome::runtime {
       return heappages_res.error();
     }
 
+    auto& memory = env.memory_provider->getCurrentMemory()->get();
+    instance->forDataSegment([&memory](auto offset, auto segment) {
+      memory.storeBuffer(offset, segment);
+    });
+
     SL_DEBUG(parent_factory->logger_,
              "Runtime environment at {}, state: {:l}",
              blockchain_state_,

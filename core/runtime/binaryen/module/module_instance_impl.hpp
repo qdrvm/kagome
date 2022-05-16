@@ -42,6 +42,8 @@ namespace kagome::runtime::binaryen {
 
     outcome::result<void> resetEnvironment() override;
 
+    void forDataSegment(DataSegmentProcessor const &callback) const override;
+
    private:
     InstanceEnvironment env_;
     std::shared_ptr<RuntimeExternalInterface> rei_;

@@ -46,21 +46,6 @@ namespace kagome::runtime::binaryen {
     MemoryImpl &operator=(MemoryImpl &&move) = delete;
     ~MemoryImpl() override = default;
 
-    void init(wasm::Module const& wasm, wasm::ModuleInstance & instance) {
-      for (size_t i = 0; i < size_; i++) {
-        memory_->set(i, 0);
-      }
-      for (auto& segment : wasm.memory.segments) {
-        wasm::Address offset = (uint32_t)wasm::ConstantExpressionRunner<wasm::TrivialGlobalManager>(instance.globals).visit(segment.offset).value.geti32();
-        if (offset + segment.data.size() > wasm.memory.initial * wasm::Memory::kPageSize) {
-          throw std::runtime_error("invalid offset when initializing memory");
-        }
-        for (size_t i = 0; i != segment.data.size(); ++i) {
-          memory_->set(offset + i, segment.data[i]);
-        }
-      }
-    }
-
     WasmPointer allocate(WasmSize size) override;
     std::optional<WasmSize> deallocate(WasmPointer ptr) override;
 

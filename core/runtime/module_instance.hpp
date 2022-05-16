@@ -43,6 +43,11 @@ namespace kagome::runtime {
     virtual outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const = 0;
 
+    using SegmentOffset = size_t;
+    using SegmentData = gsl::span<const uint8_t>;
+    using DataSegmentProcessor = std::function<void(SegmentOffset, SegmentData)>;
+    virtual void forDataSegment(DataSegmentProcessor const& callback) const = 0;
+
     virtual InstanceEnvironment const &getEnvironment() const = 0;
     virtual outcome::result<void> resetEnvironment() = 0;
   };
