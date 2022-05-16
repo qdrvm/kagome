@@ -22,6 +22,8 @@ int main(int argc, char **argv) {
   backward::SignalHandling sh;
 
   {
+    soralog::util::setThreadName("kagome");
+
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
             std::make_shared<libp2p::log::Configurator>()));
