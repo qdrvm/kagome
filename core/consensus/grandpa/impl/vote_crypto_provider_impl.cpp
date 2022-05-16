@@ -33,23 +33,11 @@ namespace kagome::consensus::grandpa {
 
   bool VoteCryptoProviderImpl::verify(const SignedMessage &vote,
                                       RoundNumber number) const {
-    auto verify_with_set_id = [this, &vote](auto set_id) {
-      auto payload =
-          scale::encode(vote.message, round_number_, set_id).value();
-      auto verifying_result =
-          ed_provider_->verify(vote.signature, payload, vote.id);
-      return verifying_result.has_value() and verifying_result.value();
-    };
-    auto success = verify_with_set_id(voter_set_->id());
-    if (!success) {
-      auto log = log::createLogger("VoteCryptoProvider", "authority");
-      for (MembershipCounter i = 0; i < 1000; i++) {
-        if (verify_with_set_id(i)) {
-          SL_DEBUG(log, "Correct id is {}, got {}", i, voter_set_->id());
-        }
-      }
-    }
-    return success;
+    auto payload =
+        scale::encode(vote.message, round_number_, voter_set_->id()).value();
+    auto verifying_result =
+        ed_provider_->verify(vote.signature, payload, vote.id);
+    return verifying_result.has_value() and verifying_result.value();
   }
 
   bool VoteCryptoProviderImpl::verifyPrimaryPropose(
