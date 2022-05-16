@@ -8,30 +8,38 @@
 
 #include <gmock/gmock.h>
 
-#include "storage/face/batchable.hpp"
-#include "storage/face/generic_storage.hpp"
+#include "storage/face/batch_writeable.hpp"
+#include "storage/face/generic_maps.hpp"
 
 namespace kagome::storage::face {
-  template <typename K, typename V>
-  struct GenericStorageMock : public face::GenericStorage<K, V> {
-    MOCK_METHOD0_T(batch, std::unique_ptr<WriteBatch<K, V>>());
+  template <typename K, typename V, typename KView = K>
+  struct GenericStorageMock : public face::GenericStorage<K, V, KView> {
+    MOCK_METHOD0_T(batch, std::unique_ptr<WriteBatch<KView, V>>());
 
-    MOCK_METHOD0_T(cursor, std::unique_ptr<MapCursor<K, V>>());
+    MOCK_METHOD0_T(
+        cursor,
+        std::unique_ptr<typename face::GenericStorage<K, V, KView>::Cursor>());
 
-    MOCK_CONST_METHOD1_T(get, outcome::result<V>(const K &));
+    MOCK_CONST_METHOD1_T(load, outcome::result<V>(const KView &));
 
-    MOCK_CONST_METHOD1_T(tryGet, outcome::result<std::optional<V>>(const K &));
+    MOCK_CONST_METHOD1_T(tryLoad,
+                         outcome::result<std::optional<V>>(const KView &));
 
-    MOCK_CONST_METHOD1_T(contains, outcome::result<bool>(const K &));
+    MOCK_CONST_METHOD1_T(contains, outcome::result<bool>(const KView &));
 
     MOCK_CONST_METHOD0_T(empty, bool());
 
-    MOCK_METHOD(outcome::result<void>, put, (const K &, const V &), (override));
-    outcome::result<void> put(const K &k, V &&v) override {
+    MOCK_METHOD(outcome::result<void>,
+                put,
+                (const KView &, const V &),
+                (override));
+    outcome::result<void> put(const KView &k, V &&v) override {
       return put(k, v);
     }
 
-    MOCK_METHOD1_T(remove, outcome::result<void>(const K &));
+    MOCK_METHOD1_T(remove, outcome::result<void>(const KView &));
+
+    MOCK_CONST_METHOD0_T(size, size_t());
   };
 }  // namespace kagome::storage::face
 

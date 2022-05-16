@@ -31,7 +31,8 @@ namespace kagome::network {
       const OwnPeerInfo &own_peer_info,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<storage::BufferStorage> storage,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<PeerRatingRepository> peer_rating_repository)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -45,6 +46,7 @@ namespace kagome::network {
         router_{std::move(router)},
         storage_{std::move(storage)},
         hasher_{std::move(hasher)},
+        peer_rating_repository_{std::move(peer_rating_repository)},
         log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -54,6 +56,7 @@ namespace kagome::network {
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(peer_rating_repository_ != nullptr);
 
     // Register metrics
     registry_->registerGaugeFamily(syncPeerMetricName,
@@ -93,6 +96,17 @@ namespace kagome::network {
             .getChannel<libp2p::event::protocol::kademlia::PeerAddedChannel>()
             .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
               if (auto self = wp.lock()) {
+                if (auto rating =
+                        self->peer_rating_repository_->rating(peer_id);
+                    rating < 0) {
+                  SL_DEBUG(self->log_,
+                           "Disconnecting from peer_id={} due to its negative "
+                           "rating {}",
+                           peer_id.toBase58(),
+                           rating);
+                  self->disconnectFromPeer(peer_id);
+                  return;
+                }
                 self->processDiscoveredPeer(peer_id);
               }
             });
@@ -103,7 +117,16 @@ namespace kagome::network {
             SL_DEBUG(self->log_,
                      "Identify received from peer_id={}",
                      peer_id.toBase58());
-
+            if (auto rating = self->peer_rating_repository_->rating(peer_id);
+                rating < 0) {
+              SL_DEBUG(
+                  self->log_,
+                  "Disconnecting from peer_id={} due to its negative rating {}",
+                  peer_id.toBase58(),
+                  rating);
+              self->disconnectFromPeer(peer_id);
+              return;
+            }
             self->processFullyConnectedPeer(peer_id);
           }
         });
@@ -180,6 +203,23 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(block_announce_protocol,
                      "Router did not provide block announce protocol");
 
+    // disconnect from peers with negative rating
+    std::vector<PeerId> peers_to_disconnect;
+    for (const auto &[peer_id, _] : active_peers_) {
+      if (peer_rating_repository_->rating(peer_id) < 0) {
+        peers_to_disconnect.emplace_back(peer_id);
+        // we have to store peers somewhere first due to inability to iterate
+        // over active_peers_ and do disconnectFromPeers (which modifies
+        // active_peers_) at the same time
+      }
+    }
+    for (const auto &peer_id : peers_to_disconnect) {
+      SL_DEBUG(log_,
+               "Disconnecting from peer_id={} due to its negative rating",
+               peer_id.toBase58());
+      disconnectFromPeer(peer_id);
+    }
+
     std::optional<PeerId> disconnected_peer;
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
       auto [peer_id, data] = *it++;
@@ -210,16 +250,17 @@ namespace kagome::network {
       auto it = std::min_element(active_peers_.begin(),
                                  active_peers_.end(),
                                  [](const auto &item1, const auto &item2) {
-                                   return item1.second < item2.second;
+                                   return item1.second.time_point
+                                          < item2.second.time_point;
                                  });
-      auto &[oldest_peer_id, oldest_timepoint] = *it;
+      auto &[oldest_peer_id, oldest_descr] = *it;
 
       if (active_peers_.size() > hard_limit) {
         // Hard limit is exceeded
         SL_DEBUG(log_, "Hard limit of of active peers is exceeded");
         disconnectFromPeer(oldest_peer_id);
 
-      } else if (oldest_timepoint + peer_ttl < clock_->now()) {
+      } else if (oldest_descr.time_point + peer_ttl < clock_->now()) {
         // Peer is inactive long time
         auto &oldest_peer_id_ref = oldest_peer_id;
         SL_DEBUG(
@@ -306,7 +347,7 @@ namespace kagome::network {
 
     host_.connect(
         peer_info,
-        [wp = weak_from_this(), peer_id = peer_info.id](auto res) mutable {
+        [wp = weak_from_this(), peer_id](auto res) mutable {
           auto self = wp.lock();
           if (not self) {
             return;
@@ -352,13 +393,15 @@ namespace kagome::network {
     }
     if (peer_id != own_peer_info_.id) {
       peer_states_.erase(peer_id);
+      // TODO https://github.com/soramitsu/kagome/issues/1204
+      // host_.disconnect(peer_id);
     }
   }
 
   void PeerManagerImpl::keepAlive(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
-      it->second = clock_->now();
+      it->second.time_point = clock_->now();
     }
   }
 
@@ -480,6 +523,53 @@ namespace kagome::network {
       return;
     }
 
+    auto connection =
+        host_.getNetwork().getConnectionManager().getBestConnectionForPeer(
+            peer_id);
+    if (connection == nullptr) {
+      connecting_peers_.erase(peer_id);
+      return;
+    }
+    if (connection->isInitiator()) {
+      auto out_peers_count = std::count_if(
+          active_peers_.begin(), active_peers_.end(), [](const auto &el) {
+            return el.second.peer_type == PeerType::PEER_TYPE_OUT;
+          });
+      if (out_peers_count > app_config_.outPeers()) {
+        connecting_peers_.erase(peer_id);
+        disconnectFromPeer(peer_id);
+        return;
+      }
+    } else {
+      auto in_peers_count = 0u;
+      auto in_light_peers_count = 0u;
+      if (peer_states_[peer_id].roles.flags.full == 1) {
+        for (const auto &peer : active_peers_) {
+          if (peer.second.peer_type == PeerType::PEER_TYPE_IN
+              and peer_states_[peer.first].roles.flags.full == 1) {
+            ++in_peers_count;
+          }
+        }
+        if (in_peers_count >= app_config_.inPeers()) {
+          connecting_peers_.erase(peer_id);
+          disconnectFromPeer(peer_id);
+          return;
+        }
+      } else if (peer_states_[peer_id].roles.flags.light == 1) {
+        for (const auto &peer : active_peers_) {
+          if (peer.second.peer_type == PeerType::PEER_TYPE_IN
+              and peer_states_[peer.first].roles.flags.light == 1) {
+            ++in_light_peers_count;
+          }
+        }
+        if (in_light_peers_count >= app_config_.inPeersLght()) {
+          connecting_peers_.erase(peer_id);
+          disconnectFromPeer(peer_id);
+          return;
+        }
+      }
+    }
+
     PeerInfo peer_info{.id = peer_id, .addresses = {}};
 
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
@@ -491,7 +581,8 @@ namespace kagome::network {
           peer_info,
           [wp = weak_from_this(),
            peer_id = peer_info.id,
-           protocol = block_announce_protocol](auto &&stream_res) {
+           protocol = block_announce_protocol,
+           connection](auto &&stream_res) {
             auto self = wp.lock();
             if (not self) {
               return;
@@ -506,10 +597,13 @@ namespace kagome::network {
               self->disconnectFromPeer(peer_id);
               return;
             }
+            PeerType peer_type = connection->isInitiator()
+                                     ? PeerType::PEER_TYPE_OUT
+                                     : PeerType::PEER_TYPE_IN;
 
             // Add to active peer list
-            if (auto [ap_it, added] =
-                    self->active_peers_.emplace(peer_id, self->clock_->now());
+            if (auto [ap_it, added] = self->active_peers_.emplace(
+                    peer_id, PeerDescriptor{peer_type, self->clock_->now()});
                 added) {
               self->recently_active_peers_.insert(peer_id);
 
@@ -564,7 +658,7 @@ namespace kagome::network {
 
     auto transaction_protocol = router_->getPropagateTransactionsProtocol();
     BOOST_ASSERT_MSG(transaction_protocol,
-                     "Router did not provide propogate transaction protocol");
+                     "Router did not provide propagate transaction protocol");
 
     stream_engine_->add(peer_id, grandpa_protocol);
     stream_engine_->add(peer_id, transaction_protocol);
@@ -576,7 +670,7 @@ namespace kagome::network {
 
   std::vector<scale::PeerInfoSerializable>
   PeerManagerImpl::loadLastActivePeers() {
-    auto get_res = storage_->get(storage::kActivePeersKey);
+    auto get_res = storage_->load(storage::kActivePeersKey);
     if (not get_res) {
       SL_ERROR(log_,
                "List of last active peers cannot be obtained from storage. "
@@ -586,7 +680,7 @@ namespace kagome::network {
     }
 
     std::vector<scale::PeerInfoSerializable> last_active_peers;
-    scale::ScaleDecoderStream s{get_res.value().asVector()};
+    scale::ScaleDecoderStream s{get_res.value()};
     try {
       s >> last_active_peers;
     } catch (...) {

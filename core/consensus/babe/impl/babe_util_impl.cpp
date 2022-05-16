@@ -16,12 +16,14 @@ namespace kagome::consensus {
                      "Epoch length must be non zero");
   }
 
-  void BabeUtilImpl::syncEpoch(EpochDescriptor epoch_descriptor) {
-    if (not first_block_slot_number_.has_value()) {
-      first_block_slot_number_.emplace(
-          epoch_descriptor.start_slot
-          - epoch_descriptor.epoch_number * babe_configuration_->epoch_length);
+  BabeSlotNumber BabeUtilImpl::syncEpoch(
+      std::function<std::tuple<BabeSlotNumber, bool>()> &&f) {
+    if (not is_first_block_finalized_) {
+      auto [first_block_slot_number, is_first_block_finalized] = f();
+      first_block_slot_number_.emplace(first_block_slot_number);
+      is_first_block_finalized_ = is_first_block_finalized;
     }
+    return first_block_slot_number_.value();
   }
 
   BabeSlotNumber BabeUtilImpl::getCurrentSlot() const {

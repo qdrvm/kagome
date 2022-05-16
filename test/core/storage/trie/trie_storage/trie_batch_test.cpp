@@ -8,7 +8,6 @@
 
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -22,6 +21,7 @@
 using namespace kagome::storage::trie;
 using kagome::api::Session;
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHash;
 using kagome::storage::face::WriteBatch;
@@ -92,12 +92,16 @@ class MockDb : public kagome::storage::InMemoryStorage {
  public:
   MOCK_METHOD(outcome::result<void>,
               put,
-              (const Buffer &, const Buffer &),
+              (const BufferView &, const Buffer &),
               (override));
+
+  outcome::result<void> put(const BufferView &k, Buffer &&v) override {
+    return put(k, v);
+  }
 
   // to retain the ability to call the actual implementation of put from the
   // superclass
-  outcome::result<void> true_put(const Buffer &key, const Buffer &value) {
+  outcome::result<void> true_put(const BufferView &key, const Buffer &value) {
     return InMemoryStorage::put(key, value);
   }
 };
@@ -121,7 +125,7 @@ TEST_F(TrieBatchTest, Put) {
   new_batch = trie->getEphemeralBatchAt(root_hash).value();
   for (auto &entry : data) {
     ASSERT_OUTCOME_SUCCESS(res, new_batch->get(entry.first));
-    ASSERT_EQ(res, entry.second);
+    ASSERT_EQ(res.get(), entry.second);
   }
 
   ASSERT_OUTCOME_SUCCESS_TRY(
@@ -129,9 +133,9 @@ TEST_F(TrieBatchTest, Put) {
   ASSERT_OUTCOME_SUCCESS_TRY(
       new_batch->put("104050"_hex2buf, "0a0b0c"_hex2buf));
   ASSERT_OUTCOME_SUCCESS(v1, new_batch->get("102030"_hex2buf));
-  ASSERT_EQ(v1, "010203"_hex2buf);
+  ASSERT_EQ(v1.get(), "010203"_hex2buf);
   ASSERT_OUTCOME_SUCCESS(v2, new_batch->get("104050"_hex2buf));
-  ASSERT_EQ(v2, "0a0b0c"_hex2buf);
+  ASSERT_EQ(v2.get(), "0a0b0c"_hex2buf);
 }
 
 /**
@@ -169,7 +173,7 @@ TEST_F(TrieBatchTest, Replace) {
   ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit());
   auto read_batch = trie->getEphemeralBatchAt(root_hash).value();
   ASSERT_OUTCOME_SUCCESS(res, read_batch->get(data[1].first));
-  ASSERT_EQ(res, data[3].second);
+  ASSERT_EQ(res.get(), data[3].second);
 }
 
 /**
@@ -220,23 +224,43 @@ TEST_F(TrieBatchTest, TopperBatchAtomic) {
 
   auto t_batch = p_batch->batchOnTop();
 
-  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("123"_buf, "abc"_buf));
-  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("123"_buf));
-  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("345"_buf, "cde"_buf));
-  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("345"_buf));
-  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->remove("123"_buf));
-  ASSERT_OUTCOME_IS_FALSE(t_batch->contains("123"_buf));
-  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("678"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("123"_buf, "abc"_buf))
+  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("123"_buf))
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("345"_buf, "cde"_buf))
+  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("345"_buf))
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->remove("123"_buf))
+  ASSERT_OUTCOME_IS_FALSE(t_batch->contains("123"_buf))
+  ASSERT_OUTCOME_IS_TRUE(t_batch->contains("678"_buf))
 
-  ASSERT_OUTCOME_IS_FALSE(p_batch->contains("345"_buf));
-  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("678"_buf));
-  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("123"_buf));
+  ASSERT_OUTCOME_IS_FALSE(p_batch->contains("345"_buf))
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("678"_buf))
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("123"_buf))
 
-  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->writeBack());
+  ASSERT_OUTCOME_SUCCESS_TRY(t_batch->writeBack())
 
-  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("345"_buf));
-  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("678"_buf));
-  ASSERT_OUTCOME_IS_FALSE(p_batch->contains("123"_buf));
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("345"_buf))
+  ASSERT_OUTCOME_IS_TRUE(p_batch->contains("678"_buf))
+  ASSERT_OUTCOME_IS_FALSE(p_batch->contains("123"_buf))
+}
+
+/**
+ * GIVEN a key present in a persistent batch but not present in its child topper
+ * batch WHEN issuing a remove of this key from the topper batch THEN the key
+ * must be removed from the persistent batch after a writeback of the topper
+ * batch
+ */
+TEST_F(TrieBatchTest, TopperBatchRemove) {
+  std::shared_ptr<PersistentTrieBatch> p_batch =
+      trie->getPersistentBatchAt(empty_hash).value();
+
+  ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("102030"_hex2buf, "010203"_hex2buf));
+
+  auto t_batch = p_batch->batchOnTop();
+
+  t_batch->remove("102030"_hex2buf).value();
+  t_batch->writeBack().value();
+
+  ASSERT_FALSE(p_batch->contains("102030"_hex2buf).value());
 }
 
 // TODO(Harrm): #595 test clearPrefix

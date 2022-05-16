@@ -111,13 +111,10 @@ namespace kagome::consensus::grandpa {
     }
 
     current_round_ = makeInitialRound(round_state, std::move(voters));
-    if (current_round_ == nullptr) {
-      logger_->critical(
-          "Next round hasn't been made. Stopping grandpa execution");
-      return false;
-    }
+    BOOST_ASSERT_MSG(current_round_ != nullptr,
+                     "Initial round must create successful in any case");
 
-    executeNextRound(current_round_->roundNumber());
+    GrandpaImpl::executeNextRound(current_round_->roundNumber());
 
     if (not current_round_) {
       return false;
@@ -163,7 +160,10 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeNextRound(
       const std::shared_ptr<VotingRound> &round) {
-    auto best_block = authority_manager_->base();
+    BOOST_ASSERT(round->finalizedBlock().has_value());
+
+    BlockInfo best_block = round->finalizedBlock().value();
+
     auto authorities_res = authority_manager_->authorities(best_block, true);
     if (authorities_res.has_error()) {
       SL_CRITICAL(logger_,
@@ -741,7 +741,14 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> GrandpaImpl::applyJustification(
       const BlockInfo &block_info, const GrandpaJustification &justification) {
     auto round = selectRound(justification.round_number, std::nullopt);
+    bool need_to_make_round_current = false;
     if (round == nullptr) {
+      // This is justification for non-actual round
+      if (justification.round_number < current_round_->roundNumber()) {
+        return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+      }
+
+      // This is justification for already finalized block
       if (current_round_->lastFinalizedBlock().number > block_info.number) {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
       }
@@ -776,6 +783,7 @@ namespace kagome::consensus::grandpa {
       }
 
       round = makeInitialRound(round_state, std::move(voters));
+      need_to_make_round_current = true;
       BOOST_ASSERT(round);
 
       SL_DEBUG(logger_,
@@ -785,11 +793,9 @@ namespace kagome::consensus::grandpa {
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
 
-    // TODO(kamilsa) 11.03.22 https://github.com/soramitsu/kagome/issues/1147
-    // Not clear why this if is needed
-    if (current_round_->getPreviousRound() != round) {
+    if (need_to_make_round_current) {
+      current_round_->end();
       current_round_ = std::move(round);
-
       executeNextRound(current_round_->roundNumber());
     }
 

@@ -5,8 +5,10 @@
 
 #include "host_api/impl/storage_extension.hpp"
 
-#include <gtest/gtest.h>
 #include <optional>
+
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <scale/scale.hpp>
 
 #include "mock/core/runtime/memory_mock.hpp"
@@ -19,13 +21,13 @@
 #include "scale/encode_append.hpp"
 #include "storage/changes_trie/changes_trie_config.hpp"
 #include "storage/predefined_keys.hpp"
-#include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::host_api::StorageExtension;
 using kagome::runtime::Memory;
@@ -115,7 +117,7 @@ TEST_F(StorageExtensionTest, ClearPrefixTest) {
 
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
       .WillOnce(Return(prefix));
-  EXPECT_CALL(*trie_batch_, clearPrefix(prefix, _))
+  EXPECT_CALL(*trie_batch_, clearPrefix(BufferView{prefix}, _))
       .Times(1)
       .WillOnce(Return(outcome::success()));
 
@@ -134,7 +136,8 @@ TEST_P(OutcomeParameterizedTest, ClearStorageTest) {
   Buffer key(8, 'k');
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*trie_batch_, remove(key)).WillOnce(Return(GetParam()));
+  EXPECT_CALL(*trie_batch_, remove(BufferView{key}))
+      .WillOnce(Return(GetParam()));
 
   storage_extension_->ext_storage_clear_version_1(
       PtrSize{key_pointer, key_size}.combine());
@@ -154,7 +157,7 @@ TEST_F(StorageExtensionTest, ExistsStorageTest) {
   WasmSize contains = 1;
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*trie_batch_, contains(key)).WillOnce(Return(contains));
+  EXPECT_CALL(*trie_batch_, contains(key.view())).WillOnce(Return(contains));
 
   ASSERT_EQ(contains,
             storage_extension_->ext_storage_exists_version_1(
@@ -182,7 +185,7 @@ TEST_F(StorageExtensionTest, NextKey) {
   EXPECT_CALL(*trie_batch_, trieCursor())
       .WillOnce(Invoke([&key, &expected_next_key]() {
         auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-        EXPECT_CALL(*cursor, seekUpperBound(key))
+        EXPECT_CALL(*cursor, seekUpperBound(key.view()))
             .WillOnce(Return(outcome::success()));
         EXPECT_CALL(*cursor, key()).WillOnce(Return(expected_next_key));
         return cursor;
@@ -219,7 +222,7 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
 
   EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
     auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-    EXPECT_CALL(*cursor, seekUpperBound(key))
+    EXPECT_CALL(*cursor, seekUpperBound(key.view()))
         .WillOnce(Return(outcome::success()));
     EXPECT_CALL(*cursor, key()).WillOnce(Return(std::nullopt));
     return cursor;
@@ -251,7 +254,7 @@ TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
 
   EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
     auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-    EXPECT_CALL(*cursor, seekUpperBound(key))
+    EXPECT_CALL(*cursor, seekUpperBound(key.view()))
         .WillOnce(Return(outcome::success()));
     EXPECT_CALL(*cursor, key()).WillOnce(Return(std::nullopt));
     return cursor;
@@ -289,7 +292,8 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
       .WillOnce(Return(value));
 
   // expect key-value pair was put to db
-  EXPECT_CALL(*trie_batch_, put(key, value)).WillOnce(Return(GetParam()));
+  EXPECT_CALL(*trie_batch_, put(key.view(), value))
+      .WillOnce(Return(GetParam()));
 
   storage_extension_->ext_storage_set_version_1(
       PtrSize{key_pointer, key_size}.combine(),
@@ -314,11 +318,12 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
       scale::encode(std::make_optional<uint32_t>(offset_value_data.size())));
   WasmSpan res_wasm_span = 1337;
 
-  // expect key loaded, than data stored
+  // expect key loaded, then data stored
   EXPECT_CALL(*memory_, loadN(key.ptr, key.size)).WillOnce(Return(key_data));
   EXPECT_CALL(*storage_provider_, getCurrentBatch())
       .WillOnce(Return(trie_batch_));
-  EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(value_data));
+  EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
+      .WillOnce(Return(value_data));
   EXPECT_CALL(
       *memory_,
       storeBuffer(value.ptr, gsl::span<const uint8_t>(offset_value_data)));
@@ -367,14 +372,14 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
   Buffer vals_encoded;
   {
     // @when there is no value by given key in trie
-    EXPECT_CALL(*trie_batch_, get(key_data))
-        .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+    EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
+        .WillOnce(Return(std::nullopt));
 
     // @then storage is inserted by scale encoded vector containing
     // EncodeOpaqueValue with value1
     vals.push_back(scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
     vals_encoded = Buffer(scale::encode(vals).value());
-    EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
+    EXPECT_CALL(*trie_batch_, put(key_data.view(), vals_encoded))
         .WillOnce(Return(outcome::success()));
 
     storage_extension_->ext_storage_append_version_1(key.combine(),
@@ -383,13 +388,14 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
 
   {
     // @when there is a value by given key (inserted above)
-    EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(vals_encoded));
+    EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
+        .WillOnce(Return(vals_encoded));
 
     // @then storage is inserted by scale encoded vector containing two
     // EncodeOpaqueValues with value1 and value2
     vals.push_back(scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
     vals_encoded = Buffer(scale::encode(vals).value());
-    EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
+    EXPECT_CALL(*trie_batch_, put(key_data.view(), vals_encoded))
         .WillOnce(Return(outcome::success()));
 
     storage_extension_->ext_storage_append_version_1(key.combine(),
@@ -425,14 +431,15 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 
   {
     // @when encoded vals is stored by given key
-    EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(vals_encoded));
+    EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
+        .WillOnce(Return(vals_encoded));
 
     // @when storage is inserted by one more value by the same key
     vals.push_back(scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
     vals_encoded = Buffer(scale::encode(vals).value());
 
     // @then everything fine: storage is inserted with vals with new value
-    EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
+    EXPECT_CALL(*trie_batch_, put(key_data.view(), vals_encoded))
         .WillOnce(Return(outcome::success()));
 
     storage_extension_->ext_storage_append_version_1(key.combine(),
@@ -533,7 +540,7 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
       .WillOnce(Return(value_span));
 
   // expect key-value pair was put to db
-  EXPECT_CALL(*trie_batch_, get(key)).WillOnce(Return(value));
+  EXPECT_CALL(*trie_batch_, tryGet(key.view())).WillOnce(Return(value));
 
   ASSERT_EQ(value_span,
             storage_extension_->ext_storage_get_version_1(key_span));
@@ -555,7 +562,7 @@ TEST_F(StorageExtensionTest, ExtStorageExistsV1Test) {
   WasmSize contains = 1;
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*trie_batch_, contains(key)).WillOnce(Return(contains));
+  EXPECT_CALL(*trie_batch_, contains(key.view())).WillOnce(Return(contains));
 
   ASSERT_EQ(contains,
             storage_extension_->ext_storage_exists_version_1(key_span));
@@ -575,7 +582,7 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
 
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
       .WillOnce(Return(prefix));
-  EXPECT_CALL(*trie_batch_, clearPrefix(prefix, _))
+  EXPECT_CALL(*trie_batch_, clearPrefix(prefix.view(), _))
       .Times(1)
       .WillOnce(Return(outcome::success()));
 
@@ -607,7 +614,7 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
 
   std::tuple<bool, uint32_t> result(true, 22);
   EXPECT_CALL(*trie_batch_,
-              clearPrefix(prefix, std::make_optional<uint64_t>(limit)))
+              clearPrefix(prefix.view(), std::make_optional<uint64_t>(limit)))
       .WillOnce(Return(outcome::success(result)));
 
   auto enc_result = scale::encode(result).value();
@@ -631,12 +638,13 @@ TEST_F(StorageExtensionTest, RootTest) {
   // removeEmptyChildStorages
   Buffer prefix = kagome::storage::kChildStorageDefaultPrefix;
   Buffer current_key = Buffer{prefix}.putBuffer("QWERTY"_buf);
-  static const auto empty_hash = Buffer(codec_.hash256({0}));
+
+  static const auto empty_hash = Buffer(codec_.hash256(Buffer{0}));
 
   EXPECT_CALL(*trie_batch_, trieCursor())
       .WillOnce(Invoke([&prefix, &current_key]() {
         auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-        EXPECT_CALL(*cursor, seekUpperBound(prefix))
+        EXPECT_CALL(*cursor, seekUpperBound(prefix.view()))
             .WillOnce(Return(outcome::success()));
         EXPECT_CALL(*cursor, key()).WillOnce(Return(current_key));
         return cursor;
@@ -648,14 +656,15 @@ TEST_F(StorageExtensionTest, RootTest) {
         return cursor;
       }));
 
-  EXPECT_CALL(*trie_batch_, get(current_key))
-      .WillOnce(Return(outcome::success(empty_hash)));
-  EXPECT_CALL(*trie_batch_, remove(current_key))
+  EXPECT_CALL(*trie_batch_, tryGet(current_key.view()))
+      .WillOnce(
+          Return(outcome::success(std::make_optional(std::cref(empty_hash)))));
+  EXPECT_CALL(*trie_batch_, remove(current_key.view()))
       .WillOnce(Return(outcome::success()));
 
   // rest of ext_storage_root_version_1
   WasmPointer root_pointer = 43;
-  WasmSize root_size = 43;
+  WasmSize root_size = Hash256::size();
   RootHash root_val = "123456"_hash256;
   WasmSpan root_span = PtrSize(root_pointer, root_size).combine();
   EXPECT_CALL(*trie_batch_, commit())
@@ -708,8 +717,9 @@ TEST_F(StorageExtensionTest, ChangesRootEmpty) {
   EXPECT_CALL(*memory_, loadN(parent_root_ptr.ptr, Hash256::size()))
       .WillOnce(Return(parent_hash_buf));
 
-  EXPECT_CALL(*trie_batch_, get(kagome::common::Buffer{}.put(":changes_trie")))
-      .WillOnce(Return(kagome::storage::trie::TrieError::NO_VALUE));
+  auto changes_trie_buf = kagome::common::Buffer{}.put(":changes_trie");
+  EXPECT_CALL(*trie_batch_, tryGet(changes_trie_buf.view()))
+      .WillOnce(Return(std::nullopt));
 
   WasmPointer result = 1984;
   Buffer none_bytes{0};
@@ -741,7 +751,8 @@ TEST_F(StorageExtensionTest, ChangesRootNotEmpty) {
 
   kagome::storage::changes_trie::ChangesTrieConfig config{.digest_interval = 0,
                                                           .digest_levels = 0};
-  EXPECT_CALL(*trie_batch_, get(kagome::common::Buffer{}.put(":changes_trie")))
+  auto changes_trie_buf = kagome::common::Buffer{}.put(":changes_trie");
+  EXPECT_CALL(*trie_batch_, tryGet(changes_trie_buf.view()))
       .WillOnce(Return(Buffer(scale::encode(config).value())));
 
   auto trie_hash = "deadbeef"_hash256;

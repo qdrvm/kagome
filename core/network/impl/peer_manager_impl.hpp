@@ -32,6 +32,7 @@
 #include "network/impl/protocols/protocol_factory.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/protocols/sync_protocol.hpp"
+#include "network/rating_repository.hpp"
 #include "network/router.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -40,6 +41,13 @@
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::network {
+
+  enum class PeerType { PEER_TYPE_IN = 0, PEER_TYPE_OUT };
+
+  struct PeerDescriptor {
+    PeerType peer_type;
+    clock::SteadyClock::TimePoint time_point;
+  };
 
   class PeerManagerImpl : public PeerManager,
                           public std::enable_shared_from_this<PeerManagerImpl> {
@@ -59,7 +67,8 @@ namespace kagome::network {
         const OwnPeerInfo &own_peer_info,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<storage::BufferStorage> storage,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<PeerRatingRepository> peer_rating_repository);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -143,6 +152,7 @@ namespace kagome::network {
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
 
     libp2p::event::Handle add_peer_handle_;
     std::unordered_set<PeerId> peers_in_queue_;
@@ -151,7 +161,7 @@ namespace kagome::network {
     std::unordered_set<libp2p::network::ConnectionManager::ConnectionSPtr>
         pinging_connections_;
 
-    std::map<PeerId, clock::SteadyClock::TimePoint> active_peers_;
+    std::map<PeerId, PeerDescriptor> active_peers_;
     std::unordered_map<PeerId, PeerState> peer_states_;
     libp2p::basic::Scheduler::Handle align_timer_;
     std::set<PeerId> recently_active_peers_;

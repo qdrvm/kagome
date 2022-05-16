@@ -7,8 +7,8 @@
 
 #include "outcome/outcome.hpp"
 #include "storage/trie/codec.hpp"
-#include "storage/trie/polkadot_trie/polkadot_node.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
@@ -26,7 +26,7 @@ namespace kagome::storage::trie {
   }
 
   RootHash TrieSerializerImpl::getEmptyRootHash() const {
-    return codec_->hash256({0});
+    return codec_->hash256(common::Buffer{0});
   }
 
   outcome::result<RootHash> TrieSerializerImpl::storeTrie(PolkadotTrie &trie) {
@@ -38,8 +38,11 @@ namespace kagome::storage::trie {
 
   outcome::result<std::shared_ptr<PolkadotTrie>>
   TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key) const {
-    PolkadotTrie::NodeRetrieveFunctor f = [this](PolkadotTrie::NodePtr &parent) {
-      return retrieveNode(parent);
+    PolkadotTrie::NodeRetrieveFunctor f =
+        [this](const std::shared_ptr<OpaqueTrieNode> &parent)
+        -> outcome::result<PolkadotTrie::NodePtr> {
+      OUTCOME_TRY(node, retrieveNode(parent));
+      return node;
     };
     if (db_key == getEmptyRootHash()) {
       return trie_factory_->createEmpty(std::move(f));
@@ -48,10 +51,9 @@ namespace kagome::storage::trie {
     return trie_factory_->createFromRoot(std::move(root), std::move(f));
   }
 
-  outcome::result<RootHash> TrieSerializerImpl::storeRootNode(
-      PolkadotNode &node) {
+  outcome::result<RootHash> TrieSerializerImpl::storeRootNode(TrieNode &node) {
     auto batch = backend_->batch();
-    using T = PolkadotNode::Type;
+    using T = TrieNode::Type;
 
     // if node is a branch node, its children must be stored to the storage
     // before it, as their hashes, which are used as database keys, are a part
@@ -71,8 +73,8 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<common::Buffer> TrieSerializerImpl::storeNode(
-      PolkadotNode &node, BufferBatch &batch) {
-    using T = PolkadotNode::Type;
+      TrieNode &node, BufferBatch &batch) {
+    using T = TrieNode::Type;
 
     // if node is a branch node, its children must be stored to the storage
     // before it, as their hashes, which are used as database keys, are a part
@@ -91,8 +93,8 @@ namespace kagome::storage::trie {
   outcome::result<void> TrieSerializerImpl::storeChildren(BranchNode &branch,
                                                           BufferBatch &batch) {
     for (auto &child : branch.children) {
-      if (child and not child->isDummy()) {
-        OUTCOME_TRY(hash, storeNode(*child, batch));
+      if (auto c = std::dynamic_pointer_cast<TrieNode>(child); c != nullptr) {
+        OUTCOME_TRY(hash, storeNode(*c, batch));
         // when a node is written to the storage, it is replaced with a dummy
         // node to avoid memory waste
         child = std::make_shared<DummyNode>(hash);
@@ -101,13 +103,13 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<void> TrieSerializerImpl::retrieveNode(
-      PolkadotTrie::NodePtr &parent) const {
-    if (parent and parent->isDummy()) {
-      OUTCOME_TRY(n, retrieveNode(dynamic_cast<DummyNode&>(*parent.get()).db_key));
-      parent = n;
+  outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
+      const std::shared_ptr<OpaqueTrieNode> &parent) const {
+    if (auto p = std::dynamic_pointer_cast<DummyNode>(parent); p != nullptr) {
+      OUTCOME_TRY(n, retrieveNode(p->db_key));
+      return n;
     }
-    return outcome::success();
+    return std::dynamic_pointer_cast<TrieNode>(parent);
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
@@ -115,9 +117,9 @@ namespace kagome::storage::trie {
     if (db_key.empty() or db_key == getEmptyRootHash()) {
       return nullptr;
     }
-    OUTCOME_TRY(enc, backend_->get(db_key));
+    OUTCOME_TRY(enc, backend_->load(db_key));
     OUTCOME_TRY(n, codec_->decodeNode(enc));
-    return std::dynamic_pointer_cast<PolkadotNode>(n);
+    return std::dynamic_pointer_cast<TrieNode>(n);
   }
 
 }  // namespace kagome::storage::trie

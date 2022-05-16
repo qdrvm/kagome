@@ -107,7 +107,7 @@ namespace kagome::primitives {
 
   /// Special type for vector of authorities
   struct AuthorityList : public std::vector<Authority> {
-    AuthorityListId id;
+    AuthorityListId id{};
 
     // Attention: When adding a member, we need to ensure correct
     // destruction to avoid memory leaks or any other problem

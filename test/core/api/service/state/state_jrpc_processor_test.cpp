@@ -5,10 +5,10 @@
 
 #include "api/service/state/state_jrpc_processor.hpp"
 
-#include <gtest/gtest.h>
-
 #include <unordered_map>
 
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "api/service/state/requests/query_storage.hpp"  // for makeValue
@@ -24,6 +24,7 @@ using kagome::api::StateApi;
 using kagome::api::StateApiMock;
 using kagome::api::state::StateJrpcProcessor;
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::primitives::BlockHash;
 using testing::_;
 
@@ -138,8 +139,8 @@ class StateJrpcProcessorTest : public testing::Test {
  */
 TEST_F(StateJrpcProcessorTest, ProcessRequest) {
   auto expected_result = "ABCDEF"_hex2buf;
-
-  EXPECT_CALL(*state_api, getStorage("01234567"_hex2buf))
+  auto key = "01234567"_hex2buf;
+  EXPECT_CALL(*state_api, getStorage(key.view()))
       .WillOnce(testing::Return(expected_result));
 
   registerHandlers();
@@ -158,7 +159,8 @@ TEST_F(StateJrpcProcessorTest, ProcessRequest) {
 TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
   auto expected_result = "ABCDEF"_hex2buf;
 
-  EXPECT_CALL(*state_api, getStorageAt("01234567"_hex2buf, "010203"_hash256))
+  auto key = "01234567"_hex2buf;
+  EXPECT_CALL(*state_api, getStorageAt(key.view(), "010203"_hash256))
       .WillOnce(testing::Return(expected_result));
 
   registerHandlers();
@@ -285,7 +287,8 @@ TEST_F(StateJrpcProcessorTest, ProcessGetVersionRequest) {
                                            .impl_name = "dummy_in",
                                            .authoring_version = 0x101,
                                            .spec_version = 0x111,
-                                           .impl_version = 0x202};
+                                           .impl_version = 0x202,
+                                           .apis = {}};
 
   std::optional<kagome::primitives::BlockHash> hash = std::nullopt;
   EXPECT_CALL(*state_api, getRuntimeVersion(hash))

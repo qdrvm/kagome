@@ -81,6 +81,12 @@ namespace kagome::host_api {
     runtime::WasmSpan ext_storage_root_version_1();
 
     /**
+     * @see HostApi::ext_storage_root_version_2
+     */
+    runtime::WasmSpan ext_storage_root_version_2(
+        runtime::WasmI32 state_version);
+
+    /**
      * @see HostApi::ext_storage_changes_root_version_1
      */
     runtime::WasmSpan ext_storage_changes_root_version_1(
@@ -125,6 +131,12 @@ namespace kagome::host_api {
     runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_1(
         runtime::WasmSpan values_data);
 
+    /**
+     * @see HostApi::ext_trie_blake2_256_ordered_root_version_2
+     */
+    runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_2(
+        runtime::WasmSpan values_data, runtime::WasmI32 state_version);
+
    private:
     /**
      * Find the value by given key and the return the part of it starting from
@@ -133,7 +145,8 @@ namespace kagome::host_api {
      * @param key Buffer representation of the key
      * @return result containing Buffer with the value
      */
-    outcome::result<common::Buffer> get(const common::Buffer &key) const;
+    outcome::result<std::optional<common::BufferConstRef>> get(
+        const common::BufferView &key) const;
 
     /**
      * Read key in form of [ptr; size] and load its value
@@ -153,7 +166,7 @@ namespace kagome::host_api {
     std::optional<common::Buffer> calcStorageChangesRoot(
         common::Hash256 parent) const;
 
-    runtime::WasmSpan clearPrefix(const common::Buffer &prefix,
+    runtime::WasmSpan clearPrefix(common::BufferView prefix,
                                   std::optional<uint32_t> limit);
 
     /**
@@ -173,4 +186,4 @@ namespace kagome::host_api {
 
 }  // namespace kagome::host_api
 
-#endif  // KAGOME_STORAGE_HostApiS_HostApi_HPP
+#endif  // KAGOME_HOST_API_STORAGE_EXTENSION_HPP

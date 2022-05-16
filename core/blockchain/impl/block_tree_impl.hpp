@@ -32,6 +32,7 @@
 #include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
+#include "telemetry/service.hpp"
 
 namespace kagome::storage::changes_trie {
   class ChangesTracker;
@@ -88,7 +89,7 @@ namespace kagome::blockchain {
 
     outcome::result<void> addBlock(const primitives::Block &block) override;
 
-    outcome::result<void> removeBlock(
+    outcome::result<void> removeLeaf(
         const primitives::BlockHash &block_hash) override;
 
     outcome::result<void> addExistingBlock(
@@ -111,9 +112,11 @@ namespace kagome::blockchain {
                                      const primitives::BlockHash &bottom_block,
                                      uint32_t max_count) const override;
 
-    BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
-                                    GetChainDirection ascending,
-                                    uint64_t maximum) const override;
+    BlockHashVecRes getBestChainFromBlock(const primitives::BlockHash &block,
+                                          uint64_t maximum) const override;
+
+    BlockHashVecRes getDescendingChainToBlock(
+        const primitives::BlockHash &block, uint64_t maximum) const override;
 
     BlockHashVecRes getChainByBlocks(
         const primitives::BlockHash &top_block,
@@ -220,6 +223,7 @@ namespace kagome::blockchain {
     metrics::Gauge *metric_best_block_height_;
     metrics::Gauge *metric_finalized_block_height_;
     metrics::Gauge *metric_known_chain_leaves_;
+    telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain
 

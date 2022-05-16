@@ -100,9 +100,6 @@ namespace kagome::host_api {
     template <typename R, typename F, typename... Args>
     outcome::result<R> executeOnChildStorage(
         const common::Buffer &child_storage_key, F func, Args &&...args) const;
-
-    template <typename... Args>
-    auto loadBuffer(runtime::Memory &memory, Args &&...spans) const;
   };
 
 }  // namespace kagome::host_api

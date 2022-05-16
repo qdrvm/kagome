@@ -66,7 +66,7 @@ namespace kagome::blockchain {
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
-                removeBlock,
+                removeLeaf,
                 (const primitives::BlockHash &),
                 (override));
 
@@ -82,8 +82,13 @@ namespace kagome::blockchain {
                 (const, override));
 
     MOCK_METHOD(BlockHashVecRes,
-                getChainByBlock,
-                (const primitives::BlockHash &, GetChainDirection, uint64_t),
+                getBestChainFromBlock,
+                (const primitives::BlockHash &, uint64_t),
+                (const, override));
+
+    MOCK_METHOD(BlockHashVecRes,
+                getDescendingChainToBlock,
+                (const primitives::BlockHash &, uint64_t),
                 (const, override));
 
     MOCK_METHOD(BlockHashVecRes,

@@ -120,7 +120,7 @@ namespace kagome::runtime {
     auto heappages_res =
         env.storage_provider->getCurrentBatch()->get(heappages_key);
     if (heappages_res.has_value()) {
-      auto &&heappages = heappages_res.value();
+      const auto &heappages = heappages_res.value().get();
       if (sizeof(uint64_t) != heappages.size()) {
         parent_factory->logger_->error(
             "Unable to read :heappages value. Type size mismatch. "

@@ -23,34 +23,36 @@ namespace kagome::storage {
    public:
     ~InMemoryStorage() override = default;
 
-    outcome::result<common::Buffer> get(
-        const common::Buffer &key) const override;
+    outcome::result<common::Buffer> load(
+        const common::BufferView &key) const override;
 
-    outcome::result<std::optional<common::Buffer>> tryGet(
-        const common::Buffer &key) const override;
+    outcome::result<std::optional<common::Buffer>> tryLoad(
+        const common::BufferView &key) const override;
 
-    outcome::result<void> put(const common::Buffer &key,
+    outcome::result<void> put(const common::BufferView &key,
                               const common::Buffer &value) override;
 
-    outcome::result<void> put(const common::Buffer &key,
+    outcome::result<void> put(const common::BufferView &key,
                               common::Buffer &&value) override;
 
-    outcome::result<bool> contains(const common::Buffer &key) const override;
+    outcome::result<bool> contains(
+        const common::BufferView &key) const override;
 
     bool empty() const override;
 
-    outcome::result<void> remove(const common::Buffer &key) override;
+    outcome::result<void> remove(const common::BufferView &key) override;
 
     std::unique_ptr<
-        kagome::storage::face::WriteBatch<common::Buffer, common::Buffer>>
+        kagome::storage::face::WriteBatch<common::BufferView, common::Buffer>>
     batch() override;
 
-    std::unique_ptr<
-        kagome::storage::face::MapCursor<common::Buffer, common::Buffer>>
-    cursor() override;
+    std::unique_ptr<storage::BufferStorage::Cursor> cursor() override;
+
+    size_t size() const override;
 
    private:
     std::map<std::string, common::Buffer> storage;
+    size_t size_ = 0;
   };
 
 }  // namespace kagome::storage

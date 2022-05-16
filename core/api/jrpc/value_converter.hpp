@@ -58,6 +58,7 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const common::Blob<N> &);
 
   inline jsonrpc::Value makeValue(const common::Buffer &);
+  inline jsonrpc::Value makeValue(common::BufferView);
   inline jsonrpc::Value makeValue(const primitives::Extrinsic &);
   inline jsonrpc::Value makeValue(const primitives::RuntimeDispatchInfo &v);
   inline jsonrpc::Value makeValue(const primitives::DigestItem &);
@@ -143,6 +144,10 @@ namespace kagome::api {
     return common::hex_lower_0x(val.asVector().data(), val.asVector().size());
   }
 
+  inline jsonrpc::Value makeValue(common::BufferView val) {
+    return common::hex_lower_0x(val.data(), val.size());
+  }
+
   inline jsonrpc::Value makeValue(const primitives::DigestItem &val) {
     auto result = scale::encode(val);
     if (result.has_value()) {
@@ -218,7 +223,7 @@ namespace kagome::api {
 
     jStruct data;
     data["block"] = std::move(block);
-    data["justification"] = makeValue(val.justification);
+    data["justifications"] = makeValue(val.justification);
     return data;
   }
 

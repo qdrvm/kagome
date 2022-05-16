@@ -6,26 +6,38 @@
 #include "host_api/impl/storage_extension.hpp"
 
 #include <algorithm>
-#include <forward_list>
 
 #include "clock/impl/clock_impl.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
-#include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
-using kagome::storage::trie::TrieError;
 
 namespace {
   const auto CHANGES_CONFIG_KEY = kagome::common::Buffer{}.put(":changes_trie");
-}
+
+  [[nodiscard]] kagome::storage::trie::StateVersion toStateVersion(
+      kagome::runtime::WasmI32 state_version_int) {
+    if (state_version_int == 0) {
+      return kagome::storage::trie::StateVersion::V0;
+    } else if (state_version_int == 1) {
+      // TODO(xDimon): remove exception when new version will be implemented
+      throw std::runtime_error("StateVersion::V1 has met first time");
+      return kagome::storage::trie::StateVersion::V1;
+    } else {
+      throw std::runtime_error(fmt::format(
+          "Invalid state version: {}. Expected 0 or 1", state_version_int));
+    }
+  }
+}  // namespace
 
 namespace kagome::host_api {
   StorageExtension::StorageExtension(
@@ -63,27 +75,38 @@ namespace kagome::host_api {
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
     auto [key_ptr, key_size] = runtime::PtrSize(key_pos);
-    auto [value_ptr, value_size] = runtime::PtrSize(value_out);
+    auto value = runtime::PtrSize(value_out);
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto key = memory.loadN(key_ptr, key_size);
     std::optional<uint32_t> res{std::nullopt};
-    if (const auto &data_res = get(key); data_res) {
-      auto data = gsl::make_span(data_res.value());
-      auto offset_data = data.subspan(std::min<size_t>(offset, data.size()));
-      auto written = std::min<size_t>(offset_data.size(), value_size);
-      memory.storeBuffer(value_ptr, offset_data.subspan(0, written));
-      SL_TRACE_FUNC_CALL(
-          logger_, key, common::Buffer{offset_data.subspan(0, written)});
-      res = offset_data.size();
+    if (auto data_opt_res = get(key); data_opt_res.has_value()) {
+      auto &data_opt = data_opt_res.value();
+      if (data_opt.has_value()) {
+        common::BufferView data = data_opt.value().get();
+        data = data.subspan(std::min<size_t>(offset, data.size()));
+        auto written = std::min<size_t>(data.size(), value.size);
+        memory.storeBuffer(value.ptr, data.subspan(0, written));
+        res = data.size();
+
+        SL_TRACE_FUNC_CALL(
+            logger_, data, key, common::Buffer{data.subspan(0, written)});
+      } else {
+        SL_TRACE_FUNC_CALL(
+            logger_, std::string_view{"none"}, key, value_out, offset);
+      }
+    } else {
+      SL_ERROR(logger_,
+               "Error in ext_storage_read_version_1: {}",
+               data_opt_res.error().message());
     }
     return memory.storeBuffer(scale::encode(res).value());
   }
 
-  outcome::result<common::Buffer> StorageExtension::get(
-      const common::Buffer &key) const {
+  outcome::result<std::optional<common::BufferConstRef>> StorageExtension::get(
+      const common::BufferView &key) const {
     auto batch = storage_provider_->getCurrentBatch();
-    return batch->get(key);
+    return batch->tryGet(key);
   }
 
   common::Buffer StorageExtension::loadKey(runtime::WasmSpan key) const {
@@ -124,21 +147,20 @@ namespace kagome::host_api {
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = memory.loadN(key_ptr, key_size);
+
     constexpr auto error_message =
         "ext_storage_get_version_1( {} ) => value was not obtained. Reason: {}";
 
     auto result = get(key_buffer);
-    auto option = result ? std::make_optional(result.value()) : std::nullopt;
 
     if (result) {
       SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
-    } else if (result.error() == TrieError::NO_VALUE) {
-      logger_->trace(
-          error_message, key_buffer.toHex(), result.error().message());
     } else {
       logger_->error(
           error_message, key_buffer.toHex(), result.error().message());
     }
+
+    auto &option = result.value();
 
     return memory.storeBuffer(scale::encode(option).value());
   }
@@ -153,8 +175,8 @@ namespace kagome::host_api {
     SL_TRACE_FUNC_CALL(logger_, del_result.has_value(), key);
     if (not del_result) {
       logger_->warn(
-          "ext_storage_clear_version_1 did not delete key {} from trie db with "
-          "reason: {}",
+          "ext_storage_clear_version_1 did not delete key {} from trie db "
+          "with reason: {}",
           key_data,
           del_result.error().message());
     }
@@ -199,12 +221,19 @@ namespace kagome::host_api {
     if (limit_opt) {
       SL_TRACE_VOID_FUNC_CALL(logger_, prefix, limit_opt.value());
     } else {
-      SL_TRACE_VOID_FUNC_CALL(logger_, prefix, "none");
+      SL_TRACE_VOID_FUNC_CALL(logger_, prefix, std::string_view{"none"});
     }
     return clearPrefix(prefix, limit_opt);
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_root_version_1() {
+    return ext_storage_root_version_2(runtime::WasmI32(0));
+  }
+
+  runtime::WasmSpan StorageExtension::ext_storage_root_version_2(
+      runtime::WasmI32 version) {
+    auto state_version = toStateVersion(version);
+
     outcome::result<storage::trie::RootHash> res{{}};
     removeEmptyChildStorages();
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
@@ -278,8 +307,14 @@ namespace kagome::host_api {
     auto key_bytes = memory.loadN(key_ptr, key_size);
     auto append_bytes = memory.loadN(append_ptr, append_size);
 
-    auto &&val_res = get(key_bytes);
-    auto &&val = val_res ? std::move(val_res.value()) : common::Buffer();
+    auto val_opt_res = get(key_bytes);
+    if (val_opt_res.has_error()) {
+      throw std::runtime_error{
+          fmt::format("Error fetching value from storage: {}",
+                      val_opt_res.error().message())};
+    }
+    auto &val_opt = val_opt_res.value();
+    auto &&val = val_opt ? common::Buffer{val_opt.value()} : common::Buffer{};
 
     if (scale::append_or_new_vec(val.asVector(), append_bytes).has_value()) {
       auto batch = storage_provider_->getCurrentBatch();
@@ -287,8 +322,8 @@ namespace kagome::host_api {
       auto put_result = batch->put(key_bytes, std::move(val));
       if (not put_result) {
         logger_->error(
-            "ext_storage_append_version_1 failed, due to fail in trie db with "
-            "reason: {}",
+            "ext_storage_append_version_1 failed, due to fail in trie db "
+            "with reason: {}",
             put_result.error().message());
       }
       return;
@@ -306,6 +341,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_commit_transaction_version_1() {
     auto res = storage_provider_->commitTransaction();
+    SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction rollback has failed: {}",
                      res.error().message());
@@ -315,6 +351,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_rollback_transaction_version_1() {
     auto res = storage_provider_->rollbackTransaction();
+    SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction commit has failed: {}",
                      res.error().message());
@@ -349,7 +386,8 @@ namespace kagome::host_api {
     auto &&pv = pairs.value();
     storage::trie::PolkadotCodec codec;
     if (pv.empty()) {
-      static const auto empty_root = common::Buffer{}.put(codec.hash256({0}));
+      static const auto empty_root =
+          common::Buffer{}.put(codec.hash256(common::Buffer{0}));
       auto res = memory.storeBuffer(empty_root);
       return runtime::PtrSize(res).ptr;
     }
@@ -382,6 +420,13 @@ namespace kagome::host_api {
   runtime::WasmPointer
   StorageExtension::ext_trie_blake2_256_ordered_root_version_1(
       runtime::WasmSpan values_data) {
+    return ext_trie_blake2_256_ordered_root_version_2(values_data,
+                                                      runtime::WasmI32(0));
+  }
+
+  runtime::WasmPointer
+  StorageExtension::ext_trie_blake2_256_ordered_root_version_2(
+      runtime::WasmSpan values_data, runtime::WasmI32 version) {
     auto [address, size] = runtime::PtrSize(values_data);
     auto &memory = memory_provider_->getCurrentMemory()->get();
     const auto &buffer = memory.loadN(address, size);
@@ -390,8 +435,10 @@ namespace kagome::host_api {
       logger_->error("failed to decode values: {}", values.error().message());
       throw std::runtime_error(values.error().message());
     }
-
     const auto &collection = values.value();
+
+    auto state_version = toStateVersion(version);
+
     auto ordered_hash = storage::trie::calculateOrderedTrieHash(
         collection.begin(), collection.end());
     if (!ordered_hash.has_value()) {
@@ -412,17 +459,17 @@ namespace kagome::host_api {
       return std::nullopt;
     }
     auto batch = storage_provider_->tryGetPersistentBatch().value();
-    auto config_bytes_res = batch->get(CHANGES_CONFIG_KEY);
+    auto config_bytes_res = batch->tryGet(CHANGES_CONFIG_KEY);
     if (config_bytes_res.has_error()) {
-      if (config_bytes_res.error() != storage::trie::TrieError::NO_VALUE) {
-        logger_->error("ext_storage_changes_root resulted with an error: {}",
-                       config_bytes_res.error().message());
-        throw std::runtime_error(config_bytes_res.error().message());
-      }
+      logger_->error("ext_storage_changes_root resulted with an error: {}",
+                     config_bytes_res.error().message());
+      throw std::runtime_error(config_bytes_res.error().message());
+    }
+    if (config_bytes_res.value() == std::nullopt) {
       return std::nullopt;
     }
     auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
-        config_bytes_res.value());
+        config_bytes_res.value().value().get());
     if (config_res.has_error()) {
       logger_->error("ext_storage_changes_root resulted with an error: {}",
                      config_res.error().message());
@@ -447,7 +494,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan StorageExtension::clearPrefix(
-      const common::Buffer &prefix, std::optional<uint32_t> limit) {
+      common::BufferView prefix, std::optional<uint32_t> limit) {
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
@@ -471,11 +518,11 @@ namespace kagome::host_api {
 
   void StorageExtension::removeEmptyChildStorages() {
     static const auto &prefix = storage::kChildStorageDefaultPrefix;
-    static const auto empty_hash = Buffer(codec_.hash256({0}));
+    static const auto empty_hash = Buffer(codec_.hash256(common::Buffer{0}));
     auto current_key = prefix;
     auto key_res = getStorageNextKey(current_key);
     while (key_res.has_value() and key_res.value().has_value()) {
-      auto& key_opt = key_res.value();
+      auto &key_opt = key_res.value();
       current_key = key_opt.value();
 
       bool contains_prefix =
@@ -483,8 +530,10 @@ namespace kagome::host_api {
       if (not contains_prefix) {
         break;
       }
-      auto value_res = get(current_key);
-      if (value_res and value_res.value() == empty_hash) {
+      // SAFETY: key obtained by getStorageNextKey method, thus must exist in
+      // the storage
+      auto value_opt = get(current_key).value();
+      if (value_opt and value_opt.value().get() == empty_hash) {
         auto batch = storage_provider_->getCurrentBatch();
         auto remove_res = batch->remove(current_key);
         if (not remove_res) {
@@ -492,6 +541,9 @@ namespace kagome::host_api {
               "Unable to remove empty child storage under key {}, error is {}",
               current_key,
               remove_res.error().message());
+        } else {
+          SL_TRACE(
+              logger_, "Removed empty child trie under key {}", current_key);
         }
       }
       key_res = getStorageNextKey(current_key);

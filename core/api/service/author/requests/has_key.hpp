@@ -15,8 +15,7 @@
 namespace kagome::api::author::request {
 
   class HasKey final
-      : public details::
-            RequestType<bool, std::string, std::string> {
+      : public details::RequestType<bool, std::string, std::string> {
    public:
     explicit HasKey(std::shared_ptr<AuthorApi> api) : api_(std::move(api)) {
       BOOST_ASSERT(api_);
@@ -25,7 +24,7 @@ namespace kagome::api::author::request {
     outcome::result<Return> execute() override {
       OUTCOME_TRY(public_key, common::unhexWith0x(getParam<0>()));
       return api_->hasKey(gsl::span(public_key.data(), public_key.size()),
-                                 crypto::encodeKeyTypeId(getParam<1>()));
+                          crypto::decodeKeyTypeIdFromStr(getParam<1>()));
     }
 
    private:

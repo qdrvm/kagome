@@ -85,6 +85,7 @@
 #include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/peer_manager_impl.hpp"
+#include "network/impl/rating_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
@@ -114,6 +115,7 @@
 #include "runtime/runtime_api/impl/metadata.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
+#include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
@@ -134,6 +136,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "telemetry/impl/service_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
@@ -322,6 +325,7 @@ namespace {
       return initialized.value();
     }
     auto options = leveldb::Options{};
+    options.max_open_files = 1500; // 1000 was the default value
     options.create_if_missing = true;
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
@@ -613,7 +617,6 @@ namespace {
             .template create<std::shared_ptr<primitives::BabeConfiguration>>();
     auto babe_util =
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
-
     auto block_tree_res =
         blockchain::BlockTreeImpl::create(header_repo,
                                           std::move(storage),
@@ -670,7 +673,8 @@ namespace {
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::Router>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
-        injector.template create<sptr<crypto::Hasher>>());
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<network::PeerRatingRepository>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -825,10 +829,13 @@ namespace {
               injector.template create<sptr<storage::BufferStorage>>();
           auto substitutes = injector.template create<
               sptr<const primitives::CodeSubstituteBlockIds>>();
+          auto block_storage =
+              injector.template create<sptr<blockchain::BlockStorage>>();
           auto res = runtime::RuntimeUpgradeTrackerImpl::create(
               std::move(header_repo),
               std::move(storage),
-              std::move(substitutes));
+              std::move(substitutes),
+              std::move(block_storage));
           if (res.has_error()) {
             throw std::runtime_error(
                 "Error creating RuntimeUpgradeTrackerImpl: "
@@ -897,11 +904,24 @@ namespace {
         di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::BabeApiImpl>(),
+        di::bind<runtime::SessionKeysApi>.template to<runtime::SessionKeysApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderImpl>(),
         di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
+        di::bind<runtime::SingleModuleCache>.template to<runtime::SingleModuleCache>(),
         std::forward<Ts>(args)...);
   }
+
+  template <typename Injector>
+  primitives::BlockHash get_last_finalized_hash(const Injector &injector) {
+    auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
+    if (auto last = storage->getLastFinalized(); last.has_value()) {
+      return last.value().hash;
+    } else {
+      throw std::runtime_error("Cannot lookup last finalized block: "
+                               + last.error().message());
+    }
+  };
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
@@ -1070,10 +1090,9 @@ namespace {
         }),
         di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
           // need it to add genesis block if it's not there
-          auto genesis_block_header =
-              injector.template create<sptr<primitives::GenesisBlockHeader>>();
           auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
-          return get_babe_configuration(genesis_block_header->hash, babe_api);
+          static auto last_finalized_hash = get_last_finalized_hash(injector);
+          return get_babe_configuration(last_finalized_hash, babe_api);
         }),
         di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
@@ -1084,6 +1103,7 @@ namespace {
         di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
         di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
+        di::bind<network::PeerRatingRepository>.template to<network::PeerRatingRepositoryImpl>(),
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
@@ -1152,6 +1172,7 @@ namespace {
         }),
         di::bind<application::mode::RecoveryMode>.to(
             [](auto const &injector) { return get_recovery_mode(injector); }),
+        di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1255,7 +1276,7 @@ namespace {
     }
 
     initialized = std::make_shared<network::ExtrinsicObserverImpl>(
-        injector.template create<sptr<api::AuthorApi>>());
+        injector.template create<sptr<transaction_pool::TransactionPool>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1293,36 +1314,6 @@ namespace {
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
     protocol_factory->setGrandpaObserver(initialized.value());
-
-    return initialized.value();
-  }
-
-  template <typename Injector>
-  sptr<primitives::GenesisBlockHeader> get_genesis_block_header(
-      const Injector &injector) {
-    static auto initialized =
-        std::optional<sptr<primitives::GenesisBlockHeader>>(std::nullopt);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto block_storage =
-        injector.template create<sptr<blockchain::BlockStorage>>();
-    auto block_header_repository =
-        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
-
-    auto hash_res =
-        block_header_repository->getHashByNumber(primitives::BlockNumber(0));
-    BOOST_ASSERT(hash_res.has_value());
-    auto &hash = hash_res.value();
-
-    auto header_res = block_storage->getBlockHeader(hash);
-    BOOST_ASSERT(header_res.has_value());
-    auto &header_opt = header_res.value();
-    BOOST_ASSERT(header_opt.has_value());
-
-    initialized.emplace(new primitives::GenesisBlockHeader(
-        {.header = header_opt.value(), .hash = hash}));
 
     return initialized.value();
   }
@@ -1387,6 +1378,7 @@ namespace {
 }  // namespace
 
 namespace kagome::injector {
+
   class KagomeNodeInjectorImpl {
    public:
     using Injector = decltype(makeKagomeNodeInjector(
@@ -1476,6 +1468,11 @@ namespace kagome::injector {
   std::shared_ptr<metrics::MetricsWatcher>
   KagomeNodeInjector::injectMetricsWatcher() {
     return pimpl_->injector_.create<sptr<metrics::MetricsWatcher>>();
+  }
+
+  std::shared_ptr<telemetry::TelemetryService>
+  KagomeNodeInjector::injectTelemetryService() {
+    return pimpl_->injector_.create<sptr<telemetry::TelemetryService>>();
   }
 
   std::shared_ptr<application::mode::RecoveryMode>

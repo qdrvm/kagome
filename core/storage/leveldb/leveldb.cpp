@@ -44,7 +44,7 @@ namespace kagome::storage {
 
     auto status = leveldb::DB::Open(options, path.native(), &db);
     if (status.ok()) {
-      std::unique_ptr<LevelDB> l {new LevelDB{}};
+      std::unique_ptr<LevelDB> l{new LevelDB{}};
       l->db_ = std::unique_ptr<leveldb::DB>(db);
       l->logger_ = std::move(log);
       return l;
@@ -56,9 +56,9 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
-  std::unique_ptr<BufferMapCursor> LevelDB::cursor() {
+  std::unique_ptr<LevelDB::Cursor> LevelDB::cursor() {
     auto it = std::unique_ptr<leveldb::Iterator>(db_->NewIterator(ro_));
-    return std::make_unique<Cursor>(std::move(it));
+    return std::make_unique<LevelDBCursor>(std::move(it));
   }
 
   std::unique_ptr<BufferBatch> LevelDB::batch() {
@@ -73,7 +73,7 @@ namespace kagome::storage {
     wo_ = wo;
   }
 
-  outcome::result<Buffer> LevelDB::get(const Buffer &key) const {
+  outcome::result<Buffer> LevelDB::load(const BufferView &key) const {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);
     if (status.ok()) {
@@ -82,12 +82,11 @@ namespace kagome::storage {
           reinterpret_cast<uint8_t *>(value.data()),                  // NOLINT
           reinterpret_cast<uint8_t *>(value.data()) + value.size());  // NOLINT
     }
-
     return status_as_error(status);
   }
 
-  outcome::result<std::optional<Buffer>> LevelDB::tryGet(
-      const Buffer &key) const {
+  outcome::result<std::optional<Buffer>> LevelDB::tryLoad(
+      const BufferView &key) const {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);
     if (status.ok()) {
@@ -103,7 +102,7 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
-  outcome::result<bool> LevelDB::contains(const Buffer &key) const {
+  outcome::result<bool> LevelDB::contains(const BufferView &key) const {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);
     if (status.ok()) {
@@ -123,7 +122,8 @@ namespace kagome::storage {
     return it->Valid();
   }
 
-  outcome::result<void> LevelDB::put(const Buffer &key, const Buffer &value) {
+  outcome::result<void> LevelDB::put(const BufferView &key,
+                                     const Buffer &value) {
     auto status = db_->Put(wo_, make_slice(key), make_slice(value));
     if (status.ok()) {
       return outcome::success();
@@ -132,12 +132,12 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
-  outcome::result<void> LevelDB::put(const Buffer &key, Buffer &&value) {
+  outcome::result<void> LevelDB::put(const BufferView &key, Buffer &&value) {
     Buffer copy(std::move(value));
     return put(key, copy);
   }
 
-  outcome::result<void> LevelDB::remove(const Buffer &key) {
+  outcome::result<void> LevelDB::remove(const BufferView &key) {
     auto status = db_->Delete(wo_, make_slice(key));
     if (status.ok()) {
       return outcome::success();
@@ -158,6 +158,25 @@ namespace kagome::storage {
       delete begin;
       delete end;
     }
+  }
+
+  size_t LevelDB::size() const {
+    size_t usage_bytes = 0;
+    if (db_) {
+      std::string usage;
+      bool result =
+          db_->GetProperty("leveldb.approximate-memory-usage", &usage);
+      if (result) {
+        try {
+          usage_bytes = std::stoul(usage);
+        } catch (...) {
+          logger_->error("Unable to parse memory usage value");
+        }
+      } else {
+        logger_->error("Unable to retrieve memory usage value");
+      }
+    }
+    return usage_bytes;
   }
 
 }  // namespace kagome::storage

@@ -21,6 +21,7 @@
 #include "assets/assets.hpp"
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
+#include "common/uri.hpp"
 #include "filesystem/directories.hpp"
 
 namespace {
@@ -124,6 +125,7 @@ namespace kagome::application {
   AppConfigurationImpl::AppConfigurationImpl(log::Logger logger)
       : logger_(std::move(logger)),
         roles_(def_roles),
+        is_telemetry_enabled_(true),
         p2p_port_(def_p2p_port),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
         rpc_http_host_(def_rpc_http_host),
@@ -188,9 +190,28 @@ namespace kagome::application {
         return false;
       }
       target.emplace_back(std::move(ma_res.value()));
-      return true;
     }
     return not target.empty();
+  }
+
+  bool AppConfigurationImpl::load_telemetry_uris(
+      const rapidjson::Value &val,
+      char const *name,
+      std::vector<telemetry::TelemetryEndpoint> &target) {
+    auto it = val.FindMember(name);
+    if (it != val.MemberEnd() and it->value.IsArray()) {
+      for (auto &v : it->value.GetArray()) {
+        if (v.IsString()) {
+          auto result = parseTelemetryEndpoint(v.GetString());
+          if (result.has_value()) {
+            target.emplace_back(std::move(result.value()));
+            continue;
+          }
+        }
+        return false;
+      }  // for
+    }
+    return true;
   }
 
   bool AppConfigurationImpl::load_str(const rapidjson::Value &val,
@@ -276,6 +297,10 @@ namespace kagome::application {
     load_str(val, "prometheus-host", openmetrics_http_host_);
     load_u16(val, "prometheus-port", openmetrics_http_port_);
     load_str(val, "name", node_name_);
+    load_u32(val, "out-peers", out_peers_);
+    load_u32(val, "in-peers", in_peers_);
+    load_u32(val, "in-peers-light", in_peers_light_);
+    load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
@@ -465,6 +490,71 @@ namespace kagome::application {
     return true;
   }
 
+  std::optional<telemetry::TelemetryEndpoint>
+  AppConfigurationImpl::parseTelemetryEndpoint(
+      const std::string &record) const {
+    /*
+     * The only form a telemetry endpoint could be specified is
+     * "<endpoint uri> <verbosity level>", where verbosity level is a single
+     * numeric character in a range from 0 to 9 inclusively.
+     */
+
+    // check there is a space char preceding the verbosity level number
+    const auto len = record.length();
+    constexpr auto kSpaceChar = ' ';
+    if (kSpaceChar != record.at(len - 2)) {
+      SL_ERROR(logger_,
+               "record '{}' could not be parsed as a valid telemetry endpoint. "
+               "The desired format is '<endpoint uri> <verbosity: 0-9>'",
+               record);
+      return std::nullopt;
+    }
+
+    // try to parse verbosity level
+    uint8_t verbosity_level{0};
+    try {
+      auto verbosity_char = record.substr(len - 1);
+      int verbosity_level_parsed = std::stoi(verbosity_char);
+      // the following check is left intentionally
+      // despite possible redundancy
+      if (verbosity_level_parsed < 0 or verbosity_level_parsed > 9) {
+        throw std::out_of_range("verbosity level value is out of range");
+      }
+      verbosity_level = static_cast<uint8_t>(verbosity_level_parsed);
+    } catch (std::invalid_argument const &e) {
+      SL_ERROR(logger_,
+               "record '{}' could not be parsed as a valid telemetry endpoint. "
+               "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
+               "Verbosity level does not meet the format: {}",
+               record,
+               e.what());
+      return std::nullopt;
+    } catch (std::out_of_range const &e) {
+      SL_ERROR(logger_,
+               "record '{}' could not be parsed as a valid telemetry endpoint. "
+               "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
+               "Verbosity level does not meet the format: {}",
+               record,
+               e.what());
+      return std::nullopt;
+    }
+
+    // try to parse endpoint uri
+    auto uri_part = record.substr(0, len - 2);
+    auto uri = common::Uri::parse(uri_part);
+    if (uri.error().has_value()) {
+      SL_ERROR(logger_,
+               "record '{}' could not be parsed as a valid telemetry endpoint. "
+               "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
+               "Endpoint URI parsing failed: {}",
+               record,
+               uri.error().value());
+      return std::nullopt;
+    }
+
+    return telemetry::TelemetryEndpoint{std::move(uri), verbosity_level};
+  }
+
   bool AppConfigurationImpl::initializeFromArgs(int argc, char **argv) {
     namespace po = boost::program_options;
 
@@ -510,8 +600,15 @@ namespace kagome::application {
         ("ws-max-connections", po::value<uint32_t>(), "maximum number of WS RPC server connections")
         ("prometheus-host", po::value<std::string>(), "address for OpenMetrics over HTTP")
         ("prometheus-port", po::value<uint16_t>(), "port for OpenMetrics over HTTP")
-        ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
+        ("out-peers", po::value<uint32_t>()->default_value(25), "number of outgoing connections we're trying to maintain")
+        ("in-peers", po::value<uint32_t>()->default_value(25), "maximum number of inbound full nodes peers")
+        ("in-peers-light", po::value<uint32_t>()->default_value(100), "maximum number of inbound light nodes peers")
+        ("max-blocks-in-response", po::value<uint32_t>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
+        ("no-telemetry", po::bool_switch()->default_value(false), "Disables telemetry broadcasting")
+        ("telemetry-url", po::value<std::vector<std::string>>()->multitoken(),
+                          "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
+                          "e.g. --telemetry-url 'wss://foo/bar 0'")
         ;
 
     po::options_description development_desc("Additional options");
@@ -525,6 +622,8 @@ namespace kagome::application {
     // clang-format on
 
     po::variables_map vm;
+    // first-run parse to read only general options and to lookup for "help"
+    // all the rest options are ignored
     po::parsed_options parsed = po::command_line_parser(argc, argv)
                                     .options(desc)
                                     .allow_unregistered()
@@ -543,6 +642,8 @@ namespace kagome::application {
     }
 
     try {
+      // second-run parse to gather all known options
+      // with reporting about any unrecognized input
       po::store(po::parse_command_line(argc, argv, desc), vm);
       po::store(parsed, vm);
       po::notify(vm);
@@ -812,6 +913,15 @@ namespace kagome::application {
       openmetrics_http_port_ = val;
     });
 
+    find_argument<uint32_t>(
+        vm, "out-peers", [&](uint32_t val) { out_peers_ = val; });
+
+    find_argument<uint32_t>(
+        vm, "in-peers", [&](uint32_t val) { in_peers_ = val; });
+
+    find_argument<uint32_t>(
+        vm, "in-peers-light", [&](uint32_t val) { in_peers_light_ = val; });
+
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
     });
@@ -823,6 +933,34 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "name", [&](std::string const &val) { node_name_ = val; });
+
+    auto parse_telemetry_urls =
+        [&](const std::string &param_name,
+            std::vector<telemetry::TelemetryEndpoint> &output_field) -> bool {
+      std::vector<std::string> tokens;
+      find_argument<std::vector<std::string>>(
+          vm, param_name.c_str(), [&](const auto &val) { tokens = val; });
+
+      for (const auto &token : tokens) {
+        auto result = parseTelemetryEndpoint(token);
+        if (result.has_value()) {
+          telemetry_endpoints_.emplace_back(std::move(result.value()));
+        } else {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    find_argument<bool>(vm, "no-telemetry", [&](bool telemetry_disabled) {
+      is_telemetry_enabled_ = not telemetry_disabled;
+    });
+
+    if (is_telemetry_enabled_) {
+      if (not parse_telemetry_urls("telemetry-url", telemetry_endpoints_)) {
+        return false;  // just proxy erroneous case to the top level
+      }
+    }
 
     std::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
     find_argument<std::string>(

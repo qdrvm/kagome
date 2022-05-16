@@ -48,6 +48,7 @@ namespace kagome::application {
     sptr<api::ApiService> jrpc_api_service_;
     sptr<network::SyncProtocolObserver> sync_observer_;
     sptr<metrics::MetricsWatcher> metrics_watcher_;
+    sptr<telemetry::TelemetryService> telemetry_service_;
   };
 
 }  // namespace kagome::application

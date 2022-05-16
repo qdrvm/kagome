@@ -59,7 +59,7 @@ namespace kagome::blockchain {
         == outcome::failure(BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND)) {
       using namespace common::literals;
       OUTCOME_TRY(last_finalized_block_hash_opt,
-                  storage->tryGet(":kagome:last_finalized_block_hash"_buf));
+                  storage->tryLoad(":kagome:last_finalized_block_hash"_buf));
       if (not last_finalized_block_hash_opt.has_value()) {
         return BlockStorageError::FINALIZED_BLOCK_NOT_FOUND;
       }
@@ -72,7 +72,7 @@ namespace kagome::blockchain {
           block_storage->setBlockTreeLeaves({last_finalized_block_hash}));
     }
 
-    return std::move(block_storage);
+    return block_storage;
   }
 
   outcome::result<bool> BlockStorageImpl::hasBlockHeader(
@@ -224,7 +224,7 @@ namespace kagome::blockchain {
 
     auto num_to_idx_key =
         prependPrefix(numberToIndexKey(block.number), Prefix::ID_TO_LOOKUP_KEY);
-    OUTCOME_TRY(num_to_idx_val_opt, storage_->tryGet(num_to_idx_key));
+    OUTCOME_TRY(num_to_idx_val_opt, storage_->tryLoad(num_to_idx_key.view()));
     if (num_to_idx_val_opt == block_lookup_key) {
       if (auto res = storage_->remove(num_to_idx_key); res.has_error()) {
         SL_ERROR(logger_,
@@ -280,7 +280,7 @@ namespace kagome::blockchain {
     }
 
     OUTCOME_TRY(leaves_opt,
-                storage_->tryGet(storage::kBlockTreeLeavesLookupKey));
+                storage_->tryLoad(storage::kBlockTreeLeavesLookupKey));
     if (not leaves_opt.has_value()) {
       return BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND;
     }
@@ -308,6 +308,42 @@ namespace kagome::blockchain {
     block_tree_leaves_.emplace(std::move(leaves));
 
     return outcome::success();
+  }
+
+  outcome::result<primitives::BlockInfo> BlockStorageImpl::getLastFinalized()
+      const {
+    OUTCOME_TRY(leaves, getBlockTreeLeaves());
+    auto current_hash = leaves[0];
+    for (;;) {
+      OUTCOME_TRY(j_opt, getJustification(current_hash));
+      if (j_opt.has_value()) {
+        break;
+      }
+      OUTCOME_TRY(header_opt, getBlockHeader(current_hash));
+      if (header_opt.has_value()) {
+        auto header = header_opt.value();
+        if (header.number == 0) {
+          SL_TRACE(logger_,
+                   "Not found block with justification. "
+                   "Genesis block will be used as last finalized ({})",
+                   current_hash);
+          return {0, current_hash};  // genesis
+        }
+        current_hash = header.parent_hash;
+      } else {
+        SL_ERROR(
+            logger_, "Failed to fetch header for block ({})", current_hash);
+        return BlockStorageError::HEADER_NOT_FOUND;
+      }
+    }
+
+    OUTCOME_TRY(header, getBlockHeader(current_hash));
+    primitives::BlockInfo found_block{header.value().number, current_hash};
+    SL_TRACE(logger_,
+             "Justification is found in block {}. "
+             "This block will be used as last finalized",
+             found_block);
+    return found_block;
   }
 
 }  // namespace kagome::blockchain

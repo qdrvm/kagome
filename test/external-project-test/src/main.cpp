@@ -7,6 +7,7 @@
 
 #include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
+#include <kagome/blockchain/impl/block_storage_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
 #include <kagome/crypto/crypto_store/crypto_store_impl.hpp>
 #include <kagome/crypto/ecdsa/ecdsa_provider_impl.hpp>
@@ -23,11 +24,13 @@
 #include <kagome/runtime/common/runtime_upgrade_tracker_impl.hpp>
 #include <kagome/runtime/common/storage_code_provider.hpp>
 #include <kagome/runtime/executor.hpp>
+#include <kagome/runtime/module.hpp>
 #include <kagome/runtime/wavm/compartment_wrapper.hpp>
 #include <kagome/runtime/wavm/instance_environment_factory.hpp>
 #include <kagome/runtime/wavm/intrinsics/intrinsic_module.hpp>
 #include <kagome/runtime/wavm/module_factory_impl.hpp>
 #include <kagome/storage/changes_trie/impl/storage_changes_tracker_impl.hpp>
+#include <kagome/storage/in_memory/in_memory_storage.hpp>
 #include <kagome/storage/leveldb/leveldb.hpp>
 #include <kagome/storage/trie/impl/trie_storage_backend_impl.hpp>
 #include <kagome/storage/trie/impl/trie_storage_impl.hpp>
@@ -49,7 +52,7 @@ kagome::storage::trie::RootHash trieRoot(
   }
   auto root = trie.getRoot();
   if (root == nullptr) {
-    return codec.hash256({0});
+    return codec.hash256(kagome::common::BufferView{{0}});
   }
   auto encode_res = codec.encodeNode(*root);
   BOOST_ASSERT_MSG(encode_res.has_value(), "Trie encoding failed");
@@ -87,10 +90,7 @@ int main() {
                         .value();
 
   auto code_substitutes = chain_spec->codeSubstitutes();
-  auto runtime_upgrade_tracker =
-      std::shared_ptr(kagome::runtime::RuntimeUpgradeTrackerImpl::create(
-                          header_repo, database, code_substitutes)
-                          .value());
+  auto storage = std::make_shared<kagome::storage::InMemoryStorage>();
 
   auto trie_factory =
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
@@ -116,6 +116,20 @@ int main() {
       std::shared_ptr(kagome::storage::trie::TrieStorageImpl::createEmpty(
                           trie_factory, codec, serializer, changes_tracker)
                           .value());
+
+  auto batch =
+      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
+          .value();
+  auto root_hash = batch->commit().value();
+  auto block_storage =
+      kagome::blockchain::BlockStorageImpl::create(root_hash, storage, hasher)
+          .value();
+  std::shared_ptr<kagome::runtime::RuntimeUpgradeTracker>
+      runtime_upgrade_tracker =
+          std::move(kagome::runtime::RuntimeUpgradeTrackerImpl::create(
+                        header_repo, database, code_substitutes, block_storage)
+                        .value());
+
   auto storage_batch =
       trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
           .value();
@@ -180,6 +194,7 @@ int main() {
           offchain_persistent_storage,
           offchain_worker_pool);
 
+  auto smc = std::make_shared<kagome::runtime::SingleModuleCache>();
   auto instance_env_factory =
       std::make_shared<const kagome::runtime::wavm::InstanceEnvironmentFactory>(
           trie_storage,
@@ -188,12 +203,13 @@ int main() {
           intrinsic_module,
           host_api_factory,
           header_repo,
-          changes_tracker);
+          changes_tracker,
+          smc);
   auto module_factory =
       std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
           compartment, instance_env_factory, intrinsic_module);
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
-      runtime_upgrade_tracker, module_factory);
+      runtime_upgrade_tracker, module_factory, smc);
   auto env_factory =
       std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
           code_provider, module_repo, header_repo);

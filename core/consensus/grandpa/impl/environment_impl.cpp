@@ -24,13 +24,16 @@ namespace kagome::consensus::grandpa {
   EnvironmentImpl::EnvironmentImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
+      std::shared_ptr<authority::AuthorityManager> authority_manager,
       std::shared_ptr<network::GrandpaTransmitter> transmitter)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
+        authority_manager_{std::move(authority_manager)},
         transmitter_{std::move(transmitter)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
+    BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(transmitter_ != nullptr);
   }
 
@@ -57,29 +60,32 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
-      const BlockHash &base) const {
+      const BlockHash &base,
+      std::optional<MembershipCounter> voter_set_id) const {
     SL_DEBUG(logger_, "Finding best chain containing block {}", base);
-    OUTCOME_TRY(best_info, block_tree_->getBestContaining(base, std::nullopt));
-    auto best_hash = best_info.hash;
+    OUTCOME_TRY(best_block, block_tree_->getBestContaining(base, std::nullopt));
 
-    auto target = best_info.number;
+    // Select best block with actual set_id
+    if (voter_set_id.has_value()) {
+      while (true) {
+        OUTCOME_TRY(header,
+                    header_repository_->getBlockHeader(best_block.hash));
+        BlockInfo parent_block{header.number - 1, header.parent_hash};
 
-    OUTCOME_TRY(best_header, header_repository_->getBlockHeader(best_hash));
+        OUTCOME_TRY(voter_set,
+                    authority_manager_->authorities(parent_block, true));
 
-    // walk backwards until we find the target block
-    while (true) {
-      if (best_header.number == target) {
-        SL_DEBUG(logger_,
-                 "found best chain: {}",
-                 BlockInfo(best_header.number, best_hash));
-        return BlockInfo{primitives::BlockNumber{best_header.number},
-                         best_hash};
+        if (voter_set->id == voter_set_id.value()) {
+          // found
+          break;
+        }
+
+        best_block = parent_block;
       }
-      best_hash = best_header.parent_hash;
-      OUTCOME_TRY(new_best_header,
-                  header_repository_->getBlockHeader(best_hash));
-      best_header = new_best_header;
     }
+
+    SL_DEBUG(logger_, "Found best chain: {}", best_block);
+    return best_block;
   }
 
   outcome::result<void> EnvironmentImpl::onCatchUpRequested(

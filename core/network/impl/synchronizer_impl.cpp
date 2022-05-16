@@ -324,7 +324,7 @@ namespace kagome::network {
           "Can't check if block #{} in #{}..#{} is common with {}: {}",
           hint,
           lower,
-          upper,
+          upper - 1,
           peer_id,
           outcome::result<void>(Error::DUPLICATE_REQUEST).error().message());
       handler(Error::DUPLICATE_REQUEST);
@@ -359,7 +359,7 @@ namespace kagome::network {
                  "Can't check if block #{} in #{}..#{} is common with {}: {}",
                  target,
                  lower,
-                 upper,
+                 upper - 1,
                  peer_id,
                  response_res.error().message());
         handler(response_res.as_failure());
@@ -376,7 +376,7 @@ namespace kagome::network {
                  "Response does not have any blocks",
                  target,
                  lower,
-                 upper,
+                 upper - 1,
                  peer_id);
         handler(Error::EMPTY_RESPONSE);
         return;
@@ -412,35 +412,34 @@ namespace kagome::network {
           return;
         }
 
-        // Step for next iteration
-        auto step = upper - target + 1;
+        primitives::BlockNumber hint;
 
         // Narrowing interval for next iteration
         if (block_is_known) {
           SL_TRACE(self->log_,
-                   "Found common block #{} with {} in #{}..#{}",
-                   target,
-                   peer_id,
-                   lower,
-                   upper);
+                   "Block {} of {} is found locally",
+                   BlockInfo(target, hash),
+                   peer_id);
 
           // Narrowing interval to continue above
           lower = target;
+          hint = lower + (upper - lower) / 2;
         } else {
           SL_TRACE(self->log_,
-                   "Not found common block #{} with {} in #{}..#{}",
-                   target,
+                   "Block {} of {} is not found locally",
+                   BlockInfo(target, hash),
                    peer_id,
                    lower,
-                   upper);
+                   upper - 1);
+
+          // Step for next iteration
+          auto step = upper - target;
 
           // Narrowing interval to continue below
           upper = target;
+          hint = upper - std::min(step, (upper - lower) / 2);
         }
-
-        // Speed up of dive if possible or Bisect otherwise
-        primitives::BlockNumber hint =
-            lower + std::min(step, (upper - lower) / 2);
+        hint = lower + (upper - lower) / 2;
 
         // Try again with narrowed interval
 
@@ -451,13 +450,11 @@ namespace kagome::network {
           target = hint;
           hash = it->second;
 
-          SL_TRACE(self->log_,
-                   "Check if block #{} in #{}..#{} is common with {} - "
-                   "observed early",
-                   hint,
-                   lower,
-                   upper,
-                   peer_id);
+          SL_TRACE(
+              self->log_,
+              "Block {} of {} is already observed. Continue without request",
+              BlockInfo(target, hash),
+              peer_id);
           continue;
         }
 
@@ -476,7 +473,7 @@ namespace kagome::network {
              "Check if block #{} in #{}..#{} is common with {}",
              hint,
              lower,
-             upper,
+             upper - 1,
              peer_id);
 
     auto protocol = router_->getSyncProtocol();
@@ -668,8 +665,7 @@ namespace kagome::network {
           return;
         }
 
-        last_loaded_block.number = header.number;
-        last_loaded_block.hash = block.hash;
+        last_loaded_block = {header.number, block.hash};
 
         parent_hash = block.hash;
 
@@ -797,6 +793,8 @@ namespace kagome::network {
             if (handler) handler(block_info);
           }
         } else {
+          telemetry_->notifyBlockImported(
+              block_info, telemetry::BlockOrigin::kNetworkInitialSync);
           if (handler) handler(block_info);
         }
       }

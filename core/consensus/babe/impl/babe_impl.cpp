@@ -65,7 +65,8 @@ namespace kagome::consensus::babe {
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        log_{log::createLogger("Babe", "babe")} {
+        log_{log::createLogger("Babe", "babe")},
+        telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
@@ -192,6 +193,48 @@ namespace kagome::consensus::babe {
     return outcome::success(epoch_descriptor);
   }
 
+  void BabeImpl::adjustEpochDescriptor() {
+    auto first_slot_number = babe_util_->syncEpoch([&]() {
+      auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
+      if (res.has_error()) {
+        SL_TRACE(log_,
+                 "First block slot is {}: no first block (at adjusting)",
+                 babe_util_->getCurrentSlot());
+        return std::tuple(babe_util_->getCurrentSlot(), false);
+      }
+
+      auto &first_block_header = res.value();
+      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
+                       "Any non genesis block must contain babe digest");
+      auto first_slot_number = babe_digest_res.value().second.slot_number;
+
+      auto is_first_block_finalized =
+          block_tree_->getLastFinalized().number > 0;
+
+      SL_TRACE(
+          log_,
+          "First block slot is {}: by {}finalized first block (at adjusting)",
+          first_slot_number,
+          is_first_block_finalized ? "" : "non-");
+      return std::tuple(first_slot_number, is_first_block_finalized);
+    });
+
+    auto current_epoch_start_slot =
+        first_slot_number
+        + current_epoch_.epoch_number * babe_configuration_->epoch_length;
+
+    if (current_epoch_.start_slot != current_epoch_start_slot) {
+      SL_WARN(log_,
+              "Start-slot of current epoch {} has updated from {} to {}",
+              current_epoch_.epoch_number,
+              current_epoch_.start_slot,
+              current_epoch_start_slot);
+
+      current_epoch_.start_slot = current_epoch_start_slot;
+    }
+  }
+
   void BabeImpl::runEpoch(EpochDescriptor epoch) {
     bool already_active = false;
     if (not active_.compare_exchange_strong(already_active, true)) {
@@ -200,16 +243,16 @@ namespace kagome::consensus::babe {
 
     BOOST_ASSERT(keypair_ != nullptr);
 
+    adjustEpochDescriptor();
+
     SL_DEBUG(
         log_,
-        "Starting an epoch {}. Session key: {}. Secondary slots allowed={}",
+        "Starting an epoch {}. Session key: {:l}. Secondary slots allowed={}",
         epoch.epoch_number,
-        keypair_->public_key.toHex(),
+        keypair_->public_key,
         isSecondarySlotsAllowed());
     current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
-
-    babe_util_->syncEpoch(current_epoch_);
 
     runSlot();
   }
@@ -233,7 +276,7 @@ namespace kagome::consensus::babe {
     }
 
     // Remote peer is lagged
-    if (current_best_block.number > status.best_block.number) {
+    if (status.best_block.number <= last_finalized_block.number) {
       return;
     }
 
@@ -281,6 +324,7 @@ namespace kagome::consensus::babe {
               SL_INFO(self->log_, "Catching up is finished on block {}", block);
               self->current_state_ = Babe::State::SYNCHRONIZED;
               self->was_synchronized_ = true;
+              self->telemetry_->notifyWasSynchronized();
             }
             self->onSynchronized();
 
@@ -332,6 +376,7 @@ namespace kagome::consensus::babe {
 
     current_state_ = State::SYNCHRONIZED;
     was_synchronized_ = true;
+    telemetry_->notifyWasSynchronized();
 
     if (not active_) {
       best_block_ = block_tree_->deepestLeaf();
@@ -372,6 +417,8 @@ namespace kagome::consensus::babe {
         if (current_epoch_.epoch_number
             != babe_util_->slotToEpoch(current_slot_)) {
           startNextEpoch();
+        } else {
+          adjustEpochDescriptor();
         }
       } else if (slot < current_slot_) {
         SL_VERBOSE(log_, "Slots {}..{} was skipped", slot, current_slot_ - 1);
@@ -464,10 +511,10 @@ namespace kagome::consensus::babe {
     if (slot_leadership.has_value()) {
       const auto &vrf_result = slot_leadership.value();
       SL_DEBUG(log_,
-               "Peer {} is leader (vrfOutput: {}, proof: {})",
-               keypair_->public_key.toHex(),
-               common::Buffer(vrf_result.output).toHex(),
-               common::Buffer(vrf_result.proof).toHex());
+               "Babe author {} is leader (vrfOutput: {}, proof: {})",
+               keypair_->public_key,
+               common::Buffer(vrf_result.output),
+               common::Buffer(vrf_result.proof));
 
       processSlotLeadership(
           SlotType::Primary, std::cref(vrf_result), authority_index);
@@ -498,6 +545,8 @@ namespace kagome::consensus::babe {
 
     if (current_epoch_.epoch_number != babe_util_->slotToEpoch(current_slot_)) {
       startNextEpoch();
+    } else {
+      adjustEpochDescriptor();
     }
 
     auto start_time = babe_util_->slotStartTime(current_slot_);
@@ -683,14 +732,45 @@ namespace kagome::consensus::babe {
       return;
     }
 
+    const auto block_hash =
+        hasher_->blake2b_256(scale::encode(block.header).value());
+    const primitives::BlockInfo block_info(block.header.number, block_hash);
+
+    auto last_finalized_block = block_tree_->getLastFinalized();
+    auto previous_best_block_res =
+        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
+    BOOST_ASSERT(previous_best_block_res.has_value());
+    const auto &previous_best_block = previous_best_block_res.value();
+
+    // add block to the block tree
+    if (auto add_res = block_tree_->addBlock(block); not add_res) {
+      SL_ERROR(log_,
+               "Could not add block {}: {}",
+               block_info,
+               add_res.error().message());
+      auto removal_res = block_tree_->removeLeaf(block_hash);
+      if (removal_res.has_error()
+          and removal_res
+                  != outcome::failure(
+                      blockchain::BlockTreeError::BLOCK_IS_NOT_LEAF)) {
+        SL_WARN(log_,
+                "Rolling back of block {} is failed: {}",
+                block_info,
+                removal_res.error().message());
+      }
+      return;
+    }
+    telemetry_->notifyBlockImported(block_info, telemetry::BlockOrigin::kOwn);
+
     // observe possible changes of authorities
+    // (must be done strictly after block will be added)
     for (auto &digest_item : block.header.digest) {
       auto res = visit_in_place(
           digest_item,
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
             auto res = authority_update_observer_->onConsensus(
-                best_block_, consensus_message);
+                block_info, consensus_message);
             if (res.has_error()) {
               SL_WARN(log_,
                       "Can't process consensus message digest: {}",
@@ -704,35 +784,6 @@ namespace kagome::consensus::babe {
       }
     }
 
-    auto last_finalized_block = block_tree_->getLastFinalized();
-    auto previous_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(previous_best_block_res.has_value());
-    const auto &previous_best_block = previous_best_block_res.value();
-
-    const auto block_hash =
-        hasher_->blake2b_256(scale::encode(block.header).value());
-    const primitives::BlockInfo block_info(block.header.number, block_hash);
-
-    // add block to the block tree
-    if (auto add_res = block_tree_->addBlock(block); not add_res) {
-      SL_ERROR(log_,
-               "Could not add block {}: {}",
-               block_info,
-               add_res.error().message());
-      auto removal_res = block_tree_->removeBlock(block_hash);
-      if (removal_res.has_error()
-          and removal_res
-                  != outcome::failure(
-                      blockchain::BlockTreeError::BLOCK_IS_NOT_LEAF)) {
-        SL_WARN(log_,
-                "Rolling back of block {} is failed: {}",
-                block_info,
-                removal_res.error().message());
-      }
-      return;
-    }
-
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
         next_epoch_digest_res.has_value()) {
       auto &next_epoch_digest = next_epoch_digest_res.value();
@@ -740,7 +791,7 @@ namespace kagome::consensus::babe {
                  "Got next epoch digest in slot {} (block #{}). Randomness: {}",
                  current_slot_,
                  block.header.number,
-                 next_epoch_digest.randomness.toHex());
+                 next_epoch_digest.randomness);
     }
 
     // finally, broadcast the sealed block
@@ -784,7 +835,7 @@ namespace kagome::consensus::babe {
       SL_CRITICAL(log_,
                   "Block production failed: This node is not in the list of "
                   "authorities. (public key: {})",
-                  keypair_->public_key.toHex());
+                  keypair_->public_key);
       return;
     }
 
@@ -804,7 +855,31 @@ namespace kagome::consensus::babe {
     ++current_epoch_.epoch_number;
     current_epoch_.start_slot = current_slot_;
 
-    babe_util_->syncEpoch(current_epoch_);
+    babe_util_->syncEpoch([&]() {
+      auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
+      if (res.has_error()) {
+        SL_WARN(log_,
+                "First block slot is {}: no first block (at start next epoch)",
+                babe_util_->getCurrentSlot());
+        return std::tuple(babe_util_->getCurrentSlot(), false);
+      }
+
+      auto &first_block_header = res.value();
+      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
+                       "Any non genesis block must contain babe digest");
+      auto first_slot_number = babe_digest_res.value().second.slot_number;
+
+      auto is_first_block_finalized =
+          block_tree_->getLastFinalized().number > 0;
+
+      SL_WARN(log_,
+              "First block slot is {}: by {}finalized first block (at start "
+              "next epoch)",
+              first_slot_number,
+              is_first_block_finalized ? "" : "non-");
+      return std::tuple(first_slot_number, is_first_block_finalized);
+    });
   }
 
   bool BabeImpl::isSecondarySlotsAllowed() const {

@@ -47,7 +47,7 @@ namespace kagome::offchain {
   bool HttpRequest::init(HttpMethod method,
                          std::string_view uri_arg,
                          common::Buffer meta) {
-    uri_ = Uri::Parse(uri_arg);
+    uri_ = common::Uri::parse(uri_arg);
     if (uri_.error().has_value()) {
       error_message_ =
           fmt::format("URI parsing was failed: {}", uri_.error().value());
@@ -90,7 +90,7 @@ namespace kagome::offchain {
       stream_ = std::make_unique<TcpStream>(io_context_);
     }
 
-    SL_DEBUG(log_, "Initialized for URL: {}", uri_.toString());
+    SL_DEBUG(log_, "Initialized for URL: {}", uri_.to_string());
 
     if (method == HttpMethod::Post) {
       request_.method(boost::beast::http::verb::post);
@@ -249,7 +249,7 @@ namespace kagome::offchain {
     }
 
     if (not request_is_ready_) {
-      SL_TRACE(log_, "Request not ready (body is not finalised)");
+      SL_TRACE(log_, "Request not ready (body is not finalized)");
       return;
     }
     if (not connected_) {

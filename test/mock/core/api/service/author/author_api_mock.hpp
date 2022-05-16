@@ -23,7 +23,7 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<common::Hash256>,
                 submitExtrinsic,
-                (const Extrinsic &),
+                (TransactionSource, const Extrinsic &),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
@@ -32,6 +32,8 @@ namespace kagome::api {
                  const gsl::span<const uint8_t> &,
                  const gsl::span<const uint8_t> &),
                 (override));
+
+    MOCK_METHOD(outcome::result<common::Buffer>, rotateKeys, (), (override));
 
     MOCK_METHOD(outcome::result<bool>,
                 hasSessionKeys,

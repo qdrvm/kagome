@@ -87,6 +87,7 @@ target_link_libraries(application_injector
     sync_protocol_observer
     system_api_service
     system_api_service
+    telemetry
     tagged_transaction_queue_api
     transaction_payment_api
     transaction_pool
@@ -119,4 +120,6 @@ target_link_libraries(application_injector
     offchain_worker_api
     offchain_persistent_storage
     offchain_local_storage
+    rating_repository
+    session_keys_api
     )

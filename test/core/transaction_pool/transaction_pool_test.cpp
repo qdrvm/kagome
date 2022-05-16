@@ -8,28 +8,29 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/network/transactions_transmitter_mock.hpp"
+#include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/core/transaction_pool/pool_moderator_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/storage/std_list_adapter.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
-using kagome::face::ForwardIterator;
-using kagome::face::GenericIterator;
-using kagome::face::GenericList;
+using kagome::crypto::HasherMock;
+using kagome::network::TransactionsTransmitterMock;
 using kagome::primitives::Transaction;
 using kagome::primitives::events::ExtrinsicSubscriptionEngine;
+using kagome::runtime::TaggedTransactionQueueMock;
 using kagome::subscription::ExtrinsicEventKeyRepository;
 using kagome::transaction_pool::PoolModerator;
 using kagome::transaction_pool::PoolModeratorMock;
 using kagome::transaction_pool::TransactionPoolError;
 using kagome::transaction_pool::TransactionPoolImpl;
 
-using test::StdListAdapter;
 using testing::NiceMock;
 using testing::Return;
 
@@ -42,6 +43,9 @@ class TransactionPoolTest : public testing::Test {
   }
 
   void SetUp() override {
+    auto ttq = std::make_shared<TaggedTransactionQueueMock>();
+    auto hasher = std::make_shared<HasherMock>();
+    auto tx_transmitter = std::make_shared<TransactionsTransmitterMock>();
     auto moderator = std::make_unique<NiceMock<PoolModeratorMock>>();
     auto header_repo = std::make_unique<BlockHeaderRepositoryMock>();
     auto engine = std::make_unique<ExtrinsicSubscriptionEngine>();
@@ -49,6 +53,9 @@ class TransactionPoolTest : public testing::Test {
         std::make_unique<ExtrinsicEventKeyRepository>();
 
     pool_ = std::make_shared<TransactionPoolImpl>(
+        std::move(ttq),
+        std::move(hasher),
+        std::move(tx_transmitter),
         std::move(moderator),
         std::move(header_repo),
         std::move(engine),
@@ -147,7 +154,7 @@ TEST_F(TransactionPoolTest, CorrectRemoveTx) {
   EXPECT_EQ(pool_->getStatus().waiting_num, 1);
   ASSERT_EQ(pool_->getStatus().ready_num, 1);
 
-  // tx unexists in pool
+  // tx does not exist in pool
   {
     auto outcome = pool_->removeOne("02"_hash256);
     ASSERT_TRUE(outcome.has_error());

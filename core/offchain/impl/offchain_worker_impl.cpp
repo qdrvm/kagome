@@ -107,7 +107,8 @@ namespace kagome::offchain {
 
   Result<Success, Failure> OffchainWorkerImpl::submitTransaction(
       const primitives::Extrinsic &ext) {
-    auto result = author_api_->submitExtrinsic(ext);
+    auto result =
+        author_api_->submitExtrinsic(primitives::TransactionSource::Local, ext);
     if (result.has_value()) {
       return Success();
     }
@@ -173,7 +174,7 @@ namespace kagome::offchain {
   }
 
   void OffchainWorkerImpl::localStorageSet(StorageType storage_type,
-                                           const common::Buffer &key,
+                                           const common::BufferView &key,
                                            common::Buffer value) {
     auto &storage = getStorage(storage_type);
     auto result = storage.set(key, std::move(value));
@@ -183,7 +184,7 @@ namespace kagome::offchain {
   }
 
   void OffchainWorkerImpl::localStorageClear(StorageType storage_type,
-                                             const common::Buffer &key) {
+                                             const common::BufferView &key) {
     auto &storage = getStorage(storage_type);
     auto result = storage.clear(key);
     if (result.has_error()) {
@@ -194,8 +195,8 @@ namespace kagome::offchain {
 
   bool OffchainWorkerImpl::localStorageCompareAndSet(
       StorageType storage_type,
-      const common::Buffer &key,
-      std::optional<std::reference_wrapper<const common::Buffer>> expected,
+      const common::BufferView &key,
+      std::optional<common::BufferView> expected,
       common::Buffer value) {
     auto &storage = getStorage(storage_type);
     auto result = storage.compare_and_set(key, expected, std::move(value));
@@ -209,7 +210,7 @@ namespace kagome::offchain {
   }
 
   outcome::result<common::Buffer> OffchainWorkerImpl::localStorageGet(
-      StorageType storage_type, const common::Buffer &key) {
+      StorageType storage_type, const common::BufferView &key) {
     auto &storage = getStorage(storage_type);
     auto result = storage.get(key);
     if (result.has_error()

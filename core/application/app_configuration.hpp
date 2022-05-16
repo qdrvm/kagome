@@ -19,6 +19,7 @@
 #include "network/peering_config.hpp"
 #include "network/types/roles.hpp"
 #include "primitives/block_id.hpp"
+#include "telemetry/endpoint.hpp"
 
 namespace kagome::application {
 
@@ -78,6 +79,21 @@ namespace kagome::application {
      * @return port for peer to peer interactions.
      */
     virtual uint16_t p2pPort() const = 0;
+
+    /**
+     * @return number of outgoing connections we're trying to maintain
+     */
+    virtual uint32_t outPeers() const = 0;
+
+    /**
+     * @return maximum number of inbound full nodes peers
+     */
+    virtual uint32_t inPeers() const = 0;
+
+    /**
+     * @return maximum number of inbound light nodes peers
+     */
+    virtual uint32_t inPeersLght() const = 0;
 
     /**
      * @return multiaddresses of bootstrat nodes
@@ -149,6 +165,18 @@ namespace kagome::application {
      * The version of node is going to be used in telemetry, etc.
      */
     virtual const std::string &nodeVersion() const = 0;
+
+    /**
+     * @return true when telemetry broadcasting is enabled, otherwise - false
+     */
+    virtual bool isTelemetryEnabled() const = 0;
+
+    /**
+     * List of telemetry endpoints specified via CLI argument or config file
+     * @return a vector of parsed telemetry endpoints
+     */
+    virtual const std::vector<telemetry::TelemetryEndpoint>
+        &telemetryEndpoints() const = 0;
 
     enum class RuntimeExecutionMethod { Compile, Interpret };
     /**

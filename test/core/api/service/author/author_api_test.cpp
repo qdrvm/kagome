@@ -18,10 +18,10 @@
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "mock/core/api/service/api_service_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/crypto_store_mock.hpp"
-#include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/transactions_transmitter_mock.hpp"
-#include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
+#include "mock/core/runtime/session_keys_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "primitives/extrinsic.hpp"
@@ -33,7 +33,6 @@
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 #include "testutil/sr25519_utils.hpp"
-#include "transaction_pool/transaction_pool_error.hpp"
 
 using namespace kagome::api;
 using namespace kagome::common;
@@ -41,7 +40,7 @@ using namespace kagome::crypto;
 using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
 
-using kagome::blockchain::BlockTree;
+using kagome::blockchain::BlockTreeMock;
 using kagome::network::TransactionsTransmitterMock;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
@@ -104,16 +103,15 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<SessionKeys> keys;
   sptr<KeyFileStorage> key_store;
   Sr25519Keypair key_pair;
-  sptr<HasherMock> hasher;
-  sptr<TaggedTransactionQueueMock> ttq;
+  sptr<SessionKeysApi> key_api;
   sptr<TransactionPoolMock> transaction_pool;
   sptr<ApiServiceMock> api_service_mock;
-  sptr<TransactionsTransmitterMock> transactions_transmitter;
   sptr<AuthorApiImpl> author_api;
   sptr<Extrinsic> extrinsic;
   sptr<ValidTransaction> valid_transaction;
   Hash256 deepest_leaf_hash;
   sptr<BlockInfo> deepest_leaf;
+  sptr<BlockTreeMock> block_tree;
   sptr<ExtrinsicSubscriptionEngine> sub_engine;
   sptr<ExtrinsicEventSubscriber> subscriber;
   kagome::subscription::SubscriptionSetId sub_id;
@@ -145,18 +143,12 @@ struct AuthorApiTest : public ::testing::Test {
         gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1)));
     role.flags.authority = 1;
     keys = std::make_shared<SessionKeys>(store, role);
-    hasher = std::make_shared<HasherMock>();
-    ttq = std::make_shared<TaggedTransactionQueueMock>();
+    key_api = std::make_shared<SessionKeysApiMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
-    transactions_transmitter = std::make_shared<TransactionsTransmitterMock>();
+    block_tree = std::make_shared<BlockTreeMock>();
     api_service_mock = std::make_shared<ApiServiceMock>();
-    author_api = std::make_shared<AuthorApiImpl>(ttq,
-                                                 transaction_pool,
-                                                 hasher,
-                                                 transactions_transmitter,
-                                                 store,
-                                                 keys,
-                                                 key_store);
+    author_api = std::make_shared<AuthorApiImpl>(
+        key_api, transaction_pool, store, keys, key_store, block_tree);
     author_api->setApiService(api_service_mock);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
@@ -171,24 +163,12 @@ struct AuthorApiTest : public ::testing::Test {
  * @then it is successfully completes returning expected result
  */
 TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
-  TransactionValidity tv = *valid_transaction;
-  gsl::span<const uint8_t> span = gsl::make_span(extrinsic->data);
-  EXPECT_CALL(*hasher, blake2b_256(span)).WillOnce(Return(Hash256{}));
-  EXPECT_CALL(*ttq,
-              validate_transaction(TransactionSource::External, *extrinsic))
-      .WillOnce(Return(tv));
-  Transaction tr{*extrinsic,
-                 extrinsic->data.size(),
-                 Hash256{},
-                 valid_transaction->priority,
-                 valid_transaction->longevity,
-                 valid_transaction->requires,
-                 valid_transaction->provides,
-                 true};
-  EXPECT_CALL(*transaction_pool, submitOne(tr))
+  EXPECT_CALL(*transaction_pool,
+              submitExtrinsic(TransactionSource::External, *extrinsic))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*transactions_transmitter, propagateTransactions(_)).Times(1);
-  EXPECT_OUTCOME_SUCCESS(hash, author_api->submitExtrinsic(*extrinsic));
+  EXPECT_OUTCOME_SUCCESS(
+      hash,
+      author_api->submitExtrinsic(TransactionSource::External, *extrinsic));
   ASSERT_EQ(hash.value(), Hash256{});
 }
 
@@ -200,15 +180,12 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
  * to transaction pool
  */
 TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
-  TransactionValidity tv = InvalidTransaction{1u};
-  EXPECT_CALL(*ttq,
-              validate_transaction(TransactionSource::External, *extrinsic))
+  EXPECT_CALL(*transaction_pool, submitExtrinsic(_, _))
       .WillOnce(Return(outcome::failure(DummyError::ERROR)));
-  EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
-  EXPECT_CALL(*transaction_pool, submitOne(_)).Times(0);
-  EXPECT_CALL(*transactions_transmitter, propagateTransactions(_)).Times(0);
   EXPECT_OUTCOME_ERROR(
-      res, author_api->submitExtrinsic(*extrinsic), DummyError::ERROR);
+      res,
+      author_api->submitExtrinsic(TransactionSource::External, *extrinsic),
+      DummyError::ERROR);
 }
 
 MATCHER_P(eventsAreEqual, n, "") {
@@ -221,9 +198,10 @@ MATCHER_P(eventsAreEqual, n, "") {
  * @then corresponing error is returned
  */
 TEST_F(AuthorApiTest, InsertKeyUnsupported) {
-  EXPECT_OUTCOME_ERROR(res,
-                       author_api->insertKey(encodeKeyTypeId("dumy"), {}, {}),
-                       CryptoStoreError::UNSUPPORTED_KEY_TYPE);
+  EXPECT_OUTCOME_ERROR(
+      res,
+      author_api->insertKey(decodeKeyTypeIdFromStr("dumy"), {}, {}),
+      CryptoStoreError::UNSUPPORTED_KEY_TYPE);
 }
 
 /**
@@ -455,33 +433,18 @@ TEST_F(AuthorApiTest, HasKeyFail) {
  * propagated via gossiper, with corresponding events catched
  */
 TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
-  TransactionValidity tv = *valid_transaction;
-  gsl::span<const uint8_t> span = gsl::make_span(extrinsic->data);
-  EXPECT_CALL(*hasher, blake2b_256(span)).WillOnce(Return(Hash256{}));
-  EXPECT_CALL(*ttq,
-              validate_transaction(TransactionSource::External, *extrinsic))
-      .WillOnce(Return(tv));
-  Transaction tr{*extrinsic,
-                 extrinsic->data.size(),
-                 Hash256{},
-                 valid_transaction->priority,
-                 valid_transaction->longevity,
-                 valid_transaction->requires,
-                 valid_transaction->provides,
-                 true};
-  EXPECT_CALL(*transaction_pool, submitOne(tr))
+  Transaction::Hash tx_hash{};
+
+  EXPECT_CALL(*transaction_pool,
+              submitExtrinsic(TransactionSource::External, *extrinsic))
       .WillOnce(testing::DoAll(
-          testing::Invoke([this](auto &) {
+          testing::Invoke([this] {
+            sub_engine->notify(ext_id,
+                               ExtrinsicLifecycleEvent::Broadcast(ext_id, {}));
             sub_engine->notify(ext_id, ExtrinsicLifecycleEvent::Future(ext_id));
             sub_engine->notify(ext_id, ExtrinsicLifecycleEvent::Ready(ext_id));
           }),
           Return(outcome::success())));
-
-  EXPECT_CALL(*transactions_transmitter, propagateTransactions(_))
-      .WillOnce(testing::Invoke([this](auto &&) {
-        sub_engine->notify(ext_id,
-                           ExtrinsicLifecycleEvent::Broadcast(ext_id, {}));
-      }));
 
   {
     testing::InSequence s;
@@ -505,11 +468,40 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
                 eventsAreEqual(ExtrinsicLifecycleEvent::Ready(ext_id))));
   }
 
-  EXPECT_CALL(*api_service_mock, subscribeForExtrinsicLifecycle(tr))
+  EXPECT_CALL(*api_service_mock, subscribeForExtrinsicLifecycle(tx_hash))
       .WillOnce(Return(sub_id));
 
   // throws because api service is uninitialized
   ASSERT_OUTCOME_SUCCESS(ret_sub_id,
                          author_api->submitAndWatchExtrinsic(*extrinsic));
   ASSERT_EQ(sub_id, ret_sub_id);
+}
+
+/**
+ * @when requesting list of extrinsics
+ * @then extrinsics are fetched from transaction pool and returned as a vector
+ */
+TEST_F(AuthorApiTest, PendingExtrinsics) {
+  std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>> trxs;
+  std::vector<Extrinsic> expected_result;
+
+  EXPECT_CALL(*transaction_pool, getPendingTransactions())
+      .WillOnce(ReturnRef(trxs));
+
+  ASSERT_OUTCOME_SUCCESS(actual_result, author_api->pendingExtrinsics());
+  ASSERT_EQ(expected_result, actual_result);
+}
+
+/**
+ * @given subscription id
+ * @when requesting to unwatch extrinsic
+ * @then request is forwarded to api service, result returned
+ */
+TEST_F(AuthorApiTest, UnwatchExtrinsic) {
+  kagome::primitives::SubscriptionId sub_id = 0;
+
+  EXPECT_CALL(*api_service_mock, unsubscribeFromExtrinsicLifecycle(sub_id))
+      .WillOnce(Return(true));
+
+  ASSERT_TRUE(author_api->unwatchExtrinsic(sub_id));
 }

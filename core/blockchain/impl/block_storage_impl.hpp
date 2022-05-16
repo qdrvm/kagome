@@ -67,6 +67,8 @@ namespace kagome::blockchain {
     outcome::result<void> removeBlock(
         const primitives::BlockInfo &block) override;
 
+    outcome::result<primitives::BlockInfo> getLastFinalized() const override;
+
    private:
     BlockStorageImpl(std::shared_ptr<storage::BufferStorage> storage,
                      std::shared_ptr<crypto::Hasher> hasher);

@@ -9,18 +9,19 @@
 #include "api/service/state/requests/get_metadata.hpp"
 #include "api/service/state/requests/subscribe_storage.hpp"
 #include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
+#include "mock/core/api/service/api_service_mock.hpp"
 #include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/metadata_mock.hpp"
-#include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block_header.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using kagome::api::ApiServiceMock;
 using kagome::api::StateApiMock;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTreeMock;
@@ -54,6 +55,8 @@ namespace kagome::api {
         std::make_shared<BlockTreeMock>();
     std::shared_ptr<CoreMock> runtime_core_ = std::make_shared<CoreMock>();
     std::shared_ptr<MetadataMock> metadata_ = std::make_shared<MetadataMock>();
+    std::shared_ptr<ApiServiceMock> api_service_ =
+        std::make_shared<ApiServiceMock>();
 
     std::unique_ptr<api::StateApiImpl> api_{};
   };
@@ -69,22 +72,25 @@ namespace kagome::api {
     primitives::BlockId did = "D"_hash256;
     EXPECT_CALL(*block_header_repo_, getBlockHeader(did))
         .WillOnce(testing::Return(BlockHeader{.state_root = "CDE"_hash256}));
+    auto in_buf = "a"_buf;
+    auto out_buf = "1"_buf;
     EXPECT_CALL(*storage_, getEphemeralBatchAt(_))
-        .WillRepeatedly(testing::Invoke([](auto &root) {
+        .WillRepeatedly(testing::Invoke([&in_buf, &out_buf](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, tryGet("a"_buf))
-              .WillRepeatedly(testing::Return("1"_buf));
+          EXPECT_CALL(*batch, tryGet(in_buf.view()))
+              .WillRepeatedly(testing::Return(std::cref(out_buf)));
           return batch;
         }));
 
-    EXPECT_OUTCOME_TRUE(r, api_->getStorage("a"_buf));
+    auto key = "a"_buf;
+    EXPECT_OUTCOME_TRUE(r, api_->getStorage(key.view()))
     ASSERT_EQ(r.value(), "1"_buf);
 
     primitives::BlockId bid = "B"_hash256;
     EXPECT_CALL(*block_header_repo_, getBlockHeader(bid))
         .WillOnce(testing::Return(BlockHeader{.state_root = "ABC"_hash256}));
 
-    EXPECT_OUTCOME_TRUE(r1, api_->getStorageAt("a"_buf, "B"_hash256));
+    EXPECT_OUTCOME_TRUE(r1, api_->getStorageAt(key.view(), "B"_hash256));
     ASSERT_EQ(r1.value(), "1"_buf);
   }
 
@@ -124,7 +130,7 @@ namespace kagome::api {
     std::shared_ptr<BlockTreeMock> block_tree_;
     std::shared_ptr<api::StateApiImpl> api_;
 
-    const std::map<Buffer, Buffer> lex_sorted_vals{
+    const std::map<Buffer, Buffer, std::less<>> lex_sorted_vals{
         {"0102"_hex2buf, "0102"_hex2buf},
         {"0103"_hex2buf, "0103"_hex2buf},
         {"010304"_hex2buf, "010304"_hex2buf},
@@ -202,7 +208,8 @@ namespace kagome::api {
                                      .impl_name = "dummy_in",
                                      .authoring_version = 0x101,
                                      .spec_version = 0x111,
-                                     .impl_version = 0x202};
+                                     .impl_version = 0x202,
+                                     .apis = {}};
 
     EXPECT_CALL(*block_tree_, deepestLeaf())
         .WillOnce(Return(primitives::BlockInfo{42, "block42"_hash256}));
@@ -364,7 +371,7 @@ namespace kagome::api {
             auto batch =
                 std::make_unique<storage::trie::EphemeralTrieBatchMock>();
             for (auto &key : keys) {
-              EXPECT_CALL(*batch, tryGet(key))
+              EXPECT_CALL(*batch, tryGet(key.view()))
                   .WillOnce(testing::Return(common::Buffer(root)));
             }
             return batch;
@@ -436,7 +443,7 @@ namespace kagome::api {
           auto batch =
               std::make_unique<storage::trie::EphemeralTrieBatchMock>();
           for (auto &key : keys) {
-            EXPECT_CALL(*batch, tryGet(key))
+            EXPECT_CALL(*batch, tryGet(key.view()))
                 .WillOnce(testing::Return(common::Buffer(root)));
           }
           return batch;
@@ -452,6 +459,57 @@ namespace kagome::api {
         changes[0].changes,
         ::testing::Each(::testing::Field(
             &StateApiImpl::StorageChangeSet::Change::key, ContainedIn(keys))));
+  }
+
+  /**
+   * @given subscription id
+   * @when request to unsubscribe from storage events
+   * @then unsubscribe using ApiService and return if operation succeeded
+   */
+  TEST_F(StateApiTest, UnsubscribeStorage) {
+    std::vector<uint32_t> subscription_id;
+    auto expected_return = true;
+
+    EXPECT_CALL(*api_service_, unsubscribeSessionFromIds(subscription_id))
+        .WillOnce(Return(expected_return));
+
+    api_->setApiService(api_service_);
+    ASSERT_OUTCOME_SUCCESS(result, api_->unsubscribeStorage(subscription_id));
+    ASSERT_EQ(expected_return, result);
+  }
+
+  /**
+   * @when request subscription on runtime version event
+   * @then subscribe on event through ApiService, return subscription id on
+   * success
+   */
+  TEST_F(StateApiTest, SubscribeRuntimeVersion) {
+    auto expected_return = 22u;
+
+    EXPECT_CALL(*api_service_, subscribeRuntimeVersion())
+        .WillOnce(Return(expected_return));
+
+    api_->setApiService(api_service_);
+    ASSERT_OUTCOME_SUCCESS(result, api_->subscribeRuntimeVersion());
+    ASSERT_EQ(expected_return, result);
+  }
+
+  /**
+   * @given subscription id
+   * @when request unsubscription from runtime version event
+   * @then froward request to ApiService
+   */
+  TEST_F(StateApiTest, UnsubscribeRuntimeVersion) {
+    auto subscription_id = 42u;
+    auto expected_return = StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED;
+
+    EXPECT_CALL(*api_service_, unsubscribeRuntimeVersion(subscription_id))
+        .WillOnce(Return(expected_return));
+
+    api_->setApiService(api_service_);
+    EXPECT_OUTCOME_ERROR(result,
+                         api_->unsubscribeRuntimeVersion(subscription_id),
+                         expected_return);
   }
 
 }  // namespace kagome::api

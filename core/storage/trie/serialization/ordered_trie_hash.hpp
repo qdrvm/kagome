@@ -28,13 +28,12 @@ namespace kagome::storage::trie {
     PolkadotCodec codec;
     // empty root
     if (begin == end) {
-      static const auto empty_root = common::Buffer{}.put(codec.hash256({0}));
+      static const auto empty_root =
+          common::Buffer{}.put(codec.hash256(common::Buffer{0}));
       return empty_root;
     }
-    // clang-format off
     static_assert(
         std::is_same_v<std::decay_t<decltype(*begin)>, common::Buffer>);
-    // clang-format on
     It it = begin;
     scale::CompactInteger key = 0;
     while (it != end) {

@@ -29,6 +29,7 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "telemetry/service.hpp"
 
 namespace kagome::network {
   class Synchronizer;
@@ -100,6 +101,8 @@ namespace kagome::consensus::babe {
 
    private:
     outcome::result<EpochDescriptor> getInitialEpochDescriptor();
+
+    void adjustEpochDescriptor();
 
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
@@ -174,6 +177,7 @@ namespace kagome::consensus::babe {
     metrics::Histogram *metric_block_proposal_time_;
 
     log::Logger log_;
+    telemetry::Telemetry telemetry_;  // telemetry
   };
 }  // namespace kagome::consensus::babe
 

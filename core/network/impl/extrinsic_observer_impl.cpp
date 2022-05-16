@@ -5,19 +5,21 @@
 
 #include "network/impl/extrinsic_observer_impl.hpp"
 
-#include "api/service/author/author_api.hpp"
+#include "primitives/transaction_validity.hpp"
+#include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::network {
 
   ExtrinsicObserverImpl::ExtrinsicObserverImpl(
-      std::shared_ptr<api::AuthorApi> api)
-      : api_(std::move(api)) {
-    BOOST_ASSERT(api_);
+      std::shared_ptr<kagome::transaction_pool::TransactionPool> pool)
+      : pool_(std::move(pool)) {
+    BOOST_ASSERT(pool_);
   }
 
   outcome::result<common::Hash256> ExtrinsicObserverImpl::onTxMessage(
       const primitives::Extrinsic &extrinsic) {
-    return api_->submitExtrinsic(extrinsic);
+    return pool_->submitExtrinsic(primitives::TransactionSource::External,
+                                  extrinsic);
   }
 
 }  // namespace kagome::network

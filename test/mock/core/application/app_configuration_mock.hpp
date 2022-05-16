@@ -92,6 +92,11 @@ namespace kagome::application {
 
     MOCK_METHOD(const std::string &, nodeVersion, (), (const, override));
 
+    MOCK_METHOD(const std::vector<telemetry::TelemetryEndpoint> &,
+                telemetryEndpoints,
+                (),
+                (const, override));
+
     MOCK_METHOD(AppConfiguration::RuntimeExecutionMethod,
                 runtimeExecMethod,
                 (),
@@ -108,6 +113,14 @@ namespace kagome::application {
                 recoverState,
                 (),
                 (const, override));
+
+    MOCK_METHOD(uint32_t, outPeers, (), (const, override));
+
+    MOCK_METHOD(uint32_t, inPeers, (), (const, override));
+
+    MOCK_METHOD(uint32_t, inPeersLght, (), (const, override));
+
+    MOCK_METHOD(bool, isTelemetryEnabled, (), (const, override));
   };
 
 }  // namespace kagome::application

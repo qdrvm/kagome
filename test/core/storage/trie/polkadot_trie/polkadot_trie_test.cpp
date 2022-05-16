@@ -8,15 +8,19 @@
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/storage/polkadot_trie_printer.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::Hash256;
+using kagome::storage::trie::BranchNode;
 using kagome::storage::trie::KeyNibbles;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrie;
 using kagome::storage::trie::PolkadotTrieImpl;
+using kagome::storage::trie::TrieNode;
 
 /**
  * Automation of operations over a trie
@@ -36,6 +40,8 @@ class TrieTest
   TrieTest() {}
 
   void SetUp() override {
+    testutil::prepareLoggers(soralog::Level::OFF);
+
     trie = std::make_unique<PolkadotTrieImpl>();
   }
 
@@ -81,7 +87,7 @@ TEST_P(TrieTest, RunCommand) {
       case Command::GET: {
         if (command.value) {
           ASSERT_OUTCOME_SUCCESS(val, trie->get(command.key));
-          ASSERT_EQ(val, command.value.value());
+          ASSERT_EQ(val.get(), command.value.value());
         } else {
           EXPECT_OUTCOME_FALSE(err, trie->get(command.key));
           ASSERT_EQ(
@@ -261,18 +267,18 @@ TEST_F(TrieTest, Put) {
 
   for (auto &entry : data) {
     ASSERT_OUTCOME_SUCCESS(res, trie->get(entry.first));
-    ASSERT_EQ(res, entry.second);
+    ASSERT_EQ(res.get(), entry.second);
   }
   ASSERT_OUTCOME_SUCCESS_TRY(trie->put("102030"_hex2buf, "0a0b0c"_hex2buf));
   ASSERT_OUTCOME_SUCCESS_TRY(trie->put("104050"_hex2buf, "0a0b0c"_hex2buf));
   ASSERT_OUTCOME_SUCCESS_TRY(trie->put("102030"_hex2buf, "010203"_hex2buf));
   ASSERT_OUTCOME_SUCCESS(v1, trie->get("102030"_hex2buf));
-  ASSERT_EQ(v1, "010203"_hex2buf);
+  ASSERT_EQ(v1.get(), "010203"_hex2buf);
   ASSERT_OUTCOME_SUCCESS(v2, trie->get("104050"_hex2buf));
-  ASSERT_EQ(v2, "0a0b0c"_hex2buf);
+  ASSERT_EQ(v2.get(), "0a0b0c"_hex2buf);
   ASSERT_OUTCOME_SUCCESS_TRY(trie->put("1332"_hex2buf, ""_buf));
   ASSERT_OUTCOME_SUCCESS(v3, trie->get("1332"_hex2buf));
-  ASSERT_EQ(v3, ""_buf);
+  ASSERT_EQ(v3.get(), ""_buf);
 }
 
 /**
@@ -283,7 +289,6 @@ TEST_F(TrieTest, Put) {
  */
 TEST_F(TrieTest, Remove) {
   FillSmallTree(*trie);
-
   for (auto i : {2, 3, 4}) {
     ASSERT_OUTCOME_SUCCESS_TRY(trie->remove(data[i].first));
   }
@@ -305,7 +310,7 @@ TEST_F(TrieTest, Replace) {
 
   ASSERT_OUTCOME_SUCCESS_TRY(trie->put(data[1].first, data[3].second));
   ASSERT_OUTCOME_SUCCESS(res, trie->get(data[1].first));
-  ASSERT_EQ(res, data[3].second);
+  ASSERT_EQ(res.get(), data[3].second);
 }
 
 /**
@@ -365,16 +370,20 @@ class DeleteTest : public testing::Test,
 
 size_t size(const PolkadotTrie::NodePtr &node) {
   size_t count = 0;
-  if (node) {
-    if (node->isBranch()) {
-      auto branch =
-          std::dynamic_pointer_cast<kagome::storage::trie::BranchNode>(node);
-      for (const auto &child : branch->children) {
-        count += size(child);
+
+  if(node == nullptr) return 0;
+
+  if (node->isBranch()) {
+    auto branch =
+        std::dynamic_pointer_cast<kagome::storage::trie::BranchNode>(node);
+    for (const auto &child : branch->children) {
+      if (child != nullptr) {
+        auto child_node = std::dynamic_pointer_cast<TrieNode>(child);
+        count += size(child_node);
       }
     }
-    ++count;
   }
+  ++count;
   return count;
 }
 
@@ -505,7 +514,7 @@ INSTANTIATE_TEST_SUITE_P(
  */
 TEST_F(TrieTest, EmptyTrie) {
   ASSERT_TRUE(trie->empty());
-  ASSERT_OUTCOME_SUCCESS_TRY(trie->put({0}, "asdasd"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(trie->put(Buffer{0}, "asdasd"_buf));
   ASSERT_FALSE(trie->empty());
 }
 
@@ -523,18 +532,24 @@ TEST_F(TrieTest, GetPath) {
       {"010a0b"_hex2buf, "1337"_hex2buf},
       {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
-  for (auto &entry : TrieTest::data) {
+  for (const auto &entry : TrieTest::data) {
     ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry.first, entry.second));
   }
 
-  ASSERT_OUTCOME_SUCCESS(
-      path, trie->getPath(trie->getRoot(), KeyNibbles{"010203040506"_hex2buf}));
+  std::vector<std::pair<const BranchNode *, uint8_t>> path;
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      trie->forNodeInPath(trie->getRoot(),
+                          KeyNibbles{"010203040506"_hex2buf},
+                          [&path](const auto &node, auto idx) mutable {
+                            path.emplace_back(&node, idx);
+                            return outcome::success();
+                          }))
   auto root = trie->getRoot();
   auto node1 = trie->getNode(root, KeyNibbles{1, 2, 3, 4}).value();
   auto it = path.begin();
-  ASSERT_EQ(it->first, root);
+  ASSERT_EQ(it->first, root.get());
   ASSERT_EQ(it->first->children[it->second], node1);
-  ASSERT_EQ((++it)->first, node1);
+  ASSERT_EQ((++it)->first, node1.get());
 }
 
 /**
@@ -550,12 +565,15 @@ TEST_F(TrieTest, GetPathToInvalid) {
       {"010a0b"_hex2buf, "1337"_hex2buf},
       {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
-  for (auto &entry : TrieTest::data) {
+  for (const auto &entry : TrieTest::data) {
     ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry.first, entry.second));
   }
-
   EXPECT_OUTCOME_SOME_ERROR(
-      path, trie->getPath(trie->getRoot(), KeyNibbles{"0a0b0c0d0e0f"_hex2buf}));
+      _,
+      trie->forNodeInPath(
+          trie->getRoot(),
+          KeyNibbles{"0a0b0c0d0e0f"_hex2buf},
+          [](auto &node, auto idx) mutable { return outcome::success(); }))
 }
 
 /**

@@ -8,11 +8,13 @@
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/consensus/authority/authority_manager_mock.hpp"
 #include "mock/core/network/grandpa_transmitter_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::authority::AuthorityManagerMock;
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTree;
@@ -74,12 +76,13 @@ class ChainTest : public testing::Test {
   std::shared_ptr<BlockTreeMock> tree = std::make_shared<BlockTreeMock>();
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo =
       std::make_shared<BlockHeaderRepositoryMock>();
-
+  std::shared_ptr<AuthorityManagerMock> authority_manager =
+      std::make_shared<AuthorityManagerMock>();
   std::shared_ptr<GrandpaTransmitterMock> grandpa_transmitter =
       std::make_shared<GrandpaTransmitterMock>();
 
-  std::shared_ptr<Chain> chain =
-      std::make_shared<EnvironmentImpl>(tree, header_repo, grandpa_transmitter);
+  std::shared_ptr<Chain> chain = std::make_shared<EnvironmentImpl>(
+      tree, header_repo, authority_manager, grandpa_transmitter);
 };
 
 /**
@@ -172,7 +175,7 @@ TEST_F(ChainTest, BestChainContaining) {
   auto h = mockTree();
   EXPECT_CALL(*tree, getBestContaining(_, _))
       .WillOnce(Return(BlockInfo{42, h[3]}));
-  ASSERT_OUTCOME_SUCCESS(r, chain->bestChainContaining(h[2]));
+  ASSERT_OUTCOME_SUCCESS(r, chain->bestChainContaining(h[2], std::nullopt));
 
   ASSERT_EQ(h[3], r.hash);
 }

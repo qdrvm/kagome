@@ -113,6 +113,7 @@ class VotingRoundTest : public testing::Test,
 
     grandpa_ = std::make_shared<GrandpaMock>();
     EXPECT_CALL(*grandpa_, executeNextRound(_)).Times(AnyNumber());
+    EXPECT_CALL(*grandpa_, updateNextRound(_)).Times(AnyNumber());
 
     auto authorities = std::make_shared<AuthorityList>();
     authorities->id = 0;
@@ -156,7 +157,7 @@ class VotingRoundTest : public testing::Test,
         .WillRepeatedly(Return(true));
     EXPECT_CALL(*env_, hasAncestry("FC"_H, "FC"_H))
         .WillRepeatedly(Return(true));
-    EXPECT_CALL(*env_, bestChainContaining("C"_H))
+    EXPECT_CALL(*env_, bestChainContaining("C"_H, _))
         .WillRepeatedly(Return(BlockInfo{9, "FC"_H}));
     EXPECT_CALL(*env_, onNeighborMessageSent(_, _, _))
         .WillRepeatedly(Return(outcome::success()));
@@ -181,7 +182,7 @@ class VotingRoundTest : public testing::Test,
     EXPECT_CALL(*previous_round_, finalizedBlock())
         .Times(AnyNumber())
         .WillRepeatedly(ReturnRef(finalized_in_prev_round_));
-    ON_CALL(*previous_round_, doCommit()).WillByDefault(Return());
+    EXPECT_CALL(*previous_round_, doCommit()).Times(AnyNumber());
 
     round_ = std::make_shared<VotingRoundImpl>(grandpa_,
                                                config,

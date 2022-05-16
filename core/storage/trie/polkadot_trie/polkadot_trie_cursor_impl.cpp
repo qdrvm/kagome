@@ -5,11 +5,12 @@
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 
-#include <iostream>
+#include <utility>
 
 #include "common/buffer_back_insert_iterator.hpp"
 #include "macro/unreachable.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
@@ -19,83 +20,102 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
   switch (e) {
     case E::INVALID_NODE_TYPE:
       return "The processed node type is invalid";
-    case E::METHOD_NOT_IMPLEMENTED:
-      return "the method is not yet implemented";
+    case E::INVALID_CURSOR_ACCESS:
+      return "A trie cursor in an invalid state has been accessed (e.g. "
+             "next())";
+    case E::KEY_NOT_FOUND:
+      return "The requested key was not found";
   }
-  return "unknown error";
+  return "Unknown TrieCursor error";
 }
 
 namespace kagome::storage::trie {
 
-  PolkadotTrieCursorImpl::PolkadotTrieCursorImpl(const PolkadotTrie &trie)
-      : trie_{trie},
-        current_{nullptr},
-        log_{log::createLogger("TrieCursor", "trie", soralog::Level::TRACE)} {}
+  [[nodiscard]] outcome::result<void>
+  PolkadotTrieCursorImpl::SearchState::visitChild(uint8_t index,
+                                                  const TrieNode &child) {
+    auto *current_as_branch = dynamic_cast<const BranchNode *>(current_);
+    if (current_as_branch == nullptr) return Error::INVALID_NODE_TYPE;
+    path_.emplace_back(*current_as_branch, index);
+    current_ = &child;
+    return outcome::success();
+  }
+
+  PolkadotTrieCursorImpl::PolkadotTrieCursorImpl(
+      std::shared_ptr<const PolkadotTrie> trie)
+      : log_{log::createLogger("TrieCursor", "trie")},
+        trie_{std::move(trie)},
+        state_{UninitializedState{}} {
+    BOOST_ASSERT(trie_);
+  }
 
   outcome::result<std::unique_ptr<PolkadotTrieCursorImpl>>
-  PolkadotTrieCursorImpl::createAt(const common::Buffer &key,
-                                   const PolkadotTrie &trie) {
-    auto c = std::make_unique<PolkadotTrieCursorImpl>(trie);
-    OUTCOME_TRY(node,
-                trie.getNode(trie.getRoot(), c->codec_.keyToNibbles(key)));
-    c->visited_root_ = true;  // root is always visited first
-    c->current_ = node;
-    OUTCOME_TRY(last_child_path, c->constructLastVisitedChildPath(key));
-    c->last_visited_child_ = std::move(last_child_path);
-
-    return c;
+  PolkadotTrieCursorImpl::createAt(
+      const common::BufferView &key,
+      const std::shared_ptr<const PolkadotTrie> &trie) {
+    auto cursor = std::make_unique<PolkadotTrieCursorImpl>(trie);
+    OUTCOME_TRY(search_state, cursor->makeSearchStateAt(key));
+    cursor->state_ = std::move(search_state);
+    return cursor;
   }
 
   outcome::result<bool> PolkadotTrieCursorImpl::seekFirst() {
-    visited_root_ = false;
-    last_visited_child_.clear();
-    OUTCOME_TRY(next());
+    state_ = UninitializedState{};
+    SAFE_VOID_CALL(next())
     return isValid();
   }
 
   outcome::result<bool> PolkadotTrieCursorImpl::seek(
-      const common::Buffer &key) {
-    if (trie_.getRoot() == nullptr) {
-      current_ = nullptr;
+      const common::BufferView &key) {
+    if (trie_->getRoot() == nullptr) {
+      state_ = UninitializedState{};
       return false;
     }
-    last_visited_child_.clear();
-    visited_root_ = true;  // root is always visited first
-    OUTCOME_TRY(last_child_path, constructLastVisitedChildPath(key));
-    auto nibbles = PolkadotCodec::keyToNibbles(key);
-    OUTCOME_TRY(node, trie_.getNode(trie_.getRoot(), nibbles));
 
-    bool node_has_value = node != nullptr and node->value.has_value();
-    if (node_has_value) {
-      current_ = node;
-    } else {
-      current_ = nullptr;
+    auto res = makeSearchStateAt(key);
+    if (res.has_error()) {
+      // if the given key is just not present in the trie, return false
+      state_ = InvalidState{res.error()};
+      if (res.error() == Error::KEY_NOT_FOUND) {
+        return false;
+      }
+      // on other errors - propagate them
+      return res.error();
+    }
+    state_ = std::move(res.value());
+    auto &current = std::get<SearchState>(state_).getCurrent();
+    // while there is a node in a trie with the given key, it contains no value,
+    // thus cannot be pointed at by the cursor
+    if (not current.value.has_value()) {
+      state_ = InvalidState{Error::KEY_NOT_FOUND};
       return false;
     }
-    last_visited_child_ = std::move(last_child_path);
+
     return true;
   }
 
   outcome::result<bool> PolkadotTrieCursorImpl::seekLast() {
-    NodePtr current = trie_.getRoot();
+    auto *current = trie_->getRoot().get();
     if (current == nullptr) {
-      current_ = nullptr;
+      state_ = UninitializedState{};
       return false;
     }
-    visited_root_ = true;  // root is always visited first
-    last_visited_child_.clear();
+    state_ = SearchState{*current};
+    auto &search_state = std::get<SearchState>(state_);
+
     // find the rightmost leaf
     while (current->getTrieType() != NodeType::Leaf) {
       auto type = current->getTrieType();
       if (type == NodeType::BranchEmptyValue
           or type == NodeType::BranchWithValue) {
-        auto branch = std::dynamic_pointer_cast<BranchNode>(current);
+        auto &branch = dynamic_cast<const BranchNode &>(*current);
         // find the rightmost child
-        for (int8_t i = branch->kMaxChildren - 1; i >= 0; i--) {
-          if (branch->children.at(i) != nullptr) {
-            OUTCOME_TRY(c, trie_.retrieveChild(branch, i));
-            last_visited_child_.emplace_back(branch, i);
-            current = c;
+        for (int8_t i = BranchNode::kMaxChildren - 1; i >= 0; i--) {
+          if (branch.children.at(i) != nullptr) {
+            SAFE_CALL(child, trie_->retrieveChild(branch, i))
+            SAFE_VOID_CALL(search_state.visitChild(i, *child))
+            current = &search_state.getCurrent();
+            break;
           }
         }
 
@@ -104,36 +124,42 @@ namespace kagome::storage::trie {
         return Error::INVALID_NODE_TYPE;
       }
     }
-    current_ = current;
     return true;
   }
 
   outcome::result<void> PolkadotTrieCursorImpl::seekLowerBoundInternal(
-      NodePtr current, gsl::span<const uint8_t> left_nibbles) {
-    auto [left_mismatch, current_mismatch] =
-        std::mismatch(left_nibbles.begin(),
-                      left_nibbles.end(),
-                      current->key_nibbles.begin(),
-                      current->key_nibbles.end());
-    // parts of every sequence within their common length (minimum of their
-    // lengths) are equal
-    bool part_equal = left_mismatch == left_nibbles.end()
-                      or current_mismatch == current->key_nibbles.end();
-    // if current choice is lexicographically less or equal to the left part
-    // of the sought key, we just take the closest node with value
-    bool less_or_eq =
-        (part_equal and left_mismatch == left_nibbles.end())
-        or (not part_equal and *left_mismatch < *current_mismatch);
-    if (less_or_eq) {
-      switch (current->getTrieType()) {
+      const TrieNode &current, gsl::span<const uint8_t> sought_nibbles) {
+    BOOST_ASSERT(isValid());
+    auto [sought_nibbles_mismatch, current_mismatch] =
+        std::mismatch(sought_nibbles.begin(),
+                      sought_nibbles.end(),
+                      current.key_nibbles.begin(),
+                      current.key_nibbles.end());
+    // one nibble sequence is a prefix of the other
+    bool sought_is_prefix = sought_nibbles_mismatch == sought_nibbles.end();
+    bool current_is_prefix = current_mismatch == current.key_nibbles.end();
+
+    // if sought nibbles are lexicographically less or equal to the current
+    // nibbles, we just take the closest node with value
+    bool sought_less_or_eq =
+        sought_is_prefix
+        or (not current_is_prefix
+            and *sought_nibbles_mismatch < *current_mismatch);
+    SL_TRACE(log_,
+             "The sought key '{}' is {} than current '{}'",
+             common::hex_lower(sought_nibbles),
+             sought_less_or_eq ? "less or eq" : "greater",
+             common::hex_lower(current.key_nibbles));
+    if (sought_less_or_eq) {
+      switch (current.getTrieType()) {
         case NodeType::BranchEmptyValue:
         case NodeType::BranchWithValue: {
-          OUTCOME_TRY(seekNodeWithValue(current));
-          current_ = current;
+          SL_TRACE(log_, "We're in a branch and search next node in subtree");
+          SAFE_VOID_CALL(nextNodeWithValueInSubTree(current))
           return outcome::success();
         }
         case NodeType::Leaf:
-          current_ = current;
+          SL_TRACE(log_, "We're in a leaf {} and done", key().value());
           return outcome::success();
         default:
           return Error::INVALID_NODE_TYPE;
@@ -144,19 +170,27 @@ namespace kagome::storage::trie {
     // that starts with a nibble that is greater of equal to the first
     // nibble of the left part (if there is no such child, proceed to the
     // next case)
-    bool longer = (part_equal and left_mismatch != left_nibbles.end()
-                   and current_mismatch == current->key_nibbles.end());
-    if (longer) {
-      switch (current->getTrieType()) {
+    bool sought_is_longer = current_is_prefix and not sought_is_prefix;
+    if (sought_is_longer) {
+      switch (current.getTrieType()) {
         case NodeType::BranchEmptyValue:
         case NodeType::BranchWithValue: {
-          auto length = left_mismatch - left_nibbles.begin();
-          auto branch = std::dynamic_pointer_cast<BranchNode>(current);
-          OUTCOME_TRY(child, trie_.retrieveChild(branch, left_nibbles[length]));
-          last_visited_child_.emplace_back(branch, left_nibbles[length]);
+          auto mismatch_pos = sought_nibbles_mismatch - sought_nibbles.begin();
+          auto &branch = dynamic_cast<const BranchNode &>(current);
+          SAFE_CALL(child,
+                    visitChildWithMinIdx(branch, sought_nibbles[mismatch_pos]))
           if (child) {
-            return seekLowerBoundInternal(child,
-                                          left_nibbles.subspan(length + 1));
+            uint8_t child_idx = std::get<SearchState>(state_).getPath().back().child_idx;
+            SL_TRACE(
+                log_,
+                "We're in a branch and proceed to child {:x}",
+                (int)child_idx);
+            if (child_idx > sought_nibbles[mismatch_pos]) {
+              return nextNodeWithValueInSubTree(*child);
+            } else {
+              return seekLowerBoundInternal(
+                  *child, sought_nibbles.subspan(mismatch_pos + 1));
+            }
           }
           break;  // go to case3
         }
@@ -167,153 +201,215 @@ namespace kagome::storage::trie {
           return Error::INVALID_NODE_TYPE;
       }
     }
-    // if the left part of the key is longer than the current of
+    // if the left part of the key is longer than the current or
     // lexicographically greater than the current, we must return to its
     // parent and find a child greater than the current one
-    bool longer_or_bigger =
-        longer or (not part_equal and *left_mismatch > *current_mismatch);
-    if (longer_or_bigger) {
-      OUTCOME_TRY(ok, seekNodeWithValueBothDirections());
-      if (not ok) {
-        current_ = nullptr;
+    bool longer_or_greater =
+        sought_is_longer
+        or (not(sought_is_prefix or current_is_prefix)
+            and *sought_nibbles_mismatch > *current_mismatch);
+    if (longer_or_greater) {
+      SL_TRACE(log_, "We're looking for next node with value in outer tree");
+      SAFE_CALL(found, nextNodeWithValueInOuterTree())
+      if (!found) {
+        state_ = ReachedEndState{};
       }
+      SL_TRACE(log_, "Done at {}", key().value());
       return outcome::success();
     }
     UNREACHABLE
   }
 
   outcome::result<void> PolkadotTrieCursorImpl::seekLowerBound(
-      const common::Buffer &key) {
-    if (trie_.getRoot() == nullptr) {
-      current_ = nullptr;
+      const common::BufferView &key) {
+    if (trie_->getRoot() == nullptr) {
+      SL_TRACE(log_, "Seek lower bound for {} -> null root", key);
+      state_ = UninitializedState{};
       return outcome::success();
     }
-    visited_root_ = true;
-    last_visited_child_.clear();
-    auto nibbles = PolkadotCodec::keyToNibbles(key);
-    OUTCOME_TRY(seekLowerBoundInternal(trie_.getRoot(), nibbles));
+    state_ = SearchState{*trie_->getRoot()};
+    auto nibbles = KeyNibbles::fromByteBuffer(key);
+    SAFE_VOID_CALL(seekLowerBoundInternal(*trie_->getRoot(), nibbles))
     return outcome::success();
   }
 
-  outcome::result<bool>
-  PolkadotTrieCursorImpl::seekNodeWithValueBothDirections() {
-    while (not last_visited_child_.empty()) {
-      auto [parent, idx] = last_visited_child_.back();
-      last_visited_child_.pop_back();
-      auto parent_node = std::dynamic_pointer_cast<PolkadotNode>(parent);
-      OUTCOME_TRY(ok, setChildWithMinIdx(parent_node, idx + 1));
-      if (ok) {
-        OUTCOME_TRY(seekNodeWithValue(parent_node));
-        current_ = parent_node;
+  outcome::result<bool> PolkadotTrieCursorImpl::nextNodeWithValueInOuterTree() {
+    BOOST_ASSERT(std::holds_alternative<SearchState>(state_));
+    auto &search_state = std::get<SearchState>(state_);
+
+    const auto &search_path = search_state.getPath();
+    while (not search_path.empty()) {
+      auto [parent, idx] = search_path.back();
+      BOOST_VERIFY_MSG(search_state.leaveChild(),
+                       "Guaranteed by the loop condition");
+      SAFE_CALL(child, visitChildWithMinIdx(parent, idx + 1))
+      if (child != nullptr) {
+        SL_TRACE(log_,
+                 "A greater child exists (idx {}), proceed to it",
+                 search_path.back().child_idx);
+        SAFE_VOID_CALL(nextNodeWithValueInSubTree(*child))
         return true;
       }
     }
     return false;
   }
 
-  outcome::result<void> PolkadotTrieCursorImpl::seekNodeWithValue(
-      NodePtr &parent) {
-    if (parent->value.has_value()) {
-      return outcome::success();
+  outcome::result<void> PolkadotTrieCursorImpl::nextNodeWithValueInSubTree(
+      const TrieNode &parent) {
+    auto *current = &parent;
+    while (not current->value.has_value()) {
+      if (not current->isBranch()) {
+        return Error::INVALID_NODE_TYPE;
+      }
+      SAFE_CALL(child, visitChildWithMinIdx(*current))
+      SL_TRACE(log_,
+               "Proceed to child {:x}",
+               (int)std::get<SearchState>(state_).getPath().back().child_idx);
+      BOOST_ASSERT_MSG(child != nullptr, "Branch node must contain a leaf");
+      current = child;
     }
-    if (not parent->isBranch()) {
-      return Error::INVALID_NODE_TYPE;
-    }
-    OUTCOME_TRY(setChildWithMinIdx(parent));
-    OUTCOME_TRY(seekNodeWithValue(parent));
     return outcome::success();
   }
 
   outcome::result<void> PolkadotTrieCursorImpl::seekUpperBound(
-      const common::Buffer &key) {
-    OUTCOME_TRY(seekLowerBound(key));
-    if (this->key().has_value() and this->key() == key) {
-      OUTCOME_TRY(next());
+      const common::BufferView &sought_key) {
+    SL_TRACE(log_, "Seek upper bound for {}", sought_key);
+    SAFE_VOID_CALL(seekLowerBound(sought_key))
+    if (auto key = this->key(); key.has_value() && key.value() == sought_key) {
+      SAFE_VOID_CALL(next())
     }
     return outcome::success();
   }
 
-  outcome::result<bool> PolkadotTrieCursorImpl::setChildWithMinIdx(
-      NodePtr &parent, uint8_t min_idx) {
-    auto branch = std::dynamic_pointer_cast<BranchNode>(parent);
+  outcome::result<const TrieNode *>
+  PolkadotTrieCursorImpl::visitChildWithMinIdx(const TrieNode &parent,
+                                               uint8_t min_idx) {
+    BOOST_ASSERT(std::holds_alternative<SearchState>(state_));
+    auto &search_state = std::get<SearchState>(state_);
     for (uint8_t i = min_idx; i < BranchNode::kMaxChildren; i++) {
-      if (branch->children.at(i)) {
-        OUTCOME_TRY(child, trie_.retrieveChild(branch, i));
-        last_visited_child_.emplace_back(branch, i);
-        parent = child;
-        return true;
+      auto &branch = dynamic_cast<const BranchNode &>(parent);
+      if (branch.children.at(i)) {
+        OUTCOME_TRY(child, trie_->retrieveChild(branch, i));
+        BOOST_ASSERT(child != nullptr);
+        OUTCOME_TRY(search_state.visitChild(i, *child));
+        return child.get();
       }
     }
-    return false;
+    return nullptr;
   }
 
   bool PolkadotTrieCursorImpl::isValid() const {
-    return current_ != nullptr and current_->value.has_value();
+    return std::holds_alternative<SearchState>(state_);
   }
 
   outcome::result<void> PolkadotTrieCursorImpl::next() {
-    if (not visited_root_) {
-      current_ = trie_.getRoot();
+    if (std::holds_alternative<InvalidState>(state_)) {
+      return Error::INVALID_CURSOR_ACCESS;
     }
-    // if we are in invalid position, next() just doesn't do anything
-    if (current_ == nullptr) {
+
+    if (trie_->getRoot() == nullptr) {
       return outcome::success();
     }
 
-    if (not visited_root_ and trie_.getRoot()->value.has_value()) {
-      visited_root_ = true;
+    if (key().has_value()) {
+      SL_TRACE(log_, "Searching next key, current is {}", key().value());
+    } else {
+      SL_TRACE(log_, "Searching next key, no current key");
+    }
+
+    if (std::holds_alternative<UninitializedState>(state_)) {
+      state_ = SearchState{*trie_->getRoot()};
+      if (trie_->getRoot()->value) {
+        return outcome::success();
+      }
+    }
+    BOOST_ASSERT(std::holds_alternative<SearchState>(state_));
+    auto &search_state = std::get<SearchState>(state_);
+
+    // if we're in a branch, means nodes in its subtree are not visited yet
+    if (search_state.getCurrent().isBranch()) {
+      SL_TRACE(log_, "We're in a branch and looking for next value in subtree");
+      SAFE_CALL(child, visitChildWithMinIdx(search_state.getCurrent()))
+      BOOST_ASSERT_MSG(child != nullptr,
+                       "Since parent is branch, there must be a child");
+      SL_TRACE(log_, "Go to child {}", search_state.getPath().back().child_idx);
+      SAFE_VOID_CALL(nextNodeWithValueInSubTree(*child))
+      SL_TRACE(log_, "Found {}", key().value());
       return outcome::success();
     }
-    visited_root_ = true;
-    if (current_->isBranch()) {
-      OUTCOME_TRY(setChildWithMinIdx(current_));
-      OUTCOME_TRY(seekNodeWithValue(current_));
-      return outcome::success();
-    }
-    OUTCOME_TRY(ok, seekNodeWithValueBothDirections());
-    if (not ok) {
-      current_ = nullptr;
+    // we're in a leaf, should go up the tree and search there
+    SL_TRACE(log_, "We're in a leaf and looking for next value in outer tree");
+    SAFE_CALL(found, nextNodeWithValueInOuterTree())
+    if (not found) {
+      SL_TRACE(log_, "Not found anything");
+      state_ = ReachedEndState{};
+    } else {
+      SL_TRACE(log_, "Found {}", key().value());
     }
     return outcome::success();
   }
 
   common::Buffer PolkadotTrieCursorImpl::collectKey() const {
+    BOOST_ASSERT(std::holds_alternative<SearchState>(state_));
+    const auto &search_state = std::get<SearchState>(state_);
     KeyNibbles key_nibbles;
-    for (const auto &node_idx : last_visited_child_) {
+    for (const auto &node_idx : search_state.getPath()) {
       const auto &node = node_idx.parent;
       auto idx = node_idx.child_idx;
-      std::copy(node->key_nibbles.begin(),
-                node->key_nibbles.end(),
+      std::copy(node.key_nibbles.begin(),
+                node.key_nibbles.end(),
                 std::back_inserter<Buffer>(key_nibbles));
       key_nibbles.putUint8(idx);
     }
-    key_nibbles.put(current_->key_nibbles);
-    using Codec = kagome::storage::trie::PolkadotCodec;
-    return Codec::nibblesToKey(key_nibbles);
+    key_nibbles.put(search_state.getCurrent().key_nibbles);
+    return key_nibbles.toByteBuffer();
   }
 
   std::optional<common::Buffer> PolkadotTrieCursorImpl::key() const {
-    if (current_ != nullptr) {
+    if (const auto *search_state = std::get_if<SearchState>(&state_);
+        search_state != nullptr) {
       return collectKey();
     }
     return std::nullopt;
   }
 
-  std::optional<common::Buffer> PolkadotTrieCursorImpl::value() const {
-    if (current_ != nullptr) {
-      return current_->value.value();
+  std::optional<common::BufferConstRef> PolkadotTrieCursorImpl::value() const {
+    if (const auto *search_state = std::get_if<SearchState>(&state_);
+        search_state != nullptr) {
+      const auto &value_opt = search_state->getCurrent().value;
+      if (value_opt) {
+        return std::make_optional<common::BufferConstRef>(
+            std::cref(value_opt.value()));
+      }
+      return std::nullopt;
     }
     return std::nullopt;
   }
 
-  auto PolkadotTrieCursorImpl::constructLastVisitedChildPath(
-      const common::Buffer &key) -> outcome::result<std::list<TriePathEntry>> {
-    OUTCOME_TRY(path, trie_.getPath(trie_.getRoot(), codec_.keyToNibbles(key)));
-    std::list<TriePathEntry> last_visited_child;
-    for (auto &&[branch, idx] : path) {
-      last_visited_child.emplace_back(branch, idx);
+  auto PolkadotTrieCursorImpl::makeSearchStateAt(const common::BufferView &key)
+      -> outcome::result<SearchState> {
+    if (trie_->getRoot() == nullptr) {
+      return Error::KEY_NOT_FOUND;
     }
-    return last_visited_child;
+    SearchState search_state{*trie_->getRoot()};
+
+    auto add_visited_child = [&search_state, this](
+                                 auto &branch,
+                                 auto idx) mutable -> outcome::result<void> {
+      OUTCOME_TRY(child, trie_->retrieveChild(branch, idx));
+      BOOST_VERIFY(  // NOLINT(bugprone-lambda-function-name)
+          search_state.visitChild(idx, *child));
+      return outcome::success();
+    };
+    auto res = trie_->forNodeInPath(
+        trie_->getRoot(), KeyNibbles::fromByteBuffer(key), add_visited_child);
+    if (res.has_error()) {
+      if (res.error() == TrieError::NO_VALUE) {
+        return Error::KEY_NOT_FOUND;
+      }
+      return res.error();
+    }
+    return search_state;
   }
 
 }  // namespace kagome::storage::trie

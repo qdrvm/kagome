@@ -112,7 +112,7 @@ class BlockExecutorTest : public testing::Test {
  * Otherwise, a situation may occur where digests think that the current block
  * is not finalized and execute the wrong logic.
  */
-TEST_F(BlockExecutorTest, DigestsFollowJustification) {
+TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   AuthorityList authorities{Authority{"auth0"_hash256, 1},
                             Authority{"auth1"_hash256, 1}};
   kagome::primitives::BlockHeader header{
@@ -121,7 +121,8 @@ TEST_F(BlockExecutorTest, DigestsFollowJustification) {
       .digest = kagome::primitives::Digest{
           kagome::primitives::PreRuntime{
               kagome::primitives::kBabeEngineId,
-              Buffer{scale::encode(BabeBlockHeader{.authority_index = 1})
+              Buffer{scale::encode(BabeBlockHeader{.slot_number = 0,
+                                                   .authority_index = 1})
                          .value()}},
           kagome::primitives::Consensus{
               kagome::primitives::ScheduledChange{authorities, 0}},
@@ -174,12 +175,12 @@ TEST_F(BlockExecutorTest, DigestsFollowJustification) {
 
   {
     testing::InSequence s;
+    EXPECT_CALL(*authority_update_observer_,
+                onConsensus(BlockInfo{42, "some_hash"_hash256}, _))
+        .WillOnce(testing::Return(outcome::success()));
     EXPECT_CALL(
         *grandpa_environment_,
         applyJustification(BlockInfo{42, "some_hash"_hash256}, justification))
-        .WillOnce(testing::Return(outcome::success()));
-    EXPECT_CALL(*authority_update_observer_,
-                onConsensus(BlockInfo{42, "some_hash"_hash256}, _))
         .WillOnce(testing::Return(outcome::success()));
   }
   EXPECT_CALL(

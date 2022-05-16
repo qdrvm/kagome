@@ -98,6 +98,15 @@ namespace kagome::application {
     uint16_t p2pPort() const override {
       return p2p_port_;
     }
+    uint32_t outPeers() const override {
+      return out_peers_;
+    }
+    uint32_t inPeers() const override {
+      return in_peers_;
+    }
+    uint32_t inPeersLght() const override {
+      return in_peers_light_;
+    }
     const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const override {
       return rpc_http_endpoint_;
     }
@@ -128,6 +137,13 @@ namespace kagome::application {
     }
     const std::string &nodeVersion() const override {
       return node_version_;
+    }
+    bool isTelemetryEnabled() const override {
+      return is_telemetry_enabled_;
+    }
+    const std::vector<telemetry::TelemetryEndpoint> &telemetryEndpoints()
+        const override {
+      return telemetry_endpoints_;
     }
     RuntimeExecutionMethod runtimeExecMethod() const override {
       return runtime_exec_method_;
@@ -178,6 +194,9 @@ namespace kagome::application {
     bool load_ma(const rapidjson::Value &val,
                  char const *name,
                  std::vector<libp2p::multi::Multiaddress> &target);
+    bool load_telemetry_uris(const rapidjson::Value &val,
+                             char const *name,
+                             std::vector<telemetry::TelemetryEndpoint> &target);
     bool load_str(const rapidjson::Value &val,
                   char const *name,
                   std::string &target);
@@ -215,6 +234,16 @@ namespace kagome::application {
      */
     bool testListenAddresses() const;
 
+    /**
+     * Parses telemetry endpoint URI and verbosity level from a single string
+     * record of format: "<endpoint URI> <verbosity: 0-9>"
+     * @param record - input string
+     * @return - constructed instance of kagome::telemetry::TelemetryEndpoint or
+     * std::nullopt in case of error
+     */
+    std::optional<telemetry::TelemetryEndpoint> parseTelemetryEndpoint(
+        const std::string &record) const;
+
     FilePtr open_file(const std::string &filepath);
 
     log::Logger logger_;
@@ -225,6 +254,8 @@ namespace kagome::application {
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
     std::vector<libp2p::multi::Multiaddress> public_addresses_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;
+    std::vector<telemetry::TelemetryEndpoint> telemetry_endpoints_;
+    bool is_telemetry_enabled_;
     uint16_t p2p_port_;
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
@@ -239,6 +270,9 @@ namespace kagome::application {
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
     uint16_t openmetrics_http_port_;
+    uint32_t out_peers_;
+    uint32_t in_peers_;
+    uint32_t in_peers_light_;
     network::PeeringConfig peering_config_;
     bool dev_mode_;
     std::string node_name_;
