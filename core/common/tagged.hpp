@@ -46,7 +46,7 @@ namespace kagome {
             typename Tag,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Tagged<T, Tag> &tagged) {
-    return s << (const T &)tagged;
+    return s << static_cast<const T &>(tagged);
   }
 
   template <class Stream,
@@ -54,7 +54,7 @@ namespace kagome {
             typename Tag,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Tagged<T, Tag> &tagged) {
-    return s >> (T &)tagged;
+    return s >> static_cast<T &>(tagged);
   }
 
 }  // namespace kagome

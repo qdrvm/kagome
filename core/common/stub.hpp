@@ -26,7 +26,7 @@ namespace kagome {
   [[noreturn]] scale::ScaleEncoderStream &operator<<(
       scale::ScaleEncoderStream &s, const Stub<Tag> &data) {
     throw std::runtime_error(fmt::format(
-        "Can not encode: encoding object is stabbed type tagged by {}",
+        "Can not encode: encoding object is stubbed type tagged by {}",
         typeid(Tag).name()));
   }
 
@@ -34,7 +34,7 @@ namespace kagome {
   [[noreturn]] scale::ScaleDecoderStream &operator>>(
       scale::ScaleDecoderStream &s, Stub<Tag> &data) {
     throw std::runtime_error(fmt::format(
-        "Can not decode: decoding object is stabbed type tagged by {}",
+        "Can not decode: decoding object is stubbed type tagged by {}",
         typeid(Tag).name()));
   }
 
