@@ -14,6 +14,7 @@
 namespace kagome::runtime {
 
   class ModuleInstance;
+  class BorrowedRuntimeInstance;
 
   /**
    * A WebAssembly code module.
@@ -27,6 +28,7 @@ namespace kagome::runtime {
 
     virtual outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const = 0;
+    virtual outcome::result<void> post_instantiate(std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) = 0;
   };
 
   /**

@@ -36,6 +36,7 @@ namespace kagome::runtime::wavm {
 
     outcome::result<std::shared_ptr<kagome::runtime::ModuleInstance>>
     instantiate() const override;
+    outcome::result<void> post_instantiate(std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) override;
 
    private:
     ModuleImpl(std::shared_ptr<CompartmentWrapper> compartment,

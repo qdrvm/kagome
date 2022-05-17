@@ -19,7 +19,8 @@ namespace kagome::runtime {
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
       std::shared_ptr<const ModuleFactory> module_factory,
       std::shared_ptr<SingleModuleCache> last_compiled_module)
-      : modules_{MODULES_CACHE_SIZE},
+      : modules_{std::make_shared<ModuleCache>(MODULES_CACHE_SIZE)},
+        runtime_instances_pool_{modules_},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
         module_factory_{std::move(module_factory)},
         last_compiled_module_{std::move(last_compiled_module)},
@@ -38,7 +39,44 @@ namespace kagome::runtime {
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
     KAGOME_PROFILE_END(code_retrieval)
 
-    auto tid = std::this_thread::get_id();
+    KAGOME_PROFILE_START(module_retrieval)
+    std::shared_ptr<Module> module;
+    {
+      std::lock_guard guard{runtime_instances_pool_.mt_};
+      // Add compiled module if any
+      if (auto module = last_compiled_module_->try_extract();
+          module.has_value()) {
+        BOOST_VERIFY(modules_->put(state, module.value()));
+      }
+
+      // Compile new module if required
+      if (auto opt_module = modules_->get(state); !opt_module.has_value()) {
+        SL_DEBUG(
+            logger_, "Runtime module cache miss for state {}", state.toHex());
+        auto code = code_provider->getCodeAt(state);
+        if (not code.has_value()) {
+          code = code_provider->getCodeAt(header.state_root);
+        }
+        if (not code.has_value()) {
+          return code.as_failure();
+        }
+        OUTCOME_TRY(new_module, module_factory_->make(code.value()));
+        module = std::move(new_module);
+        BOOST_VERIFY(modules_->put(state, module));
+      } else {
+        module = opt_module.value();
+      }
+    }
+
+    // Try acquire instance (instantiate if needed)
+    OUTCOME_TRY(borrowed_instance, runtime_instances_pool_.try_acquire(state));
+    auto instance = borrowed_instance->instance_;
+    module->post_instantiate(std::move(borrowed_instance));
+    KAGOME_PROFILE_END(module_retrieval)
+
+    return instance;
+
+/*
     auto thread_local_cache = instances_cache_.end();
     {
       std::unique_lock lock{instances_mutex_};
@@ -116,7 +154,43 @@ namespace kagome::runtime {
     BOOST_VERIFY(thread_local_cache->second.put(state, shared_instance));
 
     KAGOME_PROFILE_END(module_instantiation)
-    return shared_instance;
+    return shared_instance;*/
   }
 
+  outcome::result<std::shared_ptr<BorrowedRuntimeInstance>> RuntimeInstancesPool::try_acquire(
+      const RuntimeInstancesPool::RootHash &state) {
+    std::scoped_lock guard{mt_};
+    auto tid = soralog::util::getThreadNumber();
+    auto& pool = pools_[state];
+
+    // if pool is empty, instantiate, mark as used and return
+    if (pool.find(0) == pool.end()) {
+      if (auto opt_module = modules_->get(state); opt_module.has_value()) {
+        auto module = opt_module.value();
+        OUTCOME_TRY(instance, module.get()->instantiate());
+        pool.emplace(tid, instance);
+        fmt::print("created tid {} in pool size {}\n", tid, pool.size());
+        return std::make_shared<BorrowedRuntimeInstance>(std::move(instance), [&](){release(state);});
+      }
+    }
+
+    // fetch unused, mark and return
+    auto node = pool.extract(0);
+    node.key() = tid;
+    auto instance = node.mapped();
+    pool.insert(std::move(node));
+    fmt::print("acquired tid {} in pool size {}\n", tid, pool.size());
+    return std::make_shared<BorrowedRuntimeInstance>(std::move(instance), [&](){release(state);});
+  }
+
+  void RuntimeInstancesPool::release(RuntimeInstancesPool::RootHash state) {
+    std::lock_guard guard{mt_};
+    auto tid = soralog::util::getThreadNumber();
+    auto& pool = pools_[state];
+    fmt::print("released tid {} in pool size {}\n", tid, pool.size());
+    // if used instance found, release
+    auto node = pool.extract(tid);
+    node.key() = 0;
+    pool.insert(std::move(node));
+  }
 }  // namespace kagome::runtime

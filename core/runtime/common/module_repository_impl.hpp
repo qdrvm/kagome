@@ -89,6 +89,23 @@ namespace kagome::runtime {
     std::vector<CacheEntry> cache_;
   };
 
+  class RuntimeInstancesPool final {
+    using RootHash = storage::trie::RootHash;
+    using ModuleCache =
+        SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
+   public:
+    RuntimeInstancesPool(std::shared_ptr<ModuleCache> modules) : modules_{std::move(modules)}{}
+
+    outcome::result<std::shared_ptr<BorrowedRuntimeInstance>> try_acquire(const RootHash& state);
+
+    void release(RootHash state);
+
+        std::mutex mt_;
+   private:
+    std::shared_ptr<ModuleCache> modules_;
+    std::map<RootHash, std::multimap<size_t, std::shared_ptr<ModuleInstance>>> pools_;
+  };
+
   class ModuleRepositoryImpl final : public ModuleRepository {
    public:
     ModuleRepositoryImpl(
@@ -106,15 +123,11 @@ namespace kagome::runtime {
     static constexpr size_t INSTANCES_CACHE_SIZE = 2;
     using ModuleCache =
         SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
-    using InstanceCache =
-        SmallLruCache<storage::trie::RootHash, std::shared_ptr<ModuleInstance>>;
 
-    ModuleCache modules_;
+    std::shared_ptr<ModuleCache> modules_;
     std::mutex modules_mutex_;
 
-    std::mutex instances_mutex_;
-    std::unordered_map<std::thread::id, InstanceCache> instances_cache_;
-
+    RuntimeInstancesPool runtime_instances_pool_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;

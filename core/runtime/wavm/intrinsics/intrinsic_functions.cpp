@@ -6,10 +6,29 @@
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
+#include "runtime/module_repository.hpp"
 
 namespace kagome::runtime::wavm {
 
   log::Logger logger;
+
+  static thread_local std::stack<std::shared_ptr<BorrowedRuntimeInstance>>
+      global_instances;
+
+  void pushBorrowedInstance(
+      std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) {
+    global_instances.emplace(std::move(borrowed_runtime_instance));
+  }
+
+  void popBorrowedInstance(
+      std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) {
+    global_instances.pop();
+  }
+
+  std::shared_ptr<BorrowedRuntimeInstance> peekBorrowedInstance() {
+    BOOST_ASSERT(!global_instances.empty());
+    return global_instances.top();
+  }
 
   static thread_local std::stack<std::shared_ptr<host_api::HostApi>>
       global_host_apis;
@@ -21,11 +40,13 @@ namespace kagome::runtime::wavm {
   void popHostApi() {
     BOOST_ASSERT(!global_host_apis.empty());
     global_host_apis.pop();
+    global_instances.pop();
   }
 
   std::shared_ptr<host_api::HostApi> peekHostApi() {
     BOOST_ASSERT(!global_host_apis.empty());
-    return global_host_apis.top();
+    // return global_host_apis.top();
+    return peekBorrowedInstance()->getHostApi();
   }
 
 #undef WAVM_DEFINE_INTRINSIC_FUNCTION

@@ -14,6 +14,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_instance.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -94,6 +95,11 @@ namespace kagome::runtime::wavm {
         std::move(env), internal_instance, compartment_);
 
     return instance;
+  }
+  outcome::result<void> ModuleImpl::post_instantiate(
+      std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) {
+    pushBorrowedInstance(borrowed_runtime_instance);
+    return outcome::success();
   }
 
   WAVM::Runtime::ImportBindings ModuleImpl::link(

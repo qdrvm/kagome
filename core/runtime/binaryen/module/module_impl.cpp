@@ -80,5 +80,9 @@ namespace kagome::runtime::binaryen {
     return std::make_shared<ModuleInstanceImpl>(
         std::move(env.env), module_, env.rei);
   }
+  outcome::result<void> ModuleImpl::post_instantiate(
+      std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) {
+    return outcome::success();
+  }
 
 }  // namespace kagome::runtime::binaryen

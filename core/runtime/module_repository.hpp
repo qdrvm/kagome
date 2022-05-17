@@ -12,6 +12,8 @@
 
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
+#include "host_api/host_api.hpp"
+#include "module_instance.hpp"
 
 namespace kagome::runtime {
   class RuntimeCodeProvider;
@@ -22,6 +24,34 @@ namespace kagome::runtime {
   class ModuleInstance;
   class Module;
   class Memory;
+
+  class BorrowedRuntimeInstance {
+   public:
+    BorrowedRuntimeInstance() = default;
+    BorrowedRuntimeInstance(std::shared_ptr<ModuleInstance> instance, std::function<void()> cache_release=[](){})
+        : instance_{std::move(instance)}
+          , cache_release_{std::move(cache_release)} {}
+    ~BorrowedRuntimeInstance() {
+      cache_release_();
+    }
+    bool operator==(std::nullptr_t) {
+      return instance_ == nullptr;
+    }
+    ModuleInstance& operator*() {
+      return *instance_;
+    }
+    ModuleInstance* operator->() {
+      return instance_.get();
+    }
+
+    std::shared_ptr<host_api::HostApi> getHostApi(){
+      return instance_->getEnvironment().host_api;
+    }
+
+        std::shared_ptr<ModuleInstance> instance_;
+   private:
+    std::function<void()> cache_release_;
+  };
 
   /**
    * Repository for runtime modules
