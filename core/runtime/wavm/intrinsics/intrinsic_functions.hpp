@@ -16,7 +16,7 @@
 #include "host_api/host_api.hpp"
 #include "log/logger.hpp"
 
-namespace  kagome::runtime{
+namespace kagome::runtime {
   class BorrowedRuntimeInstance;
 }
 
@@ -24,18 +24,14 @@ namespace kagome::runtime::wavm {
 
   class IntrinsicModule;
 
-  void pushHostApi(std::shared_ptr<host_api::HostApi>);
-  void popHostApi();
   std::shared_ptr<host_api::HostApi> peekHostApi();
 
   void pushBorrowedInstance(
       std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance);
-  void popBorrowedInstance();
   std::shared_ptr<BorrowedRuntimeInstance> peekBorrowedInstance();
 
   extern log::Logger logger;
 
   void registerHostApiMethods(IntrinsicModule &module);
-
 
 }  // namespace kagome::runtime::wavm

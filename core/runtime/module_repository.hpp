@@ -10,10 +10,10 @@
 
 #include <gsl/span>
 
-#include "outcome/outcome.hpp"
-#include "primitives/block_data.hpp"
 #include "host_api/host_api.hpp"
 #include "module_instance.hpp"
+#include "outcome/outcome.hpp"
+#include "primitives/block_data.hpp"
 
 namespace kagome::runtime {
 
@@ -25,23 +25,27 @@ namespace kagome::runtime {
   class BorrowedRuntimeInstance {
    public:
     BorrowedRuntimeInstance() = default;
-    BorrowedRuntimeInstance(std::shared_ptr<ModuleInstance> instance, std::function<void()> cache_release=[](){})
-        : instance_{std::move(instance)}
-          , cache_release_{std::move(cache_release)} {}
+    BorrowedRuntimeInstance(std::shared_ptr<ModuleInstance> instance,
+                            std::function<void()> cache_release = {})
+        : instance_{std::move(instance)},
+          cache_release_{std::move(cache_release)} {}
     ~BorrowedRuntimeInstance() {
-      cache_release_();
+      if (cache_release_) {
+        cache_release_();
+      }
     }
     bool operator==(std::nullptr_t) {
       return instance_ == nullptr;
     }
-    ModuleInstance* operator->() {
+    ModuleInstance *operator->() {
       return instance_.get();
     }
     void reset_deleter() {
-        cache_release_ = [](){};
+      cache_release_ = {};
     }
 
-        std::shared_ptr<ModuleInstance> instance_;
+    std::shared_ptr<ModuleInstance> instance_;
+
    private:
     std::function<void()> cache_release_;
   };

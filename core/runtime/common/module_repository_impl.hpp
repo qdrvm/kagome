@@ -91,7 +91,8 @@ namespace kagome::runtime {
 
   class RuntimeInstancesPool final {
     using RootHash = storage::trie::RootHash;
-    using ModuleInstancePool = std::multimap<size_t, std::shared_ptr<ModuleInstance>>;
+    using ModuleInstancePool =
+        std::multimap<size_t, std::shared_ptr<ModuleInstance>>;
 
    public:
     using ModuleCache =
