@@ -46,7 +46,7 @@ namespace kagome::host_api {
     return worker_opt.value();
   }
 
-  runtime::WasmI8 OffchainExtension::ext_offchain_is_validator_version_1() {
+  runtime::WasmI32 OffchainExtension::ext_offchain_is_validator_version_1() {
     auto worker = getWorker();
     bool isValidator = worker->isValidator();
     return isValidator ? 1 : 0;
@@ -151,7 +151,7 @@ namespace kagome::host_api {
     worker->localStorageClear(storage_type, key_buffer);
   }
 
-  runtime::WasmI8
+  runtime::WasmI32
   OffchainExtension::ext_offchain_local_storage_compare_and_set_version_1(
       runtime::WasmI32 kind,
       runtime::WasmSpan key,
