@@ -13,7 +13,7 @@
 #include "log/logger.hpp"
 
 namespace kagome::offchain {
-  using soralog::util::ThreadNumber;
+  using kagome::primitives::ThreadNumber;
 
   class OffchainWorkerPoolImpl final : public OffchainWorkerPool {
    public:

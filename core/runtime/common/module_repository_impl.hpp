@@ -15,7 +15,7 @@
 #include "runtime/instance_environment.hpp"
 
 namespace kagome::runtime {
-  using soralog::util::ThreadNumber;
+  using kagome::primitives::ThreadNumber;
 
   class RuntimeUpgradeTracker;
   class ModuleFactory;

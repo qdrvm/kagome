@@ -14,6 +14,7 @@
 #include "runtime/runtime_upgrade_tracker.hpp"
 
 namespace kagome::runtime {
+  using kagome::primitives::ThreadNumber;
   using soralog::util::getThreadNumber;
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(

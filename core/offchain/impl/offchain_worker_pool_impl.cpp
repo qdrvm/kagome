@@ -8,7 +8,6 @@
 namespace kagome::offchain {
 
   using soralog::util::getThreadNumber;
-  using soralog::util::ThreadNumber;
 
   OffchainWorkerPoolImpl::OffchainWorkerPoolImpl()
       : log_(log::createLogger("OffchainWorkerPool", "offchain")) {

@@ -17,6 +17,7 @@
 namespace kagome::primitives {
   using BlockNumber = uint32_t;
   using BlockHash = common::Hash256;
+  using ThreadNumber = size_t;
 
   namespace detail {
     // base data structure for the types describing block information
