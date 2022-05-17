@@ -29,10 +29,7 @@ namespace kagome::runtime {
                 (),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<void>,
-                borrow,
-                (std::function<void()>),
-                (override));
+    MOCK_METHOD(void, borrow, (std::function<void()>), (override));
 
     MOCK_METHOD(outcome::result<void>, resetEnvironment, (), (override));
   };

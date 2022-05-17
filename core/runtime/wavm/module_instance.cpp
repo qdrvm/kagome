@@ -140,11 +140,11 @@ namespace kagome::runtime::wavm {
     return outcome::success();
   }
 
-  outcome::result<void> ModuleInstance::borrow(std::function<void()> release) {
-    auto borrowed =
-        std::make_shared<BorrowedRuntimeInstance>(shared_from_this(), release);
-    pushBorrowedInstance(std::move(borrowed));
-    return outcome::success();
+  void ModuleInstance::borrow(
+      ModuleInstance::BorrowedInstance::PoolReleaseFunction release) {
+    auto borrowed = std::make_shared<ModuleInstance::BorrowedInstance>(
+        shared_from_this(), release);
+    pushBorrowedRuntimeInstance(std::move(borrowed));
   }
 
 }  // namespace kagome::runtime::wavm

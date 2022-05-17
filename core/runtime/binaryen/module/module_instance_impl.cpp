@@ -92,8 +92,7 @@ namespace kagome::runtime::binaryen {
     return outcome::success();
   }
 
-  outcome::result<void> ModuleInstanceImpl::borrow(std::function<void()>) {
-    return outcome::success();
-  }
+  void ModuleInstanceImpl::borrow(
+      ModuleInstance::BorrowedInstance::PoolReleaseFunction release) {}
 
 }  // namespace kagome::runtime::binaryen

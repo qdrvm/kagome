@@ -15,10 +15,9 @@
 
 #include "host_api/host_api.hpp"
 #include "log/logger.hpp"
+#include "runtime/module_instance.hpp"
 
-namespace kagome::runtime {
-  class BorrowedRuntimeInstance;
-}
+namespace kagome::runtime {}
 
 namespace kagome::runtime::wavm {
 
@@ -26,9 +25,11 @@ namespace kagome::runtime::wavm {
 
   std::shared_ptr<host_api::HostApi> peekHostApi();
 
-  void pushBorrowedInstance(
-      std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance);
-  std::shared_ptr<BorrowedRuntimeInstance> peekBorrowedInstance();
+  void pushBorrowedRuntimeInstance(
+      std::shared_ptr<runtime::ModuleInstance::BorrowedInstance>
+          borrowed_runtime_instance);
+  std::shared_ptr<runtime::ModuleInstance::BorrowedInstance>
+  peekBorrowedRuntimeInstance();
 
   extern log::Logger logger;
 

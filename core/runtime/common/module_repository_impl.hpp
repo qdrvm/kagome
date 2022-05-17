@@ -15,6 +15,7 @@
 #include "runtime/instance_environment.hpp"
 
 namespace kagome::runtime {
+  using soralog::util::ThreadNumber;
 
   class RuntimeUpgradeTracker;
   class ModuleFactory;
@@ -96,16 +97,44 @@ namespace kagome::runtime {
   class RuntimeInstancesPool final {
     using RootHash = storage::trie::RootHash;
     using ModuleInstancePool =
-        std::multimap<size_t, std::shared_ptr<ModuleInstance>>;
+        std::multimap<ThreadNumber, std::shared_ptr<ModuleInstance>>;
 
    public:
     using ModuleCache =
         SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
-    outcome::result<std::shared_ptr<ModuleInstance>> try_acquire(
+    /**
+     * @brief Attempt to aquire a ModuleInstance for state. If none available,
+     * instantiate. If already acquired by this thread, return the same ptr.
+     *
+     * @param state - runtime block, by its root hash
+     * @return pointer to aquired ModuleInstance if success. nullopt otherwise.
+     */
+    outcome::result<std::shared_ptr<ModuleInstance>> tryAcquire(
         const RootHash &state);
+    /**
+     * @brief Releases ModuleInstance (return it to pool)
+     *
+     * @param state - runtime block, by its root hash
+     */
     void release(const RootHash &state);
-    std::optional<std::shared_ptr<Module>> get_module(const RootHash &state);
-    bool put_module(const RootHash &state, std::shared_ptr<Module> module);
+
+    /**
+     * @brief Get the module for state from internal cache
+     *
+     * @param state - runtime block, by its root hash
+     * @return Module if any, nullopt otherwise
+     */
+    std::optional<std::shared_ptr<Module>> getModule(const RootHash &state);
+
+    /**
+     * @brief Puts new module into internal cache
+     *
+     * @param state - runtime block, by its root hash
+     * @param module - new module pointer
+     * @return true if successfully inserted
+     * @return false otherwise
+     */
+    bool putModule(const RootHash &state, std::shared_ptr<Module> module);
 
    private:
     std::mutex mt_;

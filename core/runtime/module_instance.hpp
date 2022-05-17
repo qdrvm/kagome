@@ -11,14 +11,12 @@
 #include <boost/variant.hpp>
 #include <optional>
 
-#include "module_repository.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
+#include "runtime/module_repository.hpp"
 #include "runtime/ptr_size.hpp"
 
 namespace kagome::runtime {
-
-  class BorrowedRuntimeInstance;
 
   static_assert(sizeof(float) == 4);
   static_assert(sizeof(double) == 8);
@@ -31,6 +29,36 @@ namespace kagome::runtime {
   class ModuleInstance {
    public:
     virtual ~ModuleInstance() = default;
+
+    /**
+     * @brief Wrapper type over sptr<ModuleInstance>. Allows to return instance
+     * back to the ModuleInstancePool upon destruction of
+     * BorrowedInstance.
+     */
+    class BorrowedInstance {
+     public:
+      using PoolReleaseFunction = std::function<void()>;
+
+      BorrowedInstance(std::shared_ptr<ModuleInstance> instance,
+                       std::function<void()> cache_release = {})
+          : instance_{std::move(instance)},
+            cache_release_{std::move(cache_release)} {}
+      ~BorrowedInstance() {
+        if (cache_release_) {
+          cache_release_();
+        }
+      }
+      bool operator==(std::nullptr_t) {
+        return instance_ == nullptr;
+      }
+      ModuleInstance *operator->() {
+        return instance_.get();
+      }
+
+     private:
+      std::shared_ptr<ModuleInstance> instance_;
+      PoolReleaseFunction cache_release_;
+    };
 
     /**
      * Call the instance's function
@@ -53,9 +81,8 @@ namespace kagome::runtime {
      * deleter 'release'
      *
      * @param release - a deleter, that should be called upon thread destruction
-     * @return outcome::result<void>
      */
-    virtual outcome::result<void> borrow(std::function<void()> release) = 0;
+    virtual void borrow(BorrowedInstance::PoolReleaseFunction release) = 0;
   };
 
 }  // namespace kagome::runtime

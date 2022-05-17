@@ -12,21 +12,24 @@ namespace kagome::runtime::wavm {
 
   log::Logger logger;
 
-  static thread_local std::stack<std::shared_ptr<BorrowedRuntimeInstance>>
+  static thread_local std::stack<
+      std::shared_ptr<ModuleInstance::BorrowedInstance>>
       global_instances;
 
-  void pushBorrowedInstance(
-      std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) {
+  void pushBorrowedRuntimeInstance(
+      std::shared_ptr<ModuleInstance::BorrowedInstance>
+          borrowed_runtime_instance) {
     global_instances.emplace(std::move(borrowed_runtime_instance));
   }
 
-  std::shared_ptr<BorrowedRuntimeInstance> peekBorrowedInstance() {
+  std::shared_ptr<ModuleInstance::BorrowedInstance>
+  peekBorrowedRuntimeInstance() {
     BOOST_ASSERT(!global_instances.empty());
     return global_instances.top();
   }
 
   std::shared_ptr<host_api::HostApi> peekHostApi() {
-    return (*peekBorrowedInstance())->getEnvironment().host_api;
+    return (*peekBorrowedRuntimeInstance())->getEnvironment().host_api;
   }
 
 #undef WAVM_DEFINE_INTRINSIC_FUNCTION

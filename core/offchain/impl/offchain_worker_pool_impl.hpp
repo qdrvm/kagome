@@ -13,6 +13,7 @@
 #include "log/logger.hpp"
 
 namespace kagome::offchain {
+  using soralog::util::ThreadNumber;
 
   class OffchainWorkerPoolImpl final : public OffchainWorkerPool {
    public:
@@ -29,7 +30,7 @@ namespace kagome::offchain {
 
     log::Logger log_;
 
-    std::unordered_map<size_t, std::shared_ptr<OffchainWorker>>
+    std::unordered_map<ThreadNumber, std::shared_ptr<OffchainWorker>>
         offchain_workers_ = {};
   };
 
