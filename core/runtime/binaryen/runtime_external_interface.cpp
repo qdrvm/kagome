@@ -111,15 +111,16 @@ namespace {
  * @param name method name
  * @return result of method invocation
  */
-#define CALL_HOST_API_FUNC(name)                                       \
-  if (import->base == #name) {                                         \
-    checkArguments(import->base.c_str(),                               \
-                   hostApiFuncArgSize<&host_api::HostApi ::name>(),    \
-                   arguments.size());                                  \
-    return callHostApiFunc<&host_api::HostApi ::name>(host_api_.get(), \
-                                                      arguments);      \
-  }                                                                    \
-  (void)0  // hack to make macro call look natural by ending with ';'
+#define CALL_HOST_API_FUNC(name)                                         \
+  do {                                                                   \
+    if (import->base == #name) {                                         \
+      checkArguments(import->base.c_str(),                               \
+                     hostApiFuncArgSize<&host_api::HostApi ::name>(),    \
+                     arguments.size());                                  \
+      return callHostApiFunc<&host_api::HostApi ::name>(host_api_.get(), \
+                                                        arguments);      \
+    }                                                                    \
+  } while (false)  // hack to make macro call look natural by ending with ';'
 
 namespace kagome::runtime {
   class TrieStorageProvider;
