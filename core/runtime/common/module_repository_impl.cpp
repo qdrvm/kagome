@@ -99,7 +99,7 @@ namespace kagome::runtime {
     }
     auto borrowed_instance = std::make_shared<BorrowedRuntimeInstance>(
         module_instance, [this, state]() { release(state); });
-    module_instance->addToTls(std::move(borrowed_instance));
+    BOOST_VERIFY(module_instance->addToTls(std::move(borrowed_instance)));
     return module_instance;
   }
 
@@ -108,7 +108,7 @@ namespace kagome::runtime {
     std::lock_guard guard{mt_};
     auto tid = soralog::util::getThreadNumber();
     auto &pool = pools_[state];
-    fmt::print("released tid {} in pool size {}\n", tid, pool.size());
+
     // if used instance found, release
     auto node = pool.extract(tid);
     BOOST_ASSERT(node);

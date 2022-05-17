@@ -37,6 +37,9 @@ namespace kagome::runtime {
     ModuleInstance* operator->() {
       return instance_.get();
     }
+    void reset_deleter() {
+        cache_release_ = [](){};
+    }
 
         std::shared_ptr<ModuleInstance> instance_;
    private:

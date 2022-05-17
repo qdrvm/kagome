@@ -94,6 +94,7 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<void> ModuleInstanceImpl::addToTls(
       std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) {
+    borrowed_runtime_instance->reset_deleter();
     return outcome::success();
   }
 
