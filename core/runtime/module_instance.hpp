@@ -47,7 +47,7 @@ namespace kagome::runtime {
 
     virtual InstanceEnvironment const &getEnvironment() const = 0;
     virtual outcome::result<void> resetEnvironment() = 0;
-    virtual outcome::result<void> post_instantiate(
+    virtual outcome::result<void> addToTls(
         std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) = 0;
   };
 

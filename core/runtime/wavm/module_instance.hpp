@@ -46,9 +46,8 @@ namespace kagome::runtime::wavm {
 
     InstanceEnvironment const &getEnvironment() const override;
     outcome::result<void> resetEnvironment() override;
-    outcome::result<void> post_instantiate(
-        std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance)
-        override;
+    outcome::result<void> addToTls(std::shared_ptr<BorrowedRuntimeInstance>
+                                       borrowed_runtime_instance) override;
 
    private:
     InstanceEnvironment env_;

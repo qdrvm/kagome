@@ -92,7 +92,7 @@ namespace kagome::runtime::binaryen {
     return outcome::success();
   }
 
-  outcome::result<void> ModuleInstanceImpl::post_instantiate(
+  outcome::result<void> ModuleInstanceImpl::addToTls(
       std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) {
     return outcome::success();
   }

@@ -5,8 +5,8 @@
 
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 
-#include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/module_repository.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -21,14 +21,20 @@ namespace kagome::runtime::wavm {
   }
 
   void popBorrowedInstance() {
-    log::createLogger("intrinsics", "runtime")->info("popBorrowedInstance() thread {}\n", soralog::util::getThreadNumber());
+    log::createLogger("intrinsics", "runtime")
+        ->info("popBorrowedInstance() thread {}\n",
+               soralog::util::getThreadNumber());
     global_instances.pop();
   }
 
   std::shared_ptr<BorrowedRuntimeInstance> peekBorrowedInstance() {
     BOOST_ASSERT(!global_instances.empty());
-    log::createLogger("intrinsics", "runtime")->info("peekBorrowedInstance() thread {}\n", soralog::util::getThreadNumber());
-    // fmt::print("thread {}, instance {}, size {}\n", soralog::util::getThreadNumber(), fmt::ptr(global_instances.top()->instance_), global_instances.size());
+    // log::createLogger("intrinsics", "runtime")->info("peekBorrowedInstance()
+    // thread {}\n", soralog::util::getThreadNumber());
+
+    // fmt::print("thread {}, instance {}, size {}\n",
+    // soralog::util::getThreadNumber(),
+    // fmt::ptr(global_instances.top()->instance_), global_instances.size());
     return global_instances.top();
   }
 
@@ -42,7 +48,7 @@ namespace kagome::runtime::wavm {
   void popHostApi() {
     // BOOST_ASSERT(!global_host_apis.empty());
     // global_host_apis.pop();
-      popBorrowedInstance();
+    // popBorrowedInstance();
   }
 
   std::shared_ptr<host_api::HostApi> peekHostApi() {
