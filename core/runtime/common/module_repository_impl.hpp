@@ -89,6 +89,10 @@ namespace kagome::runtime {
     std::vector<CacheEntry> cache_;
   };
 
+  /**
+   * @brief Pool of runtime instances - per state. Incapsulates modules cache.
+   *
+   */
   class RuntimeInstancesPool final {
     using RootHash = storage::trie::RootHash;
     using ModuleInstancePool =

@@ -30,8 +30,8 @@ namespace kagome::runtime {
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>,
-                addToTls,
-                (std::shared_ptr<BorrowedRuntimeInstance>),
+                borrow,
+                (std::function<void()>),
                 (override));
 
     MOCK_METHOD(outcome::result<void>, resetEnvironment, (), (override));

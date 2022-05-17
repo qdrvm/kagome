@@ -140,9 +140,10 @@ namespace kagome::runtime::wavm {
     return outcome::success();
   }
 
-  outcome::result<void> ModuleInstance::addToTls(
-      std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) {
-    pushBorrowedInstance(borrowed_runtime_instance);
+  outcome::result<void> ModuleInstance::borrow(std::function<void()> release) {
+    auto borrowed =
+        std::make_shared<BorrowedRuntimeInstance>(shared_from_this(), release);
+    pushBorrowedInstance(std::move(borrowed));
     return outcome::success();
   }
 

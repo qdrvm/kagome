@@ -26,7 +26,8 @@ namespace kagome::runtime::wavm {
 
   class CompartmentWrapper;
 
-  class ModuleInstance : public runtime::ModuleInstance {
+  class ModuleInstance : public runtime::ModuleInstance,
+                         public std::enable_shared_from_this<ModuleInstance> {
    public:
     enum class Error {
       FUNC_NOT_FOUND = 1,
@@ -46,8 +47,7 @@ namespace kagome::runtime::wavm {
 
     InstanceEnvironment const &getEnvironment() const override;
     outcome::result<void> resetEnvironment() override;
-    outcome::result<void> addToTls(std::shared_ptr<BorrowedRuntimeInstance>
-                                       borrowed_runtime_instance) override;
+    outcome::result<void> borrow(std::function<void()> release) override;
 
    private:
     InstanceEnvironment env_;

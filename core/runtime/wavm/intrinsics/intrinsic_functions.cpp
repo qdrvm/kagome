@@ -26,8 +26,6 @@ namespace kagome::runtime::wavm {
   }
 
   std::shared_ptr<host_api::HostApi> peekHostApi() {
-    // BOOST_ASSERT(!global_host_apis.empty());
-    // return global_host_apis.top();
     return (*peekBorrowedInstance())->getEnvironment().host_api;
   }
 

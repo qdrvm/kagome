@@ -97,9 +97,7 @@ namespace kagome::runtime {
       module_instance = node.mapped();
       pool.insert(std::move(node));
     }
-    auto borrowed_instance = std::make_shared<BorrowedRuntimeInstance>(
-        module_instance, [this, state]() { release(state); });
-    BOOST_VERIFY(module_instance->addToTls(std::move(borrowed_instance)));
+    BOOST_VERIFY(module_instance->borrow([this, state]() { release(state); }));
     return module_instance;
   }
 

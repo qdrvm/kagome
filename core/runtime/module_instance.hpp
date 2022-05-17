@@ -47,8 +47,15 @@ namespace kagome::runtime {
 
     virtual InstanceEnvironment const &getEnvironment() const = 0;
     virtual outcome::result<void> resetEnvironment() = 0;
-    virtual outcome::result<void> addToTls(
-        std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) = 0;
+
+    /**
+     * @brief Make thread borrow a wrapped pointer to this instance with custom
+     * deleter 'release'
+     *
+     * @param release - a deleter, that should be called upon thread destruction
+     * @return outcome::result<void>
+     */
+    virtual outcome::result<void> borrow(std::function<void()> release) = 0;
   };
 
 }  // namespace kagome::runtime
