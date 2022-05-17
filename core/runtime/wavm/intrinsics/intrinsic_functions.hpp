@@ -30,8 +30,7 @@ namespace kagome::runtime::wavm {
 
   void pushBorrowedInstance(
       std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance);
-  void popBorrowedInstance(
-      std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance);
+  void popBorrowedInstance();
   std::shared_ptr<BorrowedRuntimeInstance> peekBorrowedInstance();
 
   extern log::Logger logger;

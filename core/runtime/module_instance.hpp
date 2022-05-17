@@ -11,11 +11,14 @@
 #include <boost/variant.hpp>
 #include <optional>
 
+#include "module_repository.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/ptr_size.hpp"
 
 namespace kagome::runtime {
+
+  class BorrowedRuntimeInstance;
 
   static_assert(sizeof(float) == 4);
   static_assert(sizeof(double) == 8);
@@ -44,6 +47,8 @@ namespace kagome::runtime {
 
     virtual InstanceEnvironment const &getEnvironment() const = 0;
     virtual outcome::result<void> resetEnvironment() = 0;
+    virtual outcome::result<void> post_instantiate(
+        std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) = 0;
   };
 
 }  // namespace kagome::runtime

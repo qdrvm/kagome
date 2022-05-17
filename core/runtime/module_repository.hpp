@@ -16,14 +16,11 @@
 #include "module_instance.hpp"
 
 namespace kagome::runtime {
-  class RuntimeCodeProvider;
-}
-
-namespace kagome::runtime {
 
   class ModuleInstance;
   class Module;
   class Memory;
+  class RuntimeCodeProvider;
 
   class BorrowedRuntimeInstance {
    public:
@@ -37,15 +34,8 @@ namespace kagome::runtime {
     bool operator==(std::nullptr_t) {
       return instance_ == nullptr;
     }
-    ModuleInstance& operator*() {
-      return *instance_;
-    }
     ModuleInstance* operator->() {
       return instance_.get();
-    }
-
-    std::shared_ptr<host_api::HostApi> getHostApi(){
-      return instance_->getEnvironment().host_api;
     }
 
         std::shared_ptr<ModuleInstance> instance_;

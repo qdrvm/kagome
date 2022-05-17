@@ -49,7 +49,6 @@ namespace kagome::runtime::binaryen {
 
     outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const override;
-    outcome::result<void> post_instantiate(std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) override;
 
    private:
     ModuleImpl(std::unique_ptr<wasm::Module> &&module,

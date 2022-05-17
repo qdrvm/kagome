@@ -91,19 +91,23 @@ namespace kagome::runtime {
 
   class RuntimeInstancesPool final {
     using RootHash = storage::trie::RootHash;
+    using ModuleInstancePool = std::multimap<size_t, std::shared_ptr<ModuleInstance>>;
+
+   public:
     using ModuleCache =
         SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
-   public:
-    RuntimeInstancesPool(std::shared_ptr<ModuleCache> modules) : modules_{std::move(modules)}{}
+    outcome::result<std::shared_ptr<ModuleInstance>> try_acquire(
+        const RootHash &state);
+    void release(const RootHash &state);
+    std::optional<std::shared_ptr<Module>> get_module(const RootHash &state);
+    bool put_module(const RootHash &state, std::shared_ptr<Module> module);
 
-    outcome::result<std::shared_ptr<BorrowedRuntimeInstance>> try_acquire(const RootHash& state);
-
-    void release(RootHash state);
-
-        std::mutex mt_;
    private:
-    std::shared_ptr<ModuleCache> modules_;
-    std::map<RootHash, std::multimap<size_t, std::shared_ptr<ModuleInstance>>> pools_;
+    std::mutex mt_;
+    static constexpr size_t MODULES_CACHE_SIZE = 2;
+    static constexpr size_t POOL_FREE_INSTANCE_ID = 0;
+    ModuleCache modules_{MODULES_CACHE_SIZE};
+    std::map<RootHash, ModuleInstancePool> pools_;
   };
 
   class ModuleRepositoryImpl final : public ModuleRepository {
@@ -119,14 +123,6 @@ namespace kagome::runtime {
         const primitives::BlockHeader &header) override;
 
    private:
-    static constexpr size_t MODULES_CACHE_SIZE = 2;
-    static constexpr size_t INSTANCES_CACHE_SIZE = 2;
-    using ModuleCache =
-        SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
-
-    std::shared_ptr<ModuleCache> modules_;
-    std::mutex modules_mutex_;
-
     RuntimeInstancesPool runtime_instances_pool_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;

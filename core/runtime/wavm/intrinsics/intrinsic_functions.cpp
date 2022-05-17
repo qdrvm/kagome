@@ -20,13 +20,15 @@ namespace kagome::runtime::wavm {
     global_instances.emplace(std::move(borrowed_runtime_instance));
   }
 
-  void popBorrowedInstance(
-      std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) {
+  void popBorrowedInstance() {
+    log::createLogger("intrinsics", "runtime")->info("popBorrowedInstance() thread {}\n", soralog::util::getThreadNumber());
     global_instances.pop();
   }
 
   std::shared_ptr<BorrowedRuntimeInstance> peekBorrowedInstance() {
     BOOST_ASSERT(!global_instances.empty());
+    log::createLogger("intrinsics", "runtime")->info("peekBorrowedInstance() thread {}\n", soralog::util::getThreadNumber());
+    // fmt::print("thread {}, instance {}, size {}\n", soralog::util::getThreadNumber(), fmt::ptr(global_instances.top()->instance_), global_instances.size());
     return global_instances.top();
   }
 
@@ -34,19 +36,19 @@ namespace kagome::runtime::wavm {
       global_host_apis;
 
   void pushHostApi(std::shared_ptr<host_api::HostApi> api) {
-    global_host_apis.emplace(std::move(api));
+    // global_host_apis.emplace(std::move(api));
   }
 
   void popHostApi() {
-    BOOST_ASSERT(!global_host_apis.empty());
-    global_host_apis.pop();
-    global_instances.pop();
+    // BOOST_ASSERT(!global_host_apis.empty());
+    // global_host_apis.pop();
+      popBorrowedInstance();
   }
 
   std::shared_ptr<host_api::HostApi> peekHostApi() {
-    BOOST_ASSERT(!global_host_apis.empty());
+    // BOOST_ASSERT(!global_host_apis.empty());
     // return global_host_apis.top();
-    return peekBorrowedInstance()->getHostApi();
+    return (*peekBorrowedInstance())->getEnvironment().host_api;
   }
 
 #undef WAVM_DEFINE_INTRINSIC_FUNCTION

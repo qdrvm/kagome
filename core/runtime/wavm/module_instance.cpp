@@ -10,8 +10,10 @@
 
 #include "host_api/host_api.hpp"
 #include "log/profiling_logger.hpp"
+#include "runtime/module_repository.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm, ModuleInstance::Error, e) {
   using E = kagome::runtime::wavm::ModuleInstance::Error;
@@ -135,6 +137,12 @@ namespace kagome::runtime::wavm {
 
   outcome::result<void> ModuleInstance::resetEnvironment() {
     env_.host_api->reset();
+    return outcome::success();
+  }
+
+  outcome::result<void> ModuleInstance::post_instantiate(
+      std::shared_ptr<BorrowedRuntimeInstance> borrowed_runtime_instance) {
+    pushBorrowedInstance(borrowed_runtime_instance);
     return outcome::success();
   }
 
