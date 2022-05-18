@@ -40,7 +40,7 @@ namespace kagome::runtime {
       using PoolReleaseFunction = std::function<void()>;
 
       BorrowedInstance(std::shared_ptr<ModuleInstance> instance,
-                       std::function<void()> cache_release = {})
+                       PoolReleaseFunction cache_release = {})
           : instance_{std::move(instance)},
             cache_release_{std::move(cache_release)} {}
       ~BorrowedInstance() {
