@@ -100,7 +100,11 @@ namespace kagome::runtime {
       module_instance = node.mapped();
       pool.insert(std::move(node));
     }
-    module_instance->borrow([this, state]() { release(state); });
+    module_instance->borrow([self = weak_from_this(), state]() {
+      if (!self.expired()) {
+        self.lock()->release(state);
+      }
+    });
     return module_instance;
   }
 

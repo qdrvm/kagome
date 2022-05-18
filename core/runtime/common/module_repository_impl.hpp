@@ -94,7 +94,7 @@ namespace kagome::runtime {
    * @brief Pool of runtime instances - per state. Incapsulates modules cache.
    *
    */
-  class RuntimeInstancesPool final {
+  class RuntimeInstancesPool final : public std::enable_shared_from_this<RuntimeInstancesPool>{
     using RootHash = storage::trie::RootHash;
     using ModuleInstancePool =
         std::multimap<ThreadNumber, std::shared_ptr<ModuleInstance>>;
@@ -102,6 +102,7 @@ namespace kagome::runtime {
    public:
     using ModuleCache =
         SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
+
     /**
      * @brief Attempt to aquire a ModuleInstance for state. If none available,
      * instantiate. If already acquired by this thread, return the same ptr.
