@@ -233,7 +233,7 @@ namespace kagome::host_api {
 
     // -------------------------- Offchain extension ---------------------------
 
-    runtime::WasmI8 ext_offchain_is_validator_version_1() override;
+    runtime::WasmI32 ext_offchain_is_validator_version_1() override;
 
     runtime::WasmSpan ext_offchain_submit_transaction_version_1(
         runtime::WasmSpan data) override;
@@ -254,7 +254,7 @@ namespace kagome::host_api {
     void ext_offchain_local_storage_clear_version_1(
         runtime::WasmI32 kind, runtime::WasmSpan key) override;
 
-    runtime::WasmI8 ext_offchain_local_storage_compare_and_set_version_1(
+    runtime::WasmI32 ext_offchain_local_storage_compare_and_set_version_1(
         runtime::WasmI32 kind,
         runtime::WasmSpan key,
         runtime::WasmSpan expected,
