@@ -41,8 +41,7 @@ namespace kagome::runtime::binaryen {
     InstanceEnvironment const &getEnvironment() const override;
 
     outcome::result<void> resetEnvironment() override;
-    void borrow(
-        ModuleInstance::BorrowedInstance::PoolReleaseFunction release) override;
+    void borrow(BorrowedInstance::PoolReleaseFunction release) override;
 
    private:
     InstanceEnvironment env_;

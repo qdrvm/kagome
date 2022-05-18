@@ -93,7 +93,7 @@ namespace kagome::runtime::binaryen {
   }
 
   void ModuleInstanceImpl::borrow(
-      ModuleInstance::BorrowedInstance::PoolReleaseFunction release) {
+      BorrowedInstance::PoolReleaseFunction release) {
     // Releaser for OCWs - doesn't need a valid pointer
     static thread_local ModuleInstance::BorrowedInstance pool_release_token{
         nullptr, release};
