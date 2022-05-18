@@ -308,7 +308,7 @@ namespace kagome::host_api {
 
     // -------------------------- Offchain extension ---------------------------
 
-    MOCK_METHOD(runtime::WasmI8,
+    MOCK_METHOD(runtime::WasmI32,
                 ext_offchain_is_validator_version_1,
                 (),
                 (override));
@@ -348,7 +348,7 @@ namespace kagome::host_api {
                 (runtime::WasmI32, runtime::WasmSpan),
                 (override));
 
-    MOCK_METHOD(runtime::WasmI8,
+    MOCK_METHOD(runtime::WasmI32,
                 ext_offchain_local_storage_compare_and_set_version_1,
                 (runtime::WasmI32,
                  runtime::WasmSpan,
