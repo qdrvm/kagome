@@ -14,8 +14,11 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
+#include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
+#include "mock/core/blockchain/justification_storage_policy.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
@@ -45,6 +48,17 @@ using prefix::Prefix;
 using testing::_;
 using testing::Invoke;
 using testing::Return;
+using testing::StrictMock;
+
+namespace kagome::primitives {
+  void PrintTo(const BlockHeader &header, std::ostream *os) {
+    *os << "BlockHeader {\n"
+        << "\tnumber: " << header.number << ",\n"
+        << "\tparent: " << header.parent_hash << ",\n"
+        << "\tstate_root: " << header.state_root << ",\n"
+        << "\text_root: " << header.extrinsics_root << "\n}";
+  }
+}
 
 struct BlockTreeTest : public testing::Test {
   static void SetUpTestCase() {
@@ -68,6 +82,9 @@ struct BlockTreeTest : public testing::Test {
 
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillRepeatedly(Return(finalized_block_header_));
+
+    EXPECT_CALL(*storage_, getJustification(kLastFinalizedBlockId))
+        .WillRepeatedly(Return(outcome::success(primitives::Justification{})));
 
     EXPECT_CALL(*storage_, getLastFinalized())
         .WillOnce(Return(outcome::success(kFinalizedBlockInfo)));
@@ -96,6 +113,8 @@ struct BlockTreeTest : public testing::Test {
         .WillRepeatedly(Return(BlockTreeError::HEADER_NOT_FOUND));
 
     EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
+        .WillRepeatedly(Return(finalized_block_header_));
+    EXPECT_CALL(*storage_, getBlockHeader(BlockId{kFinalizedBlockInfo.number}))
         .WillRepeatedly(Return(finalized_block_header_));
 
     EXPECT_CALL(*storage_, putNumberToIndexKey(_))
@@ -139,7 +158,8 @@ struct BlockTreeTest : public testing::Test {
                                         runtime_core_,
                                         changes_tracker_,
                                         babe_config_,
-                                        babe_util_)
+                                        babe_util_,
+                                        justification_storage_policy_)
                       .value();
   }
 
@@ -152,8 +172,6 @@ struct BlockTreeTest : public testing::Test {
     auto hash = hasher_->blake2b_256(encoded_block);
     primitives::BlockInfo block_info(block.header.number, hash);
 
-    //    EXPECT_CALL(*header_repo_, getBlockHeader(BlockId(hash)))
-    //        .WillRepeatedly(Return(block.header));
     EXPECT_CALL(*header_repo_, getNumberByHash(hash))
         .WillRepeatedly(Return(block.header.number));
 
@@ -181,21 +199,34 @@ struct BlockTreeTest : public testing::Test {
    * @note To create different block with same number and parent, use different
    * hash ot state root
    */
-  BlockHash addHeaderToRepository(const BlockId &parent,
-                                  BlockNumber number,
-                                  storage::trie::RootHash state = {}) {
+  std::tuple<BlockHash, BlockHeader> addHeaderToRepositoryAndGet(
+      const BlockHash &parent,
+      BlockNumber number,
+      storage::trie::RootHash state = {}) {
     BlockHeader header;
-    header.parent_hash = boost::get<BlockHash>(parent);
+    header.parent_hash = parent;
     header.number = number;
     header.state_root = state;
 
     auto hash = addBlock(Block{header, {}});
 
+    // hash for header repo and number for block storage just because tests
+    // currently require so
     EXPECT_CALL(*header_repo_, getBlockHeader({hash}))
         .WillRepeatedly(Return(header));
+    EXPECT_CALL(*storage_, getBlockHeader(BlockId{number}))
+        .WillRepeatedly(Return(header));
 
-    return hash;
+    return {hash, header};
   }
+
+  BlockHash addHeaderToRepository(
+    const BlockHash &parent,
+    BlockNumber number,
+    storage::trie::RootHash state = {}) {
+    return std::get<0>(addHeaderToRepositoryAndGet(parent, number, state));
+  }
+
 
   const BlockInfo kGenesisBlockInfo{
       0ul, BlockHash::fromString("66dj4kdn4odnfkslfn3k4jdnbmeod555").value()};
@@ -226,6 +257,13 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeUtilMock> babe_util_;
+
+  std::shared_ptr<JustificationStoragePolicyMock>
+      justification_storage_policy_ =
+          std::make_shared<StrictMock<JustificationStoragePolicyMock>>();
+
+  std::shared_ptr<application::AppStateManagerMock> app_state_manager_ =
+      std::make_shared<application::AppStateManagerMock>();
 
   std::shared_ptr<BlockTreeImpl> block_tree_;
 
@@ -365,9 +403,13 @@ TEST_F(BlockTreeTest, Finalize) {
 
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
+  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(kFinalizedBlockInfo.hash)))
+      .WillRepeatedly(Return(outcome::success(justification)));
   EXPECT_CALL(*storage_, getJustification(primitives::BlockId(hash)))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+      .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(bid))
       .WillRepeatedly(Return(outcome::success(header)));
@@ -375,9 +417,10 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success(body)));
   EXPECT_CALL(*runtime_core_, version(hash))
       .WillRepeatedly(Return(primitives::Version{}));
+  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
 
   // WHEN
-  ASSERT_TRUE(block_tree_->finalize(hash, justification));
+  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(hash, justification));
 
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, hash);
@@ -424,7 +467,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
   EXPECT_CALL(*storage_, getJustification(primitives::BlockId(B1_hash)))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+      .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_,
               putJustification(justification, B1_hash, B1_header.number))
       .WillRepeatedly(Return(outcome::success()));
@@ -439,6 +482,9 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   EXPECT_CALL(*pool_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(B1_hash, justification));
@@ -489,8 +535,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
 
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
-  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(B_hash)))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_,
               putJustification(justification, B_hash, B_header.number))
       .WillRepeatedly(Return(outcome::success()));
@@ -507,6 +551,9 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
   EXPECT_CALL(*pool_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(B_hash, justification));
@@ -747,7 +794,8 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
  * @then the second block hash is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
-  auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
+  auto target_hash=
+      addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
 
   ASSERT_OUTCOME_SUCCESS(
       best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
@@ -770,7 +818,7 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
                            C2 - D2
    */
 
-  auto T_hash = addHeaderToRepository(kLastFinalizedBlockId, 43);
+  auto T_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto A_hash = addHeaderToRepository(T_hash, 44);
   auto B_hash = addHeaderToRepository(A_hash, 45);
   auto C1_hash = addHeaderToRepository(B_hash, 46);
@@ -791,8 +839,8 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
  */
 TEST_F(BlockTreeTest, Reorganize) {
   // GIVEN
-  auto A_hash = addHeaderToRepository(kLastFinalizedBlockId, 43);
-  auto B_hash = addHeaderToRepository(A_hash, 44);
+  auto A_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
+  auto [B_hash, B_header] = addHeaderToRepositoryAndGet(A_hash, 44);
 
   //   42   43  44  45   46   47
   //
@@ -825,8 +873,6 @@ TEST_F(BlockTreeTest, Reorganize) {
   ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E1_hash));
 
   // WHEN.3
-  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(C2_hash)))
-      .WillOnce(Return(outcome::failure(DummyError::ERROR)));
   EXPECT_CALL(*storage_, putJustification(_, _, _))
       .WillOnce(Return(outcome::success()));
 
@@ -835,6 +881,10 @@ TEST_F(BlockTreeTest, Reorganize) {
 
   EXPECT_CALL(*runtime_core_, version(C2_hash))
       .WillRepeatedly(Return(primitives::Version{}));
+
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
 
   ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->finalize(C2_hash, {}));
 
@@ -854,8 +904,57 @@ TEST_F(BlockTreeTest, Reorganize) {
  * @then TARGET_IS_PAST_MAX error is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_TargetPastMax) {
-  auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
+  auto target_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
 
   EXPECT_OUTCOME_FALSE(err, block_tree_->getBestContaining(target_hash, 42));
   ASSERT_EQ(err, BlockTreeError::TARGET_IS_PAST_MAX);
+}
+
+TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
+  auto [b43, h43] = addHeaderToRepositoryAndGet(kFinalizedBlockInfo.hash, 43);
+  auto [b55, h55] = addHeaderToRepositoryAndGet(b43, 55);
+  auto [b56, h56] = addHeaderToRepositoryAndGet(b55, 56);
+  EXPECT_CALL(*storage_, getBlockBody(BlockId{b56}))
+      .WillOnce(Return(primitives::BlockBody{}));
+
+  Justification new_justification{"justification_56"_buf};
+
+  EXPECT_CALL(*runtime_core_, version(b56))
+      .WillOnce(Return(primitives::Version{}));
+
+  // shouldn't keep old justification
+  EXPECT_CALL(*justification_storage_policy_,
+              shouldStoreFor(finalized_block_header_))
+      .WillOnce(Return(false));
+  // store new justification
+  EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
+      .WillOnce(Return(outcome::success()));
+  // remove old justification
+  EXPECT_CALL(
+      *storage_,
+      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+      .WillOnce(Return(outcome::success()));
+  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
+}
+
+TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
+  auto [b43, h43] = addHeaderToRepositoryAndGet(kFinalizedBlockInfo.hash, 43);
+  auto [b55, h55] = addHeaderToRepositoryAndGet(b43, 55);
+  auto [b56, h56] = addHeaderToRepositoryAndGet(b55, 56);
+  EXPECT_CALL(*storage_, getBlockBody(BlockId{b56}))
+      .WillOnce(Return(primitives::BlockBody{}));
+
+  Justification new_justification{"justification_56"_buf};
+
+  EXPECT_CALL(*runtime_core_, version(b56))
+      .WillOnce(Return(primitives::Version{}));
+
+  // shouldn't keep old justification
+  EXPECT_CALL(*justification_storage_policy_,
+              shouldStoreFor(finalized_block_header_))
+      .WillOnce(Return(true));
+  // store new justification
+  EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
+      .WillOnce(Return(outcome::success()));
+  EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
 }

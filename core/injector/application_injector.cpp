@@ -46,6 +46,7 @@
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
+#include "blockchain/impl/justification_storage_policy.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
@@ -617,6 +618,9 @@ namespace {
             .template create<std::shared_ptr<primitives::BabeConfiguration>>();
     auto babe_util =
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
+    auto justification_storage_policy = injector.template create<
+        std::shared_ptr<blockchain::JustificationStoragePolicy>>();
+    
     auto block_tree_res =
         blockchain::BlockTreeImpl::create(header_repo,
                                           std::move(storage),
@@ -628,7 +632,9 @@ namespace {
                                           std::move(runtime_core),
                                           std::move(changes_tracker),
                                           std::move(babe_configuration),
-                                          std::move(babe_util));
+                                          std::move(babe_util),
+                                          std::move(justification_storage_policy));
+
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());
     }
@@ -1077,6 +1083,7 @@ namespace {
               injector.template create<sptr<storage::BufferStorage>>();
           return get_block_storage(root_hash, hasher, storage);
         }),
+        di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
         di::bind<blockchain::BlockTree>.to(
             [](auto const &injector) { return get_block_tree(injector); }),
         di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
@@ -1147,7 +1154,16 @@ namespace {
           return get_extrinsic_observer_impl(injector);
         }),
         di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
-        di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
+        bind_by_lambda<authority::AuthorityManager>([](auto const &injector) {
+          auto auth_manager_impl =
+              injector.template create<sptr<authority::AuthorityManagerImpl>>();
+          auto block_tree_impl =
+              injector.template create<sptr<blockchain::BlockTree>>();
+          auto justification_storage_policy = injector.template create<
+              sptr<blockchain::JustificationStoragePolicyImpl>>();
+          justification_storage_policy->initBlockchainInfo(block_tree_impl);
+          return auth_manager_impl;
+        }),
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
@@ -1340,8 +1356,12 @@ namespace {
          storage = std::move(storage),
          header_repo = std::move(header_repo),
          trie_storage = std::move(trie_storage)] {
+          BOOST_ASSERT(app_config.recoverState().has_value());
           auto res = blockchain::BlockTreeImpl::recover(
-              app_config, storage, header_repo, trie_storage);
+              app_config.recoverState().value(),
+              storage,
+              header_repo,
+              trie_storage);
           auto log = log::createLogger("RecoveryMode", "main");
           if (res.has_error()) {
             SL_ERROR(

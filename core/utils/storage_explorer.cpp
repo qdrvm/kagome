@@ -13,43 +13,119 @@
 #include "log/configurator.hpp"
 #include "storage/trie/trie_storage.hpp"
 
+using kagome::blockchain::BlockStorage;
+using kagome::primitives::BlockHeader;
+using kagome::primitives::BlockId;
+using kagome::primitives::BlockNumber;
+using kagome::primitives::GrandpaDigest;
+using kagome::storage::trie::TrieStorage;
+
+using ArgumentList = gsl::span<const char*>;
+
+class CommandExecutionError : public std::runtime_error {
+ public:
+  CommandExecutionError(std::string_view command_name, const std::string &what)
+      : std::runtime_error{what}, command_name{command_name} {}
+
+  friend std::ostream &operator<<(std::ostream &out,
+                                  CommandExecutionError const &err) {
+    return out << "Error in command '" << err.command_name << ": " << err.what()
+               << "\n";
+  }
+
+ private:
+  std::string_view command_name;
+};
+
+class Command {
+ public:
+  Command(std::string name, std::string description)
+      : name{std::move(name)}, description{std::move(description)} {}
+
+  virtual ~Command() = default;
+
+  virtual void execute(std::ostream &out, const ArgumentList &args) = 0;
+
+  std::string_view getName() const {
+    return name;
+  }
+
+  std::string_view getDescription() const {
+    return description;
+  }
+
+ protected:
+  void assertArgumentCount(const ArgumentList &args, int min, int max) {
+    if (args.size() < min or args.size() > max) {
+      throw CommandExecutionError{
+          name,
+          fmt::format("Argument count mismatch: expected {} to {}, got {}",
+                      min,
+                      max,
+                      args.size())};
+    }
+  }
+
+  template <typename... Ts>
+  [[noreturn]] void throwError(const char *fmt, Ts &&...ts) const {
+    throw CommandExecutionError{name,
+                                fmt::format(fmt, std::forward<Ts>(ts)...)};
+  }
+
+  template <typename T>
+  const T &unwrapResult(std::string_view context,
+                        outcome::result<T> const &res) const {
+    if (res.has_value()) return res.value();
+    throwError("{}: {}", context, res.error().message());
+  }
+
+ private:
+  std::string name;
+  std::string description;
+};
+
 class CommandParser {
  public:
   using CommandFunctor = std::function<void(int, char **)>;
 
-  void addCommand(std::string command,
-                  std::string description,
-                  CommandFunctor functor) {
-    commands_.insert({command, std::move(functor)});
-    command_descriptions_.insert({std::move(command), std::move(description)});
+  void addCommand(std::unique_ptr<Command> cmd) {
+    std::string name{cmd->getName()};
+    commands_.insert({name, std::move(cmd)});
   }
 
-  void invoke(int argc, char **argv) const {
-    if (argc < 2) {
+  void invoke(const ArgumentList &args) const noexcept {
+    if (args.size() < 2) {
       std::cerr << "Unspecified command!\nAvailable commands are:\n";
       printCommands(std::cerr);
     }
-    if (auto command = commands_.find(argv[1]); command != commands_.cend()) {
-      command->second(argc - 1, argv + 1);
+    if (auto command = commands_.find(args[1]);
+        command != commands_.cend()) {
+      ArgumentList cmd_args{args.subspan(1)};
+      try {
+        command->second->execute(std::cout, cmd_args);
+      } catch (CommandExecutionError &e) {
+        std::cerr << e;
+      } catch(std::exception& e) {
+        std::cerr << e.what();
+      }
     } else {
-      std::cerr << "Unknown command '" << argv[1]
+      std::cerr << "Unknown command '" << args[1]
                 << "'!\nAvailable commands are:\n";
       printCommands(std::cerr);
     }
   }
 
   void printCommands(std::ostream &out) const {
-    for (auto &[command, description] : command_descriptions_) {
-      out << command << "\t" << description << "\n";
+    for (auto &[name, cmd] : commands_) {
+      out << name << "\t" << cmd->getDescription() << "\n";
     }
   }
 
  private:
-  std::unordered_map<std::string, CommandFunctor> commands_;
-  std::unordered_map<std::string, std::string> command_descriptions_;
+  std::unordered_map<std::string, std::unique_ptr<Command>> commands_;
 };
 
-std::optional<kagome::primitives::BlockId> parseBlockId(char *string) {
+std::optional<kagome::primitives::BlockId> parseBlockId(const char *string) {
   kagome::primitives::BlockId id;
   if (strlen(string) == 2 * kagome::primitives::BlockHash::size()) {
     kagome::primitives::BlockHash id_hash{};
@@ -73,11 +149,291 @@ std::optional<kagome::primitives::BlockId> parseBlockId(char *string) {
   return id;
 }
 
-int main(int argc, char **argv) {
+class PrintHelpCommand final : public Command {
+ public:
+  explicit PrintHelpCommand(CommandParser const &parser)
+      : Command{"help", "print help message"}, parser{parser} {}
+
+  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+    assertArgumentCount(args, 1, 1);
+    parser.printCommands(out);
+  }
+
+ private:
+  CommandParser const &parser;
+};
+
+class InspectBlockCommand : public Command {
+ public:
+  explicit InspectBlockCommand(std::shared_ptr<BlockStorage> block_storage)
+      : Command{"inspect-block",
+                "# or hash - print info about the block with the given number "
+                "or hash"},
+        block_storage{block_storage} {}
+
+  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+    assertArgumentCount(args, 2, 2);
+    auto opt_id = parseBlockId(args[1]);
+    if (!opt_id) {
+      throwError("Failed to parse block id '{}'", args[1]);
+    }
+    if (auto res = block_storage->getBlockHeader(opt_id.value()); res) {
+      if (!res.value().has_value()) {
+        throwError("Block header not found for '{}'", args[1]);
+      }
+      std::cout << "#: " << res.value()->number << "\n";
+      std::cout << "Parent hash: " << res.value()->parent_hash.toHex() << "\n";
+      std::cout << "State root: " << res.value()->state_root.toHex() << "\n";
+      std::cout << "Extrinsics root: " << res.value()->extrinsics_root.toHex()
+                << "\n";
+    } else {
+      throwError("Internal error: {}}", res.error().message());
+    }
+  }
+
+ private:
+  std::shared_ptr<BlockStorage> block_storage;
+};
+
+class RemoveBlockCommand : public Command {
+ public:
+  explicit RemoveBlockCommand(std::shared_ptr<BlockStorage> block_storage)
+      : Command{"remove-block",
+                "# or hash - remove the block from the block tree"},
+        block_storage{block_storage} {}
+
+  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+    assertArgumentCount(args, 2, 2);
+    auto opt_id = parseBlockId(args[1]);
+    if (!opt_id) {
+      throwError("Failed to parse block id '{}'", args[1]);
+    }
+    auto data = block_storage->getBlockData(opt_id.value());
+    if (!data) {
+      throwError("Failed getting block data: {}", data.error().message());
+    }
+    if (!data.value().has_value()) {
+      throwError("Block data not found");
+    }
+    if (auto res = block_storage->removeBlock(
+            {data.value().value().header->number, data.value().value().hash});
+        !res) {
+      throwError("{}", res.error().message());
+    }
+  }
+
+ private:
+  std::shared_ptr<BlockStorage> block_storage;
+};
+
+class QueryStateCommand : public Command {
+ public:
+  explicit QueryStateCommand(std::shared_ptr<TrieStorage> trie_storage)
+      : Command{"query-state",
+                "state_hash, key - query value at a given key and state"},
+        trie_storage{trie_storage} {}
+
+  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+    assertArgumentCount(args, 3, 3);
+
+    kagome::storage::trie::RootHash state_root{};
+    if (auto id_bytes = kagome::common::unhex(args[1]); id_bytes) {
+      std::copy_n(id_bytes.value().begin(),
+                  kagome::primitives::BlockHash::size(),
+                  state_root.begin());
+    } else {
+      throwError("Invalid block hash!");
+    }
+    auto batch = trie_storage->getEphemeralBatchAt(state_root);
+    if (!batch) {
+      throwError("Failed getting trie batch: {}", batch.error().message());
+    }
+    kagome::common::Buffer key{};
+    if (auto key_bytes = kagome::common::unhex(args[2]); key_bytes) {
+      key = kagome::common::Buffer{std::move(key_bytes.value())};
+    } else {
+      throwError("Invalid key!");
+    }
+    auto value_res = batch.value()->tryGet(key);
+    if (value_res.has_error()) {
+      throwError("Error retrieving value from Trie: {}",
+                 value_res.error().message());
+    }
+    auto &value_opt = value_res.value();
+    if (value_opt.has_value()) {
+      std::cout << "Value is " << value_opt->get().toHex() << "\n";
+    } else {
+      std::cout << "No value by given key\n";
+    }
+  }
+
+ private:
+  std::shared_ptr<TrieStorage> trie_storage;
+};
+
+class SearchChainCommand : public Command {
+ public:
+  explicit SearchChainCommand(std::shared_ptr<BlockStorage> block_storage)
+      : Command{"search-chain",
+                "target [start block/0] [end block/deepest finalized] - search "
+                "the finalized chain for the target entity. Currently, "
+                "'justification' or 'authority-update' are supported "},
+        block_storage{block_storage} {}
+
+  enum class Target { Justification, AuthorityUpdate, LastBlock };
+
+  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+    assertArgumentCount(args, 2, 4);
+    Target target = parseTarget(args[1]);
+    if (target == Target::LastBlock) {
+      std::cout << "#" << block_storage->getLastFinalized().value().number << " " << block_storage->getLastFinalized().value().hash.toHex() << "\n";
+      return;
+    }
+
+    BlockId start, end;
+
+    if (args.size() > 2) {
+      auto start_id_opt = parseBlockId(args[2]);
+      if (!start_id_opt) {
+        throwError("Failed to parse block id '{}'", args[2]);
+      }
+      start = start_id_opt.value();
+    } else {
+      start = 0;
+    }
+    if (args.size() > 3) {
+      auto end_id_opt = parseBlockId(args[3]);
+      if (!end_id_opt) {
+        throwError("Failed to parse block id '{}'", args[3]);
+      }
+      end = end_id_opt.value();
+    } else {
+      auto last_finalized = unwrapResult("Getting last finalized block",
+                                         block_storage->getLastFinalized());
+      end = last_finalized.number;
+    }
+
+    auto start_header_opt = unwrapResult("Getting 'start' block header",
+                                         block_storage->getBlockHeader(start));
+    if (!start_header_opt) {
+      throwError("'Start' block header not found");
+    }
+    auto &start_header = start_header_opt.value();
+
+    auto end_header_opt = unwrapResult("Getting 'end' block header",
+                                       block_storage->getBlockHeader(end));
+    if (!end_header_opt) {
+      throwError("'End' block header not found");
+    }
+    auto &end_header = end_header_opt.value();
+
+    for (int64_t current = end_header.number, stop = start_header.number;
+         current >= stop;
+         current--) {
+      auto current_header_opt =
+          unwrapResult(fmt::format("Getting header of block #{}", current),
+                       block_storage->getBlockHeader(current));
+      if (!current_header_opt) {
+        throwError("Block header #{} not found", current);
+      }
+      searchBlock(out, current_header_opt.value(), target);
+    }
+  }
+
+ private:
+  Target parseTarget(const char *arg) const {
+    if (strcmp(arg, "justification") == 0) return Target::Justification;
+    if (strcmp(arg, "authority-update") == 0) return Target::AuthorityUpdate;
+    if (strcmp(arg, "last-finalized") == 0) return Target::LastBlock;
+    throwError("Invalid target '{}'", arg);
+  }
+
+  void searchBlock(std::ostream &out,
+                   BlockHeader const &header,
+                   Target target) const {
+    switch (target) {
+      case Target::Justification:
+        return searchForJustification(out, header);
+      case Target::AuthorityUpdate:
+        return searchForAuthorityUpdate(out, header);
+      case Target::LastBlock:
+        return;
+    }
+    BOOST_UNREACHABLE_RETURN();
+  }
+
+  void searchForJustification(std::ostream &out,
+                              BlockHeader const &header) const {
+    auto just_opt = unwrapResult(
+        fmt::format("Getting justification for block #{}", header.number),
+        block_storage->getJustification(header.number));
+    if (just_opt) {
+      out << header.number << ", ";
+    }
+  }
+
+  void searchForAuthorityUpdate(std::ostream &out,
+                                BlockHeader const &header) const {
+    for (auto &digest_item : header.digest) {
+      auto *consensus_digest =
+          boost::get<kagome::primitives::Consensus>(&digest_item);
+      if (consensus_digest) {
+        auto decoded = unwrapResult("Decoding consensus digest",
+                                    consensus_digest->decode());
+        if (decoded.consensus_engine_id
+            == kagome::primitives::kGrandpaEngineId) {
+          reportAuthorityUpdate(out, header.number, decoded.asGrandpaDigest());
+        }
+      }
+    }
+  }
+
+  void reportAuthorityUpdate(std::ostream &out,
+                             BlockNumber digest_origin,
+                             GrandpaDigest const &digest) const {
+    using namespace kagome::primitives;
+    if (auto *scheduled_change = boost::get<ScheduledChange>(&digest);
+        scheduled_change) {
+      out << "ScheduledChange at #" << digest_origin << " for ";
+      if (scheduled_change->subchain_length > 0) {
+        out << "#" << digest_origin + scheduled_change->subchain_length;
+      } else {
+        out << "the same block";
+      }
+      out << "\n";
+
+    } else if (auto *forced_change = boost::get<ForcedChange>(&digest);
+               forced_change) {
+      out << "ForcedChange at " << digest_origin << " for ";
+      if (forced_change->subchain_length > 0) {
+        out << "#" << digest_origin + forced_change->subchain_length;
+      } else {
+        out << "the same block";
+      }
+      out << "\n";
+
+    } else if (auto *pause = boost::get<Pause>(&digest); pause) {
+      out << "Pause at " << digest_origin << " for "
+          << digest_origin + pause->subchain_length << "\n";
+
+    } else if (auto *resume = boost::get<Resume>(&digest); resume) {
+      out << "Resume at " << digest_origin << " for "
+          << digest_origin + resume->subchain_length << "\n";
+
+    } else if (auto *disabled = boost::get<OnDisabled>(&digest); disabled) {
+      out << "Disabled at " << digest_origin << " for authority "
+          << disabled->authority_index << "\n";
+    }
+  }
+
+  std::shared_ptr<BlockStorage> block_storage;
+};
+
+int main(int argc, const char **argv) {
+  ArgumentList args{argv, argc};
+
   CommandParser parser;
-  parser.addCommand("help", "print help message", [&parser](int, char **) {
-    parser.printCommands(std::cout);
-  });
+  parser.addCommand(std::make_unique<PrintHelpCommand>(parser));
 
   auto logging_system = std::make_shared<soralog::LoggingSystem>(
       std::make_shared<kagome::log::Configurator>(
@@ -96,107 +452,34 @@ int main(int argc, char **argv) {
   auto logger = kagome::log::createLogger("AppConfiguration", "main");
   kagome::application::AppConfigurationImpl configuration{logger};
 
-  BOOST_ASSERT(configuration.initializeFromArgs(argc, argv));
+  int kagome_args_start = -1;
+  for (int i = 1; i < args.size(); i++) {
+    if (strcmp(args[i], "--") == 0) {
+      kagome_args_start = i;
+    }
+  }
+  if (kagome_args_start == -1) {
+    std::cerr
+        << "You must specify arguments for kagome initialization after '--'\n";
+    return -1;
+  }
+
+  if (!configuration.initializeFromArgs(argc - kagome_args_start,
+                                        args.subspan(kagome_args_start).data())) {
+    std::cerr << "Failed to initialize kagome!\n";
+    return -1;
+  }
 
   kagome::injector::KagomeNodeInjector injector{configuration};
   auto block_storage = injector.injectBlockStorage();
 
   auto trie_storage = injector.injectTrieStorage();
-  parser.addCommand(
-      "inspect-block",
-      "# or hash - print info about the block with the given number or hash",
-      [&block_storage](int argc, char **argv) {
-        if (argc != 2) {
-          throw std::runtime_error("Invalid argument count, 1 expected");
-        }
-        auto opt_id = parseBlockId(argv[1]);
-        if (!opt_id) {
-          return;
-        }
-        if (auto res = block_storage->getBlockHeader(opt_id.value()); res) {
-          if (!res.value().has_value()) {
-            std::cerr << "Error: Block header not found\n";
-          }
-          std::cout << "#: " << res.value()->number << "\n";
-          std::cout << "Parent hash: " << res.value()->parent_hash.toHex()
-                    << "\n";
-          std::cout << "State root: " << res.value()->state_root.toHex()
-                    << "\n";
-          std::cout << "Extrinsics root: "
-                    << res.value()->extrinsics_root.toHex() << "\n";
-        } else {
-          std::cerr << "Error: " << res.error().message() << "\n";
-          return;
-        }
-      });
+  parser.addCommand(std::make_unique<InspectBlockCommand>(block_storage));
+  parser.addCommand(std::make_unique<RemoveBlockCommand>(block_storage));
+  parser.addCommand(std::make_unique<QueryStateCommand>(trie_storage));
+  parser.addCommand(std::make_unique<SearchChainCommand>(block_storage));
 
-  parser.addCommand(
-      "remove-block",
-      "# or hash - remove the block from the block tree",
-      [&block_storage](int argc, char **argv) {
-        if (argc != 2) {
-          throw std::runtime_error("Invalid argument count, 1 expected");
-        }
-        auto opt_id = parseBlockId(argv[1]);
-        if (!opt_id) {
-          return;
-        }
-        auto data = block_storage->getBlockData(opt_id.value());
-        if (!data) {
-          std::cerr << "Error: " << data.error().message() << "\n";
-        }
-        if (!data.value().has_value()) {
-          std::cerr << "Error: block data not found\n";
-        }
-        if (auto res =
-                block_storage->removeBlock({data.value().value().header->number,
-                                            data.value().value().hash});
-            !res) {
-          std::cerr << "Error: " << res.error().message() << "\n";
-          return;
-        }
-      });
+  parser.invoke(args.subspan(0, kagome_args_start));
 
-  parser.addCommand(
-      "query-state",
-      "state_hash, key - query value at a given key and state",
-      [&trie_storage](int argc, char **argv) {
-        if (argc != 3) {
-          throw std::runtime_error("Invalid argument count, 2 expected");
-        }
-        kagome::storage::trie::RootHash state_root{};
-        if (auto id_bytes = kagome::common::unhex(argv[1]); id_bytes) {
-          std::copy_n(id_bytes.value().begin(),
-                      kagome::primitives::BlockHash::size(),
-                      state_root.begin());
-        } else {
-          std::cerr << "Invalid block hash!\n";
-          return;
-        }
-        auto batch = trie_storage->getEphemeralBatchAt(state_root);
-        if (!batch) {
-          std::cerr << "Error: " << batch.error().message() << "\n";
-          return;
-        }
-        kagome::common::Buffer key{};
-        if (auto key_bytes = kagome::common::unhex(argv[2]); key_bytes) {
-          key = kagome::common::Buffer{std::move(key_bytes.value())};
-        } else {
-          std::cerr << "Invalid key!\n";
-          return;
-        }
-        auto value_res = batch.value()->tryGet(key);
-        if (value_res.has_error()) {
-          std::cout << "Error retrieving value from Trie: "
-                    << value_res.error().message() << "\n";
-        }
-        auto &value_opt = value_res.value();
-        if (value_opt.has_value()) {
-          std::cout << "Value is " << value_opt->get().toHex() << "\n";
-        } else {
-          std::cout << "No value by provided key\n";
-        }
-      });
-
-  parser.invoke(argc, argv);
+  return 0;
 }

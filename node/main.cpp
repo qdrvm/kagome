@@ -18,7 +18,7 @@
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
-int main(int argc, char **argv) {
+int main(int argc, const char **argv) {
   backward::SignalHandling sh;
 
   {

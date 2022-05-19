@@ -70,6 +70,7 @@ groups:
     children:
       - name: kagome-db-editor
       - name: trie
+        level: debug
       - name: storage
       - name: changes_trie
       - name: blockchain

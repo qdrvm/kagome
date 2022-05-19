@@ -228,7 +228,6 @@ namespace kagome::consensus {
 
     if (not block_already_exists) {
       auto exec_start = std::chrono::high_resolution_clock::now();
-      // apply block
       SL_DEBUG(logger_,
                "Execute block {}, state {}, a child of block {}, state {}",
                primitives::BlockInfo(block.header.number, block_hash),
@@ -264,6 +263,10 @@ namespace kagome::consensus {
           },
           [](const auto &) { return outcome::success(); });
       if (res.has_error()) {
+        SL_ERROR(logger_,
+                 "Error while processing consensus digests of block {}: {}",
+                 block_hash,
+                 res.error().message());
         rollbackBlock(block_hash);
         return res.as_failure();
       }
