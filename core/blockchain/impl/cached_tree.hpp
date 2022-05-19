@@ -12,6 +12,7 @@
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/epoch_digest.hpp"
 #include "primitives/block_id.hpp"
+#include "primitives/justification.hpp"
 
 namespace kagome::blockchain {
 
@@ -81,6 +82,10 @@ namespace kagome::blockchain {
         std::function<outcome::result<ExitToken>(TreeNode const &node)> const
             &op) const;
 
+    primitives::BlockInfo getBlockInfo() const {
+      return {depth, block_hash};
+    }
+
     bool operator==(const TreeNode &other) const;
     bool operator!=(const TreeNode &other) const;
   };
@@ -90,16 +95,20 @@ namespace kagome::blockchain {
    * the operations faster
    */
   struct TreeMeta {
-    explicit TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node);
+    explicit TreeMeta(
+        const std::shared_ptr<TreeNode> &subtree_root_node,
+        std::optional<primitives::Justification> last_finalized_justification);
 
     TreeMeta(std::unordered_set<primitives::BlockHash> leaves,
              const std::shared_ptr<TreeNode> &deepest_leaf,
-             const std::shared_ptr<TreeNode> &last_finalized);
+             const std::shared_ptr<TreeNode> &last_finalized,
+             primitives::Justification last_finalized_justification);
 
     std::unordered_set<primitives::BlockHash> leaves;
     std::weak_ptr<TreeNode> deepest_leaf;
 
     std::weak_ptr<TreeNode> last_finalized;
+    std::optional<primitives::Justification> last_finalized_justification;
   };
 
   /**
@@ -114,12 +123,13 @@ namespace kagome::blockchain {
       BOOST_ASSERT(metadata_ != nullptr);
     }
     /**
-     * Remove nodes in block tree from current tree_ to \arg new_trie_root.
+     * Remove nodes in block tree from current tree_ to {\arg new_trie_root}.
      * Needed to avoid cascade shared_ptr destructor calls which break
      * the stack.
      * @return new tree root
      */
-    void updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root);
+    void updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root,
+                        primitives::Justification justification);
 
     void updateMeta(const std::shared_ptr<TreeNode> &new_node);
 

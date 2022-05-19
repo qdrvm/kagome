@@ -10,6 +10,7 @@
 
 #include <fmt/format.h>
 #include <boost/functional/hash.hpp>
+#include <scale/scale.hpp>
 
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
@@ -18,49 +19,60 @@
 #define KAGOME_BLOB_STRICT_TYPEDEF(space_name, class_name, blob_size)          \
   namespace space_name {                                                       \
     struct class_name : public ::kagome::common::Blob<blob_size> {             \
+      using Base = ::kagome::common::Blob<blob_size>;                          \
+                                                                               \
       class_name() = default;                                                  \
       class_name(const class_name &) = default;                                \
       class_name(class_name &&) = default;                                     \
       class_name &operator=(const class_name &) = default;                     \
       class_name &operator=(class_name &&) = default;                          \
                                                                                \
-      explicit class_name(const ::kagome::common::Blob<blob_size> &blob)       \
-          : Blob<blob_size>{blob} {}                                           \
-      explicit class_name(::kagome::common::Blob<blob_size> &&blob)            \
-          : Blob<blob_size>{std::move(blob)} {}                                \
+      explicit class_name(const Base &blob) : Base{blob} {}                    \
+      explicit class_name(Base &&blob) : Base{std::move(blob)} {}              \
                                                                                \
       ~class_name() = default;                                                 \
                                                                                \
-      class_name &operator=(const ::kagome::common::Blob<blob_size> &blob) {   \
+      class_name &operator=(const Base &blob) {                                \
         Blob::operator=(blob);                                                 \
         return *this;                                                          \
       }                                                                        \
                                                                                \
-      class_name &operator=(::kagome::common::Blob<blob_size> &&blob) {        \
+      class_name &operator=(Base &&blob) {                                     \
         Blob::operator=(std::move(blob));                                      \
         return *this;                                                          \
       }                                                                        \
                                                                                \
       static ::outcome::result<class_name> fromString(std::string_view data) { \
-        OUTCOME_TRY(blob, Blob<blob_size>::fromString(data));                  \
+        OUTCOME_TRY(blob, Base::fromString(data));                             \
         return class_name{std::move(blob)};                                    \
       }                                                                        \
                                                                                \
       static ::outcome::result<class_name> fromHex(std::string_view hex) {     \
-        OUTCOME_TRY(blob, Blob<blob_size>::fromHex(hex));                      \
+        OUTCOME_TRY(blob, Base::fromHex(hex));                                 \
         return class_name{std::move(blob)};                                    \
       }                                                                        \
                                                                                \
       static ::outcome::result<class_name> fromHexWithPrefix(                  \
           std::string_view hex) {                                              \
-        OUTCOME_TRY(blob, Blob<blob_size>::fromHexWithPrefix(hex));            \
+        OUTCOME_TRY(blob, Base::fromHexWithPrefix(hex));                       \
         return class_name{std::move(blob)};                                    \
       }                                                                        \
                                                                                \
       static ::outcome::result<class_name> fromSpan(                           \
           const gsl::span<const uint8_t> &span) {                              \
-        OUTCOME_TRY(blob, Blob<blob_size>::fromSpan(span));                    \
+        OUTCOME_TRY(blob, Base::fromSpan(span));                               \
         return class_name{std::move(blob)};                                    \
+      }                                                                        \
+                                                                               \
+      friend inline ::scale::ScaleEncoderStream &operator<<(                   \
+          ::scale::ScaleEncoderStream &s,                                      \
+          const space_name::class_name &data) {                                \
+        return s << static_cast<const Base &>(data);                           \
+      }                                                                        \
+                                                                               \
+      friend inline ::scale::ScaleDecoderStream &operator>>(                   \
+          ::scale::ScaleDecoderStream &s, space_name::class_name &data) {      \
+        return s >> static_cast<Base &>(data);                                 \
       }                                                                        \
     };                                                                         \
   };                                                                           \
@@ -75,12 +87,10 @@
                                                                                \
   template <>                                                                  \
   struct fmt::formatter<space_name::class_name>                                \
-      : fmt::formatter<kagome::common::Blob<space_name::class_name::size()>> { \
+      : fmt::formatter<space_name::class_name::Base> {                         \
     template <typename FormatCtx>                                              \
     auto format(const space_name::class_name &blob, FormatCtx &ctx) {          \
-      return fmt::formatter<                                                   \
-          kagome::common::Blob<space_name::class_name::size()>>::format(blob,  \
-                                                                        ctx);  \
+      return fmt::formatter<space_name::class_name::Base>::format(blob, ctx);  \
     }                                                                          \
   };
 

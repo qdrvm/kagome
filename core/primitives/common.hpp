@@ -30,6 +30,9 @@ namespace kagome::primitives {
       BlockInfoT(const BlockNumber &n, const BlockHash &h)
           : number(n), hash(h) {}
 
+      BlockInfoT(const BlockHash &h, const BlockNumber &n)
+          : number(n), hash(h) {}
+
       BlockNumber number{};
       BlockHash hash{};
 
