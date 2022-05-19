@@ -43,8 +43,8 @@ namespace kagome::blockchain {
      * Tries to get block header by {@param id}
      * @returns block header or error
      */
-    virtual outcome::result<std::optional<primitives::BlockHeader>> getBlockHeader(
-        const primitives::BlockId &id) const = 0;
+    virtual outcome::result<std::optional<primitives::BlockHeader>>
+    getBlockHeader(const primitives::BlockId &id) const = 0;
 
     /**
      * Tries to get block body by {@param id}
@@ -64,8 +64,8 @@ namespace kagome::blockchain {
      * Tries to get justification of block finality by {@param id}
      * @returns justification or error
      */
-    virtual outcome::result<std::optional<primitives::Justification>> getJustification(
-        const primitives::BlockId &block) const = 0;
+    virtual outcome::result<std::optional<primitives::Justification>>
+    getJustification(const primitives::BlockId &block) const = 0;
 
     /**
      * Saves number-to-block_lookup_key for {@param block} to block storage
@@ -89,6 +89,15 @@ namespace kagome::blockchain {
         primitives::BlockNumber, const primitives::BlockData &block_data) = 0;
 
     /**
+     * Removes data parts from storage
+     * @arg remove_flags - parts to remove
+     * @arg number - block number
+     * @returns result of removal
+     */
+    virtual outcome::result<void> removeBlockData(
+        primitives::BlockNumber block_number,
+        const primitives::BlockDataFlags &remove_flags) = 0;
+    /**
      * Saves {@param block} to block storage
      * @returns hash of saved header or error
      */
@@ -103,7 +112,16 @@ namespace kagome::blockchain {
     virtual outcome::result<void> putJustification(
         const primitives::Justification &justification,
         const primitives::BlockHash &hash,
-        const primitives::BlockNumber &number) = 0;
+        primitives::BlockNumber number) = 0;
+
+    /**
+     * Removes {@param justification} of block with {@param number} and {@param
+     * hash} from block storage
+     * @returns result of saving
+     */
+    virtual outcome::result<void> removeJustification(
+        const primitives::BlockHash &hash,
+        primitives::BlockNumber number) = 0;
 
     /**
      * Get the last finalized block
