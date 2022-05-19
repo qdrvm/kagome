@@ -46,6 +46,10 @@ namespace kagome::consensus::babe {
       primitives::InherentIdentifier::fromString("timstap0").value();
   inline const auto kBabeSlotId =
       primitives::InherentIdentifier::fromString("babeslot").value();
+  inline const auto kParachainId =
+      primitives::InherentIdentifier::fromString("parachn0").value();
+  inline const auto kUnsupportedInherentId_uncles00 =
+      primitives::InherentIdentifier::fromString("uncles00").value();
 
   /// The maximum allowed number of slots past the expected slot as a delay for
   /// block production. This is an intentional relaxation of block dropping algo
