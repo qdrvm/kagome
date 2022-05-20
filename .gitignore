@@ -47,3 +47,4 @@ _logs
 _build
 examples/**/db
 .cache/**
+/test/external-project-test/.idea/*

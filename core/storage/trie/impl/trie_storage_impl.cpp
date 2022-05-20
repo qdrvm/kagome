@@ -49,7 +49,6 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT((changes_.has_value() and changes_.value() != nullptr)
                  or not changes_.has_value());
-    logger_->verbose("Initialize trie storage");
   }
 
   outcome::result<std::unique_ptr<PersistentTrieBatch>>

@@ -72,10 +72,9 @@ namespace kagome::consensus::grandpa {
                     header_repository_->getBlockHeader(best_block.hash));
         BlockInfo parent_block{header.number - 1, header.parent_hash};
 
-        OUTCOME_TRY(voter_set,
-                    authority_manager_->authorities(parent_block, true));
-
-        if (voter_set->id == voter_set_id.value()) {
+        auto voter_set = authority_manager_->authorities(parent_block, true);
+        
+        if (voter_set.has_value() && voter_set.value()->id == voter_set_id.value()) {
           // found
           break;
         }
