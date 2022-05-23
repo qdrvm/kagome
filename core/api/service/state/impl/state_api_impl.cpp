@@ -62,7 +62,7 @@ namespace kagome::api {
       uint32_t keys_amount,
       const std::optional<common::BufferView> &prev_key_opt,
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
-    const auto &prefix = prefix_opt.value_or(common::Buffer{});
+    const auto &prefix = prefix_opt.value_or(common::emptyBuffer);
     const auto &prev_key = prev_key_opt.value_or(prefix);
     const auto &block_hash =
         block_hash_opt.value_or(block_tree_->getLastFinalized().hash);
