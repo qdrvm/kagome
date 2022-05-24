@@ -11,6 +11,7 @@
 #include "primitives/authority.hpp"
 
 namespace kagome::authority {
+
   class AuthorityManager {
    public:
     virtual ~AuthorityManager() = default;
@@ -26,8 +27,8 @@ namespace kagome::authority {
      * @param finalized - true if we consider that the provided block is finalized
      * @return outcome authority set
      */
-    virtual outcome::result<std::shared_ptr<const primitives::AuthorityList>>
-    authorities(const primitives::BlockInfo &block, bool finalized) = 0;
+    virtual std::optional<std::shared_ptr<const primitives::AuthorityList>>
+    authorities(const primitives::BlockInfo &block, bool finalized) const = 0;
 
     /**
      * @brief Schedule an authority set change after the given delay of N
@@ -61,10 +62,10 @@ namespace kagome::authority {
      * When an authority gets disabled, the node should stop performing any
      * authority functionality from that authority, including authoring blocks
      * and casting GRANDPA votes for finalization. Similarly, other nodes should
-     * ignore all messages from the indicated authority which pretain to their
-     * authority role.orce an authority set change after the given delay of N
+     * ignore all messages from the indicated authority which pertain to their
+     * authority role. Once an authority set change after the given delay of N
      * blocks, is an imported block which has been validated by the block
-     * production conensus engine.
+     * production consensus engine.
      * @param block is info of block which representing this change
      * @param authority_index is index of one authority in current authority set
      */

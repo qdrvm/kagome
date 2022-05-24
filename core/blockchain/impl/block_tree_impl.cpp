@@ -8,13 +8,15 @@
 #include <algorithm>
 #include <stack>
 
-#include "blockchain/block_storage_error.hpp"
+#include "application/app_state_manager.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
 #include "blockchain/impl/common.hpp"
+#include "blockchain/impl/justification_storage_policy.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "crypto/blake2/blake2b.h"
+#include "log/profiling_logger.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/database_error.hpp"
 
@@ -124,7 +126,9 @@ namespace kagome::blockchain {
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
-      std::shared_ptr<consensus::BabeUtil> babe_util) {
+      std::shared_ptr<consensus::BabeUtil> babe_util,
+      std::shared_ptr<const class JustificationStoragePolicy>
+          justification_storage_policy) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
@@ -182,6 +186,9 @@ namespace kagome::blockchain {
 
       curr_epoch_number.emplace(epoch_number);
     }
+
+    OUTCOME_TRY(last_finalized_justification,
+                storage->getJustification(last_finalized_block_info.hash));
 
     std::optional<consensus::EpochDigest> curr_epoch;
     std::optional<consensus::EpochDigest> next_epoch;
@@ -326,7 +333,8 @@ namespace kagome::blockchain {
                                            curr_epoch_number.value(),
                                            std::move(next_epoch.value()),
                                            true);
-    auto meta = std::make_shared<TreeMeta>(tree);
+    SL_DEBUG(log, "Last finalized block #{}", tree->depth);
+    auto meta = std::make_shared<TreeMeta>(tree, last_finalized_justification);
 
     auto *block_tree =
         new BlockTreeImpl(std::move(header_repo),
@@ -339,7 +347,8 @@ namespace kagome::blockchain {
                           std::move(extrinsic_event_key_repo),
                           std::move(runtime_core),
                           std::move(changes_tracker),
-                          std::move(babe_util));
+                          std::move(babe_util),
+                          std::move(justification_storage_policy));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -361,19 +370,15 @@ namespace kagome::blockchain {
   }
 
   outcome::result<void> BlockTreeImpl::recover(
-      const application::AppConfiguration &app_config,
+      primitives::BlockId target_block,
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
     BOOST_ASSERT(trie_storage != nullptr);
-    BOOST_ASSERT_MSG(app_config.recoverState().has_value(),
-                     "This method must be used only with --recovery CLI arg");
 
     log::Logger log = log::createLogger("BlockTree", "blockchain");
-
-    const auto recovery_state = app_config.recoverState().value();
 
     OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
 
@@ -381,7 +386,7 @@ namespace kagome::blockchain {
                      "Must be known or calculated at least one leaf");
 
     // Check if target block exists
-    auto target_block_header_opt_res = storage->getBlockHeader(recovery_state);
+    auto target_block_header_opt_res = storage->getBlockHeader(target_block);
     if (target_block_header_opt_res.has_error()) {
       SL_CRITICAL(log,
                   "Can't get header of target block: {}",
@@ -462,7 +467,9 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-      std::shared_ptr<consensus::BabeUtil> babe_util)
+      std::shared_ptr<consensus::BabeUtil> babe_util,
+      std::shared_ptr<const JustificationStoragePolicy>
+          justification_storage_policy)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(cached_tree)},
@@ -473,7 +480,8 @@ namespace kagome::blockchain {
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
         runtime_core_(std::move(runtime_core)),
         trie_changes_tracker_(std::move(changes_tracker)),
-        babe_util_(std::move(babe_util)) {
+        babe_util_(std::move(babe_util)),
+        justification_storage_policy_{std::move(justification_storage_policy)} {
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(tree_ != nullptr);
@@ -485,6 +493,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT(runtime_core_ != nullptr);
     BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
+    BOOST_ASSERT(justification_storage_policy_ != nullptr);
     BOOST_ASSERT(telemetry_ != nullptr);
 
     // Register metrics
@@ -780,8 +789,8 @@ namespace kagome::blockchain {
     if (!node) {
       return BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND;
     }
-    if (auto res = storage_->getJustification(block_hash);
-        res.has_value() && res.value().has_value()) {
+    if (node->depth <= getLastFinalized().number
+        && hasDirectChain(block_hash, getLastFinalized().hash)) {
       // block was already finalized, fine
       return outcome::success();
     }
@@ -790,16 +799,21 @@ namespace kagome::blockchain {
              "Finalizing block {}",
              primitives::BlockInfo(node->depth, block_hash));
 
-    // insert justification into the database
-    OUTCOME_TRY(
-        storage_->putJustification(justification, block_hash, node->depth));
+    OUTCOME_TRY(header_opt, storage_->getBlockHeader(node->block_hash));
+    if (!header_opt.has_value()) {
+      return BlockTreeError::HEADER_NOT_FOUND;
+    }
+    auto &header = header_opt.value();
+
+    auto last_finalized_block_info =
+        tree_->getMetadata().last_finalized.lock()->getBlockInfo();
 
     // update our local meta
     node->finalized = true;
 
     OUTCOME_TRY(prune(node));
 
-    tree_->updateTreeRoot(node);
+    tree_->updateTreeRoot(node, justification);
 
     OUTCOME_TRY(reorganize());
 
@@ -807,13 +821,8 @@ namespace kagome::blockchain {
         storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
                                       tree_->getMetadata().leaves.end()}));
 
-    OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
-    if (!header.has_value()) {
-      return BlockTreeError::HEADER_NOT_FOUND;
-    }
-
     chain_events_engine_->notify(
-        primitives::events::ChainEventType::kFinalizedHeads, header.value());
+        primitives::events::ChainEventType::kFinalizedHeads, header);
 
     OUTCOME_TRY(new_runtime_version, runtime_core_->version(block_hash));
     if (not actual_runtime_version_.has_value()
@@ -841,6 +850,39 @@ namespace kagome::blockchain {
     log_->info("Finalized block {}", finalized_block);
     telemetry_->notifyBlockFinalized(finalized_block);
     metric_finalized_block_height_->set(node->depth);
+
+    KAGOME_PROFILE_START(justification_store)
+
+    OUTCOME_TRY(
+        storage_->putJustification(justification, block_hash, node->depth));
+    SL_DEBUG(log_,
+             "Store justification for finalized block #{} {}",
+             node->depth,
+             block_hash);
+    // we store justification for last finalized block only as long as it is
+    // last finalized (if it doesn't meet other justification storage rules,
+    // e.g. its number a multiple of 512)
+    OUTCOME_TRY(last_finalized_header_opt,
+                storage_->getBlockHeader(last_finalized_block_info.number));
+    // SAFETY: header for the last finalized block must be present
+    auto &last_finalized_header = last_finalized_header_opt.value();
+    OUTCOME_TRY(
+        shouldStoreLastFinalized,
+        justification_storage_policy_->shouldStoreFor(last_finalized_header));
+    if (!shouldStoreLastFinalized) {
+      OUTCOME_TRY(justification_opt,
+                  storage_->getJustification(last_finalized_block_info.hash));
+      if (justification_opt.has_value()) {
+        SL_DEBUG(log_,
+                 "Purge redunant justification for finalized block {}",
+                 last_finalized_block_info);
+        OUTCOME_TRY(storage_->removeJustification(
+            last_finalized_block_info.hash, last_finalized_block_info.number));
+      }
+    }
+    
+    KAGOME_PROFILE_END(justification_store)
+
     return outcome::success();
   }
 
