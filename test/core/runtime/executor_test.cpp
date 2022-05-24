@@ -76,8 +76,7 @@ class ExecutorTest : public testing::Test {
     enc_args = Buffer{scale::encode(arg1, arg2).value()};
     const PtrSize ARGS_LOCATION{1, 2};
     const PtrSize RESULT_LOCATION{3, 4};
-    //EXPECT_CALL(*memory_, storeBuffer(ElementsAreArray(enc_args)))
-    //    .WillOnce(Return(ARGS_LOCATION.combine()));
+
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
@@ -146,8 +145,6 @@ class ExecutorTest : public testing::Test {
     enc_args = Buffer{scale::encode(arg1, arg2).value()};
     const PtrSize ARGS_LOCATION{1, 2};
     const PtrSize RESULT_LOCATION{3, 4};
-    //EXPECT_CALL(*memory_, storeBuffer(ElementsAreArray(enc_args)))
-    //    .WillOnce(Return(ARGS_LOCATION.combine()));
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
