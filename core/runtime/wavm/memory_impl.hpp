@@ -102,12 +102,10 @@ namespace kagome::runtime::wavm {
        * We use this condition to avoid deallocated_ pointers fixup
        */
       if (new_size >= size()) {
-        auto old_size = size();
         auto new_page_number = (new_size / kPageSize) + 1;
         WAVM::Runtime::growMemory(
             memory_,
             new_page_number - WAVM::Runtime::getMemoryNumPages(memory_));
-        fill(PtrSize{old_size, size()}, 0);
       }
     }
 

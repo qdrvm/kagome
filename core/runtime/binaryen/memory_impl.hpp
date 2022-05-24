@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <optional>
 
-#include "binaryen/wasm.h"
+#include <binaryen/wasm.h>
 
 #include "common/literals.hpp"
 #include "log/logger.hpp"
@@ -80,13 +80,8 @@ namespace kagome::runtime::binaryen {
        * deallocated_ pointers fixup
        */
       if (new_size >= size_) {
-        auto old_size = size_;
         size_ = new_size;
         memory_->resize(new_size);
-
-        for(size_t i = old_size; i < size_; i++) {
-          memory_->set(i, 0);
-        }
       }
     }
 

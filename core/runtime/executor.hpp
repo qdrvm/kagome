@@ -7,8 +7,6 @@
 #define KAGOME_CORE_RUNTIME_EXECUTOR_HPP
 
 #include <optional>
-#include <fstream>
-#include <thread>
 
 #include "common/buffer.hpp"
 #include "host_api/host_api.hpp"
@@ -37,8 +35,7 @@ namespace kagome::runtime {
    public:
     using Buffer = common::Buffer;
 
-    Executor(
-        std::shared_ptr<RuntimeEnvironmentFactory> env_factory)
+    Executor(std::shared_ptr<RuntimeEnvironmentFactory> env_factory)
         : env_factory_{std::move(env_factory)},
           logger_{log::createLogger("Executor", "runtime")} {
       BOOST_ASSERT(env_factory_ != nullptr);
@@ -183,8 +180,10 @@ namespace kagome::runtime {
       }
 
       KAGOME_PROFILE_START(call_execution)
+
       auto result_span =
-                  env.module_instance->callExportFunction(name, encoded_args);
+          env.module_instance->callExportFunction(name, encoded_args);
+
       KAGOME_PROFILE_END(call_execution)
       OUTCOME_TRY(span, result_span);
 
