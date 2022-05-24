@@ -87,7 +87,6 @@ class ExecutorTest : public testing::Test {
                      env_factory_},
              next_storage_state = std::move(next_storage_state),
              this,
-             &enc_args,
              RESULT_LOCATION](auto &blockchain_state, auto &storage_state) {
               auto env_template =
                   std::make_unique<RuntimeEnvironmentTemplateMock>(
@@ -96,7 +95,6 @@ class ExecutorTest : public testing::Test {
                   .WillOnce(ReturnRef(*env_template));
               EXPECT_CALL(*env_template, make())
                   .WillOnce(Invoke([this,
-                                    &enc_args,
                                     RESULT_LOCATION,
                                     blockchain_state,
                                     next_storage_state =
@@ -154,13 +152,12 @@ class ExecutorTest : public testing::Test {
                  std::weak_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock>{
                      env_factory_},
              this,
-             &enc_args,
              RESULT_LOCATION](auto &blockchain_state, auto &storage_state) {
               auto env_template =
                   std::make_unique<RuntimeEnvironmentTemplateMock>(
                       weak_env_factory, blockchain_state, storage_state);
               EXPECT_CALL(*env_template, make())
-                  .WillOnce(Invoke([this, &enc_args, blockchain_state, RESULT_LOCATION] {
+                  .WillOnce(Invoke([this, blockchain_state, RESULT_LOCATION] {
                     auto module_instance =
                         std::make_shared<ModuleInstanceMock>();
                     EXPECT_CALL(*module_instance, resetEnvironment())
