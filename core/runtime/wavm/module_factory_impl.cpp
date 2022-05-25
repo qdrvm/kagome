@@ -12,7 +12,7 @@ namespace kagome::runtime::wavm {
   ModuleFactoryImpl::ModuleFactoryImpl(
       std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
-      std::shared_ptr<const IntrinsicModule> intrinsic_module)
+      std::shared_ptr<IntrinsicModule> intrinsic_module)
       : compartment_{std::move(compartment)},
         env_factory_{std::move(env_factory)},
         intrinsic_module_{std::move(intrinsic_module)} {
