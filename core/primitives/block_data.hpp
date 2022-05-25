@@ -26,6 +26,23 @@ namespace kagome::primitives {
     std::optional<primitives::Justification> justification{};
   };
 
+  struct BlockDataFlags {
+    static BlockDataFlags allSet(primitives::BlockHash hash) {
+      return BlockDataFlags {std::move(hash), true, true, true, true, true};
+    }
+
+    static BlockDataFlags allUnset(primitives::BlockHash hash) {
+      return BlockDataFlags {std::move(hash), true, true, true, true, true};
+    }
+
+    primitives::BlockHash hash;
+    bool header{};
+    bool body{};
+    bool receipt{};
+    bool message_queue{};
+    bool justification{};
+  };
+
   /**
    * @brief compares two BlockData instances
    * @param lhs first instance

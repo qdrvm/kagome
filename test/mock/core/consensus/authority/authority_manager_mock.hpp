@@ -12,14 +12,15 @@
 #include <gmock/gmock.h>
 
 namespace kagome::authority {
+
   struct AuthorityManagerMock : public AuthorityManager {
     MOCK_METHOD(primitives::BlockInfo, base, (), (const, override));
 
     MOCK_METHOD(
-        outcome::result<std::shared_ptr<const primitives::AuthorityList>>,
+        std::optional<std::shared_ptr<const primitives::AuthorityList>>,
         authorities,
         (const primitives::BlockInfo &, bool),
-        (override));
+        (const, override));
 
     MOCK_METHOD(outcome::result<void>,
                 applyScheduledChange,

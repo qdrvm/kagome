@@ -34,6 +34,10 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "telemetry/service.hpp"
 
+namespace kagome::application {
+  class AppStateManager;
+}
+
 namespace kagome::storage::changes_trie {
   class ChangesTracker;
 }
@@ -59,16 +63,19 @@ namespace kagome::blockchain {
         std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
-        std::shared_ptr<consensus::BabeUtil> babe_util);
+        std::shared_ptr<consensus::BabeUtil> babe_util,
+        std::shared_ptr<const class JustificationStoragePolicy>
+            justification_storage_policy);
 
-    /// Do recover block tree stare to provided block
+    /// Recover block tree state at provided block
     static outcome::result<void> recover(
-        const application::AppConfiguration &app_config,
+        primitives::BlockId target_block,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<const storage::trie::TrieStorage> trie_storage);
 
     ~BlockTreeImpl() override = default;
+
 
     const primitives::BlockHash &getGenesisBlockHash() const override;
 
@@ -167,7 +174,9 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<consensus::BabeUtil> babe_util);
+        std::shared_ptr<consensus::BabeUtil> babe_util,
+        std::shared_ptr<const class JustificationStoragePolicy>
+            justification_storage_policy);
 
     /**
      * Walks the chain backwards starting from \param start until the current
@@ -212,6 +221,9 @@ namespace kagome::blockchain {
     std::shared_ptr<storage::changes_trie::ChangesTracker>
         trie_changes_tracker_;
     std::shared_ptr<const consensus::BabeUtil> babe_util_;
+    std::shared_ptr<const class JustificationStoragePolicy>
+        justification_storage_policy_;
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
 
     std::optional<primitives::BlockHash> genesis_block_hash_;
     std::optional<primitives::Version> actual_runtime_version_;
