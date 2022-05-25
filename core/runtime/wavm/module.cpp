@@ -6,8 +6,10 @@
 #include "runtime/wavm/module.hpp"
 
 #include <WAVM/Runtime/Linker.h>
+#include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASM/WASM.h>
 #include <boost/assert.hpp>
+#include <memory>
 
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
@@ -36,6 +38,11 @@ namespace kagome::runtime::wavm {
                        loadError.message);
       return nullptr;
     }
+
+    IntrinsicModule::kIntrinsicMemoryType =
+        WAVM::Runtime::getModuleIR(module).memories.imports[0].type;
+    intrinsic_module =
+        std::make_shared<IntrinsicModule>(intrinsic_module->compartment_);
 
     return std::unique_ptr<ModuleImpl>(
         new ModuleImpl{std::move(compartment),

@@ -17,9 +17,7 @@ namespace kagome::runtime::wavm {
 
   class IntrinsicModule final {
    public:
-    static inline const WAVM::IR::MemoryType kIntrinsicMemoryType{
-        WAVM::IR::MemoryType(
-            false, WAVM::IR::IndexType::i32, {21, UINT64_MAX})};
+    static WAVM::IR::MemoryType kIntrinsicMemoryType;
     static constexpr std::string_view kIntrinsicMemoryName = "Runtime Memory";
 
     explicit IntrinsicModule(std::shared_ptr<CompartmentWrapper> compartment)
@@ -49,9 +47,9 @@ namespace kagome::runtime::wavm {
       functions_.insert(std::pair{name, std::move(intrinsic)});
     }
 
-   private:
     std::shared_ptr<CompartmentWrapper> compartment_;
 
+   private:
     WAVM::Intrinsics::Module module_;
 
     // actually used, because added to the intrinsic module
