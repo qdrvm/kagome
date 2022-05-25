@@ -23,6 +23,11 @@ namespace kagome::runtime::wavm {
     explicit IntrinsicModule(std::shared_ptr<CompartmentWrapper> compartment)
         : compartment_{compartment} {}
 
+    IntrinsicModule(IntrinsicModule &module)
+        : compartment_{module.compartment_},
+          memory_{&module_, kIntrinsicMemoryName.data(), kIntrinsicMemoryType} {
+    }
+
     std::unique_ptr<IntrinsicModuleInstance> instantiate() const {
       BOOST_ASSERT_MSG(
           !functions_.empty(),
@@ -47,9 +52,8 @@ namespace kagome::runtime::wavm {
       functions_.insert(std::pair{name, std::move(intrinsic)});
     }
 
-    std::shared_ptr<CompartmentWrapper> compartment_;
-
    private:
+    std::shared_ptr<CompartmentWrapper> compartment_;
     WAVM::Intrinsics::Module module_;
 
     // actually used, because added to the intrinsic module

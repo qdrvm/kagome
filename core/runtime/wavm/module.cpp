@@ -9,7 +9,6 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASM/WASM.h>
 #include <boost/assert.hpp>
-#include <memory>
 
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
@@ -47,9 +46,7 @@ namespace kagome::runtime::wavm {
     }
 
     IntrinsicModule::kIntrinsicMemoryType = imports[0].type;
-    intrinsic_module =
-        std::make_shared<IntrinsicModule>(intrinsic_module->compartment_);
-
+    intrinsic_module = std::make_shared<IntrinsicModule>(*intrinsic_module);
     runtime::wavm::registerHostApiMethods(*intrinsic_module);
 
     return std::unique_ptr<ModuleImpl>(
