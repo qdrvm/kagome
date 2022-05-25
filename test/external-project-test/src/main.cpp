@@ -145,8 +145,7 @@ int main() {
       std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
           "WAVM Compartment");
   auto intrinsic_module =
-      std::make_shared<const kagome::runtime::wavm::IntrinsicModule>(
-          compartment);
+      std::make_shared<kagome::runtime::wavm::IntrinsicModule>(compartment);
 
   auto generator =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
