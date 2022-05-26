@@ -16,4 +16,4 @@ namespace kagome::runtime::wavm {
   };
 }  // namespace kagome::runtime::wavm
 
-#endif KAGOME_CORE_RUNTIME_WAVM_MODULE_PARAMS_HPP
+#endif  // KAGOME_CORE_RUNTIME_WAVM_MODULE_PARAMS_HPP
