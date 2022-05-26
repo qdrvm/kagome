@@ -10,18 +10,16 @@
 
 #include <gsl/span>
 
+#include "host_api/host_api.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
-
-namespace kagome::runtime {
-  class RuntimeCodeProvider;
-}
 
 namespace kagome::runtime {
 
   class ModuleInstance;
   class Module;
   class Memory;
+  class RuntimeCodeProvider;
 
   /**
    * Repository for runtime modules

@@ -14,6 +14,8 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/memory_impl.hpp"
+#include "runtime/module_repository.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 
 static WAVM::IR::Value evaluateInitializer(
     WAVM::IR::InitializerExpression expression) {
@@ -211,6 +213,12 @@ namespace kagome::runtime::wavm {
   outcome::result<void> ModuleInstance::resetEnvironment() {
     env_.host_api->reset();
     return outcome::success();
+  }
+
+  void ModuleInstance::borrow(BorrowedInstance::PoolReleaseFunction release) {
+    auto borrowed = std::make_shared<ModuleInstance::BorrowedInstance>(
+        shared_from_this(), release);
+    pushBorrowedRuntimeInstance(std::move(borrowed));
   }
 
 }  // namespace kagome::runtime::wavm

@@ -142,6 +142,12 @@ namespace kagome::runtime::binaryen {
       }
       callback(offset, gsl::span<const uint8_t>(reinterpret_cast<const uint8_t*>(segment.data.data()), segment.data.size()));
     }
+
+  void ModuleInstanceImpl::borrow(
+      BorrowedInstance::PoolReleaseFunction release) {
+    // Releaser for OCWs - doesn't need a valid pointer
+    static thread_local ModuleInstance::BorrowedInstance pool_release_token{
+        nullptr, release};
   }
 
 }  // namespace kagome::runtime::binaryen
