@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// Enables binaryen debug mode: every executed WASM instruction is printed out using Indenter (defined below)
+// It is a massive amount of information, so it should be turned on only for specific cases when we need to
+// follow web assembly execution very precisely.
 // #define WASM_INTERPRETER_DEBUG
 
 #include "runtime/binaryen/module/module_instance_impl.hpp"
@@ -16,6 +19,11 @@
 
 namespace wasm {
 
+  // Indenter is declared in binaryen headers, but the following members are defined
+  // in its source files and only if WASM_INTERPRETER_DEBUG macro definition is set, 
+  // which it isn't at the time of binaryen compilation. 
+  // Therefore, to be able to use binaryen's debug mode we have to define indenter 
+  // implementation ourselves. This design is unclear to me, but it does work. 
   int Indenter::indentLevel = 0;
 
   std::vector<std::string> indents = [](){
@@ -134,15 +142,24 @@ namespace kagome::runtime::binaryen {
     return outcome::success();
   }
 
-  void ModuleInstanceImpl::forDataSegment(DataSegmentProcessor const &callback) const {
-    for (auto& segment : parent_->memory.segments) {
-      wasm::Address offset = (uint32_t)wasm::ConstantExpressionRunner<wasm::TrivialGlobalManager>(module_instance_->globals).visit(segment.offset).value.geti32();
-      if (offset + segment.data.size() > parent_->memory.initial * wasm::Memory::kPageSize) {
+  void ModuleInstanceImpl::forDataSegment(
+      DataSegmentProcessor const &callback) const {
+    for (auto &segment : parent_->memory.segments) {
+      wasm::Address offset =
+          (uint32_t)wasm::ConstantExpressionRunner<wasm::TrivialGlobalManager>(
+              module_instance_->globals)
+              .visit(segment.offset)
+              .value.geti32();
+      if (offset + segment.data.size()
+          > parent_->memory.initial * wasm::Memory::kPageSize) {
         throw std::runtime_error("invalid offset when initializing memory");
       }
-      callback(offset, gsl::span<const uint8_t>(reinterpret_cast<const uint8_t*>(segment.data.data()), segment.data.size()));
+      callback(offset,
+               gsl::span<const uint8_t>(
+                   reinterpret_cast<const uint8_t *>(segment.data.data()),
+                   segment.data.size()));
     }
-
+  }
   void ModuleInstanceImpl::borrow(
       BorrowedInstance::PoolReleaseFunction release) {
     // Releaser for OCWs - doesn't need a valid pointer
