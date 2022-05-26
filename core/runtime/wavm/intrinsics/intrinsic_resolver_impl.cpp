@@ -27,7 +27,7 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(moduleName == "env");
     if (exportName == "memory") {
       if (type.kind == WAVM::IR::ExternKind::memory) {
-        outObject = 
+        outObject =
             WAVM::Runtime::asObject(module_instance_->getExportedMemory());
         return true;
       }
