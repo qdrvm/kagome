@@ -172,9 +172,11 @@ namespace kagome::api {
         PubsubSubscriptionId subscription_id) override;
 
    private:
-    jsonrpc::Value createStateStorageEvent(common::BufferView key,
-                                           common::BufferView value,
-                                           const primitives::BlockHash &block);
+    jsonrpc::Value createStateStorageEvent(
+        const std::vector<
+            std::pair<common::Buffer, std::optional<common::Buffer>>>
+            &key_value_pairs,
+        const primitives::BlockHash &block);
 
     std::optional<std::shared_ptr<SessionSubscriptions>> findSessionById(
         Session::SessionId id) {
@@ -219,8 +221,7 @@ namespace kagome::api {
     }
 
     template <typename T>
-    SessionSubscriptions::AdditionMessageType uploadFromCache(
-        T &&value) {
+    SessionSubscriptions::AdditionMessageType uploadFromCache(T &&value) {
       auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string);
       obj->assign(std::forward<T>(value));
       return obj;
