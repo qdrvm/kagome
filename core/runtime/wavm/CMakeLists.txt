@@ -26,6 +26,7 @@ add_library(runtime_wavm
     intrinsics/intrinsic_resolver_impl.cpp
     instance_environment_factory.cpp
     module.cpp
+    module_params.cpp
     module_factory_impl.cpp
     module_instance.cpp
     wavm_external_memory_provider.cpp

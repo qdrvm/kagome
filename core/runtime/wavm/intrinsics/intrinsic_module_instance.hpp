@@ -20,6 +20,7 @@ namespace WAVM::Runtime {
 namespace kagome::runtime::wavm {
 
   class CompartmentWrapper;
+  struct ModuleParams;
 
   /**
    * A wrapper around WAVM's intrinsic module instance
@@ -29,7 +30,8 @@ namespace kagome::runtime::wavm {
    public:
     IntrinsicModuleInstance(
         WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance,
-        std::shared_ptr<const CompartmentWrapper> compartment);
+        std::shared_ptr<const CompartmentWrapper> compartment,
+        std::shared_ptr<const ModuleParams> module_params);
 
     ~IntrinsicModuleInstance() {
       // to free the instance before compartment and thus
@@ -44,6 +46,7 @@ namespace kagome::runtime::wavm {
    private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance_;
     const std::shared_ptr<const CompartmentWrapper> compartment_;
+    std::shared_ptr<const ModuleParams> module_params_;
   };
 
 }  // namespace kagome::runtime::wavm

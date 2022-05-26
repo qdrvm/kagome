@@ -12,21 +12,29 @@
 #include <unordered_map>
 
 #include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/module_params.hpp"
 
 namespace kagome::runtime::wavm {
 
   class IntrinsicModule final {
    public:
-    static WAVM::IR::MemoryType kIntrinsicMemoryType;
     static constexpr std::string_view kIntrinsicMemoryName = "Runtime Memory";
 
-    explicit IntrinsicModule(std::shared_ptr<CompartmentWrapper> compartment)
-        : compartment_{compartment} {}
+    explicit IntrinsicModule(std::shared_ptr<CompartmentWrapper> compartment,
+                             std::shared_ptr<ModuleParams> module_params)
+        : compartment_{compartment},
+          module_params_{std::move(module_params)},
+          memory_{&module_,
+                  kIntrinsicMemoryName.data(),
+                  module_params->intrinsicMemoryType} {}
 
-    IntrinsicModule(IntrinsicModule &module)
+    IntrinsicModule(IntrinsicModule &module,
+                    std::shared_ptr<ModuleParams> module_params)
         : compartment_{module.compartment_},
-          memory_{&module_, kIntrinsicMemoryName.data(), kIntrinsicMemoryType} {
-    }
+          module_params_{std::move(module_params)},
+          memory_{&module_,
+                  kIntrinsicMemoryName.data(),
+                  module_params->intrinsicMemoryType} {}
 
     std::unique_ptr<IntrinsicModuleInstance> instantiate() const {
       BOOST_ASSERT_MSG(
@@ -37,7 +45,8 @@ namespace kagome::runtime::wavm {
           WAVM::Intrinsics::instantiateModule(compartment_->getCompartment(),
                                               {&module_},
                                               "Intrinsic Module Instance"),
-          compartment_);
+          compartment_,
+          module_params_);
     }
 
     template <typename Ret, typename... Args>
@@ -54,11 +63,11 @@ namespace kagome::runtime::wavm {
 
    private:
     std::shared_ptr<CompartmentWrapper> compartment_;
+    std::shared_ptr<ModuleParams> module_params_;
     WAVM::Intrinsics::Module module_;
 
     // actually used, because added to the intrinsic module
-    WAVM::Intrinsics::Memory memory_{
-        &module_, kIntrinsicMemoryName.data(), kIntrinsicMemoryType};
+    WAVM::Intrinsics::Memory memory_;
 
     std::unordered_map<std::string, std::unique_ptr<WAVM::Intrinsics::Function>>
         functions_;

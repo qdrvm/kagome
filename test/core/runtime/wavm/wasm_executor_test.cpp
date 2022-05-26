@@ -34,6 +34,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
+#include "runtime/wavm/module_params.hpp"
 #include "runtime/wavm/wavm_external_memory_provider.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -68,6 +69,7 @@ using kagome::runtime::RuntimeCodeProvider;
 using kagome::runtime::RuntimeEnvironmentFactory;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
+using kagome::runtime::wavm::ModuleParams;
 using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
@@ -155,9 +157,10 @@ class WasmExecutorTest : public ::testing::Test {
     auto compartment_wrapper =
         std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
             std::string("test_compartment"));
+    auto module_params = std::make_shared<ModuleParams>();
     auto intrinsic_module =
         std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
-            compartment_wrapper);
+            compartment_wrapper, module_params);
 
     auto memory_provider =
         std::make_shared<kagome::runtime::wavm::WavmExternalMemoryProvider>(
@@ -170,6 +173,7 @@ class WasmExecutorTest : public ::testing::Test {
             trie_db,
             serializer,
             compartment_wrapper,
+            module_params,
             intrinsic_module,
             host_api_factory,
             header_repo_,
@@ -178,13 +182,17 @@ class WasmExecutorTest : public ::testing::Test {
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
-            compartment_wrapper, instance_env_factory, intrinsic_module);
+            compartment_wrapper,
+            module_params,
+            instance_env_factory,
+            intrinsic_module);
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
         runtime_upgrade_tracker_, module_factory, bogus_smc);
 
     auto core_provider =
         std::make_shared<kagome::runtime::wavm::CoreApiFactoryImpl>(
             compartment_wrapper,
+            module_params,
             intrinsic_module,
             trie_db,
             header_repo_,

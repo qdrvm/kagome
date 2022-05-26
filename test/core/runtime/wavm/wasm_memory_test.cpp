@@ -10,16 +10,18 @@
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/memory_impl.hpp"
+#include "runtime/wavm/module_params.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::runtime::kDefaultHeapBase;
 using kagome::runtime::kInitialMemorySize;
-using kagome::runtime::roundUpAlign;
 using kagome::runtime::MemoryAllocator;
+using kagome::runtime::roundUpAlign;
 using kagome::runtime::wavm::CompartmentWrapper;
 using kagome::runtime::wavm::IntrinsicModule;
 using kagome::runtime::wavm::IntrinsicModuleInstance;
 using kagome::runtime::wavm::MemoryImpl;
+using kagome::runtime::wavm::ModuleParams;
 
 class WavmMemoryHeapTest : public ::testing::Test {
  protected:
@@ -32,8 +34,9 @@ class WavmMemoryHeapTest : public ::testing::Test {
 
     auto compartment_wrapper =
         std::make_shared<CompartmentWrapper>("WAVM Memory Test compartment"s);
+    auto module_params = std::make_shared<ModuleParams>();
     auto intr_module = std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
-        compartment_wrapper);
+        compartment_wrapper, module_params);
     // need this just because there is an assert in intrinsic module which
     // prevents it from being instantiated with zero functions
     intr_module->addFunction(
@@ -47,17 +50,18 @@ class WavmMemoryHeapTest : public ::testing::Test {
         MemoryAllocator::MemoryHandle{
             [this](auto size) { return memory_->resize(size); },
             [this] { return memory_->size(); }},
-        kInitialMemorySize, kDefaultHeapBase);
+        kInitialMemorySize,
+        kDefaultHeapBase);
     allocator_ = allocator.get();
-    memory_ = std::make_unique<MemoryImpl>(
-        instance_->getExportedMemory(), std::move(allocator));
+    memory_ = std::make_unique<MemoryImpl>(instance_->getExportedMemory(),
+                                           std::move(allocator));
   }
 
   const static uint32_t memory_size_ = kInitialMemorySize;
 
   std::unique_ptr<MemoryImpl> memory_;
   std::unique_ptr<IntrinsicModuleInstance> instance_;
-  MemoryAllocator* allocator_;
+  MemoryAllocator *allocator_;
 };
 
 /**

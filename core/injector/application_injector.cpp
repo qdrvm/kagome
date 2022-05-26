@@ -326,7 +326,7 @@ namespace {
       return initialized.value();
     }
     auto options = leveldb::Options{};
-    options.max_open_files = 1500; // 1000 was the default value
+    options.max_open_files = 1500;  // 1000 was the default value
     options.create_if_missing = true;
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
@@ -620,20 +620,20 @@ namespace {
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
     auto justification_storage_policy = injector.template create<
         std::shared_ptr<blockchain::JustificationStoragePolicy>>();
-    
-    auto block_tree_res =
-        blockchain::BlockTreeImpl::create(header_repo,
-                                          std::move(storage),
-                                          std::move(extrinsic_observer),
-                                          std::move(hasher),
-                                          chain_events_engine,
-                                          std::move(ext_events_engine),
-                                          std::move(ext_events_key_repo),
-                                          std::move(runtime_core),
-                                          std::move(changes_tracker),
-                                          std::move(babe_configuration),
-                                          std::move(babe_util),
-                                          std::move(justification_storage_policy));
+
+    auto block_tree_res = blockchain::BlockTreeImpl::create(
+        header_repo,
+        std::move(storage),
+        std::move(extrinsic_observer),
+        std::move(hasher),
+        chain_events_engine,
+        std::move(ext_events_engine),
+        std::move(ext_events_key_repo),
+        std::move(runtime_core),
+        std::move(changes_tracker),
+        std::move(babe_configuration),
+        std::move(babe_util),
+        std::move(justification_storage_policy));
 
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());
@@ -756,9 +756,11 @@ namespace {
                   [&injector]() {
                     auto compartment = injector.template create<
                         sptr<runtime::wavm::CompartmentWrapper>>();
+                    auto module_params =
+                        std::make_shared<runtime::wavm::ModuleParams>();
                     auto module =
                         std::make_unique<runtime::wavm::IntrinsicModule>(
-                            compartment);
+                            compartment, module_params);
                     runtime::wavm::registerHostApiMethods(*module);
 
                     return module;

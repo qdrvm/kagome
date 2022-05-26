@@ -15,11 +15,13 @@ namespace kagome::runtime::wavm {
   class CompartmentWrapper;
   class InstanceEnvironmentFactory;
   class IntrinsicModule;
+  struct ModuleParams;
 
   class ModuleFactoryImpl final : public ModuleFactory {
    public:
     ModuleFactoryImpl(
         std::shared_ptr<CompartmentWrapper> compartment,
+        std::shared_ptr<ModuleParams> module_params,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
         std::shared_ptr<IntrinsicModule> intrinsic_module);
 
@@ -28,6 +30,7 @@ namespace kagome::runtime::wavm {
 
    private:
     std::shared_ptr<CompartmentWrapper> compartment_;
+    std::shared_ptr<ModuleParams> module_params_;
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     std::shared_ptr<IntrinsicModule> intrinsic_module_;
   };
