@@ -24,7 +24,7 @@ namespace kagome::runtime::binaryen {
       BOOST_ASSERT(env_factory_);
     }
 
-    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
+    outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider>,
         const primitives::BlockInfo &,
         const primitives::BlockHeader &) override {
