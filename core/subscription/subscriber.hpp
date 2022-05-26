@@ -11,9 +11,15 @@
 #include <memory>
 #include <mutex>
 
-#include "subscription_engine.hpp"
+#include "subscription/subscription_engine.hpp"
 
 namespace kagome::subscription {
+
+  inline SubscriptionSetId generateNextId() {
+    static std::atomic<SubscriptionSetId> id{0ll};
+    SubscriptionSetId result = ++id;
+    return result;
+  }
 
   /**
    * Is a wrapper class, which provides subscription to events from
@@ -48,8 +54,6 @@ namespace kagome::subscription {
                            typename SubscriptionEngineType::IteratorType>;
     using SubscriptionsSets =
         std::unordered_map<SubscriptionSetId, SubscriptionsContainer>;
-
-    std::atomic<SubscriptionSetId> next_id_;
     SubscriptionEnginePtr engine_;
     ReceiverType object_;
 
@@ -61,9 +65,8 @@ namespace kagome::subscription {
    public:
     template <typename... SubscriberConstructorArgs>
     explicit Subscriber(SubscriptionEnginePtr &ptr,
-                        SubscriberConstructorArgs &&... args)
-        : next_id_(0ull),
-          engine_(ptr),
+                        SubscriberConstructorArgs &&...args)
+        : engine_(ptr),
           object_(std::forward<SubscriberConstructorArgs>(args)...) {}
 
     ~Subscriber() {
@@ -83,7 +86,7 @@ namespace kagome::subscription {
     }
 
     SubscriptionSetId generateSubscriptionSetId() {
-      return ++next_id_;
+      return generateNextId();
     }
 
     void subscribe(SubscriptionSetId id, const EventType &key) {
@@ -144,7 +147,7 @@ namespace kagome::subscription {
 
     void on_notify(SubscriptionSetId set_id,
                    const EventType &key,
-                   const Arguments &... args) {
+                   const Arguments &...args) {
       if (nullptr != on_notify_callback_)
         on_notify_callback_(set_id, object_, key, args...);
     }

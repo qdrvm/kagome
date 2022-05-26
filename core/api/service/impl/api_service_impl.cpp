@@ -160,8 +160,9 @@ namespace kagome::api {
   }
 
   jsonrpc::Value ApiServiceImpl::createStateStorageEvent(
-      common::BufferView key,
-      common::BufferView value,
+      const std::vector<
+          std::pair<common::Buffer, std::optional<common::Buffer>>>
+          &key_value_pairs,
       const primitives::BlockHash &block) {
     /// TODO(iceseer): PRE-475 make event notification depending
     /// in packs blocks, to batch them in a single message Because
@@ -169,10 +170,17 @@ namespace kagome::api {
     /// message. We can receive here a pack of events and format
     /// them in a single json message.
 
+    jsonrpc::Value::Array changes;
+    changes.reserve(key_value_pairs.size());
+    for (auto &[key, value] : key_value_pairs) {
+      changes.emplace_back(jsonrpc::Value{jsonrpc::Value::Array{
+          api::makeValue(key),
+          value.has_value() ? api::makeValue(hex_lower_0x(value.value()))
+                            : api::makeValue(std::nullopt)}});
+    }
+
     jsonrpc::Value::Struct result;
-    result["changes"] =
-        jsonrpc::Value::Array{jsonrpc::Value{jsonrpc::Value::Array{
-            api::makeValue(key), api::makeValue(hex_lower_0x(value))}}};
+    result["changes"] = std::move(changes);
     result["block"] = api::makeValue(hex_lower_0x(block));
 
     return result;
@@ -187,11 +195,11 @@ namespace kagome::api {
               return;
             }
 
-#define UNWRAP_WEAK_PTR(callback)   \
-  [wp](auto &&... params) mutable { \
-    if (auto self = wp.lock()) {    \
-      self->callback(params...);    \
-    }                               \
+#define UNWRAP_WEAK_PTR(callback)  \
+  [wp](auto &&...params) mutable { \
+    if (auto self = wp.lock()) {   \
+      self->callback(params...);   \
+    }                              \
   }
 
             if (SessionType::kWs == session->type()) {
@@ -259,8 +267,8 @@ namespace kagome::api {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.storage_sub;
         const auto id = session->generateSubscriptionSetId();
-        const auto &header =
-            block_tree_->getBlockHeader(block_tree_->deepestLeaf().hash);
+        const auto &best_block_hash = block_tree_->deepestLeaf().hash;
+        const auto &header = block_tree_->getBlockHeader(best_block_hash);
         BOOST_ASSERT(header.has_value());
         auto persistent_batch =
             trie_storage_->getPersistentBatchAt(header.value().state_root);
@@ -269,24 +277,32 @@ namespace kagome::api {
         auto &pb = persistent_batch.value();
         BOOST_ASSERT(pb);
 
-        auto last_finalized = block_tree_->getLastFinalized();
         session_context.messages = uploadMessagesListFromCache();
+
+        std::vector<std::pair<common::Buffer, std::optional<common::Buffer>>>
+            pairs;
+        pairs.reserve(keys.size());
+
         for (auto &key : keys) {
-          /// TODO(iceseer): PRE-476 make move data to subscription
           session->subscribe(id, key);
-          if (auto res = pb->get(key); res.has_value()) {
-            forJsonData(server_,
-                        logger_,
-                        id,
-                        kRpcEventSubscribeStorage,
-                        createStateStorageEvent(
-                            key, res.value().get(), last_finalized.hash),
-                        [&](const auto &result) {
-                          session_context.messages->emplace_back(
-                              uploadFromCache(result.data()));
-                        });
+
+          auto value_opt_res = pb->tryGet(key);
+          if (value_opt_res.has_value()) {
+            pairs.emplace_back(std::move(key),
+                               std::move(value_opt_res.value()));
           }
         }
+
+        forJsonData(server_,
+                    logger_,
+                    id,
+                    kRpcEventSubscribeStorage,
+                    createStateStorageEvent(std::move(pairs), best_block_hash),
+                    [&](const auto &result) {
+                      session_context.messages->emplace_back(
+                          uploadFromCache(result.data()));
+                    });
+
         return static_cast<PubsubSubscriptionId>(id);
       });
     });
@@ -400,7 +416,6 @@ namespace kagome::api {
                       });
         }
         return static_cast<PubsubSubscriptionId>(id);
-        ;
       });
     });
   }
@@ -508,7 +523,7 @@ namespace kagome::api {
               logger_,
               set_id,
               kRpcEventSubscribeStorage,
-              createStateStorageEvent(key, data, block));
+              createStateStorageEvent({{key, data}}, block));
   }
 
   void ApiServiceImpl::onChainEvent(
