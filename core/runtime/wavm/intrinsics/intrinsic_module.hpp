@@ -26,7 +26,7 @@ namespace kagome::runtime::wavm {
           module_params_{std::move(module_params)},
           memory_{&module_,
                   kIntrinsicMemoryName.data(),
-                  module_params->intrinsicMemoryType} {}
+                  module_params_->intrinsicMemoryType} {}
 
     IntrinsicModule(IntrinsicModule &module,
                     std::shared_ptr<ModuleParams> module_params)
@@ -34,7 +34,7 @@ namespace kagome::runtime::wavm {
           module_params_{std::move(module_params)},
           memory_{&module_,
                   kIntrinsicMemoryName.data(),
-                  module_params->intrinsicMemoryType} {}
+                  module_params_->intrinsicMemoryType} {}
 
     std::unique_ptr<IntrinsicModuleInstance> instantiate() const {
       BOOST_ASSERT_MSG(
