@@ -261,6 +261,8 @@ namespace kagome::common {
     Buffer &putRange(const T &begin, const T &end);
   };
 
+  static const Buffer kEmptyBuffer{};
+
   using BufferMutRef = std::reference_wrapper<Buffer>;
   using BufferConstRef = std::reference_wrapper<const Buffer>;
 
