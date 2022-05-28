@@ -738,10 +738,11 @@ namespace kagome::consensus::grandpa {
       const BlockInfo &block_info, const GrandpaJustification &justification) {
     auto round = selectRound(justification.round_number, std::nullopt);
     bool need_to_make_round_current = false;
+    outcome::result<void> res = outcome::success();
     if (round == nullptr) {
       // This is justification for non-actual round
       if (justification.round_number < current_round_->roundNumber()) {
-        return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+        res = VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
       }
 
       // This is justification for already finalized block
@@ -765,6 +766,10 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
       }
       auto &authorities = authorities_opt.value();
+
+      if (res.has_error() && authorities->id <= current_round_->voterSetId()) {
+        return res;
+      }
 
       auto voters = std::make_shared<VoterSet>(authorities->id);
       for (const auto &authority : *authorities) {

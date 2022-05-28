@@ -105,6 +105,8 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::GrandpaTransmitter> transmitter_;
     std::weak_ptr<JustificationObserver> justification_observer_;
 
+    std::set<std::size_t> recent_catchup_requests_;
+
     log::Logger logger_;
   };
 

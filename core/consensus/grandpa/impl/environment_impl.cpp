@@ -91,10 +91,16 @@ namespace kagome::consensus::grandpa {
       const libp2p::peer::PeerId &peer_id,
       MembershipCounter set_id,
       RoundNumber round_number) {
-    SL_DEBUG(
-        logger_, "Send Catch-Up-Request beginning with round {}", round_number);
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
+    if (not recent_catchup_requests_.emplace(message.fingerprint()).second) {
+      SL_ERROR(logger_,
+               "Don't Send Duplicate Catch-Up-Request beginning with round {}",
+               round_number);
+      return outcome::success();
+    }
+    SL_DEBUG(
+        logger_, "Send Catch-Up-Request beginning with round {}", round_number);
     transmitter_->sendCatchUpRequest(peer_id, std::move(message));
     return outcome::success();
   }

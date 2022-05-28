@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_SYNCHRONIZERIMPL
-#define KAGOME_NETWORK_SYNCHRONIZERIMPL
+#ifndef KAGOME_NETWORK_SYNCHRONIZERNEWIMPL
+#define KAGOME_NETWORK_SYNCHRONIZERNEWIMPL
 
 #include "network/synchronizer.hpp"
 
@@ -18,7 +18,6 @@
 #include "consensus/babe/block_executor.hpp"
 #include "metrics/metrics.hpp"
 #include "network/router.hpp"
-#include "telemetry/service.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
@@ -32,9 +31,9 @@ namespace kagome::storage::trie {
 
 namespace kagome::network {
 
-  class SynchronizerImpl
+  class SynchronizerNewImpl
       : public Synchronizer,
-        public std::enable_shared_from_this<SynchronizerImpl> {
+        public std::enable_shared_from_this<SynchronizerNewImpl> {
    public:
     /// Block amount enough for applying and preloading other ones
     /// simultaneously.
@@ -64,7 +63,7 @@ namespace kagome::network {
       DUPLICATE_REQUEST
     };
 
-    SynchronizerImpl(
+    SynchronizerNewImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -99,27 +98,15 @@ namespace kagome::network {
                    const common::Buffer &key,
                    SyncResultHandler &&handler) override;
 
-    /// Finds best common block with peer {@param peer_id} in provided interval.
-    /// It is using tail-recursive algorithm, till {@param hint} is
-    /// the needed block
-    /// @param lower is number of definitely known common block (i.e. last
-    /// finalized).
-    /// @param upper is number of definitely unknown block.
-    /// @param hint is examining block for current call
-    /// @param handler callback what is called at the end of process
-    void findCommonBlock(const libp2p::peer::PeerId &peer_id,
-                         primitives::BlockNumber lower,
-                         primitives::BlockNumber upper,
-                         primitives::BlockNumber hint,
-                         SyncResultHandler &&handler,
-                         std::map<primitives::BlockNumber,
-                                  primitives::BlockHash> &&observed = {});
-
     /// Loads blocks from peer {@param peer_id} since block {@param from} till
     /// its best. Calls {@param handler} when process is finished or failed
     void loadBlocks(const libp2p::peer::PeerId &peer_id,
                     primitives::BlockInfo from,
                     SyncResultHandler &&handler);
+
+    void endSync() override {
+      syncing_.store(false);
+    }
 
    private:
     /// Subscribes handler for block with provided {@param block_info}
@@ -131,9 +118,6 @@ namespace kagome::network {
     /// Notifies subscribers about arrived block
     void notifySubscribers(const primitives::BlockInfo &block_info,
                            outcome::result<void> res);
-
-    /// Tries to request another portion of block
-    void askNextPortionOfBlocks();
 
     /// Pops next block from queue and tries to apply that
     void applyNextBlock();
@@ -157,8 +141,8 @@ namespace kagome::network {
     metrics::Gauge *metric_import_queue_length_;
 
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
-    telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
+    std::atomic_bool syncing_ = false;
     std::atomic_bool state_syncing_ = false;
     bool node_is_shutting_down_ = false;
 
@@ -172,6 +156,8 @@ namespace kagome::network {
     // Already known (enqueued) but is not applied yet
     std::unordered_map<primitives::BlockHash, KnownBlock> known_blocks_;
 
+    std::optional<primitives::BlockInfo> sync_block_;
+
     // Blocks grouped by number
     std::multimap<primitives::BlockNumber, primitives::BlockHash> generations_;
 
@@ -179,20 +165,9 @@ namespace kagome::network {
     std::unordered_multimap<primitives::BlockHash, primitives::BlockHash>
         ancestry_;
 
-    // BlockNumber of blocks (aka height) that is potentially best now
-    primitives::BlockNumber watched_blocks_number_{};
-
-    // Handlers what will be called when block is apply
-    std::unordered_multimap<primitives::BlockHash, SyncResultHandler>
-        watched_blocks_;
-
     std::multimap<primitives::BlockInfo, SyncResultHandler> subscriptions_;
 
     std::atomic_bool applying_in_progress_ = false;
-    std::atomic_bool asking_blocks_portion_in_progress_ = false;
-    std::set<libp2p::peer::PeerId> busy_peers_;
-
-    std::set<std::tuple<libp2p::peer::PeerId, std::size_t>> recent_requests_;
 
     std::shared_ptr<storage::trie::PersistentTrieBatch> batch_;
     size_t entries_{0};
@@ -200,6 +175,6 @@ namespace kagome::network {
 
 }  // namespace kagome::network
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::network, SynchronizerImpl::Error)
+OUTCOME_HPP_DECLARE_ERROR(kagome::network, SynchronizerNewImpl::Error)
 
-#endif  //  KAGOME_NETWORK_SYNCHRONIZERIMPL
+#endif  //  KAGOME_NETWORK_SYNCHRONIZERNEWIMPL

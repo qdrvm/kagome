@@ -313,9 +313,9 @@ namespace kagome::network {
             self->grandpa_observer_->onCommitMessage(peer_id, commit_message);
           },
           [&](const GrandpaNeighborMessage &neighbor_message) {
-            self->grandpa_observer_->onNeighborMessage(peer_id,
-                                                       neighbor_message);
-            self->peer_manager_->updatePeerState(peer_id, neighbor_message);
+            // self->grandpa_observer_->onNeighborMessage(peer_id,
+            //                                            neighbor_message);
+            // self->peer_manager_->updatePeerState(peer_id, neighbor_message);
           },
           [&](const network::CatchUpRequest &catch_up_request) {
             self->grandpa_observer_->onCatchUpRequest(peer_id,
