@@ -316,6 +316,8 @@ namespace kagome::consensus::babe {
         [wp = weak_from_this(), announce = announce, peer_id](
             outcome::result<primitives::BlockInfo> block_res) mutable {
           if (auto self = wp.lock()) {
+            self->synchronizer_->endSync();
+
             if (block_res.has_error()) {
               return;
             }
@@ -326,8 +328,12 @@ namespace kagome::consensus::babe {
                   peer_id,
                   block,
                   common::Buffer(),
-                  [self](outcome::result<primitives::BlockInfo>
-                             block_res) mutable {
+                  [self, block = block, peer_id](
+                      outcome::result<primitives::BlockInfo>
+                          block_res) mutable {
+                    if (block_res.has_error()) {
+                      return;
+                    }
                     const auto &block = block_res.value();
                     SL_INFO(self->log_,
                             "Catching up is finished on block {}",
@@ -353,27 +359,34 @@ namespace kagome::consensus::babe {
     auto is_ran = synchronizer_->syncByBlockInfo(
         target_block,
         peer_id,
-        [wp = weak_from_this(),
-         bn = target_block.number](outcome::result<primitives::BlockInfo> res) {
+        [wp = weak_from_this(), bn = target_block.number, peer_id](
+            outcome::result<primitives::BlockInfo> res) {
           if (auto self = wp.lock()) {
+            self->synchronizer_->endSync();
             if (res.has_error()) {
               SL_DEBUG(self->log_,
-                       "Catching up to block #{} is failed: {}",
+                       "Catching up to block #{} on {} is failed: {}",
                        bn,
+                       peer_id.toBase58(),
                        res.error().message());
               return;
             }
 
-            SL_DEBUG(self->log_,
-                     "Catching up to block #{} is going (on block #{} now)",
-                     bn,
-                     res.value().number);
+            SL_DEBUG(
+                self->log_,
+                "Catching up to block #{} on {} is going (on block #{} now)",
+                bn,
+                peer_id.toBase58(),
+                res.value().number);
           }
         },
         false);
 
     if (is_ran) {
-      SL_VERBOSE(log_, "Catching up to block #{} is ran", target_block.number);
+      SL_VERBOSE(log_,
+                 "Catching up to block #{} on {} is ran",
+                 target_block.number,
+                 peer_id.toBase58());
       current_state_ = State::CATCHING_UP;
     }
   }

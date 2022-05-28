@@ -699,10 +699,10 @@ namespace kagome::authority {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
     } else {
-      SL_WARN(log_,
-              "Unknown consensus engine id in block {}: {}",
-              block,
-              message.consensus_engine_id.toString());
+      // SL_WARN(log_,
+      //         "Unknown consensus engine id in block {}: {}",
+      //         block,
+      //         message.consensus_engine_id.toString());
       return outcome::success();
     }
   }
@@ -878,7 +878,7 @@ namespace kagome::authority {
     count1 = 0;
     size_t count2 = 0;
     for (const auto &[hash, header] : boost::range::reverse(headers)) {
-      if (not(++count1 % 10000)) {
+      if (not(++count1 % 1000)) {
         SL_WARN(log_, "{} digests applied ({})", count1, count2);
         count2 = 0;
       }
