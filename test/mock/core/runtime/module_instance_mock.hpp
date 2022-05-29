@@ -16,7 +16,12 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD(outcome::result<PtrSize>,
                 callExportFunction,
-                (std::string_view name, PtrSize args),
+                (std::string_view name, common::BufferView args),
+                (const, override));
+
+    MOCK_METHOD(void,
+                forDataSegment,
+                (const DataSegmentProcessor &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<std::optional<WasmValue>>,

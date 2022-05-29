@@ -72,11 +72,11 @@ class ExecutorTest : public testing::Test {
       int arg2,
       int res,
       kagome::storage::trie::RootHash const &next_storage_state) {
-    auto enc_args = scale::encode(arg1, arg2).value();
+    static Buffer enc_args;
+    enc_args = Buffer{scale::encode(arg1, arg2).value()};
     const PtrSize ARGS_LOCATION{1, 2};
     const PtrSize RESULT_LOCATION{3, 4};
-    EXPECT_CALL(*memory_, storeBuffer(ElementsAreArray(enc_args)))
-        .WillOnce(Return(ARGS_LOCATION.combine()));
+
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
@@ -87,7 +87,6 @@ class ExecutorTest : public testing::Test {
                      env_factory_},
              next_storage_state = std::move(next_storage_state),
              this,
-             ARGS_LOCATION,
              RESULT_LOCATION](auto &blockchain_state, auto &storage_state) {
               auto env_template =
                   std::make_unique<RuntimeEnvironmentTemplateMock>(
@@ -96,8 +95,8 @@ class ExecutorTest : public testing::Test {
                   .WillOnce(ReturnRef(*env_template));
               EXPECT_CALL(*env_template, make())
                   .WillOnce(Invoke([this,
-                                    ARGS_LOCATION,
                                     RESULT_LOCATION,
+                                    blockchain_state,
                                     next_storage_state =
                                         std::move(next_storage_state)] {
                     auto module_instance =
@@ -106,7 +105,7 @@ class ExecutorTest : public testing::Test {
                         .WillOnce(Return(outcome::success()));
                     EXPECT_CALL(*module_instance,
                                 callExportFunction(std::string_view{"addTwo"},
-                                                   ARGS_LOCATION))
+                                                   enc_args.view()))
                         .WillOnce(Return(RESULT_LOCATION));
                     auto memory_provider =
                         std::make_shared<kagome::runtime::MemoryProviderMock>();
@@ -128,7 +127,7 @@ class ExecutorTest : public testing::Test {
                                 std::move(batch))));
 
                     return std::make_unique<RuntimeEnvironment>(
-                        module_instance, memory_provider, storage_provider);
+                        module_instance, memory_provider, storage_provider, blockchain_state);
                   }));
               return env_template;
             }));
@@ -140,11 +139,10 @@ class ExecutorTest : public testing::Test {
       int arg1,
       int arg2,
       int res) {
-    auto enc_args = scale::encode(arg1, arg2).value();
+    static Buffer enc_args;
+    enc_args = Buffer{scale::encode(arg1, arg2).value()};
     const PtrSize ARGS_LOCATION{1, 2};
     const PtrSize RESULT_LOCATION{3, 4};
-    EXPECT_CALL(*memory_, storeBuffer(ElementsAreArray(enc_args)))
-        .WillOnce(Return(ARGS_LOCATION.combine()));
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
@@ -154,20 +152,19 @@ class ExecutorTest : public testing::Test {
                  std::weak_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock>{
                      env_factory_},
              this,
-             ARGS_LOCATION,
              RESULT_LOCATION](auto &blockchain_state, auto &storage_state) {
               auto env_template =
                   std::make_unique<RuntimeEnvironmentTemplateMock>(
                       weak_env_factory, blockchain_state, storage_state);
               EXPECT_CALL(*env_template, make())
-                  .WillOnce(Invoke([this, ARGS_LOCATION, RESULT_LOCATION] {
+                  .WillOnce(Invoke([this, blockchain_state, RESULT_LOCATION] {
                     auto module_instance =
                         std::make_shared<ModuleInstanceMock>();
                     EXPECT_CALL(*module_instance, resetEnvironment())
                         .WillOnce(Return(outcome::success()));
                     EXPECT_CALL(*module_instance,
                                 callExportFunction(std::string_view{"addTwo"},
-                                                   ARGS_LOCATION))
+                                                   enc_args.view()))
                         .WillOnce(Return(RESULT_LOCATION));
                     auto memory_provider =
                         std::make_shared<kagome::runtime::MemoryProviderMock>();
@@ -180,7 +177,7 @@ class ExecutorTest : public testing::Test {
                         kagome::runtime::TrieStorageProviderMock>();
 
                     return std::make_unique<RuntimeEnvironment>(
-                        module_instance, memory_provider, storage_provider);
+                        module_instance, memory_provider, storage_provider, blockchain_state);
                   }));
               return env_template;
             }));
@@ -194,7 +191,7 @@ class ExecutorTest : public testing::Test {
 };
 
 TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
-  Executor executor{header_repo_, env_factory_};
+  Executor executor{env_factory_};
   kagome::primitives::BlockInfo block_info1{42, "block_hash1"_hash256};
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
