@@ -157,7 +157,7 @@ class RuntimeTestBase : public ::testing::Test {
         std::move(wasm_provider_), std::move(module_repo), header_repo_);
 
     executor_ =
-        std::make_shared<runtime::Executor>(header_repo_, runtime_env_factory_);
+        std::make_shared<runtime::Executor>(runtime_env_factory_);
   }
 
   void preparePersistentStorageExpects() {

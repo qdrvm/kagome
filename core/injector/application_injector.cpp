@@ -896,7 +896,7 @@ namespace {
             auto storage = injector.template create<
                 std::shared_ptr<storage::trie::TrieStorage>>();
             initialized = std::make_shared<runtime::Executor>(
-                std::move(header_repo), std::move(env_factory));
+                std::move(env_factory));
           }
           return initialized.value();
         }),

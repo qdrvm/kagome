@@ -127,7 +127,7 @@ namespace kagome::runtime::wavm {
             last_compiled_module_),
         block_header_repo_);
     auto executor =
-        std::make_unique<runtime::Executor>(block_header_repo_, env_factory);
+        std::make_unique<runtime::Executor>(env_factory);
     return std::make_unique<CoreImpl>(
         std::move(executor), changes_tracker_, block_header_repo_);
   }

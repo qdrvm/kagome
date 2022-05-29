@@ -209,7 +209,7 @@ class WasmExecutorTest : public ::testing::Test {
 
     auto env_factory = std::make_shared<RuntimeEnvironmentFactory>(
         wasm_provider_, module_repo, header_repo_);
-    executor_ = std::make_shared<Executor>(header_repo_, env_factory);
+    executor_ = std::make_shared<Executor>(env_factory);
   }
 
  protected:

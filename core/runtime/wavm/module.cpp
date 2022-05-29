@@ -106,7 +106,7 @@ namespace kagome::runtime::wavm {
         memory_origin, internal_instance, new_intrinsic_module_instance);
 
     auto instance = std::make_shared<ModuleInstance>(
-        std::move(env), internal_instance, compartment_);
+        std::move(env), internal_instance, module_, compartment_);
 
     return instance;
   }

@@ -214,7 +214,7 @@ int main() {
           code_provider, module_repo, header_repo);
 
   [[maybe_unused]] auto executor =
-      kagome::runtime::Executor(header_repo, env_factory);
+      kagome::runtime::Executor(env_factory);
 
   // TODO(Harrm): Currently, the test only checks if kagome builds as
   // a dependency in some project. However, we can use the test to run

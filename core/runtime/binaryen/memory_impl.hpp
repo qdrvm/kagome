@@ -12,8 +12,9 @@
 #include <cstring>  // for std::memset in gcc
 #include <memory>
 #include <unordered_map>
-
 #include <optional>
+
+#include <binaryen/wasm.h>
 
 #include "common/literals.hpp"
 #include "log/logger.hpp"

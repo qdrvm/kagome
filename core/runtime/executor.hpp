@@ -8,7 +8,6 @@
 
 #include <optional>
 
-#include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "host_api/host_api.hpp"
 #include "log/logger.hpp"
@@ -36,9 +35,7 @@ namespace kagome::runtime {
    public:
     using Buffer = common::Buffer;
 
-    Executor(
-        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
-        std::shared_ptr<RuntimeEnvironmentFactory> env_factory)
+    Executor(std::shared_ptr<RuntimeEnvironmentFactory> env_factory)
         : env_factory_{std::move(env_factory)},
           logger_{log::createLogger("Executor", "runtime")} {
       BOOST_ASSERT(env_factory_ != nullptr);
@@ -75,7 +72,7 @@ namespace kagome::runtime {
     /**
      * Call a runtime method in a persistent environment, e. g. the storage
      * changes, made by this call, will persist in the node's Trie storage
-     * The call will be done on the \param block_info state
+     * The call will be done on the genesis block state
      */
     template <typename Result, typename... Args>
     outcome::result<PersistentResult<Result>> persistentCallAtGenesis(
@@ -182,20 +179,20 @@ namespace kagome::runtime {
         encoded_args.put(std::move(res));
       }
 
-      PtrSize args_span{memory.storeBuffer(encoded_args)};
-
       KAGOME_PROFILE_START(call_execution)
-      SL_TRACE(logger_, "Executing {}", name);
-      OUTCOME_TRY(result,
-                  env.module_instance->callExportFunction(name, args_span));
+
+      auto result_span =
+          env.module_instance->callExportFunction(name, encoded_args);
+
       KAGOME_PROFILE_END(call_execution)
+      OUTCOME_TRY(span, result_span);
 
       OUTCOME_TRY(env.module_instance->resetEnvironment());
 
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
-        return scale::decode<Result>(memory.loadN(result.ptr, result.size));
+        return scale::decode<Result>(memory.loadN(span.ptr, span.size));
       }
     }
 
