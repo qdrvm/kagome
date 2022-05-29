@@ -67,6 +67,7 @@ using kagome::primitives::BlockHash;
 using kagome::runtime::Executor;
 using kagome::runtime::RuntimeCodeProvider;
 using kagome::runtime::RuntimeEnvironmentFactory;
+using kagome::runtime::RuntimeInstancesPool;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
 using kagome::runtime::wavm::ModuleParams;
@@ -187,7 +188,10 @@ class WasmExecutorTest : public ::testing::Test {
             instance_env_factory,
             intrinsic_module);
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
-        runtime_upgrade_tracker_, module_factory, bogus_smc);
+        std::make_shared<RuntimeInstancesPool>(),
+        runtime_upgrade_tracker_,
+        module_factory,
+        bogus_smc);
 
     auto core_provider =
         std::make_shared<kagome::runtime::wavm::CoreApiFactoryImpl>(
