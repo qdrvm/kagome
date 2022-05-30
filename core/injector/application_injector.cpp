@@ -103,6 +103,7 @@
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/common/module_repository_impl.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
@@ -895,8 +896,8 @@ namespace {
                 std::shared_ptr<blockchain::BlockHeaderRepository>>();
             auto storage = injector.template create<
                 std::shared_ptr<storage::trie::TrieStorage>>();
-            initialized = std::make_shared<runtime::Executor>(
-                std::move(env_factory));
+            initialized =
+                std::make_shared<runtime::Executor>(std::move(env_factory));
           }
           return initialized.value();
         }),

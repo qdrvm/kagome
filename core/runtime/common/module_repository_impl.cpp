@@ -6,6 +6,7 @@
 #include "runtime/common/module_repository_impl.hpp"
 
 #include "log/profiling_logger.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"

@@ -24,6 +24,7 @@
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "runtime/common/module_repository_impl.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"

@@ -12,13 +12,13 @@
 #include <unordered_map>
 
 #include "log/logger.hpp"
-#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/instance_environment.hpp"
 
 namespace kagome::runtime {
   class RuntimeUpgradeTracker;
   class ModuleFactory;
   class SingleModuleCache;
+  class RuntimeInstancesPool;
 
   class ModuleRepositoryImpl final : public ModuleRepository {
    public:
