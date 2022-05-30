@@ -21,6 +21,7 @@
 #include <kagome/offchain/impl/offchain_persistent_storage.hpp>
 #include <kagome/offchain/impl/offchain_worker_pool_impl.hpp>
 #include <kagome/runtime/common/module_repository_impl.hpp>
+#include <kagome/runtime/common/runtime_instances_pool.hpp>
 #include <kagome/runtime/common/runtime_upgrade_tracker_impl.hpp>
 #include <kagome/runtime/common/storage_code_provider.hpp>
 #include <kagome/runtime/executor.hpp>
