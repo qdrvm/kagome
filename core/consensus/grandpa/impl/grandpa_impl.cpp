@@ -739,11 +739,6 @@ namespace kagome::consensus::grandpa {
     auto round = selectRound(justification.round_number, std::nullopt);
     bool need_to_make_round_current = false;
     if (round == nullptr) {
-      // This is justification for non-actual round
-      if (justification.round_number < current_round_->roundNumber()) {
-        return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
-      }
-
       // This is justification for already finalized block
       if (current_round_->lastFinalizedBlock().number > block_info.number) {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
@@ -755,8 +750,7 @@ namespace kagome::consensus::grandpa {
           .votes = {},
           .finalized = block_info};
 
-      auto authorities_opt = authority_manager_->authorities(
-          block_info, true);
+      auto authorities_opt = authority_manager_->authorities(block_info, true);
       if (!authorities_opt) {
         SL_WARN(logger_,
                 "Can't retrieve authorities to apply a justification "
@@ -765,6 +759,17 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
       }
       auto &authorities = authorities_opt.value();
+
+      // This is justification for non-actual round
+      if (authorities->id < current_round_->voterSetId()
+          or (authorities->id == current_round_->voterSetId()
+              && justification.round_number < current_round_->roundNumber())) {
+        return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+      }
+
+      if (authorities->id > current_round_->voterSetId() + 1) {
+        return VotingRoundError::WRONG_ORDER_OF_VOTER_SET_ID;
+      }
 
       auto voters = std::make_shared<VoterSet>(authorities->id);
       for (const auto &authority : *authorities) {

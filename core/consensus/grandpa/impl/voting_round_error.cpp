@@ -26,6 +26,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
     case E::NO_KNOWN_AUTHORITIES_FOR_BLOCK:
       return "Can't retrieve authorities for the given block. Likely indicates "
              "the block is invalid.";
+    case E::WRONG_ORDER_OF_VOTER_SET_ID:
+      return "New round has abnormal voter set id, such is expected to be "
+             "equal to or one greater than the soter set id of previous";
     case E::UNKNOWN_VOTER:
       return "Provided vote is the vote of unknown voter";
     case E::ZERO_WEIGHT_VOTER:
