@@ -451,14 +451,16 @@ namespace kagome::consensus::grandpa {
 
       auto round = makeInitialRound(round_state, std::move(voters));
 
-      if (not round->completable()) {
+      if (not round->completable() and not round->finalizedBlock().has_value()) {
         auto ctx = GrandpaContext::get().value();
         // Check if missed block are detected and if this is first attempt
         // (considering by definition peer id in context)
-        if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
-          ctx->peer_id.emplace(peer_id);
-          ctx->catch_up_response.emplace(msg);
-          loadMissingBlocks();
+        if (not ctx->missing_blocks.empty()) {
+          if (not ctx->peer_id.has_value()) {
+            ctx->peer_id.emplace(peer_id);
+            ctx->catch_up_response.emplace(msg);
+            loadMissingBlocks();
+          }
         }
         return;
       }
@@ -495,10 +497,12 @@ namespace kagome::consensus::grandpa {
         auto ctx = GrandpaContext::get().value();
         // Check if missed block are detected and if this is first attempt
         // (considering by definition peer id in context)
-        if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
-          ctx->peer_id.emplace(peer_id);
-          ctx->catch_up_response.emplace(msg);
-          loadMissingBlocks();
+        if (not ctx->missing_blocks.empty()) {
+          if (not ctx->peer_id.has_value()) {
+            ctx->peer_id.emplace(peer_id);
+            ctx->catch_up_response.emplace(msg);
+            loadMissingBlocks();
+          }
         }
         return;
       }
@@ -564,20 +568,20 @@ namespace kagome::consensus::grandpa {
 
     // If a peer is at round r, is extremely impolite to send messages about r+1
     // or later. "future-round" messages can be dropped and ignored.
-    if (msg.round_number >= current_round_->roundNumber() + 1) {
-      SL_WARN(logger_,
-              "{} signed by {} with set_id={} in round={} has received from {} "
-              "and rejected as extremely impolite (our round is {})",
-              msg.vote.is<Prevote>()     ? "Prevote"
-              : msg.vote.is<Precommit>() ? "Precommit"
-                                         : "PrimaryPropose",
-              msg.id(),
-              msg.counter,
-              msg.round_number,
-              peer_id,
-              current_round_->roundNumber());
-      return;
-    }
+//    if (msg.round_number >= current_round_->roundNumber() + 1) {
+//      SL_WARN(logger_,
+//              "{} signed by {} with set_id={} in round={} has received from {} "
+//              "and rejected as extremely impolite (our round is {})",
+//              msg.vote.is<Prevote>()     ? "Prevote"
+//              : msg.vote.is<Precommit>() ? "Precommit"
+//                                         : "PrimaryPropose",
+//              msg.id(),
+//              msg.counter,
+//              msg.round_number,
+//              peer_id,
+//              current_round_->roundNumber());
+//      return;
+//    }
 
     std::shared_ptr<VotingRound> target_round =
         selectRound(msg.round_number, msg.counter);
@@ -641,10 +645,12 @@ namespace kagome::consensus::grandpa {
       auto ctx = GrandpaContext::get().value();
       // Check if missed block are detected and if this is first attempt
       // (considering by definition peer id in context)
-      if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
-        ctx->peer_id.emplace(peer_id);
-        ctx->vote.emplace(msg);
-        loadMissingBlocks();
+      if (not ctx->missing_blocks.empty()) {
+        if (not ctx->peer_id.has_value()) {
+          ctx->peer_id.emplace(peer_id);
+          ctx->vote.emplace(msg);
+          loadMissingBlocks();
+        }
       }
       return;
     }

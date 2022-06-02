@@ -199,6 +199,14 @@ namespace kagome::consensus::grandpa {
                                             std::move(possible_to_finalize));
 
           BOOST_ASSERT(finalized_.has_value());
+
+          // schedule to execute next round
+          scheduler_->schedule(
+              [grandpa_wp = std::move(grandpa_), round_number = round_number_] {
+                if (auto grandpa = grandpa_wp.lock()) {
+                  grandpa->executeNextRound(round_number);
+                }
+              });
         }
       }
 
