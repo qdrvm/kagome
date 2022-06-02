@@ -55,7 +55,7 @@ namespace kagome::runtime {
     }
 
     template <typename ValueArg>
-    [[nodiscard]] bool put(const Key &key, ValueArg &&value) {
+    void put(const Key &key, ValueArg &&value) {
       static_assert(std::is_convertible_v<
                         ValueArg,
                         Value> || std::is_constructible_v<ValueArg, Value>);
@@ -65,7 +65,6 @@ namespace kagome::runtime {
         cache_.erase(min);
       }
       cache_.push_back(CacheEntry{key, std::forward<ValueArg>(value), ticks_});
-      return true;
     }
 
    private:
@@ -101,25 +100,29 @@ namespace kagome::runtime {
         SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
 
     /**
-     * @brief Attempt to aquire a ModuleInstance for state. If none available,
-     * instantiate. If already acquired by this thread, return the same ptr.
+     * @brief @brief Attempt to acquire a ModuleInstance for the provided state.
+     * If none available, instantiate a new one. If already acquired by this
+     * thread, return the ptr to the acquired instance.
      *
-     * @param state - runtime block, by its root hash
-     * @return pointer to aquired ModuleInstance if success. nullopt otherwise.
+     * @param state - the merkle trie root of the state containing the code of
+     * the runtime module we are acquiring an instance of.
+     * @return pointer to the acquired ModuleInstance if success. Error
+     * otherwise.
      */
     outcome::result<std::shared_ptr<ModuleInstance>> tryAcquire(
         const RootHash &state);
     /**
-     * @brief Releases ModuleInstance (return it to pool)
+     * @brief Releases the module instance (returns it to the pool)
      *
-     * @param state - runtime block, by its root hash
+     * @param state - the merkle trie root of the state containing the runtime
+     * module code we are releasing an instance of.
      */
     void release(const RootHash &state);
 
     /**
      * @brief Get the module for state from internal cache
      *
-     * @param state - runtime block, by its root hash
+     * @param state - the state containing the module's code.
      * @return Module if any, nullopt otherwise
      */
     std::optional<std::shared_ptr<Module>> getModule(const RootHash &state);
@@ -129,10 +132,8 @@ namespace kagome::runtime {
      *
      * @param state - runtime block, by its root hash
      * @param module - new module pointer
-     * @return true if successfully inserted
-     * @return false otherwise
      */
-    bool putModule(const RootHash &state, std::shared_ptr<Module> module);
+    void putModule(const RootHash &state, std::shared_ptr<Module> module);
 
    private:
     std::mutex mt_;

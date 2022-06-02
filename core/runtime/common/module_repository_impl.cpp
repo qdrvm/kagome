@@ -47,7 +47,7 @@ namespace kagome::runtime {
       // Add compiled module if any
       if (auto module = last_compiled_module_->try_extract();
           module.has_value()) {
-        BOOST_VERIFY(runtime_instances_pool_->putModule(state, module.value()));
+        runtime_instances_pool_->putModule(state, module.value());
       }
 
       // Compile new module if required
@@ -63,8 +63,7 @@ namespace kagome::runtime {
           return code.as_failure();
         }
         OUTCOME_TRY(new_module, module_factory_->make(code.value()));
-        BOOST_VERIFY(
-            runtime_instances_pool_->putModule(state, std::move(new_module)));
+        runtime_instances_pool_->putModule(state, std::move(new_module));
       }
     }
 

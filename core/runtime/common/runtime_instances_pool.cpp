@@ -72,10 +72,10 @@ namespace kagome::runtime {
     std::lock_guard guard{mt_};
     return modules_.get(state);
   }
-  bool RuntimeInstancesPool::putModule(
+  void RuntimeInstancesPool::putModule(
       const RuntimeInstancesPool::RootHash &state,
       std::shared_ptr<Module> module) {
     std::lock_guard guard{mt_};
-    return modules_.put(state, std::move(module));
+    modules_.put(state, std::move(module));
   }
 }  // namespace kagome::runtime

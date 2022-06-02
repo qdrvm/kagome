@@ -42,12 +42,9 @@ namespace kagome::runtime::wavm {
     }
 
     auto imports = WAVM::Runtime::getModuleIR(module).memories.imports;
-    if (imports.empty()) {
-      logger->critical("Memory type not found in imports.");
-      return nullptr;
+    if (not imports.empty()) {
+      module_params->intrinsicMemoryType = imports[0].type;
     }
-
-    module_params->intrinsicMemoryType = imports[0].type;
     intrinsic_module =
         std::make_shared<IntrinsicModule>(*intrinsic_module, module_params);
     runtime::wavm::registerHostApiMethods(*intrinsic_module);
