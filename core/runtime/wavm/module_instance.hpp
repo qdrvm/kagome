@@ -26,7 +26,8 @@ namespace kagome::runtime::wavm {
 
   class CompartmentWrapper;
 
-  class ModuleInstance : public runtime::ModuleInstance {
+  class ModuleInstance : public runtime::ModuleInstance,
+                         public std::enable_shared_from_this<ModuleInstance> {
    public:
     enum class Error {
       FUNC_NOT_FOUND = 1,
@@ -36,20 +37,25 @@ namespace kagome::runtime::wavm {
     };
     ModuleInstance(InstanceEnvironment &&env,
                    WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
+                   WAVM::Runtime::ModuleRef module,
                    std::shared_ptr<const CompartmentWrapper> compartment);
 
-    outcome::result<PtrSize> callExportFunction(std::string_view name,
-                                                PtrSize args) const override;
+    outcome::result<PtrSize> callExportFunction(
+        std::string_view name, common::BufferView encoded_args) const override;
 
     outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const override;
 
+    void forDataSegment(DataSegmentProcessor const &callback) const override;
+
     InstanceEnvironment const &getEnvironment() const override;
     outcome::result<void> resetEnvironment() override;
+    void borrow(BorrowedInstance::PoolReleaseFunction release) override;
 
    private:
     InstanceEnvironment env_;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance_;
+    WAVM::Runtime::ModuleRef module_;
     std::shared_ptr<const CompartmentWrapper> compartment_;
     log::Logger logger_;
   };

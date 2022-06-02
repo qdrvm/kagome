@@ -33,7 +33,7 @@ namespace kagome::runtime::binaryen {
                        std::shared_ptr<RuntimeExternalInterface> rei);
 
     outcome::result<PtrSize> callExportFunction(std::string_view name,
-                                                PtrSize args) const override;
+                                                common::BufferView args) const override;
 
     outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const override;
@@ -41,6 +41,9 @@ namespace kagome::runtime::binaryen {
     InstanceEnvironment const &getEnvironment() const override;
 
     outcome::result<void> resetEnvironment() override;
+    void borrow(BorrowedInstance::PoolReleaseFunction release) override;
+
+    void forDataSegment(DataSegmentProcessor const &callback) const override;
 
    private:
     InstanceEnvironment env_;

@@ -43,7 +43,6 @@ namespace kagome::runtime {
    */
   using WasmOffset = uint32_t;
 
-  using WasmI8 = int8_t;
   using WasmI32 = int32_t;
   using WasmU64 = uint64_t;
 

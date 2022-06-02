@@ -19,7 +19,7 @@ namespace kagome::authority {
    public:
     ScheduleNode() = default;
 
-    ScheduleNode(const std::shared_ptr<ScheduleNode> &ancestor,
+    ScheduleNode(const std::shared_ptr<const ScheduleNode> &ancestor,
                  primitives::BlockInfo block);
 
     static std::shared_ptr<ScheduleNode> createAsRoot(
@@ -28,10 +28,10 @@ namespace kagome::authority {
     outcome::result<void> ensureReadyToSchedule() const;
 
     std::shared_ptr<ScheduleNode> makeDescendant(
-        const primitives::BlockInfo &block, bool finalized = false);
+        const primitives::BlockInfo &block, bool finalized = false) const;
 
     const primitives::BlockInfo block{};
-    std::weak_ptr<ScheduleNode> parent;
+    std::weak_ptr<const ScheduleNode> parent;
     std::vector<std::shared_ptr<ScheduleNode>> descendants{};
 
     // Current authorities

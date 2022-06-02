@@ -32,9 +32,6 @@ namespace kagome::blockchain {
       // body of the block (extrinsics)
       BLOCK_DATA = 5,
 
-      // justification of the finalized block
-      JUSTIFICATION = 6,
-
       // node of a trie db
       TRIE_NODE = 7
     };

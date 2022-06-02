@@ -156,7 +156,7 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
                         "--base-path",
                         base_path.native().c_str()};
 
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
@@ -190,7 +190,7 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
       "2222",
   };
 
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
@@ -209,7 +209,7 @@ TEST_F(AppConfigurationTest, GenesisPathTest) {
                         base_path.native().c_str()};
   ASSERT_TRUE(app_config_->initializeFromArgs(
 
-      std::size(args), (char **)args));
+      std::size(args), args));
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
 }
@@ -238,7 +238,7 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
       "2222",
   };
 
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
@@ -260,7 +260,7 @@ TEST_F(AppConfigurationTest, TelemetryEndpointsFromConfig) {
       config_path.c_str(),
   };
 
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_EQ(app_config_->telemetryEndpoints(), reference);
 }
 
@@ -276,7 +276,7 @@ TEST_F(AppConfigurationTest, TelemetryDefaultlyEnabled) {
       config_path.c_str(),
   };
 
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_TRUE(app_config_->isTelemetryEnabled());
 }
 
@@ -293,7 +293,7 @@ TEST_F(AppConfigurationTest, TelemetryExplicitlyDisabled) {
       "--no-telemetry",
   };
 
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_FALSE(app_config_->isTelemetryEnabled());
 }
 
@@ -309,7 +309,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
       get_endpoint("2.2.2.2", 3456);
 
   char const *args[] = {"/path/", "--config-file", config_path.c_str()};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path);
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -342,7 +342,7 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
                         chain_path.native().c_str(),
                         "--config-file",
                         invalid_config_path.c_str()};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -373,7 +373,7 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
                         chain_path.native().c_str(),
                         "--config-file",
                         damaged_config_path.c_str()};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -404,7 +404,7 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
                         chain_path.native().c_str(),
                         "--config-file",
                         "<some_file>"};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -430,7 +430,7 @@ TEST_F(AppConfigurationTest, KeystorePathTest) {
                         base_path.native().c_str()};
   ASSERT_TRUE(app_config_->initializeFromArgs(
 
-      std::size(args), (char **)args));
+      std::size(args), args));
 
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
@@ -449,7 +449,7 @@ TEST_F(AppConfigurationTest, base_pathPathTest) {
                         chain_path.native().c_str(),
                         "--base-path",
                         base_path.native().c_str()};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
@@ -475,7 +475,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), (char **)args));
+        app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"info"});
   }
   {
@@ -489,7 +489,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), (char **)args));
+        app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"verbose"});
   }
   {
@@ -503,7 +503,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), (char **)args));
+        app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   }
   {
@@ -517,7 +517,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), (char **)args));
+        app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"trace"});
   }
 }
@@ -535,7 +535,7 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
                         chain_path.native().c_str(),
                         "--base-path",
                         base_path.native().c_str()};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_EQ(app_config_->log(), std::vector<std::string>{""});
 }
 
@@ -552,7 +552,7 @@ TEST_F(AppConfigurationTest, NodeNameAsCommandLineOption) {
                         base_path.native().c_str(),
                         "--name",
                         "Alice's node"};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_EQ(app_config_->nodeName(), "Alice's node");
 }
 
@@ -570,7 +570,7 @@ TEST_F(AppConfigurationTest, SingleTelemetryCliArg) {
                         base_path.native().c_str(),
                         "--telemetry-url",
                         "ws://localhost/submit 0"};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   auto parsed_endpoints = app_config_->telemetryEndpoints();
   ASSERT_EQ(parsed_endpoints.size(), 1);
@@ -595,7 +595,7 @@ TEST_F(AppConfigurationTest, MultipleTelemetryCliArgs) {
                         "--telemetry-url",
                         "ws://localhost/submit 0",
                         "wss://telemetry.soramitsu.co.jp/submit 4"};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_EQ(app_config_->telemetryEndpoints(), reference);
 }
 
@@ -612,7 +612,7 @@ TEST_F(AppConfigurationTest, MaxBlocksInResponse) {
                         base_path.native().c_str(),
                         "--max-blocks-in-response",
                         "122"};
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->maxBlocksInResponse(), 122);
 }

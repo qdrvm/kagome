@@ -5,27 +5,31 @@
 
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 
+#include "runtime/module_repository.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 
 namespace kagome::runtime::wavm {
 
   log::Logger logger;
 
-  static thread_local std::stack<std::shared_ptr<host_api::HostApi>>
-      global_host_apis;
+  static thread_local std::stack<
+      std::shared_ptr<ModuleInstance::BorrowedInstance>>
+      global_instances;
 
-  void pushHostApi(std::shared_ptr<host_api::HostApi> api) {
-    global_host_apis.emplace(std::move(api));
+  void pushBorrowedRuntimeInstance(
+      std::shared_ptr<ModuleInstance::BorrowedInstance>
+          borrowed_runtime_instance) {
+    global_instances.emplace(std::move(borrowed_runtime_instance));
   }
 
-  void popHostApi() {
-    BOOST_ASSERT(!global_host_apis.empty());
-    global_host_apis.pop();
+  std::shared_ptr<ModuleInstance::BorrowedInstance>
+  peekBorrowedRuntimeInstance() {
+    BOOST_ASSERT(!global_instances.empty());
+    return global_instances.top();
   }
 
   std::shared_ptr<host_api::HostApi> peekHostApi() {
-    BOOST_ASSERT(!global_host_apis.empty());
-    return global_host_apis.top();
+    return (*peekBorrowedRuntimeInstance())->getEnvironment().host_api;
   }
 
 #undef WAVM_DEFINE_INTRINSIC_FUNCTION

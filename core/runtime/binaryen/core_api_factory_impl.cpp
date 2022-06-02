@@ -24,7 +24,7 @@ namespace kagome::runtime::binaryen {
       BOOST_ASSERT(env_factory_);
     }
 
-    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
+    outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider>,
         const primitives::BlockInfo &,
         const primitives::BlockHeader &) override {
@@ -75,7 +75,7 @@ namespace kagome::runtime::binaryen {
         std::make_shared<OneModuleRepository>(runtime_code,
                                               instance_env_factory_),
         header_repo_);
-    auto executor = std::make_unique<Executor>(header_repo_, env_factory);
+    auto executor = std::make_unique<Executor>(env_factory);
     return std::make_unique<CoreImpl>(
         std::move(executor), changes_tracker_, header_repo_);
   }

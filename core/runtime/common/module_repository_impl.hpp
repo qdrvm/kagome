@@ -15,6 +15,7 @@
 #include "runtime/instance_environment.hpp"
 
 namespace kagome::runtime {
+  using kagome::primitives::ThreadNumber;
 
   class RuntimeUpgradeTracker;
   class ModuleFactory;
@@ -89,6 +90,61 @@ namespace kagome::runtime {
     std::vector<CacheEntry> cache_;
   };
 
+  /**
+   * @brief Pool of runtime instances - per state. Incapsulates modules cache.
+   *
+   */
+  class RuntimeInstancesPool final : public std::enable_shared_from_this<RuntimeInstancesPool>{
+    using RootHash = storage::trie::RootHash;
+    using ModuleInstancePool =
+        std::multimap<ThreadNumber, std::shared_ptr<ModuleInstance>>;
+
+   public:
+    using ModuleCache =
+        SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
+
+    /**
+     * @brief Attempt to aquire a ModuleInstance for state. If none available,
+     * instantiate. If already acquired by this thread, return the same ptr.
+     *
+     * @param state - runtime block, by its root hash
+     * @return pointer to aquired ModuleInstance if success. nullopt otherwise.
+     */
+    outcome::result<std::shared_ptr<ModuleInstance>> tryAcquire(
+        const RootHash &state);
+    /**
+     * @brief Releases ModuleInstance (return it to pool)
+     *
+     * @param state - runtime block, by its root hash
+     */
+    void release(const RootHash &state);
+
+    /**
+     * @brief Get the module for state from internal cache
+     *
+     * @param state - runtime block, by its root hash
+     * @return Module if any, nullopt otherwise
+     */
+    std::optional<std::shared_ptr<Module>> getModule(const RootHash &state);
+
+    /**
+     * @brief Puts new module into internal cache
+     *
+     * @param state - runtime block, by its root hash
+     * @param module - new module pointer
+     * @return true if successfully inserted
+     * @return false otherwise
+     */
+    bool putModule(const RootHash &state, std::shared_ptr<Module> module);
+
+   private:
+    std::mutex mt_;
+    static constexpr size_t MODULES_CACHE_SIZE = 2;
+    static constexpr size_t POOL_FREE_INSTANCE_ID = 0;
+    ModuleCache modules_{MODULES_CACHE_SIZE};
+    std::map<RootHash, ModuleInstancePool> pools_;
+  };
+
   class ModuleRepositoryImpl final : public ModuleRepository {
    public:
     ModuleRepositoryImpl(
@@ -102,19 +158,7 @@ namespace kagome::runtime {
         const primitives::BlockHeader &header) override;
 
    private:
-    static constexpr size_t MODULES_CACHE_SIZE = 2;
-    static constexpr size_t INSTANCES_CACHE_SIZE = 2;
-    using ModuleCache =
-        SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
-    using InstanceCache =
-        SmallLruCache<storage::trie::RootHash, std::shared_ptr<ModuleInstance>>;
-
-    ModuleCache modules_;
-    std::mutex modules_mutex_;
-
-    std::mutex instances_mutex_;
-    std::unordered_map<std::thread::id, InstanceCache> instances_cache_;
-
+    RuntimeInstancesPool runtime_instances_pool_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;

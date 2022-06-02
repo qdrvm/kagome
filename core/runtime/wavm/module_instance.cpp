@@ -10,8 +10,57 @@
 
 #include "host_api/host_api.hpp"
 #include "log/profiling_logger.hpp"
+#include "runtime/memory_provider.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/memory_impl.hpp"
+#include "runtime/module_repository.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
+
+static WAVM::IR::Value evaluateInitializer(
+    WAVM::IR::InitializerExpression expression) {
+  using WAVM::IR::InitializerExpression;
+  switch (expression.type) {
+    case InitializerExpression::Type::i32_const:
+      return expression.i32;
+    case InitializerExpression::Type::i64_const:
+      return expression.i64;
+    case InitializerExpression::Type::f32_const:
+      return expression.f32;
+    case InitializerExpression::Type::f64_const:
+      return expression.f64;
+    case InitializerExpression::Type::v128_const:
+      return expression.v128;
+    case InitializerExpression::Type::global_get: {
+      throw std::runtime_error{"Not implemented on WAVM yet"};
+    }
+    case InitializerExpression::Type::ref_null:
+      return WAVM::IR::Value(asValueType(expression.nullReferenceType),
+                             WAVM::IR::UntaggedValue());
+
+    case InitializerExpression::Type::ref_func:
+      // instantiateModule delays evaluating ref.func initializers until the
+      // module is loaded and we have addresses for its functions.
+
+    case InitializerExpression::Type::invalid:
+    default:
+      WAVM_UNREACHABLE();
+  };
+}
+
+static WAVM::Uptr getIndexValue(const WAVM::IR::Value &value,
+                                WAVM::IR::IndexType indexType) {
+  switch (indexType) {
+    case WAVM::IR::IndexType::i32:
+      WAVM_ASSERT(value.type == WAVM::IR::ValueType::i32);
+      return value.u32;
+    case WAVM::IR::IndexType::i64:
+      WAVM_ASSERT(value.type == WAVM::IR::ValueType::i64);
+      return value.u64;
+    default:
+      WAVM_UNREACHABLE();
+  };
+}
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm, ModuleInstance::Error, e) {
   using E = kagome::runtime::wavm::ModuleInstance::Error;
@@ -34,18 +83,25 @@ namespace kagome::runtime::wavm {
   ModuleInstance::ModuleInstance(
       InstanceEnvironment &&env,
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
+      WAVM::Runtime::ModuleRef module,
       std::shared_ptr<const CompartmentWrapper> compartment)
       : env_{std::move(env)},
         instance_{std::move(instance)},
+        module_{std::move(module)},
         compartment_{std::move(compartment)},
         logger_{log::createLogger("ModuleInstance", "wavm")} {
     BOOST_ASSERT(instance_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
+    BOOST_ASSERT(module_ != nullptr);
   }
 
   outcome::result<PtrSize> ModuleInstance::callExportFunction(
-      std::string_view name, PtrSize args) const {
-    auto res = [this, name, args]() -> outcome::result<PtrSize> {
+      std::string_view name, common::BufferView encoded_args) const {
+    auto memory = env_.memory_provider->getCurrentMemory().value();
+
+    PtrSize args_span{memory.get().storeBuffer(encoded_args)};
+
+    auto res = [this, name, args_span]() -> outcome::result<PtrSize> {
       WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
           WAVM::Runtime::createContext(compartment_->getCompartment());
       WAVM::Runtime::Function *function = WAVM::Runtime::asFunctionNullable(
@@ -81,7 +137,7 @@ namespace kagome::runtime::wavm {
             [&context,
              &function,
              &invokeSig,
-             args,
+             args = args_span,
              resultsDestination = untaggedInvokeResults.data()] {
               std::array<WAVM::IR::UntaggedValue, 2> untaggedInvokeArgs{
                   static_cast<WAVM::U32>(args.ptr),
@@ -95,7 +151,7 @@ namespace kagome::runtime::wavm {
         return PtrSize{untaggedInvokeResults[0].u64};
       } catch (WAVM::Runtime::Exception *e) {
         const auto desc = WAVM::Runtime::describeException(e);
-        logger_->debug(desc);
+        logger_->error(desc);
         WAVM::Runtime::destroyException(e);
         return Error::EXECUTION_ERROR;
       }
@@ -129,6 +185,27 @@ namespace kagome::runtime::wavm {
     }
   }
 
+  void ModuleInstance::forDataSegment(
+      DataSegmentProcessor const& callback) const {
+    using WAVM::Uptr;
+    using WAVM::IR::DataSegment;
+    using WAVM::IR::MemoryType;
+    using WAVM::IR::Value;
+    auto ir = getModuleIR(module_);
+
+    for (Uptr segmentIndex = 0; segmentIndex < ir.dataSegments.size();
+         ++segmentIndex) {
+      const DataSegment &dataSegment = ir.dataSegments[segmentIndex];
+      if (dataSegment.isActive) {
+        const Value baseOffsetValue = evaluateInitializer(dataSegment.baseOffset);
+        const MemoryType &memoryType =
+            ir.memories.getType(dataSegment.memoryIndex);
+        Uptr baseOffset = getIndexValue(baseOffsetValue, memoryType.indexType);
+        callback(baseOffset, *dataSegment.data);
+      }
+    }
+  }
+
   InstanceEnvironment const &ModuleInstance::getEnvironment() const {
     return env_;
   }
@@ -136,6 +213,12 @@ namespace kagome::runtime::wavm {
   outcome::result<void> ModuleInstance::resetEnvironment() {
     env_.host_api->reset();
     return outcome::success();
+  }
+
+  void ModuleInstance::borrow(BorrowedInstance::PoolReleaseFunction release) {
+    auto borrowed = std::make_shared<ModuleInstance::BorrowedInstance>(
+        shared_from_this(), release);
+    pushBorrowedRuntimeInstance(std::move(borrowed));
   }
 
 }  // namespace kagome::runtime::wavm
