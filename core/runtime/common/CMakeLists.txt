@@ -56,7 +56,9 @@ target_link_libraries(runtime_upgrade_tracker
     )
 kagome_install(runtime_upgrade_tracker)
 
-add_library(module_repository module_repository_impl.cpp)
+add_library(module_repository
+    module_repository_impl.cpp
+    runtime_instances_pool.cpp)
 target_link_libraries(module_repository outcome)
 kagome_install(module_repository)
 

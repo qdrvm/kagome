@@ -393,8 +393,7 @@ namespace kagome::network {
     }
     if (peer_id != own_peer_info_.id) {
       peer_states_.erase(peer_id);
-      // TODO https://github.com/soramitsu/kagome/issues/1204
-      // host_.disconnect(peer_id);
+      host_.disconnect(peer_id);
     }
   }
 

@@ -6,20 +6,24 @@
 #include "runtime/wavm/module.hpp"
 
 #include <WAVM/Runtime/Linker.h>
+#include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASM/WASM.h>
 #include <boost/assert.hpp>
 
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_instance.hpp"
+#include "runtime/wavm/module_params.hpp"
 
 namespace kagome::runtime::wavm {
 
   std::unique_ptr<ModuleImpl> ModuleImpl::compileFrom(
       std::shared_ptr<CompartmentWrapper> compartment,
-      std::shared_ptr<const IntrinsicModule> intrinsic_module,
+      ModuleParams &module_params,
+      std::shared_ptr<IntrinsicModule> intrinsic_module,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
       gsl::span<const uint8_t> code) {
     std::shared_ptr<WAVM::Runtime::Module> module = nullptr;
@@ -36,6 +40,14 @@ namespace kagome::runtime::wavm {
                        loadError.message);
       return nullptr;
     }
+
+    auto imports = WAVM::Runtime::getModuleIR(module).memories.imports;
+    if (not imports.empty()) {
+      module_params.intrinsicMemoryType = imports[0].type;
+    }
+    intrinsic_module = std::make_shared<IntrinsicModule>(
+        *intrinsic_module, module_params.intrinsicMemoryType);
+    runtime::wavm::registerHostApiMethods(*intrinsic_module);
 
     return std::unique_ptr<ModuleImpl>(
         new ModuleImpl{std::move(compartment),
