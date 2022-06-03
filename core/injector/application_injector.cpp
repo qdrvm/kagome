@@ -757,11 +757,10 @@ namespace {
                   [&injector]() {
                     auto compartment = injector.template create<
                         sptr<runtime::wavm::CompartmentWrapper>>();
-                    auto module_params =
-                        std::make_shared<runtime::wavm::ModuleParams>();
+                    runtime::wavm::ModuleParams module_params{};
                     auto module =
                         std::make_unique<runtime::wavm::IntrinsicModule>(
-                            compartment, module_params);
+                            compartment, module_params.intrinsicMemoryType);
                     runtime::wavm::registerHostApiMethods(*module);
 
                     return module;

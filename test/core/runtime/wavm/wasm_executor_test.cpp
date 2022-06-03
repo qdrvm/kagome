@@ -162,7 +162,7 @@ class WasmExecutorTest : public ::testing::Test {
     auto module_params = std::make_shared<ModuleParams>();
     auto intrinsic_module =
         std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
-            compartment_wrapper, module_params);
+            compartment_wrapper, module_params->intrinsicMemoryType);
 
     auto memory_provider =
         std::make_shared<kagome::runtime::wavm::WavmExternalMemoryProvider>(

@@ -36,7 +36,7 @@ class WavmMemoryHeapTest : public ::testing::Test {
         std::make_shared<CompartmentWrapper>("WAVM Memory Test compartment"s);
     auto module_params = std::make_shared<ModuleParams>();
     auto intr_module = std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
-        compartment_wrapper, module_params);
+        compartment_wrapper, module_params->intrinsicMemoryType);
     // need this just because there is an assert in intrinsic module which
     // prevents it from being instantiated with zero functions
     intr_module->addFunction(

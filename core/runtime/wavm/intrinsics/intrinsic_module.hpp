@@ -21,20 +21,18 @@ namespace kagome::runtime::wavm {
     static constexpr std::string_view kIntrinsicMemoryName = "Runtime Memory";
 
     explicit IntrinsicModule(std::shared_ptr<CompartmentWrapper> compartment,
-                             std::shared_ptr<ModuleParams> module_params)
+                             WAVM::IR::MemoryType intrinsic_memory_type)
         : compartment_{compartment},
-          module_params_{std::move(module_params)},
-          memory_{&module_,
-                  kIntrinsicMemoryName.data(),
-                  module_params_->intrinsicMemoryType} {}
+          intrinsic_memory_type_{intrinsic_memory_type},
+          memory_{
+              &module_, kIntrinsicMemoryName.data(), intrinsic_memory_type} {}
 
     IntrinsicModule(IntrinsicModule &module,
-                    std::shared_ptr<ModuleParams> module_params)
+                    WAVM::IR::MemoryType intrinsic_memory_type)
         : compartment_{module.compartment_},
-          module_params_{std::move(module_params)},
-          memory_{&module_,
-                  kIntrinsicMemoryName.data(),
-                  module_params_->intrinsicMemoryType} {}
+          intrinsic_memory_type_{intrinsic_memory_type},
+          memory_{
+              &module_, kIntrinsicMemoryName.data(), intrinsic_memory_type} {}
 
     std::unique_ptr<IntrinsicModuleInstance> instantiate() const {
       BOOST_ASSERT_MSG(
@@ -46,7 +44,7 @@ namespace kagome::runtime::wavm {
                                               {&module_},
                                               "Intrinsic Module Instance"),
           compartment_,
-          module_params_);
+          intrinsic_memory_type_);
     }
 
     template <typename Ret, typename... Args>
@@ -63,7 +61,7 @@ namespace kagome::runtime::wavm {
 
    private:
     std::shared_ptr<CompartmentWrapper> compartment_;
-    std::shared_ptr<ModuleParams> module_params_;
+    WAVM::IR::MemoryType intrinsic_memory_type_;
     WAVM::Intrinsics::Module module_;
 
     // actually used, because added to the intrinsic module

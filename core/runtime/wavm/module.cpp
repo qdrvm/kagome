@@ -45,8 +45,8 @@ namespace kagome::runtime::wavm {
     if (not imports.empty()) {
       module_params->intrinsicMemoryType = imports[0].type;
     }
-    intrinsic_module =
-        std::make_shared<IntrinsicModule>(*intrinsic_module, module_params);
+    intrinsic_module = std::make_shared<IntrinsicModule>(
+        *intrinsic_module, module_params->intrinsicMemoryType);
     runtime::wavm::registerHostApiMethods(*intrinsic_module);
 
     return std::unique_ptr<ModuleImpl>(

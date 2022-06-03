@@ -29,8 +29,8 @@ class WavmRuntimeTest : public RuntimeTestBase {
     auto module_params =
         std::make_shared<kagome::runtime::wavm::ModuleParams>();
     auto intrinsic_module =
-        std::make_shared<kagome::runtime::wavm::IntrinsicModule>(compartment,
-                                                                 module_params);
+        std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
+            compartment, module_params->intrinsicMemoryType);
     kagome::runtime::wavm::registerHostApiMethods(*intrinsic_module);
     std::shared_ptr<kagome::runtime::wavm::IntrinsicModuleInstance>
         intrinsic_module_instance = intrinsic_module->instantiate();

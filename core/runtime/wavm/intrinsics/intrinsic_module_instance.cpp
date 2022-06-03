@@ -10,17 +10,16 @@
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
-#include "runtime/wavm/module_params.hpp"
 
 namespace kagome::runtime::wavm {
 
   IntrinsicModuleInstance::IntrinsicModuleInstance(
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance,
       std::shared_ptr<const CompartmentWrapper> compartment,
-      std::shared_ptr<const ModuleParams> module_params)
+      WAVM::IR::MemoryType intrinsic_memory_type)
       : module_instance_{std::move(module_instance)},
         compartment_{std::move(compartment)},
-        module_params_{std::move(module_params)} {
+        intrinsic_memory_type_{intrinsic_memory_type} {
     BOOST_ASSERT(compartment_);
     BOOST_ASSERT(module_instance_);
   }
@@ -28,7 +27,7 @@ namespace kagome::runtime::wavm {
   WAVM::Runtime::Memory *IntrinsicModuleInstance::getExportedMemory() const {
     return getTypedInstanceExport(module_instance_,
                                   IntrinsicModule::kIntrinsicMemoryName.data(),
-                                  module_params_->intrinsicMemoryType);
+                                  intrinsic_memory_type_);
   }
 
   WAVM::Runtime::Function *IntrinsicModuleInstance::getExportedFunction(
