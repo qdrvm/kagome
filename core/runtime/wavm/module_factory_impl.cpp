@@ -28,7 +28,7 @@ namespace kagome::runtime::wavm {
   outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(
       gsl::span<const uint8_t> code) const {
     return ModuleImpl::compileFrom(
-        compartment_, module_params_, intrinsic_module_, env_factory_, code);
+        compartment_, *module_params_, intrinsic_module_, env_factory_, code);
   }
 
 }  // namespace kagome::runtime::wavm

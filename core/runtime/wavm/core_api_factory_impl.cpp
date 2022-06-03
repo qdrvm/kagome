@@ -49,7 +49,7 @@ namespace kagome::runtime::wavm {
         const primitives::BlockHeader &) override {
       if (instance_ == nullptr) {
         auto module = ModuleImpl::compileFrom(compartment_,
-                                              module_params_,
+                                              *module_params_,
                                               intrinsic_module_,
                                               instance_env_factory_,
                                               code_);

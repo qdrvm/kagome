@@ -22,7 +22,7 @@ namespace kagome::runtime::wavm {
 
   std::unique_ptr<ModuleImpl> ModuleImpl::compileFrom(
       std::shared_ptr<CompartmentWrapper> compartment,
-      std::shared_ptr<ModuleParams> module_params,
+      ModuleParams &module_params,
       std::shared_ptr<IntrinsicModule> intrinsic_module,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
       gsl::span<const uint8_t> code) {
@@ -43,10 +43,10 @@ namespace kagome::runtime::wavm {
 
     auto imports = WAVM::Runtime::getModuleIR(module).memories.imports;
     if (not imports.empty()) {
-      module_params->intrinsicMemoryType = imports[0].type;
+      module_params.intrinsicMemoryType = imports[0].type;
     }
     intrinsic_module = std::make_shared<IntrinsicModule>(
-        *intrinsic_module, module_params->intrinsicMemoryType);
+        *intrinsic_module, module_params.intrinsicMemoryType);
     runtime::wavm::registerHostApiMethods(*intrinsic_module);
 
     return std::unique_ptr<ModuleImpl>(
