@@ -51,7 +51,7 @@ namespace kagome::network {
 
     virtual void syncState(const libp2p::peer::PeerId &peer_id,
                            const primitives::BlockInfo &block,
-                           const common::Buffer &key,
+                           const std::vector<common::Buffer> &keys,
                            SyncResultHandler &&handler) = 0;
 
     virtual void endSync() = 0;
