@@ -95,7 +95,7 @@ namespace kagome::network {
 
     void syncState(const libp2p::peer::PeerId &peer_id,
                    const primitives::BlockInfo &block,
-                   const common::Buffer &key,
+                   const std::vector<common::Buffer> &keys,
                    SyncResultHandler &&handler) override;
 
     /// Loads blocks from peer {@param peer_id} since block {@param from} till
@@ -169,7 +169,12 @@ namespace kagome::network {
 
     std::atomic_bool applying_in_progress_ = false;
 
-    std::shared_ptr<storage::trie::PersistentTrieBatch> batch_;
+    std::unordered_map<
+        storage::trie::RootHash,
+        std::tuple<common::Buffer,
+                   unsigned,
+                   std::shared_ptr<storage::trie::PersistentTrieBatch>>>
+        batches_store_;
     size_t entries_{0};
   };
 

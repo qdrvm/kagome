@@ -299,13 +299,15 @@ namespace kagome::consensus::babe {
     }
 
     // Start catching up if gap recognized
-    if (announce.header.number > current_best_block.number + 1) {
-      auto block_hash =
-          hasher_->blake2b_256(scale::encode(announce.header).value());
-      const primitives::BlockInfo announced_block(announce.header.number,
-                                                  block_hash);
-      startCatchUp(peer_id, announced_block);
-      return;
+    if (current_state_ == Babe::State::SYNCHRONIZED) {
+      if (announce.header.number > current_best_block.number + 1) {
+        auto block_hash =
+            hasher_->blake2b_256(scale::encode(announce.header).value());
+        const primitives::BlockInfo announced_block(announce.header.number,
+                                                    block_hash);
+        startCatchUp(peer_id, announced_block);
+        return;
+      }
     }
 
     // Received announce that has the same block number as ours best,
@@ -327,13 +329,14 @@ namespace kagome::consensus::babe {
               self->synchronizer_->syncState(
                   peer_id,
                   block,
-                  common::Buffer(),
+                  {common::Buffer()},
                   [self, block = block, peer_id](
                       outcome::result<primitives::BlockInfo>
                           block_res) mutable {
                     if (block_res.has_error()) {
                       return;
                     }
+
                     const auto &block = block_res.value();
                     SL_INFO(self->log_,
                             "Catching up is finished on block {}",
