@@ -148,7 +148,7 @@ int main() {
   auto module_params = std::make_shared<kagome::runtime::wavm::ModuleParams>();
   auto intrinsic_module =
       std::make_shared<kagome::runtime::wavm::IntrinsicModule>(compartment,
-                                                               module_params);
+                                                               module_params->intrinsicMemoryType);
 
   auto generator =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
