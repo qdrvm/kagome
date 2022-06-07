@@ -743,4 +743,42 @@ namespace kagome::authority {
     node->descendants.emplace_back(std::move(new_node));
   }
 
+  void AuthorityManagerImpl::cancel(const primitives::BlockInfo &block) {
+    auto ancestor = getAppropriateAncestor(block);
+
+    if (ancestor == nullptr) {
+      SL_TRACE(log_, "No scheduled changes on block {}: no ancestor", block);
+      return;
+    }
+
+    if (ancestor == root_) {
+      // Can't remove root
+      SL_TRACE(log_,
+               "Can't cancel scheduled changes on block {}: it is root",
+               block);
+      return;
+    }
+
+    if (ancestor->block == block) {
+      ancestor = std::const_pointer_cast<ScheduleNode>(ancestor->parent.lock());
+    }
+
+    auto it = std::find_if(ancestor->descendants.begin(),
+                           ancestor->descendants.end(),
+                           [&block](std::shared_ptr<ScheduleNode> node) {
+                             return node->block == block;
+                           });
+
+    if (it != ancestor->descendants.end()) {
+      if (not(*it)->descendants.empty()) {
+        // Has descendants - is not a leaf
+        SL_TRACE(log_, "No scheduled changes on block {}: not found", block);
+        return;
+      }
+
+      SL_DEBUG(log_, "Scheduled changes on block {} has removed", block);
+      ancestor->descendants.erase(it);
+    }
+  }
+
 }  // namespace kagome::authority

@@ -23,6 +23,12 @@ namespace kagome::authority {
     virtual outcome::result<void> onConsensus(
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) = 0;
+
+    /**
+     * @brief Cancel changes. It is needed rollback in case of failed block
+     * @param block rolled back block
+     */
+    virtual void cancel(const primitives::BlockInfo &block) = 0;
   };
 }  // namespace kagome::authority
 

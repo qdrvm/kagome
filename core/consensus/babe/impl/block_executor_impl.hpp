@@ -53,7 +53,7 @@ namespace kagome::consensus {
     outcome::result<void> applyBlock(primitives::BlockData &&block) override;
 
    private:
-    void rollbackBlock(const primitives::BlockHash &block_hash);
+    void rollbackBlock(const primitives::BlockInfo &block);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> core_;
