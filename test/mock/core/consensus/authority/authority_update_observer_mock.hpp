@@ -16,6 +16,8 @@ namespace kagome::authority {
                 onConsensus,
                 (const primitives::BlockInfo &, const primitives::Consensus &),
                 (override));
+
+    MOCK_METHOD(void, cancel, (const primitives::BlockInfo &), (override));
   };
 }  // namespace kagome::authority
 

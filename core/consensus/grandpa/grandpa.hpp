@@ -23,7 +23,8 @@ namespace kagome::consensus::grandpa {
     /**
      * Tries to execute next round for round presented by {@param round_number}
      */
-    virtual void executeNextRound(std::shared_ptr<VotingRound> prev_round) = 0;
+    virtual void executeNextRound(
+        const std::shared_ptr<VotingRound> &prev_round) = 0;
 
     /**
      * Force update round for round presented by {@param round_number}

@@ -273,7 +273,8 @@ namespace kagome::consensus::grandpa {
     return round_state;
   }
 
-  void GrandpaImpl::executeNextRound(std::shared_ptr<VotingRound> prev_round) {
+  void GrandpaImpl::executeNextRound(
+      const std::shared_ptr<VotingRound> &prev_round) {
     if (current_round_ != prev_round) {
       return;
     }
