@@ -60,8 +60,9 @@ namespace kagome::authority {
 
     primitives::BlockInfo base() const override;
 
-    std::optional<std::shared_ptr<const primitives::AuthorityList>>
-    authorities(const primitives::BlockInfo &block, bool finalized) const override;
+    std::optional<std::shared_ptr<const primitives::AuthorityList>> authorities(
+        const primitives::BlockInfo &target_block,
+        bool finalized) const override;
 
     outcome::result<void> applyScheduledChange(
         const primitives::BlockInfo &block,

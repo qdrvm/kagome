@@ -329,18 +329,23 @@ namespace kagome::authority {
   }
 
   std::optional<std::shared_ptr<const primitives::AuthorityList>>
-  AuthorityManagerImpl::authorities(const primitives::BlockInfo &block,
+  AuthorityManagerImpl::authorities(const primitives::BlockInfo &target_block,
                                     bool finalized) const {
-    auto node = getAppropriateAncestor(block);
+    auto node = getAppropriateAncestor(target_block);
 
     if (not node) {
       return std::nullopt;
     }
 
     bool node_in_finalized_chain =
-        not directChainExists(block_tree_->getLastFinalized(), node->block);
+        node->block == target_block
+            ? finalized
+            : node->block == block_tree_->getLastFinalized()
+                  or directChainExists(node->block,
+                                       block_tree_->getLastFinalized());
 
-    auto adjusted_node = node->makeDescendant(block, node_in_finalized_chain);
+    auto adjusted_node =
+        node->makeDescendant(target_block, node_in_finalized_chain);
 
     if (adjusted_node->enabled) {
       // Original authorities
@@ -361,7 +366,7 @@ namespace kagome::authority {
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber activate_at) {
     SL_DEBUG(log_,
-             "Applying scheduled change for block {} to activate at block {}",
+             "Applying scheduled change on block {} to activate at block {}",
              block,
              activate_at);
     auto node = getAppropriateAncestor(block);
@@ -370,58 +375,67 @@ namespace kagome::authority {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
-    SL_DEBUG(
-        log_,
-        "Oldest scheduled change before block {} is at block {} with set id {}",
-        block,
-        node->block,
-        node->actual_authorities->id);
-    auto last_finalized = block_tree_->getLastFinalized();
-    bool node_in_finalized_chain =
-        not directChainExists(last_finalized, node->block);
-
     SL_DEBUG(log_,
-             "Last finalized is {}, is on the same chain as target block? {}",
-             last_finalized,
-             node_in_finalized_chain);
-
-    auto new_node = node->makeDescendant(block, node_in_finalized_chain);
-    SL_DEBUG(log_,
-             "Make a schedule node for block {}, with actual set id {}",
+             "Actual authorities for block {} found on block {} with set id {}",
              block,
-             new_node->actual_authorities->id);
+             node->block,
+             node->actual_authorities->id);
 
-    auto res = new_node->ensureReadyToSchedule();
-    if (!res) {
-      SL_DEBUG(
-          log_, "Node is not ready to be scheduled: {}", res.error().message());
-      return res.as_failure();
-    }
+    auto schedule_change = [&](const std::shared_ptr<ScheduleNode> &node)
+        -> outcome::result<void> {
+      auto res = node->ensureReadyToSchedule();
+      if (!res) {
+        SL_DEBUG(log_,
+                 "Node is not ready to schedule scheduled change: {}",
+                 res.error().message());
+        return res.as_failure();
+      }
 
-    auto new_authorities =
-        std::make_shared<primitives::AuthorityList>(authorities);
-    new_authorities->id = new_node->actual_authorities->id + 1;
+      auto new_authorities =
+          std::make_shared<primitives::AuthorityList>(authorities);
+      new_authorities->id = node->actual_authorities->id + 1;
 
-    // Schedule change
-    new_node->scheduled_authorities = std::move(new_authorities);
-    new_node->scheduled_after = activate_at;
+      // Schedule change
+      node->scheduled_authorities = std::move(new_authorities);
+      node->scheduled_after = activate_at;
 
-    SL_VERBOSE(log_,
-               "Change is scheduled after block #{} (set id={})",
-               new_node->scheduled_after,
-               new_node->scheduled_authorities->id);
-    size_t index = 0;
-    for (auto &authority : *new_node->scheduled_authorities) {
       SL_VERBOSE(log_,
-                 "New authority ({}/{}): id={} weight={}",
-                 ++index,
-                 new_node->scheduled_authorities->size(),
-                 authority.id.id,
-                 authority.weight);
-    }
+                 "Change is scheduled after block #{} (set id={})",
+                 node->scheduled_after,
+                 node->scheduled_authorities->id);
 
-    // Reorganize ancestry
-    reorganize(node, new_node);
+      size_t index = 0;
+      for (auto &authority : *node->scheduled_authorities) {
+        SL_VERBOSE(log_,
+                   "New authority ({}/{}): id={} weight={}",
+                   ++index,
+                   node->scheduled_authorities->size(),
+                   authority.id.id,
+                   authority.weight);
+      }
+
+      return outcome::success();
+    };
+
+    bool node_in_finalized_chain =
+        node->block == block_tree_->getLastFinalized()
+        or directChainExists(node->block, block_tree_->getLastFinalized());
+
+    if (node->block == block) {
+      node->adjust(node_in_finalized_chain);
+      OUTCOME_TRY(schedule_change(node));
+    } else {
+      auto new_node = node->makeDescendant(block, node_in_finalized_chain);
+      SL_DEBUG(log_,
+               "Make a schedule node for block {}, with actual set id {}",
+               block,
+               new_node->actual_authorities->id);
+
+      OUTCOME_TRY(schedule_change(new_node));
+
+      // Reorganize ancestry
+      reorganize(node, new_node);
+    }
 
     return outcome::success();
   }
@@ -430,42 +444,71 @@ namespace kagome::authority {
       const primitives::BlockInfo &block,
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber activate_at) {
+    SL_DEBUG(log_,
+             "Applying forced change on block {} to activate at block {}",
+             block,
+             activate_at);
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
-    auto new_node = node->makeDescendant(block);
+    auto force_change = [&](const std::shared_ptr<ScheduleNode> &node)
+        -> outcome::result<void> {
+      auto res = node->ensureReadyToSchedule();
+      if (!res) {
+        SL_DEBUG(log_,
+                 "Node is not ready to schedule forced change: {}",
+                 res.error().message());
+        return res.as_failure();
+      }
 
-    OUTCOME_TRY(new_node->ensureReadyToSchedule());
-
-    auto new_authorities =
-        std::make_shared<primitives::AuthorityList>(authorities);
-    new_authorities->id = new_node->actual_authorities->id + 1;
-
-    // Force changes
-    if (new_node->block.number >= activate_at) {
-      new_node->actual_authorities = std::move(new_authorities);
-    } else {
-      new_node->forced_authorities =
+      auto new_authorities =
           std::make_shared<primitives::AuthorityList>(authorities);
-      new_node->forced_for = activate_at;
-    }
+      new_authorities->id = node->actual_authorities->id + 1;
 
-    SL_VERBOSE(log_, "Change is forced on block #{}", activate_at);
-    size_t index = 0;
-    for (auto &authority : *new_node->forced_authorities) {
+      // Force changes
+      if (node->block.number >= activate_at) {
+        node->actual_authorities = std::move(new_authorities);
+      } else {
+        node->forced_authorities =
+            std::make_shared<primitives::AuthorityList>(authorities);
+        node->forced_for = activate_at;
+      }
+
       SL_VERBOSE(log_,
-                 "New authority ({}/{}): id={} weight={}",
-                 ++index,
-                 new_node->forced_authorities->size(),
-                 authority.id.id,
-                 authority.weight);
-    }
+                 "Change will be forced on block #{} (set id={})",
+                 activate_at,
+                 node->forced_authorities->id);
+      size_t index = 0;
+      for (auto &authority : *node->forced_authorities) {
+        SL_VERBOSE(log_,
+                   "New authority ({}/{}): id={} weight={}",
+                   ++index,
+                   node->forced_authorities->size(),
+                   authority.id.id,
+                   authority.weight);
+      }
 
-    // Reorganize ancestry
-    reorganize(node, new_node);
+      return outcome::success();
+    };
+
+    bool node_in_finalized_chain =
+        // node->block == block_tree_->getLastFinalized() or
+        directChainExists(node->block, block_tree_->getLastFinalized());
+
+    if (node->block == block) {
+      node->adjust(node_in_finalized_chain);
+      OUTCOME_TRY(force_change(node));
+    } else {
+      auto new_node = node->makeDescendant(block, node_in_finalized_chain);
+
+      OUTCOME_TRY(force_change(new_node));
+
+      // Reorganize ancestry
+      reorganize(node, new_node);
+    }
 
     return outcome::success();
   }
@@ -476,53 +519,74 @@ namespace kagome::authority {
       SL_TRACE(log_, "Ignore 'on disabled' message due to config");
       return outcome::success();
     }
+    SL_DEBUG(log_, "Applying disable authority on block {}", block);
+
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
-    // Check if index not out of bound
-    if (authority_index >= node->actual_authorities->size()) {
-      return AuthorityUpdateObserverError::WRONG_AUTHORITY_INDEX;
-    }
+    auto disable_authority = [&](const std::shared_ptr<ScheduleNode> &node)
+        -> outcome::result<void> {
+      // Make changed authorities
+      auto authorities = std::make_shared<primitives::AuthorityList>(
+          *node->actual_authorities);
 
-    auto new_node = node->makeDescendant(block);
-
-    // Make changed authorities
-    auto authorities = std::make_shared<primitives::AuthorityList>(
-        *new_node->actual_authorities);
-    (*authorities)[authority_index].weight = 0;
-    new_node->actual_authorities = std::move(authorities);
-
-    SL_VERBOSE(
-        log_,
-        "Authority id={} (index={} in set id={}) is disabled on block #{}",
-        (*new_node->actual_authorities)[authority_index].id.id,
-        authority_index,
-        new_node->actual_authorities->id,
-        new_node->block.number);
-
-    // Reorganize ancestry
-    auto descendants = std::move(node->descendants);
-    for (auto &descendant : descendants) {
-      if (directChainExists(block, descendant->block)) {
-        // Propagate change to descendants
-        if (descendant->actual_authorities == node->actual_authorities) {
-          descendant->actual_authorities = new_node->actual_authorities;
-        }
-        new_node->descendants.emplace_back(std::move(descendant));
-      } else {
-        node->descendants.emplace_back(std::move(descendant));
+      // Check if index not out of bound
+      if (authority_index >= node->actual_authorities->size()) {
+        return AuthorityUpdateObserverError::WRONG_AUTHORITY_INDEX;
       }
+
+      (*authorities)[authority_index].weight = 0;
+      node->actual_authorities = std::move(authorities);
+
+      SL_VERBOSE(
+          log_,
+          "Authority id={} (index={} in set id={}) is disabled on block #{}",
+          (*node->actual_authorities)[authority_index].id.id,
+          authority_index,
+          node->actual_authorities->id,
+          node->block.number);
+
+      return outcome::success();
+    };
+
+    bool node_in_finalized_chain =
+        node->block == block_tree_->getLastFinalized()
+        or directChainExists(node->block, block_tree_->getLastFinalized());
+
+    if (node->block == block) {
+      node->adjust(node_in_finalized_chain);
+      OUTCOME_TRY(disable_authority(node));
+    } else {
+      auto new_node = node->makeDescendant(block, node_in_finalized_chain);
+
+      OUTCOME_TRY(disable_authority(new_node));
+
+      // Reorganize ancestry
+      auto descendants = std::move(node->descendants);
+      for (auto &descendant : descendants) {
+        if (directChainExists(block, descendant->block)) {
+          // Propagate change to descendants
+          if (descendant->actual_authorities == node->actual_authorities) {
+            descendant->actual_authorities = new_node->actual_authorities;
+          }
+          new_node->descendants.emplace_back(std::move(descendant));
+        } else {
+          node->descendants.emplace_back(std::move(descendant));
+        }
+      }
+      node->descendants.emplace_back(std::move(new_node));
     }
-    node->descendants.emplace_back(std::move(new_node));
 
     return outcome::success();
   }
 
   outcome::result<void> AuthorityManagerImpl::applyPause(
       const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
+    SL_DEBUG(log_, "Applying pause on block {}", block);
+
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
@@ -530,7 +594,8 @@ namespace kagome::authority {
     }
 
     bool node_in_finalized_chain =
-        not directChainExists(block_tree_->getLastFinalized(), node->block);
+        node->block == block_tree_->getLastFinalized()
+        or directChainExists(node->block, block_tree_->getLastFinalized());
 
     auto new_node = node->makeDescendant(block, node_in_finalized_chain);
 
@@ -560,13 +625,18 @@ namespace kagome::authority {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
-    auto new_node = node->makeDescendant(block);
+    bool node_in_finalized_chain =
+        node->block == block_tree_->getLastFinalized()
+        or directChainExists(node->block, block_tree_->getLastFinalized());
+
+    auto new_node = node->makeDescendant(block, node_in_finalized_chain);
 
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
 
     new_node->resume_for = activate_at;
 
-    SL_VERBOSE(log_, "Scheduled resume on block #{}", new_node->block.number);
+    SL_VERBOSE(
+        log_, "Resuming will be done at block #{}", new_node->block.number);
 
     // Reorganize ancestry
     reorganize(node, new_node);
@@ -604,8 +674,13 @@ namespace kagome::authority {
           decoded.asGrandpaDigest(),
           [this, &block](
               const primitives::ScheduledChange &msg) -> outcome::result<void> {
-            return applyScheduledChange(
+            auto res = applyScheduledChange(
                 block, msg.authorities, block.number + msg.subchain_length);
+            if (res.has_error()) {
+              std::ignore = applyScheduledChange(
+                  block, msg.authorities, block.number + msg.subchain_length);
+            }
+            return res;
           },
           [this, &block](const primitives::ForcedChange &msg) {
             return applyForcedChange(

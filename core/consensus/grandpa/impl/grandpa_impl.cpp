@@ -86,8 +86,8 @@ namespace kagome::consensus::grandpa {
              "Grandpa will be started with round #{}",
              round_state.round_number + 1);
 
-    auto authorities_res =
-        authority_manager_->authorities(round_state.last_finalized_block, true);
+    auto authorities_res = authority_manager_->authorities(
+        round_state.last_finalized_block, false);
     if (not authorities_res.has_value()) {
       logger_->critical(
           "Can't retrieve authorities for block {}. Stopping grandpa execution",
@@ -768,7 +768,7 @@ namespace kagome::consensus::grandpa {
           .votes = {},
           .finalized = block_info};
 
-      auto authorities_opt = authority_manager_->authorities(block_info, true);
+      auto authorities_opt = authority_manager_->authorities(block_info, false);
       if (!authorities_opt) {
         SL_WARN(logger_,
                 "Can't retrieve authorities to apply a justification "
