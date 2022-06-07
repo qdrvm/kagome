@@ -17,6 +17,8 @@ namespace kagome::authority {
    */
   class ScheduleNode : public std::enable_shared_from_this<ScheduleNode> {
    public:
+    static constexpr primitives::BlockNumber INACTIVE = 0;
+
     ScheduleNode() = default;
 
     ScheduleNode(const std::shared_ptr<const ScheduleNode> &ancestor,
@@ -27,8 +29,10 @@ namespace kagome::authority {
 
     outcome::result<void> ensureReadyToSchedule() const;
 
+    void adjust(bool finalized);
+
     std::shared_ptr<ScheduleNode> makeDescendant(
-        const primitives::BlockInfo &block, bool finalized = false) const;
+        const primitives::BlockInfo &block, bool finalized) const;
 
     const primitives::BlockInfo block{};
     std::weak_ptr<const ScheduleNode> parent;
@@ -37,8 +41,6 @@ namespace kagome::authority {
     // Current authorities
     std::shared_ptr<const primitives::AuthorityList> actual_authorities;
     bool enabled = true;
-
-    static constexpr auto INACTIVE = 0;
 
     // For scheduled changes
     primitives::BlockNumber scheduled_after = INACTIVE;

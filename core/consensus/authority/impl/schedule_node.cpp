@@ -8,8 +8,9 @@
 
 namespace kagome::authority {
 
-  ScheduleNode::ScheduleNode(const std::shared_ptr<const ScheduleNode> &ancestor,
-                             primitives::BlockInfo block)
+  ScheduleNode::ScheduleNode(
+      const std::shared_ptr<const ScheduleNode> &ancestor,
+      primitives::BlockInfo block)
       : block(block), parent(ancestor) {
     BOOST_ASSERT((bool)ancestor);
   }
@@ -36,56 +37,50 @@ namespace kagome::authority {
     return outcome::success();
   }
 
-  std::shared_ptr<ScheduleNode> ScheduleNode::makeDescendant(
-      const primitives::BlockInfo &target_block, bool finalized) const {
-    auto node = std::make_shared<ScheduleNode>(shared_from_this(), target_block);
+  void ScheduleNode::adjust(bool finalized) {
     // Has ScheduledChange
     if (scheduled_after != INACTIVE) {
-      if (finalized && scheduled_after <= target_block.number) {
-        node->actual_authorities = scheduled_authorities;
-      } else {
-        node->actual_authorities = actual_authorities;
-        node->enabled = enabled;
-        node->scheduled_after = scheduled_after;
-        node->scheduled_authorities = scheduled_authorities;
+      if (finalized && scheduled_after <= block.number) {
+        actual_authorities = std::move(scheduled_authorities);
+        scheduled_after = INACTIVE;
       }
     }
     // Has ForcedChange
     else if (forced_for != INACTIVE) {
-      if (forced_for <= target_block.number) {
-        node->actual_authorities = forced_authorities;
-      } else {
-        node->actual_authorities = actual_authorities;
-        node->enabled = enabled;
-        node->forced_for = forced_for;
-        node->forced_authorities = forced_authorities;
+      if (forced_for <= block.number) {
+        actual_authorities = std::move(forced_authorities);
+        forced_for = INACTIVE;
       }
     }
     // Has planned pause
     else if (pause_after != INACTIVE) {
-      node->actual_authorities = actual_authorities;
-      if (finalized && pause_after <= target_block.number) {
-        node->enabled = false;
-      } else {
-        node->enabled = enabled;
-        node->pause_after = pause_after;
+      if (finalized && pause_after <= block.number) {
+        enabled = false;
+        pause_after = INACTIVE;
       }
     }
     // Has planned resume
     else if (resume_for != INACTIVE) {
-      node->actual_authorities = actual_authorities;
-      if (resume_for <= target_block.number) {
-        node->enabled = true;
-      } else {
-        node->enabled = enabled;
-        node->resume_for = resume_for;
+      if (resume_for <= block.number) {
+        enabled = true;
+        resume_for = INACTIVE;
       }
     }
-    // Nothing else
-    else {
-      node->actual_authorities = actual_authorities;
-      node->enabled = enabled;
-    }
+  }
+
+  std::shared_ptr<ScheduleNode> ScheduleNode::makeDescendant(
+      const primitives::BlockInfo &target_block, bool finalized) const {
+    auto node =
+        std::make_shared<ScheduleNode>(shared_from_this(), target_block);
+    node->actual_authorities = actual_authorities;
+    node->enabled = enabled;
+    node->forced_for = forced_for;
+    node->forced_authorities = forced_authorities;
+    node->scheduled_after = scheduled_after;
+    node->scheduled_authorities = scheduled_authorities;
+    node->pause_after = pause_after;
+    node->resume_for = resume_for;
+    node->adjust(finalized);
     return node;
   }
 }  // namespace kagome::authority
