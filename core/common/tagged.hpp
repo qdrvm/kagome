@@ -31,7 +31,7 @@ namespace kagome {
     typedef Tag tag;
 
     template <typename... Args>
-    Tagged(Args &&...args) : Base(std::forward<Args>(args)...) {}
+    explicit Tagged(Args &&...args) : Base(std::forward<Args>(args)...) {}
 
     template <typename Out>
     explicit operator Out() {

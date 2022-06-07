@@ -21,6 +21,8 @@ namespace {
 
 namespace kagome::consensus::grandpa {
 
+  using authority::IsBlockFinalized;
+
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<Environment> environment,
@@ -87,7 +89,7 @@ namespace kagome::consensus::grandpa {
              round_state.round_number + 1);
 
     auto authorities_res = authority_manager_->authorities(
-        round_state.last_finalized_block, false);
+        round_state.last_finalized_block, IsBlockFinalized{false});
     if (not authorities_res.has_value()) {
       logger_->critical(
           "Can't retrieve authorities for block {}. Stopping grandpa execution",
@@ -163,7 +165,8 @@ namespace kagome::consensus::grandpa {
 
     BlockInfo best_block = round->finalizedBlock().value();
 
-    auto authorities_opt = authority_manager_->authorities(best_block, true);
+    auto authorities_opt =
+        authority_manager_->authorities(best_block, IsBlockFinalized{true});
     if (!authorities_opt) {
       SL_CRITICAL(logger_,
                   "Can't retrieve authorities for finalized block {}",
@@ -441,8 +444,8 @@ namespace kagome::consensus::grandpa {
                      std::back_inserter(round_state.votes),
                      [](auto &item) { return item; });
 
-      auto authorities_opt =
-          authority_manager_->authorities(round_state.finalized.value(), false);
+      auto authorities_opt = authority_manager_->authorities(
+          round_state.finalized.value(), IsBlockFinalized{false});
       if (!authorities_opt) {
         SL_WARN(logger_,
                 "Can't retrieve authorities for finalized block {}",
@@ -769,7 +772,8 @@ namespace kagome::consensus::grandpa {
           .votes = {},
           .finalized = block_info};
 
-      auto authorities_opt = authority_manager_->authorities(block_info, false);
+      auto authorities_opt =
+          authority_manager_->authorities(block_info, IsBlockFinalized{false});
       if (!authorities_opt) {
         SL_WARN(logger_,
                 "Can't retrieve authorities to apply a justification "

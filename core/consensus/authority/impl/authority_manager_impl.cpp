@@ -326,7 +326,7 @@ namespace kagome::authority {
 
   std::optional<std::shared_ptr<const primitives::AuthorityList>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &target_block,
-                                    bool finalized) const {
+                                    IsBlockFinalized finalized) const {
     auto node = getAppropriateAncestor(target_block);
 
     if (not node) {
@@ -335,7 +335,7 @@ namespace kagome::authority {
 
     bool node_in_finalized_chain =
         node->block == target_block
-            ? finalized
+            ? (bool)finalized
             : node->block == block_tree_->getLastFinalized()
                   or directChainExists(node->block,
                                        block_tree_->getLastFinalized());

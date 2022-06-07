@@ -8,9 +8,12 @@
 
 #include <boost/optional.hpp>
 
+#include "common/tagged.hpp"
 #include "primitives/authority.hpp"
 
 namespace kagome::authority {
+
+  using IsBlockFinalized = Tagged<bool, struct IsBlockFinalizedTag>;
 
   class AuthorityManager {
    public:
@@ -29,7 +32,8 @@ namespace kagome::authority {
      * @return outcome authority set
      */
     virtual std::optional<std::shared_ptr<const primitives::AuthorityList>>
-    authorities(const primitives::BlockInfo &block, bool finalized) const = 0;
+    authorities(const primitives::BlockInfo &block,
+                IsBlockFinalized finalized) const = 0;
 
     /**
      * @brief Schedule an authority set change after the given delay of N

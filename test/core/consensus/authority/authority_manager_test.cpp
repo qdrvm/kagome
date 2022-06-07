@@ -25,6 +25,7 @@
 
 using namespace kagome;
 using authority::AuthorityManagerImpl;
+using authority::IsBlockFinalized;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using primitives::AuthorityList;
 using testing::_;
@@ -187,8 +188,8 @@ class AuthorityManagerTest : public testing::Test {
    */
   void examine(const primitives::BlockInfo &examining_block,
                const primitives::AuthorityList &expected_authorities) {
-    auto actual_authorities_sptr =
-        authority_manager->authorities(examining_block, false);
+    auto actual_authorities_sptr = authority_manager->authorities(
+        examining_block, IsBlockFinalized{false});
     ASSERT_TRUE(actual_authorities_sptr.has_value());
     const auto &actual_authorities = *actual_authorities_sptr.value();
     EXPECT_EQ(actual_authorities, expected_authorities);
@@ -215,7 +216,7 @@ TEST_F(AuthorityManagerTest, Prune) {
   prepareAuthorityManager();
 
   auto authorities_opt =
-      authority_manager->authorities({10, "B"_hash256}, true);
+      authority_manager->authorities({10, "B"_hash256}, IsBlockFinalized{true});
   ASSERT_TRUE(authorities_opt.has_value());
 
   auto &orig_authorities = *authorities_opt.value();
@@ -240,7 +241,8 @@ TEST_F(AuthorityManagerTest, Prune) {
 TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   prepareAuthorityManager();
 
-  auto old_auth_opt = authority_manager->authorities({20, "D"_hash256}, true);
+  auto old_auth_opt =
+      authority_manager->authorities({20, "D"_hash256}, IsBlockFinalized{true});
   ASSERT_TRUE(old_auth_opt.has_value());
   auto &old_authorities = *old_auth_opt.value();
 
@@ -275,7 +277,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
 TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   prepareAuthorityManager();
 
-  auto old_auth_opt = authority_manager->authorities({35, "F"_hash256}, false);
+  auto old_auth_opt = authority_manager->authorities({35, "F"_hash256},
+                                                     IsBlockFinalized{false});
   ASSERT_TRUE(old_auth_opt.has_value());
   auto &old_authorities = *old_auth_opt.value();
 
@@ -307,7 +310,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
 TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
   prepareAuthorityManager();
 
-  auto old_auth_opt = authority_manager->authorities({35, "F"_hash256}, true);
+  auto old_auth_opt =
+      authority_manager->authorities({35, "F"_hash256}, IsBlockFinalized{true});
   ASSERT_TRUE(old_auth_opt.has_value());
   auto &old_authorities = *old_auth_opt.value();
 
@@ -338,7 +342,8 @@ TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
 TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   prepareAuthorityManager();
 
-  auto old_auth_opt = authority_manager->authorities({35, "F"_hash256}, true);
+  auto old_auth_opt =
+      authority_manager->authorities({35, "F"_hash256}, IsBlockFinalized{true});
   ASSERT_TRUE(old_auth_opt.has_value());
   auto &old_authorities = *old_auth_opt.value();
 
@@ -376,7 +381,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
 TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   prepareAuthorityManager();
 
-  auto old_auth_opt = authority_manager->authorities({35, "F"_hash256}, true);
+  auto old_auth_opt =
+      authority_manager->authorities({35, "F"_hash256}, IsBlockFinalized{true});
   ASSERT_TRUE(old_auth_opt.has_value());
   auto &enabled_authorities = *old_auth_opt.value();
 
