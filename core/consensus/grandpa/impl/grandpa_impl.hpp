@@ -89,7 +89,7 @@ namespace kagome::consensus::grandpa {
 
     // Round processing method
 
-    void executeNextRound(RoundNumber round_number) override;
+    void executeNextRound(std::shared_ptr<VotingRound> round) override;
 
     void updateNextRound(RoundNumber round_number) override;
 

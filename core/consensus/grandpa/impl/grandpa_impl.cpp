@@ -109,14 +109,16 @@ namespace kagome::consensus::grandpa {
     }
 
     current_round_ = makeInitialRound(round_state, std::move(voters));
-    BOOST_ASSERT_MSG(current_round_ != nullptr,
-                     "Initial round must create successful in any case");
+    BOOST_ASSERT(current_round_ != nullptr);
 
-    GrandpaImpl::executeNextRound(current_round_->roundNumber());
-
-    if (not current_round_) {
+    if (not current_round_->finalizedBlock().has_value()) {
+      logger_->critical(
+          "Initial round must be finalized, but it is not. "
+          "Stopping grandpa execution");
       return false;
     }
+
+    GrandpaImpl::executeNextRound(current_round_);
 
     return true;
   }
@@ -218,12 +220,21 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> round = current_round_;
 
     while (round != nullptr) {
+      // Probably came to the round with previous voter set
+      if (round->roundNumber() < round_number) {
+        round = nullptr;
+        break;
+      }
+
+      // Round found; check voter set
       if (round->roundNumber() == round_number) {
         if (not voter_set_id.has_value()
             or round->voterSetId() == voter_set_id.value()) {
           break;
         }
       }
+
+      // Go to the previous round
       round = round->getPreviousRound();
     }
 
@@ -262,8 +273,8 @@ namespace kagome::consensus::grandpa {
     return round_state;
   }
 
-  void GrandpaImpl::executeNextRound(RoundNumber round_number) {
-    if (current_round_->roundNumber() != round_number) {
+  void GrandpaImpl::executeNextRound(std::shared_ptr<VotingRound> prev_round) {
+    if (current_round_ != prev_round) {
       return;
     }
 
@@ -451,7 +462,8 @@ namespace kagome::consensus::grandpa {
 
       auto round = makeInitialRound(round_state, std::move(voters));
 
-      if (not round->completable() and not round->finalizedBlock().has_value()) {
+      if (not round->completable()
+          and not round->finalizedBlock().has_value()) {
         auto ctx = GrandpaContext::get().value();
         // Check if missed block are detected and if this is first attempt
         // (considering by definition peer id in context)
@@ -508,7 +520,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    executeNextRound(current_round_->roundNumber());
+    executeNextRound(current_round_);
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
@@ -568,20 +580,20 @@ namespace kagome::consensus::grandpa {
 
     // If a peer is at round r, is extremely impolite to send messages about r+1
     // or later. "future-round" messages can be dropped and ignored.
-//    if (msg.round_number >= current_round_->roundNumber() + 1) {
-//      SL_WARN(logger_,
-//              "{} signed by {} with set_id={} in round={} has received from {} "
-//              "and rejected as extremely impolite (our round is {})",
-//              msg.vote.is<Prevote>()     ? "Prevote"
-//              : msg.vote.is<Precommit>() ? "Precommit"
-//                                         : "PrimaryPropose",
-//              msg.id(),
-//              msg.counter,
-//              msg.round_number,
-//              peer_id,
-//              current_round_->roundNumber());
-//      return;
-//    }
+    if (msg.round_number >= current_round_->roundNumber() + 1) {
+      SL_WARN(logger_,
+              "{} signed by {} with set_id={} in round={} has received from {} "
+              "and rejected as extremely impolite (our round is {})",
+              msg.vote.is<Prevote>()     ? "Prevote"
+              : msg.vote.is<Precommit>() ? "Precommit"
+                                         : "PrimaryPropose",
+              msg.id(),
+              msg.counter,
+              msg.round_number,
+              peer_id,
+              current_round_->roundNumber());
+      return;
+    }
 
     std::shared_ptr<VotingRound> target_round =
         selectRound(msg.round_number, msg.counter);
@@ -802,8 +814,9 @@ namespace kagome::consensus::grandpa {
     if (need_to_make_round_current) {
       current_round_->end();
       current_round_ = std::move(round);
-      executeNextRound(current_round_->roundNumber());
     }
+
+    executeNextRound(current_round_);
 
     return outcome::success();
   }
