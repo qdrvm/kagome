@@ -674,13 +674,8 @@ namespace kagome::authority {
           decoded.asGrandpaDigest(),
           [this, &block](
               const primitives::ScheduledChange &msg) -> outcome::result<void> {
-            auto res = applyScheduledChange(
+            return applyScheduledChange(
                 block, msg.authorities, block.number + msg.subchain_length);
-            if (res.has_error()) {
-              std::ignore = applyScheduledChange(
-                  block, msg.authorities, block.number + msg.subchain_length);
-            }
-            return res;
           },
           [this, &block](const primitives::ForcedChange &msg) {
             return applyForcedChange(
