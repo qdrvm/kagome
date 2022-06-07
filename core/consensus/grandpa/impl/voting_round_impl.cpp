@@ -1075,9 +1075,11 @@ namespace kagome::consensus::grandpa {
 
     if (can_start_next_round) {
       scheduler_->schedule(
-          [grandpa_wp = std::move(grandpa_), round = shared_from_this()] {
+          [grandpa_wp = std::move(grandpa_), round_wp = weak_from_this()] {
             if (auto grandpa = grandpa_wp.lock()) {
-              grandpa->executeNextRound(round);
+              if (auto round = round_wp.lock()) {
+                grandpa->executeNextRound(round);
+              }
             }
           });
     }
