@@ -170,8 +170,6 @@ class AuthorityManagerTest : public testing::Test {
   void prepareAuthorityManager() {
     auto node = authority::ScheduleNode::createAsRoot(genesis_block);
     node->actual_authorities = authorities;
-    EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
-    common::Buffer encoded_data(encode_result.value());
 
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillRepeatedly(Return(genesis_block));
@@ -226,9 +224,6 @@ TEST_F(AuthorityManagerTest, Prune) {
   auto node = authority::ScheduleNode::createAsRoot({20, "D"_hash256});
   node->actual_authorities =
       std::make_shared<primitives::AuthorityList>(orig_authorities);
-
-  EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
-  common::Buffer encoded_data(std::move(encode_result.value()));
 
   authority_manager->prune({20, "D"_hash256});
 

@@ -8,6 +8,8 @@
 #include <stack>
 #include <unordered_set>
 
+#include <boost/range/adaptor/reversed.hpp>
+
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
@@ -71,10 +73,8 @@ namespace kagome::authority {
 
         OUTCOME_TRY(header, block_tree.getBlockHeader(hash));
 
-        const auto &digest = header.digest;
         // observe possible changes of authorities
-        for (auto it = digest.rbegin(); it != digest.rend(); ++it) {
-          auto &digest_item = *it;
+        for (auto &digest_item : boost::adaptors::reverse(header.digest)) {
           visit_in_place(
               digest_item,
               [&](const primitives::Consensus &consensus_message) {
@@ -121,9 +121,8 @@ namespace kagome::authority {
    * @param collected_msgs - output stack of msgs
    * @param finalized_block_hash - last finalized block
    * @param block_tree - block tree
-   * @param authorities - known authority set of the last finalized block
    * @param log - logger
-   * @return new authority manager root node (or error)
+   * @return block significant to make root node (or error)
    */
   outcome::result<primitives::BlockInfo>
   collectConsensusMsgsUntilNearestSetChangeTo(
@@ -140,10 +139,8 @@ namespace kagome::authority {
       if (header.number == 0) {
         found_set_change = true;
       } else {
-        const auto &digest = header.digest;
         // observe possible changes of authorities
-        for (auto it = digest.rbegin(); it != digest.rend(); ++it) {
-          auto &digest_item = *it;
+        for (auto &digest_item : boost::adaptors::reverse(header.digest)) {
           visit_in_place(
               digest_item,
               [&](const primitives::Consensus &consensus_message) {
@@ -232,7 +229,7 @@ namespace kagome::authority {
         "Error collecting consensus messages from non-finalized blocks: {}",
         error.message());
 
-    PREPARE_TRY(earliest_significant_block,
+    PREPARE_TRY(significant_block,
                 collectConsensusMsgsUntilNearestSetChangeTo(
                     collected_msgs, finalized_block, *block_tree_, log_),
                 "Error collecting consensus messages from finalized blocks: {}",
@@ -240,45 +237,44 @@ namespace kagome::authority {
 
     primitives::AuthorityList authorities;
     {  // get voter set id at earliest significant block
-      const auto &hash = earliest_significant_block.hash;
+      const auto &hash = significant_block.hash;
       PREPARE_TRY(header,
                   block_tree_->getBlockHeader(hash),
                   "Can't get header of block {}: {}",
-                  earliest_significant_block,
+                  significant_block,
                   error.message());
 
       PREPARE_TRY(
           set_id_opt,
           fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header),
           "Error fetching authority set id from trie storage for block {}: {}",
-          earliest_significant_block,
+          significant_block,
           error.message());
 
       if (not set_id_opt.has_value()) {
         log_->critical(
             "Can't get grandpa set id for block {}: "
             "CurrentSetId not found in Trie storage",
-            earliest_significant_block);
+            significant_block);
         return false;
       }
       const auto &set_id = set_id_opt.value();
       SL_TRACE(log_,
                "Initialized set id from runtime: #{} at block {}",
                set_id,
-               earliest_significant_block);
+               significant_block);
 
       // Get initial authorities from runtime
       PREPARE_TRY(initial_authorities,
                   grandpa_api_->authorities(hash),
                   "Can't get grandpa authorities for block {}: {}",
-                  earliest_significant_block,
+                  significant_block,
                   error.message());
       authorities = std::move(initial_authorities);
       authorities.id = set_id;
     }
 
-    auto node =
-        authority::ScheduleNode::createAsRoot(earliest_significant_block);
+    auto node = authority::ScheduleNode::createAsRoot(significant_block);
 
     node->actual_authorities =
         std::make_shared<primitives::AuthorityList>(std::move(authorities));

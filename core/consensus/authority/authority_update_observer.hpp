@@ -25,8 +25,8 @@ namespace kagome::authority {
         const primitives::Consensus &message) = 0;
 
     /**
-     * @brief Cancel changes. It is needed rollback in case of failed block
-     * @param block rolled back block
+     * @brief Cancel changes. Should be called when the block is rolled back
+     * @param block - corresponding block
      */
     virtual void cancel(const primitives::BlockInfo &block) = 0;
   };

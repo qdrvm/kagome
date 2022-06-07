@@ -42,8 +42,8 @@ namespace kagome::authority {
     struct Config {
       // Whether OnDisabled digest message should be processed.
       // It is disabled in Polkadot.
-      // It used as enabled in Kusama, but some blocks (recognized in 530k-550k)
-      // had broken finalization and syncing is stuck
+      // It is enabled in Kusama, but some blocks (recognized in 530k-550k)
+      // fail to finalize and syncing gets stuck
       bool on_disable_enabled = false;
     };
 
