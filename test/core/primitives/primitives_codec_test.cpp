@@ -6,10 +6,10 @@
 #include <gtest/gtest.h>
 
 #include <boost/variant.hpp>
-#include "outcome/outcome.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "common/visitor.hpp"
+#include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
@@ -84,8 +84,10 @@ class Primitives : public testing::Test {
       1,      // auth version
       42,     // spec version
       2,      // db version
-      {{Blob{array{'1', '2', '3', '4', '5', '6', '7', '8'}}, 1},  // ApiId_1
-       {Blob{array{'8', '7', '6', '5', '4', '3', '2', '1'}}, 2}}  // ApiId_2
+      {{Blob{array{'1', '2', '3', '4', '5', '6', '7', '8'}}, 1},   // ApiId_1
+       {Blob{array{'8', '7', '6', '5', '4', '3', '2', '1'}}, 2}},  // ApiId_2
+      1,  // transaction version
+      0,  // state version
   };
   /// block id variant number alternative and corresponding scale representation
   BlockId block_id_number_{1ull};
