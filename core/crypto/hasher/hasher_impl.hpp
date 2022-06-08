@@ -16,6 +16,8 @@ namespace kagome::crypto {
 
     Hash64 twox_64(gsl::span<const uint8_t> buffer) const override;
 
+    Hash64 blake2b_64(gsl::span<const uint8_t> buffer) const override;
+
     Hash128 twox_128(gsl::span<const uint8_t> buffer) const override;
 
     Hash128 blake2b_128(gsl::span<const uint8_t> buffer) const override;
@@ -33,6 +35,6 @@ namespace kagome::crypto {
     Hash512 blake2b_512(gsl::span<const uint8_t> buffer) const override;
   };
 
-}  // namespace kagome::hash
+}  // namespace kagome::crypto
 
 #endif  // KAGOME_CORE_CRYPTO_HASHER_HASHER_IMPL_HPP_
