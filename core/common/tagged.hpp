@@ -16,7 +16,7 @@ namespace kagome {
   template <typename T, typename = std::enable_if<std::is_scalar_v<T>>>
   struct Wrapper {
     template <typename... Args>
-    explicit Wrapper(Args &&...args) : value(std::forward<T>(args)...) {}
+    Wrapper(Args &&...args) : value(std::forward<T>(args)...) {}
 
    protected:
     T value;
@@ -32,6 +32,19 @@ namespace kagome {
 
     template <typename... Args>
     explicit Tagged(Args &&...args) : Base(std::forward<Args>(args)...) {}
+
+    Tagged(T &&value) noexcept(not std::is_lvalue_reference_v<decltype(value)>)
+        : Base(std::forward<T>(value)) {}
+
+    Tagged &operator=(T &&value) noexcept(
+        not std::is_lvalue_reference_v<decltype(value)>) {
+      if constexpr (std::is_scalar_v<T>) {
+        this->Wrapper<T>::value = std::forward<T>(value);
+      } else {
+        static_cast<Base &>(*this) = std::forward<T>(value);
+      }
+      return *this;
+    }
 
     template <typename Out>
     explicit operator Out() {
