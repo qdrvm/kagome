@@ -141,6 +141,7 @@ namespace kagome::application {
         runtime_exec_method_{def_runtime_exec_method},
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
+        subcommand_chain_info_{false},
         recovery_state_{def_block_to_recover} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
@@ -576,6 +577,7 @@ namespace kagome::application {
         ("offchain-worker", po::value<std::string>()->default_value("WhenValidating"),
           "Should execute offchain workers on every block.\n"
           "Possible values: Always, Never, WhenValidating. WhenValidating is used by default.")
+        ("chain-info", po::bool_switch()->default_value(false), "Print chain info as JSON")
         ;
 
     po::options_description storage_desc("Storage options");
@@ -998,6 +1000,10 @@ namespace kagome::application {
     if (vm.count("enable-offchain-indexing") > 0) {
       enable_offchain_indexing_ = true;
     }
+
+    find_argument<bool>(vm, "chain-info", [&](bool subcommand_chain_info) {
+      subcommand_chain_info_ = subcommand_chain_info;
+    });
 
     bool has_recovery = false;
     find_argument<std::string>(vm, "recovery", [&](const std::string &val) {

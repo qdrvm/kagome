@@ -154,6 +154,9 @@ namespace kagome::application {
     bool isOffchainIndexingEnabled() const override {
       return enable_offchain_indexing_;
     }
+    bool subcommandChainInfo() const override {
+      return subcommand_chain_info_;
+    }
     std::optional<primitives::BlockId> recoverState() const override {
       return recovery_state_;
     }
@@ -281,6 +284,7 @@ namespace kagome::application {
     RuntimeExecutionMethod runtime_exec_method_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
+    bool subcommand_chain_info_;
     std::optional<primitives::BlockId> recovery_state_;
   };
 

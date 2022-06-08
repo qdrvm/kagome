@@ -27,6 +27,8 @@ namespace kagome::application {
 
     explicit KagomeApplicationImpl(const AppConfiguration &config);
 
+    int chainInfo() override;
+
     int recovery() override;
 
     void run() override;

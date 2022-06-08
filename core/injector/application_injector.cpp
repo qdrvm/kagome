@@ -39,6 +39,7 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
@@ -1495,6 +1496,12 @@ namespace kagome::injector {
   std::shared_ptr<telemetry::TelemetryService>
   KagomeNodeInjector::injectTelemetryService() {
     return pimpl_->injector_.create<sptr<telemetry::TelemetryService>>();
+  }
+
+  std::shared_ptr<application::mode::PrintChainInfoMode>
+  KagomeNodeInjector::injectPrintChainInfoMode() {
+    return pimpl_->injector_
+        .create<sptr<application::mode::PrintChainInfoMode>>();
   }
 
   std::shared_ptr<application::mode::RecoveryMode>
