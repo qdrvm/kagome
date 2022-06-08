@@ -74,7 +74,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(graph_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
 
-    // calculate supermajority
+    // calculate super-majority
     auto faulty = (voter_set_->totalWeight() - 1) / 3;
     threshold_ = voter_set_->totalWeight() - faulty;
 
@@ -766,7 +766,8 @@ namespace kagome::consensus::grandpa {
 
       // Verify signatures
       if (not vote_crypto_provider_->verifyPrecommit(signed_precommit)) {
-        logger_->error(
+        SL_WARN(
+            logger_,
             "Round #{}: Precommit signed by {} was rejected: invalid signature",
             round_number_,
             signed_precommit.id);
@@ -807,7 +808,8 @@ namespace kagome::consensus::grandpa {
 
       } else {
         // Detected duplicate of equivotation
-        logger_->error(
+        SL_WARN(
+            logger_,
             "Round #{}: Received third precommit of caught equivocator from {}",
             round_number_,
             signed_precommit.id);
@@ -816,7 +818,12 @@ namespace kagome::consensus::grandpa {
     }
 
     if (total_weight < threshold) {
-      return VotingRoundError::NOT_ENOUGH_WEIGHT;
+      SL_WARN(logger_,
+              "Round #{}: Received justification does not have super-majority: "
+              "total_weight={} < threshold={}",
+              round_number_,
+              total_weight,
+              threshold);
     }
 
     return outcome::success();
@@ -1068,9 +1075,11 @@ namespace kagome::consensus::grandpa {
 
     if (can_start_next_round) {
       scheduler_->schedule(
-          [grandpa_wp = std::move(grandpa_), round_number = round_number_] {
+          [grandpa_wp = std::move(grandpa_), round_wp = weak_from_this()] {
             if (auto grandpa = grandpa_wp.lock()) {
-              grandpa->executeNextRound(round_number);
+              if (auto round = round_wp.lock()) {
+                grandpa->executeNextRound(round);
+              }
             }
           });
     }
@@ -1081,15 +1090,8 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(vote.is<T>());
 
     // Check if voter is contained in current voter set
-    auto inw_res = voter_set_->indexAndWeight(vote.id);
-    if (inw_res.has_error()) {
-      SL_DEBUG(logger_,
-               "Can't get weight for voter {}: {}",
-               vote.id,
-               inw_res.error().message());
-      return inw_res.as_failure();
-    }
-    const auto &[index, weight] = inw_res.value();
+    OUTCOME_TRY(index_and_weight, voter_set_->indexAndWeight(vote.id));
+    const auto &[index, weight] = index_and_weight;
 
     auto [type, type_str_, equivocators, tracker] =
         [&]() -> std::tuple<VoteType,
