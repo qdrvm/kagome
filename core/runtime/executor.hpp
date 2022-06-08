@@ -192,7 +192,23 @@ namespace kagome::runtime {
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
-        return scale::decode<Result>(memory.loadN(span.ptr, span.size));
+        auto result = memory.loadN(span.ptr, span.size);
+        Result t{};
+        scale::ScaleDecoderStream s(result);
+        try {
+          s >> t;
+          // Check whether the whole byte buffer was consumed
+          if (s.hasMore(1)) {
+            SL_ERROR(logger_,
+                     "Runtime API call result size exceeds the size of the "
+                     "type to initialize {}",
+                     typeid(Result).name());
+            return outcome::failure(std::errc::illegal_byte_sequence);
+          }
+          return outcome::success(std::move(t));
+        } catch (std::system_error &e) {
+          return outcome::failure(e.code());
+        }
       }
     }
 

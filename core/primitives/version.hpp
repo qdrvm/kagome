@@ -77,7 +77,7 @@ namespace kagome::primitives {
     /// List of supported API "features" along with their versions.
     ApisVec apis;
 
-    uint32_t transaction_version = 0u;
+    uint32_t transaction_version = 1u;
 
     /// Version of the state implementation used by this runtime.
     uint8_t state_version = 0u;
