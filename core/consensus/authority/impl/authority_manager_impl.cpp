@@ -333,12 +333,12 @@ namespace kagome::authority {
       return std::nullopt;
     }
 
-    bool node_in_finalized_chain =
+    IsBlockFinalized node_in_finalized_chain =
         node->block == target_block
             ? (bool)finalized
-            : node->block == block_tree_->getLastFinalized()
-                  or directChainExists(node->block,
-                                       block_tree_->getLastFinalized());
+            : (node->block == block_tree_->getLastFinalized()
+               or directChainExists(node->block,
+                                    block_tree_->getLastFinalized()));
 
     auto adjusted_node =
         node->makeDescendant(target_block, node_in_finalized_chain);
@@ -413,7 +413,7 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    bool node_in_finalized_chain =
+    IsBlockFinalized node_in_finalized_chain =
         node->block == block_tree_->getLastFinalized()
         or directChainExists(node->block, block_tree_->getLastFinalized());
 
@@ -490,9 +490,9 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    bool node_in_finalized_chain =
-        // node->block == block_tree_->getLastFinalized() or
-        directChainExists(node->block, block_tree_->getLastFinalized());
+    IsBlockFinalized node_in_finalized_chain =
+        node->block == block_tree_->getLastFinalized()
+        or directChainExists(node->block, block_tree_->getLastFinalized());
 
     if (node->block == block) {
       node->adjust(node_in_finalized_chain);
@@ -548,7 +548,7 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    bool node_in_finalized_chain =
+    IsBlockFinalized node_in_finalized_chain =
         node->block == block_tree_->getLastFinalized()
         or directChainExists(node->block, block_tree_->getLastFinalized());
 
@@ -589,7 +589,7 @@ namespace kagome::authority {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
-    bool node_in_finalized_chain =
+    IsBlockFinalized node_in_finalized_chain =
         node->block == block_tree_->getLastFinalized()
         or directChainExists(node->block, block_tree_->getLastFinalized());
 
@@ -621,7 +621,7 @@ namespace kagome::authority {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
-    bool node_in_finalized_chain =
+    IsBlockFinalized node_in_finalized_chain =
         node->block == block_tree_->getLastFinalized()
         or directChainExists(node->block, block_tree_->getLastFinalized());
 

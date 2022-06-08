@@ -37,7 +37,7 @@ namespace kagome::authority {
     return outcome::success();
   }
 
-  void ScheduleNode::adjust(bool finalized) {
+  void ScheduleNode::adjust(IsBlockFinalized finalized) {
     // Has ScheduledChange
     if (scheduled_after != INACTIVE) {
       if (finalized && scheduled_after <= block.number) {
@@ -69,7 +69,8 @@ namespace kagome::authority {
   }
 
   std::shared_ptr<ScheduleNode> ScheduleNode::makeDescendant(
-      const primitives::BlockInfo &target_block, bool finalized) const {
+      const primitives::BlockInfo &target_block,
+      IsBlockFinalized finalized) const {
     auto node =
         std::make_shared<ScheduleNode>(shared_from_this(), target_block);
     node->actual_authorities = actual_authorities;

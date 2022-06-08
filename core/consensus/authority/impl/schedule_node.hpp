@@ -6,9 +6,12 @@
 #ifndef KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE
 #define KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE
 
+#include "common/tagged.hpp"
 #include "primitives/authority.hpp"
 
 namespace kagome::authority {
+
+  using IsBlockFinalized = Tagged<bool, struct IsBlockFinalizedTag>;
 
   /**
    * @brief Node of scheduler tree. Contains actual authorities for the accorded
@@ -36,14 +39,14 @@ namespace kagome::authority {
 
     /// Changes actual authorities as if corresponding block is finalized or not
     /// @param finalized - true if block is finalized
-    void adjust(bool finalized);
+    void adjust(IsBlockFinalized finalized);
 
     /// Creates descendant schedule node for block
     /// @param block - target block
     /// @param finalized - true if block is finalized
     /// @result schedule node
     std::shared_ptr<ScheduleNode> makeDescendant(
-        const primitives::BlockInfo &block, bool finalized) const;
+        const primitives::BlockInfo &block, IsBlockFinalized finalized) const;
 
     const primitives::BlockInfo block{};
     std::weak_ptr<const ScheduleNode> parent;
