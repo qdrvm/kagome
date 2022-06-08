@@ -84,7 +84,7 @@ namespace kagome::consensus::grandpa {
     }
 
     SL_DEBUG(logger_, "Found best chain: {}", best_block);
-    return best_block;
+    return std::move(best_block);
   }
 
   outcome::result<void> EnvironmentImpl::onCatchUpRequested(

@@ -21,9 +21,9 @@ namespace kagome::crypto {
     virtual ~Hasher() = default;
 
     /**
-     * @brief twox_128 calculates 16-byte twox hash
+     * @brief twox_64 calculates 8-byte twox hash
      * @param buffer source buffer
-     * @return 128-bit hash value
+     * @return 64-bit hash value
      */
     virtual Hash64 twox_64(gsl::span<const uint8_t> buffer) const = 0;
 

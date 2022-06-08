@@ -1003,7 +1003,7 @@ namespace kagome::application {
     find_argument<std::string>(vm, "recovery", [&](const std::string &val) {
       has_recovery = true;
       recovery_state_ = str_to_recovery_state(val);
-      if (not offchain_worker_mode_opt) {
+      if (not recovery_state_) {
         SL_ERROR(logger_, "Invalid recovery state specified: '{}'", val);
       }
     });
