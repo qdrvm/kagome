@@ -40,8 +40,10 @@ namespace kagome::authority {
         kKnownEngines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
 
     struct Config {
-      // Whether OnDisabled digest message should be processed. It is disabled
-      // in Polkadot but enabled in Kusama
+      // Whether OnDisabled digest message should be processed.
+      // It is disabled in Polkadot.
+      // It is enabled in Kusama, but some blocks (recognized in 530k-550k)
+      // fail to finalize and syncing gets stuck
       bool on_disable_enabled = false;
     };
 
@@ -60,8 +62,9 @@ namespace kagome::authority {
 
     primitives::BlockInfo base() const override;
 
-    std::optional<std::shared_ptr<const primitives::AuthorityList>>
-    authorities(const primitives::BlockInfo &block, bool finalized) const override;
+    std::optional<std::shared_ptr<const primitives::AuthorityList>> authorities(
+        const primitives::BlockInfo &target_block,
+        IsBlockFinalized finalized) const override;
 
     outcome::result<void> applyScheduledChange(
         const primitives::BlockInfo &block,
@@ -87,6 +90,8 @@ namespace kagome::authority {
     outcome::result<void> onConsensus(
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) override;
+
+    void cancel(const primitives::BlockInfo &block) override;
 
     void prune(const primitives::BlockInfo &block) override;
 
