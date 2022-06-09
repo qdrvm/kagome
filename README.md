@@ -149,7 +149,7 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
     * Creates a block from provided inherents and digest
     * Interacts with Polkadot Runtime to initialize and finalize block
 * Runtime
-    * Uses [Binaryen](https://github.com/WebAssembly/binaryen) (default) or [WAVM](https://wavm.github.io/) (experimental) WASM interpreters to invoke Polkadot Runtime entries
+    * Uses [Binaryen](https://github.com/WebAssembly/binaryen) (default) or [WAVM](https://wavm.github.io/) (experimental) WASM executors to invoke Polkadot Runtime entries
     * Current runtime entries include:
         * BlockBuilder – checks inherents, applies extrinsics, derives inherent extrinsics, initializes and finalizes blocks
         * Core – gets version of runtime, executes blocks, gets authorities
