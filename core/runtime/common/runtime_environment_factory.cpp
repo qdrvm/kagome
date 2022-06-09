@@ -33,10 +33,12 @@ namespace kagome::runtime {
   RuntimeEnvironment::RuntimeEnvironment(
       std::shared_ptr<ModuleInstance> module_instance,
       std::shared_ptr<const MemoryProvider> memory_provider,
-      std::shared_ptr<TrieStorageProvider> storage_provider)
+      std::shared_ptr<TrieStorageProvider> storage_provider,
+      primitives::BlockInfo blockchain_state)
       : module_instance{std::move(module_instance)},
         memory_provider{std::move(memory_provider)},
-        storage_provider{std::move(storage_provider)} {
+        storage_provider{std::move(storage_provider)},
+        blockchain_state_{std::move(blockchain_state)} {
     BOOST_ASSERT(this->module_instance);
     BOOST_ASSERT(this->memory_provider);
     BOOST_ASSERT(this->storage_provider);
@@ -140,13 +142,18 @@ namespace kagome::runtime {
       return heappages_res.error();
     }
 
+    auto& memory = env.memory_provider->getCurrentMemory()->get();
+    instance->forDataSegment([&memory](auto offset, auto segment) {
+      memory.storeBuffer(offset, segment);
+    });
+
     SL_DEBUG(parent_factory->logger_,
              "Runtime environment at {}, state: {:l}",
              blockchain_state_,
              storage_state_);
 
     auto runtime_env = std::make_unique<RuntimeEnvironment>(
-        instance, env.memory_provider, env.storage_provider);
+        instance, env.memory_provider, env.storage_provider, blockchain_state_);
     KAGOME_PROFILE_END(runtime_env_making);
     return runtime_env;
   }

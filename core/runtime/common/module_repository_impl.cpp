@@ -6,6 +6,7 @@
 #include "runtime/common/module_repository_impl.hpp"
 
 #include "log/profiling_logger.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
@@ -14,16 +15,20 @@
 #include "runtime/runtime_upgrade_tracker.hpp"
 
 namespace kagome::runtime {
+  using kagome::primitives::ThreadNumber;
+  using soralog::util::getThreadNumber;
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
+      std::shared_ptr<RuntimeInstancesPool> runtime_instances_pool,
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
       std::shared_ptr<const ModuleFactory> module_factory,
       std::shared_ptr<SingleModuleCache> last_compiled_module)
-      : modules_{MODULES_CACHE_SIZE},
+      : runtime_instances_pool_{std::move(runtime_instances_pool)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
         module_factory_{std::move(module_factory)},
         last_compiled_module_{std::move(last_compiled_module)},
         logger_{log::createLogger("Module Repository", "runtime")} {
+    BOOST_ASSERT(runtime_instances_pool_);
     BOOST_ASSERT(runtime_upgrade_tracker_);
     BOOST_ASSERT(module_factory_);
     BOOST_ASSERT(last_compiled_module_);
@@ -38,51 +43,16 @@ namespace kagome::runtime {
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
     KAGOME_PROFILE_END(code_retrieval)
 
-    auto tid = std::this_thread::get_id();
-    auto thread_local_cache = instances_cache_.end();
-    {
-      std::unique_lock lock{instances_mutex_};
-      auto thread_cache = instances_cache_.find(tid);
-      if (thread_cache == instances_cache_.end()) {
-        // no cache was created for this thread
-        auto insert_res =
-            instances_cache_.emplace(tid, InstanceCache{INSTANCES_CACHE_SIZE});
-        BOOST_ASSERT(insert_res.second);
-        SL_DEBUG(logger_,
-                 "Initialize new runtime instance cache for thread {}",
-                 state.toHex(),
-                 tid);
-        thread_local_cache = insert_res.first;
-      } else if (auto opt_instance = thread_cache->second.get(state);
-                 opt_instance.has_value()) {
-        SL_DEBUG(logger_,
-                 "Found cached runtime instance for state {}, thread {}",
-                 state.toHex(),
-                 tid);
-        return opt_instance.value();
-      } else {
-        SL_DEBUG(logger_,
-                 "Runtime instance cache miss for state {}, thread {}",
-                 state.toHex(),
-                 tid);
-        // there is a cache for this thread, but it doesn't have the required
-        // instance
-        thread_local_cache = thread_cache;
+    KAGOME_PROFILE_START(module_retrieval) {
+      // Add compiled module if any
+      if (auto module = last_compiled_module_->try_extract();
+          module.has_value()) {
+        runtime_instances_pool_->putModule(state, module.value());
       }
-    }
-    // either found existed or emplaced a new one
-    BOOST_ASSERT(thread_local_cache != instances_cache_.end());
 
-    if (auto module = last_compiled_module_->try_extract();
-        module.has_value()) {
-      BOOST_VERIFY(modules_.put(state, module.value()));
-    }
-
-    KAGOME_PROFILE_START(module_retrieval)
-    std::shared_ptr<Module> module;
-    {
-      std::lock_guard guard{modules_mutex_};
-      if (auto opt_module = modules_.get(state); !opt_module.has_value()) {
+      // Compile new module if required
+      if (auto opt_module = runtime_instances_pool_->getModule(state);
+          !opt_module.has_value()) {
         SL_DEBUG(
             logger_, "Runtime module cache miss for state {}", state.toHex());
         auto code = code_provider->getCodeAt(state);
@@ -93,30 +63,14 @@ namespace kagome::runtime {
           return code.as_failure();
         }
         OUTCOME_TRY(new_module, module_factory_->make(code.value()));
-        module = std::move(new_module);
-        BOOST_VERIFY(modules_.put(state, module));
-      } else {
-        module = opt_module.value();
+        runtime_instances_pool_->putModule(state, std::move(new_module));
       }
     }
+
+    // Try acquire instance (instantiate if needed)
+    OUTCOME_TRY(runtime_instance, runtime_instances_pool_->tryAcquire(state));
     KAGOME_PROFILE_END(module_retrieval)
 
-    KAGOME_PROFILE_START(module_instantiation)
-    std::shared_ptr<ModuleInstance> shared_instance;
-    {
-      std::lock_guard guard{instances_mutex_};
-      OUTCOME_TRY(instance, module->instantiate());
-      shared_instance = std::move(instance);
-    }
-    SL_DEBUG(logger_,
-             "Instantiated a new runtime instance for state {}, thread",
-             state.toHex(),
-             tid);
-    // thread_local_cache is an iterator into instances_cache_
-    BOOST_VERIFY(thread_local_cache->second.put(state, shared_instance));
-
-    KAGOME_PROFILE_END(module_instantiation)
-    return shared_instance;
+    return runtime_instance;
   }
-
 }  // namespace kagome::runtime

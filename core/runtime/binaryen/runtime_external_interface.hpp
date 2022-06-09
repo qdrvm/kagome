@@ -38,6 +38,11 @@ namespace kagome::runtime::binaryen {
 
     wasm::ShellExternalInterface::Memory *getMemory();
 
+    void trap(const char* why) override {
+      logger_->error("Trap: {}", why);
+      throw wasm::TrapException{};
+    }
+
    private:
     /**
      * Checks that the number of arguments is as expected and terminates the

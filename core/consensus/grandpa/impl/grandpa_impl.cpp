@@ -21,6 +21,8 @@ namespace {
 
 namespace kagome::consensus::grandpa {
 
+  using authority::IsBlockFinalized;
+
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<Environment> environment,
@@ -86,12 +88,12 @@ namespace kagome::consensus::grandpa {
              "Grandpa will be started with round #{}",
              round_state.round_number + 1);
 
-    auto authorities_res =
-        authority_manager_->authorities(round_state.last_finalized_block, true);
+    auto authorities_res = authority_manager_->authorities(
+        round_state.last_finalized_block, IsBlockFinalized{false});
     if (not authorities_res.has_value()) {
       logger_->critical(
-          "Can't retrieve authorities: {}. Stopping grandpa execution",
-          authorities_res.error().message());
+          "Can't retrieve authorities for block {}. Stopping grandpa execution",
+          round_state.last_finalized_block);
       return false;
     }
     auto &authorities = authorities_res.value();
@@ -109,14 +111,16 @@ namespace kagome::consensus::grandpa {
     }
 
     current_round_ = makeInitialRound(round_state, std::move(voters));
-    BOOST_ASSERT_MSG(current_round_ != nullptr,
-                     "Initial round must create successful in any case");
+    BOOST_ASSERT(current_round_ != nullptr);
 
-    GrandpaImpl::executeNextRound(current_round_->roundNumber());
-
-    if (not current_round_) {
+    if (not current_round_->finalizedBlock().has_value()) {
+      logger_->critical(
+          "Initial round must be finalized, but it is not. "
+          "Stopping grandpa execution");
       return false;
     }
+
+    GrandpaImpl::executeNextRound(current_round_);
 
     return true;
   }
@@ -161,16 +165,16 @@ namespace kagome::consensus::grandpa {
 
     BlockInfo best_block = round->finalizedBlock().value();
 
-    auto authorities_res = authority_manager_->authorities(best_block, true);
-    if (authorities_res.has_error()) {
+    auto authorities_opt =
+        authority_manager_->authorities(best_block, IsBlockFinalized{true});
+    if (!authorities_opt) {
       SL_CRITICAL(logger_,
-                  "Can't retrieve authorities for finalized block: {}",
-                  authorities_res.error().message());
+                  "Can't retrieve authorities for finalized block {}",
+                  best_block);
       std::abort();
     }
-    BOOST_ASSERT(authorities_res.has_value());
 
-    auto &authorities = authorities_res.value();
+    auto &authorities = authorities_opt.value();
     BOOST_ASSERT(not authorities->empty());
 
     auto voters = std::make_shared<VoterSet>(authorities->id);
@@ -219,12 +223,21 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> round = current_round_;
 
     while (round != nullptr) {
+      // Probably came to the round with previous voter set
+      if (round->roundNumber() < round_number) {
+        round = nullptr;
+        break;
+      }
+
+      // Round found; check voter set
       if (round->roundNumber() == round_number) {
         if (not voter_set_id.has_value()
             or round->voterSetId() == voter_set_id.value()) {
           break;
         }
       }
+
+      // Go to the previous round
       round = round->getPreviousRound();
     }
 
@@ -263,8 +276,9 @@ namespace kagome::consensus::grandpa {
     return round_state;
   }
 
-  void GrandpaImpl::executeNextRound(RoundNumber round_number) {
-    if (current_round_->roundNumber() != round_number) {
+  void GrandpaImpl::executeNextRound(
+      const std::shared_ptr<VotingRound> &prev_round) {
+    if (current_round_ != prev_round) {
       return;
     }
 
@@ -430,15 +444,15 @@ namespace kagome::consensus::grandpa {
                      std::back_inserter(round_state.votes),
                      [](auto &item) { return item; });
 
-      auto authorities_res =
-          authority_manager_->authorities(round_state.finalized.value(), false);
-      if (authorities_res.has_error()) {
+      auto authorities_opt = authority_manager_->authorities(
+          round_state.finalized.value(), IsBlockFinalized{false});
+      if (!authorities_opt) {
         SL_WARN(logger_,
-                "Can't retrieve authorities for finalized block: {}",
-                authorities_res.error().message());
+                "Can't retrieve authorities for finalized block {}",
+                round_state.finalized.value());
         return;
       }
-      auto &authorities = authorities_res.value();
+      auto &authorities = authorities_opt.value();
 
       auto voters = std::make_shared<VoterSet>(msg.voter_set_id);
       for (const auto &authority : *authorities) {
@@ -452,14 +466,17 @@ namespace kagome::consensus::grandpa {
 
       auto round = makeInitialRound(round_state, std::move(voters));
 
-      if (not round->completable()) {
+      if (not round->completable()
+          and not round->finalizedBlock().has_value()) {
         auto ctx = GrandpaContext::get().value();
         // Check if missed block are detected and if this is first attempt
         // (considering by definition peer id in context)
-        if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
-          ctx->peer_id.emplace(peer_id);
-          ctx->catch_up_response.emplace(msg);
-          loadMissingBlocks();
+        if (not ctx->missing_blocks.empty()) {
+          if (not ctx->peer_id.has_value()) {
+            ctx->peer_id.emplace(peer_id);
+            ctx->catch_up_response.emplace(msg);
+            loadMissingBlocks();
+          }
         }
         return;
       }
@@ -496,16 +513,18 @@ namespace kagome::consensus::grandpa {
         auto ctx = GrandpaContext::get().value();
         // Check if missed block are detected and if this is first attempt
         // (considering by definition peer id in context)
-        if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
-          ctx->peer_id.emplace(peer_id);
-          ctx->catch_up_response.emplace(msg);
-          loadMissingBlocks();
+        if (not ctx->missing_blocks.empty()) {
+          if (not ctx->peer_id.has_value()) {
+            ctx->peer_id.emplace(peer_id);
+            ctx->catch_up_response.emplace(msg);
+            loadMissingBlocks();
+          }
         }
         return;
       }
     }
 
-    executeNextRound(current_round_->roundNumber());
+    executeNextRound(current_round_);
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
@@ -642,10 +661,12 @@ namespace kagome::consensus::grandpa {
       auto ctx = GrandpaContext::get().value();
       // Check if missed block are detected and if this is first attempt
       // (considering by definition peer id in context)
-      if (not ctx->missing_blocks.empty() and not ctx->peer_id.has_value()) {
-        ctx->peer_id.emplace(peer_id);
-        ctx->vote.emplace(msg);
-        loadMissingBlocks();
+      if (not ctx->missing_blocks.empty()) {
+        if (not ctx->peer_id.has_value()) {
+          ctx->peer_id.emplace(peer_id);
+          ctx->vote.emplace(msg);
+          loadMissingBlocks();
+        }
       }
       return;
     }
@@ -740,11 +761,6 @@ namespace kagome::consensus::grandpa {
     auto round = selectRound(justification.round_number, std::nullopt);
     bool need_to_make_round_current = false;
     if (round == nullptr) {
-      // This is justification for non-actual round
-      if (justification.round_number < current_round_->roundNumber()) {
-        return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
-      }
-
       // This is justification for already finalized block
       if (current_round_->lastFinalizedBlock().number > block_info.number) {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
@@ -756,17 +772,27 @@ namespace kagome::consensus::grandpa {
           .votes = {},
           .finalized = block_info};
 
-      auto authorities_res = authority_manager_->authorities(
-          round_state.last_finalized_block, true);
-      if (authorities_res.has_error()) {
+      auto authorities_opt =
+          authority_manager_->authorities(block_info, IsBlockFinalized{false});
+      if (!authorities_opt) {
         SL_WARN(logger_,
-                "Can't retrieve authorities for applying justification "
-                "of block {}: {}",
-                block_info,
-                authorities_res.error().message());
-        return authorities_res.as_failure();
+                "Can't retrieve authorities to apply a justification "
+                "at block {}",
+                block_info);
+        return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
       }
-      auto &authorities = authorities_res.value();
+      auto &authorities = authorities_opt.value();
+
+      // This is justification for non-actual round
+      if (authorities->id < current_round_->voterSetId()
+          or (authorities->id == current_round_->voterSetId()
+              && justification.round_number < current_round_->roundNumber())) {
+        return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+      }
+
+      if (authorities->id > current_round_->voterSetId() + 1) {
+        return VotingRoundError::WRONG_ORDER_OF_VOTER_SET_ID;
+      }
 
       auto voters = std::make_shared<VoterSet>(authorities->id);
       for (const auto &authority : *authorities) {
@@ -793,8 +819,9 @@ namespace kagome::consensus::grandpa {
     if (need_to_make_round_current) {
       current_round_->end();
       current_round_ = std::move(round);
-      executeNextRound(current_round_->roundNumber());
     }
+
+    executeNextRound(current_round_);
 
     return outcome::success();
   }

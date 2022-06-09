@@ -7,6 +7,7 @@
 #define KAGOME_CORE_PRIMITIVES_VERSION_HPP
 
 #include <array>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -76,20 +77,33 @@ namespace kagome::primitives {
     /// List of supported API "features" along with their versions.
     ApisVec apis;
 
-    uint32_t transaction_version = 0u;
+    uint32_t transaction_version = 1u;
+
+    /// Version of the state implementation used by this runtime.
+    uint8_t state_version = 0u;
 
     bool operator==(const Version &rhs) const {
       return spec_name == rhs.spec_name and impl_name == rhs.impl_name
              and authoring_version == rhs.authoring_version
              and impl_version == rhs.impl_version and apis == rhs.apis
              and spec_version == rhs.spec_version
-             and transaction_version == rhs.transaction_version;
+             and transaction_version == rhs.transaction_version
+             and state_version == rhs.state_version;
     }
 
     bool operator!=(const Version &rhs) const {
       return !operator==(rhs);
     }
   };
+
+  namespace detail {
+    /**
+     * Returns the version of the `Core` runtime API.
+     * @param apis - List of supported API "features" along with their versions
+     * @return - version of `Core` API if listed
+     */
+    std::optional<uint32_t> coreVersionFromApis(const ApisVec &apis);
+  }  // namespace detail
 
   /**
    * @brief outputs object of type Version to stream
@@ -103,7 +117,7 @@ namespace kagome::primitives {
   Stream &operator<<(Stream &s, const Version &v) {
     return s << v.spec_name << v.impl_name << v.authoring_version
              << v.spec_version << v.impl_version << v.apis
-             << v.transaction_version;
+             << v.transaction_version << v.state_version;
   }
 
   /**
@@ -118,11 +132,21 @@ namespace kagome::primitives {
   Stream &operator>>(Stream &s, Version &v) {
     s >> v.spec_name >> v.impl_name >> v.authoring_version >> v.spec_version
         >> v.impl_version >> v.apis;
-    // old Kusama runtimes do not contain transaction_version
-    if (s.hasMore(sizeof(v.transaction_version))) {
+
+    auto core_version = detail::coreVersionFromApis(v.apis);
+    // old Kusama runtimes do not contain transaction_version and state_version
+    // https://github.com/paritytech/substrate/blob/1b3ddae9dec6e7653b5d6ef0179df1af831f46f0/primitives/version/src/lib.rs#L238
+    if (core_version.has_value() and core_version.value() >= 3
+        and s.hasMore(sizeof(v.transaction_version))) {
       s >> v.transaction_version;
     } else {
-      v.transaction_version = 0;
+      v.transaction_version = 1;
+    }
+    if (core_version.has_value() and core_version.value() >= 4
+        and s.hasMore(sizeof(v.state_version))) {
+      s >> v.state_version;
+    } else {
+      v.state_version = 0;
     }
     return s;
   }

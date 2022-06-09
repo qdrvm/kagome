@@ -26,7 +26,7 @@ namespace kagome::api::state::request {
           std::nullopt;  // I suppose none here is better than empty Buffer
     } else if (param0.IsString()) {
       OUTCOME_TRY(key, common::unhexWith0x(param0.AsString()));
-      prefix_ = common::Buffer(std::move(key));
+      prefix_.emplace(std::move(key));
     } else {
       throw jsonrpc::InvalidParametersFault(
           "Parameter '[prefix]' must be a hex string");
@@ -49,7 +49,7 @@ namespace kagome::api::state::request {
           "encoded optional byte sequence");
     }
     OUTCOME_TRY(prev_key, common::unhexWith0x(params[2].AsString()));
-    prev_key_ = common::Buffer{prev_key};
+    prev_key_.emplace(std::move(prev_key));
 
     if (params.size() == 3) {
       return outcome::success();

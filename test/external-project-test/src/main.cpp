@@ -21,6 +21,7 @@
 #include <kagome/offchain/impl/offchain_persistent_storage.hpp>
 #include <kagome/offchain/impl/offchain_worker_pool_impl.hpp>
 #include <kagome/runtime/common/module_repository_impl.hpp>
+#include <kagome/runtime/common/runtime_instances_pool.hpp>
 #include <kagome/runtime/common/runtime_upgrade_tracker_impl.hpp>
 #include <kagome/runtime/common/storage_code_provider.hpp>
 #include <kagome/runtime/executor.hpp>
@@ -144,9 +145,10 @@ int main() {
   auto compartment =
       std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
           "WAVM Compartment");
+  auto module_params = std::make_shared<kagome::runtime::wavm::ModuleParams>();
   auto intrinsic_module =
-      std::make_shared<const kagome::runtime::wavm::IntrinsicModule>(
-          compartment);
+      std::make_shared<kagome::runtime::wavm::IntrinsicModule>(compartment,
+                                                               module_params->intrinsicMemoryType);
 
   auto generator =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
@@ -200,6 +202,7 @@ int main() {
           trie_storage,
           serializer,
           compartment,
+          module_params,
           intrinsic_module,
           host_api_factory,
           header_repo,
@@ -207,15 +210,16 @@ int main() {
           smc);
   auto module_factory =
       std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
-          compartment, instance_env_factory, intrinsic_module);
+          compartment, module_params, instance_env_factory, intrinsic_module);
+  auto runtime_instances_pool =
+      std::make_shared<kagome::runtime::RuntimeInstancesPool>();
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
-      runtime_upgrade_tracker, module_factory, smc);
+      runtime_instances_pool, runtime_upgrade_tracker, module_factory, smc);
   auto env_factory =
       std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
           code_provider, module_repo, header_repo);
 
-  [[maybe_unused]] auto executor =
-      kagome::runtime::Executor(header_repo, env_factory);
+  [[maybe_unused]] auto executor = kagome::runtime::Executor(env_factory);
 
   // TODO(Harrm): Currently, the test only checks if kagome builds as
   // a dependency in some project. However, we can use the test to run

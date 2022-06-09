@@ -48,7 +48,6 @@ using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::PtrSize;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmI32;
-using kagome::runtime::WasmI8;
 using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
@@ -123,7 +122,7 @@ class OutcomeParameterizedTest
       public ::testing::WithParamInterface<outcome::result<void>> {};
 
 class BinaryParameterizedTest : public OffchainExtensionTest,
-                                public ::testing::WithParamInterface<WasmI8> {};
+                                public ::testing::WithParamInterface<WasmI32> {};
 
 class TernaryParametrizedTest : public OffchainExtensionTest,
                                 public ::testing::WithParamInterface<WasmI32> {

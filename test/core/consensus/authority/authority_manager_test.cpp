@@ -25,6 +25,7 @@
 
 using namespace kagome;
 using authority::AuthorityManagerImpl;
+using authority::IsBlockFinalized;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using primitives::AuthorityList;
 using testing::_;
@@ -170,8 +171,6 @@ class AuthorityManagerTest : public testing::Test {
   void prepareAuthorityManager() {
     auto node = authority::ScheduleNode::createAsRoot(genesis_block);
     node->actual_authorities = authorities;
-    EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
-    common::Buffer encoded_data(encode_result.value());
 
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillRepeatedly(Return(genesis_block));
@@ -189,10 +188,10 @@ class AuthorityManagerTest : public testing::Test {
    */
   void examine(const primitives::BlockInfo &examining_block,
                const primitives::AuthorityList &expected_authorities) {
-    ASSERT_OUTCOME_SUCCESS(
-        actual_authorities_sptr,
-        authority_manager->authorities(examining_block, false));
-    const auto &actual_authorities = *actual_authorities_sptr;
+    auto actual_authorities_sptr = authority_manager->authorities(
+        examining_block, IsBlockFinalized{false});
+    ASSERT_TRUE(actual_authorities_sptr.has_value());
+    const auto &actual_authorities = *actual_authorities_sptr.value();
     EXPECT_EQ(actual_authorities, expected_authorities);
   }
 };
@@ -216,19 +215,16 @@ TEST_F(AuthorityManagerTest, Init) {
 TEST_F(AuthorityManagerTest, Prune) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(
-      authorities_result,
-      authority_manager->authorities({10, "B"_hash256}, true));
+  auto authorities_opt =
+      authority_manager->authorities({10, "B"_hash256}, IsBlockFinalized{true});
+  ASSERT_TRUE(authorities_opt.has_value());
 
-  auto &orig_authorities = *authorities_result.value();
+  auto &orig_authorities = *authorities_opt.value();
 
   // Make expected state
   auto node = authority::ScheduleNode::createAsRoot({20, "D"_hash256});
   node->actual_authorities =
       std::make_shared<primitives::AuthorityList>(orig_authorities);
-
-  EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
-  common::Buffer encoded_data(std::move(encode_result.value()));
 
   authority_manager->prune({20, "D"_hash256});
 
@@ -245,9 +241,10 @@ TEST_F(AuthorityManagerTest, Prune) {
 TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(
-      old_auth_r, authority_manager->authorities({20, "D"_hash256}, true));
-  auto &old_authorities = *old_auth_r.value();
+  auto old_auth_opt =
+      authority_manager->authorities({20, "D"_hash256}, IsBlockFinalized{true});
+  ASSERT_TRUE(old_auth_opt.has_value());
+  auto &old_authorities = *old_auth_opt.value();
 
   primitives::BlockInfo target_block{5, "A"_hash256};
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
@@ -280,9 +277,10 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
 TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(
-      old_auth_r, authority_manager->authorities({35, "F"_hash256}, false));
-  auto &old_authorities = *old_auth_r.value();
+  auto old_auth_opt = authority_manager->authorities({35, "F"_hash256},
+                                                     IsBlockFinalized{false});
+  ASSERT_TRUE(old_auth_opt.has_value());
+  auto &old_authorities = *old_auth_opt.value();
 
   primitives::BlockInfo target_block{10, "B"_hash256};
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
@@ -312,10 +310,10 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
 TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(
-      old_authorities_result,
-      authority_manager->authorities({35, "F"_hash256}, true));
-  auto &old_authorities = *old_authorities_result.value();
+  auto old_auth_opt =
+      authority_manager->authorities({35, "F"_hash256}, IsBlockFinalized{true});
+  ASSERT_TRUE(old_auth_opt.has_value());
+  auto &old_authorities = *old_auth_opt.value();
 
   primitives::BlockInfo target_block{10, "B"_hash256};
   uint32_t authority_index = 1;
@@ -344,10 +342,10 @@ TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
 TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(
-      old_authorities_result,
-      authority_manager->authorities({35, "F"_hash256}, true));
-  auto &old_authorities = *old_authorities_result.value();
+  auto old_auth_opt =
+      authority_manager->authorities({35, "F"_hash256}, IsBlockFinalized{true});
+  ASSERT_TRUE(old_auth_opt.has_value());
+  auto &old_authorities = *old_auth_opt.value();
 
   primitives::BlockInfo target_block{5, "A"_hash256};
   uint32_t delay = 10;
@@ -383,10 +381,10 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
 TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(
-      old_authorities_result,
-      authority_manager->authorities({35, "F"_hash256}, true));
-  auto &enabled_authorities = *old_authorities_result.value();
+  auto old_auth_opt =
+      authority_manager->authorities({35, "F"_hash256}, IsBlockFinalized{true});
+  ASSERT_TRUE(old_auth_opt.has_value());
+  auto &enabled_authorities = *old_auth_opt.value();
 
   primitives::AuthorityList disabled_authorities = enabled_authorities;
   for (auto &authority : disabled_authorities) {

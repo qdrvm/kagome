@@ -23,10 +23,16 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
              "last round estimate or is descendant of it";
     case E::JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED:
       return "Justified block is greater than actually finalized";
+    case E::NO_KNOWN_AUTHORITIES_FOR_BLOCK:
+      return "Can't retrieve authorities for the given block. Likely indicates "
+             "the block is invalid.";
+    case E::WRONG_ORDER_OF_VOTER_SET_ID:
+      return "New round has an abnormal voter set id, expected "
+             "equal or greater by one than the previous voter set id";
     case E::UNKNOWN_VOTER:
       return "Provided vote is the vote of unknown voter";
     case E::ZERO_WEIGHT_VOTER:
-      return "Provided vote of zero weight voter";
+      return "Provided vote of disabled (zero weight) voter";
     case E::DUPLICATED_VOTE:
       return "Provided vote duplicates the existing one";
     case E::EQUIVOCATED_VOTE:

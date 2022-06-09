@@ -40,8 +40,10 @@ namespace kagome::authority {
         kKnownEngines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
 
     struct Config {
-      // Whether OnDisabled digest message should be processed. It is disabled
-      // in Polkadot but enabled in Kusama
+      // Whether OnDisabled digest message should be processed.
+      // It is disabled in Polkadot.
+      // It is enabled in Kusama, but some blocks (recognized in 530k-550k)
+      // fail to finalize and syncing gets stuck
       bool on_disable_enabled = false;
     };
 
@@ -60,8 +62,9 @@ namespace kagome::authority {
 
     primitives::BlockInfo base() const override;
 
-    outcome::result<std::shared_ptr<const primitives::AuthorityList>>
-    authorities(const primitives::BlockInfo &block, bool finalized) override;
+    std::optional<std::shared_ptr<const primitives::AuthorityList>> authorities(
+        const primitives::BlockInfo &target_block,
+        IsBlockFinalized finalized) const override;
 
     outcome::result<void> applyScheduledChange(
         const primitives::BlockInfo &block,
@@ -88,16 +91,18 @@ namespace kagome::authority {
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) override;
 
+    void cancel(const primitives::BlockInfo &block) override;
+
     void prune(const primitives::BlockInfo &block) override;
 
    private:
     /**
      * @brief Find schedule_node according to the block
-     * @param block for whick find schedule node
+     * @param block for which to find the schedule node
      * @return oldest schedule_node according to the block
      */
     std::shared_ptr<ScheduleNode> getAppropriateAncestor(
-        const primitives::BlockInfo &block);
+        const primitives::BlockInfo &block) const;
 
     /**
      * @brief Check if one block is direct ancestor of second one
@@ -106,7 +111,7 @@ namespace kagome::authority {
      * @return true if \param ancestor is direct ancestor of \param descendant
      */
     bool directChainExists(const primitives::BlockInfo &ancestor,
-                           const primitives::BlockInfo &descendant);
+                           const primitives::BlockInfo &descendant) const;
 
     void reorganize(std::shared_ptr<ScheduleNode> node,
                     std::shared_ptr<ScheduleNode> new_node);

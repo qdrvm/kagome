@@ -6,6 +6,7 @@
 #include "runtime/runtime_api/impl/core.hpp"
 
 #include "blockchain/block_header_repository.hpp"
+#include "log/logger.hpp"
 #include "runtime/executor.hpp"
 
 namespace kagome::runtime {
@@ -37,12 +38,9 @@ namespace kagome::runtime {
     BOOST_ASSERT(parent.number == block.header.number - 1);
     OUTCOME_TRY(changes_tracker_->onBlockExecutionStart(
         block.header.parent_hash, parent.number));
-    const auto res = executor_->persistentCallAt<void>(
-        block.header.parent_hash, "Core_execute_block", block);
-    if (res) {
-      return outcome::success();
-    }
-    return res.error();
+    OUTCOME_TRY(executor_->persistentCallAt<void>(
+        block.header.parent_hash, "Core_execute_block", block));
+    return outcome::success();
   }
 
   outcome::result<storage::trie::RootHash> CoreImpl::initialize_block(

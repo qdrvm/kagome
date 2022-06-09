@@ -63,7 +63,7 @@ namespace kagome::application {
     AppConfigurationImpl(AppConfigurationImpl &&) = default;
     AppConfigurationImpl &operator=(AppConfigurationImpl &&) = default;
 
-    [[nodiscard]] bool initializeFromArgs(int argc, char **argv);
+    [[nodiscard]] bool initializeFromArgs(int argc, const char **argv);
 
     network::Roles roles() const override {
       return roles_;

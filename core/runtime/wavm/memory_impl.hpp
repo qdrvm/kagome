@@ -110,6 +110,12 @@ namespace kagome::runtime::wavm {
     }
 
    private:
+    void fill(PtrSize span, uint8_t value) {
+      auto native_ptr =
+          WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, span.ptr, span.size);
+      memset(native_ptr, value, span.size);
+    }
+
     constexpr static uint32_t kPageSize = 4096;
     std::unique_ptr<MemoryAllocator> allocator_;
     WAVM::Runtime::Memory *memory_;

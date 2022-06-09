@@ -19,11 +19,7 @@ namespace kagome::api::state::request {
     }
 
     outcome::result<Return> execute() override {
-      if (auto result = api_->subscribeRuntimeVersion();
-          not result.has_value()) {
-        return result.as_failure();
-      }
-      return outcome::success();
+      return api_->subscribeRuntimeVersion();
     }
 
    private:

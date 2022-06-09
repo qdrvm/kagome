@@ -57,6 +57,7 @@ target_link_libraries(wasm_executor_test
     ed25519_provider
     pbkdf2_provider
     hasher
+    primitives
     polkadot_trie_factory
     trie_serializer
     logger_for_tests
