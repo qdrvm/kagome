@@ -299,7 +299,7 @@ TEST_F(AppConfigurationTest, TelemetryExplicitlyDisabled) {
 
 /**
  * @given an instance of AppConfigurationImpl
- * @when --rocks flag is specified
+ * @when database configured to use RocksDB
  * @then RocksDB storage backend is going to be used
  */
 TEST_F(AppConfigurationTest, RocksDBStorageBackend) {
@@ -307,10 +307,11 @@ TEST_F(AppConfigurationTest, RocksDBStorageBackend) {
       "/path/",
       "--config-file",
       config_path.c_str(),
-      "--rocks",
+      "--database",
+      "rocksdb"
   };
 
-  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), (char **)args));
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_EQ(AppConfiguration::StorageBackend::RocksDB,
             app_config_->storageBackend());
 }

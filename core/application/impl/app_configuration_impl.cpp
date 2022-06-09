@@ -282,6 +282,21 @@ namespace kagome::application {
     std::string base_path_str;
     load_str(val, "base-path", base_path_str);
     base_path_ = fs::path(base_path_str);
+
+    std::string database_engine_str;
+    if (load_str(val, "database", database_engine_str)) {
+      if ("rocksdb" == database_engine_str) {
+        storage_backend_ = StorageBackend::RocksDB;
+      } else if ("leveldb" == database_engine_str) {
+        storage_backend_ = StorageBackend::LevelDB;
+      } else {
+        SL_ERROR(logger_,
+                 "Unsupported database backend was specified {}, "
+                 "available options are [leveldb, rocksdb]",
+                 database_engine_str);
+        exit(EXIT_FAILURE);
+      }
+    }
   }
 
   void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
@@ -581,9 +596,9 @@ namespace kagome::application {
     po::options_description storage_desc("Storage options");
     storage_desc.add_options()
         ("base-path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
+        ("database", po::value<std::string>()->default_value("leveldb"), "Database backend to use [leveldb, rocksdb]")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
-        ("rocks", "Use RocksDB as a backed instead of default LevelDB")
         ;
 
     po::options_description network_desc("Network options");
@@ -741,6 +756,24 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "base-path", [&](const std::string &val) { base_path_ = val; });
+
+    bool unknown_database_engine_is_set = false;
+    find_argument<std::string>(vm, "database", [&](const std::string &val) {
+      if ("rocksdb" == val) {
+        storage_backend_ = StorageBackend::RocksDB;
+      } else if ("leveldb" == val) {
+        storage_backend_ = StorageBackend::LevelDB;
+      } else {
+        unknown_database_engine_is_set = true;
+        SL_ERROR(logger_,
+                 "Unsupported database backend was specified {}, "
+                 "available options are [leveldb, rocksdb]",
+                 val);
+      }
+    });
+    if (unknown_database_engine_is_set) {
+      return false;
+    }
 
     std::vector<std::string> boot_nodes;
     find_argument<std::vector<std::string>>(
@@ -999,9 +1032,6 @@ namespace kagome::application {
     if (vm.count("enable-offchain-indexing") > 0) {
       enable_offchain_indexing_ = true;
     }
-
-    storage_backend_ = vm.count("rocks") > 0 ? StorageBackend::RocksDB
-                                             : StorageBackend::LevelDB;
 
     bool has_recovery = false;
     find_argument<std::string>(vm, "recovery", [&](const std::string &val) {
