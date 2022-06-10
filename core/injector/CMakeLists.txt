@@ -84,6 +84,7 @@ target_link_libraries(application_injector
     soralog::soralog
     sr25519_provider
     state_api_service
+    state_protocol_observer
     storage_code_provider
     sync_protocol_observer
     system_api_service

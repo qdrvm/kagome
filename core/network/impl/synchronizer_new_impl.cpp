@@ -431,6 +431,7 @@ namespace kagome::network {
                                       const std::vector<common::Buffer> &keys,
                                       SyncResultHandler &&handler) {
     if (sync_method_ == application::AppConfiguration::SyncMethod::Fast) {
+      // execute if not already started or iteration continues
       if (not state_syncing_.load()
           || (not keys.empty() && not keys[0].empty())) {
         state_syncing_.store(true);
@@ -465,6 +466,7 @@ namespace kagome::network {
           for (unsigned i = 0; i < response_res.value().entries.size(); ++i) {
             const auto &response = response_res.value().entries[i];
 
+            // get or create batch
             auto batch =
                 self->batches_store_.count(response.state_root)
                     ? std::get<2>(self->batches_store_[response.state_root])
@@ -473,6 +475,7 @@ namespace kagome::network {
                               self->serializer_->getEmptyRootHash())
                           .value();
 
+            // main storage entries size empty at child storage state syncing
             if (response.entries.size()) {
               SL_TRACE(self->log_,
                        "Syncing {}th item. Current key {}. Keys received {}.",
@@ -483,6 +486,7 @@ namespace kagome::network {
                 std::ignore = batch->put(entry.key, entry.value);
               }
 
+              // store batch to continue at next response
               if (!response.complete) {
                 self->batches_store_[response.state_root] = {
                     response.entries.back().key, i, batch};
@@ -505,11 +509,13 @@ namespace kagome::network {
               }
             }
 
+            // just calculate state entries in main storage for trace log
             if (!i) {
               self->entries_ += response.entries.size();
             }
           }
 
+          // not well formed way to place 0th batch key to front
           std::map<unsigned, common::Buffer> keymap;
           for (const auto &[_, val] : self->batches_store_) {
             unsigned i = std::get<1>(val);

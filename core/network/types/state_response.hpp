@@ -7,6 +7,7 @@
 #define KAGOME_STATE_RESPONSE_HPP
 
 #include "common/buffer.hpp"
+#include "storage/trie/types.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::network {

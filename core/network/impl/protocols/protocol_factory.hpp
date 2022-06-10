@@ -55,6 +55,11 @@ namespace kagome::network {
       extrinsic_observer_ = extrinsic_observer;
     }
 
+    void setStateObserver(
+        const std::shared_ptr<StateProtocolObserver> &state_observer) {
+      state_observer_ = state_observer;
+    }
+
     void setSyncObserver(
         const std::shared_ptr<SyncProtocolObserver> &sync_observer) {
       sync_observer_ = sync_observer;
@@ -92,6 +97,7 @@ namespace kagome::network {
     std::weak_ptr<consensus::babe::Babe> babe_;
     std::weak_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::weak_ptr<ExtrinsicObserver> extrinsic_observer_;
+    std::weak_ptr<StateProtocolObserver> state_observer_;
     std::weak_ptr<SyncProtocolObserver> sync_observer_;
     std::weak_ptr<PeerManager> peer_manager_;
   };
