@@ -15,6 +15,7 @@
 
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
+#include "network/state_protocol_observer.hpp"
 
 namespace kagome::network {
 
@@ -28,7 +29,8 @@ namespace kagome::network {
         public std::enable_shared_from_this<StateProtocolImpl> {
    public:
     StateProtocolImpl(libp2p::Host &host,
-                      const application::ChainSpec &chain_spec);
+                      const application::ChainSpec &chain_spec,
+                      std::shared_ptr<StateProtocolObserver> state_observer);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -48,6 +50,11 @@ namespace kagome::network {
                  std::function<void(outcome::result<StateResponse>)>
                      &&response_handler) override;
 
+    void readRequest(std::shared_ptr<Stream> stream);
+
+    void writeResponse(std::shared_ptr<Stream> stream,
+                       const StateResponse &state_response);
+
     void writeRequest(std::shared_ptr<Stream> stream,
                       StateRequest state_request,
                       std::function<void(outcome::result<void>)> &&cb);
@@ -58,6 +65,7 @@ namespace kagome::network {
 
    private:
     libp2p::Host &host_;
+    std::shared_ptr<StateProtocolObserver> state_observer_;
     const libp2p::peer::Protocol protocol_;
     log::Logger log_ = log::createLogger("StateProtocol", "state_protocol");
   };

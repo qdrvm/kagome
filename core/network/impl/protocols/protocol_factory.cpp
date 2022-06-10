@@ -73,7 +73,8 @@ namespace kagome::network {
   }
 
   std::shared_ptr<StateProtocol> ProtocolFactory::makeStateProtocol() const {
-    return std::make_shared<StateProtocolImpl>(host_, chain_spec_);
+    return std::make_shared<StateProtocolImpl>(
+        host_, chain_spec_, state_observer_.lock());
   }
 
   std::shared_ptr<SyncProtocol> ProtocolFactory::makeSyncProtocol() const {

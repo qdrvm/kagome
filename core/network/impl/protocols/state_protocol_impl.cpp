@@ -13,9 +13,12 @@
 
 namespace kagome::network {
 
-  StateProtocolImpl::StateProtocolImpl(libp2p::Host &host,
-                                       const application::ChainSpec &chain_spec)
-      : host_(host) {
+  StateProtocolImpl::StateProtocolImpl(
+      libp2p::Host &host,
+      const application::ChainSpec &chain_spec,
+      std::shared_ptr<StateProtocolObserver> state_observer)
+      : host_(host), state_observer_(std::move(state_observer)) {
+    BOOST_ASSERT(state_observer_ != nullptr);
     const_cast<Protocol &>(protocol_) =
         fmt::format(kStateProtocol.data(), chain_spec.protocolId());
   }
@@ -44,6 +47,8 @@ namespace kagome::network {
 
   void StateProtocolImpl::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
+
+    readRequest(stream);
   }
 
   void StateProtocolImpl::newOutgoingStream(
@@ -81,6 +86,74 @@ namespace kagome::network {
 
           cb(std::move(stream));
         });
+  }
+
+  void StateProtocolImpl::readRequest(std::shared_ptr<Stream> stream) {
+    auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
+
+    SL_DEBUG(log_,
+             "Read request from incoming {} stream with {}",
+             protocol_,
+             stream->remotePeerId().value());
+
+    read_writer->read<StateRequest>([stream, wp = weak_from_this()](
+                                        auto &&state_request_res) mutable {
+      auto self = wp.lock();
+      if (not self) {
+        stream->reset();
+        return;
+      }
+
+      if (not state_request_res.has_value()) {
+        SL_VERBOSE(self->log_,
+                   "Error at read request from incoming {} stream with {}: {}",
+                   self->protocol_,
+                   stream->remotePeerId().value(),
+                   state_request_res.error().message());
+
+        stream->reset();
+        return;
+      }
+
+      auto &state_request = state_request_res.value();
+
+      if (self->log_->level() >= log::Level::VERBOSE) {
+        std::string keys;
+        if (!state_request.start.empty()) {
+          keys = " starting with keys [";
+          for (const auto &key : state_request.start) {
+            keys += key.toString() + ",";
+          }
+          keys.back() = ']';
+        }
+        SL_VERBOSE(
+            self->log_,
+            "State request is received from incoming {} stream with {} for "
+            "block {}{}.",
+            self->protocol_,
+            stream->remotePeerId().value(),
+            state_request.hash.toHex(),
+            keys);
+      }
+
+      auto state_response_res =
+          self->state_observer_->onStateRequest(state_request);
+
+      if (not state_response_res) {
+        SL_VERBOSE(
+            self->log_,
+            "Error at execute request from incoming {} stream with {}: {}",
+            self->protocol_,
+            stream->remotePeerId().value(),
+            state_response_res.error().message());
+
+        stream->reset();
+        return;
+      }
+      auto &state_response = state_response_res.value();
+
+      self->writeResponse(std::move(stream), state_response);
+    });
   }
 
   void StateProtocolImpl::request(
@@ -142,6 +215,35 @@ namespace kagome::network {
                                self->readResponse(std::move(stream),
                                                   std::move(response_handler));
                              });
+        });
+  }
+
+  void StateProtocolImpl::writeResponse(std::shared_ptr<Stream> stream,
+                                        const StateResponse &state_response) {
+    auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
+
+    read_writer->write(
+        state_response,
+        [stream = std::move(stream),
+         wp = weak_from_this()](auto &&write_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            return;
+          }
+
+          if (not write_res.has_value()) {
+            SL_VERBOSE(
+                self->log_,
+                "Error at writing response to incoming {} stream with {}: {}",
+                self->protocol_,
+                stream->remotePeerId().value(),
+                write_res.error().message());
+            stream->reset();
+            return;
+          }
+
+          stream->close([](auto &&...) {});
         });
   }
 

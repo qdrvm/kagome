@@ -90,6 +90,7 @@
 #include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/rating_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
+#include "network/impl/state_protocol_observer_impl.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
@@ -759,6 +760,9 @@ namespace {
       return initialized.value();
     }
 
+    auto state_observer = std::make_shared<network::StateProtocolObserverImpl>(
+        injector.template create<sptr<storage::trie::TrieStorage>>());
+
     auto sync_observer = std::make_shared<network::SyncProtocolObserverImpl>(
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<blockchain::BlockHeaderRepository>>());
@@ -766,6 +770,7 @@ namespace {
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
+    protocol_factory->setStateObserver(state_observer);
     protocol_factory->setSyncObserver(sync_observer);
 
     initialized.emplace(std::move(sync_observer));
