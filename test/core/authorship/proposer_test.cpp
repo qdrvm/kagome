@@ -168,6 +168,12 @@ TEST_F(ProposerTest, CreateBlockFailsWhenXtNotPushed) {
   ASSERT_FALSE(block_res);
 }
 
+/**
+ * @given BlockBuilderApi fails to create inherent extrinsics
+ * @when Proposer created from this BlockBuilderApi is trying to to create
+ * inherent extrinsics
+ * @then Block is not created
+ */
 TEST_F(ProposerTest, CreateBlockFailsToGetInhetentExtr) {
   // given
   EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
@@ -222,10 +228,16 @@ TEST_F(ProposerTest, PushFailed) {
   ASSERT_TRUE(block_res);
 }
 
+/**
+ * @given BlockBuilderApi creating inherent extrinsics @and TransactionPool
+ * returning extrinsics
+ * @when Proposer created from these BlockBuilderApi and TransactionPool is
+ * trying to create block @but trxs size exceed block size limit @and skipped
+ * trxs count exceeds limit
+ * @then Block is still created, but without such trxs
+ */
 TEST_F(ProposerTest, TrxSkippedDueToOverflow) {
   // given
-  // we push 1 xt from inherent_xts and 1 Xt from transaction pool. Second push
-  // fails
   EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
       .WillOnce(Return(inherent_xts));
   EXPECT_CALL(*block_builder_, pushExtrinsic(_))
@@ -234,18 +246,17 @@ TEST_F(ProposerTest, TrxSkippedDueToOverflow) {
       .WillRepeatedly(Return(ProposerImpl::kBlockSizeLimit));
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
-  // number is kMaxSkippedTransactions + 1
-  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
-      std::make_pair("fakeHash0"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash1"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash2"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash3"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash4"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash5"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash6"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash7"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash8"_hash256, std::make_shared<Transaction>()),
-  };
+  // number of trxs is kMaxSkippedTransactions + 1
+  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions;
+  std::generate_n(std::inserter(ready_transactions, ready_transactions.end()),
+                  ProposerImpl::kMaxSkippedTransactions + 1,
+                  []() {
+                    static char c = 'a';
+                    auto hash = "fakeHash"_hash256;
+                    hash.back() = c++;
+                    return std::make_pair(hash,
+                                          std::make_shared<Transaction>());
+                  });
 
   EXPECT_CALL(*transaction_pool_, removeOne(_))
       .WillRepeatedly(
@@ -263,12 +274,18 @@ TEST_F(ProposerTest, TrxSkippedDueToOverflow) {
   ASSERT_TRUE(block_res);
 }
 
+/**
+ * @given BlockBuilderApi creating inherent extrinsics @and TransactionPool
+ * returning extrinsics
+ * @when Proposer created from these BlockBuilderApi and TransactionPool is
+ * trying to create block @but block is full
+ * @then Block is still created, but without such trxs
+ */
 TEST_F(ProposerTest, TrxSkippedDueToResourceExhausted) {
   // given
-  // we push 1 xt from inherent_xts and 1 Xt from transaction pool. Second push
-  // fails
   EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
       .WillOnce(Return(inherent_xts));
+  // BlockBuilderApi roports to be full for all trxs
   EXPECT_CALL(*block_builder_, pushExtrinsic(_))
       .WillRepeatedly(
           Return(outcome::failure(BlockBuilderError::EXHAUSTS_RESOURCES)));
@@ -276,17 +293,16 @@ TEST_F(ProposerTest, TrxSkippedDueToResourceExhausted) {
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
   // number is kMaxSkippedTransactions + 1
-  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
-      std::make_pair("fakeHash0"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash1"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash2"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash3"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash4"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash5"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash6"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash7"_hash256, std::make_shared<Transaction>()),
-      std::make_pair("fakeHash8"_hash256, std::make_shared<Transaction>()),
-  };
+  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions;
+  std::generate_n(std::inserter(ready_transactions, ready_transactions.end()),
+                  ProposerImpl::kMaxSkippedTransactions + 1,
+                  []() {
+                    static char c = 'a';
+                    auto hash = "fakeHash"_hash256;
+                    hash.back() = c++;
+                    return std::make_pair(hash,
+                                          std::make_shared<Transaction>());
+                  });
 
   EXPECT_CALL(*transaction_pool_, removeOne(_))
       .WillRepeatedly(
