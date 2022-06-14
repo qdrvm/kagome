@@ -301,7 +301,7 @@ namespace kagome::consensus {
           primitives::BlockInfo(block.header.number, block_hash),
           b.justification.value());
       if (res.has_error()) {
-        if (res.error() == grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT) {
+        if (res == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
           justifications_.emplace(
               primitives::BlockInfo(block.header.number, block_hash),
               b.justification.value());
