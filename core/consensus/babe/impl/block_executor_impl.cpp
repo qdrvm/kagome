@@ -301,7 +301,8 @@ namespace kagome::consensus {
           primitives::BlockInfo(block.header.number, block_hash),
           b.justification.value());
       if (res.has_error()) {
-        if (res == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
+        if (res
+            == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
           justifications_.emplace(
               primitives::BlockInfo(block.header.number, block_hash),
               b.justification.value());
@@ -309,10 +310,10 @@ namespace kagome::consensus {
           rollbackBlock(primitives::BlockInfo(block.header.number, block_hash));
           return res.as_failure();
         }
+      } else {
+        // safely could be remove if current justification applied successfully
+        justifications_.clear();
       }
-      // !TODO(sanblch): add `justifications_.clear()` if it is guaranteed that
-      // they don't contain valuable votes after justification successfully
-      // applied
     }
 
     // remove block's extrinsics from tx pool
