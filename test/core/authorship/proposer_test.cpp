@@ -17,6 +17,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "transaction_pool/transaction_pool_error.hpp"
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -41,6 +42,7 @@ using kagome::primitives::Transaction;
 using kagome::primitives::events::ExtrinsicSubscriptionEngine;
 using kagome::runtime::BlockBuilderApiMock;
 using kagome::subscription::ExtrinsicEventKeyRepository;
+using kagome::transaction_pool::TransactionPoolError;
 using kagome::transaction_pool::TransactionPoolMock;
 
 // TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
@@ -69,8 +71,6 @@ class ProposerTest : public ::testing::Test {
     ASSERT_TRUE(inherent_data_.putData(InherentIdentifier{}, Buffer{1, 2, 3}));
 
     block_builder_ = new BlockBuilderMock;
-    EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
-        .WillOnce(Return(inherent_xts));
     EXPECT_CALL(*block_builder_factory_,
                 make(expected_block_, inherent_digests_))
         .WillOnce(Invoke([this](auto &&, auto &&) {
@@ -113,6 +113,8 @@ class ProposerTest : public ::testing::Test {
  */
 TEST_F(ProposerTest, CreateBlockSuccess) {
   // given
+  EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
+      .WillOnce(Return(inherent_xts));
   // we push 2 xts: 1 from inherent_xts and one from transaction pool
   EXPECT_CALL(*block_builder_, pushExtrinsic(_))
       .WillOnce(Return(outcome::success()))
@@ -153,8 +155,23 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
  */
 TEST_F(ProposerTest, CreateBlockFailsWhenXtNotPushed) {
   // given
+  EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
+      .WillOnce(Return(inherent_xts));
   EXPECT_CALL(*block_builder_, pushExtrinsic(inherent_xts[0]))
       .WillOnce(Return(outcome::failure(BlockBuilderError::BAD_MANDATORY)));
+
+  // when
+  auto block_res =
+      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
+
+  // then
+  ASSERT_FALSE(block_res);
+}
+
+TEST_F(ProposerTest, CreateBlockFailsToGetInhetentExtr) {
+  // given
+  EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
+      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
 
   // when
   auto block_res =
@@ -177,6 +194,8 @@ TEST_F(ProposerTest, PushFailed) {
   // given
   // we push 1 xt from inherent_xts and 1 Xt from transaction pool. Second push
   // fails
+  EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
+      .WillOnce(Return(inherent_xts));
   EXPECT_CALL(*block_builder_, pushExtrinsic(_))
       .WillOnce(Return(outcome::success()))  // for inherent xt
       .WillOnce(Return(outcome::failure(
@@ -194,6 +213,47 @@ TEST_F(ProposerTest, PushFailed) {
       .WillOnce(Return(ready_transactions));
   EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
       .WillOnce(Return(outcome::success()));
+
+  // when
+  auto block_res =
+      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
+
+  // then
+  ASSERT_TRUE(block_res);
+}
+
+TEST_F(ProposerTest, TrxSkippedDueToOverflow) {
+  // given
+  // we push 1 xt from inherent_xts and 1 Xt from transaction pool. Second push
+  // fails
+  EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
+      .WillOnce(Return(inherent_xts));
+  EXPECT_CALL(*block_builder_, pushExtrinsic(_))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*block_builder_, estimateBlockSize())
+      .WillRepeatedly(Return(ProposerImpl::kBlockSizeLimit));
+  EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
+
+  // number is kMaxSkippedTransactions + 1
+  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
+      std::make_pair("fakeHash0"_hash256, std::make_shared<Transaction>()),
+      std::make_pair("fakeHash1"_hash256, std::make_shared<Transaction>()),
+      std::make_pair("fakeHash2"_hash256, std::make_shared<Transaction>()),
+      std::make_pair("fakeHash3"_hash256, std::make_shared<Transaction>()),
+      std::make_pair("fakeHash4"_hash256, std::make_shared<Transaction>()),
+      std::make_pair("fakeHash5"_hash256, std::make_shared<Transaction>()),
+      std::make_pair("fakeHash6"_hash256, std::make_shared<Transaction>()),
+      std::make_pair("fakeHash7"_hash256, std::make_shared<Transaction>()),
+      std::make_pair("fakeHash8"_hash256, std::make_shared<Transaction>()),
+  };
+
+  EXPECT_CALL(*transaction_pool_, removeOne(_))
+      .WillRepeatedly(
+          Return(outcome::failure(TransactionPoolError::TX_NOT_FOUND)));
+  EXPECT_CALL(*transaction_pool_, getReadyTransactions())
+      .WillRepeatedly(Return(ready_transactions));
+  EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
+      .WillRepeatedly(Return(outcome::success()));
 
   // when
   auto block_res =
