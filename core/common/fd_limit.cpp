@@ -12,11 +12,14 @@
 #include "log/logger.hpp"
 
 namespace kagome::common {
-  auto log = log::createLogger("FdLimit", log::defaultGroupName);
+  inline auto log() {
+    static auto log = log::createLogger("FdLimit", log::defaultGroupName);
+    return log;
+  }
 
   bool getFdLimit(rlimit &r) {
     if (getrlimit(RLIMIT_NOFILE, &r) != 0) {
-      SL_WARN(log,
+      SL_WARN(log(),
               "Error: getrlimit(RLIMIT_NOFILE) errno={} {}",
               errno,
               strerror(errno));
@@ -35,9 +38,9 @@ namespace kagome::common {
       return;
     }
     if (r.rlim_max == RLIM_INFINITY) {
-      SL_DEBUG(log, "current={} max=unlimited", r.rlim_cur);
+      SL_VERBOSE(log(), "current={} max=unlimited", r.rlim_cur);
     } else {
-      SL_DEBUG(log, "current={} max={}", r.rlim_cur, r.rlim_max);
+      SL_VERBOSE(log(), "current={} max={}", r.rlim_cur, r.rlim_max);
     }
     if (limit <= r.rlim_cur) {
       return;
@@ -57,7 +60,7 @@ namespace kagome::common {
       return;
     }
     if (r.rlim_cur != current) {
-      SL_DEBUG(log, "changed current={}", r.rlim_cur);
+      SL_VERBOSE(log(), "changed current={}", r.rlim_cur);
     }
   }
 }  // namespace kagome::common
