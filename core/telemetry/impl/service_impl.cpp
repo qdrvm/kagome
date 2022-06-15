@@ -72,8 +72,8 @@ namespace kagome::telemetry {
   bool TelemetryServiceImpl::prepare() {
     prepareGreetingMessage();
     auto chain_spec = chainSpecEndpoints();
-    auto &cli_config = app_configuration_.telemetryEndpoints();
-    auto &endpoints = cli_config.empty() ? chain_spec : cli_config;
+    const auto &cli_config = app_configuration_.telemetryEndpoints();
+    const auto &endpoints = cli_config.empty() ? chain_spec : cli_config;
 
     for (const auto &endpoint : endpoints) {
       auto connection = std::make_shared<TelemetryConnectionImpl>(

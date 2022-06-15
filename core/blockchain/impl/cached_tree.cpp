@@ -263,7 +263,7 @@ namespace kagome::blockchain {
       metadata_->deepest_leaf = parent;
       for (auto it = metadata_->leaves.begin();
            it != metadata_->leaves.end();) {
-        auto &hash = *it++;
+        const auto &hash = *it++;
         const auto leaf_node = root_->findByHash(hash);
         if (leaf_node == nullptr) {
           // Already removed with removed subtree

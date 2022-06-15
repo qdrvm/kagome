@@ -47,8 +47,9 @@ namespace kagome::primitives {
      */
     template <typename T>
     outcome::result<void> putData(InherentIdentifier identifier, T inherent) {
-      if (data.find(identifier) == data.end()) {
-        data[identifier] = common::Buffer(scale::encode(inherent).value());
+      if (data.try_emplace(identifier,
+                           common::Buffer(scale::encode(inherent).value()))
+              .second) {
         return outcome::success();
       }
       return InherentDataError::IDENTIFIER_ALREADY_EXISTS;

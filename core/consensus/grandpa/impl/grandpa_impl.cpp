@@ -114,11 +114,7 @@ namespace kagome::consensus::grandpa {
 
     GrandpaImpl::executeNextRound(current_round_->roundNumber());
 
-    if (not current_round_) {
-      return false;
-    }
-
-    return true;
+    return static_cast<bool>(current_round_);
   }
 
   void GrandpaImpl::stop() {}

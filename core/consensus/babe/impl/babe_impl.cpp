@@ -203,7 +203,7 @@ namespace kagome::consensus::babe {
         return std::tuple(babe_util_->getCurrentSlot(), false);
       }
 
-      auto &first_block_header = res.value();
+      const auto &first_block_header = res.value();
       auto babe_digest_res = consensus::getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
@@ -312,7 +312,7 @@ namespace kagome::consensus::babe {
     synchronizer_->syncByBlockHeader(
         announce.header,
         peer_id,
-        [wp = weak_from_this(), announce = announce](
+        [wp = weak_from_this(), announce](
             outcome::result<primitives::BlockInfo> block_res) mutable {
           if (auto self = wp.lock()) {
             if (block_res.has_error()) {
@@ -864,7 +864,7 @@ namespace kagome::consensus::babe {
         return std::tuple(babe_util_->getCurrentSlot(), false);
       }
 
-      auto &first_block_header = res.value();
+      const auto &first_block_header = res.value();
       auto babe_digest_res = consensus::getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");

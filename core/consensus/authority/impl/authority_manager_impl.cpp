@@ -470,7 +470,7 @@ namespace kagome::authority {
     auto authorities = std::make_shared<primitives::AuthorityList>(
         *new_node->actual_authorities);
     (*authorities)[authority_index].weight = 0;
-    new_node->actual_authorities = std::move(authorities);
+    new_node->actual_authorities = authorities;
 
     SL_VERBOSE(log_,
                "Authority id={} is disabled on block #{}",
