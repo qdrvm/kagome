@@ -221,15 +221,14 @@ namespace kagome::consensus::grandpa {
     return new_round;
   }
 
-  std::shared_ptr<VotingRound> GrandpaImpl::selectRound(
+  std::optional<std::shared_ptr<VotingRound>> GrandpaImpl::selectRound(
       RoundNumber round_number, std::optional<MembershipCounter> voter_set_id) {
     std::shared_ptr<VotingRound> round = current_round_;
 
     while (round != nullptr) {
       // Probably came to the round with previous voter set
       if (round->roundNumber() < round_number) {
-        round = nullptr;
-        break;
+        return std::nullopt;
       }
 
       // Round found; check voter set
@@ -303,7 +302,9 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::updateNextRound(RoundNumber round_number) {
-    if (auto round = selectRound(round_number + 1, std::nullopt)) {
+    if (auto opt_round = selectRound(round_number + 1, std::nullopt);
+        opt_round.has_value()) {
+      auto &round = opt_round.value();
       round->update(VotingRound::IsPreviousRoundChanged{true},
                     VotingRound::IsPrevotesChanged{false},
                     VotingRound::IsPrecommitsChanged{false});
@@ -337,7 +338,9 @@ namespace kagome::consensus::grandpa {
     auto info = peer_manager_->getPeerState(peer_id);
     if (not info.has_value() || msg.voter_set_id != info->set_id
         || msg.round_number > info->round_number) {
-      if (auto round = selectRound(msg.round_number, msg.voter_set_id)) {
+      if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
+          opt_round.has_value()) {
+        auto &round = opt_round.value();
         environment_->sendState(peer_id, round->state(), msg.voter_set_id);
       }
     }
@@ -370,8 +373,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    auto round = selectRound(msg.round_number, msg.voter_set_id);
-    if (round == nullptr) {
+    auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
+    if (!opt_round.has_value()) {
       SL_DEBUG(logger_,
                "Catch-up request to round #{} received from {} was rejected: "
                "target round not found",
@@ -380,6 +383,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
+    auto &round = opt_round.value();
     if (not round->finalizedBlock().has_value()) {
       SL_DEBUG(logger_,
                "Catch-up request to round #{} received from {} was rejected: "
@@ -567,8 +571,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    // If current peer is at round r, it is impolite to receive messages about
-    // r-2 or earlier
+    // If the current peer is at round r, it is impolite to receive messages
+    // about r-2 or earlier
     if (msg.round_number + 2 < current_round_->roundNumber()) {
       SL_DEBUG(
           logger_,
@@ -602,9 +606,9 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    std::shared_ptr<VotingRound> target_round =
+    std::optional<std::shared_ptr<VotingRound>> opt_target_round =
         selectRound(msg.round_number, msg.counter);
-    if (not target_round) {
+    if (not opt_target_round.has_value()) {
       SL_DEBUG(
           logger_,
           "{} signed by {} with set_id={} in round={} has received from {} "
@@ -618,6 +622,7 @@ namespace kagome::consensus::grandpa {
           peer_id);
       return;
     }
+    auto &target_round = opt_target_round.value();
 
     SL_DEBUG(logger_,
              "{} signed by {} with set_id={} in round={} for block {} "
@@ -761,9 +766,10 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> GrandpaImpl::applyJustification(
       const BlockInfo &block_info, const GrandpaJustification &justification) {
-    auto round = selectRound(justification.round_number, std::nullopt);
+    auto opt_round = selectRound(justification.round_number, std::nullopt);
+    std::shared_ptr<VotingRound> round;
     bool need_to_make_round_current = false;
-    if (round == nullptr) {
+    if (!opt_round.has_value()) {
       // This is justification for already finalized block
       if (current_round_->lastFinalizedBlock().number > block_info.number) {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
@@ -808,7 +814,8 @@ namespace kagome::consensus::grandpa {
         }
       }
 
-      round = makeInitialRound(round_state, std::move(voters));
+      round =
+          makeInitialRound(round_state, std::move(voters));
       need_to_make_round_current = true;
       BOOST_ASSERT(round);
 

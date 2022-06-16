@@ -217,13 +217,17 @@ namespace kagome::consensus::grandpa {
     /**
      * Block what has precommit supermajority.
      * Should be descendant or equal of Best-PreVote-Candidate
-     * @see spec: [Best-Final-Candidate](https://spec.polkadot.network/develop/#algo-grandpa-best-candidate) @endlink
-     * @see spec: [Ghost-Function](https://spec.polkadot.network/develop/#algo-grandpa-ghost) @endlink
+     * @see spec:
+     * [Best-Final-Candidate](https://spec.polkadot.network/develop/#algo-grandpa-best-candidate)
+     * @endlink
+     * @see spec:
+     * [Ghost-Function](https://spec.polkadot.network/develop/#algo-grandpa-ghost)
+     * @endlink
      */
     BlockInfo bestFinalCandidate() override;
 
     /**
-     * Block is finalized at the round
+     * The block, which is being finalized during this round
      */
     const std::optional<BlockInfo> &finalizedBlock() const override {
       return finalized_;
@@ -266,10 +270,9 @@ namespace kagome::consensus::grandpa {
     std::vector<SignedPrevote> getPrevoteJustification(
         const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const;
 
-    /// prepare precommit justification of \param estimate over the provided
-    /// \param votes
     /**
-     * Prepare precommit justifications for provided estimate using provided votes
+     * Prepare precommit justifications for provided estimate using provided
+     * votes
      * @param precommits precommits that we need to prepare justification for
      * @param votes votes that correspond to provided preommits
      * @return signed precommits obtained from estimate and votes

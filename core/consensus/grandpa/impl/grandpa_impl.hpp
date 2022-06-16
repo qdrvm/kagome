@@ -40,9 +40,9 @@ namespace kagome::consensus::grandpa {
    *  - processes rounds catch ups
    *
    * GrandpaImpl entity is registered in kagome::application::AppStateManager,
-   * which executes prepare(), start() and stop() functions to start consensus algorithm
+   * which executes prepare(), start() and stop() functions to manage execution of consensus algorithm
    *
-   * When start is invoked we execute new grandpa round and gossip neighbour message.
+   * When start is invoked we execute new grandpa round and gossip neighbour messages.
    *
    * Also we start receiving other grandpa messages over `paritytech/grandpa/1` protocol (see kagome::network::GrandpaProtocol::start()).
    * If we notice that we are lagging behind the most recent grandpa round in the network, then catch up procedure is executed (see GrandpaImpl::onNeighborMessage() and EnvironmentImpl::onCatchUpRequested()).
@@ -181,7 +181,7 @@ namespace kagome::consensus::grandpa {
      * @param block_info block being finalized by justification
      * @param justification justification containing precommit votes and
      * signatures for block info
-     * @return nothing or on error
+     * @return nothing or an error
      */
     outcome::result<void> applyJustification(
         const BlockInfo &block_info,
@@ -212,10 +212,10 @@ namespace kagome::consensus::grandpa {
      * Selects round by provided number and voter set id
      * @param round_number number of round to be selected
      * @param voter_set_id  id of voter set for corresponding round
-     * @return shared_ptr containing the round if we have one and nullptr
+     * @return optional<shared_ptr> containing the round if we have one and nullopt
      * otherwise
      */
-    std::shared_ptr<VotingRound> selectRound(
+    std::optional<std::shared_ptr<VotingRound>> selectRound(
         RoundNumber round_number,
         std::optional<MembershipCounter> voter_set_id);
 
@@ -229,8 +229,8 @@ namespace kagome::consensus::grandpa {
      * created that way is instantly ended. Because it is needed only to become
      * basis of the next round
      * @param round_state information required to execute the round
-     * @param voters set of voters for this round
-     * @return VotingRound the we can execute
+     * @param voters is the set of voters for this round
+     * @return VotingRound that we can execute
      */
     std::shared_ptr<VotingRound> makeInitialRound(
         const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters);
