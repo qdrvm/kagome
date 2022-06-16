@@ -494,7 +494,7 @@ namespace kagome::consensus::grandpa {
           "Round #{}: Primary proposal was not sent: Can't sign message",
           round_number_);
     }
-    auto &signed_primary_proposal = signed_primary_proposal_opt.value();
+    const auto &signed_primary_proposal = signed_primary_proposal_opt.value();
 
     auto res =
         env_->onVoted(round_number_, voter_set_->id(), signed_primary_proposal);

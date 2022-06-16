@@ -41,7 +41,7 @@ namespace kagome::host_api {
   std::shared_ptr<offchain::OffchainWorker> OffchainExtension::getWorker() {
     auto worker_opt = ocw_pool_->getWorker();
     if (not worker_opt.has_value()) {
-      std::runtime_error("Method was called not in offchain worker context");
+      throw std::runtime_error("Method was called not in offchain worker context");
     }
     return worker_opt.value();
   }
@@ -62,7 +62,7 @@ namespace kagome::host_api {
     auto data_buffer = memory.loadN(data_ptr, data_size);
     auto xt_res = scale::decode<primitives::Extrinsic>(data_buffer);
     if (xt_res.has_error()) {
-      std::runtime_error("Invalid encoded data for transaction arg");
+      throw std::runtime_error("Invalid encoded data for transaction arg");
     }
     auto &xt = xt_res.value();
 
@@ -320,7 +320,7 @@ namespace kagome::host_api {
     auto deadline_res =
         scale::decode<std::optional<Timestamp>>(deadline_buffer);
     if (deadline_res.has_error()) {
-      std::runtime_error("Invalid encoded data for deadline arg");
+      throw std::runtime_error("Invalid encoded data for deadline arg");
     }
     auto &deadline = deadline_res.value();
 
@@ -341,7 +341,7 @@ namespace kagome::host_api {
     auto ids_buffer = memory.loadN(ids_ptr, ids_size);
     auto ids_res = scale::decode<std::vector<RequestId>>(ids_buffer);
     if (ids_res.has_error()) {
-      std::runtime_error("Invalid encoded data for IDs arg");
+      throw std::runtime_error("Invalid encoded data for IDs arg");
     }
     auto &ids = ids_res.value();
 
@@ -350,7 +350,7 @@ namespace kagome::host_api {
     auto deadline_res =
         scale::decode<std::optional<Timestamp>>(deadline_buffer);
     if (deadline_res.has_error()) {
-      std::runtime_error("Invalid encoded data for deadline arg");
+      throw std::runtime_error("Invalid encoded data for deadline arg");
     }
     auto &deadline = deadline_res.value();
 
@@ -389,7 +389,7 @@ namespace kagome::host_api {
     auto deadline_res =
         scale::decode<std::optional<Timestamp>>(deadline_buffer);
     if (deadline_res.has_error()) {
-      std::runtime_error("Invalid encoded data for deadline arg");
+      throw std::runtime_error("Invalid encoded data for deadline arg");
     }
     auto &deadline = deadline_res.value();
 
