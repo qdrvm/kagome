@@ -10,6 +10,7 @@
 #include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
+#include "runtime/wavm/module_params.hpp"
 #include "runtime/wavm/wavm_external_memory_provider.hpp"
 #include "runtime/wavm/wavm_internal_memory_provider.hpp"
 
@@ -19,7 +20,8 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<CompartmentWrapper> compartment,
-      std::shared_ptr<const IntrinsicModule> intrinsic_module,
+      std::shared_ptr<ModuleParams> module_params,
+      std::shared_ptr<IntrinsicModule> intrinsic_module,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
@@ -27,6 +29,7 @@ namespace kagome::runtime::wavm {
       : storage_{std::move(storage)},
         serializer_{std::move(serializer)},
         compartment_{std::move(compartment)},
+        module_params_{std::move(module_params)},
         intrinsic_module_{std::move(intrinsic_module)},
         host_api_factory_{std::move(host_api_factory)},
         block_header_repo_{std::move(block_header_repo)},
@@ -35,6 +38,7 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
+    BOOST_ASSERT(module_params_ != nullptr);
     BOOST_ASSERT(intrinsic_module_ != nullptr);
     BOOST_ASSERT(host_api_factory_ != nullptr);
     BOOST_ASSERT(block_header_repo_ != nullptr);
@@ -50,6 +54,7 @@ namespace kagome::runtime::wavm {
         std::make_shared<TrieStorageProviderImpl>(storage_, serializer_);
     auto core_factory =
         std::make_shared<CoreApiFactoryImpl>(compartment_,
+                                             module_params_,
                                              intrinsic_module_,
                                              storage_,
                                              block_header_repo_,

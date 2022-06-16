@@ -267,7 +267,7 @@ namespace kagome::consensus {
                  "Error while processing consensus digests of block {}: {}",
                  block_hash,
                  res.error().message());
-        rollbackBlock(block_hash);
+        rollbackBlock(primitives::BlockInfo(block.header.number, block_hash));
         return res.as_failure();
       }
     }
@@ -282,7 +282,7 @@ namespace kagome::consensus {
           primitives::BlockInfo(block.header.number, block_hash),
           b.justification.value());
       if (res.has_error()) {
-        rollbackBlock(block_hash);
+        rollbackBlock(primitives::BlockInfo(block.header.number, block_hash));
         return res.as_failure();
       }
     }
@@ -329,13 +329,16 @@ namespace kagome::consensus {
     return outcome::success();
   }
 
-  void BlockExecutorImpl::rollbackBlock(
-      const primitives::BlockHash &block_hash) {
-    auto removal_res = block_tree_->removeLeaf(block_hash);
+  void BlockExecutorImpl::rollbackBlock(const primitives::BlockInfo &block) {
+    // Remove possible authority changes scheduled on block
+    authority_update_observer_->cancel(block);
+
+    // Remove block as leaf of block tree
+    auto removal_res = block_tree_->removeLeaf(block.hash);
     if (removal_res.has_error()) {
       SL_WARN(logger_,
               "Rolling back of block {} is failed: {}",
-              block_hash,
+              block,
               removal_res.error().message());
     }
   }

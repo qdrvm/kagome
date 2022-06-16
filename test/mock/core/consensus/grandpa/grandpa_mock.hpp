@@ -51,7 +51,10 @@ namespace kagome::consensus::grandpa {
                 (const PeerId &peer_id, const CatchUpResponse &),
                 (override));
 
-    MOCK_METHOD(void, executeNextRound, (RoundNumber round_number), (override));
+    MOCK_METHOD(void,
+                executeNextRound,
+                (const std::shared_ptr<VotingRound> &),
+                (override));
 
     MOCK_METHOD(void, updateNextRound, (RoundNumber round_number), (override));
   };

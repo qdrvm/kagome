@@ -103,6 +103,7 @@
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/common/module_repository_impl.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
@@ -326,7 +327,7 @@ namespace {
       return initialized.value();
     }
     auto options = leveldb::Options{};
-    options.max_open_files = 1500; // 1000 was the default value
+    options.max_open_files = 1500;  // 1000 was the default value
     options.create_if_missing = true;
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
@@ -620,20 +621,20 @@ namespace {
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
     auto justification_storage_policy = injector.template create<
         std::shared_ptr<blockchain::JustificationStoragePolicy>>();
-    
-    auto block_tree_res =
-        blockchain::BlockTreeImpl::create(header_repo,
-                                          std::move(storage),
-                                          std::move(extrinsic_observer),
-                                          std::move(hasher),
-                                          chain_events_engine,
-                                          std::move(ext_events_engine),
-                                          std::move(ext_events_key_repo),
-                                          std::move(runtime_core),
-                                          std::move(changes_tracker),
-                                          std::move(babe_configuration),
-                                          std::move(babe_util),
-                                          std::move(justification_storage_policy));
+
+    auto block_tree_res = blockchain::BlockTreeImpl::create(
+        header_repo,
+        std::move(storage),
+        std::move(extrinsic_observer),
+        std::move(hasher),
+        chain_events_engine,
+        std::move(ext_events_engine),
+        std::move(ext_events_key_repo),
+        std::move(runtime_core),
+        std::move(changes_tracker),
+        std::move(babe_configuration),
+        std::move(babe_util),
+        std::move(justification_storage_policy));
 
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());
@@ -756,9 +757,10 @@ namespace {
                   [&injector]() {
                     auto compartment = injector.template create<
                         sptr<runtime::wavm::CompartmentWrapper>>();
+                    runtime::wavm::ModuleParams module_params{};
                     auto module =
                         std::make_unique<runtime::wavm::IntrinsicModule>(
-                            compartment);
+                            compartment, module_params.intrinsicMemoryType);
                     runtime::wavm::registerHostApiMethods(*module);
 
                     return module;
@@ -893,8 +895,8 @@ namespace {
                 std::shared_ptr<blockchain::BlockHeaderRepository>>();
             auto storage = injector.template create<
                 std::shared_ptr<storage::trie::TrieStorage>>();
-            initialized = std::make_shared<runtime::Executor>(
-                std::move(env_factory));
+            initialized =
+                std::make_shared<runtime::Executor>(std::move(env_factory));
           }
           return initialized.value();
         }),

@@ -195,9 +195,9 @@ namespace kagome::consensus::grandpa {
      *
      * Also this method removes old round, so that only 3 rounds in total are
      * stored at any moment
-     * @param round_number
+     * @param round previous round from which new one is created and executed
      */
-    void executeNextRound(RoundNumber round_number) override;
+    void executeNextRound(const std::shared_ptr<VotingRound> &round) override;
 
     /**
      * Selects round next to provided one and updates it by checking if
