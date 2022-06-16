@@ -428,13 +428,10 @@ namespace kagome::offchain {
   std::vector<std::pair<std::string, std::string>>
   HttpRequest::getResponseHeaders() const {
     std::vector<std::pair<std::string, std::string>> result;
+    for (auto &header : response_) {
+      result.emplace_back(std::pair(header.name_string(), header.value()));
+    }
 
-    std::transform(response_.cbegin(),
-                   response_.cend(),
-                   std::back_inserter(result),
-                   [](auto &header) {
-                     return std::pair(header.name_string(), header.value());
-                   });
     return result;
   }
 
