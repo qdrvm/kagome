@@ -25,8 +25,8 @@ set(
 include("cmake/HunterGate.cmake")
 # todo: automatically update along with the kagome settings
 HunterGate(
-    URL  "https://github.com/soramitsu/soramitsu-hunter/archive/v0.23.257-soramitsu25.tar.gz"
-    SHA1 "a97f2223abd902fac1e5e40b48f2da65f6bed032"
+    URL  "https://github.com/soramitsu/soramitsu-hunter/archive/v0.23.257-soramitsu27.tar.gz"
+    SHA1 "20b55e7f0c8b3148c2a926820c37a46a5aad99b5"
     LOCAL
 )
 

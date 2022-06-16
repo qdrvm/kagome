@@ -6,6 +6,7 @@
 #include "application/impl/app_configuration_impl.hpp"
 
 #include <limits>
+#include <regex>
 #include <string>
 
 #include <rapidjson/document.h>
@@ -541,6 +542,35 @@ namespace kagome::application {
 
     // try to parse endpoint uri
     auto uri_part = record.substr(0, len - 2);
+
+    if (not uri_part.empty() and '/' == uri_part.at(0)) {
+      // assume endpoint specified as multiaddress
+      auto ma_res = libp2p::multi::Multiaddress::create(uri_part);
+      if (ma_res.has_error()) {
+        SL_ERROR(logger_,
+                 "Telemetry endpoint '{}' cannot be interpreted as a valid "
+                 "multiaddress and was skipped due to error: {}",
+                 uri_part,
+                 ma_res.error().message());
+        return std::nullopt;
+      }
+
+      {
+        // transform multiaddr of telemetry endpoint into uri form
+        auto parts = ma_res.value().getProtocolsWithValues();
+        if (parts.size() != 3) {
+          SL_ERROR(logger_,
+                   "Telemetry endpoint '{}' has unknown format and was skipped",
+                   uri_part);
+          return std::nullopt;
+        }
+        auto host = parts[0].second;
+        auto schema = parts[2].first.name.substr(std::strlen("x-parity-"));
+        auto path = std::regex_replace(parts[2].second, std::regex("%2F"), "/");
+        uri_part = fmt::format("{}://{}{}", schema, host, path);
+      }
+    }
+
     auto uri = common::Uri::parse(uri_part);
     if (uri.error().has_value()) {
       SL_ERROR(logger_,
