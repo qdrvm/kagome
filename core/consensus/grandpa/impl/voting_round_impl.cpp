@@ -1079,7 +1079,7 @@ namespace kagome::consensus::grandpa {
           [grandpa_wp = std::move(grandpa_), round_wp = weak_from_this()] {
             if (auto grandpa = grandpa_wp.lock()) {
               if (auto round = round_wp.lock()) {
-                grandpa->executeNextRound(round);
+                grandpa->tryExecuteNextRound(round);
               }
             }
           });
