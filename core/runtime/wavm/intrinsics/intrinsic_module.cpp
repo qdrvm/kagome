@@ -4,4 +4,3 @@
  */
 
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
-

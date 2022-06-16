@@ -46,7 +46,7 @@ namespace kagome::primitives {
      * with the same
      */
     template <typename T>
-    outcome::result<void> putData(InherentIdentifier identifier, T inherent) {
+    outcome::result<void> putData(InherentIdentifier identifier, const T& inherent) {
       if (data.try_emplace(identifier,
                            common::Buffer(scale::encode(inherent).value()))
               .second) {
@@ -60,7 +60,7 @@ namespace kagome::primitives {
      * @arg inherent encoded data to be stored
      */
     template <typename T>
-    void replaceData(InherentIdentifier identifier, T inherent) {
+    void replaceData(InherentIdentifier identifier, const T& inherent) {
       data[identifier] = common::Buffer(scale::encode(inherent).value());
     }
 

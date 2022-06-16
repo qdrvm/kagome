@@ -45,7 +45,7 @@ namespace kagome::host_api {
      * @return a boolean equal to true if the node is a validator, false if
      * otherwise
      */
-    runtime::WasmI8 ext_offchain_is_validator_version_1();
+    runtime::WasmI32 ext_offchain_is_validator_version_1();
 
     /**
      * @brief Given a SCALE encoded extrinsic, this function submits the
@@ -164,7 +164,7 @@ namespace kagome::host_api {
      * @return a boolean equal to true if the new value has been set, false if
      * otherwise
      */
-    runtime::WasmI8 ext_offchain_local_storage_compare_and_set_version_1(
+    runtime::WasmI32 ext_offchain_local_storage_compare_and_set_version_1(
         runtime::WasmI32 kind,
         runtime::WasmSpan key,
         runtime::WasmSpan expected,

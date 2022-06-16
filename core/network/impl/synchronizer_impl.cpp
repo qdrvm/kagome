@@ -319,7 +319,7 @@ namespace kagome::network {
     auto request_fingerprint = request.fingerprint();
 
     if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
-      SL_ERROR(
+      SL_VERBOSE(
           log_,
           "Can't check if block #{} in #{}..#{} is common with {}: {}",
           hint,
@@ -355,13 +355,13 @@ namespace kagome::network {
 
       // Any error interrupts finding common block
       if (response_res.has_error()) {
-        SL_ERROR(self->log_,
-                 "Can't check if block #{} in #{}..#{} is common with {}: {}",
-                 target,
-                 lower,
-                 upper - 1,
-                 peer_id,
-                 response_res.error().message());
+        SL_VERBOSE(self->log_,
+                   "Can't check if block #{} in #{}..#{} is common with {}: {}",
+                   target,
+                   lower,
+                   upper - 1,
+                   peer_id,
+                   response_res.error().message());
         handler(response_res.as_failure());
         return;
       }
@@ -371,13 +371,13 @@ namespace kagome::network {
       // existed because finding in interval of numbers of blocks that must
       // exist
       if (blocks.empty()) {
-        SL_ERROR(self->log_,
-                 "Can't check if block #{} in #{}..#{} is common with {}: "
-                 "Response does not have any blocks",
-                 target,
-                 lower,
-                 upper - 1,
-                 peer_id);
+        SL_VERBOSE(self->log_,
+                   "Can't check if block #{} in #{}..#{} is common with {}: "
+                   "Response does not have any blocks",
+                   target,
+                   lower,
+                   upper - 1,
+                   peer_id);
         handler(Error::EMPTY_RESPONSE);
         return;
       }

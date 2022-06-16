@@ -13,6 +13,7 @@
 #include "common/buffer.hpp"
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/babe/impl/parachains_inherent_data.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
@@ -642,25 +643,44 @@ namespace kagome::consensus::babe {
                current_slot_,
                current_epoch_.epoch_number);
 
+    SL_INFO(log_, "Babe builds block on top of block {}", best_block_);
+
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
                    clock_->now().time_since_epoch())
                    .count();
-    // identifiers are guaranteed to be correct, so use .value() directly
-    auto put_res = inherent_data.putData<uint64_t>(kTimestampId, now);
-    if (!put_res) {
-      SL_ERROR(
-          log_, "cannot put an inherent data: {}", put_res.error().message());
-      return;
-    }
-    put_res = inherent_data.putData(kBabeSlotId, current_slot_);
-    if (!put_res) {
-      SL_ERROR(
-          log_, "cannot put an inherent data: {}", put_res.error().message());
+
+    if (auto res = inherent_data.putData<uint64_t>(kTimestampId, now);
+        res.has_error()) {
+      SL_ERROR(log_, "cannot put an inherent data: {}", res.error().message());
       return;
     }
 
-    SL_INFO(log_, "Babe builds block on top of block {}", best_block_);
+    if (auto res = inherent_data.putData(kBabeSlotId, current_slot_);
+        res.has_error()) {
+      SL_ERROR(log_, "cannot put an inherent data: {}", res);
+      return;
+    }
+
+    ParachainInherentData paras_inherent_data;
+
+    // TODO: research of filling of bitfield, backed candidates, disputes
+    //  issue https://github.com/soramitsu/kagome/issues/1209
+
+    {
+      auto best_block_header_res =
+          block_tree_->getBlockHeader(best_block_.hash);
+      BOOST_ASSERT_MSG(best_block_header_res.has_value(),
+                       "The best block is always known");
+      paras_inherent_data.parent_header =
+          std::move(best_block_header_res.value());
+    }
+
+    if (auto res = inherent_data.putData(kParachainId, paras_inherent_data);
+        res.has_error()) {
+      SL_ERROR(log_, "cannot put an inherent data: {}", res);
+      return;
+    }
 
     auto proposal_start = std::chrono::high_resolution_clock::now();
     // calculate babe_pre_digest

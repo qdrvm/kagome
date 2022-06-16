@@ -117,7 +117,7 @@ TEST_F(ParachainHostTest, DISABLED_AvailabilityCoresTest) {
  */
 TEST_F(ParachainHostTest, DISABLED_PersistedValidationDataTest) {
   auto id = createParachainId();
-  kagome::runtime::OccupiedCoreAssumption assumption;
+  kagome::runtime::OccupiedCoreAssumption assumption{};
   ASSERT_TRUE(
       api_->persisted_validation_data("block_hash"_hash256, id, assumption));
 }
@@ -150,7 +150,7 @@ TEST_F(ParachainHostTest, DISABLED_SessionIndexForChildTest) {
  */
 TEST_F(ParachainHostTest, DISABLED_ValidationCodeTest) {
   auto id = createParachainId();
-  kagome::runtime::OccupiedCoreAssumption assumption;
+  kagome::runtime::OccupiedCoreAssumption assumption{};
   ASSERT_TRUE(api_->validation_code("block_hash"_hash256, id, assumption));
 }
 
@@ -189,7 +189,7 @@ TEST_F(ParachainHostTest, DISABLED_CandidateEventsTest) {
  * @then successful result is returned
  */
 TEST_F(ParachainHostTest, DISABLED_SessionInfoTest) {
-  kagome::runtime::SessionIndex index;
+  kagome::runtime::SessionIndex index{};
   ASSERT_TRUE(api_->session_info("block_hash"_hash256, index));
 }
 

@@ -24,6 +24,7 @@
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
 #include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
@@ -36,6 +37,7 @@
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 #include "runtime/common/module_repository_impl.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/core_api_factory.hpp"
@@ -46,7 +48,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
-#include "mock/core/blockchain/block_storage_mock.hpp"
 
 using testing::_;
 using testing::Return;
@@ -148,6 +149,7 @@ class RuntimeTestBase : public ::testing::Test {
             .value();
 
     auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(
+        std::make_shared<runtime::RuntimeInstancesPool>(),
         upgrade_tracker,
         module_factory,
         std::make_shared<runtime::SingleModuleCache>());
@@ -155,8 +157,7 @@ class RuntimeTestBase : public ::testing::Test {
     runtime_env_factory_ = std::make_shared<runtime::RuntimeEnvironmentFactory>(
         std::move(wasm_provider_), std::move(module_repo), header_repo_);
 
-    executor_ =
-        std::make_shared<runtime::Executor>(header_repo_, runtime_env_factory_);
+    executor_ = std::make_shared<runtime::Executor>(runtime_env_factory_);
   }
 
   void preparePersistentStorageExpects() {

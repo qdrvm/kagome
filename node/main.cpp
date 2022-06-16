@@ -18,10 +18,12 @@
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
-int main(int argc, char **argv) {
+int main(int argc, const char **argv) {
   backward::SignalHandling sh;
 
   {
+    soralog::util::setThreadName("kagome");
+
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
             std::make_shared<libp2p::log::Configurator>()));

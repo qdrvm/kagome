@@ -23,6 +23,12 @@ namespace kagome::crypto {
     return make_twox64(buffer);
   }
 
+  Hash64 HasherImpl::blake2b_64(gsl::span<const uint8_t> buffer) const {
+    Hash64 out;
+    blake2b(out.data(), out.size(), nullptr, 0, buffer.data(), buffer.size());
+    return out;
+  }
+
   Hash128 HasherImpl::twox_128(gsl::span<const uint8_t> buffer) const {
     return make_twox128(buffer);
   }

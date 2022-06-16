@@ -3,9 +3,53 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// Enables binaryen debug mode: every executed WASM instruction is printed out using Indenter (defined below)
+// It is a massive amount of information, so it should be turned on only for specific cases when we need to
+// follow web assembly execution very precisely.
+// #define WASM_INTERPRETER_DEBUG
+
 #include "runtime/binaryen/module/module_instance_impl.hpp"
 
+#include "runtime/memory_provider.hpp"
+#include "runtime/binaryen/memory_impl.hpp"
+
 #include <binaryen/wasm-interpreter.h>
+
+#ifdef WASM_INTERPRETER_DEBUG
+
+namespace wasm {
+
+  // Indenter is declared in binaryen headers, but the following members are defined
+  // in its source files and only if WASM_INTERPRETER_DEBUG macro definition is set, 
+  // which it isn't at the time of binaryen compilation. 
+  // Therefore, to be able to use binaryen's debug mode we have to define indenter 
+  // implementation ourselves. This design is unclear to me, but it does work. 
+  int Indenter::indentLevel = 0;
+
+  std::vector<std::string> indents = [](){
+    std::vector<std::string> indents;
+    for (size_t i = 0; i < 512; i++) {
+      indents.push_back(std::string(i, '-'));
+    }
+    return indents;
+  }();
+
+  Indenter::Indenter(const char *entry) : entryName(entry) {
+    ++indentLevel;
+  }
+
+  Indenter::~Indenter() {
+    print();
+    std::cout << "exit " << entryName << '\n';
+    --indentLevel;
+  }
+
+  void Indenter::print() {
+    std::cout << indentLevel << ':' << indents[indentLevel];
+  }
+}  // namespace wasm
+#endif
+
 #include <binaryen/wasm.h>
 
 #include "host_api/host_api.hpp"
@@ -44,14 +88,20 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
-      std::string_view name, PtrSize args) const {
+      std::string_view name, common::BufferView encoded_args) const {
+    auto memory = env_.memory_provider->getCurrentMemory().value();
+
+    PtrSize args{memory.get().storeBuffer(encoded_args)};
+
     const auto args_list =
         wasm::LiteralList{wasm::Literal{args.ptr}, wasm::Literal{args.size}};
     try {
       const auto res = static_cast<uint64_t>(
           module_instance_->callExport(wasm::Name{name.data()}, args_list)
               .geti64());
+
       return PtrSize{res};
+
     } catch (wasm::ExitException &e) {
       return Error::UNEXPECTED_EXIT;
     } catch (wasm::TrapException &e) {
@@ -73,7 +123,7 @@ namespace kagome::runtime::binaryen {
         case wasm::Type::f64:
           return WasmValue{val.geti64()};
         default:
-          logger_->debug(
+          logger_->error(
               "Runtime function returned result of unsupported type: {}",
               wasm::printType(val.type));
           return std::nullopt;
@@ -90,6 +140,31 @@ namespace kagome::runtime::binaryen {
   outcome::result<void> ModuleInstanceImpl::resetEnvironment() {
     env_.host_api->reset();
     return outcome::success();
+  }
+
+  void ModuleInstanceImpl::forDataSegment(
+      DataSegmentProcessor const &callback) const {
+    for (auto &segment : parent_->memory.segments) {
+      wasm::Address offset =
+          (uint32_t)wasm::ConstantExpressionRunner<wasm::TrivialGlobalManager>(
+              module_instance_->globals)
+              .visit(segment.offset)
+              .value.geti32();
+      if (offset + segment.data.size()
+          > parent_->memory.initial * wasm::Memory::kPageSize) {
+        throw std::runtime_error("invalid offset when initializing memory");
+      }
+      callback(offset,
+               gsl::span<const uint8_t>(
+                   reinterpret_cast<const uint8_t *>(segment.data.data()),
+                   segment.data.size()));
+    }
+  }
+  void ModuleInstanceImpl::borrow(
+      BorrowedInstance::PoolReleaseFunction release) {
+    // Releaser for OCWs - doesn't need a valid pointer
+    static thread_local ModuleInstance::BorrowedInstance pool_release_token{
+        nullptr, release};
   }
 
 }  // namespace kagome::runtime::binaryen

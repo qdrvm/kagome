@@ -261,6 +261,8 @@ namespace kagome::common {
     Buffer &putRange(const T &begin, const T &end);
   };
 
+  static const Buffer kEmptyBuffer{};
+
   using BufferMutRef = std::reference_wrapper<Buffer>;
   using BufferConstRef = std::reference_wrapper<const Buffer>;
 
@@ -328,14 +330,12 @@ namespace kagome::common {
 
 }  // namespace kagome::common
 
-namespace std {
-  template <>
-  struct hash<kagome::common::Buffer> {
-    size_t operator()(const kagome::common::Buffer &x) const {
-      return boost::hash_range(x.begin(), x.end());
-    }
-  };
-}  // namespace std
+template <>
+struct std::hash<kagome::common::Buffer> {
+  size_t operator()(const kagome::common::Buffer &x) const {
+    return boost::hash_range(x.begin(), x.end());
+  }
+};
 
 template <>
 struct fmt::formatter<kagome::common::Buffer> {

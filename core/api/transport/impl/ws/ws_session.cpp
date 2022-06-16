@@ -23,11 +23,12 @@ namespace kagome::api {
     boost::asio::dispatch(stream_.get_executor(),
                           boost::beast::bind_front_handler(&WsSession::onRun,
                                                            shared_from_this()));
-    SL_TRACE(logger_, "Session id = {} started", id_);
+    SL_DEBUG(logger_, "Session#{} BEGIN", id_);
   }
 
   void WsSession::reject() {
     stop(boost::beast::websocket::close_code::try_again_later);
+    SL_DEBUG(logger_, "Session#{} END", id_);
   }
 
   void WsSession::stop() {
@@ -61,6 +62,7 @@ namespace kagome::api {
   }
 
   void WsSession::handleRequest(std::string_view data) {
+    SL_DEBUG(logger_, "Session#{} IN:  {}", id_, data);
     processRequest(data, shared_from_this());
   }
 
@@ -75,6 +77,7 @@ namespace kagome::api {
   }
 
   void WsSession::respond(std::string_view response) {
+    SL_DEBUG(logger_, "Session#{} OUT: {}", id_, response);
     pending_responses_.emplace(response);
     asyncWrite();
   }

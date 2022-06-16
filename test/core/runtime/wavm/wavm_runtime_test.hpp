@@ -16,6 +16,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
+#include "runtime/wavm/module_params.hpp"
 #include "runtime/wavm/wavm_external_memory_provider.hpp"
 
 class WavmRuntimeTest : public RuntimeTestBase {
@@ -25,8 +26,11 @@ class WavmRuntimeTest : public RuntimeTestBase {
     auto compartment =
         std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
             "Test Compartment");
+    auto module_params =
+        std::make_shared<kagome::runtime::wavm::ModuleParams>();
     auto intrinsic_module =
-        std::make_shared<kagome::runtime::wavm::IntrinsicModule>(compartment);
+        std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
+            compartment, module_params->intrinsicMemoryType);
     kagome::runtime::wavm::registerHostApiMethods(*intrinsic_module);
     std::shared_ptr<kagome::runtime::wavm::IntrinsicModuleInstance>
         intrinsic_module_instance = intrinsic_module->instantiate();
@@ -40,6 +44,7 @@ class WavmRuntimeTest : public RuntimeTestBase {
             trie_storage_,
             serializer_,
             compartment,
+            module_params,
             intrinsic_module,
             host_api_factory_,
             header_repo_,
@@ -48,7 +53,7 @@ class WavmRuntimeTest : public RuntimeTestBase {
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
-            compartment, instance_env_factory, intrinsic_module);
+            compartment, module_params, instance_env_factory, intrinsic_module);
 
     return module_factory;
   }

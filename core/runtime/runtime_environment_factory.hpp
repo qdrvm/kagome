@@ -27,11 +27,13 @@ namespace kagome::runtime {
     RuntimeEnvironment(
         std::shared_ptr<ModuleInstance> module_instance,
         std::shared_ptr<const MemoryProvider> memory_provider,
-        std::shared_ptr<TrieStorageProvider> storage_provider);
+        std::shared_ptr<TrieStorageProvider> storage_provider,
+        primitives::BlockInfo blockchain_state);
 
     const std::shared_ptr<ModuleInstance> module_instance;
     const std::shared_ptr<const MemoryProvider> memory_provider;
     const std::shared_ptr<TrieStorageProvider> storage_provider;
+    primitives::BlockInfo blockchain_state_;
   };
 
   class RuntimeEnvironmentFactory

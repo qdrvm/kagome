@@ -56,13 +56,19 @@ namespace kagome::blockchain {
     outcome::result<void> putBlockData(
         primitives::BlockNumber block_number,
         const primitives::BlockData &block_data) override;
+    outcome::result<void> removeBlockData(
+        primitives::BlockNumber block_number,
+        const primitives::BlockDataFlags &remove_flags) override;
     outcome::result<primitives::BlockHash> putBlock(
         const primitives::Block &block) override;
 
     outcome::result<void> putJustification(
         const primitives::Justification &j,
         const primitives::BlockHash &hash,
-        const primitives::BlockNumber &number) override;
+        primitives::BlockNumber number) override;
+    outcome::result<void> removeJustification(
+        const primitives::BlockHash &hash,
+        primitives::BlockNumber number) override;
 
     outcome::result<void> removeBlock(
         const primitives::BlockInfo &block) override;

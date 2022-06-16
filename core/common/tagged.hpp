@@ -9,12 +9,14 @@
 #include <type_traits>
 #include <utility>
 
+#include <scale/scale.hpp>
+
 namespace kagome {
 
   template <typename T, typename = std::enable_if<std::is_scalar_v<T>>>
   struct Wrapper {
     template <typename... Args>
-    explicit Wrapper(Args &&...args) : value(std::forward<T>(args)...) {}
+    Wrapper(Args &&...args) : value(std::forward<T>(args)...) {}
 
    protected:
     T value;
@@ -24,12 +26,25 @@ namespace kagome {
             typename Tag,
             typename Base =
                 std::conditional_t<std::is_scalar_v<T>, Wrapper<T>, T>>
-  class Tagged final : public Base {
+  class Tagged : public Base {
    public:
     typedef Tag tag;
 
     template <typename... Args>
-    Tagged(Args &&...args) : Base(std::forward<Args>(args)...) {}
+    explicit Tagged(Args &&...args) : Base(std::forward<Args>(args)...) {}
+
+    Tagged(T &&value) noexcept(not std::is_lvalue_reference_v<decltype(value)>)
+        : Base(std::forward<T>(value)) {}
+
+    Tagged &operator=(T &&value) noexcept(
+        not std::is_lvalue_reference_v<decltype(value)>) {
+      if constexpr (std::is_scalar_v<T>) {
+        this->Wrapper<T>::value = std::forward<T>(value);
+      } else {
+        static_cast<Base &>(*this) = std::forward<T>(value);
+      }
+      return *this;
+    }
 
     template <typename Out>
     explicit operator Out() {
@@ -39,23 +54,26 @@ namespace kagome {
         return *this;
       }
     }
+
+   private:
+    friend inline ::scale::ScaleEncoderStream &operator<<(
+        ::scale::ScaleEncoderStream &s, const Tagged<T, Tag> &tagged) {
+      if constexpr (std::is_scalar_v<T>) {
+        return s << tagged.Wrapper<T>::value;
+      } else {
+        return s << static_cast<const T &>(tagged);
+      }
+    }
+
+    friend inline ::scale::ScaleDecoderStream &operator>>(
+        ::scale::ScaleDecoderStream &s, Tagged<T, Tag> &tagged) {
+      if constexpr (std::is_scalar_v<T>) {
+        return s >> tagged.Wrapper<T>::value;
+      } else {
+        return s >> static_cast<T &>(tagged);
+      }
+    }
   };
-
-  template <class Stream,
-            typename T,
-            typename Tag,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Tagged<T, Tag> &tagged) {
-    return s << (const T &)tagged;
-  }
-
-  template <class Stream,
-            typename T,
-            typename Tag,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, Tagged<T, Tag> &tagged) {
-    return s >> (T &)tagged;
-  }
 
 }  // namespace kagome
 

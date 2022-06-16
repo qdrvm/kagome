@@ -18,6 +18,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_instance.hpp"
+#include "runtime/wavm/module_params.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -25,12 +26,14 @@ namespace kagome::runtime::wavm {
    public:
     OneModuleRepository(
         std::shared_ptr<CompartmentWrapper> compartment,
-        std::shared_ptr<const IntrinsicModule> intrinsic_module,
+        std::shared_ptr<ModuleParams> module_params,
+        std::shared_ptr<IntrinsicModule> intrinsic_module,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
         gsl::span<const uint8_t> code,
         std::shared_ptr<SingleModuleCache> last_compiled_module)
         : instance_env_factory_{std::move(instance_env_factory)},
           compartment_{compartment},
+          module_params_{std::move(module_params)},
           intrinsic_module_{std::move(intrinsic_module)},
           code_{code},
           last_compiled_module_{last_compiled_module} {
@@ -45,8 +48,11 @@ namespace kagome::runtime::wavm {
         const primitives::BlockInfo &,
         const primitives::BlockHeader &) override {
       if (instance_ == nullptr) {
-        auto module = ModuleImpl::compileFrom(
-            compartment_, intrinsic_module_, instance_env_factory_, code_);
+        auto module = ModuleImpl::compileFrom(compartment_,
+                                              *module_params_,
+                                              intrinsic_module_,
+                                              instance_env_factory_,
+                                              code_);
         OUTCOME_TRY(inst, module->instantiate());
         last_compiled_module_->set(std::move(module));
         instance_ = std::move(inst);
@@ -58,7 +64,8 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<runtime::ModuleInstance> instance_;
     std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
     std::shared_ptr<CompartmentWrapper> compartment_;
-    std::shared_ptr<const IntrinsicModule> intrinsic_module_;
+    std::shared_ptr<ModuleParams> module_params_;
+    std::shared_ptr<IntrinsicModule> intrinsic_module_;
     gsl::span<const uint8_t> code_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
   };
@@ -78,7 +85,8 @@ namespace kagome::runtime::wavm {
 
   CoreApiFactoryImpl::CoreApiFactoryImpl(
       std::shared_ptr<CompartmentWrapper> compartment,
-      std::shared_ptr<const IntrinsicModule> intrinsic_module,
+      std::shared_ptr<ModuleParams> module_params,
+      std::shared_ptr<IntrinsicModule> intrinsic_module,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
@@ -86,12 +94,14 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<SingleModuleCache> last_compiled_module)
       : instance_env_factory_{std::move(instance_env_factory)},
         compartment_{compartment},
+        module_params_{std::move(module_params)},
         intrinsic_module_{std::move(intrinsic_module)},
         storage_{std::move(storage)},
         block_header_repo_{std::move(block_header_repo)},
         changes_tracker_{std::move(changes_tracker)},
         last_compiled_module_{last_compiled_module} {
     BOOST_ASSERT(compartment_);
+    BOOST_ASSERT(module_params_);
     BOOST_ASSERT(intrinsic_module_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(block_header_repo_);
@@ -107,6 +117,7 @@ namespace kagome::runtime::wavm {
         std::make_shared<OneCodeProvider>(runtime_code),
         std::make_shared<OneModuleRepository>(
             compartment_,
+            module_params_,
             intrinsic_module_,
             instance_env_factory_,
             gsl::span<const uint8_t>{
@@ -115,8 +126,7 @@ namespace kagome::runtime::wavm {
                     runtime_code.size())},
             last_compiled_module_),
         block_header_repo_);
-    auto executor =
-        std::make_unique<runtime::Executor>(block_header_repo_, env_factory);
+    auto executor = std::make_unique<runtime::Executor>(env_factory);
     return std::make_unique<CoreImpl>(
         std::move(executor), changes_tracker_, block_header_repo_);
   }
