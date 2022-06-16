@@ -313,7 +313,7 @@ namespace kagome::consensus::babe {
     synchronizer_->syncByBlockHeader(
         announce.header,
         peer_id,
-        [wp = weak_from_this(), announce](
+        [wp = weak_from_this(), announce = announce](
             outcome::result<primitives::BlockInfo> block_res) mutable {
           if (auto self = wp.lock()) {
             if (block_res.has_error()) {
