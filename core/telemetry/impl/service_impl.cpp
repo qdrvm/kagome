@@ -5,6 +5,10 @@
 
 #include "telemetry/impl/service_impl.hpp"
 
+#include <regex>
+
+#include <fmt/core.h>
+
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
   typedef ::std::size_t SizeType;
@@ -17,6 +21,7 @@ namespace rapidjson {
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <libp2p/multi/multiaddress.hpp>
 #include "common/uri.hpp"
 #include "telemetry/impl/connection_impl.hpp"
 
@@ -124,17 +129,48 @@ namespace kagome::telemetry {
     endpoints.reserve(from_spec.size());
     for (const auto &endpoint : from_spec) {
       // unfortunately, cannot use structured binding due to clang limitations
-      auto &uri_candidate = endpoint.first;
-      auto &verbosity = endpoint.second;
+      auto uri_candidate = endpoint.first;
+
+      if (not uri_candidate.empty() and '/' == uri_candidate.at(0)) {
+        // assume endpoint specified as multiaddress
+        auto ma_res = libp2p::multi::Multiaddress::create(uri_candidate);
+        if (ma_res.has_error()) {
+          SL_WARN(log_,
+                  "Telemetry endpoint '{}' cannot be interpreted as a valid "
+                  "multiaddress and was skipped due to error: {}",
+                  uri_candidate,
+                  ma_res.error().message());
+          continue;
+        }
+
+        {
+          // transform multiaddr of telemetry endpoint into uri form
+          auto parts = ma_res.value().getProtocolsWithValues();
+          if (parts.size() != 3) {
+            SL_WARN(
+                log_,
+                "Telemetry endpoint '{}' has unknown format and was skipped",
+                uri_candidate);
+            continue;
+          }
+          auto host = parts[0].second;
+          auto schema = parts[2].first.name.substr(std::strlen("x-parity-"));
+          auto path =
+              std::regex_replace(parts[2].second, std::regex("%2F"), "/");
+          uri_candidate = fmt::format("{}://{}{}", schema, host, path);
+        }
+      }
       auto parsed_uri = common::Uri::parse(uri_candidate);
       if (parsed_uri.error().has_value()) {
         SL_WARN(log_,
                 "Telemetry endpoint '{}' cannot be interpreted as a valid URI "
-                "and was skipped: {}",
+                "and was skipped due to error: {}",
                 uri_candidate,
                 parsed_uri.error().value());
         continue;
       }
+
+      auto &verbosity = endpoint.second;
       if (verbosity > 9) {
         SL_WARN(log_,
                 "Telemetry endpoint '{}' is not valid, its verbosity level is "
