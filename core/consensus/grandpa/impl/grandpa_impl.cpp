@@ -122,7 +122,7 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    GrandpaImpl::executeNextRound(current_round_);
+    GrandpaImpl::tryExecuteNextRound(current_round_);
 
     return true;
   }
@@ -278,7 +278,7 @@ namespace kagome::consensus::grandpa {
     return round_state;
   }
 
-  void GrandpaImpl::executeNextRound(
+  void GrandpaImpl::tryExecuteNextRound(
       const std::shared_ptr<VotingRound> &prev_round) {
     if (current_round_ != prev_round) {
       return;
@@ -531,7 +531,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    executeNextRound(current_round_);
+    tryExecuteNextRound(current_round_);
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
@@ -831,7 +831,7 @@ namespace kagome::consensus::grandpa {
       current_round_ = std::move(round);
     }
 
-    executeNextRound(current_round_);
+    tryExecuteNextRound(current_round_);
 
     // if round == current round, then execution of the next round will be
     // elsewhere

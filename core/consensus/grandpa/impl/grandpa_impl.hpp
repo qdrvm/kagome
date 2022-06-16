@@ -197,7 +197,7 @@ namespace kagome::consensus::grandpa {
      * stored at any moment
      * @param round previous round from which new one is created and executed
      */
-    void executeNextRound(const std::shared_ptr<VotingRound> &round) override;
+    void tryExecuteNextRound(const std::shared_ptr<VotingRound> &round) override;
 
     /**
      * Selects round next to provided one and updates it by checking if

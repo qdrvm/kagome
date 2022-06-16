@@ -27,7 +27,7 @@ namespace kagome::consensus::grandpa {
      *
      * @param prev_round - round for which tries to execute the next one
      */
-    virtual void executeNextRound(
+    virtual void tryExecuteNextRound(
         const std::shared_ptr<VotingRound> &prev_round) = 0;
 
     /**
