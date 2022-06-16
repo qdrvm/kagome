@@ -78,14 +78,15 @@ namespace kagome::consensus::grandpa {
                 std::shared_ptr<blockchain::BlockTree> block_tree);
 
     /**
-     * Sets justification observer handler.
-     * @return true if justification observer handler is set
+     * Prepares for grandpa round execution: e.g. sets justification observer
+     * handler.
+     * @return true preparation was done with no issues
      * @see kagome::application::AppStateManager::takeControl()
      */
     bool prepare();
 
     /**
-     * Initiates grandpa voting process:
+     * Initiates grandpa voting process e.g.:
      *  - Obtains latest completed round state represented by MovableRoundState
      *  - Obtains authority set corresponding to the latest completed round
      *  - Uses obtained data to create and execute initial round
@@ -197,7 +198,8 @@ namespace kagome::consensus::grandpa {
      * stored at any moment
      * @param round previous round from which new one is created and executed
      */
-    void tryExecuteNextRound(const std::shared_ptr<VotingRound> &round) override;
+    void tryExecuteNextRound(
+        const std::shared_ptr<VotingRound> &round) override;
 
     /**
      * Selects round next to provided one and updates it by checking if
@@ -212,8 +214,8 @@ namespace kagome::consensus::grandpa {
      * Selects round by provided number and voter set id
      * @param round_number number of round to be selected
      * @param voter_set_id  id of voter set for corresponding round
-     * @return optional<shared_ptr> containing the round if we have one and nullopt
-     * otherwise
+     * @return optional<shared_ptr> containing the round if we have one and
+     * nullopt otherwise
      */
     std::optional<std::shared_ptr<VotingRound>> selectRound(
         RoundNumber round_number,
