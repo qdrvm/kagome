@@ -824,6 +824,7 @@ namespace kagome::consensus::grandpa {
               round_number_,
               total_weight,
               threshold);
+      return VotingRoundError::NOT_ENOUGH_WEIGHT;
     }
 
     return outcome::success();
