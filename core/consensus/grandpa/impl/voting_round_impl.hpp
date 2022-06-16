@@ -274,15 +274,19 @@ namespace kagome::consensus::grandpa {
      * Prepare precommit justifications for provided estimate using provided
      * votes
      * @param precommits precommits that we need to prepare justification for
-     * @param votes votes that correspond to provided preommits
+     * @param votes votes that correspond to provided precommits
      * @return signed precommits obtained from estimate and votes
      */
     std::vector<SignedPrecommit> getPrecommitJustification(
         const BlockInfo &precommits,
         const std::vector<VoteVariant> &votes) const;
 
-    /// Check if received \param vote has valid \param justification precommit
-
+    /**
+     * Checks if received vote has valid justification precommit
+     * @param vote - block for which justification is provided
+     * @param justification - justification provided for checking
+     * @return success of error
+     */
     outcome::result<void> validatePrecommitJustification(
         const BlockInfo &vote, const GrandpaJustification &justification) const;
 

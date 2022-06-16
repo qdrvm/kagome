@@ -814,8 +814,7 @@ namespace kagome::consensus::grandpa {
         }
       }
 
-      round =
-          makeInitialRound(round_state, std::move(voters));
+      round = makeInitialRound(round_state, std::move(voters));
       need_to_make_round_current = true;
       BOOST_ASSERT(round);
 
