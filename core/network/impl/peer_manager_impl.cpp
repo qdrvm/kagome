@@ -104,7 +104,7 @@ namespace kagome::network {
                            "rating {}",
                            peer_id.toBase58(),
                            rating);
-                  self->disconnectFromPeer(peer_id);
+                  // self->disconnectFromPeer(peer_id);
                   return;
                 }
                 self->processDiscoveredPeer(peer_id);
@@ -124,7 +124,7 @@ namespace kagome::network {
                   "Disconnecting from peer_id={} due to its negative rating {}",
                   peer_id.toBase58(),
                   rating);
-              self->disconnectFromPeer(peer_id);
+              // self->disconnectFromPeer(peer_id);
               return;
             }
             self->processFullyConnectedPeer(peer_id);
@@ -217,7 +217,7 @@ namespace kagome::network {
       SL_DEBUG(log_,
                "Disconnecting from peer_id={} due to its negative rating",
                peer_id.toBase58());
-      disconnectFromPeer(peer_id);
+      // disconnectFromPeer(peer_id);
     }
 
     std::optional<PeerId> disconnected_peer;
@@ -393,7 +393,7 @@ namespace kagome::network {
     }
     if (peer_id != own_peer_info_.id) {
       peer_states_.erase(peer_id);
-      host_.disconnect(peer_id);
+      // host_.disconnect(peer_id);
     }
   }
 

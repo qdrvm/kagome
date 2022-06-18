@@ -18,6 +18,7 @@
 #include "consensus/babe/block_executor.hpp"
 #include "metrics/metrics.hpp"
 #include "network/router.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
@@ -28,6 +29,10 @@ namespace kagome::storage::trie {
   class TrieSerializer;
   class TrieStorage;
 }  // namespace kagome::storage::trie
+
+namespace kagome::storage::changes_trie {
+  class ChangesTracker;
+}
 
 namespace kagome::network {
 
@@ -67,6 +72,7 @@ namespace kagome::network {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<consensus::BlockAppender> block_appender,
         std::shared_ptr<consensus::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -127,6 +133,8 @@ namespace kagome::network {
     size_t discardBlock(const primitives::BlockHash &block);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<storage::changes_trie::ChangesTracker>
+        trie_changes_tracker_;
     std::shared_ptr<consensus::BlockAppender> block_appender_;
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;

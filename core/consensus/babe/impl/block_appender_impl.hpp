@@ -53,6 +53,8 @@ namespace kagome::consensus {
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
 
+    std::map<primitives::BlockInfo, primitives::Justification> justifications_;
+
     log::Logger logger_;
   };
 
