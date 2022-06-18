@@ -12,6 +12,7 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/slot.hpp"
+#include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
 #include "scale/scale.hpp"
@@ -95,7 +96,8 @@ namespace kagome::consensus {
 
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
       block_already_exists = true;
-    } else if (header_res.error() != blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+    } else if (header_res.error()
+               != blockchain::BlockTreeError::HEADER_NOT_FOUND) {
       return header_res.as_failure();
     }
 
@@ -186,12 +188,33 @@ namespace kagome::consensus {
       SL_VERBOSE(logger_,
                  "Justification received for block {}",
                  primitives::BlockInfo(block.header.number, block_hash));
+      if (not justifications_.empty()) {
+        std::vector<primitives::BlockInfo> to_remove;
+        for (const auto &[block_info, justification] : justifications_) {
+          auto res = grandpa_environment_->applyJustification(block_info,
+                                                              justification);
+          if (res) {
+            to_remove.push_back(block_info);
+          }
+        }
+        if (not to_remove.empty()) {
+          for (const auto &item : to_remove) {
+            justifications_.erase(item);
+          }
+        }
+      }
       auto res = grandpa_environment_->applyJustification(
           primitives::BlockInfo(block.header.number, block_hash),
           b.justification.value());
       if (res.has_error()) {
-        rollbackBlock(block_hash);
-        return res.as_failure();
+        if (res.error() == grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT) {
+          justifications_.emplace(
+              primitives::BlockInfo(block.header.number, block_hash),
+              b.justification.value());
+        } else {
+          rollbackBlock(block_hash);
+          return res.as_failure();
+        }
       }
     }
 
@@ -217,4 +240,4 @@ namespace kagome::consensus {
     }
   }
 
-  }  // namespace kagome::consensus
+}  // namespace kagome::consensus

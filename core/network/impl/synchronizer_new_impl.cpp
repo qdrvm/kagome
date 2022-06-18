@@ -12,6 +12,7 @@
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -69,6 +70,7 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<consensus::BlockAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -77,6 +79,7 @@ namespace kagome::network {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher)
       : block_tree_(std::move(block_tree)),
+        trie_changes_tracker_(std::move(changes_tracker)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
         serializer_(std::move(serializer)),
@@ -85,6 +88,7 @@ namespace kagome::network {
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)) {
     BOOST_ASSERT(block_tree_);
+    BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(serializer_);
     BOOST_ASSERT(storage_);
@@ -507,6 +511,7 @@ namespace kagome::network {
                 SL_INFO(
                     self->log_, "Should be {}", response.state_root.toHex());
               }
+              self->trie_changes_tracker_->onBlockAdded(block.hash);
             }
 
             // just calculate state entries in main storage for trace log
@@ -596,16 +601,20 @@ namespace kagome::network {
 
         if (sync_method_ == application::AppConfiguration::SyncMethod::Full
             && sync_block_ && block_info.number <= sync_block_.value().number) {
+          SL_WARN(
+              log_, "Skip {} till fast synchronized block", block_info.number);
           applyNextBlock();
         } else {
-          if (sync_method_ == application::AppConfiguration::SyncMethod::Full
-              && sync_block_) {
-            sync_block_ = std::nullopt;
-          }
           auto applying_res =
               sync_method_ == application::AppConfiguration::SyncMethod::Full
                   ? block_executor_->applyBlock(std::move(block))
                   : block_appender_->appendBlock(std::move(block));
+
+          if (sync_method_ == application::AppConfiguration::SyncMethod::Full
+              && sync_block_
+              && block_info.number == sync_block_.value().number + 1) {
+            sync_block_ = std::nullopt;
+          }
 
           notifySubscribers({number, hash}, applying_res);
 
