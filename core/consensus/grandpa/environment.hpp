@@ -52,7 +52,7 @@ namespace kagome::consensus::grandpa {
         std::weak_ptr<JustificationObserver> justification_observer) = 0;
 
     /**
-     * Make cath-up-request
+     * Make catch-up-request
      */
     virtual outcome::result<void> onCatchUpRequested(
         const libp2p::peer::PeerId &peer_id,
@@ -70,22 +70,25 @@ namespace kagome::consensus::grandpa {
         std::vector<SignedPrecommit> precommit_justification,
         BlockInfo best_final_candidate) = 0;
 
+    /**
+     * Propagate round state
+     */
     virtual void sendState(const libp2p::peer::PeerId &peer_id,
                            const MovableRoundState &state,
                            MembershipCounter voter_set_id) = 0;
 
     /**
      * Note that we've done a vote in the given round.
-     * Triggered when current peer appears in round \param round with
-     * \param set_id and \param vote is ready to be sent.
+     * Triggered when current peer appears in provided round with
+     * provided set_id and given vote is ready to be sent.
      */
     virtual outcome::result<void> onVoted(RoundNumber round,
                                           MembershipCounter set_id,
                                           const SignedMessage &vote) = 0;
 
     /**
-     * Triggered when current peer appears in round \param round with \param
-     * voter_ser_id intends to send committed \param vote justified by \param
+     * Triggered when current peer appears in given round and has given
+     * voter_ser_id intends to send committed vote justified by provided
      * justification
      */
     virtual outcome::result<void> onCommitted(
@@ -124,6 +127,13 @@ namespace kagome::consensus::grandpa {
     virtual outcome::result<void> finalize(
         MembershipCounter id, const GrandpaJustification &justification) = 0;
 
+    /**
+     * Returns justification for given block
+     * @param block_hash hash of the block that we are trying to get
+     * justification for
+     * @return GrandpaJustification containing signed precommits for given block
+     * if there is such justification. Error otherwise
+     */
     virtual outcome::result<GrandpaJustification> getJustification(
         const BlockHash &block_hash) = 0;
   };

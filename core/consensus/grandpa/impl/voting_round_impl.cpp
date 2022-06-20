@@ -824,6 +824,7 @@ namespace kagome::consensus::grandpa {
               round_number_,
               total_weight,
               threshold);
+      return VotingRoundError::NOT_ENOUGH_WEIGHT;
     }
 
     return outcome::success();
@@ -1078,7 +1079,7 @@ namespace kagome::consensus::grandpa {
           [grandpa_wp = std::move(grandpa_), round_wp = weak_from_this()] {
             if (auto grandpa = grandpa_wp.lock()) {
               if (auto round = round_wp.lock()) {
-                grandpa->executeNextRound(round);
+                grandpa->tryExecuteNextRound(round);
               }
             }
           });

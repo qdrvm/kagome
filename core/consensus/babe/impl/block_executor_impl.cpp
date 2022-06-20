@@ -12,6 +12,7 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/slot.hpp"
+#include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
@@ -278,12 +279,40 @@ namespace kagome::consensus {
       SL_VERBOSE(logger_,
                  "Justification received for block {}",
                  primitives::BlockInfo(block.header.number, block_hash));
+
+      // try to apply left in justification store values first
+      if (not justifications_.empty()) {
+        std::vector<primitives::BlockInfo> to_remove;
+        for (const auto &[block_info, justification] : justifications_) {
+          auto res = grandpa_environment_->applyJustification(block_info,
+                                                              justification);
+          if (res) {
+            to_remove.push_back(block_info);
+          }
+        }
+        if (not to_remove.empty()) {
+          for (const auto &item : to_remove) {
+            justifications_.erase(item);
+          }
+        }
+      }
+
       auto res = grandpa_environment_->applyJustification(
           primitives::BlockInfo(block.header.number, block_hash),
           b.justification.value());
       if (res.has_error()) {
-        rollbackBlock(primitives::BlockInfo(block.header.number, block_hash));
-        return res.as_failure();
+        if (res
+            == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
+          justifications_.emplace(
+              primitives::BlockInfo(block.header.number, block_hash),
+              b.justification.value());
+        } else {
+          rollbackBlock(primitives::BlockInfo(block.header.number, block_hash));
+          return res.as_failure();
+        }
+      } else {
+        // safely could be remove if current justification applied successfully
+        justifications_.clear();
       }
     }
 
