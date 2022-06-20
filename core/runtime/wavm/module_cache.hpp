@@ -1,0 +1,29 @@
+
+#include "application/app_configuration.hpp"
+
+#include <WAVM/Runtime/Runtime.h>
+#include "log/logger.hpp"
+
+namespace kagome::crypto {
+  class Hasher;
+}
+
+namespace kagome::runtime::wavm {
+
+  struct ModuleCache : public WAVM::Runtime::ObjectCacheInterface {
+   public:
+    ModuleCache(const application::AppConfiguration &app_config,
+                std::shared_ptr<crypto::Hasher> hasher);
+
+    std::vector<WAVM::U8> getCachedObject(
+        const WAVM::U8 *wasmBytes,
+        WAVM::Uptr numWASMBytes,
+        std::function<std::vector<WAVM::U8>()> &&compileThunk) override;
+
+   private:
+    const application::AppConfiguration &app_config_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+    log::Logger logger_;
+  };
+
+}  // namespace kagome::runtime::wavm

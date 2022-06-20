@@ -8,6 +8,8 @@
 
 #include "core/runtime/runtime_test_base.hpp"
 
+#include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/module.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
@@ -15,6 +17,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "runtime/wavm/module_params.hpp"
 #include "runtime/wavm/wavm_external_memory_provider.hpp"
@@ -51,9 +54,18 @@ class WavmRuntimeTest : public RuntimeTestBase {
             changes_tracker,
             std::make_shared<kagome::runtime::SingleModuleCache>());
 
+    kagome::application::AppConfigurationMock config{};
+    auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
+    auto module_cache =
+        std::make_shared<kagome::runtime::wavm::ModuleCache>(config, hasher);
+
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
-            compartment, module_params, instance_env_factory, intrinsic_module);
+            compartment,
+            module_params,
+            instance_env_factory,
+            intrinsic_module,
+            module_cache);
 
     return module_factory;
   }

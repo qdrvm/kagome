@@ -19,6 +19,11 @@ namespace kagome::application {
     MOCK_METHOD(boost::filesystem::path, chainSpecPath, (), (const, override));
 
     MOCK_METHOD(boost::filesystem::path,
+                cachedRuntimePath,
+                (std::string runtime_hash),
+                (const, override));
+
+    MOCK_METHOD(boost::filesystem::path,
                 chainPath,
                 (std::string chain_id),
                 (const, override));

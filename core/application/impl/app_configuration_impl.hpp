@@ -69,6 +69,8 @@ namespace kagome::application {
       return roles_;
     }
     boost::filesystem::path chainSpecPath() const override;
+    boost::filesystem::path cachedRuntimePath(
+        std::string runtime_hash) const override;
     boost::filesystem::path chainPath(std::string chain_id) const override;
     boost::filesystem::path databasePath(std::string chain_id) const override;
     boost::filesystem::path keystorePath(std::string chain_id) const override;

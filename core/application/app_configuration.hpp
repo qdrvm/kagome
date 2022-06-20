@@ -48,6 +48,12 @@ namespace kagome::application {
     virtual boost::filesystem::path chainSpecPath() const = 0;
 
     /**
+     * @return path to cached precompiled WAVM runtime
+     */
+    virtual boost::filesystem::path cachedRuntimePath(
+        std::string runtime_hash) const = 0;
+
+    /**
      * @return path to the node's directory for the chain \arg chain_id
      * (contains key storage and database)
      */

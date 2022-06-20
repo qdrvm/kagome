@@ -6,6 +6,7 @@
 #include "runtime/wavm/module_factory_impl.hpp"
 
 #include "runtime/wavm/module.hpp"
+#include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_params.hpp"
 
 namespace kagome::runtime::wavm {
@@ -14,7 +15,8 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<ModuleParams> module_params,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
-      std::shared_ptr<IntrinsicModule> intrinsic_module)
+      std::shared_ptr<IntrinsicModule> intrinsic_module,
+      std::shared_ptr<ModuleCache> module_cache)
       : compartment_{std::move(compartment)},
         module_params_{std::move(module_params)},
         env_factory_{std::move(env_factory)},
@@ -23,6 +25,8 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(module_params_ != nullptr);
     BOOST_ASSERT(env_factory_ != nullptr);
     BOOST_ASSERT(intrinsic_module_ != nullptr);
+
+    WAVM::Runtime::setGlobalObjectCache(std::move(module_cache));
   }
 
   outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(

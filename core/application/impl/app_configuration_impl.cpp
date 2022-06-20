@@ -148,6 +148,11 @@ namespace kagome::application {
     return chain_spec_path_.native();
   }
 
+  boost::filesystem::path AppConfigurationImpl::cachedRuntimePath(
+      std::string runtime_hash) const {
+    return base_path_ / "runtimes" / runtime_hash;
+  }
+
   boost::filesystem::path AppConfigurationImpl::chainPath(
       std::string chain_id) const {
     return base_path_ / chain_id;
