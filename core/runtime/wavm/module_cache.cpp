@@ -1,3 +1,8 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "runtime/wavm/module_cache.hpp"
 
 #include <fstream>
@@ -22,28 +27,40 @@ namespace kagome::runtime::wavm {
     namespace fs = kagome::filesystem;
     auto runtime_hash =
         hasher_->twox_64(gsl::span(wasmBytes, numWASMBytes)).toHex();
-    auto filepath = app_config_.cachedRuntimePath(runtime_hash);
-    if (!exists(filepath) and !exists(filepath.parent_path())
-        and !fs::createDirectoryRecursive(filepath.parent_path())) {
+    auto filepath = app_config_.runtimeCachePath(runtime_hash);
+    if (!exists(filepath) and !exists(app_config_.runtimeCacheDirPath())
+        and !fs::createDirectoryRecursive(app_config_.runtimeCacheDirPath())) {
       SL_ERROR(logger_,
                "Failed to create runtimes cache directory {}",
-               filepath.parent_path());
+               app_config_.runtimeCacheDirPath());
     }
 
     std ::vector<WAVM::U8> module;
-    if (auto file = std::ifstream{filepath, std::ios::in | std::ios::binary};
+    if (std::ifstream file{filepath.c_str(), std::ios::in | std::ios::binary};
         file.is_open()) {
       auto module_size = file_size(filepath);
       module.resize(module_size);
       file.read(reinterpret_cast<char *>(module.data()), module_size);
-      SL_INFO(logger_, "WAVM runtime cache hit: {}", filepath);
+      if (not file.fail()) {
+        SL_VERBOSE(logger_, "WAVM runtime cache hit: {}", filepath);
+      } else {
+        module.clear();
+        SL_ERROR(logger_, "Error reading cached module: {}", filepath);
+      }
     }
     if (module.empty()) {
       module = compileThunk();
-      if (auto file = std::ofstream{filepath, std::ios::out | std::ios::binary};
+      if (auto file =
+              std::ofstream{filepath.c_str(), std::ios::out | std::ios::binary};
           file.is_open()) {
         file.write(reinterpret_cast<char *>(module.data()), module.size());
-        SL_INFO(logger_, "Saved WAVM runtime to cache: {}", filepath);
+        file.close();
+        if (not file.fail()) {
+          SL_VERBOSE(logger_, "Saved WAVM runtime to cache: {}", filepath);
+        } else {
+          module.clear();
+          SL_ERROR(logger_, "Error writing module to cache: {}", filepath);
+        }
       } else {
         SL_ERROR(logger_, "Failed to cache WAVM runtime: {}", filepath);
       }

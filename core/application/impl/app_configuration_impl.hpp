@@ -69,7 +69,8 @@ namespace kagome::application {
       return roles_;
     }
     boost::filesystem::path chainSpecPath() const override;
-    boost::filesystem::path cachedRuntimePath(
+    boost::filesystem::path runtimeCacheDirPath() const override;
+    boost::filesystem::path runtimeCachePath(
         std::string runtime_hash) const override;
     boost::filesystem::path chainPath(std::string chain_id) const override;
     boost::filesystem::path databasePath(std::string chain_id) const override;
@@ -152,6 +153,9 @@ namespace kagome::application {
     }
     bool useWavmCache() const override {
       return use_wavm_cache_;
+    }
+    bool purgeWavmCache() const override {
+      return purge_wavm_cache_;
     }
     OffchainWorkerMode offchainWorkerMode() const override {
       return offchain_worker_mode_;
@@ -285,6 +289,7 @@ namespace kagome::application {
     uint32_t max_ws_connections_;
     RuntimeExecutionMethod runtime_exec_method_;
     bool use_wavm_cache_;
+    bool purge_wavm_cache_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
     std::optional<primitives::BlockId> recovery_state_;

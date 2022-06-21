@@ -48,9 +48,14 @@ namespace kagome::application {
     virtual boost::filesystem::path chainSpecPath() const = 0;
 
     /**
+     * @return path to precompiled WAVM runtime cache directory
+     */
+    virtual boost::filesystem::path runtimeCacheDirPath() const = 0;
+
+    /**
      * @return path to cached precompiled WAVM runtime
      */
-    virtual boost::filesystem::path cachedRuntimePath(
+    virtual boost::filesystem::path runtimeCachePath(
         std::string runtime_hash) const = 0;
 
     /**
@@ -196,6 +201,11 @@ namespace kagome::application {
      * debugging.
      */
     virtual bool useWavmCache() const = 0;
+
+    /**
+     * A flag marking if we must force-purge WAVM runtime cache
+     */
+    virtual bool purgeWavmCache() const = 0;
 
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**

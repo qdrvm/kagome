@@ -19,7 +19,12 @@ namespace kagome::application {
     MOCK_METHOD(boost::filesystem::path, chainSpecPath, (), (const, override));
 
     MOCK_METHOD(boost::filesystem::path,
-                cachedRuntimePath,
+                runtimeCacheDirPath,
+                (),
+                (const, override));
+
+    MOCK_METHOD(boost::filesystem::path,
+                runtimeCachePath,
                 (std::string runtime_hash),
                 (const, override));
 
@@ -108,6 +113,8 @@ namespace kagome::application {
                 (const, override));
 
     MOCK_METHOD(bool, useWavmCache, (), (const, override));
+
+    MOCK_METHOD(bool, purgeWavmCache, (), (const, override));
 
     MOCK_METHOD(AppConfiguration::OffchainWorkerMode,
                 offchainWorkerMode,
