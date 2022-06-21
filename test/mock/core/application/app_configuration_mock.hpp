@@ -107,6 +107,8 @@ namespace kagome::application {
                 (),
                 (const, override));
 
+    MOCK_METHOD(bool, useWavmCache, (), (const, override));
+
     MOCK_METHOD(AppConfiguration::OffchainWorkerMode,
                 offchainWorkerMode,
                 (),

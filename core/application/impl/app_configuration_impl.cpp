@@ -54,6 +54,7 @@ namespace {
   }();
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
+  const auto def_use_wavm_cache_ = false;
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
   const bool def_enable_offchain_indexing = false;
@@ -140,6 +141,7 @@ namespace kagome::application {
         node_version_(buildVersion()),
         max_ws_connections_(def_ws_max_connections),
         runtime_exec_method_{def_runtime_exec_method},
+        use_wavm_cache_(def_use_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         recovery_state_{def_block_to_recover} {}
@@ -150,7 +152,8 @@ namespace kagome::application {
 
   boost::filesystem::path AppConfigurationImpl::cachedRuntimePath(
       std::string runtime_hash) const {
-    return base_path_ / "runtimes" / runtime_hash;
+    return boost::filesystem::temp_directory_path() / "runtimes-cache"
+           / runtime_hash;
   }
 
   boost::filesystem::path AppConfigurationImpl::chainPath(
@@ -652,6 +655,7 @@ namespace kagome::application {
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
         ("wasm-execution", po::value<std::string>()->default_value("Interpreted"),
           "choose the desired wasm execution method (Compiled, Interpreted)")
+        ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ;
 
     // clang-format on
@@ -1013,6 +1017,10 @@ namespace kagome::application {
       return false;
     }
     runtime_exec_method_ = runtime_exec_method_opt.value();
+
+    if (vm.count("unsafe-cached-wavm-runtime") > 0) {
+      use_wavm_cache_ = true;
+    }
 
     std::optional<OffchainWorkerMode> offchain_worker_mode_opt;
     find_argument<std::string>(

@@ -150,6 +150,9 @@ namespace kagome::application {
     RuntimeExecutionMethod runtimeExecMethod() const override {
       return runtime_exec_method_;
     }
+    bool useWavmCache() const override {
+      return use_wavm_cache_;
+    }
     OffchainWorkerMode offchainWorkerMode() const override {
       return offchain_worker_mode_;
     }
@@ -281,6 +284,7 @@ namespace kagome::application {
     std::string node_version_;
     uint32_t max_ws_connections_;
     RuntimeExecutionMethod runtime_exec_method_;
+    bool use_wavm_cache_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
     std::optional<primitives::BlockId> recovery_state_;

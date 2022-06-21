@@ -61,6 +61,7 @@ class WavmRuntimeTest : public RuntimeTestBase {
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
+            config,
             compartment,
             module_params,
             instance_env_factory,

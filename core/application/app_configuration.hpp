@@ -190,6 +190,13 @@ namespace kagome::application {
      */
     virtual RuntimeExecutionMethod runtimeExecMethod() const = 0;
 
+    /**
+     * A flag marking if we use and store precompiled WAVM runtimes.
+     * Significantly increases node restart speed. Especially useful when
+     * debugging.
+     */
+    virtual bool useWavmCache() const = 0;
+
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**
      * @return enum constant of the mode of run offchain workers

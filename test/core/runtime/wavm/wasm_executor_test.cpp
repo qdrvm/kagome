@@ -189,6 +189,7 @@ class WasmExecutorTest : public ::testing::Test {
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
+            config,
             compartment_wrapper,
             module_params,
             instance_env_factory,

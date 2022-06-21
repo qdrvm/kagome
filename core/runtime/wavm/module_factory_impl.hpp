@@ -10,6 +10,10 @@
 
 #include "outcome/outcome.hpp"
 
+namespace kagome::application {
+  class AppConfiguration;
+}
+
 namespace kagome::runtime::wavm {
 
   class CompartmentWrapper;
@@ -21,6 +25,7 @@ namespace kagome::runtime::wavm {
   class ModuleFactoryImpl final : public ModuleFactory {
    public:
     ModuleFactoryImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<CompartmentWrapper> compartment,
         std::shared_ptr<ModuleParams> module_params,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory,

@@ -10,6 +10,11 @@ namespace kagome::crypto {
 
 namespace kagome::runtime::wavm {
 
+  /**
+   * WAVM runtime cache. Attempts to fetch precompiled module from fs and saves
+   * compiled module upon cache miss.
+   *
+   */
   struct ModuleCache : public WAVM::Runtime::ObjectCacheInterface {
    public:
     ModuleCache(const application::AppConfiguration &app_config,

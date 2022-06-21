@@ -36,15 +36,16 @@ namespace kagome::runtime::wavm {
       auto module_size = file_size(filepath);
       module.resize(module_size);
       file.read(reinterpret_cast<char *>(module.data()), module_size);
-      SL_INFO(logger_, "WAVM runtime cache hit: {}", runtime_hash);
+      SL_INFO(logger_, "WAVM runtime cache hit: {}", filepath);
     }
     if (module.empty()) {
       module = compileThunk();
       if (auto file = std::ofstream{filepath, std::ios::out | std::ios::binary};
           file.is_open()) {
         file.write(reinterpret_cast<char *>(module.data()), module.size());
+        SL_INFO(logger_, "Saved WAVM runtime to cache: {}", filepath);
       } else {
-        SL_ERROR(logger_, "Failed to cache WAVM runtime: {}", runtime_hash);
+        SL_ERROR(logger_, "Failed to cache WAVM runtime: {}", filepath);
       }
     }
 

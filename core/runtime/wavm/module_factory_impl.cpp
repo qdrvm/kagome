@@ -12,6 +12,7 @@
 namespace kagome::runtime::wavm {
 
   ModuleFactoryImpl::ModuleFactoryImpl(
+      const application::AppConfiguration &app_config,
       std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<ModuleParams> module_params,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
@@ -26,7 +27,9 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(env_factory_ != nullptr);
     BOOST_ASSERT(intrinsic_module_ != nullptr);
 
-    WAVM::Runtime::setGlobalObjectCache(std::move(module_cache));
+    if (app_config.useWavmCache()) {
+      WAVM::Runtime::setGlobalObjectCache(std::move(module_cache));
+    }
   }
 
   outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(
