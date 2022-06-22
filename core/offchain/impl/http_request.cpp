@@ -431,6 +431,7 @@ namespace kagome::offchain {
     for (auto &header : response_) {
       result.emplace_back(std::pair(header.name_string(), header.value()));
     }
+
     return result;
   }
 

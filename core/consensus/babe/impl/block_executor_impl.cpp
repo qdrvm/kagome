@@ -152,7 +152,7 @@ namespace kagome::consensus {
         }
       }
 
-      auto &first_block_header = res.value();
+      const auto &first_block_header = res.value();
       auto babe_digest_res = consensus::getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");

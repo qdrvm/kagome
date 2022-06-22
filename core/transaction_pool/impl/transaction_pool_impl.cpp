@@ -207,7 +207,7 @@ namespace kagome::transaction_pool {
                tx_hash);
       return TransactionPoolError::TX_NOT_FOUND;
     }
-    auto &tx = tx_node.mapped();
+    const auto &tx = tx_node.mapped();
 
     unsetReady(tx);
     delTransactionAsWaiting(tx);
