@@ -12,24 +12,26 @@
 #include "log/logger.hpp"
 
 namespace kagome::common {
-  inline auto log() {
-    return log::createLogger("FdLimit", log::defaultGroupName);
-  }
-
-  bool getFdLimit(rlimit &r) {
-    if (getrlimit(RLIMIT_NOFILE, &r) != 0) {
-      SL_WARN(log(),
-              "Error: getrlimit(RLIMIT_NOFILE) errno={} {}",
-              errno,
-              strerror(errno));
-      return false;
+  namespace {
+    inline auto log() {
+      return log::createLogger("FdLimit", log::defaultGroupName);
     }
-    return true;
-  }
 
-  bool setFdLimit(const rlimit &r) {
-    return setrlimit(RLIMIT_NOFILE, &r) == 0;
-  }
+    bool getFdLimit(rlimit &r) {
+      if (getrlimit(RLIMIT_NOFILE, &r) != 0) {
+        SL_WARN(log(),
+                "Error: getrlimit(RLIMIT_NOFILE) errno={} {}",
+                errno,
+                strerror(errno));
+        return false;
+      }
+      return true;
+    }
+
+    bool setFdLimit(const rlimit &r) {
+      return setrlimit(RLIMIT_NOFILE, &r) == 0;
+    }
+  }  // namespace
 
   void setFdLimit(size_t limit) {
     rlimit r{};
