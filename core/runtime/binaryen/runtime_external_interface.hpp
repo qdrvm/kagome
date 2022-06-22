@@ -55,7 +55,7 @@ namespace kagome::runtime::binaryen {
     void methodsRegistration();
 
     std::shared_ptr<host_api::HostApi> host_api_;
-    std::map<std::string,
+    std::unordered_map<std::string,
              std::function<wasm::Literal(wasm::Function *import,
                                          wasm::LiteralList &arguments)>>
         imports_;
