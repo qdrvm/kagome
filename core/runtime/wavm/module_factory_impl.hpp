@@ -10,12 +10,17 @@
 
 #include "outcome/outcome.hpp"
 
+namespace kagome::application {
+  class AppConfiguration;
+}
+
 namespace kagome::runtime::wavm {
 
   class CompartmentWrapper;
   class InstanceEnvironmentFactory;
   class IntrinsicModule;
   struct ModuleParams;
+  struct ModuleCache;
 
   class ModuleFactoryImpl final : public ModuleFactory {
    public:
@@ -23,7 +28,8 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<CompartmentWrapper> compartment,
         std::shared_ptr<ModuleParams> module_params,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
-        std::shared_ptr<IntrinsicModule> intrinsic_module);
+        std::shared_ptr<IntrinsicModule> intrinsic_module,
+        std::optional<std::shared_ptr<ModuleCache>> module_cache);
 
     outcome::result<std::unique_ptr<Module>> make(
         gsl::span<const uint8_t> code) const override;

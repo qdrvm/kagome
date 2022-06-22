@@ -48,6 +48,17 @@ namespace kagome::application {
     virtual boost::filesystem::path chainSpecPath() const = 0;
 
     /**
+     * @return path to precompiled WAVM runtime cache directory
+     */
+    virtual boost::filesystem::path runtimeCacheDirPath() const = 0;
+
+    /**
+     * @return path to cached precompiled WAVM runtime
+     */
+    virtual boost::filesystem::path runtimeCachePath(
+        std::string runtime_hash) const = 0;
+
+    /**
      * @return path to the node's directory for the chain \arg chain_id
      * (contains key storage and database)
      */
@@ -183,6 +194,18 @@ namespace kagome::application {
      * @return enum constant of the chosen runtime backend
      */
     virtual RuntimeExecutionMethod runtimeExecMethod() const = 0;
+
+    /**
+     * A flag marking if we use and store precompiled WAVM runtimes.
+     * Significantly increases node restart speed. Especially useful when
+     * debugging.
+     */
+    virtual bool useWavmCache() const = 0;
+
+    /**
+     * A flag marking if we must force-purge WAVM runtime cache
+     */
+    virtual bool purgeWavmCache() const = 0;
 
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**

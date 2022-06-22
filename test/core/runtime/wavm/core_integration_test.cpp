@@ -11,18 +11,18 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
-#include "runtime/wavm/memory_impl.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
+#include "runtime/wavm/memory_impl.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
 using kagome::host_api::HostApiFactoryImpl;
 using kagome::primitives::Block;
+using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
-using kagome::primitives::BlockHash;
 using kagome::primitives::Extrinsic;
 using kagome::runtime::CoreImpl;
 using kagome::runtime::Memory;
@@ -94,6 +94,6 @@ TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
  * @then successful result is returned
  */
 TEST_F(CoreTest, DISABLED_AuthoritiesTest) {
-  BlockHash block_hash= "block_hash"_hash256;
+  BlockHash block_hash = "block_hash"_hash256;
   ASSERT_TRUE(core_->authorities(block_hash));
 }
