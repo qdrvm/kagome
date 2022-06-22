@@ -13,8 +13,7 @@
 
 namespace kagome::common {
   inline auto log() {
-    static auto log = log::createLogger("FdLimit", log::defaultGroupName);
-    return log;
+    return log::createLogger("FdLimit", log::defaultGroupName);
   }
 
   bool getFdLimit(rlimit &r) {
