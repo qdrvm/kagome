@@ -162,11 +162,11 @@ namespace kagome::application {
     }
 
    private:
-    void parse_general_segment(rapidjson::Value &val);
-    void parse_blockchain_segment(rapidjson::Value &val);
-    void parse_storage_segment(rapidjson::Value &val);
-    void parse_network_segment(rapidjson::Value &val);
-    void parse_additional_segment(rapidjson::Value &val);
+    void parse_general_segment(const rapidjson::Value &val);
+    void parse_blockchain_segment(const rapidjson::Value &val);
+    void parse_storage_segment(const rapidjson::Value &val);
+    void parse_network_segment(const rapidjson::Value &val);
+    void parse_additional_segment(const rapidjson::Value &val);
 
     /// TODO(iceseer): PRE-476 make handler calls via lambda-calls, remove
     /// member-function ptrs
