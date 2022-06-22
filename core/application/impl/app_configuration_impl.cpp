@@ -187,7 +187,6 @@ namespace kagome::application {
     for (auto it = val.FindMember(name); it != val.MemberEnd(); ++it) {
       auto &value = it->value;
       target.emplace_back(value.GetString(), value.GetStringLength());
-      return true;
     }
     return not target.empty();
   }
@@ -276,7 +275,8 @@ namespace kagome::application {
     return false;
   }
 
-  void AppConfigurationImpl::parse_general_segment(rapidjson::Value &val) {
+  void AppConfigurationImpl::parse_general_segment(
+      const rapidjson::Value &val) {
     bool validator_mode = false;
     load_bool(val, "validator", validator_mode);
     if (validator_mode) {
@@ -286,19 +286,22 @@ namespace kagome::application {
     load_ms(val, "log", logger_tuning_config_);
   }
 
-  void AppConfigurationImpl::parse_blockchain_segment(rapidjson::Value &val) {
+  void AppConfigurationImpl::parse_blockchain_segment(
+      const rapidjson::Value &val) {
     std::string chain_spec_path_str;
     load_str(val, "chain", chain_spec_path_str);
     chain_spec_path_ = fs::path(chain_spec_path_str);
   }
 
-  void AppConfigurationImpl::parse_storage_segment(rapidjson::Value &val) {
+  void AppConfigurationImpl::parse_storage_segment(
+      const rapidjson::Value &val) {
     std::string base_path_str;
     load_str(val, "base-path", base_path_str);
     base_path_ = fs::path(base_path_str);
   }
 
-  void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
+  void AppConfigurationImpl::parse_network_segment(
+      const rapidjson::Value &val) {
     load_ma(val, "listen-addr", listen_addresses_);
     load_ma(val, "public-addr", public_addresses_);
     load_ma(val, "bootnodes", boot_nodes_);
@@ -317,7 +320,8 @@ namespace kagome::application {
     load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
   }
 
-  void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
+  void AppConfigurationImpl::parse_additional_segment(
+      const rapidjson::Value &val) {
     load_u32(val, "max-blocks-in-response", max_blocks_in_response_);
     load_bool(val, "dev", dev_mode_);
   }
