@@ -38,4 +38,5 @@ addtest(block_executor_test
 target_link_libraries(block_executor_test
     block_executor
     log_configurator
+    voting_round_error
     )

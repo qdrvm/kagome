@@ -22,34 +22,18 @@ namespace kagome::consensus::grandpa {
     // Getters
 
     virtual RoundNumber roundNumber() const = 0;
+
     virtual MembershipCounter voterSetId() const = 0;
 
-    /**
-     * Round is completable when we have block (stored in
-     * current_state_.finalized) for which we have supermajority on both
-     * prevotes and precommits
-     */
     virtual bool completable() const = 0;
 
-    /// Block finalized in previous round (when current one was created)
     virtual BlockInfo lastFinalizedBlock() const = 0;
 
-    /**
-     * Best block from descendants of previous round best-final-candidate
-     * @see spec: Best-PreVote-Candidate
-     */
     virtual BlockInfo bestPrevoteCandidate() = 0;
 
-    /**
-     * Block what has precommit supermajority.
-     * Should be descendant or equal of Best-PreVote-Candidate
-     * @see spec: Best-Final-Candidate
-     * @see spec: Ghost-Function
-     */
     virtual BlockInfo bestFinalCandidate() = 0;
 
-    /// Block is finalized at the round
-    virtual const std::optional<BlockInfo>& finalizedBlock() const = 0;
+    virtual const std::optional<BlockInfo> &finalizedBlock() const = 0;
 
     virtual MovableRoundState state() const = 0;
 
@@ -92,25 +76,12 @@ namespace kagome::consensus::grandpa {
 
     enum class Propagation : bool { NEEDLESS = false, REQUESTED = true };
 
-    /**
-     * Invoked when we received a primary propose for this round
-     */
     virtual void onProposal(const SignedMessage &primary_propose,
                             Propagation propagation) = 0;
 
-    /**
-     * Triggered when we receive {@param prevote} for current round.
-     * Prevote will be propogated if {@param propagate} is true
-     * @returns true if inner state has changed
-     */
     virtual bool onPrevote(const SignedMessage &prevote,
                            Propagation propagation) = 0;
 
-    /**
-     * Triggered when we receive {@param precommit} for current round.
-     * Precommit will be propogated if {@param propagate} is true
-     * @returns true if inner state has changed
-     */
     virtual bool onPrecommit(const SignedMessage &precommit,
                              Propagation propagation) = 0;
 
