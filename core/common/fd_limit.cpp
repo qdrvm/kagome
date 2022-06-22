@@ -57,7 +57,7 @@ namespace kagome::common {
                        });
     }
     if (!getFdLimit(r)) {
-      return;
+      SL_WARN(log(), "requested limit is lower than system allowed limit");
     }
     if (r.rlim_cur != current) {
       SL_VERBOSE(log(), "changed current={}", r.rlim_cur);
