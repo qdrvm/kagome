@@ -52,7 +52,13 @@ namespace kagome::runtime::binaryen {
                         size_t expected,
                         size_t actual);
 
+    void methodsRegistration();
+
     std::shared_ptr<host_api::HostApi> host_api_;
+    std::map<std::string,
+             std::function<wasm::Literal(wasm::Function *import,
+                                         wasm::LiteralList &arguments)>>
+        imports_;
     log::Logger logger_;
   };
 
