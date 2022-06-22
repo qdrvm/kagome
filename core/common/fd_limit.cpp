@@ -43,12 +43,15 @@ namespace kagome::common {
     } else {
       SL_VERBOSE(log(), "current={} max={}", r.rlim_cur, r.rlim_max);
     }
-    if (limit <= r.rlim_cur) {
+    const rlim_t current = r.rlim_cur;
+    if (limit == current) {
       return;
     }
-    rlim_t current = r.rlim_cur;
     r.rlim_cur = limit;
-    if (!setFdLimit(r)) {
+    if (limit < current) {
+      SL_WARN(log(), "requested limit is lower than system allowed limit");
+      setFdLimit(r);
+    } else if (!setFdLimit(r)) {
       std::upper_bound(boost::counting_iterator{current},
                        boost::counting_iterator{rlim_t{limit}},
                        nullptr,
@@ -58,7 +61,7 @@ namespace kagome::common {
                        });
     }
     if (!getFdLimit(r)) {
-      SL_WARN(log(), "requested limit is lower than system allowed limit");
+      return;
     }
     if (r.rlim_cur != current) {
       SL_VERBOSE(log(), "changed current={}", r.rlim_cur);
