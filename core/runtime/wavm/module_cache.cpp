@@ -9,12 +9,11 @@
 #include <vector>
 
 #include "crypto/hasher.hpp"
-#include "filesystem/directories.hpp"
 
 namespace kagome::runtime::wavm {
-  ModuleCache::ModuleCache(const application::AppConfiguration &app_config,
-                           std::shared_ptr<crypto::Hasher> hasher)
-      : app_config_(app_config),
+  ModuleCache::ModuleCache(std::shared_ptr<crypto::Hasher> hasher,
+                           fs::path cache_dir)
+      : cache_dir_{std::move(cache_dir)},
         hasher_{std::move(hasher)},
         logger_{log::createLogger("WAVM Module Cache", "runtime_cache")} {
     BOOST_ASSERT(hasher_ != nullptr);
@@ -24,15 +23,13 @@ namespace kagome::runtime::wavm {
       const WAVM::U8 *wasmBytes,
       WAVM::Uptr numWASMBytes,
       std::function<std::vector<WAVM::U8>()> &&compileThunk) {
-    namespace fs = kagome::filesystem;
     auto runtime_hash =
         hasher_->twox_64(gsl::span(wasmBytes, numWASMBytes)).toHex();
-    auto filepath = app_config_.runtimeCachePath(runtime_hash);
-    if (!exists(filepath) and !exists(app_config_.runtimeCacheDirPath())
-        and !fs::createDirectoryRecursive(app_config_.runtimeCacheDirPath())) {
-      SL_ERROR(logger_,
-               "Failed to create runtimes cache directory {}",
-               app_config_.runtimeCacheDirPath());
+    auto filepath = cache_dir_ / runtime_hash;
+    if (!exists(filepath) and !exists(cache_dir_)
+        and !fs::createDirectoryRecursive(cache_dir_)) {
+      SL_ERROR(
+          logger_, "Failed to create runtimes cache directory {}", cache_dir_);
     }
 
     std ::vector<WAVM::U8> module;

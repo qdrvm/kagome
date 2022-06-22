@@ -54,19 +54,13 @@ class WavmRuntimeTest : public RuntimeTestBase {
             changes_tracker,
             std::make_shared<kagome::runtime::SingleModuleCache>());
 
-    kagome::application::AppConfigurationMock config{};
-    auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
-    auto module_cache =
-        std::make_shared<kagome::runtime::wavm::ModuleCache>(config, hasher);
-
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
-            config,
             compartment,
             module_params,
             instance_env_factory,
             intrinsic_module,
-            module_cache);
+            std::nullopt);
 
     return module_factory;
   }

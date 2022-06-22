@@ -183,18 +183,13 @@ class WasmExecutorTest : public ::testing::Test {
             changes_tracker,
             bogus_smc);
 
-    AppConfigurationMock config{};
-    auto module_cache =
-        std::make_shared<kagome::runtime::wavm::ModuleCache>(config, hasher);
-
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
-            config,
             compartment_wrapper,
             module_params,
             instance_env_factory,
             intrinsic_module,
-            module_cache);
+            std::nullopt);
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
         std::make_shared<RuntimeInstancesPool>(),
         runtime_upgrade_tracker_,

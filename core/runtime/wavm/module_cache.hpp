@@ -9,6 +9,7 @@
 #include "application/app_configuration.hpp"
 
 #include <WAVM/Runtime/Runtime.h>
+#include "filesystem/directories.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::crypto {
@@ -16,6 +17,7 @@ namespace kagome::crypto {
 }
 
 namespace kagome::runtime::wavm {
+  namespace fs = kagome::filesystem;
 
   /**
    * WAVM runtime cache. Attempts to fetch precompiled module from fs and saves
@@ -24,8 +26,7 @@ namespace kagome::runtime::wavm {
    */
   struct ModuleCache : public WAVM::Runtime::ObjectCacheInterface {
    public:
-    ModuleCache(const application::AppConfiguration &app_config,
-                std::shared_ptr<crypto::Hasher> hasher);
+    ModuleCache(std::shared_ptr<crypto::Hasher> hasher, fs::path cache_dir);
 
     std::vector<WAVM::U8> getCachedObject(
         const WAVM::U8 *wasmBytes,
@@ -33,7 +34,7 @@ namespace kagome::runtime::wavm {
         std::function<std::vector<WAVM::U8>()> &&compileThunk) override;
 
    private:
-    const application::AppConfiguration &app_config_;
+    fs::path cache_dir_;
     std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger_;
   };

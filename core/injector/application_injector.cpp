@@ -881,6 +881,28 @@ namespace {
                   runtime::binaryen::CoreApiFactoryImpl,
                   runtime::wavm::CoreApiFactoryImpl>(injector, method);
             }),
+        di::bind<runtime::wavm::ModuleFactoryImpl>.template to(
+            [](const auto &injector) {
+              std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
+                  module_cache_opt;
+              auto &app_config =
+                  injector
+                      .template create<const application::AppConfiguration &>();
+              if (app_config.useWavmCache()) {
+                module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
+                    injector.template create<sptr<crypto::Hasher>>(),
+                    app_config.runtimeCacheDirPath());
+              }
+              return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
+                  injector.template create<
+                      sptr<runtime::wavm::CompartmentWrapper>>(),
+                  injector.template create<sptr<runtime::wavm::ModuleParams>>(),
+                  injector.template create<
+                      sptr<runtime::wavm::InstanceEnvironmentFactory>>(),
+                  injector
+                      .template create<sptr<runtime::wavm::IntrinsicModule>>(),
+                  module_cache_opt);
+            }),
         di::bind<runtime::ModuleFactory>.template to(
             [method](const auto &injector) {
               return choose_runtime_implementation<
