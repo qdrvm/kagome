@@ -39,9 +39,7 @@ namespace kagome::network {
   }
 
   void PeerRatingRepositoryImpl::ensurePeerPresence(const PeerId &peer_id) {
-    if (rating_table_.count(peer_id) == 0) {
-      rating_table_[peer_id] = 0;
-    }
+    rating_table_.try_emplace(peer_id, 0);
   }
 
   PeerScore PeerRatingRepositoryImpl::upvoteForATime(

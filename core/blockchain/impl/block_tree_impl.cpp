@@ -947,7 +947,7 @@ namespace kagome::blockchain {
                   finish_block_hash_res.error().message());
       return BlockTreeError::HEADER_NOT_FOUND;
     }
-    auto &finish_block_hash = finish_block_hash_res.value();
+    const auto &finish_block_hash = finish_block_hash_res.value();
 
     return getChainByBlocks(block, finish_block_hash, maximum);
   }
@@ -1014,8 +1014,7 @@ namespace kagome::blockchain {
             primitives::BlockInfo{from, top_block},
             primitives::BlockInfo{to, bottom_block},
             max_count)) {
-      auto &chain = chain_res.value();
-      return std::move(chain);
+      return chain_res.value();
     }
 
     std::vector<primitives::BlockHash> result;

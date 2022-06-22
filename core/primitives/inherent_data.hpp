@@ -46,9 +46,11 @@ namespace kagome::primitives {
      * with the same
      */
     template <typename T>
-    outcome::result<void> putData(InherentIdentifier identifier, const T& inherent) {
-      if (data.find(identifier) == data.end()) {
-        data[identifier] = common::Buffer(scale::encode(inherent).value());
+    outcome::result<void> putData(InherentIdentifier identifier,
+                                  const T &inherent) {
+      auto [it, inserted] = data.try_emplace(std::move(identifier), common::Buffer());
+      if (inserted) {
+        it->second = common::Buffer(scale::encode(inherent).value());
         return outcome::success();
       }
       return InherentDataError::IDENTIFIER_ALREADY_EXISTS;
@@ -59,7 +61,7 @@ namespace kagome::primitives {
      * @arg inherent encoded data to be stored
      */
     template <typename T>
-    void replaceData(InherentIdentifier identifier, const T& inherent) {
+    void replaceData(InherentIdentifier identifier, const T &inherent) {
       data[identifier] = common::Buffer(scale::encode(inherent).value());
     }
 

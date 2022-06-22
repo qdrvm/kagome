@@ -67,6 +67,9 @@ namespace kagome::consensus {
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
 
+    // Justification Store for Future Applying
+    std::map<primitives::BlockInfo, primitives::Justification> justifications_;
+
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Histogram *metric_block_execution_time_;

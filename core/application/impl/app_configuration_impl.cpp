@@ -6,6 +6,7 @@
 #include "application/impl/app_configuration_impl.hpp"
 
 #include <limits>
+#include <regex>
 #include <string>
 
 #include <rapidjson/document.h>
@@ -173,7 +174,6 @@ namespace kagome::application {
     for (auto it = val.FindMember(name); it != val.MemberEnd(); ++it) {
       auto &value = it->value;
       target.emplace_back(value.GetString(), value.GetStringLength());
-      return true;
     }
     return not target.empty();
   }
@@ -262,7 +262,8 @@ namespace kagome::application {
     return false;
   }
 
-  void AppConfigurationImpl::parse_general_segment(rapidjson::Value &val) {
+  void AppConfigurationImpl::parse_general_segment(
+      const rapidjson::Value &val) {
     bool validator_mode = false;
     load_bool(val, "validator", validator_mode);
     if (validator_mode) {
@@ -272,19 +273,22 @@ namespace kagome::application {
     load_ms(val, "log", logger_tuning_config_);
   }
 
-  void AppConfigurationImpl::parse_blockchain_segment(rapidjson::Value &val) {
+  void AppConfigurationImpl::parse_blockchain_segment(
+      const rapidjson::Value &val) {
     std::string chain_spec_path_str;
     load_str(val, "chain", chain_spec_path_str);
     chain_spec_path_ = fs::path(chain_spec_path_str);
   }
 
-  void AppConfigurationImpl::parse_storage_segment(rapidjson::Value &val) {
+  void AppConfigurationImpl::parse_storage_segment(
+      const rapidjson::Value &val) {
     std::string base_path_str;
     load_str(val, "base-path", base_path_str);
     base_path_ = fs::path(base_path_str);
   }
 
-  void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
+  void AppConfigurationImpl::parse_network_segment(
+      const rapidjson::Value &val) {
     load_ma(val, "listen-addr", listen_addresses_);
     load_ma(val, "public-addr", public_addresses_);
     load_ma(val, "bootnodes", boot_nodes_);
@@ -303,7 +307,8 @@ namespace kagome::application {
     load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
   }
 
-  void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
+  void AppConfigurationImpl::parse_additional_segment(
+      const rapidjson::Value &val) {
     load_u32(val, "max-blocks-in-response", max_blocks_in_response_);
     load_bool(val, "dev", dev_mode_);
   }
@@ -541,6 +546,35 @@ namespace kagome::application {
 
     // try to parse endpoint uri
     auto uri_part = record.substr(0, len - 2);
+
+    if (not uri_part.empty() and '/' == uri_part.at(0)) {
+      // assume endpoint specified as multiaddress
+      auto ma_res = libp2p::multi::Multiaddress::create(uri_part);
+      if (ma_res.has_error()) {
+        SL_ERROR(logger_,
+                 "Telemetry endpoint '{}' cannot be interpreted as a valid "
+                 "multiaddress and was skipped due to error: {}",
+                 uri_part,
+                 ma_res.error().message());
+        return std::nullopt;
+      }
+
+      {
+        // transform multiaddr of telemetry endpoint into uri form
+        auto parts = ma_res.value().getProtocolsWithValues();
+        if (parts.size() != 3) {
+          SL_ERROR(logger_,
+                   "Telemetry endpoint '{}' has unknown format and was skipped",
+                   uri_part);
+          return std::nullopt;
+        }
+        auto host = parts[0].second;
+        auto schema = parts[2].first.name.substr(std::strlen("x-parity-"));
+        auto path = std::regex_replace(parts[2].second, std::regex("%2F"), "/");
+        uri_part = fmt::format("{}://{}{}", schema, host, path);
+      }
+    }
+
     auto uri = common::Uri::parse(uri_part);
     if (uri.error().has_value()) {
       SL_ERROR(logger_,
