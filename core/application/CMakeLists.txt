@@ -55,6 +55,14 @@ target_link_libraries(app_state_manager
     logger
     )
 
+add_library(print_chain_info_mode
+    modes/print_chain_info_mode.cpp
+    )
+target_link_libraries(print_chain_info_mode
+    hexutil
+    RapidJSON::rapidjson
+    )
+
 add_library(kagome_application
     impl/kagome_application_impl.cpp
     )

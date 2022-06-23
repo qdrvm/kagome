@@ -27,7 +27,7 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(key_opt, map.tryLoad(key));
 
-    return key_opt;
+    return std::move(key_opt);
   }
 
   storage::trie::RootHash trieRoot(

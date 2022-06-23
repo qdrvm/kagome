@@ -24,8 +24,9 @@ namespace kagome {
   }  // namespace application
 
   namespace application::mode {
+    class PrintChainInfoMode;
     class RecoveryMode;
-  }
+  }  // namespace application::mode
 
   namespace metrics {
     class Exposer;
@@ -91,6 +92,8 @@ namespace kagome::injector {
     std::shared_ptr<metrics::MetricsWatcher> injectMetricsWatcher();
     std::shared_ptr<telemetry::TelemetryService> injectTelemetryService();
 
+    std::shared_ptr<application::mode::PrintChainInfoMode>
+    injectPrintChainInfoMode();
     std::shared_ptr<application::mode::RecoveryMode> injectRecoveryMode();
 
    protected:

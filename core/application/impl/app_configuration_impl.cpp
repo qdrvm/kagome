@@ -146,6 +146,7 @@ namespace kagome::application {
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
+        subcommand_chain_info_{false},
         recovery_state_{def_block_to_recover} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
@@ -623,6 +624,7 @@ namespace kagome::application {
         ("offchain-worker", po::value<std::string>()->default_value("WhenValidating"),
           "Should execute offchain workers on every block.\n"
           "Possible values: Always, Never, WhenValidating. WhenValidating is used by default.")
+        ("chain-info", po::bool_switch()->default_value(false), "Print chain info as JSON")
         ;
 
     po::options_description storage_desc("Storage options");
@@ -1066,11 +1068,15 @@ namespace kagome::application {
       enable_offchain_indexing_ = true;
     }
 
+    find_argument<bool>(vm, "chain-info", [&](bool subcommand_chain_info) {
+      subcommand_chain_info_ = subcommand_chain_info;
+    });
+
     bool has_recovery = false;
     find_argument<std::string>(vm, "recovery", [&](const std::string &val) {
       has_recovery = true;
       recovery_state_ = str_to_recovery_state(val);
-      if (not offchain_worker_mode_opt) {
+      if (not recovery_state_) {
         SL_ERROR(logger_, "Invalid recovery state specified: '{}'", val);
       }
     });

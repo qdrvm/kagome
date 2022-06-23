@@ -49,6 +49,10 @@ int main(int argc, const char **argv) {
     auto app = std::make_shared<kagome::application::KagomeApplicationImpl>(
         configuration);
 
+    if (configuration.subcommandChainInfo()) {
+      return app->chainInfo();
+    }
+
     // Recovery mode
     if (configuration.recoverState().has_value()) {
       return app->recovery();
