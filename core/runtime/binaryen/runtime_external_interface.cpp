@@ -119,7 +119,7 @@ namespace {
                    arguments.size());                                       \
     return callHostApiFunc<&host_api::HostApi ::name>(host_api_.get(),      \
                                                       arguments);           \
-  };
+  }  // hack to make macro call look natural by ending with ';'
 
 namespace kagome::runtime {
   class TrieStorageProvider;
@@ -265,7 +265,8 @@ namespace kagome::runtime::binaryen {
       wasm::Function *import, wasm::LiteralList &arguments) {
     SL_TRACE(logger_, "Call import {}", import->base);
     if (import->module == env) {
-      auto it = imports_.find(import->base.c_str());
+      auto it = imports_.find(
+          import->base.c_str(), imports_.hash_function(), imports_.key_eq());
       if (it != imports_.end()) {
         return it->second(import, arguments);
       }
