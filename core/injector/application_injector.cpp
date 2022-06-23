@@ -507,7 +507,7 @@ namespace {
   }
 
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
-      const application::ChainSpec &chain_spec) {
+      const application::ChainSpec &chain_spec, uint32_t random_wak_interval) {
     static auto initialized =
         std::optional<sptr<libp2p::protocol::kademlia::Config>>(std::nullopt);
     if (initialized) {
@@ -518,7 +518,8 @@ namespace {
         libp2p::protocol::kademlia::Config{
             .protocolId = "/" + chain_spec.protocolId() + "/kad",
             .maxBucketSize = 1000,
-            .randomWalk = {.interval = std::chrono::minutes(1)}});
+            .randomWalk = {.interval =
+                               std::chrono::seconds(random_wak_interval)}});
 
     initialized.emplace(std::move(kagome_config));
     return initialized.value();
@@ -987,10 +988,11 @@ namespace {
         // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(),
         di::bind<libp2p::protocol::kademlia::Config>.to(
-            [](auto const &injector) {
+            [random_walk{config.getRandomWalkInterval()}](
+                auto const &injector) {
               auto &chain_spec =
                   injector.template create<application::ChainSpec &>();
-              return get_kademlia_config(chain_spec);
+              return get_kademlia_config(chain_spec, random_walk);
             })[boost::di::override],
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),

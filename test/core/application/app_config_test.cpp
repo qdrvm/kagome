@@ -474,8 +474,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "--base-path",
         base_path.native().c_str(),
     };
-    ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), args));
+    ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"info"});
   }
   {
@@ -488,8 +487,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "--base-path",
         base_path.native().c_str(),
     };
-    ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), args));
+    ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"verbose"});
   }
   {
@@ -502,8 +500,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "--base-path",
         base_path.native().c_str(),
     };
-    ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), args));
+    ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   }
   {
@@ -516,8 +513,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "--base-path",
         base_path.native().c_str(),
     };
-    ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), args));
+    ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"trace"});
   }
 }
@@ -615,4 +611,40 @@ TEST_F(AppConfigurationTest, MaxBlocksInResponse) {
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->maxBlocksInResponse(), 122);
+}
+
+/**
+ * @given an instance of AppConfigurationImpl
+ * @when --random-walk-interval flag is not specified
+ * @then random walk has default value
+ */
+TEST_F(AppConfigurationTest, DefaultRandomWalk) {
+  char const *args[] = {
+      "/path/",
+      "--chain",
+      chain_path.native().c_str(),
+      "--base-path",
+      base_path.native().c_str(),
+  };
+
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
+  ASSERT_EQ(app_config_->getRandomWalkInterval(), 15);
+}
+
+/**
+ * @given an instance of AppConfigurationImpl
+ * @when --random-walk-interval flag is specified with a value
+ * @then random walk has the specified value
+ */
+TEST_F(AppConfigurationTest, SetRandomWalk) {
+  char const *args[] = {"/path/",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
+                        base_path.native().c_str(),
+                        "--random-walk-interval",
+                        "30"};
+
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
+  ASSERT_EQ(app_config_->getRandomWalkInterval(), 30);
 }

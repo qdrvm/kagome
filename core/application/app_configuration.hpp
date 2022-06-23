@@ -146,6 +146,11 @@ namespace kagome::application {
     virtual uint32_t maxWsConnections() const = 0;
 
     /**
+     * @return Kademlia random walk interval
+     */
+    virtual uint32_t getRandomWalkInterval() const = 0;
+
+    /**
      * @return logging system tuning config
      */
     virtual const std::vector<std::string> &log() const = 0;

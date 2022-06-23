@@ -319,6 +319,7 @@ namespace kagome::application {
     load_u32(val, "in-peers", in_peers_);
     load_u32(val, "in-peers-light", in_peers_light_);
     load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
+    load_u32(val, "random-walk-interval", random_walk_interval_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(
@@ -658,6 +659,7 @@ namespace kagome::application {
         ("telemetry-url", po::value<std::vector<std::string>>()->multitoken(),
                           "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
                           "e.g. --telemetry-url 'wss://foo/bar 0'")
+        ("random-walk-interval", po::value<uint32_t>()->default_value(15), "Kademlia random walk interval")
         ;
 
     po::options_description development_desc("Additional options");
@@ -975,6 +977,10 @@ namespace kagome::application {
 
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
+    });
+
+    find_argument<uint32_t>(vm, "random-walk-interval", [&](uint32_t val) {
+      random_walk_interval_ = val;
     });
 
     rpc_http_endpoint_ = getEndpointFrom(rpc_http_host_, rpc_http_port_);
