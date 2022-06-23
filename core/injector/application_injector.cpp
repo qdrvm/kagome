@@ -4,6 +4,7 @@
  */
 
 #include "injector/application_injector.hpp"
+#include "crypto/hasher.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
@@ -129,6 +130,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module.hpp"
+#include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/database_error.hpp"
@@ -879,6 +881,28 @@ namespace {
                   runtime::CoreApiFactory,
                   runtime::binaryen::CoreApiFactoryImpl,
                   runtime::wavm::CoreApiFactoryImpl>(injector, method);
+            }),
+        di::bind<runtime::wavm::ModuleFactoryImpl>.template to(
+            [](const auto &injector) {
+              std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
+                  module_cache_opt;
+              auto &app_config =
+                  injector
+                      .template create<const application::AppConfiguration &>();
+              if (app_config.useWavmCache()) {
+                module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
+                    injector.template create<sptr<crypto::Hasher>>(),
+                    app_config.runtimeCacheDirPath());
+              }
+              return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
+                  injector.template create<
+                      sptr<runtime::wavm::CompartmentWrapper>>(),
+                  injector.template create<sptr<runtime::wavm::ModuleParams>>(),
+                  injector.template create<
+                      sptr<runtime::wavm::InstanceEnvironmentFactory>>(),
+                  injector
+                      .template create<sptr<runtime::wavm::IntrinsicModule>>(),
+                  module_cache_opt);
             }),
         di::bind<runtime::ModuleFactory>.template to(
             [method](const auto &injector) {
