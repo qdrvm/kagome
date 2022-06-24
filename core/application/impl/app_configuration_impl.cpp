@@ -66,11 +66,9 @@ namespace {
   const std::optional<kagome::primitives::BlockId> def_block_to_recover =
       std::nullopt;
   const auto def_offchain_worker = "WhenValidating";
-  const auto def_chain_info = false;
   const auto def_out_peers = 25;
   const auto def_in_peers = 25;
   const auto def_in_peers_light = 100;
-  const auto def_no_telemetry = false;
   const auto def_random_walk_interval = 15;
   const auto def_wasm_execution = "Interpreted";
 
@@ -162,7 +160,6 @@ namespace kagome::application {
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
-        subcommand_chain_info_{def_chain_info},
         recovery_state_{def_block_to_recover} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
@@ -641,7 +638,7 @@ namespace kagome::application {
         ("offchain-worker", po::value<std::string>()->default_value(def_offchain_worker),
           "Should execute offchain workers on every block.\n"
           "Possible values: Always, Never, WhenValidating. WhenValidating is used by default.")
-        ("chain-info", po::bool_switch()->default_value(def_chain_info), "Print chain info as JSON")
+        ("chain-info", po::bool_switch(), "Print chain info as JSON")
         ;
 
     po::options_description storage_desc("Storage options");
@@ -671,7 +668,7 @@ namespace kagome::application {
         ("in-peers-light", po::value<uint32_t>()->default_value(def_in_peers_light), "maximum number of inbound light nodes peers")
         ("max-blocks-in-response", po::value<uint32_t>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
-        ("no-telemetry", po::bool_switch()->default_value(def_no_telemetry), "Disables telemetry broadcasting")
+        ("no-telemetry", po::bool_switch(), "Disables telemetry broadcasting")
         ("telemetry-url", po::value<std::vector<std::string>>()->multitoken(),
                           "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
                           "e.g. --telemetry-url 'wss://foo/bar 0'")
@@ -1030,13 +1027,9 @@ namespace kagome::application {
       return true;
     };
 
-    find_argument<bool>(
-        vm,
-        "no-telemetry",
-        [&](bool telemetry_disabled) {
-          is_telemetry_enabled_ = not telemetry_disabled;
-        },
-        true);
+    find_argument<bool>(vm, "no-telemetry", [&](bool telemetry_disabled) {
+      is_telemetry_enabled_ = not telemetry_disabled;
+    });
 
     if (is_telemetry_enabled_) {
       if (not parse_telemetry_urls("telemetry-url", telemetry_endpoints_)) {
@@ -1099,13 +1092,9 @@ namespace kagome::application {
       enable_offchain_indexing_ = true;
     }
 
-    find_argument<bool>(
-        vm,
-        "chain-info",
-        [&](bool subcommand_chain_info) {
-          subcommand_chain_info_ = subcommand_chain_info;
-        },
-        true);
+    find_argument<bool>(vm, "chain-info", [&](bool subcommand_chain_info) {
+      subcommand_chain_info_ = subcommand_chain_info;
+    });
 
     bool has_recovery = false;
     find_argument<std::string>(vm, "recovery", [&](const std::string &val) {
