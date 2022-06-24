@@ -26,7 +26,8 @@ hunter_config(
 
 hunter_config(
     soralog
-    VERSION 0.0.9
+    URL https://github.com/soramitsu/soralog/archive/59d298254642be801440119ef6da0df4261a8bb4.tar.gz
+    SHA1 08321e7af9126898a67cd27529ab02b356ef84ad
     KEEP_PACKAGE_SOURCES
 )
 
