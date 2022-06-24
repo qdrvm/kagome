@@ -110,7 +110,7 @@ namespace kagome::runtime {
       // root hash for the state represented by the batch
       OUTCOME_TRY(root, ephemeral->hash());
       SL_TRACE(logger_, "Force commit ephemeral batch, root: {}", root);
-      return root;
+      return std::move(root);
     }
     return Error::NO_BATCH;
   }

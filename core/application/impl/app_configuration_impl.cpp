@@ -54,6 +54,8 @@ namespace {
   }();
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
+  const auto def_use_wavm_cache_ = false;
+  const auto def_purge_wavm_cache_ = false;
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
   const bool def_enable_offchain_indexing = false;
@@ -140,12 +142,24 @@ namespace kagome::application {
         node_version_(buildVersion()),
         max_ws_connections_(def_ws_max_connections),
         runtime_exec_method_{def_runtime_exec_method},
+        use_wavm_cache_(def_use_wavm_cache_),
+        purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
+        subcommand_chain_info_{false},
         recovery_state_{def_block_to_recover} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
+  }
+
+  boost::filesystem::path AppConfigurationImpl::runtimeCacheDirPath() const {
+    return boost::filesystem::temp_directory_path() / "kagome/runtimes-cache";
+  }
+
+  boost::filesystem::path AppConfigurationImpl::runtimeCachePath(
+      std::string runtime_hash) const {
+    return runtimeCacheDirPath() / runtime_hash;
   }
 
   boost::filesystem::path AppConfigurationImpl::chainPath(
@@ -610,6 +624,7 @@ namespace kagome::application {
         ("offchain-worker", po::value<std::string>()->default_value("WhenValidating"),
           "Should execute offchain workers on every block.\n"
           "Possible values: Always, Never, WhenValidating. WhenValidating is used by default.")
+        ("chain-info", po::bool_switch()->default_value(false), "Print chain info as JSON")
         ;
 
     po::options_description storage_desc("Storage options");
@@ -651,6 +666,8 @@ namespace kagome::application {
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
         ("wasm-execution", po::value<std::string>()->default_value("Interpreted"),
           "choose the desired wasm execution method (Compiled, Interpreted)")
+        ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
+        ("purge-wavm-cache", "purge WAVM runtime cache")
         ;
 
     // clang-format on
@@ -1013,6 +1030,24 @@ namespace kagome::application {
     }
     runtime_exec_method_ = runtime_exec_method_opt.value();
 
+    if (vm.count("unsafe-cached-wavm-runtime") > 0) {
+      use_wavm_cache_ = true;
+    }
+
+    if (vm.count("purge-wavm-cache") > 0) {
+      purge_wavm_cache_ = true;
+      if (fs::exists(runtimeCacheDirPath())) {
+        boost::system::error_code ec;
+        fs::remove_all(runtimeCacheDirPath(), ec);
+        if (ec.failed()) {
+          SL_ERROR(logger_,
+                   "Failed to purge cache in {} ['{}']",
+                   runtimeCacheDirPath(),
+                   ec.message());
+        }
+      }
+    }
+
     std::optional<OffchainWorkerMode> offchain_worker_mode_opt;
     find_argument<std::string>(
         vm,
@@ -1033,11 +1068,15 @@ namespace kagome::application {
       enable_offchain_indexing_ = true;
     }
 
+    find_argument<bool>(vm, "chain-info", [&](bool subcommand_chain_info) {
+      subcommand_chain_info_ = subcommand_chain_info;
+    });
+
     bool has_recovery = false;
     find_argument<std::string>(vm, "recovery", [&](const std::string &val) {
       has_recovery = true;
       recovery_state_ = str_to_recovery_state(val);
-      if (not offchain_worker_mode_opt) {
+      if (not recovery_state_) {
         SL_ERROR(logger_, "Invalid recovery state specified: '{}'", val);
       }
     });
