@@ -31,11 +31,10 @@ namespace {
   template <typename T, typename Func>
   inline void find_argument(boost::program_options::variables_map &vm,
                             char const *name,
-                            Func &&f,
-                            bool ignore_default = false) {
+                            Func &&f) {
     assert(nullptr != name);
     if (auto it = vm.find(name); it != vm.end()) {
-      if (ignore_default and it->second.defaulted()) {
+      if (it->second.defaulted()) {
         return;
       }
       std::forward<Func>(f)(it->second.as<T>());
@@ -980,26 +979,21 @@ namespace kagome::application {
     });
 
     find_argument<uint32_t>(
-        vm, "out-peers", [&](uint32_t val) { out_peers_ = val; }, true);
+        vm, "out-peers", [&](uint32_t val) { out_peers_ = val; });
 
     find_argument<uint32_t>(
-        vm, "in-peers", [&](uint32_t val) { in_peers_ = val; }, true);
+        vm, "in-peers", [&](uint32_t val) { in_peers_ = val; });
 
     find_argument<uint32_t>(
-        vm,
-        "in-peers-light",
-        [&](uint32_t val) { in_peers_light_ = val; },
-        true);
+        vm, "in-peers-light", [&](uint32_t val) { in_peers_light_ = val; });
 
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
     });
 
-    find_argument<uint32_t>(
-        vm,
-        "random-walk-interval",
-        [&](uint32_t val) { random_walk_interval_ = val; },
-        true);
+    find_argument<uint32_t>(vm, "random-walk-interval", [&](uint32_t val) {
+      random_walk_interval_ = val;
+    });
 
     rpc_http_endpoint_ = getEndpointFrom(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = getEndpointFrom(rpc_ws_host_, rpc_ws_port_);
@@ -1037,22 +1031,22 @@ namespace kagome::application {
       }
     }
 
-    std::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
+    bool maybe_error = false;
     find_argument<std::string>(
-        vm,
-        "wasm-execution",
-        [this, &runtime_exec_method_opt](std::string const &val) {
-          runtime_exec_method_opt = str_to_runtime_exec_method(val);
+        vm, "wasm-execution", [this, &maybe_error](std::string const &val) {
+          auto runtime_exec_method_opt = str_to_runtime_exec_method(val);
           if (not runtime_exec_method_opt) {
+            maybe_error = true;
             SL_ERROR(logger_,
                      "Invalid runtime execution method specified: '{}'",
                      val);
+          } else {
+            runtime_exec_method_ = runtime_exec_method_opt.value();
           }
         });
-    if (not runtime_exec_method_opt) {
+    if (maybe_error) {
       return false;
     }
-    runtime_exec_method_ = runtime_exec_method_opt.value();
 
     if (vm.count("unsafe-cached-wavm-runtime") > 0) {
       use_wavm_cache_ = true;
@@ -1072,20 +1066,19 @@ namespace kagome::application {
       }
     }
 
-    std::optional<OffchainWorkerMode> offchain_worker_mode_opt;
     find_argument<std::string>(
-        vm,
-        "offchain-worker",
-        [this, &offchain_worker_mode_opt](std::string const &val) {
-          offchain_worker_mode_opt = str_to_offchain_worker_mode(val);
-          if (not offchain_worker_mode_opt) {
+        vm, "offchain-worker", [this, &maybe_error](std::string const &val) {
+          auto offchain_worker_mode_opt = str_to_offchain_worker_mode(val);
+          if (offchain_worker_mode_opt) {
+            offchain_worker_mode_ = offchain_worker_mode_opt.value();
+          } else {
+            maybe_error = true;
             SL_ERROR(
                 logger_, "Invalid offchain worker mode specified: '{}'", val);
           }
-        },
-        true);
-    if (offchain_worker_mode_opt) {
-      offchain_worker_mode_ = offchain_worker_mode_opt.value();
+        });
+    if (maybe_error) {
+      return false;
     }
 
     if (vm.count("enable-offchain-indexing") > 0) {
