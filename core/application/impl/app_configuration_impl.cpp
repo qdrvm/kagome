@@ -31,9 +31,13 @@ namespace {
   template <typename T, typename Func>
   inline void find_argument(boost::program_options::variables_map &vm,
                             char const *name,
-                            Func &&f) {
+                            Func &&f,
+                            bool ignore_default = false) {
     assert(nullptr != name);
     if (auto it = vm.find(name); it != vm.end()) {
+      if (ignore_default and it->second.defaulted()) {
+        return;
+      }
       std::forward<Func>(f)(it->second.as<T>());
     }
   }
@@ -61,6 +65,14 @@ namespace {
   const bool def_enable_offchain_indexing = false;
   const std::optional<kagome::primitives::BlockId> def_block_to_recover =
       std::nullopt;
+  const auto def_offchain_worker = "WhenValidating";
+  const auto def_chain_info = false;
+  const auto def_out_peers = 25;
+  const auto def_in_peers = 25;
+  const auto def_in_peers_light = 100;
+  const auto def_no_telemetry = false;
+  const auto def_random_walk_interval = 15;
+  const auto def_wasm_execution = "Interpreted";
 
   /**
    * Generate once at run random node name if form of UUID
@@ -137,16 +149,20 @@ namespace kagome::application {
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port),
         openmetrics_http_port_(def_openmetrics_http_port),
+        out_peers_(def_out_peers),
+        in_peers_(def_in_peers),
+        in_peers_light_(def_in_peers_light),
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
         node_version_(buildVersion()),
         max_ws_connections_(def_ws_max_connections),
+        random_walk_interval_(def_random_walk_interval),
         runtime_exec_method_{def_runtime_exec_method},
         use_wavm_cache_(def_use_wavm_cache_),
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
-        subcommand_chain_info_{false},
+        subcommand_chain_info_{def_chain_info},
         recovery_state_{def_block_to_recover} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
@@ -622,10 +638,10 @@ namespace kagome::application {
     po::options_description blockhain_desc("Blockchain options");
     blockhain_desc.add_options()
         ("chain", po::value<std::string>(), "required, chainspec file path")
-        ("offchain-worker", po::value<std::string>()->default_value("WhenValidating"),
+        ("offchain-worker", po::value<std::string>()->default_value(def_offchain_worker),
           "Should execute offchain workers on every block.\n"
           "Possible values: Always, Never, WhenValidating. WhenValidating is used by default.")
-        ("chain-info", po::bool_switch()->default_value(false), "Print chain info as JSON")
+        ("chain-info", po::bool_switch()->default_value(def_chain_info), "Print chain info as JSON")
         ;
 
     po::options_description storage_desc("Storage options");
@@ -650,23 +666,23 @@ namespace kagome::application {
         ("ws-max-connections", po::value<uint32_t>(), "maximum number of WS RPC server connections")
         ("prometheus-host", po::value<std::string>(), "address for OpenMetrics over HTTP")
         ("prometheus-port", po::value<uint16_t>(), "port for OpenMetrics over HTTP")
-        ("out-peers", po::value<uint32_t>()->default_value(25), "number of outgoing connections we're trying to maintain")
-        ("in-peers", po::value<uint32_t>()->default_value(25), "maximum number of inbound full nodes peers")
-        ("in-peers-light", po::value<uint32_t>()->default_value(100), "maximum number of inbound light nodes peers")
+        ("out-peers", po::value<uint32_t>()->default_value(def_out_peers), "number of outgoing connections we're trying to maintain")
+        ("in-peers", po::value<uint32_t>()->default_value(def_in_peers), "maximum number of inbound full nodes peers")
+        ("in-peers-light", po::value<uint32_t>()->default_value(def_in_peers_light), "maximum number of inbound light nodes peers")
         ("max-blocks-in-response", po::value<uint32_t>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
-        ("no-telemetry", po::bool_switch()->default_value(false), "Disables telemetry broadcasting")
+        ("no-telemetry", po::bool_switch()->default_value(def_no_telemetry), "Disables telemetry broadcasting")
         ("telemetry-url", po::value<std::vector<std::string>>()->multitoken(),
                           "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
                           "e.g. --telemetry-url 'wss://foo/bar 0'")
-        ("random-walk-interval", po::value<uint32_t>()->default_value(15), "Kademlia random walk interval")
+        ("random-walk-interval", po::value<uint32_t>()->default_value(def_random_walk_interval), "Kademlia random walk interval")
         ;
 
     po::options_description development_desc("Additional options");
     development_desc.add_options()
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
-        ("wasm-execution", po::value<std::string>()->default_value("Interpreted"),
+        ("wasm-execution", po::value<std::string>()->default_value(def_wasm_execution),
           "choose the desired wasm execution method (Compiled, Interpreted)")
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
@@ -967,21 +983,26 @@ namespace kagome::application {
     });
 
     find_argument<uint32_t>(
-        vm, "out-peers", [&](uint32_t val) { out_peers_ = val; });
+        vm, "out-peers", [&](uint32_t val) { out_peers_ = val; }, true);
 
     find_argument<uint32_t>(
-        vm, "in-peers", [&](uint32_t val) { in_peers_ = val; });
+        vm, "in-peers", [&](uint32_t val) { in_peers_ = val; }, true);
 
     find_argument<uint32_t>(
-        vm, "in-peers-light", [&](uint32_t val) { in_peers_light_ = val; });
+        vm,
+        "in-peers-light",
+        [&](uint32_t val) { in_peers_light_ = val; },
+        true);
 
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
     });
 
-    find_argument<uint32_t>(vm, "random-walk-interval", [&](uint32_t val) {
-      random_walk_interval_ = val;
-    });
+    find_argument<uint32_t>(
+        vm,
+        "random-walk-interval",
+        [&](uint32_t val) { random_walk_interval_ = val; },
+        true);
 
     rpc_http_endpoint_ = getEndpointFrom(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = getEndpointFrom(rpc_ws_host_, rpc_ws_port_);
@@ -1009,9 +1030,13 @@ namespace kagome::application {
       return true;
     };
 
-    find_argument<bool>(vm, "no-telemetry", [&](bool telemetry_disabled) {
-      is_telemetry_enabled_ = not telemetry_disabled;
-    });
+    find_argument<bool>(
+        vm,
+        "no-telemetry",
+        [&](bool telemetry_disabled) {
+          is_telemetry_enabled_ = not telemetry_disabled;
+        },
+        true);
 
     if (is_telemetry_enabled_) {
       if (not parse_telemetry_urls("telemetry-url", telemetry_endpoints_)) {
@@ -1064,19 +1089,23 @@ namespace kagome::application {
             SL_ERROR(
                 logger_, "Invalid offchain worker mode specified: '{}'", val);
           }
-        });
-    if (not offchain_worker_mode_opt) {
-      return false;
+        },
+        true);
+    if (offchain_worker_mode_opt) {
+      offchain_worker_mode_ = offchain_worker_mode_opt.value();
     }
-    offchain_worker_mode_ = offchain_worker_mode_opt.value();
 
     if (vm.count("enable-offchain-indexing") > 0) {
       enable_offchain_indexing_ = true;
     }
 
-    find_argument<bool>(vm, "chain-info", [&](bool subcommand_chain_info) {
-      subcommand_chain_info_ = subcommand_chain_info;
-    });
+    find_argument<bool>(
+        vm,
+        "chain-info",
+        [&](bool subcommand_chain_info) {
+          subcommand_chain_info_ = subcommand_chain_info;
+        },
+        true);
 
     bool has_recovery = false;
     find_argument<std::string>(vm, "recovery", [&](const std::string &val) {

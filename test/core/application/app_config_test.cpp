@@ -53,7 +53,8 @@ class AppConfigurationTest : public testing::Test {
               "telemetry-endpoints": [
                   "ws://localhost/submit 0",
                   "wss://telemetry.soramitsu.co.jp/submit 4"
-              ]
+              ],
+              "random-walk-interval" : 30
         },
         "additional" : {
           "single-finalizing-node" : true
@@ -321,6 +322,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   ASSERT_EQ(app_config_->nodeName(), "Bob's node");
+  ASSERT_EQ(app_config_->getRandomWalkInterval(), std::chrono::seconds(30));
 }
 
 /**
@@ -646,5 +648,5 @@ TEST_F(AppConfigurationTest, SetRandomWalk) {
                         "30"};
 
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
-  ASSERT_EQ(app_config_->getRandomWalkInterval(),  std::chrono::seconds(30));
+  ASSERT_EQ(app_config_->getRandomWalkInterval(), std::chrono::seconds(30));
 }
