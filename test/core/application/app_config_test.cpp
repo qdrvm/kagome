@@ -628,7 +628,7 @@ TEST_F(AppConfigurationTest, DefaultRandomWalk) {
   };
 
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
-  ASSERT_EQ(app_config_->getRandomWalkInterval(), 15);
+  ASSERT_EQ(app_config_->getRandomWalkInterval(), std::chrono::seconds(15));
 }
 
 /**
@@ -646,5 +646,5 @@ TEST_F(AppConfigurationTest, SetRandomWalk) {
                         "30"};
 
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
-  ASSERT_EQ(app_config_->getRandomWalkInterval(), 30);
+  ASSERT_EQ(app_config_->getRandomWalkInterval(),  std::chrono::seconds(30));
 }

@@ -148,7 +148,7 @@ namespace kagome::application {
     /**
      * @return Kademlia random walk interval
      */
-    virtual uint32_t getRandomWalkInterval() const = 0;
+    virtual std::chrono::seconds getRandomWalkInterval() const = 0;
 
     /**
      * @return logging system tuning config

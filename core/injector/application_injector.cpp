@@ -507,7 +507,8 @@ namespace {
   }
 
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
-      const application::ChainSpec &chain_spec, uint32_t random_wak_interval) {
+      const application::ChainSpec &chain_spec,
+      std::chrono::seconds random_wak_interval) {
     static auto initialized =
         std::optional<sptr<libp2p::protocol::kademlia::Config>>(std::nullopt);
     if (initialized) {
@@ -518,8 +519,7 @@ namespace {
         libp2p::protocol::kademlia::Config{
             .protocolId = "/" + chain_spec.protocolId() + "/kad",
             .maxBucketSize = 1000,
-            .randomWalk = {.interval =
-                               std::chrono::seconds(random_wak_interval)}});
+            .randomWalk = {.interval = random_wak_interval}});
 
     initialized.emplace(std::move(kagome_config));
     return initialized.value();

@@ -123,8 +123,8 @@ namespace kagome::application {
     uint32_t maxWsConnections() const override {
       return max_ws_connections_;
     }
-    uint32_t getRandomWalkInterval() const override{
-      return random_walk_interval_;
+    std::chrono::seconds getRandomWalkInterval() const override{
+      return std::chrono::seconds(random_walk_interval_);
     }
     const std::vector<std::string> &log() const override {
       return logger_tuning_config_;
