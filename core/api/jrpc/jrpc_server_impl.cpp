@@ -6,6 +6,7 @@
 #include "api/jrpc/jrpc_server_impl.hpp"
 
 #include "api/jrpc/custom_json_writer.hpp"
+#include "api/jrpc/jrpc_handle_batch.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, JRpcServerImpl::Error, e) {
   using E = kagome::api::JRpcServerImpl::Error;
@@ -74,10 +75,8 @@ namespace kagome::api {
 
   void JRpcServerImpl::processData(std::string_view request,
                                    const ResponseHandler &cb) {
-    auto &&formatted_response =
-        jsonrpc_handler_.HandleRequest(std::string(request));
-    cb(std::string(formatted_response->GetData(),
-                   formatted_response->GetSize()));
+    JrpcHandleBatch response(jsonrpc_handler_, request);
+    cb(response.response());
   }
 
 }  // namespace kagome::api
