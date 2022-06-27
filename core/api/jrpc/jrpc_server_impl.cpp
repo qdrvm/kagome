@@ -52,12 +52,13 @@ namespace kagome::api {
      * https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#state_subscribestorage-pubsub
      */
     using Response = jsonrpc::Request;
-    using Value = jsonrpc::Value;
     using Fault = jsonrpc::Fault;
 
     JsonWriter writer;
     try {
-      Response response(std::move(method_name), from, Value(0));
+      // Prevent jsonrpc-lean from writing "id" field.
+      constexpr bool id = false;
+      Response response(std::move(method_name), from, id);
       response.Write(writer);
 
       auto &&formatted_response = writer.GetData();
