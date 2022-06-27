@@ -12,6 +12,7 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "application/impl/kagome_application_impl.hpp"
+#include "common/fd_limit.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 
@@ -42,6 +43,8 @@ int main(int argc, const char **argv) {
   auto logger = kagome::log::createLogger("AppConfiguration",
                                           kagome::log::defaultGroupName);
   AppConfigurationImpl configuration{logger};
+
+  kagome::common::setFdLimit(SIZE_MAX);
 
   if (configuration.initializeFromArgs(argc, argv)) {
     kagome::log::tuneLoggingSystem(configuration.log());
