@@ -53,7 +53,8 @@ class AppConfigurationTest : public testing::Test {
               "telemetry-endpoints": [
                   "ws://localhost/submit 0",
                   "wss://telemetry.soramitsu.co.jp/submit 4"
-              ]
+              ],
+              "random-walk-interval" : 30
         },
         "additional" : {
           "single-finalizing-node" : true
@@ -321,6 +322,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   ASSERT_EQ(app_config_->nodeName(), "Bob's node");
+  ASSERT_EQ(app_config_->getRandomWalkInterval(), std::chrono::seconds(30));
 }
 
 /**
@@ -474,8 +476,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "--base-path",
         base_path.native().c_str(),
     };
-    ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), args));
+    ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"info"});
   }
   {
@@ -488,8 +489,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "--base-path",
         base_path.native().c_str(),
     };
-    ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), args));
+    ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"verbose"});
   }
   {
@@ -502,8 +502,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "--base-path",
         base_path.native().c_str(),
     };
-    ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), args));
+    ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   }
   {
@@ -516,8 +515,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "--base-path",
         base_path.native().c_str(),
     };
-    ASSERT_TRUE(
-        app_config_->initializeFromArgs(std::size(args), args));
+    ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"trace"});
   }
 }
@@ -615,4 +613,40 @@ TEST_F(AppConfigurationTest, MaxBlocksInResponse) {
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->maxBlocksInResponse(), 122);
+}
+
+/**
+ * @given an instance of AppConfigurationImpl
+ * @when --random-walk-interval flag is not specified
+ * @then random walk has default value
+ */
+TEST_F(AppConfigurationTest, DefaultRandomWalk) {
+  char const *args[] = {
+      "/path/",
+      "--chain",
+      chain_path.native().c_str(),
+      "--base-path",
+      base_path.native().c_str(),
+  };
+
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
+  ASSERT_EQ(app_config_->getRandomWalkInterval(), std::chrono::seconds(15));
+}
+
+/**
+ * @given an instance of AppConfigurationImpl
+ * @when --random-walk-interval flag is specified with a value
+ * @then random walk has the specified value
+ */
+TEST_F(AppConfigurationTest, SetRandomWalk) {
+  char const *args[] = {"/path/",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
+                        base_path.native().c_str(),
+                        "--random-walk-interval",
+                        "30"};
+
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
+  ASSERT_EQ(app_config_->getRandomWalkInterval(), std::chrono::seconds(30));
 }
