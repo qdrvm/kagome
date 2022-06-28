@@ -51,19 +51,19 @@ namespace kagome::offchain {
     if (uri_.error().has_value()) {
       error_message_ =
           fmt::format("URI parsing was failed: {}", uri_.error().value());
-      SL_ERROR(log_, error_message_);
+      SL_ERROR(log_, "{}", error_message_);
       return false;
     }
     if (uri_.Schema != "https" and uri_.Schema != "http") {
       error_message_ = fmt::format("URI has invalid schema: `{}`", uri_.Schema);
-      SL_ERROR(log_, error_message_);
+      SL_ERROR(log_, "{}", error_message_);
       return false;
     }
     if (not uri_.Port.empty()) {
       if (int port = std::stoi(std::string(uri_.Port));
           port <= 0 or port > 65536 or uri_.Port != std::to_string(port)) {
         error_message_ = fmt::format("URI has invalid port: `{}`", uri_.Port);
-        SL_ERROR(log_, error_message_);
+        SL_ERROR(log_, "{}", error_message_);
         return false;
       }
     } else if (uri_.Schema == "https") {
@@ -73,12 +73,12 @@ namespace kagome::offchain {
     }
     if (uri_.Host.empty()) {
       error_message_ = "URI has empty host";
-      SL_ERROR(log_, error_message_);
+      SL_ERROR(log_, "{}", error_message_);
       return false;
     }
     if (uri_.Path.empty()) {
       error_message_ = "URI has empty path";
-      SL_ERROR(log_, error_message_);
+      SL_ERROR(log_, "{}", error_message_);
       return false;
     }
 
@@ -124,7 +124,7 @@ namespace kagome::offchain {
                                     boost::asio::error::get_ssl_category()};
         error_message_ = fmt::format(
             "Can't resolve hostname {}: {}", uri_.Host, ec.message());
-        SL_ERROR(log_, error_message_);
+        SL_ERROR(log_, "{}", error_message_);
         status_ = ErrorHasOccurred;
         return;
       }
@@ -147,7 +147,7 @@ namespace kagome::offchain {
 
         self->error_message_ = fmt::format(
             "Can't resolve hostname {}: {}", self->uri_.Host, ec.message());
-        SL_ERROR(self->log_, self->error_message_);
+        SL_ERROR(self->log_, "{}", self->error_message_);
         self->status_ = ErrorHasOccurred;
       }
     };
@@ -234,7 +234,7 @@ namespace kagome::offchain {
 
         self->error_message_ =
             fmt::format("Handshake failed: {}", ec.message());
-        SL_ERROR(self->log_, self->error_message_);
+        SL_ERROR(self->log_, "{}", self->error_message_);
         self->status_ = ErrorHasOccurred;
       }
     };
@@ -283,7 +283,7 @@ namespace kagome::offchain {
 
         self->error_message_ =
             fmt::format("Request send was fail: {}", ec.message());
-        SL_ERROR(self->log_, self->error_message_);
+        SL_ERROR(self->log_, "{}", self->error_message_);
         self->status_ = ErrorHasOccurred;
       }
     };
@@ -324,7 +324,7 @@ namespace kagome::offchain {
 
         self->error_message_ =
             fmt::format("Response reception has failed: {}", ec.message());
-        SL_ERROR(self->log_, self->error_message_);
+        SL_ERROR(self->log_, "{}", self->error_message_);
         self->status_ = ErrorHasOccurred;
       }
     };
@@ -380,7 +380,7 @@ namespace kagome::offchain {
       std::string_view name, std::string_view value) {
     if (not adding_headers_is_allowed_) {
       error_message_ = "Trying to add header into ready request";
-      SL_ERROR(log_, error_message_);
+      SL_ERROR(log_, "{}", error_message_);
       return Failure();
     }
 
@@ -394,7 +394,7 @@ namespace kagome::offchain {
       std::optional<std::chrono::milliseconds> deadline_opt) {
     if (request_has_sent_) {
       error_message_ = "Trying to write body into ready request";
-      SL_ERROR(log_, error_message_);
+      SL_ERROR(log_, "{}", error_message_);
       return HttpError::IoError;
     }
 
