@@ -111,15 +111,10 @@ namespace {
  * @param name method name
  * @return result of method invocation
  */
-#define REGISTER_HOST_API_FUNC(name)                                        \
-  imports_[#name] = [this](wasm::Function *import,                          \
-                           wasm::LiteralList &arguments) -> wasm::Literal { \
-    checkArguments(import->base.c_str(),                                    \
-                   hostApiFuncArgSize<&host_api::HostApi ::name>(),         \
-                   arguments.size());                                       \
-    return callHostApiFunc<&host_api::HostApi ::name>(host_api_.get(),      \
-                                                      arguments);           \
-  }  // hack to make macro call look natural by ending with ';'
+#define REGISTER_HOST_API_FUNC(name) \
+  imports_[#name] =                  \
+      &importCall<&host_api::HostApi ::name>  // hack to make macro call look
+                                              // natural by ending with ';'
 
 namespace kagome::runtime {
   class TrieStorageProvider;
@@ -268,7 +263,7 @@ namespace kagome::runtime::binaryen {
       auto it = imports_.find(
           import->base.c_str(), imports_.hash_function(), imports_.key_eq());
       if (it != imports_.end()) {
-        return it->second(import, arguments);
+        return it->second(*this, import, arguments);
       }
     }
 
@@ -289,6 +284,16 @@ namespace kagome::runtime::binaryen {
       throw std::runtime_error(
           "Invocation of a Host API method with wrong number of arguments");
     }
+  }
+
+  template <auto mf>
+  wasm::Literal RuntimeExternalInterface::importCall(
+      RuntimeExternalInterface &this_,
+      wasm::Function *import,
+      wasm::LiteralList &arguments) {
+    this_.checkArguments(
+        import->base.c_str(), hostApiFuncArgSize<mf>(), arguments.size());
+    return callHostApiFunc<mf>(this_.host_api_.get(), arguments);
   }
 
 }  // namespace kagome::runtime::binaryen
