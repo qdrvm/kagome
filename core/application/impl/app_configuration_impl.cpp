@@ -819,14 +819,14 @@ namespace kagome::application {
         if (not ma_res.has_value()) {
           auto err_msg = "Bootnode '" + addr_str
                          + "' is invalid: " + ma_res.error().message();
-          SL_ERROR(logger_, err_msg);
+          SL_ERROR(logger_, "{}", err_msg);
           std::cout << err_msg << std::endl;
           return false;
         }
         auto peer_id_base58_opt = ma_res.value().getPeerId();
         if (not peer_id_base58_opt) {
           auto err_msg = "Bootnode '" + addr_str + "' has not peer_id";
-          SL_ERROR(logger_, err_msg);
+          SL_ERROR(logger_, "{}", err_msg);
           std::cout << err_msg << std::endl;
           return false;
         }
@@ -842,7 +842,7 @@ namespace kagome::application {
       if (not key_res.has_value()) {
         auto err_msg = "Node key '" + node_key.value()
                        + "' is invalid: " + key_res.error().message();
-        SL_ERROR(logger_, err_msg);
+        SL_ERROR(logger_, "{}", err_msg);
         std::cout << err_msg << std::endl;
         return false;
       }
