@@ -65,10 +65,10 @@ namespace {
   const std::optional<kagome::primitives::BlockId> def_block_to_recover =
       std::nullopt;
   const auto def_offchain_worker = "WhenValidating";
-  const auto def_out_peers = 25;
-  const auto def_in_peers = 25;
-  const auto def_in_peers_light = 100;
-  const auto def_random_walk_interval = 15;
+  const uint32_t def_out_peers = 25;
+  const uint32_t def_in_peers = 25;
+  const uint32_t def_in_peers_light = 100;
+  const uint32_t def_random_walk_interval = 15;
   const auto def_wasm_execution = "Interpreted";
 
   /**
@@ -1031,12 +1031,14 @@ namespace kagome::application {
       }
     }
 
-    bool maybe_error = false;
+    bool exec_method_value_error = false;
     find_argument<std::string>(
-        vm, "wasm-execution", [this, &maybe_error](std::string const &val) {
+        vm,
+        "wasm-execution",
+        [this, &exec_method_value_error](std::string const &val) {
           auto runtime_exec_method_opt = str_to_runtime_exec_method(val);
           if (not runtime_exec_method_opt) {
-            maybe_error = true;
+            exec_method_value_error = true;
             SL_ERROR(logger_,
                      "Invalid runtime execution method specified: '{}'",
                      val);
@@ -1044,7 +1046,7 @@ namespace kagome::application {
             runtime_exec_method_ = runtime_exec_method_opt.value();
           }
         });
-    if (maybe_error) {
+    if (exec_method_value_error) {
       return false;
     }
 
@@ -1066,18 +1068,21 @@ namespace kagome::application {
       }
     }
 
+    bool offchain_worker_value_error = false;
     find_argument<std::string>(
-        vm, "offchain-worker", [this, &maybe_error](std::string const &val) {
+        vm,
+        "offchain-worker",
+        [this, &offchain_worker_value_error](std::string const &val) {
           auto offchain_worker_mode_opt = str_to_offchain_worker_mode(val);
           if (offchain_worker_mode_opt) {
             offchain_worker_mode_ = offchain_worker_mode_opt.value();
           } else {
-            maybe_error = true;
+            offchain_worker_value_error = true;
             SL_ERROR(
                 logger_, "Invalid offchain worker mode specified: '{}'", val);
           }
         });
-    if (maybe_error) {
+    if (offchain_worker_value_error) {
       return false;
     }
 
