@@ -20,5 +20,6 @@ target_link_libraries(telemetry
     OpenSSL::SSL
     RapidJSON::rapidjson
     p2p::p2p_basic_scheduler
+    p2p::p2p_multiaddress
     )
 kagome_install(telemetry)

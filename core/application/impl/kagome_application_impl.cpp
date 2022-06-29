@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "application/impl/util.hpp"
+#include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "consensus/babe/babe.hpp"
 #include "metrics/impl/metrics_watcher.hpp"
@@ -25,6 +26,11 @@ namespace kagome::application {
     // some of them are requested by reference and hence not copied
     chain_spec_ = injector_->injectChainSpec();
     BOOST_ASSERT(chain_spec_ != nullptr);
+  }
+
+  int KagomeApplicationImpl::chainInfo() {
+    auto mode = injector_->injectPrintChainInfoMode();
+    return mode->run();
   }
 
   int KagomeApplicationImpl::recovery() {

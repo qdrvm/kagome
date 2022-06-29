@@ -116,11 +116,9 @@ namespace kagome::offchain {
   }
 
   Result<OpaqueNetworkState, Failure> OffchainWorkerImpl::networkState() {
-    OpaqueNetworkState result(current_peer_info_.id, {});
-
-    std::list<libp2p::multi::Multiaddress> address(
-        current_peer_info_.addresses.begin(),
-        current_peer_info_.addresses.end());
+    OpaqueNetworkState result(current_peer_info_.id,
+                              {current_peer_info_.addresses.begin(),
+                               current_peer_info_.addresses.end()});
 
     return result;
   }
@@ -226,7 +224,7 @@ namespace kagome::offchain {
 
     auto request = std::make_shared<HttpRequest>(request_id);
 
-    if (not request->init(method, uri, meta)) {
+    if (not request->init(method, uri, std::move(meta))) {
       return Failure();
     }
 
@@ -235,9 +233,8 @@ namespace kagome::offchain {
 
     if (is_emplaced) {
       return request_id;
-    } else {
-      return Failure();
     }
+    return Failure();
   }
 
   Result<Success, Failure> OffchainWorkerImpl::httpRequestAddHeader(
@@ -282,6 +279,7 @@ namespace kagome::offchain {
       auto it = active_http_requests_.find(id);
       if (it == active_http_requests_.end()) {
         result.push_back(InvalidIdentifier);
+        continue;
       }
       auto &request = it->second;
 

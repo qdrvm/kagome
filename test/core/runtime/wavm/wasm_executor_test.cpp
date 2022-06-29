@@ -34,6 +34,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "runtime/wavm/module_params.hpp"
 #include "runtime/wavm/wavm_external_memory_provider.hpp"
@@ -187,7 +188,8 @@ class WasmExecutorTest : public ::testing::Test {
             compartment_wrapper,
             module_params,
             instance_env_factory,
-            intrinsic_module);
+            intrinsic_module,
+            std::nullopt);
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
         std::make_shared<RuntimeInstancesPool>(),
         runtime_upgrade_tracker_,

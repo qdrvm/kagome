@@ -52,7 +52,7 @@ namespace kagome::consensus::grandpa {
                 (override));
 
     MOCK_METHOD(void,
-                executeNextRound,
+                tryExecuteNextRound,
                 (const std::shared_ptr<VotingRound> &),
                 (override));
 

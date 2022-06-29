@@ -12,6 +12,7 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "application/impl/kagome_application_impl.hpp"
+#include "common/fd_limit.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 
@@ -43,11 +44,17 @@ int main(int argc, const char **argv) {
                                           kagome::log::defaultGroupName);
   AppConfigurationImpl configuration{logger};
 
+  kagome::common::setFdLimit(SIZE_MAX);
+
   if (configuration.initializeFromArgs(argc, argv)) {
     kagome::log::tuneLoggingSystem(configuration.log());
 
     auto app = std::make_shared<kagome::application::KagomeApplicationImpl>(
         configuration);
+
+    if (configuration.subcommandChainInfo()) {
+      return app->chainInfo();
+    }
 
     // Recovery mode
     if (configuration.recoverState().has_value()) {
