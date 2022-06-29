@@ -4,7 +4,10 @@
  */
 
 #include "network/impl/state_protocol_observer_impl.hpp"
+#include <boost/bind/storage.hpp>
+#include <libp2p/outcome/outcome.hpp>
 
+#include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "network/types/state_response.hpp"
 #include "storage/predefined_keys.hpp"
@@ -29,9 +32,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network,
 namespace kagome::network {
 
   StateProtocolObserverImpl::StateProtocolObserverImpl(
+      std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
       std::shared_ptr<storage::trie::TrieStorage> storage)
-      : storage_{std::move(storage)},
+      : blocks_headers_(std::move(blocks_headers)),
+        storage_{std::move(storage)},
         log_(log::createLogger("StateProtocolObserver", "network")) {
+    BOOST_ASSERT(blocks_headers_);
     BOOST_ASSERT(storage_);
   }
 
@@ -71,9 +77,8 @@ namespace kagome::network {
 
   outcome::result<network::StateResponse>
   StateProtocolObserverImpl::onStateRequest(const StateRequest &request) const {
-    StateResponse response;
-
-    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(request.hash));
+    OUTCOME_TRY(header, blocks_headers_->getBlockHeader(request.hash));
+    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root));
 
     auto cursor = batch->trieCursor();
     // if key is not empty continue iteration from place where left
@@ -86,6 +91,7 @@ namespace kagome::network {
     entry.state_root =
         storage::trie::RootHash::fromSpan(std::vector<uint8_t>(32, 0)).value();
 
+    StateResponse response;
     response.entries.emplace_back(std::move(entry));
 
     // First key would contain main state storage key (child state storage hash)
@@ -119,11 +125,10 @@ namespace kagome::network {
             value_res.has_value()) {
           // if key is child state storage hash iterate child storage keys first
           if (cursor->key().value().size() > child_prefix.size()
-              || cursor->key().value().subbuffer(0, child_prefix.size())
+              && cursor->key().value().subbuffer(0, child_prefix.size())
                      == child_prefix) {
-            auto hash = storage::trie::RootHash::fromSpan(
-                            value_res.value().value().get())
-                            .value();
+            OUTCOME_TRY(hash, storage::trie::RootHash::fromSpan(
+                            value_res.value().value().get()));
             OUTCOME_TRY(entry_res,
                         this->getEntry(
                             hash, common::Buffer(), MAX_RESPONSE_BYTES - size));

@@ -150,7 +150,7 @@ namespace kagome::network {
         stream->reset();
         return;
       }
-      auto &state_response = state_response_res.value();
+      const auto &state_response = state_response_res.value();
 
       self->writeResponse(std::move(stream), state_response);
     });

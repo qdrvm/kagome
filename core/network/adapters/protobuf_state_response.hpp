@@ -24,7 +24,26 @@ namespace kagome::network {
         std::vector<uint8_t> &out,
         std::vector<uint8_t>::iterator loaded) {
       ::api::v1::StateResponse msg;
+      for (const auto &entries : t.entries) {
+        auto *dst_entries = msg.add_entries();
+        dst_entries->set_state_root(entries.state_root.toString());
+        for (const auto &entry : entries.entries) {
+          auto *dst_entry = dst_entries->add_entries();
+          dst_entry->set_key(entry.key.toString());
+          dst_entry->set_value(entry.value.toString());
+        }
+        dst_entries->set_complete(entries.complete);
+      }
+      msg.set_proof(t.proof.toString());
+
+      const size_t distance_was = std::distance(out.begin(), loaded);
+      const size_t was_size = out.size();
+
+      out.resize(was_size + msg.ByteSizeLong());
+      msg.SerializeToArray(&out[was_size], msg.ByteSizeLong());
+
       auto res_it = out.begin();
+      std::advance(res_it, std::min(distance_was, was_size));
       return res_it;
     }
 
