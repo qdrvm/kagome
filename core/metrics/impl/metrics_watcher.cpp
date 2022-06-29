@@ -60,7 +60,7 @@ namespace kagome::metrics {
     }
   }
 
-  outcome::result<size_t> MetricsWatcher::measure_storage_size() {
+  outcome::result<uintmax_t> MetricsWatcher::measure_storage_size() {
     boost::system::error_code ec;
 
     fs::directory_entry entry(storage_path_);
@@ -72,39 +72,20 @@ namespace kagome::metrics {
       return boost::system::errc::invalid_argument;
     }
 
-    size_t total_size = 0;
-
-    std::function<void(const fs::directory_entry &,
-                       boost::system::error_code &ec)>
-        observe = [&](const fs::directory_entry &entry_arg,
-                      boost::system::error_code &ec) {
-          for (fs::directory_iterator it(entry_arg);
-               it != fs::directory_iterator();
-               ++it) {
-            auto &entry = *it;
-
-            auto size = fs::file_size(*it, ec);
-            if (ec) {
-              return;
-            }
-            total_size += size;
-
-            auto is_dir = fs::is_directory(entry, ec);
-            if (ec) {
-              return;
-            }
-            if (is_dir) {
-              observe(entry, ec);
-            }
-          }
-        };
-
-    observe(entry, ec);
-    if (ec) {
-      return ec;
+    uintmax_t total_size = 0;
+    for (fs::recursive_directory_iterator it(entry, ec);
+         it != fs::recursive_directory_iterator();
+         it.increment(ec)) {
+      if (!ec) {
+        const auto &dir_entry = *it;
+        auto size = fs::file_size(dir_entry, ec);
+        if (!ec) {
+          total_size += size;
+        }
+      }
     }
 
-    return total_size;
+    return outcome::success(total_size);
   }
 
 }  // namespace kagome::metrics
