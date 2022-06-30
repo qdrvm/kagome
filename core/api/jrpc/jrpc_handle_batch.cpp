@@ -8,6 +8,10 @@
 #include <jsonrpc-lean/server.h>
 
 namespace kagome::api {
+  /**
+   * Parses jsonrpc batch request.
+   * Callback is invoked for each request.
+   */
   template <typename Cb>
   struct Parser {
     Cb cb;

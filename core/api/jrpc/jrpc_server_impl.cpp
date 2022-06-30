@@ -57,7 +57,12 @@ namespace kagome::api {
 
     JsonWriter writer;
     try {
-      // Prevent jsonrpc-lean from writing "id" field.
+      /**
+       * Notification must omit "id" field.
+       * But jsonrpc-lean writes "id" field if id is null/int/string.
+       * So we pass bool.
+       * https://github.com/xDimon/jsonrpc-lean/blob/6c093da8670d7bf56555f166f8b8151f33a5d741/include/jsonrpc-lean/jsonwriter.h#L169
+       */
       constexpr bool id = false;
       Response response(std::move(method_name), from, id);
       response.Write(writer);
