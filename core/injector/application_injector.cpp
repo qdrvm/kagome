@@ -136,6 +136,7 @@
 #include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -337,6 +338,33 @@ namespace {
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
       log->critical("Can't create LevelDB in {}: {}",
+                    fs::absolute(app_config.databasePath(chain_spec->id()),
+                                 fs::current_path())
+                        .native(),
+                    db_res.error().message());
+      exit(EXIT_FAILURE);
+    }
+    auto &db = db_res.value();
+
+    initialized.emplace(std::move(db));
+    return initialized.value();
+  }
+
+  sptr<storage::BufferStorage> get_rocks_db(
+      application::AppConfiguration const &app_config,
+      sptr<application::ChainSpec> chain_spec) {
+    static auto initialized =
+        std::optional<sptr<storage::BufferStorage>>(std::nullopt);
+    if (initialized) {
+      return initialized.value();
+    }
+    auto options = rocksdb::Options{};
+    options.create_if_missing = true;
+    auto db_res = storage::RocksDB::create(
+        app_config.databasePath(chain_spec->id()), options);
+    if (!db_res) {
+      auto log = log::createLogger("Injector", "injector");
+      log->critical("Can't create RocksDB in {}: {}",
                     fs::absolute(app_config.databasePath(chain_spec->id()),
                                  fs::current_path())
                         .native(),
@@ -1103,6 +1131,10 @@ namespace {
               injector.template create<application::AppConfiguration const &>();
           auto chain_spec =
               injector.template create<sptr<application::ChainSpec>>();
+          if (config.storageBackend()
+              == application::AppConfiguration::StorageBackend::RocksDB) {
+            return get_rocks_db(config, chain_spec);
+          }
           return get_level_db(config, chain_spec);
         }),
         di::bind<blockchain::BlockStorage>.to([](const auto &injector) {
