@@ -245,13 +245,30 @@ namespace kagome::application {
       top_tree = genesis_raw_tree.begin()->second;
     }
 
-    for (const auto &[key, value] : top_tree) {
-      // get rid of leading 0x for key and value and unhex
-      OUTCOME_TRY(key_processed, common::unhexWith0x(key));
-      OUTCOME_TRY(value_processed, common::unhexWith0x(value.data()));
-      genesis_.emplace_back(key_processed, value_processed);
+    auto read_key_block = [](const auto &tree,
+                             GenesisRawData &data) -> outcome::result<void> {
+      for (const auto &[child_key, child_value] : tree) {
+        // get rid of leading 0x for key and value and unhex
+        OUTCOME_TRY(key_processed, common::unhexWith0x(child_key));
+        OUTCOME_TRY(value_processed, common::unhexWith0x(child_value.data()));
+        data.emplace_back(key_processed, value_processed);
+      }
+      return outcome::success();
+    };
+
+    if (auto children_default_tree_opt =
+            genesis_raw_tree.get_child_optional("childrenDefault");
+        children_default_tree_opt.has_value()) {
+      for (const auto &[key, value] : children_default_tree_opt.value()) {
+        GenesisRawData child;
+        OUTCOME_TRY(read_key_block(value, child));
+        OUTCOME_TRY(key_processed, common::unhexWith0x(key));
+        children_default_.emplace(std::move(key_processed), std::move(child));
+        log_->warn("{}", key);
+      }
     }
-    // ignore child storages as they are not yet implemented
+
+    OUTCOME_TRY(read_key_block(top_tree, genesis_));
 
     return outcome::success();
   }

@@ -62,7 +62,12 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(GenesisRawData, getGenesis, (), (const, override));
+    MOCK_METHOD(const GenesisRawData &, getGenesis, (), (const, override));
+
+    MOCK_METHOD(const ChildrenDefaultRawData &,
+                getChildrenDefault,
+                (),
+                (const, override));
 
     MOCK_METHOD(outcome::result<common::Buffer>,
                 fetchCodeSubstituteByBlockInfo,

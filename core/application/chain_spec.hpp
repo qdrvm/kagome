@@ -16,6 +16,7 @@
 namespace kagome::application {
 
   using GenesisRawData = std::vector<std::pair<common::Buffer, common::Buffer>>;
+  using ChildrenDefaultRawData = std::map<common::Buffer, GenesisRawData>;
 
   /**
    * Stores configuration of a kagome node and provides convenience
@@ -64,9 +65,14 @@ namespace kagome::application {
     codeSubstitutes() const = 0;
 
     /**
-     * @return genesis block of the chain
+     * @return top section
      */
-    virtual GenesisRawData getGenesis() const = 0;
+    virtual const GenesisRawData &getGenesis() const = 0;
+
+    /**
+     * @return childrenDefault section
+     */
+    virtual const ChildrenDefaultRawData &getChildrenDefault() const = 0;
   };
 
 }  // namespace kagome::application

@@ -84,8 +84,12 @@ namespace kagome::application {
       return known_code_substitutes_;
     }
 
-    GenesisRawData getGenesis() const override {
+    const GenesisRawData &getGenesis() const override {
       return genesis_;
+    }
+
+    const ChildrenDefaultRawData &getChildrenDefault() const override {
+      return children_default_;
     }
 
     outcome::result<common::Buffer> fetchCodeSubstituteByBlockInfo(
@@ -127,6 +131,7 @@ namespace kagome::application {
     std::optional<std::string> consensus_engine_;
     std::shared_ptr<primitives::CodeSubstituteBlockIds> known_code_substitutes_;
     GenesisRawData genesis_;
+    ChildrenDefaultRawData children_default_;
     log::Logger log_ = log::createLogger("chain_spec", "kagome");
   };
 

@@ -291,23 +291,51 @@ namespace {
       common::raise(trie_storage_res.error());
     }
 
-    const auto genesis_raw_configs = configuration_storage->getGenesis();
+    const auto &genesis_raw_configs = configuration_storage->getGenesis();
     auto &trie_storage = trie_storage_res.value();
 
-    auto batch_res =
-        trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash());
-    if (not batch_res) {
-      common::raise(batch_res.error());
-    }
-    auto batch = std::move(batch_res.value());
+    auto batch_with_raw_data = [&serializer,
+                                &trie_storage](const auto &raw_configs) {
+      auto batch_res =
+          trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash());
+      if (not batch_res) {
+        common::raise(batch_res.error());
+      }
+      auto batch = std::move(batch_res.value());
 
-    auto log = log::createLogger("Injector", "injector");
-    for (const auto &[key_, val_] : genesis_raw_configs) {
-      auto &key = key_;
-      auto &val = val_;
-      SL_TRACE(
-          log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
-      if (auto res = batch->put(key, val); not res) {
+      auto log = log::createLogger("Injector", "injector");
+      for (const auto &[key_, val_] : raw_configs) {
+        auto &key = key_;
+        auto &val = val_;
+        SL_TRACE(
+            log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
+        if (auto res = batch->put(key, val); not res) {
+          common::raise(res.error());
+        }
+      }
+
+      return batch;
+    };
+
+    auto batch = batch_with_raw_data(genesis_raw_configs);
+
+    const auto &children_default_raw_configs =
+        configuration_storage->getChildrenDefault();
+    for (const auto &[key_, val_] : children_default_raw_configs) {
+      auto child_batch = batch_with_raw_data(val_);
+
+      auto root_hash_res = child_batch->commit();
+      if (root_hash_res.has_error()) {
+        common::raise(root_hash_res.error());
+      }
+
+      auto &root_hash = root_hash_res.value();
+
+      common::Buffer child_key;
+      child_key.putBuffer(storage::kChildStorageDefaultPrefix);
+      child_key.put(root_hash);
+      auto res = batch->put(child_key, common::Buffer(root_hash));
+      if (res.has_error()) {
         common::raise(res.error());
       }
     }
@@ -318,6 +346,9 @@ namespace {
     }
 
     auto &root_hash = res.value();
+
+    auto log = log::createLogger("Injector", "injector");
+    SL_WARN(log, "{}", root_hash.toHex());
 
     initialized.emplace(std::move(trie_storage), root_hash);
     return initialized.value();
