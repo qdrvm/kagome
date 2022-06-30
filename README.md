@@ -42,7 +42,7 @@ git clone https://github.com/soramitsu/kagome
 cd kagome
 
 # build and run tests
-INDOCKER_IMAGE=soramitsu/kagome-dev:11 BUILD_DIR=build BUILD_THREADS=9 ./housekeeping/indocker.sh ./housekeeping/makeBuild.sh
+INDOCKER_IMAGE=soramitsu/kagome-dev:4-minideb BUILD_DIR=build BUILD_THREADS=9 ./housekeeping/indocker.sh ./housekeeping/make_build.sh
 
 # You can use indocker.sh to run any script or command inside docker
 # It mounts project dir and copy important env variable inside the container.
