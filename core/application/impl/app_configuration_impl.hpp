@@ -172,6 +172,9 @@ namespace kagome::application {
     std::optional<primitives::BlockId> recoverState() const override {
       return recovery_state_;
     }
+    StorageBackend storageBackend() const override {
+      return storage_backend_;
+    }
 
    private:
     void parse_general_segment(const rapidjson::Value &val);
@@ -301,6 +304,7 @@ namespace kagome::application {
     bool enable_offchain_indexing_;
     bool subcommand_chain_info_;
     std::optional<primitives::BlockId> recovery_state_;
+    StorageBackend storage_backend_ = StorageBackend::LevelDB;
   };
 
 }  // namespace kagome::application
