@@ -46,15 +46,13 @@ INDOCKER_IMAGE=soramitsu/kagome-dev:4-minideb BUILD_DIR=build BUILD_THREADS=9 ./
 
 # You can use indocker.sh to run any script or command inside docker
 # It mounts project dir and copy important env variable inside the container.
-INDOCKER_IMAGE=soramitsu/kagome-dev:11 ./housekeeping/indocker.sh gcc --version
+INDOCKER_IMAGE=soramitsu/kagome-dev:4-minideb ./housekeeping/indocker.sh gcc --version
 
 ## Build Release 
 # Build Kagome
-INDOCKER_IMAGE=soramitsu/kagome-dev:11 BUILD_DIR=build ./housekeeping/indocker.sh ./housekeeping/docker/release/makeRelease.sh
+INDOCKER_IMAGE=soramitsu/kagome-dev:4-minideb BUILD_DIR=build ./housekeeping/indocker.sh ./housekeeping/docker/release/makeRelease.sh
 # Create docker image and push 
-VERSION=0.0.1 BUILD_DIR=build ./housekeeping/docker/release/build_and_push.sh
-# or just build docker image 
-docker build -t soramitsu/kagome:0.0.1 -f ./housekeeping/docker/release/Dockerfile ./build
+VERSION=0.0.1 BUILD_DIR=build BUILD_TYPE=Release ./housekeeping/docker/kagome/build_and_push.sh
 
 # Check docker image 
 docker run -it --rm soramitsu/kagome:0.0.1 kagome
