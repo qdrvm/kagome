@@ -113,22 +113,24 @@ class BlockExecutorTest : public testing::Test {
  * is not finalized and execute the wrong logic.
  */
 TEST_F(BlockExecutorTest, JustificationFollowDigests) {
-  AuthorityList authorities{Authority{"auth0"_hash256, 1},
-                            Authority{"auth1"_hash256, 1}};
+  AuthorityList authorities{Authority{{"auth0"_hash256}, 1},
+                            Authority{{"auth1"_hash256}, 1}};
   kagome::primitives::BlockHeader header{
       .parent_hash = "parent_hash"_hash256,
       .number = 42,
       .digest = kagome::primitives::Digest{
-          kagome::primitives::PreRuntime{
+          kagome::primitives::PreRuntime{{
               kagome::primitives::kBabeEngineId,
               Buffer{scale::encode(BabeBlockHeader{.slot_number = 0,
                                                    .authority_index = 1})
-                         .value()}},
+                         .value()},
+          }},
           kagome::primitives::Consensus{
               kagome::primitives::ScheduledChange{authorities, 0}},
-          kagome::primitives::Seal{
+          kagome::primitives::Seal{{
               kagome::primitives::kBabeEngineId,
-              Buffer{scale::encode(kagome::consensus::Seal{}).value()}}}};
+              Buffer{scale::encode(kagome::consensus::Seal{}).value()},
+          }}}};
   kagome::primitives::Justification justification{.data =
                                                       "justification_data"_buf};
   kagome::primitives::BlockData block_data{
@@ -145,8 +147,8 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       .WillOnce(testing::Return("some_hash"_hash256));
   EXPECT_CALL(*block_tree_, getEpochDigest(0, "parent_hash"_hash256))
       .WillOnce(testing::Return(
-          EpochDigest{.authorities = {Authority{"auth2"_hash256, 1},
-                                      Authority{"auth3"_hash256, 1}},
+          EpochDigest{.authorities = {Authority{{"auth2"_hash256}, 1},
+                                      Authority{{"auth3"_hash256}, 1}},
                       .randomness = "randomness"_hash256}));
   configuration_->leadership_rate.second = 42;
   EXPECT_CALL(

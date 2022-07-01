@@ -30,3 +30,10 @@ target_link_libraries(ws_listener_test
     state_api_service
     logger_for_tests
     )
+
+addtest(jrpc_handle_batch_test
+    jrpc_handle_batch_test.cpp
+    )
+target_link_libraries(jrpc_handle_batch_test
+    api_jrpc_server
+    )
