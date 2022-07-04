@@ -32,9 +32,12 @@ cd kagome
 
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make kagome -j or make kagome -j <numbers of cores> (should be less that you have)
-
+make kagome -j 4
 ```
+
+`make kagome -j <numbers of cores>` (should be less than you have)
+
+
 ### Build with docker
 
 ```sh
