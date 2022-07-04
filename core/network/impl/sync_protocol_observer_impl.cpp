@@ -72,17 +72,14 @@ namespace kagome::network {
           log_,
           "Return response id={}: {}, count 1",
           request_id,
-          primitives::BlockInfo(response.blocks.front().header.value().number,
-                                response.blocks.front().hash));
+          response.blocks.front().hash);
     } else {
       SL_DEBUG(
           log_,
           "Return response id={}: from {} to {}, count {}",
           request_id,
-          primitives::BlockInfo(response.blocks.front().header.value().number,
-                                response.blocks.front().hash),
-          primitives::BlockInfo(response.blocks.back().header.value().number,
-                                response.blocks.back().hash),
+          response.blocks.front().hash,
+          response.blocks.back().hash,
           response.blocks.size());
     }
 

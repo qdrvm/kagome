@@ -499,40 +499,40 @@ namespace kagome::consensus::babe {
       SL_ERROR(log_,
                "Authority not known, skipping slot processing. "
                "Probably authority list has changed.");
-      return;
-    }
-    const auto &authority_index = authority_index_res.value();
+    } else {
+      const auto &authority_index = authority_index_res.value();
 
-    if (lottery_->getEpoch() != current_epoch_) {
-      changeLotteryEpoch(current_epoch_, epoch.authorities, epoch.randomness);
-    }
+      if (lottery_->getEpoch() != current_epoch_) {
+        changeLotteryEpoch(current_epoch_, epoch.authorities, epoch.randomness);
+      }
 
-    auto slot_leadership = lottery_->getSlotLeadership(current_slot_);
+      auto slot_leadership = lottery_->getSlotLeadership(current_slot_);
 
-    if (slot_leadership.has_value()) {
-      const auto &vrf_result = slot_leadership.value();
-      SL_DEBUG(log_,
-               "Babe author {} is leader (vrfOutput: {}, proof: {})",
-               keypair_->public_key,
-               common::Buffer(vrf_result.output),
-               common::Buffer(vrf_result.proof));
+      if (slot_leadership.has_value()) {
+        const auto &vrf_result = slot_leadership.value();
+        SL_DEBUG(log_,
+                 "Babe author {} is leader (vrfOutput: {}, proof: {})",
+                 keypair_->public_key,
+                 common::Buffer(vrf_result.output),
+                 common::Buffer(vrf_result.proof));
 
-      processSlotLeadership(
-          SlotType::Primary, std::cref(vrf_result), authority_index);
-    } else if (isSecondarySlotsAllowed()) {
-      auto expected_author = lottery_->secondarySlotAuthor(
-          current_slot_, epoch.authorities.size(), epoch.randomness);
+        processSlotLeadership(
+            SlotType::Primary, std::cref(vrf_result), authority_index);
+      } else if (isSecondarySlotsAllowed()) {
+        auto expected_author = lottery_->secondarySlotAuthor(
+            current_slot_, epoch.authorities.size(), epoch.randomness);
 
-      if (expected_author.has_value()
-          and authority_index == expected_author.value()) {
-        if (primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots
-            == babe_configuration_->allowed_slots) {
-          auto vrf = lottery_->slotVrfSignature(current_slot_);
-          processSlotLeadership(
-              SlotType::SecondaryVRF, std::cref(vrf), authority_index);
-        } else {  // plain secondary slots mode
-          processSlotLeadership(
-              SlotType::SecondaryPlain, std::nullopt, authority_index);
+        if (expected_author.has_value()
+            and authority_index == expected_author.value()) {
+          if (primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots
+              == babe_configuration_->allowed_slots) {
+            auto vrf = lottery_->slotVrfSignature(current_slot_);
+            processSlotLeadership(
+                SlotType::SecondaryVRF, std::cref(vrf), authority_index);
+          } else {  // plain secondary slots mode
+            processSlotLeadership(
+                SlotType::SecondaryPlain, std::nullopt, authority_index);
+          }
         }
       }
     }

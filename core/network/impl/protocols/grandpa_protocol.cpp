@@ -267,8 +267,9 @@ namespace kagome::network {
 
                          switch (direction) {
                            case Direction::OUTGOING:
-                             self->readHandshake(
-                                 std::move(stream), direction, std::move(cb));
+                             //  self->readHandshake(
+                             //      std::move(stream), direction, std::move(cb));
+                             cb(outcome::success());
                              break;
                            case Direction::INCOMING:
                              cb(outcome::success());

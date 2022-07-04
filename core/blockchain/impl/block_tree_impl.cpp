@@ -1035,6 +1035,11 @@ namespace kagome::blockchain {
 
     auto current_hash = bottom_block;
 
+    if (from == to) {
+      result.emplace_back(top_block);
+      return result;
+    }
+
     std::deque<primitives::BlockHash> chain;
     chain.emplace_back(current_hash);
     size_t count = 0;

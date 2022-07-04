@@ -303,9 +303,10 @@ namespace kagome::network {
 
                          switch (direction) {
                            case Direction::OUTGOING:
-                             self->readStatus(std::move(stream),
-                                              Direction::OUTGOING,
-                                              std::move(cb));
+                             //  self->readStatus(std::move(stream),
+                             //                   Direction::OUTGOING,
+                             //                   std::move(cb));
+                             cb(outcome::success());
                              break;
                            case Direction::INCOMING:
                              cb(outcome::success());

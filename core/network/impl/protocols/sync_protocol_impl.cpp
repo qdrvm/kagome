@@ -290,10 +290,10 @@ namespace kagome::network {
                  self->protocol_,
                  peer_id,
                  block_request.fingerprint());
-        self->rating_repository_->downvoteForATime(
-            peer_id, kResponsesCacheExpirationTimeout);
-        stream->reset();
-        return;
+        // self->rating_repository_->downvoteForATime(
+        //     peer_id, kResponsesCacheExpirationTimeout);
+        // stream->reset();
+        // return;
       }
 
       self->writeResponse(std::move(stream), block_response);
