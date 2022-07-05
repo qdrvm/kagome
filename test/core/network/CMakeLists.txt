@@ -5,6 +5,18 @@
 
 add_subdirectory(types)
 
+addtest(block_response_cache_test
+    block_response_cache_test.cpp
+    )
+target_link_libraries(block_response_cache_test
+    blob
+    buffer
+    p2p::p2p_message_read_writer
+    p2p::p2p_peer_id
+    scale::scale
+    sync_protocol
+    )
+
 addtest(rpc_libp2p_test
     rpc_libp2p_test.cpp
     )
