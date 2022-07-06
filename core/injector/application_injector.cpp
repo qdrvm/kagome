@@ -136,6 +136,7 @@
 #include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -330,13 +331,41 @@ namespace {
       return initialized.value();
     }
     auto options = leveldb::Options{};
-    options.max_open_files = 1500;  // 1000 was the default value
+    options.max_open_files =
+        -1;  // Unlimited (fix for 'Too many open files' error)
     options.create_if_missing = true;
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
       log->critical("Can't create LevelDB in {}: {}",
+                    fs::absolute(app_config.databasePath(chain_spec->id()),
+                                 fs::current_path())
+                        .native(),
+                    db_res.error().message());
+      exit(EXIT_FAILURE);
+    }
+    auto &db = db_res.value();
+
+    initialized.emplace(std::move(db));
+    return initialized.value();
+  }
+
+  sptr<storage::BufferStorage> get_rocks_db(
+      application::AppConfiguration const &app_config,
+      sptr<application::ChainSpec> chain_spec) {
+    static auto initialized =
+        std::optional<sptr<storage::BufferStorage>>(std::nullopt);
+    if (initialized) {
+      return initialized.value();
+    }
+    auto options = rocksdb::Options{};
+    options.create_if_missing = true;
+    auto db_res = storage::RocksDB::create(
+        app_config.databasePath(chain_spec->id()), options);
+    if (!db_res) {
+      auto log = log::createLogger("Injector", "injector");
+      log->critical("Can't create RocksDB in {}: {}",
                     fs::absolute(app_config.databasePath(chain_spec->id()),
                                  fs::current_path())
                         .native(),
@@ -507,7 +536,8 @@ namespace {
   }
 
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
-      const application::ChainSpec &chain_spec) {
+      const application::ChainSpec &chain_spec,
+      std::chrono::seconds random_wak_interval) {
     static auto initialized =
         std::optional<sptr<libp2p::protocol::kademlia::Config>>(std::nullopt);
     if (initialized) {
@@ -518,7 +548,7 @@ namespace {
         libp2p::protocol::kademlia::Config{
             .protocolId = "/" + chain_spec.protocolId() + "/kad",
             .maxBucketSize = 1000,
-            .randomWalk = {.interval = std::chrono::minutes(1)}});
+            .randomWalk = {.interval = random_wak_interval}});
 
     initialized.emplace(std::move(kagome_config));
     return initialized.value();
@@ -987,10 +1017,11 @@ namespace {
         // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(),
         di::bind<libp2p::protocol::kademlia::Config>.to(
-            [](auto const &injector) {
+            [random_walk{config.getRandomWalkInterval()}](
+                auto const &injector) {
               auto &chain_spec =
                   injector.template create<application::ChainSpec &>();
-              return get_kademlia_config(chain_spec);
+              return get_kademlia_config(chain_spec, random_walk);
             })[boost::di::override],
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
@@ -1101,6 +1132,10 @@ namespace {
               injector.template create<application::AppConfiguration const &>();
           auto chain_spec =
               injector.template create<sptr<application::ChainSpec>>();
+          if (config.storageBackend()
+              == application::AppConfiguration::StorageBackend::RocksDB) {
+            return get_rocks_db(config, chain_spec);
+          }
           return get_level_db(config, chain_spec);
         }),
         di::bind<blockchain::BlockStorage>.to([](const auto &injector) {

@@ -34,6 +34,9 @@ namespace {
                             Func &&f) {
     assert(nullptr != name);
     if (auto it = vm.find(name); it != vm.end()) {
+      if (it->second.defaulted()) {
+        return;
+      }
       std::forward<Func>(f)(it->second.as<T>());
     }
   }
@@ -59,8 +62,15 @@ namespace {
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
   const bool def_enable_offchain_indexing = false;
+  const bool def_subcommand_chain_info = false;
   const std::optional<kagome::primitives::BlockId> def_block_to_recover =
       std::nullopt;
+  const auto def_offchain_worker = "WhenValidating";
+  const uint32_t def_out_peers = 25;
+  const uint32_t def_in_peers = 25;
+  const uint32_t def_in_peers_light = 100;
+  const uint32_t def_random_walk_interval = 15;
+  const auto def_wasm_execution = "Interpreted";
 
   /**
    * Generate once at run random node name if form of UUID
@@ -137,16 +147,20 @@ namespace kagome::application {
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port),
         openmetrics_http_port_(def_openmetrics_http_port),
+        out_peers_(def_out_peers),
+        in_peers_(def_in_peers),
+        in_peers_light_(def_in_peers_light),
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
         node_version_(buildVersion()),
         max_ws_connections_(def_ws_max_connections),
+        random_walk_interval_(def_random_walk_interval),
         runtime_exec_method_{def_runtime_exec_method},
         use_wavm_cache_(def_use_wavm_cache_),
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
-        subcommand_chain_info_{false},
+        subcommand_chain_info_{def_subcommand_chain_info},
         recovery_state_{def_block_to_recover} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
@@ -299,6 +313,21 @@ namespace kagome::application {
     std::string base_path_str;
     load_str(val, "base-path", base_path_str);
     base_path_ = fs::path(base_path_str);
+
+    std::string database_engine_str;
+    if (load_str(val, "database", database_engine_str)) {
+      if ("rocksdb" == database_engine_str) {
+        storage_backend_ = StorageBackend::RocksDB;
+      } else if ("leveldb" == database_engine_str) {
+        storage_backend_ = StorageBackend::LevelDB;
+      } else {
+        SL_ERROR(logger_,
+                 "Unsupported database backend was specified {}, "
+                 "available options are [leveldb, rocksdb]",
+                 database_engine_str);
+        exit(EXIT_FAILURE);
+      }
+    }
   }
 
   void AppConfigurationImpl::parse_network_segment(
@@ -319,6 +348,7 @@ namespace kagome::application {
     load_u32(val, "in-peers", in_peers_);
     load_u32(val, "in-peers-light", in_peers_light_);
     load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
+    load_u32(val, "random-walk-interval", random_walk_interval_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(
@@ -621,15 +651,16 @@ namespace kagome::application {
     po::options_description blockhain_desc("Blockchain options");
     blockhain_desc.add_options()
         ("chain", po::value<std::string>(), "required, chainspec file path")
-        ("offchain-worker", po::value<std::string>()->default_value("WhenValidating"),
+        ("offchain-worker", po::value<std::string>()->default_value(def_offchain_worker),
           "Should execute offchain workers on every block.\n"
           "Possible values: Always, Never, WhenValidating. WhenValidating is used by default.")
-        ("chain-info", po::bool_switch()->default_value(false), "Print chain info as JSON")
+        ("chain-info", po::bool_switch(), "Print chain info as JSON")
         ;
 
     po::options_description storage_desc("Storage options");
     storage_desc.add_options()
         ("base-path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
+        ("database", po::value<std::string>()->default_value("leveldb"), "Database backend to use [leveldb, rocksdb]")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
         ;
@@ -649,22 +680,23 @@ namespace kagome::application {
         ("ws-max-connections", po::value<uint32_t>(), "maximum number of WS RPC server connections")
         ("prometheus-host", po::value<std::string>(), "address for OpenMetrics over HTTP")
         ("prometheus-port", po::value<uint16_t>(), "port for OpenMetrics over HTTP")
-        ("out-peers", po::value<uint32_t>()->default_value(25), "number of outgoing connections we're trying to maintain")
-        ("in-peers", po::value<uint32_t>()->default_value(25), "maximum number of inbound full nodes peers")
-        ("in-peers-light", po::value<uint32_t>()->default_value(100), "maximum number of inbound light nodes peers")
+        ("out-peers", po::value<uint32_t>()->default_value(def_out_peers), "number of outgoing connections we're trying to maintain")
+        ("in-peers", po::value<uint32_t>()->default_value(def_in_peers), "maximum number of inbound full nodes peers")
+        ("in-peers-light", po::value<uint32_t>()->default_value(def_in_peers_light), "maximum number of inbound light nodes peers")
         ("max-blocks-in-response", po::value<uint32_t>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
-        ("no-telemetry", po::bool_switch()->default_value(false), "Disables telemetry broadcasting")
+        ("no-telemetry", po::bool_switch(), "Disables telemetry broadcasting")
         ("telemetry-url", po::value<std::vector<std::string>>()->multitoken(),
                           "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
                           "e.g. --telemetry-url 'wss://foo/bar 0'")
+        ("random-walk-interval", po::value<uint32_t>()->default_value(def_random_walk_interval), "Kademlia random walk interval")
         ;
 
     po::options_description development_desc("Additional options");
     development_desc.add_options()
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
-        ("wasm-execution", po::value<std::string>()->default_value("Interpreted"),
+        ("wasm-execution", po::value<std::string>()->default_value(def_wasm_execution),
           "choose the desired wasm execution method (Compiled, Interpreted)")
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
@@ -792,6 +824,24 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "base-path", [&](const std::string &val) { base_path_ = val; });
 
+    bool unknown_database_engine_is_set = false;
+    find_argument<std::string>(vm, "database", [&](const std::string &val) {
+      if ("rocksdb" == val) {
+        storage_backend_ = StorageBackend::RocksDB;
+      } else if ("leveldb" == val) {
+        storage_backend_ = StorageBackend::LevelDB;
+      } else {
+        unknown_database_engine_is_set = true;
+        SL_ERROR(logger_,
+                 "Unsupported database backend was specified {}, "
+                 "available options are [leveldb, rocksdb]",
+                 val);
+      }
+    });
+    if (unknown_database_engine_is_set) {
+      return false;
+    }
+
     std::vector<std::string> boot_nodes;
     find_argument<std::vector<std::string>>(
         vm, "bootnodes", [&](const std::vector<std::string> &val) {
@@ -805,14 +855,14 @@ namespace kagome::application {
         if (not ma_res.has_value()) {
           auto err_msg = "Bootnode '" + addr_str
                          + "' is invalid: " + ma_res.error().message();
-          SL_ERROR(logger_, err_msg);
+          SL_ERROR(logger_, "{}", err_msg);
           std::cout << err_msg << std::endl;
           return false;
         }
         auto peer_id_base58_opt = ma_res.value().getPeerId();
         if (not peer_id_base58_opt) {
           auto err_msg = "Bootnode '" + addr_str + "' has not peer_id";
-          SL_ERROR(logger_, err_msg);
+          SL_ERROR(logger_, "{}", err_msg);
           std::cout << err_msg << std::endl;
           return false;
         }
@@ -828,7 +878,7 @@ namespace kagome::application {
       if (not key_res.has_value()) {
         auto err_msg = "Node key '" + node_key.value()
                        + "' is invalid: " + key_res.error().message();
-        SL_ERROR(logger_, err_msg);
+        SL_ERROR(logger_, "{}", err_msg);
         std::cout << err_msg << std::endl;
         return false;
       }
@@ -977,6 +1027,10 @@ namespace kagome::application {
       max_ws_connections_ = val;
     });
 
+    find_argument<uint32_t>(vm, "random-walk-interval", [&](uint32_t val) {
+      random_walk_interval_ = val;
+    });
+
     rpc_http_endpoint_ = getEndpointFrom(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = getEndpointFrom(rpc_ws_host_, rpc_ws_port_);
     openmetrics_http_endpoint_ =
@@ -1013,22 +1067,24 @@ namespace kagome::application {
       }
     }
 
-    std::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
+    bool exec_method_value_error = false;
     find_argument<std::string>(
         vm,
         "wasm-execution",
-        [this, &runtime_exec_method_opt](std::string const &val) {
-          runtime_exec_method_opt = str_to_runtime_exec_method(val);
+        [this, &exec_method_value_error](std::string const &val) {
+          auto runtime_exec_method_opt = str_to_runtime_exec_method(val);
           if (not runtime_exec_method_opt) {
+            exec_method_value_error = true;
             SL_ERROR(logger_,
                      "Invalid runtime execution method specified: '{}'",
                      val);
+          } else {
+            runtime_exec_method_ = runtime_exec_method_opt.value();
           }
         });
-    if (not runtime_exec_method_opt) {
+    if (exec_method_value_error) {
       return false;
     }
-    runtime_exec_method_ = runtime_exec_method_opt.value();
 
     if (vm.count("unsafe-cached-wavm-runtime") > 0) {
       use_wavm_cache_ = true;
@@ -1048,21 +1104,23 @@ namespace kagome::application {
       }
     }
 
-    std::optional<OffchainWorkerMode> offchain_worker_mode_opt;
+    bool offchain_worker_value_error = false;
     find_argument<std::string>(
         vm,
         "offchain-worker",
-        [this, &offchain_worker_mode_opt](std::string const &val) {
-          offchain_worker_mode_opt = str_to_offchain_worker_mode(val);
-          if (not offchain_worker_mode_opt) {
+        [this, &offchain_worker_value_error](std::string const &val) {
+          auto offchain_worker_mode_opt = str_to_offchain_worker_mode(val);
+          if (offchain_worker_mode_opt) {
+            offchain_worker_mode_ = offchain_worker_mode_opt.value();
+          } else {
+            offchain_worker_value_error = true;
             SL_ERROR(
                 logger_, "Invalid offchain worker mode specified: '{}'", val);
           }
         });
-    if (not offchain_worker_mode_opt) {
+    if (offchain_worker_value_error) {
       return false;
     }
-    offchain_worker_mode_ = offchain_worker_mode_opt.value();
 
     if (vm.count("enable-offchain-indexing") > 0) {
       enable_offchain_indexing_ = true;

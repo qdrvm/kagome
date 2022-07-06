@@ -87,6 +87,11 @@ namespace kagome::application {
 
     MOCK_METHOD(uint32_t, maxWsConnections, (), (const, override));
 
+    MOCK_METHOD(std::chrono::seconds,
+                getRandomWalkInterval,
+                (),
+                (const, override));
+
     MOCK_METHOD(const std::vector<std::string> &, log, (), (const, override));
 
     MOCK_METHOD(uint32_t, maxBlocksInResponse, (), (const, override));
@@ -137,6 +142,8 @@ namespace kagome::application {
     MOCK_METHOD(uint32_t, inPeersLght, (), (const, override));
 
     MOCK_METHOD(bool, isTelemetryEnabled, (), (const, override));
+
+    MOCK_METHOD(StorageBackend, storageBackend, (), (const, override));
   };
 
 }  // namespace kagome::application

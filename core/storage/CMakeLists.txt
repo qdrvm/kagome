@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_subdirectory(leveldb)
+add_subdirectory(rocksdb)
 add_subdirectory(trie)
 add_subdirectory(in_memory)
 add_subdirectory(changes_trie)

@@ -31,6 +31,15 @@ target_link_libraries(blob
     )
 kagome_install(blob)
 
+add_library(fd_limit
+    fd_limit.hpp
+    fd_limit.cpp
+    )
+target_link_libraries(fd_limit
+    Boost::boost
+    logger
+    )
+
 add_library(mp_utils
     mp_utils.cpp
     mp_utils.hpp
