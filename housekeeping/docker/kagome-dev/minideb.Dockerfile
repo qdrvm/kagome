@@ -25,6 +25,8 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
       "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-11 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
     echo \
       "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-14 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
+    echo \
+      "deb http://deb.debian.org/debian/ testing main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \  
     apt-get update && apt-get install --no-install-recommends -y \
         docker-ce \
@@ -33,6 +35,8 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         build-essential \
         gcc-9 \
         g++-9 \
+        gcc-12 \
+        g++-12 \
         clang-11 \
         llvm-11-dev \
         clang-tidy-11 \
@@ -83,7 +87,7 @@ RUN update-alternatives --install /usr/bin/python       python       /usr/bin/py
 
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-11         90 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-11       90 && \
-    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-11/bin/clang-11     90 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-11/bin/clang-11  90 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-11            90 && \
 
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-14         90 && \
@@ -93,4 +97,8 @@ RUN update-alternatives --install /usr/bin/python       python       /usr/bin/py
 
     update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-9                 90 && \
     update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-9                 90 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-9                90
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-9                90 && \
+
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                90 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                90 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               90
