@@ -28,7 +28,7 @@ namespace kagome::metrics {
     void stop();
 
    private:
-    outcome::result<size_t> measure_storage_size();
+    outcome::result<uintmax_t> measure_storage_size();
 
     boost::filesystem::path storage_path_;
 

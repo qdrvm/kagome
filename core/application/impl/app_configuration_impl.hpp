@@ -123,6 +123,9 @@ namespace kagome::application {
     uint32_t maxWsConnections() const override {
       return max_ws_connections_;
     }
+    std::chrono::seconds getRandomWalkInterval() const override{
+      return std::chrono::seconds(random_walk_interval_);
+    }
     const std::vector<std::string> &log() const override {
       return logger_tuning_config_;
     }
@@ -168,6 +171,9 @@ namespace kagome::application {
     }
     std::optional<primitives::BlockId> recoverState() const override {
       return recovery_state_;
+    }
+    StorageBackend storageBackend() const override {
+      return storage_backend_;
     }
 
    private:
@@ -290,6 +296,7 @@ namespace kagome::application {
     std::string node_name_;
     std::string node_version_;
     uint32_t max_ws_connections_;
+    uint32_t random_walk_interval_;
     RuntimeExecutionMethod runtime_exec_method_;
     bool use_wavm_cache_;
     bool purge_wavm_cache_;
@@ -297,6 +304,7 @@ namespace kagome::application {
     bool enable_offchain_indexing_;
     bool subcommand_chain_info_;
     std::optional<primitives::BlockId> recovery_state_;
+    StorageBackend storage_backend_ = StorageBackend::LevelDB;
   };
 
 }  // namespace kagome::application

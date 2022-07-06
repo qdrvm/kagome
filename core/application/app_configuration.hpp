@@ -146,6 +146,11 @@ namespace kagome::application {
     virtual uint32_t maxWsConnections() const = 0;
 
     /**
+     * @return Kademlia random walk interval
+     */
+    virtual std::chrono::seconds getRandomWalkInterval() const = 0;
+
+    /**
      * @return logging system tuning config
      */
     virtual const std::vector<std::string> &log() const = 0;
@@ -218,6 +223,13 @@ namespace kagome::application {
     virtual bool subcommandChainInfo() const = 0;
 
     virtual std::optional<primitives::BlockId> recoverState() const = 0;
+
+    enum class StorageBackend { LevelDB, RocksDB };
+
+    /**
+     * @return enum constant of the chosen storage backend
+     */
+    virtual StorageBackend storageBackend() const = 0;
   };
 
 }  // namespace kagome::application
