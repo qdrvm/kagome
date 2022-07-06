@@ -62,6 +62,7 @@ namespace {
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
   const bool def_enable_offchain_indexing = false;
+  const bool def_subcommand_chain_info = false;
   const std::optional<kagome::primitives::BlockId> def_block_to_recover =
       std::nullopt;
   const auto def_offchain_worker = "WhenValidating";
@@ -159,6 +160,7 @@ namespace kagome::application {
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
+        subcommand_chain_info_{def_subcommand_chain_info},
         recovery_state_{def_block_to_recover} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
@@ -311,6 +313,21 @@ namespace kagome::application {
     std::string base_path_str;
     load_str(val, "base-path", base_path_str);
     base_path_ = fs::path(base_path_str);
+
+    std::string database_engine_str;
+    if (load_str(val, "database", database_engine_str)) {
+      if ("rocksdb" == database_engine_str) {
+        storage_backend_ = StorageBackend::RocksDB;
+      } else if ("leveldb" == database_engine_str) {
+        storage_backend_ = StorageBackend::LevelDB;
+      } else {
+        SL_ERROR(logger_,
+                 "Unsupported database backend was specified {}, "
+                 "available options are [leveldb, rocksdb]",
+                 database_engine_str);
+        exit(EXIT_FAILURE);
+      }
+    }
   }
 
   void AppConfigurationImpl::parse_network_segment(
@@ -643,6 +660,7 @@ namespace kagome::application {
     po::options_description storage_desc("Storage options");
     storage_desc.add_options()
         ("base-path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
+        ("database", po::value<std::string>()->default_value("leveldb"), "Database backend to use [leveldb, rocksdb]")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
         ;
@@ -805,6 +823,24 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "base-path", [&](const std::string &val) { base_path_ = val; });
+
+    bool unknown_database_engine_is_set = false;
+    find_argument<std::string>(vm, "database", [&](const std::string &val) {
+      if ("rocksdb" == val) {
+        storage_backend_ = StorageBackend::RocksDB;
+      } else if ("leveldb" == val) {
+        storage_backend_ = StorageBackend::LevelDB;
+      } else {
+        unknown_database_engine_is_set = true;
+        SL_ERROR(logger_,
+                 "Unsupported database backend was specified {}, "
+                 "available options are [leveldb, rocksdb]",
+                 val);
+      }
+    });
+    if (unknown_database_engine_is_set) {
+      return false;
+    }
 
     std::vector<std::string> boot_nodes;
     find_argument<std::vector<std::string>>(

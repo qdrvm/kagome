@@ -299,6 +299,25 @@ TEST_F(AppConfigurationTest, TelemetryExplicitlyDisabled) {
 }
 
 /**
+ * @given an instance of AppConfigurationImpl
+ * @when database configured to use RocksDB
+ * @then RocksDB storage backend is going to be used
+ */
+TEST_F(AppConfigurationTest, RocksDBStorageBackend) {
+  char const *args[] = {
+      "/path/",
+      "--config-file",
+      config_path.c_str(),
+      "--database",
+      "rocksdb"
+  };
+
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
+  ASSERT_EQ(AppConfiguration::StorageBackend::RocksDB,
+            app_config_->storageBackend());
+}
+
+/**
  * @given new created AppConfigurationImpl
  * @when --config_file cmd line arg is provided
  * @then we must put to config data from file

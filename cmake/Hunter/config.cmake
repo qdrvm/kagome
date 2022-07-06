@@ -37,6 +37,12 @@ hunter_config(
 )
 
 hunter_config(
+    rocksdb
+    VERSION 7.2.2
+    CMAKE_ARGS WITH_GFLAGS=OFF
+)
+
+hunter_config(
     wavm
     VERSION 1.0.3
     CMAKE_ARGS

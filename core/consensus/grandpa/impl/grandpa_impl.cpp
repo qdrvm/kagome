@@ -243,7 +243,7 @@ namespace kagome::consensus::grandpa {
       round = round->getPreviousRound();
     }
 
-    return round;
+    return round == nullptr ? std::nullopt : std::make_optional(round);
   }
 
   outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()

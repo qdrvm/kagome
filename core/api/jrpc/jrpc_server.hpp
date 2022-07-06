@@ -41,7 +41,7 @@ namespace kagome::api {
     /**
      * Response callback type
      */
-    using ResponseHandler = std::function<void(const std::string &)>;
+    using ResponseHandler = std::function<void(std::string_view)>;
     using FormatterHandler =
         std::function<void(outcome::result<std::string_view>)>;
 
