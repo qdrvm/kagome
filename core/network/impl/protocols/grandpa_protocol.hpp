@@ -17,29 +17,24 @@
 #include "consensus/grandpa/grandpa_observer.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
+#include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/types/own_peer_info.hpp"
+#include "utils/non_copyable.hpp"
 
 namespace kagome::network {
-
-  using Stream = libp2p::connection::Stream;
-  using Protocol = libp2p::peer::Protocol;
-  using PeerId = libp2p::peer::PeerId;
-  using PeerInfo = libp2p::peer::PeerInfo;
 
   KAGOME_DECLARE_CACHE(GrandpaProtocol, KAGOME_CACHE_UNIT(GrandpaMessage));
 
   class GrandpaProtocol final
       : public ProtocolBase,
-        public std::enable_shared_from_this<GrandpaProtocol> {
+        public std::enable_shared_from_this<GrandpaProtocol>,
+        NonCopyable,
+        NonMovable {
    public:
     GrandpaProtocol() = delete;
-    GrandpaProtocol(GrandpaProtocol &&) noexcept = delete;
-    GrandpaProtocol(const GrandpaProtocol &) = delete;
     ~GrandpaProtocol() override = default;
-    GrandpaProtocol &operator=(GrandpaProtocol &&) noexcept = delete;
-    GrandpaProtocol &operator=(GrandpaProtocol const &) = delete;
 
     GrandpaProtocol(
         libp2p::Host &host,
@@ -51,7 +46,8 @@ namespace kagome::network {
         std::shared_ptr<PeerManager> peer_manager);
 
     const Protocol &protocol() const override {
-      return protocol_;
+      return base_.protocol();
+      ;
     }
 
     /**
@@ -94,15 +90,13 @@ namespace kagome::network {
         const int &msg,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
-    libp2p::Host &host_;
+    ProtocolBaseImpl base_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     const application::AppConfiguration &app_config_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     const OwnPeerInfo &own_info_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<PeerManager> peer_manager_;
-    const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("GrandpaProtocol", "grandpa_protocol");
   };
 
 }  // namespace kagome::network
