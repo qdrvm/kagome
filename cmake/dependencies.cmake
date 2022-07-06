@@ -76,3 +76,6 @@ find_package(WAVM CONFIG REQUIRED)
 
 hunter_add_package(zstd)
 find_package(zstd CONFIG REQUIRED)
+
+hunter_add_package(rocksdb)
+find_package(RocksDB CONFIG REQUIRED)

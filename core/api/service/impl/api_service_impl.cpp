@@ -486,11 +486,10 @@ namespace kagome::api {
     // TODO(kamilsa): remove that string replacement when
     // https://github.com/soramitsu/kagome/issues/572 resolved
     std::string str_request(request);
-    boost::replace_all(str_request, " ", "");
     boost::replace_first(str_request, "\"params\":null", "\"params\":[null]");
 
     // process new request
-    server_->processData(str_request, [&](const std::string &response) mutable {
+    server_->processData(str_request, [&](std::string_view response) mutable {
       // process response
       session->respond(response);
     });

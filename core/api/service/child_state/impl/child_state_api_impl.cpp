@@ -150,7 +150,6 @@ namespace kagome::api {
       const common::Buffer &key,
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
     OUTCOME_TRY(value_opt, getStorage(child_storage_key, key, block_hash_opt));
-    std::optional<primitives::BlockHash> hash_opt;
     if (value_opt.has_value()) {
       storage::trie::PolkadotCodec codec;
       auto hash =

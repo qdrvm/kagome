@@ -74,7 +74,7 @@ namespace kagome::offchain {
     common::Uri uri_;
     bool adding_headers_is_allowed_ = true;
     bool request_has_sent_ = false;
-    bool secure_;
+    bool secure_ = false;
     uint16_t status_ = 0;
     std::string error_message_;
     boost::beast::flat_buffer buffer_;

@@ -97,7 +97,7 @@ namespace kagome::transaction_pool {
       primitives::TransactionSource source, primitives::Extrinsic extrinsic) {
     OUTCOME_TRY(tx, constructTransaction(source, extrinsic));
 
-    if (tx.should_propagate) {
+    if (tx.should_propagate && !imported_txs_.count(tx.hash)) {
       tx_transmitter_->propagateTransactions(gsl::make_span(std::vector{tx}));
     }
     auto hash = tx.hash;
@@ -207,7 +207,7 @@ namespace kagome::transaction_pool {
                tx_hash);
       return TransactionPoolError::TX_NOT_FOUND;
     }
-    auto &tx = tx_node.mapped();
+    const auto &tx = tx_node.mapped();
 
     unsetReady(tx);
     delTransactionAsWaiting(tx);

@@ -4,6 +4,7 @@
  */
 
 #include "injector/application_injector.hpp"
+#include "crypto/hasher.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
@@ -39,6 +40,7 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
@@ -128,11 +130,13 @@
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module.hpp"
+#include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -327,13 +331,41 @@ namespace {
       return initialized.value();
     }
     auto options = leveldb::Options{};
-    options.max_open_files = 1500;  // 1000 was the default value
+    options.max_open_files =
+        -1;  // Unlimited (fix for 'Too many open files' error)
     options.create_if_missing = true;
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
       log->critical("Can't create LevelDB in {}: {}",
+                    fs::absolute(app_config.databasePath(chain_spec->id()),
+                                 fs::current_path())
+                        .native(),
+                    db_res.error().message());
+      exit(EXIT_FAILURE);
+    }
+    auto &db = db_res.value();
+
+    initialized.emplace(std::move(db));
+    return initialized.value();
+  }
+
+  sptr<storage::BufferStorage> get_rocks_db(
+      application::AppConfiguration const &app_config,
+      sptr<application::ChainSpec> chain_spec) {
+    static auto initialized =
+        std::optional<sptr<storage::BufferStorage>>(std::nullopt);
+    if (initialized) {
+      return initialized.value();
+    }
+    auto options = rocksdb::Options{};
+    options.create_if_missing = true;
+    auto db_res = storage::RocksDB::create(
+        app_config.databasePath(chain_spec->id()), options);
+    if (!db_res) {
+      auto log = log::createLogger("Injector", "injector");
+      log->critical("Can't create RocksDB in {}: {}",
                     fs::absolute(app_config.databasePath(chain_spec->id()),
                                  fs::current_path())
                         .native(),
@@ -504,7 +536,8 @@ namespace {
   }
 
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
-      const application::ChainSpec &chain_spec) {
+      const application::ChainSpec &chain_spec,
+      std::chrono::seconds random_wak_interval) {
     static auto initialized =
         std::optional<sptr<libp2p::protocol::kademlia::Config>>(std::nullopt);
     if (initialized) {
@@ -515,7 +548,7 @@ namespace {
         libp2p::protocol::kademlia::Config{
             .protocolId = "/" + chain_spec.protocolId() + "/kad",
             .maxBucketSize = 1000,
-            .randomWalk = {.interval = std::chrono::minutes(1)}});
+            .randomWalk = {.interval = random_wak_interval}});
 
     initialized.emplace(std::move(kagome_config));
     return initialized.value();
@@ -879,6 +912,28 @@ namespace {
                   runtime::binaryen::CoreApiFactoryImpl,
                   runtime::wavm::CoreApiFactoryImpl>(injector, method);
             }),
+        di::bind<runtime::wavm::ModuleFactoryImpl>.template to(
+            [](const auto &injector) {
+              std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
+                  module_cache_opt;
+              auto &app_config =
+                  injector
+                      .template create<const application::AppConfiguration &>();
+              if (app_config.useWavmCache()) {
+                module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
+                    injector.template create<sptr<crypto::Hasher>>(),
+                    app_config.runtimeCacheDirPath());
+              }
+              return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
+                  injector.template create<
+                      sptr<runtime::wavm::CompartmentWrapper>>(),
+                  injector.template create<sptr<runtime::wavm::ModuleParams>>(),
+                  injector.template create<
+                      sptr<runtime::wavm::InstanceEnvironmentFactory>>(),
+                  injector
+                      .template create<sptr<runtime::wavm::IntrinsicModule>>(),
+                  module_cache_opt);
+            }),
         di::bind<runtime::ModuleFactory>.template to(
             [method](const auto &injector) {
               return choose_runtime_implementation<
@@ -962,10 +1017,11 @@ namespace {
         // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(),
         di::bind<libp2p::protocol::kademlia::Config>.to(
-            [](auto const &injector) {
+            [random_walk{config.getRandomWalkInterval()}](
+                auto const &injector) {
               auto &chain_spec =
                   injector.template create<application::ChainSpec &>();
-              return get_kademlia_config(chain_spec);
+              return get_kademlia_config(chain_spec, random_walk);
             })[boost::di::override],
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
@@ -1076,6 +1132,10 @@ namespace {
               injector.template create<application::AppConfiguration const &>();
           auto chain_spec =
               injector.template create<sptr<application::ChainSpec>>();
+          if (config.storageBackend()
+              == application::AppConfiguration::StorageBackend::RocksDB) {
+            return get_rocks_db(config, chain_spec);
+          }
           return get_level_db(config, chain_spec);
         }),
         di::bind<blockchain::BlockStorage>.to([](const auto &injector) {
@@ -1495,6 +1555,12 @@ namespace kagome::injector {
   std::shared_ptr<telemetry::TelemetryService>
   KagomeNodeInjector::injectTelemetryService() {
     return pimpl_->injector_.create<sptr<telemetry::TelemetryService>>();
+  }
+
+  std::shared_ptr<application::mode::PrintChainInfoMode>
+  KagomeNodeInjector::injectPrintChainInfoMode() {
+    return pimpl_->injector_
+        .create<sptr<application::mode::PrintChainInfoMode>>();
   }
 
   std::shared_ptr<application::mode::RecoveryMode>

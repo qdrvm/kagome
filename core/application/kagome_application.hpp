@@ -15,6 +15,9 @@ namespace kagome::application {
    public:
     virtual ~KagomeApplication() = default;
 
+    /// Prints chain info
+    virtual int chainInfo() = 0;
+
     /// Runs recovery mode
     virtual int recovery() = 0;
 

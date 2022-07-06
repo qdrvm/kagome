@@ -338,7 +338,7 @@ struct std::hash<kagome::common::Buffer> {
 };
 
 template <>
-struct fmt::formatter<kagome::common::Buffer> {
+struct fmt::formatter<kagome::common::BufferView> {
   // Presentation format: 's' - short, 'l' - long.
   char presentation = 's';
 
@@ -362,7 +362,7 @@ struct fmt::formatter<kagome::common::Buffer> {
   // Formats the Blob using the parsed format specification (presentation)
   // stored in this formatter.
   template <typename FormatContext>
-  auto format(const kagome::common::Buffer &blob, FormatContext &ctx)
+  auto format(const kagome::common::BufferView &blob, FormatContext &ctx)
       -> decltype(ctx.out()) {
     // ctx.out() is an output iterator to write to.
 
@@ -384,5 +384,9 @@ struct fmt::formatter<kagome::common::Buffer> {
     return format_to(ctx.out(), "0x{}", blob.toHex());
   }
 };
+
+template <>
+struct fmt::formatter<kagome::common::Buffer>
+    : fmt::formatter<kagome::common::BufferView> {};
 
 #endif  // KAGOME_BUFFER_HPP

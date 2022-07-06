@@ -4,6 +4,7 @@
 #
 
 add_library(api_jrpc_server
+    jrpc_handle_batch.cpp
     jrpc_server_impl.cpp
     value_converter.hpp
     )
