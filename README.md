@@ -32,10 +32,10 @@ cd kagome
 
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make kagome -j 4
+make kagome -j $(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) + 1 ))
 ```
 
-`make kagome -j <numbers of cores>` (should be less than you have)
+`make kagome -j <numbers of cores>` (should be less than you have, here it is half of your cores + 1)
 
 
 ### Build with docker
@@ -61,6 +61,20 @@ VERSION=0.0.1 BUILD_DIR=build BUILD_TYPE=Release ./housekeeping/docker/kagome/bu
 docker run -it --rm soramitsu/kagome:0.0.1 kagome
 [2020-06-03 16:26:14][error] the option '--chain' is required but missing
 
+```
+
+### Makefile
+
+Mentioned commands are organized into a Makefile. Use them with following commands
+
+```
+make build	
+make docker
+make command args="gcc --version"
+make release
+make release_docker
+make debug_docker
+make clear
 ```
 
 ### Execute kagome node in development mode

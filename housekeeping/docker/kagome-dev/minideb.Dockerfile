@@ -90,15 +90,15 @@ RUN update-alternatives --install /usr/bin/python       python       /usr/bin/py
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-11/bin/clang-11  90 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-11            90 && \
 
-    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-14         90 && \
-    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-14       90 && \
-    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-14/bin/clang-14  90 && \
-    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-14            90 && \
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-14         80 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-14       80 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-14/bin/clang-14  80 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-14            80 && \
 
     update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-9                 90 && \
     update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-9                 90 && \
     update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-9                90 && \
 
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                90 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                90 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               90
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                80 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                80 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               80
