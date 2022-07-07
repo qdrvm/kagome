@@ -28,5 +28,6 @@ addtest(proposer_test
 
 target_link_libraries(proposer_test
     proposer
+    transaction_pool
     logger_for_tests
     )
