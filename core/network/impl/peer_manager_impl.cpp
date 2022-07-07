@@ -198,11 +198,6 @@ namespace kagome::network {
 
     align_timer_.cancel();
 
-    // Check if disconnected
-    auto block_announce_protocol = router_->getBlockAnnounceProtocol();
-    BOOST_ASSERT_MSG(block_announce_protocol,
-                     "Router did not provide block announce protocol");
-
     // disconnect from peers with negative rating
     std::vector<PeerId> peers_to_disconnect;
     for (const auto &[peer_id, _] : active_peers_) {
@@ -218,30 +213,6 @@ namespace kagome::network {
                "Disconnecting from peer_id={} due to its negative rating",
                peer_id.toBase58());
       disconnectFromPeer(peer_id);
-    }
-
-    std::optional<PeerId> disconnected_peer;
-    for (auto it = active_peers_.begin(); it != active_peers_.end();) {
-      auto [peer_id, data] = *it++;
-      // TODO(d.khaustov) consider better alive check logic
-      if (not stream_engine_->isAlive(peer_id, block_announce_protocol)) {
-        // Found disconnected
-        const auto &peer_id_ref = peer_id;
-        SL_DEBUG(log_, "Found dead peer_id={}", peer_id_ref.toBase58());
-        disconnectFromPeer(peer_id);
-        if (not disconnected_peer.has_value()) {
-          disconnected_peer = peer_id;
-        }
-      }
-    }
-    if (disconnected_peer.has_value()) {
-      auto [it, added] = peers_in_queue_.emplace(*disconnected_peer);
-      if (added) {
-        SL_DEBUG(log_,
-                 "Trying to reconnect to peer_id={}",
-                 (*disconnected_peer).toBase58());
-        queue_to_connect_.emplace_front(*it);
-      }
     }
 
     // Soft limit is exceeded
