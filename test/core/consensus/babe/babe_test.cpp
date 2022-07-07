@@ -128,12 +128,14 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
         .WillRepeatedly(Return(outcome::success()));
 
-    consensus::EpochDigest expected_epoch_digest{
+    expected_epoch_digest = {
         .authorities = babe_config_->genesis_authorities,
-        .randomness = babe_config_->randomness};
+        .randomness = babe_config_->randomness,
+    };
 
-    EXPECT_CALL(*block_tree_, getEpochDigest(_, _))
-        .WillRepeatedly(Return(expected_epoch_digest));
+    EXPECT_CALL(*block_tree_, getEpochDigest(_, _)).WillRepeatedly([this] {
+      return expected_epoch_digest;
+    });
 
     auto block_executor = std::make_shared<BlockExecutorMock>();
 
@@ -225,6 +227,8 @@ class BabeTest : public testing::Test {
   Block created_block_{block_header_, {extrinsic_}};
 
   Hash256 created_block_hash_{"block#1"_hash256};
+
+  consensus::EpochDigest expected_epoch_digest;
 };
 
 ACTION_P(CheckBlockHeader, expected_block_header) {
@@ -312,4 +316,32 @@ TEST_F(BabeTest, Success) {
   ASSERT_NO_THROW(on_process_slot_1({}));
   ASSERT_NO_THROW(on_run_slot_2({}));
   ASSERT_NO_THROW(on_process_slot_2({}));
+}
+
+/**
+ * @given BABE production
+ * @when not in authority list
+ * @then next epoch is scheduled
+ */
+TEST_F(BabeTest, NotAuthority) {
+  EXPECT_CALL(*clock_, now());
+  EXPECT_CALL(*babe_util_, slotDuration());
+  EXPECT_CALL(*babe_util_, slotFinishTime(_)).Times(testing::AnyNumber());
+  EXPECT_CALL(*babe_util_, syncEpoch(_));
+  EXPECT_CALL(*timer_, expiresAt(_));
+  std::function<void(const std::error_code &)> process_slot;
+  EXPECT_CALL(*timer_, asyncWait(_))
+      .WillOnce(testing::SaveArg<0>(&process_slot));
+  babe_->runEpoch(epoch_);
+
+  EXPECT_CALL(*block_tree_, deepestLeaf()).WillRepeatedly(Return(best_leaf));
+  EXPECT_CALL(*block_tree_, getBlockHeader(BlockId(best_block_hash_)))
+      .WillOnce(Return(best_block_header_));
+  EXPECT_CALL(*babe_util_, syncEpoch(_));
+  EXPECT_CALL(*babe_util_, slotStartTime(_));
+
+  expected_epoch_digest.authorities.clear();
+  EXPECT_CALL(*timer_, expiresAt(_));
+  EXPECT_CALL(*timer_, asyncWait(_));
+  process_slot({});
 }
