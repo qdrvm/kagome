@@ -546,7 +546,7 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(block_announce_protocol,
                      "Router did not provide block announce protocol");
 
-    if (not stream_engine_->isAlive(peer_info.id, block_announce_protocol)) {
+    if (stream_engine_->reserveOutgoing(peer_info.id, block_announce_protocol)) {
       block_announce_protocol->newOutgoingStream(
           peer_info,
           [wp = weak_from_this(),
