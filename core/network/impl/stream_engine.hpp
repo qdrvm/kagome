@@ -225,21 +225,7 @@ namespace kagome::network {
         forSubscriber(
             peer_id, streams, protocol, [&](auto type, auto const &descr) {
               if (descr.hasActiveOutgoing()) {
-                send(peer_id,
-                     protocol,
-                     descr.outgoing.stream,
-                     msg,
-                     [wptr(weak_from_this())](auto const &peer_id,
-                                              auto const &protocol,
-                                              auto msg,
-                                              auto &&res) {
-                       if (!res)
-                         if (auto self = wptr.lock())
-                           self->updateStream(
-                               peer_id,
-                               protocol,
-                               msg);  /// check that stack unwinded
-                     });
+                send(peer_id, protocol, descr.outgoing.stream, msg);
                 was_sent = true;
               }
             });
@@ -261,18 +247,7 @@ namespace kagome::network {
         if (predicate(peer_id)) {
           forProtocol(proto_map, protocol, [&](auto &descr) {
             if (descr.hasActiveOutgoing())
-              send(peer_id,
-                   protocol,
-                   descr.outgoing.stream,
-                   msg,
-                   [wptr(weak_from_this())](auto const &peer_id,
-                                            auto const &protocol,
-                                            auto msg,
-                                            auto &&res) {
-                     if (!res)
-                       if (auto self = wptr.lock())
-                         self->updateStream(peer_id, protocol, msg);
-                   });
+              send(peer_id, protocol, descr.outgoing.stream, msg);
             else
               updateStream(peer_id, protocol, descr);
           });
@@ -360,23 +335,17 @@ namespace kagome::network {
                replaced ? "replaced" : "stored");
     }
 
-    template <typename T, typename F>
+    template <typename T>
     void send(PeerId const &peer_id,
               std::shared_ptr<ProtocolBase> const &protocol,
               std::shared_ptr<Stream> stream,
-              std::shared_ptr<T> const &msg,
-              F &&func) {
+              std::shared_ptr<T> const &msg) {
       BOOST_ASSERT(stream != nullptr);
 
       auto read_writer =
           std::make_shared<ScaleMessageReadWriter>(std::move(stream));
       read_writer->write(
-          *msg,
-          [wp(weak_from_this()),
-           peer_id,
-           protocol,
-           func(std::forward<F>(func)),
-           msg](auto &&res) {
+          *msg, [wp(weak_from_this()), peer_id, protocol, msg](auto &&res) {
             if (auto self = wp.lock()) {
               if (res.has_value()) {
                 SL_TRACE(self->logger_,
@@ -391,7 +360,6 @@ namespace kagome::network {
                          res.error().message());
               }
             }
-            func(peer_id, protocol, msg, std::move(res));
           });
     }
 
@@ -499,18 +467,7 @@ namespace kagome::network {
               [wp(weak_from_this()), peer_id, protocol, msg(std::move(msg))](
                   std::shared_ptr<Stream> stream) {
                 if (auto self = wp.lock())
-                  self->send(peer_id,
-                             protocol,
-                             stream,
-                             msg,
-                             [wptr(wp)](auto const &peer_id,
-                                        auto const &protocol,
-                                        auto const &msg,
-                                        auto &&res) {
-                               if (!res)
-                                 if (auto self = wptr.lock())
-                                   self->updateStream(peer_id, protocol, msg);
-                             });
+                  self->send(peer_id, protocol, stream, msg);
               });
           updateStream(peer_id, protocol, descr);
         });
