@@ -558,6 +558,7 @@ namespace kagome::network {
               return;
             }
 
+            self->stream_engine_->dropReserveOutgoing(peer_id, protocol);
             if (not stream_res.has_value()) {
               self->log_->warn("Unable to create stream {} with {}: {}",
                                protocol->protocol(),
@@ -630,8 +631,8 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(transaction_protocol,
                      "Router did not provide propagate transaction protocol");
 
-    stream_engine_->add(peer_id, grandpa_protocol);
-    stream_engine_->add(peer_id, transaction_protocol);
+    stream_engine_->reserveStreams(peer_id, grandpa_protocol);
+    stream_engine_->reserveStreams(peer_id, transaction_protocol);
   }
 
   bool PeerManagerImpl::isSelfPeer(const PeerId &peer_id) const {
