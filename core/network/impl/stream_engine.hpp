@@ -243,7 +243,6 @@ namespace kagome::network {
       BOOST_ASSERT(protocol != nullptr);
 
       forEachPeer([&](const auto &peer_id, auto &proto_map) {
-        // check here under shared access
         if (predicate(peer_id)) {
           forProtocol(proto_map, protocol, [&](auto &descr) {
             if (descr.hasActiveOutgoing())
