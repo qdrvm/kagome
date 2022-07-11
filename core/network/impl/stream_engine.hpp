@@ -342,9 +342,9 @@ namespace kagome::network {
       BOOST_ASSERT(stream != nullptr);
 
       auto read_writer =
-          std::make_shared<ScaleMessageReadWriter>(std::move(stream));
+          std::make_shared<ScaleMessageReadWriter>(stream);
       read_writer->write(
-          *msg, [wp(weak_from_this()), peer_id, protocol, msg](auto &&res) {
+          *msg, [wp(weak_from_this()), peer_id, protocol, msg, stream](auto &&res) {
             if (auto self = wp.lock()) {
               if (res.has_value()) {
                 SL_TRACE(self->logger_,
@@ -357,6 +357,7 @@ namespace kagome::network {
                          protocol->protocol(),
                          peer_id,
                          res.error().message());
+                stream->reset();
               }
             }
           });
