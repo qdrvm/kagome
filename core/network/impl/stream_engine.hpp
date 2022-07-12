@@ -42,7 +42,11 @@ namespace kagome::network {
     using Stream = libp2p::connection::Stream;
     using StreamEnginePtr = std::shared_ptr<StreamEngine>;
 
-    enum class Direction { INCOMING = 1, OUTGOING = 2, BIDIRECTIONAL = 3 };
+    enum class Direction : uint8_t {
+      INCOMING = 1,
+      OUTGOING = 2,
+      BIDIRECTIONAL = 3
+    };
 
    private:
     struct ProtocolDescr {
@@ -67,8 +71,8 @@ namespace kagome::network {
                     std::shared_ptr<Stream> incoming_stream,
                     std::shared_ptr<Stream> outgoing_stream)
           : protocol{std::move(proto)},
-            incoming{incoming_stream},
-            outgoing{outgoing_stream} {}
+            incoming{std::move(incoming_stream)},
+            outgoing{std::move(outgoing_stream)} {}
 
       /**
        * Returns if descriptor contains active outgoing stream.
@@ -101,7 +105,7 @@ namespace kagome::network {
       /**
        * Returns if descriptor contains active incoming stream.
        */
-      bool hasActiveIncoming() const {
+      [[maybe_unused]] bool hasActiveIncoming() const {
         return incoming.stream and not incoming.stream->isClosed();
       }
     };
@@ -133,8 +137,10 @@ namespace kagome::network {
 
       OUTCOME_TRY(peer_id, stream->remotePeerId());
       auto dir = static_cast<uint8_t>(direction);
-      const bool is_incoming = dir & static_cast<uint8_t>(Direction::INCOMING);
-      const bool is_outgoing = dir & static_cast<uint8_t>(Direction::OUTGOING);
+      const bool is_incoming =
+          (dir & static_cast<uint8_t>(Direction::INCOMING)) != 0;
+      const bool is_outgoing =
+          (dir & static_cast<uint8_t>(Direction::OUTGOING)) != 0;
 
       return streams_.exclusiveAccess([&](auto &streams) {
         bool existing = false;
@@ -251,7 +257,7 @@ namespace kagome::network {
       BOOST_ASSERT(protocol != nullptr);
 
       bool was_sent = false;
-      streams_.template sharedAccess([&](auto const &streams) {
+      streams_.sharedAccess([&](auto const &streams) {
         forSubscriber(
             peer_id, streams, protocol, [&](auto type, auto const &descr) {
               if (descr.hasActiveOutgoing()) {
@@ -424,7 +430,7 @@ namespace kagome::network {
       }
     }
 
-    void dump(std::string_view msg) {
+    [[maybe_unused]] void dump(std::string_view msg) {
       if (logger_->level() >= log::Level::DEBUG) {
         logger_->debug("DUMP: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
         logger_->debug("DUMP: {}", msg);
@@ -515,7 +521,6 @@ namespace kagome::network {
       });
     }
 
-   private:
     log::Logger logger_;
     SafeObject<PeerMap> streams_;
   };
