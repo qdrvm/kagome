@@ -15,8 +15,8 @@
 namespace kagome::api::payment {
 
   PaymentJRpcProcessor::PaymentJRpcProcessor(std::shared_ptr<JRpcServer> server,
-                       std::shared_ptr<PaymentApi> api):
-      api_{std::move(api)}, server_{std::move(server)} {
+                                             std::shared_ptr<PaymentApi> api)
+      : api_{std::move(api)}, server_{std::move(server)} {
     BOOST_ASSERT(api_ != nullptr);
     BOOST_ASSERT(server_ != nullptr);
   }

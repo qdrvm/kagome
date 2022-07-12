@@ -27,8 +27,7 @@ namespace kagome::runtime::binaryen {
                            [this](auto new_size) { return resize(new_size); },
                            [this]() { return size_; }},
                        kInitialMemorySize,
-                       heap_base)} {
-  }
+                       heap_base)} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);

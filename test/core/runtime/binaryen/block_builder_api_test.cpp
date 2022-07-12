@@ -64,7 +64,8 @@ TEST_F(BlockBuilderApiTest, CheckInherents) {
 TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
   preparePersistentStorageExpects();
   createBlock("block_hash_43"_hash256, 43);
-  EXPECT_OUTCOME_FALSE_1(builder_->apply_extrinsic(BlockInfo{43, "block_hash_43"_hash256},
+  EXPECT_OUTCOME_FALSE_1(
+      builder_->apply_extrinsic(BlockInfo{43, "block_hash_43"_hash256},
                                 "state_root"_hash256,
                                 Extrinsic{Buffer{1, 2, 3}}));
 }

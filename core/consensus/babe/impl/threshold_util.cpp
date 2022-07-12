@@ -16,12 +16,12 @@ namespace kagome::consensus {
     double float_point_ratio = double(ratio.first) / ratio.second;
 
     using boost::adaptors::transformed;
-    double theta =
-        double(authorities[authority_index].weight)
-        / boost::accumulate(authorities | transformed([](const auto &authority) {
-                              return authority.weight;
-                            }),
-                            0.);
+    double theta = double(authorities[authority_index].weight)
+                   / boost::accumulate(
+                       authorities | transformed([](const auto &authority) {
+                         return authority.weight;
+                       }),
+                       0.);
 
     using namespace boost::multiprecision;  // NOLINT
     cpp_rational p_rat(1. - pow(1. - float_point_ratio, theta));

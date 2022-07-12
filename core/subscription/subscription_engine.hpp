@@ -98,7 +98,7 @@ namespace kagome::subscription {
       return count;
     }
 
-    void notify(const EventKeyType &key, const EventParams &... args) {
+    void notify(const EventKeyType &key, const EventParams &...args) {
       std::shared_lock lock(subscribers_map_cs_);
       auto it = subscribers_map_.find(key);
       if (subscribers_map_.end() == it) return;

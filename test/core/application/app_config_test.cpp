@@ -309,7 +309,7 @@ TEST_F(AppConfigurationTest, RocksDBStorageBackend) {
       "--config-file",
       config_path.c_str(),
       "--database",
-      "rocksdb"
+      "rocksdb",
   };
 
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));

@@ -20,8 +20,7 @@ namespace kagome::runtime {
 
   outcome::result<Metadata::OpaqueMetadata> MetadataImpl::metadata(
       const primitives::BlockHash &block_hash) {
-    return executor_->callAt<OpaqueMetadata>(block_hash,
-                                             "Metadata_metadata");
+    return executor_->callAt<OpaqueMetadata>(block_hash, "Metadata_metadata");
   }
 
 }  // namespace kagome::runtime

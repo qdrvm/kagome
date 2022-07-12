@@ -880,7 +880,7 @@ namespace kagome::blockchain {
             last_finalized_block_info.hash, last_finalized_block_info.number));
       }
     }
-    
+
     KAGOME_PROFILE_END(justification_store)
 
     return outcome::success();

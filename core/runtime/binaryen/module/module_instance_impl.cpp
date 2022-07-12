@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Enables binaryen debug mode: every executed WASM instruction is printed out using Indenter (defined below)
-// It is a massive amount of information, so it should be turned on only for specific cases when we need to
-// follow web assembly execution very precisely.
-// #define WASM_INTERPRETER_DEBUG
+// Enables binaryen debug mode: every executed WASM instruction is printed out
+// using Indenter (defined below) It is a massive amount of information, so it
+// should be turned on only for specific cases when we need to follow web
+// assembly execution very precisely. #define WASM_INTERPRETER_DEBUG
 
 #include "runtime/binaryen/module/module_instance_impl.hpp"
 
-#include "runtime/memory_provider.hpp"
 #include "runtime/binaryen/memory_impl.hpp"
+#include "runtime/memory_provider.hpp"
 
 #include <binaryen/wasm-interpreter.h>
 
@@ -19,14 +19,15 @@
 
 namespace wasm {
 
-  // Indenter is declared in binaryen headers, but the following members are defined
-  // in its source files and only if WASM_INTERPRETER_DEBUG macro definition is set, 
-  // which it isn't at the time of binaryen compilation. 
-  // Therefore, to be able to use binaryen's debug mode we have to define indenter 
-  // implementation ourselves. This design is unclear to me, but it does work. 
+  // Indenter is declared in binaryen headers, but the following members are
+  // defined in its source files and only if WASM_INTERPRETER_DEBUG macro
+  // definition is set, which it isn't at the time of binaryen compilation.
+  // Therefore, to be able to use binaryen's debug mode we have to define
+  // indenter implementation ourselves. This design is unclear to me, but it
+  // does work.
   int Indenter::indentLevel = 0;
 
-  std::vector<std::string> indents = [](){
+  std::vector<std::string> indents = []() {
     std::vector<std::string> indents;
     for (size_t i = 0; i < 512; i++) {
       indents.push_back(std::string(i, '-'));

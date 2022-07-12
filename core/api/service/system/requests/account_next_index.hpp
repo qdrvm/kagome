@@ -6,8 +6,8 @@
 #ifndef KAGOME_ACCOUNT_NEXT_INDEX_HPP
 #define KAGOME_ACCOUNT_NEXT_INDEX_HPP
 
-#include "api/service/system/system_api.hpp"
 #include "api/service/base_request.hpp"
+#include "api/service/system/system_api.hpp"
 
 namespace kagome::api::system::request {
 
@@ -15,7 +15,7 @@ namespace kagome::api::system::request {
       : public details::RequestType<primitives::AccountNonce, std::string> {
    public:
     explicit AccountNextIndex(std::shared_ptr<SystemApi> api)
-    : api_(std::move(api)) {
+        : api_(std::move(api)) {
       BOOST_ASSERT(api_);
     };
 
@@ -25,9 +25,8 @@ namespace kagome::api::system::request {
 
    private:
     std::shared_ptr<SystemApi> api_;
-
   };
 
-}  // namespace kagome::
+}  // namespace kagome::api::system::request
 
 #endif  // KAGOME_ACCOUNT_NEXT_INDEX_HPP

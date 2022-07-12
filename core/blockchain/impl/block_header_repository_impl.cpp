@@ -9,8 +9,8 @@
 
 #include <optional>
 
-#include "blockchain/impl/storage_util.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "blockchain/impl/storage_util.hpp"
 #include "common/hexutil.hpp"
 #include "scale/scale.hpp"
 

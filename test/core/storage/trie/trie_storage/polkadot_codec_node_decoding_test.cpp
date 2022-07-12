@@ -35,7 +35,7 @@ TEST_P(NodeDecodingTest, GetHeader) {
 
 template <typename T>
 std::shared_ptr<TrieNode> make(const common::Buffer &key_nibbles,
-                                   const common::Buffer &value) {
+                               const common::Buffer &value) {
   auto node = std::make_shared<T>();
   node->key_nibbles = key_nibbles;
   node->value = value;

@@ -150,11 +150,9 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
 TEST_F(BlockStorageTest, PutBlock) {
   auto block_storage = createWithGenesis();
 
-  EXPECT_CALL(*hasher, blake2b_256(_))
-      .WillOnce(Return(regular_block_hash));
+  EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(regular_block_hash));
 
-  EXPECT_CALL(*storage, tryLoad(_))
-      .WillOnce(Return(std::nullopt));
+  EXPECT_CALL(*storage, tryLoad(_)).WillOnce(Return(std::nullopt));
 
   Block block;
   block.header.number = 1;

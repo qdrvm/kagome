@@ -21,4 +21,4 @@ namespace kagome::runtime {
         block, "AccountNonceApi_account_nonce", account_id);
   };
 
-}  // namespace kagome::runtime::wavm
+}  // namespace kagome::runtime

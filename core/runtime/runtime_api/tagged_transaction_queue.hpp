@@ -27,7 +27,7 @@ namespace kagome::runtime {
      */
     virtual outcome::result<primitives::TransactionValidity>
     validate_transaction(primitives::TransactionSource source,
-                        const primitives::Extrinsic &ext) = 0;
+                         const primitives::Extrinsic &ext) = 0;
   };
 
 }  // namespace kagome::runtime

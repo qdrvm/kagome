@@ -12,7 +12,7 @@ namespace kagome::api {
   /**
    * @class JRpcProcessor is base class for JSON RPC processors
    */
-class JRpcProcessor: private boost::noncopyable {
+  class JRpcProcessor : private boost::noncopyable {
    public:
     virtual ~JRpcProcessor() = default;
 

@@ -16,8 +16,7 @@ namespace kagome::api::author::request {
   class UnwatchExtrinsic final
       : public details::RequestType<bool, primitives::SubscriptionId> {
    public:
-    explicit UnwatchExtrinsic(std::shared_ptr<AuthorApi> &api)
-        : api_(api) {
+    explicit UnwatchExtrinsic(std::shared_ptr<AuthorApi> &api) : api_(api) {
       BOOST_ASSERT(api_);
     }
 
