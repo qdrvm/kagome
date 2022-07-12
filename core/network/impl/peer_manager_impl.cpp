@@ -546,7 +546,7 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(block_announce_protocol,
                      "Router did not provide block announce protocol");
 
-    if (not stream_engine_->isAlive(peer_info.id, block_announce_protocol)) {
+    if (stream_engine_->reserveOutgoing(peer_info.id, block_announce_protocol)) {
       block_announce_protocol->newOutgoingStream(
           peer_info,
           [wp = weak_from_this(),
@@ -558,6 +558,7 @@ namespace kagome::network {
               return;
             }
 
+            self->stream_engine_->dropReserveOutgoing(peer_id, protocol);
             if (not stream_res.has_value()) {
               self->log_->warn("Unable to create stream {} with {}: {}",
                                protocol->protocol(),
@@ -630,8 +631,8 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(transaction_protocol,
                      "Router did not provide propagate transaction protocol");
 
-    stream_engine_->add(peer_id, grandpa_protocol);
-    stream_engine_->add(peer_id, transaction_protocol);
+    stream_engine_->reserveStreams(peer_id, grandpa_protocol);
+    stream_engine_->reserveStreams(peer_id, transaction_protocol);
   }
 
   bool PeerManagerImpl::isSelfPeer(const PeerId &peer_id) const {
