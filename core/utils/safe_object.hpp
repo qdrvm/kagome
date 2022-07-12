@@ -1,4 +1,10 @@
-#pragma once
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef KAGOME_SAFE_OBJECT_HPP
+#define KAGOME_SAFE_OBJECT_HPP
 
 // clang-format off
 /**
@@ -46,3 +52,5 @@ struct SafeObject {
   T t_;
   mutable M cs_;
 };
+
+#endif  // KAGOME_SAFE_OBJECT_HPP
