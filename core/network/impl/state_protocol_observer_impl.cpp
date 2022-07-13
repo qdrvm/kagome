@@ -60,8 +60,7 @@ namespace kagome::network {
             value_res.has_value()) {
           const auto &value = value_res.value();
           entry.entries.emplace_back(
-              StateEntry{cursor->key().value(),
-                         value.has_value() ? value.value() : common::Buffer()});
+              StateEntry{cursor->key().value(), value.value()});
           size += entry.entries.back().key.size()
                   + entry.entries.back().value.size();
         }
@@ -126,15 +125,15 @@ namespace kagome::network {
           const auto &value = value_res.value();
           auto &entry = response.entries.front();
           entry.entries.emplace_back(
-              StateEntry{cursor->key().value(),
-                         value.has_value() ? value.value() : common::Buffer()});
+              StateEntry{cursor->key().value(), value.value()});
           size += entry.entries.back().key.size()
                   + entry.entries.back().value.size();
           // if key is child state storage hash iterate child storage keys
           if (cursor->key().value().size() > child_prefix.size()
               && cursor->key().value().subbuffer(0, child_prefix.size())
                      == child_prefix) {
-            OUTCOME_TRY(hash, storage::trie::RootHash::fromSpan(
+            OUTCOME_TRY(hash,
+                        storage::trie::RootHash::fromSpan(
                             value_res.value().value().get()));
             OUTCOME_TRY(entry_res,
                         this->getEntry(
