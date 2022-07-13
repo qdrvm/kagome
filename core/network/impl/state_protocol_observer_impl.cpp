@@ -123,7 +123,14 @@ namespace kagome::network {
       while (cursor->key().has_value() && size < MAX_RESPONSE_BYTES) {
         if (auto value_res = batch->tryGet(cursor->key().value());
             value_res.has_value()) {
-          // if key is child state storage hash iterate child storage keys first
+          const auto &value = value_res.value();
+          auto &entry = response.entries.front();
+          entry.entries.emplace_back(
+              StateEntry{cursor->key().value(),
+                         value.has_value() ? value.value() : common::Buffer()});
+          size += entry.entries.back().key.size()
+                  + entry.entries.back().value.size();
+          // if key is child state storage hash iterate child storage keys
           if (cursor->key().value().size() > child_prefix.size()
               && cursor->key().value().subbuffer(0, child_prefix.size())
                      == child_prefix) {
@@ -140,13 +147,6 @@ namespace kagome::network {
               break;
             }
           }
-          const auto &value = value_res.value();
-          auto &entry = response.entries.front();
-          entry.entries.emplace_back(
-              StateEntry{cursor->key().value(),
-                         value.has_value() ? value.value() : common::Buffer()});
-          size += entry.entries.back().key.size()
-                  + entry.entries.back().value.size();
         }
         res = cursor->next();
       }

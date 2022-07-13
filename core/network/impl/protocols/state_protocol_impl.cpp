@@ -122,7 +122,7 @@ namespace kagome::network {
         if (!state_request.start.empty()) {
           keys = " starting with keys [";
           for (const auto &key : state_request.start) {
-            keys += key.toString() + ",";
+            keys += key.toHex() + ",";
           }
           keys.back() = ']';
         }

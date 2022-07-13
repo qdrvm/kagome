@@ -264,7 +264,7 @@ namespace kagome::application {
         OUTCOME_TRY(read_key_block(value, child));
         OUTCOME_TRY(key_processed, common::unhexWith0x(key));
         children_default_.emplace(std::move(key_processed), std::move(child));
-        log_->warn("{}", key);
+        log_->trace("Child address {} added", key);
       }
     }
 

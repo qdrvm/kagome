@@ -348,7 +348,7 @@ namespace {
     auto &root_hash = res.value();
 
     auto log = log::createLogger("Injector", "injector");
-    SL_WARN(log, "{}", root_hash.toHex());
+    SL_TRACE(log, "root hash is {}", root_hash.toHex());
 
     initialized.emplace(std::move(trie_storage), root_hash);
     return initialized.value();
