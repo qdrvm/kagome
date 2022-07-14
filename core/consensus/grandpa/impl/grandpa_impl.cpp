@@ -323,8 +323,35 @@ namespace kagome::consensus::grandpa {
              peer_id);
 
     // Ignore peer whose voter_set is different
-    if (msg.voter_set_id != current_round_->voterSetId()) {
+    if (msg.voter_set_id < current_round_->voterSetId()) {
       return;
+    }
+
+    if (msg.voter_set_id > current_round_->voterSetId()) {
+      auto last_finalized = block_tree_->getLastFinalized();
+      synchronizer_->syncMissingJustifications(
+          peer_id,
+          last_finalized,
+          std::nullopt,
+          [wp = weak_from_this(), last_finalized, msg](auto res) {
+            auto self = wp.lock();
+            if (not self) {
+              return;
+            }
+            if (res.has_error()) {
+              SL_WARN(self->logger_,
+                      "Missing justifications between blocks {} and "
+                      "{} was not loaded: {}",
+                      last_finalized,
+                      msg.last_finalized,
+                      res.error().message());
+            } else {
+              SL_DEBUG(self->logger_,
+                       "Loaded justifications for blocks in range {} - {}",
+                       last_finalized,
+                       res.value());
+            }
+          });
     }
 
     // Check if needed to catch-up peer, then do that
