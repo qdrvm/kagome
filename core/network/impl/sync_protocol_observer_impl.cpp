@@ -68,22 +68,17 @@ namespace kagome::network {
     if (response.blocks.empty()) {
       SL_DEBUG(log_, "Return response id={}: no blocks", request_id);
     } else if (response.blocks.size() == 1) {
-      SL_DEBUG(
-          log_,
-          "Return response id={}: {}, count 1",
-          request_id,
-          primitives::BlockInfo(response.blocks.front().header.value().number,
-                                response.blocks.front().hash));
+      SL_DEBUG(log_,
+               "Return response id={}: {}, count 1",
+               request_id,
+               response.blocks.front().hash);
     } else {
-      SL_DEBUG(
-          log_,
-          "Return response id={}: from {} to {}, count {}",
-          request_id,
-          primitives::BlockInfo(response.blocks.front().header.value().number,
-                                response.blocks.front().hash),
-          primitives::BlockInfo(response.blocks.back().header.value().number,
-                                response.blocks.back().hash),
-          response.blocks.size());
+      SL_DEBUG(log_,
+               "Return response id={}: from {} to {}, count {}",
+               request_id,
+               response.blocks.front().hash,
+               response.blocks.back().hash,
+               response.blocks.size());
     }
 
     requested_ids_.erase(request_id);

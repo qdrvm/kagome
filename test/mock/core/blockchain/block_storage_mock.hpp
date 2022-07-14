@@ -84,8 +84,7 @@ namespace kagome::blockchain {
 
     MOCK_METHOD(outcome::result<void>,
                 removeJustification,
-                (const primitives::BlockHash &,
-                 primitives::BlockNumber),
+                (const primitives::BlockHash &, primitives::BlockNumber),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
@@ -97,7 +96,6 @@ namespace kagome::blockchain {
                 getLastFinalized,
                 (),
                 (const, override));
-
   };
 
 }  // namespace kagome::blockchain

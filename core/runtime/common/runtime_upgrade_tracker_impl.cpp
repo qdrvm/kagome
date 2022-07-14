@@ -85,7 +85,7 @@ namespace kagome::runtime {
     if (block_tree_) {
       last_finalized = block_tree_->getLastFinalized();  // less expensive
     } else {
-      OUTCOME_TRY(block_info,  block_storage_->getLastFinalized());
+      OUTCOME_TRY(block_info, block_storage_->getLastFinalized());
       last_finalized = block_info;
     }
     if (last_finalized.number >= state.number) {

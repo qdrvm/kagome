@@ -50,7 +50,7 @@ namespace kagome::authorship {
                      inherent_xts_res.error().message());
       return inherent_xts_res.error();
     }
-    const auto& inherent_xts = inherent_xts_res.value();
+    const auto &inherent_xts = inherent_xts_res.value();
 
     for (const auto &xt : inherent_xts) {
       SL_DEBUG(logger_, "Adding inherent extrinsic: {}", xt.data);

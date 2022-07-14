@@ -19,6 +19,6 @@ namespace kagome::runtime {
     storage::trie::RootHash new_storage_root;
   };
 
-}
+}  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_PERSISTENT_RESULT_HPP

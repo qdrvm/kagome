@@ -20,8 +20,8 @@ using ::testing::Return;
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::primitives::BlockHeader;
-using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockId;
+using kagome::primitives::BlockInfo;
 using kagome::runtime::Metadata;
 using kagome::runtime::MetadataImpl;
 

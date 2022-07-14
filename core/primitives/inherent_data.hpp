@@ -48,7 +48,8 @@ namespace kagome::primitives {
     template <typename T>
     outcome::result<void> putData(InherentIdentifier identifier,
                                   const T &inherent) {
-      auto [it, inserted] = data.try_emplace(std::move(identifier), common::Buffer());
+      auto [it, inserted] =
+          data.try_emplace(std::move(identifier), common::Buffer());
       if (inserted) {
         it->second = common::Buffer(scale::encode(inherent).value());
         return outcome::success();

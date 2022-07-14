@@ -6,11 +6,11 @@
 #ifndef KAGOME_ADAPTERS_UVAR
 #define KAGOME_ADAPTERS_UVAR
 
+#include <boost/system/error_code.hpp>
 #include <functional>
+#include <gsl/span>
 #include <memory>
 #include <vector>
-#include <gsl/span>
-#include <boost/system/error_code.hpp>
 
 #include "network/adapters/adapter_errors.hpp"
 #include "outcome/outcome.hpp"

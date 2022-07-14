@@ -6,9 +6,9 @@
 #ifndef KAGOME_JRPC_PROCESSOR_STUB_HPP
 #define KAGOME_JRPC_PROCESSOR_STUB_HPP
 
-#include "api/jrpc/value_converter.hpp"
 #include <boost/noncopyable.hpp>
 #include <mutex>
+#include "api/jrpc/value_converter.hpp"
 
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server_impl.hpp"
@@ -16,9 +16,9 @@
 
 namespace kagome::api {
 
-/**
- * @brief Lightweit implementation of API stub
- */
+  /**
+   * @brief Lightweit implementation of API stub
+   */
   class JrpcProcessorStub : public JRpcProcessor {
    public:
     JrpcProcessorStub(std::shared_ptr<JRpcServer> server,

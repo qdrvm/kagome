@@ -28,7 +28,7 @@ namespace kagome::network {
     std::tuple<T...> msgs;
 
     template <typename Q>
-    MessagesSequence(Q &&... args) : msgs{std::forward<Q>(args)...} {}
+    MessagesSequence(Q &&...args) : msgs{std::forward<Q>(args)...} {}
   };
 
 }  // namespace kagome::network

@@ -27,7 +27,8 @@ namespace kagome::crypto {
         gsl::span<const uint8_t> message, const EcdsaPrivateKey &key) const = 0;
 
     virtual outcome::result<EcdsaSignature> signPrehashed(
-        const EcdsaPrehashedMessage &message, const EcdsaPrivateKey &key) const = 0;
+        const EcdsaPrehashedMessage &message,
+        const EcdsaPrivateKey &key) const = 0;
 
     virtual outcome::result<bool> verify(
         gsl::span<const uint8_t> message,

@@ -42,17 +42,19 @@ namespace kagome::network {
   }
 
   bool RouterLibp2p::prepare() {
-    host_.setProtocolHandler(
-        ping_protocol_->getProtocolId(), [wp = weak_from_this()](auto &&stream) {
-          if (auto self = wp.lock()) {
-            if (auto peer_id = stream->remotePeerId()) {
-              self->log_->info("Handled {} protocol stream from: {}",
-                               self->ping_protocol_->getProtocolId(),
-                               peer_id.value().toBase58());
-              self->ping_protocol_->handle(std::forward<decltype(stream)>(stream));
-            }
-          }
-        });
+    host_.setProtocolHandler(ping_protocol_->getProtocolId(),
+                             [wp = weak_from_this()](auto &&stream) {
+                               if (auto self = wp.lock()) {
+                                 if (auto peer_id = stream->remotePeerId()) {
+                                   self->log_->info(
+                                       "Handled {} protocol stream from: {}",
+                                       self->ping_protocol_->getProtocolId(),
+                                       peer_id.value().toBase58());
+                                   self->ping_protocol_->handle(
+                                       std::forward<decltype(stream)>(stream));
+                                 }
+                               }
+                             });
 
     block_announce_protocol_ = protocol_factory_->makeBlockAnnounceProtocol();
     if (not block_announce_protocol_) {
@@ -152,7 +154,8 @@ namespace kagome::network {
     return grandpa_protocol_;
   }
 
-  std::shared_ptr<libp2p::protocol::Ping> RouterLibp2p::getPingProtocol() const {
+  std::shared_ptr<libp2p::protocol::Ping> RouterLibp2p::getPingProtocol()
+      const {
     return ping_protocol_;
   }
 

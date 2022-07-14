@@ -20,7 +20,8 @@ namespace kagome::host_api {
    */
   class MemoryExtension {
    public:
-    explicit MemoryExtension(std::shared_ptr<const runtime::MemoryProvider> memory_provider);
+    explicit MemoryExtension(
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider);
 
     // ----------------- memory api v1 -----------------
     /**

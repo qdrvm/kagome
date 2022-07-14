@@ -19,7 +19,7 @@ namespace kagome::crypto {
     enum {
       PRIVKEY_SIZE = sizeof(PrivateKey),
       PUBKEY_SIZE = sizeof(PublicKey),
-      SIGNATURE_SIZE = 65, // As according to spec in D.3.14.
+      SIGNATURE_SIZE = 65,  // As according to spec in D.3.14.
       SEED_SIZE = PRIVKEY_SIZE,
     };
   }

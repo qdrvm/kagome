@@ -78,13 +78,17 @@ namespace kagome::api {
 
   void WsSession::respond(std::string_view response) {
     SL_DEBUG(logger_, "Session#{} OUT: {}", id_, response);
-    pending_responses_.emplace(response);
+    {
+      std::lock_guard lg{cs_};
+      pending_responses_.emplace(response);
+    }
     asyncWrite();
   }
 
   void WsSession::asyncWrite() {
     bool val = false;
     if (writing_in_progress_.compare_exchange_strong(val, true)) {
+      std::lock_guard lg{cs_};
       if (wbuffer_.size() == 0 and not pending_responses_.empty()) {
         boost::asio::buffer_copy(
             wbuffer_.prepare(pending_responses_.front().size()),
@@ -161,21 +165,23 @@ namespace kagome::api {
       stream_.async_write(wbuffer_.data(),
                           boost::beast::bind_front_handler(&WsSession::onWrite,
                                                            shared_from_this()));
-    } else if (not pending_responses_.empty()) {
-      boost::asio::buffer_copy(
-          wbuffer_.prepare(pending_responses_.front().size()),
-          boost::asio::const_buffer(pending_responses_.front().data(),
-                                    pending_responses_.front().size()));
-      wbuffer_.commit(pending_responses_.front().size());
-      stream_.text(true);
-      pending_responses_.pop();
-
-      stream_.async_write(wbuffer_.data(),
-                          boost::beast::bind_front_handler(&WsSession::onWrite,
-                                                           shared_from_this()));
-
     } else {
-      writing_in_progress_ = false;
+      std::lock_guard lg{cs_};
+      if (not pending_responses_.empty()) {
+        boost::asio::buffer_copy(
+            wbuffer_.prepare(pending_responses_.front().size()),
+            boost::asio::const_buffer(pending_responses_.front().data(),
+                                      pending_responses_.front().size()));
+        wbuffer_.commit(pending_responses_.front().size());
+        stream_.text(true);
+        pending_responses_.pop();
+
+        stream_.async_write(wbuffer_.data(),
+                            boost::beast::bind_front_handler(
+                                &WsSession::onWrite, shared_from_this()));
+      } else {
+        writing_in_progress_ = false;
+      }
     }
   }
 

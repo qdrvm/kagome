@@ -14,13 +14,11 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<common::Buffer>
-  SessionKeysApiImpl::generate_session_keys(
+  outcome::result<common::Buffer> SessionKeysApiImpl::generate_session_keys(
       const primitives::BlockHash &block_hash,
       std::optional<common::Buffer> seed) {
-    return executor_
-        ->callAt<common::Buffer, std::optional<common::Buffer>>(
-            block_hash, "SessionKeys_generate_session_keys", std::move(seed));
+    return executor_->callAt<common::Buffer, std::optional<common::Buffer>>(
+        block_hash, "SessionKeys_generate_session_keys", std::move(seed));
   }
 
   outcome::result<std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>

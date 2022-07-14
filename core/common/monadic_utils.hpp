@@ -14,8 +14,9 @@
 namespace kagome::common {
 
   /**
-   * Applies \arg f to the value, stored in an optional. 
-   * @returns a new optional with the result of \arg f call, in case optional contains a value. Otherwise, just returns an std::nullopt.
+   * Applies \arg f to the value, stored in an optional.
+   * @returns a new optional with the result of \arg f call, in case optional
+   * contains a value. Otherwise, just returns an std::nullopt.
    */
   template <typename T,
             typename F,
@@ -28,8 +29,9 @@ namespace kagome::common {
   }
 
   /**
-   * Applies \arg f to the value, stored in an optional. 
-   * @returns a new optional with the result of \arg f call, in case optional contains a value. Otherwise, just returns an std::nullopt.
+   * Applies \arg f to the value, stored in an optional.
+   * @returns a new optional with the result of \arg f call, in case optional
+   * contains a value. Otherwise, just returns an std::nullopt.
    */
   template <typename T, typename F, typename R = std::invoke_result_t<F, T &&>>
   std::optional<R> map_optional(std::optional<T> &&opt, F const &f) {
@@ -40,14 +42,15 @@ namespace kagome::common {
   }
 
   /**
-   * Applies \arg f to the value, stored in an outcome::result. 
-   * @returns a new outcome::result with the result of \arg f call, in case outcome::result contains a value. Otherwise, just returns the contained error.
+   * Applies \arg f to the value, stored in an outcome::result.
+   * @returns a new outcome::result with the result of \arg f call, in case
+   * outcome::result contains a value. Otherwise, just returns the contained
+   * error.
    */
   template <typename T,
             typename F,
             typename R = std::invoke_result_t<F, const T &>>
-  outcome::result<R> map_result(
-      outcome::result<T> const &res, F const &f) {
+  outcome::result<R> map_result(outcome::result<T> const &res, F const &f) {
     if (res.has_value()) {
       return outcome::result<R>{f(res.value())};
     }
@@ -55,12 +58,13 @@ namespace kagome::common {
   }
 
   /**
-   * Applies \arg f to the value, stored in an outcome::result. 
-   * @returns a new outcome::result with the result of \arg f call, in case outcome::result contains a value. Otherwise, just returns the contained error.
+   * Applies \arg f to the value, stored in an outcome::result.
+   * @returns a new outcome::result with the result of \arg f call, in case
+   * outcome::result contains a value. Otherwise, just returns the contained
+   * error.
    */
- template <typename T, typename F, typename R = std::invoke_result_t<F, T &&>>
- outcome::result<R> map_result(
-      outcome::result<T> &&res, F const &f) {
+  template <typename T, typename F, typename R = std::invoke_result_t<F, T &&>>
+  outcome::result<R> map_result(outcome::result<T> &&res, F const &f) {
     if (res.has_value()) {
       return outcome::result<R>{f(std::move(res.value()))};
     }
@@ -68,9 +72,11 @@ namespace kagome::common {
   }
 
   /**
-   * Applies \arg f to the value, stored in an optional wrapped in an outcome::result. 
-   * @returns a new outcome::result of optional with the result of \arg f call, in case outcome::result AND optional both contain a value. 
-   * Otherwise, just returns the contained error OR std::nullopt.
+   * Applies \arg f to the value, stored in an optional wrapped in an
+   * outcome::result.
+   * @returns a new outcome::result of optional with the result of \arg f call,
+   * in case outcome::result AND optional both contain a value. Otherwise, just
+   * returns the contained error OR std::nullopt.
    */
   template <typename T,
             typename F,
@@ -83,9 +89,11 @@ namespace kagome::common {
   }
 
   /**
-   * Applies \arg f to the value, stored in an optional wrapped in an outcome::result. 
-   * @returns a new outcome::result of optional with the result of \arg f call, in case outcome::result AND optional both contain a value. 
-   * Otherwise, just returns the contained error OR std::nullopt.
+   * Applies \arg f to the value, stored in an optional wrapped in an
+   * outcome::result.
+   * @returns a new outcome::result of optional with the result of \arg f call,
+   * in case outcome::result AND optional both contain a value. Otherwise, just
+   * returns the contained error OR std::nullopt.
    */
   template <typename T, typename F, typename R = std::invoke_result_t<F, T &&>>
   outcome::result<std::optional<R>> map_result_optional(

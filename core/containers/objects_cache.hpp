@@ -21,7 +21,7 @@ namespace tools::containers {
   template <typename Type>
   struct ObjsCacheDefAlloc {
     template <typename... __args>
-    Type *allocate(__args &&... args) {
+    Type *allocate(__args &&...args) {
       return new (std::nothrow) Type(std::forward<__args>(args)...);  // NOLINT
     }
     void deallocate(Type *obj) {

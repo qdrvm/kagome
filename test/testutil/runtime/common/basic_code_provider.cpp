@@ -19,12 +19,12 @@ namespace kagome::runtime {
     return buffer_;
   }
 
-
   void BasicCodeProvider::initialize(std::string_view path) {
     // std::ios::ate seeks to the end of file
     std::ifstream ifd(std::string(path), std::ios::binary | std::ios::ate);
     if (!ifd) {
-      throw std::runtime_error("File with test code " + std::string(path) + " not found");
+      throw std::runtime_error("File with test code " + std::string(path)
+                               + " not found");
     }
     // so size means count of bytes in file
     int size = ifd.tellg();
