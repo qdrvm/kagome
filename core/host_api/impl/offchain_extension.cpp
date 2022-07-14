@@ -41,7 +41,8 @@ namespace kagome::host_api {
   std::shared_ptr<offchain::OffchainWorker> OffchainExtension::getWorker() {
     auto worker_opt = ocw_pool_->getWorker();
     if (not worker_opt.has_value()) {
-      throw std::runtime_error("Method was called not in offchain worker context");
+      throw std::runtime_error(
+          "Method was called not in offchain worker context");
     }
     return worker_opt.value();
   }

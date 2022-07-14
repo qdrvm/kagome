@@ -18,4 +18,4 @@ namespace testutil {
 
 }  // namespace testutil
 
-#endif  //KAGOME_TEST_TESTUTIL_PRIMITIVES_MP_UTILS_HPP
+#endif  // KAGOME_TEST_TESTUTIL_PRIMITIVES_MP_UTILS_HPP

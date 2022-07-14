@@ -447,11 +447,12 @@ TEST_F(SummaryTest, QuantileValues) {
  * @given prev registry
  * @when putting a summary and sleeping few times
  * @then expected correct summary values in time
- * @note problematic test if continues to fail on macos consider removing/rewriting
+ * @note problematic test if continues to fail on macos consider
+ * removing/rewriting
  */
 TEST_F(SummaryTest, MaxAge) {
-  auto summary =
-      createSummary("summary7", {{0.99, 0.001}}, std::chrono::milliseconds(1000), 2);
+  auto summary = createSummary(
+      "summary7", {{0.99, 0.001}}, std::chrono::milliseconds(1000), 2);
   summary->observe(8.0);
 
   static const auto test_value = [&summary](double ref) {
@@ -465,7 +466,8 @@ TEST_F(SummaryTest, MaxAge) {
   };
 
   test_value(8.0);
-  // we just check that value remains after a little waiting, if summary window not expired
+  // we just check that value remains after a little waiting, if summary window
+  // not expired
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   test_value(8.0);
   // check that there is no value sometime after expiration

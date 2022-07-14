@@ -18,7 +18,7 @@ namespace kagome::storage::face {
    * @tparam V map value type
    * @tparam KView map key view type
    */
-  template <typename K, typename V, typename KView = K >
+  template <typename K, typename V, typename KView = K>
   struct Iterable {
     using Cursor = MapCursor<K, V, KView>;
 

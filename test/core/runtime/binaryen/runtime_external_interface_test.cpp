@@ -95,10 +95,8 @@ class REITest : public ::testing::Test {
         std::make_shared<ConstantCodeProvider>(kagome::common::Buffer{});
     auto module_repo = std::make_shared<ModuleRepositoryMock>();
     auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
-    runtime_env_factory_ =
-        std::make_shared<RuntimeEnvironmentFactoryMock>(code_provider,
-                                                        module_repo,
-                                                        header_repo);
+    runtime_env_factory_ = std::make_shared<RuntimeEnvironmentFactoryMock>(
+        code_provider, module_repo, header_repo);
   }
 
   void executeWasm(std::string call_code) {
@@ -262,7 +260,9 @@ TEST_F(REITest, ext_storage_changes_root_Test) {
   WasmSize parent_hash_len = 42;
   WasmPointer result = 321;
 
-  EXPECT_CALL(*host_api_, ext_storage_changes_root_version_1(PtrSize(parent_hash_data, parent_hash_len).combine()))
+  EXPECT_CALL(*host_api_,
+              ext_storage_changes_root_version_1(
+                  PtrSize(parent_hash_data, parent_hash_len).combine()))
       .WillOnce(Return(result));
 
   auto execute_code =
@@ -281,11 +281,15 @@ TEST_F(REITest, ext_storage_changes_root_Test) {
 TEST_F(REITest, ext_storage_root_Test) {
   WasmPointer storage_root = 12;
 
-  EXPECT_CALL(*host_api_, ext_storage_root_version_1()).WillOnce(Return(storage_root));
-  auto execute_code = (boost::format("    (call $assert_eq_i64\n"
-                                     "      (call $ext_storage_root_version_1)\n"
-                                     "      (i64.const %d)\n"
-                                     "    )\n") % storage_root).str();
+  EXPECT_CALL(*host_api_, ext_storage_root_version_1())
+      .WillOnce(Return(storage_root));
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i64\n"
+                     "      (call $ext_storage_root_version_1)\n"
+                     "      (i64.const %d)\n"
+                     "    )\n")
+       % storage_root)
+          .str();
   executeWasm(execute_code);
 }
 

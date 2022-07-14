@@ -33,8 +33,7 @@ namespace kagome::storage {
   using BufferMapCursor =
       face::MapCursor<BufferView, BufferConstRef, BufferView>;
 
-  using BufferStorageCursor =
-      face::MapCursor<Buffer, Buffer, BufferView>;
+  using BufferStorageCursor = face::MapCursor<Buffer, Buffer, BufferView>;
 
 }  // namespace kagome::storage
 

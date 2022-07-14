@@ -20,7 +20,7 @@ using kagome::primitives::BlockNumber;
 using kagome::primitives::GrandpaDigest;
 using kagome::storage::trie::TrieStorage;
 
-using ArgumentList = gsl::span<const char*>;
+using ArgumentList = gsl::span<const char *>;
 
 class CommandExecutionError : public std::runtime_error {
  public:
@@ -98,14 +98,13 @@ class CommandParser {
       std::cerr << "Unspecified command!\nAvailable commands are:\n";
       printCommands(std::cerr);
     }
-    if (auto command = commands_.find(args[1]);
-        command != commands_.cend()) {
+    if (auto command = commands_.find(args[1]); command != commands_.cend()) {
       ArgumentList cmd_args{args.subspan(1)};
       try {
         command->second->execute(std::cout, cmd_args);
       } catch (CommandExecutionError &e) {
         std::cerr << e;
-      } catch(std::exception& e) {
+      } catch (std::exception &e) {
         std::cerr << e.what();
       }
     } else {
@@ -286,7 +285,9 @@ class SearchChainCommand : public Command {
     assertArgumentCount(args, 2, 4);
     Target target = parseTarget(args[1]);
     if (target == Target::LastBlock) {
-      std::cout << "#" << block_storage->getLastFinalized().value().number << " " << block_storage->getLastFinalized().value().hash.toHex() << "\n";
+      std::cout << "#" << block_storage->getLastFinalized().value().number
+                << " " << block_storage->getLastFinalized().value().hash.toHex()
+                << "\n";
       return;
     }
 
@@ -464,8 +465,8 @@ int main(int argc, const char **argv) {
     return -1;
   }
 
-  if (!configuration.initializeFromArgs(argc - kagome_args_start,
-                                        args.subspan(kagome_args_start).data())) {
+  if (!configuration.initializeFromArgs(
+          argc - kagome_args_start, args.subspan(kagome_args_start).data())) {
     std::cerr << "Failed to initialize kagome!\n";
     return -1;
   }

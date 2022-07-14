@@ -34,10 +34,11 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
         MemoryAllocator::MemoryHandle{
             [this](auto size) { return memory_->resize(size); },
             [this] { return memory_->size(); }},
-        kInitialMemorySize, kDefaultHeapBase);
+        kInitialMemorySize,
+        kDefaultHeapBase);
     allocator_ = allocator.get();
-    memory_ = std::make_unique<MemoryImpl>(
-        rei_->getMemory(), std::move(allocator));
+    memory_ =
+        std::make_unique<MemoryImpl>(rei_->getMemory(), std::move(allocator));
   }
 
   void TearDown() override {
@@ -49,7 +50,7 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
 
   std::unique_ptr<runtime::binaryen::RuntimeExternalInterface> rei_;
   std::unique_ptr<MemoryImpl> memory_;
-  MemoryAllocator* allocator_;
+  MemoryAllocator *allocator_;
 };
 
 /**

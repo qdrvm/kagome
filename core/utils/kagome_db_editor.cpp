@@ -159,8 +159,7 @@ void child_storage_root_hashes(
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
         auto &value_opt = value_res.value();
-        log->trace("Found child root hash {}",
-                   value_opt.value().get().toHex());
+        log->trace("Found child root hash {}", value_opt.value().get().toHex());
         hashes.insert(
             common::Hash256::fromSpan(value_opt.value().get()).value());
       }
@@ -174,8 +173,9 @@ int main(int argc, char *argv[]) {
   backward::SignalHandling sh;
 
   Command cmd;
-  auto is_hash = [](const char* s) {
-    return std::strlen(s) == common::Hash256::size() + 2 && std::equal(s, s + 2, "0x");
+  auto is_hash = [](const char *s) {
+    return std::strlen(s) == common::Hash256::size() + 2
+           && std::equal(s, s + 2, "0x");
   };
   if (argc == 2 or (argc == 3 && is_hash(argv[2]))
       or (argc == 4 and std::strcmp(argv[MODE], "compact") == 0)) {
@@ -287,8 +287,6 @@ int main(int argc, char *argv[]) {
       auto justifications =
           check(block_storage->getJustification(block.hash)).value();
       if (justifications.has_value()) {
-
-
         last_finalized_block = block;
         last_finalized_block_header = header;
         last_finalized_block_state_root = header.state_root;
@@ -336,7 +334,8 @@ int main(int argc, char *argv[]) {
 
     if (COMPACT == cmd) {
       auto batch =
-          check(persistent_batch(trie, last_finalized_block_state_root)).value();
+          check(persistent_batch(trie, last_finalized_block_state_root))
+              .value();
       auto finalized_batch =
           check(persistent_batch(trie, last_finalized_block_state_root))
               .value();

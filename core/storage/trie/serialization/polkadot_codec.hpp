@@ -10,9 +10,9 @@
 #include <optional>
 #include <string>
 
-#include "storage/trie/serialization/buffer_stream.hpp"
 #include "storage/trie/codec.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
+#include "storage/trie/serialization/buffer_stream.hpp"
 
 namespace kagome::storage::trie {
 
@@ -54,7 +54,7 @@ namespace kagome::storage::trie {
         BufferStream &stream) const;
 
     outcome::result<KeyNibbles> decodePartialKey(size_t nibbles_num,
-                                             BufferStream &stream) const;
+                                                 BufferStream &stream) const;
 
     outcome::result<std::shared_ptr<Node>> decodeBranch(
         TrieNode::Type type,

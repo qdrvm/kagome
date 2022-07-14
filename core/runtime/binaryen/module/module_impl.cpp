@@ -75,7 +75,8 @@ namespace kagome::runtime::binaryen {
     return wasm_module_impl;
   }
 
-  outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate() const {
+  outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
+      const {
     auto env = env_factory_->make();
     return std::make_shared<ModuleInstanceImpl>(
         std::move(env.env), module_, env.rei);

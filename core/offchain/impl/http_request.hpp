@@ -15,8 +15,8 @@
 #include <boost/beast/http.hpp>
 #include <boost/beast/ssl/ssl_stream.hpp>
 
-#include "log/logger.hpp"
 #include "common/uri.hpp"
+#include "log/logger.hpp"
 #include "offchain/types.hpp"
 
 namespace kagome::offchain {

@@ -45,8 +45,11 @@ namespace kagome::primitives {
     /// At which block the transaction becomes invalid?
     Longevity valid_till{};
 
+    // clang-format treats `requires` as c++20 keyword.
+    // clang-format off
     /// Tags required by the transaction.
     std::vector<Tag> requires{};
+    // clang-format on
 
     /// Tags that this transaction provides.
     std::vector<Tag> provides{};

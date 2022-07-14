@@ -372,7 +372,8 @@ TEST_F(PolkadotTrieCursorTest, SeekLowerBoundLeaf) {
  * the actual upper bound in corner cases
  */
 TEST_F(PolkadotTrieCursorTest, Broken) {
-  kagome::log::setLevelOfGroup(kagome::log::defaultGroupName, soralog::Level::TRACE);
+  kagome::log::setLevelOfGroup(kagome::log::defaultGroupName,
+                               soralog::Level::TRACE);
   std::vector<std::pair<Buffer, Buffer>> vals = {
       {"00289e629fac633384f461a8e9a7bc63bce825350e4548ed2a06ab661909af3c"_hex2buf,
        "00"_hex2buf},
@@ -382,11 +383,12 @@ TEST_F(PolkadotTrieCursorTest, Broken) {
       {"01"_hex2buf, "00"_hex2buf},
       {"10"_hex2buf, "00"_hex2buf},
       {"0000"_hex2buf, "00"_hex2buf},
-      {"0030"_hex2buf, "00"_hex2buf}
-  };
+      {"0030"_hex2buf, "00"_hex2buf}};
   auto trie = makeTrie(vals);
   auto cursor = trie->trieCursor();
-  cursor->seekUpperBound(
-      "001bc05a925467574025104b405941493d67d3d3cbf1a66bc21aea056916463c"_hex2buf).value();
+  cursor
+      ->seekUpperBound(
+          "001bc05a925467574025104b405941493d67d3d3cbf1a66bc21aea056916463c"_hex2buf)
+      .value();
   ASSERT_EQ(cursor->key().value(), vals[0].first);
 }

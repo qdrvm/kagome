@@ -11,7 +11,8 @@
 using kagome::network::UVarMessageAdapter;
 
 struct UVarAdapterTest : public ::testing::Test {
-  struct Dummy {}d;
+  struct Dummy {
+  } d;
 };
 
 /**
@@ -48,7 +49,8 @@ TEST_F(UVarAdapterTest, DataSize_7f) {
   ASSERT_EQ(*it, 0x7f);
 
   EXPECT_OUTCOME_TRUE(it_read, UVarMessageAdapter<Dummy>::read(d, data, it));
-  ASSERT_EQ(it_read.base() - data.begin().base(), (uint64_t)UVarMessageAdapter<Dummy>::size(Dummy{}));
+  ASSERT_EQ(it_read.base() - data.begin().base(),
+            (uint64_t)UVarMessageAdapter<Dummy>::size(Dummy{}));
 }
 
 /**
@@ -68,13 +70,15 @@ TEST_F(UVarAdapterTest, DataSize_1) {
   ASSERT_EQ(*it, 0x1);
 
   EXPECT_OUTCOME_TRUE(it_read, UVarMessageAdapter<Dummy>::read(d, data, it));
-  ASSERT_EQ(it_read.base() - data.begin().base(), (uint64_t)UVarMessageAdapter<Dummy>::size(Dummy{}));
+  ASSERT_EQ(it_read.base() - data.begin().base(),
+            (uint64_t)UVarMessageAdapter<Dummy>::size(Dummy{}));
 }
 
 /**
  * @given fd-size data buffer
  * @when we add uvar field
- * @then the only two bytes with 0x1 and 0xfd values must be written, the result buffer must be 0xff size
+ * @then the only two bytes with 0x1 and 0xfd values must be written, the result
+ * buffer must be 0xff size
  */
 TEST_F(UVarAdapterTest, DataSize_fd) {
   std::vector<uint8_t> data;
@@ -88,5 +92,6 @@ TEST_F(UVarAdapterTest, DataSize_fd) {
   ASSERT_EQ(*(it + 1), 0x1);
 
   EXPECT_OUTCOME_TRUE(it_read, UVarMessageAdapter<Dummy>::read(d, data, it));
-  ASSERT_EQ(it_read.base() - data.begin().base(), (uint64_t)UVarMessageAdapter<Dummy>::size(Dummy{}));
+  ASSERT_EQ(it_read.base() - data.begin().base(),
+            (uint64_t)UVarMessageAdapter<Dummy>::size(Dummy{}));
 }

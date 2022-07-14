@@ -79,7 +79,6 @@ namespace kagome::host_api {
     return std::make_tuple(loadBuffer(memory, std::forward<Args>(spans))...);
   }
 
-
   void ChildStorageExtension::ext_default_child_storage_set_version_1(
       runtime::WasmSpan child_storage_key,
       runtime::WasmSpan key,

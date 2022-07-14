@@ -43,7 +43,7 @@ namespace kagome::offchain {
 
   outcome::result<bool> OffchainPersistentStorageImpl::compare_and_set(
       const common::BufferView &key,
-      const std::optional<common::BufferView>& expected,
+      const std::optional<common::BufferView> &expected,
       common::Buffer value) {
     auto iKey = internalKey(key);
     std::lock_guard lg(mutex_);

@@ -9,8 +9,8 @@
 #include <gsl/span>
 
 #include "outcome/outcome.hpp"
-#include "storage/trie/types.hpp"
 #include "runtime/instance_environment.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::runtime {
 

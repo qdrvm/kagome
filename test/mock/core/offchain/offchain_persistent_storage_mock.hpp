@@ -26,9 +26,8 @@ namespace kagome::offchain {
                               const std::optional<common::BufferView> &,
                               common::Buffer));
 
-    MOCK_METHOD1(
-        get,
-        outcome::result<common::Buffer>(const common::BufferView &));
+    MOCK_METHOD1(get,
+                 outcome::result<common::Buffer>(const common::BufferView &));
   };
 
 }  // namespace kagome::offchain

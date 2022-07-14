@@ -34,4 +34,4 @@ namespace kagome::common::literals {
 
 }  // namespace kagome::common::literals
 
-#endif // KAGOME_COMMON_LITERALS
+#endif  // KAGOME_COMMON_LITERALS

@@ -115,8 +115,7 @@ TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetHashByNumber) {
   EXPECT_OUTCOME_TRUE(hash, storeHeader(GetParam(), getDefaultHeader()))
   EXPECT_OUTCOME_TRUE(maybe_hash, header_repo_->getHashByNumber(GetParam()))
   ASSERT_THAT(hash, testing::ContainerEq(maybe_hash));
-  EXPECT_OUTCOME_TRUE(maybe_another_hash,
-                      header_repo_->getHashById(GetParam()))
+  EXPECT_OUTCOME_TRUE(maybe_another_hash, header_repo_->getHashById(GetParam()))
   ASSERT_THAT(hash, testing::ContainerEq(maybe_another_hash));
 }
 

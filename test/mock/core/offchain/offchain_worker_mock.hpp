@@ -46,14 +46,13 @@ namespace kagome::offchain {
                 (StorageType storage_type, const common::BufferView &key),
                 (override));
 
-    MOCK_METHOD(
-        bool,
-        localStorageCompareAndSet,
-        (StorageType storage_type,
-         const common::BufferView &key,
-         std::optional<common::BufferView> expected,
-         common::Buffer value),
-        (override));
+    MOCK_METHOD(bool,
+                localStorageCompareAndSet,
+                (StorageType storage_type,
+                 const common::BufferView &key,
+                 std::optional<common::BufferView> expected,
+                 common::Buffer value),
+                (override));
 
     MOCK_METHOD(outcome::result<common::Buffer>,
                 localStorageGet,
