@@ -14,9 +14,10 @@ namespace kagome::crypto {
     BOOST_ASSERT(generator_ != nullptr);
   }
 
-  Sr25519Keypair Sr25519ProviderImpl::generateKeypair() const {
-    auto seed = generator_->randomBytes(constants::sr25519::SEED_SIZE);
-    return generateKeypair(common::Blob<32>::fromSpan(seed).value());
+  Sr25519KeypairAndSeed Sr25519ProviderImpl::generateKeypair() const {
+    Sr25519Seed seed;
+    generator_->fillRandomly(seed);
+    return Sr25519KeypairAndSeed{generateKeypair(seed), seed};
   }
 
   Sr25519Keypair Sr25519ProviderImpl::generateKeypair(

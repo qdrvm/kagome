@@ -160,6 +160,17 @@ namespace kagome::crypto {
       return suite.generateKeypair(seed);
     }
 
+    template <typename CryptoSuite>
+    outcome::result<typename CryptoSuite::Keypair> generateKeypairOnDisk(
+        KeyTypeId key_type,
+        const std::shared_ptr<CryptoSuite> &suite,
+        std::unordered_map<KeyTypeId, KeyCache<CryptoSuite>> &caches) {
+      OUTCOME_TRY(kp, suite->generateRandomKeypair());
+      getCache(suite, caches, key_type).insert(kp.public_key, kp.secret_key);
+      OUTCOME_TRY(file_storage_->saveKeyPair(key_type, kp.public_key, kp.seed));
+      return std::move(kp);
+    }
+
     template <typename Suite>
     KeyCache<Suite> &getCache(
         std::shared_ptr<Suite> suite,

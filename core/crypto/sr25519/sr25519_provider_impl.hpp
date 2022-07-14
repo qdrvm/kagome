@@ -23,7 +23,7 @@ namespace kagome::crypto {
 
     ~Sr25519ProviderImpl() override = default;
 
-    Sr25519Keypair generateKeypair() const override;
+    Sr25519KeypairAndSeed generateKeypair() const override;
 
     Sr25519Keypair generateKeypair(const Sr25519Seed &seed) const override;
 

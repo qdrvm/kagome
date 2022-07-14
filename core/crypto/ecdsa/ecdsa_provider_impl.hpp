@@ -23,7 +23,7 @@ namespace kagome::crypto {
 
     explicit EcdsaProviderImpl(std::shared_ptr<Libp2pEcdsaProvider> provider);
 
-    outcome::result<EcdsaKeypair> generate() const override;
+    outcome::result<EcdsaKeypairAndSeed> generate() const override;
 
     outcome::result<EcdsaPublicKey> derive(
         const EcdsaSeed &seed) const override;

@@ -44,6 +44,9 @@ namespace kagome::crypto {
   using EcdsaSeed = common::Blob<constants::ecdsa::SEED_SIZE>;
   using EcdsaPrehashedMessage = libp2p::crypto::ecdsa::PrehashedMessage;
 
+  struct EcdsaKeypairAndSeed : EcdsaKeypair {
+    EcdsaSeed seed;
+  };
 }  // namespace kagome::crypto
 
 #endif  // KAGOME_CORE_CRYPTO_ECDSA_TYPES_HPP
