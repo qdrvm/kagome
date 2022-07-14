@@ -302,6 +302,27 @@ namespace kagome::network {
       primitives::BlockInfo target_block,
       std::optional<uint32_t> limit,
       Synchronizer::SyncResultHandler &&handler) {
+    if (busy_peers_.find(peer_id) != busy_peers_.end()) {
+      SL_DEBUG(
+          log_,
+          "Justifications load since block {} was rescheduled, peer {} is busy",
+          target_block,
+          peer_id);
+      scheduler_->schedule([wp = weak_from_this(),
+                            peer_id,
+                            block = std::move(target_block),
+                            limit = std::move(limit),
+                            handler = std::move(handler)]() mutable {
+        auto self = wp.lock();
+        if (not self) {
+          return;
+        }
+        self->syncMissingJustifications(
+            peer_id, std::move(block), std::move(limit), std::move(handler));
+      });
+      return;
+    }
+
     loadJustifications(
         peer_id, std::move(target_block), std::move(limit), std::move(handler));
   }
@@ -715,6 +736,14 @@ namespace kagome::network {
       if (handler) handler(Error::SHUTTING_DOWN);
       return;
     }
+
+    busy_peers_.insert(peer_id);
+    auto cleanup = gsl::finally([this, peer_id] {
+      auto peer = busy_peers_.find(peer_id);
+      if (peer != busy_peers_.end()) {
+        busy_peers_.erase(peer);
+      }
+    });
 
     BlocksRequest request{
         BlockAttribute::HEADER | BlockAttribute::JUSTIFICATION,
