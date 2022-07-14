@@ -789,16 +789,6 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
       }
 
-      // Incorrect if forced change?
-//      if (authority_set->id > current_round_->voterSetId() + 1) {
-//        SL_ERROR(logger_,
-//                 "Wrong voter set id update: got {}, previous is {}, "
-//                 "difference is more than 1",
-//                 authority_set->id,
-//                 current_round_->voterSetId());
-//        return VotingRoundError::WRONG_ORDER_OF_VOTER_SET_ID;
-//      }
-
       auto voters = std::make_shared<VoterSet>(authority_set->id);
       for (const auto &authority : authority_set->authorities) {
         auto res = voters->insert(
