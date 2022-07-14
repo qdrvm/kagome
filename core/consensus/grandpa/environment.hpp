@@ -56,7 +56,7 @@ namespace kagome::consensus::grandpa {
      */
     virtual outcome::result<void> onCatchUpRequested(
         const libp2p::peer::PeerId &peer_id,
-        MembershipCounter set_id,
+        VoterSetId set_id,
         RoundNumber round_number) = 0;
 
     /**
@@ -64,7 +64,7 @@ namespace kagome::consensus::grandpa {
      */
     virtual outcome::result<void> onCatchUpRespond(
         const libp2p::peer::PeerId &peer_id,
-        MembershipCounter set_id,
+        VoterSetId set_id,
         RoundNumber round_number,
         std::vector<SignedPrevote> prevote_justification,
         std::vector<SignedPrecommit> precommit_justification,
@@ -72,7 +72,7 @@ namespace kagome::consensus::grandpa {
 
     virtual void sendState(const libp2p::peer::PeerId &peer_id,
                            const MovableRoundState &state,
-                           MembershipCounter voter_set_id) = 0;
+                           VoterSetId voter_set_id) = 0;
 
     /**
      * Note that we've done a vote in the given round.
@@ -80,7 +80,7 @@ namespace kagome::consensus::grandpa {
      * \param set_id and \param vote is ready to be sent.
      */
     virtual outcome::result<void> onVoted(RoundNumber round,
-                                          MembershipCounter set_id,
+                                          VoterSetId set_id,
                                           const SignedMessage &vote) = 0;
 
     /**
@@ -90,7 +90,7 @@ namespace kagome::consensus::grandpa {
      */
     virtual outcome::result<void> onCommitted(
         RoundNumber round,
-        MembershipCounter voter_ser_id,
+        VoterSetId voter_ser_id,
         const BlockInfo &vote,
         const GrandpaJustification &justification) = 0;
 
@@ -101,8 +101,7 @@ namespace kagome::consensus::grandpa {
      * @param last_finalized last known finalized block
      */
     virtual outcome::result<void> onNeighborMessageSent(
-        RoundNumber round,
-        MembershipCounter set_id,
+        RoundNumber round, VoterSetId set_id,
         BlockNumber last_finalized) = 0;
 
     /**
@@ -122,7 +121,7 @@ namespace kagome::consensus::grandpa {
      * should be applied to the storage
      */
     virtual outcome::result<void> finalize(
-        MembershipCounter id, const GrandpaJustification &justification) = 0;
+        VoterSetId id, const GrandpaJustification &justification) = 0;
 
     virtual outcome::result<GrandpaJustification> getJustification(
         const BlockHash &block_hash) = 0;

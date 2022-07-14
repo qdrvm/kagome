@@ -327,7 +327,7 @@ namespace {
       return initialized.value();
     }
     auto options = leveldb::Options{};
-    options.max_open_files = 1500;  // 1000 was the default value
+    options.max_open_files = 1000;  // 1000 was the default value
     options.create_if_missing = true;
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
@@ -515,7 +515,7 @@ namespace {
         libp2p::protocol::kademlia::Config{
             .protocolId = "/" + chain_spec.protocolId() + "/kad",
             .maxBucketSize = 1000,
-            .randomWalk = {.interval = std::chrono::minutes(1)}});
+            .randomWalk = {.interval = std::chrono::seconds(30)}});
 
     initialized.emplace(std::move(kagome_config));
     return initialized.value();
@@ -1352,9 +1352,12 @@ namespace {
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
     auto trie_storage =
         injector.template create<sptr<const storage::trie::TrieStorage>>();
+    auto authority_manager =
+        injector.template create<sptr<authority::AuthorityManager>>();
 
     initialized.emplace(new application::mode::RecoveryMode(
         [&app_config,
+         authority_manager,
          storage = std::move(storage),
          header_repo = std::move(header_repo),
          trie_storage = std::move(trie_storage)] {
@@ -1364,7 +1367,17 @@ namespace {
               storage,
               header_repo,
               trie_storage);
+
           auto log = log::createLogger("RecoveryMode", "main");
+          if (res.has_error()) {
+            SL_ERROR(
+                log, "Recovery mode has failed: {}", res.error().message());
+            log->flush();
+            return EXIT_FAILURE;
+          }
+          auto number =
+              header_repo->getNumberById(app_config.recoverState().value());
+          res = authority_manager->recalculateStoredState(number.value());
           if (res.has_error()) {
             SL_ERROR(
                 log, "Recovery mode has failed: {}", res.error().message());

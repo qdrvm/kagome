@@ -96,7 +96,7 @@ namespace kagome::consensus::grandpa {
    private:
     std::shared_ptr<VotingRound> selectRound(
         RoundNumber round_number,
-        std::optional<MembershipCounter> voter_set_id);
+        std::optional<VoterSetId> voter_set_id);
     outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> makeInitialRound(

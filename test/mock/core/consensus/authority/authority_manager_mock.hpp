@@ -32,7 +32,8 @@ namespace kagome::authority {
                 applyForcedChange,
                 (const primitives::BlockInfo &,
                  const primitives::AuthorityList &,
-                 primitives::BlockNumber),
+                 primitives::BlockNumber,
+                 size_t),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,

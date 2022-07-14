@@ -173,7 +173,7 @@ namespace kagome::consensus::grandpa {
   // either prevote, precommit or primary propose
   struct VoteMessage {
     RoundNumber round_number{0};
-    MembershipCounter counter{0};
+    VoterSetId counter{0};
     SignedMessage vote;
 
     Id id() const {

@@ -861,7 +861,7 @@ namespace kagome::consensus::grandpa {
     return round_number_;
   }
 
-  MembershipCounter VotingRoundImpl::voterSetId() const {
+  VoterSetId VotingRoundImpl::voterSetId() const {
     return voter_set_->id();
   }
 

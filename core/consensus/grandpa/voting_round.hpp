@@ -22,7 +22,7 @@ namespace kagome::consensus::grandpa {
     // Getters
 
     virtual RoundNumber roundNumber() const = 0;
-    virtual MembershipCounter voterSetId() const = 0;
+    virtual VoterSetId voterSetId() const = 0;
 
     /**
      * Round is completable when we have block (stored in

@@ -29,6 +29,9 @@ namespace kagome::runtime {
     outcome::result<AuthorityList> authorities(
         const primitives::BlockId &block_id) override;
 
+    outcome::result<primitives::AuthoritySetId> current_set_id(
+        const primitives::BlockHash &block) override;
+
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<Executor> executor_;
@@ -36,4 +39,4 @@ namespace kagome::runtime {
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_RUNTIME_WAVM_GRANDPAAPI
+#endif  // KAGOME_RUNTIME_GRANDPAAPI
