@@ -5,6 +5,14 @@
 
 add_subdirectory(types)
 
+addtest(block_response_cache_test
+    block_response_cache_test.cpp
+    )
+target_link_libraries(block_response_cache_test
+    p2p::p2p_peer_id
+    sync_protocol
+    )
+
 addtest(rpc_libp2p_test
     rpc_libp2p_test.cpp
     )

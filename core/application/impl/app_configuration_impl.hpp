@@ -69,6 +69,9 @@ namespace kagome::application {
       return roles_;
     }
     boost::filesystem::path chainSpecPath() const override;
+    boost::filesystem::path runtimeCacheDirPath() const override;
+    boost::filesystem::path runtimeCachePath(
+        std::string runtime_hash) const override;
     boost::filesystem::path chainPath(std::string chain_id) const override;
     boost::filesystem::path databasePath(std::string chain_id) const override;
     boost::filesystem::path keystorePath(std::string chain_id) const override;
@@ -120,6 +123,9 @@ namespace kagome::application {
     uint32_t maxWsConnections() const override {
       return max_ws_connections_;
     }
+    std::chrono::seconds getRandomWalkInterval() const override{
+      return std::chrono::seconds(random_walk_interval_);
+    }
     const std::vector<std::string> &log() const override {
       return logger_tuning_config_;
     }
@@ -148,22 +154,34 @@ namespace kagome::application {
     RuntimeExecutionMethod runtimeExecMethod() const override {
       return runtime_exec_method_;
     }
+    bool useWavmCache() const override {
+      return use_wavm_cache_;
+    }
+    bool purgeWavmCache() const override {
+      return purge_wavm_cache_;
+    }
     OffchainWorkerMode offchainWorkerMode() const override {
       return offchain_worker_mode_;
     }
     bool isOffchainIndexingEnabled() const override {
       return enable_offchain_indexing_;
     }
-    virtual std::optional<primitives::BlockId> recoverState() const override {
+    bool subcommandChainInfo() const override {
+      return subcommand_chain_info_;
+    }
+    std::optional<primitives::BlockId> recoverState() const override {
       return recovery_state_;
+    }
+    StorageBackend storageBackend() const override {
+      return storage_backend_;
     }
 
    private:
-    void parse_general_segment(rapidjson::Value &val);
-    void parse_blockchain_segment(rapidjson::Value &val);
-    void parse_storage_segment(rapidjson::Value &val);
-    void parse_network_segment(rapidjson::Value &val);
-    void parse_additional_segment(rapidjson::Value &val);
+    void parse_general_segment(const rapidjson::Value &val);
+    void parse_blockchain_segment(const rapidjson::Value &val);
+    void parse_storage_segment(const rapidjson::Value &val);
+    void parse_network_segment(const rapidjson::Value &val);
+    void parse_additional_segment(const rapidjson::Value &val);
 
     /// TODO(iceseer): PRE-476 make handler calls via lambda-calls, remove
     /// member-function ptrs
@@ -278,10 +296,15 @@ namespace kagome::application {
     std::string node_name_;
     std::string node_version_;
     uint32_t max_ws_connections_;
+    uint32_t random_walk_interval_;
     RuntimeExecutionMethod runtime_exec_method_;
+    bool use_wavm_cache_;
+    bool purge_wavm_cache_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
+    bool subcommand_chain_info_;
     std::optional<primitives::BlockId> recovery_state_;
+    StorageBackend storage_backend_ = StorageBackend::LevelDB;
   };
 
 }  // namespace kagome::application

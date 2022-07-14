@@ -43,13 +43,15 @@ namespace kagome::api::state::request {
     }
 
     // process prev_key param
-    if (not params[2].IsString()) {
-      throw jsonrpc::InvalidParametersFault(
-          "Parameter '[prev_key]' must be a hex string representation of an "
-          "encoded optional byte sequence");
+    if (not params[2].IsNil()) {
+      if (not params[2].IsString()) {
+        throw jsonrpc::InvalidParametersFault(
+            "Parameter '[prev_key]' must be a hex string representation of an "
+            "encoded optional byte sequence");
+      }
+      OUTCOME_TRY(prev_key, common::unhexWith0x(params[2].AsString()));
+      prev_key_.emplace(std::move(prev_key));
     }
-    OUTCOME_TRY(prev_key, common::unhexWith0x(params[2].AsString()));
-    prev_key_.emplace(std::move(prev_key));
 
     if (params.size() == 3) {
       return outcome::success();

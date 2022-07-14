@@ -8,6 +8,8 @@
 
 #include <binaryen/shell-interface.h>
 
+#include <boost/unordered_map.hpp>
+
 #include "log/logger.hpp"
 
 namespace kagome::host_api {
@@ -38,7 +40,7 @@ namespace kagome::runtime::binaryen {
 
     wasm::ShellExternalInterface::Memory *getMemory();
 
-    void trap(const char* why) override {
+    void trap(const char *why) override {
       logger_->error("Trap: {}", why);
       throw wasm::TrapException{};
     }
@@ -52,7 +54,20 @@ namespace kagome::runtime::binaryen {
                         size_t expected,
                         size_t actual);
 
+    void methodsRegistration();
+
+    template <auto mf>
+    static wasm::Literal importCall(RuntimeExternalInterface &this_,
+                                    wasm::Function *import,
+                                    wasm::LiteralList &arguments);
+
     std::shared_ptr<host_api::HostApi> host_api_;
+
+    using ImportFuncPtr = wasm::Literal (*)(RuntimeExternalInterface &this_,
+                                            wasm::Function *import,
+                                            wasm::LiteralList &arguments);
+
+    boost::unordered_map<std::string, ImportFuncPtr> imports_;
     log::Logger logger_;
   };
 

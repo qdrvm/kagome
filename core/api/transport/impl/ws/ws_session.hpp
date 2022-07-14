@@ -153,6 +153,7 @@ namespace kagome::api {
     boost::beast::flat_buffer rbuffer_;  ///< read buffer
     boost::beast::flat_buffer wbuffer_;  ///< write buffer
 
+    std::mutex cs_;
     std::queue<std::string> pending_responses_;
 
     std::atomic_bool writing_in_progress_ = false;

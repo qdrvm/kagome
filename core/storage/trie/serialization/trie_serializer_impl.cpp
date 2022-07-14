@@ -42,7 +42,7 @@ namespace kagome::storage::trie {
         [this](const std::shared_ptr<OpaqueTrieNode> &parent)
         -> outcome::result<PolkadotTrie::NodePtr> {
       OUTCOME_TRY(node, retrieveNode(parent));
-      return node;
+      return std::move(node);
     };
     if (db_key == getEmptyRootHash()) {
       return trie_factory_->createEmpty(std::move(f));
@@ -107,7 +107,7 @@ namespace kagome::storage::trie {
       const std::shared_ptr<OpaqueTrieNode> &parent) const {
     if (auto p = std::dynamic_pointer_cast<DummyNode>(parent); p != nullptr) {
       OUTCOME_TRY(n, retrieveNode(p->db_key));
-      return n;
+      return std::move(n);
     }
     return std::dynamic_pointer_cast<TrieNode>(parent);
   }

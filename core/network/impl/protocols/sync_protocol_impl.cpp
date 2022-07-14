@@ -56,8 +56,8 @@ namespace kagome::network {
       // peer record in cache is valid and not expired
       entry->valid_till = now + expiration_time_;  // prolong expiry time
       auto &requests = entry->fingerprints;
-      if (std::find(requests.begin(), requests.end(), request_fingerprint)
-          != requests.end()) {
+      if (std::count(requests.begin(), requests.end(), request_fingerprint)
+          >= 2) {
         return true;
       }
       requests.push_back(request_fingerprint);

@@ -193,17 +193,50 @@ namespace kagome::consensus::grandpa {
     RoundNumber roundNumber() const override;
     VoterSetId voterSetId() const override;
 
+    /**
+     * Round is completable when we have block (stored in
+     * current_state_.finalized) for which we have supermajority on both
+     * prevotes and precommits
+     */
     bool completable() const override;
 
+    /**
+     * Last finalized block
+     * @return Block finalized in previous round (when current one was created)
+     */
     BlockInfo lastFinalizedBlock() const override {
       return last_finalized_block_;
     }
+
+    /**
+     * Best block from descendants of previous round best-final-candidate
+     * @see spec: Best-PreVote-Candidate
+     */
     BlockInfo bestPrevoteCandidate() override;
+
+    /**
+     * Block what has precommit supermajority.
+     * Should be descendant or equal of Best-PreVote-Candidate
+     * @see spec:
+     * [Best-Final-Candidate](https://spec.polkadot.network/develop/#algo-grandpa-best-candidate)
+     * @endlink
+     * @see spec:
+     * [Ghost-Function](https://spec.polkadot.network/develop/#algo-grandpa-ghost)
+     * @endlink
+     */
     BlockInfo bestFinalCandidate() override;
+
+    /**
+     * The block, which is being finalized during this round
+     */
     const std::optional<BlockInfo> &finalizedBlock() const override {
       return finalized_;
     };
 
+    /**
+     * @return state containing round number, last finalized block, votes, and
+     * finalized block for this voting round
+     */
     MovableRoundState state() const override;
 
    private:
@@ -228,18 +261,32 @@ namespace kagome::consensus::grandpa {
      */
     bool updateEstimate();
 
-    /// prepare prevote justification of \param estimate over the provided
-    /// \param votes
+    /**
+     * Prepare prevote justifications for provided estimate using provided votes
+     * @param estimate estimate that we need to prepare justification for
+     * @param votes votes that correspond to provided estimate
+     * @return signed prevotes obtained from estimate and votes
+     */
     std::vector<SignedPrevote> getPrevoteJustification(
         const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const;
 
-    /// prepare precommit justification of \param estimate over the provided
-    /// \param votes
+    /**
+     * Prepare precommit justifications for provided estimate using provided
+     * votes
+     * @param precommits precommits that we need to prepare justification for
+     * @param votes votes that correspond to provided precommits
+     * @return signed precommits obtained from estimate and votes
+     */
     std::vector<SignedPrecommit> getPrecommitJustification(
         const BlockInfo &precommits,
         const std::vector<VoteVariant> &votes) const;
 
-    /// Check if received \param vote has valid \param justification precommit
+    /**
+     * Checks if received vote has valid justification precommit
+     * @param vote - block for which justification is provided
+     * @param justification - justification provided for checking
+     * @return success of error
+     */
     outcome::result<void> validatePrecommitJustification(
         const BlockInfo &vote, const GrandpaJustification &justification) const;
 

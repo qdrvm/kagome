@@ -235,7 +235,7 @@ namespace kagome::blockchain {
                   primitives::BlockInfo(block.header.number, block_hash),
                   primitives::BlockInfo(block.header.number - 1,
                                         block.header.parent_hash));
-    return block_hash;
+    return std::move(block_hash);
   }
 
   outcome::result<void> BlockStorageImpl::putJustification(

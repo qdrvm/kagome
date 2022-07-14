@@ -220,7 +220,7 @@ namespace kagome::runtime {
           if (event_type != primitives::events::ChainEventType::kNewRuntime) {
             return;
           }
-          auto &block_hash =
+          const auto &block_hash =
               boost::get<primitives::events::NewRuntimeEventParams>(
                   event_params)
                   .get();

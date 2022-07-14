@@ -14,6 +14,7 @@ target_link_libraries(application_injector
     api_transport
     app_config
     app_state_manager
+    print_chain_info_mode
     assets
     author_api_service
     authority_manager
@@ -55,6 +56,7 @@ target_link_libraries(application_injector
     kagome_router
     key_file_storage
     leveldb_wrapper
+    rocksdb_wrapper
     log_configurator
     metadata_api
     metrics

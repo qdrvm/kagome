@@ -147,8 +147,8 @@ int main() {
           "WAVM Compartment");
   auto module_params = std::make_shared<kagome::runtime::wavm::ModuleParams>();
   auto intrinsic_module =
-      std::make_shared<kagome::runtime::wavm::IntrinsicModule>(compartment,
-                                                               module_params->intrinsicMemoryType);
+      std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
+          compartment, module_params->intrinsicMemoryType);
 
   auto generator =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
@@ -210,7 +210,11 @@ int main() {
           smc);
   auto module_factory =
       std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
-          compartment, module_params, instance_env_factory, intrinsic_module);
+          compartment,
+          module_params,
+          instance_env_factory,
+          intrinsic_module,
+          std::nullopt);
   auto runtime_instances_pool =
       std::make_shared<kagome::runtime::RuntimeInstancesPool>();
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(

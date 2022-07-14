@@ -6,6 +6,7 @@
 #include "api/jrpc/jrpc_server_impl.hpp"
 
 #include "api/jrpc/custom_json_writer.hpp"
+#include "api/jrpc/jrpc_handle_batch.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, JRpcServerImpl::Error, e) {
   using E = kagome::api::JRpcServerImpl::Error;
@@ -52,12 +53,18 @@ namespace kagome::api {
      * https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#state_subscribestorage-pubsub
      */
     using Response = jsonrpc::Request;
-    using Value = jsonrpc::Value;
     using Fault = jsonrpc::Fault;
 
     JsonWriter writer;
     try {
-      Response response(std::move(method_name), from, Value(0));
+      /**
+       * Notification must omit "id" field.
+       * But jsonrpc-lean writes "id" field if id is null/int/string.
+       * So we pass bool.
+       * https://github.com/xDimon/jsonrpc-lean/blob/6c093da8670d7bf56555f166f8b8151f33a5d741/include/jsonrpc-lean/jsonwriter.h#L169
+       */
+      constexpr bool id = false;
+      Response response(std::move(method_name), from, id);
       response.Write(writer);
 
       auto &&formatted_response = writer.GetData();
@@ -73,10 +80,8 @@ namespace kagome::api {
 
   void JRpcServerImpl::processData(std::string_view request,
                                    const ResponseHandler &cb) {
-    auto &&formatted_response =
-        jsonrpc_handler_.HandleRequest(std::string(request));
-    cb(std::string(formatted_response->GetData(),
-                   formatted_response->GetSize()));
+    JrpcHandleBatch response(jsonrpc_handler_, request);
+    cb(response.response());
   }
 
 }  // namespace kagome::api

@@ -26,14 +26,20 @@ hunter_config(
 
 hunter_config(
     soralog
-    VERSION 0.0.9
+    VERSION 0.1.2
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     libp2p
-    VERSION 0.1.3
+    VERSION 0.1.4
     KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    rocksdb
+    VERSION 7.2.2
+    CMAKE_ARGS WITH_GFLAGS=OFF
 )
 
 hunter_config(
