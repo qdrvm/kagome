@@ -326,8 +326,16 @@ namespace kagome::consensus::grandpa {
     if (msg.voter_set_id < current_round_->voterSetId()) {
       return;
     }
+    const auto &new_set_id = msg.voter_set_id;
+    const auto &set_id = current_round_->voterSetId();
+    const auto &new_round = msg.round_number;
+    const auto &round = current_round_->roundNumber();
 
-    if (msg.voter_set_id > current_round_->voterSetId()) {
+    bool greater_voter_set = new_set_id > set_id;
+    bool same_voter_set = new_set_id == set_id;
+    bool greater_round = new_round > round;
+
+    if (greater_voter_set or (same_voter_set and greater_round)) {
       auto last_finalized = block_tree_->getLastFinalized();
       synchronizer_->syncMissingJustifications(
           peer_id,
@@ -354,12 +362,15 @@ namespace kagome::consensus::grandpa {
           });
     }
 
-    // Check if needed to catch-up peer, then do that
-    if (msg.round_number >= current_round_->roundNumber() + kCatchUpThreshold) {
-      std::ignore = environment_->onCatchUpRequested(
-          peer_id, msg.voter_set_id, msg.round_number - 1);
-      return;
-    }
+    //  Trying to substitute with justifications' request only
+    //
+    //    // Check if needed to catch-up peer, then do that
+    //    if (msg.round_number >= current_round_->roundNumber() +
+    //    kCatchUpThreshold) {
+    //      std::ignore = environment_->onCatchUpRequested(
+    //          peer_id, msg.voter_set_id, msg.round_number - 1);
+    //      return;
+    //    }
 
     // Iff peer just reached one of recent round, then share known votes
     auto info = peer_manager_->getPeerState(peer_id);
