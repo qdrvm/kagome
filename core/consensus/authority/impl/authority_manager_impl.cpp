@@ -525,6 +525,8 @@ namespace kagome::authority {
       return outcome::success();
     };
 
+    /// TODO(Harrm): Should account for finality when fetching an authority set
+    /// for some purposes, but not when scheduling further changes
     IsBlockFinalized is_ancestor_node_finalized = true;
 
     if (ancestor_node->current_block == block) {
