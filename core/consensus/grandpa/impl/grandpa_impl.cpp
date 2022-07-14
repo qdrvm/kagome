@@ -848,6 +848,8 @@ namespace kagome::consensus::grandpa {
       SL_DEBUG(logger_,
                "Rewind grandpa till round #{} by received justification",
                justification.round_number);
+    } else {
+      round = *opt_round;
     }
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
