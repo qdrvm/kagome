@@ -166,11 +166,8 @@ namespace {
   template <typename T, typename Fun>
   auto bind_by_lambda(const Fun &fun) {
     return di::bind<T>.to([fun](auto const &injector) {
-      static boost::optional<sptr<T>> initialized = boost::none;
-      if (not initialized) {
-        initialized.emplace(std::move(fun(injector)));
-      }
-      return initialized.value();
+      static sptr<T> initialized = fun(injector);
+      return initialized;
     });
   }
 
