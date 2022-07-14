@@ -284,8 +284,7 @@ namespace kagome::consensus {
       if (not justifications_.empty()) {
         std::vector<primitives::BlockInfo> to_remove;
         for (const auto &[block_info, justification] : justifications_) {
-          auto res = grandpa_environment_->applyJustification(block_info,
-                                                              justification);
+          auto res = applyJustification(block_info, justification);
           if (res) {
             to_remove.push_back(block_info);
           }
@@ -297,7 +296,7 @@ namespace kagome::consensus {
         }
       }
 
-      auto res = grandpa_environment_->applyJustification(
+      auto res = applyJustification(
           primitives::BlockInfo(block.header.number, block_hash),
           b.justification.value());
       if (res.has_error()) {
@@ -356,6 +355,12 @@ namespace kagome::consensus {
     }
 
     return outcome::success();
+  }
+
+  outcome::result<void> BlockExecutorImpl::applyJustification(
+      const primitives::BlockInfo &block_info,
+      const primitives::Justification &justification) {
+    return grandpa_environment_->applyJustification(block_info, justification);
   }
 
   void BlockExecutorImpl::rollbackBlock(const primitives::BlockInfo &block) {
