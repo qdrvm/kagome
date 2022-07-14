@@ -20,8 +20,6 @@ namespace kagome::authority {
    public:
     virtual ~AuthorityManager() = default;
 
-    using HeaderIterator = std::function<const primitives::BlockHeader &()>;
-
     /**
      * Recalculate the authority change graph starting from genesis and up to
      * the last finalized block. The result shall be stored in the provided
