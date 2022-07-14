@@ -500,9 +500,10 @@ namespace kagome::authority {
     };
 
     KAGOME_PROFILE_START(is_ancestor_node_finalized)
+
+    /// TODO(Harrm): Should account for finality when fetching an authority set
+    /// for some purposes, but not when scheduling further changes
     IsBlockFinalized is_ancestor_node_finalized = true;
-    ancestor_node->current_block.number
-        <= block_tree_->getLastFinalized().number;
     KAGOME_PROFILE_END(is_ancestor_node_finalized)
 
     if (ancestor_node->current_block == block) {
