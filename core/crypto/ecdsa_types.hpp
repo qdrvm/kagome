@@ -13,12 +13,10 @@
 #include "common/blob.hpp"
 
 namespace kagome::crypto {
-  using namespace libp2p::crypto::ecdsa;
-
   namespace constants::ecdsa {
     enum {
-      PRIVKEY_SIZE = sizeof(PrivateKey),
-      PUBKEY_SIZE = sizeof(PublicKey),
+      PRIVKEY_SIZE = sizeof(libp2p::crypto::ecdsa::PrivateKey),
+      PUBKEY_SIZE = sizeof(libp2p::crypto::ecdsa::PublicKey),
       SIGNATURE_SIZE = 65,  // As according to spec in D.3.14.
       SEED_SIZE = PRIVKEY_SIZE,
     };
@@ -44,7 +42,7 @@ namespace kagome::crypto {
 
   using EcdsaSignature = std::vector<uint8_t>;
   using EcdsaSeed = common::Blob<constants::ecdsa::SEED_SIZE>;
-  using EcdsaPrehashedMessage = PrehashedMessage;
+  using EcdsaPrehashedMessage = libp2p::crypto::ecdsa::PrehashedMessage;
 
 }  // namespace kagome::crypto
 
