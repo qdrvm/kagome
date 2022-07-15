@@ -8,6 +8,7 @@
 
 #include <boost/variant.hpp>
 
+#include "common/empty.hpp"
 #include "common/tagged.hpp"
 #include "primitives/authority.hpp"
 
@@ -42,17 +43,7 @@ namespace kagome::authority {
     std::shared_ptr<ScheduleNode> makeDescendant(
         const primitives::BlockInfo &block, IsBlockFinalized finalized) const;
 
-    struct NoAction {
-      friend inline ::scale::ScaleEncoderStream &operator<<(
-          ::scale::ScaleEncoderStream &s, const NoAction &change) {
-        return s;
-      }
-
-      friend inline ::scale::ScaleDecoderStream &operator>>(
-          ::scale::ScaleDecoderStream &s, NoAction &change) {
-        return s;
-      }
-    };
+    using NoAction = Empty;
 
     struct ScheduledChange {
       primitives::BlockNumber applied_block{};
