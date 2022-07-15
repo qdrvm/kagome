@@ -120,8 +120,7 @@ namespace kagome::blockchain {
      * @returns result of saving
      */
     virtual outcome::result<void> removeJustification(
-        const primitives::BlockHash &hash,
-        primitives::BlockNumber number) = 0;
+        const primitives::BlockHash &hash, primitives::BlockNumber number) = 0;
 
     /**
      * Get the last finalized block

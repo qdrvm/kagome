@@ -28,8 +28,7 @@ namespace kagome::offchain {
         const std::optional<common::BufferView> &expected,
         common::Buffer value) override;
 
-    outcome::result<common::Buffer> get(
-        const common::BufferView &key) override;
+    outcome::result<common::Buffer> get(const common::BufferView &key) override;
 
    private:
     std::shared_ptr<storage::BufferStorage> storage_;

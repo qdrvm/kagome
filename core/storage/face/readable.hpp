@@ -62,8 +62,7 @@ namespace kagome::storage::face {
   };
 
   template <typename K, typename V>
-  struct ReadableStorage
-      : public ReadableBase<K> {
+  struct ReadableStorage : public ReadableBase<K> {
     using Key = K;
     using Value = V;
 
@@ -81,8 +80,8 @@ namespace kagome::storage::face {
      * @param key K
      * @return V if contains(K) or std::nullopt
      */
-    virtual outcome::result<std::optional<V>> tryLoad(
-        const Key &key) const = 0;  };
+    virtual outcome::result<std::optional<V>> tryLoad(const Key &key) const = 0;
+  };
 
 }  // namespace kagome::storage::face
 

@@ -31,10 +31,9 @@ namespace kagome::consensus::grandpa {
              .id = keypair_->public_key}};
   }
 
-  bool VoteCryptoProviderImpl::verify(const SignedMessage &vote,
-                                      RoundNumber number) const {
+  bool VoteCryptoProviderImpl::verify(const SignedMessage &vote) const {
     auto payload =
-        scale::encode(vote.message, number, voter_set_->id()).value();
+        scale::encode(vote.message, round_number_, voter_set_->id()).value();
     auto verifying_result =
         ed_provider_->verify(vote.signature, payload, vote.id);
     return verifying_result.has_value() and verifying_result.value();
@@ -42,16 +41,16 @@ namespace kagome::consensus::grandpa {
 
   bool VoteCryptoProviderImpl::verifyPrimaryPropose(
       const SignedMessage &vote) const {
-    return vote.is<PrimaryPropose>() and verify(vote, round_number_);
+    return vote.is<PrimaryPropose>() and verify(vote);
   }
 
   bool VoteCryptoProviderImpl::verifyPrevote(const SignedMessage &vote) const {
-    return vote.is<Prevote>() and verify(vote, round_number_);
+    return vote.is<Prevote>() and verify(vote);
   }
 
   bool VoteCryptoProviderImpl::verifyPrecommit(
       const SignedMessage &vote) const {
-    return vote.is<Precommit>() and verify(vote, round_number_);
+    return vote.is<Precommit>() and verify(vote);
   }
 
   std::optional<SignedMessage> VoteCryptoProviderImpl::signPrimaryPropose(

@@ -8,9 +8,9 @@
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
-#include "testutil/prepare_loggers.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/polkadot_trie_printer.hpp"
 
 using kagome::common::Buffer;
@@ -371,7 +371,9 @@ class DeleteTest : public testing::Test,
 size_t size(const PolkadotTrie::NodePtr &node) {
   size_t count = 0;
 
-  if(node == nullptr) return 0;
+  if (node == nullptr) {
+    return 0;
+  }
 
   if (node->isBranch()) {
     auto branch =

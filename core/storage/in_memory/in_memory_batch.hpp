@@ -13,8 +13,7 @@ namespace kagome::storage {
   using kagome::common::Buffer;
 
   class InMemoryBatch
-      : public kagome::storage::face::WriteBatch<BufferView,
-                                                 Buffer> {
+      : public kagome::storage::face::WriteBatch<BufferView, Buffer> {
    public:
     explicit InMemoryBatch(InMemoryStorage &db) : db{db} {}
 
@@ -24,8 +23,7 @@ namespace kagome::storage {
       return outcome::success();
     }
 
-    outcome::result<void> put(const BufferView &key,
-                              Buffer &&value) override {
+    outcome::result<void> put(const BufferView &key, Buffer &&value) override {
       entries[key.toHex()] = std::move(value);
       return outcome::success();
     }
@@ -37,8 +35,7 @@ namespace kagome::storage {
 
     outcome::result<void> commit() override {
       for (auto &entry : entries) {
-        OUTCOME_TRY(
-            db.put(Buffer::fromHex(entry.first).value(), entry.second));
+        OUTCOME_TRY(db.put(Buffer::fromHex(entry.first).value(), entry.second));
       }
       return outcome::success();
     }

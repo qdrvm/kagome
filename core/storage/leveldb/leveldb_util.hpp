@@ -21,8 +21,6 @@ namespace kagome::storage {
     }
 
     if (s.IsIOError()) {
-      static log::Logger log = log::createLogger("LevelDb", "storage");
-      SL_ERROR(log, ":{}", s.ToString());
       return DatabaseError::IO_ERROR;
     }
 

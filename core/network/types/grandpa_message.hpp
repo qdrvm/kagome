@@ -14,6 +14,7 @@
 namespace kagome::network {
 
   using consensus::grandpa::BlockInfo;
+  using consensus::grandpa::CompactCommit;
   using consensus::grandpa::GrandpaJustification;
   using consensus::grandpa::GrandpaJustification;
   using consensus::grandpa::RoundNumber;
@@ -21,7 +22,6 @@ namespace kagome::network {
   using consensus::grandpa::SignedPrecommit;
   using consensus::grandpa::SignedPrevote;
   using consensus::grandpa::VoteMessage;
-  using consensus::grandpa::CompactCommit;
   using consensus::grandpa::VoterSetId;
   using primitives::BlockNumber;
 
@@ -44,13 +44,13 @@ namespace kagome::network {
   };
 
   template <class Stream,
-      typename = std::enable_if_t<Stream::is_encoder_stream>>
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const FullCommitMessage &f) {
     return s << f.round << f.set_id << f.message;
   }
 
   template <class Stream,
-      typename = std::enable_if_t<Stream::is_decoder_stream>>
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, FullCommitMessage &f) {
     return s >> f.round >> f.set_id >> f.message;
   }

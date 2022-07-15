@@ -17,6 +17,6 @@ namespace kagome::primitives {
   using BabeSessionKey = crypto::Sr25519PublicKey;
   using GrandpaSessionKey = crypto::Ed25519PublicKey;
 
-}
+}  // namespace kagome::primitives
 
 #endif  // KAGOME_SESSION_KEY_HPP

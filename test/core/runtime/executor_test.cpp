@@ -127,7 +127,10 @@ class ExecutorTest : public testing::Test {
                                 std::move(batch))));
 
                     return std::make_unique<RuntimeEnvironment>(
-                        module_instance, memory_provider, storage_provider, blockchain_state);
+                        module_instance,
+                        memory_provider,
+                        storage_provider,
+                        blockchain_state);
                   }));
               return env_template;
             }));
@@ -177,7 +180,10 @@ class ExecutorTest : public testing::Test {
                         kagome::runtime::TrieStorageProviderMock>();
 
                     return std::make_unique<RuntimeEnvironment>(
-                        module_instance, memory_provider, storage_provider, blockchain_state);
+                        module_instance,
+                        memory_provider,
+                        storage_provider,
+                        blockchain_state);
                   }));
               return env_template;
             }));

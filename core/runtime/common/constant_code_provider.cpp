@@ -10,8 +10,8 @@ namespace kagome::runtime {
   ConstantCodeProvider::ConstantCodeProvider(common::Buffer code)
       : code_{std::move(code)} {}
 
-  outcome::result<gsl::span<const uint8_t>>
-  ConstantCodeProvider::getCodeAt(const storage::trie::RootHash &) const {
+  outcome::result<gsl::span<const uint8_t>> ConstantCodeProvider::getCodeAt(
+      const storage::trie::RootHash &) const {
     return code_;
   }
 

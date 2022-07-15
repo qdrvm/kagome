@@ -372,10 +372,10 @@ namespace kagome::authority {
     root_ = ScheduleNode::createAsRoot(
         std::make_shared<primitives::AuthoritySet>(0, initial_authorities),
         {0, genesis_hash});
-
+    SL_INFO(log_, "Recovering authority manager state... (might take a few minutes)");
+    auto start = std::chrono::steady_clock::now();
     for (primitives::BlockNumber number = 0; number <= last_finalized_number;
          number++) {
-      auto start = std::chrono::steady_clock::now();
       OUTCOME_TRY(hash, header_repo_->getHashByNumber(number));
       OUTCOME_TRY(header, header_repo_->getBlockHeader(number));
       primitives::BlockInfo info{number, hash};
@@ -390,12 +390,15 @@ namespace kagome::authority {
       }
       if (has_authority_change) prune(info);
       auto end = std::chrono::steady_clock::now();
-      SL_TRACE(
-          log_,
-          "Process block #{} in {} ms",
-          number,
-          std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-              .count());
+      auto duration = end - start;
+      using namespace std::chrono_literals;
+      if (duration > 5s) {
+        SL_VERBOSE(
+            log_,
+            "Processed {} out of {} blocks",
+            number,
+            last_finalized_number);
+      }
     }
     return outcome::success();
   }

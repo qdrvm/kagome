@@ -31,10 +31,11 @@ namespace kagome::host_api {
    */
   class MiscExtension final {
    public:
-    MiscExtension(uint64_t chain_id,
-                  std::shared_ptr<const crypto::Hasher> hasher,
-                  std::shared_ptr<const runtime::MemoryProvider> memory_provider,
-                  std::shared_ptr<const runtime::CoreApiFactory> core_provider);
+    MiscExtension(
+        uint64_t chain_id,
+        std::shared_ptr<const crypto::Hasher> hasher,
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider,
+        std::shared_ptr<const runtime::CoreApiFactory> core_provider);
 
     ~MiscExtension() = default;
 

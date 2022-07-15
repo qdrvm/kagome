@@ -80,10 +80,10 @@ namespace kagome::storage::trie {
 
     bool empty() const override;
 
-    outcome::result<ConstNodePtr> retrieveChild(
-        const BranchNode &parent, uint8_t idx) const override;
+    outcome::result<ConstNodePtr> retrieveChild(const BranchNode &parent,
+                                                uint8_t idx) const override;
     outcome::result<NodePtr> retrieveChild(const BranchNode &parent,
-                                                   uint8_t idx) override;
+                                           uint8_t idx) override;
 
    private:
     outcome::result<NodePtr> insert(const NodePtr &parent,

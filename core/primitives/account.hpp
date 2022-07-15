@@ -14,6 +14,6 @@ namespace kagome::primitives {
 
   using AccountNonce = uint32_t;
 
-}
+}  // namespace kagome::primitives
 
 #endif  // KAGOME_PRIMITIVES_ACCOUNT_HPP

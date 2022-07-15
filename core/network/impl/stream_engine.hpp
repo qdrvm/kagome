@@ -124,7 +124,7 @@ namespace kagome::network {
     StreamEngine() : logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
-    static StreamEnginePtr create(Args &&... args) {
+    static StreamEnginePtr create(Args &&...args) {
       return std::make_shared<StreamEngine>(std::forward<Args>(args)...);
     }
 
@@ -164,10 +164,9 @@ namespace kagome::network {
                                           is_outgoing ? stream : nullptr});
           SL_DEBUG(logger_,
                    "Added {} {} stream with peer_id={}",
-                   direction == Direction::INCOMING
-                       ? "incoming"
-                       : direction == Direction::OUTGOING ? "outgoing"
-                                                          : "bidirectional",
+                   direction == Direction::INCOMING   ? "incoming"
+                   : direction == Direction::OUTGOING ? "outgoing"
+                                                      : "bidirectional",
                    protocol->protocol(),
                    peer_id.toBase58());
         }
@@ -368,9 +367,9 @@ namespace kagome::network {
       dst = src;
       SL_DEBUG(logger_,
                "{} {} stream with peer_id={} was {}",
-               direction == Direction::BIDIRECTIONAL
-                   ? "Bidirectional"
-                   : direction == Direction::INCOMING ? "Incoming" : "Outgoing",
+               direction == Direction::BIDIRECTIONAL ? "Bidirectional"
+               : direction == Direction::INCOMING    ? "Incoming"
+                                                     : "Outgoing",
                protocol->protocol(),
                dst->remotePeerId().has_value()
                    ? dst->remotePeerId().value().toBase58()

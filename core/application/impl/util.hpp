@@ -14,12 +14,12 @@ namespace kagome::application::util {
 
   enum class Error {
     FAILED_TO_CREATE_DIR = 1,
-    NOT_A_DIR
+    NOT_A_DIR,
   };
 
-  outcome::result<void> init_directory(const boost::filesystem::path& path);
+  outcome::result<void> init_directory(const boost::filesystem::path &path);
 
-}
+}  // namespace kagome::application::util
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::application::util, Error);
 

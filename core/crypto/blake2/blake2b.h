@@ -48,6 +48,6 @@ namespace kagome::crypto {
               const void *in,
               size_t inlen);  // data to be hashed
 
-}
+}  // namespace kagome::crypto
 
 #endif

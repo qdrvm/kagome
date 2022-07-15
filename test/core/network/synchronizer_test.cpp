@@ -62,8 +62,7 @@ class SynchronizerTest
     EXPECT_CALL(*router, getSyncProtocol())
         .WillRepeatedly(Return(sync_protocol));
 
-    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _))
-        .Times(AnyNumber());
+    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
 
     synchronizer =
         std::make_shared<network::SynchronizerImpl>(app_state_manager,

@@ -11,8 +11,8 @@
 #include <array>
 #include <cstring>  // for std::memset in gcc
 #include <memory>
-#include <unordered_map>
 #include <optional>
+#include <unordered_map>
 
 #include <binaryen/wasm.h>
 
