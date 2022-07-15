@@ -24,10 +24,10 @@ namespace kagome::authority {
      * Recalculate the authority change graph starting from genesis and up to
      * the last finalized block. The result shall be stored in the provided
      * storage. This operation may take a considerable amount of time.
-     * @param header_iter - iterator over finalized block headers
      * @return nothing on success, error otherwise
      */
-    virtual outcome::result<void> recalculateStoredState(primitives::BlockNumber last_finalized_number) = 0;
+    virtual outcome::result<void> recalculateStoredState(
+        primitives::BlockNumber last_finalized_number) = 0;
 
     /**
      * @return block associated with the root of scheduled changes tree
