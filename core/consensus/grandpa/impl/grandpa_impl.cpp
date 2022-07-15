@@ -798,6 +798,10 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
       }
 
+      if (authority_set->id > current_round_->voterSetId() + 1) {
+        return VotingRoundError::WRONG_ORDER_OF_VOTER_SET_ID;
+      }
+
       auto voters = std::make_shared<VoterSet>(authority_set->id);
       for (const auto &authority : authority_set->authorities) {
         auto res = voters->insert(
