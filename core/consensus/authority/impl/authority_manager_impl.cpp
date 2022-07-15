@@ -438,13 +438,6 @@ namespace kagome::authority {
                "Pick authority set with id {} for block {}",
                adjusted_node->current_authorities->id,
                target_block);
-      auto header = block_tree_->getBlockHeader(target_block.hash).value();
-      auto id_from_storage =
-          fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header)
-              .value()
-              .value();
-      SL_DEBUG(
-          log_, "Pick authority set id from trie storage: {}", id_from_storage);
       return adjusted_node->current_authorities;
     }
 
@@ -552,10 +545,10 @@ namespace kagome::authority {
              delay,
              current_block,
              delay_start + delay);
-    OUTCOME_TRY(delay_start_header,
-                block_tree_->getBlockHeader(delay_start + 1));
+    OUTCOME_TRY(delay_start_hash,
+                header_repo_->getHashByNumber(delay_start));
     auto ancestor_node =
-        getAppropriateAncestor({delay_start, delay_start_header.parent_hash});
+        getAppropriateAncestor({delay_start, delay_start_hash});
 
     if (not ancestor_node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -600,11 +593,8 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    OUTCOME_TRY(delay_start_child,
-                block_tree_->getBlockHeader(delay_start + 1));
-
     auto new_node = ancestor_node->makeDescendant(
-        {delay_start, delay_start_child.parent_hash}, true);
+        {delay_start, delay_start_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 
