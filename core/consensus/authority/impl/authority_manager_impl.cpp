@@ -384,7 +384,8 @@ namespace kagome::authority {
     root_ = ScheduleNode::createAsRoot(
         std::make_shared<primitives::AuthoritySet>(0, initial_authorities),
         {0, genesis_hash});
-
+    SL_INFO(log_,
+            "Recovering authority manager state... (might take a few minutes)");
     // if state is pruned
     if (header_repo_->getBlockHeader(1).has_error()) {
       SL_WARN(log_,
@@ -393,6 +394,7 @@ namespace kagome::authority {
       return clearScheduleGraphRoot(*persistent_storage_);
     }
 
+    auto start = std::chrono::steady_clock::now();
     for (primitives::BlockNumber number = 0; number <= last_finalized_number;
          number++) {
       auto start = std::chrono::steady_clock::now();
@@ -412,12 +414,17 @@ namespace kagome::authority {
       auto justification_res = block_tree_->getBlockJustification(hash);
       if (justification_res.has_value()) prune(info);
       auto end = std::chrono::steady_clock::now();
-      SL_TRACE(
-          log_,
-          "Process block #{} in {} ms",
-          number,
-          std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-              .count());
+      auto duration = end - start;
+      using namespace std::chrono_literals;
+      // 5 seconds is nothing special, just a random more-or-like convenient
+      // duration.
+      if (duration > 5s) {
+        SL_VERBOSE(log_,
+                   "Processed {} out of {} blocks",
+                   number,
+                   last_finalized_number);
+        start = end;
+      }
     }
     return outcome::success();
   }
@@ -507,10 +514,11 @@ namespace kagome::authority {
       node->action =
           ScheduleNode::ScheduledChange{activate_at, new_authorities};
 
-      SL_VERBOSE(log_,
-                 "Change is scheduled after block #{} (set id={})",
-                 activate_at,
-                 new_authorities->id);
+      SL_VERBOSE(
+          log_,
+          "Authority set change is scheduled after block #{} (set id={})",
+          activate_at,
+          new_authorities->id);
 
       size_t index = 0;
       for (auto &authority : *new_authorities) {
@@ -839,7 +847,7 @@ namespace kagome::authority {
     }
     storeScheduleGraphRoot(*persistent_storage_, *root_).value();
 
-    SL_VERBOSE(log_, "Prune authority manager upto block {}", block);
+    SL_DEBUG(log_, "Prune authority manager upto block {}", block);
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(
