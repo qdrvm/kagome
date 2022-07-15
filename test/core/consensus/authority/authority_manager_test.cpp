@@ -162,6 +162,7 @@ class AuthorityManagerTest : public testing::Test {
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
+  std::shared_ptr<blockchain::BlockHeaderRepositoryMock> header_repo;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage;
   std::shared_ptr<storage::InMemoryStorage> persistent_storage;
   std::shared_ptr<runtime::GrandpaApiMock> grandpa_api;
@@ -294,18 +295,21 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   auto &old_authorities = *old_auth_opt.value();
 
   primitives::BlockInfo target_block{10, "B"_hash256};
+  EXPECT_CALL(*header_repo, getHashByNumber(target_block.number))
+      .WillOnce(Return(target_block.hash));
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
-  uint32_t subchain_length = 10;
+  uint32_t subchain_length = 5;
 
   EXPECT_OUTCOME_SUCCESS(
       r1,
       authority_manager->onConsensus(
           target_block,
-          primitives::ForcedChange(new_authorities, subchain_length)));
+          primitives::ForcedChange(
+              new_authorities, subchain_length, target_block.number)));
 
   examine({5, "A"_hash256}, old_authorities.authorities);
   examine({10, "B"_hash256}, old_authorities.authorities);
-  examine({15, "C"_hash256}, old_authorities.authorities);
+  examine({15, "C"_hash256}, new_authorities);
   examine({20, "D"_hash256}, new_authorities);
   examine({25, "E"_hash256}, new_authorities);
 }

@@ -583,7 +583,7 @@ namespace kagome::authority {
     }
     OUTCOME_TRY(delay_start_header, delay_start_header_res);
     auto ancestor_node =
-        getAppropriateAncestor({delay_start, delay_start_header.parent_hash});
+        getAppropriateAncestor({delay_start, delay_start_hash});
 
     if (not ancestor_node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -629,7 +629,7 @@ namespace kagome::authority {
     };
 
     auto new_node = ancestor_node->makeDescendant(
-        {delay_start, delay_start_header.parent_hash}, true);
+        {delay_start, delay_start_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 
