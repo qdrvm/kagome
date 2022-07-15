@@ -8,14 +8,13 @@
 
 #include <boost/variant.hpp>
 
-#include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/common.hpp"
+#include "consensus/grandpa/structs.hpp"
 
 namespace kagome::network {
 
   using consensus::grandpa::BlockInfo;
   using consensus::grandpa::CompactCommit;
-  using consensus::grandpa::GrandpaJustification;
   using consensus::grandpa::GrandpaJustification;
   using consensus::grandpa::RoundNumber;
   using consensus::grandpa::SignedMessage;

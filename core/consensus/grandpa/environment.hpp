@@ -104,8 +104,7 @@ namespace kagome::consensus::grandpa {
      * @param last_finalized last known finalized block
      */
     virtual outcome::result<void> onNeighborMessageSent(
-        RoundNumber round, VoterSetId set_id,
-        BlockNumber last_finalized) = 0;
+        RoundNumber round, VoterSetId set_id, BlockNumber last_finalized) = 0;
 
     /**
      * Validate provided {@param justification} for finalization {@param block}.
