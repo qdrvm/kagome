@@ -273,7 +273,7 @@ namespace kagome::authority {
                root_->current_authorities->id);
 
     } else if (last_finalized_block.number == 0) {
-      auto genesis_hash = block_tree_->getGenesisBlockHash();
+      auto& genesis_hash = block_tree_->getGenesisBlockHash();
       PREPARE_TRY(initial_authorities,
                   grandpa_api_->authorities(genesis_hash),
                   "Can't get grandpa authorities for genesis block: {}",
