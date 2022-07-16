@@ -291,11 +291,13 @@ namespace {
       common::raise(trie_storage_res.error());
     }
 
-    const auto &genesis_raw_configs = configuration_storage->getGenesis();
+    const auto &genesis_raw_configs =
+        configuration_storage->getGenesisTopSection();
     auto &trie_storage = trie_storage_res.value();
 
-    auto batch_with_raw_data = [&serializer,
-                                &trie_storage](const auto &raw_configs) {
+    auto log = log::createLogger("Injector", "injector");
+    auto batch_with_raw_data = [&log, &serializer, &trie_storage](
+                                   const auto &raw_configs) {
       auto batch_res =
           trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash());
       if (not batch_res) {
@@ -303,7 +305,6 @@ namespace {
       }
       auto batch = std::move(batch_res.value());
 
-      auto log = log::createLogger("Injector", "injector");
       for (const auto &[key_, val_] : raw_configs) {
         auto &key = key_;
         auto &val = val_;
@@ -320,7 +321,7 @@ namespace {
     auto batch = batch_with_raw_data(genesis_raw_configs);
 
     const auto &children_default_raw_configs =
-        configuration_storage->getChildrenDefault();
+        configuration_storage->getGenesisChildrenDefaultSection();
     for (const auto &[key_, val_] : children_default_raw_configs) {
       auto child_batch = batch_with_raw_data(val_);
 
@@ -347,7 +348,6 @@ namespace {
 
     auto &root_hash = res.value();
 
-    auto log = log::createLogger("Injector", "injector");
     SL_TRACE(log, "root hash is {}", root_hash.toHex());
 
     initialized.emplace(std::move(trie_storage), root_hash);

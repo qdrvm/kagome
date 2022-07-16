@@ -67,12 +67,13 @@ namespace kagome::application {
     /**
      * @return top section
      */
-    virtual const GenesisRawData &getGenesis() const = 0;
+    virtual const GenesisRawData &getGenesisTopSection() const = 0;
 
     /**
      * @return childrenDefault section
      */
-    virtual const ChildrenDefaultRawData &getChildrenDefault() const = 0;
+    virtual const ChildrenDefaultRawData &getGenesisChildrenDefaultSection()
+        const = 0;
   };
 
 }  // namespace kagome::application

@@ -59,7 +59,7 @@ TEST_F(ConfigurationStorageTest, MatchesConfig) {
   EXPECT_OUTCOME_TRUE(config_storage, ChainSpecImpl::loadFrom(path_));
 
   // then
-  ASSERT_EQ(config_storage->getGenesis(), expected_genesis_config_);
+  ASSERT_EQ(config_storage->getGenesisTopSection(), expected_genesis_config_);
 
   ASSERT_EQ(config_storage->bootNodes(), expected_boot_nodes_);
 }

@@ -84,11 +84,12 @@ namespace kagome::application {
       return known_code_substitutes_;
     }
 
-    const GenesisRawData &getGenesis() const override {
+    const GenesisRawData &getGenesisTopSection() const override {
       return genesis_;
     }
 
-    const ChildrenDefaultRawData &getChildrenDefault() const override {
+    const ChildrenDefaultRawData &getGenesisChildrenDefaultSection()
+        const override {
       return children_default_;
     }
 
