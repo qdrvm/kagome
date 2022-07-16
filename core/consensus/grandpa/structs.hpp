@@ -63,7 +63,8 @@ namespace kagome::consensus::grandpa {
     }
 
     bool operator==(const SignedMessage &rhs) const {
-      return message == rhs.message && signature == rhs.signature && id == rhs.id;
+      return message == rhs.message && signature == rhs.signature
+             && id == rhs.id;
     }
 
     bool operator!=(const SignedMessage &rhs) const {

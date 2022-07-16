@@ -12,9 +12,10 @@
 
 namespace kagome::api {
 
-/**
- * @brief MPV implementation of possible API for using in tests instead real powerful API
- */
+  /**
+   * @brief MPV implementation of possible API for using in tests instead real
+   * powerful API
+   */
   class ApiStub {
    public:
     outcome::result<int64_t> echo(int64_t payload) {

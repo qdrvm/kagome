@@ -11,11 +11,11 @@
 #include "host_api/host_api.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/memory_provider.hpp"
+#include "runtime/module_repository.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
-#include "runtime/wavm/memory_impl.hpp"
-#include "runtime/module_repository.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
+#include "runtime/wavm/memory_impl.hpp"
 
 static WAVM::IR::Value evaluateInitializer(
     WAVM::IR::InitializerExpression expression) {
@@ -186,7 +186,7 @@ namespace kagome::runtime::wavm {
   }
 
   void ModuleInstance::forDataSegment(
-      DataSegmentProcessor const& callback) const {
+      DataSegmentProcessor const &callback) const {
     using WAVM::Uptr;
     using WAVM::IR::DataSegment;
     using WAVM::IR::MemoryType;
@@ -197,7 +197,8 @@ namespace kagome::runtime::wavm {
          ++segmentIndex) {
       const DataSegment &dataSegment = ir.dataSegments[segmentIndex];
       if (dataSegment.isActive) {
-        const Value baseOffsetValue = evaluateInitializer(dataSegment.baseOffset);
+        const Value baseOffsetValue =
+            evaluateInitializer(dataSegment.baseOffset);
         const MemoryType &memoryType =
             ir.memories.getType(dataSegment.memoryIndex);
         Uptr baseOffset = getIndexValue(baseOffsetValue, memoryType.indexType);

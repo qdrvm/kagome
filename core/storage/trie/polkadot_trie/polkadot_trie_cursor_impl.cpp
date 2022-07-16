@@ -180,11 +180,11 @@ namespace kagome::storage::trie {
           SAFE_CALL(child,
                     visitChildWithMinIdx(branch, sought_nibbles[mismatch_pos]))
           if (child) {
-            uint8_t child_idx = std::get<SearchState>(state_).getPath().back().child_idx;
-            SL_TRACE(
-                log_,
-                "We're in a branch and proceed to child {:x}",
-                (int)child_idx);
+            uint8_t child_idx =
+                std::get<SearchState>(state_).getPath().back().child_idx;
+            SL_TRACE(log_,
+                     "We're in a branch and proceed to child {:x}",
+                     (int)child_idx);
             if (child_idx > sought_nibbles[mismatch_pos]) {
               return nextNodeWithValueInSubTree(*child);
             } else {

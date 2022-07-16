@@ -8,11 +8,11 @@
 
 #include "testutil/outcome.hpp"
 
-using kagome::network::ProtobufMessageAdapter;
 using kagome::network::BlocksResponse;
+using kagome::network::ProtobufMessageAdapter;
 
-using kagome::primitives::BlockHash;
 using kagome::primitives::BlockData;
+using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::Extrinsic;
 
@@ -63,7 +63,8 @@ struct ProtobufBlockResponseAdapterTest : public ::testing::Test {
 /**
  * @given sample `BlocksResponse` instance
  * @when protobuf serialized into buffer
- * @then deserialization `BlocksResponse` from this buffer will contain exactly the same fields with the same values
+ * @then deserialization `BlocksResponse` from this buffer will contain exactly
+ * the same fields with the same values
  */
 TEST_F(ProtobufBlockResponseAdapterTest, Serialization) {
   std::vector<uint8_t> data;
@@ -82,6 +83,3 @@ TEST_F(ProtobufBlockResponseAdapterTest, Serialization) {
     ASSERT_EQ(response.blocks[ix].message_queue, r2.blocks[ix].message_queue);
   }
 }
-
-
-

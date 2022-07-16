@@ -6,10 +6,10 @@
 #ifndef KAGOME_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_HPP
 #define KAGOME_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_HPP
 
-#include "host_api/host_api_factory.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "host_api/host_api.hpp"
+#include "host_api/host_api_factory.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/version.hpp"
@@ -24,11 +24,10 @@ namespace kagome::runtime {
 
   class RuntimeEnvironment {
    public:
-    RuntimeEnvironment(
-        std::shared_ptr<ModuleInstance> module_instance,
-        std::shared_ptr<const MemoryProvider> memory_provider,
-        std::shared_ptr<TrieStorageProvider> storage_provider,
-        primitives::BlockInfo blockchain_state);
+    RuntimeEnvironment(std::shared_ptr<ModuleInstance> module_instance,
+                       std::shared_ptr<const MemoryProvider> memory_provider,
+                       std::shared_ptr<TrieStorageProvider> storage_provider,
+                       primitives::BlockInfo blockchain_state);
 
     const std::shared_ptr<ModuleInstance> module_instance;
     const std::shared_ptr<const MemoryProvider> memory_provider;

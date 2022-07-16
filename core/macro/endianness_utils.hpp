@@ -35,5 +35,4 @@
 
 #endif  // __APPLE__
 
-
 #endif  // KAGOME_ENDIANNESS_UTILS_HPP

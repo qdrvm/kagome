@@ -14,8 +14,8 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-#include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/api/service/author/author_api_mock.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/justification_storage_policy.hpp"
@@ -58,7 +58,7 @@ namespace kagome::primitives {
         << "\tstate_root: " << header.state_root << ",\n"
         << "\text_root: " << header.extrinsics_root << "\n}";
   }
-}
+}  // namespace kagome::primitives
 
 struct BlockTreeTest : public testing::Test {
   static void SetUpTestCase() {
@@ -220,13 +220,11 @@ struct BlockTreeTest : public testing::Test {
     return {hash, header};
   }
 
-  BlockHash addHeaderToRepository(
-    const BlockHash &parent,
-    BlockNumber number,
-    storage::trie::RootHash state = {}) {
+  BlockHash addHeaderToRepository(const BlockHash &parent,
+                                  BlockNumber number,
+                                  storage::trie::RootHash state = {}) {
     return std::get<0>(addHeaderToRepositoryAndGet(parent, number, state));
   }
-
 
   const BlockInfo kGenesisBlockInfo{
       0ul, BlockHash::fromString("66dj4kdn4odnfkslfn3k4jdnbmeod555").value()};
@@ -307,7 +305,6 @@ struct BlockTreeTest : public testing::Test {
       num_to_hash_.erase(it);
     }
   }
-
 };
 
 /**
@@ -403,13 +400,16 @@ TEST_F(BlockTreeTest, Finalize) {
 
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
-  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(kFinalizedBlockInfo.hash)))
+  EXPECT_CALL(*storage_,
+              getJustification(primitives::BlockId(kFinalizedBlockInfo.hash)))
       .WillRepeatedly(Return(outcome::success(justification)));
   EXPECT_CALL(*storage_, getJustification(primitives::BlockId(hash)))
       .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+  EXPECT_CALL(
+      *storage_,
+      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(bid))
       .WillRepeatedly(Return(outcome::success(header)));
@@ -417,7 +417,9 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success(body)));
   EXPECT_CALL(*runtime_core_, version(hash))
       .WillRepeatedly(Return(primitives::Version{}));
-  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
+  EXPECT_CALL(*justification_storage_policy_,
+              shouldStoreFor(finalized_block_header_))
+      .WillOnce(Return(outcome::success(false)));
 
   // WHEN
   EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(hash, justification));
@@ -482,9 +484,13 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   EXPECT_CALL(*pool_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
-  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+  EXPECT_CALL(
+      *storage_,
+      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
+  EXPECT_CALL(*justification_storage_policy_,
+              shouldStoreFor(finalized_block_header_))
+      .WillOnce(Return(outcome::success(false)));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(B1_hash, justification));
@@ -551,9 +557,13 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
   EXPECT_CALL(*pool_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
-  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+  EXPECT_CALL(
+      *storage_,
+      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
+  EXPECT_CALL(*justification_storage_policy_,
+              shouldStoreFor(finalized_block_header_))
+      .WillOnce(Return(outcome::success(false)));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(B_hash, justification));
@@ -794,8 +804,7 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
  * @then the second block hash is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
-  auto target_hash=
-      addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
+  auto target_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
 
   ASSERT_OUTCOME_SUCCESS(
       best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
@@ -882,9 +891,13 @@ TEST_F(BlockTreeTest, Reorganize) {
   EXPECT_CALL(*runtime_core_, version(C2_hash))
       .WillRepeatedly(Return(primitives::Version{}));
 
-  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+  EXPECT_CALL(
+      *storage_,
+      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*justification_storage_policy_, shouldStoreFor(finalized_block_header_)).WillOnce(Return(outcome::success(false)));
+  EXPECT_CALL(*justification_storage_policy_,
+              shouldStoreFor(finalized_block_header_))
+      .WillOnce(Return(outcome::success(false)));
 
   ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->finalize(C2_hash, {}));
 

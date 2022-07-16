@@ -24,8 +24,8 @@ namespace kagome::authorship {
                      const storage::trie::RootHash &storage_state,
                      std::shared_ptr<runtime::BlockBuilder> block_builder_api);
 
-    outcome::result<std::vector<primitives::Extrinsic>>
-    getInherentExtrinsics(const primitives::InherentData &data) const override;
+    outcome::result<std::vector<primitives::Extrinsic>> getInherentExtrinsics(
+        const primitives::InherentData &data) const override;
 
     outcome::result<primitives::ExtrinsicIndex> pushExtrinsic(
         const primitives::Extrinsic &extrinsic) override;

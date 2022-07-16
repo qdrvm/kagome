@@ -28,11 +28,11 @@ namespace kagome::primitives {
 
   struct BlockDataFlags {
     static BlockDataFlags allSet(primitives::BlockHash hash) {
-      return BlockDataFlags {std::move(hash), true, true, true, true, true};
+      return BlockDataFlags{std::move(hash), true, true, true, true, true};
     }
 
     static BlockDataFlags allUnset(primitives::BlockHash hash) {
-      return BlockDataFlags {std::move(hash), true, true, true, true, true};
+      return BlockDataFlags{std::move(hash), true, true, true, true, true};
     }
 
     primitives::BlockHash hash;

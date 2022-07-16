@@ -34,7 +34,7 @@
 template <typename T, typename M = std::shared_mutex>
 struct SafeObject {
   template <typename... Args>
-  SafeObject(Args &&... args) : t_(std::forward<Args>(args)...) {}
+  SafeObject(Args &&...args) : t_(std::forward<Args>(args)...) {}
 
   template <typename F>
   inline auto exclusiveAccess(F &&f) {
