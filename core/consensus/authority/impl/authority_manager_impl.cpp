@@ -14,6 +14,7 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
+#include "blockchain/block_tree_error.hpp"
 #include "common/visitor.hpp"
 #include "consensus/authority/authority_manager_error.hpp"
 #include "consensus/authority/authority_update_observer_error.hpp"
@@ -285,7 +286,7 @@ namespace kagome::authority {
                root_->current_authorities->id);
 
     } else if (last_finalized_block.number == 0) {
-      auto& genesis_hash = block_tree_->getGenesisBlockHash();
+      auto &genesis_hash = block_tree_->getGenesisBlockHash();
       PREPARE_TRY(initial_authorities,
                   grandpa_api_->authorities(genesis_hash),
                   "Can't get grandpa authorities for genesis block: {}",
@@ -628,8 +629,8 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    auto new_node = ancestor_node->makeDescendant(
-        {delay_start, delay_start_hash}, true);
+    auto new_node =
+        ancestor_node->makeDescendant({delay_start, delay_start_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 
