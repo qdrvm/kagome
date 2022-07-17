@@ -96,7 +96,7 @@ class AuthorityManagerTest : public testing::Test {
                                                persistent_storage,
                                                header_repo);
 
-    auto genesis_hash = "genesis"_hash256;
+    static auto genesis_hash = "genesis"_hash256;
     ON_CALL(*block_tree, getGenesisBlockHash())
         .WillByDefault(testing::ReturnRef(genesis_hash));
 
