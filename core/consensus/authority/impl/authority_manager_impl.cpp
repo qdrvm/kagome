@@ -14,6 +14,7 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
+#include "blockchain/block_tree_error.hpp"
 #include "common/visitor.hpp"
 #include "consensus/authority/authority_manager_error.hpp"
 #include "consensus/authority/authority_update_observer_error.hpp"
@@ -273,7 +274,7 @@ namespace kagome::authority {
                root_->current_authorities->id);
 
     } else if (last_finalized_block.number == 0) {
-      auto& genesis_hash = block_tree_->getGenesisBlockHash();
+      auto &genesis_hash = block_tree_->getGenesisBlockHash();
       PREPARE_TRY(initial_authorities,
                   grandpa_api_->authorities(genesis_hash),
                   "Can't get grandpa authorities for genesis block: {}",
@@ -389,7 +390,15 @@ namespace kagome::authority {
           has_authority_change = true;
         }
       }
-      if (has_authority_change) prune(info);
+      if (has_authority_change) {
+        auto justification_res = block_tree_->getBlockJustification(hash);
+        if (justification_res.has_value()) {
+          prune(info);
+        } else if (justification_res.error()
+                   != blockchain::BlockTreeError::JUSTIFICATION_NOT_FOUND) {
+          return justification_res.as_failure();
+        }
+      }
       auto end = std::chrono::steady_clock::now();
       auto duration = end - start;
       using namespace std::chrono_literals;
@@ -545,8 +554,7 @@ namespace kagome::authority {
              delay,
              current_block,
              delay_start + delay);
-    OUTCOME_TRY(delay_start_hash,
-                header_repo_->getHashByNumber(delay_start));
+    OUTCOME_TRY(delay_start_hash, header_repo_->getHashByNumber(delay_start));
     auto ancestor_node =
         getAppropriateAncestor({delay_start, delay_start_hash});
 
@@ -593,8 +601,8 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    auto new_node = ancestor_node->makeDescendant(
-        {delay_start, delay_start_hash}, true);
+    auto new_node =
+        ancestor_node->makeDescendant({delay_start, delay_start_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 
