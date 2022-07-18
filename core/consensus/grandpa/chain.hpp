@@ -53,7 +53,7 @@ namespace kagome::consensus::grandpa {
      */
     virtual outcome::result<BlockInfo> bestChainContaining(
         const primitives::BlockHash &base,
-        std::optional<MembershipCounter> voter_set_id) const = 0;
+        std::optional<VoterSetId> voter_set_id) const = 0;
 
     /**
      * @returns true if {@param block} is a descendant of or equal to the
