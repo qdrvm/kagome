@@ -59,10 +59,12 @@ namespace kagome::network {
         if (auto value_res = batch->tryGet(cursor->key().value());
             value_res.has_value()) {
           const auto &value = value_res.value();
-          entry.entries.emplace_back(
-              StateEntry{cursor->key().value(), value.value()});
-          size += entry.entries.back().key.size()
-                  + entry.entries.back().value.size();
+          if (value.has_value()) {
+            entry.entries.emplace_back(
+                StateEntry{cursor->key().value(), value.value()});
+            size += entry.entries.back().key.size()
+                    + entry.entries.back().value.size();
+          }
         }
         res = cursor->next();
       }
