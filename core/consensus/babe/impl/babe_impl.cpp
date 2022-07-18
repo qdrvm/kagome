@@ -347,14 +347,14 @@ namespace kagome::consensus::babe {
          bn = target_block.number](outcome::result<primitives::BlockInfo> res) {
           if (auto self = wp.lock()) {
             if (res.has_error()) {
-              SL_INFO(self->log_,
+              SL_DEBUG(self->log_,
                       "Catching up to block #{} is failed: {}",
                       bn,
                       res.error().message());
               return;
             }
 
-            SL_INFO(self->log_,
+            SL_DEBUG(self->log_,
                     "Catching up to block #{} is going (on block #{} now)",
                     bn,
                     res.value().number);
@@ -363,7 +363,7 @@ namespace kagome::consensus::babe {
         false);
 
     if (is_ran) {
-      SL_INFO(log_, "Catching up to block #{} is ran", target_block.number);
+      SL_VERBOSE(log_, "Catching up to block #{} is ran", target_block.number);
       current_state_ = State::CATCHING_UP;
     }
   }

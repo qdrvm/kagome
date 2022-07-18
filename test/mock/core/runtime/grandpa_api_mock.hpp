@@ -28,6 +28,10 @@ namespace kagome::runtime {
                 authorities,
                 (const primitives::BlockId &block_id),
                 (override));
+
+    MOCK_METHOD(outcome::result<primitives::AuthoritySetId>,
+                current_set_id,
+                (const primitives::BlockHash &block));
   };
 
 }  // namespace kagome::runtime

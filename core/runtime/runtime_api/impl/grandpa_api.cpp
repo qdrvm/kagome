@@ -39,4 +39,10 @@ namespace kagome::runtime {
                                             "GrandpaApi_grandpa_authorities");
   }
 
+  outcome::result<primitives::AuthoritySetId> GrandpaApiImpl::current_set_id(
+      const primitives::BlockHash &block_hash) {
+    return executor_->callAt<primitives::AuthoritySetId>(
+        block_hash, "GrandpaApi_current_set_id");
+  }
+
 }  // namespace kagome::runtime

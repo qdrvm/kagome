@@ -1409,9 +1409,12 @@ namespace {
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
     auto trie_storage =
         injector.template create<sptr<const storage::trie::TrieStorage>>();
+    auto authority_manager =
+        injector.template create<sptr<authority::AuthorityManager>>();
 
     initialized.emplace(new application::mode::RecoveryMode(
         [&app_config,
+         authority_manager,
          storage = std::move(storage),
          header_repo = std::move(header_repo),
          trie_storage = std::move(trie_storage)] {
@@ -1421,7 +1424,17 @@ namespace {
               storage,
               header_repo,
               trie_storage);
+
           auto log = log::createLogger("RecoveryMode", "main");
+          if (res.has_error()) {
+            SL_ERROR(
+                log, "Recovery mode has failed: {}", res.error().message());
+            log->flush();
+            return EXIT_FAILURE;
+          }
+          auto number =
+              header_repo->getNumberById(app_config.recoverState().value());
+          res = authority_manager->recalculateStoredState(number.value());
           if (res.has_error()) {
             SL_ERROR(
                 log, "Recovery mode has failed: {}", res.error().message());
