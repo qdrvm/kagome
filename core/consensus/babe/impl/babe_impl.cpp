@@ -348,16 +348,16 @@ namespace kagome::consensus::babe {
           if (auto self = wp.lock()) {
             if (res.has_error()) {
               SL_DEBUG(self->log_,
-                      "Catching up to block #{} is failed: {}",
-                      bn,
-                      res.error().message());
+                       "Catching up to block #{} is failed: {}",
+                       bn,
+                       res.error().message());
               return;
             }
 
             SL_DEBUG(self->log_,
-                    "Catching up to block #{} is going (on block #{} now)",
-                    bn,
-                    res.value().number);
+                     "Catching up to block #{} is going (on block #{} now)",
+                     bn,
+                     res.value().number);
           }
         },
         false);

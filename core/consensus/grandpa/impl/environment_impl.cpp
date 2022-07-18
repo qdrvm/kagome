@@ -61,8 +61,7 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
-      const BlockHash &base,
-      std::optional<VoterSetId> voter_set_id) const {
+      const BlockHash &base, std::optional<VoterSetId> voter_set_id) const {
     SL_DEBUG(logger_, "Finding best chain containing block {}", base);
     OUTCOME_TRY(best_block, block_tree_->getBestContaining(base, std::nullopt));
 
