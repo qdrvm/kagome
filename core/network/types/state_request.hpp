@@ -10,14 +10,17 @@
 #include "primitives/common.hpp"
 
 namespace kagome::network {
+  /**
+   * Request for state to another peer
+   */
   struct StateRequest {
-    // Block header hash.
+    /// Block header hash.
     primitives::BlockHash hash;
-    // Start from this key.
-    // Multiple keys used for nested state start.
+    /// Start from this key.
+    /// Multiple keys used for nested state start.
     std::vector<common::Buffer> start;
-    // if 'true' indicates that response should contain raw key-values, rather
-    // than proof.
+    /// if 'true' indicates that response should contain raw key-values, rather
+    /// than proof.
     bool no_proof;
   };
 }  // namespace kagome::network
