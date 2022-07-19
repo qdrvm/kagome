@@ -327,56 +327,6 @@ namespace kagome::consensus::grandpa {
              msg.last_finalized,
              peer_id);
 
-    // Ignore peer whose voter_set is different
-    if (msg.voter_set_id < current_round_->voterSetId()) {
-      return;
-    }
-    const auto &new_set_id = msg.voter_set_id;
-    const auto &set_id = current_round_->voterSetId();
-    const auto &new_round = msg.round_number;
-    const auto &round = current_round_->roundNumber();
-
-    bool greater_voter_set = new_set_id > set_id;
-    bool same_voter_set = new_set_id == set_id;
-    bool greater_round = new_round > round;
-
-    if (greater_voter_set or (same_voter_set and greater_round)) {
-      auto last_finalized = block_tree_->getLastFinalized();
-      synchronizer_->syncMissingJustifications(
-          peer_id,
-          last_finalized,
-          std::nullopt,
-          [wp = weak_from_this(), last_finalized, msg](auto res) {
-            auto self = wp.lock();
-            if (not self) {
-              return;
-            }
-            if (res.has_error()) {
-              SL_WARN(self->logger_,
-                      "Missing justifications between blocks {} and "
-                      "{} was not loaded: {}",
-                      last_finalized,
-                      msg.last_finalized,
-                      res.error().message());
-            } else {
-              SL_DEBUG(self->logger_,
-                       "Loaded justifications for blocks in range {} - {}",
-                       last_finalized,
-                       res.value());
-            }
-          });
-    }
-
-    //  Trying to substitute with justifications' request only
-    //
-    //    // Check if needed to catch-up peer, then do that
-    //    if (msg.round_number >= current_round_->roundNumber() +
-    //    kCatchUpThreshold) {
-    //      std::ignore = environment_->onCatchUpRequested(
-    //          peer_id, msg.voter_set_id, msg.round_number - 1);
-    //      return;
-    //    }
-
     // Iff peer just reached one of recent round, then share known votes
     auto info = peer_manager_->getPeerState(peer_id);
     if (not info.has_value() || msg.voter_set_id != info->set_id
@@ -387,6 +337,49 @@ namespace kagome::consensus::grandpa {
         environment_->sendState(peer_id, round->state(), msg.voter_set_id);
       }
     }
+
+    // If peer has the same voter set id
+    if (msg.voter_set_id == current_round_->voterSetId()) {
+      // Check if needed to catch-up peer, then do that
+      if (msg.round_number
+          >= current_round_->roundNumber() + kCatchUpThreshold) {
+        std::ignore = environment_->onCatchUpRequested(
+            peer_id, msg.voter_set_id, msg.round_number - 1);
+      }
+
+      return;
+    }
+
+    // Ignore peer whose voter set id lower than our current
+    if (msg.voter_set_id < current_round_->voterSetId()) {
+      return;
+    }
+
+    //  Trying to substitute with justifications' request only
+    auto last_finalized = block_tree_->getLastFinalized();
+    synchronizer_->syncMissingJustifications(
+        peer_id,
+        last_finalized,
+        std::nullopt,
+        [wp = weak_from_this(), last_finalized, msg](auto res) {
+          auto self = wp.lock();
+          if (not self) {
+            return;
+          }
+          if (res.has_error()) {
+            SL_WARN(self->logger_,
+                    "Missing justifications between blocks {} and "
+                    "{} was not loaded: {}",
+                    last_finalized,
+                    msg.last_finalized,
+                    res.error().message());
+          } else {
+            SL_DEBUG(self->logger_,
+                     "Loaded justifications for blocks in range {} - {}",
+                     last_finalized,
+                     res.value());
+          }
+        });
   }
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
