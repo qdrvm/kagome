@@ -12,6 +12,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -52,7 +53,7 @@ namespace {
   const bool def_dev_mode = false;
   const kagome::network::Roles def_roles = [] {
     kagome::network::Roles roles;
-    roles.flags.full = 1;
+    roles.flags.full = 0;
     return roles;
   }();
   const auto def_runtime_exec_method =
@@ -186,6 +187,8 @@ namespace kagome::application {
   }
 
   fs::path AppConfigurationImpl::keystorePath(std::string chain_id) const {
+    if (keystore_path_)
+      return *keystore_path_ / chain_id / "keystore";
     return chainPath(chain_id) / "keystore";
   }
 
@@ -660,6 +663,8 @@ namespace kagome::application {
     po::options_description storage_desc("Storage options");
     storage_desc.add_options()
         ("base-path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
+        ("keystore", po::value<std::string>(), "required, node keystore")
+        ("tmp", "Use temporary storage path")
         ("database", po::value<std::string>()->default_value("leveldb"), "Database backend to use [leveldb, rocksdb]")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
@@ -784,7 +789,7 @@ namespace kagome::application {
           }
         }
 
-        roles_.flags.full = 1;
+        roles_.flags.full = 0;
         roles_.flags.authority = 1;
         p2p_port_ = def_p2p_port;
         rpc_http_host_ = def_rpc_http_host;
@@ -821,8 +826,18 @@ namespace kagome::application {
                 << " does not exist." << std::endl;
     }
 
+    if (vm.end() != vm.find("tmp")) {
+      base_path_ = (boost::filesystem::temp_directory_path()
+         / boost::filesystem::unique_path());
+    } else {
+      find_argument<std::string>(
+          vm, "base-path", [&](const std::string &val) { base_path_ = val; });
+    }
+
     find_argument<std::string>(
-        vm, "base-path", [&](const std::string &val) { base_path_ = val; });
+        vm, "keystore", [&](const std::string &val) { 
+          keystore_path_ = val; 
+        });
 
     bool unknown_database_engine_is_set = false;
     find_argument<std::string>(vm, "database", [&](const std::string &val) {
