@@ -209,8 +209,8 @@ namespace kagome::consensus {
       SL_VERBOSE(logger_,
                  "Next epoch digest has gotten in block {} (slot {}). "
                  "Randomness: {}",
-                 slot_number,
                  primitives::BlockInfo(block.header.number, block_hash),
+                 slot_number,
                  next_epoch_digest.randomness);
     }
 
