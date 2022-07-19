@@ -369,8 +369,8 @@ namespace kagome::network {
                              target = hint,
                              peer_id,
                              handler = std::move(handler),
-                             observed = std::move(observed)](
-                                auto &&response_res) mutable {
+                             observed = std::move(observed),
+                             request_fingerprint](auto &&response_res) mutable {
       auto self = wp.lock();
       if (not self) {
         return;
@@ -402,6 +402,7 @@ namespace kagome::network {
                    upper - 1,
                    peer_id);
         handler(Error::EMPTY_RESPONSE);
+        self->recent_requests_.erase(std::tuple(peer_id, request_fingerprint));
         return;
       }
 
