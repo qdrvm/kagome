@@ -480,10 +480,19 @@ namespace kagome::network {
 
               if (!stream_res) {
                 self->logger_->error(
-                    "Could not send message to {} stream with {}: {}",
+                    "Could not send message to new {} stream with {}: {}",
                     protocol->protocol(),
                     peer_id,
                     stream_res.error().message());
+
+                if (stream_res
+                    == outcome::failure(
+                        std::make_error_code(std::errc::not_connected))) {
+                  self->logger_->error("GOTCHA!");  // FIXME
+
+                  self->del(peer_id);
+                  return;
+                }
 
                 self->streams_.exclusiveAccess([&](auto &streams) {
                   self->forSubscriber(
