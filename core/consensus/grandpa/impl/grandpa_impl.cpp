@@ -298,6 +298,11 @@ namespace kagome::consensus::grandpa {
     metric_highest_round_->set(current_round_->roundNumber());
     if (keypair_) {
       current_round_->play();
+    } else {
+      auto round = std::dynamic_pointer_cast<VotingRoundImpl>(current_round_);
+      if (round) {
+        round->sendNeighborMessage();
+      }
     }
   }
 
