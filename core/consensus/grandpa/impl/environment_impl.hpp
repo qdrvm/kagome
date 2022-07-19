@@ -90,8 +90,7 @@ namespace kagome::consensus::grandpa {
         const primitives::Justification &justification) override;
 
     outcome::result<void> finalize(
-        VoterSetId id,
-        const GrandpaJustification &justification) override;
+        VoterSetId id, const GrandpaJustification &justification) override;
 
     // Getters
 

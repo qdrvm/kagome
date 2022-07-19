@@ -30,11 +30,10 @@ namespace kagome::crypto {
     BOOST_ASSERT(generator_ != nullptr);
   }
 
-  Ed25519Keypair Ed25519ProviderImpl::generateKeypair() const {
-    auto seed_bytes = generator_->randomBytes(ED25519_SEED_LENGTH);
-    Ed25519Seed seed{};
-    std::copy_n(seed_bytes.begin(), ED25519_SEED_LENGTH, seed.begin());
-    return generateKeypair(seed);
+  Ed25519KeypairAndSeed Ed25519ProviderImpl::generateKeypair() const {
+    Ed25519Seed seed;
+    generator_->fillRandomly(seed);
+    return Ed25519KeypairAndSeed{generateKeypair(seed), seed};
   }
 
   Ed25519Keypair Ed25519ProviderImpl::generateKeypair(
