@@ -248,6 +248,24 @@ namespace kagome::network {
       });
     }
 
+    bool isAlive(const PeerId &peer_id,
+                 const std::shared_ptr<ProtocolBase> &protocol) {
+      BOOST_ASSERT(protocol);
+      return streams_.exclusiveAccess([&](auto &streams) {
+        bool is_alive = false;
+        forSubscriber(peer_id, streams, protocol, [&](auto, auto &descr) {
+          if (descr.incoming.stream and not descr.incoming.stream->isClosed()) {
+            is_alive = true;
+          }
+          if (descr.outgoing.stream and not descr.outgoing.stream->isClosed()) {
+            is_alive = true;
+          }
+        });
+
+        return is_alive;
+      });
+    };
+
     template <typename T>
     void send(const PeerId &peer_id,
               const std::shared_ptr<ProtocolBase> &protocol,
