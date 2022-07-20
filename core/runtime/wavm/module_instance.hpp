@@ -52,7 +52,6 @@ namespace kagome::runtime::wavm {
 
     InstanceEnvironment const &getEnvironment() const override;
     outcome::result<void> resetEnvironment() override;
-    void borrow(BorrowedInstance::PoolReleaseFunction release) override;
 
    private:
     InstanceEnvironment env_;

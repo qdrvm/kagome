@@ -82,14 +82,6 @@ namespace kagome::runtime {
 
     virtual InstanceEnvironment const &getEnvironment() const = 0;
     virtual outcome::result<void> resetEnvironment() = 0;
-
-    /**
-     * @brief Make thread borrow a wrapped pointer to this instance with custom
-     * deleter 'release'
-     *
-     * @param release - a deleter, that should be called upon thread destruction
-     */
-    virtual void borrow(BorrowedInstance::PoolReleaseFunction release) = 0;
   };
 
 }  // namespace kagome::runtime

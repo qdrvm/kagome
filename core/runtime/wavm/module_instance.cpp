@@ -220,11 +220,4 @@ namespace kagome::runtime::wavm {
     env_.host_api->reset();
     return outcome::success();
   }
-
-  void ModuleInstanceImpl::borrow(
-      BorrowedInstance::PoolReleaseFunction release) {
-    auto borrowed = std::make_shared<ModuleInstance::BorrowedInstance>(
-        shared_from_this(), release);
-  }
-
 }  // namespace kagome::runtime::wavm
