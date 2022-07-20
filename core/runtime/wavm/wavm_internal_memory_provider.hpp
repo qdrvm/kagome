@@ -13,8 +13,6 @@ namespace WAVM::Runtime {
 }
 
 namespace kagome::runtime::wavm {
-
-  class ModuleInstance;
   class MemoryImpl;
 
   class WavmInternalMemoryProvider final : public MemoryProvider {
