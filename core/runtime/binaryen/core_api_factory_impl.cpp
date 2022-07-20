@@ -37,7 +37,7 @@ namespace kagome::runtime::binaryen {
     }
 
    private:
-    std::shared_ptr<runtime::ModuleInstance> instance_;
+    std::shared_ptr<ModuleInstance> instance_;
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     const std::vector<uint8_t> &code_;
   };
