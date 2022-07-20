@@ -134,6 +134,9 @@ namespace kagome::runtime::wavm {
       // Allocate an array to receive the invocation results.
       BOOST_ASSERT(invokeSig.results().size() == 1);
       std::array<WAVM::IR::UntaggedValue, 1> untaggedInvokeResults;
+      pushBorrowedRuntimeInstance(
+          std::const_pointer_cast<ModuleInstanceImpl>(shared_from_this()));
+      const auto pop = gsl::finally(&popBorrowedRuntimeInstance);
       try {
         WAVM::Runtime::unwindSignalsAsExceptions(
             [&context,
@@ -222,7 +225,6 @@ namespace kagome::runtime::wavm {
       BorrowedInstance::PoolReleaseFunction release) {
     auto borrowed = std::make_shared<ModuleInstance::BorrowedInstance>(
         shared_from_this(), release);
-    pushBorrowedRuntimeInstance(std::move(borrowed));
   }
 
 }  // namespace kagome::runtime::wavm

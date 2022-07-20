@@ -26,10 +26,9 @@ namespace kagome::runtime::wavm {
   std::shared_ptr<host_api::HostApi> peekHostApi();
 
   void pushBorrowedRuntimeInstance(
-      std::shared_ptr<ModuleInstance::BorrowedInstance>
-          borrowed_runtime_instance);
-  std::shared_ptr<ModuleInstance::BorrowedInstance>
-  peekBorrowedRuntimeInstance();
+      std::shared_ptr<ModuleInstance> borrowed_runtime_instance);
+  void popBorrowedRuntimeInstance();
+  std::shared_ptr<ModuleInstance> peekBorrowedRuntimeInstance();
 
   extern log::Logger logger;
 
