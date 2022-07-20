@@ -26,6 +26,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::host_api::OffchainExtension;
 using kagome::host_api::OffchainExtensionConfig;
 using kagome::offchain::Failure;
@@ -299,14 +300,15 @@ TEST_P(TernaryParametrizedTest, LocalStorageCAS) {
   WasmPointer expected_pointer = 45;
   WasmSize expected_size = 45;
   WasmSpan expected_span = PtrSize(expected_pointer, expected_size).combine();
-  Buffer expected(8, 'e');
+  auto expected = Buffer{scale::encode(std::optional<Buffer>{}).value()};
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
       .WillOnce(Return(value));
   EXPECT_CALL(*memory_, loadN(expected_pointer, expected_size))
       .WillOnce(Return(expected));
   EXPECT_CALL(*offchain_worker_,
-              localStorageCompareAndSet(_, key.view(), _, value))
+              localStorageCompareAndSet(
+                  _, key.view(), std::optional<BufferView>{}, value))
       .WillOnce(Return(true));
   offchain_extension_->ext_offchain_local_storage_compare_and_set_version_1(
       GetParam(), key_span, expected_span, value_span);
