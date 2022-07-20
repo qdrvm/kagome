@@ -15,6 +15,49 @@
 #include "runtime/runtime_upgrade_tracker.hpp"
 
 namespace kagome::runtime {
+  /**
+   * @brief Wrapper type over sptr<ModuleInstance>. Allows to return instance
+   * back to the ModuleInstancePool upon destruction of
+   * BorrowedInstance.
+   */
+  class BorrowedInstance : public ModuleInstance {
+   public:
+    BorrowedInstance(std::weak_ptr<RuntimeInstancesPool> pool,
+                     const RuntimeInstancesPool::RootHash &state,
+                     std::shared_ptr<ModuleInstance> instance)
+        : pool_{std::move(pool)},
+          state_{state},
+          instance_{std::move(instance)} {}
+    ~BorrowedInstance() {
+      if (auto pool = pool_.lock()) {
+        pool->release(state_, std::move(instance_));
+      }
+    }
+
+    outcome::result<PtrSize> callExportFunction(
+        std::string_view name, common::BufferView encoded_args) const override {
+      return instance_->callExportFunction(name, encoded_args);
+    }
+    outcome::result<std::optional<WasmValue>> getGlobal(
+        std::string_view name) const override {
+      return instance_->getGlobal(name);
+    }
+    void forDataSegment(DataSegmentProcessor const &callback) const override {
+      return instance_->forDataSegment(callback);
+    }
+    InstanceEnvironment const &getEnvironment() const override {
+      return instance_->getEnvironment();
+    }
+    outcome::result<void> resetEnvironment() override {
+      return instance_->resetEnvironment();
+    }
+
+   private:
+    std::weak_ptr<RuntimeInstancesPool> pool_;
+    RuntimeInstancesPool::RootHash state_;
+    std::shared_ptr<ModuleInstance> instance_;
+  };
+
   outcome::result<std::shared_ptr<ModuleInstance>>
   RuntimeInstancesPool::tryAcquire(
       const RuntimeInstancesPool::RootHash &state) {
@@ -32,7 +75,8 @@ namespace kagome::runtime {
     auto module = opt_module.value();
     OUTCOME_TRY(instance, module.get()->instantiate());
 
-    return std::move(instance);
+    return std::make_shared<BorrowedInstance>(
+        weak_from_this(), state, std::move(instance));
   }
 
   void RuntimeInstancesPool::release(
