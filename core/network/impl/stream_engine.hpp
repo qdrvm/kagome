@@ -163,12 +163,12 @@ namespace kagome::network {
                                           is_incoming ? stream : nullptr,
                                           is_outgoing ? stream : nullptr});
           SL_DEBUG(logger_,
-                   "Added {} {} stream with peer_id={}",
+                   "Added {} {} stream with peer {}",
                    direction == Direction::INCOMING   ? "incoming"
                    : direction == Direction::OUTGOING ? "outgoing"
                                                       : "bidirectional",
                    protocol->protocol(),
-                   peer_id.toBase58());
+                   peer_id);
         }
         return outcome::success();
       });
@@ -204,9 +204,9 @@ namespace kagome::network {
 
       if (reserved) {
         SL_DEBUG(logger_,
-                 "Reserved {} stream with {}",
+                 "Reserved {} stream with peer {}",
                  protocol->protocol(),
-                 peer_id.toBase58());
+                 peer_id);
       }
     }
 
@@ -384,14 +384,14 @@ namespace kagome::network {
 
       dst = src;
       SL_DEBUG(logger_,
-               "{} {} stream with peer_id={} was {}",
+               "{} {} stream with peer {} was {}",
                direction == Direction::BIDIRECTIONAL ? "Bidirectional"
                : direction == Direction::INCOMING    ? "Incoming"
                                                      : "Outgoing",
                protocol->protocol(),
                dst->remotePeerId().has_value()
-                   ? dst->remotePeerId().value().toBase58()
-                   : "{no PeerId}",
+                   ? fmt::format("{}", dst->remotePeerId().value())
+                   : "without PeerId",
                replaced ? "replaced" : "stored");
     }
 
@@ -452,7 +452,7 @@ namespace kagome::network {
         logger_->debug("DUMP: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
         logger_->debug("DUMP: {}", msg);
         forEachPeer([&](const auto &peer_id, auto const &proto_map) {
-          logger_->debug("DUMP:   Peer {}", peer_id.toBase58());
+          logger_->debug("DUMP:   Peer {}", peer_id);
           for (auto const &[protocol, descr] : proto_map) {
             logger_->debug("DUMP:     Protocol {}", protocol);
             logger_->debug("DUMP:       I={} O={}   Messages:{}",

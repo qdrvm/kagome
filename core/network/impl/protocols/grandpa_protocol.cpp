@@ -439,7 +439,7 @@ namespace kagome::network {
       if (not info_opt.has_value()) {
         SL_DEBUG(log_,
                  "Commit with set_id={} in round={} "
-                 "has not been sent to {}: peen is not connected",
+                 "has not been sent to {}: peer is not connected",
                  set_id,
                  round_number,
                  peer_id);
@@ -513,7 +513,7 @@ namespace kagome::network {
     if (not info_opt.has_value()) {
       SL_DEBUG(log_,
                "Catch-up-request with set_id={} in round={} "
-               "has not been sent to {}: peen is not connected",
+               "has not been sent to {}: peer is not connected",
                catch_up_request.voter_set_id,
                catch_up_request.round_number,
                peer_id);
@@ -561,7 +561,7 @@ namespace kagome::network {
     if (not info_opt.has_value()) {
       SL_DEBUG(log_,
                "Catch-up-response with set_id={} in round={} "
-               "has not been sent to {}: peen is not connected",
+               "has not been sent to {}: peer is not connected",
                catch_up_response.voter_set_id,
                catch_up_response.round_number,
                peer_id);

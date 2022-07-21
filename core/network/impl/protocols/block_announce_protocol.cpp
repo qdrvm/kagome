@@ -42,9 +42,9 @@ namespace kagome::network {
       if (auto self = wp.lock()) {
         if (auto peer_id = stream->remotePeerId()) {
           SL_TRACE(self->log_,
-                   "Handled {} protocol stream from: {}",
+                   "Handled {} protocol stream from {}",
                    self->protocol_,
-                   peer_id.value().toBase58());
+                   peer_id.value());
           self->onIncomingStream(std::forward<decltype(stream)>(stream));
           return;
         }
@@ -102,7 +102,7 @@ namespace kagome::network {
                        self->log_,
                        "Handshake failed on incoming {} stream with {}: {}",
                        self->protocol_,
-                       peer_id.toBase58(),
+                       peer_id,
                        res.error().message());
                    stream->reset();
                    return;
@@ -113,7 +113,7 @@ namespace kagome::network {
                    SL_VERBOSE(self->log_,
                               "Can't register incoming {} stream with {}: {}",
                               self->protocol_,
-                              peer_id.toBase58(),
+                              peer_id,
                               res.error().message());
                    stream->reset();
                    return;
@@ -125,7 +125,7 @@ namespace kagome::network {
                  SL_VERBOSE(self->log_,
                             "Fully established incoming {} stream with {}",
                             self->protocol_,
-                            peer_id.toBase58());
+                            peer_id);
                });
   }
 

@@ -100,9 +100,9 @@ namespace kagome::network {
                         self->peer_rating_repository_->rating(peer_id);
                     rating < 0) {
                   SL_DEBUG(self->log_,
-                           "Disconnecting from peer_id={} due to its negative "
+                           "Disconnecting from peer {} due to its negative "
                            "rating {}",
-                           peer_id.toBase58(),
+                           peer_id,
                            rating);
                   self->disconnectFromPeer(peer_id);
                   return;
@@ -111,25 +111,22 @@ namespace kagome::network {
               }
             });
 
-    identify_->onIdentifyReceived(
-        [wp = weak_from_this()](const PeerId &peer_id) {
-          if (auto self = wp.lock()) {
-            SL_DEBUG(self->log_,
-                     "Identify received from peer_id={}",
-                     peer_id.toBase58());
-            if (auto rating = self->peer_rating_repository_->rating(peer_id);
-                rating < 0) {
-              SL_DEBUG(
-                  self->log_,
-                  "Disconnecting from peer_id={} due to its negative rating {}",
-                  peer_id.toBase58(),
-                  rating);
-              self->disconnectFromPeer(peer_id);
-              return;
-            }
-            self->processFullyConnectedPeer(peer_id);
-          }
-        });
+    identify_->onIdentifyReceived([wp = weak_from_this()](
+                                      const PeerId &peer_id) {
+      if (auto self = wp.lock()) {
+        SL_DEBUG(self->log_, "Identify received from peer {}", peer_id);
+        if (auto rating = self->peer_rating_repository_->rating(peer_id);
+            rating < 0) {
+          SL_DEBUG(self->log_,
+                   "Disconnecting from peer {} due to its negative rating {}",
+                   peer_id,
+                   rating);
+          self->disconnectFromPeer(peer_id);
+          return;
+        }
+        self->processFullyConnectedPeer(peer_id);
+      }
+    });
 
     // Start Identify protocol
     identify_->start();
@@ -210,8 +207,8 @@ namespace kagome::network {
     }
     for (const auto &peer_id : peers_to_disconnect) {
       SL_DEBUG(log_,
-               "Disconnecting from peer_id={} due to its negative rating",
-               peer_id.toBase58());
+               "Disconnecting from peer {} due to its negative rating",
+               peer_id);
       disconnectFromPeer(peer_id);
     }
 
@@ -226,11 +223,8 @@ namespace kagome::network {
       if (not stream_engine_->isAlive(peer_id, block_announce_protocol)) {
         // Found disconnected
         const auto &peer_id_ref = peer_id;
-        SL_DEBUG(log_, "Found dead peer_id={}", peer_id_ref.toBase58());
+        SL_DEBUG(log_, "Found dead peer: {}", peer_id_ref);
         disconnectFromPeer(peer_id);
-        //        if (not disconnected_peer.has_value()) {
-        //          disconnected_peer = peer_id;
-        //        }
       }
     }
 
@@ -253,8 +247,7 @@ namespace kagome::network {
       } else if (oldest_descr.time_point + peer_ttl < clock_->now()) {
         // Peer is inactive long time
         auto &oldest_peer_id_ref = oldest_peer_id;
-        SL_DEBUG(
-            log_, "Found inactive peer_id={}", oldest_peer_id_ref.toBase58());
+        SL_DEBUG(log_, "Found inactive peer: {}", oldest_peer_id_ref);
         disconnectFromPeer(oldest_peer_id);
 
       } else {
@@ -318,19 +311,19 @@ namespace kagome::network {
 
     auto peer_info = host_.getPeerRepository().getPeerInfo(peer_id);
     if (peer_info.addresses.empty()) {
-      SL_DEBUG(log_, "Not found addresses for peer_id={}", peer_id.toBase58());
+      SL_DEBUG(log_, "Not found addresses for peer {}", peer_id);
       connecting_peers_.erase(peer_id);
       return;
     }
 
     auto connectedness = host_.connectedness(peer_info);
     if (connectedness == libp2p::Host::Connectedness::CAN_NOT_CONNECT) {
-      SL_DEBUG(log_, "Can not connect to peer_id={}", peer_id.toBase58());
+      SL_DEBUG(log_, "Can not connect to peer {}", peer_id);
       connecting_peers_.erase(peer_id);
       return;
     }
 
-    SL_DEBUG(log_, "Try to connect to peer_id={}", peer_info.id.toBase58());
+    SL_DEBUG(log_, "Try to connect to peer {}", peer_info.id);
     for (auto addr : peer_info.addresses) {
       SL_DEBUG(log_, "  address: {}", addr.getStringAddress());
     }
@@ -345,8 +338,8 @@ namespace kagome::network {
 
           if (not res.has_value()) {
             SL_DEBUG(self->log_,
-                     "Connecting to peer_id={} is failed: {}",
-                     peer_id.toBase58(),
+                     "Connecting to peer {} is failed: {}",
+                     peer_id,
                      res.error().message());
             self->connecting_peers_.erase(peer_id);
             return;
@@ -355,16 +348,17 @@ namespace kagome::network {
           auto &connection = res.value();
           auto remote_peer_id_res = connection->remotePeer();
           if (not remote_peer_id_res.has_value()) {
-            SL_DEBUG(self->log_,
-                     "Connected, but not identified yet (expecting peer_id={})",
-                     peer_id.toBase58());
+            SL_DEBUG(
+                self->log_,
+                "Connected, but not identified yet (expecting peer_id={:l})",
+                peer_id);
             self->connecting_peers_.erase(peer_id);
             return;
           }
 
           auto &remote_peer_id = remote_peer_id_res.value();
           if (remote_peer_id == peer_id) {
-            SL_DEBUG(self->log_, "Connected to peer_id={}", peer_id.toBase58());
+            SL_DEBUG(self->log_, "Connected to peer {}", peer_id);
 
             self->processFullyConnectedPeer(peer_id);
           }
@@ -375,7 +369,7 @@ namespace kagome::network {
   void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
-      SL_DEBUG(log_, "Disconnect from peer_id={}", peer_id.toBase58());
+      SL_DEBUG(log_, "Disconnect from peer {}", peer_id);
       stream_engine_->del(peer_id);
       active_peers_.erase(it);
       sync_peer_num_->set(active_peers_.size());
@@ -404,7 +398,7 @@ namespace kagome::network {
     if (conn == nullptr) {
       SL_DEBUG(log_,
                "Failed to start pinging {}: No connection to this peer exists",
-               peer_id.toBase58());
+               peer_id);
       return;
     }
     auto [_, is_emplaced] = pinging_connections_.emplace(conn);
@@ -415,7 +409,7 @@ namespace kagome::network {
 
     SL_DEBUG(log_,
              "Start pinging of {} (conn={})",
-             peer_id.toBase58(),
+             peer_id,
              static_cast<void *>(conn.get()));
 
     ping_protocol->startPinging(
@@ -427,7 +421,7 @@ namespace kagome::network {
             if (session_res.has_error()) {
               SL_DEBUG(self->log_,
                        "Stop pinging of {} (conn={}): {}",
-                       peer_id.toBase58(),
+                       peer_id,
                        static_cast<void *>(conn.get()),
                        session_res.error().message());
               self->pinging_connections_.erase(conn);
@@ -435,7 +429,7 @@ namespace kagome::network {
             } else {
               SL_DEBUG(self->log_,
                        "Pinging: {} (conn={}) is alive",
-                       peer_id.toBase58(),
+                       peer_id,
                        static_cast<void *>(conn.get()));
               self->keepAlive(peer_id);
             }
@@ -500,8 +494,8 @@ namespace kagome::network {
     BOOST_ASSERT(queue_to_connect_.size() == peers_in_queue_.size());
 
     SL_DEBUG(log_,
-             "New peer_id={} enqueued. In queue: {}",
-             peer_id.toBase58(),
+             "New peer_id enqueued: {:l}. In queue: {}",
+             peer_id,
              queue_to_connect_.size());
   }
 
@@ -582,7 +576,7 @@ namespace kagome::network {
             if (not stream_res.has_value()) {
               self->log_->warn("Unable to create stream {} with {}: {}",
                                protocol->protocol(),
-                               peer_id.toBase58(),
+                               peer_id,
                                stream_res.error().message());
               self->connecting_peers_.erase(peer_id);
               self->disconnectFromPeer(peer_id);
@@ -628,7 +622,7 @@ namespace kagome::network {
       SL_DEBUG(log_,
                "Stream {} with {} is alive",
                block_announce_protocol->protocol(),
-               peer_id.toBase58());
+               peer_id);
       connecting_peers_.erase(peer_id);
     }
 
