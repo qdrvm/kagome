@@ -19,11 +19,13 @@ namespace kagome::crypto {
   template <typename PublicKeyT,
             typename PrivateKeyT,
             typename KeypairT,
+            typename KeypairAndSeedT,
             typename SeedT>
   struct CryptoSuite {
     using PublicKey = PublicKeyT;
     using PrivateKey = PrivateKeyT;
     using Keypair = KeypairT;
+    using KeypairAndSeed = KeypairAndSeedT;
     using Seed = SeedT;
 
     virtual ~CryptoSuite() = default;
@@ -39,7 +41,8 @@ namespace kagome::crypto {
      * Generate a random keypair (randomness source is determined by an
      * underlying crypto provider)
      */
-    virtual outcome::result<Keypair> generateRandomKeypair() const noexcept = 0;
+    virtual outcome::result<KeypairAndSeed> generateRandomKeypair()
+        const noexcept = 0;
 
     /**
      * Create a keypair from a public key and a private key
@@ -72,6 +75,7 @@ namespace kagome::crypto {
   class EcdsaSuite : public CryptoSuite<EcdsaPublicKey,
                                         EcdsaPrivateKey,
                                         EcdsaKeypair,
+                                        EcdsaKeypairAndSeed,
                                         EcdsaSeed> {
    public:
     explicit EcdsaSuite(std::shared_ptr<EcdsaProvider> ecdsa_provider)
@@ -81,7 +85,7 @@ namespace kagome::crypto {
 
     ~EcdsaSuite() override = default;
 
-    outcome::result<EcdsaKeypair> generateRandomKeypair()
+    outcome::result<EcdsaKeypairAndSeed> generateRandomKeypair()
         const noexcept override {
       return ecdsa_provider_->generate();
     }
@@ -121,6 +125,7 @@ namespace kagome::crypto {
   class Ed25519Suite : public CryptoSuite<Ed25519PublicKey,
                                           Ed25519PrivateKey,
                                           Ed25519Keypair,
+                                          Ed25519KeypairAndSeed,
                                           Ed25519Seed> {
    public:
     explicit Ed25519Suite(std::shared_ptr<Ed25519Provider> ed_provider)
@@ -130,7 +135,7 @@ namespace kagome::crypto {
 
     ~Ed25519Suite() override = default;
 
-    outcome::result<Ed25519Keypair> generateRandomKeypair()
+    outcome::result<Ed25519KeypairAndSeed> generateRandomKeypair()
         const noexcept override {
       return ed_provider_->generateKeypair();
     }
@@ -169,6 +174,7 @@ namespace kagome::crypto {
   class Sr25519Suite : public CryptoSuite<Sr25519PublicKey,
                                           Sr25519SecretKey,
                                           Sr25519Keypair,
+                                          Sr25519KeypairAndSeed,
                                           Sr25519Seed> {
    public:
     explicit Sr25519Suite(std::shared_ptr<Sr25519Provider> sr_provider)
@@ -178,7 +184,7 @@ namespace kagome::crypto {
 
     ~Sr25519Suite() override = default;
 
-    outcome::result<Sr25519Keypair> generateRandomKeypair()
+    outcome::result<Sr25519KeypairAndSeed> generateRandomKeypair()
         const noexcept override {
       return sr_provider_->generateKeypair();
     }

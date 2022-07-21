@@ -26,6 +26,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
       return "BABE key already exists";
     case E::GRAN_ALREADY_EXIST:
       return "GRAN key already exists";
+    case E::WRONG_PUBLIC_KEY:
+      return "Public key doesn't match seed";
   }
   return "Unknown CryptoStoreError code";
 }
@@ -101,32 +103,17 @@ namespace kagome::crypto {
 
   outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypairOnDisk(
       KeyTypeId key_type) {
-    OUTCOME_TRY(kp, ecdsa_suite_->generateRandomKeypair());
-    getCache(ecdsa_suite_, ecdsa_caches_, key_type)
-        .insert(kp.public_key, kp.secret_key);
-    OUTCOME_TRY(
-        file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
-    return std::move(kp);
+    return generateKeypairOnDisk(key_type, ecdsa_suite_, ecdsa_caches_);
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519KeypairOnDisk(
       KeyTypeId key_type) {
-    OUTCOME_TRY(kp, ed_suite_->generateRandomKeypair());
-    getCache(ed_suite_, ed_caches_, key_type)
-        .insert(kp.public_key, kp.secret_key);
-    OUTCOME_TRY(
-        file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
-    return std::move(kp);
+    return generateKeypairOnDisk(key_type, ed_suite_, ed_caches_);
   }
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519KeypairOnDisk(
       KeyTypeId key_type) {
-    OUTCOME_TRY(kp, sr_suite_->generateRandomKeypair());
-    getCache(sr_suite_, sr_caches_, key_type)
-        .insert(kp.public_key, kp.secret_key);
-    OUTCOME_TRY(
-        file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
-    return std::move(kp);
+    return generateKeypairOnDisk(key_type, sr_suite_, sr_caches_);
   }
 
   outcome::result<EcdsaKeypair> CryptoStoreImpl::findEcdsaKeypair(

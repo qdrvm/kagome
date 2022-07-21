@@ -18,7 +18,7 @@ namespace kagome::crypto {
    public:
     virtual ~EcdsaProvider() = default;
 
-    virtual outcome::result<EcdsaKeypair> generate() const = 0;
+    virtual outcome::result<EcdsaKeypairAndSeed> generate() const = 0;
 
     virtual outcome::result<EcdsaPublicKey> derive(
         const EcdsaSeed &seed) const = 0;

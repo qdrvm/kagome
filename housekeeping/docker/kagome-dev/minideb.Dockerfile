@@ -16,6 +16,9 @@ RUN apt-get update && \
         curl && \
         rm -rf /var/lib/apt/lists/*
 
+ENV LLVM_VERSION=11
+ENV GCC_VERSION=9
+
 # add repos for llvm and newer gcc and install docker
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo \
@@ -54,7 +57,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     rm -rf /var/lib/apt/lists/*
 
 # install rustc
-ENV RUST_VERSION=nightly-2021-10-04
+ENV RUST_VERSION=nightly-2022-06-10
 ENV RUSTUP_HOME=/root/.rustup
 ENV CARGO_HOME=/root/.cargo
 ENV PATH="${CARGO_HOME}/bin:${PATH}"
@@ -79,8 +82,8 @@ RUN set -e; \
 ENV LLVM_ROOT=/usr/lib/llvm-11
 ENV LLVM_DIR=/usr/lib/llvm-11/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=gcc-9
-ENV CXX=g++-9
+ENV CC=gcc-${GCC_VERSION}
+ENV CXX=g++-${GCC_VERSION}
 
 # set default compilers and tools
 RUN update-alternatives --install /usr/bin/python       python       /usr/bin/python3               90 && \

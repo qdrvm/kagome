@@ -20,7 +20,7 @@ namespace kagome::crypto {
      * Generates random keypair for signing the message
      * @return ed25519 key pair if succeeded of error if failed
      */
-    virtual Ed25519Keypair generateKeypair() const = 0;
+    virtual Ed25519KeypairAndSeed generateKeypair() const = 0;
 
     /**
      * @brief generates key pair by seed

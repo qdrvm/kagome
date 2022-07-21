@@ -95,6 +95,10 @@ namespace kagome::crypto {
     bool operator!=(const Sr25519Keypair &other) const;
   };
 
+  struct Sr25519KeypairAndSeed : Sr25519Keypair {
+    Sr25519Seed seed;
+  };
+
   /**
    * @brief outputs object of type VRFOutput to stream
    * @tparam Stream output stream type

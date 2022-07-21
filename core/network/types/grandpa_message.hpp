@@ -7,6 +7,8 @@
 #define KAGOME_NETWORK_GRANDPAMESSAGE
 
 #include <boost/variant.hpp>
+
+#include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/structs.hpp"
 
 namespace kagome::network {
@@ -14,12 +16,12 @@ namespace kagome::network {
   using consensus::grandpa::BlockInfo;
   using consensus::grandpa::CompactCommit;
   using consensus::grandpa::GrandpaJustification;
-  using consensus::grandpa::MembershipCounter;
   using consensus::grandpa::RoundNumber;
   using consensus::grandpa::SignedMessage;
   using consensus::grandpa::SignedPrecommit;
   using consensus::grandpa::SignedPrevote;
   using consensus::grandpa::VoteMessage;
+  using consensus::grandpa::VoterSetId;
   using primitives::BlockNumber;
 
   struct GrandpaVote : public VoteMessage {
@@ -35,7 +37,7 @@ namespace kagome::network {
     // The round this message is from.
     RoundNumber round{0};
     // The voter set ID this message is from.
-    MembershipCounter set_id;
+    VoterSetId set_id;
     // The compact commit message.
     CompactCommit message;
   };
@@ -55,7 +57,7 @@ namespace kagome::network {
   struct GrandpaNeighborMessage {
     uint8_t version = 1;
     RoundNumber round_number;
-    MembershipCounter voter_set_id;
+    VoterSetId voter_set_id;
     BlockNumber last_finalized;
   };
 
@@ -77,7 +79,7 @@ namespace kagome::network {
 
   struct CatchUpRequest {
     RoundNumber round_number;
-    MembershipCounter voter_set_id;
+    VoterSetId voter_set_id;
   };
 
   template <class Stream,
@@ -93,7 +95,7 @@ namespace kagome::network {
   }
 
   struct CatchUpResponse {
-    MembershipCounter voter_set_id{};
+    VoterSetId voter_set_id{};
     RoundNumber round_number{};
     std::vector<SignedPrevote> prevote_justification;
     std::vector<SignedPrecommit> precommit_justification;
