@@ -30,11 +30,11 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
-hunter_config(
-    libp2p
-    VERSION 0.1.4
-    KEEP_PACKAGE_SOURCES
-)
+#hunter_config(
+#    libp2p
+#    VERSION 0.1.4
+#    KEEP_PACKAGE_SOURCES
+#)
 
 hunter_config(
     rocksdb

@@ -14,4 +14,5 @@ add_library(api_child_state_requests
 target_link_libraries(api_child_state_requests
     Boost::boost
     blob
+    outcome
     )

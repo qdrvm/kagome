@@ -4,5 +4,6 @@
 add_library(outcome INTERFACE)
 target_link_libraries(outcome INTERFACE
     Boost::boost
+    p2p
     )
 kagome_install(outcome)

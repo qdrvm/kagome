@@ -27,8 +27,17 @@ hunter_add_package(binaryen)
 find_package(binaryen CONFIG REQUIRED)
 
 # https://github.com/soramitsu/libp2p
-hunter_add_package(libp2p)
+#hunter_add_package(libp2p)
+
+hunter_add_package(Protobuf)
+find_package(Protobuf CONFIG REQUIRED)
+
+hunter_add_package(c-ares)
+find_package(c-ares CONFIG REQUIRED)
+
+set(libp2p_ROOT /home/harrm/projects/cpp-libp2p/install/lib/cmake/libp2p/)
 find_package(libp2p CONFIG REQUIRED)
+#add_subdirectory(/home/harrm/projects/cpp-libp2p //home/harrm/projects/cpp-libp2p/build)
 
 # https://www.openssl.org/
 hunter_add_package(OpenSSL)
