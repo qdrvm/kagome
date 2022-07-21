@@ -49,18 +49,18 @@ namespace kagome::consensus::grandpa {
 
     outcome::result<BlockInfo> bestChainContaining(
         const primitives::BlockHash &base,
-        std::optional<VoterSetId> voter_set_id) const override;
+        std::optional<MembershipCounter> voter_set_id) const override;
 
     // Environment methods
 
     outcome::result<void> onCatchUpRequested(
         const libp2p::peer::PeerId &peer_id,
-        VoterSetId set_id,
+        MembershipCounter set_id,
         RoundNumber round_number) override;
 
     outcome::result<void> onCatchUpRespond(
         const libp2p::peer::PeerId &peer_id,
-        VoterSetId set_id,
+        MembershipCounter set_id,
         RoundNumber round_number,
         std::vector<SignedPrevote> prevote_justification,
         std::vector<SignedPrecommit> precommit_justification,
@@ -68,21 +68,21 @@ namespace kagome::consensus::grandpa {
 
     void sendState(const libp2p::peer::PeerId &peer_id,
                    const MovableRoundState &state,
-                   VoterSetId voter_set_id) override;
+                   MembershipCounter voter_set_id) override;
 
     outcome::result<void> onVoted(RoundNumber round,
-                                  VoterSetId set_id,
+                                  MembershipCounter set_id,
                                   const SignedMessage &vote) override;
 
     outcome::result<void> onCommitted(
         RoundNumber round,
-        VoterSetId voter_ser_id,
+        MembershipCounter voter_ser_id,
         const BlockInfo &vote,
         const GrandpaJustification &justification) override;
 
     outcome::result<void> onNeighborMessageSent(
         RoundNumber round,
-        VoterSetId set_id,
+        MembershipCounter set_id,
         BlockNumber last_finalized) override;
 
     outcome::result<void> applyJustification(
@@ -90,7 +90,8 @@ namespace kagome::consensus::grandpa {
         const primitives::Justification &justification) override;
 
     outcome::result<void> finalize(
-        VoterSetId id, const GrandpaJustification &justification) override;
+        MembershipCounter id,
+        const GrandpaJustification &justification) override;
 
     // Getters
 

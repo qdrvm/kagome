@@ -16,9 +16,6 @@ RUN apt-get update && \
         curl && \
         rm -rf /var/lib/apt/lists/*
 
-ENV LLVM_VERSION=11
-ENV GCC_VERSION=9
-
 # add repos for llvm and newer gcc and install docker
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo \
@@ -29,12 +26,12 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         docker-ce-cli \
         containerd.io \
         build-essential \
-        gcc-${GCC_VERSION} \
-        g++-${GCC_VERSION} \
-        llvm-${LLVM_VERSION}-dev \
-        clang-${LLVM_VERSION} \
-        clang-tidy-${LLVM_VERSION} \
-        clang-format-${LLVM_VERSION} \
+        gcc-9 \
+        g++-9 \
+        llvm-10-dev \
+        clang-10 \
+        clang-tidy-10 \
+        clang-format-10 \
         make \
         git \
         ccache \
@@ -44,7 +41,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     rm -rf /var/lib/apt/lists/*
 
 # install rustc
-ENV RUST_VERSION=nightly-2022-06-10
+ENV RUST_VERSION=nightly-2021-10-04
 ENV RUSTUP_HOME=/root/.rustup
 ENV CARGO_HOME=/root/.cargo
 ENV PATH="${CARGO_HOME}/bin:${PATH}"
@@ -66,23 +63,18 @@ RUN set -e; \
     rm -rf /tmp/sonar*
 
 # set env
-ENV LLVM_ROOT=/usr/lib/llvm-${LLVM_VERSION}
-ENV LLVM_DIR=/usr/lib/llvm-${LLVM_VERSION}/lib/cmake/llvm/
+ENV LLVM_ROOT=/usr/lib/llvm-10
+ENV LLVM_DIR=/usr/lib/llvm-10/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=gcc-${GCC_VERSION}
-ENV CXX=g++-${GCC_VERSION}
+ENV CC=gcc-9
+ENV CXX=g++-9
 
 # set default compilers and tools
-RUN update-alternatives --install /usr/bin/python       python       /usr/bin/python3                      90 && \
-    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-${LLVM_VERSION}   90 && \
-    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-${LLVM_VERSION} 90 && \
-    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-${LLVM_VERSION}/bin/clang-${LLVM_VERSION} 90 && \
-    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-${LLVM_VERSION}      90 && \
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-${GCC_VERSION}           90 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-${GCC_VERSION}           90 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-${GCC_VERSION}          90
-
-RUN groupadd kagome \
-  && useradd -g kagome -M --shell /bin/bash kagome
-
-USER kagome
+RUN update-alternatives --install /usr/bin/python       python       /usr/bin/python3               90 && \
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-10         90 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-10       90 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-10/bin/clang-10  90 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-10            90 && \
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-9                 90 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-9                 90 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-9                90

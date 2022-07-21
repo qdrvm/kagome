@@ -23,7 +23,7 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD(outcome::result<void>,
                 onVoted,
                 (RoundNumber round,
-                 VoterSetId set_id,
+                 MembershipCounter set_id,
                  const SignedMessage &propose),
                 (override));
 
@@ -31,13 +31,13 @@ namespace kagome::consensus::grandpa {
                 sendState,
                 (const libp2p::peer::PeerId &peer_id,
                  const MovableRoundState &state,
-                 VoterSetId set_id),
+                 MembershipCounter set_id),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 onCommitted,
                 (RoundNumber round,
-                 VoterSetId set_id,
+                 MembershipCounter set_id,
                  const BlockInfo &vote,
                  const GrandpaJustification &justification),
                 (override));
@@ -45,7 +45,7 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD(outcome::result<void>,
                 onNeighborMessageSent,
                 (RoundNumber round,
-                 VoterSetId set_id,
+                 MembershipCounter set_id,
                  BlockNumber last_finalized),
                 (override));
 
@@ -57,7 +57,8 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(outcome::result<void>,
                 finalize,
-                (VoterSetId id, const GrandpaJustification &justification),
+                (MembershipCounter id,
+                 const GrandpaJustification &justification),
                 (override));
 
     MOCK_METHOD(outcome::result<GrandpaJustification>,
@@ -68,14 +69,14 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD(outcome::result<void>,
                 onCatchUpRequested,
                 (const libp2p::peer::PeerId &peer_id,
-                 VoterSetId set_id,
+                 MembershipCounter set_id,
                  RoundNumber round_number),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 onCatchUpRespond,
                 (const libp2p::peer::PeerId &peer_id,
-                 VoterSetId set_id,
+                 MembershipCounter set_id,
                  RoundNumber round_number,
                  std::vector<SignedPrevote> prevote_justification,
                  std::vector<SignedPrecommit> precommit_justification,

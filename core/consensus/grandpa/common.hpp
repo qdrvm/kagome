@@ -23,7 +23,7 @@ namespace kagome::consensus::grandpa {
   using BlockHash = primitives::BlockHash;
   using BlockNumber = primitives::BlockNumber;
   using RoundNumber = uint64_t;
-  using VoterSetId = uint64_t;
+  using MembershipCounter = uint64_t;
 
   using Clock = clock::SteadyClock;
   using Duration = Clock::Duration;
