@@ -32,7 +32,7 @@ cd kagome
 
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make kagome -j $(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) + 1 ))
+make kagome -j $(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))
 ```
 
 `make kagome -j <numbers of cores>` (should be less than you have, here it is half of your cores + 1)
