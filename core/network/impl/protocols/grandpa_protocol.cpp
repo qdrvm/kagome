@@ -318,7 +318,6 @@ namespace kagome::network {
                 self->log_, "NeighborMessage has received from {}", peer_id);
             self->grandpa_observer_->onNeighborMessage(peer_id,
                                                        neighbor_message);
-            self->peer_manager_->updatePeerState(peer_id, neighbor_message);
           },
           [&](const network::CatchUpRequest &catch_up_request) {
             SL_VERBOSE(

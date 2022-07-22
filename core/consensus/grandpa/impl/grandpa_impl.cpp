@@ -327,10 +327,13 @@ namespace kagome::consensus::grandpa {
              msg.last_finalized,
              peer_id);
 
-    // Iff peer just reached one of recent round, then share known votes
     auto info = peer_manager_->getPeerState(peer_id);
-    if (not info.has_value() || msg.voter_set_id != info->set_id
-        || msg.round_number > info->round_number) {
+
+    // Iff peer just reached one of recent round, then share known votes
+    if (not info.has_value()
+        or (info->set_id.has_value() and msg.voter_set_id != info->set_id)
+        or (info->round_number.has_value()
+            and msg.round_number > info->round_number)) {
       if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
           opt_round.has_value()) {
         auto &round = opt_round.value();
@@ -355,34 +358,34 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (info.has_value()) {
-      if (info->last_finalized <= block_tree_->deepestLeaf().number) {
-        //  Trying to substitute with justifications' request only
-        auto last_finalized = block_tree_->getLastFinalized();
-        synchronizer_->syncMissingJustifications(
-            peer_id,
-            last_finalized,
-            std::nullopt,
-            [wp = weak_from_this(), last_finalized, msg](auto res) {
-              auto self = wp.lock();
-              if (not self) {
-                return;
-              }
-              if (res.has_error()) {
-                SL_WARN(self->logger_,
-                        "Missing justifications between blocks {} and "
-                        "{} was not loaded: {}",
-                        last_finalized,
-                        msg.last_finalized,
-                        res.error().message());
-              } else {
-                SL_DEBUG(self->logger_,
-                         "Loaded justifications for blocks in range {} - {}",
-                         last_finalized,
-                         res.value());
-              }
-            });
-      }
+    peer_manager_->updatePeerState(peer_id, msg);
+
+    if (info->last_finalized <= block_tree_->deepestLeaf().number) {
+      //  Trying to substitute with justifications' request only
+      auto last_finalized = block_tree_->getLastFinalized();
+      synchronizer_->syncMissingJustifications(
+          peer_id,
+          last_finalized,
+          std::nullopt,
+          [wp = weak_from_this(), last_finalized, msg](auto res) {
+            auto self = wp.lock();
+            if (not self) {
+              return;
+            }
+            if (res.has_error()) {
+              SL_WARN(self->logger_,
+                      "Missing justifications between blocks {} and "
+                      "{} was not loaded: {}",
+                      last_finalized,
+                      msg.last_finalized,
+                      res.error().message());
+            } else {
+              SL_DEBUG(self->logger_,
+                       "Loaded justifications for blocks in range {} - {}",
+                       last_finalized,
+                       res.value());
+            }
+          });
     }
   }
 
