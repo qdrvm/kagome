@@ -178,12 +178,22 @@ namespace kagome::host_api {
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto key_buffer = memory.loadN(key_ptr, key_size);
     auto [expected_ptr, expected_size] = runtime::PtrSize(expected);
-    auto expected_buffer = memory.loadN(expected_ptr, expected_size);
+    auto expected_encoded = memory.loadN(expected_ptr, expected_size);
+    auto expected_res =
+        scale::decode<std::optional<common::Buffer>>(expected_encoded);
+    if (expected_res.has_error()) {
+      throw std::runtime_error("Invalid encoded data for expected arg");
+    }
+    auto &expected_as_buffer{expected_res.value()};
+    std::optional<common::BufferView> expected_as_view;
+    if (expected_as_buffer) {
+      expected_as_view.emplace(expected_as_buffer.value());
+    }
     auto [value_ptr, value_size] = runtime::PtrSize(value);
     auto value_buffer = memory.loadN(value_ptr, value_size);
 
     auto result = worker->localStorageCompareAndSet(
-        storage_type, key_buffer, expected_buffer, value_buffer);
+        storage_type, key_buffer, expected_as_view, value_buffer);
 
     return result;
   }
