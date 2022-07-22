@@ -1,4 +1,4 @@
-FROM bitnami/minideb:bullseye
+FROM bitnami/minideb@sha256:f643a1ae18ea62acdc1d85d1892b41a0270faeb0e127c15e6afe41209d838b33
 
 MAINTAINER Vladimir Shcherba <abrehchs@gmail.com>
 
@@ -21,6 +21,13 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     echo \
       "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
       bullseye stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    echo \
+      "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-11 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
+    echo \
+      "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-14 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
+    echo \
+      "deb http://deb.debian.org/debian/ testing main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
+    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \  
     apt-get update && apt-get install --no-install-recommends -y \
         docker-ce \
         docker-ce-cli \
@@ -28,10 +35,16 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         build-essential \
         gcc-9 \
         g++-9 \
-        llvm-10-dev \
-        clang-10 \
-        clang-tidy-10 \
-        clang-format-10 \
+        gcc-12 \
+        g++-12 \
+        clang-11 \
+        llvm-11-dev \
+        clang-tidy-11 \
+        clang-format-11 \
+        clang-14 \
+        llvm-14-dev \
+        clang-tidy-14 \
+        clang-format-14 \
         make \
         git \
         ccache \
@@ -63,18 +76,28 @@ RUN set -e; \
     rm -rf /tmp/sonar*
 
 # set env
-ENV LLVM_ROOT=/usr/lib/llvm-10
-ENV LLVM_DIR=/usr/lib/llvm-10/lib/cmake/llvm/
+ENV LLVM_ROOT=/usr/lib/llvm-11
+ENV LLVM_DIR=/usr/lib/llvm-11/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
 ENV CC=gcc-9
 ENV CXX=g++-9
 
 # set default compilers and tools
 RUN update-alternatives --install /usr/bin/python       python       /usr/bin/python3               90 && \
-    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-10         90 && \
-    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-10       90 && \
-    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-10/bin/clang-10  90 && \
-    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-10            90 && \
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-11         90 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-11       90 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-11/bin/clang-11  90 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-11            90 && \
+
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-14         80 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-14       80 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-14/bin/clang-14  80 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-14            80 && \
+
     update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-9                 90 && \
     update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-9                 90 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-9                90
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-9                90 && \
+
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                80 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                80 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               80
