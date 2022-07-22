@@ -809,7 +809,7 @@ namespace kagome::consensus::grandpa {
     auto opt_round = selectRound(justification.round_number, std::nullopt);
     std::shared_ptr<VotingRound> round;
     bool need_to_make_round_current = false;
-    if (!opt_round.has_value()) {
+    if (not opt_round.has_value()) {
       // This is justification for already finalized block
       if (current_round_->lastFinalizedBlock().number > block_info.number) {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
@@ -862,17 +862,17 @@ namespace kagome::consensus::grandpa {
                "Rewind grandpa till round #{} by received justification",
                justification.round_number);
     } else {
-      round = *opt_round;
+      round = std::move(opt_round.value());
     }
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
 
     if (need_to_make_round_current) {
       current_round_->end();
-      current_round_ = std::move(round);
+      current_round_ = round;
     }
 
-    tryExecuteNextRound(current_round_);
+    tryExecuteNextRound(round);
 
     // if round == current round, then execution of the next round will be
     // elsewhere
