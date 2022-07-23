@@ -13,7 +13,3 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install --no-install-recommends -y libstdc++6 gdb vim libc6 libnsl2 && \
     rm -rf /var/lib/apt/lists/*
-
-
-COPY kagome /usr/local/bin/
-COPY kagome-db-editor /usr/local/bin/

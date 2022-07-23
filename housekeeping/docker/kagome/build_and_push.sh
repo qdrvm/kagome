@@ -20,6 +20,8 @@ if [ "$VERSION" = "refs/heads/master" ]; then
   VERSION=latest
 elif [[ "$VERSION"  == refs/tags/* ]]; then
   VERSION="${VERSION#refs/tags/}"
+elif [[ "$VERSION"  == refs/heads/duty/fix-images ]]; then
+  VERSION=test-ci
 else
   VERSION=$VERSION
 fi
