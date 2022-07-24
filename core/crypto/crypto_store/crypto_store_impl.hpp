@@ -28,7 +28,8 @@ namespace kagome::crypto {
     WRONG_SEED_SIZE,
     KEY_NOT_FOUND,
     BABE_ALREADY_EXIST,
-    GRAN_ALREADY_EXIST
+    GRAN_ALREADY_EXIST,
+    WRONG_PUBLIC_KEY,
   };
 
   /// TODO(Harrm) Add policies to emit a warning when found a keypair
@@ -157,6 +158,17 @@ namespace kagome::crypto {
       auto seed_span = gsl::make_span(bip_seed.data(), Seed::size());
       OUTCOME_TRY(seed, Seed::fromSpan(seed_span));
       return suite.generateKeypair(seed);
+    }
+
+    template <typename CryptoSuite>
+    outcome::result<typename CryptoSuite::Keypair> generateKeypairOnDisk(
+        KeyTypeId key_type,
+        const std::shared_ptr<CryptoSuite> &suite,
+        std::unordered_map<KeyTypeId, KeyCache<CryptoSuite>> &caches) {
+      OUTCOME_TRY(kp, suite->generateRandomKeypair());
+      getCache(suite, caches, key_type).insert(kp.public_key, kp.secret_key);
+      OUTCOME_TRY(file_storage_->saveKeyPair(key_type, kp.public_key, kp.seed));
+      return std::move(kp);
     }
 
     template <typename Suite>

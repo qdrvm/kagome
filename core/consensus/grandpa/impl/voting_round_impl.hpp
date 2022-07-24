@@ -191,7 +191,7 @@ namespace kagome::consensus::grandpa {
     // Getters
 
     RoundNumber roundNumber() const override;
-    MembershipCounter voterSetId() const override;
+    VoterSetId voterSetId() const override;
 
     /**
      * Round is completable when we have block (stored in

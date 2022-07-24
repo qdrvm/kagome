@@ -250,7 +250,12 @@ TEST_F(AuthorApiTest, InsertKeyBabe) {
   EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
       .Times(2)
       .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
-  EXPECT_OUTCOME_SUCCESS(res, author_api->insertKey(KEY_TYPE_BABE, {}, {}));
+  Sr25519Seed seed;
+  Sr25519PublicKey public_key;
+  EXPECT_CALL(*store, generateSr25519Keypair(KEY_TYPE_BABE, seed))
+      .WillOnce(Return(Sr25519Keypair{{}, public_key}));
+  EXPECT_OUTCOME_SUCCESS(
+      res, author_api->insertKey(KEY_TYPE_BABE, seed, public_key));
 }
 
 /**
@@ -265,7 +270,12 @@ TEST_F(AuthorApiTest, InsertKeyGran) {
   EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
       .Times(1)
       .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
-  EXPECT_OUTCOME_SUCCESS(res, author_api->insertKey(KEY_TYPE_GRAN, {}, {}));
+  Ed25519Seed seed;
+  Ed25519PublicKey public_key;
+  EXPECT_CALL(*store, generateEd25519Keypair(KEY_TYPE_GRAN, seed))
+      .WillOnce(Return(Ed25519Keypair{{}, public_key}));
+  EXPECT_OUTCOME_SUCCESS(
+      res, author_api->insertKey(KEY_TYPE_GRAN, seed, public_key));
 }
 
 /**
@@ -419,10 +429,7 @@ TEST_F(AuthorApiTest, HasKeySuccess) {
  * @then call succeeds, false result
  */
 TEST_F(AuthorApiTest, HasKeyFail) {
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->hasKey(gsl::make_span(std::array<uint8_t, 32>{}.data(), 32),
-                         KEY_TYPE_BABE));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasKey({}, KEY_TYPE_BABE));
   EXPECT_EQ(res.value(), false);
 }
 

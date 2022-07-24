@@ -1,6 +1,6 @@
 
 add_library(core_api core.cpp)
-target_link_libraries(core_api executor)
+target_link_libraries(core_api executor primitives)
 kagome_install(core_api)
 
 add_library(account_nonce_api account_nonce_api.cpp)

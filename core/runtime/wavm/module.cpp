@@ -72,8 +72,8 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(module_);
   }
 
-  outcome::result<std::shared_ptr<kagome::runtime::ModuleInstance>>
-  ModuleImpl::instantiate() const {
+  outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
+      const {
     const auto &ir_module = WAVM::Runtime::getModuleIR(module_);
     bool imports_memory =
         std::find_if(ir_module.imports.cbegin(),
@@ -102,7 +102,7 @@ namespace kagome::runtime::wavm {
     auto env = env_factory_->make(
         memory_origin, internal_instance, new_intrinsic_module_instance);
 
-    auto instance = std::make_shared<ModuleInstance>(
+    auto instance = std::make_shared<ModuleInstanceImpl>(
         std::move(env), internal_instance, module_, compartment_);
 
     return instance;

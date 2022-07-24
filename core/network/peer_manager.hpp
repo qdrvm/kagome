@@ -22,7 +22,7 @@ namespace kagome::network {
     Roles roles = 0;
     BlockInfo best_block = {0, {}};
     RoundNumber round_number = 0;
-    MembershipCounter set_id = 0;
+    VoterSetId set_id = 0;
     BlockNumber last_finalized = 0;
   };
 

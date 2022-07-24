@@ -19,7 +19,7 @@ namespace kagome::crypto {
 
     explicit Ed25519ProviderImpl(std::shared_ptr<CSPRNG> generator);
 
-    Ed25519Keypair generateKeypair() const override;
+    Ed25519KeypairAndSeed generateKeypair() const override;
 
     Ed25519Keypair generateKeypair(const Ed25519Seed &seed) const override;
 
