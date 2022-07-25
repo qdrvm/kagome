@@ -21,6 +21,7 @@ namespace kagome::network {
   const libp2p::peer::Protocol kBlockAnnouncesProtocol =
       "/{}/block-announces/1";
   const libp2p::peer::Protocol kGrandpaProtocol = "/paritytech/grandpa/1";
+  const libp2p::peer::Protocol kGrandpaProtocolTemplate = "/{}/grandpa/1";
 }  // namespace kagome::network
 
 #endif  // KAGOME_NETWORK_COMMON_HPP

@@ -7,6 +7,7 @@
 
 #include <libp2p/connection/loopback_stream.hpp>
 
+#include "blockchain/block_tree.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
@@ -26,7 +27,8 @@ namespace kagome::network {
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
       const OwnPeerInfo &own_info,
       std::shared_ptr<StreamEngine> stream_engine,
-      std::shared_ptr<PeerManager> peer_manager)
+      std::shared_ptr<PeerManager> peer_manager,
+      std::shared_ptr<blockchain::BlockTree> block_tree)
       : host_(host),
         io_context_(std::move(io_context)),
         app_config_(app_config),
@@ -35,6 +37,9 @@ namespace kagome::network {
         stream_engine_(std::move(stream_engine)),
         peer_manager_(std::move(peer_manager)) {
     const_cast<Protocol &>(protocol_) = kGrandpaProtocol;
+    auto genesis_hash = block_tree->getGenesisBlockHash();
+    const_cast<Protocol &>(protocol_with_hash_) =
+        fmt::format(kGrandpaProtocolTemplate, hex_lower(genesis_hash));
   }
 
   bool GrandpaProtocol::start() {
@@ -45,7 +50,7 @@ namespace kagome::network {
     }
     read(std::move(stream));
 
-    host_.setProtocolHandler(protocol_, [wp = weak_from_this()](auto &&stream) {
+    auto protocol_handler = [wp = weak_from_this()](auto &&stream) {
       if (auto self = wp.lock()) {
         if (auto peer_id = stream->remotePeerId()) {
           SL_TRACE(self->log_,
@@ -58,7 +63,10 @@ namespace kagome::network {
         self->log_->warn("Handled {} protocol stream from unknown peer",
                          self->protocol_);
       }
-    });
+    };
+
+    host_.setProtocolHandler(protocol_, protocol_handler);
+    host_.setProtocolHandler(protocol_with_hash_, protocol_handler);
     return true;
   }
 

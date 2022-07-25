@@ -21,6 +21,10 @@
 #include "network/peer_manager.hpp"
 #include "network/types/own_peer_info.hpp"
 
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
 namespace kagome::network {
 
   using Stream = libp2p::connection::Stream;
@@ -48,7 +52,8 @@ namespace kagome::network {
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine,
-        std::shared_ptr<PeerManager> peer_manager);
+        std::shared_ptr<PeerManager> peer_manager,
+        std::shared_ptr<blockchain::BlockTree> block_tree);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -102,6 +107,7 @@ namespace kagome::network {
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
+    const libp2p::peer::Protocol protocol_with_hash_;
     log::Logger log_ = log::createLogger("GrandpaProtocol", "grandpa_protocol");
   };
 
