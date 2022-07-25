@@ -8,15 +8,9 @@
 
 #include "runtime/module_repository.hpp"
 
-#include <thread>
-#include <unordered_map>
-
-#include "log/logger.hpp"
-#include "runtime/instance_environment.hpp"
+#include <stack>
 
 namespace kagome::runtime {
-  using kagome::primitives::ThreadNumber;
-
   /**
    * LRU cache designed for small amounts of data (as its get() is O(N))
    */
@@ -91,18 +85,16 @@ namespace kagome::runtime {
    */
   class RuntimeInstancesPool final
       : public std::enable_shared_from_this<RuntimeInstancesPool> {
-    using RootHash = storage::trie::RootHash;
-    using ModuleInstancePool =
-        std::multimap<ThreadNumber, std::shared_ptr<ModuleInstance>>;
+    using ModuleInstancePool = std::stack<std::shared_ptr<ModuleInstance>>;
 
    public:
+    using RootHash = storage::trie::RootHash;
     using ModuleCache =
         SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
 
     /**
-     * @brief @brief Attempt to acquire a ModuleInstance for the provided state.
-     * If none available, instantiate a new one. If already acquired by this
-     * thread, return the ptr to the acquired instance.
+     * @brief Instantiate new or reuse existing ModuleInstance for the provided
+     * state.
      *
      * @param state - the merkle trie root of the state containing the code of
      * the runtime module we are acquiring an instance of.
@@ -116,8 +108,10 @@ namespace kagome::runtime {
      *
      * @param state - the merkle trie root of the state containing the runtime
      * module code we are releasing an instance of.
+     * @param instance - instance to be released.
      */
-    void release(const RootHash &state);
+    void release(const RootHash &state,
+                 std::shared_ptr<ModuleInstance> &&instance);
 
     /**
      * @brief Get the module for state from internal cache
@@ -138,7 +132,6 @@ namespace kagome::runtime {
    private:
     std::mutex mt_;
     static constexpr size_t MODULES_CACHE_SIZE = 2;
-    static constexpr size_t POOL_FREE_INSTANCE_ID = 0;
     ModuleCache modules_{MODULES_CACHE_SIZE};
     std::map<RootHash, ModuleInstancePool> pools_;
   };
