@@ -58,10 +58,10 @@ namespace kagome::network {
       while (cursor->key().has_value() && size < limit) {
         if (auto value_res = batch->tryGet(cursor->key().value());
             value_res.has_value()) {
-          const auto &value = value_res.value();
-          if (value.has_value()) {
+          const auto &value_opt = value_res.value();
+          if (value_opt.has_value()) {
             entry.entries.emplace_back(
-                StateEntry{cursor->key().value(), value.value()});
+                StateEntry{cursor->key().value(), value_opt.value()});
             size += entry.entries.back().key.size()
                     + entry.entries.back().value.size();
           }
@@ -106,9 +106,9 @@ namespace kagome::network {
       }
       if (auto value_res = batch->tryGet(parent_key);
           value_res.has_value() && value_res.value().has_value()) {
-        auto hash =
-            storage::trie::RootHash::fromSpan(value_res.value().value().get())
-                .value();
+        OUTCOME_TRY(
+            hash,
+            storage::trie::RootHash::fromSpan(value_res.value().value().get()));
         OUTCOME_TRY(
             entry_res,
             this->getEntry(hash, request.start[1], MAX_RESPONSE_BYTES - size));
@@ -119,42 +119,42 @@ namespace kagome::network {
       }
     }
 
-    if (res.has_value()) {
-      const auto &child_prefix = storage::kChildStorageDefaultPrefix;
-      while (cursor->key().has_value() && size < MAX_RESPONSE_BYTES) {
-        if (auto value_res = batch->tryGet(cursor->key().value());
-            value_res.has_value()) {
-          const auto &value = value_res.value();
-          auto &entry = response.entries.front();
-          entry.entries.emplace_back(
-              StateEntry{cursor->key().value(), value.value()});
-          size += entry.entries.back().key.size()
-                  + entry.entries.back().value.size();
-          // if key is child state storage hash iterate child storage keys
-          if (cursor->key().value().size() > child_prefix.size()
-              && cursor->key().value().subbuffer(0, child_prefix.size())
-                     == child_prefix) {
-            OUTCOME_TRY(hash,
-                        storage::trie::RootHash::fromSpan(
-                            value_res.value().value().get()));
-            OUTCOME_TRY(entry_res,
-                        this->getEntry(
-                            hash, common::Buffer(), MAX_RESPONSE_BYTES - size));
-            response.entries.emplace_back(std::move(entry_res.first));
-            size += entry_res.second;
-            // not complete means response bytes limit exceeded
-            // finish response formation
-            if (not entry_res.first.complete) {
-              break;
-            }
-          }
-        }
-        res = cursor->next();
-      }
-      response.entries.front().complete = not cursor->key().has_value();
-    } else {
+    if (!res.has_value()) {
       return res.as_failure();
     }
+
+    const auto &child_prefix = storage::kChildStorageDefaultPrefix;
+    while (cursor->key().has_value() && size < MAX_RESPONSE_BYTES) {
+      if (auto value_res = batch->tryGet(cursor->key().value());
+          value_res.has_value()) {
+        const auto &value = value_res.value();
+        auto &entry = response.entries.front();
+        entry.entries.emplace_back(
+            StateEntry{cursor->key().value(), value.value()});
+        size +=
+            entry.entries.back().key.size() + entry.entries.back().value.size();
+        // if key is child state storage hash iterate child storage keys
+        if (cursor->key().value().size() > child_prefix.size()
+            && cursor->key().value().subbuffer(0, child_prefix.size())
+                   == child_prefix) {
+          OUTCOME_TRY(hash,
+                      storage::trie::RootHash::fromSpan(
+                          value_res.value().value().get()));
+          OUTCOME_TRY(entry_res,
+                      this->getEntry(
+                          hash, common::Buffer(), MAX_RESPONSE_BYTES - size));
+          response.entries.emplace_back(std::move(entry_res.first));
+          size += entry_res.second;
+          // not complete means response bytes limit exceeded
+          // finish response formation
+          if (not entry_res.first.complete) {
+            break;
+          }
+        }
+      }
+      res = cursor->next();
+    }
+    response.entries.front().complete = not cursor->key().has_value();
 
     return response;
   }

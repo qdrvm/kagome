@@ -108,6 +108,11 @@ namespace kagome::network {
   }
 }  // namespace kagome::network
 
+/**
+ * @given trie state with 2 keys
+ * @when default state request
+ * @then response with 2 entries
+ */
 TEST_F(StateProtocolObserverTest, Simple) {
   EXPECT_OUTCOME_TRUE(batch, persistent_empty_batch());
   std::ignore = batch->put("abc"_buf, "123"_buf);

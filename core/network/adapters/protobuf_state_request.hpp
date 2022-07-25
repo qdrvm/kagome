@@ -63,10 +63,10 @@ namespace kagome::network {
       if(hash.has_error()) {
         return AdaptersError::CAST_FAILED;
       }
-      out.hash = hash.value();
+      out.hash = std::move(hash.value());
 
       for(const auto& strt : msg.start()) {
-        out.start.push_back(common::Buffer().put(strt));
+        out.start.push_back(common::Buffer::fromString(strt));
       }
 
       out.no_proof = msg.no_proof();

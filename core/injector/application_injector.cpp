@@ -302,9 +302,7 @@ namespace {
       }
       auto batch = std::move(batch_res.value());
 
-      for (const auto &[key_, val_] : raw_configs) {
-        auto &key = key_;
-        auto &val = val_;
+      for (const auto &[key, val] : raw_configs) {
         SL_TRACE(
             log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
         if (auto res = batch->put(key, val); not res) {

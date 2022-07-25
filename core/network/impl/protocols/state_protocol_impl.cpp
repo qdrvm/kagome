@@ -122,7 +122,8 @@ namespace kagome::network {
         if (!state_request.start.empty()) {
           keys = " starting with keys [";
           for (const auto &key : state_request.start) {
-            keys += key.toHex() + ",";
+            keys += key.toHex();
+            keys += ",";
           }
           keys.back() = ']';
         }
@@ -150,9 +151,8 @@ namespace kagome::network {
         stream->reset();
         return;
       }
-      const auto &state_response = state_response_res.value();
 
-      self->writeResponse(std::move(stream), state_response);
+      self->writeResponse(std::move(stream), std::move(state_response_res.value()));
     });
   }
 
@@ -168,7 +168,7 @@ namespace kagome::network {
     }
 
     newOutgoingStream(
-        {peer_id, addresses_res.value()},
+                      {peer_id, std::move(addresses_res.value())},
         [wp = weak_from_this(),
          response_handler = std::move(response_handler),
          state_request = std::move(state_request)](auto &&stream_res) mutable {
@@ -219,7 +219,7 @@ namespace kagome::network {
   }
 
   void StateProtocolImpl::writeResponse(std::shared_ptr<Stream> stream,
-                                        const StateResponse &state_response) {
+                                        StateResponse state_response) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
     read_writer->write(

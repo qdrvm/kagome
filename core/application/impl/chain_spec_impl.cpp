@@ -251,7 +251,7 @@ namespace kagome::application {
         // get rid of leading 0x for key and value and unhex
         OUTCOME_TRY(key_processed, common::unhexWith0x(child_key));
         OUTCOME_TRY(value_processed, common::unhexWith0x(child_value.data()));
-        data.emplace_back(key_processed, value_processed);
+        data.emplace_back(std::move(key_processed), std::move(value_processed));
       }
       return outcome::success();
     };
