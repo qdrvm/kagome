@@ -1,7 +1,7 @@
 #!/bin/bash -xe
 
 BUILD_DIR=build
-BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) + 1 ))}"
+BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))}"
 
 BUILD_TYPE="${BUILD_TYPE:?BUILD_TYPE variable is not defined}"
 
