@@ -53,7 +53,7 @@ namespace kagome::network {
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<PeerManager> peer_manager,
-        std::shared_ptr<blockchain::BlockTree> block_tree);
+        const primitives::BlockHash &genesis_hash);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -107,7 +107,7 @@ namespace kagome::network {
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
-    const libp2p::peer::Protocol protocol_with_hash_;
+    const libp2p::peer::Protocol protocol_by_genesis_;
     log::Logger log_ = log::createLogger("GrandpaProtocol", "grandpa_protocol");
   };
 

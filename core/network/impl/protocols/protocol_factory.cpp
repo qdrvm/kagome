@@ -51,6 +51,7 @@ namespace kagome::network {
 
   std::shared_ptr<GrandpaProtocol> ProtocolFactory::makeGrandpaProtocol()
       const {
+    auto block_tree = block_tree_.lock();
     return std::make_shared<GrandpaProtocol>(host_,
                                              io_context_,
                                              app_config_,
@@ -58,7 +59,7 @@ namespace kagome::network {
                                              own_info_,
                                              stream_engine_,
                                              peer_manager_.lock(),
-                                             block_tree_.lock());
+                                             block_tree->getGenesisBlockHash());
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>
