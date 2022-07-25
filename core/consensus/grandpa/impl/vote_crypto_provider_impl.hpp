@@ -36,7 +36,7 @@ namespace kagome::consensus::grandpa {
 
    private:
     std::optional<SignedMessage> sign(Vote vote) const;
-    bool verify(const SignedMessage &vote) const;
+    bool verify(const SignedMessage &vote, RoundNumber number) const;
 
     const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
     std::shared_ptr<crypto::Ed25519Provider> ed_provider_;
