@@ -10,7 +10,6 @@
 
 #include "common/tagged.hpp"
 #include "primitives/authority.hpp"
-#include "primitives/block_header.hpp"
 
 namespace kagome::authority {
 
@@ -19,15 +18,6 @@ namespace kagome::authority {
   class AuthorityManager {
    public:
     virtual ~AuthorityManager() = default;
-
-    /**
-     * Recalculate the authority change graph starting from genesis and up to
-     * the last finalized block. The result shall be stored in the provided
-     * storage. This operation may take a considerable amount of time.
-     * @return nothing on success, error otherwise
-     */
-    virtual outcome::result<void> recalculateStoredState(
-        primitives::BlockNumber last_finalized_number) = 0;
 
     /**
      * @return block associated with the root of scheduled changes tree
@@ -41,7 +31,7 @@ namespace kagome::authority {
      * finalized
      * @return outcome authority set
      */
-    virtual std::optional<std::shared_ptr<const primitives::AuthoritySet>>
+    virtual std::optional<std::shared_ptr<const primitives::AuthorityList>>
     authorities(const primitives::BlockInfo &block,
                 IsBlockFinalized finalized) const = 0;
 
@@ -69,8 +59,7 @@ namespace kagome::authority {
     virtual outcome::result<void> applyForcedChange(
         const primitives::BlockInfo &block,
         const primitives::AuthorityList &authorities,
-        primitives::BlockNumber delay_start,
-        size_t delay) = 0;
+        primitives::BlockNumber activate_at) = 0;
 
     /**
      * @brief An index of the individual authority in the current authority list

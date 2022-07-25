@@ -1134,20 +1134,20 @@ namespace kagome::blockchain {
     if (ancestor_node_ptr) {
       ancestor_depth = ancestor_node_ptr->depth;
     } else {
-      auto number_res = header_repo_->getNumberByHash(ancestor);
-      if (!number_res) {
+      auto header_res = header_repo_->getBlockHeader(ancestor);
+      if (!header_res) {
         return false;
       }
-      ancestor_depth = number_res.value();
+      ancestor_depth = header_res.value().number;
     }
     if (descendant_node_ptr) {
       descendant_depth = descendant_node_ptr->depth;
     } else {
-      auto number_res = header_repo_->getNumberByHash(descendant);
-      if (!number_res) {
+      auto header_res = header_repo_->getBlockHeader(descendant);
+      if (!header_res) {
         return false;
       }
-      descendant_depth = number_res.value();
+      descendant_depth = header_res.value().number;
     }
     if (descendant_depth < ancestor_depth) {
       SL_WARN(log_,
@@ -1173,7 +1173,6 @@ namespace kagome::blockchain {
 
     // else, we need to use a database
     auto current_hash = descendant;
-    KAGOME_PROFILE_START(search_finalized_chain)
     while (current_hash != ancestor) {
       auto current_header_res = header_repo_->getBlockHeader(current_hash);
       if (!current_header_res) {
@@ -1181,7 +1180,6 @@ namespace kagome::blockchain {
       }
       current_hash = current_header_res.value().parent_hash;
     }
-    KAGOME_PROFILE_END(search_finalized_chain)
     return true;
   }
 

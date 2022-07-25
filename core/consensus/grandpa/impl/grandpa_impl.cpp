@@ -98,10 +98,10 @@ namespace kagome::consensus::grandpa {
           round_state.last_finalized_block);
       return false;
     }
-    auto &authority_set = authorities_res.value();
+    auto &authorities = authorities_res.value();
 
-    auto voters = std::make_shared<VoterSet>(authority_set->id);
-    for (const auto &authority : authority_set->authorities) {
+    auto voters = std::make_shared<VoterSet>(authorities->id);
+    for (const auto &authority : *authorities) {
       auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                                 authority.weight);
       if (res.has_error()) {
@@ -177,11 +177,11 @@ namespace kagome::consensus::grandpa {
       std::abort();
     }
 
-    auto &authority_set = authorities_opt.value();
-    BOOST_ASSERT(not authority_set->authorities.empty());
+    auto &authorities = authorities_opt.value();
+    BOOST_ASSERT(not authorities->empty());
 
-    auto voters = std::make_shared<VoterSet>(authority_set->id);
-    for (const auto &authority : authority_set->authorities) {
+    auto voters = std::make_shared<VoterSet>(authorities->id);
+    for (const auto &authority : *authorities) {
       auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                                 authority.weight);
       if (res.has_error()) {
@@ -222,7 +222,7 @@ namespace kagome::consensus::grandpa {
   }
 
   std::optional<std::shared_ptr<VotingRound>> GrandpaImpl::selectRound(
-      RoundNumber round_number, std::optional<VoterSetId> voter_set_id) {
+      RoundNumber round_number, std::optional<MembershipCounter> voter_set_id) {
     std::shared_ptr<VotingRound> round = current_round_;
 
     while (round != nullptr) {
@@ -391,6 +391,7 @@ namespace kagome::consensus::grandpa {
                msg.round_number,
                peer_id);
       throw std::runtime_error("Need not ensure if it is correct");
+      return;
     }
 
     SL_DEBUG(logger_,
@@ -458,10 +459,10 @@ namespace kagome::consensus::grandpa {
                 round_state.finalized.value());
         return;
       }
-      auto &authority_set = authorities_opt.value();
+      auto &authorities = authorities_opt.value();
 
       auto voters = std::make_shared<VoterSet>(msg.voter_set_id);
-      for (const auto &authority : authority_set->authorities) {
+      for (const auto &authority : *authorities) {
         auto res = voters->insert(
             primitives::GrandpaSessionKey(authority.id.id), authority.weight);
         if (res.has_error()) {
@@ -789,21 +790,21 @@ namespace kagome::consensus::grandpa {
                 block_info);
         return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
       }
-      auto &authority_set = authorities_opt.value();
+      auto &authorities = authorities_opt.value();
 
       // This is justification for non-actual round
-      if (authority_set->id < current_round_->voterSetId()
-          or (authority_set->id == current_round_->voterSetId()
+      if (authorities->id < current_round_->voterSetId()
+          or (authorities->id == current_round_->voterSetId()
               && justification.round_number < current_round_->roundNumber())) {
         return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
       }
 
-      if (authority_set->id > current_round_->voterSetId() + 1) {
+      if (authorities->id > current_round_->voterSetId() + 1) {
         return VotingRoundError::WRONG_ORDER_OF_VOTER_SET_ID;
       }
 
-      auto voters = std::make_shared<VoterSet>(authority_set->id);
-      for (const auto &authority : authority_set->authorities) {
+      auto voters = std::make_shared<VoterSet>(authorities->id);
+      for (const auto &authority : *authorities) {
         auto res = voters->insert(
             primitives::GrandpaSessionKey(authority.id.id), authority.weight);
         if (res.has_error()) {

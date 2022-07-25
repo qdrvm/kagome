@@ -16,7 +16,7 @@ namespace kagome::consensus::grandpa {
    public:
     MOCK_METHOD(RoundNumber, roundNumber, (), (const, override));
 
-    MOCK_METHOD(VoterSetId, voterSetId, (), (const, override));
+    MOCK_METHOD(MembershipCounter, voterSetId, (), (const, override));
 
     MOCK_METHOD(bool, completable, (), (const, override));
 
