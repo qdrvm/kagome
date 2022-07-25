@@ -9,6 +9,7 @@
 #include "application/app_configuration.hpp"
 #include "consensus/babe/babe.hpp"
 #include "network/impl/protocols/block_announce_protocol.hpp"
+#include "network/impl/protocols/collation_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
@@ -54,6 +55,11 @@ namespace kagome::network {
       extrinsic_observer_ = extrinsic_observer;
     }
 
+    void setCollactionObserver(
+        std::shared_ptr<CollationObserver> const &collation_observer) {
+      collation_observer_ = collation_observer;
+    }
+
     void setSyncObserver(
         const std::shared_ptr<SyncProtocolObserver> &sync_observer) {
       sync_observer_ = sync_observer;
@@ -71,6 +77,8 @@ namespace kagome::network {
     makePropagateTransactionsProtocol() const;
 
     std::shared_ptr<SyncProtocol> makeSyncProtocol() const;
+
+    std::shared_ptr<CollationProtocol> makeCollationProtocol() const;
 
    private:
     libp2p::Host &host_;
@@ -92,6 +100,7 @@ namespace kagome::network {
     std::weak_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::weak_ptr<SyncProtocolObserver> sync_observer_;
     std::weak_ptr<PeerManager> peer_manager_;
+    std::weak_ptr<CollationObserver> collation_observer_;
   };
 
 }  // namespace kagome::network

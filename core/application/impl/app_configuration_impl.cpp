@@ -53,7 +53,7 @@ namespace {
   const bool def_dev_mode = false;
   const kagome::network::Roles def_roles = [] {
     kagome::network::Roles roles;
-    roles.flags.full = 0;
+    roles.flags.full = 1;
     return roles;
   }();
   const auto def_runtime_exec_method =
@@ -187,8 +187,7 @@ namespace kagome::application {
   }
 
   fs::path AppConfigurationImpl::keystorePath(std::string chain_id) const {
-    if (keystore_path_)
-      return *keystore_path_ / chain_id / "keystore";
+    if (keystore_path_) return *keystore_path_ / chain_id / "keystore";
     return chainPath(chain_id) / "keystore";
   }
 
@@ -789,7 +788,7 @@ namespace kagome::application {
           }
         }
 
-        roles_.flags.full = 0;
+        roles_.flags.full = 1;
         roles_.flags.authority = 1;
         p2p_port_ = def_p2p_port;
         rpc_http_host_ = def_rpc_http_host;
@@ -828,16 +827,14 @@ namespace kagome::application {
 
     if (vm.end() != vm.find("tmp")) {
       base_path_ = (boost::filesystem::temp_directory_path()
-         / boost::filesystem::unique_path());
+                    / boost::filesystem::unique_path());
     } else {
       find_argument<std::string>(
           vm, "base-path", [&](const std::string &val) { base_path_ = val; });
     }
 
     find_argument<std::string>(
-        vm, "keystore", [&](const std::string &val) { 
-          keystore_path_ = val; 
-        });
+        vm, "keystore", [&](const std::string &val) { keystore_path_ = val; });
 
     bool unknown_database_engine_is_set = false;
     find_argument<std::string>(vm, "database", [&](const std::string &val) {

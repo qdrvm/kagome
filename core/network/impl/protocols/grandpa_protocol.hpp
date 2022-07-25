@@ -47,7 +47,6 @@ namespace kagome::network {
 
     const Protocol &protocol() const override {
       return base_.protocol();
-      ;
     }
 
     /**

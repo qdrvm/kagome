@@ -64,7 +64,7 @@ namespace kagome::network {
         : logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
-    static StreamEnginePtr create(Args &&... args) {
+    static StreamEnginePtr create(Args &&...args) {
       return std::make_shared<StreamEngine>(std::forward<Args>(args)...);
     }
 
@@ -120,14 +120,13 @@ namespace kagome::network {
                                       is_incoming ? stream : nullptr,
                                       is_outgoing ? stream : nullptr,
                                       {}});
-      SL_DEBUG(
-          logger_,
-          "Added {} {} stream with peer_id={}",
-          direction == Direction::INCOMING
-              ? "incoming"
-              : direction == Direction::OUTGOING ? "outgoing" : "bidirectional",
-          protocol->protocol(),
-          peer_id.toBase58());
+      SL_DEBUG(logger_,
+               "Added {} {} stream with peer_id={}",
+               direction == Direction::INCOMING   ? "incoming"
+               : direction == Direction::OUTGOING ? "outgoing"
+                                                  : "bidirectional",
+               protocol->protocol(),
+               peer_id.toBase58());
       return outcome::success();
     }
 
@@ -187,19 +186,20 @@ namespace kagome::network {
                  const std::shared_ptr<ProtocolBase> &protocol) {
       std::unique_lock cs(streams_cs_);
       auto peer_it = streams_.find(peer_id);
-      if (peer_it == streams_.end()) {
-        return false;
+      if (peer_it != streams_.end()) {
+        auto &protocols = peer_it->second;
+        auto protocol_it = protocols.find(protocol->protocol());
+        if (protocol_it != protocols.end()) {
+          auto &descr = protocol_it->second;
+          if (descr.incoming and not descr.incoming->isClosed()) {
+            return true;
+          }
+          if (descr.outgoing and not descr.outgoing->isClosed()) {
+            return true;
+          }
+        }
       }
-
-      auto &protocols = peer_it->second;
-      auto protocol_it = protocols.find(protocol->protocol());
-      if (protocol_it == protocols.end()) {
-        return false;
-      }
-
-      auto &descr = protocol_it->second;
-      return (descr.incoming and not descr.incoming->isClosed())
-             || (descr.outgoing and not descr.outgoing->isClosed());
+      return false;
     }
 
     template <typename T>

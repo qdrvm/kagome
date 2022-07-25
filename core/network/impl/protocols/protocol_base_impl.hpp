@@ -72,6 +72,27 @@ namespace kagome::network {
       return log_;
     }
 
+    template <typename T>
+    void closeStream(std::weak_ptr<T> wptr, std::shared_ptr<Stream> stream) {
+      BOOST_ASSERT(stream);
+      stream->close([log(log_), wptr, stream](auto &&result) {
+        if (auto self = wptr.lock()) {
+          if (!result) {
+            SL_WARN(log,
+                    "Stream {} was not closed successfully with {}",
+                    self->protocol(),
+                    stream->remotePeerId().value());
+
+          } else {
+            SL_INFO(log,
+                    "Stream {} with {} was closed.",
+                    self->protocol(),
+                    stream->remotePeerId().value());
+          }
+        }
+      });
+    }
+
    private:
     Host &host_;
     Protocol const protocol_;
