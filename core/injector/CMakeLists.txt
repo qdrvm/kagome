@@ -85,6 +85,7 @@ target_link_libraries(application_injector
     soralog::soralog
     sr25519_provider
     state_api_service
+    state_protocol_observer
     storage_code_provider
     sync_protocol_observer
     system_api_service
@@ -111,7 +112,6 @@ target_link_libraries(application_injector
     grandpa_protocol
     grandpa_api
     grandpa
-    sync_protocol
     protocol_factory
     p2p::p2p_loopback_stream
     grandpa_transmitter

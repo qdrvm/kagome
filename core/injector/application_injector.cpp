@@ -90,6 +90,7 @@
 #include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/rating_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
+#include "network/impl/state_protocol_observer_impl.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
@@ -287,23 +288,52 @@ namespace {
       common::raise(trie_storage_res.error());
     }
 
-    const auto genesis_raw_configs = configuration_storage->getGenesis();
+    const auto &genesis_raw_configs =
+        configuration_storage->getGenesisTopSection();
     auto &trie_storage = trie_storage_res.value();
 
-    auto batch_res =
-        trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash());
-    if (not batch_res) {
-      common::raise(batch_res.error());
-    }
-    auto batch = std::move(batch_res.value());
-
     auto log = log::createLogger("Injector", "injector");
-    for (const auto &[key_, val_] : genesis_raw_configs) {
-      auto &key = key_;
-      auto &val = val_;
-      SL_TRACE(
-          log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
-      if (auto res = batch->put(key, val); not res) {
+    auto batch_with_raw_data = [&log, &serializer, &trie_storage](
+                                   const auto &raw_configs) {
+      auto batch_res =
+          trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash());
+      if (not batch_res) {
+        common::raise(batch_res.error());
+      }
+      auto batch = std::move(batch_res.value());
+
+      for (const auto &[key_, val_] : raw_configs) {
+        auto &key = key_;
+        auto &val = val_;
+        SL_TRACE(
+            log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
+        if (auto res = batch->put(key, val); not res) {
+          common::raise(res.error());
+        }
+      }
+
+      return batch;
+    };
+
+    auto batch = batch_with_raw_data(genesis_raw_configs);
+
+    const auto &children_default_raw_configs =
+        configuration_storage->getGenesisChildrenDefaultSection();
+    for (const auto &[key_, val_] : children_default_raw_configs) {
+      auto child_batch = batch_with_raw_data(val_);
+
+      auto root_hash_res = child_batch->commit();
+      if (root_hash_res.has_error()) {
+        common::raise(root_hash_res.error());
+      }
+
+      auto &root_hash = root_hash_res.value();
+
+      common::Buffer child_key;
+      child_key.putBuffer(storage::kChildStorageDefaultPrefix);
+      child_key.put(root_hash);
+      auto res = batch->put(child_key, common::Buffer(root_hash));
+      if (res.has_error()) {
         common::raise(res.error());
       }
     }
@@ -314,6 +344,8 @@ namespace {
     }
 
     auto &root_hash = res.value();
+
+    SL_TRACE(log, "root hash is {}", root_hash.toHex());
 
     initialized.emplace(std::move(trie_storage), root_hash);
     return initialized.value();
@@ -747,28 +779,6 @@ namespace {
     return initialized.value();
   }
 
-  template <typename Injector>
-  sptr<network::SyncProtocolObserverImpl> get_sync_observer_impl(
-      const Injector &injector) {
-    static auto initialized =
-        std::optional<sptr<network::SyncProtocolObserverImpl>>(std::nullopt);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto sync_observer = std::make_shared<network::SyncProtocolObserverImpl>(
-        injector.template create<sptr<blockchain::BlockTree>>(),
-        injector.template create<sptr<blockchain::BlockHeaderRepository>>());
-
-    auto protocol_factory =
-        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
-    protocol_factory->setSyncObserver(sync_observer);
-
-    initialized.emplace(std::move(sync_observer));
-    return initialized.value();
-  }
-
   template <typename... Ts>
   auto makeWavmInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
@@ -996,6 +1006,34 @@ namespace {
     host_api::OffchainExtensionConfig offchain_ext_config{
         config.isOffchainIndexingEnabled()};
 
+    auto get_state_observer_impl = [](auto const &injector) {
+      auto state_observer =
+          std::make_shared<network::StateProtocolObserverImpl>(
+              injector
+                  .template create<sptr<blockchain::BlockHeaderRepository>>(),
+              injector.template create<sptr<storage::trie::TrieStorage>>());
+
+      auto protocol_factory =
+          injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+      protocol_factory->setStateObserver(state_observer);
+
+      return state_observer;
+    };
+
+    auto get_sync_observer_impl = [](auto const &injector) {
+      auto sync_observer = std::make_shared<network::SyncProtocolObserverImpl>(
+          injector.template create<sptr<blockchain::BlockTree>>(),
+          injector.template create<sptr<blockchain::BlockHeaderRepository>>());
+
+      auto protocol_factory =
+          injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+      protocol_factory->setSyncObserver(sync_observer);
+
+      return sync_observer;
+    };
+
     return di::make_injector(
         // bind configs
         useConfig(rpc_thread_pool_config),
@@ -1188,9 +1226,8 @@ namespace {
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
-        di::bind<network::SyncProtocolObserver>.to([](auto const &injector) {
-          return get_sync_observer_impl(injector);
-        }),
+        bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
+        bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =
@@ -1516,6 +1553,11 @@ namespace kagome::injector {
 
   std::shared_ptr<clock::SystemClock> KagomeNodeInjector::injectSystemClock() {
     return pimpl_->injector_.create<sptr<clock::SystemClock>>();
+  }
+
+  std::shared_ptr<network::StateProtocolObserver>
+  KagomeNodeInjector::injectStateObserver() {
+    return pimpl_->injector_.create<sptr<network::StateProtocolObserver>>();
   }
 
   std::shared_ptr<network::SyncProtocolObserver>

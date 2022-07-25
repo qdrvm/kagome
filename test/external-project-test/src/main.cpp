@@ -134,7 +134,7 @@ int main() {
   auto storage_batch =
       trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
           .value();
-  for (auto &kv : chain_spec->getGenesis()) {
+  for (auto &kv : chain_spec->getGenesisTopSection()) {
     storage_batch->put(kv.first, kv.second).value();
   }
   storage_batch->commit().value();

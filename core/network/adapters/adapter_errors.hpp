@@ -17,6 +17,7 @@ namespace kagome::network {
     DATA_SIZE_CORRUPTED,
     PARSE_FAILED,
     UNEXPECTED_VARIANT,
+    CAST_FAILED,
   };
 
 }  // namespace kagome::network

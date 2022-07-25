@@ -29,6 +29,11 @@ namespace kagome::network {
                 (),
                 (const, override));
 
+    MOCK_METHOD(std::shared_ptr<StateProtocol>,
+                getStateProtocol,
+                (),
+                (const, override));
+
     MOCK_METHOD(std::shared_ptr<SyncProtocol>,
                 getSyncProtocol,
                 (),
