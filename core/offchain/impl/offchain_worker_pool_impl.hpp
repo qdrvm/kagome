@@ -28,7 +28,9 @@ namespace kagome::offchain {
 
    private:
     log::Logger log_;
-    SafeObject<std::unordered_map<ThreadNumber, std::shared_ptr<OffchainWorker>>> offchain_workers_;
+    SafeObject<
+        std::unordered_map<ThreadNumber, std::shared_ptr<OffchainWorker>>>
+        offchain_workers_;
   };
 
 }  // namespace kagome::offchain
