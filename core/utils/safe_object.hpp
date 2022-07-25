@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutex>
+#include <shared_mutex>
 
 template <typename T, typename M = std::shared_mutex>
 struct SafeObject {
