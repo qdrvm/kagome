@@ -31,20 +31,12 @@ namespace kagome::network {
       ::api::v1::StateRequest msg;
 
       msg.set_block(t.hash.toString());
-      for(const auto& start : t.start) {
+      for (const auto &start : t.start) {
         msg.add_start(start.toString());
       }
       msg.set_no_proof(t.no_proof);
 
-      const size_t distance_was = std::distance(out.begin(), loaded);
-      const size_t was_size = out.size();
-
-      out.resize(was_size + msg.ByteSizeLong());
-      msg.SerializeToArray(&out[was_size], msg.ByteSizeLong());
-
-      auto res_it = out.begin();
-      std::advance(res_it, std::min(distance_was, was_size));
-      return res_it;
+      return appendToVec(msg, out, loaded);
     }
 
     static outcome::result<std::vector<uint8_t>::const_iterator> read(
@@ -60,12 +52,12 @@ namespace kagome::network {
       }
 
       auto hash = primitives::BlockHash::fromString(msg.block());
-      if(hash.has_error()) {
+      if (hash.has_error()) {
         return AdaptersError::CAST_FAILED;
       }
       out.hash = std::move(hash.value());
 
-      for(const auto& strt : msg.start()) {
+      for (const auto &strt : msg.start()) {
         out.start.push_back(common::Buffer::fromString(strt));
       }
 
