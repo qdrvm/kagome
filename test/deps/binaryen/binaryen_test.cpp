@@ -27,7 +27,9 @@ class IntParamExternalInterface : public ShellExternalInterface {
   explicit IntParamExternalInterface(std::string env_name,
                                      std::string fun_name,
                                      FunType &&f)
-      : env_name_(std::move(env_name)), fun_name_(std::move(fun_name)), f_(std::move(f)) {}
+      : env_name_(std::move(env_name)),
+        fun_name_(std::move(fun_name)),
+        f_(std::move(f)) {}
 
   Literal callImport(Function *import, LiteralList &arguments) override {
     if (import->module == env_name_.c_str()
@@ -70,7 +72,7 @@ TEST(BinaryenTest, InvokeCppFunctionFromWebAssembly) {
                 )
               )
               )#")
-      % env_name % fun_name % expected_argument;
+             % env_name % fun_name % expected_argument;
 
   std::string expression = fmt.str();
 

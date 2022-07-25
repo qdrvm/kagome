@@ -26,7 +26,7 @@ namespace kagome::storage::face {
      * @return result containing void if put successful, error otherwise
      */
     virtual outcome::result<void> put(const K &key, const V &value) = 0;
-    virtual outcome::result<void> put(const K &key, V&& value) = 0;
+    virtual outcome::result<void> put(const K &key, V &&value) = 0;
 
     /**
      * @brief Remove value by key

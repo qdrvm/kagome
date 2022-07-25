@@ -38,10 +38,7 @@ namespace kagome::runtime {
                 (const common::Buffer &),
                 (override));
 
-    MOCK_METHOD(void,
-                clearChildBatches,
-                (),
-                (noexcept, override));
+    MOCK_METHOD(void, clearChildBatches, (), (noexcept, override));
 
     MOCK_METHOD(outcome::result<storage::trie::RootHash>,
                 forceCommit,

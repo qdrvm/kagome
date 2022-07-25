@@ -63,7 +63,8 @@ namespace kagome::consensus::grandpa {
     }
 
     bool operator==(const SignedMessage &rhs) const {
-      return message == rhs.message && signature == rhs.signature && id == rhs.id;
+      return message == rhs.message && signature == rhs.signature
+             && id == rhs.id;
     }
 
     bool operator!=(const SignedMessage &rhs) const {
@@ -173,7 +174,7 @@ namespace kagome::consensus::grandpa {
   // either prevote, precommit or primary propose
   struct VoteMessage {
     RoundNumber round_number{0};
-    MembershipCounter counter{0};
+    VoterSetId counter{0};
     SignedMessage vote;
 
     Id id() const {

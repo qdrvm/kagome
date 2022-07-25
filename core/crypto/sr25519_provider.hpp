@@ -29,7 +29,7 @@ namespace kagome::crypto {
     /**
      * Generates random keypair for signing the message
      */
-    virtual Sr25519Keypair generateKeypair() const = 0;
+    virtual Sr25519KeypairAndSeed generateKeypair() const = 0;
 
     /**
      * Generate random keypair from seed
@@ -45,7 +45,8 @@ namespace kagome::crypto {
      * @return signed message
      */
     virtual outcome::result<Sr25519Signature> sign(
-        const Sr25519Keypair &keypair, gsl::span<const uint8_t> message) const = 0;
+        const Sr25519Keypair &keypair,
+        gsl::span<const uint8_t> message) const = 0;
 
     /**
      * Verifies that \param message was derived using \param public_key on

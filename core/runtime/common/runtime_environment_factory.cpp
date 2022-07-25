@@ -142,7 +142,7 @@ namespace kagome::runtime {
       return heappages_res.error();
     }
 
-    auto& memory = env.memory_provider->getCurrentMemory()->get();
+    auto &memory = env.memory_provider->getCurrentMemory()->get();
     instance->forDataSegment([&memory](auto offset, auto segment) {
       memory.storeBuffer(offset, segment);
     });

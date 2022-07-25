@@ -78,8 +78,9 @@ namespace kagome::runtime {
         std::vector<RuntimeUpgradeData> &&saved_data,
         std::shared_ptr<blockchain::BlockStorage> block_storage);
 
-    outcome::result<bool> isStateInChain(const primitives::BlockInfo &state,
-                        const primitives::BlockInfo &chain_end) const noexcept;
+    outcome::result<bool> isStateInChain(
+        const primitives::BlockInfo &state,
+        const primitives::BlockInfo &chain_end) const noexcept;
 
     outcome::result<std::optional<storage::trie::RootHash>> findProperFork(
         const primitives::BlockInfo &block,

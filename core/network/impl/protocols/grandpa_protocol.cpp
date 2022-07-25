@@ -37,7 +37,7 @@ namespace kagome::network {
 
   bool GrandpaProtocol::start() {
     auto stream = std::make_shared<LoopbackStream>(own_info_, io_context_);
-    auto res = stream_engine_->add(stream, shared_from_this());
+    auto res = stream_engine_->addBidirectional(stream, shared_from_this());
     if (not res.has_value()) {
       return false;
     }

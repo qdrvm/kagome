@@ -11,7 +11,7 @@
 
 namespace kagome::crypto {
   struct Sr25519ProviderMock : public Sr25519Provider {
-    MOCK_METHOD(Sr25519Keypair, generateKeypair, (), (const, override));
+    MOCK_METHOD(Sr25519KeypairAndSeed, generateKeypair, (), (const, override));
 
     MOCK_METHOD(Sr25519Keypair,
                 generateKeypair,
@@ -29,7 +29,7 @@ namespace kagome::crypto {
                  gsl::span<const uint8_t>,
                  const Sr25519PublicKey &),
                 (const, override));
-    
+
     MOCK_METHOD(outcome::result<bool>,
                 verify_deprecated,
                 (const Sr25519Signature &,

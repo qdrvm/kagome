@@ -32,9 +32,12 @@ cd kagome
 
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make kagome -j 
-
+make kagome -j $(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))
 ```
+
+`make kagome -j <numbers of cores>` (should be less than you have, here it is half of your cores + 1)
+
+
 ### Build with docker
 
 ```sh
@@ -42,24 +45,36 @@ git clone https://github.com/soramitsu/kagome
 cd kagome
 
 # build and run tests
-INDOCKER_IMAGE=soramitsu/kagome-dev:11 BUILD_DIR=build BUILD_THREADS=9 ./housekeeping/indocker.sh ./housekeeping/makeBuild.sh
+INDOCKER_IMAGE=soramitsu/kagome-dev:4-minideb BUILD_DIR=build BUILD_THREADS=9 ./housekeeping/indocker.sh ./housekeeping/make_build.sh
 
 # You can use indocker.sh to run any script or command inside docker
 # It mounts project dir and copy important env variable inside the container.
-INDOCKER_IMAGE=soramitsu/kagome-dev:11 ./housekeeping/indocker.sh gcc --version
+INDOCKER_IMAGE=soramitsu/kagome-dev:4-minideb ./housekeeping/indocker.sh gcc --version
 
 ## Build Release 
 # Build Kagome
-INDOCKER_IMAGE=soramitsu/kagome-dev:11 BUILD_DIR=build ./housekeeping/indocker.sh ./housekeeping/docker/release/makeRelease.sh
+INDOCKER_IMAGE=soramitsu/kagome-dev:4-minideb BUILD_DIR=build ./housekeeping/indocker.sh ./housekeeping/docker/release/makeRelease.sh
 # Create docker image and push 
-VERSION=0.0.1 BUILD_DIR=build ./housekeeping/docker/release/build_and_push.sh
-# or just build docker image 
-docker build -t soramitsu/kagome:0.0.1 -f ./housekeeping/docker/release/Dockerfile ./build
+VERSION=0.0.1 BUILD_DIR=build BUILD_TYPE=Release ./housekeeping/docker/kagome/build_and_push.sh
 
 # Check docker image 
 docker run -it --rm soramitsu/kagome:0.0.1 kagome
 [2020-06-03 16:26:14][error] the option '--chain' is required but missing
 
+```
+
+### Makefile
+
+Mentioned commands are organized into a Makefile. Use them with following commands
+
+```
+make build	
+make docker
+make command args="gcc --version"
+make release
+make release_docker
+make debug_docker
+make clear
 ```
 
 ### Execute kagome node in development mode

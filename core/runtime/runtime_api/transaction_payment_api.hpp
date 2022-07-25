@@ -7,9 +7,9 @@
 #define KAGOME_TRANSACTION_PAYMENT_API_HPP
 
 #include "common/buffer.hpp"
+#include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/runtime_dispatch_info.hpp"
-#include "primitives/block_id.hpp"
 
 namespace kagome::runtime {
 

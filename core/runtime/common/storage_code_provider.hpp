@@ -19,7 +19,7 @@ namespace kagome::storage::trie {
 namespace kagome::runtime {
 
   class RuntimeUpgradeTracker;
-  using  primitives::CodeSubstituteBlockIds;
+  using primitives::CodeSubstituteBlockIds;
 
   class StorageCodeProvider final : public RuntimeCodeProvider {
    public:

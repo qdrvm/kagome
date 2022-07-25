@@ -21,7 +21,7 @@ namespace kagome::log {
 
 #define KAGOME_PROFILE_END(scope)                                         \
   auto _profiling_end_##scope = ::kagome::clock::SteadyClockImpl{}.now(); \
-  SL_DEBUG(::kagome::log::profiling_logger,                              \
+  SL_DEBUG(::kagome::log::profiling_logger,                               \
            "{} took {} ms",                                               \
            #scope,                                                        \
            ::std::chrono::duration_cast<::std::chrono::milliseconds>(     \

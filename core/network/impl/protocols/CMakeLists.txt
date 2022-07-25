@@ -49,10 +49,13 @@ add_library(sync_protocol
     sync_protocol_impl.cpp
     )
 target_link_libraries(sync_protocol
+    blob
+    buffer
     logger
     node_api_proto
     adapter_errors
     protocol_error
+    scale_message_read_writer
     )
 
 add_library(protocol_factory

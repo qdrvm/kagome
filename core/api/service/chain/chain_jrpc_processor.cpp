@@ -9,12 +9,12 @@
 #include "api/jrpc/value_converter.hpp"
 #include "api/service/chain/requests/get_block.hpp"
 #include "api/service/chain/requests/get_block_hash.hpp"
+#include "api/service/chain/requests/get_finalized_head.hpp"
 #include "api/service/chain/requests/get_header.hpp"
 #include "api/service/chain/requests/subscribe_finalized_heads.hpp"
 #include "api/service/chain/requests/subscribe_new_heads.hpp"
 #include "api/service/chain/requests/unsubscribe_finalized_heads.hpp"
 #include "api/service/chain/requests/unsubscribe_new_heads.hpp"
-#include "api/service/chain/requests/get_finalized_head.hpp"
 
 namespace kagome::api::chain {
 

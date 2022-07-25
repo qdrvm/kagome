@@ -76,6 +76,28 @@ namespace kagome::api {
       SL_INFO(logger_, "Grandpa key already exists and won't be replaced");
       return outcome::failure(crypto::CryptoStoreError::GRAN_ALREADY_EXIST);
     }
+    if (crypto::KEY_TYPE_BABE == key_type) {
+      OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::fromSpan(seed));
+      OUTCOME_TRY(public_key_typed,
+                  crypto::Sr25519PublicKey::fromSpan(public_key));
+      OUTCOME_TRY(
+          keypair,
+          store_->generateSr25519Keypair(crypto::KEY_TYPE_BABE, seed_typed));
+      if (public_key_typed != keypair.public_key) {
+        return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
+      }
+    }
+    if (crypto::KEY_TYPE_GRAN == key_type) {
+      OUTCOME_TRY(seed_typed, crypto::Ed25519Seed::fromSpan(seed));
+      OUTCOME_TRY(public_key_typed,
+                  crypto::Ed25519PublicKey::fromSpan(public_key));
+      OUTCOME_TRY(
+          keypair,
+          store_->generateEd25519Keypair(crypto::KEY_TYPE_GRAN, seed_typed));
+      if (public_key_typed != keypair.public_key) {
+        return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
+      }
+    }
     auto res = key_store_->saveKeyPair(key_type, public_key, seed);
     // explicitly load keys from store to cache
     keys_->getBabeKeyPair();

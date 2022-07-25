@@ -17,17 +17,15 @@ namespace kagome::crypto {
     BOOST_ASSERT(provider_ != nullptr);
   }
 
-  outcome::result<EcdsaKeypair> EcdsaProviderImpl::generate() const {
+  outcome::result<EcdsaKeypairAndSeed> EcdsaProviderImpl::generate() const {
     OUTCOME_TRY(key_pair, provider_->generate());
-    EcdsaPrivateKey secret_key;
-    std::copy(key_pair.private_key.begin(),
-              key_pair.private_key.end(),
-              secret_key.begin());
-    EcdsaPublicKey public_key;
-    std::copy(key_pair.public_key.begin(),
-              key_pair.public_key.end(),
-              public_key.begin());
-    return EcdsaKeypair{.secret_key = secret_key, .public_key = public_key};
+    return EcdsaKeypairAndSeed{
+        EcdsaKeypair{
+            EcdsaPrivateKey{common::Blob{key_pair.private_key}},
+            EcdsaPublicKey{common::Blob{key_pair.public_key}},
+        },
+        EcdsaSeed{common::Blob{key_pair.private_key}},
+    };
   }
 
   outcome::result<EcdsaPublicKey> EcdsaProviderImpl::derive(

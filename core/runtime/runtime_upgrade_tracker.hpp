@@ -7,8 +7,8 @@
 #define KAGOME_CORE_RUNTIME_RUNTIME_UPGRADE_TRACKER_HPP
 
 #include "outcome/outcome.hpp"
-#include "storage/trie/types.hpp"
 #include "primitives/common.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::runtime {
 

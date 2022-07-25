@@ -11,7 +11,7 @@
 namespace kagome::storage::trie {
   class TrieStorage;
   class TrieSerializer;
-}
+}  // namespace kagome::storage::trie
 
 namespace kagome::storage::changes_trie {
   class ChangesTracker;

@@ -11,4 +11,5 @@ target_link_libraries(authority_manager
     logger
     authority_manager_error
     authority_update_observer_error
+    block_tree_error
     )

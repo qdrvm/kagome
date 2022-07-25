@@ -6,8 +6,8 @@
 
 #include <gmock/gmock.h>
 
-#include "testutil/outcome.hpp"
 #include "mock/core/network/adapter_mock.hpp"
+#include "testutil/outcome.hpp"
 
 using AdapterType_0 = kagome::network::AdapterMock;
 using AdapterMockPtrType = std::shared_ptr<AdapterType_0>;
@@ -52,7 +52,8 @@ struct MessageReadWriterTestTest : public ::testing::Test {
     AdapterWrapper::obj.reset();
   }
 
-  std::shared_ptr<kagome::network::AdapterMock> ptr = std::make_shared<kagome::network::AdapterMock>();
+  std::shared_ptr<kagome::network::AdapterMock> ptr =
+      std::make_shared<kagome::network::AdapterMock>();
 };
 
 TEST_F(MessageReadWriterTestTest, CallOrder) {
@@ -63,7 +64,8 @@ TEST_F(MessageReadWriterTestTest, CallOrder) {
   data.resize(10);
 
   EXPECT_CALL(*ptr, m_size(d)).WillRepeatedly(Return(5));
-  EXPECT_CALL(*ptr, m_write(d, data, data.end())).WillOnce(Return(data.begin()));
+  EXPECT_CALL(*ptr, m_write(d, data, data.end()))
+      .WillOnce(Return(data.begin()));
   ASSERT_EQ(Last::write(d, data), data.begin());
 }
 
@@ -76,7 +78,9 @@ TEST_F(MessageReadWriterTestTest, CallOrder_2) {
   data.resize(10);
 
   EXPECT_CALL(*ptr, m_size(d)).WillRepeatedly(Return(5));
-  EXPECT_CALL(*ptr, m_write(d, data, data.end())).WillOnce(Return(data.end() - 5));
-  EXPECT_CALL(*ptr, m_write(d, data, data.end() - 5)).WillOnce(Return(data.begin()));
+  EXPECT_CALL(*ptr, m_write(d, data, data.end()))
+      .WillOnce(Return(data.end() - 5));
+  EXPECT_CALL(*ptr, m_write(d, data, data.end() - 5))
+      .WillOnce(Return(data.begin()));
   ASSERT_EQ(First::write(d, data), data.begin());
 }

@@ -23,9 +23,6 @@ namespace kagome::storage {
   inline const common::Buffer kRuntimeHashesLookupKey =
       ":kagome:runtime_hashes"_buf;
 
-  inline const common::Buffer kSchedulerTreeLookupKey =
-      ":kagome:authorities:scheduler_tree"_buf;
-
   inline const common::Buffer kOffchainWorkerStoragePrefix = ":kagome:ocw"_buf;
 
   inline const common::Buffer kChildStorageDefaultPrefix =

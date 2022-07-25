@@ -50,6 +50,9 @@ namespace kagome::crypto {
 
   using Ed25519Seed = common::Blob<constants::ed25519::SEED_SIZE>;
 
+  struct Ed25519KeypairAndSeed : Ed25519Keypair {
+    Ed25519Seed seed;
+  };
 }  // namespace kagome::crypto
 
 #endif  // KAGOME_CORE_CRYPTO_ED25519_TYPES_HPP
