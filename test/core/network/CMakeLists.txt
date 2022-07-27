@@ -28,6 +28,20 @@ target_link_libraries(rpc_libp2p_test
     logger_for_tests
     )
 
+addtest(state_protocol_observer_test
+    state_protocol_observer_test.cpp
+    )
+target_link_libraries(state_protocol_observer_test
+    in_memory_storage
+    logger_for_tests
+    polkadot_trie
+    polkadot_trie_factory
+    state_protocol_observer
+    trie_serializer
+    trie_storage
+    trie_storage_backend
+    )
+
 addtest(sync_protocol_observer_test
     sync_protocol_observer_test.cpp
     )

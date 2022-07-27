@@ -15,57 +15,77 @@
 #include "runtime/runtime_upgrade_tracker.hpp"
 
 namespace kagome::runtime {
-  using kagome::primitives::ThreadNumber;
-  using soralog::util::getThreadNumber;
+  /**
+   * @brief Wrapper type over sptr<ModuleInstance>. Allows to return instance
+   * back to the ModuleInstancePool upon destruction of
+   * BorrowedInstance.
+   */
+  class BorrowedInstance : public ModuleInstance {
+   public:
+    BorrowedInstance(std::weak_ptr<RuntimeInstancesPool> pool,
+                     const RuntimeInstancesPool::RootHash &state,
+                     std::shared_ptr<ModuleInstance> instance)
+        : pool_{std::move(pool)},
+          state_{state},
+          instance_{std::move(instance)} {}
+    ~BorrowedInstance() {
+      if (auto pool = pool_.lock()) {
+        pool->release(state_, std::move(instance_));
+      }
+    }
+
+    outcome::result<PtrSize> callExportFunction(
+        std::string_view name, common::BufferView encoded_args) const override {
+      return instance_->callExportFunction(name, encoded_args);
+    }
+    outcome::result<std::optional<WasmValue>> getGlobal(
+        std::string_view name) const override {
+      return instance_->getGlobal(name);
+    }
+    void forDataSegment(DataSegmentProcessor const &callback) const override {
+      return instance_->forDataSegment(callback);
+    }
+    InstanceEnvironment const &getEnvironment() const override {
+      return instance_->getEnvironment();
+    }
+    outcome::result<void> resetEnvironment() override {
+      return instance_->resetEnvironment();
+    }
+
+   private:
+    std::weak_ptr<RuntimeInstancesPool> pool_;
+    RuntimeInstancesPool::RootHash state_;
+    std::shared_ptr<ModuleInstance> instance_;
+  };
 
   outcome::result<std::shared_ptr<ModuleInstance>>
   RuntimeInstancesPool::tryAcquire(
       const RuntimeInstancesPool::RootHash &state) {
     std::scoped_lock guard{mt_};
-    auto tid = getThreadNumber();
     auto &pool = pools_[state];
 
-    // if an instance already in use requested, just return it - no need to
-    // borrow it
-    if (auto inst_it = pool.find(tid); inst_it != pool.end()) {
-      return inst_it->second;
+    if (not pool.empty()) {
+      auto top = std::move(pool.top());
+      pool.pop();
+      return top;
     }
 
-    // fetch unused, mark and return
-    // if pool is empty, instantiate, mark as used and return
-    auto node = pool.extract(POOL_FREE_INSTANCE_ID);
-    std::shared_ptr<ModuleInstance> module_instance;
-    if (not node) {
-      auto opt_module = modules_.get(state);
-      BOOST_ASSERT(opt_module.has_value());
-      auto module = opt_module.value();
-      OUTCOME_TRY(new_module_instance, module.get()->instantiate());
-      module_instance = new_module_instance;
-      pool.emplace(tid, std::move(new_module_instance));
-    } else {
-      node.key() = tid;
-      module_instance = node.mapped();
-      pool.insert(std::move(node));
-    }
-    module_instance->borrow([wp = weak_from_this(), state]() {
-      if (auto self = wp.lock()) {
-        self->release(state);
-      }
-    });
-    return module_instance;
+    auto opt_module = modules_.get(state);
+    BOOST_ASSERT(opt_module.has_value());
+    auto module = opt_module.value();
+    OUTCOME_TRY(instance, module.get()->instantiate());
+
+    return std::make_shared<BorrowedInstance>(
+        weak_from_this(), state, std::move(instance));
   }
 
   void RuntimeInstancesPool::release(
-      const RuntimeInstancesPool::RootHash &state) {
+      const RuntimeInstancesPool::RootHash &state,
+      std::shared_ptr<ModuleInstance> &&instance) {
     std::lock_guard guard{mt_};
-    auto tid = getThreadNumber();
     auto &pool = pools_[state];
 
-    // if used instance found, release
-    auto node = pool.extract(tid);
-    BOOST_ASSERT(node);
-    node.key() = POOL_FREE_INSTANCE_ID;
-    pool.insert(std::move(node));
+    pool.emplace(std::move(instance));
   }
   std::optional<std::shared_ptr<Module>> RuntimeInstancesPool::getModule(
       const RuntimeInstancesPool::RootHash &state) {

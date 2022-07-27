@@ -775,6 +775,22 @@ namespace kagome::application {
           auto chain_spec = ChainSpecImpl::loadFrom(chain_spec_path_.native());
           auto path = keystorePath(chain_spec.value()->id());
 
+          if (not chain_spec.has_value()) {
+            std::cerr << "Warning: developers mode chain spec is corrupted."
+                      << std::endl;
+            return false;
+          }
+
+          if (chain_spec.value()->bootNodes().empty()) {
+            std::cerr
+                << "Warning: developers mode chain spec bootnodes is empty."
+                << std::endl;
+            return false;
+          }
+
+          auto ma_res = chain_spec.value()->bootNodes()[0];
+          listen_addresses_.emplace_back(ma_res);
+
           boost::filesystem::create_directories(path);
 
           for (auto key_descr : kagome::assets::embedded_keys) {
@@ -793,11 +809,6 @@ namespace kagome::application {
         rpc_http_port_ = def_rpc_http_port;
         rpc_ws_port_ = def_rpc_ws_port;
         openmetrics_http_port_ = def_openmetrics_http_port;
-
-        auto ma_res =
-            libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/30363");
-        assert(ma_res.has_value());
-        listen_addresses_.emplace_back(std::move(ma_res.value()));
       }
     }
 

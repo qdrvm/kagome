@@ -11,9 +11,6 @@
 
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
-#include "primitives/authority.hpp"
-#include "primitives/block_header.hpp"
-#include "storage/buffer_map_types.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -23,17 +20,14 @@ namespace kagome::authority {
 }
 namespace kagome::blockchain {
   class BlockTree;
-  class BlockHeaderRepository;
-}  // namespace kagome::blockchain
+}
 namespace kagome::primitives {
+  struct AuthorityList;
   struct BabeConfiguration;
 }  // namespace kagome::primitives
-
 namespace kagome::runtime {
   class GrandpaApi;
-  class Executor;
-}  // namespace kagome::runtime
-
+}
 namespace kagome::storage::trie {
   class TrieStorage;
 }
@@ -59,20 +53,16 @@ namespace kagome::authority {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-        std::shared_ptr<crypto::Hasher> hash,
-        std::shared_ptr<storage::BufferStorage> persistent_storage,
-        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
+        std::shared_ptr<crypto::Hasher> hash);
 
     ~AuthorityManagerImpl() override = default;
 
-    outcome::result<void> recalculateStoredState(
-        primitives::BlockNumber last_finalized_number) override;
-
+    // Prepare for work
     bool prepare();
 
     primitives::BlockInfo base() const override;
 
-    std::optional<std::shared_ptr<const primitives::AuthoritySet>> authorities(
+    std::optional<std::shared_ptr<const primitives::AuthorityList>> authorities(
         const primitives::BlockInfo &target_block,
         IsBlockFinalized finalized) const override;
 
@@ -84,8 +74,7 @@ namespace kagome::authority {
     outcome::result<void> applyForcedChange(
         const primitives::BlockInfo &block,
         const primitives::AuthorityList &authorities,
-        primitives::BlockNumber delay_start,
-        size_t delay) override;
+        primitives::BlockNumber activate_at) override;
 
     outcome::result<void> applyOnDisabled(const primitives::BlockInfo &block,
                                           uint64_t authority_index) override;
@@ -132,8 +121,6 @@ namespace kagome::authority {
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<storage::BufferStorage> persistent_storage_;
-    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
 
     std::shared_ptr<ScheduleNode> root_;
     log::Logger log_;

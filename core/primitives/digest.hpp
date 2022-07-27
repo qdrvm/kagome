@@ -70,8 +70,6 @@ namespace kagome::primitives {
       ConsensusEngineId consensus_engine_id;
       common::Buffer data;
 
-      DigestItemCommon() = default;
-
       bool operator==(const DigestItemCommon &rhs) const {
         return consensus_engine_id == rhs.consensus_engine_id
                and data == rhs.data;

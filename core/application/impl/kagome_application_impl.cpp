@@ -50,6 +50,7 @@ namespace kagome::application {
     router_ = injector_->injectRouter();
     peer_manager_ = injector_->injectPeerManager();
     jrpc_api_service_ = injector_->injectRpcApiService();
+    state_observer_ = injector_->injectStateObserver();
     sync_observer_ = injector_->injectSyncObserver();
     metrics_watcher_ = injector_->injectMetricsWatcher();
     telemetry_service_ = injector_->injectTelemetryService();

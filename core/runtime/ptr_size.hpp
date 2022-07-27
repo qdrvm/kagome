@@ -18,7 +18,7 @@ namespace kagome::runtime {
   struct PtrSize {
     constexpr PtrSize() : ptr{0}, size{0} {}
 
-    explicit constexpr PtrSize(WasmSpan v) {
+    explicit PtrSize(WasmSpan v) {
       std::tie(ptr, size) = splitSpan(v);
     }
 

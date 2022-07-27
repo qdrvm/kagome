@@ -14,6 +14,7 @@ namespace kagome::network {
   /// Lowest version we support
   static constexpr uint32_t MIN_VERSION = 3;
 
+  const libp2p::peer::Protocol kStateProtocol = "/{}/state/2";
   const libp2p::peer::Protocol kSyncProtocol = "/{}/sync/2";
   const libp2p::peer::Protocol kPropagateTransactionsProtocol =
       "/{}/transactions/1";

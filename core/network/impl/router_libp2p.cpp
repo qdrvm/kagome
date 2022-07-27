@@ -72,6 +72,11 @@ namespace kagome::network {
       return false;
     }
 
+    state_protocol_ = protocol_factory_->makeStateProtocol();
+    if (not state_protocol_) {
+      return false;
+    }
+
     sync_protocol_ = protocol_factory_->makeSyncProtocol();
     if (not sync_protocol_) {
       return false;
@@ -80,6 +85,7 @@ namespace kagome::network {
     block_announce_protocol_->start();
     grandpa_protocol_->start();
     propagate_transaction_protocol_->start();
+    state_protocol_->start();
     sync_protocol_->start();
 
     return true;
@@ -144,6 +150,10 @@ namespace kagome::network {
   std::shared_ptr<PropagateTransactionsProtocol>
   RouterLibp2p::getPropagateTransactionsProtocol() const {
     return propagate_transaction_protocol_;
+  }
+
+  std::shared_ptr<StateProtocol> RouterLibp2p::getStateProtocol() const {
+    return state_protocol_;
   }
 
   std::shared_ptr<SyncProtocol> RouterLibp2p::getSyncProtocol() const {

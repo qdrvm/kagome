@@ -41,7 +41,6 @@ namespace kagome::runtime::binaryen {
     InstanceEnvironment const &getEnvironment() const override;
 
     outcome::result<void> resetEnvironment() override;
-    void borrow(BorrowedInstance::PoolReleaseFunction release) override;
 
     void forDataSegment(DataSegmentProcessor const &callback) const override;
 
