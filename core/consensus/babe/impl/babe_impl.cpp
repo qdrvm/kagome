@@ -334,13 +334,15 @@ namespace kagome::consensus::babe {
                       outcome::result<primitives::BlockInfo>
                           block_res) mutable {
                     if (block_res.has_error()) {
+                      SL_WARN(self->log_,
+                              "Block result error: {}",
+                              block_res.error().message());
                       return;
                     }
 
-                    const auto &block = block_res.value();
                     SL_INFO(self->log_,
                             "Catching up is finished on block {}",
-                            block);
+                            block_res.value());
                     self->current_state_ = Babe::State::SYNCHRONIZED;
                     self->was_synchronized_ = true;
                     self->telemetry_->notifyWasSynchronized();

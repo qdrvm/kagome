@@ -885,10 +885,11 @@ namespace kagome::authority {
       for (const auto &digest_item : header.digest) {
         std::ignore = visit_in_place(
             digest_item,
-            [&](const primitives::Consensus &consensus_message)
+            [&, num = header.number, hash = hash](
+                const primitives::Consensus &consensus_message)
                 -> outcome::result<void> {
               ++count2;
-              return onConsensus(primitives::BlockInfo{header.number, hash},
+              return onConsensus(primitives::BlockInfo{num, hash},
                                  consensus_message);
             },
             [](const auto &) { return outcome::success(); });
