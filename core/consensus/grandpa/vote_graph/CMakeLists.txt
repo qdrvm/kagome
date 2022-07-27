@@ -8,4 +8,5 @@ add_library(vote_graph
     )
 target_link_libraries(vote_graph
     Boost::boost
+    outcome
     )

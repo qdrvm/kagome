@@ -8,6 +8,7 @@ add_library(crypto_store_key_type
     )
 target_link_libraries(crypto_store_key_type
     Boost::boost
+    outcome
     )
 kagome_install(crypto_store_key_type)
 

@@ -71,5 +71,8 @@ target_link_libraries(runtime_environment_factory
 kagome_install(runtime_environment_factory)
 
 add_library(memory_allocator memory_allocator.cpp)
-target_link_libraries(memory_allocator Boost::boost)
+target_link_libraries(memory_allocator
+    Boost::boost
+    outcome
+    )
 kagome_install(memory_allocator)
