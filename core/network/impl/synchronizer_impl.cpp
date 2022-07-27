@@ -12,6 +12,7 @@
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -69,6 +70,7 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<consensus::BlockAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -77,6 +79,7 @@ namespace kagome::network {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher)
       : block_tree_(std::move(block_tree)),
+        trie_changes_tracker_(std::move(changes_tracker)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
         serializer_(std::move(serializer)),
@@ -85,6 +88,7 @@ namespace kagome::network {
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)) {
     BOOST_ASSERT(block_tree_);
+    BOOST_ASSERT(trie_changes_tracker_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(serializer_);
     BOOST_ASSERT(storage_);
@@ -95,9 +99,6 @@ namespace kagome::network {
     BOOST_ASSERT(app_state_manager);
 
     sync_method_ = app_config.syncMethod();
-
-    batch_ =
-        storage_->getPersistentBatchAt(serializer_->getEmptyRootHash()).value();
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -166,6 +167,11 @@ namespace kagome::network {
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler,
       bool subscribe_to_block) {
+    if (not state_syncing_.load() && not syncing_.load()) {
+      syncing_.store(true);
+    } else {
+      return false;
+    }
     // Subscribe on demand
     if (subscribe_to_block) {
       subscribeToBlock(block_info, std::move(handler));
@@ -274,6 +280,11 @@ namespace kagome::network {
       const primitives::BlockHeader &header,
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler) {
+    if (not state_syncing_.load() && not syncing_.load()) {
+      syncing_.store(true);
+    } else {
+      return false;
+    }
     auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
     const primitives::BlockInfo block_info(header.number, block_hash);
 
@@ -878,62 +889,121 @@ namespace kagome::network {
 
   void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
                                    const primitives::BlockInfo &block,
-                                   const common::Buffer &key,
+                                   const std::vector<common::Buffer> &keys,
                                    SyncResultHandler &&handler) {
     if (sync_method_ == application::AppConfiguration::SyncMethod::Fast) {
-      if (not state_syncing_.load() || not key.empty()) {
+      // execute if not already started or iteration continues
+      if (not state_syncing_.load()
+          || (not keys.empty() && not keys[0].empty())) {
         state_syncing_.store(true);
-        network::StateRequest request{block.hash, {key}, true};
+        if (keys[0].empty()) {
+          sync_block_ = block;
+        }
+        network::StateRequest request{block.hash, keys, true};
 
         auto protocol = router_->getStateProtocol();
         BOOST_ASSERT_MSG(protocol, "Router did not provide state protocol");
 
         SL_TRACE(log_, "State syncing started.");
 
-        auto response_handler =
-            [wp = weak_from_this(),
-             block,
-             peer_id,
-             handler = std::move(handler)](auto &&response_res) mutable {
-              auto self = wp.lock();
-              if (not self) {
-                return;
-              }
+        auto response_handler = [wp = weak_from_this(),
+                                 block,
+                                 peer_id,
+                                 handler = std::move(handler)](
+                                    auto &&response_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            return;
+          }
 
-              if (response_res.has_error()) {
-                SL_WARN(self->log_,
-                        "State syncing failed with error: {}",
-                        response_res.error().message());
-                if (handler) handler(response_res.as_failure());
-                return;
-              }
+          if (response_res.has_error()) {
+            SL_WARN(self->log_,
+                    "State syncing failed with error: {}",
+                    response_res.error().message());
+            if (handler) handler(response_res.as_failure());
+            return;
+          }
 
-              auto response = response_res.value().entries[0];
+          for (unsigned i = 0; i < response_res.value().entries.size(); ++i) {
+            const auto &response = response_res.value().entries[i];
+
+            // get or create batch
+            auto batch =
+                self->batches_store_.count(response.state_root)
+                    ? std::get<2>(self->batches_store_[response.state_root])
+                    : self->storage_
+                          ->getPersistentBatchAt(
+                              self->serializer_->getEmptyRootHash())
+                          .value();
+
+            // main storage entries size empty at child storage state syncing
+            if (response.entries.size()) {
+              SL_TRACE(self->log_,
+                       "Syncing {}th item. Current key {}. Keys received {}.",
+                       i,
+                       response.entries[0].key.toHex(),
+                       response.entries.size());
               for (const auto &entry : response.entries) {
-                std::ignore = self->batch_->put(entry.key, entry.value);
+                std::ignore = batch->put(entry.key, entry.value);
               }
-              self->entries_ += response.entries.size();
-              if (response.complete) {
-                auto res = self->batch_->commit();
-                SL_INFO(self->log_,
-                        "State syncing finished. Root hash: {}",
-                        res.value().toHex());
-                self->sync_method_ =
-                    application::AppConfiguration::SyncMethod::Full;
-                if (handler) {
-                  handler(block);
-                  self->state_syncing_.store(false);
-                }
+
+              // store batch to continue at next response
+              if (!response.complete) {
+                self->batches_store_[response.state_root] = {
+                    response.entries.back().key, i, batch};
               } else {
-                SL_TRACE(self->log_,
-                         "State syncing continues. {} entries loaded",
-                         self->entries_);
-                self->syncState(peer_id,
-                                block,
-                                response.entries.back().key,
-                                std::move(handler));
+                self->batches_store_.erase(response.state_root);
               }
-            };
+            }
+
+            if (response.complete) {
+              auto res = batch->commit();
+              SL_INFO(
+                  self->log_,
+                  "{} syncing finished. Root hash: {}. {}.",
+                  i ? "Child state" : "State",
+                  res.value().toHex(),
+                  res.value() == response.state_root ? "Match" : "Don't match");
+              if (res.value() != response.state_root) {
+                SL_INFO(
+                    self->log_, "Should be {}", response.state_root.toHex());
+              }
+              self->trie_changes_tracker_->onBlockAdded(block.hash);
+            }
+
+            // just calculate state entries in main storage for trace log
+            if (!i) {
+              self->entries_ += response.entries.size();
+            }
+          }
+
+          // not well formed way to place 0th batch key to front
+          std::map<unsigned, common::Buffer> keymap;
+          for (const auto &[_, val] : self->batches_store_) {
+            unsigned i = std::get<1>(val);
+            keymap[i] = std::get<0>(val);
+            SL_TRACE(self->log_, "Index: {}, Key: {}", i, keymap[i]);
+          }
+
+          std::vector<common::Buffer> keys;
+          for (const auto &[_, val] : keymap) {
+            keys.push_back(val);
+          }
+
+          if (response_res.value().entries[0].complete) {
+            self->sync_method_ =
+                application::AppConfiguration::SyncMethod::Full;
+            if (handler) {
+              handler(block);
+              self->state_syncing_.store(false);
+            }
+          } else {
+            SL_TRACE(self->log_,
+                     "State syncing continues. {} entries loaded",
+                     self->entries_);
+            self->syncState(peer_id, block, keys, std::move(handler));
+          }
+        };
 
         protocol->request(
             peer_id, std::move(request), std::move(response_handler));
@@ -1006,33 +1076,48 @@ namespace kagome::network {
       } else {
         const BlockInfo block_info(block.header->number, block.hash);
 
-        auto applying_res =
-            sync_method_ == application::AppConfiguration::SyncMethod::Full
-                ? block_executor_->applyBlock(std::move(block))
-                : block_appender_->appendBlock(std::move(block));
-
-        notifySubscribers({number, hash}, applying_res);
-
-        if (not applying_res.has_value()) {
-          if (applying_res
-              != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
-            notifySubscribers({number, hash}, applying_res.as_failure());
-            auto n = discardBlock(block_info.hash);
-            SL_WARN(
-                log_,
-                "Block {} {} been discarded: {}",
-                block_info,
-                n ? fmt::format("and {} others have", n) : fmt::format("has"),
-                applying_res.error().message());
-            if (handler) handler(Error::DISCARDED_BLOCK);
-          } else {
-            SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
-            if (handler) handler(block_info);
-          }
+        if (sync_method_ == application::AppConfiguration::SyncMethod::Full
+            && sync_block_ && block_info.number <= sync_block_.value().number) {
+          SL_WARN(
+              log_, "Skip {} till fast synchronized block", block_info.number);
+          applyNextBlock();
         } else {
-          telemetry_->notifyBlockImported(
-              block_info, telemetry::BlockOrigin::kNetworkInitialSync);
-          if (handler) handler(block_info);
+          auto applying_res =
+              sync_method_ == application::AppConfiguration::SyncMethod::Full
+                  ? block_executor_->applyBlock(std::move(block))
+                  : block_appender_->appendBlock(std::move(block));
+
+          if (sync_method_ == application::AppConfiguration::SyncMethod::Full
+              && sync_block_
+              && block_info.number == sync_block_.value().number + 1) {
+            sync_block_ = std::nullopt;
+          }
+
+          notifySubscribers({number, hash}, applying_res);
+
+          if (not applying_res.has_value()) {
+            if (applying_res
+                != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
+              notifySubscribers({number, hash}, applying_res.as_failure());
+              auto n = discardBlock(block_info.hash);
+              SL_WARN(
+                  log_,
+                  "Block {} {} been discarded: {}",
+                  block_info,
+                  n ? fmt::format("and {} others have", n) : fmt::format("has"),
+                  applying_res.error().message());
+              if (handler) handler(Error::DISCARDED_BLOCK);
+            } else {
+              SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
+              if (handler) handler(block_info);
+              // applyNextBlock();
+            }
+          } else {
+            telemetry_->notifyBlockImported(
+                block_info, telemetry::BlockOrigin::kNetworkInitialSync);
+            if (handler) handler(block_info);
+            // applyNextBlock();
+          }
         }
       }
     }
@@ -1047,7 +1132,6 @@ namespace kagome::network {
       SL_TRACE(log_, "{} blocks in queue", known_blocks_.size());
     }
     metric_import_queue_length_->set(known_blocks_.size());
-
     scheduler_->schedule([wp = weak_from_this()] {
       if (auto self = wp.lock()) {
         self->applyNextBlock();
@@ -1117,7 +1201,6 @@ namespace kagome::network {
     }
 
     metric_import_queue_length_->set(known_blocks_.size());
-
     return affected;
   }
 
@@ -1138,7 +1221,8 @@ namespace kagome::network {
       }
     }
 
-    // Remove blocks whose numbers equal finalized one, excluding finalized one
+    // Remove blocks whose numbers equal finalized one, excluding finalized
+    // one
     auto range = generations_.equal_range(finalized_block.number);
     for (auto it = range.first; it != range.second;) {
       auto cit = it++;

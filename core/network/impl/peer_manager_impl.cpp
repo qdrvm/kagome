@@ -104,7 +104,7 @@ namespace kagome::network {
                            "rating {}",
                            peer_id,
                            rating);
-                  // self->disconnectFromPeer(peer_id);
+                  self->disconnectFromPeer(peer_id);
                   return;
                 }
                 self->processDiscoveredPeer(peer_id);
@@ -377,7 +377,7 @@ namespace kagome::network {
     }
     if (peer_id != own_peer_info_.id) {
       peer_states_.erase(peer_id);
-      // host_.disconnect(peer_id);
+      host_.disconnect(peer_id);
     }
   }
 

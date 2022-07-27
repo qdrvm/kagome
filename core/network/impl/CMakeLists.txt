@@ -6,7 +6,7 @@
 add_subdirectory(protocols)
 
 add_library(synchronizer
-    synchronizer_new_impl.cpp
+    synchronizer_impl.cpp
     )
 target_link_libraries(synchronizer
     logger

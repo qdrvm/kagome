@@ -699,10 +699,10 @@ namespace kagome::authority {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
     } else {
-      // SL_WARN(log_,
-      //         "Unknown consensus engine id in block {}: {}",
-      //         block,
-      //         message.consensus_engine_id.toString());
+      SL_WARN(log_,
+              "Unknown consensus engine id in block {}: {}",
+              block,
+              message.consensus_engine_id.toString());
       return outcome::success();
     }
   }

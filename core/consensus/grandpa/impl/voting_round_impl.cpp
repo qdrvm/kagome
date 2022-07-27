@@ -790,7 +790,6 @@ namespace kagome::consensus::grandpa {
                    "vote={} target={}",
                    vote.hash,
                    signed_precommit.getBlockHash());
-          SL_DEBUG(logger_, "first #{}", signed_precommit.getBlockHash());
         }
 
       } else if (equivocators.emplace(signed_precommit.id).second) {
@@ -805,7 +804,6 @@ namespace kagome::consensus::grandpa {
                    "vote={} target={}",
                    vote.hash.toHex(),
                    signed_precommit.getBlockHash());
-          SL_DEBUG(logger_, "second #{}", signed_precommit.getBlockHash());
         }
 
       } else {

@@ -94,7 +94,7 @@
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/state_protocol_observer_impl.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
-#include "network/impl/synchronizer_new_impl.hpp"
+#include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
@@ -1239,7 +1239,7 @@ namespace {
           static auto last_finalized_hash = get_last_finalized_hash(injector);
           return get_babe_configuration(last_finalized_hash, babe_api);
         }),
-        di::bind<network::Synchronizer>.template to<network::SynchronizerNewImpl>(),
+        di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),

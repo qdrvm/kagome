@@ -138,25 +138,4 @@ namespace kagome::network {
 
 }  // namespace kagome::network
 
-template <>
-struct std::hash<kagome::network::CatchUpRequest> {
-  auto operator()(
-      const kagome::network::CatchUpRequest &catch_up_request) const {
-    auto result = std::hash<kagome::consensus::grandpa::RoundNumber>()(
-        catch_up_request.round_number);
-
-    boost::hash_combine(
-        result,
-        std::hash<kagome::consensus::grandpa::MembershipCounter>()(
-            catch_up_request.voter_set_id));
-
-    return result;
-  }
-};
-
-inline kagome::network::CatchUpRequest::Fingerprint
-kagome::network::CatchUpRequest::fingerprint() const {
-  return std::hash<kagome::network::CatchUpRequest>()(*this);
-}
-
 #endif  // KAGOME_NETWORK_GRANDPAMESSAGE

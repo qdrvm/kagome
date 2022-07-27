@@ -25,6 +25,10 @@ namespace kagome::application {
   class AppConfiguration;
 }
 
+namespace kagome::storage::changes_trie {
+  class ChangesTracker;
+}
+
 namespace kagome::storage::trie {
   class PersistentTrieBatch;
   class TrieSerializer;
@@ -69,6 +73,7 @@ namespace kagome::network {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<consensus::BlockAppender> block_appender,
         std::shared_ptr<consensus::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -101,9 +106,12 @@ namespace kagome::network {
                                    std::optional<uint32_t> limit,
                                    SyncResultHandler &&handler) override;
 
+    /// Enqueues loading and applying state key values starting from {@keys} for
+    /// block {@param block} from peer {@param peer_id}.
+    /// If finished, {@param handler} be called
     void syncState(const libp2p::peer::PeerId &peer_id,
                    const primitives::BlockInfo &block,
-                   const common::Buffer &key,
+                   const std::vector<common::Buffer> &keys,
                    SyncResultHandler &&handler) override;
 
     /// Finds best common block with peer {@param peer_id} in provided interval.
@@ -135,6 +143,10 @@ namespace kagome::network {
                             primitives::BlockInfo target_block,
                             std::optional<uint32_t> limit,
                             SyncResultHandler &&handler);
+
+    void endSync() override {
+      syncing_.store(false);
+    }
 
    private:
     /// Subscribes handler for block with provided {@param block_info}
@@ -170,8 +182,9 @@ namespace kagome::network {
         const libp2p::peer::PeerId &peer_id,
         const BlocksRequest::Fingerprint &fingerprint);
 
-    const application::AppConfiguration &app_config_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<storage::changes_trie::ChangesTracker>
+        trie_changes_tracker_;
     std::shared_ptr<consensus::BlockAppender> block_appender_;
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
@@ -188,6 +201,7 @@ namespace kagome::network {
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
+    std::atomic_bool syncing_ = false;
     std::atomic_bool state_syncing_ = false;
     bool node_is_shutting_down_ = false;
 
@@ -200,6 +214,8 @@ namespace kagome::network {
 
     // Already known (enqueued) but is not applied yet
     std::unordered_map<primitives::BlockHash, KnownBlock> known_blocks_;
+
+    std::optional<primitives::BlockInfo> sync_block_;
 
     // Blocks grouped by number
     std::multimap<primitives::BlockNumber, primitives::BlockHash> generations_;
@@ -230,7 +246,12 @@ namespace kagome::network {
     std::set<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>>
         recent_requests_;
 
-    std::shared_ptr<storage::trie::PersistentTrieBatch> batch_;
+    std::unordered_map<
+        storage::trie::RootHash,
+        std::tuple<common::Buffer,
+                   unsigned,
+                   std::shared_ptr<storage::trie::PersistentTrieBatch>>>
+        batches_store_;
     size_t entries_{0};
   };
 

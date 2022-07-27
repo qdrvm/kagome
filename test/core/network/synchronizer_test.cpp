@@ -17,11 +17,13 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
+#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -73,20 +75,11 @@ class SynchronizerTest
     EXPECT_CALL(app_config, syncMethod())
         .WillOnce(Return(application::AppConfiguration::SyncMethod::Full));
 
-    EXPECT_CALL(*serializer, getEmptyRootHash())
-        .Times(2)
-        .WillRepeatedly(
-            Return(trie::PolkadotCodec().hash256(common::Buffer{0})));
-
-    outcome::result<std::unique_ptr<trie::PersistentTrieBatch>> batch =
-        std::make_unique<trie::PersistentTrieBatchMock>();
-    EXPECT_CALL(*storage, getPersistentBatchAt(serializer->getEmptyRootHash()))
-        .WillOnce(Return(testing::ByMove(std::move(batch))));
-
     synchronizer =
         std::make_shared<network::SynchronizerImpl>(app_config,
                                                     app_state_manager,
                                                     block_tree,
+                                                    changes_tracker,
                                                     block_appender,
                                                     block_executor,
                                                     serializer,
@@ -101,6 +94,8 @@ class SynchronizerTest
       std::make_shared<application::AppStateManagerMock>();
   std::shared_ptr<blockchain::BlockTreeMock> block_tree =
       std::make_shared<blockchain::BlockTreeMock>();
+  std::shared_ptr<changes_trie::ChangesTracker> changes_tracker =
+      std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
   std::shared_ptr<BlockAppenderMock> block_appender =
       std::make_shared<BlockAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
