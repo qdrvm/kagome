@@ -11,6 +11,7 @@
 #include "network/impl/protocols/block_announce_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/state_protocol_impl.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/rating_repository.hpp"
@@ -54,6 +55,11 @@ namespace kagome::network {
       extrinsic_observer_ = extrinsic_observer;
     }
 
+    void setStateObserver(
+        const std::shared_ptr<StateProtocolObserver> &state_observer) {
+      state_observer_ = state_observer;
+    }
+
     void setSyncObserver(
         const std::shared_ptr<SyncProtocolObserver> &sync_observer) {
       sync_observer_ = sync_observer;
@@ -70,6 +76,7 @@ namespace kagome::network {
     std::shared_ptr<PropagateTransactionsProtocol>
     makePropagateTransactionsProtocol() const;
 
+    std::shared_ptr<StateProtocol> makeStateProtocol() const;
     std::shared_ptr<SyncProtocol> makeSyncProtocol() const;
 
    private:
@@ -90,6 +97,7 @@ namespace kagome::network {
     std::weak_ptr<consensus::babe::Babe> babe_;
     std::weak_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::weak_ptr<ExtrinsicObserver> extrinsic_observer_;
+    std::weak_ptr<StateProtocolObserver> state_observer_;
     std::weak_ptr<SyncProtocolObserver> sync_observer_;
     std::weak_ptr<PeerManager> peer_manager_;
   };

@@ -36,8 +36,8 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
         gsl::span<const uint8_t> code);
 
-    outcome::result<std::shared_ptr<kagome::runtime::ModuleInstance>>
-    instantiate() const override;
+    outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
+        const override;
 
    private:
     ModuleImpl(std::shared_ptr<CompartmentWrapper> compartment,

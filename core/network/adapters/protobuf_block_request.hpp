@@ -52,15 +52,7 @@ namespace kagome::network {
         msg.set_max_blocks(t.max.value());
       }
 
-      const size_t distance_was = std::distance(out.begin(), loaded);
-      const size_t was_size = out.size();
-
-      out.resize(was_size + msg.ByteSizeLong());
-      msg.SerializeToArray(&out[was_size], msg.ByteSizeLong());
-
-      auto res_it = out.begin();
-      std::advance(res_it, std::min(distance_was, was_size));
-      return res_it;
+      return appendToVec(msg, out, loaded);
     }
 
     static outcome::result<std::vector<uint8_t>::const_iterator> read(

@@ -24,8 +24,19 @@ namespace kagome::network {
   using PeerId = libp2p::peer::PeerId;
   using PeerInfo = libp2p::peer::PeerInfo;
 
+  /**
+   * @brief Class for communication via `/{chainType}/sync/2` according to
+   * sync protocol specification
+   * https://spec.polkadot.network/#sect-msg-block-request
+   */
   class SyncProtocol : public virtual ProtocolBase {
    public:
+    /**
+     * @brief Make async request to peer and return response in callback
+     * @param peer_id of a peer to make request to
+     * @param block_request a request content
+     * @param response_handler a callback to call when response received
+     */
     virtual void request(const PeerId &peer_id,
                          BlocksRequest block_request,
                          std::function<void(outcome::result<BlocksResponse>)>

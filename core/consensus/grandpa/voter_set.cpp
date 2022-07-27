@@ -22,7 +22,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VoterSet::Error, e) {
 
 namespace kagome::consensus::grandpa {
 
-  VoterSet::VoterSet(VoterSetId id_of_set) : id_{id_of_set} {}
+  VoterSet::VoterSet(MembershipCounter id_of_set) : id_{id_of_set} {}
 
   outcome::result<void> VoterSet::insert(Id voter, size_t weight) {
     // zero authorities break the mapping logic a bit, but since they must not

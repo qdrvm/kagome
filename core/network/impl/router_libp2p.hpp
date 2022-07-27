@@ -55,6 +55,7 @@ namespace kagome::network {
         const override;
     std::shared_ptr<PropagateTransactionsProtocol>
     getPropagateTransactionsProtocol() const override;
+    std::shared_ptr<StateProtocol> getStateProtocol() const override;
     std::shared_ptr<SyncProtocol> getSyncProtocol() const override;
     std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const override;
 
@@ -83,6 +84,7 @@ namespace kagome::network {
     std::shared_ptr<GrandpaProtocol> grandpa_protocol_;
     std::shared_ptr<PropagateTransactionsProtocol>
         propagate_transaction_protocol_;
+    std::shared_ptr<StateProtocol> state_protocol_;
     std::shared_ptr<SyncProtocol> sync_protocol_;
   };
 

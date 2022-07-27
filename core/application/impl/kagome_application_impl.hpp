@@ -48,6 +48,7 @@ namespace kagome::application {
     sptr<network::Router> router_;
     sptr<network::PeerManager> peer_manager_;
     sptr<api::ApiService> jrpc_api_service_;
+    sptr<network::StateProtocolObserver> state_observer_;
     sptr<network::SyncProtocolObserver> sync_observer_;
     sptr<metrics::MetricsWatcher> metrics_watcher_;
     sptr<telemetry::TelemetryService> telemetry_service_;

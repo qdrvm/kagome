@@ -21,7 +21,6 @@ kagome_install(wavm_memory)
 add_library(runtime_wavm
     core_api_factory_impl.cpp
     intrinsics/intrinsic_functions.cpp
-    intrinsics/intrinsic_module.cpp
     intrinsics/intrinsic_module_instance.cpp
     intrinsics/intrinsic_resolver_impl.cpp
     instance_environment_factory.cpp

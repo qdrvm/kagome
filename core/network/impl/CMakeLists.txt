@@ -54,6 +54,15 @@ target_link_libraries(extrinsic_observer
     logger
     )
 
+
+add_library(state_protocol_observer
+    state_protocol_observer_impl.hpp
+    state_protocol_observer_impl.cpp
+    )
+target_link_libraries(state_protocol_observer
+    logger
+    )
+
 add_library(sync_protocol_observer
     sync_protocol_observer_impl.hpp
     sync_protocol_observer_impl.cpp

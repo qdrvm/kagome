@@ -36,6 +36,16 @@ target_link_libraries(propagate_transactions_protocol
     metrics
     )
 
+
+add_library(state_protocol
+    state_protocol_impl.cpp
+    )
+target_link_libraries(state_protocol
+    logger
+    node_api_proto
+    protocol_error
+    )
+
 add_library(sync_protocol
     sync_protocol_impl.cpp
     )
@@ -53,5 +63,7 @@ add_library(protocol_factory
     protocol_factory.cpp
     )
 target_link_libraries(protocol_factory
+    state_protocol
+    sync_protocol
     logger
     )
