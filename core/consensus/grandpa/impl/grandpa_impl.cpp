@@ -340,6 +340,8 @@ namespace kagome::consensus::grandpa {
       }
     }
 
+    peer_manager_->updatePeerState(peer_id, msg);
+
     // If peer has the same voter set id
     if (msg.voter_set_id == current_round_->voterSetId()) {
       // Check if needed to catch-up peer, then do that
@@ -356,8 +358,6 @@ namespace kagome::consensus::grandpa {
     if (msg.voter_set_id < current_round_->voterSetId()) {
       return;
     }
-
-    peer_manager_->updatePeerState(peer_id, msg);
 
     if (info->last_finalized <= block_tree_->deepestLeaf().number) {
       //  Trying to substitute with justifications' request only
