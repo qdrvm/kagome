@@ -12,6 +12,7 @@
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
+#include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_configuration.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
@@ -48,7 +49,9 @@ namespace kagome::network {
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine,
-        std::shared_ptr<PeerManager> peer_manager);
+        std::shared_ptr<PeerManager> peer_manager,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler
+    );
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -94,6 +97,9 @@ namespace kagome::network {
         const int &msg,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
+    static constexpr std::chrono::milliseconds kRecentnessDuration =
+        std::chrono::seconds(300);
+
     libp2p::Host &host_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     const application::AppConfiguration &app_config_;
@@ -101,7 +107,12 @@ namespace kagome::network {
     const OwnPeerInfo &own_info_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<PeerManager> peer_manager_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     const libp2p::peer::Protocol protocol_;
+
+    std::set<std::tuple<libp2p::peer::PeerId, CatchUpRequest::Fingerprint>>
+        recent_catchup_requests_;
+
     log::Logger log_ = log::createLogger("GrandpaProtocol", "grandpa_protocol");
   };
 

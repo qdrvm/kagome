@@ -26,14 +26,16 @@ namespace kagome::network {
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
       const OwnPeerInfo &own_info,
       std::shared_ptr<StreamEngine> stream_engine,
-      std::shared_ptr<PeerManager> peer_manager)
+      std::shared_ptr<PeerManager> peer_manager,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : host_(host),
         io_context_(std::move(io_context)),
         app_config_(app_config),
         grandpa_observer_(std::move(grandpa_observer)),
         own_info_(own_info),
         stream_engine_(std::move(stream_engine)),
-        peer_manager_(std::move(peer_manager)) {
+        peer_manager_(std::move(peer_manager)),
+        scheduler_(std::move(scheduler)) {
     const_cast<Protocol &>(protocol_) = kGrandpaProtocol;
   }
 
@@ -560,7 +562,7 @@ namespace kagome::network {
       return;
     }
 
-    /// Impolite to send a catch up request to a peer in a new different Set ID.
+    // Impolite to send a catch up request to a peer in a new different Set ID.
     if (catch_up_request.voter_set_id != info.set_id) {
       SL_DEBUG(log_,
                "Catch-up-request with set_id={} in round={} "
@@ -571,8 +573,8 @@ namespace kagome::network {
       return;
     }
 
-    /// It is impolite to send a catch up request for a round `R` to a peer
-    /// whose announced view is behind `R`.
+    // It is impolite to send a catch-up request for a round `R` to a peer
+    // whose announced view is behind `R`.
     if (catch_up_request.round_number < info.round_number.value() - 1) {
       SL_DEBUG(log_,
                "Catch-up-request with set_id={} in round={} "
@@ -582,6 +584,29 @@ namespace kagome::network {
                peer_id);
       return;
     }
+
+    auto fingerprint = 0;//catch_up_request.fingerprint();
+    auto [_, ok] = recent_catchup_requests_.emplace(peer_id, fingerprint);
+
+    // It is impolite to replay a catch-up request
+    if (not ok) {
+      SL_DEBUG(log_,
+               "Catch-up-request with set_id={} in round={} "
+               "has not been sent to {}: impolite to replay catch-up request",
+               catch_up_request.voter_set_id,
+               catch_up_request.round_number,
+               peer_id);
+      return;
+    }
+
+    scheduler_->schedule(
+        [wp = weak_from_this(), peer_id, fingerprint] {
+          if (auto self = wp.lock()) {
+            self->recent_catchup_requests_.erase(
+                std::tuple(peer_id, fingerprint));
+          }
+        },
+        kRecentnessDuration);
 
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);

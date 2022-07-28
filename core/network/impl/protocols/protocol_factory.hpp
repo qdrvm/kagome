@@ -17,6 +17,8 @@
 #include "network/rating_repository.hpp"
 #include "primitives/event_types.hpp"
 
+#include <libp2p/basic/scheduler.hpp>
+
 namespace kagome::network {
 
   class ProtocolFactory final {
@@ -33,7 +35,8 @@ namespace kagome::network {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo,
-        std::shared_ptr<PeerRatingRepository> peer_rating_repository);
+        std::shared_ptr<PeerRatingRepository> peer_rating_repository,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
     void setBlockTree(
         const std::shared_ptr<blockchain::BlockTree> &block_tree) {
@@ -92,6 +95,7 @@ namespace kagome::network {
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         ext_event_key_repo_;
     std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::weak_ptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<consensus::babe::Babe> babe_;
