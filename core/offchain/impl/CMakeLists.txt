@@ -8,6 +8,7 @@ add_library(offchain_persistent_storage
     )
 target_link_libraries(offchain_persistent_storage
     Boost::boost
+    outcome
     )
 kagome_install(offchain_persistent_storage)
 
@@ -16,6 +17,7 @@ add_library(offchain_local_storage
     )
 target_link_libraries(offchain_local_storage
     Boost::boost
+    p2p::p2p
     )
 kagome_install(offchain_local_storage)
 
