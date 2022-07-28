@@ -131,6 +131,11 @@ namespace kagome::network {
     // Start Identify protocol
     identify_->start();
 
+    // Enqueue bootstrap nodes with permanent lifetime
+    for (const auto &bootstrap_node : bootstrap_nodes_) {
+      kademlia_->addPeer(bootstrap_node, true);
+    }
+
     // Enqueue last active peers as first peers set but with limited lifetime
     auto last_active_peers = loadLastActivePeers();
     SL_DEBUG(log_,
@@ -138,11 +143,6 @@ namespace kagome::network {
              last_active_peers.size());
     for (const auto &peer_info : last_active_peers) {
       kademlia_->addPeer(peer_info, false);
-    }
-
-    // Enqueue bootstrap nodes with permanent lifetime
-    for (const auto &bootstrap_node : bootstrap_nodes_) {
-      kademlia_->addPeer(bootstrap_node, true);
     }
 
     // Start Kademlia (processing incoming message and random walking)
