@@ -148,7 +148,7 @@ namespace kagome::network {
     // Start Kademlia (processing incoming message and random walking)
     kademlia_->start();
 
-    // Do first aligning of peers count
+    // Do first alignment of peers count
     align();
 
     return true;
