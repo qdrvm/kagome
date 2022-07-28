@@ -114,10 +114,10 @@ namespace kagome::consensus::grandpa {
                         clock,
                         scheduler) {
     BOOST_ASSERT(previous_round != nullptr);
-    BOOST_ASSERT(previous_round->finalizedBlock().has_value());
 
     previous_round_ = previous_round;
-    last_finalized_block_ = previous_round->finalizedBlock().value();
+    last_finalized_block_ = previous_round->finalizedBlock().value_or(
+        previous_round->lastFinalizedBlock());
   }
 
   VotingRoundImpl::VotingRoundImpl(
