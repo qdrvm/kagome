@@ -254,7 +254,7 @@ namespace kagome::host_api {
       runtime::WasmSpan parent_hash_data) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     // https://github.com/paritytech/substrate/pull/10080
-    return memory.storeBuffer(scale::encode(std::nullopt).value());
+    return memory.storeBuffer(scale::encode(std::optional<Buffer>()).value());
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
