@@ -54,7 +54,6 @@ namespace kagome::storage::changes_trie {
         actual_val_;
 
     primitives::BlockHash parent_hash_;
-    primitives::BlockNumber parent_number_;
     primitives::events::StorageSubscriptionEnginePtr
         storage_subscription_engine_;
     primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine_;

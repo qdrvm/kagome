@@ -26,7 +26,6 @@ namespace kagome::storage::changes_trie {
       primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine)
       : trie_factory_(std::move(trie_factory)),
         codec_(std::move(codec)),
-        parent_number_{std::numeric_limits<primitives::BlockNumber>::max()},
         storage_subscription_engine_(std::move(storage_subscription_engine)),
         chain_subscription_engine_(std::move(chain_subscription_engine)),
         logger_{log::createLogger("Storage Changes Tracker", "changes_trie")} {
@@ -38,7 +37,6 @@ namespace kagome::storage::changes_trie {
       primitives::BlockHash new_parent_hash,
       primitives::BlockNumber new_parent_number) {
     parent_hash_ = new_parent_hash;
-    parent_number_ = new_parent_number;
     // new block -- new extrinsics
     actual_val_.clear();
     new_entries_.clear();
