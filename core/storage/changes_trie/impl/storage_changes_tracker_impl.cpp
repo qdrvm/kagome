@@ -55,10 +55,11 @@ namespace kagome::storage::changes_trie {
           primitives::events::ChainEventType::kNewRuntime, hash);
     }
     for (auto &pair : actual_val_) {
-      SL_TRACE(logger_,
-               "Key: 0x{}; Value 0x{};",
-               pair.first.toHex(),
-               pair.second.toHex());
+      if (pair.second) {
+        SL_TRACE(logger_, "Key: {:l}; Value {:l};", pair.first, *pair.second);
+      } else {
+        SL_TRACE(logger_, "Key: {:l}; Removed;", pair.first);
+      }
       storage_subscription_engine_->notify(
           pair.first, pair.second, parent_hash_);
     }
@@ -71,7 +72,7 @@ namespace kagome::storage::changes_trie {
          && prefix.size() <= static_cast<ssize_t>(it->first.size())
          && it->first.view(0, prefix.size()) == prefix;
          ++it) {
-      it->second.clear();
+      it->second.reset();
     }
   }
 
@@ -101,7 +102,7 @@ namespace kagome::storage::changes_trie {
   outcome::result<void> StorageChangesTrackerImpl::onRemove(
       common::BufferView extrinsic_index, const common::BufferView &key) {
     if (auto it = actual_val_.find(key); it != actual_val_.end()) {
-      it->second.clear();
+      it->second.reset();
     }
 
     auto change_it = extrinsics_changes_.find(key);

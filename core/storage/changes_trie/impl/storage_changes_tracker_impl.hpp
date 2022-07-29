@@ -59,7 +59,8 @@ namespace kagome::storage::changes_trie {
     std::set<common::Buffer, std::less<>>
         new_entries_;  // entries that do not yet exist in
                        // the underlying storage
-    std::map<common::Buffer, common::Buffer, std::less<>> actual_val_;
+    std::map<common::Buffer, std::optional<common::Buffer>, std::less<>>
+        actual_val_;
 
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
