@@ -36,33 +36,6 @@ namespace kagome::primitives {
   /// trie creation.
   struct ChangesTrieRoot : public common::Hash256 {};
 
-  // TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
-  // after gtest update use `data` type directly
-  struct ChangesTrieSignal {
-    boost::variant<std::optional<storage::changes_trie::ChangesTrieConfig>>
-        data;
-
-    bool operator==(const ChangesTrieSignal &rhs) const {
-      return data == rhs.data;
-    }
-
-    bool operator!=(const ChangesTrieSignal &rhs) const {
-      return !operator==(rhs);
-    }
-  };
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const ChangesTrieSignal &sig) {
-    return s << sig.data;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, ChangesTrieSignal &sig) {
-    return s >> sig.data;
-  }
-
   struct Other : public common::Buffer {};
 
   namespace detail {
@@ -225,7 +198,7 @@ namespace kagome::primitives {
                                     Consensus,                   // 4
                                     Seal,                        // 5
                                     PreRuntime,                  // 6
-                                    ChangesTrieSignal,           // 7
+                                    Unused<7>,                   // 7
                                     RuntimeEnvironmentUpdated>;  // 8
 
   /**
