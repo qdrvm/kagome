@@ -19,19 +19,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
 namespace kagome::storage::changes_trie {
 
   StorageChangesTrackerImpl::StorageChangesTrackerImpl(
-      std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
-      std::shared_ptr<storage::trie::Codec> codec,
       primitives::events::StorageSubscriptionEnginePtr
           storage_subscription_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine)
-      : trie_factory_(std::move(trie_factory)),
-        codec_(std::move(codec)),
-        storage_subscription_engine_(std::move(storage_subscription_engine)),
+      : storage_subscription_engine_(std::move(storage_subscription_engine)),
         chain_subscription_engine_(std::move(chain_subscription_engine)),
-        logger_{log::createLogger("Storage Changes Tracker", "changes_trie")} {
-    BOOST_ASSERT(trie_factory_ != nullptr);
-    BOOST_ASSERT(codec_ != nullptr);
-  }
+        logger_{log::createLogger("Storage Changes Tracker", "changes_trie")} {}
 
   outcome::result<void> StorageChangesTrackerImpl::onBlockExecutionStart(
       primitives::BlockHash new_parent_hash,

@@ -6,24 +6,16 @@
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
 
-namespace kagome::storage::trie {
-  class Codec;
-  class PolkadotTrieFactory;
-}  // namespace kagome::storage::trie
-
 namespace kagome::storage::changes_trie {
 
   class StorageChangesTrackerImpl : public ChangesTracker {
    public:
     enum class Error { INVALID_PARENT_HASH };
 
-    StorageChangesTrackerImpl(
-        std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
-        std::shared_ptr<storage::trie::Codec> codec,
-        primitives::events::StorageSubscriptionEnginePtr
-            storage_subscription_engine,
-        primitives::events::ChainSubscriptionEnginePtr
-            chain_subscription_engine);
+    StorageChangesTrackerImpl(primitives::events::StorageSubscriptionEnginePtr
+                                  storage_subscription_engine,
+                              primitives::events::ChainSubscriptionEnginePtr
+                                  chain_subscription_engine);
 
     /**
      * Functor that returns the current extrinsic index, which is supposed to
@@ -44,9 +36,6 @@ namespace kagome::storage::changes_trie {
                                    const common::BufferView &key) override;
 
    private:
-    std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory_;
-    std::shared_ptr<storage::trie::Codec> codec_;
-
     std::set<common::Buffer, std::less<>>
         new_entries_;  // entries that do not yet exist in
                        // the underlying storage
