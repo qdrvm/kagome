@@ -22,8 +22,6 @@
 using kagome::common::Buffer;
 
 namespace {
-  const auto CHANGES_CONFIG_KEY = kagome::common::Buffer{}.put(":changes_trie");
-
   [[nodiscard]] kagome::storage::trie::StateVersion toStateVersion(
       kagome::runtime::WasmI32 state_version_int) {
     if (state_version_int == 0) {
@@ -254,20 +252,9 @@ namespace kagome::host_api {
 
   runtime::WasmSpan StorageExtension::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash_data) {
-    auto parent_hash_span = runtime::PtrSize(parent_hash_data);
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto parent_hash_bytes =
-        memory.loadN(parent_hash_span.ptr, parent_hash_span.size);
-    common::Hash256 parent_hash;
-    std::copy_n(parent_hash_bytes.begin(),
-                common::Hash256::size(),
-                parent_hash.begin());
-
-    auto &&result = calcStorageChangesRoot(parent_hash);
-    auto &&res = result.has_value()
-                     ? std::make_optional(std::move(result.value()))
-                     : std::nullopt;
-    return memory.storeBuffer(scale::encode(std::move(res)).value());
+    // https://github.com/paritytech/substrate/pull/10080
+    return memory.storeBuffer(scale::encode(std::nullopt).value());
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
@@ -450,47 +437,6 @@ namespace kagome::host_api {
     SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());
     auto res = memory.storeBuffer(ordered_hash.value());
     return runtime::PtrSize(res).ptr;
-  }
-
-  std::optional<common::Buffer> StorageExtension::calcStorageChangesRoot(
-      common::Hash256 parent_hash) const {
-    if (not storage_provider_->tryGetPersistentBatch()) {
-      logger_->error("ext_storage_changes_root persistent batch not found");
-      return std::nullopt;
-    }
-    auto batch = storage_provider_->tryGetPersistentBatch().value();
-    auto config_bytes_res = batch->tryGet(CHANGES_CONFIG_KEY);
-    if (config_bytes_res.has_error()) {
-      logger_->error("ext_storage_changes_root resulted with an error: {}",
-                     config_bytes_res.error().message());
-      throw std::runtime_error(config_bytes_res.error().message());
-    }
-    if (config_bytes_res.value() == std::nullopt) {
-      return std::nullopt;
-    }
-    auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
-        config_bytes_res.value().value().get());
-    if (config_res.has_error()) {
-      logger_->error("ext_storage_changes_root resulted with an error: {}",
-                     config_res.error().message());
-      throw std::runtime_error(config_res.error().message());
-    }
-    storage::changes_trie::ChangesTrieConfig trie_config = config_res.value();
-
-    SL_DEBUG(logger_,
-             "ext_storage_changes_root constructing changes trie with "
-             "parent_hash: {}",
-             parent_hash.toHex());
-    auto trie_hash_res =
-        changes_tracker_->constructChangesTrie(parent_hash, trie_config);
-    if (trie_hash_res.has_error()) {
-      logger_->error("ext_storage_changes_root resulted with an error: {}",
-                     trie_hash_res.error().message());
-      throw std::runtime_error(trie_hash_res.error().message());
-    }
-    common::Buffer result_buf(trie_hash_res.value());
-    SL_TRACE_FUNC_CALL(logger_, result_buf, parent_hash);
-    return result_buf;
   }
 
   runtime::WasmSpan StorageExtension::clearPrefix(
