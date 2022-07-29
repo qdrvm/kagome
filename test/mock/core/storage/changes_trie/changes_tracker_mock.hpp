@@ -16,8 +16,7 @@ namespace kagome::storage::changes_trie {
    public:
     MOCK_METHOD(outcome::result<void>,
                 onBlockExecutionStart,
-                (primitives::BlockHash new_parent_hash,
-                 primitives::BlockNumber new_parent_number),
+                (primitives::BlockHash new_parent_hash),
                 (override));
 
     MOCK_METHOD(void,

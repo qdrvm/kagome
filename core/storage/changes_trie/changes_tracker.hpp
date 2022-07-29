@@ -20,8 +20,7 @@ namespace kagome::storage::changes_trie {
      * Supposed to be called when a block execution starts
      */
     virtual outcome::result<void> onBlockExecutionStart(
-        primitives::BlockHash new_parent_hash,
-        primitives::BlockNumber new_parent_number) = 0;
+        primitives::BlockHash new_parent_hash) = 0;
 
     /**
      * Supposed to be called when an entry is put into the tracked storage

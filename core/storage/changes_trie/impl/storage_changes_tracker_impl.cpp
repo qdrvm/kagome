@@ -25,8 +25,7 @@ namespace kagome::storage::changes_trie {
         logger_{log::createLogger("Storage Changes Tracker", "changes_trie")} {}
 
   outcome::result<void> StorageChangesTrackerImpl::onBlockExecutionStart(
-      primitives::BlockHash new_parent_hash,
-      primitives::BlockNumber new_parent_number) {
+      primitives::BlockHash new_parent_hash) {
     parent_hash_ = new_parent_hash;
     // new block -- new extrinsics
     actual_val_.clear();
