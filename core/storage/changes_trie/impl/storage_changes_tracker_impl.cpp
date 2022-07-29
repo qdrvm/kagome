@@ -2,18 +2,6 @@
 
 #include "storage/predefined_keys.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
-                            StorageChangesTrackerImpl::Error,
-                            e) {
-  using E = kagome::storage::changes_trie::StorageChangesTrackerImpl::Error;
-  switch (e) {
-    case E::INVALID_PARENT_HASH:
-      return "The supplied parent hash doesn't match the one of the current "
-             "block";
-  }
-  return "Unknown error";
-}
-
 namespace kagome::storage::changes_trie {
 
   StorageChangesTrackerImpl::StorageChangesTrackerImpl(

@@ -10,8 +10,6 @@ namespace kagome::storage::changes_trie {
 
   class StorageChangesTrackerImpl : public ChangesTracker {
    public:
-    enum class Error { INVALID_PARENT_HASH };
-
     StorageChangesTrackerImpl(primitives::events::StorageSubscriptionEnginePtr
                                   storage_subscription_engine,
                               primitives::events::ChainSubscriptionEnginePtr
@@ -43,8 +41,5 @@ namespace kagome::storage::changes_trie {
   };
 
 }  // namespace kagome::storage::changes_trie
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::changes_trie,
-                          StorageChangesTrackerImpl::Error);
 
 #endif  // KAGOME_STORAGE_CHANGES_TRIE_STORAGE_CHANGES_TRACKER_IMPL
