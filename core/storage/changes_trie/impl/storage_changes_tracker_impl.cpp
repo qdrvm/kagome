@@ -2,7 +2,6 @@
 
 #include "runtime/common/storage_code_provider.hpp"
 #include "scale/scale.hpp"
-#include "storage/changes_trie/impl/changes_trie.hpp"
 #include "storage/predefined_keys.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
