@@ -68,7 +68,7 @@ TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
   auto block = createBlock("block_hash"_hash256, 42);
   EXPECT_CALL(*changes_tracker_,
               onBlockExecutionStart(block.header.parent_hash))
-      .WillOnce(Return(outcome::success()));
+      .WillOnce(Return());
 
   ASSERT_TRUE(core_->execute_block(block));
 }
@@ -81,7 +81,7 @@ TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
 TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
   auto header = createBlockHeader("block_hash"_hash256, 42);
   EXPECT_CALL(*changes_tracker_, onBlockExecutionStart(header.parent_hash))
-      .WillOnce(Return(outcome::success()));
+      .WillOnce(Return());
 
   ASSERT_TRUE(core_->initialize_block(header));
 }

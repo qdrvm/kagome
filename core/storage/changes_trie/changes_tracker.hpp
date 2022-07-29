@@ -19,7 +19,7 @@ namespace kagome::storage::changes_trie {
     /**
      * Supposed to be called when a block execution starts
      */
-    virtual outcome::result<void> onBlockExecutionStart(
+    virtual void onBlockExecutionStart(
         primitives::BlockHash new_parent_hash) = 0;
 
     /**

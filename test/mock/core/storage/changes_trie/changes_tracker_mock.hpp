@@ -14,7 +14,7 @@ namespace kagome::storage::changes_trie {
 
   class ChangesTrackerMock : public ChangesTracker {
    public:
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 onBlockExecutionStart,
                 (primitives::BlockHash new_parent_hash),
                 (override));

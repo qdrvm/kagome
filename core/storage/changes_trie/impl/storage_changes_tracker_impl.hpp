@@ -17,8 +17,7 @@ namespace kagome::storage::changes_trie {
 
     ~StorageChangesTrackerImpl() override = default;
 
-    outcome::result<void> onBlockExecutionStart(
-        primitives::BlockHash new_parent_hash) override;
+    void onBlockExecutionStart(primitives::BlockHash new_parent_hash) override;
 
     void onPut(const common::BufferView &key,
                const common::BufferView &value,

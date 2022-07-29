@@ -12,13 +12,12 @@ namespace kagome::storage::changes_trie {
         chain_subscription_engine_(std::move(chain_subscription_engine)),
         logger_{log::createLogger("Storage Changes Tracker", "changes_trie")} {}
 
-  outcome::result<void> StorageChangesTrackerImpl::onBlockExecutionStart(
+  void StorageChangesTrackerImpl::onBlockExecutionStart(
       primitives::BlockHash new_parent_hash) {
     parent_hash_ = new_parent_hash;
     // new block -- new extrinsics
     actual_val_.clear();
     new_entries_.clear();
-    return outcome::success();
   }
 
   void StorageChangesTrackerImpl::onBlockAdded(
