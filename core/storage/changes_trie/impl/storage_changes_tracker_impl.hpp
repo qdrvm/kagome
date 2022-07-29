@@ -47,10 +47,6 @@ namespace kagome::storage::changes_trie {
     std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<storage::trie::Codec> codec_;
 
-    std::map<common::Buffer,
-             std::vector<primitives::ExtrinsicIndex>,
-             std::less<>>
-        extrinsics_changes_;
     std::set<common::Buffer, std::less<>>
         new_entries_;  // entries that do not yet exist in
                        // the underlying storage

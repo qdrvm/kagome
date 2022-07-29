@@ -41,8 +41,6 @@ namespace kagome::storage::changes_trie {
     parent_number_ = new_parent_number;
     // new block -- new extrinsics
     actual_val_.clear();
-
-    extrinsics_changes_.clear();
     new_entries_.clear();
     return outcome::success();
   }
@@ -69,48 +67,26 @@ namespace kagome::storage::changes_trie {
       const common::BufferView &key,
       const common::BufferView &value,
       bool is_new_entry) {
-    auto change_it = extrinsics_changes_.find(key);
-    OUTCOME_TRY(idx,
-                scale::decode<primitives::ExtrinsicIndex>(extrinsic_index));
-
-    // if key was already changed in the same block, just add extrinsic to
-    // the changers list
-    if (change_it != extrinsics_changes_.end()) {
-      change_it->second.push_back(idx);
+    auto it = actual_val_.find(key);
+    if (it != actual_val_.end()) {
+      it->second.emplace(value);
     } else {
-      extrinsics_changes_.insert(std::make_pair(key, std::vector{idx}));
+      actual_val_.emplace(key, value);
       if (is_new_entry) {
         new_entries_.insert(common::Buffer{key});
       }
     }
-    actual_val_.insert_or_assign(common::Buffer{key}, common::Buffer{value});
     return outcome::success();
   }
 
   outcome::result<void> StorageChangesTrackerImpl::onRemove(
       common::BufferView extrinsic_index, const common::BufferView &key) {
     if (auto it = actual_val_.find(key); it != actual_val_.end()) {
-      it->second.reset();
-    }
-
-    auto change_it = extrinsics_changes_.find(key);
-    OUTCOME_TRY(idx,
-                scale::decode<primitives::ExtrinsicIndex>(extrinsic_index));
-
-    // if key was already changed in the same block, just add extrinsic to
-    // the changers list
-    if (change_it != extrinsics_changes_.end()) {
-      // if new entry, i.e. it doesn't exist in the persistent storage, then
-      // don't track it, because it's just temporary
-      if (auto i = new_entries_.find(key); i != new_entries_.end()) {
-        extrinsics_changes_.erase(change_it);
-        new_entries_.erase(i);
+      if (new_entries_.erase(it->first) != 0) {
+        actual_val_.erase(it);
       } else {
-        change_it->second.push_back(idx);
+        it->second.reset();
       }
-
-    } else {
-      extrinsics_changes_.insert(std::make_pair(key, std::vector{idx}));
     }
     return outcome::success();
   }
