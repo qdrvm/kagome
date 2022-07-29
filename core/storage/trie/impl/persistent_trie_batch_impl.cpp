@@ -103,7 +103,6 @@ namespace kagome::storage::trie {
   outcome::result<std::tuple<bool, uint32_t>>
   PersistentTrieBatchImpl::clearPrefix(const BufferView &prefix,
                                        std::optional<uint64_t> limit) {
-    if (changes_.has_value()) changes_.value()->onClearPrefix(prefix);
     SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
     OUTCOME_TRY(ext_idx, getExtrinsicIndex());
     return trie_->clearPrefix(

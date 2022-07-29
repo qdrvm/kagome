@@ -41,11 +41,6 @@ namespace kagome::storage::changes_trie {
     virtual void onBlockAdded(const primitives::BlockHash &hash) = 0;
 
     /**
-     * Supposed to be called when clear by prefix called.
-     */
-    virtual void onClearPrefix(const common::BufferView &prefix) = 0;
-
-    /**
      * Supposed to be called when an entry is removed from the tracked storage
      */
     virtual outcome::result<void> onRemove(common::BufferView extrinsic_index,

@@ -40,7 +40,6 @@ namespace kagome::storage::changes_trie {
                                 const common::BufferView &value,
                                 bool new_entry) override;
     void onBlockAdded(const primitives::BlockHash &hash) override;
-    void onClearPrefix(const common::BufferView &prefix) override;
     outcome::result<void> onRemove(common::BufferView extrinsic_index,
                                    const common::BufferView &key) override;
 

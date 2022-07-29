@@ -65,17 +65,6 @@ namespace kagome::storage::changes_trie {
     }
   }
 
-  void StorageChangesTrackerImpl::onClearPrefix(
-      const common::BufferView &prefix) {
-    for (auto it = actual_val_.lower_bound(prefix);
-         it != actual_val_.end()
-         && prefix.size() <= static_cast<ssize_t>(it->first.size())
-         && it->first.view(0, prefix.size()) == prefix;
-         ++it) {
-      it->second.reset();
-    }
-  }
-
   outcome::result<void> StorageChangesTrackerImpl::onPut(
       common::BufferView extrinsic_index,
       const common::BufferView &key,

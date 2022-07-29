@@ -29,8 +29,6 @@ namespace kagome::storage::changes_trie {
                 (const primitives::BlockHash &block_hash),
                 (override));
 
-    MOCK_METHOD(void, onClearPrefix, (const common::BufferView &), (override));
-
     MOCK_METHOD(outcome::result<void>,
                 onPut,
                 (common::BufferView ext_idx,
