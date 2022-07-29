@@ -31,11 +31,6 @@ namespace kagome::primitives {
   inline const auto kUnsupportedEngineId_BEEF =
       ConsensusEngineId::fromString("BEEF").value();
 
-  /// System digest item that contains the root of changes trie at given
-  /// block. It is created for every block iff runtime supports changes
-  /// trie creation.
-  struct ChangesTrieRoot : public common::Hash256 {};
-
   struct Other : public common::Buffer {};
 
   namespace detail {
@@ -193,7 +188,7 @@ namespace kagome::primitives {
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.12/primitives/runtime/src/generic/digest.rs#L272
   using DigestItem = boost::variant<Other,                       // 0
                                     Unused<1>,                   // 1
-                                    ChangesTrieRoot,             // 2
+                                    Unused<2>,                   // 2
                                     Unused<3>,                   // 3
                                     Consensus,                   // 4
                                     Seal,                        // 5
