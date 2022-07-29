@@ -4,7 +4,6 @@
 #include "common/buffer.hpp"
 #include "primitives/common.hpp"
 #include "primitives/extrinsic.hpp"
-#include "storage/changes_trie/changes_trie_config.hpp"
 
 namespace kagome::storage::changes_trie {
 

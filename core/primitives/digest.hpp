@@ -13,7 +13,6 @@
 #include "common/unused.hpp"
 #include "primitives/scheduled_change.hpp"
 #include "scale/scale.hpp"
-#include "storage/changes_trie/changes_trie_config.hpp"
 
 namespace kagome::primitives {
   /// Consensus engine unique ID.
