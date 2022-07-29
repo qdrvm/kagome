@@ -1,7 +1,5 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 
-#include "runtime/common/storage_code_provider.hpp"
-#include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
@@ -53,11 +51,9 @@ namespace kagome::storage::changes_trie {
     }
   }
 
-  outcome::result<void> StorageChangesTrackerImpl::onPut(
-      common::BufferView extrinsic_index,
-      const common::BufferView &key,
-      const common::BufferView &value,
-      bool is_new_entry) {
+  void StorageChangesTrackerImpl::onPut(const common::BufferView &key,
+                                        const common::BufferView &value,
+                                        bool is_new_entry) {
     auto it = actual_val_.find(key);
     if (it != actual_val_.end()) {
       it->second.emplace(value);
@@ -67,11 +63,9 @@ namespace kagome::storage::changes_trie {
         new_entries_.insert(common::Buffer{key});
       }
     }
-    return outcome::success();
   }
 
-  outcome::result<void> StorageChangesTrackerImpl::onRemove(
-      common::BufferView extrinsic_index, const common::BufferView &key) {
+  void StorageChangesTrackerImpl::onRemove(const common::BufferView &key) {
     if (auto it = actual_val_.find(key); it != actual_val_.end()) {
       if (new_entries_.erase(it->first) != 0) {
         actual_val_.erase(it);
@@ -79,6 +73,5 @@ namespace kagome::storage::changes_trie {
         it->second.reset();
       }
     }
-    return outcome::success();
   }
 }  // namespace kagome::storage::changes_trie

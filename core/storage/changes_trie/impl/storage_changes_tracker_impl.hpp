@@ -17,23 +17,17 @@ namespace kagome::storage::changes_trie {
                               primitives::events::ChainSubscriptionEnginePtr
                                   chain_subscription_engine);
 
-    /**
-     * Functor that returns the current extrinsic index, which is supposed to
-     * be stored in the state trie
-     */
     ~StorageChangesTrackerImpl() override = default;
 
     outcome::result<void> onBlockExecutionStart(
         primitives::BlockHash new_parent_hash,
         primitives::BlockNumber new_parent_number) override;
 
-    outcome::result<void> onPut(common::BufferView extrinsic_index,
-                                const common::BufferView &key,
-                                const common::BufferView &value,
-                                bool new_entry) override;
+    void onPut(const common::BufferView &key,
+               const common::BufferView &value,
+               bool new_entry) override;
     void onBlockAdded(const primitives::BlockHash &hash) override;
-    outcome::result<void> onRemove(common::BufferView extrinsic_index,
-                                   const common::BufferView &key) override;
+    void onRemove(const common::BufferView &key) override;
 
    private:
     std::set<common::Buffer, std::less<>>

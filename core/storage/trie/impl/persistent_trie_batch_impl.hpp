@@ -54,9 +54,6 @@ namespace kagome::storage::trie {
         std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
         std::shared_ptr<PolkadotTrie> trie);
 
-    // retrieves the current extrinsic index from the storage
-    outcome::result<common::BufferConstRef> getExtrinsicIndex() const;
-
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
