@@ -79,7 +79,5 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
   auto repo = std::make_shared<BlockHeaderRepositoryMock>();
   EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(42));
 
-  EXPECT_OUTCOME_TRUE_1(
-      changes_tracker->constructChangesTrie("aaa"_hash256, {}));
   // THEN SUCCESS
 }

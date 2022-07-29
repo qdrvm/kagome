@@ -115,18 +115,4 @@ namespace kagome::storage::changes_trie {
     }
     return outcome::success();
   }
-
-  outcome::result<common::Hash256>
-  StorageChangesTrackerImpl::constructChangesTrie(
-      const primitives::BlockHash &parent, const ChangesTrieConfig &conf) {
-    if (parent != parent_hash_) {
-      return Error::INVALID_PARENT_HASH;
-    }
-    OUTCOME_TRY(
-        trie,
-        ChangesTrie::buildFromChanges(
-            parent_number_, trie_factory_, codec_, extrinsics_changes_, conf));
-    return trie->getHash();
-  }
-
 }  // namespace kagome::storage::changes_trie

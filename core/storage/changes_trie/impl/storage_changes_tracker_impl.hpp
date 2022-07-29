@@ -43,10 +43,6 @@ namespace kagome::storage::changes_trie {
     outcome::result<void> onRemove(common::BufferView extrinsic_index,
                                    const common::BufferView &key) override;
 
-    outcome::result<common::Hash256> constructChangesTrie(
-        const primitives::BlockHash &parent,
-        const ChangesTrieConfig &conf) override;
-
    private:
     std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<storage::trie::Codec> codec_;

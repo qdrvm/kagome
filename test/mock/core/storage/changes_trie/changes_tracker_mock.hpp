@@ -41,12 +41,6 @@ namespace kagome::storage::changes_trie {
                 onRemove,
                 (common::BufferView ext_idx, const common::BufferView &key),
                 (override));
-
-    MOCK_METHOD(outcome::result<common::Hash256>,
-                constructChangesTrie,
-                (const primitives::BlockHash &parent,
-                 const ChangesTrieConfig &conf),
-                (override));
   };
 
 }  // namespace kagome::storage::changes_trie

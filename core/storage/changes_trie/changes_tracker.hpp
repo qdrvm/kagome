@@ -45,13 +45,6 @@ namespace kagome::storage::changes_trie {
      */
     virtual outcome::result<void> onRemove(common::BufferView extrinsic_index,
                                            const common::BufferView &key) = 0;
-
-    /**
-     * Sinks accumulated changes for the latest registered block to the changes
-     * trie and returns its root hash
-     */
-    virtual outcome::result<common::Hash256> constructChangesTrie(
-        const primitives::BlockHash &parent, const ChangesTrieConfig &conf) = 0;
   };
 
 }  // namespace kagome::storage::changes_trie
