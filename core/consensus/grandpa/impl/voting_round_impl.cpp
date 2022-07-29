@@ -1229,7 +1229,9 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    BOOST_ASSERT(prevote_ghost_.has_value());
+    if (not prevote_ghost_) {
+      return false;
+    }
     const auto &prevote_ghost = prevote_ghost_.value();
 
     // anything new finalized? finalized blocks are those which have both
