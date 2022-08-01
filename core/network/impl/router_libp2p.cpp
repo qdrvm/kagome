@@ -46,7 +46,8 @@ namespace kagome::network {
                              [wp = weak_from_this()](auto &&stream) {
                                if (auto self = wp.lock()) {
                                  if (auto peer_id = stream->remotePeerId()) {
-                                   self->log_->info(
+                                   SL_TRACE(
+                                       self->log_,
                                        "Handled {} protocol stream from: {}",
                                        self->ping_protocol_->getProtocolId(),
                                        peer_id.value().toBase58());
