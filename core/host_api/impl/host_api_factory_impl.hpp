@@ -16,7 +16,6 @@
 #include "crypto/secp256k1_provider.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "host_api/impl/offchain_extension.hpp"
-#include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::offchain {
   class OffchainPersistentStorage;
@@ -31,7 +30,6 @@ namespace kagome::host_api {
 
     HostApiFactoryImpl(
         const OffchainExtensionConfig &offchain_config,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
         std::shared_ptr<crypto::EcdsaProvider> ecdsa_provider,
         std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
@@ -51,7 +49,6 @@ namespace kagome::host_api {
 
    private:
     OffchainExtensionConfig offchain_config_;
-    std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_provider_;
     std::shared_ptr<crypto::Ed25519Provider> ed25519_provider_;

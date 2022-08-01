@@ -40,15 +40,12 @@ namespace {
 namespace kagome::host_api {
   StorageExtension::StorageExtension(
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-      std::shared_ptr<const runtime::MemoryProvider> memory_provider,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
+      std::shared_ptr<const runtime::MemoryProvider> memory_provider)
       : storage_provider_(std::move(storage_provider)),
         memory_provider_(std::move(memory_provider)),
-        changes_tracker_{std::move(changes_tracker)},
         logger_{log::createLogger("StorageExtension", "storage_extension")} {
     BOOST_ASSERT_MSG(storage_provider_ != nullptr, "storage batch is nullptr");
     BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
-    BOOST_ASSERT_MSG(changes_tracker_ != nullptr, "changes tracker is nullptr");
   }
 
   void StorageExtension::reset() {

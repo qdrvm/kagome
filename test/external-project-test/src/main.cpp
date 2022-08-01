@@ -182,7 +182,6 @@ int main() {
   auto host_api_factory =
       std::make_shared<kagome::host_api::HostApiFactoryImpl>(
           kagome::host_api::OffchainExtensionConfig{},
-          changes_tracker,
           sr25519_provider,
           ecdsa_provider,
           ed25519_provider,

@@ -14,7 +14,6 @@
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/ptr_size.hpp"
@@ -38,7 +37,6 @@ using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::PersistentTrieBatchMock;
 using kagome::storage::trie::PolkadotCodec;
@@ -71,9 +69,8 @@ class StorageExtensionTest : public ::testing::Test {
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
         .WillRepeatedly(
             Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
-    changes_tracker_ = std::make_shared<ChangesTrackerMock>();
-    storage_extension_ = std::make_shared<StorageExtension>(
-        storage_provider_, memory_provider_, changes_tracker_);
+    storage_extension_ =
+        std::make_shared<StorageExtension>(storage_provider_, memory_provider_);
   }
 
  protected:
@@ -82,7 +79,6 @@ class StorageExtensionTest : public ::testing::Test {
   std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<StorageExtension> storage_extension_;
-  std::shared_ptr<ChangesTrackerMock> changes_tracker_;
   PolkadotCodec codec_;
 
   constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
