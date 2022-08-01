@@ -10,9 +10,9 @@
 
 #include <memory>
 
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
-#include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_configuration.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
@@ -50,8 +50,7 @@ namespace kagome::network {
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<PeerManager> peer_manager,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler
-    );
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -97,6 +96,9 @@ namespace kagome::network {
         const int &msg,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
+    /// Node should send catch-up requests rarely to be polite, because
+    /// processing of them consume more enough resources.
+    /// How long replying outgoing catch-up requests must be suppressed
     static constexpr std::chrono::milliseconds kRecentnessDuration =
         std::chrono::seconds(300);
 
