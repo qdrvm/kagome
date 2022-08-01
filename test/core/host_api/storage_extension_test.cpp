@@ -14,12 +14,10 @@
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
-#include "storage/changes_trie/changes_trie_config.hpp"
 #include "storage/predefined_keys.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -39,7 +37,6 @@ using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::PersistentTrieBatchMock;
 using kagome::storage::trie::PolkadotCodec;
@@ -72,9 +69,8 @@ class StorageExtensionTest : public ::testing::Test {
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
         .WillRepeatedly(
             Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
-    changes_tracker_ = std::make_shared<ChangesTrackerMock>();
-    storage_extension_ = std::make_shared<StorageExtension>(
-        storage_provider_, memory_provider_, changes_tracker_);
+    storage_extension_ =
+        std::make_shared<StorageExtension>(storage_provider_, memory_provider_);
   }
 
  protected:
@@ -83,7 +79,6 @@ class StorageExtensionTest : public ::testing::Test {
   std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<StorageExtension> storage_extension_;
-  std::shared_ptr<ChangesTrackerMock> changes_tracker_;
   PolkadotCodec codec_;
 
   constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
@@ -703,73 +698,4 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
 
   ASSERT_EQ(result,
             storage_extension_->ext_trie_blake2_256_root_version_1(dict_data));
-}
-
-/**
- * @given no :changes_trie key (which sets the changes trie config) in storage
- * @when calling ext_storage_changes_root_version_1
- * @then none is returned, changes trie is empty
- */
-TEST_F(StorageExtensionTest, ChangesRootEmpty) {
-  auto parent_hash = "123456"_hash256;
-  Buffer parent_hash_buf{gsl::span(parent_hash.data(), parent_hash.size())};
-  PtrSize parent_root_ptr{1, Hash256::size()};
-  EXPECT_CALL(*memory_, loadN(parent_root_ptr.ptr, Hash256::size()))
-      .WillOnce(Return(parent_hash_buf));
-
-  auto changes_trie_buf = kagome::common::Buffer{}.put(":changes_trie");
-  EXPECT_CALL(*trie_batch_, tryGet(changes_trie_buf.view()))
-      .WillOnce(Return(std::nullopt));
-
-  WasmPointer result = 1984;
-  Buffer none_bytes{0};
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(none_bytes)))
-      .WillOnce(Return(result));
-
-  auto res = storage_extension_->ext_storage_changes_root_version_1(
-      parent_root_ptr.combine());
-  ASSERT_EQ(res, result);
-}
-
-MATCHER_P(configsAreEqual, n, "") {
-  return (arg.digest_interval == n.digest_interval)
-         and (arg.digest_levels == n.digest_levels);
-}
-
-/**
- * @given existing :changes_trie key (which sets the changes trie config) in
- * storage and there are accumulated changes
- * @when calling ext_storage_changes_root_version_1
- * @then a valid trie root is returned
- */
-TEST_F(StorageExtensionTest, ChangesRootNotEmpty) {
-  auto parent_hash = "123456"_hash256;
-  Buffer parent_hash_buf{gsl::span(parent_hash.data(), parent_hash.size())};
-  PtrSize parent_root_ptr{1, Hash256::size()};
-  EXPECT_CALL(*memory_, loadN(parent_root_ptr.ptr, Hash256::size()))
-      .WillOnce(Return(parent_hash_buf));
-
-  kagome::storage::changes_trie::ChangesTrieConfig config{.digest_interval = 0,
-                                                          .digest_levels = 0};
-  auto changes_trie_buf = kagome::common::Buffer{}.put(":changes_trie");
-  EXPECT_CALL(*trie_batch_, tryGet(changes_trie_buf.view()))
-      .WillOnce(Return(Buffer(scale::encode(config).value())));
-
-  auto trie_hash = "deadbeef"_hash256;
-  auto enc_trie_hash =
-      scale::encode(
-          std::make_optional((gsl::span(trie_hash.data(), Hash256::size()))))
-          .value();
-  EXPECT_CALL(*changes_tracker_,
-              constructChangesTrie(parent_hash, configsAreEqual(config)))
-      .WillOnce(Return(trie_hash));
-
-  WasmPointer result = 1984;
-  Buffer none_bytes{0};
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(enc_trie_hash)))
-      .WillOnce(Return(result));
-
-  auto res = storage_extension_->ext_storage_changes_root_version_1(
-      parent_root_ptr.combine());
-  ASSERT_EQ(res, result);
 }

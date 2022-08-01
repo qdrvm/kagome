@@ -19,7 +19,6 @@
 #include "offchain/types.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
-#include "storage/changes_trie/changes_trie_config.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"

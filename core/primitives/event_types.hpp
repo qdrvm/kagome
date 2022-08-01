@@ -216,7 +216,7 @@ namespace kagome::primitives::events {
   using StorageSubscriptionEngine =
       subscription::SubscriptionEngine<common::Buffer,
                                        std::shared_ptr<api::Session>,
-                                       common::Buffer,
+                                       std::optional<common::Buffer>,
                                        primitives::BlockHash>;
   using StorageSubscriptionEnginePtr =
       std::shared_ptr<StorageSubscriptionEngine>;
