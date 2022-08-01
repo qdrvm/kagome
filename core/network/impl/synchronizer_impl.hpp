@@ -8,6 +8,7 @@
 
 #include "network/synchronizer.hpp"
 
+#include <mutex>
 #include <queue>
 
 #include <libp2p/basic/scheduler.hpp>
@@ -49,7 +50,7 @@ namespace kagome::network {
       ALREADY_IN_QUEUE,
       PEER_BUSY,
       ARRIVED_TOO_EARLY,
-      DUPLICATE_REQUEST
+      DUPLICATE_REQUEST,
     };
 
     SynchronizerImpl(
@@ -78,6 +79,12 @@ namespace kagome::network {
                            const libp2p::peer::PeerId &peer_id,
                            SyncResultHandler &&handler) override;
 
+    // See loadJustifications
+    void syncMissingJustifications(const PeerId &peer_id,
+                                   primitives::BlockInfo target_block,
+                                   std::optional<uint32_t> limit,
+                                   SyncResultHandler &&handler) override;
+
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
     /// the needed block
@@ -100,6 +107,14 @@ namespace kagome::network {
                     primitives::BlockInfo from,
                     SyncResultHandler &&handler);
 
+    /// Loads block justification from {@param peer_id} for {@param
+    /// target_block} or a range of blocks up to {@param upper_bound_block}.
+    /// Calls {@param handler} when operation finishes
+    void loadJustifications(const libp2p::peer::PeerId &peer_id,
+                            primitives::BlockInfo target_block,
+                            std::optional<uint32_t> limit,
+                            SyncResultHandler &&handler);
+
    private:
     /// Subscribes handler for block with provided {@param block_info}
     /// {@param handler} will be called When block is received or discarded
@@ -117,6 +132,9 @@ namespace kagome::network {
     /// Pops next block from queue and tries to apply that
     void applyNextBlock();
 
+    /// Pops next justification from queue and tries to apply it
+    void applyNextJustification();
+
     /// Removes block {@param block} and all all dependent on it from the queue
     /// @returns number of affected blocks
     size_t discardBlock(const primitives::BlockHash &block);
@@ -124,6 +142,12 @@ namespace kagome::network {
     /// Removes blocks what will never be applied because they are contained in
     /// side-branch for provided finalized block {@param finalized_block}
     void prune(const primitives::BlockInfo &finalized_block);
+
+    /// Purges internal cache of recent requests for specified {@param peer_id}
+    /// and {@param fingerprint} after kRecentnessDuration timeout
+    void scheduleRecentRequestRemoval(
+        const libp2p::peer::PeerId &peer_id,
+        const BlocksRequest::Fingerprint &fingerprint);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
@@ -157,6 +181,12 @@ namespace kagome::network {
     std::unordered_multimap<primitives::BlockHash, primitives::BlockHash>
         ancestry_;
 
+    // Loaded justifications to apply
+    using JustificationPair =
+        std::pair<primitives::BlockInfo, primitives::Justification>;
+    std::queue<JustificationPair> justifications_;
+    std::mutex justifications_mutex_;
+
     // BlockNumber of blocks (aka height) that is potentially best now
     primitives::BlockNumber watched_blocks_number_{};
 
@@ -170,7 +200,8 @@ namespace kagome::network {
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
 
-    std::set<std::tuple<libp2p::peer::PeerId, std::size_t>> recent_requests_;
+    std::set<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>>
+        recent_requests_;
   };
 
 }  // namespace kagome::network

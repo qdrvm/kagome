@@ -52,6 +52,10 @@ namespace kagome::consensus {
 
     outcome::result<void> applyBlock(primitives::BlockData &&block) override;
 
+    outcome::result<void> applyJustification(
+        const primitives::BlockInfo &block_info,
+        const primitives::Justification &justification) override;
+
    private:
     void rollbackBlock(const primitives::BlockInfo &block);
 

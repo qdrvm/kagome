@@ -295,6 +295,7 @@ namespace kagome::application {
     bool validator_mode = false;
     load_bool(val, "validator", validator_mode);
     if (validator_mode) {
+      roles_.flags.full = 0;
       roles_.flags.authority = 1;
     }
 
@@ -800,7 +801,7 @@ namespace kagome::application {
           }
         }
 
-        roles_.flags.full = 1;
+        roles_.flags.full = 0;
         roles_.flags.authority = 1;
         p2p_port_ = def_p2p_port;
         rpc_http_host_ = def_rpc_http_host;
@@ -822,6 +823,7 @@ namespace kagome::application {
     });
 
     if (vm.end() != vm.find("validator")) {
+      roles_.flags.full = 0;
       roles_.flags.authority = 1;
     }
 

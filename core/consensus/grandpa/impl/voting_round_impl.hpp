@@ -239,6 +239,8 @@ namespace kagome::consensus::grandpa {
      */
     MovableRoundState state() const override;
 
+    void sendNeighborMessage();
+
    private:
     /// Check if peer \param id is primary
     bool isPrimary(const Id &id) const;
@@ -290,7 +292,6 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> validatePrecommitJustification(
         const BlockInfo &vote, const GrandpaJustification &justification) const;
 
-    void sendNeighborMessage();
     void sendProposal(const PrimaryPropose &primary_proposal);
     void sendPrevote(const Prevote &prevote);
     void sendPrecommit(const Precommit &precommit);
