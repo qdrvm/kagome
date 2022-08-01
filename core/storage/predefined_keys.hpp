@@ -30,6 +30,9 @@ namespace kagome::storage {
 
   inline const common::Buffer kChildStorageDefaultPrefix =
       ":child_storage:default:"_buf;
+
+  inline const common::Buffer kApplyingBlockInfoLookupKey =
+      "kagome::applying_block"_buf;
 }  // namespace kagome::storage
 
 #endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP

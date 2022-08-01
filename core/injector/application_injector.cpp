@@ -61,6 +61,7 @@
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
 #include "consensus/babe/impl/block_executor_impl.hpp"
+#include "consensus/babe/impl/consistency_keeper_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
@@ -773,7 +774,8 @@ namespace {
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<consensus::BabeUtil>>(),
-        injector.template create<sptr<runtime::OffchainWorkerApi>>());
+        injector.template create<sptr<runtime::OffchainWorkerApi>>(),
+        injector.template create<sptr<consensus::babe::ConsistencyKeeper>>());
 
     initialized.emplace(std::move(block_executor));
     return initialized.value();
@@ -1285,6 +1287,7 @@ namespace {
         di::bind<application::mode::RecoveryMode>.to(
             [](auto const &injector) { return get_recovery_mode(injector); }),
         di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
+        di::bind<consensus::babe::ConsistencyKeeper>.template to<consensus::babe::ConsistencyKeeperImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
