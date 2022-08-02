@@ -10,6 +10,8 @@
 
 namespace kagome::consensus::babe {
 
+  /// Class to provide transactional applying of block and rollback that on
+  /// start if last applied block was applied partially
   class ConsistencyKeeper {
    public:
     class Guard final {
