@@ -207,7 +207,12 @@ namespace kagome::api {
   }
 
   inline jsonrpc::Value makeValue(const primitives::Justification &val) {
-    return makeValue(val.data);
+    jArray frnk;
+    frnk.emplace_back(jArray({'F', 'R', 'N', 'K'}));
+    frnk.emplace_back(jArray(val.data.begin(), val.data.end()));
+    jArray res;
+    res.emplace_back(std::move(frnk));
+    return res;
   }
 
   inline jsonrpc::Value makeValue(const primitives::RpcMethods &v) {
