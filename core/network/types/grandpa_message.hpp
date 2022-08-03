@@ -78,6 +78,15 @@ namespace kagome::network {
   struct CatchUpRequest {
     RoundNumber round_number;
     MembershipCounter voter_set_id;
+
+    using Fingerprint = size_t;
+
+    inline Fingerprint fingerprint() const {
+      auto result = std::hash<RoundNumber>()(round_number);
+
+      boost::hash_combine(result, std::hash<MembershipCounter>()(voter_set_id));
+      return result;
+    };
   };
 
   template <class Stream,

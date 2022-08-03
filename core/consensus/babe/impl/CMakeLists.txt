@@ -44,6 +44,7 @@ target_link_libraries(block_executor
     metrics
     telemetry
     blockchain_common
+    consistency_keeper
     )
 
 add_library(babe_util
@@ -53,6 +54,14 @@ target_link_libraries(babe_util
     primitives
     scale::scale
     babe_digests_util
+    )
+
+add_library(consistency_keeper
+    consistency_keeper_impl.cpp
+    )
+target_link_libraries(consistency_keeper
+    Boost::boost
+    block_storage_error
     )
 
 add_library(babe

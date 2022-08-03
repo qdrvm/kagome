@@ -13,7 +13,6 @@
 #include "common/unused.hpp"
 #include "primitives/scheduled_change.hpp"
 #include "scale/scale.hpp"
-#include "storage/changes_trie/changes_trie_config.hpp"
 
 namespace kagome::primitives {
   /// Consensus engine unique ID.
@@ -30,38 +29,6 @@ namespace kagome::primitives {
 
   inline const auto kUnsupportedEngineId_BEEF =
       ConsensusEngineId::fromString("BEEF").value();
-
-  /// System digest item that contains the root of changes trie at given
-  /// block. It is created for every block iff runtime supports changes
-  /// trie creation.
-  struct ChangesTrieRoot : public common::Hash256 {};
-
-  // TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
-  // after gtest update use `data` type directly
-  struct ChangesTrieSignal {
-    boost::variant<std::optional<storage::changes_trie::ChangesTrieConfig>>
-        data;
-
-    bool operator==(const ChangesTrieSignal &rhs) const {
-      return data == rhs.data;
-    }
-
-    bool operator!=(const ChangesTrieSignal &rhs) const {
-      return !operator==(rhs);
-    }
-  };
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const ChangesTrieSignal &sig) {
-    return s << sig.data;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, ChangesTrieSignal &sig) {
-    return s >> sig.data;
-  }
 
   struct Other : public common::Buffer {};
 
@@ -220,12 +187,12 @@ namespace kagome::primitives {
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.12/primitives/runtime/src/generic/digest.rs#L272
   using DigestItem = boost::variant<Other,                       // 0
                                     Unused<1>,                   // 1
-                                    ChangesTrieRoot,             // 2
+                                    Unused<2>,                   // 2
                                     Unused<3>,                   // 3
                                     Consensus,                   // 4
                                     Seal,                        // 5
                                     PreRuntime,                  // 6
-                                    ChangesTrieSignal,           // 7
+                                    Unused<7>,                   // 7
                                     RuntimeEnvironmentUpdated>;  // 8
 
   /**

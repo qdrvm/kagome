@@ -985,11 +985,13 @@ namespace kagome::blockchain {
       }
       const auto &header = header_res.value();
 
+      chain.emplace_back(hash);
+
       if (header.parent_hash == primitives::BlockHash{}) {
         break;
       }
 
-      chain.emplace_back(header.parent_hash);
+      hash = header.parent_hash;
     }
 
     return std::vector<primitives::BlockHash>(chain.begin(), chain.end());

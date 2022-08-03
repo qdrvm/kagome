@@ -19,7 +19,8 @@ namespace kagome::network {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           ext_event_key_repo,
-      std::shared_ptr<PeerRatingRepository> peer_rating_repository)
+      std::shared_ptr<PeerRatingRepository> peer_rating_repository,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : host_(host),
         app_config_(app_config),
         chain_spec_(chain_spec),
@@ -29,13 +30,15 @@ namespace kagome::network {
         stream_engine_(std::move(stream_engine)),
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)},
-        peer_rating_repository_{std::move(peer_rating_repository)} {
+        peer_rating_repository_{std::move(peer_rating_repository)},
+        scheduler_{std::move(scheduler)} {
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(ext_event_key_repo_ != nullptr);
     BOOST_ASSERT(peer_rating_repository_ != nullptr);
+    BOOST_ASSERT(scheduler_ != nullptr);
   }
 
   std::shared_ptr<BlockAnnounceProtocol>
@@ -59,7 +62,8 @@ namespace kagome::network {
                                              own_info_,
                                              stream_engine_,
                                              peer_manager_.lock(),
-                                             block_tree->getGenesisBlockHash());
+                                             block_tree->getGenesisBlockHash(),
+                                             scheduler_);
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>

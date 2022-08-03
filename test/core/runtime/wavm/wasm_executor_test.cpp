@@ -143,7 +143,6 @@ class WasmExecutorTest : public ::testing::Test {
     auto host_api_factory =
         std::make_shared<kagome::host_api::HostApiFactoryImpl>(
             kagome::host_api::OffchainExtensionConfig{},
-            std::make_shared<ChangesTrackerMock>(),
             sr25519_provider,
             ecdsa_provider,
             ed25519_provider,

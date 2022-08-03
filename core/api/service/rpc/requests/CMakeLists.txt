@@ -9,4 +9,5 @@ add_library(api_rpc_requests
 
 target_link_libraries(api_rpc_requests
     Boost::boost
+    outcome
     )

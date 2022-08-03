@@ -10,7 +10,6 @@
 
 #include "log/logger.hpp"
 #include "runtime/types.hpp"
-#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::runtime {
@@ -26,8 +25,7 @@ namespace kagome::host_api {
    public:
     StorageExtension(
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-        std::shared_ptr<const runtime::MemoryProvider> memory_provider,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider);
 
     void reset();
 
@@ -163,9 +161,6 @@ namespace kagome::host_api {
     outcome::result<std::optional<common::Buffer>> getStorageNextKey(
         const common::Buffer &key) const;
 
-    std::optional<common::Buffer> calcStorageChangesRoot(
-        common::Hash256 parent) const;
-
     runtime::WasmSpan clearPrefix(common::BufferView prefix,
                                   std::optional<uint32_t> limit);
 
@@ -177,7 +172,6 @@ namespace kagome::host_api {
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
-    std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     storage::trie::PolkadotCodec codec_;
     log::Logger logger_;
 

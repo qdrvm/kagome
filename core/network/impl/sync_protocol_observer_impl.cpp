@@ -10,6 +10,7 @@
 #include "application/app_configuration.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
+#include "primitives/common.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network,
                             SyncProtocolObserverImpl::Error,
@@ -68,17 +69,37 @@ namespace kagome::network {
     if (response.blocks.empty()) {
       SL_DEBUG(log_, "Return response id={}: no blocks", request_id);
     } else if (response.blocks.size() == 1) {
-      SL_DEBUG(log_,
-               "Return response id={}: {}, count 1",
-               request_id,
-               response.blocks.front().hash);
+      if (response.blocks.front().header.has_value()) {
+        SL_DEBUG(log_,
+                 "Return response id={}: {}, count 1",
+                 request_id,
+                 primitives::BlockInfo(response.blocks.front().header->number,
+                                       response.blocks.front().hash));
+      } else {
+        SL_DEBUG(log_,
+                 "Return response id={}: {}, count 1",
+                 request_id,
+                 response.blocks.front().hash);
+      }
     } else {
-      SL_DEBUG(log_,
-               "Return response id={}: from {} to {}, count {}",
-               request_id,
-               response.blocks.front().hash,
-               response.blocks.back().hash,
-               response.blocks.size());
+      if (response.blocks.front().header.has_value()
+          and response.blocks.back().header.has_value()) {
+        SL_DEBUG(log_,
+                 "Return response id={}: from {} to {}, count {}",
+                 request_id,
+                 primitives::BlockInfo(response.blocks.front().header->number,
+                                       response.blocks.front().hash),
+                 primitives::BlockInfo(response.blocks.back().header->number,
+                                       response.blocks.back().hash),
+                 response.blocks.size());
+      } else {
+        SL_DEBUG(log_,
+                 "Return response id={}: from {} to {}, count {}",
+                 request_id,
+                 response.blocks.front().hash,
+                 response.blocks.back().hash,
+                 response.blocks.size());
+      }
     }
 
     requested_ids_.erase(request_id);
@@ -141,12 +162,18 @@ namespace kagome::network {
         auto header_res = blocks_headers_->getBlockHeader(hash);
         if (header_res) {
           new_block.header = std::move(header_res.value());
+        } else {
+          response.blocks.pop_back();
+          break;
         }
       }
       if (body_needed) {
         auto body_res = block_tree_->getBlockBody(hash);
         if (body_res) {
           new_block.body = std::move(body_res.value());
+        } else {
+          response.blocks.pop_back();
+          break;
         }
       }
       if (justification_needed) {

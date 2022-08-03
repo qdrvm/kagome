@@ -163,12 +163,12 @@ namespace kagome::network {
                                           is_incoming ? stream : nullptr,
                                           is_outgoing ? stream : nullptr});
           SL_DEBUG(logger_,
-                   "Added {} {} stream with peer_id={}",
+                   "Added {} {} stream with peer {}",
                    direction == Direction::INCOMING   ? "incoming"
                    : direction == Direction::OUTGOING ? "outgoing"
                                                       : "bidirectional",
                    protocol->protocol(),
-                   peer_id.toBase58());
+                   peer_id);
         }
         return outcome::success();
       });
@@ -204,9 +204,9 @@ namespace kagome::network {
 
       if (reserved) {
         SL_DEBUG(logger_,
-                 "Reserved {} stream with {}",
+                 "Reserved {} stream with peer {}",
                  protocol->protocol(),
-                 peer_id.toBase58());
+                 peer_id);
       }
     }
 
@@ -247,6 +247,24 @@ namespace kagome::network {
         });
       });
     }
+
+    bool isAlive(const PeerId &peer_id,
+                 const std::shared_ptr<ProtocolBase> &protocol) {
+      BOOST_ASSERT(protocol);
+      return streams_.exclusiveAccess([&](auto &streams) {
+        bool is_alive = false;
+        forSubscriber(peer_id, streams, protocol, [&](auto, auto &descr) {
+          if (descr.incoming.stream and not descr.incoming.stream->isClosed()) {
+            is_alive = true;
+          }
+          if (descr.outgoing.stream and not descr.outgoing.stream->isClosed()) {
+            is_alive = true;
+          }
+        });
+
+        return is_alive;
+      });
+    };
 
     template <typename T>
     void send(const PeerId &peer_id,
@@ -366,14 +384,14 @@ namespace kagome::network {
 
       dst = src;
       SL_DEBUG(logger_,
-               "{} {} stream with peer_id={} was {}",
+               "{} {} stream with peer {} was {}",
                direction == Direction::BIDIRECTIONAL ? "Bidirectional"
                : direction == Direction::INCOMING    ? "Incoming"
                                                      : "Outgoing",
                protocol->protocol(),
                dst->remotePeerId().has_value()
-                   ? dst->remotePeerId().value().toBase58()
-                   : "{no PeerId}",
+                   ? fmt::format("{}", dst->remotePeerId().value())
+                   : "without PeerId",
                replaced ? "replaced" : "stored");
     }
 
@@ -434,7 +452,7 @@ namespace kagome::network {
         logger_->debug("DUMP: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
         logger_->debug("DUMP: {}", msg);
         forEachPeer([&](const auto &peer_id, auto const &proto_map) {
-          logger_->debug("DUMP:   Peer {}", peer_id.toBase58());
+          logger_->debug("DUMP:   Peer {}", peer_id);
           for (auto const &[protocol, descr] : proto_map) {
             logger_->debug("DUMP:     Protocol {}", protocol);
             logger_->debug("DUMP:       I={} O={}   Messages:{}",
@@ -462,10 +480,19 @@ namespace kagome::network {
 
               if (!stream_res) {
                 self->logger_->error(
-                    "Could not send message to {} stream with {}: {}",
+                    "Could not send message to new {} stream with {}: {}",
                     protocol->protocol(),
                     peer_id,
                     stream_res.error().message());
+
+                if (stream_res
+                    == outcome::failure(
+                        std::make_error_code(std::errc::not_connected))) {
+                  self->logger_->error("GOTCHA!");  // FIXME
+
+                  self->del(peer_id);
+                  return;
+                }
 
                 self->streams_.exclusiveAccess([&](auto &streams) {
                   self->forSubscriber(

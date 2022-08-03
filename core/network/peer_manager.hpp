@@ -21,8 +21,8 @@ namespace kagome::network {
     clock::SteadyClock::TimePoint time;
     Roles roles = 0;
     BlockInfo best_block = {0, {}};
-    RoundNumber round_number = 0;
-    MembershipCounter set_id = 0;
+    std::optional<RoundNumber> round_number = std::nullopt;
+    std::optional<MembershipCounter> set_id = std::nullopt;
     BlockNumber last_finalized = 0;
   };
 

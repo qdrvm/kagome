@@ -12,6 +12,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
+#include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
@@ -37,6 +38,7 @@ using kagome::consensus::BlockExecutorImpl;
 using kagome::consensus::BlockValidator;
 using kagome::consensus::BlockValidatorMock;
 using kagome::consensus::EpochDigest;
+using kagome::consensus::babe::ConsistencyKeeperMock;
 using kagome::consensus::grandpa::Environment;
 using kagome::consensus::grandpa::EnvironmentMock;
 using kagome::crypto::Hasher;
@@ -58,6 +60,7 @@ using kagome::transaction_pool::TransactionPool;
 using kagome::transaction_pool::TransactionPoolMock;
 
 using testing::_;
+using testing::Return;
 
 class BlockExecutorTest : public testing::Test {
  public:
@@ -77,6 +80,7 @@ class BlockExecutorTest : public testing::Test {
         std::make_shared<AuthorityUpdateObserverMock>();
     babe_util_ = std::make_shared<BabeUtilMock>();
     offchain_worker_api_ = std::make_shared<OffchainWorkerApiMock>();
+    consistency_keeper_ = std::make_shared<ConsistencyKeeperMock>();
 
     block_executor_ =
         std::make_shared<BlockExecutorImpl>(block_tree_,
@@ -88,7 +92,8 @@ class BlockExecutorTest : public testing::Test {
                                             hasher_,
                                             authority_update_observer_,
                                             babe_util_,
-                                            offchain_worker_api_);
+                                            offchain_worker_api_,
+                                            consistency_keeper_);
   }
 
  protected:
@@ -102,6 +107,7 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<AuthorityUpdateObserverMock> authority_update_observer_;
   std::shared_ptr<BabeUtilMock> babe_util_;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api_;
+  std::shared_ptr<ConsistencyKeeperMock> consistency_keeper_;
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
 };
@@ -175,6 +181,8 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*block_tree_, addBlock(_))
       .WillOnce(testing::Return(outcome::success()));
 
+  BlockInfo block_info{42, "some_hash"_hash256};
+
   {
     testing::InSequence s;
     EXPECT_CALL(*authority_update_observer_,
@@ -191,6 +199,14 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
       .WillOnce(testing::Return(outcome::success()));
+
+  EXPECT_CALL(*consistency_keeper_, start(block_info))
+      .WillOnce(testing::Invoke([&] {
+        return ConsistencyKeeperMock::Guard(*consistency_keeper_, block_info);
+      }));
+  EXPECT_CALL(*consistency_keeper_, commit(block_info)).WillOnce(Return());
+  EXPECT_CALL(*consistency_keeper_, rollback(block_info))
+      .WillRepeatedly(Return());
 
   EXPECT_OUTCOME_TRUE_1(block_executor_->applyBlock(std::move(block_data)))
 }

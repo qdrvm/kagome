@@ -59,12 +59,9 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       std::make_shared<StorageSubscriptionEngine>();
   auto chain_subscription_engine = std::make_shared<ChainSubscriptionEngine>();
   std::shared_ptr<ChangesTracker> changes_tracker =
-      std::make_shared<StorageChangesTrackerImpl>(factory,
-                                                  codec,
-                                                  storage_subscription_engine,
+      std::make_shared<StorageChangesTrackerImpl>(storage_subscription_engine,
                                                   chain_subscription_engine);
-  EXPECT_OUTCOME_TRUE_1(
-      changes_tracker->onBlockExecutionStart("aaa"_hash256, 42));
+  changes_tracker->onBlockExecutionStart("aaa"_hash256);
   auto batch = PersistentTrieBatchImpl::create(
       codec,
       serializer,
@@ -79,7 +76,5 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
   auto repo = std::make_shared<BlockHeaderRepositoryMock>();
   EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(42));
 
-  EXPECT_OUTCOME_TRUE_1(
-      changes_tracker->constructChangesTrie("aaa"_hash256, {}));
   // THEN SUCCESS
 }

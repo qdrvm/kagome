@@ -75,7 +75,7 @@ int main() {
 
   leveldb::Options db_options{};
   db_options.create_if_missing = true;
-  std::shared_ptr database =
+  std::shared_ptr<kagome::storage::LevelDB> database =
       kagome::storage::LevelDB::create("/tmp/kagome_tmp_db", db_options)
           .value();
   auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
@@ -108,15 +108,12 @@ int main() {
 
   auto changes_tracker = std::make_shared<
       kagome::storage::changes_trie::StorageChangesTrackerImpl>(
-      trie_factory,
-      codec,
-      storage_subscription_engine,
-      chain_subscription_engine);
+      storage_subscription_engine, chain_subscription_engine);
 
-  auto trie_storage =
-      std::shared_ptr(kagome::storage::trie::TrieStorageImpl::createEmpty(
-                          trie_factory, codec, serializer, changes_tracker)
-                          .value());
+  std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =
+      kagome::storage::trie::TrieStorageImpl::createEmpty(
+          trie_factory, codec, serializer, changes_tracker)
+          .value();
 
   auto batch =
       trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
@@ -169,9 +166,9 @@ int main() {
       std::make_shared<kagome::crypto::Ed25519Suite>(ed25519_provider);
   auto sr_suite =
       std::make_shared<kagome::crypto::Sr25519Suite>(sr25519_provider);
-  auto key_fs = std::shared_ptr(
+  std::shared_ptr<kagome::crypto::KeyFileStorage> key_fs =
       kagome::crypto::KeyFileStorage::createAt("/tmp/kagome_tmp_key_storage")
-          .value());
+          .value();
   auto crypto_store = std::make_shared<kagome::crypto::CryptoStoreImpl>(
       ecdsa_suite, ed_suite, sr_suite, bip39_provider, key_fs);
 
@@ -185,7 +182,6 @@ int main() {
   auto host_api_factory =
       std::make_shared<kagome::host_api::HostApiFactoryImpl>(
           kagome::host_api::OffchainExtensionConfig{},
-          changes_tracker,
           sr25519_provider,
           ecdsa_provider,
           ed25519_provider,

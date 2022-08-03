@@ -515,7 +515,7 @@ namespace kagome::api {
   void ApiServiceImpl::onStorageEvent(SubscriptionSetId set_id,
                                       SessionPtr &session,
                                       const Buffer &key,
-                                      const Buffer &data,
+                                      const std::optional<Buffer> &data,
                                       const common::Hash256 &block) {
     sendEvent(server_,
               session,

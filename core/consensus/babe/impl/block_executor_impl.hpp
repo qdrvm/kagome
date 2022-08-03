@@ -30,6 +30,9 @@ namespace kagome::runtime {
 };
 
 namespace kagome::consensus {
+  namespace babe {
+    class ConsistencyKeeper;
+  }
 
   class BlockExecutorImpl
       : public BlockExecutor,
@@ -48,13 +51,16 @@ namespace kagome::consensus {
         std::shared_ptr<authority::AuthorityUpdateObserver>
             authority_update_observer,
         std::shared_ptr<BabeUtil> babe_util,
-        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api);
+        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+        std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper);
 
     outcome::result<void> applyBlock(primitives::BlockData &&block) override;
 
-   private:
-    void rollbackBlock(const primitives::BlockInfo &block);
+    outcome::result<void> applyJustification(
+        const primitives::BlockInfo &block_info,
+        const primitives::Justification &justification) override;
 
+   private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
@@ -66,6 +72,7 @@ namespace kagome::consensus {
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
+    std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper_;
 
     // Justification Store for Future Applying
     std::map<primitives::BlockInfo, primitives::Justification> justifications_;

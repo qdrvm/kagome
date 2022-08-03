@@ -28,6 +28,7 @@ add_library(vote_crypto_provider
     )
 target_link_libraries(vote_crypto_provider
     scale::scale
+    outcome
     )
 
 add_library(voter_set

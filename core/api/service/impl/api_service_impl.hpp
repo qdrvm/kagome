@@ -197,7 +197,7 @@ namespace kagome::api {
     void onStorageEvent(SubscriptionSetId set_id,
                         SessionPtr &session,
                         const Buffer &key,
-                        const Buffer &data,
+                        const std::optional<Buffer> &data,
                         const common::Hash256 &block);
     void onChainEvent(SubscriptionSetId set_id,
                       SessionPtr &session,
