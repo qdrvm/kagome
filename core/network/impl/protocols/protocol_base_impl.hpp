@@ -14,6 +14,7 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
+#include "utils/box.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {
@@ -22,6 +23,7 @@ namespace kagome::network {
   using PeerId = libp2p::peer::PeerId;
   using PeerInfo = libp2p::peer::PeerInfo;
   using Host = libp2p::Host;
+  using ProtocolName = std::string;
 
   class ProtocolBaseImpl final : NonCopyable, NonMovable {
    public:

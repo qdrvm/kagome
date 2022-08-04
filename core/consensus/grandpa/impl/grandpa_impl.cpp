@@ -585,9 +585,9 @@ namespace kagome::consensus::grandpa {
           logger_,
           "{} signed by {} with set_id={} in round={} has received from {} "
           "and rejected as impolite (our set id is {})",
-          msg.vote.is<Prevote>()     ? "Prevote"
-          : msg.vote.is<Precommit>() ? "Precommit"
-                                     : "PrimaryPropose",
+          msg.vote.is<Prevote>()
+              ? "Prevote"
+              : msg.vote.is<Precommit>() ? "Precommit" : "PrimaryPropose",
           msg.id(),
           msg.counter,
           msg.round_number,
@@ -602,9 +602,9 @@ namespace kagome::consensus::grandpa {
       SL_WARN(logger_,
               "{} signed by {} with set_id={} in round={} has received from {} "
               "and rejected as extremely impolite (our set id is {})",
-              msg.vote.is<Prevote>()     ? "Prevote"
-              : msg.vote.is<Precommit>() ? "Precommit"
-                                         : "PrimaryPropose",
+              msg.vote.is<Prevote>()
+                  ? "Prevote"
+                  : msg.vote.is<Precommit>() ? "Precommit" : "PrimaryPropose",
               msg.id(),
               msg.counter,
               msg.round_number,
@@ -620,9 +620,9 @@ namespace kagome::consensus::grandpa {
           logger_,
           "{} signed by {} with set_id={} in round={} has received from {} "
           "and rejected as impolite (our round is {})",
-          msg.vote.is<Prevote>()     ? "Prevote"
-          : msg.vote.is<Precommit>() ? "Precommit"
-                                     : "PrimaryPropose",
+          msg.vote.is<Prevote>()
+              ? "Prevote"
+              : msg.vote.is<Precommit>() ? "Precommit" : "PrimaryPropose",
           msg.id(),
           msg.counter,
           msg.round_number,
@@ -637,9 +637,9 @@ namespace kagome::consensus::grandpa {
       SL_WARN(logger_,
               "{} signed by {} with set_id={} in round={} has received from {} "
               "and rejected as extremely impolite (our round is {})",
-              msg.vote.is<Prevote>()     ? "Prevote"
-              : msg.vote.is<Precommit>() ? "Precommit"
-                                         : "PrimaryPropose",
+              msg.vote.is<Prevote>()
+                  ? "Prevote"
+                  : msg.vote.is<Precommit>() ? "Precommit" : "PrimaryPropose",
               msg.id(),
               msg.counter,
               msg.round_number,
@@ -655,9 +655,9 @@ namespace kagome::consensus::grandpa {
           logger_,
           "{} signed by {} with set_id={} in round={} has received from {} "
           "and rejected (round not found)",
-          msg.vote.is<Prevote>()     ? "Prevote"
-          : msg.vote.is<Precommit>() ? "Precommit"
-                                     : "PrimaryPropose",
+          msg.vote.is<Prevote>()
+              ? "Prevote"
+              : msg.vote.is<Precommit>() ? "Precommit" : "PrimaryPropose",
           msg.id(),
           msg.counter,
           msg.round_number,
@@ -669,9 +669,9 @@ namespace kagome::consensus::grandpa {
     SL_DEBUG(logger_,
              "{} signed by {} with set_id={} in round={} for block {} "
              "has received from {}",
-             msg.vote.is<Prevote>()     ? "Prevote"
-             : msg.vote.is<Precommit>() ? "Precommit"
-                                        : "PrimaryPropose",
+             msg.vote.is<Prevote>()
+                 ? "Prevote"
+                 : msg.vote.is<Precommit>() ? "Precommit" : "PrimaryPropose",
              msg.id(),
              msg.counter,
              msg.round_number,
@@ -682,24 +682,23 @@ namespace kagome::consensus::grandpa {
 
     bool is_prevotes_changed = false;
     bool is_precommits_changed = false;
-    visit_in_place(
-        msg.vote.message,
-        [&](const PrimaryPropose &) {
-          target_round->onProposal(msg.vote,
-                                   VotingRound::Propagation::REQUESTED);
-        },
-        [&](const Prevote &) {
-          if (target_round->onPrevote(msg.vote,
-                                      VotingRound::Propagation::REQUESTED)) {
-            is_prevotes_changed = true;
-          }
-        },
-        [&](const Precommit &) {
-          if (target_round->onPrecommit(msg.vote,
-                                        VotingRound::Propagation::REQUESTED)) {
-            is_precommits_changed = true;
-          }
-        });
+    visit_in_place(msg.vote.message,
+                   [&](const PrimaryPropose &) {
+                     target_round->onProposal(
+                         msg.vote, VotingRound::Propagation::REQUESTED);
+                   },
+                   [&](const Prevote &) {
+                     if (target_round->onPrevote(
+                             msg.vote, VotingRound::Propagation::REQUESTED)) {
+                       is_prevotes_changed = true;
+                     }
+                   },
+                   [&](const Precommit &) {
+                     if (target_round->onPrecommit(
+                             msg.vote, VotingRound::Propagation::REQUESTED)) {
+                       is_precommits_changed = true;
+                     }
+                   });
     if (is_prevotes_changed or is_precommits_changed) {
       target_round->update(
           VotingRound::IsPreviousRoundChanged{false},

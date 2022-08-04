@@ -125,4 +125,6 @@ target_link_libraries(application_injector
     rating_repository
     session_keys_api
     collation_protocol
+    req_collation_protocol
+    validator_parachain
     )

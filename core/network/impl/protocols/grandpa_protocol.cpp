@@ -366,7 +366,7 @@ namespace kagome::network {
       // If a peer is at a given voter set, it is impolite to send messages
       // from an earlier voter set. It is extremely impolite to send messages
       // from a future voter set.
-      if (msg.counter != info.set_id) {
+      if (msg.counter != info.get().set_id) {
         SL_DEBUG(base_.logger(),
                  "Vote signed by {} with set_id={} in round={} "
                  "has not been sent to {} as impolite: their set id is {}",
@@ -474,7 +474,7 @@ namespace kagome::network {
 
       // It is especially impolite to send commits which are invalid, or from
       // a different Set ID than the receiving peer has indicated.
-      if (set_id != info.set_id) {
+      if (set_id != info.get().set_id) {
         SL_DEBUG(base_.logger(),
                  "Commit with set_id={} in round={} "
                  "has not been sent to {} as impolite: their set id is {}",
@@ -500,7 +500,7 @@ namespace kagome::network {
 
       // It is impolite to send commits which are earlier than the last commit
       // sent.
-      if (finalizing < info.last_finalized) {
+      if (finalizing < info.get().last_finalized) {
         SL_DEBUG(
             base_.logger(),
             "Commit with set_id={} in round={} "
@@ -657,7 +657,7 @@ namespace kagome::network {
     }
 
     /// Impolite to send a catch up request to a peer in a new different Set ID.
-    if (catch_up_response.voter_set_id != info.set_id) {
+    if (catch_up_response.voter_set_id != info.get().set_id) {
       SL_DEBUG(base_.logger(),
                "Catch-up-response with set_id={} in round={} "
                "has not been sent to {}: {} set id",
@@ -669,7 +669,7 @@ namespace kagome::network {
     }
 
     /// Avoid sending useless response (if peer is already caught up)
-    if (catch_up_response.round_number < info.round_number) {
+    if (catch_up_response.round_number < info.get().round_number) {
       SL_DEBUG(base_.logger(),
                "Catch-up-response with set_id={} in round={} "
                "has not been sent to {}: is already not actual",

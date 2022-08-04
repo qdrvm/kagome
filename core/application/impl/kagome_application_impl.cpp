@@ -52,6 +52,7 @@ namespace kagome::application {
     jrpc_api_service_ = injector_->injectRpcApiService();
     state_observer_ = injector_->injectStateObserver();
     sync_observer_ = injector_->injectSyncObserver();
+    parachain_observer_ = injector_->injectParachainObserver();
     metrics_watcher_ = injector_->injectMetricsWatcher();
     telemetry_service_ = injector_->injectTelemetryService();
     kagome::telemetry::setTelemetryService(telemetry_service_);

@@ -37,7 +37,7 @@ namespace kagome::network {
                 (const PeerId &, const GrandpaNeighborMessage &),
                 (override));
 
-    MOCK_METHOD(std::optional<PeerState>,
+    MOCK_METHOD(std::optional<std::reference_wrapper<PeerState>>,
                 getPeerState,
                 (const PeerId &),
                 (override));

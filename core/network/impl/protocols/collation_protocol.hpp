@@ -12,6 +12,7 @@
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
+#include <libp2p/peer/peer_id.hpp>
 
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
@@ -98,9 +99,12 @@ namespace kagome::network {
 
     void readCollationMsg(std::shared_ptr<kagome::network::Stream> stream);
 
-    void onCollationMessageRx(CollationMessage &&collation_message);
-    void onCollationDeclRx(CollatorDeclaration &&collation_decl);
-    void onCollationAdvRx(CollatorAdvertisement &&collation_adv);
+    void onCollationMessageRx(libp2p::peer::PeerId const &peer_id,
+                              CollationMessage &&collation_message);
+    void onCollationDeclRx(libp2p::peer::PeerId const &peer_id,
+                           CollatorDeclaration &&collation_decl);
+    void onCollationAdvRx(libp2p::peer::PeerId const &peer_id,
+                          CollatorAdvertisement &&collation_adv);
 
     ProtocolBaseImpl base_;
     std::shared_ptr<CollationObserver> observer_;
