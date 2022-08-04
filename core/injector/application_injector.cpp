@@ -500,15 +500,8 @@ namespace {
           crypto_provider.generateKeypair(app_config.nodeKey().value());
       BOOST_ASSERT(provided_keypair.secret_key == app_config.nodeKey().value());
 
-      auto &&pub = provided_keypair.public_key;
-      auto &&priv = provided_keypair.secret_key;
-
-      auto key_pair =
-          std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
-              .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                             .data = {pub.begin(), pub.end()}}},
-              .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                              .data = {priv.begin(), priv.end()}}}});
+      auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(
+          crypto::ed25519KeyToLibp2pKeypair(provided_keypair));
 
       initialized.emplace(std::move(key_pair));
       return initialized.value();
@@ -547,19 +540,21 @@ namespace {
 
     log->warn(
         "Can not obtain a libp2p keypair from crypto storage. "
-        "A unique one will be generated for the current session");
+        "A unique one will be generated");
 
-    auto generated_keypair = crypto_provider.generateKeypair();
+    kagome::crypto::Ed25519Keypair generated_keypair;
+    auto generated_keypair_res = const_cast<crypto::CryptoStore &>(crypto_store)
+                                     .generateEd25519KeypairOnDisk(
+                                         crypto::KnownKeyTypeId::KEY_TYPE_LP2P);
+    if (not generated_keypair_res) {
+      log->warn("Can't save libp2p keypair: {}", generated_keypair_res.error());
+      generated_keypair = crypto_provider.generateKeypair();
+    } else {
+      generated_keypair = generated_keypair_res.value();
+    }
 
-    auto &&pub = generated_keypair.public_key;
-    auto &&priv = generated_keypair.secret_key;
-
-    auto key_pair =
-        std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
-            .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                           .data = {pub.begin(), pub.end()}}},
-            .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                            .data = {priv.begin(), priv.end()}}}});
+    auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(
+        crypto::ed25519KeyToLibp2pKeypair(generated_keypair));
 
     initialized.emplace(std::move(key_pair));
     return initialized.value();
