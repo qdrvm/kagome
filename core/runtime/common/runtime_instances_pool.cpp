@@ -67,7 +67,8 @@ namespace kagome::runtime {
     if (not pool.empty()) {
       auto top = std::move(pool.top());
       pool.pop();
-      return top;
+      return std::make_shared<BorrowedInstance>(
+          weak_from_this(), state, std::move(top));
     }
 
     auto opt_module = modules_.get(state);
