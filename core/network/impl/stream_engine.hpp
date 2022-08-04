@@ -488,8 +488,6 @@ namespace kagome::network {
                 if (stream_res
                     == outcome::failure(
                         std::make_error_code(std::errc::not_connected))) {
-                  self->logger_->error("GOTCHA!");  // FIXME
-
                   self->del(peer_id);
                   return;
                 }

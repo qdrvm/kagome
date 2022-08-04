@@ -8,7 +8,6 @@
 #include <chrono>
 
 #include "blockchain/block_tree_error.hpp"
-#include "blockchain/impl/common.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"

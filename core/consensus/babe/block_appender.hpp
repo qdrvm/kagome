@@ -16,6 +16,10 @@ namespace kagome::consensus {
     virtual ~BlockAppender() = default;
 
     virtual outcome::result<void> appendBlock(primitives::BlockData &&b) = 0;
+
+    virtual outcome::result<void> applyJustification(
+        const primitives::BlockInfo &block_info,
+        const primitives::Justification &justification) = 0;
   };
 
 }  // namespace kagome::consensus

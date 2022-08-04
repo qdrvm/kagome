@@ -9,6 +9,7 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
+#include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/slot.hpp"
@@ -29,11 +30,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockAppenderImpl::Error, e) {
   return "Unknown error";
 }
 
-namespace {
-  constexpr const char *kBlockExecutionTime =
-      "kagome_block_verification_and_import_time";
-}
-
 namespace kagome::consensus {
 
   BlockAppenderImpl::BlockAppenderImpl(
@@ -44,7 +40,8 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
-      std::shared_ptr<BabeUtil> babe_util)
+      std::shared_ptr<BabeUtil> babe_util,
+      std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper)
       : block_tree_{std::move(block_tree)},
         babe_configuration_{std::move(configuration)},
         block_validator_{std::move(block_validator)},
@@ -52,6 +49,7 @@ namespace kagome::consensus {
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
         babe_util_(std::move(babe_util)),
+        consistency_keeper_(std::move(consistency_keeper)),
         logger_{log::createLogger("BlockAppender", "block_appender")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(babe_configuration_ != nullptr);
@@ -60,6 +58,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(authority_update_observer_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
+    BOOST_ASSERT(consistency_keeper_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -71,10 +70,14 @@ namespace kagome::consensus {
     }
     auto &header = b.header.value();
 
+    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
+
+    primitives::BlockInfo block_info(header.number, block_hash);
+
     if (auto header_res = block_tree_->getBlockHeader(header.parent_hash);
         header_res.has_error()
         && header_res.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
-      logger_->warn("Skipping a block with unknown parent");
+      logger_->warn("Skipping a block {} with unknown parent", block_info);
       return Error::PARENT_NOT_FOUND;
     } else if (header_res.has_error()) {
       return header_res.as_failure();
@@ -83,16 +86,12 @@ namespace kagome::consensus {
     // get current time to measure performance if block execution
     auto t_start = std::chrono::high_resolution_clock::now();
 
-    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
-
     bool block_already_exists = false;
 
     // check if block header already exists. If so, do not append
     if (auto header_res = block_tree_->getBlockHeader(block_hash);
         header_res.has_value()) {
-      SL_DEBUG(logger_,
-               "Skip existing block: {}",
-               primitives::BlockInfo(header.number, block_hash));
+      SL_DEBUG(logger_, "Skip existing header of block: {}", block_info);
 
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
       block_already_exists = true;
@@ -101,6 +100,8 @@ namespace kagome::consensus {
       return header_res.as_failure();
     }
 
+    auto consistency_guard = consistency_keeper_->start(block_info);
+
     primitives::Block block{.header = std::move(header)};
 
     OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
@@ -108,11 +109,46 @@ namespace kagome::consensus {
     const auto &babe_header = babe_digests.second;
 
     auto slot_number = babe_header.slot_number;
+
+    babe_util_->syncEpoch([&] {
+      auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
+      if (res.has_error()) {
+        if (block.header.number == 1) {
+          SL_TRACE(logger_,
+                   "First block slot is {}: it is first block (at executing)",
+                   slot_number);
+          return std::tuple(slot_number, false);
+        } else {
+          SL_TRACE(logger_,
+                   "First block slot is {}: no first block (at executing)",
+                   babe_util_->getCurrentSlot());
+          return std::tuple(babe_util_->getCurrentSlot(), false);
+        }
+      }
+
+      const auto &first_block_header = res.value();
+      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
+                       "Any non genesis block must contain babe digest");
+      auto first_slot_number = babe_digest_res.value().second.slot_number;
+
+      auto is_first_block_finalized =
+          block_tree_->getLastFinalized().number > 0;
+
+      SL_TRACE(
+          logger_,
+          "First block slot is {}: by {}finalized first block (at executing)",
+          first_slot_number,
+          is_first_block_finalized ? "" : "non-");
+      return std::tuple(first_slot_number, is_first_block_finalized);
+    });
+
     auto epoch_number = babe_util_->slotToEpoch(slot_number);
 
-    logger_->info(
+    SL_DEBUG(
+        logger_,
         "Applying block {} ({} in slot {}, epoch {})",  //
-        primitives::BlockInfo(block.header.number, block_hash),
+        block_info,
         babe_header.slotType() == SlotType::Primary          ? "primary"
         : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
         : babe_header.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
@@ -127,7 +163,7 @@ namespace kagome::consensus {
     SL_TRACE(logger_,
              "Actual epoch digest to apply block {} (slot {}, epoch {}). "
              "Randomness: {}",
-             primitives::BlockInfo(block.header.number, block_hash),
+             block_info,
              slot_number,
              epoch_number,
              this_block_epoch_descriptor.randomness);
@@ -148,8 +184,8 @@ namespace kagome::consensus {
       SL_VERBOSE(logger_,
                  "Next epoch digest has gotten in block {} (slot {}). "
                  "Randomness: {}",
+                 block_info,
                  slot_number,
-                 primitives::BlockInfo(block.header.number, block_hash),
                  next_epoch_digest.randomness);
     }
 
@@ -159,6 +195,8 @@ namespace kagome::consensus {
     block_without_seal_digest.header.digest.pop_back();
 
     auto parent = block_tree_->getBlockHeader(block.header.parent_hash).value();
+
+    auto last_finalized_block = block_tree_->getLastFinalized();
 
     if (not block_already_exists) {
       OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
@@ -177,7 +215,10 @@ namespace kagome::consensus {
           },
           [](const auto &) { return outcome::success(); });
       if (res.has_error()) {
-        rollbackBlock(block_hash);
+        SL_ERROR(logger_,
+                 "Error while processing consensus digests of block {}: {}",
+                 block_hash,
+                 res.error().message());
         return res.as_failure();
       }
     }
@@ -185,16 +226,16 @@ namespace kagome::consensus {
     // apply justification if any (must be done strictly after block will be
     // added and his consensus-digests will be handled)
     if (b.justification.has_value()) {
-      SL_VERBOSE(logger_,
-                 "Justification received for block {}",
-                 primitives::BlockInfo(block.header.number, block_hash));
+      SL_VERBOSE(logger_, "Justification received for block {}", block_info);
+
+      // try to apply left in justification store values first
       if (not justifications_.empty()) {
         std::vector<primitives::BlockInfo> to_remove;
-        for (const auto &[block_info, justification] : justifications_) {
-          auto res = grandpa_environment_->applyJustification(block_info,
-                                                              justification);
+        for (const auto &[block_justified_for, justification] :
+             justifications_) {
+          auto res = applyJustification(block_justified_for, justification);
           if (res) {
-            to_remove.push_back(block_info);
+            to_remove.push_back(block_justified_for);
           }
         }
         if (not to_remove.empty()) {
@@ -203,41 +244,44 @@ namespace kagome::consensus {
           }
         }
       }
-      auto res = grandpa_environment_->applyJustification(
-          primitives::BlockInfo(block.header.number, block_hash),
-          b.justification.value());
+
+      auto res = applyJustification(block_info, b.justification.value());
+
       if (res.has_error()) {
-        if (res.error() == grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT) {
-          justifications_.emplace(
-              primitives::BlockInfo(block.header.number, block_hash),
-              b.justification.value());
+        if (res
+            == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
+          justifications_.emplace(block_info, b.justification.value());
         } else {
-          rollbackBlock(block_hash);
           return res.as_failure();
         }
+      } else {
+        // safely could be remove if current justification applied successfully
+        justifications_.clear();
       }
     }
 
-    auto t_end = std::chrono::high_resolution_clock::now();
+    SL_DEBUG(logger_,
+             "Imported header of block {} within {} ms",
+             block_info,
+             std::chrono::duration_cast<std::chrono::milliseconds>(
+                 std::chrono::high_resolution_clock::now() - t_start)
+                 .count());
 
-    logger_->info(
-        "Imported block {} within {} ms",
-        primitives::BlockInfo(block.header.number, block_hash),
-        std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
-            .count());
+    if (block_info.number % 512 == 0) {
+      SL_INFO(logger_,
+               "Imported another 512 headers of blocks. Last one imported of {}",
+               block_info);
+    }
+
+    consistency_guard.commit();
 
     return outcome::success();
   }
 
-  void BlockAppenderImpl::rollbackBlock(
-      const primitives::BlockHash &block_hash) {
-    auto removal_res = block_tree_->removeLeaf(block_hash);
-    if (removal_res.has_error()) {
-      SL_WARN(logger_,
-              "Rolling back of block {} is failed: {}",
-              block_hash,
-              removal_res.error().message());
-    }
+  outcome::result<void> BlockAppenderImpl::applyJustification(
+      const primitives::BlockInfo &block_info,
+      const primitives::Justification &justification) {
+    return grandpa_environment_->applyJustification(block_info, justification);
   }
 
 }  // namespace kagome::consensus

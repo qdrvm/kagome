@@ -22,6 +22,9 @@
 #include "primitives/block_header.hpp"
 
 namespace kagome::consensus {
+  namespace babe {
+    class ConsistencyKeeper;
+  }
 
   class BlockAppenderImpl
       : public BlockAppender,
@@ -37,13 +40,16 @@ namespace kagome::consensus {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<authority::AuthorityUpdateObserver>
             authority_update_observer,
-        std::shared_ptr<BabeUtil> babe_util);
+        std::shared_ptr<BabeUtil> babe_util,
+        std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper);
 
     outcome::result<void> appendBlock(primitives::BlockData &&b) override;
 
-   private:
-    void rollbackBlock(const primitives::BlockHash &block_hash);
+    outcome::result<void> applyJustification(
+        const primitives::BlockInfo &block_info,
+        const primitives::Justification &justification) override;
 
+   private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<BlockValidator> block_validator_;
@@ -52,7 +58,9 @@ namespace kagome::consensus {
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
+    std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper_;
 
+    // Justification Store for Future Applying
     std::map<primitives::BlockInfo, primitives::Justification> justifications_;
 
     log::Logger logger_;
