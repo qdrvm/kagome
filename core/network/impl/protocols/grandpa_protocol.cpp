@@ -176,10 +176,21 @@ namespace kagome::network {
             auto own_peer_state =
                 self->peer_manager_->getPeerState(self->own_info_.id);
             if (own_peer_state.has_value()) {
-              self->neighbor(GrandpaNeighborMessage{
+              GrandpaNeighborMessage msg{
                   .round_number = own_peer_state->round_number.value_or(1),
                   .voter_set_id = own_peer_state->set_id.value_or(0),
-                  .last_finalized = own_peer_state->last_finalized});
+                  .last_finalized = own_peer_state->last_finalized};
+
+              SL_DEBUG(self->log_,
+                       "Send initial neighbor message: grandpa round number {}",
+                       msg.round_number);
+
+              auto shared_msg =
+                  KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+              (*shared_msg) = GrandpaMessage(std::move(msg));
+
+              self->stream_engine_->send(
+                  stream->remotePeerId().value(), self, std::move(shared_msg));
             }
 
             cb(std::move(stream));
@@ -585,11 +596,28 @@ namespace kagome::network {
       return;
     }
 
-    auto fingerprint = 0;//catch_up_request.fingerprint();
-    auto [_, ok] = recent_catchup_requests_.emplace(peer_id, fingerprint);
+    auto round_id = std::tuple(info.round_number.value(), info.set_id.value());
+
+    auto [iter_by_round, ok_by_round] =
+        recent_catchup_requests_by_round_.emplace(round_id);
+
+    if (not ok_by_round) {
+      SL_DEBUG(log_,
+               "Catch-up-request with set_id={} in round={} "
+               "has not been sent to {}: "
+               "the same catch-up request had sent to another peer",
+               catch_up_request.voter_set_id,
+               catch_up_request.round_number,
+               peer_id);
+      return;
+    }
+
+    auto [iter_by_peer, ok_by_peer] =
+        recent_catchup_requests_by_peer_.emplace(peer_id);
 
     // It is impolite to replay a catch-up request
-    if (not ok) {
+    if (not ok_by_peer) {
+      recent_catchup_requests_by_round_.erase(iter_by_round);
       SL_DEBUG(log_,
                "Catch-up-request with set_id={} in round={} "
                "has not been sent to {}: impolite to replay catch-up request",
@@ -600,10 +628,10 @@ namespace kagome::network {
     }
 
     scheduler_->schedule(
-        [wp = weak_from_this(), peer_id, fingerprint] {
+        [wp = weak_from_this(), round_id, peer_id] {
           if (auto self = wp.lock()) {
-            self->recent_catchup_requests_.erase(
-                std::tuple(peer_id, fingerprint));
+            self->recent_catchup_requests_by_round_.erase(round_id);
+            self->recent_catchup_requests_by_peer_.erase(peer_id);
           }
         },
         kRecentnessDuration);
