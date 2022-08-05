@@ -118,8 +118,11 @@ namespace kagome::network {
     const libp2p::peer::Protocol protocol_;
     const libp2p::peer::Protocol protocol_by_genesis_;
 
-    std::set<std::tuple<libp2p::peer::PeerId, CatchUpRequest::Fingerprint>>
-        recent_catchup_requests_;
+    std::set<std::tuple<consensus::grandpa::RoundNumber,
+                        consensus::grandpa::MembershipCounter>>
+        recent_catchup_requests_by_round_;
+
+    std::set<libp2p::peer::PeerId> recent_catchup_requests_by_peer_;
 
     log::Logger log_ = log::createLogger("GrandpaProtocol", "grandpa_protocol");
   };

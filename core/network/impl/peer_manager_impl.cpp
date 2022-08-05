@@ -564,13 +564,15 @@ namespace kagome::network {
       block_announce_protocol->newOutgoingStream(
           peer_info,
           [wp = weak_from_this(),
-           peer_id = peer_info.id,
+           peer_info,
            protocol = block_announce_protocol,
            connection](auto &&stream_res) {
             auto self = wp.lock();
             if (not self) {
               return;
             }
+
+            auto &peer_id = peer_info.id;
 
             self->stream_engine_->dropReserveOutgoing(peer_id, protocol);
             if (not stream_res.has_value()) {
@@ -617,6 +619,22 @@ namespace kagome::network {
 
             self->reserveStreams(peer_id);
             self->startPingingPeer(peer_id);
+
+            // Establish outgoing grandpa stream if node synced
+            auto r_info_opt = self->getPeerState(peer_id);
+            auto o_info_opt = self->getPeerState(self->own_peer_info_.id);
+            if (r_info_opt.has_value() and o_info_opt.has_value()) {
+              auto &r_info = r_info_opt.value();
+              auto &o_info = o_info_opt.value();
+
+              if (r_info.best_block.number <= o_info.best_block.number) {
+                auto grandpa_protocol = self->router_->getGrandpaProtocol();
+                BOOST_ASSERT_MSG(grandpa_protocol,
+                                 "Router did not provide grandpa protocol");
+                grandpa_protocol->newOutgoingStream(peer_info,
+                                                    [](const auto &...) {});
+              }
+            }
           });
     } else {
       SL_DEBUG(log_,
@@ -630,7 +648,7 @@ namespace kagome::network {
         host_.getPeerRepository().getAddressRepository().getAddresses(peer_id);
     if (addresses_res.has_value()) {
       auto &addresses = addresses_res.value();
-      PeerInfo peer_info{.id = peer_id, .addresses = std::move(addresses)};
+      peer_info.addresses = std::move(addresses);
       kademlia_->addPeer(peer_info, false);
     }
   }
