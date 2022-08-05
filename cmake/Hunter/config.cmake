@@ -30,9 +30,16 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+# hunter_config(
+#     libp2p
+#     VERSION 0.1.5
+#     KEEP_PACKAGE_SOURCES
+# )
+
 hunter_config(
     libp2p
-    VERSION 0.1.5
+    URL "https://github.com/libp2p/cpp-libp2p/archive/refs/heads/feature/protocol-select.zip"
+    SHA1 "32f763033a55384d0523d58e24c26f8837bb392f"
     KEEP_PACKAGE_SOURCES
 )
 

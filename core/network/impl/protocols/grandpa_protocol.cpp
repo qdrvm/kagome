@@ -38,9 +38,9 @@ namespace kagome::network {
         stream_engine_(std::move(stream_engine)),
         peer_manager_(std::move(peer_manager)),
         scheduler_(std::move(scheduler)) {
-    const_cast<Protocol &>(protocol_) = kGrandpaProtocol;
+    const_cast<Protocol &>(protocol_) = kGrandpaProtocolOld;
     const_cast<Protocol &>(protocol_by_genesis_) =
-        fmt::format(kGrandpaProtocolTemplate, hex_lower(genesis_hash));
+        fmt::format(kGrandpaProtocol, hex_lower(genesis_hash));
   }
 
   bool GrandpaProtocol::start() {
@@ -121,80 +121,80 @@ namespace kagome::network {
   void GrandpaProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    auto stream_handler = [wp = weak_from_this(),
-                           peer_id = peer_info.id,
-                           cb = std::move(cb)](auto &&stream_res) mutable {
-      auto self = wp.lock();
-      if (not self) {
-        cb(ProtocolError::GONE);
-        return;
-      }
+    host_.newStream(
+        peer_info.id,
+        libp2p::StreamProtocols{{protocol_by_genesis_, protocol_}},
+        [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
+            auto &&stream_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            cb(ProtocolError::GONE);
+            return;
+          }
 
-      if (not stream_res.has_value()) {
-        SL_VERBOSE(self->log_,
-                   "Can't create outgoing {} stream with {}: {}",
-                   self->protocol_,
-                   peer_id,
-                   stream_res.error().message());
-        cb(stream_res.as_failure());
-        return;
-      }
-      auto &stream = stream_res.value();
+          if (not stream_res.has_value()) {
+            SL_VERBOSE(self->log_,
+                       "Can't create outgoing {} stream with {}: {}",
+                       self->protocol_,
+                       peer_id,
+                       stream_res.error().message());
+            cb(stream_res.as_failure());
+            return;
+          }
+          auto &stream = stream_res.value();
 
-      auto cb2 = [wp, stream, cb = std::move(cb)](outcome::result<void> res) {
-        auto self = wp.lock();
-        if (not self) {
-          cb(ProtocolError::GONE);
-          return;
-        }
+          auto cb2 = [wp, stream, cb = std::move(cb)](
+                         outcome::result<void> res) {
+            auto self = wp.lock();
+            if (not self) {
+              cb(ProtocolError::GONE);
+              return;
+            }
 
-        if (not res.has_value()) {
-          SL_VERBOSE(self->log_,
-                     "Handshake failed on outgoing {} stream with {}: {}",
-                     self->protocol_,
-                     stream->remotePeerId().value(),
-                     res.error().message());
-          stream->reset();
-          cb(res.as_failure());
-          return;
-        }
+            if (not res.has_value()) {
+              SL_VERBOSE(self->log_,
+                         "Handshake failed on outgoing {} stream with {}: {}",
+                         self->protocol_,
+                         stream->remotePeerId().value(),
+                         res.error().message());
+              stream->reset();
+              cb(res.as_failure());
+              return;
+            }
 
-        res = self->stream_engine_->addOutgoing(stream, self);
-        if (not res.has_value()) {
-          SL_VERBOSE(self->log_,
-                     "Can't register outgoing {} stream with {}: {}",
-                     self->protocol_,
-                     stream->remotePeerId().value(),
-                     res.error().message());
-          stream->reset();
-          cb(res.as_failure());
-          return;
-        }
+            res = self->stream_engine_->addOutgoing(stream, self);
+            if (not res.has_value()) {
+              SL_VERBOSE(self->log_,
+                         "Can't register outgoing {} stream with {}: {}",
+                         self->protocol_,
+                         stream->remotePeerId().value(),
+                         res.error().message());
+              stream->reset();
+              cb(res.as_failure());
+              return;
+            }
 
-        SL_VERBOSE(self->log_,
-                   "Fully established outgoing {} stream with {}",
-                   self->protocol_,
-                   stream->remotePeerId().value());
+            SL_VERBOSE(self->log_,
+                       "Fully established outgoing {} stream with {}",
+                       self->protocol_,
+                       stream->remotePeerId().value());
 
-        // Send neighbor message first
-        auto own_peer_state =
-            self->peer_manager_->getPeerState(self->own_info_.id);
-        if (own_peer_state.has_value()) {
-          self->neighbor(GrandpaNeighborMessage{
-              .round_number = own_peer_state->round_number.value_or(1),
-              .voter_set_id = own_peer_state->set_id.value_or(0),
-              .last_finalized = own_peer_state->last_finalized});
-        }
+            // Send neighbor message first
+            auto own_peer_state =
+                self->peer_manager_->getPeerState(self->own_info_.id);
+            if (own_peer_state.has_value()) {
+              self->neighbor(GrandpaNeighborMessage{
+                  .round_number = own_peer_state->round_number.value_or(1),
+                  .voter_set_id = own_peer_state->set_id.value_or(0),
+                  .last_finalized = own_peer_state->last_finalized});
+            }
 
-        cb(std::move(stream));
-      };
+            cb(std::move(stream));
+          };
 
-      self->writeHandshake(
-          std::move(stream), Direction::OUTGOING, std::move(cb2));
-    };
-
-    host_.newStream(peer_info.id, protocol_, stream_handler);
-    host_.newStream(peer_info.id, protocol_by_genesis_, stream_handler);
+          self->writeHandshake(
+              std::move(stream), Direction::OUTGOING, std::move(cb2));
+        });
   }
 
   void GrandpaProtocol::readHandshake(
