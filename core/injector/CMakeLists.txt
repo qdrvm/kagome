@@ -88,8 +88,6 @@ target_link_libraries(application_injector
     state_protocol_observer
     storage_code_provider
     sync_protocol_observer
-    system_api_service
-    system_api_service
     telemetry
     tagged_transaction_queue_api
     transaction_payment_api
@@ -103,6 +101,7 @@ target_link_libraries(application_injector
     system_api_service
     payment_api_service
     rpc_api_service
+    internal_api_service
     kademlia_storage_backend
     peer_manager
     babe_util
