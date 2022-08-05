@@ -194,10 +194,6 @@ namespace kagome::consensus {
     // block should be applied without last digest which contains the seal
     block_without_seal_digest.header.digest.pop_back();
 
-    auto parent = block_tree_->getBlockHeader(block.header.parent_hash).value();
-
-    auto last_finalized_block = block_tree_->getLastFinalized();
-
     if (not block_already_exists) {
       OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
     }

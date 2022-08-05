@@ -21,6 +21,12 @@ namespace kagome::consensus {
     outcome::result<void> appendBlock(primitives::BlockData &&block) override {
       return appendBlock(block);
     }
+
+    MOCK_METHOD(outcome::result<void>,
+                applyJustification,
+                (const primitives::BlockInfo &block_info,
+                 const primitives::Justification &justification),
+                (override));
   };
 
 }  // namespace kagome::consensus
