@@ -99,7 +99,6 @@ class RuntimeTestBase : public ::testing::Test {
 
     host_api_factory_ = std::make_shared<host_api::HostApiFactoryImpl>(
         kagome::host_api::OffchainExtensionConfig{},
-        changes_tracker_,
         sr25519_provider,
         ecdsa_provider,
         ed25519_provider,

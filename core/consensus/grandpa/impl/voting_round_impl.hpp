@@ -191,7 +191,7 @@ namespace kagome::consensus::grandpa {
     // Getters
 
     RoundNumber roundNumber() const override;
-    VoterSetId voterSetId() const override;
+    MembershipCounter voterSetId() const override;
 
     /**
      * Round is completable when we have block (stored in
@@ -238,6 +238,8 @@ namespace kagome::consensus::grandpa {
      * finalized block for this voting round
      */
     MovableRoundState state() const override;
+
+    void sendNeighborMessage();
 
    private:
     /// Check if peer \param id is primary
@@ -290,7 +292,6 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> validatePrecommitJustification(
         const BlockInfo &vote, const GrandpaJustification &justification) const;
 
-    void sendNeighborMessage();
     void sendProposal(const PrimaryPropose &primary_proposal);
     void sendPrevote(const Prevote &prevote);
     void sendPrecommit(const Precommit &precommit);

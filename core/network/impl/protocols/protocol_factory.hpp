@@ -12,10 +12,13 @@
 #include "network/impl/protocols/collation_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/state_protocol_impl.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/rating_repository.hpp"
 #include "primitives/event_types.hpp"
+
+#include <libp2p/basic/scheduler.hpp>
 
 namespace kagome::network {
 
@@ -33,7 +36,8 @@ namespace kagome::network {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo,
-        std::shared_ptr<PeerRatingRepository> peer_rating_repository);
+        std::shared_ptr<PeerRatingRepository> peer_rating_repository,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
     void setBlockTree(
         const std::shared_ptr<blockchain::BlockTree> &block_tree) {
@@ -60,6 +64,11 @@ namespace kagome::network {
       collation_observer_ = collation_observer;
     }
 
+    void setStateObserver(
+        const std::shared_ptr<StateProtocolObserver> &state_observer) {
+      state_observer_ = state_observer;
+    }
+
     void setSyncObserver(
         const std::shared_ptr<SyncProtocolObserver> &sync_observer) {
       sync_observer_ = sync_observer;
@@ -76,6 +85,7 @@ namespace kagome::network {
     std::shared_ptr<PropagateTransactionsProtocol>
     makePropagateTransactionsProtocol() const;
 
+    std::shared_ptr<StateProtocol> makeStateProtocol() const;
     std::shared_ptr<SyncProtocol> makeSyncProtocol() const;
 
     std::shared_ptr<CollationProtocol> makeCollationProtocol() const;
@@ -93,11 +103,13 @@ namespace kagome::network {
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         ext_event_key_repo_;
     std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::weak_ptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<consensus::babe::Babe> babe_;
     std::weak_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::weak_ptr<ExtrinsicObserver> extrinsic_observer_;
+    std::weak_ptr<StateProtocolObserver> state_observer_;
     std::weak_ptr<SyncProtocolObserver> sync_observer_;
     std::weak_ptr<PeerManager> peer_manager_;
     std::weak_ptr<CollationObserver> collation_observer_;

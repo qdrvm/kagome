@@ -13,6 +13,7 @@
 #include "network/impl/protocols/collation_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
+#include "network/protocols/state_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
 
 namespace kagome::network {
@@ -29,6 +30,7 @@ namespace kagome::network {
     virtual std::shared_ptr<CollationProtocol> getCollationProtocol() const = 0;
     virtual std::shared_ptr<PropagateTransactionsProtocol>
     getPropagateTransactionsProtocol() const = 0;
+    virtual std::shared_ptr<StateProtocol> getStateProtocol() const = 0;
     virtual std::shared_ptr<SyncProtocol> getSyncProtocol() const = 0;
     virtual std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const = 0;
 

@@ -3,6 +3,7 @@ add_library(application_util
     )
 target_link_libraries(application_util
     Boost::filesystem
+    outcome
     )
 
 add_custom_command(

@@ -114,10 +114,10 @@ namespace kagome::consensus::grandpa {
                         clock,
                         scheduler) {
     BOOST_ASSERT(previous_round != nullptr);
-    BOOST_ASSERT(previous_round->finalizedBlock().has_value());
 
     previous_round_ = previous_round;
-    last_finalized_block_ = previous_round->finalizedBlock().value();
+    last_finalized_block_ = previous_round->finalizedBlock().value_or(
+        previous_round->lastFinalizedBlock());
   }
 
   VotingRoundImpl::VotingRoundImpl(
@@ -862,7 +862,7 @@ namespace kagome::consensus::grandpa {
     return round_number_;
   }
 
-  VoterSetId VotingRoundImpl::voterSetId() const {
+  MembershipCounter VotingRoundImpl::voterSetId() const {
     return voter_set_->id();
   }
 
@@ -1229,7 +1229,9 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    BOOST_ASSERT(prevote_ghost_.has_value());
+    if (not prevote_ghost_) {
+      return false;
+    }
     const auto &prevote_ghost = prevote_ghost_.value();
 
     // anything new finalized? finalized blocks are those which have both

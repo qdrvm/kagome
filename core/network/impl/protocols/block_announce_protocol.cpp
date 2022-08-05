@@ -264,7 +264,9 @@ namespace kagome::network {
       return;
     }
 
-    read_writer->write(status_res.value(),
+    const auto &status = status_res.value();
+
+    read_writer->write(status,
                        [stream = std::move(stream),
                         direction,
                         wp = weak_from_this(),

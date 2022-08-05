@@ -78,7 +78,7 @@ namespace kagome::network {
             SL_VERBOSE(self->base_.logger(),
                        "Handshake failed on incoming {} stream with {}: {}",
                        self->base_.protocol(),
-                       peer_id.toBase58(),
+                       peer_id,
                        res.error().message());
             stream->reset();
             return;
@@ -89,7 +89,7 @@ namespace kagome::network {
             SL_VERBOSE(self->base_.logger(),
                        "Can't register incoming {} stream with {}: {}",
                        self->base_.protocol(),
-                       peer_id.toBase58(),
+                       peer_id,
                        res.error().message());
             stream->reset();
             return;
@@ -98,7 +98,7 @@ namespace kagome::network {
           SL_VERBOSE(self->base_.logger(),
                      "Fully established incoming {} stream with {}",
                      self->base_.protocol(),
-                     peer_id.toBase58());
+                     peer_id);
         });
   }
 
@@ -120,7 +120,7 @@ namespace kagome::network {
             SL_VERBOSE(self->base_.logger(),
                        "Can't create outgoing {} stream with {}: {}",
                        self->base_.protocol(),
-                       peer_id.toBase58(),
+                       peer_id,
                        stream_res.error().message());
             cb(stream_res.as_failure());
             return;
@@ -139,7 +139,7 @@ namespace kagome::network {
               SL_VERBOSE(self->base_.logger(),
                          "Handshake failed on outgoing {} stream with {}: {}",
                          self->base_.protocol(),
-                         stream->remotePeerId().value().toBase58(),
+                         stream->remotePeerId().value(),
                          res.error().message());
               stream->reset();
               cb(res.as_failure());
@@ -151,7 +151,7 @@ namespace kagome::network {
               SL_VERBOSE(self->base_.logger(),
                          "Can't register outgoing {} stream with {}: {}",
                          self->base_.protocol(),
-                         stream->remotePeerId().value().toBase58(),
+                         stream->remotePeerId().value(),
                          res.error().message());
               stream->reset();
               cb(res.as_failure());
@@ -161,7 +161,7 @@ namespace kagome::network {
             SL_VERBOSE(self->base_.logger(),
                        "Fully established outgoing {} stream with {}",
                        self->base_.protocol(),
-                       stream->remotePeerId().value().toBase58());
+                       stream->remotePeerId().value());
             cb(std::move(stream));
           };
 
@@ -189,7 +189,7 @@ namespace kagome::network {
           if (not remote_handshake_res.has_value()) {
             SL_VERBOSE(self->base_.logger(),
                        "Can't read handshake from {}: {}",
-                       stream->remotePeerId().value().toBase58(),
+                       stream->remotePeerId().value(),
                        remote_handshake_res.error().message());
             stream->reset();
             cb(remote_handshake_res.as_failure());
@@ -198,7 +198,7 @@ namespace kagome::network {
 
           SL_TRACE(self->base_.logger(),
                    "Handshake has received from {}",
-                   stream->remotePeerId().value().toBase58());
+                   stream->remotePeerId().value());
 
           switch (direction) {
             case Direction::OUTGOING:
@@ -233,7 +233,7 @@ namespace kagome::network {
                          if (not write_res.has_value()) {
                            SL_VERBOSE(self->base_.logger(),
                                       "Can't send handshake to {}: {}",
-                                      stream->remotePeerId().value().toBase58(),
+                                      stream->remotePeerId().value(),
                                       write_res.error().message());
                            stream->reset();
                            cb(write_res.as_failure());
@@ -242,7 +242,7 @@ namespace kagome::network {
 
                          SL_TRACE(self->base_.logger(),
                                   "Handshake has sent to {}",
-                                  stream->remotePeerId().value().toBase58());
+                                  stream->remotePeerId().value());
 
                          switch (direction) {
                            case Direction::OUTGOING:
@@ -273,8 +273,8 @@ namespace kagome::network {
 
       if (not message_res.has_value()) {
         SL_VERBOSE(self->base_.logger(),
-                   "Can't read grandpa message from {}: {}",
-                   stream->remotePeerId().value().toBase58(),
+                   "Can't read propagated transactions from {}: {}",
+                   stream->remotePeerId().value(),
                    message_res.error().message());
         stream->reset();
         return;
@@ -286,7 +286,7 @@ namespace kagome::network {
       SL_VERBOSE(self->base_.logger(),
                  "Received {} propagated transactions from {}",
                  message.extrinsics.size(),
-                 peer_id.toBase58());
+                 peer_id);
 
       if (self->babe_->wasSynchronized()) {
         for (auto &ext : message.extrinsics) {
