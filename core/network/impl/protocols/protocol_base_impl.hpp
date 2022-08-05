@@ -84,7 +84,7 @@ namespace kagome::network {
                     stream->remotePeerId().value());
 
           } else {
-            SL_INFO(log,
+            SL_VERBOSE(log,
                     "Stream {} with {} was closed.",
                     self->protocol(),
                     stream->remotePeerId().value());

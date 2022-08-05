@@ -164,7 +164,7 @@ namespace kagome::network {
                   .voter_set_id = own_peer_state->set_id.value_or(0),
                   .last_finalized = own_peer_state->last_finalized};
 
-              SL_DEBUG(self->log_,
+              SL_DEBUG(self->base_.logger(),
                        "Send initial neighbor message: grandpa round number {}",
                        msg.round_number);
 
@@ -463,7 +463,7 @@ namespace kagome::network {
       const auto &info = info_opt.value();
 
       if (not info.set_id.has_value() or not info.round_number.has_value()) {
-        SL_DEBUG(log_,
+        SL_DEBUG(base_.logger(),
                  "Commit with set_id={} in round={} "
                  "has not been sent to {}: set id or round number unknown",
                  set_id,
@@ -549,7 +549,7 @@ namespace kagome::network {
     const auto &info = info_opt.value();
 
     if (not info.set_id.has_value() or not info.round_number.has_value()) {
-      SL_DEBUG(log_,
+      SL_DEBUG(base_.logger(),
                "Catch-up-request with set_id={} in round={} "
                "has not been sent to {}: set id or round number unknown",
                catch_up_request.voter_set_id,
@@ -587,7 +587,7 @@ namespace kagome::network {
         recent_catchup_requests_by_round_.emplace(round_id);
 
     if (not ok_by_round) {
-      SL_DEBUG(log_,
+      SL_DEBUG(base_.logger(),
                "Catch-up-request with set_id={} in round={} "
                "has not been sent to {}: "
                "the same catch-up request had sent to another peer",
@@ -603,7 +603,7 @@ namespace kagome::network {
     // It is impolite to replay a catch-up request
     if (not ok_by_peer) {
       recent_catchup_requests_by_round_.erase(iter_by_round);
-      SL_DEBUG(log_,
+      SL_DEBUG(base_.logger(),
                "Catch-up-request with set_id={} in round={} "
                "has not been sent to {}: impolite to replay catch-up request",
                catch_up_request.voter_set_id,
@@ -647,7 +647,7 @@ namespace kagome::network {
     const auto &info = info_opt.value();
 
     if (not info.set_id.has_value() or not info.round_number.has_value()) {
-      SL_DEBUG(log_,
+      SL_DEBUG(base_.logger(),
                "Catch-up-response with set_id={} in round={} "
                "has not been sent to {}: set id or round number unknown",
                catch_up_response.voter_set_id,
