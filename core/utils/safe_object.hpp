@@ -6,6 +6,9 @@
 #ifndef KAGOME_SAFE_OBJECT_HPP
 #define KAGOME_SAFE_OBJECT_HPP
 
+#include <mutex>
+#include <shared_mutex>
+
 // clang-format off
 /**
  * Protected object wrapper. Allow read-write access.

@@ -19,6 +19,15 @@ target_link_libraries(block_announce_protocol
     protocol_error
     )
 
+add_library(collation_protocol
+    collation_protocol.cpp
+    )
+target_link_libraries(collation_protocol
+    logger
+    scale_message_read_writer
+    protocol_error
+    )
+
 add_library(grandpa_protocol
     grandpa_protocol.cpp
     )

@@ -11,6 +11,7 @@
 #include "offchain/offchain_worker_pool.hpp"
 
 #include "log/logger.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome::offchain {
   using kagome::primitives::ThreadNumber;
@@ -21,17 +22,15 @@ namespace kagome::offchain {
 
     void addWorker(std::shared_ptr<OffchainWorker> ofw) override;
 
-    std::optional<std::shared_ptr<OffchainWorker>> getWorker() override;
+    std::optional<std::shared_ptr<OffchainWorker>> getWorker() const override;
 
     bool removeWorker() override;
 
    private:
-    std::mutex mut_;
-
     log::Logger log_;
-
-    std::unordered_map<ThreadNumber, std::shared_ptr<OffchainWorker>>
-        offchain_workers_ = {};
+    SafeObject<
+        std::unordered_map<ThreadNumber, std::shared_ptr<OffchainWorker>>>
+        offchain_workers_;
   };
 
 }  // namespace kagome::offchain

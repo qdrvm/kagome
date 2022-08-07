@@ -123,4 +123,5 @@ target_link_libraries(application_injector
     offchain_local_storage
     rating_repository
     session_keys_api
+    collation_protocol
     )

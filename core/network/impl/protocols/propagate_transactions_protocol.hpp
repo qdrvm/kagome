@@ -19,37 +19,28 @@
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "network/extrinsic_observer.hpp"
+#include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/propagate_transactions.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
+#include "utils/non_copyable.hpp"
 
 namespace kagome::network {
-
-  using Stream = libp2p::connection::Stream;
-  using Protocol = libp2p::peer::Protocol;
-  using PeerId = libp2p::peer::PeerId;
-  using PeerInfo = libp2p::peer::PeerInfo;
 
   KAGOME_DECLARE_CACHE(PropagateTransactionsProtocol,
                        KAGOME_CACHE_UNIT(PropagatedExtrinsics));
 
   class PropagateTransactionsProtocol final
       : public ProtocolBase,
-        public std::enable_shared_from_this<PropagateTransactionsProtocol> {
+        public std::enable_shared_from_this<PropagateTransactionsProtocol>,
+        NonCopyable,
+        NonMovable {
    public:
     PropagateTransactionsProtocol() = delete;
-    PropagateTransactionsProtocol(PropagateTransactionsProtocol &&) noexcept =
-        delete;
-    PropagateTransactionsProtocol(const PropagateTransactionsProtocol &) =
-        delete;
     ~PropagateTransactionsProtocol() override = default;
-    PropagateTransactionsProtocol &operator=(
-        PropagateTransactionsProtocol &&) noexcept = delete;
-    PropagateTransactionsProtocol &operator=(
-        PropagateTransactionsProtocol const &) = delete;
 
     PropagateTransactionsProtocol(
         libp2p::Host &host,
@@ -63,7 +54,7 @@ namespace kagome::network {
             ext_event_key_repo);
 
     const Protocol &protocol() const override {
-      return protocol_;
+      return base_.protocol();
     }
 
     bool start() override;
@@ -89,7 +80,7 @@ namespace kagome::network {
 
     void readPropagatedExtrinsics(std::shared_ptr<Stream> stream);
 
-    libp2p::Host &host_;
+    ProtocolBaseImpl base_;
     std::shared_ptr<consensus::babe::Babe> babe_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;
@@ -97,14 +88,10 @@ namespace kagome::network {
         extrinsic_events_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         ext_event_key_repo_;
-    const libp2p::peer::Protocol protocol_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Counter *metric_propagated_tx_counter_;
-
-    log::Logger log_ =
-        log::createLogger("PropagateTransactionsProtocol", "kagome_protocols");
   };
 
 }  // namespace kagome::network
