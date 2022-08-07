@@ -62,6 +62,11 @@ namespace kagome::network {
       return false;
     }
 
+    collation_protocol_ = protocol_factory_->makeCollationProtocol();
+    if (not collation_protocol_) {
+      return false;
+    }
+
     grandpa_protocol_ = protocol_factory_->makeGrandpaProtocol();
     if (not grandpa_protocol_) {
       return false;
@@ -88,6 +93,7 @@ namespace kagome::network {
     propagate_transaction_protocol_->start();
     state_protocol_->start();
     sync_protocol_->start();
+    collation_protocol_->start();
 
     return true;
   }
@@ -146,6 +152,11 @@ namespace kagome::network {
   std::shared_ptr<BlockAnnounceProtocol>
   RouterLibp2p::getBlockAnnounceProtocol() const {
     return block_announce_protocol_;
+  }
+
+  std::shared_ptr<CollationProtocol> RouterLibp2p::getCollationProtocol()
+      const {
+    return collation_protocol_;
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>

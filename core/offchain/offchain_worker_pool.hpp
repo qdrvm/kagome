@@ -10,7 +10,8 @@ namespace kagome::offchain {
 
     virtual void addWorker(std::shared_ptr<OffchainWorker> ofw) = 0;
 
-    virtual std::optional<std::shared_ptr<OffchainWorker>> getWorker() = 0;
+    virtual std::optional<std::shared_ptr<OffchainWorker>> getWorker()
+        const = 0;
 
     virtual bool removeWorker() = 0;
   };
