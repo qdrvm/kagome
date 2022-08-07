@@ -199,8 +199,7 @@ namespace kagome::network {
       BOOST_ASSERT(!it->second.collator_state
                    && !!"Collator state should be empty at the time.");
       it->second.collator_state = CollatorState{.parachain_id = para_id,
-                                                .collator_id = collator_id,
-                                                .advertisements{}};
+                                                .collator_id = collator_id};
       it->second.time = clock_->now();
     }
   }

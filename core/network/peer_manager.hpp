@@ -64,6 +64,8 @@ namespace kagome::network {
     using PeerId = libp2p::peer::PeerId;
     using PeerInfo = libp2p::peer::PeerInfo;
     using BlockInfo = primitives::BlockInfo;
+    using AdvResult = outcome::result<
+        std::pair<network::CollatorPublicKey const &, network::ParachainId>>;
 
     virtual ~PeerManager() = default;
 

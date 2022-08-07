@@ -22,6 +22,20 @@ namespace kagome::network {
 
     MOCK_METHOD(void, startPingingPeer, (const PeerId &), (override));
 
+    MOCK_METHOD(AdvResult, insert_advertisement, (PeerState &,
+                         ParachainState &,
+                         primitives::BlockHash), (override));
+
+    MOCK_METHOD(std::optional<PendingCollation>, pop_pending_collation, (), (override));
+
+    MOCK_METHOD(void, push_pending_collation, (PendingCollation &&), (override));
+
+    MOCK_METHOD(ParachainState &, parachainState, (), (override));
+
+    MOCK_METHOD(void, setCollating, (const PeerId &,
+                              network::CollatorPublicKey const &,
+                              network::ParachainId), (override));
+
     MOCK_METHOD(void,
                 updatePeerState,
                 (const PeerId &, const Status &),
