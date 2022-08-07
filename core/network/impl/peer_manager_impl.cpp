@@ -690,7 +690,7 @@ namespace kagome::network {
               auto &r_info = r_info_opt.value();
               auto &o_info = o_info_opt.value();
 
-              if (r_info.best_block.number <= o_info.best_block.number) {
+              if (r_info.get().best_block.number <= o_info.get().best_block.number) {
                 auto grandpa_protocol = self->router_->getGrandpaProtocol();
                 BOOST_ASSERT_MSG(grandpa_protocol,
                                  "Router did not provide grandpa protocol");
