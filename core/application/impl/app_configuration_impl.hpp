@@ -288,6 +288,7 @@ namespace kagome::application {
     std::string openmetrics_http_host_;
     boost::filesystem::path chain_spec_path_;
     boost::filesystem::path base_path_;
+    std::optional<boost::filesystem::path> keystore_path_;
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
     uint16_t openmetrics_http_port_;
