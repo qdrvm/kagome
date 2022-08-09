@@ -16,12 +16,28 @@
 namespace kagome::storage {
   namespace fs = boost::filesystem;
 
-  RocksDB::RocksDB() {
+  RocksDB::RocksDB(bool prevent_destruction)
+      : prevent_destruction_(prevent_destruction) {
     ro_.fill_cache = false;
   }
 
+  RocksDB::~RocksDB() {
+    if (prevent_destruction_) {
+      /*
+       * The following is a dirty workaround for a bug of rocksdb impl.
+       * Luckily, this happens when the whole app destroys, that is why
+       * the intentional memory leak would not affect normal operation.
+       *
+       * The hack is used to mitigate an issue of recovery mode run.
+       */
+      std::ignore = db_.release();
+    }
+  }
+
   outcome::result<std::unique_ptr<RocksDB>> RocksDB::create(
-      const boost::filesystem::path &path, rocksdb::Options options) {
+      const boost::filesystem::path &path,
+      rocksdb::Options options,
+      bool prevent_destruction) {
     if (!filesystem::createDirectoryRecursive(path)) {
       return DatabaseError::DB_PATH_NOT_CREATED;
     }
@@ -46,7 +62,7 @@ namespace kagome::storage {
 
     auto status = rocksdb::DB::Open(options, path.native(), &db);
     if (status.ok()) {
-      std::unique_ptr<RocksDB> l{new RocksDB{}};
+      std::unique_ptr<RocksDB> l{new RocksDB(prevent_destruction)};
       l->db_ = std::unique_ptr<rocksdb::DB>(db);
       l->logger_ = std::move(log);
       return l;

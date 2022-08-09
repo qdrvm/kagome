@@ -361,6 +361,9 @@ namespace {
       return initialized.value();
     }
 
+    // hack for recovery mode (otherwise - fails due to rocksdb bug)
+    bool prevent_destruction = app_config.recoverState().has_value();
+
     rocksdb::BlockBasedTableOptions table_options;
     table_options.block_cache = rocksdb::NewLRUCache(512 * 1024 * 1024);
     table_options.block_size = 32 * 1024;
@@ -372,8 +375,10 @@ namespace {
     options.optimize_filters_for_hits = true;
     options.table_factory.reset(
         rocksdb::NewBlockBasedTableFactory(table_options));
-    auto db_res = storage::RocksDB::create(
-        app_config.databasePath(chain_spec->id()), options);
+    auto db_res =
+        storage::RocksDB::create(app_config.databasePath(chain_spec->id()),
+                                 options,
+                                 prevent_destruction);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
       log->critical("Can't create RocksDB in {}: {}",
