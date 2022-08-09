@@ -17,7 +17,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/storage/base_leveldb_test.hpp"
+#include "testutil/storage/base_rocksdb_test.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryImpl;
@@ -32,14 +32,14 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
 
-class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
+class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
  public:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
 
   BlockHeaderRepository_Test()
-      : BaseLevelDB_Test(fs::path("/tmp/blockheaderrepotest.lvldb")) {}
+      : BaseRocksDB_Test(fs::path("/tmp/blockheaderrepotest.rcksdb")) {}
 
   void SetUp() override {
     open();
