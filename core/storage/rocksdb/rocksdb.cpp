@@ -178,16 +178,14 @@ namespace kagome::storage {
 
   void RocksDB::compact(const Buffer &first, const Buffer &last) {
     if (db_) {
-      auto *begin = db_->NewIterator(ro_);
+      std::unique_ptr<rocksdb::Iterator> begin(db_->NewIterator(ro_));
       first.empty() ? begin->SeekToFirst() : begin->Seek(make_slice(first));
       auto bk = begin->key();
-      auto *end = db_->NewIterator(ro_);
+      std::unique_ptr<rocksdb::Iterator> end(db_->NewIterator(ro_));
       last.empty() ? end->SeekToLast() : end->Seek(make_slice(last));
       auto ek = end->key();
       rocksdb::CompactRangeOptions options;
       db_->CompactRange(options, &bk, &ek);
-      delete begin;
-      delete end;
     }
   }
 }  // namespace kagome::storage
