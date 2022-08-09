@@ -16,6 +16,10 @@
 namespace kagome::storage {
   namespace fs = boost::filesystem;
 
+  RocksDB::RocksDB() {
+    ro_.fill_cache = false;
+  }
+
   outcome::result<std::unique_ptr<RocksDB>> RocksDB::create(
       const boost::filesystem::path &path, rocksdb::Options options) {
     if (!filesystem::createDirectoryRecursive(path)) {

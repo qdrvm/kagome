@@ -54,7 +54,7 @@ namespace kagome::storage {
     outcome::result<void> remove(const BufferView &key) override;
 
    private:
-    RocksDB() = default;
+    RocksDB();
 
     std::unique_ptr<rocksdb::DB> db_;
     rocksdb::ReadOptions ro_;
