@@ -1177,6 +1177,29 @@ namespace kagome::blockchain {
     }
 
     // else, we need to use a database
+
+    // Try to use optimal way, if ancestor and descendant in the finalized chain
+    if (descendant_depth <= getLastFinalized().number) {
+      auto res = header_repo_->getHashByNumber(descendant_depth);
+      BOOST_ASSERT_MSG(res.has_value(),
+                       "Any finalized block must be accessible by number");
+      // Check if descendant in finalised chain
+      if (res.value() == descendant) {
+        res = header_repo_->getHashByNumber(ancestor_depth);
+        BOOST_ASSERT_MSG(res.has_value(),
+                         "Any finalized block must be accessible by number");
+        if (res.value() == ancestor) {
+          // Ancestor and descendant in the finalized chain,
+          // therefore they have direct chain between each other
+          return true;
+        } else {
+          // Ancestor in the finalized chain, but descendant is not,
+          // therefore they can not have direct chain between each other
+          return false;
+        }
+      }
+    }
+
     auto current_hash = descendant;
     while (current_hash != ancestor) {
       auto current_header_res = header_repo_->getBlockHeader(current_hash);
