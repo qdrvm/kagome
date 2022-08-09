@@ -18,7 +18,7 @@ namespace kagome::api {
   class ApiService;
 
   /**
-   * @class ChainApi privides interface for blockchain api
+   * @class ChainApi provides interface for blockchain api
    */
   class ChainApi {
    public:
