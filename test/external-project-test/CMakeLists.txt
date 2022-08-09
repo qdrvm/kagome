@@ -40,7 +40,7 @@ target_link_libraries(main
     kagome::trie_storage_backend
     kagome::trie_storage_provider
     kagome::log_configurator
-    kagome::leveldb_wrapper
+    kagome::rocksdb_wrapper
     kagome::host_api_factory
     kagome::chain_spec
     kagome::crypto_store
