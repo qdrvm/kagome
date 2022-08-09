@@ -1123,7 +1123,12 @@ namespace kagome::network {
     }
     ancestry_.erase(hash);
 
-    if (known_blocks_.size() < kMinPreloadedBlockAmount) {
+    auto minPreloadedBlockAmount =
+        sync_method_ == application::AppConfiguration::SyncMethod::Full
+            ? kMinPreloadedBlockAmount
+            : kMinPreloadedBlockAmountForFastSyncing;
+
+    if (known_blocks_.size() < minPreloadedBlockAmount) {
       SL_TRACE(log_,
                "{} blocks in queue: ask next portion of block",
                known_blocks_.size());
@@ -1268,11 +1273,12 @@ namespace kagome::network {
         continue;
       }
 
+      primitives::BlockInfo block_info(g_it->first, hash);
+
       auto &peers = b_it->second.peers;
       if (peers.empty()) {
-        SL_TRACE(log_,
-                 "Block {} don't have any peer. Go to next one",
-                 primitives::BlockInfo(g_it->first, hash));
+        SL_TRACE(
+            log_, "Block {} don't have any peer. Go to next one", block_info);
         continue;
       }
 
@@ -1306,45 +1312,61 @@ namespace kagome::network {
                        res.error().message());
               return;
             }
-            SL_DEBUG(
-                self->log_, "Portion of blocks from {} is loaded", peer_id);
+            SL_DEBUG(self->log_,
+                     "Portion of blocks from {} is loaded till {}",
+                     peer_id,
+                     res.value());
+            if (self->known_blocks_.empty()) {
+              self->askNextPortionOfBlocks();
+            }
           }
         };
 
-        auto lower = generations_.begin()->first;
-        auto upper = generations_.rbegin()->first + 1;
-        auto hint = generations_.rbegin()->first;
+        if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
+          auto lower = generations_.begin()->first;
+          auto upper = generations_.rbegin()->first + 1;
+          auto hint = generations_.rbegin()->first;
 
-        SL_DEBUG(log_,
-                 "Start to find common block with {} in #{}..#{} to fill queue",
-                 peer_id,
-                 generations_.begin()->first,
-                 generations_.rbegin()->first);
-        findCommonBlock(
-            peer_id,
-            lower,
-            upper,
-            hint,
-            [wp = weak_from_this(), peer_id, handler = std::move(handler)](
-                outcome::result<primitives::BlockInfo> res) {
-              if (auto self = wp.lock()) {
-                if (not res.has_value()) {
+          SL_DEBUG(
+              log_,
+              "Start to find common block with {} in #{}..#{} to fill queue",
+              peer_id,
+              generations_.begin()->first,
+              generations_.rbegin()->first);
+          findCommonBlock(
+              peer_id,
+              lower,
+              upper,
+              hint,
+              [wp = weak_from_this(), peer_id, handler = std::move(handler)](
+                  outcome::result<primitives::BlockInfo> res) {
+                if (auto self = wp.lock()) {
+                  if (not res.has_value()) {
+                    SL_DEBUG(self->log_,
+                             "Can't load next portion of blocks from {}: {}",
+                             peer_id,
+                             res.error().message());
+                    handler(res);
+                    return;
+                  }
+                  auto &common_block_info = res.value();
                   SL_DEBUG(self->log_,
-                           "Can't load next portion of blocks from {}: {}",
+                           "Start to load next portion of blocks from {} "
+                           "since block {}",
                            peer_id,
-                           res.error().message());
-                  handler(res);
-                  return;
+                           common_block_info);
+                  self->loadBlocks(
+                      peer_id, common_block_info, std::move(handler));
                 }
-                auto &block_info = res.value();
-                SL_DEBUG(self->log_,
-                         "Start to load next portion of blocks from {} "
-                         "since block {}",
-                         peer_id,
-                         block_info);
-                self->loadBlocks(peer_id, block_info, std::move(handler));
-              }
-            });
+              });
+        } else {
+          SL_DEBUG(log_,
+                   "Start to load next portion of blocks from {} "
+                   "since block {}",
+                   peer_id,
+                   block_info);
+          loadBlocks(peer_id, block_info, std::move(handler));
+        }
         return;
       }
 
