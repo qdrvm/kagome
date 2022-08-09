@@ -53,6 +53,8 @@ namespace kagome::storage {
 
     outcome::result<void> remove(const BufferView &key) override;
 
+    void compact(const Buffer &first, const Buffer &last);
+
    private:
     RocksDB();
 
