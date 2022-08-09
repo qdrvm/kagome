@@ -20,7 +20,8 @@ namespace kagome::authority {
 }
 namespace kagome::blockchain {
   class BlockTree;
-}
+  class BlockHeaderRepository;
+}  // namespace kagome::blockchain
 namespace kagome::primitives {
   struct AuthorityList;
   struct BabeConfiguration;
@@ -50,6 +51,7 @@ namespace kagome::authority {
     AuthorityManagerImpl(
         Config config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
@@ -123,6 +125,7 @@ namespace kagome::authority {
     bool prepareFromGenesis();
 
     Config config_;
+    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;

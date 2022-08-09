@@ -5,14 +5,13 @@
 
 #include "consensus/authority/impl/authority_manager_impl.hpp"
 
-#include <boost/range/algorithm.hpp>
-#include <boost/range/algorithm/reverse.hpp>
 #include <stack>
 #include <unordered_set>
 
 #include <boost/range/adaptor/reversed.hpp>
 
 #include "application/app_state_manager.hpp"
+#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
 #include "consensus/authority/authority_manager_error.hpp"
@@ -32,16 +31,19 @@ namespace kagome::authority {
   AuthorityManagerImpl::AuthorityManagerImpl(
       Config config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<crypto::Hasher> hasher)
       : config_{std::move(config)},
+        header_repo_(std::move(header_repo)),
         block_tree_(std::move(block_tree)),
         trie_storage_(std::move(trie_storage)),
         grandpa_api_(std::move(grandpa_api)),
         hasher_(std::move(hasher)),
         log_{log::createLogger("AuthorityManager", "authority")} {
+    BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(trie_storage_ != nullptr);
@@ -851,60 +853,83 @@ namespace kagome::authority {
 
   bool AuthorityManagerImpl::prepareFromGenesis() {
     auto t_start = std::chrono::high_resolution_clock::now();
-    std::vector<std::pair<primitives::BlockHash, primitives::BlockHeader>>
-        headers;
+
     const auto finalized_block = block_tree_->getLastFinalized();
-    auto header = block_tree_->getBlockHeader(finalized_block.hash);
-    headers.emplace_back(finalized_block.hash, header.value());
-    size_t count1 = 0;
-    while (header.has_value()) {
-      auto hash = header.value().parent_hash;
-      header = block_tree_->getBlockHeader(hash);
-      if (header.has_value()) {
-        if (not(++count1 % 10000)) {
-          SL_WARN(log_, "{} headers loaded", count1);
-        }
-        headers.emplace_back(hash, header.value());
-      }
-    }
 
     root_ = authority::ScheduleNode::createAsRoot(
-        {headers.back().second.number, headers.back().first});
-    auto authorities = grandpa_api_->authorities(headers.back().first).value();
+        {0, block_tree_->getGenesisBlockHash()});
+
+    auto authorities =
+        grandpa_api_->authorities(block_tree_->getGenesisBlockHash()).value();
     authorities.id = 0;
     root_->actual_authorities =
         std::make_shared<primitives::AuthorityList>(std::move(authorities));
 
-    count1 = 0;
-    size_t count2 = 0;
-    for (const auto &[hash, header] : boost::range::reverse(headers)) {
-      if (not(++count1 % 1000)) {
-        SL_WARN(log_, "{} digests applied ({})", count1, count2);
-        count2 = 0;
+    size_t count = 0;
+    size_t delta = 0;
+
+    for (consensus::grandpa::BlockNumber block_number = 1;
+         block_number <= finalized_block.number;
+         ++block_number) {
+      auto hash_res = header_repo_->getHashByNumber(block_number);
+      if (hash_res.has_error()) {
+        SL_CRITICAL(log_,
+                    "Can't get hash of block #{} of the best chain: {}",
+                    block_number,
+                    hash_res.error());
+        return false;
       }
+      const auto &block_hash = hash_res.value();
+
+      primitives::BlockInfo block_info(block_number, block_hash);
+
+      auto header_res = block_tree_->getBlockHeader(block_hash);
+      if (header_res.has_error()) {
+        SL_CRITICAL(log_,
+                    "Can't get header of block {}: {}",
+                    block_info,
+                    header_res.error());
+        return false;
+      }
+      const auto &header = header_res.value();
+
+      bool found = false;
       for (const auto &digest_item : header.digest) {
         std::ignore = visit_in_place(
             digest_item,
-            [&, num = header.number, hash = hash](
-                const primitives::Consensus &consensus_message)
-                -> outcome::result<void> {
-              ++count2;
-              return onConsensus(primitives::BlockInfo{num, hash},
-                                 consensus_message);
+            [&](const primitives::Consensus &msg) -> outcome::result<void> {
+              if (msg.consensus_engine_id == primitives::kGrandpaEngineId) {
+                ++count;
+                ++delta;
+                found = true;
+              }
+              return onConsensus(block_info, msg);
             },
             [](const auto &) { return outcome::success(); });
       }
-      if (not(count1 % 10000)) {
-        prune(primitives::BlockInfo{header.number, hash});
+      if (not(block_number % 512)) {
+        prune(block_info);
+      }
+
+      if (found) {
+        SL_VERBOSE(log_,
+                   "{} headers are observed and {} digests are applied (+{})",
+                   block_number,
+                   count,
+                   delta);
+        delta = 0;
       }
     }
 
     auto t_end = std::chrono::high_resolution_clock::now();
 
-    log_->warn(
-        "Applied authorities within {} ms",
-        std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
-            .count());
+    SL_INFO(log_,
+            "{} headers are observed and {} digests are applied within {}s",
+            finalized_block.number,
+            count,
+            std::chrono::duration_cast<std::chrono::seconds>(t_end - t_start)
+                .count());
+
     return true;
   }
 
