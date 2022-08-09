@@ -15,6 +15,7 @@
 #include "primitives/common.hpp"
 #include "primitives/compact_integer.hpp"
 #include "primitives/digest.hpp"
+#include "scale/tie.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::network {
@@ -33,6 +34,9 @@ namespace kagome::network {
    * Declaration of the intent to advertise a collation.
    */
   struct CollatorDeclaration {
+    SCALE_TIE(3);
+    SCALE_TIE_EQ(CollatorDeclaration);
+
     /*
      * Public key of the collator.
      */
@@ -54,6 +58,9 @@ namespace kagome::network {
    * Advertisement of a collation.
    */
   struct CollatorAdvertisement {
+    SCALE_TIE(1);
+    SCALE_TIE_EQ(CollatorAdvertisement);
+
     /*
      * Hash of the parachain block.
      */
@@ -69,82 +76,11 @@ namespace kagome::network {
   using CollationProtocolData = boost::variant<CollationMessage>;
 
   struct CollationProtocolMessage {
+    SCALE_TIE(1);
+    SCALE_TIE_EQ(CollationProtocolMessage);
+
     CollationProtocolData data;
   };
-
-  inline bool operator==(const CollationProtocolMessage &lhs,
-                         const CollationProtocolMessage &rhs) {
-    return lhs.data == rhs.data;
-  }
-  inline bool operator!=(const CollationProtocolMessage &lhs,
-                         const CollationProtocolMessage &rhs) {
-    return !(lhs == rhs);
-  }
-
-  /**
-   * @brief compares two CollatorDeclaration instances
-   */
-  inline bool operator==(const CollatorDeclaration &lhs,
-                         const CollatorDeclaration &rhs) {
-    return lhs.collator_pubkey == rhs.collator_pubkey
-           && lhs.para_id == rhs.para_id
-           && lhs.collator_signature == rhs.collator_signature;
-  }
-  inline bool operator!=(const CollatorDeclaration &lhs,
-                         const CollatorDeclaration &rhs) {
-    return !(lhs == rhs);
-  }
-
-  /**
-   * @brief compares two CollatorAdvertisement instances
-   */
-  inline bool operator==(const CollatorAdvertisement &lhs,
-                         const CollatorAdvertisement &rhs) {
-    return lhs.para_hash == rhs.para_hash;
-  }
-  inline bool operator!=(const CollatorAdvertisement &lhs,
-                         const CollatorAdvertisement &rhs) {
-    return !(lhs == rhs);
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const CollationProtocolMessage &v) {
-    return s << v.data;
-  }
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, CollationProtocolMessage &v) {
-    return s >> v.data;
-  }
-
-  /**
-   * @brief serialization of CollatorDeclaration into stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const CollatorDeclaration &v) {
-    return s << v.collator_pubkey << v.para_id << v.collator_signature;
-  }
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, CollatorDeclaration &v) {
-    return s >> v.collator_pubkey >> v.para_id >> v.collator_signature;
-  }
-
-  /**
-   * @brief serialization of CollatorDeclaration into stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const CollatorAdvertisement &v) {
-    return s << v.para_hash;
-  }
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, CollatorAdvertisement &v) {
-    return s >> v.para_hash;
-  }
 }  // namespace kagome::network
 
 #endif  // KAGOME_COLLATOR_DECLARE_HPP

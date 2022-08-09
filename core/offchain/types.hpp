@@ -49,18 +49,7 @@ namespace kagome::offchain {
   constexpr HttpStatus ErrorHasOccurred(20);
 
   struct NoPayload {};
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const NoPayload &) {
-    return s;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, NoPayload &) {
-    return s;
-  }
+  SCALE_EMPTY_CODER(NoPayload);
 
   struct Success : public NoPayload {};
   struct Failure : public NoPayload {};

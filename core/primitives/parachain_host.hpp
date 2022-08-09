@@ -11,6 +11,7 @@
 
 #include <boost/variant.hpp>
 #include <optional>
+
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 
@@ -30,6 +31,7 @@ namespace kagome::primitives::parachain {
    */
   struct Relay {};
   // TODO(yuraz): PRE-152 update Relay content when it updates in polkadot
+  SCALE_EMPTY_CODER(Relay);
 
   /**
    * @brief Parachain primitive
@@ -45,33 +47,6 @@ namespace kagome::primitives::parachain {
    * @brief DutyRoster primitive
    */
   using DutyRoster = std::vector<Chain>;
-  // TODO(yuraz): PRE-152 update Relay << and >> operators
-  //  when Relay updates in polkadot
-  /**
-   * @brief outputs Relay instance to stream
-   * @tparam Stream stream type
-   * @param s reference to stream
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Relay &v) {
-    return s;
-  }
-
-  /**
-   * @brief decodes Relay instance from stream
-   * @tparam Stream input stream type
-   * @param s reference to stream
-   * @param v value to decode
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, Relay &v) {
-    return s;
-  }
-
 }  // namespace kagome::primitives::parachain
+
 #endif  // KAGOME_CORE_PRIMITIVES_PARACHAIN_HOST_HPP
