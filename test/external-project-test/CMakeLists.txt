@@ -8,7 +8,7 @@ endif(CCACHE_FOUND)
 
 set(
     CMAKE_TOOLCHAIN_FILE
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cpp17-toolchain.cmake"
+    "../../cmake/toolchain/cxx17.cmake"
     CACHE
     FILEPATH
     "Default toolchain"
