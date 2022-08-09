@@ -26,6 +26,8 @@
 #include "api/service/child_state/child_state_jrpc_processor.hpp"
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
 #include "api/service/impl/api_service_impl.hpp"
+#include "api/service/internal/impl/internal_api_impl.hpp"
+#include "api/service/internal/internal_jrpc_processor.hpp"
 #include "api/service/payment/impl/payment_api_impl.hpp"
 #include "api/service/payment/payment_jrpc_processor.hpp"
 #include "api/service/rpc/impl/rpc_api_impl.hpp"
@@ -1092,7 +1094,9 @@ namespace {
               injector.template create<
                   std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
               injector.template create<
-                  std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
+                  std::shared_ptr<api::payment::PaymentJRpcProcessor>>(),
+              injector.template create<
+                  std::shared_ptr<api::internal::InternalJrpcProcessor>>()};
           return api::ApiServiceImpl::ProcessorSpan{processors};
         }),
         // bind interfaces
@@ -1273,6 +1277,7 @@ namespace {
             [](auto const &injector) { return get_recovery_mode(injector); }),
         di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
         di::bind<consensus::babe::ConsistencyKeeper>.template to<consensus::babe::ConsistencyKeeperImpl>(),
+        di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
