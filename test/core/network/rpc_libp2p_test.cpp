@@ -131,10 +131,13 @@ TEST_F(RpcLibp2pTest, ReadWithoutResponse) {
  * @then response is received
  */
 TEST_F(RpcLibp2pTest, WriteWithResponse) {
-  EXPECT_CALL(
-      host_,
-      newStream(peer_info_, protocol_, _, std::chrono::milliseconds::zero()))
-      .WillOnce(testing::InvokeArgument<2>(stream_));
+  EXPECT_CALL(host_,
+              newStream(peer_info_,
+                        libp2p::StreamProtocols{protocol_},
+                        _,
+                        std::chrono::milliseconds::zero()))
+      .WillOnce(
+          testing::InvokeArgument<2>(StreamAndProtocol{stream_, protocol_}));
 
   setWriteExpectations(stream_, encoded_request_.asVector());
   setReadExpectations(stream_, encoded_response_.asVector());
@@ -159,10 +162,13 @@ TEST_F(RpcLibp2pTest, WriteWithResponse) {
  * @then the error is properly handled
  */
 TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
-  EXPECT_CALL(
-      host_,
-      newStream(peer_info_, protocol_, _, std::chrono::milliseconds::zero()))
-      .WillOnce(testing::InvokeArgument<2>(stream_));
+  EXPECT_CALL(host_,
+              newStream(peer_info_,
+                        libp2p::StreamProtocols{protocol_},
+                        _,
+                        std::chrono::milliseconds::zero()))
+      .WillOnce(
+          testing::InvokeArgument<2>(StreamAndProtocol{stream_, protocol_}));
 
   setWriteExpectations(stream_, encoded_request_.asVector());
   EXPECT_CALL(*stream_, read(_, _, _))
@@ -189,10 +195,13 @@ TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
  * @then operation completes successfully
  */
 TEST_F(RpcLibp2pTest, WriteWithoutResponse) {
-  EXPECT_CALL(
-      host_,
-      newStream(peer_info_, protocol_, _, std::chrono::milliseconds::zero()))
-      .WillOnce(testing::InvokeArgument<2>(stream_));
+  EXPECT_CALL(host_,
+              newStream(peer_info_,
+                        libp2p::StreamProtocols{protocol_},
+                        _,
+                        std::chrono::milliseconds::zero()))
+      .WillOnce(
+          testing::InvokeArgument<2>(StreamAndProtocol{stream_, protocol_}));
 
   setWriteExpectations(stream_, encoded_request_.asVector());
 

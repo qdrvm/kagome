@@ -103,14 +103,15 @@ namespace kagome::network {
                       std::function<void(outcome::result<Response>)> cb) {
       host.newStream(
           peer_info,
-          protocol,
+          {protocol},
           [request = std::move(request),
            cb = std::move(cb)](auto &&stream_res) mutable {
             if (!stream_res) {
               return cb(stream_res.error());
             }
 
-            auto stream = std::move(stream_res.value());
+            auto stream_and_proto = std::move(stream_res.value());
+            auto &stream = stream_and_proto.stream;
 
             auto log = log::createLogger("rpc_writter", "network");
             SL_DEBUG(log,
@@ -163,19 +164,19 @@ namespace kagome::network {
                       Request request,
                       std::function<void(outcome::result<void>)> cb) {
       host.newStream(peer_info,
-                     protocol,
+                     {protocol},
                      [request = std::move(request),
                       cb = std::move(cb)](auto &&stream_res) mutable {
                        if (!stream_res) {
                          return cb(stream_res.error());
                        }
 
-                       auto stream = std::move(stream_res.value());
-                       auto read_writer =
-                           std::make_shared<MessageReadWriterT>(stream);
+                       auto stream_and_proto = std::move(stream_res.value());
+                       auto read_writer = std::make_shared<MessageReadWriterT>(
+                           stream_and_proto.stream);
                        read_writer->template write<Request>(
                            request,
-                           [stream = std::move(stream),
+                           [stream = std::move(stream_and_proto.stream),
                             cb = std::move(cb)](auto &&write_res) {
                              if (!write_res) {
                                stream->reset();
