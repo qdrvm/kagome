@@ -20,8 +20,8 @@
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
-#include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -199,10 +199,10 @@ int main(int argc, char *argv[]) {
   {
     auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
 
-    std::shared_ptr<storage::LevelDB> storage;
+    std::shared_ptr<storage::RocksDB> storage;
     try {
       storage =
-          storage::LevelDB::create(argv[DB_PATH], leveldb::Options()).value();
+          storage::RocksDB::create(argv[DB_PATH], rocksdb::Options()).value();
     } catch (std::system_error &e) {
       log->error("{}", e.what());
       usage();
@@ -369,7 +369,7 @@ int main(int argc, char *argv[]) {
           if (not(count % 10000000)) {
             log->trace("{} keys were processed at the db.", count);
             res2 = check(db_batch->commit());
-            dynamic_cast<storage::LevelDB *>(storage.get())
+            dynamic_cast<storage::RocksDB *>(storage.get())
                 ->compact(prefix, check(db_cursor->key()).value());
             db_cursor = storage->cursor();
             db_batch = storage->batch();
@@ -392,7 +392,7 @@ int main(int argc, char *argv[]) {
 
       {
         TicToc t4("Compaction 1.", log);
-        dynamic_cast<storage::LevelDB *>(storage.get())
+        dynamic_cast<storage::RocksDB *>(storage.get())
             ->compact(common::Buffer(), common::Buffer());
       }
 
@@ -436,8 +436,8 @@ int main(int argc, char *argv[]) {
   if (need_additional_compaction) {
     TicToc t5("Compaction 2.", log);
     auto storage =
-        check(storage::LevelDB::create(argv[1], leveldb::Options())).value();
-    dynamic_cast<storage::LevelDB *>(storage.get())
+        check(storage::RocksDB::create(argv[1], rocksdb::Options())).value();
+    dynamic_cast<storage::RocksDB *>(storage.get())
         ->compact(common::Buffer(), common::Buffer());
   }
 }
