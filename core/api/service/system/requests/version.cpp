@@ -7,6 +7,8 @@
 
 #include <boost/assert.hpp>
 
+#include "application/build_version.hpp"
+
 namespace kagome::api::system::request {
 
   Version::Version(std::shared_ptr<SystemApi> api) : api_(std::move(api)) {
@@ -22,8 +24,7 @@ namespace kagome::api::system::request {
   }
 
   outcome::result<std::string> Version::execute() {
-    // TODO(xDimon): Need to replace hardcode by some config or generated code
-    return "0.0.1";
+    return buildVersion();
   }
 
 }  // namespace kagome::api::system::request
