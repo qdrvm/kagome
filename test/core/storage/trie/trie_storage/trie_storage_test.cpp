@@ -9,7 +9,7 @@
 #include <boost/filesystem.hpp>
 
 #include "outcome/outcome.hpp"
-#include "storage/leveldb/leveldb.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
@@ -21,7 +21,7 @@
 
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
-using kagome::storage::LevelDB;
+using kagome::storage::RocksDB;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::RootHash;
@@ -45,11 +45,11 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
   {
-    leveldb::Options options;
+    rocksdb::Options options;
     options.create_if_missing = true;  // intentionally
     EXPECT_OUTCOME_TRUE(
         level_db,
-        LevelDB::create("/tmp/kagome_leveldb_persistency_test", options));
+        RocksDB::create("/tmp/kagome_rocksdb_persistency_test", options));
     auto serializer = std::make_shared<TrieSerializerImpl>(
         factory,
         codec,
@@ -69,7 +69,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
     root = root_;
   }
   EXPECT_OUTCOME_TRUE(new_level_db,
-                      LevelDB::create("/tmp/kagome_leveldb_persistency_test"));
+                      RocksDB::create("/tmp/kagome_rocksdb_persistency_test"));
   auto serializer = std::make_shared<TrieSerializerImpl>(
       factory,
       codec,
@@ -86,5 +86,5 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
   EXPECT_OUTCOME_TRUE(v3, batch->get("678"_buf));
   ASSERT_EQ(v3.get(), "xyz"_buf);
 
-  boost::filesystem::remove_all("/tmp/kagome_leveldb_persistency_test");
+  boost::filesystem::remove_all("/tmp/kagome_rocksdb_persistency_test");
 }

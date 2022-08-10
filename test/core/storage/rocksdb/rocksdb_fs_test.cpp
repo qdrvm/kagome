@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 #include "storage/database_error.hpp"
-#include "storage/leveldb/leveldb.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -20,7 +20,7 @@ struct LevelDB_Open : public test::BaseFS_Test {
     testutil::prepareLoggers();
   }
 
-  LevelDB_Open() : test::BaseFS_Test("/tmp/kagome_leveldb_open") {}
+  LevelDB_Open() : test::BaseFS_Test("/tmp/kagome_rocksdb_open") {}
 };
 
 /**
@@ -29,10 +29,10 @@ struct LevelDB_Open : public test::BaseFS_Test {
  * @then database can not be opened (since there is no db already)
  */
 TEST_F(LevelDB_Open, OpenNonExistingDB) {
-  leveldb::Options options;
+  rocksdb::Options options;
   options.create_if_missing = false;  // intentionally
 
-  auto r = LevelDB::create(getPathString(), options);
+  auto r = RocksDB::create(getPathString(), options);
   EXPECT_FALSE(r);
   EXPECT_EQ(r.error(), DatabaseError::INVALID_ARGUMENT);
 }
@@ -43,10 +43,10 @@ TEST_F(LevelDB_Open, OpenNonExistingDB) {
  * @then database is opened
  */
 TEST_F(LevelDB_Open, OpenExistingDB) {
-  leveldb::Options options;
+  rocksdb::Options options;
   options.create_if_missing = true;  // intentionally
 
-  EXPECT_OUTCOME_TRUE_2(db, LevelDB::create(getPathString(), options));
+  EXPECT_OUTCOME_TRUE_2(db, RocksDB::create(getPathString(), options));
   EXPECT_TRUE(db) << "db is nullptr";
 
   boost::filesystem::path p(getPathString());

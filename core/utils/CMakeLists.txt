@@ -15,7 +15,7 @@ target_link_libraries(kagome-db-editor
   block_storage
   changes_tracker
   hasher
-  leveldb_wrapper
+  rocksdb_wrapper
   polkadot_codec
   polkadot_trie_factory
   runtime_upgrade_tracker

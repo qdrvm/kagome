@@ -12,11 +12,11 @@ addtest(polkadot_trie_storage_test
     )
 target_link_libraries(polkadot_trie_storage_test
     trie_storage
-    leveldb_wrapper
+    rocksdb_wrapper
     ordered_trie_hash
     polkadot_trie_factory
     Boost::boost
-    base_leveldb_test
+    base_rocksdb_test
     trie_storage_backend
     trie_serializer
     in_memory_storage

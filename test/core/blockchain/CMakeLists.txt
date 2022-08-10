@@ -8,7 +8,7 @@ addtest(block_header_repository_test
     )
 target_link_libraries(block_header_repository_test
     block_header_repository
-    base_leveldb_test
+    base_rocksdb_test
     hasher
     blockchain_common
     )
