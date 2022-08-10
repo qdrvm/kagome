@@ -65,6 +65,11 @@ namespace kagome::consensus {
     // Justification Store for Future Applying
     std::map<primitives::BlockInfo, primitives::Justification> justifications_;
 
+    struct {
+      std::chrono::high_resolution_clock::time_point time;
+      primitives::BlockNumber block_number;
+    } speed_data_;
+
     log::Logger logger_;
   };
 
