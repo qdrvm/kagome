@@ -20,6 +20,7 @@
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/protocol_base.hpp"
+#include "network/rating_repository.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 #include "utils/safe_object.hpp"
@@ -41,6 +42,9 @@ namespace kagome::network {
     using Protocol = libp2p::peer::Protocol;
     using Stream = libp2p::connection::Stream;
     using StreamEnginePtr = std::shared_ptr<StreamEngine>;
+
+    static constexpr auto kDownVoteByDisconnectionExpirationTimeout =
+        std::chrono::seconds(30);
 
     enum class Direction : uint8_t {
       INCOMING = 1,
@@ -121,7 +125,9 @@ namespace kagome::network {
     StreamEngine &operator=(StreamEngine &&) = delete;
 
     ~StreamEngine() = default;
-    StreamEngine() : logger_{log::createLogger("StreamEngine", "network")} {}
+    StreamEngine(std::shared_ptr<PeerRatingRepository> peer_rating_repository)
+        : peer_rating_repository_(std::move(peer_rating_repository)),
+          logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
     static StreamEnginePtr create(Args &&...args) {
@@ -488,7 +494,10 @@ namespace kagome::network {
                 if (stream_res
                     == outcome::failure(
                         std::make_error_code(std::errc::not_connected))) {
-                  self->del(peer_id);
+                  self->peer_rating_repository_->updateForATime(
+                      peer_id,
+                      -1000,
+                      kDownVoteByDisconnectionExpirationTimeout);
                   return;
                 }
 
@@ -545,7 +554,9 @@ namespace kagome::network {
       });
     }
 
+    std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
     log::Logger logger_;
+
     SafeObject<PeerMap> streams_;
   };
 
