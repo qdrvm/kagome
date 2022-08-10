@@ -11,7 +11,7 @@ find_dependency(schnorrkel_crust REQUIRED)
 find_dependency(zstd REQUIRED)
 find_dependency(libsecp256k1 REQUIRED)
 find_dependency(OpenSSL REQUIRED)
-find_dependency(rocksdb REQUIRED)
+find_dependency(RocksDB REQUIRED)
 find_dependency(scale REQUIRED)
 
 option(KAGOME_ENABLE_WAVM "Include WAVM webassembly executor dependency" ON)
