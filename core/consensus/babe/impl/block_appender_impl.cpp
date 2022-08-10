@@ -8,16 +8,13 @@
 #include <chrono>
 
 #include "blockchain/block_tree_error.hpp"
-#include "blockchain/impl/common.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/slot.hpp"
-#include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
 #include "scale/scale.hpp"
-#include "transaction_pool/transaction_pool_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockAppenderImpl::Error, e) {
   using E = kagome::consensus::BlockAppenderImpl::Error;
@@ -74,13 +71,29 @@ namespace kagome::consensus {
 
     primitives::BlockInfo block_info(header.number, block_hash);
 
-    if (auto header_res = block_tree_->getBlockHeader(header.parent_hash);
-        header_res.has_error()
-        && header_res.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
-      logger_->warn("Skipping a block {} with unknown parent", block_info);
-      return Error::PARENT_NOT_FOUND;
-    } else if (header_res.has_error()) {
-      return header_res.as_failure();
+    if (last_appended_.has_value()) {
+      if (last_appended_->number > block_info.number) {
+        SL_DEBUG(
+            logger_, "Skip early appended header of block: {}", block_info);
+        return outcome::success();
+      }
+      if (last_appended_.value() == block_info) {
+        SL_DEBUG(logger_, "Skip just appended header of block: {}", block_info);
+        return outcome::success();
+      }
+    }
+
+    if (last_appended_
+        != primitives::BlockInfo(header.number - 1, header.parent_hash)) {
+      if (auto header_res = block_tree_->getBlockHeader(header.parent_hash);
+          header_res.has_error()
+          && header_res.error()
+                 == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+        logger_->warn("Skipping a block {} with unknown parent", block_info);
+        return Error::PARENT_NOT_FOUND;
+      } else if (header_res.has_error()) {
+        return header_res.as_failure();
+      }
     }
 
     // get current time to measure performance if block execution
@@ -205,15 +218,14 @@ namespace kagome::consensus {
           digest_item,
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
-            return authority_update_observer_->onConsensus(
-                primitives::BlockInfo{block.header.number, block_hash},
-                consensus_message);
+            return authority_update_observer_->onConsensus(block_info,
+                                                           consensus_message);
           },
           [](const auto &) { return outcome::success(); });
       if (res.has_error()) {
         SL_ERROR(logger_,
                  "Error while processing consensus digests of block {}: {}",
-                 block_hash,
+                 block_info,
                  res.error().message());
         return res.as_failure();
       }
@@ -224,52 +236,32 @@ namespace kagome::consensus {
     if (b.justification.has_value()) {
       SL_VERBOSE(logger_, "Justification received for block {}", block_info);
 
-      // try to apply left in justification store values first
-      if (not justifications_.empty()) {
-        std::vector<primitives::BlockInfo> to_remove;
-        for (const auto &[block_justified_for, justification] :
-             justifications_) {
-          auto res = applyJustification(block_justified_for, justification);
-          if (res) {
-            to_remove.push_back(block_justified_for);
-          }
-        }
-        if (not to_remove.empty()) {
-          for (const auto &item : to_remove) {
-            justifications_.erase(item);
-          }
-        }
-      }
-
       auto res = applyJustification(block_info, b.justification.value());
-
       if (res.has_error()) {
-        if (res
-            == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
-          justifications_.emplace(block_info, b.justification.value());
-        } else {
-          return res.as_failure();
-        }
-      } else {
-        // safely could be remove if current justification applied successfully
-        justifications_.clear();
+        SL_ERROR(logger_,
+                 "Error while applying of block {} justification: {}",
+                 block_info,
+                 res.error().message());
+        return res.as_failure();
       }
     }
 
     SL_DEBUG(logger_,
-             "Imported header of block {} within {} ms",
+             "Imported header of block {} within {} us",
              block_info,
-             std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::duration_cast<std::chrono::microseconds>(
                  std::chrono::high_resolution_clock::now() - t_start)
                  .count());
 
     if (block_info.number % 512 == 0) {
       SL_INFO(logger_,
-               "Imported another 512 headers of blocks. Last one imported of {}",
-               block_info);
+              "Imported another 512 headers of blocks. Last one imported is {}",
+              block_info);
     }
 
     consistency_guard.commit();
+
+    last_appended_.emplace(std::move(block_info));
 
     return outcome::success();
   }

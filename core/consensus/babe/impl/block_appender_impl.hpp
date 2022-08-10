@@ -60,6 +60,8 @@ namespace kagome::consensus {
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper_;
 
+    std::optional<primitives::BlockInfo> last_appended_;
+
     // Justification Store for Future Applying
     std::map<primitives::BlockInfo, primitives::Justification> justifications_;
 
