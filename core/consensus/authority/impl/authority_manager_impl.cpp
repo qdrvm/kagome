@@ -251,13 +251,13 @@ namespace kagome::authority {
       auto &&set_id_opt_res =
           fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header);
       if (set_id_opt_res.has_error()) {
-        auto &error = set_id_opt_res.error();
         log_->warn(
-            "Couldn't fetch authority set id from trie storage for block #{} "
-            "({}): {}. Recalculating from genesis.",
-            header.number,
-            hash,
-            error.message());
+            "Can't fetch authority set id from trie storage for block {}: {}",
+            primitives::BlockInfo(header.number, hash),
+            set_id_opt_res.error().message());
+        log_->info(
+            "Recalculating from genesis "
+            "(going to take a few dozens of seconds)");
         return prepareFromGenesis();
       }
       auto &set_id_opt = set_id_opt_res.value();
@@ -876,7 +876,7 @@ namespace kagome::authority {
         SL_CRITICAL(log_,
                     "Can't get hash of block #{} of the best chain: {}",
                     block_number,
-                    hash_res.error());
+                    hash_res.error().message());
         return false;
       }
       const auto &block_hash = hash_res.value();
@@ -888,7 +888,7 @@ namespace kagome::authority {
         SL_CRITICAL(log_,
                     "Can't get header of block {}: {}",
                     block_info,
-                    header_res.error());
+                    header_res.error().message());
         return false;
       }
       const auto &header = header_res.value();
