@@ -49,7 +49,7 @@ namespace kagome::network {
     /// Block amount enough for applying and preloading other ones
     /// simultaneously during fast syncing
     static constexpr size_t kMinPreloadedBlockAmountForFastSyncing =
-        kMinPreloadedBlockAmount * 5;
+        kMinPreloadedBlockAmount * 40;
 
     /// Indicating how far the block can be subscribed to.
     /// In general we don't needed wait very far blocks. This limit to avoid
