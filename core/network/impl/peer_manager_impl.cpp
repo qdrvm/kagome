@@ -212,22 +212,6 @@ namespace kagome::network {
       disconnectFromPeer(peer_id);
     }
 
-//    // Check if disconnected
-//    auto block_announce_protocol = router_->getBlockAnnounceProtocol();
-//    BOOST_ASSERT_MSG(block_announce_protocol,
-//                     "Router did not provide block announce protocol");
-//
-//    for (auto it = active_peers_.begin(); it != active_peers_.end();) {
-//      auto [peer_id, data] = *it++;
-//      // TODO(d.khaustov) consider better alive check logic
-//      if (not stream_engine_->isAlive(peer_id, block_announce_protocol)) {
-//        // Found disconnected
-//        const auto &peer_id_ref = peer_id;
-//        SL_DEBUG(log_, "Found dead peer: {}", peer_id_ref);
-//        disconnectFromPeer(peer_id);
-//      }
-//    }
-//
     // Soft limit is exceeded
     if (active_peers_.size() > soft_limit) {
       // Get oldest peer
