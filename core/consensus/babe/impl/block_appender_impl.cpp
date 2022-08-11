@@ -12,6 +12,7 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/slot.hpp"
+#include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
 #include "scale/scale.hpp"
@@ -236,13 +237,38 @@ namespace kagome::consensus {
     if (b.justification.has_value()) {
       SL_VERBOSE(logger_, "Justification received for block {}", block_info);
 
+      // try to apply left in justification store values first
+      if (not justifications_.empty()) {
+        std::vector<primitives::BlockInfo> to_remove;
+        for (const auto &[block_justified_for, justification] :
+             justifications_) {
+          auto res = applyJustification(block_justified_for, justification);
+          if (res) {
+            to_remove.push_back(block_justified_for);
+          }
+        }
+        if (not to_remove.empty()) {
+          for (const auto &item : to_remove) {
+            justifications_.erase(item);
+          }
+        }
+      }
+
       auto res = applyJustification(block_info, b.justification.value());
       if (res.has_error()) {
-        SL_ERROR(logger_,
-                 "Error while applying of block {} justification: {}",
-                 block_info,
-                 res.error().message());
-        return res.as_failure();
+        if (res
+            == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
+          justifications_.emplace(block_info, b.justification.value());
+        } else {
+          SL_ERROR(logger_,
+                   "Error while applying of block {} justification: {}",
+                   block_info,
+                   res.error().message());
+          return res.as_failure();
+        }
+      } else {
+        // safely could be remove if current justification applied successfully
+        justifications_.clear();
       }
     }
 
@@ -257,7 +283,7 @@ namespace kagome::consensus {
 
     auto block_delta = block_info.number - speed_data_.block_number;
     auto time_delta = now - speed_data_.time;
-    if (block_delta >= 25000 or time_delta >= std::chrono::minutes(1)) {
+    if (block_delta >= 20000 or time_delta >= std::chrono::minutes(1)) {
       SL_INFO(logger_,
               "Imported {} more headers of blocks. Average speed is {} bps",
               block_delta,
