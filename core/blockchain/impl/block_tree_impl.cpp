@@ -404,9 +404,11 @@ namespace kagome::blockchain {
     // Check if target block has state
     if (auto res = trie_storage->getEphemeralBatchAt(state_root);
         res.has_error()) {
-      SL_CRITICAL(
+      SL_WARN(
           log, "Can't get state of target block: {}", res.error().message());
-      return res.as_failure();
+      SL_CRITICAL(
+          log,
+          "You will need to use `--sync Fast' CLI arg the next time you start");
     }
 
     for (auto it = block_tree_leaves.rbegin(); it != block_tree_leaves.rend();
