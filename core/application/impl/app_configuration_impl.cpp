@@ -162,7 +162,9 @@ namespace kagome::application {
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         subcommand_chain_info_{def_subcommand_chain_info},
-        recovery_state_{def_block_to_recover} {}
+        recovery_state_{def_block_to_recover} {
+    SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
+  }
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
