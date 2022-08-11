@@ -8,7 +8,7 @@ endif(CCACHE_FOUND)
 
 set(
     CMAKE_TOOLCHAIN_FILE
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cpp17-toolchain.cmake"
+    "../../cmake/toolchain/cxx17.cmake"
     CACHE
     FILEPATH
     "Default toolchain"
@@ -40,7 +40,7 @@ target_link_libraries(main
     kagome::trie_storage_backend
     kagome::trie_storage_provider
     kagome::log_configurator
-    kagome::leveldb_wrapper
+    kagome::rocksdb_wrapper
     kagome::host_api_factory
     kagome::chain_spec
     kagome::crypto_store

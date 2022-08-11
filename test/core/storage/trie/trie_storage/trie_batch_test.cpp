@@ -16,7 +16,7 @@
 #include "storage/trie/trie_batches.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/storage/base_leveldb_test.hpp"
+#include "testutil/storage/base_rocksdb_test.hpp"
 
 using namespace kagome::storage::trie;
 using kagome::api::Session;
@@ -34,9 +34,9 @@ using SessionPtr = std::shared_ptr<Session>;
 using SubscriptionEngineType =
     SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;
 
-class TrieBatchTest : public test::BaseLevelDB_Test {
+class TrieBatchTest : public test::BaseRocksDB_Test {
  public:
-  TrieBatchTest() : BaseLevelDB_Test("/tmp/leveldbtest") {}
+  TrieBatchTest() : BaseRocksDB_Test("/tmp/rocksdbtest") {}
 
   void SetUp() override {
     open();

@@ -36,7 +36,6 @@ namespace rapidjson {
 namespace kagome::telemetry {
 
   static constexpr auto kImplementationName = "Kagome Node";
-  static constexpr auto kImplementationVersion = "0.7.7";
 
   static constexpr auto kTelemetryReportingInterval = std::chrono::seconds(1);
   static constexpr auto kTelemetrySystemReportInterval =

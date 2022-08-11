@@ -305,7 +305,7 @@ namespace kagome::application {
     bool enable_offchain_indexing_;
     bool subcommand_chain_info_;
     std::optional<primitives::BlockId> recovery_state_;
-    StorageBackend storage_backend_ = StorageBackend::LevelDB;
+    StorageBackend storage_backend_ = StorageBackend::RocksDB;
   };
 
 }  // namespace kagome::application
