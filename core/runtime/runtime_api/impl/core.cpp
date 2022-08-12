@@ -34,8 +34,11 @@ namespace kagome::runtime {
 
   outcome::result<void> CoreImpl::execute_block(
       const primitives::Block &block) {
-    OUTCOME_TRY(parent, header_repo_->getBlockHeader(block.header.parent_hash));
-    BOOST_ASSERT(parent.number == block.header.number - 1);
+    BOOST_ASSERT([] {
+      auto parent_res = header_repo_->getBlockHeader(block.header.parent_hash);
+      return parent_res.has_value()
+             and parent_res.value().number == block.header.number - 1;
+    }());
     changes_tracker_->onBlockExecutionStart(block.header.parent_hash);
     OUTCOME_TRY(executor_->persistentCallAt<void>(
         block.header.parent_hash, "Core_execute_block", block));
