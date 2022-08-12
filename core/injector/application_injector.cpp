@@ -430,15 +430,25 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
+
+    auto log = log::createLogger("Injector", "injector");
+
     auto configuration_res = babe_api->configuration(block_hash);
     if (not configuration_res) {
+      if (configuration_res
+          == outcome::failure(runtime::RuntimeEnvironmentFactory::Error::
+                                  FAILED_TO_SET_STORAGE_STATE)) {
+        SL_CRITICAL(log,
+                    "State for block {} has not found. "
+                    "Try to launch with `--sync Fast' CLI arg",
+                    block_hash);
+      }
       common::raise(configuration_res.error());
     }
 
     auto configuration = std::make_shared<primitives::BabeConfiguration>(
         std::move(configuration_res.value()));
 
-    auto log = log::createLogger("Injector", "injector");
     for (const auto &authority : configuration->genesis_authorities) {
       SL_DEBUG(log, "Babe authority: {:l}", authority.id.id);
     }
@@ -1387,6 +1397,7 @@ namespace {
     auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
 
     initialized = std::make_shared<consensus::babe::BabeImpl>(
+        injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::BabeLottery>>(),
         injector.template create<sptr<primitives::BabeConfiguration>>(),

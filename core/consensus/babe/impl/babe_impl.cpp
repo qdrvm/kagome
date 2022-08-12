@@ -8,6 +8,7 @@
 #include <boost/assert.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
+#include "application/app_configuration.hpp"
 #include "blockchain/block_storage_error.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
@@ -18,6 +19,7 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "network/block_announce_transmitter.hpp"
+#include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
@@ -33,7 +35,10 @@ namespace {
 using namespace std::literals::chrono_literals;
 
 namespace kagome::consensus::babe {
+  using SyncMethod = application::AppConfiguration::SyncMethod;
+
   BabeImpl::BabeImpl(
+      const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
@@ -51,7 +56,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api)
-      : was_synchronized_{false},
+      : app_config_(app_config),
         lottery_{std::move(lottery)},
         babe_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
@@ -138,7 +143,23 @@ namespace kagome::consensus::babe {
         return false;
       }
     }
-    current_state_ = State::WAIT_REMOTE_STATUS;
+
+    switch (app_config_.syncMethod()) {
+      case SyncMethod::Full:
+        current_state_ = State::WAIT_REMOTE_STATUS;
+        break;
+
+      case SyncMethod::Fast:
+        // Has uncompleted downloading state
+        if (false) { // FIXME
+          // Start loading of state
+          current_state_ = State::STATE_LOADING;
+        } else {
+          current_state_ = State::HEADERS_LOADING;
+        }
+        break;
+    }
+
     return true;
   }
 
@@ -264,6 +285,12 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::onRemoteStatus(const libp2p::peer::PeerId &peer_id,
                                 const network::Status &status) {
+    // If state is loading, just to ping of loading
+    if (current_state_ == Babe::State::STATE_LOADING) {
+      startStateSyncing(peer_id);
+      return;
+    }
+
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
     auto current_best_block_res =
@@ -286,6 +313,12 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
+    // If state is loading, just to ping of loading
+    if (current_state_ == Babe::State::STATE_LOADING) {
+      startStateSyncing(peer_id);
+      return;
+    }
+
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
     auto current_best_block_res =
@@ -323,77 +356,111 @@ namespace kagome::consensus::babe {
             if (block_res.has_error()) {
               return;
             }
+            const auto &block = block_res.value();
 
-            if (self->current_state_ == Babe::State::CATCHING_UP) {
-              const auto &block = block_res.value();
-              self->synchronizer_->syncState(
-                  peer_id,
-                  block,
-                  {common::Buffer()},
-                  [self, block = block, peer_id](
-                      outcome::result<primitives::BlockInfo>
-                          block_res) mutable {
-                    if (block_res.has_error()) {
-                      SL_WARN(self->log_,
-                              "Block result error: {}",
-                              block_res.error().message());
-                      return;
-                    }
-
-                    SL_INFO(self->log_,
-                            "Catching up is finished on block {}",
-                            block_res.value());
-                    self->current_state_ = Babe::State::SYNCHRONIZED;
-                    self->was_synchronized_ = true;
-                    self->telemetry_->notifyWasSynchronized();
-                  });
+            // Headers are loaded; Start to sync state
+            if (self->current_state_ == Babe::State::HEADERS_LOADING) {
+              self->startStateSyncing(peer_id);
+              return;
             }
-            self->onSynchronized();
 
-            // Propagate announce
-            self->block_announce_transmitter_->blockAnnounce(
-                std::move(announce));
+            // Just synced
+            if (self->current_state_ == Babe::State::CATCHING_UP) {
+              SL_INFO(self->log_, "Catching up is finished on block {}", block);
+              self->current_state_ = Babe::State::SYNCHRONIZED;
+              self->was_synchronized_ = true;
+              self->telemetry_->notifyWasSynchronized();
+            }
+
+            // Synced
+            if (self->current_state_ == Babe::State::SYNCHRONIZED) {
+              self->onSynchronized();
+              // Propagate announce
+              self->block_announce_transmitter_->blockAnnounce(
+                  std::move(announce));
+              return;
+            }
           }
         });
   }
 
   void BabeImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,
                               const primitives::BlockInfo &target_block) {
-    // synchronize missing blocks with their bodies
+    BOOST_ASSERT(current_state_ != Babe::State::HEADERS_LOADING);
+    BOOST_ASSERT(current_state_ != Babe::State::STATE_LOADING);
 
+    // synchronize missing blocks with their bodies
     auto is_ran = synchronizer_->syncByBlockInfo(
         target_block,
         peer_id,
-        [wp = weak_from_this(), bn = target_block.number, peer_id](
+        [wp = weak_from_this(), block = target_block, peer_id](
             outcome::result<primitives::BlockInfo> res) {
           if (auto self = wp.lock()) {
             self->synchronizer_->endSync();
             if (res.has_error()) {
               SL_DEBUG(self->log_,
-                       "Catching up to block #{} on {} is failed: {}",
-                       bn,
-                       peer_id.toBase58(),
+                       "Catching up {} to block {} is failed: {}",
+                       peer_id,
+                       block,
                        res.error().message());
               return;
             }
 
-            SL_DEBUG(
-                self->log_,
-                "Catching up to block #{} on {} is going (on block #{} now)",
-                bn,
-                peer_id.toBase58(),
-                res.value().number);
+            SL_DEBUG(self->log_,
+                     "Catching up {} to block {} is going; on block {} now",
+                     peer_id,
+                     block,
+                     res.value());
           }
         },
         false);
 
     if (is_ran) {
-      SL_VERBOSE(log_,
-                 "Catching up to block #{} on {} is ran",
-                 target_block.number,
-                 peer_id.toBase58());
+      SL_VERBOSE(
+          log_, "Catching up {} to block {} is ran", peer_id, target_block);
       current_state_ = State::CATCHING_UP;
     }
+  }
+
+  void BabeImpl::startStateSyncing(const libp2p::peer::PeerId &peer_id) {
+    BOOST_ASSERT(current_state_ == Babe::State::HEADERS_LOADING
+                 or current_state_ == Babe::State::STATE_LOADING);
+    if (current_state_ == Babe::State::HEADERS_LOADING
+        or current_state_ == Babe::State::STATE_LOADING) {
+      SL_WARN(log_, "Syncing of state can not be start: Bad state of babe");
+      return;
+    }
+
+    current_state_ = Babe::State::STATE_LOADING;
+
+    // Switch to last finalized to have a state on it
+    auto block_at_state = block_tree_->getLastFinalized();
+
+    SL_TRACE(log_,
+             "Trying to sync state on block {} from {}",
+             block_at_state,
+             peer_id);
+
+    synchronizer_->syncState(
+        peer_id,
+        block_at_state,
+        {{}},
+        [wp = weak_from_this(), block_at_state, peer_id](auto res) mutable {
+          if (auto self = wp.lock()) {
+            if (res.has_error()) {
+              SL_WARN(self->log_,
+                      "Syncing of state on block {} is failed: {}",
+                      block_at_state,
+                      res.error().message());
+              return;
+            }
+
+            SL_INFO(self->log_,
+                    "State on block {} is synced successfully",
+                    block_at_state);
+            self->current_state_ = Babe::State::CATCHING_UP;
+          }
+        });
   }
 
   void BabeImpl::onSynchronized() {
@@ -505,7 +572,7 @@ namespace kagome::consensus::babe {
         continue;
       }
       if (best_block_.number == 0) {
-        // Only genesis may not have a babe digest
+        // Only genesis block header might not have a babe digest
         break;
       }
       BOOST_ASSERT(babe_digests_res.has_value());
