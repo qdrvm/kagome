@@ -66,7 +66,7 @@ namespace kagome::network {
       } outgoing;
 
       std::deque<std::function<void(std::shared_ptr<Stream>)>>
-          deffered_messages;
+          deferred_messages;
 
      public:
       explicit ProtocolDescr(std::shared_ptr<ProtocolBase> proto)
@@ -464,7 +464,7 @@ namespace kagome::network {
             logger_->debug("DUMP:       I={} O={}   Messages:{}",
                            descr.incoming.stream,
                            descr.outgoing.stream,
-                           descr.deffered_messages.size());
+                           descr.deferred_messages.size());
           }
         });
         logger_->debug("DUMP: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
@@ -504,7 +504,7 @@ namespace kagome::network {
                 self->streams_.exclusiveAccess([&](auto &streams) {
                   self->forSubscriber(
                       peer_id, streams, protocol, [&](auto, auto &descr) {
-                        descr.deffered_messages.clear();
+                        descr.deferred_messages.clear();
                         descr.dropReserved();
                       });
                 });
@@ -524,10 +524,10 @@ namespace kagome::network {
                                          Direction::OUTGOING);
                       descr.dropReserved();
 
-                      while (!descr.deffered_messages.empty()) {
-                        auto &msg = descr.deffered_messages.front();
+                      while (!descr.deferred_messages.empty()) {
+                        auto &msg = descr.deferred_messages.front();
                         msg(stream);
-                        descr.deffered_messages.pop_front();
+                        descr.deferred_messages.pop_front();
                       }
                     });
                 BOOST_ASSERT(existing);
@@ -542,7 +542,7 @@ namespace kagome::network {
                       std::shared_ptr<T> msg) {
       streams_.exclusiveAccess([&](auto &streams) {
         forSubscriber(peer_id, streams, protocol, [&](auto, auto &descr) {
-          descr.deffered_messages.push_back(
+          descr.deferred_messages.push_back(
               [wp(weak_from_this()), peer_id, protocol, msg(std::move(msg))](
                   std::shared_ptr<Stream> stream) {
                 if (auto self = wp.lock()) {
