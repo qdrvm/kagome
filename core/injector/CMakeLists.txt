@@ -56,7 +56,6 @@ target_link_libraries(application_injector
     kagome_router
     kagome_router
     key_file_storage
-    leveldb_wrapper
     rocksdb_wrapper
     log_configurator
     metadata_api

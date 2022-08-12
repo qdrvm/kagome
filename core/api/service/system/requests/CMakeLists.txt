@@ -16,4 +16,5 @@ target_link_libraries(api_system_requests
     Boost::boost
     scale::scale
     outcome
+    build_version
     )

@@ -230,7 +230,7 @@ namespace kagome::application {
 
     virtual std::optional<primitives::BlockId> recoverState() const = 0;
 
-    enum class StorageBackend { LevelDB, RocksDB };
+    enum class StorageBackend { RocksDB };
 
     /**
      * @return enum constant of the chosen storage backend

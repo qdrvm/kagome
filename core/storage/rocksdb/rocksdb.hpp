@@ -18,17 +18,19 @@ namespace kagome::storage {
    public:
     class Batch;
 
-    ~RocksDB() override = default;
+    ~RocksDB() override;
 
     /**
      * @brief Factory method to create an instance of RocksDB class.
      * @param path filesystem path where database is going to be
      * @param options rocksdb options, such as caching, logging, etc.
+     * @param prevent_destruction - avoid destruction of underlying db if true
      * @return instance of RocksDB
      */
     static outcome::result<std::unique_ptr<RocksDB>> create(
         const boost::filesystem::path &path,
-        rocksdb::Options options = rocksdb::Options());
+        rocksdb::Options options = rocksdb::Options(),
+        bool prevent_destruction = false);
 
     std::unique_ptr<BufferBatch> batch() override;
 
@@ -53,8 +55,12 @@ namespace kagome::storage {
 
     outcome::result<void> remove(const BufferView &key) override;
 
+    void compact(const Buffer &first, const Buffer &last);
+
    private:
-    RocksDB() = default;
+    RocksDB(bool prevent_destruction);
+
+    bool prevent_destruction_ = false;
 
     std::unique_ptr<rocksdb::DB> db_;
     rocksdb::ReadOptions ro_;

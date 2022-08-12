@@ -178,7 +178,9 @@ namespace kagome::application {
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         subcommand_chain_info_{def_subcommand_chain_info},
-        recovery_state_{def_block_to_recover} {}
+        recovery_state_{def_block_to_recover} {
+    SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
+  }
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -337,12 +339,10 @@ namespace kagome::application {
     if (load_str(val, "database", database_engine_str)) {
       if ("rocksdb" == database_engine_str) {
         storage_backend_ = StorageBackend::RocksDB;
-      } else if ("leveldb" == database_engine_str) {
-        storage_backend_ = StorageBackend::LevelDB;
       } else {
         SL_ERROR(logger_,
                  "Unsupported database backend was specified {}, "
-                 "available options are [leveldb, rocksdb]",
+                 "available options are [rocksdb]",
                  database_engine_str);
         exit(EXIT_FAILURE);
       }
@@ -681,7 +681,7 @@ namespace kagome::application {
         ("base-path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
         ("keystore", po::value<std::string>(), "required, node keystore")
         ("tmp", "Use temporary storage path")
-        ("database", po::value<std::string>()->default_value("leveldb"), "Database backend to use [leveldb, rocksdb]")
+        ("database", po::value<std::string>()->default_value("rocksdb"), "Database backend to use [rocksdb]")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
         ;
@@ -871,13 +871,11 @@ namespace kagome::application {
     find_argument<std::string>(vm, "database", [&](const std::string &val) {
       if ("rocksdb" == val) {
         storage_backend_ = StorageBackend::RocksDB;
-      } else if ("leveldb" == val) {
-        storage_backend_ = StorageBackend::LevelDB;
       } else {
         unknown_database_engine_is_set = true;
         SL_ERROR(logger_,
                  "Unsupported database backend was specified {}, "
-                 "available options are [leveldb, rocksdb]",
+                 "available options are [rocksdb]",
                  val);
       }
     });
