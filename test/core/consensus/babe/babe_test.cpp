@@ -12,6 +12,7 @@
 
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -144,7 +145,8 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*sr25519_provider, sign(_, _))
         .WillRepeatedly(Return(Sr25519Signature{}));
 
-    babe_ = std::make_shared<babe::BabeImpl>(app_state_manager_,
+    babe_ = std::make_shared<babe::BabeImpl>(app_config_,
+                                             app_state_manager_,
                                              lottery_,
                                              babe_config_,
                                              proposer_,
@@ -174,6 +176,7 @@ class BabeTest : public testing::Test {
             .value();
   }
 
+  application::AppConfigurationMock app_config_;
   std::shared_ptr<AppStateManagerMock> app_state_manager_;
   std::shared_ptr<BabeLotteryMock> lottery_;
   std::shared_ptr<Synchronizer> synchronizer_;
