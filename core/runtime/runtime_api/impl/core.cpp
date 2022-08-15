@@ -34,7 +34,7 @@ namespace kagome::runtime {
 
   outcome::result<void> CoreImpl::execute_block(
       const primitives::Block &block) {
-    BOOST_ASSERT([] {
+    BOOST_ASSERT([&] {
       auto parent_res = header_repo_->getBlockHeader(block.header.parent_hash);
       return parent_res.has_value()
              and parent_res.value().number == block.header.number - 1;
