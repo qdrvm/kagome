@@ -11,6 +11,7 @@
 
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
+#include "storage/buffer_map_types.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -55,7 +56,8 @@ namespace kagome::authority {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-        std::shared_ptr<crypto::Hasher> hash);
+        std::shared_ptr<crypto::Hasher> hash,
+        std::shared_ptr<storage::BufferStorage> buffer_storage);
 
     ~AuthorityManagerImpl() override = default;
 
@@ -98,6 +100,9 @@ namespace kagome::authority {
     void prune(const primitives::BlockInfo &block) override;
 
    private:
+    bool load();
+    void save();
+
     /**
      * @brief Find schedule_node according to the block
      * @param block for which to find the schedule node
@@ -130,6 +135,7 @@ namespace kagome::authority {
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<storage::BufferStorage> buffer_storage_;
 
     std::shared_ptr<ScheduleNode> root_;
     log::Logger log_;

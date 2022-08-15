@@ -35,19 +35,22 @@ namespace kagome::authority {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<storage::BufferStorage> buffer_storage)
       : config_{std::move(config)},
         header_repo_(std::move(header_repo)),
         block_tree_(std::move(block_tree)),
         trie_storage_(std::move(trie_storage)),
         grandpa_api_(std::move(grandpa_api)),
         hasher_(std::move(hasher)),
+        buffer_storage_(std::move(buffer_storage)),
         log_{log::createLogger("AuthorityManager", "authority")} {
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(trie_storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(buffer_storage_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
     app_state_manager->atPrepare([&] { return prepare(); });
@@ -225,6 +228,10 @@ namespace kagome::authority {
   auto &val = UNIQUE_NAME(expr_r_).value();
 
   bool AuthorityManagerImpl::prepare() {
+    if (load()) {
+      return true;
+    }
+
     const auto finalized_block = block_tree_->getLastFinalized();
 
     PREPARE_TRY(
@@ -677,7 +684,7 @@ namespace kagome::authority {
     }
     if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
       OUTCOME_TRY(decoded, message.decode());
-      return visit_in_place(
+      auto res = visit_in_place(
           decoded.asGrandpaDigest(),
           [this, &block](
               const primitives::ScheduledChange &msg) -> outcome::result<void> {
@@ -700,6 +707,18 @@ namespace kagome::authority {
           [](auto &) {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
+      save();
+      return res;
+    } else if (message.consensus_engine_id
+                   == primitives::kUnsupportedEngineId_POL1
+               or message.consensus_engine_id
+                      == primitives::kUnsupportedEngineId_BEEF) {
+      SL_DEBUG(log_,
+               "Unsupported consensus engine id in block {}: {}",
+               block,
+               message.consensus_engine_id.toString());
+      return outcome::success();
+
     } else {
       SL_WARN(log_,
               "Unknown consensus engine id in block {}: {}",
@@ -707,6 +726,20 @@ namespace kagome::authority {
               message.consensus_engine_id.toString());
       return outcome::success();
     }
+  }
+
+  void AuthorityManagerImpl::save() {
+    auto data = scale::encode(root_).value();
+    buffer_storage_->put(Buffer::fromString("authmngrdata"), Buffer(data)).value();
+  }
+
+  bool AuthorityManagerImpl::load() {
+    auto r = buffer_storage_->tryLoad(Buffer::fromString("authmngrdata")).value();
+    if (r.has_value()) {
+      root_ = scale::decode<std::shared_ptr<ScheduleNode>>(r.value()).value();
+      return true;
+    }
+    return false;
   }
 
   void AuthorityManagerImpl::prune(const primitives::BlockInfo &block) {
@@ -742,6 +775,8 @@ namespace kagome::authority {
     }
 
     SL_VERBOSE(log_, "Prune authority manager upto block {}", block);
+
+    save();
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(
@@ -911,12 +946,14 @@ namespace kagome::authority {
         prune(block_info);
       }
 
-      if (found) {
-        SL_VERBOSE(log_,
-                   "{} headers are observed and {} digests are applied (+{})",
-                   block_number,
-                   count,
-                   delta);
+      if (not(block_number % 250000))
+      //      if (found)
+      {
+        SL_INFO(log_,
+                "{} headers are observed and {} digests are applied (+{})",
+                block_number,
+                count,
+                delta);
         delta = 0;
       }
     }
