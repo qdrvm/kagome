@@ -32,10 +32,6 @@ namespace kagome::network {
                       const application::ChainSpec &chain_spec,
                       std::shared_ptr<StateProtocolObserver> state_observer);
 
-    const Protocol &protocol() const override {
-      return protocol_;
-    }
-
     bool start() override;
     bool stop() override;
 

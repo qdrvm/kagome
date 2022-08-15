@@ -132,10 +132,7 @@ TEST_F(RpcLibp2pTest, ReadWithoutResponse) {
  */
 TEST_F(RpcLibp2pTest, WriteWithResponse) {
   EXPECT_CALL(host_,
-              newStream(peer_info_,
-                        libp2p::StreamProtocols{protocol_},
-                        _,
-                        std::chrono::milliseconds::zero()))
+              newStream(peer_info_.id, libp2p::StreamProtocols{protocol_}, _))
       .WillOnce(
           testing::InvokeArgument<2>(StreamAndProtocol{stream_, protocol_}));
 
@@ -163,10 +160,7 @@ TEST_F(RpcLibp2pTest, WriteWithResponse) {
  */
 TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
   EXPECT_CALL(host_,
-              newStream(peer_info_,
-                        libp2p::StreamProtocols{protocol_},
-                        _,
-                        std::chrono::milliseconds::zero()))
+              newStream(peer_info_.id, libp2p::StreamProtocols{protocol_}, _))
       .WillOnce(
           testing::InvokeArgument<2>(StreamAndProtocol{stream_, protocol_}));
 
@@ -196,10 +190,7 @@ TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
  */
 TEST_F(RpcLibp2pTest, WriteWithoutResponse) {
   EXPECT_CALL(host_,
-              newStream(peer_info_,
-                        libp2p::StreamProtocols{protocol_},
-                        _,
-                        std::chrono::milliseconds::zero()))
+              newStream(peer_info_.id, libp2p::StreamProtocols{protocol_}, _))
       .WillOnce(
           testing::InvokeArgument<2>(StreamAndProtocol{stream_, protocol_}));
 

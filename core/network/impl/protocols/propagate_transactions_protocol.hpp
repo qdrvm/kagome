@@ -53,10 +53,6 @@ namespace kagome::network {
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo);
 
-    const Protocol &protocol() const override {
-      return base_.protocol();
-    }
-
     bool start() override;
     bool stop() override;
 

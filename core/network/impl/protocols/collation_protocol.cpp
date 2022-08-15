@@ -21,7 +21,9 @@ namespace kagome::network {
       std::shared_ptr<CollationObserver> observer)
       : base_(host, {kCollationProtocol}, "CollationProtocol"),
         observer_(std::move(observer)),
-        app_config_{app_config} {}
+        app_config_{app_config} {
+    protocol_name_ = "CollationProtocol";
+  }
 
   bool CollationProtocol::start() {
     return base_.start(weak_from_this());

@@ -36,6 +36,7 @@ namespace kagome::network {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(observer_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
+    protocol_name_ = "BlockAnnounceProtocol";
   }
 
   bool BlockAnnounceProtocol::start() {
@@ -87,7 +88,7 @@ namespace kagome::network {
                    SL_VERBOSE(
                        self->base_.logger(),
                        "Handshake failed on incoming {} stream with {}: {}",
-                       self->base_.protocol(),
+                       self->protocolName(),
                        peer_id.toBase58(),
                        res.error().message());
                    stream->reset();
@@ -98,7 +99,7 @@ namespace kagome::network {
                  if (not res.has_value()) {
                    SL_VERBOSE(self->base_.logger(),
                               "Can't register incoming {} stream with {}: {}",
-                              self->base_.protocol(),
+                              self->protocolName(),
                               peer_id.toBase58(),
                               res.error().message());
                    stream->reset();
@@ -110,7 +111,7 @@ namespace kagome::network {
 
                  SL_VERBOSE(self->base_.logger(),
                             "Fully established incoming {} stream with {}",
-                            self->base_.protocol(),
+                            self->protocolName(),
                             peer_id.toBase58());
                });
   }
@@ -120,12 +121,12 @@ namespace kagome::network {
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     SL_DEBUG(base_.logger(),
              "Connect for {} stream with {}",
-             base_.protocol(),
+             protocolName(),
              peer_info.id);
 
     base_.host().newStream(
-        peer_info,
-        base_.protocols(),
+        peer_info.id,
+        base_.protocolIds(),
         [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
             auto &&stream_res) mutable {
           auto self = wp.lock();
@@ -135,21 +136,21 @@ namespace kagome::network {
           }
 
           if (not stream_res.has_value()) {
-            SL_VERBOSE(
-                self->base_.logger(),
-                "Can't create outgoing {} stream with {}: {}",
-                fmt::format("[{}]", fmt::join(self->base_.protocols(), ", ")),
-                peer_id,
-                stream_res.error().message());
+            SL_VERBOSE(self->base_.logger(),
+                       "Can't create outgoing {} stream with {}: {}",
+                       self->protocolName(),
+                       peer_id,
+                       stream_res.error().message());
             cb(stream_res.as_failure());
             return;
           }
 
-          auto &stream_and_proto = stream_res.value();
-          const_cast<Protocol &>(self->protocol()) = stream_and_proto.protocol;
+          const auto &stream_and_proto = stream_res.value();
 
-          auto cb2 = [wp, stream = stream_and_proto.stream, cb = std::move(cb)](
-                         outcome::result<void> res) {
+          auto cb2 = [wp,
+                      stream = stream_and_proto.stream,
+                      protocol = stream_and_proto.protocol,
+                      cb = std::move(cb)](outcome::result<void> res) {
             auto self = wp.lock();
             if (not self) {
               cb(ProtocolError::GONE);
@@ -159,7 +160,7 @@ namespace kagome::network {
             if (not res.has_value()) {
               SL_VERBOSE(self->base_.logger(),
                          "Handshake failed on outgoing {} stream with {}: {}",
-                         self->base_.protocol(),
+                         protocol,
                          stream->remotePeerId().value(),
                          res.error().message());
               stream->reset();
@@ -171,7 +172,7 @@ namespace kagome::network {
             if (not res.has_value()) {
               SL_VERBOSE(self->base_.logger(),
                          "Can't register outgoing {} stream with {}: {}",
-                         self->base_.protocol(),
+                         protocol,
                          stream->remotePeerId().value(),
                          res.error().message());
               stream->reset();
@@ -181,7 +182,7 @@ namespace kagome::network {
 
             SL_VERBOSE(self->base_.logger(),
                        "Fully established outgoing {} stream with {}",
-                       self->base_.protocol(),
+                       protocol,
                        stream->remotePeerId().value());
             cb(std::move(stream));
           };

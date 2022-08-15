@@ -64,11 +64,7 @@ namespace kagome::network {
       return true;
     }
 
-    Protocol const &protocol() const {
-      return protocol_;
-    }
-
-    Protocols const &protocols() const {
+    Protocols const &protocolIds() const {
       return protocols_;
     }
 
@@ -88,13 +84,13 @@ namespace kagome::network {
           if (!result) {
             SL_WARN(log,
                     "Stream {} was not closed successfully with {}",
-                    self->protocol(),
+                    self->protocolName(),
                     stream->remotePeerId().value());
 
           } else {
             SL_VERBOSE(log,
                        "Stream {} with {} was closed.",
-                       self->protocol(),
+                       self->protocolName(),
                        stream->remotePeerId().value());
           }
         }
@@ -103,7 +99,6 @@ namespace kagome::network {
 
    private:
     Host &host_;
-    Protocol const protocol_;
     Protocols const protocols_;
     log::Logger log_;
   };

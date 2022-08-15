@@ -19,6 +19,7 @@ namespace kagome::network {
       std::shared_ptr<StateProtocolObserver> state_observer)
       : host_(host), state_observer_(std::move(state_observer)) {
     BOOST_ASSERT(state_observer_ != nullptr);
+    protocol_name_ = "StateProtocol";
     const_cast<Protocol &>(protocol_) =
         fmt::format(kStateProtocol.data(), chain_spec.protocolId());
   }
@@ -60,7 +61,7 @@ namespace kagome::network {
     SL_DEBUG(log_, "Connect for {} stream with {}", protocol_, peer_info.id);
 
     host_.newStream(
-        peer_info,
+        peer_info.id,
         {protocol_},
         [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
             auto &&stream_res) mutable {

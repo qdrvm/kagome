@@ -49,10 +49,6 @@ namespace kagome::network {
                           std::shared_ptr<BlockAnnounceObserver> observer,
                           std::shared_ptr<PeerManager> peer_manager);
 
-    const Protocol &protocol() const override {
-      return base_.protocol();
-    }
-
     bool start() override;
     bool stop() override;
 

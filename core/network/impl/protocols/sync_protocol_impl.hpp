@@ -109,10 +109,6 @@ namespace kagome::network {
                      std::shared_ptr<SyncProtocolObserver> sync_observer,
                      std::shared_ptr<PeerRatingRepository> rating_repository);
 
-    const Protocol &protocol() const override {
-      return base_.protocol();
-    }
-
     bool start() override;
     bool stop() override;
 

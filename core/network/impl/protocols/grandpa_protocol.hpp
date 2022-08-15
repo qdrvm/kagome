@@ -52,10 +52,6 @@ namespace kagome::network {
         const primitives::BlockHash &genesis_hash,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
-    const Protocol &protocol() const override {
-      return base_.protocol();
-    }
-
     /**
      * Sets handler for `parytytech/grandpa/1` protocol
      * @return true if handler set successfully

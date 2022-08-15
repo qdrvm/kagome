@@ -102,7 +102,7 @@ namespace kagome::network {
                       Request request,
                       std::function<void(outcome::result<Response>)> cb) {
       host.newStream(
-          peer_info,
+          peer_info.id,
           {protocol},
           [request = std::move(request),
            cb = std::move(cb)](auto &&stream_res) mutable {
@@ -163,7 +163,7 @@ namespace kagome::network {
                       const libp2p::peer::Protocol &protocol,
                       Request request,
                       std::function<void(outcome::result<void>)> cb) {
-      host.newStream(peer_info,
+      host.newStream(peer_info.id,
                      {protocol},
                      [request = std::move(request),
                       cb = std::move(cb)](auto &&stream_res) mutable {
