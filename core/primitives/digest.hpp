@@ -37,6 +37,15 @@ namespace kagome::primitives {
       ConsensusEngineId consensus_engine_id;
       common::Buffer data;
 
+      DigestItemCommon() {
+        consensus_engine_id = kGrandpaEngineId;
+        data = {};
+      }
+
+      DigestItemCommon(ConsensusEngineId consensus_engine_id,
+                       common::Buffer data)
+          : consensus_engine_id(consensus_engine_id), data(std::move(data)) {}
+
       bool operator==(const DigestItemCommon &rhs) const {
         return consensus_engine_id == rhs.consensus_engine_id
                and data == rhs.data;

@@ -42,6 +42,8 @@ namespace kagome::primitives {
   };
   struct ForcedChange final : public AuthorityListChange {
     using AuthorityListChange::AuthorityListChange;
+
+    BlockNumber delay_start;
   };
   struct OnDisabled {
     uint32_t authority_index = 0;
@@ -91,6 +93,11 @@ namespace kagome::primitives {
   template <class Stream>
   Stream &operator>>(Stream &s, AuthorityListChange &alc) {
     return s >> alc.authorities >> alc.subchain_length;
+  }
+
+  template <class Stream>
+  Stream &operator>>(Stream &s, ForcedChange &change) {
+    return s >> change.delay_start >> change.authorities >> change.subchain_length;
   }
 }  // namespace kagome::primitives
 

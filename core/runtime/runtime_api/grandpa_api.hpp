@@ -12,6 +12,7 @@
 #include "outcome/outcome.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/block_id.hpp"
+#include "primitives/common.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/scheduled_change.hpp"
 #include "primitives/session_key.hpp"
@@ -60,6 +61,12 @@ namespace kagome::runtime {
      */
     virtual outcome::result<AuthorityList> authorities(
         const primitives::BlockId &block_id) = 0;
+
+    /**
+     * @return the id of the current voter set at the provided block
+     */
+    virtual outcome::result<primitives::AuthoritySetId> current_set_id(
+        const primitives::BlockHash &block) = 0;
   };
 
 }  // namespace kagome::runtime

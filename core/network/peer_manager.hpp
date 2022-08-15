@@ -22,7 +22,7 @@ namespace kagome::network {
     Roles roles = 0;
     BlockInfo best_block = {0, {}};
     std::optional<RoundNumber> round_number = std::nullopt;
-    std::optional<MembershipCounter> set_id = std::nullopt;
+    std::optional<VoterSetId> set_id = std::nullopt;
     BlockNumber last_finalized = 0;
   };
 

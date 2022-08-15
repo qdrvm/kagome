@@ -219,7 +219,7 @@ namespace kagome::consensus::grandpa {
      */
     std::optional<std::shared_ptr<VotingRound>> selectRound(
         RoundNumber round_number,
-        std::optional<MembershipCounter> voter_set_id);
+        std::optional<VoterSetId> voter_set_id);
 
     /**
      * @return Get grandpa::MovableRoundState for the last completed round

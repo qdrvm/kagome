@@ -32,7 +32,7 @@ namespace kagome::primitives {
     }
 
     static BlockDataFlags allUnset(primitives::BlockHash hash) {
-      return BlockDataFlags{std::move(hash), true, true, true, true, true};
+      return BlockDataFlags{std::move(hash), false, false, false, false, false};
     }
 
     primitives::BlockHash hash;
