@@ -11,7 +11,9 @@
 
 #include <boost/variant.hpp>
 #include <outcome/outcome.hpp>
+
 #include "primitives/transaction.hpp"
+#include "scale/tie.hpp"
 
 namespace kagome::primitives {
 
@@ -45,6 +47,9 @@ namespace kagome::primitives {
    * https://github.com/paritytech/substrate/blob/a31c01b398d958ccf0a24d8c1c11fb073df66212/core/sr-primitives/src/transaction_validity.rs#L178
    */
   struct ValidTransaction {
+    SCALE_TIE(5);
+    SCALE_TIE_EQ(ValidTransaction);
+
     /**
      * @brief Priority of the transaction.
      * Priority determines the ordering of two transactions that have all
@@ -85,16 +90,6 @@ namespace kagome::primitives {
      * never be sent to other peers.
      */
     bool propagate{};
-
-    bool operator==(const ValidTransaction &rhs) const {
-      return priority == rhs.priority and requires == rhs.requires
-             and provides == rhs.provides and longevity == rhs.longevity
-             and propagate == rhs.propagate;
-    }
-
-    bool operator!=(const ValidTransaction &rhs) const {
-      return !operator==(rhs);
-    }
   };
 
   /// Transaction is invalid. Details are described by the error code.
@@ -205,33 +200,6 @@ namespace kagome::primitives {
    */
   using TransactionValidity =
       boost::variant<ValidTransaction, TransactionValidityError>;
-
-  /**
-   * @brief outputs object of type Valid to stream
-   * @tparam Stream stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const ValidTransaction &v) {
-    return s << v.priority << v.requires << v.provides << v.longevity
-             << v.propagate;
-  }
-  /**
-   * @brief decodes object of type Valid from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param v value to decode
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, ValidTransaction &v) {
-    return s >> v.priority >> v.requires >> v.provides >> v.longevity
-           >> v.propagate;
-  }
 }  // namespace kagome::primitives
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, InvalidTransaction)
