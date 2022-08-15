@@ -149,10 +149,6 @@ namespace kagome::network {
                             std::optional<uint32_t> limit,
                             SyncResultHandler &&handler);
 
-    void endSync() override {
-      syncing_.store(false);
-    }
-
    private:
     /// Subscribes handler for block with provided {@param block_info}
     /// {@param handler} will be called When block is received or discarded
@@ -206,8 +202,9 @@ namespace kagome::network {
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
-    std::atomic_bool syncing_ = false;
     std::atomic_bool state_syncing_ = false;
+    std::atomic_bool state_sync_request_in_progress_ = false;
+
     bool node_is_shutting_down_ = false;
 
     struct KnownBlock {

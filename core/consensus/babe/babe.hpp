@@ -26,6 +26,8 @@ namespace kagome::consensus::babe {
       WAIT_REMOTE_STATUS,  // Node is just launched and waits status of remote
                            // peer to sync missing blocks
       HEADERS_LOADING,     // Fast sync requested; phase of headers downloading
+      HEADERS_LOADED,      // Fast sync requested; headers downloaded, ready to
+                           // syncing of state
       STATE_LOADING,       // Fast sync requested; phase of state downloading
       CATCHING_UP,  // Node recognized the missing blocks and started fetching
                     // blocks between the best missing one and one of the

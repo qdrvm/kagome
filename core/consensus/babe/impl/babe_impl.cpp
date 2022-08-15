@@ -151,7 +151,7 @@ namespace kagome::consensus::babe {
 
       case SyncMethod::Fast:
         // Has uncompleted downloading state
-        if (false) { // FIXME
+        if (false) {  // FIXME
           // Start loading of state
           current_state_ = State::STATE_LOADING;
         } else {
@@ -299,7 +299,12 @@ namespace kagome::consensus::babe {
     const auto &current_best_block = current_best_block_res.value();
 
     if (current_best_block == status.best_block) {
-      onSynchronized();
+      if (current_state_ == Babe::State::HEADERS_LOADING) {
+        current_state_ = Babe::State::HEADERS_LOADED;
+        startStateSyncing(peer_id);
+      } else if (current_state_ == Babe::State::CATCHING_UP) {
+        onSynchronized();
+      }
       return;
     }
 
@@ -332,7 +337,8 @@ namespace kagome::consensus::babe {
     }
 
     // Start catching up if gap recognized
-    if (current_state_ == Babe::State::SYNCHRONIZED) {
+    if (current_state_ == Babe::State::SYNCHRONIZED
+        or current_state_ == Babe::State::HEADERS_LOADED) {
       if (announce.header.number > current_best_block.number + 1) {
         auto block_hash =
             hasher_->blake2b_256(scale::encode(announce.header).value());
@@ -351,8 +357,6 @@ namespace kagome::consensus::babe {
         [wp = weak_from_this(), announce = announce, peer_id](
             outcome::result<primitives::BlockInfo> block_res) mutable {
           if (auto self = wp.lock()) {
-            self->synchronizer_->endSync();
-
             if (block_res.has_error()) {
               return;
             }
@@ -360,6 +364,7 @@ namespace kagome::consensus::babe {
 
             // Headers are loaded; Start to sync state
             if (self->current_state_ == Babe::State::HEADERS_LOADING) {
+              self->current_state_ = Babe::State::HEADERS_LOADED;
               self->startStateSyncing(peer_id);
               return;
             }
@@ -395,7 +400,6 @@ namespace kagome::consensus::babe {
         [wp = weak_from_this(), block = target_block, peer_id](
             outcome::result<primitives::BlockInfo> res) {
           if (auto self = wp.lock()) {
-            self->synchronizer_->endSync();
             if (res.has_error()) {
               SL_DEBUG(self->log_,
                        "Catching up {} to block {} is failed: {}",
@@ -417,15 +421,21 @@ namespace kagome::consensus::babe {
     if (is_ran) {
       SL_VERBOSE(
           log_, "Catching up {} to block {} is ran", peer_id, target_block);
-      current_state_ = State::CATCHING_UP;
+      if (current_state_ == State::HEADERS_LOADED) {
+        current_state_ = State::HEADERS_LOADING;
+      } else if (current_state_ == State::WAIT_BLOCK_ANNOUNCE
+                 or current_state_ == State::WAIT_REMOTE_STATUS
+                 or current_state_ == State::SYNCHRONIZED) {
+        current_state_ = State::CATCHING_UP;
+      }
     }
   }
 
   void BabeImpl::startStateSyncing(const libp2p::peer::PeerId &peer_id) {
-    BOOST_ASSERT(current_state_ == Babe::State::HEADERS_LOADING
+    BOOST_ASSERT(current_state_ == Babe::State::HEADERS_LOADED
                  or current_state_ == Babe::State::STATE_LOADING);
-    if (current_state_ == Babe::State::HEADERS_LOADING
-        or current_state_ == Babe::State::STATE_LOADING) {
+    if (current_state_ != Babe::State::HEADERS_LOADED
+        and current_state_ != Babe::State::STATE_LOADING) {
       SL_WARN(log_, "Syncing of state can not be start: Bad state of babe");
       return;
     }

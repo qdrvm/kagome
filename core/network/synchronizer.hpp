@@ -53,8 +53,6 @@ namespace kagome::network {
                            const primitives::BlockInfo &block,
                            const std::vector<common::Buffer> &keys,
                            SyncResultHandler &&handler) = 0;
-
-    virtual void endSync() = 0;
   };
 
 }  // namespace kagome::network

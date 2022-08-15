@@ -161,7 +161,7 @@ namespace kagome::consensus {
 
     SL_DEBUG(
         logger_,
-        "Applying block {} ({} in slot {}, epoch {})",  //
+        "Appending header of block {} ({} in slot {}, epoch {})",
         block_info,
         babe_header.slotType() == SlotType::Primary          ? "primary"
         : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
