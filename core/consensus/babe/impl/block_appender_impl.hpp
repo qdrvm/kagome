@@ -68,7 +68,7 @@ namespace kagome::consensus {
     struct {
       std::chrono::high_resolution_clock::time_point time;
       primitives::BlockNumber block_number;
-    } speed_data_;
+    } speed_data_ = {};
 
     log::Logger logger_;
   };

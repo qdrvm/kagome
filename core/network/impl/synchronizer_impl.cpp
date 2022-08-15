@@ -232,7 +232,7 @@ namespace kagome::network {
     BOOST_ASSERT(lower < upper);
 
     // Callback what will be called at the end of finding the best common block
-    Synchronizer::SyncResultHandler find_handler =
+    auto find_handler =
         [wp = weak_from_this(), peer_id, handler = std::move(handler)](
             outcome::result<primitives::BlockInfo> res) mutable {
           if (auto self = wp.lock()) {
@@ -891,6 +891,11 @@ namespace kagome::network {
                                    const primitives::BlockInfo &block,
                                    const std::vector<common::Buffer> &keys,
                                    SyncResultHandler &&handler) {
+    SL_TRACE(log_,
+             "SyncState requested to {} for block {} with {} keys",
+             peer_id,
+             block,
+             keys.size());
     if (sync_method_ == application::AppConfiguration::SyncMethod::Fast) {
       // execute if not already started or iteration continues
       if (not state_syncing_.load()
@@ -977,7 +982,7 @@ namespace kagome::network {
             }
           }
 
-          // not well formed way to place 0th batch key to front
+          // not well-formed way to place 0th batch key to front
           std::map<unsigned, common::Buffer> keymap;
           for (const auto &[_, val] : self->batches_store_) {
             unsigned i = std::get<1>(val);

@@ -283,7 +283,7 @@ namespace kagome::consensus {
 
     auto block_delta = block_info.number - speed_data_.block_number;
     auto time_delta = now - speed_data_.time;
-    if (block_delta >= 20000 or time_delta >= std::chrono::minutes(1)) {
+    if (block_delta >= 10000 or time_delta >= std::chrono::minutes(1)) {
       SL_INFO(logger_,
               "Imported {} more headers of blocks. Average speed is {} bps",
               block_delta,
