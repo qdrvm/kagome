@@ -87,7 +87,7 @@ namespace kagome::network {
     inline Fingerprint fingerprint() const {
       auto result = std::hash<RoundNumber>()(round_number);
 
-      boost::hash_combine(result, std::hash<MembershipCounter>()(voter_set_id));
+      boost::hash_combine(result, std::hash<VoterSetId>()(voter_set_id));
       return result;
     };
   };

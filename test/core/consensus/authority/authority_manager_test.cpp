@@ -180,8 +180,8 @@ class AuthorityManagerTest : public testing::Test {
 
   /// Init by data from genesis config
   void prepareAuthorityManager() {
-    auto node = authority::ScheduleNode::createAsRoot(genesis_block);
-    node->current_authorities = authorities;
+    auto node =
+        authority::ScheduleNode::createAsRoot(authorities, genesis_block);
 
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillRepeatedly(Return(genesis_block));
@@ -233,9 +233,9 @@ TEST_F(AuthorityManagerTest, Prune) {
   auto &orig_authorities = *authorities_opt.value();
 
   // Make expected state
-  auto node = authority::ScheduleNode::createAsRoot({20, "D"_hash256});
-  node->current_authorities =
-      std::make_shared<primitives::AuthoritySet>(orig_authorities);
+  auto node = authority::ScheduleNode::createAsRoot(
+      std::make_shared<primitives::AuthoritySet>(orig_authorities),
+      {20, "D"_hash256});
 
   authority_manager->prune({20, "D"_hash256});
 
@@ -434,4 +434,3 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   examine({20, "D"_hash256}, disabled_authorities.authorities);
   examine({25, "E"_hash256}, enabled_authorities.authorities);
 }
-
