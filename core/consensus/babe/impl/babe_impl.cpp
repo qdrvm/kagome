@@ -386,7 +386,6 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,
                               const primitives::BlockInfo &target_block) {
-    BOOST_ASSERT(current_state_ != Babe::State::HEADERS_LOADING);
     BOOST_ASSERT(current_state_ != Babe::State::STATE_LOADING);
 
     // synchronize missing blocks with their bodies
