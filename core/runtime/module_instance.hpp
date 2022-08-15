@@ -32,6 +32,36 @@ namespace kagome::runtime {
     virtual ~ModuleInstance() = default;
 
     /**
+     * @brief Wrapper type over sptr<ModuleInstance>. Allows to return instance
+     * back to the ModuleInstancePool upon destruction of
+     * BorrowedInstance.
+     */
+    class BorrowedInstance {
+     public:
+      using PoolReleaseFunction = std::function<void()>;
+
+      BorrowedInstance(std::shared_ptr<ModuleInstance> instance,
+                       PoolReleaseFunction cache_release = {})
+          : instance_{std::move(instance)},
+            cache_release_{std::move(cache_release)} {}
+      ~BorrowedInstance() {
+        if (cache_release_) {
+          cache_release_();
+        }
+      }
+      bool operator==(std::nullptr_t) {
+        return instance_ == nullptr;
+      }
+      ModuleInstance *operator->() {
+        return instance_.get();
+      }
+
+     private:
+      std::shared_ptr<ModuleInstance> instance_;
+      PoolReleaseFunction cache_release_;
+    };
+
+    /**
      * Call the instance's function
      * @param name - name of the function
      * @param args - a pointer-size describing a buffer with the function
@@ -52,6 +82,14 @@ namespace kagome::runtime {
 
     virtual InstanceEnvironment const &getEnvironment() const = 0;
     virtual outcome::result<void> resetEnvironment() = 0;
+
+    /**
+     * @brief Make thread borrow a wrapped pointer to this instance with custom
+     * deleter 'release'
+     *
+     * @param release - a deleter, that should be called upon thread destruction
+     */
+    virtual void borrow(BorrowedInstance::PoolReleaseFunction release) = 0;
   };
 
 }  // namespace kagome::runtime

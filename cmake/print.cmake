@@ -3,6 +3,6 @@ function(print)
 endfunction()
 
 function(fatal_error)
-  message(FATAL_ERROR "[${CMAKE_PROJECT_NAME}] ${ARGV}")
+  message(FATAL_ERROOR "[${CMAKE_PROJECT_NAME}] ${ARGV}")
 endfunction()
 

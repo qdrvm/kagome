@@ -62,10 +62,8 @@ static WAVM::Uptr getIndexValue(const WAVM::IR::Value &value,
   };
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm,
-                            ModuleInstanceImpl::Error,
-                            e) {
-  using E = kagome::runtime::wavm::ModuleInstanceImpl::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm, ModuleInstance::Error, e) {
+  using E = kagome::runtime::wavm::ModuleInstance::Error;
   switch (e) {
     case E::WRONG_ARG_COUNT:
       return "The provided function argument count should equal to 2";
@@ -82,7 +80,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm,
 
 namespace kagome::runtime::wavm {
 
-  ModuleInstanceImpl::ModuleInstanceImpl(
+  ModuleInstance::ModuleInstance(
       InstanceEnvironment &&env,
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
       WAVM::Runtime::ModuleRef module,
@@ -97,7 +95,7 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(module_ != nullptr);
   }
 
-  outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
+  outcome::result<PtrSize> ModuleInstance::callExportFunction(
       std::string_view name, common::BufferView encoded_args) const {
     auto memory = env_.memory_provider->getCurrentMemory().value();
 
@@ -134,9 +132,6 @@ namespace kagome::runtime::wavm {
       // Allocate an array to receive the invocation results.
       BOOST_ASSERT(invokeSig.results().size() == 1);
       std::array<WAVM::IR::UntaggedValue, 1> untaggedInvokeResults;
-      pushBorrowedRuntimeInstance(
-          std::const_pointer_cast<ModuleInstanceImpl>(shared_from_this()));
-      const auto pop = gsl::finally(&popBorrowedRuntimeInstance);
       try {
         WAVM::Runtime::unwindSignalsAsExceptions(
             [&context,
@@ -165,7 +160,7 @@ namespace kagome::runtime::wavm {
     return res;
   }
 
-  outcome::result<std::optional<WasmValue>> ModuleInstanceImpl::getGlobal(
+  outcome::result<std::optional<WasmValue>> ModuleInstance::getGlobal(
       std::string_view name) const {
     auto global = WAVM::Runtime::asGlobalNullable(
         WAVM::Runtime::getInstanceExport(instance_, name.data()));
@@ -190,7 +185,7 @@ namespace kagome::runtime::wavm {
     }
   }
 
-  void ModuleInstanceImpl::forDataSegment(
+  void ModuleInstance::forDataSegment(
       DataSegmentProcessor const &callback) const {
     using WAVM::Uptr;
     using WAVM::IR::DataSegment;
@@ -212,12 +207,19 @@ namespace kagome::runtime::wavm {
     }
   }
 
-  InstanceEnvironment const &ModuleInstanceImpl::getEnvironment() const {
+  InstanceEnvironment const &ModuleInstance::getEnvironment() const {
     return env_;
   }
 
-  outcome::result<void> ModuleInstanceImpl::resetEnvironment() {
+  outcome::result<void> ModuleInstance::resetEnvironment() {
     env_.host_api->reset();
     return outcome::success();
   }
+
+  void ModuleInstance::borrow(BorrowedInstance::PoolReleaseFunction release) {
+    auto borrowed = std::make_shared<ModuleInstance::BorrowedInstance>(
+        shared_from_this(), release);
+    pushBorrowedRuntimeInstance(std::move(borrowed));
+  }
+
 }  // namespace kagome::runtime::wavm

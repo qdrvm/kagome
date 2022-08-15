@@ -34,6 +34,8 @@ namespace kagome::runtime {
 }
 
 namespace kagome::runtime::wavm {
+
+  class ModuleInstance;
   class IntrinsicModule;
   class IntrinsicModuleInstance;
   class IntrinsicResolver;

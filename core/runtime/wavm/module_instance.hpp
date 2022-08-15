@@ -26,9 +26,8 @@ namespace kagome::runtime::wavm {
 
   class CompartmentWrapper;
 
-  class ModuleInstanceImpl
-      : public ModuleInstance,
-        public std::enable_shared_from_this<ModuleInstanceImpl> {
+  class ModuleInstance : public runtime::ModuleInstance,
+                         public std::enable_shared_from_this<ModuleInstance> {
    public:
     enum class Error {
       FUNC_NOT_FOUND = 1,
@@ -36,11 +35,10 @@ namespace kagome::runtime::wavm {
       EXECUTION_ERROR,
       WRONG_RETURN_TYPE
     };
-    ModuleInstanceImpl(
-        InstanceEnvironment &&env,
-        WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
-        WAVM::Runtime::ModuleRef module,
-        std::shared_ptr<const CompartmentWrapper> compartment);
+    ModuleInstance(InstanceEnvironment &&env,
+                   WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
+                   WAVM::Runtime::ModuleRef module,
+                   std::shared_ptr<const CompartmentWrapper> compartment);
 
     outcome::result<PtrSize> callExportFunction(
         std::string_view name, common::BufferView encoded_args) const override;
@@ -52,6 +50,7 @@ namespace kagome::runtime::wavm {
 
     InstanceEnvironment const &getEnvironment() const override;
     outcome::result<void> resetEnvironment() override;
+    void borrow(BorrowedInstance::PoolReleaseFunction release) override;
 
    private:
     InstanceEnvironment env_;
@@ -63,6 +62,6 @@ namespace kagome::runtime::wavm {
 
 }  // namespace kagome::runtime::wavm
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::wavm, ModuleInstanceImpl::Error)
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::wavm, ModuleInstance::Error)
 
 #endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_MODULE_INSTANCE_HPP
