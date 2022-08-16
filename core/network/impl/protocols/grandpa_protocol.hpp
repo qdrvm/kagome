@@ -59,6 +59,10 @@ namespace kagome::network {
     bool start() override;
     bool stop() override;
 
+    const std::string &protocolName() const override {
+      return kGrandpaProtocolName;
+    }
+
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
         const PeerInfo &peer_info,
@@ -76,6 +80,7 @@ namespace kagome::network {
                          CatchUpResponse &&catch_up_response);
 
    private:
+    const static inline auto kGrandpaProtocolName = "GrandpaProtocol"s;
     enum class Direction { INCOMING, OUTGOING };
     void readHandshake(std::shared_ptr<Stream> stream,
                        Direction direction,

@@ -56,6 +56,10 @@ namespace kagome::network {
     bool start() override;
     bool stop() override;
 
+    const std::string &protocolName() const override {
+      return kPropogateTransacionsProtocolName;
+    }
+
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
         const PeerInfo &peer_info,
@@ -76,6 +80,8 @@ namespace kagome::network {
 
     void readPropagatedExtrinsics(std::shared_ptr<Stream> stream);
 
+    const static inline auto kPropogateTransacionsProtocolName =
+        "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<consensus::babe::Babe> babe_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;

@@ -112,6 +112,10 @@ namespace kagome::network {
     bool start() override;
     bool stop() override;
 
+    const std::string &protocolName() const override {
+      return kSyncProtocolName;
+    }
+
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
         const PeerInfo &peer_info,
@@ -137,6 +141,7 @@ namespace kagome::network {
                           &&response_handler);
 
    private:
+    const static inline auto kSyncProtocolName = "SyncProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<PeerRatingRepository> rating_repository_;

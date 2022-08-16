@@ -19,7 +19,6 @@ namespace kagome::network {
       std::shared_ptr<StateProtocolObserver> state_observer)
       : host_(host), state_observer_(std::move(state_observer)) {
     BOOST_ASSERT(state_observer_ != nullptr);
-    protocol_name_ = "StateProtocol";
     const_cast<Protocol &>(protocol_) =
         fmt::format(kStateProtocol.data(), chain_spec.protocolId());
   }

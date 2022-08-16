@@ -138,7 +138,6 @@ namespace kagome::network {
                         kResponsesCacheExpirationTimeout) {
     BOOST_ASSERT(sync_observer_ != nullptr);
     BOOST_ASSERT(rating_repository_ != nullptr);
-    protocol_name_ = "SyncProtocol";
   }
 
   bool SyncProtocolImpl::start() {

@@ -18,6 +18,8 @@ namespace kagome::network {
   using PeerInfo = libp2p::peer::PeerInfo;
   using Protocols = libp2p::StreamProtocols;
 
+  using namespace std::string_literals;
+
   class ProtocolBase {
    public:
     ProtocolBase() = default;
@@ -27,9 +29,7 @@ namespace kagome::network {
     ProtocolBase &operator=(ProtocolBase &&) noexcept = delete;
     ProtocolBase &operator=(ProtocolBase const &) = delete;
 
-    virtual const std::string &protocolName() const {
-      return protocol_name_;
-    };
+    virtual const std::string &protocolName() const = 0;
 
     virtual bool start() = 0;
     virtual bool stop() = 0;
@@ -38,9 +38,6 @@ namespace kagome::network {
     virtual void newOutgoingStream(
         const PeerInfo &peer_info,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) = 0;
-
-   protected:
-    std::string protocol_name_;
   };
 
 }  // namespace kagome::network

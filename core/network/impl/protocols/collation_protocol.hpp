@@ -51,6 +51,10 @@ namespace kagome::network {
     bool start() override;
     bool stop() override;
 
+    const std::string &protocolName() const override {
+      return kCollationProtocolName;
+    }
+
    private:
     template <typename F>
     void exchangeHandshake(
@@ -98,6 +102,7 @@ namespace kagome::network {
     void onCollationDeclRx(CollatorDeclaration &&collation_decl);
     void onCollationAdvRx(CollatorAdvertisement &&collation_adv);
 
+    const static inline auto kCollationProtocolName = "CollationProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<CollationObserver> observer_;
     application::AppConfiguration const &app_config_;

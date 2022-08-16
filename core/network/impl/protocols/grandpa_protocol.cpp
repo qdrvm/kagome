@@ -40,9 +40,7 @@ namespace kagome::network {
         own_info_(own_info),
         stream_engine_(std::move(stream_engine)),
         peer_manager_(std::move(peer_manager)),
-        scheduler_(std::move(scheduler)) {
-    protocol_name_ = "GrandpaProtocol";
-  }
+        scheduler_(std::move(scheduler)) {}
 
   bool GrandpaProtocol::start() {
     auto stream = std::make_shared<LoopbackStream>(own_info_, io_context_);

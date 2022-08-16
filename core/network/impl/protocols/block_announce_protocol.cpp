@@ -36,7 +36,6 @@ namespace kagome::network {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(observer_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
-    protocol_name_ = "BlockAnnounceProtocol";
   }
 
   bool BlockAnnounceProtocol::start() {

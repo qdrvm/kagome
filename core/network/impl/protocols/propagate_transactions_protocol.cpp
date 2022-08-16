@@ -41,7 +41,6 @@ namespace kagome::network {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(ext_event_key_repo_ != nullptr);
-    protocol_name_ = "PropagateTransactionsProtocol";
 
     // Register metrics
     metrics_registry_->registerCounterFamily(
