@@ -969,40 +969,37 @@ namespace kagome::network {
             if (response.complete) {
               auto res = batch->commit();
               if (res.has_value()) {
-                if (i != 0) {  // Child state
-                  if (res.value() == response.state_root) {
-                    SL_INFO(self->log_,
-                            "Syncing of child state has finished. "
-                            "Root hashes match: {}",
-                            response.state_root);
-                  } else {
-                    SL_WARN(self->log_,
-                            "Syncing of child state has finished. "
-                            "Root hashes mismatch: expected={}, actual={}",
-                            response.state_root,
-                            res.value());
+                const auto &expected = [&] {
+                  if (i != 0) {  // Child state
+                    return response.state_root;
+                  } else {  // Main state
+                    auto header_res =
+                        self->block_tree_->getBlockHeader(block.hash);
+                    BOOST_ASSERT_MSG(
+                        header_res.has_value(),
+                        "It is state of existing block; head must be existing");
+                    const auto &header = header_res.value();
+                    return header.state_root;
                   }
-                } else {  // Main state
-                  auto header_res =
-                      self->block_tree_->getBlockHeader(block.hash);
-                  BOOST_ASSERT_MSG(
-                      header_res.has_value(),
-                      "It is state of existing block; head must be existing");
-                  const auto &header = header_res.value();
-                  if (res.value() == response.state_root) {
-                    SL_INFO(self->log_,
-                            "Syncing of child state has finished. "
-                            "Root hashes match: {}",
-                            response.state_root);
-                  } else {
-                    SL_WARN(self->log_,
-                            "Syncing of child state has finished. "
-                            "Root hashes mismatch: expected={}, actual={}",
-                            header.state_root,
-                            res.value());
-                  }
+                }();
+                const auto &actual = res.value();
+
+                if (actual == expected) {
+                  SL_INFO(self->log_,
+                          "Syncing of {}state has finished. "
+                          "Root hashes match: {}",
+                          i != 0 ? "child " : "",
+                          actual);
+                } else {
+                  SL_WARN(self->log_,
+                          "Syncing of {}state has finished. "
+                          "Root hashes mismatch: expected={}, actual={}",
+                          i != 0 ? "child " : "",
+                          expected,
+                          actual);
                 }
               }
+
               self->trie_changes_tracker_->onBlockAdded(block.hash);
             }
 
@@ -1081,7 +1078,7 @@ namespace kagome::network {
     if (node) {
       auto &block = node.mapped().data;
       BOOST_ASSERT(block.header.has_value());
-      auto number = block.header->number;
+      const BlockInfo block_info(block.header->number, block.hash);
 
       const auto &last_finalized_block = block_tree_->getLastFinalized();
 
@@ -1092,8 +1089,6 @@ namespace kagome::network {
           handler = std::move(wbn_node.mapped());
         }
       }
-
-      const BlockInfo block_info(block.header->number, block.hash);
 
       // Skip applied and finalized blocks and
       //  discard side-chain below last finalized
