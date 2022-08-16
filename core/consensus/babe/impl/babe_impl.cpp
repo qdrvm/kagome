@@ -449,6 +449,10 @@ namespace kagome::consensus::babe {
     // Switch to last finalized to have a state on it
     auto block_at_state = block_tree_->getLastFinalized();
 
+    SL_DEBUG(log_,
+             "Rolling back non-finalized blocks. Last known finalized is {}",
+             block_at_state);
+
     // Next do-while-loop serves for removal non finalized blocks
     bool affected;
     do {
