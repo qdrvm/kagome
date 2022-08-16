@@ -49,12 +49,12 @@ namespace kagome::network {
                           std::shared_ptr<BlockAnnounceObserver> observer,
                           std::shared_ptr<PeerManager> peer_manager);
 
-    const Protocol &protocol() const override {
-      return base_.protocol();
-    }
-
     bool start() override;
     bool stop() override;
+
+    const std::string &protocolName() const override {
+      return kBlockAnnounceProtocolName;
+    }
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
@@ -78,6 +78,8 @@ namespace kagome::network {
 
     void readAnnounce(std::shared_ptr<Stream> stream);
 
+    const static inline auto kBlockAnnounceProtocolName =
+        "BlockAnnounceProtocol"s;
     ProtocolBaseImpl base_;
     const application::AppConfiguration &app_config_;
     std::shared_ptr<StreamEngine> stream_engine_;

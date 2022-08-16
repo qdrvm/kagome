@@ -1,6 +1,6 @@
 
 HunterGate(
-  URL  "https://github.com/soramitsu/soramitsu-hunter/archive/76ade73764c127b45527929431dc50c0acfac209.zip"
-  SHA1 "4940476e463d4078df77f6bb3428a62c388fdb64"
+  URL  "https://github.com/soramitsu/soramitsu-hunter/archive/53270539a52831afd6ba53fff539dce4f76289f7.zip"
+  SHA1 "04bb1cb3c57ccea865e99b7d8b69379680841b8d"
   LOCAL
 )
