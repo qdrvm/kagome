@@ -8,7 +8,10 @@
 
 #include <cstdlib>
 
+struct rlimit;
+
 namespace kagome::common {
+  bool getFdLimit(rlimit &r);
   void setFdLimit(size_t limit);
 }  // namespace kagome::common
 

@@ -4,6 +4,7 @@
  */
 
 #include "injector/application_injector.hpp"
+#include <sys/resource.h>
 #include "crypto/hasher.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
@@ -56,6 +57,7 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
+#include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
@@ -377,6 +379,14 @@ namespace {
     options.optimize_filters_for_hits = true;
     options.table_factory.reset(
         rocksdb::NewBlockBasedTableFactory(table_options));
+
+    // Setting limit for open rocksdb files to a half of system soft limit
+    rlimit r;
+    if (!common::getFdLimit(r)) {
+      exit(EXIT_FAILURE);
+    }
+    options.max_open_files = r.rlim_cur / 2;
+
     auto db_res =
         storage::RocksDB::create(app_config.databasePath(chain_spec->id()),
                                  options,
