@@ -185,7 +185,7 @@ namespace kagome::network {
             return;
           }
 
-          SL_WARN(self->log_,
+          SL_DEBUG(self->log_,
                   "Established outgoing {} stream with {}",
                   self->protocol_,
                   stream->remotePeerId().value());
@@ -203,7 +203,7 @@ namespace kagome::network {
                                  return;
                                }
 
-                               SL_WARN(self->log_, "State request sent");
+                               SL_DEBUG(self->log_, "State request sent");
 
                                if (not write_res.has_value()) {
                                  SL_WARN(self->log_, "Error getting response");
@@ -296,7 +296,7 @@ namespace kagome::network {
       std::function<void(outcome::result<StateResponse>)> &&response_handler) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
-    SL_WARN(log_,
+    SL_DEBUG(log_,
             "Read response from outgoing {} stream with {}",
             protocol_,
             stream->remotePeerId().value());
