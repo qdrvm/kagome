@@ -986,15 +986,17 @@ namespace kagome::network {
 
                 if (actual == expected) {
                   SL_INFO(self->log_,
-                          "Syncing of {}state has finished. "
+                          "Syncing of {}state on block {} has finished. "
                           "Root hashes match: {}",
                           i != 0 ? "child " : "",
+                          block,
                           actual);
                 } else {
                   SL_WARN(self->log_,
-                          "Syncing of {}state has finished. "
+                          "Syncing of {}state on block {} has finished. "
                           "Root hashes mismatch: expected={}, actual={}",
                           i != 0 ? "child " : "",
+                          block,
                           expected,
                           actual);
                 }

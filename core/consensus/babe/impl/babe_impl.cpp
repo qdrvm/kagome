@@ -13,6 +13,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
 #include "consensus/babe/babe_error.hpp"
+#include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/parachains_inherent_data.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
@@ -55,7 +56,8 @@ namespace kagome::consensus::babe {
           authority_update_observer,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
-      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api)
+      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+      std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper)
       : app_config_(app_config),
         lottery_{std::move(lottery)},
         babe_configuration_{std::move(configuration)},
@@ -71,6 +73,7 @@ namespace kagome::consensus::babe {
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         offchain_worker_api_(std::move(offchain_worker_api)),
+        consistency_keeper_(std::move(consistency_keeper)),
         log_{log::createLogger("Babe", "babe")},
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(lottery_);
@@ -86,6 +89,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(synchronizer_);
     BOOST_ASSERT(babe_util_);
     BOOST_ASSERT(offchain_worker_api_);
+    BOOST_ASSERT(consistency_keeper_);
 
     BOOST_ASSERT(app_state_manager);
 
@@ -444,6 +448,38 @@ namespace kagome::consensus::babe {
 
     // Switch to last finalized to have a state on it
     auto block_at_state = block_tree_->getLastFinalized();
+
+    // Next do-while-loop serves for removal non finalized blocks
+    bool affected;
+    do {
+      affected = false;
+
+      auto block_tree_leaves = block_tree_->getLeaves();
+
+      for (const auto &hash : block_tree_leaves) {
+        if (hash == block_at_state.hash) continue;
+
+        auto header_res = block_tree_->getBlockHeader(hash);
+        if (header_res.has_error()) {
+          SL_CRITICAL(log_,
+                      "Can't get header of one of removing leave_block: {}",
+                      header_res.error().message());
+          continue;
+        }
+
+        const auto &header = header_res.value();
+
+        // Block below last finalized must not being. Don't touch just in case
+        if (header.number < block_at_state.number) {
+          continue;
+        }
+
+        std::ignore = consistency_keeper_->start(
+            primitives::BlockInfo(header.number, hash));
+
+        affected = true;
+      }
+    } while (affected);
 
     SL_TRACE(log_,
              "Trying to sync state on block {} from {}",

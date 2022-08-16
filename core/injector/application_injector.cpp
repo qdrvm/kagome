@@ -1412,7 +1412,8 @@ namespace {
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<consensus::BabeUtil>>(),
-        injector.template create<sptr<runtime::OffchainWorkerApi>>());
+        injector.template create<sptr<runtime::OffchainWorkerApi>>(),
+        injector.template create<sptr<consensus::babe::ConsistencyKeeper>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();

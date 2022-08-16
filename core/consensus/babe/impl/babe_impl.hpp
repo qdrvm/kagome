@@ -45,6 +45,7 @@ namespace kagome::runtime {
 }
 
 namespace kagome::consensus::babe {
+  class ConsistencyKeeper;
 
   inline const auto kTimestampId =
       primitives::InherentIdentifier::fromString("timstap0").value();
@@ -81,7 +82,8 @@ namespace kagome::consensus::babe {
                  authority_update_observer,
              std::shared_ptr<network::Synchronizer> synchronizer,
              std::shared_ptr<BabeUtil> babe_util,
-             std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api);
+             std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+             std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper);
 
     ~BabeImpl() override = default;
 
@@ -172,6 +174,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
+    std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper_;
 
     State current_state_{State::WAIT_REMOTE_STATUS};
 
