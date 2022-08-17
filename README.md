@@ -110,7 +110,7 @@ PATH=$PATH:../../build/node/
 kagome --validator --chain localchain.json --base-path base_path
 ```
 
-This command executes KAGOME full node with authority role.
+This command executes a KAGOME full node with an authority role.
 
 
 
