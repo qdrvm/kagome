@@ -22,7 +22,7 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
 - [ ] Warp sync
 - [ ] Light client
 
-More detailed of KAGOME development can be found within the [supported features](./README.md/#supported-features) section and in [projects board](https://github.com/soramitsu/kagome/projects/2)
+More details of KAGOME development can be found within the [supported features](./README.md/#supported-features) section and in [projects board](https://github.com/soramitsu/kagome/projects/2)
 
 
 
