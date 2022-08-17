@@ -69,7 +69,7 @@ unzip polkadot-node-1.zip
 
 #### Execute KAGOME Polkadot full syncing node
 
-You can synchronize with Polkadot using KAGOME and obtain archive node that can be used to query Polkadot network at any state.
+You can synchronize with Polkadot using KAGOME and obtain an archive node that can be used to query the Polkadot network at any state.
 
 To launch KAGOME Polkadot syncing node execute:
 ```
