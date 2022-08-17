@@ -162,6 +162,7 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - run: git fetch --prune --unshallow
       - name: build
         env:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
