@@ -324,34 +324,25 @@ namespace kagome::network {
     void gossipLuckyPeers(const std::shared_ptr<ProtocolBase> &protocol,
                           const std::shared_ptr<T> &msg) {
       if (lucky_peers_num_ > 0) {
-        std::deque<int> indices;
-        int step = 0;
+        std::deque<PeerId> peers;
 
         forEachPeer([&](const auto &peer_id, auto &proto_map) {
           forProtocol(proto_map, protocol, [&](auto &descr) {
-            if (descr.outgoing.stream
-                and not descr.outgoing.stream->isClosed()) {
-              indices.emplace_back(step);
+            if (descr.hasActiveOutgoing()) {
+              peers.push_back(peer_id);
             }
           });
-          step++;
         });
 
-        std::deque<int> sample;
-        std::sample(indices.begin(),
-                    indices.end(),
-                    std::back_inserter(sample),
+        std::unordered_set<PeerId> sample;
+        std::sample(peers.begin(),
+                    peers.end(),
+                    std::inserter(sample, sample.end()),
                     lucky_peers_num_,
                     std::mt19937{std::random_device{}()});
-        auto it = sample.begin();
-        step = 0;
 
-        auto shuffledLuckyPeers = [&it, &step](const PeerId &) {
-          if (*it == step++) {
-            it++;
-            return true;
-          }
-          return false;
+        auto shuffledLuckyPeers = [sample](const PeerId &peer_id) {
+          return sample.count(peer_id) > 0;
         };
         broadcast(protocol, msg, shuffledLuckyPeers);
       } else {
