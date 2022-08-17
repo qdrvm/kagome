@@ -7,68 +7,46 @@
 
 ## Intro
 
-Kagome is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/host-spec) (former Polkadot Runtime Environment) developed by [Soramitsu](https://soramitsu.co.jp/) and funded by a Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md).
+KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/host-spec) (former Polkadot Runtime Environment) developed by [Soramitsu](https://soramitsu.co.jp/) and funded by a Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md).
 
 
 ## Status
 
-Kagome is getting closer to the first official release. Team is currently focused on stabilizing features required to run syncing and validating full nodes.
+- [x] Syncing node
+    - Polkadot, Kusama and Rococo compatibility
+- [x] Validating node
+- [x] Polkadot JS apps support
+- [ ] Parachains support
+- [x] Telemetry support
+- [ ] Fast sync
+- [ ] Warp sync
+- [ ] Light client
 
-A simple status of Kagome development can be found within the [supported features](./README.md/#supported-features) section.
+More details of KAGOME development can be found within the [supported features](./README.md/#supported-features) section and in [projects board](https://github.com/soramitsu/kagome/projects/2)
 
 
 
 ## Getting Started
 
-### Prerequisites
+### Build
+
+#### Prerequisites
 
 For now, please refer to the [Dockerfile](housekeeping/docker/kagome-dev/minideb.Dockerfile) to get a picture of what you need for a local build-environment.
 
-### Build
 
 ```sh
 git clone https://github.com/soramitsu/kagome
 cd kagome
 
-mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make kagome -j $(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))
+make build
 ```
 
-`make kagome -j <numbers of cores>` (should be less than you have, here it is half of your cores + 1)
+You will get KAGOME binary in the `build/node/` folder
 
-
-### Build with docker
-
-```sh
-git clone https://github.com/soramitsu/kagome
-cd kagome
-
-# build and run tests
-INDOCKER_IMAGE=soramitsu/kagome-dev:4-minideb BUILD_DIR=build BUILD_THREADS=9 ./housekeeping/indocker.sh ./housekeeping/make_build.sh
-
-# You can use indocker.sh to run any script or command inside docker
-# It mounts project dir and copy important env variable inside the container.
-INDOCKER_IMAGE=soramitsu/kagome-dev:4-minideb ./housekeeping/indocker.sh gcc --version
-
-## Build Release 
-# Build Kagome
-INDOCKER_IMAGE=soramitsu/kagome-dev:4-minideb BUILD_DIR=build ./housekeeping/indocker.sh ./housekeeping/docker/release/makeRelease.sh
-# Create docker image and push 
-VERSION=0.0.1 BUILD_DIR=build BUILD_TYPE=Release ./housekeeping/docker/kagome/build_and_push.sh
-
-# Check docker image 
-docker run -it --rm soramitsu/kagome:0.0.1 kagome
-[2020-06-03 16:26:14][error] the option '--chain' is required but missing
+Other make commands are:
 
 ```
-
-### Makefile
-
-Mentioned commands are organized into a Makefile. Use them with following commands
-
-```
-make build	
 make docker
 make command args="gcc --version"
 make release
@@ -77,9 +55,39 @@ make debug_docker
 make clear
 ```
 
-### Execute kagome node in development mode
+### Executing KAGOME node
 
-The easiest way to get started with Kagome is to execute in development mode which is a single node network:
+#### Obtaining database snapshot (optional)
+
+In order to avoid syncing from scratch we are maintaining the most recent snapshot of Polkadot network for KAGOME node available for anyone here: https://drive.google.com/drive/folders/1pAZ1ongWB3_zVPKXvgOo-4aBB7ybmKy5?usp=sharing
+
+After downloading the snapshot you can extract it in the folder where the node will be running:
+
+```
+unzip polkadot-node-1.zip
+```
+
+#### Execute KAGOME Polkadot full syncing node
+
+You can synchronize with Polkadot using KAGOME and obtain an archive node that can be used to query the Polkadot network at any state.
+
+To launch KAGOME Polkadot syncing node execute:
+```
+cd examples/polkadot/
+PATH=$PATH:../../build/node/
+kagome --chain polkadot.json --base-path polkadot-node-1
+```
+
+After this command KAGOME will connect with other nodes in the network and start importing blocks. You may play with your local node using polkadot js apps: https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9944#/explorer
+
+You will also be able to see your node on https://telemetry.polkadot.io/. If you need to identify it more easily you can add `--name <node-name>` flag to node's execution command and find your node in telemetry by typing its name.
+
+Run `kagome --help` to explore other CLI flags.
+
+
+#### Execute KAGOME validating node in development mode
+
+The easiest way to get started with KAGOME is to execute in development mode which is a single node network:
 
 ```
 kagome --dev
@@ -93,62 +101,27 @@ To launch with wiping existing data you can do:
 kagome --dev-with-wipe
 ```
 
-### Execute Kagome node with validator mode
+#### Execute KAGOME node with validator mode
 
-To launch Kagome validator execute:
+To launch KAGOME validator execute:
 ```
 cd examples/first_kagome_chain
 PATH=$PATH:../../build/node/
 kagome --validator --chain localchain.json --base-path base_path
 ```
 
-This command executes Kagome full node with authority role.
+This command executes a KAGOME full node with an authority role.
 
 
-### Execute Kagome Polkadot archive node
-
-You can synchronize with Polkadot using Kagome and obtain archive node that can be used to query Polkadot network at any state.
-
-To launch Kagome Polkadot archive node execute:
-```
-cd examples/polkadot/
-PATH=$PATH:../../build/node/
-kagome --chain polkadot.json --base-path syncing_chain
-```
-
-After this command syncing node will connect with the full node and start importing blocks.
 
 
 
 ### Configuration Details
-To run a Kagome node, you need to provide to it a genesis config, cryptographic keys and a place to store db files.
+To run a KAGOME node, you need to provide to it a genesis config, cryptographic keys and a place to store db files.
 * Example of a genesis config file can be found in `examples/first_kagome_chain/localchain.json`
 * Example of a base path dir can be found in `examples/first_kagome_chain/base_path`
 * To create leveldb files, just provide any base path into `kagome` executable (mind that start with authority role requires keys to start).
 
-
-### Build Kagome
-
-First build will likely take long time. However, you can cache binaries to [hunter-binary-cache](https://github.com/soramitsu/hunter-binary-cache) or even download binaries from the cache in case someone has already compiled project with the same compiler. To this end, you need to set up two environment variables:
-```
-GITHUB_HUNTER_USERNAME=<github account name>
-GITHUB_HUNTER_TOKEN=<github token>
-```
-To generate github token follow the [instructions](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line). Make sure `read:packages` and `write:packages` permissions are granted (step 7 in instructions).
-
-This project is can be built with
-
-```
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j
-```
-
-Tests can be run with:
-```
-cd build
-ctest
-```
 
 ## Contributing Guides
 
@@ -196,15 +169,15 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
     * Schnorr's vrf and sr25519 (bindings over Web3’s [schnorrkel library](https://github.com/w3f/schnorrkel))
     * twox
 * Networking
-    * Kagome uses [cpp-libp2p](https://github.com/soramitsu/libp2p) for peer-to-peer interactions and peer discovery
+    * KAGOME uses [cpp-libp2p](https://github.com/soramitsu/libp2p) for peer-to-peer interactions and peer discovery
     * Gossiper and Gossiper observer
     * SyncClient and SyncServer
 
 You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). Check out tutorials and more examples in official documentation: https://kagome.readthedocs.io/
 
-## Kagome in media
+## KAGOME in media
 
 * Press-release: [Soramitsu to implement Polkadot Runtime Environment in C++](https://medium.com/web3foundation/w3f-grants-soramitsu-to-implement-polkadot-runtime-environment-in-c-cf3baa08cbe6)
-* [Kagome: C++ implementation of PRE](https://www.youtube.com/watch?v=181mk2xvBZ4&t=) presentation at DOTCon (18.08.19)
-* [Kagome and consensus in Polkadot](https://www.youtube.com/watch?v=5OrevTjaiPA) presentation (in Russian) during Innopolis blockchain meetup (28.10.19)
+* [KAGOME: C++ implementation of PRE](https://www.youtube.com/watch?v=181mk2xvBZ4&t=) presentation at DOTCon (18.08.19)
+* [KAGOME and consensus in Polkadot](https://www.youtube.com/watch?v=5OrevTjaiPA) presentation (in Russian) during Innopolis blockchain meetup (28.10.19)
 * [Web3 Builders: Soramitsu | C++ Implementation of Polkadot Host](https://www.youtube.com/watch?v=We3kiGzg60w) Polkadot's Web3 builders online presentation 
