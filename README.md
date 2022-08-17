@@ -17,7 +17,7 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
 - [x] Validating node
 - [x] Polkadot JS apps support
 - [ ] Parachains support
-- [x] telemetry support
+- [x] Telemetry support
 - [ ] Fast sync
 - [ ] Warp sync
 - [ ] Light client
