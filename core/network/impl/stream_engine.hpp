@@ -329,7 +329,8 @@ namespace kagome::network {
 
         forEachPeer([&](const auto &peer_id, auto &proto_map) {
           forProtocol(proto_map, protocol, [&](auto &descr) {
-            if (descr.outgoing and not descr.outgoing->isClosed()) {
+            if (descr.outgoing.stream
+                and not descr.outgoing.stream->isClosed()) {
               indices.emplace_back(step);
             }
           });
