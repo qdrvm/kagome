@@ -61,7 +61,7 @@ make clear
 
 In order to avoid syncing from scratch we are maintaining the most recent snapshot of Polkadot network for KAGOME node available for anyone here: https://drive.google.com/drive/folders/1pAZ1ongWB3_zVPKXvgOo-4aBB7ybmKy5?usp=sharing
 
-After downloading the snapshot you can unarchive it in folder where node will be running:
+After downloading the snapshot you can unarchive it in the folder where the node will be running:
 
 ```
 unzip polkadot-node-1.zip
