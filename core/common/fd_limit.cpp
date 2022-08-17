@@ -17,20 +17,28 @@ namespace kagome::common {
       return log::createLogger("FdLimit", log::defaultGroupName);
     }
 
+    bool getFdLimit(rlimit &r) {
+      if (getrlimit(RLIMIT_NOFILE, &r) != 0) {
+        SL_WARN(log(),
+                "Error: getrlimit(RLIMIT_NOFILE) errno={} {}",
+                errno,
+                strerror(errno));
+        return false;
+      }
+      return true;
+    }
+
     bool setFdLimit(const rlimit &r) {
       return setrlimit(RLIMIT_NOFILE, &r) == 0;
     }
   }  // namespace
 
-  bool getFdLimit(rlimit &r) {
-    if (getrlimit(RLIMIT_NOFILE, &r) != 0) {
-      SL_WARN(log(),
-              "Error: getrlimit(RLIMIT_NOFILE) errno={} {}",
-              errno,
-              strerror(errno));
-      return false;
+  std::optional<size_t> getFdLimit() {
+    rlimit r{};
+    if (!getFdLimit(r)) {
+      return std::nullopt;
     }
-    return true;
+    return r.rlim_cur;
   }
 
   void setFdLimit(size_t limit) {

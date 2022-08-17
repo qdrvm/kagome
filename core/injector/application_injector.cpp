@@ -4,7 +4,6 @@
  */
 
 #include "injector/application_injector.hpp"
-#include <sys/resource.h>
 #include "crypto/hasher.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
@@ -381,11 +380,11 @@ namespace {
         rocksdb::NewBlockBasedTableFactory(table_options));
 
     // Setting limit for open rocksdb files to a half of system soft limit
-    rlimit r;
-    if (!common::getFdLimit(r)) {
+    auto soft_limit = common::getFdLimit();
+    if (!soft_limit) {
       exit(EXIT_FAILURE);
     }
-    options.max_open_files = r.rlim_cur / 2;
+    options.max_open_files = soft_limit.value() / 2;
 
     auto db_res =
         storage::RocksDB::create(app_config.databasePath(chain_spec->id()),
