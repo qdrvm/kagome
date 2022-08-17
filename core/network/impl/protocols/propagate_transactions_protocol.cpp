@@ -345,8 +345,8 @@ namespace kagome::network {
                                                   PropagatedExtrinsics);
     (*shared_msg) = std::move(exts);
 
-    stream_engine_->broadcast<PropagatedExtrinsics>(shared_from_this(),
-                                                    std::move(shared_msg));
+    stream_engine_->gossipLuckyPeers<PropagatedExtrinsics>(
+        shared_from_this(), std::move(shared_msg));
   }
 
 }  // namespace kagome::network

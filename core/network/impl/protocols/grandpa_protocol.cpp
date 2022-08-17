@@ -448,8 +448,8 @@ namespace kagome::network {
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
     (*shared_msg) = GrandpaMessage(std::move(msg));
 
-    stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
-                                              std::move(shared_msg));
+    stream_engine_->gossipLuckyPeers<GrandpaMessage>(shared_from_this(),
+                                                     std::move(shared_msg));
   }
 
   void GrandpaProtocol::finalize(

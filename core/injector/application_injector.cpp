@@ -1197,7 +1197,12 @@ namespace {
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
-        di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
+        di::bind<network::StreamEngine>.template to([](auto const &injector) {
+          const application::AppConfiguration &config =
+              injector.template create<application::AppConfiguration const &>();
+
+          return std::make_shared<network::StreamEngine>(config.luckyPeers());
+        }),
         di::bind<network::PeerRatingRepository>.template to<network::PeerRatingRepositoryImpl>(),
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),

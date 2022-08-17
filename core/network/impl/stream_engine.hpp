@@ -10,6 +10,7 @@
 #include <numeric>
 #include <optional>
 #include <queue>
+#include <random>
 #include <unordered_map>
 
 #include "libp2p/connection/stream.hpp"
@@ -121,7 +122,9 @@ namespace kagome::network {
     StreamEngine &operator=(StreamEngine &&) = delete;
 
     ~StreamEngine() = default;
-    StreamEngine() : logger_{log::createLogger("StreamEngine", "network")} {}
+    explicit StreamEngine(int lucky_peers_num)
+        : logger_{log::createLogger("StreamEngine", "network")},
+          lucky_peers_num_{lucky_peers_num} {}
 
     template <typename... Args>
     static StreamEnginePtr create(Args &&...args) {
@@ -315,6 +318,44 @@ namespace kagome::network {
       static const std::function<bool(const PeerId &)> any =
           [](const PeerId &) { return true; };
       broadcast(protocol, msg, any);
+    }
+
+    template <typename T>
+    void gossipLuckyPeers(const std::shared_ptr<ProtocolBase> &protocol,
+                          const std::shared_ptr<T> &msg) {
+      if (lucky_peers_num_ > 0) {
+        std::deque<int> indices;
+        int step = 0;
+
+        forEachPeer([&](const auto &peer_id, auto &proto_map) {
+          forProtocol(proto_map, protocol, [&](auto &descr) {
+            if (descr.outgoing and not descr.outgoing->isClosed()) {
+              indices.emplace_back(step);
+            }
+          });
+          step++;
+        });
+
+        std::deque<int> sample;
+        std::sample(indices.begin(),
+                    indices.end(),
+                    std::back_inserter(sample),
+                    lucky_peers_num_,
+                    std::mt19937{std::random_device{}()});
+        auto it = sample.begin();
+        step = 0;
+
+        auto shuffledLuckyPeers = [&it, &step](const PeerId &) {
+          if (*it == step++) {
+            it++;
+            return true;
+          }
+          return false;
+        };
+        broadcast(protocol, msg, shuffledLuckyPeers);
+      } else {
+        broadcast(protocol, msg);
+      }
     }
 
     template <typename F>
@@ -544,6 +585,7 @@ namespace kagome::network {
     }
 
     log::Logger logger_;
+    int lucky_peers_num_;
     SafeObject<PeerMap> streams_;
   };
 

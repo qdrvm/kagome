@@ -357,8 +357,8 @@ namespace kagome::network {
     SL_DEBUG(
         base_.logger(), "Send announce of block #{}", announce.header.number);
 
-    stream_engine_->broadcast<BlockAnnounce>(shared_from_this(),
-                                             std::move(shared_msg));
+    stream_engine_->gossipLuckyPeers<BlockAnnounce>(shared_from_this(),
+                                                    std::move(shared_msg));
   }
 
 }  // namespace kagome::network
