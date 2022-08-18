@@ -41,7 +41,13 @@ namespace kagome::consensus::grandpa {
     };
     auto res = verify_(voter_set_->id(), round_number_);
     if (res) return true;
+
     auto logger = log::createLogger("VoteCryptoProvider", "authority");
+    logger->error(
+        "round {} voter set {}",
+        round_number_,
+        voter_set_->id());
+
     for (int i = -5; i < 5; i++) {
       for (int j = -5; j < 5; j++) {
         auto res = verify_(voter_set_->id() + i, round_number_ + j);

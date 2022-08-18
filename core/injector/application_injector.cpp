@@ -1462,6 +1462,7 @@ namespace {
             log->flush();
             return EXIT_FAILURE;
           }
+
           auto number =
               header_repo->getNumberById(app_config.recoverState().value());
           res = authority_manager->recalculateStoredState(number.value());

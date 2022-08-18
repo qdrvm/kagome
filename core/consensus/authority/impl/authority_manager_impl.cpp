@@ -78,7 +78,8 @@ namespace kagome::authority {
           break;
         }
 
-        OUTCOME_TRY(header, block_tree.getBlockHeader(hash));
+        // just obtained from block tree
+        auto header = block_tree.getBlockHeader(hash).value();
 
         // observe possible changes of authorities
         for (auto &digest_item : boost::adaptors::reverse(header.digest)) {
@@ -142,6 +143,12 @@ namespace kagome::authority {
     return outcome::success();
   }
 
+  outcome::result<void> clearScheduleGraphRoot(
+      storage::BufferStorage &storage) {
+    OUTCOME_TRY(storage.remove(kScheduleGraphRootKey));
+    return outcome::success();
+  }
+
   static const common::Buffer kForcedSetIdListKey =
       common::Buffer::fromString(":authority_manager:forced_set_id_list");
 
@@ -164,7 +171,12 @@ namespace kagome::authority {
     bool is_unapplied_change = false;
 
     for (auto hash = finalized_block.hash; !found_set_change;) {
-      OUTCOME_TRY(header, block_tree.getBlockHeader(hash));
+      auto header_res = block_tree.getBlockHeader(hash);
+      if (!header_res) {
+        SL_ERROR(
+            log, "Failed to obtain the last finalized block header {}", hash);
+      }
+      OUTCOME_TRY(header, header_res);
 
       if (header.number == 0) {
         found_set_change = true;
@@ -373,22 +385,32 @@ namespace kagome::authority {
         std::make_shared<primitives::AuthoritySet>(0, initial_authorities),
         {0, genesis_hash});
 
+    // if state is pruned
+    if (header_repo_->getBlockHeader(1).has_error()) {
+      SL_WARN(log_,
+              "Can't recalculate authority set id on a prune state, fall back "
+              "to fetching from runtime");
+      return clearScheduleGraphRoot(*persistent_storage_);
+    }
+
     for (primitives::BlockNumber number = 0; number <= last_finalized_number;
          number++) {
       auto start = std::chrono::steady_clock::now();
+      auto header_res = header_repo_->getBlockHeader(number);
+      if(!header_res) continue; // Temporary workaround about the justification pruning bug
+      auto& header = header_res.value();
+
       OUTCOME_TRY(hash, header_repo_->getHashByNumber(number));
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(number));
       primitives::BlockInfo info{number, hash};
 
-      bool has_authority_change = false;
       for (auto &msg : header.digest) {
         if (auto consensus_msg = boost::get<primitives::Consensus>(&msg);
             consensus_msg != nullptr) {
-          OUTCOME_TRY(onConsensus(info, *consensus_msg));
-          has_authority_change = true;
+          onConsensus(info, *consensus_msg).value();
         }
       }
-      if (has_authority_change) prune(info);
+      auto justification_res = block_tree_->getBlockJustification(hash);
+      if (justification_res.has_value()) prune(info);
       auto end = std::chrono::steady_clock::now();
       SL_TRACE(
           log_,
@@ -413,7 +435,7 @@ namespace kagome::authority {
                                     IsBlockFinalized finalized) const {
     auto node = getAppropriateAncestor(target_block);
 
-    if (not node) {
+    if (node == nullptr) {
       return std::nullopt;
     }
 
@@ -422,6 +444,9 @@ namespace kagome::authority {
             ? (bool)finalized
             : node->current_block.number
                   <= block_tree_->getLastFinalized().number;
+    if (target_block.number == 1514496) {
+      node_in_finalized_chain = true;
+    }
 
     auto adjusted_node =
         node->makeDescendant(target_block, node_in_finalized_chain);
@@ -432,6 +457,7 @@ namespace kagome::authority {
                "Pick authority set with id {} for block {}",
                adjusted_node->current_authorities->id,
                target_block);
+      // Since getAppropriateAncestor worked normally on this block
       auto header = block_tree_->getBlockHeader(target_block.hash).value();
       auto id_from_storage =
           fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header)
@@ -499,11 +525,7 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    KAGOME_PROFILE_START(is_ancestor_node_finalized)
     IsBlockFinalized is_ancestor_node_finalized = true;
-    ancestor_node->current_block.number
-        <= block_tree_->getLastFinalized().number;
-    KAGOME_PROFILE_END(is_ancestor_node_finalized)
 
     if (ancestor_node->current_block == block) {
       ancestor_node->adjust(is_ancestor_node_finalized);
@@ -544,8 +566,12 @@ namespace kagome::authority {
              delay,
              current_block,
              delay_start + delay);
-    OUTCOME_TRY(delay_start_header,
-                block_tree_->getBlockHeader(delay_start + 1));
+    auto delay_start_header_res =
+                block_tree_->getBlockHeader(delay_start + 1);
+    if (delay_start_header_res.has_error()) {
+      SL_ERROR(log_, "Failed to obtain header by number {}", delay_start + 1);
+    }
+    OUTCOME_TRY(delay_start_header, delay_start_header_res);
     auto ancestor_node =
         getAppropriateAncestor({delay_start, delay_start_header.parent_hash});
 
@@ -592,11 +618,8 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    OUTCOME_TRY(delay_start_child,
-                block_tree_->getBlockHeader(delay_start + 1));
-
     auto new_node = ancestor_node->makeDescendant(
-        {delay_start, delay_start_child.parent_hash}, true);
+        {delay_start, delay_start_header.parent_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 

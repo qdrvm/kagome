@@ -13,6 +13,7 @@ namespace kagome::authority {
     UNKNOWN_ENGINE_ID = 1,
     ORPHAN_BLOCK_OR_ALREADY_FINALIZED,
     CAN_NOT_SAVE_STATE,
+    CANT_RECALCULATE_ON_PRUNED_STATE,
   };
 }
 
