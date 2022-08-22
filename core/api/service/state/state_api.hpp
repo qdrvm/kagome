@@ -25,6 +25,11 @@ namespace kagome::api {
     virtual void setApiService(
         const std::shared_ptr<api::ApiService> &api_service) = 0;
 
+    virtual outcome::result<common::Buffer> call(
+        std::string_view method,
+        common::Buffer data,
+        const std::optional<primitives::BlockHash> &opt_at) const = 0;
+
     virtual outcome::result<std::vector<common::Buffer>> getKeysPaged(
         const std::optional<common::BufferView> &prefix,
         uint32_t keys_amount,

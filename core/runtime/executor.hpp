@@ -159,6 +159,29 @@ namespace kagome::runtime {
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
+    outcome::result<common::Buffer> callAtRaw(
+        const primitives::BlockHash &block_hash,
+        std::string_view name,
+        const common::Buffer &encoded_args) {
+      OUTCOME_TRY(env_template, env_factory_->start(block_hash));
+      OUTCOME_TRY(env, env_template->make());
+
+      auto &memory = env->memory_provider->getCurrentMemory()->get();
+
+      KAGOME_PROFILE_START(call_execution)
+
+      auto result_span =
+          env->module_instance->callExportFunction(name, encoded_args);
+
+      KAGOME_PROFILE_END(call_execution)
+      OUTCOME_TRY(span, result_span);
+
+      OUTCOME_TRY(env->module_instance->resetEnvironment());
+      auto result = memory.loadN(span.ptr, span.size);
+
+      return result;
+    }
+
    private:
     /**
      * Internal method for calling a Runtime API method

@@ -13,6 +13,10 @@
 #include "runtime/runtime_api/metadata.hpp"
 #include "storage/trie/trie_storage.hpp"
 
+namespace kagome::runtime {
+  class Executor;
+}
+
 namespace kagome::api {
 
   class StateApiImpl final : public StateApi {
@@ -30,10 +34,16 @@ namespace kagome::api {
                  std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
                  std::shared_ptr<blockchain::BlockTree> block_tree,
                  std::shared_ptr<runtime::Core> runtime_core,
-                 std::shared_ptr<runtime::Metadata> metadata);
+                 std::shared_ptr<runtime::Metadata> metadata,
+                 std::shared_ptr<runtime::Executor> executor);
 
     void setApiService(
         std::shared_ptr<api::ApiService> const &api_service) override;
+
+    outcome::result<common::Buffer> call(
+        std::string_view method,
+        common::Buffer data,
+        const std::optional<primitives::BlockHash> &opt_at) const override;
 
     outcome::result<std::vector<common::Buffer>> getKeysPaged(
         const std::optional<common::BufferView> &prefix,
@@ -83,6 +93,7 @@ namespace kagome::api {
 
     std::weak_ptr<api::ApiService> api_service_;
     std::shared_ptr<runtime::Metadata> metadata_;
+    std::shared_ptr<runtime::Executor> executor_;
   };
 
 }  // namespace kagome::api
