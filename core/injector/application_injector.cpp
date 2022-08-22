@@ -110,12 +110,12 @@
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/common/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
 #include "runtime/runtime_api/impl/babe_api.hpp"
@@ -952,6 +952,7 @@ namespace {
           }
           return initialized.value();
         }),
+        di::bind<runtime::RawExecutor>.template to<runtime::Executor>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),

@@ -3,8 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_EXECUTOR_HPP
-#define KAGOME_CORE_RUNTIME_EXECUTOR_HPP
+#ifndef KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP
+#define KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP
+
+#include "runtime/raw_executor.hpp"
 
 #include <optional>
 
@@ -31,7 +33,7 @@ namespace kagome::runtime {
    * Provides access to the Runtime API methods, which can be called by their
    * names with the required environment
    */
-  class Executor final {
+  class Executor : public RawExecutor {
    public:
     using Buffer = common::Buffer;
 
@@ -162,7 +164,7 @@ namespace kagome::runtime {
     outcome::result<common::Buffer> callAtRaw(
         const primitives::BlockHash &block_hash,
         std::string_view name,
-        const common::Buffer &encoded_args) {
+        const common::Buffer &encoded_args) override {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->make());
 
@@ -257,4 +259,4 @@ namespace kagome::runtime {
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_CORE_RUNTIME_EXECUTOR_HPP
+#endif  // KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP

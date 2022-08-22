@@ -12,7 +12,7 @@
 
 #include "common/hexutil.hpp"
 #include "common/monadic_utils.hpp"
-#include "runtime/executor.hpp"
+#include "runtime/common/executor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
   using E = kagome::api::StateApiImpl::Error;
@@ -40,7 +40,7 @@ namespace kagome::api {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<runtime::Metadata> metadata,
-      std::shared_ptr<runtime::Executor> executor)
+      std::shared_ptr<runtime::RawExecutor> executor)
       : header_repo_{std::move(block_repo)},
         storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},
