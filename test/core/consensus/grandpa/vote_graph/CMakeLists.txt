@@ -13,6 +13,7 @@ addtest(vote_graph_test
     graph_fork_test.cpp
     duplicate_vote_test.cpp
     remove_vote_test.cpp
+    small_block_number_test.cpp
     )
 target_link_libraries(vote_graph_test
     vote_graph
