@@ -18,6 +18,14 @@ namespace kagome::runtime {
     using BlockHash = primitives::BlockHash;
     virtual ~RawExecutor() = default;
 
+    /**
+     * Call a runtime method \param block_info name in an ephemeral environment,
+     * e. g. the storage changes, made by this call, will NOT persist in the
+     * node's Trie storage The call will be done with the runtime code from
+     * \param block_info state Arguments for the call are expected to be
+     * scale-encoded into single buffer \param encoded_args beforehand
+     * \returns scale-encoded result
+     */
     virtual outcome::result<Buffer> callAtRaw(const BlockHash &block_hash,
                                               std::string_view name,
                                               const Buffer &encoded_args) = 0;
