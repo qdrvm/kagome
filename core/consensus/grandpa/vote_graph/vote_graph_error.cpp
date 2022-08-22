@@ -1,6 +1,7 @@
-//
-// Created by taisei on 09.08.2022.
-//
+/**
+* Copyright Soramitsu Co., Ltd. All Rights Reserved.
+* SPDX-License-Identifier: Apache-2.0
+*/
 
 #include "consensus/grandpa/vote_graph/vote_graph_error.hpp"
 
