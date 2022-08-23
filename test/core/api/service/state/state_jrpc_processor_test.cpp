@@ -41,6 +41,7 @@ class StateJrpcProcessorTest : public testing::Test {
     kCallType_StorageSubscribe,
     kCallType_StorageUnsubscribe,
     kCallType_GetMetadata,
+    kCallType_Call,
   };
 
  private:
@@ -54,6 +55,11 @@ class StateJrpcProcessorTest : public testing::Test {
 
   void registerHandlers() {
     call_contexts_.clear();
+    EXPECT_CALL(*server, registerHandler("state_call", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(std::make_pair(CallType::kCallType_Call,
+                                                CallContext{.handler = f}));
+        }));
     EXPECT_CALL(*server, registerHandler("state_getRuntimeVersion", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
           call_contexts_.emplace(

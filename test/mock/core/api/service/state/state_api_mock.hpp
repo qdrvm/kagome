@@ -23,6 +23,13 @@ namespace kagome::api {
                 (const std::shared_ptr<api::ApiService> &),
                 (override));
 
+    MOCK_METHOD(outcome::result<common::Buffer>,
+                call,
+                (std::string_view,
+                 common::Buffer,
+                 const std::optional<primitives::BlockHash> &),
+                (const, override));
+
     MOCK_METHOD(outcome::result<std::vector<common::Buffer>>,
                 getKeysPaged,
                 (const std::optional<common::BufferView> &,
