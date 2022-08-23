@@ -19,7 +19,7 @@ namespace kagome::runtime {
     virtual ~RawExecutor() = default;
 
     /**
-     * Call a runtime method \param block_info name in an ephemeral environment,
+     * Call a runtime method \param name at state on block \param block_hash in an ephemeral environment,
      * e. g. the storage changes, made by this call, will NOT persist in the
      * node's Trie storage The call will be done with the runtime code from
      * \param block_info state Arguments for the call are expected to be
