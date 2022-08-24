@@ -188,6 +188,7 @@ namespace kagome::api {
                       // from RPC call, so External source is chosen
                       TransactionSource::External,
                       extrinsic));
+      BOOST_ASSERT(tx_hash == tx.hash);
 
       SL_DEBUG(logger_, "Subscribe for ex hash={}", tx_hash);
 
