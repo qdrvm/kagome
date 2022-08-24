@@ -56,6 +56,7 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
+#include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
@@ -377,6 +378,14 @@ namespace {
     options.optimize_filters_for_hits = true;
     options.table_factory.reset(
         rocksdb::NewBlockBasedTableFactory(table_options));
+
+    // Setting limit for open rocksdb files to a half of system soft limit
+    auto soft_limit = common::getFdLimit();
+    if (!soft_limit) {
+      exit(EXIT_FAILURE);
+    }
+    options.max_open_files = soft_limit.value() / 2;
+
     auto db_res =
         storage::RocksDB::create(app_config.databasePath(chain_spec->id()),
                                  options,

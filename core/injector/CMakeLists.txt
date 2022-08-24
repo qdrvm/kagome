@@ -123,4 +123,5 @@ target_link_libraries(application_injector
     rating_repository
     session_keys_api
     collation_protocol
+    fd_limit
     )
