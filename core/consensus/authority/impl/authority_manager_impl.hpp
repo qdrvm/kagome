@@ -70,8 +70,6 @@ namespace kagome::authority {
 
     bool prepare();
 
-    outcome::result<void> initializeAt(const primitives::BlockInfo &root_block);
-
     primitives::BlockInfo base() const override;
 
     std::optional<std::shared_ptr<const primitives::AuthoritySet>> authorities(
@@ -109,6 +107,8 @@ namespace kagome::authority {
     void prune(const primitives::BlockInfo &block) override;
 
    private:
+    outcome::result<void> initializeAt(const primitives::BlockInfo &root_block);
+
     /**
      * @brief Find schedule_node according to the block
      * @param block for which to find the schedule node

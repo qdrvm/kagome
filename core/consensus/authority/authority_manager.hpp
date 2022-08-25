@@ -33,8 +33,6 @@ namespace kagome::authority {
    public:
     virtual ~AuthorityManager() = default;
 
-    virtual outcome::result<void> initializeAt(const primitives::BlockInfo& root_block) = 0;
-
     /**
      * Recalculate the authority change graph starting from genesis and up to
      * the last finalized block. The result shall be stored in the provided

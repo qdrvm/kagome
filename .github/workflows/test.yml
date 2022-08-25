@@ -26,17 +26,17 @@ jobs:
   MacOS:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: ${{ env.CACHE_PATHS }}
-        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-    - name: install
-      run: ./housekeeping/macos/dependency.sh
-    - name: build
-      env:
-        DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
-      run: ./housekeeping/make_build.sh -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - name: install
+        run: ./housekeeping/macos/dependency.sh
+      - name: build
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
+        run: ./housekeeping/make_build.sh -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
     strategy:
@@ -52,10 +52,10 @@ jobs:
           - name: "Linux: clang-11 UBSAN"
             run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
           - name: "Linux: clang-11 External Project"
-            run: ./housekeeping/make_external_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/clang-11-cpp17-toolchain.cmake
+            run: ./housekeeping/make_external_build.sh -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-11_cxx17.cmake
           - name: "Linux: clang-14 UBSAN"
             run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-14_cxx17.cmake -DUBSAN=ON
-          
+
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev:4-minideb
@@ -65,6 +65,8 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+      - name: Install mold
+        run: ./housekeeping/ci_install_mold.sh --make-default
       - name: "${{ matrix.options.name }}"
         run: "${{ matrix.options.run }}"
 
@@ -98,6 +100,8 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - name: Install mold
+        run: ./housekeeping/ci_install_mold.sh --make-default
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
@@ -158,6 +162,7 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - run: git fetch --prune --unshallow
       - name: build
         env:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
