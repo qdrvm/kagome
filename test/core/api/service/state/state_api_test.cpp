@@ -15,6 +15,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/metadata_mock.hpp"
+#include "mock/core/runtime/raw_executor_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block_header.hpp"
@@ -31,6 +32,7 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::runtime::CoreMock;
 using kagome::runtime::MetadataMock;
+using kagome::runtime::RawExecutorMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::TrieStorageMock;
 using testing::_;
@@ -42,8 +44,12 @@ namespace kagome::api {
   class StateApiTest : public ::testing::Test {
    public:
     void SetUp() override {
-      api_ = std::make_unique<api::StateApiImpl>(
-          block_header_repo_, storage_, block_tree_, runtime_core_, metadata_);
+      api_ = std::make_unique<api::StateApiImpl>(block_header_repo_,
+                                                 storage_,
+                                                 block_tree_,
+                                                 runtime_core_,
+                                                 metadata_,
+                                                 executor_);
     }
 
    protected:
@@ -57,6 +63,8 @@ namespace kagome::api {
     std::shared_ptr<MetadataMock> metadata_ = std::make_shared<MetadataMock>();
     std::shared_ptr<ApiServiceMock> api_service_ =
         std::make_shared<ApiServiceMock>();
+    std::shared_ptr<RawExecutorMock> executor_ =
+        std::make_shared<RawExecutorMock>();
 
     std::unique_ptr<api::StateApiImpl> api_{};
   };
@@ -102,9 +110,14 @@ namespace kagome::api {
       block_tree_ = std::make_shared<BlockTreeMock>();
       auto runtime_core = std::make_shared<CoreMock>();
       auto metadata = std::make_shared<MetadataMock>();
+      auto executor = std::make_shared<RawExecutorMock>();
 
-      api_ = std::make_shared<api::StateApiImpl>(
-          block_header_repo_, storage, block_tree_, runtime_core, metadata);
+      api_ = std::make_shared<api::StateApiImpl>(block_header_repo_,
+                                                 storage,
+                                                 block_tree_,
+                                                 runtime_core,
+                                                 metadata,
+                                                 executor);
 
       EXPECT_CALL(*block_tree_, getLastFinalized())
           .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));

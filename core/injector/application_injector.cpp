@@ -56,6 +56,7 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
+#include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
@@ -109,12 +110,12 @@
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/common/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
 #include "runtime/runtime_api/impl/babe_api.hpp"
@@ -376,6 +377,14 @@ namespace {
     options.optimize_filters_for_hits = true;
     options.table_factory.reset(
         rocksdb::NewBlockBasedTableFactory(table_options));
+
+    // Setting limit for open rocksdb files to a half of system soft limit
+    auto soft_limit = common::getFdLimit();
+    if (!soft_limit) {
+      exit(EXIT_FAILURE);
+    }
+    options.max_open_files = soft_limit.value() / 2;
+
     auto db_res =
         storage::RocksDB::create(app_config.databasePath(chain_spec->id()),
                                  options,
@@ -951,6 +960,7 @@ namespace {
           }
           return initialized.value();
         }),
+        di::bind<runtime::RawExecutor>.template to<runtime::Executor>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
