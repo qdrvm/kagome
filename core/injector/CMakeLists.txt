@@ -101,7 +101,6 @@ target_link_libraries(application_injector
     payment_api_service
     rpc_api_service
     internal_api_service
-    kademlia_storage_backend
     peer_manager
     babe_util
     assets
