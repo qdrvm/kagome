@@ -6,8 +6,8 @@
 #include "runtime/wavm/core_api_factory_impl.hpp"
 
 #include "runtime/common/constant_code_provider.hpp"
+#include "runtime/common/executor.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/runtime_environment_factory.hpp"

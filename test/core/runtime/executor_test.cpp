@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/executor.hpp"
+#include "runtime/common/executor.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
