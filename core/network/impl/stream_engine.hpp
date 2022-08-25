@@ -324,27 +324,28 @@ namespace kagome::network {
     void gossipLuckyPeers(const std::shared_ptr<ProtocolBase> &protocol,
                           const std::shared_ptr<T> &msg) {
       if (lucky_peers_num_ > 0) {
-        std::deque<PeerId> peers;
-
-        forEachPeer([&](const auto &peer_id, auto &proto_map) {
-          forProtocol(proto_map, protocol, [&](auto &descr) {
-            if (descr.hasActiveOutgoing()) {
-              peers.push_back(peer_id);
-            }
-          });
+        int candidates_num{0};
+        streams_.sharedAccess([&](auto const &streams) {
+          candidates_num = std::count_if(
+              streams.begin(), streams.end(), [&protocol](const auto &entry) {
+                auto &[peer_id, protocol_map] = entry;
+                return protocol_map.find(protocol) != protocol_map.end()
+                       && protocol_map.at(protocol).hasActiveOutgoing();
+              });
         });
+        if (candidates_num == 0) {
+          return;
+        }
 
-        std::unordered_set<PeerId> sample;
-        std::sample(peers.begin(),
-                    peers.end(),
-                    std::inserter(sample, sample.end()),
-                    lucky_peers_num_,
-                    std::mt19937{std::random_device{}()});
+        static std::mt19937 gen32;
+        auto lucky_rate = static_cast<double>(lucky_peers_num_)
+                          / std::max(candidates_num, lucky_peers_num_);
+        auto threshold =
+            static_cast<std::mt19937::result_type>(gen32.max() * lucky_rate);
 
-        auto shuffledLuckyPeers = [sample](const PeerId &peer_id) {
-          return sample.count(peer_id) > 0;
-        };
-        broadcast(protocol, msg, shuffledLuckyPeers);
+        broadcast(protocol, msg, [&threshold](const PeerId &) {
+          return gen32() < threshold;
+        });
       } else {
         broadcast(protocol, msg);
       }
