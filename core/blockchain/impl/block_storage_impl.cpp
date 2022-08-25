@@ -188,9 +188,6 @@ namespace kagome::blockchain {
       const primitives::BlockDataFlags &remove_flags) {
     primitives::BlockData to_insert;
 
-    // if block data does not exist, put a new one. Otherwise, get the old one
-    // and merge with the new one. During the merge new block data fields have
-    // higher priority over the old ones (old ones should be rewritten)
     OUTCOME_TRY(existing_block_data_opt, getBlockData(remove_flags.hash));
     if (not existing_block_data_opt.has_value()) {
       return outcome::success();
@@ -207,15 +204,15 @@ namespace kagome::blockchain {
 
     // add all the fields from the new block_data
     to_insert.header =
-        move_if_flag(remove_flags.header, std::move(existing_data.header));
+        move_if_flag(!remove_flags.header, std::move(existing_data.header));
     to_insert.body =
-        move_if_flag(remove_flags.body, std::move(existing_data.body));
+        move_if_flag(!remove_flags.body, std::move(existing_data.body));
     to_insert.justification = move_if_flag(
-        remove_flags.justification, std::move(existing_data.justification));
+        !remove_flags.justification, std::move(existing_data.justification));
     to_insert.message_queue = move_if_flag(
-        remove_flags.message_queue, std::move(existing_data.message_queue));
+        !remove_flags.message_queue, std::move(existing_data.message_queue));
     to_insert.receipt =
-        move_if_flag(remove_flags.receipt, std::move(existing_data.receipt));
+        move_if_flag(!remove_flags.receipt, std::move(existing_data.receipt));
 
     OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));
     OUTCOME_TRY(putWithPrefix(*storage_,

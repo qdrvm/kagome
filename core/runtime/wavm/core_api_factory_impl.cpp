@@ -43,7 +43,7 @@ namespace kagome::runtime::wavm {
       BOOST_ASSERT(last_compiled_module_);
     }
 
-    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
+    outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider>,
         const primitives::BlockInfo &,
         const primitives::BlockHeader &) override {
@@ -61,7 +61,7 @@ namespace kagome::runtime::wavm {
     }
 
    private:
-    std::shared_ptr<runtime::ModuleInstance> instance_;
+    std::shared_ptr<ModuleInstance> instance_;
     std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
     std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<ModuleParams> module_params_;

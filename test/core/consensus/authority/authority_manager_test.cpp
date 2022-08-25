@@ -10,15 +10,17 @@
 #include "consensus/authority/impl/schedule_node.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
+#include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/digest.hpp"
-#include "scale/scale.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/predefined_keys.hpp"
+#include "runtime/executor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -80,8 +82,6 @@ class AuthorityManagerTest : public testing::Test {
 
     EXPECT_CALL(*app_state_manager, atPrepare(_));
 
-    auto executore = std::make_shared<runtime::Executor>();
-
     authority_manager =
         std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
                                                app_state_manager,
@@ -89,7 +89,8 @@ class AuthorityManagerTest : public testing::Test {
                                                trie_storage,
                                                grandpa_api,
                                                hasher,
-                                               persistent_storage);
+                                               persistent_storage,
+                                               header_repo);
 
     static auto genesis_hash = "genesis"_hash256;
     ON_CALL(*block_tree, getGenesisBlockHash())

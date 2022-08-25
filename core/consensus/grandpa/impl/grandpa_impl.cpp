@@ -849,10 +849,12 @@ namespace kagome::consensus::grandpa {
         auto &authority_set = authorities_opt.value();
 
         // This is justification for non-actual round
-        if (authority_set->id < current_round_->voterSetId()
-            or (authority_set->id == current_round_->voterSetId()
+        if (authority_set->id < current_round_->voterSetId()) {
+          return VotingRoundError::JUSTIFICATION_FOR_AUTHORITY_SET_IN_PAST;
+        }
+        if (authority_set->id == current_round_->voterSetId()
                 && justification.round_number
-                       < current_round_->roundNumber())) {
+                       < current_round_->roundNumber()) {
           return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
         }
 

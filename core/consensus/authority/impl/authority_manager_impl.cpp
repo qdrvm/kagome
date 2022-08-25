@@ -103,8 +103,8 @@ namespace kagome::authority {
   outcome::result<std::optional<AuthoritySetId>> fetchSetIdFromTrieStorage(
       storage::trie::TrieStorage const &trie_storage,
       crypto::Hasher const &hasher,
-      primitives::BlockHeader const &header) {
-    OUTCOME_TRY(batch, trie_storage.getEphemeralBatchAt(header.state_root));
+      storage::trie::RootHash const &state) {
+    OUTCOME_TRY(batch, trie_storage.getEphemeralBatchAt(state));
 
     std::optional<AuthoritySetId> set_id_opt;
     auto current_set_id_keypart =
@@ -149,9 +149,6 @@ namespace kagome::authority {
     OUTCOME_TRY(storage.remove(kScheduleGraphRootKey));
     return outcome::success();
   }
-
-  static const common::Buffer kForcedSetIdListKey =
-      common::Buffer::fromString(":authority_manager:forced_set_id_list");
 
   /**
    * Collect all consensus messages found in finalized block starting from
@@ -247,39 +244,46 @@ namespace kagome::authority {
     BOOST_UNREACHABLE_RETURN({})
   }
 
-#define CONCAT(first, second) CONCAT_UTIL(first, second)
-#define CONCAT_UTIL(first, second) first##second
-#define UNIQUE_NAME(tag) CONCAT(tag, __LINE__)
-
-#define PREPARE_TRY_VOID(expr_res, error_msg, ...) \
-  auto &&UNIQUE_NAME(expr_r_) = (expr_res);        \
-  if (UNIQUE_NAME(expr_r_).has_error()) {          \
-    auto &error = UNIQUE_NAME(expr_r_).error();    \
-    log_->critical(error_msg, __VA_ARGS__);        \
-    return false;                                  \
-  }
-
-#define PREPARE_TRY(val, expr_res, error_msg, ...)    \
-  PREPARE_TRY_VOID(expr_res, error_msg, __VA_ARGS__); \
-  auto &val = UNIQUE_NAME(expr_r_).value();
-
   bool AuthorityManagerImpl::prepare() {
     const auto finalized_block = block_tree_->getLastFinalized();
+    auto res = initializeAt(finalized_block);
+    if (!res) {
+      SL_ERROR(log_,
+               "Error initializing authority manager: {}",
+               res.error().message());
+    }
+    return res.has_value();
+  }
 
-    PREPARE_TRY(
-        collected_msgs,
-        collectMsgsFromNonFinalBlocks(*block_tree_, finalized_block.hash),
-        "Error collecting consensus messages from non-finalized blocks: {}",
-        error.message());
+  outcome::result<void> AuthorityManagerImpl::initializeAt(
+      const primitives::BlockInfo &root_block) {
+    OUTCOME_TRY(collected_msgs,
+                collectMsgsFromNonFinalBlocks(*block_tree_, root_block.hash));
 
-    PREPARE_TRY(opt_root,
-                fetchScheduleGraphRoot(*persistent_storage_),
-                "Error fetching authority set from persistent storage: {}",
-                error.message());
+    OUTCOME_TRY(graph_root_block,
+                collectConsensusMsgsUntilNearestSetChangeTo(
+                    collected_msgs, root_block, *block_tree_, log_));
+
+    OUTCOME_TRY(root_header,
+                block_tree_->getBlockHeader(graph_root_block.hash));
+
+    OUTCOME_TRY(set_id_from_runtime, readSetIdFromRuntime(root_header));
+
+    OUTCOME_TRY(opt_root, fetchScheduleGraphRoot(*persistent_storage_));
     auto last_finalized_block = block_tree_->getLastFinalized();
     if (opt_root
         && opt_root.value()->current_block.number
                <= last_finalized_block.number) {
+      // FIXME: Correction to bypass bug where after finishing syncing and
+      // restarting the node we get a set id off by one
+      if (opt_root.value()->current_authorities->id
+          == set_id_from_runtime - 1) {
+        auto &authority_list =
+            opt_root.value()->current_authorities->authorities;
+        opt_root.value()->current_authorities =
+            std::make_shared<primitives::AuthoritySet>(set_id_from_runtime,
+                                                       authority_list);
+      }
       root_ = std::move(opt_root.value());
       SL_TRACE(log_,
                "Fetched authority set graph root from database with id {}",
@@ -287,10 +291,7 @@ namespace kagome::authority {
 
     } else if (last_finalized_block.number == 0) {
       auto &genesis_hash = block_tree_->getGenesisBlockHash();
-      PREPARE_TRY(initial_authorities,
-                  grandpa_api_->authorities(genesis_hash),
-                  "Can't get grandpa authorities for genesis block: {}",
-                  error.message());
+      OUTCOME_TRY(initial_authorities, grandpa_api_->authorities(genesis_hash));
       root_ = authority::ScheduleNode::createAsRoot(
           std::make_shared<primitives::AuthoritySet>(
               0, std::move(initial_authorities)),
@@ -301,44 +302,15 @@ namespace kagome::authority {
           "Storage does not contain valid info about the root authority set; "
           "Fall back to obtaining it from the runtime storage (which may "
           "fail after a forced authority change happened on chain)");
-      PREPARE_TRY(
-          graph_root_block,
-          collectConsensusMsgsUntilNearestSetChangeTo(
-              collected_msgs, finalized_block, *block_tree_, log_),
-          "Error collecting consensus messages from finalized blocks: {}",
-          error.message());
-      PREPARE_TRY(authorities,
-                  grandpa_api_->authorities(graph_root_block.hash),
-                  "Can't get grandpa authorities for block {}: {}",
-                  graph_root_block,
-                  error.message());
+      OUTCOME_TRY(authorities,
+                  grandpa_api_->authorities(graph_root_block.hash));
 
-      PREPARE_TRY(header,
-                  block_tree_->getBlockHeader(graph_root_block.hash),
-                  "Can't get header of block {}: {}",
-                  graph_root_block,
-                  error.message());
-      AuthoritySetId set_id{};
-      auto set_id_res = grandpa_api_->current_set_id(graph_root_block.hash);
-      if (set_id_res) {
-        set_id = set_id_res.value();
-      } else {
-        PREPARE_TRY(
-            set_id_,
-            fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header),
-            "Failed to fetch authority set id from storage for block {}: {}",
-            graph_root_block,
-            error.message());
-        set_id = set_id_.value();
-      }
       auto authority_set = std::make_shared<primitives::AuthoritySet>(
-          set_id, std::move(authorities));
+          set_id_from_runtime, std::move(authorities));
       root_ = authority::ScheduleNode::createAsRoot(authority_set,
                                                     graph_root_block);
 
-      PREPARE_TRY_VOID(storeScheduleGraphRoot(*persistent_storage_, *root_),
-                       "Failed to store schedule graph root: {}",
-                       error.message());
+      OUTCOME_TRY(storeScheduleGraphRoot(*persistent_storage_, *root_));
       SL_TRACE(log_,
                "Create authority set graph root with id {}, taken from runtime "
                "storage",
@@ -347,18 +319,16 @@ namespace kagome::authority {
 
     while (not collected_msgs.empty()) {
       const auto &args = collected_msgs.top();
-      PREPARE_TRY_VOID(onConsensus(args.block, args.message),
-                       "Can't apply previous consensus message: {}",
-                       error.message());
+      OUTCOME_TRY(onConsensus(args.block, args.message));
 
       collected_msgs.pop();
     }
 
     // prune to reorganize collected changes
-    prune(finalized_block);
+    prune(root_block);
 
     SL_DEBUG(log_,
-             "Actual grandpa authority set (id={}):",
+             "Current grandpa authority set (id={}):",
              root_->current_authorities->id);
     size_t index = 0;
     for (const auto &authority : *root_->current_authorities) {
@@ -370,11 +340,24 @@ namespace kagome::authority {
                authority.weight);
     }
 
-    return true;
+    return outcome::success();
   }
 
-#undef PREPARE_TRY_VOID
-#undef PREPARE_TRY
+  outcome::result<AuthoritySetId> AuthorityManagerImpl::readSetIdFromRuntime(
+      primitives::BlockHeader const &header) const {
+    AuthoritySetId set_id{};
+    OUTCOME_TRY(hash, primitives::calculateBlockHash(header, *hasher_));
+    auto set_id_res = grandpa_api_->current_set_id(hash);
+    if (set_id_res) {
+      set_id = set_id_res.value();
+    } else {
+      OUTCOME_TRY(set_id_,
+                  fetchSetIdFromTrieStorage(
+                      *trie_storage_, *hasher_, header.state_root));
+      set_id = set_id_.value();
+    }
+    return set_id;
+  }
 
   outcome::result<void> AuthorityManagerImpl::recalculateStoredState(
       primitives::BlockNumber last_finalized_number) {
@@ -398,10 +381,10 @@ namespace kagome::authority {
     auto start = std::chrono::steady_clock::now();
     for (primitives::BlockNumber number = 0; number <= last_finalized_number;
          number++) {
-      auto start = std::chrono::steady_clock::now();
       auto header_res = header_repo_->getBlockHeader(number);
-      if(!header_res) continue; // Temporary workaround about the justification pruning bug
-      auto& header = header_res.value();
+      if (!header_res)
+        continue;  // Temporary workaround about the justification pruning bug
+      auto &header = header_res.value();
 
       OUTCOME_TRY(hash, header_repo_->getHashByNumber(number));
       primitives::BlockInfo info{number, hash};
@@ -452,9 +435,6 @@ namespace kagome::authority {
             ? (bool)finalized
             : node->current_block.number
                   <= block_tree_->getLastFinalized().number;
-    if (target_block.number == 1514496) {
-      node_in_finalized_chain = true;
-    }
 
     auto adjusted_node =
         node->makeDescendant(target_block, node_in_finalized_chain);
@@ -468,7 +448,7 @@ namespace kagome::authority {
       // Since getAppropriateAncestor worked normally on this block
       auto header = block_tree_->getBlockHeader(target_block.hash).value();
       auto id_from_storage =
-          fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header)
+          fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header.state_root)
               .value()
               .value();
       SL_DEBUG(
@@ -577,14 +557,13 @@ namespace kagome::authority {
              delay,
              current_block,
              delay_start + delay);
-    auto delay_start_header_res =
-                block_tree_->getBlockHeader(delay_start + 1);
+    auto delay_start_header_res = block_tree_->getBlockHeader(delay_start + 1);
     if (delay_start_header_res.has_error()) {
       SL_ERROR(log_, "Failed to obtain header by number {}", delay_start + 1);
     }
     OUTCOME_TRY(delay_start_header, delay_start_header_res);
     auto ancestor_node =
-        getAppropriateAncestor({delay_start, delay_start_hash});
+        getAppropriateAncestor({delay_start, delay_start_header.parent_hash});
 
     if (not ancestor_node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -629,8 +608,8 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    auto new_node =
-        ancestor_node->makeDescendant({delay_start, delay_start_hash}, true);
+    auto new_node = ancestor_node->makeDescendant(
+        {delay_start, delay_start_header.parent_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 
@@ -802,7 +781,9 @@ namespace kagome::authority {
           [](auto &) {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
-    } else if (message.consensus_engine_id == primitives::kBabeEngineId) {
+    } else if (message.consensus_engine_id == primitives::kBabeEngineId
+               || message.consensus_engine_id
+                      == primitives::kUnsupportedEngineId_BEEF) {
       // ignore
       return outcome::success();
 

@@ -874,7 +874,7 @@ namespace kagome::blockchain {
                   storage_->getJustification(last_finalized_block_info.hash));
       if (justification_opt.has_value()) {
         SL_DEBUG(log_,
-                 "Purge redunant justification for finalized block {}",
+                 "Purge redundant justification for finalized block {}",
                  last_finalized_block_info);
         OUTCOME_TRY(storage_->removeJustification(
             last_finalized_block_info.hash, last_finalized_block_info.number));

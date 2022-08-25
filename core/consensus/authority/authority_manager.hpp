@@ -12,13 +12,28 @@
 #include "primitives/authority.hpp"
 #include "primitives/block_header.hpp"
 
+namespace kagome::storage::trie {
+  class TrieStorage;
+}
+
+namespace kagome::crypto {
+  class Hasher;
+}
+
 namespace kagome::authority {
 
   using IsBlockFinalized = Tagged<bool, struct IsBlockFinalizedTag>;
 
+  outcome::result<std::optional<primitives::AuthoritySetId>> fetchSetIdFromTrieStorage(
+      storage::trie::TrieStorage const &trie_storage,
+      crypto::Hasher const &hasher,
+      storage::trie::RootHash const &state);
+
   class AuthorityManager {
    public:
     virtual ~AuthorityManager() = default;
+
+    virtual outcome::result<void> initializeAt(const primitives::BlockInfo& root_block) = 0;
 
     /**
      * Recalculate the authority change graph starting from genesis and up to

@@ -70,6 +70,8 @@ namespace kagome::authority {
 
     bool prepare();
 
+    outcome::result<void> initializeAt(const primitives::BlockInfo &root_block);
+
     primitives::BlockInfo base() const override;
 
     std::optional<std::shared_ptr<const primitives::AuthoritySet>> authorities(
@@ -114,6 +116,9 @@ namespace kagome::authority {
      */
     std::shared_ptr<ScheduleNode> getAppropriateAncestor(
         const primitives::BlockInfo &block) const;
+
+    outcome::result<primitives::AuthoritySetId> readSetIdFromRuntime(
+        primitives::BlockHeader const &targetBlock) const;
 
     /**
      * @brief Check if one block is direct ancestor of second one
