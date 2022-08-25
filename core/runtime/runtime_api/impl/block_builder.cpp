@@ -5,7 +5,7 @@
 
 #include "runtime/runtime_api/impl/block_builder.hpp"
 
-#include "runtime/executor.hpp"
+#include "runtime/common/executor.hpp"
 
 namespace kagome::runtime {
 
