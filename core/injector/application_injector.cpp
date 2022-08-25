@@ -92,7 +92,6 @@
 #include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
-#include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/rating_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
