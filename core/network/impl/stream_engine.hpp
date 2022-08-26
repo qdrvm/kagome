@@ -323,32 +323,33 @@ namespace kagome::network {
     template <typename T>
     void gossipLuckyPeers(const std::shared_ptr<ProtocolBase> &protocol,
                           const std::shared_ptr<T> &msg) {
-      if (lucky_peers_num_ > 0) {
-        int candidates_num{0};
-        streams_.sharedAccess([&](auto const &streams) {
-          candidates_num = std::count_if(
-              streams.begin(), streams.end(), [&protocol](const auto &entry) {
-                auto &[peer_id, protocol_map] = entry;
-                return protocol_map.find(protocol) != protocol_map.end()
-                       && protocol_map.at(protocol).hasActiveOutgoing();
-              });
-        });
-        if (candidates_num == 0) {
-          return;
-        }
-
-        static std::mt19937 gen32;
-        auto lucky_rate = static_cast<double>(lucky_peers_num_)
-                          / std::max(candidates_num, lucky_peers_num_);
-        auto threshold =
-            static_cast<std::mt19937::result_type>(gen32.max() * lucky_rate);
-
-        broadcast(protocol, msg, [&threshold](const PeerId &) {
-          return gen32() < threshold;
-        });
-      } else {
+      if (lucky_peers_num_ == 0) {
         broadcast(protocol, msg);
+        return;
       }
+
+      int candidates_num{0};
+      streams_.sharedAccess([&](auto const &streams) {
+        candidates_num = std::count_if(
+            streams.begin(), streams.end(), [&protocol](const auto &entry) {
+              auto &[peer_id, protocol_map] = entry;
+              return protocol_map.find(protocol) != protocol_map.end()
+                     && protocol_map.at(protocol).hasActiveOutgoing();
+            });
+      });
+      if (candidates_num == 0) {
+        return;
+      }
+
+      static std::mt19937 gen32;
+      auto lucky_rate = static_cast<double>(lucky_peers_num_)
+                        / std::max(candidates_num, lucky_peers_num_);
+      auto threshold =
+          static_cast<std::mt19937::result_type>(gen32.max() * lucky_rate);
+
+      broadcast(protocol, msg, [&threshold](const PeerId &) {
+        return gen32() < threshold;
+      });
     }
 
     template <typename F>
