@@ -10,26 +10,15 @@
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
   16  // TODO(Harrm): check how it influences on compilation time
 
+#include <rocksdb/filter_policy.h>
+#include <rocksdb/table.h>
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
-#include <rocksdb/filter_policy.h>
-#include <rocksdb/table.h>
 #include <libp2p/injector/kademlia_injector.hpp>
 #include <libp2p/log/configurator.hpp>
 
 #undef U64  // comes from OpenSSL and messes with WAVM
-
-#include "runtime/wavm/compartment_wrapper.hpp"
-#include "runtime/wavm/core_api_factory_impl.hpp"
-#include "runtime/wavm/instance_environment_factory.hpp"
-#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
-#include "runtime/wavm/intrinsics/intrinsic_module.hpp"
-#include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
-#include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
-#include "runtime/wavm/module.hpp"
-#include "runtime/wavm/module_cache.hpp"
-#include "runtime/wavm/module_factory_impl.hpp"
 
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
@@ -140,6 +129,16 @@
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
+#include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/core_api_factory_impl.hpp"
+#include "runtime/wavm/instance_environment_factory.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/module.hpp"
+#include "runtime/wavm/module_cache.hpp"
+#include "runtime/wavm/module_factory_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
@@ -1616,19 +1615,16 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<application::mode::RecoveryMode>>();
   }
 
-  std::shared_ptr<blockchain::BlockTree>
-  KagomeNodeInjector::injectBlockTree() {
+  std::shared_ptr<blockchain::BlockTree> KagomeNodeInjector::injectBlockTree() {
     return pimpl_->injector_.create<sptr<blockchain::BlockTree>>();
   }
 
   std::shared_ptr<runtime::Executor> KagomeNodeInjector::injectExecutor() {
     return pimpl_->injector_.create<sptr<runtime::Executor>>();
-
   }
 
   std::shared_ptr<storage::BufferStorage> KagomeNodeInjector::injectStorage() {
     return pimpl_->injector_.create<sptr<storage::BufferStorage>>();
-
   }
 
 }  // namespace kagome::injector
