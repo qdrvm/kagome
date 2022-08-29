@@ -89,23 +89,6 @@ class Configurator : public soralog::ConfiguratorFromYAML {
 enum ArgNum : uint8_t { DB_PATH = 1, STATE_HASH, MODE };
 enum Command : uint8_t { COMPACT, DUMP };
 
-namespace kagome::runtime {
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(
-      Stream &s,
-      const runtime::RuntimeUpgradeTrackerImpl::RuntimeUpgradeData &d) {
-    return s << d.block << d.state;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(
-      Stream &s, runtime::RuntimeUpgradeTrackerImpl::RuntimeUpgradeData &d) {
-    return s >> d.block >> d.state;
-  }
-}  // namespace kagome::runtime
-
 void usage() {
   std::string help(R"(
 Kagome DB Editor

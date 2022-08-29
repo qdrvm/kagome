@@ -13,6 +13,7 @@
 #include "common/unused.hpp"
 #include "primitives/scheduled_change.hpp"
 #include "scale/scale.hpp"
+#include "scale/tie.hpp"
 
 namespace kagome::primitives {
   /// Consensus engine unique ID.
@@ -34,19 +35,11 @@ namespace kagome::primitives {
 
   namespace detail {
     struct DigestItemCommon {
+      SCALE_TIE(2);
+      SCALE_TIE_EQ(DigestItemCommon);
+
       ConsensusEngineId consensus_engine_id;
       common::Buffer data;
-
-      DigestItemCommon() = default;
-
-      bool operator==(const DigestItemCommon &rhs) const {
-        return consensus_engine_id == rhs.consensus_engine_id
-               and data == rhs.data;
-      }
-
-      bool operator!=(const DigestItemCommon &rhs) const {
-        return !operator==(rhs);
-      }
     };
   }  // namespace detail
 
@@ -167,18 +160,6 @@ namespace kagome::primitives {
   /// Put a Seal on it.
   /// This is only used by native code, and is never seen by runtimes.
   struct Seal : public detail::DigestItemCommon {};
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const detail::DigestItemCommon &dic) {
-    return s << dic.consensus_engine_id << dic.data;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, detail::DigestItemCommon &dic) {
-    return s >> dic.consensus_engine_id >> dic.data;
-  }
 
   /// Runtime code or heap pages updated.
   struct RuntimeEnvironmentUpdated : public Empty {};

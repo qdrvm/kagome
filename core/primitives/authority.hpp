@@ -11,6 +11,7 @@
 
 #include "primitives/common.hpp"
 #include "primitives/session_key.hpp"
+#include "scale/tie.hpp"
 
 namespace kagome::primitives {
 
@@ -19,14 +20,10 @@ namespace kagome::primitives {
   using AuthorityListSize = uint64_t;
 
   struct AuthorityId {
-    GenericSessionKey id;
+    SCALE_TIE(1);
+    SCALE_TIE_EQ(AuthorityId);
 
-    bool operator==(const AuthorityId &other) const {
-      return id == other.id;
-    }
-    bool operator!=(const AuthorityId &other) const {
-      return !(*this == other);
-    }
+    GenericSessionKey id;
   };
 
   inline bool operator<(const AuthorityId &lhs, const AuthorityId &rhs) {
@@ -42,15 +39,11 @@ namespace kagome::primitives {
    * Authority, which participate in block production and finalization
    */
   struct Authority {
+    SCALE_TIE(2);
+    SCALE_TIE_EQ(Authority);
+
     AuthorityId id;
     AuthorityWeight weight{};
-
-    bool operator==(const Authority &other) const {
-      return id == other.id && weight == other.weight;
-    }
-    bool operator!=(const Authority &other) const {
-      return !(*this == other);
-    }
   };
 
   /**

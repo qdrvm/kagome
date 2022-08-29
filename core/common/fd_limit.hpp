@@ -7,8 +7,12 @@
 #define KAGOME_COMMON_FD_LIMIT_HPP
 
 #include <cstdlib>
+#include <optional>
+
+struct rlimit;
 
 namespace kagome::common {
+  std::optional<size_t> getFdLimit();
   void setFdLimit(size_t limit);
 }  // namespace kagome::common
 

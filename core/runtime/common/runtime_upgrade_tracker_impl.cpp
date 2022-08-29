@@ -13,20 +13,6 @@
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::runtime {
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s,
-                     const RuntimeUpgradeTrackerImpl::RuntimeUpgradeData &d) {
-    return s << d.block << d.state;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s,
-                     RuntimeUpgradeTrackerImpl::RuntimeUpgradeData &d) {
-    return s >> d.block >> d.state;
-  }
-
   outcome::result<std::unique_ptr<RuntimeUpgradeTrackerImpl>>
   RuntimeUpgradeTrackerImpl::create(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,

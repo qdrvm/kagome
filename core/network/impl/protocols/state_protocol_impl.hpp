@@ -32,12 +32,12 @@ namespace kagome::network {
                       const application::ChainSpec &chain_spec,
                       std::shared_ptr<StateProtocolObserver> state_observer);
 
-    const Protocol &protocol() const override {
-      return protocol_;
-    }
-
     bool start() override;
     bool stop() override;
+
+    const std::string &protocolName() const override {
+      return kStateProtocolName;
+    }
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
@@ -64,6 +64,7 @@ namespace kagome::network {
         std::function<void(outcome::result<StateResponse>)> &&response_handler);
 
    private:
+    const static inline auto kStateProtocolName = "StateProtocol"s;
     libp2p::Host &host_;
     std::shared_ptr<StateProtocolObserver> state_observer_;
     const libp2p::peer::Protocol protocol_;

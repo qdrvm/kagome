@@ -12,6 +12,7 @@
 
 #include "common/hexutil.hpp"
 #include "common/monadic_utils.hpp"
+#include "runtime/common/executor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
   using E = kagome::api::StateApiImpl::Error;
@@ -38,23 +39,35 @@ namespace kagome::api {
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> runtime_core,
-      std::shared_ptr<runtime::Metadata> metadata)
+      std::shared_ptr<runtime::Metadata> metadata,
+      std::shared_ptr<runtime::RawExecutor> executor)
       : header_repo_{std::move(block_repo)},
         storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},
         runtime_core_{std::move(runtime_core)},
-        metadata_{std::move(metadata)} {
+        metadata_{std::move(metadata)},
+        executor_{std::move(executor)} {
     BOOST_ASSERT(nullptr != header_repo_);
     BOOST_ASSERT(nullptr != storage_);
     BOOST_ASSERT(nullptr != block_tree_);
     BOOST_ASSERT(nullptr != runtime_core_);
     BOOST_ASSERT(nullptr != metadata_);
+    BOOST_ASSERT(nullptr != executor_);
   }
 
   void StateApiImpl::setApiService(
       std::shared_ptr<api::ApiService> const &api_service) {
     BOOST_ASSERT(api_service != nullptr);
     api_service_ = api_service;
+  }
+
+  outcome::result<common::Buffer> StateApiImpl::call(
+      std::string_view method,
+      common::Buffer data,
+      const std::optional<primitives::BlockHash> &opt_at) const {
+    auto at =
+        opt_at.has_value() ? opt_at.value() : block_tree_->deepestLeaf().hash;
+    return executor_->callAtRaw(at, method, data);
   }
 
   outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(

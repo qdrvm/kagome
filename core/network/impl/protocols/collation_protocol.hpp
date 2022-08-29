@@ -48,12 +48,12 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
-    const Protocol &protocol() const override {
-      return base_.protocol();
-    }
-
     bool start() override;
     bool stop() override;
+
+    const std::string &protocolName() const override {
+      return kCollationProtocolName;
+    }
 
    private:
     template <typename F>
@@ -102,6 +102,7 @@ namespace kagome::network {
     void onCollationDeclRx(CollatorDeclaration &&collation_decl);
     void onCollationAdvRx(CollatorAdvertisement &&collation_adv);
 
+    const static inline auto kCollationProtocolName = "CollationProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<CollationObserver> observer_;
     application::AppConfiguration const &app_config_;

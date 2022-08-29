@@ -19,7 +19,7 @@ namespace kagome::network {
       application::AppConfiguration const &app_config,
       application::ChainSpec const & /*chain_spec*/,
       std::shared_ptr<CollationObserver> observer)
-      : base_(host, kCollationProtocol, "CollationProtocol"),
+      : base_(host, {kCollationProtocol}, "CollationProtocol"),
         observer_(std::move(observer)),
         app_config_{app_config} {}
 
@@ -54,17 +54,17 @@ namespace kagome::network {
 
   void CollationProtocol::onCollationMessageRx(
       CollationMessage &&collation_message) {
-    visit_in_place(std::move(collation_message),
-                   [&](network::CollatorDeclaration &&collation_decl) {
-                     onCollationDeclRx(std::move(collation_decl));
-                   },
-                   [&](network::CollatorAdvertisement &&collation_adv) {
-                     onCollationAdvRx(std::move(collation_adv));
-                   },
-                   [&](auto &&) {
-                     SL_WARN(base_.logger(),
-                             "Unexpected collation message from.");
-                   });
+    visit_in_place(
+        std::move(collation_message),
+        [&](network::CollatorDeclaration &&collation_decl) {
+          onCollationDeclRx(std::move(collation_decl));
+        },
+        [&](network::CollatorAdvertisement &&collation_adv) {
+          onCollationAdvRx(std::move(collation_adv));
+        },
+        [&](auto &&) {
+          SL_WARN(base_.logger(), "Unexpected collation message from.");
+        });
   }
 
   void CollationProtocol::readCollationMsg(
