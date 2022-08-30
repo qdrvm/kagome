@@ -19,22 +19,24 @@
 #include "scale/tie.hpp"
 #include "storage/trie/types.hpp"
 
+/*
+ *
+
+ * */
 namespace kagome::network {
   using Signature = crypto::Sr25519Signature;
   using ParachainId = uint32_t;
   using CollatorPublicKey = crypto::Sr25519PublicKey;
+  using ValidatorIndex = uint32_t;
+  using UpwardMessage = common::Buffer;
+  using ParachainRuntime = common::Buffer;
+  using HeadData = common::Buffer;
 
-  /**
-   * Possible collation message contents.
-   * [X,Y] - possible values.
-   * [0] --- 0 ---> [0, 1, 4] -+- 0 ---> struct
-   * CollatorDeclaration(collator_pubkey, para_id, collator_signature)
-   *                           |- 1 ---> struct CollatorAdvertisement(para_hash)
-   *                           |- 4 ---> struct CollatorSeconded(relay_hash,
-   * CollatorStatement)
-   */
-
+  /// NU element.
   using Dummy = std::tuple<>;
+
+  /// ViewUpdate message. Maybe will be implemented later.
+  using ViewUpdate = Dummy;
 
   /**
    * Collator -> Validator message.
@@ -44,10 +46,7 @@ namespace kagome::network {
     SCALE_TIE(1);
     SCALE_TIE_EQ(CollatorAdvertisement);
 
-    /*
-     * Hash of the parachain block.
-     */
-    primitives::BlockHash para_hash;
+    primitives::BlockHash para_hash; /// Hash of the parachain block.
   };
 
   /**
@@ -58,84 +57,62 @@ namespace kagome::network {
     SCALE_TIE(3);
     SCALE_TIE_EQ(CollatorDeclaration);
 
-    /*
-     * Public key of the collator.
-     */
-    consensus::grandpa::Id collator_pubkey;
-
-    /*
-     * Parachain Id.
-     */
-    uint32_t para_id;
-
-    /*
-     * Signature of the collator using the PeerId of the collators node.
-     */
-    consensus::grandpa::Signature collator_signature;
+    CollatorPublicKey collator_id;  /// Public key of the collator.
+    ParachainId para_id;            /// Parachain Id.
+    Signature signature;  /// Signature of the collator using the PeerId of the collators node.
   };
-
-  /**
-   * Collator -> Validator and Validator -> Collator if statement message.
-   * Type of the appropriate message.
-   * [4] will be replaced to Statement
-   */
-  using CollationMessage =
-      boost::variant<CollatorDeclaration, CollatorAdvertisement>;
-
-  /**
-   * Collation protocol message.
-   */
-  using ProtocolMessage = boost::variant<CollationMessage>;
-
-  /**
-   * ViewUpdate message. Maybe will be implemented later.
-   */
-  using ViewUpdate = Dummy;
-
-  /**
-   * Common WireMessage that represents messages in NetworkBridge.
-   */
-  using WireMessage = boost::variant<Dummy, ProtocolMessage, ViewUpdate>;
 
   /**
    * PoV
    */
-  using ParachainBlock =
-      std::tuple<common::Buffer  /// Contains the necessary data to for
-                                 /// parachain specific state transition logic
-                 >;
+  struct ParachainBlock {
+    SCALE_TIE(1);
+    SCALE_TIE_EQ(ParachainBlock);
+
+    common::Buffer payload;  /// Contains the necessary data to for parachain specific state transition logic
+  };
 
   /**
    * Unique descriptor of a candidate receipt.
    */
-  using CandidateDescriptor = std::tuple<
-      uint32_t,               /// Parachain Id
-      primitives::BlockHash,  /// Hash of the relay chain block the candidate is
-                              /// executed in the context of
-      consensus::grandpa::Id,   /// Collators public key.
-      primitives::BlockHash,    /// Hash of the persisted validation data
-      primitives::BlockHash,    /// Hash of the PoV block.
-      storage::trie::RootHash,  /// Root of the block’s erasure encoding Merkle
-                                /// tree.
-      consensus::grandpa::Signature,  /// Collator signature of the concatenated
-                                      /// components
-      primitives::BlockHash,  /// Hash of the parachain head data of this
-                              /// candidate.
-      primitives::BlockHash   /// Hash of the parachain Runtime.
-      >;
+  struct CandidateDescriptor {
+    SCALE_TIE(9);
+    SCALE_TIE_EQ(CandidateDescriptor);
+
+    ParachainId para_id;  /// Parachain Id
+    primitives::BlockHash
+        relay_parent;  /// Hash of the relay chain block the candidate is executed in the context of
+    CollatorPublicKey collator_id;  /// Collators public key.
+    primitives::BlockHash
+        persisted_data_hash;         /// Hash of the persisted validation data
+    primitives::BlockHash pov_hash;  /// Hash of the PoV block.
+    storage::trie::RootHash
+        erasure_encoding_root;  /// Root of the block’s erasure encoding Merkle tree.
+    Signature signature;  /// Collator signature of the concatenated components
+    primitives::BlockHash
+        para_head_hash;  /// Hash of the parachain head data of this candidate.
+    primitives::BlockHash para_runtime_hash;  /// Hash of the parachain Runtime.
+  };
 
   /**
    * Contains information about the candidate and a proof of the results of its
    * execution.
    */
-  using CandidateReceipt =
-      std::tuple<CandidateDescriptor,   /// Candidate descriptor
-                 primitives::BlockHash  /// Hash of candidate commitments
-                 >;
+  struct CandidateReceipt {
+    SCALE_TIE(2);
+    SCALE_TIE_EQ(CandidateReceipt);
 
-  using CollationResponse = std::tuple<CandidateReceipt,  /// Candidate receipt
-                                       ParachainBlock     /// PoV block
-                                       >;
+    CandidateDescriptor descriptor;          /// Candidate descriptor
+    primitives::BlockHash commitments_hash;  /// Hash of candidate commitments
+  };
+
+  struct CollationResponse {
+    SCALE_TIE(2);
+    SCALE_TIE_EQ(CollationResponse);
+
+    CandidateReceipt receipt;  /// Candidate receipt
+    ParachainBlock pov;        /// PoV block
+  };
 
   using ReqCollationResponseData = boost::variant<CollationResponse>;
 
@@ -143,17 +120,100 @@ namespace kagome::network {
    * Sent by clients who want to retrieve the advertised collation at the
    * specified relay chain block.
    */
-  using CollationFetchingRequest =
-      std::tuple<primitives::BlockHash,  /// Hash of the relay chain block
-                 uint32_t                /// Parachain Id.
-                 >;
+  struct CollationFetchingRequest {
+    SCALE_TIE(2);
+    SCALE_TIE_EQ(CollationFetchingRequest);
+
+    primitives::BlockHash relay_parent;  /// Hash of the relay chain block
+    ParachainId para_id;                 /// Parachain Id.
+  };
 
   /**
    * Sent by nodes to the clients who issued a collation fetching request.
    */
-  using CollationFetchingResponse =
-      std::tuple<ReqCollationResponseData  /// Response data
-                 >;
+  struct CollationFetchingResponse {
+    SCALE_TIE(1);
+    SCALE_TIE_EQ(CollationFetchingResponse);
+
+    ReqCollationResponseData response_data;  /// Response data
+  };
+
+  struct OutboundHorizontal {
+    SCALE_TIE(2);
+    SCALE_TIE_EQ(OutboundHorizontal);
+
+    ParachainId para_id;       /// Parachain Id is recepient id
+    UpwardMessage upward_msg;  /// upward message for parallel parachain
+  };
+
+  struct CandidateCommitments {
+    SCALE_TIE(6);
+    SCALE_TIE_EQ(CandidateCommitments);
+
+    std::vector<UpwardMessage> upward_msgs;  /// upward messages
+    std::vector<OutboundHorizontal>
+        outbound_hor_msgs;  /// outbound horizontal messages
+    std::optional<ParachainRuntime>
+        opt_para_runtime;          /// new parachain runtime if present
+    HeadData para_head;            /// parachain head data
+    uint32_t downward_msgs_count;  /// number of downward messages that were processed by the parachain
+    uint32_t watermark;  /// watermark which specifies the relay chain block number up to which all inbound horizontal messages have been processed
+  };
+
+  struct CommittedCandidateReceipt {
+    SCALE_TIE(2);
+    SCALE_TIE_EQ(CommittedCandidateReceipt);
+
+    CandidateDescriptor descriptor;    /// Candidate descriptor
+    CandidateCommitments commitments;  /// commitments retrieved from validation result and produced by the execution and validation parachain candidate
+  };
+
+  using CandidateState = boost::variant<
+      Dummy,                      /// not used
+      CommittedCandidateReceipt,  /// Candidate receipt. Should be sent if validator seconded the candidate
+      primitives::BlockHash  /// validator has deemed the candidate valid and send the candidate hash
+      >;
+
+  struct Statement {
+    SCALE_TIE(3);
+    SCALE_TIE_EQ(Statement);
+
+    CandidateState candidate_state; ValidatorIndex validator_ix; Signature signature;};
+
+  struct Seconded {
+    SCALE_TIE(2);
+    SCALE_TIE_EQ(Seconded);
+
+    primitives::BlockHash relay_parent;  /// relay parent hash
+    Statement statement;                 /// statement of seconded candidate
+  };
+
+  /**
+   * Collator -> Validator and Validator -> Collator if statement message.
+   * Type of the appropriate message.
+   */
+  using CollationMessage = boost::variant<
+      CollatorDeclaration,    /// collator -> validator. Declare collator.
+      CollatorAdvertisement,  /// collator -> validator. Make advertisement of the collation
+      Dummy,                  /// not used
+      Dummy,                  /// not used
+      Seconded                /// validator -> collator. Candidate was seconded.
+      >;
+
+  /**
+   * Collation protocol message.
+   */
+  using ProtocolMessage =
+      boost::variant<CollationMessage  /// collation protocol message
+                     >;
+
+  /**
+   * Common WireMessage that represents messages in NetworkBridge.
+   */
+  using WireMessage = boost::variant<Dummy,            /// not used
+                                     ProtocolMessage,  /// protocol message
+                                     ViewUpdate        /// view update message
+                                     >;
 
 }  // namespace kagome::network
 
