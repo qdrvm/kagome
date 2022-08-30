@@ -55,8 +55,8 @@ namespace kagome::observers {
 
       pm_->push_pending_collation(
           network::PendingCollation{.para_id = result.value().second,
-                                    .relay_parent{para_hash},
-                                    .peer_id{peer_id}});
+                                    .relay_parent = para_hash,
+                                    .peer_id = peer_id});
     }
 
     void onDeclare(libp2p::peer::PeerId const &peer_id,
