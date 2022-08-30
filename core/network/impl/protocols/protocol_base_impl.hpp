@@ -9,8 +9,8 @@
 #include "network/protocol_base.hpp"
 
 #include <memory>
-#include <string>
 #include <optional>
+#include <string>
 
 #include <libp2p/host/host.hpp>
 #include <libp2p/peer/stream_protocols.hpp>
@@ -36,11 +36,10 @@ namespace kagome::network {
                      Protocols const &protocols,
                      std::string const &log_section)
         : context_{std::make_shared<Context>(Context{
-        .host_ = host,
-        .protocols_ = std::move(protocols),
-        .log_ = log::createLogger(log_section, "kagome_protocols"),
-        .active_proto_ = std::nullopt
-    })} {
+              .host_ = host,
+              .protocols_ = std::move(protocols),
+              .log_ = log::createLogger(log_section, "kagome_protocols"),
+              .active_proto_ = std::nullopt})} {
       BOOST_ASSERT(context_ && !!"Context must be created!");
     }
 
@@ -71,7 +70,8 @@ namespace kagome::network {
                     stream_and_proto.protocol);
               }
             }
-            stream_and_proto.stream->close([stream{stream_and_proto.stream}](auto &&) {});
+            stream_and_proto.stream->close(
+                [stream{stream_and_proto.stream}](auto &&) {});
           });
       return true;
     }

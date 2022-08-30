@@ -51,24 +51,23 @@ namespace kagome::network {
   void CollationProtocol::onCollationAdvRx(
       libp2p::peer::PeerId const &peer_id,
       CollatorAdvertisement &&collation_adv) {
-    if (observer_)
-      observer_->onAdvertise(peer_id,  collation_adv.para_hash);
+    if (observer_) observer_->onAdvertise(peer_id, collation_adv.para_hash);
   }
 
   void CollationProtocol::onCollationMessageRx(
       libp2p::peer::PeerId const &peer_id,
       CollationMessage &&collation_message) {
-    visit_in_place(
-        std::move(collation_message),
-        [&](network::CollatorDeclaration &&collation_decl) {
-          onCollationDeclRx(peer_id, std::move(collation_decl));
-        },
-        [&](network::CollatorAdvertisement &&collation_adv) {
-          onCollationAdvRx(peer_id, std::move(collation_adv));
-        },
-        [&](auto &&) {
-          SL_WARN(base_.logger(), "Unexpected collation message from.");
-        });
+    visit_in_place(std::move(collation_message),
+                   [&](network::CollatorDeclaration &&collation_decl) {
+                     onCollationDeclRx(peer_id, std::move(collation_decl));
+                   },
+                   [&](network::CollatorAdvertisement &&collation_adv) {
+                     onCollationAdvRx(peer_id, std::move(collation_adv));
+                   },
+                   [&](auto &&) {
+                     SL_WARN(base_.logger(),
+                             "Unexpected collation message from.");
+                   });
   }
 
   void CollationProtocol::readCollationMsg(
