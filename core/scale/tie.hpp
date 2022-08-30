@@ -8,19 +8,21 @@
 
 #include <tuple>
 
-#define SCALE_TIE(N)                                                     \
-  static constexpr size_t scale_tie = N;                                 \
-  template <typename T>                                                  \
-  bool operator==(const T &r) const {                                    \
-    static_assert(                                                       \
-        std::is_same_v<std::decay_t<T>, std::decay_t<decltype(*this)>>); \
-    return ::scale::as_tie(*this, [&](auto l) {                          \
-      return ::scale::as_tie(r, [&](auto r) { return l == r; });         \
-    });                                                                  \
-  }                                                                      \
-  template <typename T>                                                  \
-  bool operator!=(const T &r) const {                                    \
-    return !operator==(r);                                               \
+#define SCALE_TIE(N)                                                    \
+  static constexpr size_t scale_tie = N;                                \
+  template <typename T>                                                 \
+  bool operator==(const T &r) const {                                   \
+    using ThisT = std::decay_t<decltype(*this)>;                        \
+    using ExtT = std::decay_t<T>;                                       \
+    static_assert(                                                      \
+        std::is_same_v<ExtT, ThisT> || std::is_base_of_v<ThisT, ExtT>); \
+    return ::scale::as_tie(*this, [&](auto l) {                         \
+      return ::scale::as_tie(r, [&](auto r) { return l == r; });        \
+    });                                                                 \
+  }                                                                     \
+  template <typename T>                                                 \
+  bool operator!=(const T &r) const {                                   \
+    return !operator==(r);                                              \
   }
 
 namespace scale {
