@@ -22,6 +22,10 @@ namespace kagome::log {
   using Level = soralog::Level;
   using Logger = std::shared_ptr<soralog::Logger>;
 
+  enum class Error : uint8_t { WRONG_LEVEL = 1, WRONG_GROUP, WRONG_LOGGER };
+
+  outcome::result<Level> str2lvl(std::string_view str);
+
   void setLoggingSystem(std::shared_ptr<soralog::LoggingSystem> logging_system);
 
   void tuneLoggingSystem(const std::vector<std::string> &cfg);
@@ -37,11 +41,11 @@ namespace kagome::log {
                                     const std::string &group,
                                     Level level);
 
-  void setLevelOfGroup(const std::string &group_name, Level level);
-  void resetLevelOfGroup(const std::string &group_name);
+  bool setLevelOfGroup(const std::string &group_name, Level level);
+  bool resetLevelOfGroup(const std::string &group_name);
 
-  void setLevelOfLogger(const std::string &logger_name, Level level);
-  void resetLevelOfLogger(const std::string &logger_name);
+  bool setLevelOfLogger(const std::string &logger_name, Level level);
+  bool resetLevelOfLogger(const std::string &logger_name);
 
   template <typename T, typename Ret>
   Ret format_arg(T const &t) {
@@ -145,5 +149,7 @@ namespace kagome::log {
 #endif
 
 }  // namespace kagome::log
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::log, Error);
 
 #endif  // KAGOME_LOGGER_HPP

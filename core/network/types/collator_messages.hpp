@@ -16,6 +16,7 @@
 #include "primitives/common.hpp"
 #include "primitives/compact_integer.hpp"
 #include "primitives/digest.hpp"
+#include "scale/tie.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::network {
@@ -39,21 +40,39 @@ namespace kagome::network {
    * Collator -> Validator message.
    * Advertisement of a collation.
    */
-  using CollatorAdvertisement =
-      std::tuple<primitives::BlockHash  /// Hash of the parachain block.
-                 >;
+  struct CollatorAdvertisement {
+    SCALE_TIE(1);
+    SCALE_TIE_EQ(CollatorAdvertisement);
+
+    /*
+     * Hash of the parachain block.
+     */
+    primitives::BlockHash para_hash;
+  };
 
   /**
    * Collator -> Validator message.
    * Declaration of the intent to advertise a collation.
    */
-  using CollatorDeclaration =
-      std::tuple<CollatorPublicKey,  /// Public key of the collator.
-                 ParachainId,        /// Parachain Id.
-                 Signature           /// Signature of the collator
-                                     /// using the PeerId of the
-                                     /// collators node.
-                 >;
+  struct CollatorDeclaration {
+    SCALE_TIE(3);
+    SCALE_TIE_EQ(CollatorDeclaration);
+
+    /*
+     * Public key of the collator.
+     */
+    consensus::grandpa::Id collator_pubkey;
+
+    /*
+     * Parachain Id.
+     */
+    uint32_t para_id;
+
+    /*
+     * Signature of the collator using the PeerId of the collators node.
+     */
+    consensus::grandpa::Signature collator_signature;
+  };
 
   /**
    * Collator -> Validator and Validator -> Collator if statement message.

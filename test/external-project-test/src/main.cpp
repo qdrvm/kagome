@@ -20,11 +20,11 @@
 #include <kagome/log/configurator.hpp>
 #include <kagome/offchain/impl/offchain_persistent_storage.hpp>
 #include <kagome/offchain/impl/offchain_worker_pool_impl.hpp>
+#include <kagome/runtime/common/executor.hpp>
 #include <kagome/runtime/common/module_repository_impl.hpp>
 #include <kagome/runtime/common/runtime_instances_pool.hpp>
 #include <kagome/runtime/common/runtime_upgrade_tracker_impl.hpp>
 #include <kagome/runtime/common/storage_code_provider.hpp>
-#include <kagome/runtime/executor.hpp>
 #include <kagome/runtime/module.hpp>
 #include <kagome/runtime/wavm/compartment_wrapper.hpp>
 #include <kagome/runtime/wavm/instance_environment_factory.hpp>
@@ -32,7 +32,7 @@
 #include <kagome/runtime/wavm/module_factory_impl.hpp>
 #include <kagome/storage/changes_trie/impl/storage_changes_tracker_impl.hpp>
 #include <kagome/storage/in_memory/in_memory_storage.hpp>
-#include <kagome/storage/leveldb/leveldb.hpp>
+#include <kagome/storage/rocksdb/rocksdb.hpp>
 #include <kagome/storage/trie/impl/trie_storage_backend_impl.hpp>
 #include <kagome/storage/trie/impl/trie_storage_impl.hpp>
 #include <kagome/storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp>
@@ -73,10 +73,10 @@ int main() {
   }
   kagome::log::setLoggingSystem(logging_system);
 
-  leveldb::Options db_options{};
+  rocksdb::Options db_options{};
   db_options.create_if_missing = true;
-  std::shared_ptr<kagome::storage::LevelDB> database =
-      kagome::storage::LevelDB::create("/tmp/kagome_tmp_db", db_options)
+  std::shared_ptr<kagome::storage::RocksDB> database =
+      kagome::storage::RocksDB::create("/tmp/kagome_tmp_db", db_options)
           .value();
   auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
   auto header_repo =

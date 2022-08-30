@@ -14,6 +14,8 @@
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #undef U64  // comes from OpenSSL and messes with WAVM
+#include <rocksdb/filter_policy.h>
+#include <rocksdb/table.h>
 #include <libp2p/injector/kademlia_injector.hpp>
 #include <libp2p/log/configurator.hpp>
 
@@ -24,6 +26,8 @@
 #include "api/service/child_state/child_state_jrpc_processor.hpp"
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
 #include "api/service/impl/api_service_impl.hpp"
+#include "api/service/internal/impl/internal_api_impl.hpp"
+#include "api/service/internal/internal_jrpc_processor.hpp"
 #include "api/service/payment/impl/payment_api_impl.hpp"
 #include "api/service/payment/payment_jrpc_processor.hpp"
 #include "api/service/rpc/impl/rpc_api_impl.hpp"
@@ -52,6 +56,7 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
+#include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
@@ -87,7 +92,6 @@
 #include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
-#include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/rating_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
@@ -108,12 +112,12 @@
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/common/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
 #include "runtime/runtime_api/impl/babe_api.hpp"
@@ -137,8 +141,6 @@
 #include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
-#include "storage/database_error.hpp"
-#include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -354,35 +356,6 @@ namespace {
     return initialized.value();
   }
 
-  sptr<storage::BufferStorage> get_level_db(
-      application::AppConfiguration const &app_config,
-      sptr<application::ChainSpec> chain_spec) {
-    static auto initialized =
-        std::optional<sptr<storage::BufferStorage>>(std::nullopt);
-    if (initialized) {
-      return initialized.value();
-    }
-    auto options = leveldb::Options{};
-    options.max_open_files =
-        -1;  // Unlimited (fix for 'Too many open files' error)
-    options.create_if_missing = true;
-    auto db_res = storage::LevelDB::create(
-        app_config.databasePath(chain_spec->id()), options);
-    if (!db_res) {
-      auto log = log::createLogger("Injector", "injector");
-      log->critical("Can't create LevelDB in {}: {}",
-                    fs::absolute(app_config.databasePath(chain_spec->id()),
-                                 fs::current_path())
-                        .native(),
-                    db_res.error().message());
-      exit(EXIT_FAILURE);
-    }
-    auto &db = db_res.value();
-
-    initialized.emplace(std::move(db));
-    return initialized.value();
-  }
-
   sptr<storage::BufferStorage> get_rocks_db(
       application::AppConfiguration const &app_config,
       sptr<application::ChainSpec> chain_spec) {
@@ -391,10 +364,33 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
+
+    // hack for recovery mode (otherwise - fails due to rocksdb bug)
+    bool prevent_destruction = app_config.recoverState().has_value();
+
+    rocksdb::BlockBasedTableOptions table_options;
+    table_options.block_cache = rocksdb::NewLRUCache(512 * 1024 * 1024);
+    table_options.block_size = 32 * 1024;
+    table_options.cache_index_and_filter_blocks = true;
+    table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
+
     auto options = rocksdb::Options{};
     options.create_if_missing = true;
-    auto db_res = storage::RocksDB::create(
-        app_config.databasePath(chain_spec->id()), options);
+    options.optimize_filters_for_hits = true;
+    options.table_factory.reset(
+        rocksdb::NewBlockBasedTableFactory(table_options));
+
+    // Setting limit for open rocksdb files to a half of system soft limit
+    auto soft_limit = common::getFdLimit();
+    if (!soft_limit) {
+      exit(EXIT_FAILURE);
+    }
+    options.max_open_files = soft_limit.value() / 2;
+
+    auto db_res =
+        storage::RocksDB::create(app_config.databasePath(chain_spec->id()),
+                                 options,
+                                 prevent_destruction);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
       log->critical("Can't create RocksDB in {}: {}",
@@ -1000,6 +996,7 @@ namespace {
           }
           return initialized.value();
         }),
+        di::bind<runtime::RawExecutor>.template to<runtime::Executor>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
@@ -1142,7 +1139,9 @@ namespace {
               injector.template create<
                   std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
               injector.template create<
-                  std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
+                  std::shared_ptr<api::payment::PaymentJRpcProcessor>>(),
+              injector.template create<
+                  std::shared_ptr<api::internal::InternalJrpcProcessor>>()};
           return api::ApiServiceImpl::ProcessorSpan{processors};
         }),
         // bind interfaces
@@ -1205,11 +1204,10 @@ namespace {
               injector.template create<application::AppConfiguration const &>();
           auto chain_spec =
               injector.template create<sptr<application::ChainSpec>>();
-          if (config.storageBackend()
-              == application::AppConfiguration::StorageBackend::RocksDB) {
-            return get_rocks_db(config, chain_spec);
-          }
-          return get_level_db(config, chain_spec);
+          BOOST_ASSERT(  // since rocksdb is the only possible option now
+              config.storageBackend()
+              == application::AppConfiguration::StorageBackend::RocksDB);
+          return get_rocks_db(config, chain_spec);
         }),
         di::bind<blockchain::BlockStorage>.to([](const auto &injector) {
           auto root_hash = get_trie_storage_and_root_hash(injector).second;
@@ -1331,6 +1329,7 @@ namespace {
             [](auto const &injector) { return get_recovery_mode(injector); }),
         di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
         di::bind<consensus::babe::ConsistencyKeeper>.template to<consensus::babe::ConsistencyKeeperImpl>(),
+        di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

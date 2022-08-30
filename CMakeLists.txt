@@ -155,6 +155,7 @@ kagome_install_setup(
     core/scale
     core/storage
     core/subscription
+    core/utils
 )
 
 include(CMakePackageConfigHelpers)

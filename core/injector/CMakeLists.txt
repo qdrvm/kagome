@@ -55,7 +55,6 @@ target_link_libraries(application_injector
     kagome_router
     kagome_router
     key_file_storage
-    leveldb_wrapper
     rocksdb_wrapper
     log_configurator
     metadata_api
@@ -88,8 +87,6 @@ target_link_libraries(application_injector
     state_protocol_observer
     storage_code_provider
     sync_protocol_observer
-    system_api_service
-    system_api_service
     telemetry
     tagged_transaction_queue_api
     transaction_payment_api
@@ -103,7 +100,7 @@ target_link_libraries(application_injector
     system_api_service
     payment_api_service
     rpc_api_service
-    kademlia_storage_backend
+    internal_api_service
     peer_manager
     babe_util
     assets
@@ -127,4 +124,5 @@ target_link_libraries(application_injector
     collation_protocol
     req_collation_protocol
     validator_parachain
+    fd_limit
     )

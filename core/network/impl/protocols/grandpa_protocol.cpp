@@ -7,6 +7,7 @@
 
 #include <libp2p/connection/loopback_stream.hpp>
 
+#include "blockchain/block_tree.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
@@ -27,15 +28,19 @@ namespace kagome::network {
       const OwnPeerInfo &own_info,
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<PeerManager> peer_manager,
+      const primitives::BlockHash &genesis_hash,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : base_(host, kGrandpaProtocol, "GrandpaProtocol"),
+      : base_(host,
+              {fmt::format(kGrandpaProtocol, hex_lower(genesis_hash)),
+               kGrandpaProtocolLegacy},
+              "GrandpaProtocol"),
         io_context_(std::move(io_context)),
         app_config_(app_config),
         grandpa_observer_(std::move(grandpa_observer)),
         own_info_(own_info),
         stream_engine_(std::move(stream_engine)),
         peer_manager_(std::move(peer_manager)),
-        scheduler_(std::move(scheduler)) { }
+        scheduler_(std::move(scheduler)) {}
 
   bool GrandpaProtocol::start() {
     auto stream = std::make_shared<LoopbackStream>(own_info_, io_context_);
@@ -69,7 +74,7 @@ namespace kagome::network {
           if (not res.has_value()) {
             SL_VERBOSE(self->base_.logger(),
                        "Handshake failed on incoming {} stream with {}: {}",
-                       self->base_.protocol(),
+                       self->protocolName(),
                        peer_id,
                        res.error().message());
             stream->reset();
@@ -80,7 +85,7 @@ namespace kagome::network {
           if (not res.has_value()) {
             SL_VERBOSE(self->base_.logger(),
                        "Can't register incoming {} stream with {}: {}",
-                       self->base_.protocol(),
+                       self->protocolName(),
                        peer_id,
                        res.error().message());
             stream->reset();
@@ -89,7 +94,7 @@ namespace kagome::network {
 
           SL_VERBOSE(self->base_.logger(),
                      "Fully established incoming {} stream with {}",
-                     self->base_.protocol(),
+                     self->protocolName(),
                      peer_id);
         });
   }
@@ -99,7 +104,7 @@ namespace kagome::network {
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     base_.host().newStream(
         peer_info.id,
-        base_.protocol(),
+        base_.protocolIds(),
         [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
             auto &&stream_res) mutable {
           auto self = wp.lock();
@@ -111,16 +116,18 @@ namespace kagome::network {
           if (not stream_res.has_value()) {
             SL_VERBOSE(self->base_.logger(),
                        "Can't create outgoing {} stream with {}: {}",
-                       self->base_.protocol(),
+                       self->protocolName(),
                        peer_id,
                        stream_res.error().message());
             cb(stream_res.as_failure());
             return;
           }
-          auto &stream = stream_res.value();
+          auto &stream_and_proto = stream_res.value();
 
-          auto cb2 = [wp, stream, cb = std::move(cb)](
-                         outcome::result<void> res) {
+          auto cb2 = [wp,
+                      stream = stream_and_proto.stream,
+                      protocol = stream_and_proto.protocol,
+                      cb = std::move(cb)](outcome::result<void> res) {
             auto self = wp.lock();
             if (not self) {
               cb(ProtocolError::GONE);
@@ -130,7 +137,7 @@ namespace kagome::network {
             if (not res.has_value()) {
               SL_VERBOSE(self->base_.logger(),
                          "Handshake failed on outgoing {} stream with {}: {}",
-                         self->base_.protocol(),
+                         protocol,
                          stream->remotePeerId().value(),
                          res.error().message());
               stream->reset();
@@ -142,7 +149,7 @@ namespace kagome::network {
             if (not res.has_value()) {
               SL_VERBOSE(self->base_.logger(),
                          "Can't register outgoing {} stream with {}: {}",
-                         self->base_.protocol(),
+                         protocol,
                          stream->remotePeerId().value(),
                          res.error().message());
               stream->reset();
@@ -152,7 +159,7 @@ namespace kagome::network {
 
             SL_VERBOSE(self->base_.logger(),
                        "Fully established outgoing {} stream with {}",
-                       self->base_.protocol(),
+                       protocol,
                        stream->remotePeerId().value());
 
             // Send neighbor message first
@@ -179,8 +186,9 @@ namespace kagome::network {
             cb(std::move(stream));
           };
 
-          self->writeHandshake(
-              std::move(stream), Direction::OUTGOING, std::move(cb2));
+          self->writeHandshake(std::move(stream_and_proto.stream),
+                               Direction::OUTGOING,
+                               std::move(cb2));
         });
   }
 
@@ -301,29 +309,35 @@ namespace kagome::network {
       visit_in_place(
           grandpa_message,
           [&](const network::GrandpaVote &vote_message) {
-            SL_VERBOSE(self->base_.logger(), "VoteMessage has received from {}", peer_id);
+            SL_VERBOSE(self->base_.logger(),
+                       "VoteMessage has received from {}",
+                       peer_id);
             self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
           },
           [&](const FullCommitMessage &commit_message) {
-            SL_VERBOSE(
-                self->base_.logger(), "CommitMessage has received from {}", peer_id);
+            SL_VERBOSE(self->base_.logger(),
+                       "CommitMessage has received from {}",
+                       peer_id);
             self->grandpa_observer_->onCommitMessage(peer_id, commit_message);
           },
           [&](const GrandpaNeighborMessage &neighbor_message) {
-            SL_VERBOSE(
-                self->base_.logger(), "NeighborMessage has received from {}", peer_id);
+            SL_VERBOSE(self->base_.logger(),
+                       "NeighborMessage has received from {}",
+                       peer_id);
             self->grandpa_observer_->onNeighborMessage(peer_id,
                                                        neighbor_message);
           },
           [&](const network::CatchUpRequest &catch_up_request) {
-            SL_VERBOSE(
-                self->base_.logger(), "CatchUpRequest has received from {}", peer_id);
+            SL_VERBOSE(self->base_.logger(),
+                       "CatchUpRequest has received from {}",
+                       peer_id);
             self->grandpa_observer_->onCatchUpRequest(peer_id,
                                                       catch_up_request);
           },
           [&](const network::CatchUpResponse &catch_up_response) {
-            SL_VERBOSE(
-                self->base_.logger(), "CatchUpResponse has received from {}", peer_id);
+            SL_VERBOSE(self->base_.logger(),
+                       "CatchUpResponse has received from {}",
+                       peer_id);
             self->grandpa_observer_->onCatchUpResponse(peer_id,
                                                        catch_up_response);
           });

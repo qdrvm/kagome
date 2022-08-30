@@ -20,8 +20,8 @@ if [ -x "$(which git 2>/dev/null)" ] && [ -d ".git" ]; then
       DESCR=$HEAD-0-g$HEAD
     fi
 
-    TAG_IN_MASTER=$(echo $DESCR | sed "s/\(.*\)-\([0-9]\+\)\-g\w\+/\1/")
-    TAG_TO_FORK_DISTANCE=$(echo $DESCR | sed "s/\(.*\)-\([0-9]\+\)\-g\w\+/\2/")
+    TAG_IN_MASTER=$(echo $DESCR | sed -E "s/v?(.*)-([0-9]+)-g[a-f0-9]+/\1/")
+    TAG_TO_FORK_DISTANCE=$(echo $DESCR | sed -E "s/v?(.*)-([0-9]+)-g[a-f0-9]+/\2/")
 
     BRANCH=$(git branch --show-current)
     if [ "$BRANCH" = "" ]; then
