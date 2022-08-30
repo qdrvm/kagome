@@ -46,7 +46,7 @@ namespace kagome::network {
     SCALE_TIE(1);
     SCALE_TIE_EQ(CollatorAdvertisement);
 
-    primitives::BlockHash para_hash; /// Hash of the parachain block.
+    primitives::BlockHash para_hash;  /// Hash of the parachain block.
   };
 
   /**
@@ -59,7 +59,8 @@ namespace kagome::network {
 
     CollatorPublicKey collator_id;  /// Public key of the collator.
     ParachainId para_id;            /// Parachain Id.
-    Signature signature;  /// Signature of the collator using the PeerId of the collators node.
+    Signature signature;  /// Signature of the collator using the PeerId of the
+                          /// collators node.
   };
 
   /**
@@ -69,7 +70,8 @@ namespace kagome::network {
     SCALE_TIE(1);
     SCALE_TIE_EQ(ParachainBlock);
 
-    common::Buffer payload;  /// Contains the necessary data to for parachain specific state transition logic
+    common::Buffer payload;  /// Contains the necessary data to for parachain
+                             /// specific state transition logic
   };
 
   /**
@@ -81,13 +83,15 @@ namespace kagome::network {
 
     ParachainId para_id;  /// Parachain Id
     primitives::BlockHash
-        relay_parent;  /// Hash of the relay chain block the candidate is executed in the context of
+        relay_parent;  /// Hash of the relay chain block the candidate is
+                       /// executed in the context of
     CollatorPublicKey collator_id;  /// Collators public key.
     primitives::BlockHash
         persisted_data_hash;         /// Hash of the persisted validation data
     primitives::BlockHash pov_hash;  /// Hash of the PoV block.
     storage::trie::RootHash
-        erasure_encoding_root;  /// Root of the block’s erasure encoding Merkle tree.
+        erasure_encoding_root;  /// Root of the block’s erasure encoding Merkle
+                                /// tree.
     Signature signature;  /// Collator signature of the concatenated components
     primitives::BlockHash
         para_head_hash;  /// Hash of the parachain head data of this candidate.
@@ -156,8 +160,11 @@ namespace kagome::network {
     std::optional<ParachainRuntime>
         opt_para_runtime;          /// new parachain runtime if present
     HeadData para_head;            /// parachain head data
-    uint32_t downward_msgs_count;  /// number of downward messages that were processed by the parachain
-    uint32_t watermark;  /// watermark which specifies the relay chain block number up to which all inbound horizontal messages have been processed
+    uint32_t downward_msgs_count;  /// number of downward messages that were
+                                   /// processed by the parachain
+    uint32_t watermark;  /// watermark which specifies the relay chain block
+                         /// number up to which all inbound horizontal messages
+                         /// have been processed
   };
 
   struct CommittedCandidateReceipt {
@@ -165,20 +172,27 @@ namespace kagome::network {
     SCALE_TIE_EQ(CommittedCandidateReceipt);
 
     CandidateDescriptor descriptor;    /// Candidate descriptor
-    CandidateCommitments commitments;  /// commitments retrieved from validation result and produced by the execution and validation parachain candidate
+    CandidateCommitments commitments;  /// commitments retrieved from validation
+                                       /// result and produced by the execution
+                                       /// and validation parachain candidate
   };
 
   using CandidateState = boost::variant<
       Dummy,                      /// not used
-      CommittedCandidateReceipt,  /// Candidate receipt. Should be sent if validator seconded the candidate
-      primitives::BlockHash  /// validator has deemed the candidate valid and send the candidate hash
+      CommittedCandidateReceipt,  /// Candidate receipt. Should be sent if
+                                  /// validator seconded the candidate
+      primitives::BlockHash  /// validator has deemed the candidate valid and
+                             /// send the candidate hash
       >;
 
   struct Statement {
     SCALE_TIE(3);
     SCALE_TIE_EQ(Statement);
 
-    CandidateState candidate_state; ValidatorIndex validator_ix; Signature signature;};
+    CandidateState candidate_state;
+    ValidatorIndex validator_ix;
+    Signature signature;
+  };
 
   struct Seconded {
     SCALE_TIE(2);
@@ -194,7 +208,8 @@ namespace kagome::network {
    */
   using CollationMessage = boost::variant<
       CollatorDeclaration,    /// collator -> validator. Declare collator.
-      CollatorAdvertisement,  /// collator -> validator. Make advertisement of the collation
+      CollatorAdvertisement,  /// collator -> validator. Make advertisement of
+                              /// the collation
       Dummy,                  /// not used
       Dummy,                  /// not used
       Seconded                /// validator -> collator. Candidate was seconded.
