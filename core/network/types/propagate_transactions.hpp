@@ -15,7 +15,6 @@ namespace kagome::network {
    */
   struct PropagatedExtrinsics {
     SCALE_TIE(1);
-    SCALE_TIE_EQ(PropagatedExtrinsics);
 
     std::vector<primitives::Extrinsic> extrinsics;
   };

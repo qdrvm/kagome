@@ -40,7 +40,7 @@ namespace kagome::network {
                          application::ChainSpec const &chain_spec,
                          std::shared_ptr<ReqCollationObserver> observer);
 
-    const Protocol &protocol() const override;
+    const Protocol &protocolName() const override;
 
     bool start() override;
     bool stop() override;

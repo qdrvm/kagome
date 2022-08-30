@@ -36,7 +36,6 @@ namespace kagome::primitives {
   namespace detail {
     struct DigestItemCommon {
       SCALE_TIE(2);
-      SCALE_TIE_EQ(DigestItemCommon);
 
       ConsensusEngineId consensus_engine_id;
       common::Buffer data;

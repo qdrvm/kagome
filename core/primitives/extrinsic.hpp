@@ -23,7 +23,6 @@ namespace kagome::primitives {
    */
   struct Extrinsic {
     SCALE_TIE(1);
-    SCALE_TIE_EQ(Extrinsic);
 
     common::Buffer data;  ///< extrinsic content as byte array
   };

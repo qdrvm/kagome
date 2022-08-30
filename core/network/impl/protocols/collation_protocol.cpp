@@ -43,16 +43,16 @@ namespace kagome::network {
       CollatorDeclaration &&collation_decl) {
     if (observer_)
       observer_->onDeclare(peer_id,
-                           std::move(std::get<0>(collation_decl)),
-                           std::move(std::get<1>(collation_decl)),
-                           std::move(std::get<2>(collation_decl)));
+                           collation_decl.collator_id,
+                           collation_decl.para_id,
+                           collation_decl.signature);
   }
 
   void CollationProtocol::onCollationAdvRx(
       libp2p::peer::PeerId const &peer_id,
       CollatorAdvertisement &&collation_adv) {
     if (observer_)
-      observer_->onAdvertise(peer_id, std::move(std::get<0>(collation_adv)));
+      observer_->onAdvertise(peer_id,  collation_adv.para_hash);
   }
 
   void CollationProtocol::onCollationMessageRx(
@@ -61,10 +61,10 @@ namespace kagome::network {
     visit_in_place(
         std::move(collation_message),
         [&](network::CollatorDeclaration &&collation_decl) {
-          onCollationDeclRx(std::move(collation_decl));
+          onCollationDeclRx(peer_id, std::move(collation_decl));
         },
         [&](network::CollatorAdvertisement &&collation_adv) {
-          onCollationAdvRx(std::move(collation_adv));
+          onCollationAdvRx(peer_id, std::move(collation_adv));
         },
         [&](auto &&) {
           SL_WARN(base_.logger(), "Unexpected collation message from.");

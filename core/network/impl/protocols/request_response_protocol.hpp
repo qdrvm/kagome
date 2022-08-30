@@ -26,7 +26,7 @@ namespace kagome::network {
     RequestResponseProtocol(libp2p::Host &host,
                             Protocol const &protocol,
                             ProtocolName const &name)
-        : base_(host, protocol, name) {}
+        : base_(host, {protocol}, name) {}
     virtual ~RequestResponseProtocol() {}
 
     bool start() override {
@@ -36,8 +36,9 @@ namespace kagome::network {
       return base_.stop();
     }
 
-    const Protocol &protocol() const override {
-      return base_.protocol();
+    const Protocol &protocolName() const override {
+      assert(base_.protocol());
+      return *base_.protocol();
     }
 
     void doRequest(
@@ -73,7 +74,7 @@ namespace kagome::network {
 
             SL_DEBUG(self->base_.logger(),
                      "Established outgoing {} stream with {}",
-                     self->base_.protocol(),
+                     self->protocolName(),
                      stream->remotePeerId().value());
 
             self->writeRequest(std::move(stream),
@@ -105,21 +106,21 @@ namespace kagome::network {
         override {
       SL_DEBUG(base_.logger(),
                "Connect for {} stream with {}",
-               base_.protocol(),
+               protocolName(),
                peer_info.id);
 
       base_.host().newStream(
           peer_info.id,
-          base_.protocol(),
+          base_.protocolIds(),
           [wptr{this->weak_from_this()},
            peer_id{peer_info.id},
-           cb{std::move(cb)}](auto &&stream_res) mutable {
-            if (!stream_res.has_value()) {
-              cb(stream_res.as_failure());
+           cb{std::move(cb)}](auto &&stream_and_proto) mutable {
+            if (!stream_and_proto.has_value()) {
+              cb(stream_and_proto.as_failure());
               return;
             }
 
-            auto stream = std::move(stream_res.value());
+            auto stream = std::move(stream_and_proto.value().stream);
             auto self = wptr.lock();
             if (!self) {
               cb(ProtocolError::GONE);
@@ -129,7 +130,7 @@ namespace kagome::network {
 
             SL_DEBUG(self->base_.logger(),
                      "Established connection over {} stream with {}",
-                     self->base_.protocol(),
+                     self->protocolName(),
                      peer_id);
             cb(std::move(stream));
           });
@@ -144,7 +145,7 @@ namespace kagome::network {
           std::is_same_v<M, RequestType> || std::is_same_v<M, ResponseType>);
       SL_DEBUG(base_.logger(),
                "Write msg into {} stream with {}",
-               base_.protocol(),
+               protocolName(),
                stream->remotePeerId().value());
 
       auto read_writer = std::make_shared<ReadWriterType>(stream);
@@ -163,7 +164,7 @@ namespace kagome::network {
             if (!write_res.has_value()) {
               SL_VERBOSE(self->base_.logger(),
                          "Error at write into {} stream with {}: {}",
-                         self->base_.protocol(),
+                         self->protocolName(),
                          stream->remotePeerId().value(),
                          write_res.error().message());
 
@@ -175,7 +176,7 @@ namespace kagome::network {
             SL_DEBUG(
                 self->base_.logger(),
                 "Request written successful into outgoing {} stream with {}",
-                self->base_.protocol(),
+                self->protocolName(),
                 stream->remotePeerId().value());
             cb(outcome::success(), std::move(stream));
           });
@@ -222,7 +223,7 @@ namespace kagome::network {
         std::function<void(outcome::result<M>, std::shared_ptr<Stream>)> &&cb) {
       SL_DEBUG(base_.logger(),
                "Read from {} stream with {}",
-               base_.protocol(),
+               protocolName(),
                stream->remotePeerId().value());
 
       auto read_writer = std::make_shared<ReadWriterType>(stream);
@@ -240,7 +241,7 @@ namespace kagome::network {
             if (!read_result.has_value()) {
               SL_VERBOSE(self->base_.logger(),
                          "Error at read from outgoing {} stream with {}: {}",
-                         self->base_.protocol(),
+                         self->protocolName(),
                          stream->remotePeerId().value(),
                          read_result.error().message());
 
@@ -251,7 +252,7 @@ namespace kagome::network {
 
             SL_DEBUG(self->base_.logger(),
                      "Successful response read from outgoing {} stream with {}",
-                     self->base_.protocol(),
+                     self->protocolName(),
                      stream->remotePeerId().value());
             cb(std::move(read_result.value()), std::move(stream));
           });
@@ -291,7 +292,7 @@ namespace kagome::network {
               SL_VERBOSE(self->base_.logger(),
                          "Error at execute request from incoming {} stream "
                          "with {}: {}",
-                         self->base_.protocol(),
+                         self->protocolName(),
                          stream->remotePeerId().value(),
                          response_result.error().message());
               self->base_.closeStream(std::move(wptr), std::move(stream));

@@ -34,7 +34,10 @@ namespace kagome::parachain {
     auto protocol = router_->getReqCollationProtocol();
     protocol->request(
         collation->peer_id,
-        std::make_tuple(collation->relay_parent, collation->para_id),
+        network::CollationFetchingRequest{
+          .relay_parent = collation->relay_parent,
+            .para_id = collation->para_id
+        },
         [](outcome::result<network::CollationFetchingResponse>) {
           /// Not implemented yet.
         });

@@ -8,14 +8,15 @@
 
 #include <tuple>
 
-#define SCALE_TIE(N) static constexpr size_t scale_tie = N
-#define SCALE_TIE_EQ(T)                                          \
+#define SCALE_TIE(N) static constexpr size_t scale_tie = N; \
+  template<typename T> \
   bool operator==(const T &r) const {                            \
-    static_assert(std::is_same_v<const T *, decltype(this)>);    \
+    static_assert(std::is_same_v<std::decay_t<T>, std::decay_t<decltype(*this)>>);    \
     return ::scale::as_tie(*this, [&](auto l) {                  \
       return ::scale::as_tie(r, [&](auto r) { return l == r; }); \
     });                                                          \
   }                                                              \
+  template<typename T> \
   bool operator!=(const T &r) const {                            \
     return !operator==(r);                                       \
   }
@@ -47,6 +48,15 @@ namespace scale {
     } else if constexpr (N == 6) {
       auto &[v0, v1, v2, v3, v4, v5] = v;
       return std::forward<F>(f)(std::tie(v0, v1, v2, v3, v4, v5));
+    } else if constexpr (N == 7) {
+      auto &[v0, v1, v2, v3, v4, v5, v6] = v;
+      return std::forward<F>(f)(std::tie(v0, v1, v2, v3, v4, v5, v6));
+    } else if constexpr (N == 8) {
+      auto &[v0, v1, v2, v3, v4, v5, v6, v7] = v;
+      return std::forward<F>(f)(std::tie(v0, v1, v2, v3, v4, v5, v6, v7));
+    } else if constexpr (N == 9) {
+      auto &[v0, v1, v2, v3, v4, v5, v6, v7, v8] = v;
+      return std::forward<F>(f)(std::tie(v0, v1, v2, v3, v4, v5, v6, v7, v8));
     } else {
       // generate code for bigger tuples
       static_assert(1 <= N && N <= 6);

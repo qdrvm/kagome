@@ -44,7 +44,6 @@ namespace kagome::network {
    */
   struct CollatorAdvertisement {
     SCALE_TIE(1);
-    SCALE_TIE_EQ(CollatorAdvertisement);
 
     primitives::BlockHash para_hash;  /// Hash of the parachain block.
   };
@@ -55,7 +54,6 @@ namespace kagome::network {
    */
   struct CollatorDeclaration {
     SCALE_TIE(3);
-    SCALE_TIE_EQ(CollatorDeclaration);
 
     CollatorPublicKey collator_id;  /// Public key of the collator.
     ParachainId para_id;            /// Parachain Id.
@@ -68,7 +66,6 @@ namespace kagome::network {
    */
   struct ParachainBlock {
     SCALE_TIE(1);
-    SCALE_TIE_EQ(ParachainBlock);
 
     common::Buffer payload;  /// Contains the necessary data to for parachain
                              /// specific state transition logic
@@ -79,7 +76,6 @@ namespace kagome::network {
    */
   struct CandidateDescriptor {
     SCALE_TIE(9);
-    SCALE_TIE_EQ(CandidateDescriptor);
 
     ParachainId para_id;  /// Parachain Id
     primitives::BlockHash
@@ -104,7 +100,6 @@ namespace kagome::network {
    */
   struct CandidateReceipt {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(CandidateReceipt);
 
     CandidateDescriptor descriptor;          /// Candidate descriptor
     primitives::BlockHash commitments_hash;  /// Hash of candidate commitments
@@ -112,7 +107,6 @@ namespace kagome::network {
 
   struct CollationResponse {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(CollationResponse);
 
     CandidateReceipt receipt;  /// Candidate receipt
     ParachainBlock pov;        /// PoV block
@@ -126,7 +120,6 @@ namespace kagome::network {
    */
   struct CollationFetchingRequest {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(CollationFetchingRequest);
 
     primitives::BlockHash relay_parent;  /// Hash of the relay chain block
     ParachainId para_id;                 /// Parachain Id.
@@ -137,14 +130,12 @@ namespace kagome::network {
    */
   struct CollationFetchingResponse {
     SCALE_TIE(1);
-    SCALE_TIE_EQ(CollationFetchingResponse);
 
     ReqCollationResponseData response_data;  /// Response data
   };
 
   struct OutboundHorizontal {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(OutboundHorizontal);
 
     ParachainId para_id;       /// Parachain Id is recepient id
     UpwardMessage upward_msg;  /// upward message for parallel parachain
@@ -152,7 +143,6 @@ namespace kagome::network {
 
   struct CandidateCommitments {
     SCALE_TIE(6);
-    SCALE_TIE_EQ(CandidateCommitments);
 
     std::vector<UpwardMessage> upward_msgs;  /// upward messages
     std::vector<OutboundHorizontal>
@@ -169,7 +159,6 @@ namespace kagome::network {
 
   struct CommittedCandidateReceipt {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(CommittedCandidateReceipt);
 
     CandidateDescriptor descriptor;    /// Candidate descriptor
     CandidateCommitments commitments;  /// commitments retrieved from validation
@@ -187,7 +176,6 @@ namespace kagome::network {
 
   struct Statement {
     SCALE_TIE(3);
-    SCALE_TIE_EQ(Statement);
 
     CandidateState candidate_state;
     ValidatorIndex validator_ix;
@@ -196,7 +184,6 @@ namespace kagome::network {
 
   struct Seconded {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(Seconded);
 
     primitives::BlockHash relay_parent;  /// relay parent hash
     Statement statement;                 /// statement of seconded candidate

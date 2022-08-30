@@ -16,7 +16,6 @@ namespace kagome::consensus::grandpa {
   /// Stores the current state of the round
   struct MovableRoundState {
     SCALE_TIE(4);
-    SCALE_TIE_EQ(MovableRoundState);
 
     RoundNumber round_number;
     BlockInfo last_finalized_block;

@@ -57,9 +57,9 @@ namespace kagome::network {
       : impl_{std::make_shared<ReqCollationProtocolImpl>(
             host, app_config, chain_spec, std::move(observer))} {}
 
-  const Protocol &ReqCollationProtocol::protocol() const {
+  const Protocol &ReqCollationProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");
-    return impl_->protocol();
+    return impl_->protocolName();
   }
 
   bool ReqCollationProtocol::start() {

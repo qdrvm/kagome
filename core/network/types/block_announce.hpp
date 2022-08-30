@@ -15,7 +15,6 @@ namespace kagome::network {
    */
   struct BlockAnnounce {
     SCALE_TIE(1);
-    SCALE_TIE_EQ(BlockAnnounce);
 
     primitives::BlockHeader header;
   };
