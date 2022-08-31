@@ -147,7 +147,7 @@ namespace kagome::parachain {
     FetchedCollationState const &collation = *store_result.value();
     network::CandidateDescriptor const &descriptor =
         candidateDescriptorFrom(collation);
-    primitives::BlockHash const &candidate_hash = candidateHashFrom(collation);
+    primitives::BlockHash const candidate_hash = candidateHashFrom(collation);
 
     auto const candidate_para_id = descriptor.para_id;
     if (candidate_para_id != our_current_state_.assignment) {
@@ -161,9 +161,7 @@ namespace kagome::parachain {
 
     if (our_current_state_.seconded) {
       logger_->debug("Already have seconded block {} instead of {}.",
-                     our_current_state_.seconded
-                         ? our_current_state_.seconded->toString()
-                         : "{no_seconded}",
+                     our_current_state_.seconded->toString(),
                      candidate_hash);
       return;
     }
@@ -182,7 +180,8 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::kickOffValidationWork(
       AttestingData &attesting_data) {
-    /// add to awaiting_validation to be sure no doublicated validations
+    /// TODO(iceseer): add to awaiting_validation to be sure no doublicated
+    /// validations
 
     auto opt_descriptor = candidateDescriptorFrom(attesting_data.statement);
     BOOST_ASSERT(opt_descriptor);
@@ -197,10 +196,6 @@ namespace kagome::parachain {
 
     notify_internal(context_, [wptr{weak_from_this()}] {
       if (auto self = wptr.lock()) {
-        /*self->logger_->debug("Got an async task for ATTEST execution
-           {}:{}:{}", id, relay_parent, peer_id.toBase58());*/
-
-        /// TODO: when it will be done in rust
         /// request PoV
         self->requestPoV();
         /// validate PoV
@@ -212,7 +207,8 @@ namespace kagome::parachain {
       network::ParachainId id,
       primitives::BlockHash const &relay_parent,
       libp2p::peer::PeerId const &peer_id) {
-    /// add to awaiting_validation to be sure no doublicated validations
+    /// TODO(iceseer): add to awaiting_validation to be sure no doublicated
+    /// validations
     notify_internal(
         context_, [id, relay_parent, peer_id, wptr{weak_from_this()}] {
           if (auto self = wptr.lock()) {
@@ -357,7 +353,7 @@ namespace kagome::parachain {
                              .validator_ix = getOurIndex(),
                              .signature = std::move(sign_result.value())});
     } else if constexpr (kStatementType == StatementType::kValid) {
-      auto const &candidate_hash =
+      auto const candidate_hash =
           candidateHashFrom(*validation_result.fetched_collation);
       auto sign_result = sign(candidate_hash);
       if (!sign_result) {
@@ -444,7 +440,7 @@ namespace kagome::parachain {
       ValidateAndSecondResult &&validation_result) {
     BOOST_ASSERT(validation_result.fetched_collation);
 
-    auto const &candidate_hash =
+    auto const candidate_hash =
         candidateHashFrom(*validation_result.fetched_collation);
     if (!validation_result.result) {
       logger_->warn("Candidate {} validation failed with: {}",
@@ -549,7 +545,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onAttestComplete(
       libp2p::peer::PeerId const &peer_id, ValidateAndSecondResult &&result) {
-    auto const &candidate_hash = candidateHashFrom(*result.fetched_collation);
+    auto const candidate_hash = candidateHashFrom(*result.fetched_collation);
     our_current_state_.fallbacks.erase(candidate_hash);
 
     if (our_current_state_.issued_statements.count(candidate_hash) == 0) {
@@ -566,7 +562,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onAttestNoPoVComplete(
       libp2p::peer::PeerId const &peer_id, ValidateAndSecondResult &&result) {
-    auto const &candidate_hash = candidateHashFrom(*result.fetched_collation);
+    auto const candidate_hash = candidateHashFrom(*result.fetched_collation);
     auto it = our_current_state_.fallbacks.find(candidate_hash);
 
     if (it == our_current_state_.fallbacks.end()) {

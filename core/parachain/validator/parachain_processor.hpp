@@ -167,13 +167,14 @@ namespace kagome::parachain {
     /*
      * Helpers.
      */
-    primitives::BlockHash const &candidateHashFrom(
+    primitives::BlockHash candidateHashFrom(
         FetchedCollationState const &fetched_collation_state) {
       return visit_in_place(
           fetched_collation_state.fetched_collation.response_data,
-          [](network::CollationResponse const &collation_response)
-              -> primitives::BlockHash const & {
-            return collation_response.receipt.candidate_hash;
+          [&](network::CollationResponse const &collation_response)
+              -> primitives::BlockHash {
+            return hasher_->blake2b_256(
+                scale::encode(collation_response.receipt).value());
           });
     }
 

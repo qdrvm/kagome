@@ -97,8 +97,8 @@ namespace kagome::network {
   struct CandidateReceipt {
     SCALE_TIE(2);
 
-    CandidateDescriptor descriptor;        /// Candidate descriptor
-    primitives::BlockHash candidate_hash;  /// Hash of candidate commitments
+    CandidateDescriptor descriptor;          /// Candidate descriptor
+    primitives::BlockHash commitments_hash;  /// Hash of candidate commitments
   };
 
   struct CollationResponse {

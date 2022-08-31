@@ -109,8 +109,7 @@ namespace kagome::network {
                         stream->remotePeerId().value(),
                         result.error().message());
                 self->base_.closeStream(wptr, stream);
-                std::forward<F>(func)(
-                    std::shared_ptr<kagome::network::Stream>{});
+                std::forward<F>(func)(nullptr);
                 return;
               }
             }
