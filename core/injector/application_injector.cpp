@@ -514,6 +514,7 @@ namespace {
         log->error("Unable to load user provided key from {}. Error: {}",
                    path,
                    key.error().message());
+        common::raise(key.error());
       } else {
         auto key_pair =
             std::make_shared<libp2p::crypto::KeyPair>(std::move(key.value()));
@@ -541,14 +542,20 @@ namespace {
         "A unique one will be generated");
 
     kagome::crypto::Ed25519Keypair generated_keypair;
-    auto generated_keypair_res = const_cast<crypto::CryptoStore &>(crypto_store)
-                                     .generateEd25519KeypairOnDisk(
-                                         crypto::KnownKeyTypeId::KEY_TYPE_LP2P);
-    if (not generated_keypair_res) {
-      log->warn("Can't save libp2p keypair: {}", generated_keypair_res.error());
+    auto save = app_config.saveNodeKey();
+    if (save) {
+      auto res = const_cast<crypto::CryptoStore &>(crypto_store)
+                     .generateEd25519KeypairOnDisk(
+                         crypto::KnownKeyTypeId::KEY_TYPE_LP2P);
+      if (res.has_error()) {
+        log->warn("Can't save libp2p keypair: {}", res.error());
+        save = false;
+      } else {
+        generated_keypair = res.value();
+      }
+    }
+    if (not save) {
       generated_keypair = crypto_provider.generateKeypair();
-    } else {
-      generated_keypair = generated_keypair_res.value();
     }
 
     auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(
@@ -811,7 +818,7 @@ namespace {
   template <typename... Ts>
   auto makeWavmInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&... args) {
+      Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
@@ -853,7 +860,7 @@ namespace {
   template <typename... Ts>
   auto makeBinaryenInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&... args) {
+      Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::binaryen::RuntimeExternalInterface>.template to(
             [](const auto &injector) {
@@ -927,7 +934,7 @@ namespace {
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&... args) {
+      Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<runtime::RuntimeUpgradeTrackerImpl>.template to(
@@ -1025,7 +1032,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -1513,7 +1520,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&... args) {
+                              Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -1548,7 +1555,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       const application::AppConfiguration &app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-            makeKagomeNodeInjector(app_config))} {}
+          makeKagomeNodeInjector(app_config))} {}
 
   sptr<application::ChainSpec> KagomeNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
