@@ -84,8 +84,14 @@ namespace kagome::network {
       return context_->protocols_;
     }
 
-    std::optional<Protocol> const &protocol() const {
-      return context_->active_proto_;
+    std::optional<std::reference_wrapper<Protocol const>> protocol() const {
+      if (context_->active_proto_) {
+        return *context_->active_proto_;
+      }
+      if (!context_->protocols_.empty()) {
+        return context_->protocols_.front();
+      }
+      return std::nullopt;
     }
 
     Host &host() {

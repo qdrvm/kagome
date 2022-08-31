@@ -184,6 +184,11 @@ namespace kagome::network {
     return active_peers_.size();
   }
 
+  std::shared_ptr<StreamEngine> PeerManagerImpl::getStreamEngine() {
+    BOOST_ASSERT(stream_engine_);
+    return stream_engine_;
+  }
+
   void PeerManagerImpl::forEachPeer(
       std::function<void(const PeerId &)> func) const {
     for (auto &it : active_peers_) {
@@ -211,7 +216,7 @@ namespace kagome::network {
     }
   }
 
-  std::optional<PendingCollation> PeerManagerImpl::pop_pending_collation() {
+  /*std::optional<PendingCollation> PeerManagerImpl::pop_pending_collation() {
     if (parachain_state_.pending_collations.empty()) return std::nullopt;
 
     std::optional<PendingCollation> collation =
@@ -222,7 +227,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::push_pending_collation(PendingCollation &&collation) {
     parachain_state_.pending_collations.emplace_back(std::move(collation));
-  }
+  }*/
 
   outcome::result<
       std::pair<network::CollatorPublicKey const &, network::ParachainId>>

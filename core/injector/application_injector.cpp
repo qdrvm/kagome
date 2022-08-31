@@ -785,7 +785,8 @@ namespace {
     auto get_instance = [&]() {
       auto instance = std::make_shared<parachain::ParachainObserverImpl>(
           injector.template create<std::shared_ptr<network::PeerManager>>(),
-          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>());
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
+          injector.template create<std::shared_ptr<parachain::ParachainProcessorImpl>>());
 
       auto protocol_factory =
           injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -803,10 +804,19 @@ namespace {
   sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
       const Injector &injector) {
     auto get_instance = [&]() {
-      return std::make_shared<parachain::ParachainProcessorImpl>(
+      auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
+      auto ptr = std::make_shared<parachain::ParachainProcessorImpl>(
           injector.template create<std::shared_ptr<network::PeerManager>>(),
           injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
-          injector.template create<std::shared_ptr<network::Router>>());
+          injector.template create<std::shared_ptr<network::Router>>(),
+          injector
+              .template create<std::shared_ptr<::boost::asio::io_context>>(),
+          session_keys->getBabeKeyPair(),
+          injector
+              .template create<std::shared_ptr<crypto::Hasher>>());
+
+      ptr->start();
+      return ptr;
     };
 
     static auto instance = get_instance();
