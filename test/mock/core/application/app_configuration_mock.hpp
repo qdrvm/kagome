@@ -53,7 +53,7 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(bool, saveNodeKey, (), (const, override));
+    MOCK_METHOD(bool, shouldSaveNodeKey, (), (const, override));
 
     MOCK_METHOD(const std::vector<libp2p::multi::Multiaddress> &,
                 listenAddresses,

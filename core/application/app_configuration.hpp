@@ -89,7 +89,7 @@ namespace kagome::application {
     /**
      * @return true if generated libp2p networking key should be saved
      */
-    virtual bool saveNodeKey() const = 0;
+    virtual bool shouldSaveNodeKey() const = 0;
 
     /**
      * @return port for peer to peer interactions.

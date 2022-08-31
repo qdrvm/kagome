@@ -542,7 +542,7 @@ namespace {
         "A unique one will be generated");
 
     kagome::crypto::Ed25519Keypair generated_keypair;
-    auto save = app_config.saveNodeKey();
+    auto save = app_config.shouldSaveNodeKey();
     if (save) {
       auto res = const_cast<crypto::CryptoStore &>(crypto_store)
                      .generateEd25519KeypairOnDisk(

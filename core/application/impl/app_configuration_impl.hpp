@@ -84,7 +84,7 @@ namespace kagome::application {
       return node_key_file_;
     }
 
-    bool saveNodeKey() const override {
+    bool shouldSaveNodeKey() const override {
       return save_node_key_;
     }
 
