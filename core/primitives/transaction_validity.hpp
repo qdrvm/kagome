@@ -61,7 +61,8 @@ namespace kagome::primitives {
      * A non-empty list signifies that some other transactions which provide
      * given tags are required to be included before that one.
      */
-    std::vector<Transaction::Tag> requires;
+    std::vector<Transaction::Tag>
+    requires;
 
     /**
      * @brief Provided tags

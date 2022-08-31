@@ -70,7 +70,7 @@ namespace scale {
   template <typename T, size_t = T::scale_tie>
   ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const T &v) {
     as_tie(v, [&](auto v) {
-      std::apply([&](const auto &... v) { (..., (s << v)); }, v);
+      std::apply([&](const auto &...v) { (..., (s << v)); }, v);
     });
     return s;
   }
@@ -78,7 +78,7 @@ namespace scale {
   template <typename T, size_t = T::scale_tie>
   ScaleDecoderStream &operator>>(ScaleDecoderStream &s, T &v) {
     as_tie(v, [&](auto v) {
-      std::apply([&](auto &... v) { (..., (s >> v)); }, v);
+      std::apply([&](auto &...v) { (..., (s >> v)); }, v);
     });
     return s;
   }

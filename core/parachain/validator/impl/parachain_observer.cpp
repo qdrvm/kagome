@@ -124,7 +124,7 @@ namespace kagome::parachain {
       std::shared_ptr<network::PeerManager> pm,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider)
       : collation_observer_impl_{std::make_shared<
-            observers::CollationObserverImpl>(pm, std::move(crypto_provider))},
+          observers::CollationObserverImpl>(pm, std::move(crypto_provider))},
         req_collation_observer_impl_{
             std::make_shared<observers::ReqCollationObserverImpl>(pm)} {
     BOOST_ASSERT(collation_observer_impl_

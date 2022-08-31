@@ -35,11 +35,11 @@ namespace kagome::network {
     ProtocolBaseImpl(libp2p::Host &host,
                      Protocols const &protocols,
                      std::string const &log_section)
-        : context_{std::make_shared<Context>(Context{
-              .host_ = host,
-              .protocols_ = std::move(protocols),
-              .log_ = log::createLogger(log_section, "kagome_protocols"),
-              .active_proto_ = std::nullopt})} {
+        : context_{std::make_shared<Context>(
+            Context{.host_ = host,
+                    .protocols_ = std::move(protocols),
+                    .log_ = log::createLogger(log_section, "kagome_protocols"),
+                    .active_proto_ = std::nullopt})} {
       BOOST_ASSERT(context_ && !!"Context must be created!");
     }
 

@@ -22,11 +22,11 @@ namespace kagome::network {
                              application::ChainSpec const &chain_spec,
                              std::shared_ptr<ReqCollationObserver> observer)
         : RequestResponseProtocol<
-              CollationFetchingRequest,
-              CollationFetchingResponse,
-              ScaleMessageReadWriter>{host,
-                                      kReqCollationProtocol,
-                                      "ReqCollationProtocol"},
+            CollationFetchingRequest,
+            CollationFetchingResponse,
+            ScaleMessageReadWriter>{host,
+                                    kReqCollationProtocol,
+                                    "ReqCollationProtocol"},
           observer_{std::move(observer)},
           app_config_{app_config} {}
 
@@ -55,7 +55,7 @@ namespace kagome::network {
       application::ChainSpec const &chain_spec,
       std::shared_ptr<ReqCollationObserver> observer)
       : impl_{std::make_shared<ReqCollationProtocolImpl>(
-            host, app_config, chain_spec, std::move(observer))} {}
+          host, app_config, chain_spec, std::move(observer))} {}
 
   const Protocol &ReqCollationProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");
