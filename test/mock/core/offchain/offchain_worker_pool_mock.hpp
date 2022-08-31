@@ -22,7 +22,7 @@ namespace kagome::offchain {
     MOCK_METHOD(std::optional<std::shared_ptr<OffchainWorker>>,
                 getWorker,
                 (),
-                (override));
+                (const, override));
 
     MOCK_METHOD(bool, removeWorker, (), (override));
   };

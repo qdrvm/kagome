@@ -18,29 +18,28 @@
 #include "consensus/grandpa/grandpa_observer.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
+#include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/types/own_peer_info.hpp"
+#include "utils/non_copyable.hpp"
+
+namespace kagome::blockchain {
+  class BlockTree;
+}
 
 namespace kagome::network {
-
-  using Stream = libp2p::connection::Stream;
-  using Protocol = libp2p::peer::Protocol;
-  using PeerId = libp2p::peer::PeerId;
-  using PeerInfo = libp2p::peer::PeerInfo;
 
   KAGOME_DECLARE_CACHE(GrandpaProtocol, KAGOME_CACHE_UNIT(GrandpaMessage));
 
   class GrandpaProtocol final
       : public ProtocolBase,
-        public std::enable_shared_from_this<GrandpaProtocol> {
+        public std::enable_shared_from_this<GrandpaProtocol>,
+        NonCopyable,
+        NonMovable {
    public:
     GrandpaProtocol() = delete;
-    GrandpaProtocol(GrandpaProtocol &&) noexcept = delete;
-    GrandpaProtocol(const GrandpaProtocol &) = delete;
     ~GrandpaProtocol() override = default;
-    GrandpaProtocol &operator=(GrandpaProtocol &&) noexcept = delete;
-    GrandpaProtocol &operator=(GrandpaProtocol const &) = delete;
 
     GrandpaProtocol(
         libp2p::Host &host,
@@ -50,11 +49,8 @@ namespace kagome::network {
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<PeerManager> peer_manager,
+        const primitives::BlockHash &genesis_hash,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
-
-    const Protocol &protocol() const override {
-      return protocol_;
-    }
 
     /**
      * Sets handler for `parytytech/grandpa/1` protocol
@@ -62,6 +58,10 @@ namespace kagome::network {
      */
     bool start() override;
     bool stop() override;
+
+    const std::string &protocolName() const override {
+      return kGrandpaProtocolName;
+    }
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
@@ -80,6 +80,7 @@ namespace kagome::network {
                          CatchUpResponse &&catch_up_response);
 
    private:
+    const static inline auto kGrandpaProtocolName = "GrandpaProtocol"s;
     enum class Direction { INCOMING, OUTGOING };
     void readHandshake(std::shared_ptr<Stream> stream,
                        Direction direction,
@@ -102,7 +103,7 @@ namespace kagome::network {
     static constexpr std::chrono::milliseconds kRecentnessDuration =
         std::chrono::seconds(300);
 
-    libp2p::Host &host_;
+    ProtocolBaseImpl base_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     const application::AppConfiguration &app_config_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
@@ -110,12 +111,12 @@ namespace kagome::network {
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<PeerManager> peer_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
-    const libp2p::peer::Protocol protocol_;
 
-    std::set<std::tuple<libp2p::peer::PeerId, CatchUpRequest::Fingerprint>>
-        recent_catchup_requests_;
+    std::set<std::tuple<consensus::grandpa::RoundNumber,
+                        consensus::grandpa::MembershipCounter>>
+        recent_catchup_requests_by_round_;
 
-    log::Logger log_ = log::createLogger("GrandpaProtocol", "grandpa_protocol");
+    std::set<libp2p::peer::PeerId> recent_catchup_requests_by_peer_;
   };
 
 }  // namespace kagome::network

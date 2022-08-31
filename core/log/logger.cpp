@@ -6,9 +6,23 @@
 #include <boost/assert.hpp>
 #include <iostream>
 #include <libp2p/log/logger.hpp>
+#include <soralog/impl/sink_to_console.hpp>
 
 #include "log/logger.hpp"
 #include "log/profiling_logger.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::log, Error, e) {
+  using E = kagome::log::Error;
+  switch (e) {
+    case E::WRONG_LEVEL:
+      return "Unknown level";
+    case E::WRONG_GROUP:
+      return "Unknown group";
+    case E::WRONG_LOGGER:
+      return "Unknown logger";
+  }
+  return "Unknown log::Error";
+}
 
 namespace kagome::log {
 
@@ -22,29 +36,29 @@ namespace kagome::log {
           "Logging system is not ready. "
           "kagome::log::setLoggingSystem() must be executed once before");
     }
-
-    outcome::result<Level> str2lvl(std::string_view str) {
-      if (str == "trace") {
-        return Level::TRACE;
-      } else if (str == "debug") {
-        return Level::DEBUG;
-      } else if (str == "verbose") {
-        return Level::VERBOSE;
-      } else if (str == "info" or str == "inf") {
-        return Level::INFO;
-      } else if (str == "warning" or str == "warn") {
-        return Level::WARN;
-      } else if (str == "error" or str == "err") {
-        return Level::ERROR;
-      } else if (str == "critical" or str == "crit") {
-        return Level::CRITICAL;
-      } else if (str == "off" or str == "no") {
-        return Level::OFF;
-      } else {
-        return boost::system::error_code{};
-      }
-    }
   }  // namespace
+
+  outcome::result<Level> str2lvl(std::string_view str) {
+    if (str == "trace") {
+      return Level::TRACE;
+    } else if (str == "debug") {
+      return Level::DEBUG;
+    } else if (str == "verbose") {
+      return Level::VERBOSE;
+    } else if (str == "info" or str == "inf") {
+      return Level::INFO;
+    } else if (str == "warning" or str == "warn") {
+      return Level::WARN;
+    } else if (str == "error" or str == "err") {
+      return Level::ERROR;
+    } else if (str == "critical" or str == "crit") {
+      return Level::CRITICAL;
+    } else if (str == "off" or str == "no") {
+      return Level::OFF;
+    } else {
+      return Error::WRONG_LEVEL;
+    }
+  }
 
   void setLoggingSystem(
       std::shared_ptr<soralog::LoggingSystem> logging_system) {
@@ -115,22 +129,22 @@ namespace kagome::log {
         ->getLogger(tag, group, level);
   }
 
-  void setLevelOfGroup(const std::string &group_name, Level level) {
+  bool setLevelOfGroup(const std::string &group_name, Level level) {
     ensure_logger_system_is_initialized();
-    logging_system_->setLevelOfGroup(group_name, level);
+    return logging_system_->setLevelOfGroup(group_name, level);
   }
-  void resetLevelOfGroup(const std::string &group_name) {
+  bool resetLevelOfGroup(const std::string &group_name) {
     ensure_logger_system_is_initialized();
-    logging_system_->resetLevelOfGroup(group_name);
+    return logging_system_->resetLevelOfGroup(group_name);
   }
 
-  void setLevelOfLogger(const std::string &logger_name, Level level) {
+  bool setLevelOfLogger(const std::string &logger_name, Level level) {
     ensure_logger_system_is_initialized();
-    logging_system_->setLevelOfLogger(logger_name, level);
+    return logging_system_->setLevelOfLogger(logger_name, level);
   }
-  void resetLevelOfLogger(const std::string &logger_name) {
+  bool resetLevelOfLogger(const std::string &logger_name) {
     ensure_logger_system_is_initialized();
-    logging_system_->resetLevelOfLogger(logger_name);
+    return logging_system_->resetLevelOfLogger(logger_name);
   }
 
 }  // namespace kagome::log

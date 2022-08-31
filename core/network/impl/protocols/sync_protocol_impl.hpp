@@ -19,15 +19,12 @@
 #include <libp2p/host/host.hpp>
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
+#include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/rating_repository.hpp"
 #include "network/sync_protocol_observer.hpp"
+#include "utils/non_copyable.hpp"
 
 namespace kagome::network {
-
-  using Stream = libp2p::connection::Stream;
-  using Protocol = libp2p::peer::Protocol;
-  using PeerId = libp2p::peer::PeerId;
-  using PeerInfo = libp2p::peer::PeerInfo;
 
   static constexpr auto kResponsesCacheCapacity = 500;
   static constexpr auto kResponsesCacheExpirationTimeout =
@@ -103,19 +100,21 @@ namespace kagome::network {
 
   class SyncProtocolImpl final
       : public SyncProtocol,
-        public std::enable_shared_from_this<SyncProtocolImpl> {
+        public std::enable_shared_from_this<SyncProtocolImpl>,
+        NonCopyable,
+        NonMovable {
    public:
     SyncProtocolImpl(libp2p::Host &host,
                      const application::ChainSpec &chain_spec,
                      std::shared_ptr<SyncProtocolObserver> sync_observer,
                      std::shared_ptr<PeerRatingRepository> rating_repository);
 
-    const Protocol &protocol() const override {
-      return protocol_;
-    }
-
     bool start() override;
     bool stop() override;
+
+    const std::string &protocolName() const override {
+      return kSyncProtocolName;
+    }
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
@@ -142,12 +141,11 @@ namespace kagome::network {
                           &&response_handler);
 
    private:
-    libp2p::Host &host_;
+    const static inline auto kSyncProtocolName = "SyncProtocol"s;
+    ProtocolBaseImpl base_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<PeerRatingRepository> rating_repository_;
-    const libp2p::peer::Protocol protocol_;
     detail::BlocksResponseCache response_cache_;
-    log::Logger log_ = log::createLogger("SyncProtocol", "sync_protocol");
   };
 
 }  // namespace kagome::network

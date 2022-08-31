@@ -15,22 +15,27 @@ namespace kagome::offchain {
   }
 
   void OffchainWorkerPoolImpl::addWorker(std::shared_ptr<OffchainWorker> ofw) {
-    std::lock_guard<std::mutex> lk(mut_);
-    offchain_workers_.emplace(getThreadNumber(), std::move(ofw));
+    offchain_workers_.exclusiveAccess([&](auto &offchain_workers) {
+      offchain_workers.emplace(getThreadNumber(), std::move(ofw));
+    });
   }
 
   std::optional<std::shared_ptr<OffchainWorker>>
-  OffchainWorkerPoolImpl::getWorker() {
-    std::lock_guard<std::mutex> lk(mut_);
-    if (offchain_workers_.count(getThreadNumber()) != 0) {
-      return offchain_workers_.at(getThreadNumber());
-    }
-    return std::nullopt;
+  OffchainWorkerPoolImpl::getWorker() const {
+    return offchain_workers_.sharedAccess(
+        [](auto const &offchain_workers)
+            -> std::optional<std::shared_ptr<OffchainWorker>> {
+          if (auto it = offchain_workers.find(getThreadNumber());
+              it != offchain_workers.end())
+            return it->second;
+          return std::nullopt;
+        });
   }
 
   bool OffchainWorkerPoolImpl::removeWorker() {
-    std::lock_guard<std::mutex> lk(mut_);
-    return offchain_workers_.erase(getThreadNumber()) == 1;
+    return offchain_workers_.exclusiveAccess([&](auto &offchain_workers) {
+      return offchain_workers.erase(getThreadNumber()) == 1;
+    });
   }
 
 }  // namespace kagome::offchain

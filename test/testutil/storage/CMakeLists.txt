@@ -11,15 +11,15 @@ target_link_libraries(base_fs_test
     logger_for_tests
     )
 
-add_library(base_leveldb_test
-    base_leveldb_test.hpp
-    base_leveldb_test.cpp
+add_library(base_rocksdb_test
+    base_rocksdb_test.hpp
+    base_rocksdb_test.cpp
     )
-target_link_libraries(base_leveldb_test
+target_link_libraries(base_rocksdb_test
     base_fs_test
     Boost::filesystem
     Boost::boost
-    leveldb_wrapper
+    rocksdb_wrapper
     logger_for_tests
     )
 

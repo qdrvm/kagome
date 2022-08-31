@@ -52,6 +52,7 @@ namespace kagome::application {
     jrpc_api_service_ = injector_->injectRpcApiService();
     state_observer_ = injector_->injectStateObserver();
     sync_observer_ = injector_->injectSyncObserver();
+    parachain_observer_ = injector_->injectParachainObserver();
     metrics_watcher_ = injector_->injectMetricsWatcher();
     telemetry_service_ = injector_->injectTelemetryService();
     kagome::telemetry::setTelemetryService(telemetry_service_);
@@ -63,9 +64,9 @@ namespace kagome::application {
 
     auto chain_path = app_config_.chainPath(chain_spec_->id());
     auto storage_backend = app_config_.storageBackend()
-                                   == AppConfiguration::StorageBackend::LevelDB
-                               ? "LevelDB"
-                               : "RocksDB";
+                                   == AppConfiguration::StorageBackend::RocksDB
+                               ? "RocksDB"
+                               : "Unknown";
     logger_->info(
         "Chain path is {}, storage backend is {}", chain_path, storage_backend);
     auto res = util::init_directory(chain_path);

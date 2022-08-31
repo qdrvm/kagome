@@ -10,9 +10,11 @@
 #include <libp2p/protocol/ping.hpp>
 
 #include "network/impl/protocols/block_announce_protocol.hpp"
+#include "network/impl/protocols/collation_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/protocols/state_protocol.hpp"
+#include "network/impl/protocols/protocol_req_collation.hpp"
 #include "network/protocols/sync_protocol.hpp"
 
 namespace kagome::network {
@@ -25,6 +27,9 @@ namespace kagome::network {
     virtual ~Router() = default;
 
     virtual std::shared_ptr<BlockAnnounceProtocol> getBlockAnnounceProtocol()
+        const = 0;
+    virtual std::shared_ptr<CollationProtocol> getCollationProtocol() const = 0;
+    virtual std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const = 0;
     virtual std::shared_ptr<PropagateTransactionsProtocol>
     getPropagateTransactionsProtocol() const = 0;

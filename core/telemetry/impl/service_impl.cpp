@@ -272,7 +272,8 @@ namespace kagome::telemetry {
         .AddMember("name", str_val(app_configuration_.nodeName()), allocator)
         .AddMember("network_id", str_val(host_.getId().toBase58()), allocator)
         .AddMember("startup_time", str_val(startup_time), allocator)
-        .AddMember("version", str_val(kImplementationVersion), allocator);
+        .AddMember(
+            "version", str_val(app_configuration_.nodeVersion()), allocator);
 
     greeting_json_.AddMember("id", 1, allocator)
         .AddMember("payload", payload, allocator)

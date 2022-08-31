@@ -285,6 +285,7 @@ namespace kagome::application {
     std::string openmetrics_http_host_;
     boost::filesystem::path chain_spec_path_;
     boost::filesystem::path base_path_;
+    std::optional<boost::filesystem::path> keystore_path_;
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
     uint16_t openmetrics_http_port_;
@@ -304,7 +305,7 @@ namespace kagome::application {
     bool enable_offchain_indexing_;
     bool subcommand_chain_info_;
     std::optional<primitives::BlockId> recovery_state_;
-    StorageBackend storage_backend_ = StorageBackend::LevelDB;
+    StorageBackend storage_backend_ = StorageBackend::RocksDB;
   };
 
 }  // namespace kagome::application

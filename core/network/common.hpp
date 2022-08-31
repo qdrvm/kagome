@@ -20,7 +20,11 @@ namespace kagome::network {
       "/{}/transactions/1";
   const libp2p::peer::Protocol kBlockAnnouncesProtocol =
       "/{}/block-announces/1";
-  const libp2p::peer::Protocol kGrandpaProtocol = "/paritytech/grandpa/1";
+  const libp2p::peer::Protocol kGrandpaProtocolLegacy = "/paritytech/grandpa/1";
+  const libp2p::peer::Protocol kGrandpaProtocol = "/{}/grandpa/1";
+  const libp2p::peer::Protocol kCollationProtocol = "/polkadot/collation/1";
+  const libp2p::peer::Protocol kReqCollationProtocol =
+      "/polkadot/req_collation/1";
 }  // namespace kagome::network
 
 #endif  // KAGOME_NETWORK_COMMON_HPP

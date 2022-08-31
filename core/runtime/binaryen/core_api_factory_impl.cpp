@@ -9,8 +9,8 @@
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
 #include "runtime/common/constant_code_provider.hpp"
+#include "runtime/common/executor.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 
 namespace kagome::runtime::binaryen {

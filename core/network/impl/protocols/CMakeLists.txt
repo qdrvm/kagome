@@ -19,6 +19,18 @@ target_link_libraries(block_announce_protocol
     protocol_error
     )
 
+add_library(collation_protocol
+    collation_protocol.cpp
+    )
+target_link_libraries(collation_protocol
+    blob
+    buffer
+    logger
+    scale_message_read_writer
+    protocol_error
+    p2p::p2p_peer_id
+    )
+
 add_library(grandpa_protocol
     grandpa_protocol.cpp
     )
@@ -57,6 +69,19 @@ target_link_libraries(sync_protocol
     adapter_errors
     protocol_error
     scale_message_read_writer
+    )
+
+add_library(req_collation_protocol
+    protocol_req_collation.cpp
+    )
+target_link_libraries(req_collation_protocol
+    blob
+    buffer
+    logger
+    adapter_errors
+    protocol_error
+    scale_message_read_writer
+    p2p::p2p_peer_id
     )
 
 add_library(protocol_factory

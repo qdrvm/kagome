@@ -10,13 +10,17 @@
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/peer/peer_info.hpp>
-#include <libp2p/peer/protocol.hpp>
+#include <libp2p/peer/stream_protocols.hpp>
 
 namespace kagome::network {
 
   using Stream = libp2p::connection::Stream;
   using PeerInfo = libp2p::peer::PeerInfo;
   using Protocol = libp2p::peer::Protocol;
+  using PeerId = libp2p::peer::PeerId;
+  using Protocols = libp2p::StreamProtocols;
+
+  using namespace std::string_literals;
 
   class ProtocolBase {
    public:
@@ -27,7 +31,7 @@ namespace kagome::network {
     ProtocolBase &operator=(ProtocolBase &&) noexcept = delete;
     ProtocolBase &operator=(ProtocolBase const &) = delete;
 
-    virtual const Protocol &protocol() const = 0;
+    virtual const std::string &protocolName() const = 0;
 
     virtual bool start() = 0;
     virtual bool stop() = 0;

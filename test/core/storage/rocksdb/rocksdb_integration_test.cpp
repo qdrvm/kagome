@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "testutil/storage/base_leveldb_test.hpp"
+#include "testutil/storage/base_rocksdb_test.hpp"
 
 #include <array>
 #include <exception>
@@ -12,20 +12,20 @@
 #include <boost/filesystem.hpp>
 
 #include "storage/database_error.hpp"
-#include "storage/leveldb/leveldb.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::storage;
 namespace fs = boost::filesystem;
 
-struct LevelDB_Integration_Test : public test::BaseLevelDB_Test {
+struct LevelDB_Integration_Test : public test::BaseRocksDB_Test {
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
 
   LevelDB_Integration_Test()
-      : test::BaseLevelDB_Test("/tmp/kagome_leveldb_integration_test") {}
+      : test::BaseRocksDB_Test("/tmp/kagome_rocksdb_integration_test") {}
 
   Buffer key_{1, 3, 3, 7};
   Buffer value_{1, 2, 3};
