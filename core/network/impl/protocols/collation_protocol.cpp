@@ -41,17 +41,20 @@ namespace kagome::network {
   void CollationProtocol::onCollationDeclRx(
       libp2p::peer::PeerId const &peer_id,
       CollatorDeclaration &&collation_decl) {
-    if (observer_)
+    if (observer_) {
       observer_->onDeclare(peer_id,
                            collation_decl.collator_id,
                            collation_decl.para_id,
                            collation_decl.signature);
+    }
   }
 
   void CollationProtocol::onCollationAdvRx(
       libp2p::peer::PeerId const &peer_id,
       CollatorAdvertisement &&collation_adv) {
-    if (observer_) observer_->onAdvertise(peer_id, collation_adv.para_hash);
+    if (observer_) {
+      observer_->onAdvertise(peer_id, collation_adv.relay_parent);
+    }
   }
 
   void CollationProtocol::onCollationMessageRx(
@@ -100,7 +103,7 @@ namespace kagome::network {
 
           visit_in_place(
               std::move(result.value()),
-              [&](Dummy &&) {
+              [&](ViewUpdate &&) {
                 SL_VERBOSE(self->base_.logger(),
                            "Received ViewUpdate from {}",
                            stream->remotePeerId().has_value()
@@ -121,7 +124,9 @@ namespace kagome::network {
   void CollationProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
     doCollatorHandshake(stream, [stream, wptr{weak_from_this()}]() mutable {
-      if (auto self = wptr.lock()) self->readCollationMsg(stream);
+      if (auto self = wptr.lock()) {
+        self->readCollationMsg(stream);
+      }
     });
   }
 

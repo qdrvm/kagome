@@ -61,9 +61,13 @@ namespace scale {
     } else if constexpr (N == 9) {
       auto &[v0, v1, v2, v3, v4, v5, v6, v7, v8] = v;
       return std::forward<F>(f)(std::tie(v0, v1, v2, v3, v4, v5, v6, v7, v8));
+    } else if constexpr (N == 10) {
+      auto &[v0, v1, v2, v3, v4, v5, v6, v7, v8, v9] = v;
+      return std::forward<F>(f)(
+          std::tie(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
     } else {
       // generate code for bigger tuples
-      static_assert(1 <= N && N <= 6);
+      static_assert(1 <= N && N <= 10);
     }
   }
 

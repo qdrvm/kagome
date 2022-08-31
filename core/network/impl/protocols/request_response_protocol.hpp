@@ -204,17 +204,18 @@ namespace kagome::network {
     }
 
     void writeResponse(std::shared_ptr<Stream> stream, ResponseType response) {
-      return write(std::move(stream),
-                   std::move(response),
-                   [wptr{this->weak_from_this()}](
-                       auto &&result, std::shared_ptr<Stream> stream) {
-                     if (result) {
-                       auto self = wptr.lock();
-                       assert(self && !!"If self not exists then we can not get result as OK.");
-                       self->base_.closeStream(std::move(wptr),
-                                               std::move(stream));
-                     }
-                   });
+      return write(
+          std::move(stream),
+          std::move(response),
+          [wptr{this->weak_from_this()}](auto &&result,
+                                         std::shared_ptr<Stream> stream) {
+            if (result) {
+              auto self = wptr.lock();
+              BOOST_ASSERT_MSG(
+                  self, "If self not exists then we can not get result as OK.");
+              self->base_.closeStream(std::move(wptr), std::move(stream));
+            }
+          });
     }
 
     template <typename M>

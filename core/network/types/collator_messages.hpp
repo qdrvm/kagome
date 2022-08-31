@@ -45,7 +45,7 @@ namespace kagome::network {
   struct CollatorAdvertisement {
     SCALE_TIE(1);
 
-    primitives::BlockHash para_hash;  /// Hash of the parachain block.
+    primitives::BlockHash relay_parent;  /// Hash of the parachain block.
   };
 
   /**

@@ -40,7 +40,7 @@ namespace kagome::network {
                     .protocols_ = std::move(protocols),
                     .log_ = log::createLogger(log_section, "kagome_protocols"),
                     .active_proto_ = std::nullopt})} {
-      BOOST_ASSERT(context_ && !!"Context must be created!");
+      BOOST_ASSERT_MSG(context_, "Context must be created!");
     }
 
     template <typename T>
