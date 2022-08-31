@@ -481,7 +481,7 @@ namespace {
   const sptr<libp2p::crypto::KeyPair> &get_peer_keypair(
       const application::AppConfiguration &app_config,
       const crypto::Ed25519Provider &crypto_provider,
-      const crypto::CryptoStore &crypto_store) {
+      crypto::CryptoStore &crypto_store) {
     static auto initialized =
         std::optional<sptr<libp2p::crypto::KeyPair>>(std::nullopt);
 
@@ -544,9 +544,8 @@ namespace {
     kagome::crypto::Ed25519Keypair generated_keypair;
     auto save = app_config.shouldSaveNodeKey();
     if (save) {
-      auto res = const_cast<crypto::CryptoStore &>(crypto_store)
-                     .generateEd25519KeypairOnDisk(
-                         crypto::KnownKeyTypeId::KEY_TYPE_LP2P);
+      auto res = crypto_store.generateEd25519KeypairOnDisk(
+          crypto::KnownKeyTypeId::KEY_TYPE_LP2P);
       if (res.has_error()) {
         log->warn("Can't save libp2p keypair: {}", res.error());
         save = false;
@@ -1108,7 +1107,7 @@ namespace {
           auto &crypto_provider =
               injector.template create<const crypto::Ed25519Provider &>();
           auto &crypto_store =
-              injector.template create<const crypto::CryptoStore &>();
+              injector.template create<crypto::CryptoStore &>();
           return get_peer_keypair(app_config, crypto_provider, crypto_store);
         })[boost::di::override],
 
@@ -1352,8 +1351,7 @@ namespace {
     if (config.roles().flags.authority) {
       auto &crypto_provider =
           injector.template create<const crypto::Ed25519Provider &>();
-      auto &crypto_store =
-          injector.template create<const crypto::CryptoStore &>();
+      auto &crypto_store = injector.template create<crypto::CryptoStore &>();
 
       auto &local_pair =
           get_peer_keypair(config, crypto_provider, crypto_store);
