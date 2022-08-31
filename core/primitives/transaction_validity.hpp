@@ -48,7 +48,6 @@ namespace kagome::primitives {
    */
   struct ValidTransaction {
     SCALE_TIE(5);
-    SCALE_TIE_EQ(ValidTransaction);
 
     /**
      * @brief Priority of the transaction.

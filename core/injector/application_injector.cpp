@@ -106,6 +106,8 @@
 #include "offchain/impl/offchain_worker_impl.hpp"
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
 #include "outcome/outcome.hpp"
+#include "parachain/validator/parachain_observer.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
@@ -777,10 +779,44 @@ namespace {
     return initialized.value();
   }
 
+  template <typename Injector>
+  sptr<parachain::ParachainObserverImpl> get_parachain_observer_impl(
+      const Injector &injector) {
+    auto get_instance = [&]() {
+      auto instance = std::make_shared<parachain::ParachainObserverImpl>(
+          injector.template create<std::shared_ptr<network::PeerManager>>(),
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>());
+
+      auto protocol_factory =
+          injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+      protocol_factory->setCollactionObserver(instance);
+      protocol_factory->setReqCollationObserver(instance);
+      return instance;
+    };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
+  template <typename Injector>
+  sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
+      const Injector &injector) {
+    auto get_instance = [&]() {
+      return std::make_shared<parachain::ParachainProcessorImpl>(
+          injector.template create<std::shared_ptr<network::PeerManager>>(),
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
+          injector.template create<std::shared_ptr<network::Router>>());
+    };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
   template <typename... Ts>
   auto makeWavmInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
@@ -822,7 +858,7 @@ namespace {
   template <typename... Ts>
   auto makeBinaryenInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::binaryen::RuntimeExternalInterface>.template to(
             [](const auto &injector) {
@@ -896,7 +932,7 @@ namespace {
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<runtime::RuntimeUpgradeTrackerImpl>.template to(
@@ -994,7 +1030,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -1228,6 +1264,13 @@ namespace {
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
+        di::bind<parachain::ParachainObserverImpl>.to([](auto const &injector) {
+          return get_parachain_observer_impl(injector);
+        }),
+        di::bind<parachain::ParachainProcessorImpl>.to(
+            [](auto const &injector) {
+              return get_parachain_processor_impl(injector);
+            }),
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =
@@ -1475,7 +1518,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&...args) {
+                              Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -1510,7 +1553,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       const application::AppConfiguration &app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(app_config))} {}
+            makeKagomeNodeInjector(app_config))} {}
 
   sptr<application::ChainSpec> KagomeNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
@@ -1565,6 +1608,16 @@ namespace kagome::injector {
   std::shared_ptr<network::SyncProtocolObserver>
   KagomeNodeInjector::injectSyncObserver() {
     return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
+  }
+
+  std::shared_ptr<parachain::ParachainObserverImpl>
+  KagomeNodeInjector::injectParachainObserver() {
+    return pimpl_->injector_.create<sptr<parachain::ParachainObserverImpl>>();
+  }
+
+  std::shared_ptr<parachain::ParachainProcessorImpl>
+  KagomeNodeInjector::injectParachainProcessor() {
+    return pimpl_->injector_.create<sptr<parachain::ParachainProcessorImpl>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {

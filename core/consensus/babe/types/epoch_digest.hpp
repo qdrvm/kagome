@@ -15,7 +15,6 @@ namespace kagome::consensus {
   /// Data are corresponding to the epoch
   struct EpochDigest {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(EpochDigest);
 
     /// The authorities actual for corresponding epoch
     primitives::AuthorityList authorities;
