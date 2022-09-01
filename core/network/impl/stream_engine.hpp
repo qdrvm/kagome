@@ -114,7 +114,7 @@ namespace kagome::network {
       }
     };
 
-    using ProtocolMap = std::map<Protocol, ProtocolDescr>;
+    using ProtocolMap = std::map<std::shared_ptr<ProtocolBase>, ProtocolDescr>;
     using PeerMap = std::map<PeerId, ProtocolMap>;
 
    public:
@@ -164,7 +164,7 @@ namespace kagome::network {
 
         if (not existing) {
           auto &proto_map = streams[peer_id];
-          proto_map.emplace(protocol->protocol(),
+          proto_map.emplace(protocol,
                             ProtocolDescr{protocol,
                                           is_incoming ? stream : nullptr,
                                           is_outgoing ? stream : nullptr});
@@ -173,7 +173,7 @@ namespace kagome::network {
                    direction == Direction::INCOMING   ? "incoming"
                    : direction == Direction::OUTGOING ? "outgoing"
                                                       : "bidirectional",
-                   protocol->protocol(),
+                   protocol->protocolName(),
                    peer_id);
         }
         return outcome::success();
@@ -204,14 +204,14 @@ namespace kagome::network {
       BOOST_ASSERT(protocol != nullptr);
       auto const reserved = streams_.exclusiveAccess([&](auto &streams) {
         return streams[peer_id]
-            .emplace(protocol->protocol(), ProtocolDescr{protocol})
+            .emplace(protocol, ProtocolDescr{protocol})
             .second;
       });
 
       if (reserved) {
         SL_DEBUG(logger_,
                  "Reserved {} stream with peer {}",
-                 protocol->protocol(),
+                 protocol->protocolName(),
                  peer_id);
       }
     }
@@ -238,8 +238,7 @@ namespace kagome::network {
       BOOST_ASSERT(protocol);
       return streams_.exclusiveAccess([&](PeerMap &streams) {
         auto &proto_map = streams[peer_id];
-        auto [it, _] =
-            proto_map.emplace(protocol->protocol(), ProtocolDescr{protocol});
+        auto [it, _] = proto_map.emplace(protocol, ProtocolDescr{protocol});
         return it->second.reserve();
       });
     }
@@ -394,7 +393,7 @@ namespace kagome::network {
                direction == Direction::BIDIRECTIONAL ? "Bidirectional"
                : direction == Direction::INCOMING    ? "Incoming"
                                                      : "Outgoing",
-               protocol->protocol(),
+               protocol->protocolName(),
                dst->remotePeerId().has_value()
                    ? fmt::format("{}", dst->remotePeerId().value())
                    : "without PeerId",
@@ -416,12 +415,12 @@ namespace kagome::network {
               if (res.has_value()) {
                 SL_TRACE(self->logger_,
                          "Message sent to {} stream with {}",
-                         protocol->protocol(),
+                         protocol->protocolName(),
                          peer_id);
               } else {
                 SL_ERROR(self->logger_,
                          "Could not send message to {} stream with {}: {}",
-                         protocol->protocol(),
+                         protocol->protocolName(),
                          peer_id,
                          res.error().message());
                 stream->reset();
@@ -434,8 +433,7 @@ namespace kagome::network {
     static void forProtocol(PM &proto_map,
                             const std::shared_ptr<ProtocolBase> &protocol,
                             F &&f) {
-      if (auto it = proto_map.find(protocol->protocol());
-          it != proto_map.end()) {
+      if (auto it = proto_map.find(protocol); it != proto_map.end()) {
         auto &descr = it->second;
         std::forward<F>(f)(descr);
       }
@@ -487,7 +485,7 @@ namespace kagome::network {
               if (!stream_res) {
                 self->logger_->error(
                     "Could not send message to new {} stream with {}: {}",
-                    protocol->protocol(),
+                    protocol->protocolName(),
                     peer_id,
                     stream_res.error().message());
 

@@ -9,19 +9,23 @@
 #include "network/protocol_base.hpp"
 
 #include <memory>
+#include <optional>
 #include <string>
 
-#include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
+#include <libp2p/peer/stream_protocols.hpp>
 
+#include "utils/box.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {
   using Stream = libp2p::connection::Stream;
   using Protocol = libp2p::peer::Protocol;
+  using Protocols = libp2p::StreamProtocols;
   using PeerId = libp2p::peer::PeerId;
   using PeerInfo = libp2p::peer::PeerInfo;
   using Host = libp2p::Host;
+  using ProtocolName = std::string;
 
   class ProtocolBaseImpl final : NonCopyable, NonMovable {
    public:
@@ -29,29 +33,45 @@ namespace kagome::network {
     ~ProtocolBaseImpl() = default;
 
     ProtocolBaseImpl(libp2p::Host &host,
-                     Protocol const &protocol,
+                     Protocols const &protocols,
                      std::string const &log_section)
-        : host_(host),
-          protocol_(protocol),
-          log_(log::createLogger(log_section, "kagome_protocols")) {}
+        : context_{std::make_shared<Context>(
+            Context{.host_ = host,
+                    .protocols_ = std::move(protocols),
+                    .log_ = log::createLogger(log_section, "kagome_protocols"),
+                    .active_proto_ = std::nullopt})} {
+      BOOST_ASSERT_MSG(context_, "Context must be created!");
+    }
 
     template <typename T>
     bool start(std::weak_ptr<T> wptr) {
-      host_.setProtocolHandler(
-          protocol_, [log(log_), wp(std::move(wptr))](auto &&stream) {
-            if (auto self = wp.lock()) {
-              if (auto peer_id = stream->remotePeerId()) {
-                SL_TRACE(log,
+      context_->host_.setProtocolHandler(
+          context_->protocols_,
+          [wcontext{std::weak_ptr<Context>(context_)},
+           wp(std::move(wptr))](auto &&stream_and_proto) {
+            if (auto context = wcontext.lock()) {
+              context->active_proto_ = std::move(stream_and_proto.protocol);
+              auto peer_id = stream_and_proto.stream->remotePeerId();
+
+              if (peer_id) {
+                SL_TRACE(context->log_,
                          "Handled {} protocol stream from: {}",
-                         self->protocol(),
+                         stream_and_proto.protocol,
                          peer_id.value().toBase58());
-                self->onIncomingStream(std::forward<decltype(stream)>(stream));
-                return;
+                if (auto self = wp.lock()) {
+                  self->onIncomingStream(
+                      std::forward<decltype(stream_and_proto.stream)>(
+                          stream_and_proto.stream));
+                  return;
+                }
+              } else {
+                context->log_->warn(
+                    "Handled {} protocol stream from unknown peer",
+                    stream_and_proto.protocol);
               }
-              log->warn("Handled {} protocol stream from unknown peer",
-                        self->protocol());
-              stream->reset();
             }
+            stream_and_proto.stream->close(
+                [stream{stream_and_proto.stream}](auto &&) {});
           });
       return true;
     }
@@ -60,43 +80,52 @@ namespace kagome::network {
       return true;
     }
 
-    Protocol const &protocol() const {
-      return protocol_;
+    Protocols const &protocolIds() const {
+      return context_->protocols_;
+    }
+
+    std::optional<Protocol> const &protocol() const {
+      return context_->active_proto_;
     }
 
     Host &host() {
-      return host_;
+      return context_->host_;
     }
 
     log::Logger const &logger() const {
-      return log_;
+      return context_->log_;
     }
 
     template <typename T>
     void closeStream(std::weak_ptr<T> wptr, std::shared_ptr<Stream> stream) {
       BOOST_ASSERT(stream);
-      stream->close([log(log_), wptr, stream](auto &&result) {
+      stream->close([log(context_->log_), wptr, stream](auto &&result) {
         if (auto self = wptr.lock()) {
           if (!result) {
             SL_WARN(log,
                     "Stream {} was not closed successfully with {}",
-                    self->protocol(),
+                    self->protocolName(),
                     stream->remotePeerId().value());
 
           } else {
             SL_VERBOSE(log,
-                    "Stream {} with {} was closed.",
-                    self->protocol(),
-                    stream->remotePeerId().value());
+                       "Stream {} with {} was closed.",
+                       self->protocolName(),
+                       stream->remotePeerId().value());
           }
         }
       });
     }
 
    private:
-    Host &host_;
-    Protocol const protocol_;
-    log::Logger log_;
+    struct Context {
+      Host &host_;
+      Protocols const protocols_;
+      log::Logger log_;
+      std::optional<Protocol> active_proto_;
+    };
+
+    std::shared_ptr<Context> context_;
   };
 }  // namespace kagome::network
 

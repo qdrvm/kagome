@@ -24,20 +24,23 @@ namespace kagome::network {
   }
 
   bool StateProtocolImpl::start() {
-    host_.setProtocolHandler(protocol_, [wp = weak_from_this()](auto &&stream) {
-      if (auto self = wp.lock()) {
-        if (auto peer_id = stream->remotePeerId()) {
-          SL_TRACE(self->log_,
-                   "Handled {} protocol stream from {:l}",
-                   self->protocol_,
-                   peer_id.value());
-          self->onIncomingStream(std::forward<decltype(stream)>(stream));
-          return;
-        }
-        self->log_->warn("Handled {} protocol stream from unknown peer",
-                         self->protocol_);
-      }
-    });
+    host_.setProtocolHandler(
+        {protocol_}, [wp = weak_from_this()](auto &&stream_and_proto) {
+          if (auto self = wp.lock()) {
+            if (auto peer_id = stream_and_proto.stream->remotePeerId()) {
+              SL_TRACE(self->log_,
+                       "Handled {} protocol stream from {:l}",
+                       self->protocol_,
+                       peer_id.value());
+              self->onIncomingStream(
+                  std::forward<decltype(stream_and_proto.stream)>(
+                      stream_and_proto.stream));
+              return;
+            }
+            self->log_->warn("Handled {} protocol stream from unknown peer",
+                             self->protocol_);
+          }
+        });
     return true;
   }
 
@@ -58,7 +61,7 @@ namespace kagome::network {
 
     host_.newStream(
         peer_info.id,
-        protocol_,
+        {protocol_},
         [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
             auto &&stream_res) mutable {
           auto self = wp.lock();
@@ -77,14 +80,14 @@ namespace kagome::network {
             cb(stream_res.as_failure());
             return;
           }
-          auto &stream = stream_res.value();
+          auto &stream_and_proto = stream_res.value();
 
           SL_DEBUG(self->log_,
                    "Established connection over {} stream with {}",
                    self->protocol_,
                    peer_id);
 
-          cb(std::move(stream));
+          cb(std::move(stream_and_proto.stream));
         });
   }
 
@@ -152,7 +155,8 @@ namespace kagome::network {
         return;
       }
 
-      self->writeResponse(std::move(stream), std::move(state_response_res.value()));
+      self->writeResponse(std::move(stream),
+                          std::move(state_response_res.value()));
     });
   }
 
@@ -168,7 +172,7 @@ namespace kagome::network {
     }
 
     newOutgoingStream(
-                      {peer_id, std::move(addresses_res.value())},
+        {peer_id, std::move(addresses_res.value())},
         [wp = weak_from_this(),
          response_handler = std::move(response_handler),
          state_request = std::move(state_request)](auto &&stream_res) mutable {

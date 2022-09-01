@@ -20,6 +20,7 @@
 #include "primitives/authority.hpp"
 #include "primitives/common.hpp"
 #include "scale/scale.hpp"
+#include "scale/tie.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -148,22 +149,12 @@ namespace kagome::consensus::grandpa {
   // justification that contains a list of signed precommits justifying the
   // validity of the block
   struct GrandpaJustification {
+    SCALE_TIE(3);
+
     RoundNumber round_number;
     BlockInfo block_info;
     std::vector<SignedPrecommit> items{};
   };
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const GrandpaJustification &v) {
-    return s << v.round_number << v.block_info << v.items;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, GrandpaJustification &v) {
-    return s >> v.round_number >> v.block_info >> v.items;
-  }
 
   /// A commit message which is an aggregate of precommits.
   struct Commit {
@@ -173,6 +164,8 @@ namespace kagome::consensus::grandpa {
 
   // either prevote, precommit or primary propose
   struct VoteMessage {
+    SCALE_TIE(3);
+
     RoundNumber round_number{0};
     MembershipCounter counter{0};
     SignedMessage vote;
@@ -181,18 +174,6 @@ namespace kagome::consensus::grandpa {
       return vote.id;
     }
   };
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const VoteMessage &v) {
-    return s << v.round_number << v.counter << v.vote;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, VoteMessage &v) {
-    return s >> v.round_number >> v.counter >> v.vote;
-  }
 
   using PrevoteEquivocation = detail::Equivocation<Prevote>;
   using PrecommitEquivocation = detail::Equivocation<Precommit>;
@@ -206,6 +187,8 @@ namespace kagome::consensus::grandpa {
   // @See
   // https://github.com/paritytech/finality-grandpa/blob/v0.14.2/src/lib.rs#L312
   struct CompactCommit {
+    SCALE_TIE(4);
+
     // The target block's hash.
     primitives::BlockHash target_hash;
     // The target block's number.
@@ -216,19 +199,6 @@ namespace kagome::consensus::grandpa {
     // Authentication data for the commit.
     std::vector<std::pair<Signature, Id>> auth_data{};
   };
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const CompactCommit &f) {
-    return s << f.target_hash << f.target_number << f.precommits << f.auth_data;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, CompactCommit &f) {
-    return s >> f.target_hash >> f.target_number >> f.precommits >> f.auth_data;
-  }
-
 }  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CONSENSUS_GRANDPA_STRUCTS_

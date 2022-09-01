@@ -40,6 +40,11 @@ namespace kagome {
     class SyncProtocolObserver;
   }  // namespace network
 
+  namespace parachain {
+    struct ParachainObserverImpl;
+    struct ParachainProcessorImpl;
+  }  // namespace parachain
+
   namespace api {
     class ApiService;
   }
@@ -88,6 +93,9 @@ namespace kagome::injector {
     std::shared_ptr<consensus::babe::Babe> injectBabe();
     std::shared_ptr<network::StateProtocolObserver> injectStateObserver();
     std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
+    std::shared_ptr<parachain::ParachainObserverImpl> injectParachainObserver();
+    std::shared_ptr<parachain::ParachainProcessorImpl>
+    injectParachainProcessor();
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
     std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem();
     std::shared_ptr<storage::trie::TrieStorage> injectTrieStorage();

@@ -56,6 +56,7 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
+#include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
@@ -92,7 +93,6 @@
 #include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
-#include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/rating_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
@@ -107,16 +107,18 @@
 #include "offchain/impl/offchain_worker_impl.hpp"
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
 #include "outcome/outcome.hpp"
+#include "parachain/validator/parachain_observer.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/common/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
 #include "runtime/runtime_api/impl/babe_api.hpp"
@@ -378,6 +380,14 @@ namespace {
     options.optimize_filters_for_hits = true;
     options.table_factory.reset(
         rocksdb::NewBlockBasedTableFactory(table_options));
+
+    // Setting limit for open rocksdb files to a half of system soft limit
+    auto soft_limit = common::getFdLimit();
+    if (!soft_limit) {
+      exit(EXIT_FAILURE);
+    }
+    options.max_open_files = soft_limit.value() / 2;
+
     auto db_res =
         storage::RocksDB::create(app_config.databasePath(chain_spec->id()),
                                  options,
@@ -780,10 +790,44 @@ namespace {
     return initialized.value();
   }
 
+  template <typename Injector>
+  sptr<parachain::ParachainObserverImpl> get_parachain_observer_impl(
+      const Injector &injector) {
+    auto get_instance = [&]() {
+      auto instance = std::make_shared<parachain::ParachainObserverImpl>(
+          injector.template create<std::shared_ptr<network::PeerManager>>(),
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>());
+
+      auto protocol_factory =
+          injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+      protocol_factory->setCollactionObserver(instance);
+      protocol_factory->setReqCollationObserver(instance);
+      return instance;
+    };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
+  template <typename Injector>
+  sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
+      const Injector &injector) {
+    auto get_instance = [&]() {
+      return std::make_shared<parachain::ParachainProcessorImpl>(
+          injector.template create<std::shared_ptr<network::PeerManager>>(),
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
+          injector.template create<std::shared_ptr<network::Router>>());
+    };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
   template <typename... Ts>
   auto makeWavmInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
@@ -825,7 +869,7 @@ namespace {
   template <typename... Ts>
   auto makeBinaryenInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::binaryen::RuntimeExternalInterface>.template to(
             [](const auto &injector) {
@@ -899,7 +943,7 @@ namespace {
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<runtime::RuntimeUpgradeTrackerImpl>.template to(
@@ -963,6 +1007,7 @@ namespace {
           }
           return initialized.value();
         }),
+        di::bind<runtime::RawExecutor>.template to<runtime::Executor>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
@@ -1026,7 +1071,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -1268,6 +1313,13 @@ namespace {
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
+        di::bind<parachain::ParachainObserverImpl>.to([](auto const &injector) {
+          return get_parachain_observer_impl(injector);
+        }),
+        di::bind<parachain::ParachainProcessorImpl>.to(
+            [](auto const &injector) {
+              return get_parachain_processor_impl(injector);
+            }),
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =
@@ -1518,7 +1570,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&...args) {
+                              Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -1553,7 +1605,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       const application::AppConfiguration &app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(app_config))} {}
+            makeKagomeNodeInjector(app_config))} {}
 
   sptr<application::ChainSpec> KagomeNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
@@ -1608,6 +1660,16 @@ namespace kagome::injector {
   std::shared_ptr<network::SyncProtocolObserver>
   KagomeNodeInjector::injectSyncObserver() {
     return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
+  }
+
+  std::shared_ptr<parachain::ParachainObserverImpl>
+  KagomeNodeInjector::injectParachainObserver() {
+    return pimpl_->injector_.create<sptr<parachain::ParachainObserverImpl>>();
+  }
+
+  std::shared_ptr<parachain::ParachainProcessorImpl>
+  KagomeNodeInjector::injectParachainProcessor() {
+    return pimpl_->injector_.create<sptr<parachain::ParachainProcessorImpl>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {

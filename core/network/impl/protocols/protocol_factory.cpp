@@ -4,6 +4,7 @@
  */
 
 #include "network/impl/protocols/protocol_factory.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::network {
 
@@ -54,6 +55,10 @@ namespace kagome::network {
 
   std::shared_ptr<GrandpaProtocol> ProtocolFactory::makeGrandpaProtocol()
       const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     return std::make_shared<GrandpaProtocol>(host_,
                                              io_context_,
                                              app_config_,
@@ -61,6 +66,7 @@ namespace kagome::network {
                                              own_info_,
                                              stream_engine_,
                                              peer_manager_.lock(),
+                                             genesisBlockHash,
                                              scheduler_);
   }
 
@@ -68,6 +74,12 @@ namespace kagome::network {
       const {
     return std::make_shared<CollationProtocol>(
         host_, app_config_, chain_spec_, collation_observer_.lock());
+  }
+
+  std::shared_ptr<ReqCollationProtocol>
+  ProtocolFactory::makeReqCollationProtocol() const {
+    return std::make_shared<ReqCollationProtocol>(
+        host_, app_config_, chain_spec_, req_collation_observer_.lock());
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>

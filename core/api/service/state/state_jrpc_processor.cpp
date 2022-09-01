@@ -6,6 +6,7 @@
 #include "api/service/state/state_jrpc_processor.hpp"
 
 #include "api/jrpc/jrpc_method.hpp"
+#include "api/service/state/requests/call.hpp"
 #include "api/service/state/requests/get_keys_paged.hpp"
 #include "api/service/state/requests/get_metadata.hpp"
 #include "api/service/state/requests/get_runtime_version.hpp"
@@ -29,6 +30,8 @@ namespace kagome::api::state {
   using Handler = kagome::api::Method<Request, StateApi>;
 
   void StateJrpcProcessor::registerHandlers() {
+    server_->registerHandler("state_call", Handler<request::Call>(api_));
+
     server_->registerHandler("state_getKeysPaged",
                              Handler<request::GetKeysPaged>(api_));
 

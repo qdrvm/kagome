@@ -7,10 +7,12 @@
 #define KAGOME_CORE_PRIMITIVES_APPLY_RESULT_HPP
 
 #include <boost/variant.hpp>
+
 #include "primitives/arithmetic_error.hpp"
 #include "primitives/token_error.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "scale/scale.hpp"
+#include "scale/tie.hpp"
 
 namespace kagome::primitives {
 
@@ -68,40 +70,17 @@ namespace kagome::primitives {
     SCALE_EMPTY_CODER(NoProviders);
     /// An error to do with tokens.
     struct Token {
+      SCALE_TIE(1);
+
       TokenError error;
     };
 
-    template <typename Stream,
-              typename = std::enable_if_t<Stream::is_encoder_stream>>
-    Stream &operator<<(Stream &s, const Token &v) {
-      return s << v.error;
-    }
-
-    template <typename Stream,
-              typename = std::enable_if_t<Stream::is_decoder_stream>>
-    Stream &operator>>(Stream &s, Token &v) {
-      s >> v.error;
-      return s;
-    }
-
     /// An arithmetic error.
     struct Arithmetic {
+      SCALE_TIE(1);
+
       ArithmeticError error;
     };
-
-    template <typename Stream,
-              typename = std::enable_if_t<Stream::is_encoder_stream>>
-    Stream &operator<<(Stream &s, const Arithmetic &v) {
-      return s << v.error;
-    }
-
-    template <typename Stream,
-              typename = std::enable_if_t<Stream::is_decoder_stream>>
-    Stream &operator>>(Stream &s, Arithmetic &v) {
-      s >> v.error;
-      return s;
-    }
-
   }  // namespace dispatch_error
 
   namespace de = dispatch_error;

@@ -42,20 +42,21 @@ namespace kagome::network {
   }
 
   bool RouterLibp2p::prepare() {
-    host_.setProtocolHandler(ping_protocol_->getProtocolId(),
-                             [wp = weak_from_this()](auto &&stream) {
-                               if (auto self = wp.lock()) {
-                                 if (auto peer_id = stream->remotePeerId()) {
-                                   SL_TRACE(
-                                       self->log_,
-                                       "Handled {} protocol stream from: {}",
-                                       self->ping_protocol_->getProtocolId(),
-                                       peer_id.value().toBase58());
-                                   self->ping_protocol_->handle(
-                                       std::forward<decltype(stream)>(stream));
-                                 }
-                               }
-                             });
+    host_.setProtocolHandler(
+        {ping_protocol_->getProtocolId()},
+        [wp = weak_from_this()](auto &&stream_and_proto) {
+          if (auto self = wp.lock()) {
+            auto &stream = stream_and_proto.stream;
+            if (auto peer_id = stream->remotePeerId()) {
+              SL_TRACE(self->log_,
+                       "Handled {} protocol stream from: {}",
+                       self->ping_protocol_->getProtocolId(),
+                       peer_id.value().toBase58());
+              self->ping_protocol_->handle(
+                  std::forward<decltype(stream_and_proto)>(stream_and_proto));
+            }
+          }
+        });
 
     block_announce_protocol_ = protocol_factory_->makeBlockAnnounceProtocol();
     if (not block_announce_protocol_) {
@@ -64,6 +65,11 @@ namespace kagome::network {
 
     collation_protocol_ = protocol_factory_->makeCollationProtocol();
     if (not collation_protocol_) {
+      return false;
+    }
+
+    req_collation_protocol_ = protocol_factory_->makeReqCollationProtocol();
+    if (not req_collation_protocol_) {
       return false;
     }
 
@@ -94,6 +100,7 @@ namespace kagome::network {
     state_protocol_->start();
     sync_protocol_->start();
     collation_protocol_->start();
+    req_collation_protocol_->start();
 
     return true;
   }
@@ -157,6 +164,11 @@ namespace kagome::network {
   std::shared_ptr<CollationProtocol> RouterLibp2p::getCollationProtocol()
       const {
     return collation_protocol_;
+  }
+
+  std::shared_ptr<ReqCollationProtocol> RouterLibp2p::getReqCollationProtocol()
+      const {
+    return req_collation_protocol_;
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>
