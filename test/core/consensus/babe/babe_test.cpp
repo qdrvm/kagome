@@ -21,6 +21,7 @@
 #include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
+#include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
@@ -48,6 +49,7 @@ using namespace primitives;
 using namespace clock;
 using namespace common;
 using namespace network;
+using babe::ConsistencyKeeperMock;
 
 using testing::_;
 using testing::A;
@@ -126,6 +128,8 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
         .WillRepeatedly(Return(outcome::success()));
 
+    consistency_keeper_ = std::make_shared<babe::ConsistencyKeeperMock>();
+
     expected_epoch_digest = {
         .authorities = babe_config_->genesis_authorities,
         .randomness = babe_config_->randomness,
@@ -160,7 +164,8 @@ class BabeTest : public testing::Test {
                                              grandpa_authority_update_observer_,
                                              synchronizer_,
                                              babe_util_,
-                                             offchain_worker_api_);
+                                             offchain_worker_api_,
+                                             consistency_keeper_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -198,6 +203,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeUtilMock> babe_util_;
   std::shared_ptr<runtime::OffchainWorkerApiMock> offchain_worker_api_;
+  std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
   std::shared_ptr<boost::asio::io_context> io_context_;
 
   std::shared_ptr<babe::BabeImpl> babe_;

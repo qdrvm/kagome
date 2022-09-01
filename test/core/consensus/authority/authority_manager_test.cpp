@@ -77,6 +77,16 @@ class AuthorityManagerTest : public testing::Test {
 
     EXPECT_CALL(*app_state_manager, atPrepare(_));
 
+    buffer_storage = std::make_shared<
+        storage::face::GenericStorageMock<common::Buffer,
+                                          common::Buffer,
+                                          common::BufferView>>();
+    EXPECT_CALL(*buffer_storage, tryLoad(_))
+        .WillRepeatedly(Return(std::nullopt));
+
+    EXPECT_CALL(*buffer_storage, put(_, _))
+        .WillRepeatedly(Return(outcome::success()));
+
     authority_manager =
         std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
                                                app_state_manager,
@@ -84,7 +94,8 @@ class AuthorityManagerTest : public testing::Test {
                                                block_tree,
                                                storage,
                                                grandpa_api,
-                                               hasher);
+                                               hasher,
+                                               buffer_storage);
 
     ON_CALL(*block_tree, hasDirectChain(_, _))
         .WillByDefault(testing::Invoke([](auto &anc, auto &des) {
@@ -159,6 +170,10 @@ class AuthorityManagerTest : public testing::Test {
   std::shared_ptr<crypto::HasherMock> hasher;
   std::shared_ptr<AuthorityManagerImpl> authority_manager;
   std::shared_ptr<AuthorityList> authorities;
+  std::shared_ptr<storage::face::GenericStorageMock<common::Buffer,
+                                                    common::Buffer,
+                                                    common::BufferView>>
+      buffer_storage;
 
   primitives::Authority makeAuthority(std::string_view id, uint32_t weight) {
     primitives::Authority authority;
