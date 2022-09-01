@@ -220,7 +220,12 @@ namespace kagome::parachain {
             return primitives::BlockHash{};
           },
           [&](network::CommittedCandidateReceipt const &data) {
-            return hasher_->blake2b_256(scale::encode(data).value());
+            return hasher_->blake2b_256(
+                scale::encode(network::CandidateReceipt{
+                                  .descriptor = data.descriptor,
+                                  .commitments_hash = hasher_->blake2b_256(
+                                      scale::encode(data.commitments).value())})
+                    .value());
           },
           [&](primitives::BlockHash const &candidate_hash) {
             return candidate_hash;
