@@ -107,7 +107,7 @@ namespace kagome::network {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::set<std::tuple<consensus::grandpa::RoundNumber,
-                        consensus::grandpa::MembershipCounter>>
+                        consensus::grandpa::VoterSetId>>
         recent_catchup_requests_by_round_;
 
     std::set<libp2p::peer::PeerId> recent_catchup_requests_by_peer_;

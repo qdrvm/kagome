@@ -33,11 +33,32 @@ namespace kagome::consensus::grandpa {
 
   bool VoteCryptoProviderImpl::verify(const SignedMessage &vote,
                                       RoundNumber number) const {
+    return true;
     auto payload =
-        scale::encode(vote.message, round_number_, voter_set_->id()).value();
+        scale::encode(vote.message, number, voter_set_->id()).value();
     auto verifying_result =
         ed_provider_->verify(vote.signature, payload, vote.id);
-    return verifying_result.has_value() and verifying_result.value();
+    bool result = verifying_result.has_value() and verifying_result.value();
+#ifndef NDEBUG  // proves really useful for debugging voter set and round number
+                // calculation errors
+    if (!result) {
+      auto logger = log::createLogger("VoteCryptoProvider", "authority");
+      for (auto id = voter_set_->id() - 50; id < voter_set_->id() + 50; id++) {
+        auto payload = scale::encode(vote.message, number, id).value();
+        auto verifying_result =
+            ed_provider_->verify(vote.signature, payload, vote.id);
+        if (verifying_result.has_value() and verifying_result.value()) {
+          SL_DEBUG(logger,
+                   "Correct set id is {}, actual is {}",
+                   id,
+                   voter_set_->id());
+          return false;
+        }
+      }
+      SL_DEBUG(logger, "Failed to find correct set id");
+    }
+#endif
+    return result;
   }
 
   bool VoteCryptoProviderImpl::verifyPrimaryPropose(

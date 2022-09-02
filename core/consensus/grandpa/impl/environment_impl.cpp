@@ -62,7 +62,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
       const BlockHash &base,
-      std::optional<MembershipCounter> voter_set_id) const {
+      std::optional<VoterSetId> voter_set_id) const {
     SL_DEBUG(logger_, "Finding best chain containing block {}", base);
     OUTCOME_TRY(best_block, block_tree_->getBestContaining(base, std::nullopt));
 
@@ -92,7 +92,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> EnvironmentImpl::onCatchUpRequested(
       const libp2p::peer::PeerId &peer_id,
-      MembershipCounter set_id,
+      VoterSetId set_id,
       RoundNumber round_number) {
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
@@ -102,7 +102,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> EnvironmentImpl::onCatchUpRespond(
       const libp2p::peer::PeerId &peer_id,
-      MembershipCounter set_id,
+      VoterSetId set_id,
       RoundNumber round_number,
       std::vector<SignedPrevote> prevote_justification,
       std::vector<SignedPrecommit> precommit_justification,
@@ -119,7 +119,7 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> EnvironmentImpl::onVoted(RoundNumber round,
-                                                 MembershipCounter set_id,
+                                                 VoterSetId set_id,
                                                  const SignedMessage &vote) {
     SL_DEBUG(logger_,
              "Round #{}: Send {} signed by {} for block {}",
@@ -140,7 +140,7 @@ namespace kagome::consensus::grandpa {
 
   void EnvironmentImpl::sendState(const libp2p::peer::PeerId &peer_id,
                                   const MovableRoundState &state,
-                                  MembershipCounter voter_set_id) {
+                                  VoterSetId voter_set_id) {
     auto send = [&](const SignedMessage &vote) {
       SL_DEBUG(logger_,
                "Round #{}: Send {} signed by {} for block {} (as send state)",
@@ -172,7 +172,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> EnvironmentImpl::onCommitted(
       RoundNumber round,
-      MembershipCounter voter_ser_id,
+      VoterSetId voter_ser_id,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
     if (round == 0) {
@@ -197,7 +197,7 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> EnvironmentImpl::onNeighborMessageSent(
-      RoundNumber round, MembershipCounter set_id, BlockNumber last_finalized) {
+      RoundNumber round, VoterSetId set_id, BlockNumber last_finalized) {
     SL_DEBUG(logger_, "Round #{}: Send neighbor message", round);
 
     network::GrandpaNeighborMessage message{.round_number = round,
@@ -230,7 +230,7 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> EnvironmentImpl::finalize(
-      MembershipCounter id, const GrandpaJustification &grandpa_justification) {
+      VoterSetId id, const GrandpaJustification &grandpa_justification) {
     primitives::Justification justification;
     OUTCOME_TRY(enc, scale::encode(grandpa_justification));
     justification.data.put(enc);

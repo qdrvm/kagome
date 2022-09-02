@@ -419,7 +419,7 @@ namespace kagome::network {
                          protocol->protocol(),
                          peer_id);
               } else {
-                SL_ERROR(self->logger_,
+                SL_DEBUG(self->logger_,
                          "Could not send message to {} stream with {}: {}",
                          protocol->protocol(),
                          peer_id,

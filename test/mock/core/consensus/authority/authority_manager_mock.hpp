@@ -16,7 +16,7 @@ namespace kagome::authority {
   struct AuthorityManagerMock : public AuthorityManager {
     MOCK_METHOD(primitives::BlockInfo, base, (), (const, override));
 
-    MOCK_METHOD(std::optional<std::shared_ptr<const primitives::AuthorityList>>,
+    MOCK_METHOD(std::optional<std::shared_ptr<const primitives::AuthoritySet>>,
                 authorities,
                 (const primitives::BlockInfo &, IsBlockFinalized),
                 (const, override));
@@ -32,7 +32,8 @@ namespace kagome::authority {
                 applyForcedChange,
                 (const primitives::BlockInfo &,
                  const primitives::AuthorityList &,
-                 primitives::BlockNumber),
+                 primitives::BlockNumber,
+                 size_t),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
@@ -51,6 +52,10 @@ namespace kagome::authority {
                 (override));
 
     MOCK_METHOD(void, prune, (const primitives::BlockInfo &block), (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                recalculateStoredState,
+                (primitives::BlockNumber last_finalized_number));
   };
 }  // namespace kagome::authority
 

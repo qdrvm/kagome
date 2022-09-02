@@ -161,4 +161,5 @@ namespace kagome::runtime::binaryen {
                    segment.data.size()));
     }
   }
+
 }  // namespace kagome::runtime::binaryen

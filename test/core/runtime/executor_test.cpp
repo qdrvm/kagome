@@ -74,6 +74,7 @@ class ExecutorTest : public testing::Test {
       kagome::storage::trie::RootHash const &next_storage_state) {
     static Buffer enc_args;
     enc_args = Buffer{scale::encode(arg1, arg2).value()};
+    const PtrSize ARGS_LOCATION{1, 2};
     const PtrSize RESULT_LOCATION{3, 4};
 
     Buffer enc_res{scale::encode(res).value()};
@@ -143,6 +144,7 @@ class ExecutorTest : public testing::Test {
       int res) {
     static Buffer enc_args;
     enc_args = Buffer{scale::encode(arg1, arg2).value()};
+    const PtrSize ARGS_LOCATION{1, 2};
     const PtrSize RESULT_LOCATION{3, 4};
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
