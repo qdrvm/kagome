@@ -82,7 +82,11 @@ namespace kagome::application {
 
     const std::optional<std::string> &nodeKeyFile() const override {
       return node_key_file_;
-    };
+    }
+
+    bool shouldSaveNodeKey() const override {
+      return save_node_key_;
+    }
 
     const std::vector<libp2p::multi::Multiaddress> &listenAddresses()
         const override {
@@ -272,6 +276,7 @@ namespace kagome::application {
     network::Roles roles_;
     std::optional<crypto::Ed25519PrivateKey> node_key_;
     std::optional<std::string> node_key_file_;
+    bool save_node_key_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
     std::vector<libp2p::multi::Multiaddress> public_addresses_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;
