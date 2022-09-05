@@ -34,6 +34,9 @@ namespace kagome::network {
   using CollationProtocol =
       ParachainProtocol<CollationObserver, CollationMessage>;
 
+  using ValidationProtocol =
+      ParachainProtocol<ValidationObserver, ValidationMessage>;
+
 }  // namespace kagome::network
 
 #endif  // KAGOME_NETWORK_COLLATIONPROTOCOL

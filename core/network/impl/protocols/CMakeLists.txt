@@ -19,18 +19,6 @@ target_link_libraries(block_announce_protocol
     protocol_error
     )
 
-add_library(collation_protocol
-    parachain_protocol.cpp
-    )
-target_link_libraries(collation_protocol
-    blob
-    buffer
-    logger
-    scale_message_read_writer
-    protocol_error
-    p2p::p2p_peer_id
-    )
-
 add_library(grandpa_protocol
     grandpa_protocol.cpp
     )
