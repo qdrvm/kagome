@@ -200,7 +200,7 @@ namespace kagome::network {
   };
 
   /**
-   * Collator -> Validator and Validator -> Collator if statement message.
+   * Collator -> Validator and Validator -> Collator if seconded message.
    * Type of the appropriate message.
    */
   using CollationMessage = boost::variant<
@@ -213,18 +213,31 @@ namespace kagome::network {
       >;
 
   /**
+   * Validator -> Validator.
+   * Type of the appropriate message.
+   */
+  using ValidationMessage = boost::variant<Dummy>;
+
+  template <typename T, typename... AllowedTypes>
+  struct AllowerTypeChecker {
+    static constexpr bool allowed = (std::is_same_v<T, AllowedTypes> || ...);
+  };
+
+  /**
    * Collation protocol message.
    */
-  using ProtocolMessage =
-      boost::variant<CollationMessage  /// collation protocol message
-                     >;
+  template <typename T>
+  using ProtocolMessage = boost::variant<std::enable_if_t<
+      AllowerTypeChecker<T, ValidationMessage, CollationMessage>::allowed,
+      T>>;  /// collation or validation protocol message
 
   /**
    * Common WireMessage that represents messages in NetworkBridge.
    */
-  using WireMessage = boost::variant<Dummy,            /// not used
-                                     ProtocolMessage,  /// protocol message
-                                     ViewUpdate        /// view update message
+  template <typename T>
+  using WireMessage = boost::variant<Dummy,               /// not used
+                                     ProtocolMessage<T>,  /// protocol message
+                                     ViewUpdate  /// view update message
                                      >;
 
 }  // namespace kagome::network

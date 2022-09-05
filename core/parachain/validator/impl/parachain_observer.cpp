@@ -31,8 +31,27 @@ namespace kagome::observers {
     }
     ~CollationObserverImpl() override = default;
 
+    void onIncomingMessage(
+        libp2p::peer::PeerId const &peer_id,
+        network::CollationMessage &&collation_message) override {
+      visit_in_place(
+          std::move(collation_message),
+          [&](network::CollatorDeclaration &&collation_decl) {
+            onDeclare(peer_id,
+                      std::move(collation_decl.collator_id),
+                      std::move(collation_decl.para_id),
+                      std::move(collation_decl.signature));
+          },
+          [&](network::CollatorAdvertisement &&collation_adv) {
+            onAdvertise(peer_id, std::move(collation_adv.relay_parent));
+          },
+          [&](auto &&) {
+            SL_WARN(logger_, "Unexpected collation message from.");
+          });
+    }
+
     void onAdvertise(libp2p::peer::PeerId const &peer_id,
-                     primitives::BlockHash relay_parent) override {
+                     primitives::BlockHash relay_parent) {
       auto &parachain_state = pm_->parachainState();
       bool const contains_para_hash =
           (parachain_state.our_view.count(relay_parent) != 0);
@@ -67,7 +86,7 @@ namespace kagome::observers {
     void onDeclare(libp2p::peer::PeerId const &peer_id,
                    network::CollatorPublicKey pubkey,
                    network::ParachainId para_id,
-                   network::Signature signature) override {
+                   network::Signature signature) {
       auto const peer_state = pm_->getPeerState(peer_id);
       if (!peer_state) {
         logger_->warn("Received collation declaration from unknown peer {}:{}",
@@ -143,17 +162,11 @@ namespace kagome::parachain {
     BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialised!");
   }
 
-  void ParachainObserverImpl::onAdvertise(libp2p::peer::PeerId const &peer_id,
-                                          primitives::BlockHash relay_parent) {
-    collation_observer_impl_->onAdvertise(peer_id, std::move(relay_parent));
-  }
-
-  void ParachainObserverImpl::onDeclare(libp2p::peer::PeerId const &peer_id,
-                                        network::CollatorPublicKey pubkey,
-                                        network::ParachainId para_id,
-                                        network::Signature signature) {
-    collation_observer_impl_->onDeclare(
-        peer_id, std::move(pubkey), std::move(para_id), std::move(signature));
+  void ParachainObserverImpl::onIncomingMessage(
+      libp2p::peer::PeerId const &peer_id,
+      network::CollationMessage &&collation_message) {
+    collation_observer_impl_->onIncomingMessage(peer_id,
+                                                std::move(collation_message));
   }
 
   outcome::result<network::CollationFetchingResponse>

@@ -72,8 +72,11 @@ namespace kagome::network {
 
   std::shared_ptr<CollationProtocol> ProtocolFactory::makeCollationProtocol()
       const {
-    return std::make_shared<CollationProtocol>(
-        host_, app_config_, chain_spec_, collation_observer_.lock());
+    return std::make_shared<CollationProtocol>(host_,
+                                               app_config_,
+                                               chain_spec_,
+                                               collation_observer_.lock(),
+                                               kCollationProtocol);
   }
 
   std::shared_ptr<ReqCollationProtocol>

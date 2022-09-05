@@ -452,9 +452,11 @@ namespace kagome::parachain {
       stream_engine->send(
           peer_id,
           collation_protocol,
-          std::make_shared<network::WireMessage>(network::ProtocolMessage(
-              network::CollationMessage(network::Seconded{
-                  .relay_parent = relay_parent, .statement = *statement}))));
+          std::make_shared<network::WireMessage<network::CollationMessage>>(
+              network::ProtocolMessage<network::CollationMessage>(
+                  network::CollationMessage(
+                      network::Seconded{.relay_parent = relay_parent,
+                                        .statement = *statement}))));
     }
   }
 

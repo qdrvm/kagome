@@ -41,12 +41,9 @@ namespace kagome::parachain {
     ~ParachainObserverImpl() = default;
 
     /// collation protocol observer
-    void onAdvertise(libp2p::peer::PeerId const &peer_id,
-                     primitives::BlockHash para_hash) override;
-    void onDeclare(libp2p::peer::PeerId const &peer_id,
-                   network::CollatorPublicKey pubkey,
-                   network::ParachainId para_id,
-                   network::Signature signature) override;
+    void onIncomingMessage(
+        libp2p::peer::PeerId const &peer_id,
+        network::CollationMessage &&collation_message) override;
 
     /// fetch collation protocol observer
     outcome::result<network::CollationFetchingResponse> OnCollationRequest(

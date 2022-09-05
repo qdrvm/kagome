@@ -20,7 +20,7 @@ target_link_libraries(block_announce_protocol
     )
 
 add_library(collation_protocol
-    collation_protocol.cpp
+    parachain_protocol.cpp
     )
 target_link_libraries(collation_protocol
     blob
