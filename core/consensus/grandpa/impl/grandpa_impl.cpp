@@ -330,9 +330,9 @@ namespace kagome::consensus::grandpa {
 
     // Iff peer just reached one of recent round, then share known votes
     if (not info.has_value()
-        or (info->set_id.has_value() and msg.voter_set_id != info->set_id)
-        or (info->round_number.has_value()
-            and msg.round_number > info->round_number)) {
+        or (info->get().set_id.has_value() and msg.voter_set_id != info->get().set_id)
+        or (info->get().round_number.has_value()
+            and msg.round_number > info->get().round_number)) {
       if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
           opt_round.has_value()) {
         auto &round = opt_round.value();
@@ -359,7 +359,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (info->last_finalized <= block_tree_->deepestLeaf().number) {
+    if (info->get().last_finalized <= block_tree_->deepestLeaf().number) {
       //  Trying to substitute with justifications' request only
       auto last_finalized = block_tree_->getLastFinalized();
       synchronizer_->syncMissingJustifications(

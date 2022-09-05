@@ -6,16 +6,41 @@
 #ifndef KAGOME_NETWORK_PEERMANAGER
 #define KAGOME_NETWORK_PEERMANAGER
 
+#include <optional>
+#include <unordered_set>
+
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/peer/peer_info.hpp>
 
 #include "network/types/block_announce.hpp"
+#include "network/types/collator_messages.hpp"
 #include "network/types/grandpa_message.hpp"
 #include "network/types/status.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
+#include "utils/non_copyable.hpp"
 
 namespace kagome::network {
+
+  struct CollatorState {
+    network::ParachainId parachain_id;
+    network::CollatorPublicKey collator_id;
+    std::unordered_set<BlockHash> advertisements;
+  };
+
+  struct PendingCollation {
+    network::ParachainId para_id;
+    BlockHash relay_parent;
+    libp2p::peer::PeerId peer_id;
+  };
+
+  /*
+   * Parachain state view.
+   */
+  struct ParachainState {
+    std::unordered_map<BlockHash, bool> our_view;
+    std::deque<PendingCollation> pending_collations;
+  };
 
   struct PeerState {
     clock::SteadyClock::TimePoint time;
@@ -24,6 +49,7 @@ namespace kagome::network {
     std::optional<RoundNumber> round_number = std::nullopt;
     std::optional<VoterSetId> set_id = std::nullopt;
     BlockNumber last_finalized = 0;
+    std::optional<CollatorState> collator_state = std::nullopt;
   };
 
   /**
@@ -38,6 +64,8 @@ namespace kagome::network {
     using PeerId = libp2p::peer::PeerId;
     using PeerInfo = libp2p::peer::PeerInfo;
     using BlockInfo = primitives::BlockInfo;
+    using AdvResult = outcome::result<
+        std::pair<network::CollatorPublicKey const &, network::ParachainId>>;
 
     virtual ~PeerManager() = default;
 
@@ -74,6 +102,38 @@ namespace kagome::network {
                                  const BlockAnnounce &announce) = 0;
 
     /**
+     * Store advertisement from a peer to later processing;
+     */
+    virtual outcome::result<
+        std::pair<network::CollatorPublicKey const &, network::ParachainId>>
+    insert_advertisement(PeerState &peer_state,
+                         ParachainState &parachain_state,
+                         primitives::BlockHash para_hash) = 0;
+
+    /**
+     * Retrieves pending collation from queue.
+     */
+    virtual std::optional<PendingCollation> pop_pending_collation() = 0;
+
+    /**
+     * Pushes pending collation from queue.
+     */
+    virtual void push_pending_collation(PendingCollation &&collation) = 0;
+
+    /**
+     * Allows to update parachains states.
+     */
+    virtual ParachainState &parachainState() = 0;
+
+    /**
+     * Updates collation state and stores parachain id. Should be called once
+     * for each peer per connection. If else -> reduce reputation.
+     */
+    virtual void setCollating(const PeerId &peer_id,
+                              network::CollatorPublicKey const &collator_id,
+                              network::ParachainId para_id) = 0;
+
+    /**
      * Updates known data about peer with {@param peer_id} by {@param
      * neighbor_message}
      */
@@ -84,7 +144,8 @@ namespace kagome::network {
     /**
      * @returns known info about peer with {@param peer_id} or none
      */
-    virtual std::optional<PeerState> getPeerState(const PeerId &peer_id) = 0;
+    virtual std::optional<std::reference_wrapper<PeerState>> getPeerState(
+        const PeerId &peer_id) = 0;
 
     /**
      * @returns number of active peers

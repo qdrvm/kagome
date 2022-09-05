@@ -54,7 +54,6 @@ namespace kagome::crypto {
    */
   struct VRFOutput {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(VRFOutput);
 
     // an internal representation of the generated random value
     VRFPreOutput output{};

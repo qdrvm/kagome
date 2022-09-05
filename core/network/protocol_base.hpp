@@ -16,6 +16,8 @@ namespace kagome::network {
 
   using Stream = libp2p::connection::Stream;
   using PeerInfo = libp2p::peer::PeerInfo;
+  using Protocol = libp2p::peer::Protocol;
+  using PeerId = libp2p::peer::PeerId;
   using Protocols = libp2p::StreamProtocols;
 
   using namespace std::string_literals;

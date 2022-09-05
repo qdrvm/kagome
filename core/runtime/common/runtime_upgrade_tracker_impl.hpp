@@ -41,7 +41,6 @@ namespace kagome::runtime {
 
     struct RuntimeUpgradeData {
       SCALE_TIE(2);
-      SCALE_TIE_EQ(RuntimeUpgradeData);
 
       RuntimeUpgradeData() = default;
 

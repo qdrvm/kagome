@@ -84,6 +84,7 @@
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "host_api/impl/host_api_impl.hpp"
+#include "injector/get_peer_keypair.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "metrics/impl/exposer_impl.hpp"
@@ -107,6 +108,8 @@
 #include "offchain/impl/offchain_worker_impl.hpp"
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
 #include "outcome/outcome.hpp"
+#include "parachain/validator/parachain_observer.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
@@ -477,91 +480,6 @@ namespace {
     return initialized.value();
   }
 
-  const sptr<libp2p::crypto::KeyPair> &get_peer_keypair(
-      const application::AppConfiguration &app_config,
-      const crypto::Ed25519Provider &crypto_provider,
-      const crypto::CryptoStore &crypto_store) {
-    static auto initialized =
-        std::optional<sptr<libp2p::crypto::KeyPair>>(std::nullopt);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto log = log::createLogger("Injector", "injector");
-
-    if (app_config.nodeKey()) {
-      log->info("Will use LibP2P keypair from config or 'node-key' CLI arg");
-
-      auto provided_keypair =
-          crypto_provider.generateKeypair(app_config.nodeKey().value());
-      BOOST_ASSERT(provided_keypair.secret_key == app_config.nodeKey().value());
-
-      auto &&pub = provided_keypair.public_key;
-      auto &&priv = provided_keypair.secret_key;
-
-      auto key_pair =
-          std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
-              .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                             .data = {pub.begin(), pub.end()}}},
-              .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                              .data = {priv.begin(), priv.end()}}}});
-
-      initialized.emplace(std::move(key_pair));
-      return initialized.value();
-    }
-
-    if (app_config.nodeKeyFile()) {
-      const auto &path = app_config.nodeKeyFile().value();
-      log->info(
-          "Will use LibP2P keypair from config or 'node-key-file' CLI arg");
-      auto key = crypto_store.loadLibp2pKeypair(path);
-      if (key.has_error()) {
-        log->error("Unable to load user provided key from {}. Error: {}",
-                   path,
-                   key.error().message());
-      } else {
-        auto key_pair =
-            std::make_shared<libp2p::crypto::KeyPair>(std::move(key.value()));
-        initialized.emplace(std::move(key_pair));
-        return initialized.value();
-      }
-    }
-
-    if (crypto_store.getLibp2pKeypair().has_value()) {
-      log->info(
-          "Will use LibP2P keypair from config or args (loading from base "
-          "path)");
-
-      auto stored_keypair = crypto_store.getLibp2pKeypair().value();
-
-      auto key_pair =
-          std::make_shared<libp2p::crypto::KeyPair>(std::move(stored_keypair));
-
-      initialized.emplace(std::move(key_pair));
-      return initialized.value();
-    }
-
-    log->warn(
-        "Can not obtain a libp2p keypair from crypto storage. "
-        "A unique one will be generated for the current session");
-
-    auto generated_keypair = crypto_provider.generateKeypair();
-
-    auto &&pub = generated_keypair.public_key;
-    auto &&priv = generated_keypair.secret_key;
-
-    auto key_pair =
-        std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
-            .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                           .data = {pub.begin(), pub.end()}}},
-            .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                            .data = {priv.begin(), priv.end()}}}});
-
-    initialized.emplace(std::move(key_pair));
-    return initialized.value();
-  }
-
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
       const application::ChainSpec &chain_spec,
       std::chrono::seconds random_wak_interval) {
@@ -776,6 +694,40 @@ namespace {
 
     initialized.emplace(std::move(block_executor));
     return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<parachain::ParachainObserverImpl> get_parachain_observer_impl(
+      const Injector &injector) {
+    auto get_instance = [&]() {
+      auto instance = std::make_shared<parachain::ParachainObserverImpl>(
+          injector.template create<std::shared_ptr<network::PeerManager>>(),
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>());
+
+      auto protocol_factory =
+          injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+      protocol_factory->setCollactionObserver(instance);
+      protocol_factory->setReqCollationObserver(instance);
+      return instance;
+    };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
+  template <typename Injector>
+  sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
+      const Injector &injector) {
+    auto get_instance = [&]() {
+      return std::make_shared<parachain::ParachainProcessorImpl>(
+          injector.template create<std::shared_ptr<network::PeerManager>>(),
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
+          injector.template create<std::shared_ptr<network::Router>>());
+    };
+
+    static auto instance = get_instance();
+    return instance;
   }
 
   template <typename... Ts>
@@ -1071,8 +1023,9 @@ namespace {
           auto &crypto_provider =
               injector.template create<const crypto::Ed25519Provider &>();
           auto &crypto_store =
-              injector.template create<const crypto::CryptoStore &>();
-          return get_peer_keypair(app_config, crypto_provider, crypto_store);
+              injector.template create<crypto::CryptoStore &>();
+          return injector::get_peer_keypair(
+              app_config, crypto_provider, crypto_store);
         })[boost::di::override],
 
         // bind io_context: 1 per injector
@@ -1229,6 +1182,13 @@ namespace {
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
+        di::bind<parachain::ParachainObserverImpl>.to([](auto const &injector) {
+          return get_parachain_observer_impl(injector);
+        }),
+        di::bind<parachain::ParachainProcessorImpl>.to(
+            [](auto const &injector) {
+              return get_parachain_processor_impl(injector);
+            }),
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =
@@ -1308,11 +1268,10 @@ namespace {
     if (config.roles().flags.authority) {
       auto &crypto_provider =
           injector.template create<const crypto::Ed25519Provider &>();
-      auto &crypto_store =
-          injector.template create<const crypto::CryptoStore &>();
+      auto &crypto_store = injector.template create<crypto::CryptoStore &>();
 
       auto &local_pair =
-          get_peer_keypair(config, crypto_provider, crypto_store);
+          injector::get_peer_keypair(config, crypto_provider, crypto_store);
 
       public_key = local_pair->publicKey;
     } else {
@@ -1580,6 +1539,16 @@ namespace kagome::injector {
   std::shared_ptr<network::SyncProtocolObserver>
   KagomeNodeInjector::injectSyncObserver() {
     return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
+  }
+
+  std::shared_ptr<parachain::ParachainObserverImpl>
+  KagomeNodeInjector::injectParachainObserver() {
+    return pimpl_->injector_.create<sptr<parachain::ParachainObserverImpl>>();
+  }
+
+  std::shared_ptr<parachain::ParachainProcessorImpl>
+  KagomeNodeInjector::injectParachainProcessor() {
+    return pimpl_->injector_.create<sptr<parachain::ParachainProcessorImpl>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {

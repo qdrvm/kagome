@@ -21,7 +21,6 @@ namespace kagome::primitives {
 
   struct AuthorityId {
     SCALE_TIE(1);
-    SCALE_TIE_EQ(AuthorityId);
 
     GenericSessionKey id;
   };
@@ -40,7 +39,6 @@ namespace kagome::primitives {
    */
   struct Authority {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(Authority);
 
     AuthorityId id;
     AuthorityWeight weight{};
