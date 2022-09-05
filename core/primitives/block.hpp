@@ -18,7 +18,6 @@ namespace kagome::primitives {
    */
   struct Block {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(Block);
 
     BlockHeader header;  ///< block header
     BlockBody body{};    ///< extrinsics collection

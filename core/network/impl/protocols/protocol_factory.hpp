@@ -13,6 +13,9 @@
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/impl/protocols/state_protocol_impl.hpp"
+#include "network/impl/protocols/request_response_protocol.hpp"
+#include "network/impl/protocols/protocol_req_collation.hpp"
+#include "network/impl/protocols/request_response_protocol.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/rating_repository.hpp"
@@ -69,6 +72,11 @@ namespace kagome::network {
       state_observer_ = state_observer;
     }
 
+    void setReqCollationObserver(
+        std::shared_ptr<ReqCollationObserver> const &req_collation_observer) {
+      req_collation_observer_ = req_collation_observer;
+    }
+
     void setSyncObserver(
         const std::shared_ptr<SyncProtocolObserver> &sync_observer) {
       sync_observer_ = sync_observer;
@@ -89,6 +97,7 @@ namespace kagome::network {
     std::shared_ptr<SyncProtocol> makeSyncProtocol() const;
 
     std::shared_ptr<CollationProtocol> makeCollationProtocol() const;
+    std::shared_ptr<ReqCollationProtocol> makeReqCollationProtocol() const;
 
    private:
     libp2p::Host &host_;
@@ -113,6 +122,7 @@ namespace kagome::network {
     std::weak_ptr<SyncProtocolObserver> sync_observer_;
     std::weak_ptr<PeerManager> peer_manager_;
     std::weak_ptr<CollationObserver> collation_observer_;
+    std::weak_ptr<ReqCollationObserver> req_collation_observer_;
   };
 
 }  // namespace kagome::network

@@ -16,7 +16,6 @@ namespace kagome::consensus {
    */
   struct EpochDescriptor {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(EpochDescriptor);
 
     EpochNumber epoch_number = 0;
 

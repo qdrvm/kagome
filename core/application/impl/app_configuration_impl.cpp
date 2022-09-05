@@ -140,6 +140,7 @@ namespace kagome::application {
   AppConfigurationImpl::AppConfigurationImpl(log::Logger logger)
       : logger_(std::move(logger)),
         roles_(def_roles),
+        save_node_key_(false),
         is_telemetry_enabled_(true),
         p2p_port_(def_p2p_port),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
@@ -690,6 +691,7 @@ namespace kagome::application {
         ("public-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses that other nodes use to connect to it")
         ("node-key", po::value<std::string>(), "the secret key to use for libp2p networking")
         ("node-key-file", po::value<std::string>(), "path to the secret key used for libp2p networking (raw binary or hex-encoded")
+        ("save-node-key", po::bool_switch(), "save generated libp2p networking key, key will be reused on node restart")
         ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("port,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc-host", po::value<std::string>(), "address for RPC over HTTP")
@@ -929,6 +931,8 @@ namespace kagome::application {
             node_key_file_ = val;
           });
     }
+
+    save_node_key_ = vm.count("save-node-key") != 0;
 
     find_argument<uint16_t>(vm, "port", [&](uint16_t val) { p2p_port_ = val; });
 

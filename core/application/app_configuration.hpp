@@ -87,6 +87,11 @@ namespace kagome::application {
     virtual const std::optional<std::string> &nodeKeyFile() const = 0;
 
     /**
+     * @return true if generated libp2p networking key should be saved
+     */
+    virtual bool shouldSaveNodeKey() const = 0;
+
+    /**
      * @return port for peer to peer interactions.
      */
     virtual uint16_t p2pPort() const = 0;
