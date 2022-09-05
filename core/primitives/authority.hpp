@@ -54,7 +54,6 @@ namespace kagome::primitives {
    */
   struct AuthoritySet {
     SCALE_TIE(2);
-    SCALE_TIE_EQ(AuthoritySet);
 
     AuthoritySet() = default;
 
