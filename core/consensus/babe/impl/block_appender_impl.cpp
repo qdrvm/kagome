@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/babe/impl/block_executor_impl.hpp"
+#include "consensus/babe/impl/block_appender_impl.hpp"
 
 #include <chrono>
 
@@ -15,79 +15,52 @@
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
-#include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "scale/scale.hpp"
-#include "transaction_pool/transaction_pool_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockExecutorImpl::Error, e) {
-  using E = kagome::consensus::BlockExecutorImpl::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockAppenderImpl::Error, e) {
+  using E = kagome::consensus::BlockAppenderImpl::Error;
   switch (e) {
     case E::INVALID_BLOCK:
       return "Invalid block";
     case E::PARENT_NOT_FOUND:
       return "Parent not found";
-    case E::INTERNAL_ERROR:
-      return "Internal error";
   }
   return "Unknown error";
 }
 
-namespace {
-  constexpr const char *kBlockExecutionTime =
-      "kagome_block_verification_and_import_time";
-}
-
 namespace kagome::consensus {
 
-  BlockExecutorImpl::BlockExecutorImpl(
+  BlockAppenderImpl::BlockAppenderImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<runtime::Core> core,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<grandpa::Environment> grandpa_environment,
-      std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util,
-      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper)
       : block_tree_{std::move(block_tree)},
-        core_{std::move(core)},
         babe_configuration_{std::move(configuration)},
         block_validator_{std::move(block_validator)},
         grandpa_environment_{std::move(grandpa_environment)},
-        tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
         babe_util_(std::move(babe_util)),
-        offchain_worker_api_(std::move(offchain_worker_api)),
         consistency_keeper_(std::move(consistency_keeper)),
-        logger_{log::createLogger("BlockExecutor", "block_executor")},
-        telemetry_{telemetry::createTelemetryService()} {
+        logger_{log::createLogger("BlockAppender", "block_appender")} {
     BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(core_ != nullptr);
     BOOST_ASSERT(babe_configuration_ != nullptr);
     BOOST_ASSERT(block_validator_ != nullptr);
     BOOST_ASSERT(grandpa_environment_ != nullptr);
-    BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(authority_update_observer_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
-    BOOST_ASSERT(offchain_worker_api_ != nullptr);
     BOOST_ASSERT(consistency_keeper_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
-    BOOST_ASSERT(telemetry_ != nullptr);
-
-    // Register metrics
-    metrics_registry_->registerHistogramFamily(
-        kBlockExecutionTime, "Time taken to verify and import blocks");
-    metric_block_execution_time_ = metrics_registry_->registerHistogramMetric(
-        kBlockExecutionTime,
-        {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
   }
 
-  outcome::result<void> BlockExecutorImpl::applyBlock(
+  outcome::result<void> BlockAppenderImpl::appendBlock(
       primitives::BlockData &&b) {
     if (not b.header.has_value()) {
       logger_->warn("Skipping a block without header");
@@ -99,13 +72,29 @@ namespace kagome::consensus {
 
     primitives::BlockInfo block_info(header.number, block_hash);
 
-    if (auto header_res = block_tree_->getBlockHeader(header.parent_hash);
-        header_res.has_error()
-        && header_res.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
-      logger_->warn("Skipping a block {} with unknown parent", block_info);
-      return Error::PARENT_NOT_FOUND;
-    } else if (header_res.has_error()) {
-      return header_res.as_failure();
+    if (last_appended_.has_value()) {
+      if (last_appended_->number > block_info.number) {
+        SL_DEBUG(
+            logger_, "Skip early appended header of block: {}", block_info);
+        return outcome::success();
+      }
+      if (last_appended_.value() == block_info) {
+        SL_DEBUG(logger_, "Skip just appended header of block: {}", block_info);
+        return outcome::success();
+      }
+    }
+
+    if (last_appended_
+        != primitives::BlockInfo(header.number - 1, header.parent_hash)) {
+      if (auto header_res = block_tree_->getBlockHeader(header.parent_hash);
+          header_res.has_error()
+          && header_res.error()
+                 == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+        logger_->warn("Skipping a block {} with unknown parent", block_info);
+        return Error::PARENT_NOT_FOUND;
+      } else if (header_res.has_error()) {
+        return header_res.as_failure();
+      }
     }
 
     // get current time to measure performance if block execution
@@ -113,27 +102,21 @@ namespace kagome::consensus {
 
     bool block_already_exists = false;
 
-    // check if block body already exists. If so, do not apply
-    if (auto body_res = block_tree_->getBlockBody(block_hash);
-        body_res.has_value()) {
-      SL_DEBUG(logger_, "Skip existing block: {}", block_info);
+    // check if block header already exists. If so, do not append
+    if (auto header_res = block_tree_->getBlockHeader(block_hash);
+        header_res.has_value()) {
+      SL_DEBUG(logger_, "Skip existing header of block: {}", block_info);
 
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
       block_already_exists = true;
-    } else if (body_res.error() != blockchain::BlockTreeError::BODY_NOT_FOUND) {
-      return body_res.as_failure();
+    } else if (header_res.error()
+               != blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+      return header_res.as_failure();
     }
-
-    if (not b.body.has_value()) {
-      logger_->warn("Skipping a block without body.");
-      return Error::INVALID_BLOCK;
-    }
-    auto &body = b.body.value();
 
     auto consistency_guard = consistency_keeper_->start(block_info);
 
-    primitives::Block block{.header = std::move(header),
-                            .body = std::move(body)};
+    primitives::Block block{.header = std::move(header)};
 
     OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
 
@@ -176,8 +159,9 @@ namespace kagome::consensus {
 
     auto epoch_number = babe_util_->slotToEpoch(slot_number);
 
-    logger_->info(
-        "Applying block {} ({} in slot {}, epoch {})",  //
+    SL_DEBUG(
+        logger_,
+        "Appending header of block {} ({} in slot {}, epoch {})",
         block_info,
         babe_header.slotType() == SlotType::Primary          ? "primary"
         : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
@@ -224,36 +208,8 @@ namespace kagome::consensus {
     // block should be applied without last digest which contains the seal
     block_without_seal_digest.header.digest.pop_back();
 
-    auto parent = block_tree_->getBlockHeader(block.header.parent_hash).value();
-
-    auto last_finalized_block = block_tree_->getLastFinalized();
-    auto previous_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(previous_best_block_res.has_value());
-    const auto &previous_best_block = previous_best_block_res.value();
-
     if (not block_already_exists) {
-      auto exec_start = std::chrono::high_resolution_clock::now();
-      SL_DEBUG(logger_,
-               "Execute block {}, state {}, a child of block {}, state {}",
-               block_info,
-               block.header.state_root,
-               primitives::BlockInfo(parent.number, block.header.parent_hash),
-               parent.state_root);
-
-      OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
-
-      auto exec_end = std::chrono::high_resolution_clock::now();
-      auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                             exec_end - exec_start)
-                             .count();
-      SL_DEBUG(logger_, "Core_execute_block: {} ms", duration_ms);
-
-      metric_block_execution_time_->observe(static_cast<double>(duration_ms)
-                                            / 1000);
-
-      // add block header if it does not exist
-      OUTCOME_TRY(block_tree_->addBlock(block));
+      OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
     }
 
     // observe possible changes of authorities
@@ -263,15 +219,14 @@ namespace kagome::consensus {
           digest_item,
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
-            return authority_update_observer_->onConsensus(
-                primitives::BlockInfo{block.header.number, block_hash},
-                consensus_message);
+            return authority_update_observer_->onConsensus(block_info,
+                                                           consensus_message);
           },
           [](const auto &) { return outcome::success(); });
       if (res.has_error()) {
         SL_ERROR(logger_,
                  "Error while processing consensus digests of block {}: {}",
-                 block_hash,
+                 block_info,
                  res.error().message());
         return res.as_failure();
       }
@@ -300,12 +255,15 @@ namespace kagome::consensus {
       }
 
       auto res = applyJustification(block_info, b.justification.value());
-
       if (res.has_error()) {
         if (res
             == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
           justifications_.emplace(block_info, b.justification.value());
         } else {
+          SL_ERROR(logger_,
+                   "Error while applying of block {} justification: {}",
+                   block_info,
+                   res.error().message());
           return res.as_failure();
         }
       } else {
@@ -314,51 +272,36 @@ namespace kagome::consensus {
       }
     }
 
-    // remove block's extrinsics from tx pool
-    for (const auto &extrinsic : block.body) {
-      auto res = tx_pool_->removeOne(hasher_->blake2b_256(extrinsic.data));
-      if (res.has_error()
-          && res
-                 != outcome::failure(
-                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
-        return res.as_failure();
-      }
-    }
+    auto now = std::chrono::high_resolution_clock::now();
 
-    auto t_end = std::chrono::high_resolution_clock::now();
-
-    logger_->info(
-        "Imported block {} within {} ms",
+    SL_DEBUG(
+        logger_,
+        "Imported header of block {} within {} us",
         block_info,
-        std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
+        std::chrono::duration_cast<std::chrono::microseconds>(now - t_start)
             .count());
 
-    last_finalized_block = block_tree_->getLastFinalized();
-    telemetry_->notifyBlockFinalized(last_finalized_block);
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
-    telemetry_->notifyBlockImported(
-        current_best_block, telemetry::BlockOrigin::kNetworkInitialSync);
-
-    // Create new offchain worker for block if it is best only
-    if (current_best_block.number > previous_best_block.number) {
-      auto ocw_res = offchain_worker_api_->offchain_worker(
-          block.header.parent_hash, block.header);
-      if (ocw_res.has_failure()) {
-        logger_->error("Can't spawn offchain worker for block {}: {}",
-                       block_info,
-                       ocw_res.error().message());
-      }
+    auto block_delta = block_info.number - speed_data_.block_number;
+    auto time_delta = now - speed_data_.time;
+    if (block_delta >= 10000 or time_delta >= std::chrono::minutes(1)) {
+      SL_INFO(logger_,
+              "Imported {} more headers of blocks. Average speed is {} bps",
+              block_delta,
+              block_delta
+                  / std::chrono::duration_cast<std::chrono::seconds>(time_delta)
+                        .count());
+      speed_data_.block_number = block_info.number;
+      speed_data_.time = now;
     }
 
     consistency_guard.commit();
 
+    last_appended_.emplace(std::move(block_info));
+
     return outcome::success();
   }
 
-  outcome::result<void> BlockExecutorImpl::applyJustification(
+  outcome::result<void> BlockAppenderImpl::applyJustification(
       const primitives::BlockInfo &block_info,
       const primitives::Justification &justification) {
     return grandpa_environment_->applyJustification(block_info, justification);

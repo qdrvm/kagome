@@ -65,6 +65,7 @@
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
+#include "consensus/babe/impl/block_appender_impl.hpp"
 #include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/babe/impl/consistency_keeper_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -440,15 +441,25 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
+
+    auto log = log::createLogger("Injector", "injector");
+
     auto configuration_res = babe_api->configuration(block_hash);
     if (not configuration_res) {
+      if (configuration_res
+          == outcome::failure(runtime::RuntimeEnvironmentFactory::Error::
+                                  FAILED_TO_SET_STORAGE_STATE)) {
+        SL_CRITICAL(log,
+                    "State for block {} has not found. "
+                    "Try to launch with `--sync Fast' CLI arg",
+                    block_hash);
+      }
       common::raise(configuration_res.error());
     }
 
     auto configuration = std::make_shared<primitives::BabeConfiguration>(
         std::move(configuration_res.value()));
 
-    auto log = log::createLogger("Injector", "injector");
     for (const auto &authority : configuration->genesis_authorities) {
       SL_DEBUG(log, "Babe authority: {:l}", authority.id.id);
     }
@@ -934,6 +945,36 @@ namespace {
   }
 
   template <typename Injector>
+  sptr<primitives::GenesisBlockHeader> get_genesis_block_header(
+      const Injector &injector) {
+    static auto initialized =
+        std::optional<sptr<primitives::GenesisBlockHeader>>(std::nullopt);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    auto block_storage =
+        injector.template create<sptr<blockchain::BlockStorage>>();
+    auto block_header_repository =
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
+
+    auto hash_res =
+        block_header_repository->getHashByNumber(primitives::BlockNumber(0));
+    BOOST_ASSERT(hash_res.has_value());
+    auto &hash = hash_res.value();
+
+    auto header_res = block_storage->getBlockHeader(hash);
+    BOOST_ASSERT(header_res.has_value());
+    auto &header_opt = header_res.value();
+    BOOST_ASSERT(header_opt.has_value());
+
+    initialized.emplace(new primitives::GenesisBlockHeader(
+        {.header = header_opt.value(), .hash = hash}));
+
+    return initialized.value();
+  }
+
+  template <typename Injector>
   primitives::BlockHash get_last_finalized_hash(const Injector &injector) {
     auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
     if (auto last = storage->getLastFinalized(); last.has_value()) {
@@ -1148,6 +1189,14 @@ namespace {
         di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
           // need it to add genesis block if it's not there
           auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
+          if (injector.template create<application::AppConfiguration const &>()
+                  .syncMethod()
+              == application::AppConfiguration::SyncMethod::Fast) {
+            auto genesis_block_header =
+                injector
+                    .template create<sptr<primitives::GenesisBlockHeader>>();
+            return get_babe_configuration(genesis_block_header->hash, babe_api);
+          }
           static auto last_finalized_hash = get_last_finalized_hash(injector);
           return get_babe_configuration(last_finalized_hash, babe_api);
         }),
@@ -1223,6 +1272,7 @@ namespace {
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
+        di::bind<consensus::BlockAppender>.template to<consensus::BlockAppenderImpl>(),
         di::bind<consensus::BlockExecutor>.to(
             [](auto const &injector) { return get_block_executor(injector); }),
         di::bind<consensus::grandpa::Grandpa>.to(
@@ -1315,6 +1365,7 @@ namespace {
     auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
 
     initialized = std::make_shared<consensus::babe::BabeImpl>(
+        injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::BabeLottery>>(),
         injector.template create<sptr<primitives::BabeConfiguration>>(),
@@ -1329,7 +1380,8 @@ namespace {
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<consensus::BabeUtil>>(),
-        injector.template create<sptr<runtime::OffchainWorkerApi>>());
+        injector.template create<sptr<runtime::OffchainWorkerApi>>(),
+        injector.template create<sptr<consensus::babe::ConsistencyKeeper>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();

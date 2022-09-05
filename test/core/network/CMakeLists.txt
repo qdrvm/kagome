@@ -59,6 +59,7 @@ target_link_libraries(synchronizer_test
     logger_for_tests
     sync_protocol
     block_tree_error
+    polkadot_codec
     p2p::p2p_basic_scheduler
     p2p::p2p_message_read_writer
     p2p::p2p_peer_id

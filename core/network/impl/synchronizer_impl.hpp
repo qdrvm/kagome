@@ -8,16 +8,32 @@
 
 #include "network/synchronizer.hpp"
 
+#include <atomic>
 #include <mutex>
 #include <queue>
 
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_state_manager.hpp"
+#include "consensus/babe/block_appender.hpp"
 #include "consensus/babe/block_executor.hpp"
 #include "metrics/metrics.hpp"
 #include "network/router.hpp"
 #include "telemetry/service.hpp"
+
+namespace kagome::application {
+  class AppConfiguration;
+}
+
+namespace kagome::storage::changes_trie {
+  class ChangesTracker;
+}
+
+namespace kagome::storage::trie {
+  class PersistentTrieBatch;
+  class TrieSerializer;
+  class TrieStorage;
+}  // namespace kagome::storage::trie
 
 namespace kagome::network {
 
@@ -29,6 +45,11 @@ namespace kagome::network {
     /// simultaneously.
     /// 256 is doubled max amount block in BlocksResponse.
     static constexpr size_t kMinPreloadedBlockAmount = 256;
+
+    /// Block amount enough for applying and preloading other ones
+    /// simultaneously during fast syncing
+    static constexpr size_t kMinPreloadedBlockAmountForFastSyncing =
+        kMinPreloadedBlockAmount * 40;
 
     /// Indicating how far the block can be subscribed to.
     /// In general we don't needed wait very far blocks. This limit to avoid
@@ -54,9 +75,14 @@ namespace kagome::network {
     };
 
     SynchronizerImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
+        std::shared_ptr<consensus::BlockAppender> block_appender,
         std::shared_ptr<consensus::BlockExecutor> block_executor,
+        std::shared_ptr<storage::trie::TrieSerializer> serializer,
+        std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher);
@@ -84,6 +110,14 @@ namespace kagome::network {
                                    primitives::BlockInfo target_block,
                                    std::optional<uint32_t> limit,
                                    SyncResultHandler &&handler) override;
+
+    /// Enqueues loading and applying state key values starting from {@keys} for
+    /// block {@param block} from peer {@param peer_id}.
+    /// If finished, {@param handler} be called
+    void syncState(const libp2p::peer::PeerId &peer_id,
+                   const primitives::BlockInfo &block,
+                   const std::vector<common::Buffer> &keys,
+                   SyncResultHandler &&handler) override;
 
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
@@ -150,10 +184,16 @@ namespace kagome::network {
         const BlocksRequest::Fingerprint &fingerprint);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<storage::changes_trie::ChangesTracker>
+        trie_changes_tracker_;
+    std::shared_ptr<consensus::BlockAppender> block_appender_;
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
+    std::shared_ptr<storage::trie::TrieSerializer> serializer_;
+    std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    application::AppConfiguration::SyncMethod sync_method_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
@@ -161,6 +201,9 @@ namespace kagome::network {
 
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
+
+    std::atomic_bool state_syncing_ = false;
+    std::atomic_bool state_sync_request_in_progress_ = false;
 
     bool node_is_shutting_down_ = false;
 
@@ -173,6 +216,8 @@ namespace kagome::network {
 
     // Already known (enqueued) but is not applied yet
     std::unordered_map<primitives::BlockHash, KnownBlock> known_blocks_;
+
+    std::optional<primitives::BlockInfo> sync_block_;
 
     // Blocks grouped by number
     std::multimap<primitives::BlockNumber, primitives::BlockHash> generations_;
@@ -202,6 +247,14 @@ namespace kagome::network {
 
     std::set<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>>
         recent_requests_;
+
+    std::unordered_map<
+        storage::trie::RootHash,
+        std::tuple<common::Buffer,
+                   unsigned,
+                   std::shared_ptr<storage::trie::PersistentTrieBatch>>>
+        batches_store_;
+    size_t entries_{0};
   };
 
 }  // namespace kagome::network

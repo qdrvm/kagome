@@ -11,6 +11,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 
 #include "application/app_state_manager.hpp"
+#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
 #include "consensus/authority/authority_manager_error.hpp"
@@ -30,20 +31,26 @@ namespace kagome::authority {
   AuthorityManagerImpl::AuthorityManagerImpl(
       Config config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<storage::BufferStorage> buffer_storage)
       : config_{std::move(config)},
+        header_repo_(std::move(header_repo)),
         block_tree_(std::move(block_tree)),
         trie_storage_(std::move(trie_storage)),
         grandpa_api_(std::move(grandpa_api)),
         hasher_(std::move(hasher)),
+        buffer_storage_(std::move(buffer_storage)),
         log_{log::createLogger("AuthorityManager", "authority")} {
+    BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(trie_storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(buffer_storage_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
     app_state_manager->atPrepare([&] { return prepare(); });
@@ -221,6 +228,10 @@ namespace kagome::authority {
   auto &val = UNIQUE_NAME(expr_r_).value();
 
   bool AuthorityManagerImpl::prepare() {
+    if (load()) {
+      return true;
+    }
+
     const auto finalized_block = block_tree_->getLastFinalized();
 
     PREPARE_TRY(
@@ -244,12 +255,19 @@ namespace kagome::authority {
                   significant_block,
                   error.message());
 
-      PREPARE_TRY(
-          set_id_opt,
-          fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header),
-          "Error fetching authority set id from trie storage for block {}: {}",
-          significant_block,
-          error.message());
+      auto &&set_id_opt_res =
+          fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header);
+      if (set_id_opt_res.has_error()) {
+        log_->warn(
+            "Can't fetch authority set id from trie storage for block {}: {}",
+            primitives::BlockInfo(header.number, hash),
+            set_id_opt_res.error().message());
+        log_->info(
+            "Recalculating from genesis "
+            "(going to take a few dozens of seconds)");
+        return prepareFromGenesis();
+      }
+      auto &set_id_opt = set_id_opt_res.value();
 
       if (not set_id_opt.has_value()) {
         log_->critical(
@@ -666,7 +684,7 @@ namespace kagome::authority {
     }
     if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
       OUTCOME_TRY(decoded, message.decode());
-      return visit_in_place(
+      auto res = visit_in_place(
           decoded.asGrandpaDigest(),
           [this, &block](
               const primitives::ScheduledChange &msg) -> outcome::result<void> {
@@ -689,6 +707,18 @@ namespace kagome::authority {
           [](auto &) {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
+      save();
+      return res;
+    } else if (message.consensus_engine_id
+                   == primitives::kUnsupportedEngineId_POL1
+               or message.consensus_engine_id
+                      == primitives::kUnsupportedEngineId_BEEF) {
+      SL_DEBUG(log_,
+               "Unsupported consensus engine id in block {}: {}",
+               block,
+               message.consensus_engine_id.toString());
+      return outcome::success();
+
     } else {
       SL_WARN(log_,
               "Unknown consensus engine id in block {}: {}",
@@ -696,6 +726,20 @@ namespace kagome::authority {
               message.consensus_engine_id.toString());
       return outcome::success();
     }
+  }
+
+  void AuthorityManagerImpl::save() {
+    auto data = scale::encode(root_).value();
+    buffer_storage_->put(Buffer::fromString("authmngrdata"), Buffer(data)).value();
+  }
+
+  bool AuthorityManagerImpl::load() {
+    auto r = buffer_storage_->tryLoad(Buffer::fromString("authmngrdata")).value();
+    if (r.has_value()) {
+      root_ = scale::decode<std::shared_ptr<ScheduleNode>>(r.value()).value();
+      return true;
+    }
+    return false;
   }
 
   void AuthorityManagerImpl::prune(const primitives::BlockInfo &block) {
@@ -731,6 +775,8 @@ namespace kagome::authority {
     }
 
     SL_VERBOSE(log_, "Prune authority manager upto block {}", block);
+
+    save();
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(
@@ -838,6 +884,90 @@ namespace kagome::authority {
       SL_DEBUG(log_, "Scheduled changes on block {} has removed", block);
       ancestor->descendants.erase(it);
     }
+  }
+
+  bool AuthorityManagerImpl::prepareFromGenesis() {
+    auto t_start = std::chrono::high_resolution_clock::now();
+
+    const auto finalized_block = block_tree_->getLastFinalized();
+
+    root_ = authority::ScheduleNode::createAsRoot(
+        {0, block_tree_->getGenesisBlockHash()});
+
+    auto authorities =
+        grandpa_api_->authorities(block_tree_->getGenesisBlockHash()).value();
+    authorities.id = 0;
+    root_->actual_authorities =
+        std::make_shared<primitives::AuthorityList>(std::move(authorities));
+
+    size_t count = 0;
+    size_t delta = 0;
+
+    for (consensus::grandpa::BlockNumber block_number = 1;
+         block_number <= finalized_block.number;
+         ++block_number) {
+      auto hash_res = header_repo_->getHashByNumber(block_number);
+      if (hash_res.has_error()) {
+        SL_CRITICAL(log_,
+                    "Can't get hash of block #{} of the best chain: {}",
+                    block_number,
+                    hash_res.error().message());
+        return false;
+      }
+      const auto &block_hash = hash_res.value();
+
+      primitives::BlockInfo block_info(block_number, block_hash);
+
+      auto header_res = block_tree_->getBlockHeader(block_hash);
+      if (header_res.has_error()) {
+        SL_CRITICAL(log_,
+                    "Can't get header of block {}: {}",
+                    block_info,
+                    header_res.error().message());
+        return false;
+      }
+      const auto &header = header_res.value();
+
+      bool found = false;
+      for (const auto &digest_item : header.digest) {
+        std::ignore = visit_in_place(
+            digest_item,
+            [&](const primitives::Consensus &msg) -> outcome::result<void> {
+              if (msg.consensus_engine_id == primitives::kGrandpaEngineId) {
+                ++count;
+                ++delta;
+                found = true;
+              }
+              return onConsensus(block_info, msg);
+            },
+            [](const auto &) { return outcome::success(); });
+      }
+      if (not(block_number % 512)) {
+        prune(block_info);
+      }
+
+      if (not(block_number % 250000))
+      //      if (found)
+      {
+        SL_INFO(log_,
+                "{} headers are observed and {} digests are applied (+{})",
+                block_number,
+                count,
+                delta);
+        delta = 0;
+      }
+    }
+
+    auto t_end = std::chrono::high_resolution_clock::now();
+
+    SL_INFO(log_,
+            "{} headers are observed and {} digests are applied within {}s",
+            finalized_block.number,
+            count,
+            std::chrono::duration_cast<std::chrono::seconds>(t_end - t_start)
+                .count());
+
+    return true;
   }
 
 }  // namespace kagome::authority

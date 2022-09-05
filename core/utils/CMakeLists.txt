@@ -3,8 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_executable(storage_explorer storage_explorer.cpp)
-target_link_libraries(storage_explorer application_injector)
+add_executable(storage_explorer
+  storage_explorer.cpp
+  )
+target_link_libraries(storage_explorer
+  application_injector
+  )
 
 add_executable(kagome-db-editor
   kagome_db_editor.cpp

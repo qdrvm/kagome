@@ -9,6 +9,7 @@
 
 #include "consensus/authority/impl/schedule_node.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
@@ -53,6 +54,8 @@ class AuthorityManagerTest : public testing::Test {
     authorities->emplace_back(makeAuthority("GenesisAuthority2", 10));
     authorities->emplace_back(makeAuthority("GenesisAuthority3", 15));
 
+    header_repo = std::make_shared<blockchain::BlockHeaderRepositoryMock>();
+
     block_tree = std::make_shared<blockchain::BlockTreeMock>();
 
     storage = std::make_shared<storage::trie::TrieStorageMock>();
@@ -74,13 +77,25 @@ class AuthorityManagerTest : public testing::Test {
 
     EXPECT_CALL(*app_state_manager, atPrepare(_));
 
+    buffer_storage = std::make_shared<
+        storage::face::GenericStorageMock<common::Buffer,
+                                          common::Buffer,
+                                          common::BufferView>>();
+    EXPECT_CALL(*buffer_storage, tryLoad(_))
+        .WillRepeatedly(Return(std::nullopt));
+
+    EXPECT_CALL(*buffer_storage, put(_, _))
+        .WillRepeatedly(Return(outcome::success()));
+
     authority_manager =
         std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
                                                app_state_manager,
+                                               header_repo,
                                                block_tree,
                                                storage,
                                                grandpa_api,
-                                               hasher);
+                                               hasher,
+                                               buffer_storage);
 
     ON_CALL(*block_tree, hasDirectChain(_, _))
         .WillByDefault(testing::Invoke([](auto &anc, auto &des) {
@@ -148,12 +163,17 @@ class AuthorityManagerTest : public testing::Test {
   const std::vector<primitives::BlockHash> leaves{genesis_block.hash};
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
+  std::shared_ptr<blockchain::BlockHeaderRepositoryMock> header_repo;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<storage::trie::TrieStorageMock> storage;
   std::shared_ptr<runtime::GrandpaApiMock> grandpa_api;
   std::shared_ptr<crypto::HasherMock> hasher;
   std::shared_ptr<AuthorityManagerImpl> authority_manager;
   std::shared_ptr<AuthorityList> authorities;
+  std::shared_ptr<storage::face::GenericStorageMock<common::Buffer,
+                                                    common::Buffer,
+                                                    common::BufferView>>
+      buffer_storage;
 
   primitives::Authority makeAuthority(std::string_view id, uint32_t weight) {
     primitives::Authority authority;

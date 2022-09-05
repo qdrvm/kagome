@@ -11,6 +11,7 @@
 
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
+#include "storage/buffer_map_types.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -20,7 +21,8 @@ namespace kagome::authority {
 }
 namespace kagome::blockchain {
   class BlockTree;
-}
+  class BlockHeaderRepository;
+}  // namespace kagome::blockchain
 namespace kagome::primitives {
   struct AuthorityList;
   struct BabeConfiguration;
@@ -50,10 +52,12 @@ namespace kagome::authority {
     AuthorityManagerImpl(
         Config config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-        std::shared_ptr<crypto::Hasher> hash);
+        std::shared_ptr<crypto::Hasher> hash,
+        std::shared_ptr<storage::BufferStorage> buffer_storage);
 
     ~AuthorityManagerImpl() override = default;
 
@@ -96,6 +100,9 @@ namespace kagome::authority {
     void prune(const primitives::BlockInfo &block) override;
 
    private:
+    bool load();
+    void save();
+
     /**
      * @brief Find schedule_node according to the block
      * @param block for which to find the schedule node
@@ -116,11 +123,19 @@ namespace kagome::authority {
     void reorganize(std::shared_ptr<ScheduleNode> node,
                     std::shared_ptr<ScheduleNode> new_node);
 
+    /**
+     * @brief Calculates authorities for last finalized block
+     * starting from genesis
+     */
+    bool prepareFromGenesis();
+
     Config config_;
+    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<storage::BufferStorage> buffer_storage_;
 
     std::shared_ptr<ScheduleNode> root_;
     log::Logger log_;

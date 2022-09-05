@@ -404,9 +404,11 @@ namespace kagome::blockchain {
     // Check if target block has state
     if (auto res = trie_storage->getEphemeralBatchAt(state_root);
         res.has_error()) {
-      SL_CRITICAL(
+      SL_WARN(
           log, "Can't get state of target block: {}", res.error().message());
-      return res.as_failure();
+      SL_CRITICAL(
+          log,
+          "You will need to use `--sync Fast' CLI arg the next time you start");
     }
 
     for (auto it = block_tree_leaves.rbegin(); it != block_tree_leaves.rend();
@@ -824,25 +826,28 @@ namespace kagome::blockchain {
     chain_events_engine_->notify(
         primitives::events::ChainEventType::kFinalizedHeads, header);
 
-    OUTCOME_TRY(new_runtime_version, runtime_core_->version(block_hash));
-    if (not actual_runtime_version_.has_value()
-        || actual_runtime_version_ != new_runtime_version) {
-      actual_runtime_version_ = new_runtime_version;
-      chain_events_engine_->notify(
-          primitives::events::ChainEventType::kFinalizedRuntimeVersion,
-          new_runtime_version);
+    // it has failure result when fast sync is in progress
+    auto new_runtime_version = runtime_core_->version(block_hash);
+    if (new_runtime_version.has_value()) {
+      if (not actual_runtime_version_.has_value()
+          || actual_runtime_version_ != new_runtime_version.value()) {
+        actual_runtime_version_ = new_runtime_version.value();
+        chain_events_engine_->notify(
+            primitives::events::ChainEventType::kFinalizedRuntimeVersion,
+            new_runtime_version.value());
+      }
     }
+
     OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
-    if (!body.has_value()) {
-      return BlockTreeError::BODY_NOT_FOUND;
-    }
-    for (auto &ext : body.value()) {
-      if (auto key =
-              extrinsic_event_key_repo_->get(hasher_->blake2b_256(ext.data))) {
-        extrinsic_events_engine_->notify(
-            key.value(),
-            primitives::events::ExtrinsicLifecycleEvent::Finalized(key.value(),
-                                                                   block_hash));
+    if (body.has_value()) {
+      for (auto &ext : body.value()) {
+        if (auto key = extrinsic_event_key_repo_->get(
+                hasher_->blake2b_256(ext.data))) {
+          extrinsic_events_engine_->notify(
+              key.value(),
+              primitives::events::ExtrinsicLifecycleEvent::Finalized(
+                  key.value(), block_hash));
+        }
       }
     }
 
@@ -1174,6 +1179,29 @@ namespace kagome::blockchain {
     }
 
     // else, we need to use a database
+
+    // Try to use optimal way, if ancestor and descendant in the finalized chain
+    if (descendant_depth <= getLastFinalized().number) {
+      auto res = header_repo_->getHashByNumber(descendant_depth);
+      BOOST_ASSERT_MSG(res.has_value(),
+                       "Any finalized block must be accessible by number");
+      // Check if descendant in finalised chain
+      if (res.value() == descendant) {
+        res = header_repo_->getHashByNumber(ancestor_depth);
+        BOOST_ASSERT_MSG(res.has_value(),
+                         "Any finalized block must be accessible by number");
+        if (res.value() == ancestor) {
+          // Ancestor and descendant in the finalized chain,
+          // therefore they have direct chain between each other
+          return true;
+        } else {
+          // Ancestor in the finalized chain, but descendant is not,
+          // therefore they can not have direct chain between each other
+          return false;
+        }
+      }
+    }
+
     auto current_hash = descendant;
     while (current_hash != ancestor) {
       auto current_header_res = header_repo_->getBlockHeader(current_hash);
