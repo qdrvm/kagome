@@ -20,7 +20,7 @@
 #include "primitives/digest.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/predefined_keys.hpp"
-#include "runtime/executor.hpp"
+#include "runtime/common/executor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
