@@ -32,6 +32,8 @@ namespace kagome::crypto {
     WRONG_PUBLIC_KEY,
   };
 
+  libp2p::crypto::KeyPair ed25519KeyToLibp2pKeypair(const Ed25519Keypair &kp);
+
   /// TODO(Harrm) Add policies to emit a warning when found a keypair
   /// with incompatible type and algorithm (e. g. ed25519 BABE keypair,
   /// whereas BABE has to be sr25519 only) or when trying to generate more
@@ -184,9 +186,6 @@ namespace kagome::crypto {
       }
       return it->second;
     }
-
-    libp2p::crypto::KeyPair ed25519KeyToLibp2pKeypair(
-        const Ed25519Keypair &kp) const;
 
     mutable std::unordered_map<KeyTypeId, KeyCache<EcdsaSuite>> ecdsa_caches_;
     mutable std::unordered_map<KeyTypeId, KeyCache<Ed25519Suite>> ed_caches_;

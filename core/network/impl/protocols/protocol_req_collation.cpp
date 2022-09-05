@@ -1,0 +1,95 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "network/impl/protocols/protocol_req_collation.hpp"
+
+#include "network/common.hpp"
+#include "network/impl/protocols/request_response_protocol.hpp"
+#include "utils/non_copyable.hpp"
+
+namespace kagome::network {
+
+  struct ReqCollationProtocolImpl
+      : RequestResponseProtocol<CollationFetchingRequest,
+                                CollationFetchingResponse,
+                                ScaleMessageReadWriter>,
+        NonCopyable,
+        NonMovable {
+    ReqCollationProtocolImpl(libp2p::Host &host,
+                             application::AppConfiguration const &app_config,
+                             application::ChainSpec const &chain_spec,
+                             std::shared_ptr<ReqCollationObserver> observer)
+        : RequestResponseProtocol<
+            CollationFetchingRequest,
+            CollationFetchingResponse,
+            ScaleMessageReadWriter>{host,
+                                    kReqCollationProtocol,
+                                    "ReqCollationProtocol"},
+          observer_{std::move(observer)},
+          app_config_{app_config} {}
+
+   protected:
+    outcome::result<CollationFetchingResponse> onRxRequest(
+        CollationFetchingRequest request,
+        std::shared_ptr<Stream> /*stream*/) override {
+      BOOST_ASSERT(observer_);
+      return observer_->OnCollationRequest(std::move(request));
+    }
+
+    void onTxRequest(CollationFetchingRequest const &request) override {
+      if (base().logger()->level() >= log::Level::DEBUG) {
+        base().logger()->debug("Requesting collation");
+      }
+    }
+
+   private:
+    std::shared_ptr<ReqCollationObserver> observer_;
+    application::AppConfiguration const &app_config_;
+  };
+
+  ReqCollationProtocol::ReqCollationProtocol(
+      libp2p::Host &host,
+      application::AppConfiguration const &app_config,
+      application::ChainSpec const &chain_spec,
+      std::shared_ptr<ReqCollationObserver> observer)
+      : impl_{std::make_shared<ReqCollationProtocolImpl>(
+          host, app_config, chain_spec, std::move(observer))} {}
+
+  const Protocol &ReqCollationProtocol::protocolName() const {
+    BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");
+    return impl_->protocolName();
+  }
+
+  bool ReqCollationProtocol::start() {
+    BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");
+    return impl_->start();
+  }
+
+  bool ReqCollationProtocol::stop() {
+    BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");
+    return impl_->stop();
+  }
+
+  void ReqCollationProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
+    BOOST_ASSERT(!"Must not be called!");
+  }
+
+  void ReqCollationProtocol::newOutgoingStream(
+      const PeerInfo &peer_info,
+      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
+    BOOST_ASSERT(!"Must not be called!");
+  }
+
+  void ReqCollationProtocol::request(
+      const PeerId &peer_id,
+      CollationFetchingRequest request,
+      std::function<void(outcome::result<CollationFetchingResponse>)>
+          &&response_handler) {
+    BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");
+    return impl_->doRequest(
+        peer_id, std::move(request), std::move(response_handler));
+  }
+
+}  // namespace kagome::network

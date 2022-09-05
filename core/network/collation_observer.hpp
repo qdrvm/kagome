@@ -8,7 +8,9 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
+#include <libp2p/peer/peer_id.hpp>
 #include "consensus/grandpa/common.hpp"
+#include "network/types/collator_messages.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::network {
@@ -20,17 +22,23 @@ namespace kagome::network {
 
     /**
      * Triggered when a Peer makes advertisement
+     * @param peer_id id of the peer
      * @param para_hash hash of the parachain block
      */
-    virtual void onAdvertise(primitives::BlockHash para_hash) = 0;
+    virtual void onAdvertise(libp2p::peer::PeerId const &peer_id,
+                             primitives::BlockHash para_hash) = 0;
 
     /**
      * Triggered when a Peer declares as a collator
      */
     virtual void onDeclare(
-        consensus::grandpa::Id collator_pubkey,
-        uint32_t para_id,
-        consensus::grandpa::Signature collator_signature) = 0;
+        libp2p::peer::PeerId const &peer_id,  /// PeerId of the peer.
+        CollatorPublicKey pubkey,             /// Public key of the collator.
+        ParachainId para_id,                  /// Parachain Id.
+        Signature signature                   /// Signature of the collator
+                                              /// using the PeerId of the
+                                              /// collators node.
+        ) = 0;
   };
 }  // namespace kagome::network
 

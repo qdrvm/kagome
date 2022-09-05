@@ -10,6 +10,7 @@
 #include <numeric>
 #include <optional>
 #include <queue>
+#include <random>
 #include <unordered_map>
 
 #include "libp2p/connection/stream.hpp"
@@ -46,6 +47,27 @@ namespace kagome::network {
       INCOMING = 1,
       OUTGOING = 2,
       BIDIRECTIONAL = 3
+    };
+
+    template <typename Rng = std::mt19937>
+    struct RandomGossipStrategy {
+      RandomGossipStrategy(const int candidates_num, const int lucky_peers_num)
+          : candidates_num_{candidates_num} {
+        auto lucky_rate = lucky_peers_num > 0
+                              ? static_cast<double>(lucky_peers_num)
+                                    / std::max(candidates_num_, lucky_peers_num)
+                              : 1.;
+        threshold_ = gen_.max() * lucky_rate;
+      }
+      bool operator()(const PeerId &) {
+        auto res = candidates_num_ > 0 && gen_() <= threshold_;
+        return res;
+      }
+
+     private:
+      Rng gen_;
+      int candidates_num_;
+      typename Rng::result_type threshold_;
     };
 
    private:
@@ -121,7 +143,8 @@ namespace kagome::network {
     StreamEngine &operator=(StreamEngine &&) = delete;
 
     ~StreamEngine() = default;
-    StreamEngine() : logger_{log::createLogger("StreamEngine", "network")} {}
+    explicit StreamEngine()
+        : logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
     static StreamEnginePtr create(Args &&...args) {
@@ -315,6 +338,19 @@ namespace kagome::network {
       static const std::function<bool(const PeerId &)> any =
           [](const PeerId &) { return true; };
       broadcast(protocol, msg, any);
+    }
+
+    int outgoingStreamsNumber(const std::shared_ptr<ProtocolBase> &protocol) {
+      int candidates_num{0};
+      streams_.sharedAccess([&](auto const &streams) {
+        candidates_num = std::count_if(
+            streams.begin(), streams.end(), [&protocol](const auto &entry) {
+              auto &[peer_id, protocol_map] = entry;
+              return protocol_map.find(protocol) != protocol_map.end()
+                     && protocol_map.at(protocol).hasActiveOutgoing();
+            });
+      });
+      return candidates_num;
     }
 
     template <typename F>

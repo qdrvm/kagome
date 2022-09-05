@@ -53,6 +53,8 @@ namespace kagome::application {
                 (),
                 (const, override));
 
+    MOCK_METHOD(bool, shouldSaveNodeKey, (), (const, override));
+
     MOCK_METHOD(const std::vector<libp2p::multi::Multiaddress> &,
                 listenAddresses,
                 (),
@@ -139,7 +141,9 @@ namespace kagome::application {
 
     MOCK_METHOD(uint32_t, inPeers, (), (const, override));
 
-    MOCK_METHOD(uint32_t, inPeersLght, (), (const, override));
+    MOCK_METHOD(uint32_t, inPeersLight, (), (const, override));
+
+    MOCK_METHOD(int32_t, luckyPeers, (), (const, override));
 
     MOCK_METHOD(bool, isTelemetryEnabled, (), (const, override));
 

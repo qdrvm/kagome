@@ -54,6 +54,8 @@ namespace kagome::network {
    public:
     static constexpr std::chrono::seconds kTimeoutForConnecting{15};
 
+    enum class Error { UNDECLARED_COLLATOR = 1, OUT_OF_VIEW, DOUPLICATE };
+
     PeerManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         libp2p::Host &host,
@@ -82,11 +84,31 @@ namespace kagome::network {
     /** @see PeerManager::connectToPeer */
     void connectToPeer(const PeerInfo &peer_info) override;
 
+    /** @see PeerManager::pop_pending_collation */
+    std::optional<PendingCollation> pop_pending_collation() override;
+
+    /** @see PeerManager::push_pending_collation */
+    void push_pending_collation(PendingCollation &&collation) override;
+
     /** @see PeerManager::reserveStreams */
     void reserveStreams(const PeerId &peer_id) const override;
 
     /** @see PeerManager::activePeersNumber */
     size_t activePeersNumber() const override;
+
+    /** @see PeerManager::setCollating */
+    void setCollating(const PeerId &peer_id,
+                      network::CollatorPublicKey const &collator_id,
+                      network::ParachainId para_id) override;
+
+    /** @see PeerManager::parachainState */
+    ParachainState &parachainState() override;
+
+    outcome::result<
+        std::pair<network::CollatorPublicKey const &, network::ParachainId>>
+    insert_advertisement(PeerState &peer_state,
+                         ParachainState &parachain_state,
+                         primitives::BlockHash para_hash) override;
 
     /** @see PeerManager::forEachPeer */
     void forEachPeer(std::function<void(const PeerId &)> func) const override;
@@ -114,7 +136,8 @@ namespace kagome::network {
         const GrandpaNeighborMessage &neighbor_message) override;
 
     /** @see PeerManager::getPeerState */
-    std::optional<PeerState> getPeerState(const PeerId &peer_id) override;
+    std::optional<std::reference_wrapper<PeerState>> getPeerState(
+        const PeerId &peer_id) override;
 
    private:
     /// Right way to check self peer as it takes into account dev mode
@@ -170,9 +193,14 @@ namespace kagome::network {
     metrics::RegistryPtr registry_ = metrics::createRegistry();
     metrics::Gauge *sync_peer_num_;
 
+    // parachain
+    ParachainState parachain_state_;
+
     log::Logger log_;
   };
 
 }  // namespace kagome::network
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::network, PeerManagerImpl::Error)
 
 #endif  // KAGOME_NETWORK_PEERMANAGERIMPL

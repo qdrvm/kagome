@@ -20,7 +20,6 @@ namespace kagome::primitives {
    */
   struct BlockData {
     SCALE_TIE(6);
-    SCALE_TIE_EQ(BlockData);
 
     primitives::BlockHash hash;
     std::optional<primitives::BlockHeader> header{};

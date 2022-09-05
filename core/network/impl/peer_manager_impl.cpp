@@ -17,6 +17,19 @@ namespace {
   constexpr const char *syncPeerMetricName = "kagome_sync_peers";
 }
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
+  using E = kagome::network::PeerManagerImpl::Error;
+  switch (e) {
+    case E::UNDECLARED_COLLATOR:
+      return "Process handling from undeclared collator";
+    case E::OUT_OF_VIEW:
+      return "Processing para hash, which is out of view";
+    case E::DOUPLICATE:
+      return "Processing doublicated hash";
+  }
+  return "Unknown error in ChainSpecImpl";
+}
+
 namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -178,11 +191,56 @@ namespace kagome::network {
     }
   }
 
+  void PeerManagerImpl::setCollating(
+      const PeerId &peer_id,
+      network::CollatorPublicKey const &collator_id,
+      network::ParachainId para_id) {
+    if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
+      BOOST_ASSERT(!it->second.collator_state
+                   && !!"Collator state should be empty at the time.");
+      it->second.collator_state = CollatorState{.parachain_id = para_id,
+                                                .collator_id = collator_id};
+      it->second.time = clock_->now();
+    }
+  }
+
   void PeerManagerImpl::forOnePeer(
       const PeerId &peer_id, std::function<void(const PeerId &)> func) const {
     if (active_peers_.count(peer_id)) {
       func(peer_id);
     }
+  }
+
+  std::optional<PendingCollation> PeerManagerImpl::pop_pending_collation() {
+    if (parachain_state_.pending_collations.empty()) return std::nullopt;
+
+    std::optional<PendingCollation> collation =
+        std::move(parachain_state_.pending_collations.front());
+    parachain_state_.pending_collations.pop_front();
+    return collation;
+  }
+
+  void PeerManagerImpl::push_pending_collation(PendingCollation &&collation) {
+    parachain_state_.pending_collations.emplace_back(std::move(collation));
+  }
+
+  outcome::result<
+      std::pair<network::CollatorPublicKey const &, network::ParachainId>>
+  PeerManagerImpl::insert_advertisement(PeerState &peer_state,
+                                        ParachainState &parachain_state,
+                                        primitives::BlockHash para_hash) {
+    if (!peer_state.collator_state) return Error::UNDECLARED_COLLATOR;
+
+    if (parachain_state.our_view.count(para_hash) == 0)
+      return Error::OUT_OF_VIEW;
+
+    if (peer_state.collator_state.value().advertisements.count(para_hash) != 0)
+      return Error::DOUPLICATE;
+
+    peer_state.collator_state.value().advertisements.insert(
+        std::move(para_hash));
+    return std::make_pair(peer_state.collator_state.value().collator_id,
+                          peer_state.collator_state.value().parachain_id);
   }
 
   void PeerManagerImpl::align() {
@@ -429,6 +487,10 @@ namespace kagome::network {
     it->second.best_block = status.best_block;
   }
 
+  ParachainState &PeerManagerImpl::parachainState() {
+    return parachain_state_;
+  }
+
   void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
                                         const BlockAnnounce &announce) {
     auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
@@ -447,8 +509,8 @@ namespace kagome::network {
     it->second.last_finalized = neighbor_message.last_finalized;
   }
 
-  std::optional<PeerState> PeerManagerImpl::getPeerState(
-      const PeerId &peer_id) {
+  std::optional<std::reference_wrapper<PeerState>>
+  PeerManagerImpl::getPeerState(const PeerId &peer_id) {
     auto it = peer_states_.find(peer_id);
     if (it == peer_states_.end()) {
       return std::nullopt;
@@ -529,7 +591,7 @@ namespace kagome::network {
             ++in_light_peers_count;
           }
         }
-        if (in_light_peers_count >= app_config_.inPeersLght()) {
+        if (in_light_peers_count >= app_config_.inPeersLight()) {
           connecting_peers_.erase(peer_id);
           disconnectFromPeer(peer_id);
           return;
@@ -611,7 +673,7 @@ namespace kagome::network {
               auto &r_info = r_info_opt.value();
               auto &o_info = o_info_opt.value();
 
-              if (r_info.best_block.number <= o_info.best_block.number) {
+              if (r_info.get().best_block.number <= o_info.get().best_block.number) {
                 auto grandpa_protocol = self->router_->getGrandpaProtocol();
                 BOOST_ASSERT_MSG(grandpa_protocol,
                                  "Router did not provide grandpa protocol");

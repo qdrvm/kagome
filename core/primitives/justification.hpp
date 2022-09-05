@@ -15,7 +15,6 @@ namespace kagome::primitives {
    */
   struct Justification {
     SCALE_TIE(1);
-    SCALE_TIE_EQ(Justification);
 
     common::Buffer data;
   };

@@ -82,7 +82,11 @@ namespace kagome::application {
 
     const std::optional<std::string> &nodeKeyFile() const override {
       return node_key_file_;
-    };
+    }
+
+    bool shouldSaveNodeKey() const override {
+      return save_node_key_;
+    }
 
     const std::vector<libp2p::multi::Multiaddress> &listenAddresses()
         const override {
@@ -107,8 +111,11 @@ namespace kagome::application {
     uint32_t inPeers() const override {
       return in_peers_;
     }
-    uint32_t inPeersLght() const override {
+    uint32_t inPeersLight() const override {
       return in_peers_light_;
+    }
+    int32_t luckyPeers() const override {
+      return lucky_peers_;
     }
     const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const override {
       return rpc_http_endpoint_;
@@ -224,6 +231,9 @@ namespace kagome::application {
     bool load_u32(const rapidjson::Value &val,
                   char const *name,
                   uint32_t &target);
+    bool load_i32(const rapidjson::Value &val,
+                  char const *name,
+                  int32_t &target);
     bool load_bool(const rapidjson::Value &val, char const *name, bool &target);
 
     /**
@@ -269,6 +279,7 @@ namespace kagome::application {
     network::Roles roles_;
     std::optional<crypto::Ed25519PrivateKey> node_key_;
     std::optional<std::string> node_key_file_;
+    bool save_node_key_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
     std::vector<libp2p::multi::Multiaddress> public_addresses_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;
@@ -292,6 +303,7 @@ namespace kagome::application {
     uint32_t out_peers_;
     uint32_t in_peers_;
     uint32_t in_peers_light_;
+    int32_t lucky_peers_;
     network::PeeringConfig peering_config_;
     bool dev_mode_;
     std::string node_name_;
