@@ -11,14 +11,15 @@
 #include <memory>
 #include <string>
 
-#include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
+#include <libp2p/peer/stream_protocols.hpp>
 
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {
   using Stream = libp2p::connection::Stream;
   using Protocol = libp2p::peer::Protocol;
+  using Protocols = libp2p::StreamProtocols;
   using PeerId = libp2p::peer::PeerId;
   using PeerInfo = libp2p::peer::PeerInfo;
   using Host = libp2p::Host;
@@ -29,28 +30,31 @@ namespace kagome::network {
     ~ProtocolBaseImpl() = default;
 
     ProtocolBaseImpl(libp2p::Host &host,
-                     Protocol const &protocol,
+                     Protocols const &protocols,
                      std::string const &log_section)
         : host_(host),
-          protocol_(protocol),
+          protocols_{std::move(protocols)},
           log_(log::createLogger(log_section, "kagome_protocols")) {}
 
     template <typename T>
     bool start(std::weak_ptr<T> wptr) {
       host_.setProtocolHandler(
-          protocol_, [log(log_), wp(std::move(wptr))](auto &&stream) {
+          protocols_,
+          [log(log_), wp(std::move(wptr))](auto &&stream_and_proto) {
             if (auto self = wp.lock()) {
-              if (auto peer_id = stream->remotePeerId()) {
+              if (auto peer_id = stream_and_proto.stream->remotePeerId()) {
                 SL_TRACE(log,
                          "Handled {} protocol stream from: {}",
-                         self->protocol(),
+                         stream_and_proto.protocol,
                          peer_id.value().toBase58());
-                self->onIncomingStream(std::forward<decltype(stream)>(stream));
+                self->onIncomingStream(
+                    std::forward<decltype(stream_and_proto.stream)>(
+                        stream_and_proto.stream));
                 return;
               }
               log->warn("Handled {} protocol stream from unknown peer",
-                        self->protocol());
-              stream->reset();
+                        stream_and_proto.protocol);
+              stream_and_proto.stream->reset();
             }
           });
       return true;
@@ -60,8 +64,8 @@ namespace kagome::network {
       return true;
     }
 
-    Protocol const &protocol() const {
-      return protocol_;
+    Protocols const &protocolIds() const {
+      return protocols_;
     }
 
     Host &host() {
@@ -80,14 +84,14 @@ namespace kagome::network {
           if (!result) {
             SL_WARN(log,
                     "Stream {} was not closed successfully with {}",
-                    self->protocol(),
+                    self->protocolName(),
                     stream->remotePeerId().value());
 
           } else {
             SL_VERBOSE(log,
-                    "Stream {} with {} was closed.",
-                    self->protocol(),
-                    stream->remotePeerId().value());
+                       "Stream {} with {} was closed.",
+                       self->protocolName(),
+                       stream->remotePeerId().value());
           }
         }
       });
@@ -95,7 +99,7 @@ namespace kagome::network {
 
    private:
     Host &host_;
-    Protocol const protocol_;
+    Protocols const protocols_;
     log::Logger log_;
   };
 }  // namespace kagome::network

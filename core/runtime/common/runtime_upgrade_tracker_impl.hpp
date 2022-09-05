@@ -14,6 +14,7 @@
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
+#include "scale/tie.hpp"
 #include "storage/buffer_map_types.hpp"
 #include "storage/trie/types.hpp"
 
@@ -39,20 +40,15 @@ namespace kagome::runtime {
         std::shared_ptr<blockchain::BlockStorage> block_storage);
 
     struct RuntimeUpgradeData {
+      SCALE_TIE(2);
+      SCALE_TIE_EQ(RuntimeUpgradeData);
+
       RuntimeUpgradeData() = default;
 
       template <typename BlockInfo, typename RootHash>
       RuntimeUpgradeData(BlockInfo &&block, RootHash &&state)
           : block{std::forward<BlockInfo>(block)},
             state{std::forward<RootHash>(state)} {}
-
-      bool operator==(const RuntimeUpgradeData &rhs) const {
-        return block == rhs.block and state == rhs.state;
-      }
-
-      bool operator!=(const RuntimeUpgradeData &rhs) const {
-        return not operator==(rhs);
-      }
 
       primitives::BlockInfo block;
       storage::trie::RootHash state;

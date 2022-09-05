@@ -24,6 +24,10 @@
 #include "network/types/own_peer_info.hpp"
 #include "utils/non_copyable.hpp"
 
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
 namespace kagome::network {
 
   KAGOME_DECLARE_CACHE(GrandpaProtocol, KAGOME_CACHE_UNIT(GrandpaMessage));
@@ -45,11 +49,8 @@ namespace kagome::network {
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<PeerManager> peer_manager,
+        const primitives::BlockHash &genesis_hash,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
-
-    const Protocol &protocol() const override {
-      return base_.protocol();
-    }
 
     /**
      * Sets handler for `parytytech/grandpa/1` protocol
@@ -57,6 +58,10 @@ namespace kagome::network {
      */
     bool start() override;
     bool stop() override;
+
+    const std::string &protocolName() const override {
+      return kGrandpaProtocolName;
+    }
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
@@ -75,6 +80,7 @@ namespace kagome::network {
                          CatchUpResponse &&catch_up_response);
 
    private:
+    const static inline auto kGrandpaProtocolName = "GrandpaProtocol"s;
     enum class Direction { INCOMING, OUTGOING };
     void readHandshake(std::shared_ptr<Stream> stream,
                        Direction direction,
