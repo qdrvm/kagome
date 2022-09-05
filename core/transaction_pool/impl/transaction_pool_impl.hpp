@@ -69,11 +69,11 @@ namespace kagome::transaction_pool {
 
     Status getStatus() const override;
 
-   private:
     outcome::result<primitives::Transaction> constructTransaction(
         primitives::TransactionSource source,
-        primitives::Extrinsic extrinsic) const;
+        primitives::Extrinsic extrinsic) const override;
 
+   private:
     outcome::result<void> submitOne(const std::shared_ptr<Transaction> &tx);
 
     outcome::result<void> processTransaction(
