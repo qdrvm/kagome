@@ -49,6 +49,27 @@ namespace kagome::network {
       BIDIRECTIONAL = 3
     };
 
+    template <typename Rng = std::mt19937>
+    struct RandomGossipStrategy {
+      RandomGossipStrategy(const int candidates_num, const int lucky_peers_num)
+          : candidates_num_{candidates_num} {
+        auto lucky_rate = lucky_peers_num > 0
+                              ? static_cast<double>(lucky_peers_num)
+                                    / std::max(candidates_num_, lucky_peers_num)
+                              : 1.;
+        threshold_ = gen_.max() * lucky_rate;
+      }
+      bool operator()(const PeerId &) {
+        auto res = candidates_num_ > 0 && gen_() <= threshold_;
+        return res;
+      }
+
+     private:
+      Rng gen_;
+      int candidates_num_;
+      typename Rng::result_type threshold_;
+    };
+
    private:
     struct ProtocolDescr {
       std::shared_ptr<ProtocolBase> protocol;
@@ -122,9 +143,8 @@ namespace kagome::network {
     StreamEngine &operator=(StreamEngine &&) = delete;
 
     ~StreamEngine() = default;
-    explicit StreamEngine(int lucky_peers_num)
-        : logger_{log::createLogger("StreamEngine", "network")},
-          lucky_peers_num_{lucky_peers_num} {}
+    explicit StreamEngine()
+        : logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
     static StreamEnginePtr create(Args &&...args) {
@@ -320,14 +340,7 @@ namespace kagome::network {
       broadcast(protocol, msg, any);
     }
 
-    template <typename T>
-    void gossipLuckyPeers(const std::shared_ptr<ProtocolBase> &protocol,
-                          const std::shared_ptr<T> &msg) {
-      if (lucky_peers_num_ == 0) {
-        broadcast(protocol, msg);
-        return;
-      }
-
+    int outgoingStreamsNumber(const std::shared_ptr<ProtocolBase> &protocol) {
       int candidates_num{0};
       streams_.sharedAccess([&](auto const &streams) {
         candidates_num = std::count_if(
@@ -337,19 +350,7 @@ namespace kagome::network {
                      && protocol_map.at(protocol).hasActiveOutgoing();
             });
       });
-      if (candidates_num == 0) {
-        return;
-      }
-
-      static std::mt19937 gen32;
-      auto lucky_rate = static_cast<double>(lucky_peers_num_)
-                        / std::max(candidates_num, lucky_peers_num_);
-      auto threshold =
-          static_cast<std::mt19937::result_type>(gen32.max() * lucky_rate);
-
-      broadcast(protocol, msg, [&threshold](const PeerId &) {
-        return gen32() < threshold;
-      });
+      return candidates_num;
     }
 
     template <typename F>
@@ -579,7 +580,6 @@ namespace kagome::network {
     }
 
     log::Logger logger_;
-    int lucky_peers_num_;
     SafeObject<PeerMap> streams_;
   };
 

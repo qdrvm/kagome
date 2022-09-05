@@ -5,6 +5,7 @@
 
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 
+#include "application/app_configuration.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/types/no_data_message.hpp"
@@ -20,6 +21,7 @@ namespace kagome::network {
 
   PropagateTransactionsProtocol::PropagateTransactionsProtocol(
       libp2p::Host &host,
+      const application::AppConfiguration &app_config,
       const application::ChainSpec &chain_spec,
       std::shared_ptr<consensus::babe::Babe> babe,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
@@ -32,6 +34,7 @@ namespace kagome::network {
               {fmt::format(kPropagateTransactionsProtocol.data(),
                            chain_spec.protocolId())},
               "PropagateTransactionsProtocol"),
+        app_config_(app_config),
         babe_(std::move(babe)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)),
@@ -345,8 +348,12 @@ namespace kagome::network {
                                                   PropagatedExtrinsics);
     (*shared_msg) = std::move(exts);
 
-    stream_engine_->gossipLuckyPeers<PropagatedExtrinsics>(
-        shared_from_this(), std::move(shared_msg));
+    stream_engine_->broadcast<PropagatedExtrinsics>(
+        shared_from_this(),
+        shared_msg,
+        StreamEngine::RandomGossipStrategy{
+            stream_engine_->outgoingStreamsNumber(shared_from_this()),
+            app_config_.luckyPeers()});
   }
 
 }  // namespace kagome::network
