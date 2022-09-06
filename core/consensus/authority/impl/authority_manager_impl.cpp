@@ -21,6 +21,7 @@
 #include "crypto/hasher.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
 #include "scale/scale.hpp"
+#include "storage/predefined_keys.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 using kagome::common::Buffer;
@@ -730,11 +731,13 @@ namespace kagome::authority {
 
   void AuthorityManagerImpl::save() {
     auto data = scale::encode(root_).value();
-    buffer_storage_->put(Buffer::fromString("authmngrdata"), Buffer(data)).value();
+    buffer_storage_->put(storage::kAuthorityManagerStateLookupKey, Buffer(data))
+        .value();
   }
 
   bool AuthorityManagerImpl::load() {
-    auto r = buffer_storage_->tryLoad(Buffer::fromString("authmngrdata")).value();
+    auto r = buffer_storage_->tryLoad(storage::kAuthorityManagerStateLookupKey)
+                 .value();
     if (r.has_value()) {
       root_ = scale::decode<std::shared_ptr<ScheduleNode>>(r.value()).value();
       return true;
@@ -884,6 +887,8 @@ namespace kagome::authority {
       SL_DEBUG(log_, "Scheduled changes on block {} has removed", block);
       ancestor->descendants.erase(it);
     }
+
+    save();
   }
 
   bool AuthorityManagerImpl::prepareFromGenesis() {

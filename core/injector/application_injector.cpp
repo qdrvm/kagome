@@ -1454,6 +1454,8 @@ namespace {
 
     const auto &app_config =
         injector.template create<const application::AppConfiguration &>();
+    auto buffer_storage =
+        injector.template create<sptr<storage::BufferStorage>>();
     auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
     auto header_repo =
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
@@ -1462,6 +1464,7 @@ namespace {
 
     initialized.emplace(new application::mode::RecoveryMode(
         [&app_config,
+         buffer_storage = std::move(buffer_storage),
          storage = std::move(storage),
          header_repo = std::move(header_repo),
          trie_storage = std::move(trie_storage)] {
@@ -1471,8 +1474,10 @@ namespace {
               storage,
               header_repo,
               trie_storage);
-          auto log = log::createLogger("RecoveryMode", "main");
+          buffer_storage->remove(storage::kAuthorityManagerStateLookupKey)
+              .value();
           if (res.has_error()) {
+            auto log = log::createLogger("RecoveryMode", "main");
             SL_ERROR(
                 log, "Recovery mode has failed: {}", res.error().message());
             log->flush();

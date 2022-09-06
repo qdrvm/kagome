@@ -32,7 +32,11 @@ namespace kagome::storage {
       ":child_storage:default:"_buf;
 
   inline const common::Buffer kApplyingBlockInfoLookupKey =
-      "kagome::applying_block"_buf;
+      ":kagome:applying_block"_buf;
+
+  inline const common::Buffer kAuthorityManagerStateLookupKey =
+      ":kagome:authority_manager_state"_buf;
+
 }  // namespace kagome::storage
 
 #endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP
