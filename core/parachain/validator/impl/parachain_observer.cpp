@@ -152,11 +152,16 @@ namespace kagome::parachain {
       : collation_observer_impl_{std::make_shared<
           observers::CollationObserverImpl>(
           pm, std::move(crypto_provider), processor)},
+        validation_observer_impl_{std::make_shared<
+          observers::ValidationObserverImpl>(
+          pm, std::move(crypto_provider), processor)},
         req_collation_observer_impl_{
             std::make_shared<observers::ReqCollationObserverImpl>(pm)},
         processor_{processor} {
     BOOST_ASSERT_MSG(collation_observer_impl_,
                      "Collation observer must be initialised!");
+    BOOST_ASSERT_MSG(validation_observer_impl_,
+                     "Validation observer must be initialised!");
     BOOST_ASSERT_MSG(req_collation_observer_impl_,
                      "Fetch collation observer must be initialised!");
     BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialised!");
@@ -168,6 +173,13 @@ namespace kagome::parachain {
     collation_observer_impl_->onIncomingMessage(peer_id,
                                                 std::move(collation_message));
   }
+
+      void ParachainObserverImpl::onIncomingMessage(
+        libp2p::peer::PeerId const &peer_id,
+        network::ValidationMessage &&validation_message) {
+        validation_observer_impl_->onIncomingMessage(peer_id, std::move(validation_message));
+      }
+
 
   outcome::result<network::CollationFetchingResponse>
   ParachainObserverImpl::OnCollationRequest(

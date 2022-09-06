@@ -70,6 +70,14 @@ namespace kagome::network {
                                              scheduler_);
   }
 
+  std::shared_ptr<ValidationProtocol> ProtocolFactory::makeValidationProtocol() const {
+    return std::make_shared<ValidationProtocol>(host_,
+                                               app_config_,
+                                               chain_spec_,
+                                               validation_observer_.lock(),
+                                               kValidationProtocol);
+  }
+
   std::shared_ptr<CollationProtocol> ProtocolFactory::makeCollationProtocol()
       const {
     return std::make_shared<CollationProtocol>(host_,

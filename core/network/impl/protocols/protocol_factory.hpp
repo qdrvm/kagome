@@ -67,6 +67,11 @@ namespace kagome::network {
       collation_observer_ = collation_observer;
     }
 
+    void setValidationObserver(
+        std::shared_ptr<ValidationObserver> const &validation_observer) {
+      validation_observer_ = validation_observer;
+    }
+
     void setStateObserver(
         const std::shared_ptr<StateProtocolObserver> &state_observer) {
       state_observer_ = state_observer;
@@ -97,6 +102,7 @@ namespace kagome::network {
     std::shared_ptr<SyncProtocol> makeSyncProtocol() const;
 
     std::shared_ptr<CollationProtocol> makeCollationProtocol() const;
+    std::shared_ptr<ValidationProtocol> makeValidationProtocol() const;
     std::shared_ptr<ReqCollationProtocol> makeReqCollationProtocol() const;
 
    private:
@@ -122,6 +128,7 @@ namespace kagome::network {
     std::weak_ptr<SyncProtocolObserver> sync_observer_;
     std::weak_ptr<PeerManager> peer_manager_;
     std::weak_ptr<CollationObserver> collation_observer_;
+    std::weak_ptr<ValidationObserver> validation_observer_;
     std::weak_ptr<ReqCollationObserver> req_collation_observer_;
   };
 

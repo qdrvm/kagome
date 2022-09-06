@@ -223,13 +223,23 @@ namespace kagome::network {
     static constexpr bool allowed = (std::is_same_v<T, AllowedTypes> || ...);
   };
 
+  template<bool B, typename LT, typename RT>
+  struct type_if {
+      using type = RT; 
+  };
+   
+  template<typename LT, typename RT>
+  struct type_if<true, LT, RT> { 
+      using type = LT; 
+  };
+
   /**
    * Collation protocol message.
    */
+  AllowerTypeChecker<T, ValidationMessage, boost::variant<CollationMessage>>::allowed
+
   template <typename T>
-  using ProtocolMessage = boost::variant<std::enable_if_t<
-      AllowerTypeChecker<T, ValidationMessage, CollationMessage>::allowed,
-      T>>;  /// collation or validation protocol message
+  using ProtocolMessage = ;  /// collation or validation protocol message
 
   /**
    * Common WireMessage that represents messages in NetworkBridge.

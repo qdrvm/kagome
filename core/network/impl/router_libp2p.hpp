@@ -59,6 +59,7 @@ namespace kagome::network {
     std::shared_ptr<SyncProtocol> getSyncProtocol() const override;
     std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const override;
     std::shared_ptr<CollationProtocol> getCollationProtocol() const override;
+    std::shared_ptr<ValidationProtocol> getValidationProtocol() const override;
     std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const override;
 
@@ -90,6 +91,7 @@ namespace kagome::network {
     std::shared_ptr<StateProtocol> state_protocol_;
     std::shared_ptr<SyncProtocol> sync_protocol_;
     std::shared_ptr<CollationProtocol> collation_protocol_;
+    std::shared_ptr<ValidationProtocol> validation_protocol_;
     std::shared_ptr<ReqCollationProtocol> req_collation_protocol_;
   };
 

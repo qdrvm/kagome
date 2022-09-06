@@ -722,6 +722,7 @@ namespace {
           injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
       protocol_factory->setCollactionObserver(instance);
+      protocol_factory->setValidationObserver(instance);
       protocol_factory->setReqCollationObserver(instance);
       return instance;
     };
