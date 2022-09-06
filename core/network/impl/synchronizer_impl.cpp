@@ -13,6 +13,7 @@
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
+#include "storage/predefined_keys.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -77,8 +78,10 @@ namespace kagome::network {
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-      std::shared_ptr<crypto::Hasher> hasher)
-      : block_tree_(std::move(block_tree)),
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<storage::BufferStorage> buffer_storage)
+      : app_state_manager_(std::move(app_state_manager)),
+        block_tree_(std::move(block_tree)),
         trie_changes_tracker_(std::move(changes_tracker)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
@@ -86,7 +89,9 @@ namespace kagome::network {
         storage_(std::move(storage)),
         router_(std::move(router)),
         scheduler_(std::move(scheduler)),
-        hasher_(std::move(hasher)) {
+        hasher_(std::move(hasher)),
+        buffer_storage_(std::move(buffer_storage)) {
+    BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_changes_tracker_);
     BOOST_ASSERT(block_executor_);
@@ -95,8 +100,7 @@ namespace kagome::network {
     BOOST_ASSERT(router_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
-
-    BOOST_ASSERT(app_state_manager);
+    BOOST_ASSERT(buffer_storage_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -107,7 +111,43 @@ namespace kagome::network {
         metrics_registry_->registerGaugeMetric(kImportQueueLength);
     metric_import_queue_length_->set(0);
 
-    app_state_manager->atShutdown([this] { node_is_shutting_down_ = true; });
+    app_state_manager_->takeControl(*this);
+  }
+
+  /** @see AppStateManager::takeControl */
+  bool SynchronizerImpl::prepare() {
+    auto opt_res =
+        buffer_storage_->tryLoad(storage::kPendingRequestOfSyncStateLookupKey);
+    if (opt_res.has_error()) {
+      SL_ERROR(log_,
+               "Can't check of incomplete state sync request: {}",
+               opt_res.error());
+      return false;
+    }
+    if (opt_res.value().has_value()) {
+      auto &encoded_keys = opt_res.value().value();
+      auto request_res =
+          scale::decode<decltype(state_sync_request_)::value_type>(
+              std::move(encoded_keys));
+      if (request_res.has_error()) {
+        SL_ERROR(log_,
+                 "Can't decode incomplete state sync request: {}",
+                 request_res.error());
+        return false;
+      }
+      state_sync_request_.emplace(std::move(request_res.value()));
+    }
+    return true;
+  }
+
+  /** @see AppStateManager::takeControl */
+  bool SynchronizerImpl::start() {
+    return true;
+  }
+
+  /** @see AppStateManager::takeControl */
+  void SynchronizerImpl::stop() {
+    node_is_shutting_down_ = true;
   }
 
   bool SynchronizerImpl::subscribeToBlock(
@@ -879,34 +919,32 @@ namespace kagome::network {
 
   void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
                                    const primitives::BlockInfo &block,
-                                   const std::vector<common::Buffer> &keys,
                                    SyncResultHandler &&handler) {
+    if (state_sync_request_.has_value()
+        and state_sync_request_->hash != block.hash) {
+      SL_WARN(log_,
+              "SyncState was not requested to {}: "
+              "state sync for other block is not completed yet",
+              peer_id);
+      return;
+    }
+
     bool bool_val = false;
     if (not state_sync_request_in_progress_.compare_exchange_strong(bool_val,
                                                                     true)) {
       SL_TRACE(log_,
-               "SyncState was not requested to {} for block {} with {} keys: "
+               "State sync request was not sent to {} for block {}: "
                "previous request in progress",
                peer_id,
-               block,
-               keys.size());
+               block);
       return;
     }
 
-    state_syncing_ = true;
+    SL_TRACE(
+        log_, "State sync request has sent to {} for block {}", peer_id, block);
 
-    SL_TRACE(log_,
-             "SyncState requested to {} for block {} with {} keys",
-             peer_id,
-             block,
-             keys.size());
-
-    // TODO watch to sync only one block
-    //    if (keys[0].empty()) {
-    //      sync_block_ = block;
-    //    }
-
-    network::StateRequest request{block.hash, keys, true};
+    auto request = state_sync_request_.value_or(
+        network::StateRequest{block.hash, {{}}, true});
 
     auto protocol = router_->getStateProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide state protocol");
@@ -1024,21 +1062,40 @@ namespace kagome::network {
             keys.push_back(val);
           }
 
-          self->state_sync_request_in_progress_ = false;
-
           if (not response_res.value().entries[0].complete) {
             SL_TRACE(self->log_,
                      "State syncing continues. {} entries loaded",
                      self->entries_);
-            self->syncState(peer_id, block, keys, std::move(handler));
+            self->state_sync_request_ =
+                StateRequest{block.hash, std::move(keys), true};
+            auto res = self->buffer_storage_->put(
+                storage::kPendingRequestOfSyncStateLookupKey,
+                common::Buffer(
+                    scale::encode(self->state_sync_request_.value()).value()));
+            if (res.has_error()) {
+              SL_WARN(self->log_,
+                      "Can't store incomplete state sync request: {}",
+                      res.error());
+            }
+            self->state_sync_request_in_progress_ = false;
+            self->syncState(peer_id, block, std::move(handler));
             return;
           }
 
           // State syncing has completed; Switch to the full syncing
           self->sync_method_ = application::AppConfiguration::SyncMethod::Full;
+          // Forget saved state sync request
+          auto res = self->buffer_storage_->remove(
+              storage::kPendingRequestOfSyncStateLookupKey);
+          if (res.has_error()) {
+            SL_WARN(self->log_,
+                    "Can't remove incomplete state sync request: {}",
+                    res.error());
+          }
+          self->state_sync_request_.reset();
+          self->state_sync_request_in_progress_ = false;
           if (handler) {
             handler(block);
-            self->state_syncing_ = false;
           }
         };
 
@@ -1110,20 +1167,27 @@ namespace kagome::network {
         outcome::result<void> applying_res = outcome::success();
 
         if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
+          // Regular syncing
           applying_res = block_executor_->applyBlock(std::move(block));
 
-        } else if (not state_syncing_) {
-          applying_res = block_appender_->appendBlock(std::move(block));
-
         } else {
-          auto n = discardBlock(block.hash);
-          SL_WARN(
-              log_,
-              "Block {} {} not applied as discarded: state syncing on block in "
-              "progress",
-              block_info,
-              n ? fmt::format("and {} others have", n) : fmt::format("has"));
-          if (handler) handler(Error::DISCARDED_BLOCK);
+          // Fast syncing
+          if (not state_sync_request_.has_value()) {
+            // Headers loading
+            applying_res = block_appender_->appendBlock(std::move(block));
+
+          } else {
+            // State syncing in progress; Temporary discard all new blocks
+            auto n = discardBlock(block.hash);
+            SL_WARN(
+                log_,
+                "Block {} {} not applied as discarded: "
+                "state syncing on block in progress",
+                block_info,
+                n ? fmt::format("and {} others have", n) : fmt::format("has"));
+            if (handler) handler(Error::DISCARDED_BLOCK);
+            return;
+          }
         }
 
         notifySubscribers(block_info, applying_res);

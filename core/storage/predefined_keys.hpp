@@ -37,6 +37,9 @@ namespace kagome::storage {
   inline const common::Buffer kAuthorityManagerStateLookupKey =
       ":kagome:authority_manager_state"_buf;
 
+  inline const common::Buffer kPendingRequestOfSyncStateLookupKey =
+      ":kagome:pending_request_of_sync_state"_buf;
+
 }  // namespace kagome::storage
 
 #endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP
