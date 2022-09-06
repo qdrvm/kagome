@@ -9,8 +9,8 @@
 
 #include "consensus/authority/impl/schedule_node.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
-#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
 #include "mock/core/runtime/runtime_environment_factory_mock.hpp"
@@ -18,9 +18,9 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/digest.hpp"
+#include "runtime/common/executor.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/predefined_keys.hpp"
-#include "runtime/common/executor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -76,11 +76,14 @@ class AuthorityManagerTest : public testing::Test {
     grandpa_api = std::make_shared<runtime::GrandpaApiMock>();
     EXPECT_CALL(*grandpa_api, authorities(_))
         .WillRepeatedly(Return(authorities->authorities));
+    EXPECT_CALL(*grandpa_api, current_set_id(_)).WillRepeatedly(Return(42));
 
     hasher = std::make_shared<crypto::HasherMock>();
     EXPECT_CALL(*hasher, twox_128(_)).WillRepeatedly(Return(common::Hash128{}));
 
     EXPECT_CALL(*app_state_manager, atPrepare(_));
+
+    header_repo = std::make_shared<blockchain::BlockHeaderRepositoryMock>();
 
     authority_manager =
         std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
@@ -196,13 +199,16 @@ class AuthorityManagerTest : public testing::Test {
   /**
    * @brief Check if authorities gotten from the examined block are equal to
    * expected ones
-   * @param examining_block
-   * @param expected_authorities
    */
-  void examine(const primitives::BlockInfo &examining_block,
+  void examine(const primitives::BlockInfo &examined_block,
                const primitives::AuthorityList &expected_authorities) {
-    auto actual_authorities_sptr = authority_manager->authorities(
-        examining_block, IsBlockFinalized{false});
+//    EXPECT_CALL(*block_tree,
+//                getBlockHeader(primitives::BlockId{examined_block.hash}))
+//        .WillOnce(Return(outcome::success(
+//            primitives::BlockHeader{.number = examined_block.number,
+//                                    .state_root = "examined_root"_hash256})));
+    auto actual_authorities_sptr =
+        authority_manager->authorities(examined_block, IsBlockFinalized{false});
     ASSERT_TRUE(actual_authorities_sptr.has_value());
     const auto &actual_authorities = *actual_authorities_sptr.value();
     EXPECT_EQ(actual_authorities.authorities, expected_authorities);

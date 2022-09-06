@@ -445,14 +445,19 @@ namespace kagome::authority {
                "Pick authority set with id {} for block {}",
                adjusted_node->current_authorities->id,
                target_block);
-      // Since getAppropriateAncestor worked normally on this block
-      auto header = block_tree_->getBlockHeader(target_block.hash).value();
-      auto id_from_storage =
-          fetchSetIdFromTrieStorage(*trie_storage_, *hasher_, header.state_root)
-              .value()
-              .value();
-      SL_DEBUG(
-          log_, "Pick authority set id from trie storage: {}", id_from_storage);
+      SL_TRACE(log_,
+               "Pick authority set id from trie storage: {}",
+               ([this, &target_block]() {
+                 // SAFETY: getAppropriateAncestor worked normally on this block
+                 auto header =
+                     block_tree_->getBlockHeader(target_block.hash).value();
+                 auto id_from_storage =
+                     fetchSetIdFromTrieStorage(
+                         *trie_storage_, *hasher_, header.state_root)
+                         .value()
+                         .value();
+                 return id_from_storage;
+               }()));
       return adjusted_node->current_authorities;
     }
 
@@ -557,13 +562,13 @@ namespace kagome::authority {
              delay,
              current_block,
              delay_start + delay);
-    auto delay_start_header_res = block_tree_->getBlockHeader(delay_start + 1);
-    if (delay_start_header_res.has_error()) {
-      SL_ERROR(log_, "Failed to obtain header by number {}", delay_start + 1);
+    auto delay_start_hash_res = header_repo_->getHashByNumber(delay_start);
+    if (delay_start_hash_res.has_error()) {
+      SL_ERROR(log_, "Failed to obtain hash by number {}", delay_start);
     }
-    OUTCOME_TRY(delay_start_header, delay_start_header_res);
+    OUTCOME_TRY(delay_start_hash, delay_start_hash_res);
     auto ancestor_node =
-        getAppropriateAncestor({delay_start, delay_start_header.parent_hash});
+        getAppropriateAncestor({delay_start, delay_start_hash});
 
     if (not ancestor_node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -609,7 +614,7 @@ namespace kagome::authority {
     };
 
     auto new_node = ancestor_node->makeDescendant(
-        {delay_start, delay_start_header.parent_hash}, true);
+        {delay_start, delay_start_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 
