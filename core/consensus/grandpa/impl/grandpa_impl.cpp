@@ -134,6 +134,9 @@ namespace kagome::consensus::grandpa {
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         round_state.last_finalized_block, voters, environment_);
 
+    current_round_->voterSetId();
+    voters->id();
+
     GrandpaConfig config{.voters = std::move(voters),
                          .round_number = round_state.round_number,
                          .duration = round_time_factor_,
@@ -330,7 +333,8 @@ namespace kagome::consensus::grandpa {
 
     // Iff peer just reached one of recent round, then share known votes
     if (not info.has_value()
-        or (info->get().set_id.has_value() and msg.voter_set_id != info->get().set_id)
+        or (info->get().set_id.has_value()
+            and msg.voter_set_id != info->get().set_id)
         or (info->get().round_number.has_value()
             and msg.round_number > info->get().round_number)) {
       if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
@@ -848,6 +852,18 @@ namespace kagome::consensus::grandpa {
           return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
         }
         auto &authorities = authorities_opt.value();
+        SL_INFO(logger_,
+                 "Apply justification for block {} with voter set id {}",
+                 block_info,
+                 authorities->id);
+        SL_INFO(logger_,
+                 "authorities->id: {}, current_round_->voterSetId(): {}, "
+                 "justification.round_number: {}, "
+                 "current_round_->roundNumber(): {}",
+                 authorities->id,
+                 current_round_->voterSetId(),
+                 justification.round_number,
+                 current_round_->roundNumber());
 
         // This is justification for non-actual round
         if (authorities->id < current_round_->voterSetId()
