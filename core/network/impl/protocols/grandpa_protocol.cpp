@@ -446,10 +446,14 @@ namespace kagome::network {
 
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
-    (*shared_msg) = GrandpaMessage(std::move(msg));
+    (*shared_msg) = GrandpaMessage(msg);
 
-    stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
-                                              std::move(shared_msg));
+    stream_engine_->broadcast<GrandpaMessage>(
+        shared_from_this(),
+        shared_msg,
+        StreamEngine::RandomGossipStrategy{
+            stream_engine_->outgoingStreamsNumber(shared_from_this()),
+            app_config_.luckyPeers()});
   }
 
   void GrandpaProtocol::finalize(
