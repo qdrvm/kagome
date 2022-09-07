@@ -29,6 +29,8 @@ namespace kagome::network {
   using HeadData = common::Buffer;
   using CandidateHash = primitives::BlockHash;
   using ChunkProof = std::vector<common::Buffer>;
+  using CandidateIndex = uint32_t;
+  using CoreIndex = uint32_t;
 
   /// NU element.
   using Dummy = std::tuple<>;
@@ -192,19 +194,22 @@ namespace kagome::network {
     Signature signature;
   };
 
-  struct Seconded {
+  struct SignedStatement {
     SCALE_TIE(2);
 
     primitives::BlockHash relay_parent;  /// relay parent hash
     Statement statement;                 /// statement of seconded candidate
   };
 
+  /// Seconded is an alias for signed statement.
+  using Seconded = SignedStatement;
+
   struct BitfieldData {
     SCALE_TIE(3);
 
-    std::vector<bool> bitfield;/// The availability bitfield
-    ValidatorIndex validator_ix; /// Validator index in the authority set.
-    Signature signature; /// Signature of the validator.
+    std::vector<bool> bitfield;   /// The availability bitfield
+    ValidatorIndex validator_ix;  /// Validator index in the authority set.
+    Signature signature;          /// Signature of the validator.
   };
 
   struct BitfieldDistribution {
@@ -213,6 +218,20 @@ namespace kagome::network {
     primitives::BlockHash relay_parent;  /// Hash of the relay chain block
     BitfieldData data;
   };
+
+  struct StatementMetadata {
+    SCALE_TIE(4);
+
+    primitives::BlockHash relay_parent;  /// Hash of the relay chain block
+    primitives::BlockHash
+        candidate_hash;           /// Hash of candidate that was used create the
+                                  /// `CommitedCandidateRecept`.
+    ValidatorIndex validator_ix;  /// Validator index in the authority set.
+    Signature signature;          /// Signature of the validator.
+  };
+
+  using StatementDistributionMessage =
+      boost::variant<SignedStatement, StatementMetadata>;
 
   /**
    * Collator -> Validator and Validator -> Collator if seconded message.
@@ -227,20 +246,109 @@ namespace kagome::network {
       Seconded  /// validator -> collator. Candidate was seconded.
       >;
 
-
-
   /**
    * Indicates the availability vote of a validator for a given candidate.
    */
-  using BitfieldDistributionMessage = boost::variant<
-      BitfieldDistribution
-      >;
+  using BitfieldDistributionMessage = boost::variant<BitfieldDistribution>;
+
+  /// An assignment story based on the VRF that authorized the relay-chain block
+  /// where the candidate was included combined with a sample number.
+  ///
+  /// The context used to produce bytes is [`RELAY_VRF_MODULO_CONTEXT`]
+  struct RelayVRFModulo {
+    SCALE_TIE(1);
+
+    uint32_t sample;  /// The sample number used in this cert.
+  };
+
+  /// An assignment story based on the VRF that authorized the relay-chain block
+  /// where the candidate was included combined with the index of a particular
+  /// core.
+  ///
+  /// The context is [`RELAY_VRF_DELAY_CONTEXT`]
+  struct RelayVRFDelay {
+    SCALE_TIE(1);
+
+    CoreIndex core_index;  /// The core index chosen in this cert.
+  };
+
+  /// Different kinds of input data or criteria that can prove a validator's
+  /// assignment to check a particular parachain.
+  using AssignmentCertKind = boost::variant<RelayVRFModulo, RelayVRFDelay>;
+
+  /// A certification of assignment.
+  struct AssignmentCert {
+    SCALE_TIE(2);
+
+    AssignmentCertKind
+        kind;  /// The criterion which is claimed to be met by this cert.
+    crypto::VRFOutput vrf;  /// The VRF showing the criterion is met.
+  };
+
+  /// An assignment criterion which refers to the candidate under which the
+  /// assignment is relevant by block hash.
+  struct IndirectAssignmentCert {
+    SCALE_TIE(3);
+
+    primitives::BlockHash
+        block_hash;            /// A block hash where the candidate appears.
+    ValidatorIndex validator;  /// The validator index.
+    AssignmentCert cert;       /// The cert itself.
+  };
+
+  /// A signed approval vote which references the candidate indirectly via the
+  /// block.
+  ///
+  /// In practice, we have a look-up from block hash and candidate index to
+  /// candidate hash, so this can be transformed into a `SignedApprovalVote`.
+  struct IndirectSignedApprovalVote {
+    SCALE_TIE(4);
+
+    primitives::BlockHash
+        block_hash;  /// A block hash where the candidate appears.
+    CandidateIndex
+        candidate_index;       /// The index of the candidate in the list of
+                               /// candidates fully included as-of the block.
+    ValidatorIndex validator;  /// The validator index.
+    Signature signature;       /// The signature by the validator.
+  };
+
+  struct Assignment {
+    SCALE_TIE(2);
+
+    IndirectAssignmentCert indirect_assignment_cert;
+    CandidateIndex candidate_ix;
+  };
+
+  struct Assignments {
+    SCALE_TIE(1);
+
+    std::vector<Assignment> assignments;  /// Assignments for candidates in
+                                          /// recent, unfinalized blocks.
+  };
+
+  struct Approvals {
+    SCALE_TIE(1);
+
+    std::vector<IndirectSignedApprovalVote>
+        approvals;  /// Approvals for candidates in some recent, unfinalized
+                    /// block.
+  };
+
+  using ApprovalDistributionMessage = boost::variant<Assignments, Approvals>;
 
   /**
    * Validator -> Validator.
-   * Used by validators to broadcast relevant information about certain steps in the A&V process.
+   * Used by validators to broadcast relevant information about certain steps in
+   * the A&V process.
    */
-  using ValidatorProtocolMessage = boost::variant<BitfieldDistributionMessage>;
+  using ValidatorProtocolMessage = boost::variant<
+      Dummy,                         /// NU
+      BitfieldDistributionMessage,   /// bitfield distribution message
+      Dummy,                         /// NU
+      StatementDistributionMessage,  /// statement distribution message
+      ApprovalDistributionMessage    /// approval distribution message
+      >;
   using CollationProtocolMessage = boost::variant<CollationMessage>;
 
   template <typename T, typename... AllowedTypes>
@@ -254,10 +362,11 @@ namespace kagome::network {
   template <typename T>
   using WireMessage = boost::variant<
       Dummy,  /// not used
-      std::enable_if_t<
-          AllowerTypeChecker<T, ValidatorProtocolMessage, CollationProtocolMessage>::allowed,
-          T>,     /// protocol message
-      ViewUpdate  /// view update message
+      std::enable_if_t<AllowerTypeChecker<T,
+                                          ValidatorProtocolMessage,
+                                          CollationProtocolMessage>::allowed,
+                       T>,  /// protocol message
+      ViewUpdate            /// view update message
       >;
 
 }  // namespace kagome::network
