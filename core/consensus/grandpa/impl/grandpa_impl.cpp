@@ -134,9 +134,6 @@ namespace kagome::consensus::grandpa {
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         round_state.last_finalized_block, voters, environment_);
 
-    current_round_->voterSetId();
-    voters->id();
-
     GrandpaConfig config{.voters = std::move(voters),
                          .round_number = round_state.round_number,
                          .duration = round_time_factor_,
@@ -853,17 +850,17 @@ namespace kagome::consensus::grandpa {
         }
         auto &authorities = authorities_opt.value();
         SL_INFO(logger_,
-                 "Apply justification for block {} with voter set id {}",
-                 block_info,
-                 authorities->id);
+                "Apply justification for block {} with voter set id {}",
+                block_info,
+                authorities->id);
         SL_INFO(logger_,
-                 "authorities->id: {}, current_round_->voterSetId(): {}, "
-                 "justification.round_number: {}, "
-                 "current_round_->roundNumber(): {}",
-                 authorities->id,
-                 current_round_->voterSetId(),
-                 justification.round_number,
-                 current_round_->roundNumber());
+                "authorities->id: {}, current_round_->voterSetId(): {}, "
+                "justification.round_number: {}, "
+                "current_round_->roundNumber(): {}",
+                authorities->id,
+                current_round_->voterSetId(),
+                justification.round_number,
+                current_round_->roundNumber());
 
         // This is justification for non-actual round
         if (authorities->id < current_round_->voterSetId()
