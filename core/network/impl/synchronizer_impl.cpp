@@ -117,25 +117,29 @@ namespace kagome::network {
   /** @see AppStateManager::takeControl */
   bool SynchronizerImpl::prepare() {
     auto opt_res =
-        buffer_storage_->tryLoad(storage::kPendingRequestOfSyncStateLookupKey);
+        buffer_storage_->tryLoad(storage::kBlockOfIncompleteSyncStateLookupKey);
     if (opt_res.has_error()) {
-      SL_ERROR(log_,
-               "Can't check of incomplete state sync request: {}",
-               opt_res.error());
+      SL_ERROR(
+          log_, "Can't check of incomplete state sync: {}", opt_res.error());
       return false;
     }
     if (opt_res.value().has_value()) {
-      auto &encoded_keys = opt_res.value().value();
-      auto request_res =
-          scale::decode<decltype(state_sync_request_)::value_type>(
-              std::move(encoded_keys));
-      if (request_res.has_error()) {
+      auto &encoded_block = opt_res.value().value();
+      auto block_res =
+          scale::decode<decltype(state_sync_on_block_)::value_type>(
+              std::move(encoded_block));
+      if (block_res.has_error()) {
         SL_ERROR(log_,
-                 "Can't decode incomplete state sync request: {}",
-                 request_res.error());
+                 "Can't decode data of incomplete state sync: {}",
+                 block_res.error());
         return false;
       }
-      state_sync_request_.emplace(std::move(request_res.value()));
+      auto &block = block_res.value();
+      SL_WARN(log_,
+              "Found incomplete state sync on block {}; "
+              "State sync will be restarted",
+              block);
+      state_sync_on_block_.emplace(std::move(block));
     }
     return true;
   }
@@ -940,6 +944,10 @@ namespace kagome::network {
       return;
     }
 
+    if (not state_sync_request_.has_value()) {
+      SL_INFO(log_, "Sync of state for block {} has started", block);
+    }
+
     SL_TRACE(
         log_, "State sync request has sent to {} for block {}", peer_id, block);
 
@@ -948,8 +956,6 @@ namespace kagome::network {
 
     auto protocol = router_->getStateProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide state protocol");
-
-    SL_TRACE(log_, "State syncing started.");
 
     auto response_handler =
         [wp = weak_from_this(), block, peer_id, handler = std::move(handler)](
@@ -972,50 +978,50 @@ namespace kagome::network {
 
           // Processing of response
           for (unsigned i = 0; i < response_res.value().entries.size(); ++i) {
-            const auto &response = response_res.value().entries[i];
+            const auto &state_entry = response_res.value().entries[i];
 
             // get or create batch
-            auto batch =
-                self->batches_store_.count(response.state_root)
-                    ? std::get<2>(self->batches_store_[response.state_root])
-                    : self->storage_
-                          ->getPersistentBatchAt(
-                              self->serializer_->getEmptyRootHash())
-                          .value();
+            auto it = self->batches_store_.find(state_entry.state_root);
+            auto batch = (it != self->batches_store_.end())
+                             ? std::get<2>(it->second)
+                             : self->storage_
+                                   ->getPersistentBatchAt(
+                                       self->serializer_->getEmptyRootHash())
+                                   .value();
 
             // main storage entries size empty at child storage state syncing
-            if (response.entries.size()) {
+            if (state_entry.entries.size()) {
               SL_TRACE(self->log_,
                        "Syncing {}th item. Current key {}. Keys received {}.",
                        i,
-                       response.entries[0].key.toHex(),
-                       response.entries.size());
-              for (const auto &entry : response.entries) {
+                       state_entry.entries[0].key.toHex(),
+                       state_entry.entries.size());
+              for (const auto &entry : state_entry.entries) {
                 std::ignore = batch->put(entry.key, entry.value);
               }
 
-              // store batch to continue at next response
-              if (!response.complete) {
-                self->batches_store_[response.state_root] = {
-                    response.entries.back().key, i, batch};
+              // store batch to continue at next state_entry
+              if (!state_entry.complete) {
+                self->batches_store_[state_entry.state_root] = {
+                    state_entry.entries.back().key, i, batch};
               } else {
-                self->batches_store_.erase(response.state_root);
+                self->batches_store_.erase(state_entry.state_root);
               }
             }
 
             // Handle completion of syncing
-            if (response.complete) {
+            if (state_entry.complete) {
               auto res = batch->commit();
               if (res.has_value()) {
                 const auto &expected = [&] {
                   if (i != 0) {  // Child state
-                    return response.state_root;
+                    return state_entry.state_root;
                   } else {  // Main state
                     auto header_res =
                         self->block_tree_->getBlockHeader(block.hash);
-                    BOOST_ASSERT_MSG(
-                        header_res.has_value(),
-                        "It is state of existing block; head must be existing");
+                    BOOST_ASSERT_MSG(header_res.has_value(),
+                                     "It is state of existing block; head "
+                                     "must be existing");
                     const auto &header = header_res.value();
                     return header.state_root;
                   }
@@ -1045,7 +1051,7 @@ namespace kagome::network {
 
             // just calculate state entries in main storage for trace log
             if (!i) {
-              self->entries_ += response.entries.size();
+              self->entries_ += state_entry.entries.size();
             }
           }
 
@@ -1066,17 +1072,20 @@ namespace kagome::network {
             SL_TRACE(self->log_,
                      "State syncing continues. {} entries loaded",
                      self->entries_);
+            // Save data of incomplete state sync once
+            if (not self->state_sync_on_block_.has_value()) {
+              auto res = self->buffer_storage_->put(
+                  storage::kBlockOfIncompleteSyncStateLookupKey,
+                  common::Buffer(scale::encode(block).value()));
+              if (res.has_error()) {
+                SL_WARN(self->log_,
+                        "Can't save data of incomplete state sync: {}",
+                        res.error());
+              }
+              self->state_sync_on_block_.emplace(block);
+            }
             self->state_sync_request_ =
                 StateRequest{block.hash, std::move(keys), true};
-            auto res = self->buffer_storage_->put(
-                storage::kPendingRequestOfSyncStateLookupKey,
-                common::Buffer(
-                    scale::encode(self->state_sync_request_.value()).value()));
-            if (res.has_error()) {
-              SL_WARN(self->log_,
-                      "Can't store incomplete state sync request: {}",
-                      res.error());
-            }
             self->state_sync_request_in_progress_ = false;
             self->syncState(peer_id, block, std::move(handler));
             return;
@@ -1084,15 +1093,16 @@ namespace kagome::network {
 
           // State syncing has completed; Switch to the full syncing
           self->sync_method_ = application::AppConfiguration::SyncMethod::Full;
-          // Forget saved state sync request
+          // Forget saved data of incomplete state sync
           auto res = self->buffer_storage_->remove(
-              storage::kPendingRequestOfSyncStateLookupKey);
+              storage::kBlockOfIncompleteSyncStateLookupKey);
           if (res.has_error()) {
             SL_WARN(self->log_,
-                    "Can't remove incomplete state sync request: {}",
+                    "Can't remove data of incomplete state sync: {}",
                     res.error());
           }
           self->state_sync_request_.reset();
+          self->state_sync_on_block_.reset();
           self->state_sync_request_in_progress_ = false;
           if (handler) {
             handler(block);

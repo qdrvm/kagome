@@ -222,6 +222,7 @@ namespace kagome::network {
 
     std::atomic_bool state_sync_request_in_progress_ = false;
     std::optional<network::StateRequest> state_sync_request_;
+    std::optional<primitives::BlockInfo> state_sync_on_block_;
 
     bool node_is_shutting_down_ = false;
 
