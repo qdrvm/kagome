@@ -740,8 +740,24 @@ namespace kagome::authority {
                  .value();
     if (r.has_value()) {
       root_ = scale::decode<std::shared_ptr<ScheduleNode>>(r.value()).value();
+
+      const auto finalized_block = block_tree_->getLastFinalized();
+
+      auto node = getAppropriateAncestor(finalized_block);
+
+      if (not node or node->block.number + 512 < finalized_block.number) {
+        SL_WARN(log_,
+                "Cached state of authority manager will be rejected: "
+                "it does not math last finalized block");
+        root_.reset();
+        return false;
+      }
+
+      SL_DEBUG(log_, "State of authority manager is is restored from cache");
       return true;
     }
+
+    SL_TRACE(log_, "Cached state of authority manager is not found");
     return false;
   }
 

@@ -28,7 +28,7 @@
 #include "outcome/outcome.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
-#include "storage/trie/trie_storage.hpp"
+#include "storage/buffer_map_types.hpp"
 #include "telemetry/service.hpp"
 
 namespace kagome::application {

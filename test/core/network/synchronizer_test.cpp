@@ -18,13 +18,12 @@
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
-#include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
-#include "storage/trie/serialization/polkadot_codec.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -86,7 +85,8 @@ class SynchronizerTest
                                                     storage,
                                                     router,
                                                     scheduler,
-                                                    hasher);
+                                                    hasher,
+                                                    buffer_storage);
   }
 
   application::AppConfigurationMock app_config;
@@ -112,6 +112,13 @@ class SynchronizerTest
       std::make_shared<libp2p::basic::SchedulerMock>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
+  std::shared_ptr<storage::face::GenericStorageMock<common::Buffer,
+                                                    common::Buffer,
+                                                    common::BufferView>>
+      buffer_storage = std::make_shared<
+          storage::face::GenericStorageMock<common::Buffer,
+                                            common::Buffer,
+                                            common::BufferView>>();
 
   std::shared_ptr<network::SynchronizerImpl> synchronizer;
 

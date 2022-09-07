@@ -58,18 +58,16 @@ namespace kagome::network {
                 syncState,
                 (const libp2p::peer::PeerId &,
                  const primitives::BlockInfo &,
-                 const std::vector<common::Buffer> &,
                  const SyncResultHandler &),
                 ());
 
     void syncState(const libp2p::peer::PeerId &peer_id,
                    const primitives::BlockInfo &block_info,
-                   const std::vector<common::Buffer> &keys,
                    SyncResultHandler &&handler) override {
-      return syncState(peer_id, block_info, keys, handler);
+      return syncState(peer_id, block_info, handler);
     }
 
-    MOCK_METHOD(void, endSync, ());
+    MOCK_METHOD(bool, hasIncompleteRequestOfStateSync, (), (const));
   };
 
 }  // namespace kagome::network

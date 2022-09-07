@@ -591,7 +591,7 @@ namespace kagome::network {
             ++in_light_peers_count;
           }
         }
-        if (in_light_peers_count >= app_config_.inPeersLght()) {
+        if (in_light_peers_count >= app_config_.inPeersLight()) {
           connecting_peers_.erase(peer_id);
           disconnectFromPeer(peer_id);
           return;

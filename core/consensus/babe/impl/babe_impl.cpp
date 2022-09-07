@@ -154,11 +154,11 @@ namespace kagome::consensus::babe {
         break;
 
       case SyncMethod::Fast:
-        // Has uncompleted downloading state
-        if (false) {  // FIXME
-          // Start loading of state
+        if (synchronizer_->hasIncompleteRequestOfStateSync()) {
+          // Has incomplete downloading state; continue loading of state
           current_state_ = State::STATE_LOADING;
         } else {
+          // No incomplete downloading state; load headers first
           current_state_ = State::HEADERS_LOADING;
         }
         break;
@@ -493,12 +493,12 @@ namespace kagome::consensus::babe {
     synchronizer_->syncState(
         peer_id,
         block_at_state,
-        {{}},
         [wp = weak_from_this(), block_at_state, peer_id](auto res) mutable {
           if (auto self = wp.lock()) {
             if (res.has_error()) {
               SL_WARN(self->log_,
-                      "Syncing of state on block {} is failed: {}",
+                      "Syncing of state with {} on block {} is failed: {}",
+                      peer_id,
                       block_at_state,
                       res.error().message());
               return;
