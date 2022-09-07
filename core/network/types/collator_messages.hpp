@@ -199,6 +199,21 @@ namespace kagome::network {
     Statement statement;                 /// statement of seconded candidate
   };
 
+  struct BitfieldData {
+    SCALE_TIE(3);
+
+    std::vector<bool> bitfield;/// The availability bitfield
+    ValidatorIndex validator_ix; /// Validator index in the authority set.
+    Signature signature; /// Signature of the validator.
+  };
+
+  struct BitfieldDistribution {
+    SCALE_TIE(2);
+
+    primitives::BlockHash relay_parent;  /// Hash of the relay chain block
+    BitfieldData data;
+  };
+
   /**
    * Collator -> Validator and Validator -> Collator if seconded message.
    * Type of the appropriate message.
@@ -212,43 +227,38 @@ namespace kagome::network {
       Seconded  /// validator -> collator. Candidate was seconded.
       >;
 
+
+
+  /**
+   * Indicates the availability vote of a validator for a given candidate.
+   */
+  using BitfieldDistributionMessage = boost::variant<
+      BitfieldDistribution
+      >;
+
   /**
    * Validator -> Validator.
-   * Type of the appropriate message.
+   * Used by validators to broadcast relevant information about certain steps in the A&V process.
    */
-  using ValidationMessage = boost::variant<Dummy>;
+  using ValidatorProtocolMessage = boost::variant<BitfieldDistributionMessage>;
+  using CollationProtocolMessage = boost::variant<CollationMessage>;
 
   template <typename T, typename... AllowedTypes>
   struct AllowerTypeChecker {
     static constexpr bool allowed = (std::is_same_v<T, AllowedTypes> || ...);
   };
 
-  template<bool B, typename LT, typename RT>
-  struct type_if {
-      using type = RT; 
-  };
-   
-  template<typename LT, typename RT>
-  struct type_if<true, LT, RT> { 
-      using type = LT; 
-  };
-
-  /**
-   * Collation protocol message.
-   */
-  AllowerTypeChecker<T, ValidationMessage, boost::variant<CollationMessage>>::allowed
-
-  template <typename T>
-  using ProtocolMessage = ;  /// collation or validation protocol message
-
   /**
    * Common WireMessage that represents messages in NetworkBridge.
    */
   template <typename T>
-  using WireMessage = boost::variant<Dummy,               /// not used
-                                     ProtocolMessage<T>,  /// protocol message
-                                     ViewUpdate  /// view update message
-                                     >;
+  using WireMessage = boost::variant<
+      Dummy,  /// not used
+      std::enable_if_t<
+          AllowerTypeChecker<T, ValidatorProtocolMessage, CollationProtocolMessage>::allowed,
+          T>,     /// protocol message
+      ViewUpdate  /// view update message
+      >;
 
 }  // namespace kagome::network
 

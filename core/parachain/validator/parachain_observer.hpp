@@ -7,8 +7,8 @@
 #define KAGOME_PARACHAIN_OBSERVER_HPP
 
 #include "network/collation_observer.hpp"
-#include "network/validation_observer.hpp"
 #include "network/req_collation_observer.hpp"
+#include "network/validation_observer.hpp"
 
 #include <memory>
 
@@ -46,12 +46,12 @@ namespace kagome::parachain {
     /// collation protocol observer
     void onIncomingMessage(
         libp2p::peer::PeerId const &peer_id,
-        network::CollationMessage &&collation_message) override;
+        network::CollationProtocolMessage &&collation_message) override;
 
     /// validation protocol observer
     void onIncomingMessage(
         libp2p::peer::PeerId const &peer_id,
-        network::ValidationMessage &&validation_message) override;
+        network::ValidatorProtocolMessage &&validation_message) override;
 
     /// fetch collation protocol observer
     outcome::result<network::CollationFetchingResponse> OnCollationRequest(
@@ -59,7 +59,8 @@ namespace kagome::parachain {
 
    private:
     std::shared_ptr<observers::CollationObserverImpl> collation_observer_impl_;
-    std::shared_ptr<observers::ValidationObserverImpl> validation_observer_impl_;
+    std::shared_ptr<observers::ValidationObserverImpl>
+        validation_observer_impl_;
     std::shared_ptr<observers::ReqCollationObserverImpl>
         req_collation_observer_impl_;
     std::shared_ptr<parachain::ParachainProcessorImpl> processor_;

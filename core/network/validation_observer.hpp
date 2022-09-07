@@ -20,7 +20,7 @@ namespace kagome::network {
 
     /// Handle incoming collation message.
     virtual void onIncomingMessage(libp2p::peer::PeerId const &peer_id,
-                                   ValidationMessage &&validation_message) = 0;
+                                   ValidatorProtocolMessage &&validation_message) = 0;
   };
 }  // namespace kagome::network
 

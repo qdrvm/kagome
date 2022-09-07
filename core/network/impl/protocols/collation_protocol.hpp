@@ -18,6 +18,7 @@
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
 #include "network/collation_observer.hpp"
+#include "network/validation_observer.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/parachain_protocol.hpp"
 #include "network/impl/protocols/protocol_base_impl.hpp"
@@ -32,10 +33,10 @@
 namespace kagome::network {
 
   using CollationProtocol =
-      ParachainProtocol<CollationObserver, CollationMessage>;
+      ParachainProtocol<CollationObserver, CollationProtocolMessage>;
 
   using ValidationProtocol =
-      ParachainProtocol<ValidationObserver, ValidationMessage>;
+      ParachainProtocol<ValidationObserver, ValidatorProtocolMessage>;
 
 }  // namespace kagome::network
 

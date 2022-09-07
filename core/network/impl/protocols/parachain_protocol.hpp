@@ -18,6 +18,7 @@
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
 #include "network/collation_observer.hpp"
+#include "network/validation_observer.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
@@ -226,7 +227,7 @@ namespace kagome::network {
                                  ? stream->remotePeerId().value().toBase58()
                                  : "{no peerId}");
                 },
-                [&](ProtocolMessage<MessageType> &&p) {
+                [&](MessageType &&p) {
                   visit_in_place(std::move(p), [&](MessageType &&m) {
                     BOOST_ASSERT(stream->remotePeerId().has_value());
                     self->observer_->onIncomingMessage(

@@ -289,19 +289,19 @@ namespace kagome::consensus::babe {
     /// The availability bitfield
     std::vector<bool> bitfield;
 
-    /// The signature of the validator
-    Signature signature;
-
     /// The validator index in the authority set
     uint32_t validator_index;
+
+    /// The signature of the validator
+    Signature signature;
   };
 
   scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
                                         const SignedBitfields &data) {
     // clang-format off
     return s << data.bitfield
-             << data.signature
-             << data.validator_index;
+             << data.validator_index
+        << data.signature;
     // clang-format on
   }
 
@@ -309,8 +309,8 @@ namespace kagome::consensus::babe {
                                         SignedBitfields &data) {
     // clang-format off
     return s >> data.bitfield
-             >> data.signature
-             >> data.validator_index;
+             >> data.validator_index
+        >> data.signature;
     // clang-format on
   }
 

@@ -7,6 +7,5 @@ add_library(validator_parachain
 
 target_link_libraries(validator_parachain
     req_collation_protocol
-    collation_protocol
     protocol_error
     )

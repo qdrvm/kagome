@@ -16,6 +16,33 @@
 
 namespace kagome::observers {
 
+  struct ValidationObserverImpl : network::ValidationObserver {
+    ValidationObserverImpl(
+        std::shared_ptr<network::PeerManager> pm,
+        std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
+        std::shared_ptr<parachain::ParachainProcessorImpl> processor)
+        : pm_{std::move(pm)},
+          crypto_provider_{std::move(crypto_provider)},
+          processor_{std::move(processor)} {
+      BOOST_ASSERT_MSG(crypto_provider_,
+                       "Crypto provider must be initialised!");
+      BOOST_ASSERT_MSG(pm_, "Peer manager must be initialised!");
+      BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialised!");
+    }
+    ~ValidationObserverImpl() override = default;
+
+    void onIncomingMessage(
+        libp2p::peer::PeerId const &peer_id,
+        network::ValidatorProtocolMessage &&collation_message) override {
+    }
+
+   private:
+    std::shared_ptr<network::PeerManager> pm_;
+    std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
+    std::shared_ptr<parachain::ParachainProcessorImpl> processor_;
+    log::Logger logger_ = log::createLogger("ValidationObserver", "parachain");
+  };
+
   struct CollationObserverImpl : network::CollationObserver {
     CollationObserverImpl(
         std::shared_ptr<network::PeerManager> pm,
@@ -33,7 +60,7 @@ namespace kagome::observers {
 
     void onIncomingMessage(
         libp2p::peer::PeerId const &peer_id,
-        network::CollationMessage &&collation_message) override {
+        network::CollationProtocolMessage &&collation_message) override {
       visit_in_place(
           std::move(collation_message),
           [&](network::CollatorDeclaration &&collation_decl) {
@@ -152,9 +179,9 @@ namespace kagome::parachain {
       : collation_observer_impl_{std::make_shared<
           observers::CollationObserverImpl>(
           pm, std::move(crypto_provider), processor)},
-        validation_observer_impl_{std::make_shared<
-          observers::ValidationObserverImpl>(
-          pm, std::move(crypto_provider), processor)},
+        validation_observer_impl_{
+            std::make_shared<observers::ValidationObserverImpl>(
+                pm, std::move(crypto_provider), processor)},
         req_collation_observer_impl_{
             std::make_shared<observers::ReqCollationObserverImpl>(pm)},
         processor_{processor} {
@@ -169,17 +196,17 @@ namespace kagome::parachain {
 
   void ParachainObserverImpl::onIncomingMessage(
       libp2p::peer::PeerId const &peer_id,
-      network::CollationMessage &&collation_message) {
+      network::CollationProtocolMessage &&collation_message) {
     collation_observer_impl_->onIncomingMessage(peer_id,
                                                 std::move(collation_message));
   }
 
-      void ParachainObserverImpl::onIncomingMessage(
-        libp2p::peer::PeerId const &peer_id,
-        network::ValidationMessage &&validation_message) {
-        validation_observer_impl_->onIncomingMessage(peer_id, std::move(validation_message));
-      }
-
+  void ParachainObserverImpl::onIncomingMessage(
+      libp2p::peer::PeerId const &peer_id,
+      network::ValidatorProtocolMessage &&validation_message) {
+    validation_observer_impl_->onIncomingMessage(peer_id,
+                                                 std::move(validation_message));
+  }
 
   outcome::result<network::CollationFetchingResponse>
   ParachainObserverImpl::OnCollationRequest(
