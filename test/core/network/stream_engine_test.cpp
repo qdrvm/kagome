@@ -10,11 +10,13 @@
 
 #include "mock/core/network/protocols/state_protocol_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
+#include "mock/core/network/rating_repository_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::network::PeerRatingRepositoryMock;
 using kagome::network::StreamEngine;
 using libp2p::connection::StreamMock;
 using libp2p::peer::PeerId;
@@ -25,11 +27,20 @@ using testing::InvokeArgument;
 using testing::Return;
 
 namespace kagome::network {
+
   struct StreamEngineTest : ::testing::Test {
    public:
     static void SetUpTestCase() {
       testutil::prepareLoggers();
     }
+
+    void SetUp() override {
+      peer_rating_repository = std::make_shared<PeerRatingRepositoryMock>();
+      stream_engine = std::make_shared<StreamEngine>(peer_rating_repository);
+    }
+
+    std::shared_ptr<StreamEngine> stream_engine;
+    std::shared_ptr<PeerRatingRepositoryMock> peer_rating_repository;
   };
 
   static constexpr int lucky_peers = 4;
@@ -61,7 +72,6 @@ namespace kagome::network {
    */
   TEST_F(StreamEngineTest, RandomGossipTest) {
     // threshold = max_val * max(lucky_peers / candidates, 1.0)
-    StreamEngine stream_engine;
     std::shared_ptr<ProtocolBase> protocol1 =
         std::make_shared<StateProtocolMock>();
     std::shared_ptr<ProtocolBase> protocol2 =
@@ -82,21 +92,22 @@ namespace kagome::network {
         ++counter;
       });
       if (i % 2 == 0) {
-        EXPECT_OUTCOME_TRUE_1(stream_engine.addIncoming(
+        EXPECT_OUTCOME_TRUE_1(stream_engine->addIncoming(
             std::move(stream), i % 4 < 2 ? protocol1 : protocol2));
       } else {
-        EXPECT_OUTCOME_TRUE_1(stream_engine.addOutgoing(
+        EXPECT_OUTCOME_TRUE_1(stream_engine->addOutgoing(
             std::move(stream), i % 4 < 2 ? protocol1 : protocol2));
       }
     }
 
-    auto peers_num = stream_engine.outgoingStreamsNumber(protocol1);
+    auto peers_num = stream_engine->outgoingStreamsNumber(protocol1);
     ASSERT_EQ(peers_num, 5);
     auto gossip_strategy =
         StreamEngine::RandomGossipStrategy<RngMock>{peers_num, lucky_peers};
 
     auto msg = std::make_shared<int>(42);
-    stream_engine.broadcast<int>(protocol1, msg, gossip_strategy);
+    stream_engine->broadcast<int>(protocol1, msg, gossip_strategy);
     ASSERT_EQ(counter, lucky_peers);
   }
+
 }  // namespace kagome::network
