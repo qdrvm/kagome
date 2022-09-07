@@ -443,6 +443,9 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
   Transaction::Hash tx_hash{};
 
   EXPECT_CALL(*transaction_pool,
+              constructTransaction(TransactionSource::External, *extrinsic))
+      .WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*transaction_pool,
               submitExtrinsic(TransactionSource::External, *extrinsic))
       .WillOnce(testing::DoAll(
           testing::Invoke([this] {
