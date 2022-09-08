@@ -366,7 +366,7 @@ namespace kagome::consensus::babe {
             }
             const auto &block = block_res.value();
 
-            // Headers are loaded; Start to sync state
+            // Headers are loaded; Start sync of state
             if (self->current_state_ == Babe::State::HEADERS_LOADING) {
               self->current_state_ = Babe::State::HEADERS_LOADED;
               self->startStateSyncing(peer_id);

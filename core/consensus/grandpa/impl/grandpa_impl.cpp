@@ -64,7 +64,7 @@ namespace kagome::consensus::grandpa {
         metrics_registry_->registerGaugeMetric(highestGrandpaRoundMetricName);
     metric_highest_round_->set(0);
 
-    // allow app state mananger to prepare, start and stop grandpa consensus
+    // allow app state manager to prepare, start and stop grandpa consensus
     // pipeline
     app_state_manager->takeControl(*this);
   }
@@ -122,12 +122,34 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    GrandpaImpl::tryExecuteNextRound(current_round_);
+    // Timer to send neighbor message if round does not change long time (1 min)
+    fallback_timer_handle_ = scheduler_->scheduleWithHandle(
+        [wp = weak_from_this()] {
+          auto self = wp.lock();
+          if (not self) {
+            return;
+          }
+          BOOST_ASSERT_MSG(self->current_round_,
+                           "Current round must be defiled anytime after start");
+          auto round =
+              std::dynamic_pointer_cast<VotingRoundImpl>(self->current_round_);
+          if (round) {
+            round->sendNeighborMessage();
+          }
+
+          std::ignore =
+              self->fallback_timer_handle_.reschedule(std::chrono::minutes(1));
+        },
+        std::chrono::minutes(1));
+
+    tryExecuteNextRound(current_round_);
 
     return true;
   }
 
-  void GrandpaImpl::stop() {}
+  void GrandpaImpl::stop() {
+    fallback_timer_handle_.cancel();
+  }
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters) {
@@ -285,6 +307,8 @@ namespace kagome::consensus::grandpa {
 
     current_round_ = makeNextRound(current_round_);
 
+    std::ignore = fallback_timer_handle_.reschedule(std::chrono::minutes(1));
+
     // Truncate chain of rounds
     size_t i = 0;
     for (auto round = current_round_; round != nullptr;
@@ -330,7 +354,8 @@ namespace kagome::consensus::grandpa {
 
     // Iff peer just reached one of recent round, then share known votes
     if (not info.has_value()
-        or (info->get().set_id.has_value() and msg.voter_set_id != info->get().set_id)
+        or (info->get().set_id.has_value()
+            and msg.voter_set_id != info->get().set_id)
         or (info->get().round_number.has_value()
             and msg.round_number > info->get().round_number)) {
       if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
