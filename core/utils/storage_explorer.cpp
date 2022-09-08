@@ -420,7 +420,7 @@ class SearchChainCommand : public Command {
           if (info.id_changed) {
             auto res = kagome::authority::fetchSetIdFromTrieStorage(
                 *trie_storage, *hasher, header.state_root);
-            if (!res) {
+            if (res.has_error()) {
               std::cerr << "Error fetching authority set id from storage: "
                         << res.error().message() << "\n";
               continue;

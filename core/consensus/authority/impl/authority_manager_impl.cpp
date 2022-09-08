@@ -14,7 +14,6 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
-#include "blockchain/block_tree_error.hpp"
 #include "common/visitor.hpp"
 #include "consensus/authority/authority_manager_error.hpp"
 #include "consensus/authority/authority_update_observer_error.hpp"
@@ -130,10 +129,11 @@ namespace kagome::authority {
   outcome::result<std::optional<std::unique_ptr<ScheduleNode>>>
   fetchScheduleGraphRoot(storage::BufferStorage const &storage) {
     OUTCOME_TRY(opt_root, storage.tryLoad(kScheduleGraphRootKey));
-    if (!opt_root) return std::nullopt;
+    if (not opt_root) return std::nullopt;
     auto &encoded_root = opt_root.value();
-    OUTCOME_TRY(root, scale::decode<ScheduleNode>(encoded_root));
-    return std::make_unique<ScheduleNode>(std::move(root));
+    OUTCOME_TRY(root,
+                scale::decode<std::unique_ptr<ScheduleNode>>(encoded_root));
+    return std::make_optional(std::move(root));
   }
 
   outcome::result<void> storeScheduleGraphRoot(storage::BufferStorage &storage,
@@ -170,7 +170,7 @@ namespace kagome::authority {
 
     for (auto hash = finalized_block.hash; !found_set_change;) {
       auto header_res = block_tree.getBlockHeader(hash);
-      if (!header_res) {
+      if (header_res.has_error()) {
         SL_ERROR(
             log, "Failed to obtain the last finalized block header {}", hash);
       }
@@ -247,7 +247,7 @@ namespace kagome::authority {
   bool AuthorityManagerImpl::prepare() {
     const auto finalized_block = block_tree_->getLastFinalized();
     auto res = initializeAt(finalized_block);
-    if (!res) {
+    if (res.has_error()) {
       SL_ERROR(log_,
                "Error initializing authority manager: {}",
                res.error().message());
@@ -274,8 +274,9 @@ namespace kagome::authority {
     if (opt_root
         && opt_root.value()->current_block.number
                <= last_finalized_block.number) {
-      // FIXME: Correction to bypass bug where after finishing syncing and
-      // restarting the node we get a set id off by one
+      // TODO(Harrm): #1334
+      // Correction to bypass the bug where after finishing syncing
+      // and restarting the node we get a set id off by one
       if (opt_root.value()->current_authorities->id
           == set_id_from_runtime - 1) {
         auto &authority_list =
@@ -613,8 +614,8 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    auto new_node = ancestor_node->makeDescendant(
-        {delay_start, delay_start_hash}, true);
+    auto new_node =
+        ancestor_node->makeDescendant({delay_start, delay_start_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 

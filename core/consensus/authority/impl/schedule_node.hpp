@@ -46,21 +46,10 @@ namespace kagome::authority {
     using NoAction = Empty;
 
     struct ScheduledChange {
+      SCALE_TIE(2);
+
       primitives::BlockNumber applied_block{};
       std::shared_ptr<const primitives::AuthoritySet> new_authorities{};
-
-      friend inline ::scale::ScaleEncoderStream &operator<<(
-          ::scale::ScaleEncoderStream &s, const ScheduledChange &change) {
-        return s << change.applied_block << *change.new_authorities;
-      }
-
-      friend inline ::scale::ScaleDecoderStream &operator>>(
-          ::scale::ScaleDecoderStream &s, ScheduledChange &change) {
-        auto authority_list = std::make_shared<primitives::AuthoritySet>();
-        s >> change.applied_block >> *authority_list;
-        change.new_authorities = std::move(authority_list);
-        return s;
-      }
     };
 
     struct ForcedChange {
@@ -119,12 +108,9 @@ namespace kagome::authority {
 
     friend inline ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, ScheduleNode &node) {
-      auto current_authority_list =
-          std::make_shared<primitives::AuthoritySet>();
       s >> node.enabled
           >> const_cast<primitives::BlockInfo &>(node.current_block)
-          >> *current_authority_list >> node.action;
-      node.current_authorities = std::move(current_authority_list);
+          >> node.current_authorities >> node.action;
       return s;
     }
 

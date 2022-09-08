@@ -330,7 +330,8 @@ namespace kagome::consensus::grandpa {
 
     // Iff peer just reached one of recent round, then share known votes
     if (not info.has_value()
-        or (info->get().set_id.has_value() and msg.voter_set_id != info->get().set_id)
+        or (info->get().set_id.has_value()
+            and msg.voter_set_id != info->get().set_id)
         or (info->get().round_number.has_value()
             and msg.round_number > info->get().round_number)) {
       if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
@@ -847,6 +848,18 @@ namespace kagome::consensus::grandpa {
           return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
         }
         auto &authority_set = authorities_opt.value();
+        SL_INFO(logger_,
+                "Apply justification for block {} with voter set id {}",
+                block_info,
+                authority_set->id);
+        SL_INFO(logger_,
+                "authorities->id: {}, current_round_->voterSetId(): {}, "
+                "justification.round_number: {}, "
+                "current_round_->roundNumber(): {}",
+                authority_set->id,
+                current_round_->voterSetId(),
+                justification.round_number,
+                current_round_->roundNumber());
 
         // This is justification for non-actual round
         if (authority_set->id < current_round_->voterSetId()) {
