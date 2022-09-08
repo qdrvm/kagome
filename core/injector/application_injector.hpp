@@ -11,6 +11,7 @@
 #include <boost/asio/io_context.hpp>
 
 #include "clock/clock.hpp"
+#include "storage/buffer_map_types.hpp"
 
 namespace soralog {
   class LoggingSystem;
@@ -45,6 +46,11 @@ namespace kagome {
     struct ParachainProcessorImpl;
   }  // namespace parachain
 
+  namespace runtime {
+    class Executor;
+  }
+
+
   namespace api {
     class ApiService;
   }
@@ -59,6 +65,7 @@ namespace kagome {
 
   namespace blockchain {
     class BlockStorage;
+    class BlockTree;
   }
 
   namespace storage::trie {
@@ -101,6 +108,9 @@ namespace kagome::injector {
     std::shared_ptr<storage::trie::TrieStorage> injectTrieStorage();
     std::shared_ptr<metrics::MetricsWatcher> injectMetricsWatcher();
     std::shared_ptr<telemetry::TelemetryService> injectTelemetryService();
+    std::shared_ptr<blockchain::BlockTree> injectBlockTree();
+    std::shared_ptr<runtime::Executor> injectExecutor();
+    std::shared_ptr<storage::BufferStorage> injectStorage();
 
     std::shared_ptr<application::mode::PrintChainInfoMode>
     injectPrintChainInfoMode();

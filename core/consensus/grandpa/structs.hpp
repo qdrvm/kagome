@@ -167,7 +167,7 @@ namespace kagome::consensus::grandpa {
     SCALE_TIE(3);
 
     RoundNumber round_number{0};
-    MembershipCounter counter{0};
+    VoterSetId counter{0};
     SignedMessage vote;
 
     Id id() const {

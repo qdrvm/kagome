@@ -38,6 +38,7 @@ using kagome::crypto::Ed25519Signature;
 using kagome::crypto::HasherMock;
 using kagome::primitives::Authority;
 using kagome::primitives::AuthorityList;
+using kagome::primitives::AuthoritySet;
 using Propagation = kagome::consensus::grandpa::VotingRound::Propagation;
 using kagome::visit_in_place;
 
@@ -115,11 +116,11 @@ class VotingRoundTest : public testing::Test,
     EXPECT_CALL(*grandpa_, tryExecuteNextRound(_)).Times(AnyNumber());
     EXPECT_CALL(*grandpa_, updateNextRound(_)).Times(AnyNumber());
 
-    auto authorities = std::make_shared<AuthorityList>();
+    auto authorities = std::make_shared<AuthoritySet>();
     authorities->id = 0;
-    authorities->emplace_back(Authority{{kAlice}, kAliceWeight});
-    authorities->emplace_back(Authority{{kBob}, kBobWeight});
-    authorities->emplace_back(Authority{{kEve}, kEveWeight});
+    authorities->authorities.emplace_back(Authority{{kAlice}, kAliceWeight});
+    authorities->authorities.emplace_back(Authority{{kBob}, kBobWeight});
+    authorities->authorities.emplace_back(Authority{{kEve}, kEveWeight});
 
     authority_manager_ = std::make_shared<AuthorityManagerMock>();
     EXPECT_CALL(*authority_manager_, base())

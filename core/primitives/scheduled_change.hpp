@@ -40,8 +40,16 @@ namespace kagome::primitives {
   struct ScheduledChange final : public AuthorityListChange {
     using AuthorityListChange::AuthorityListChange;
   };
+
   struct ForcedChange final : public AuthorityListChange {
-    using AuthorityListChange::AuthorityListChange;
+    ForcedChange() = default;
+
+    ForcedChange(AuthorityList authorities,
+                 uint32_t delay,
+                 BlockNumber delay_start)
+        : AuthorityListChange(authorities, delay), delay_start{delay_start} {}
+
+    BlockNumber delay_start;
   };
   struct OnDisabled {
     uint32_t authority_index = 0;
@@ -92,6 +100,19 @@ namespace kagome::primitives {
   Stream &operator>>(Stream &s, AuthorityListChange &alc) {
     return s >> alc.authorities >> alc.subchain_length;
   }
+
+  template <class Stream>
+  Stream &operator>>(Stream &s, ForcedChange &change) {
+    return s >> change.delay_start >> change.authorities
+           >> change.subchain_length;
+  }
+
+  template <class Stream>
+  Stream &operator<<(Stream &s, const ForcedChange &change) {
+    return s << change.delay_start << change.authorities
+             << change.subchain_length;
+  }
+
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE

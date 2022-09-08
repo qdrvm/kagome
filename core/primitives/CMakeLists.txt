@@ -8,6 +8,7 @@ add_library(primitives
     arithmetic_error.cpp
     author_api_primitives.hpp
     block.hpp
+    block_header.cpp
     block_header.hpp
     block_id.hpp
     common.hpp
