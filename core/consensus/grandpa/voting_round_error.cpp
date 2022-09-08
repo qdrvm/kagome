@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/grandpa/impl/voting_round_error.hpp"
+#include "voting_round_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
   using E = kagome::consensus::grandpa::VotingRoundError;

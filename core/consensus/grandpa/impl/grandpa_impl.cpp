@@ -8,9 +8,9 @@
 #include "consensus/grandpa/grandpa_context.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
-#include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
+#include "consensus/grandpa/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "scale/scale.hpp"
 

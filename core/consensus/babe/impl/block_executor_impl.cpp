@@ -12,7 +12,7 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/slot.hpp"
-#include "consensus/grandpa/impl/voting_round_error.hpp"
+#include "consensus/grandpa/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"

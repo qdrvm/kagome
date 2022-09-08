@@ -9,4 +9,5 @@ add_library(vote_graph
 target_link_libraries(vote_graph
     Boost::boost
     outcome
+    voting_round_error
     )
