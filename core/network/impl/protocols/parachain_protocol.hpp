@@ -18,7 +18,6 @@
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
 #include "network/collation_observer.hpp"
-#include "network/validation_observer.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
@@ -30,6 +29,7 @@
 #include "network/types/collator_messages.hpp"
 #include "network/types/roles.hpp"
 #include "network/types/status.hpp"
+#include "network/validation_observer.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {

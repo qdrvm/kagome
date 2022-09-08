@@ -19,8 +19,9 @@ namespace kagome::network {
     virtual ~ValidationObserver() = default;
 
     /// Handle incoming collation message.
-    virtual void onIncomingMessage(libp2p::peer::PeerId const &peer_id,
-                                   ValidatorProtocolMessage &&validation_message) = 0;
+    virtual void onIncomingMessage(
+        libp2p::peer::PeerId const &peer_id,
+        ValidatorProtocolMessage &&validation_message) = 0;
   };
 }  // namespace kagome::network
 

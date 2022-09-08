@@ -147,10 +147,15 @@ namespace kagome::network {
 
     void processFullyConnectedPeer(const PeerId &peer_id);
 
-    template<typename F>
-    void openBlockAnnounceProtocol(PeerInfo const &peer_info, libp2p::network::ConnectionManager::ConnectionSPtr const &connection, F &&opened_callback);
-    void tryOpenGrandpaProtocol(PeerInfo const &peer_info, PeerState &peer_state);
-    void tryOpenValidationProtocol(PeerInfo const &peer_info, PeerState &peer_state);
+    template <typename F>
+    void openBlockAnnounceProtocol(
+        PeerInfo const &peer_info,
+        libp2p::network::ConnectionManager::ConnectionSPtr const &connection,
+        F &&opened_callback);
+    void tryOpenGrandpaProtocol(PeerInfo const &peer_info,
+                                PeerState &peer_state);
+    void tryOpenValidationProtocol(PeerInfo const &peer_info,
+                                   PeerState &peer_state);
 
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);

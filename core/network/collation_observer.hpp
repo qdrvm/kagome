@@ -19,8 +19,9 @@ namespace kagome::network {
     virtual ~CollationObserver() = default;
 
     /// Handle incoming collation message.
-    virtual void onIncomingMessage(libp2p::peer::PeerId const &peer_id,
-                                   CollationProtocolMessage &&collation_message) = 0;
+    virtual void onIncomingMessage(
+        libp2p::peer::PeerId const &peer_id,
+        CollationProtocolMessage &&collation_message) = 0;
   };
 }  // namespace kagome::network
 

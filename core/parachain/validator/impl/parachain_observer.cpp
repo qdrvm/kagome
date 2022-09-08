@@ -33,8 +33,7 @@ namespace kagome::observers {
 
     void onIncomingMessage(
         libp2p::peer::PeerId const &peer_id,
-        network::ValidatorProtocolMessage &&collation_message) override {
-    }
+        network::ValidatorProtocolMessage &&collation_message) override {}
 
    private:
     std::shared_ptr<network::PeerManager> pm_;

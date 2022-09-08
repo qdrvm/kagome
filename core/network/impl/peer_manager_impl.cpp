@@ -32,22 +32,25 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
 
 namespace {
 
-      template<typename P, typename F>
-      bool openOutgoing(std::shared_ptr<kagome::network::StreamEngine> &se, std::shared_ptr<P> const &protocol, kagome::network::PeerManager::PeerInfo const &pi, F &&func) {
-        BOOST_ASSERT(se);
-        BOOST_ASSERT(protocol);
+  template <typename P, typename F>
+  bool openOutgoing(std::shared_ptr<kagome::network::StreamEngine> &se,
+                    std::shared_ptr<P> const &protocol,
+                    kagome::network::PeerManager::PeerInfo const &pi,
+                    F &&func) {
+    BOOST_ASSERT(se);
+    BOOST_ASSERT(protocol);
 
-        if (se->reserveOutgoing(pi.id, protocol)) {
-          protocol->newOutgoingStream(
-              pi, [func{std::forward<F>(func)}](auto &&stream_res) mutable {
-                return std::forward<F>(func)(std::move(stream_res));
-              });
-          return true;
-        }
-        return false;
-      }
+    if (se->reserveOutgoing(pi.id, protocol)) {
+      protocol->newOutgoingStream(
+          pi, [func{std::forward<F>(func)}](auto &&stream_res) mutable {
+            return std::forward<F>(func)(std::move(stream_res));
+          });
+      return true;
+    }
+    return false;
+  }
 
-}
+}  // namespace
 
 namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
@@ -557,8 +560,11 @@ namespace kagome::network {
              queue_to_connect_.size());
   }
 
-  template<typename F>
-  void PeerManagerImpl::openBlockAnnounceProtocol(PeerInfo const &peer_info, libp2p::network::ConnectionManager::ConnectionSPtr const &connection, F &&opened_callback) {
+  template <typename F>
+  void PeerManagerImpl::openBlockAnnounceProtocol(
+      PeerInfo const &peer_info,
+      libp2p::network::ConnectionManager::ConnectionSPtr const &connection,
+      F &&opened_callback) {
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
     BOOST_ASSERT_MSG(block_announce_protocol,
                      "Router did not provide block announce protocol");
@@ -570,7 +576,9 @@ namespace kagome::network {
             [wp = weak_from_this(),
              peer_info,
              protocol = block_announce_protocol,
-             connection, opened_callback{std::forward<F>(opened_callback)}](auto &&stream_res) mutable {
+             connection,
+             opened_callback{std::forward<F>(opened_callback)}](
+                auto &&stream_res) mutable {
               auto self = wp.lock();
               if (not self) {
                 return;
@@ -624,7 +632,8 @@ namespace kagome::network {
               self->startPingingPeer(peer_id);
 
               /// Process callback when opened successfully
-              std::forward<F>(opened_callback)(self, peer_info, self->getPeerState(peer_id));
+              std::forward<F>(opened_callback)(
+                  self, peer_info, self->getPeerState(peer_id));
             })) {
       SL_DEBUG(log_,
                "Stream {} with {} is alive or connecting",
@@ -633,55 +642,64 @@ namespace kagome::network {
     }
   }
 
-  void PeerManagerImpl::tryOpenGrandpaProtocol(PeerInfo const &peer_info, PeerState &r_info) {
-    if (auto o_info_opt = getPeerState(own_peer_info_.id); o_info_opt.has_value()) {
+  void PeerManagerImpl::tryOpenGrandpaProtocol(PeerInfo const &peer_info,
+                                               PeerState &r_info) {
+    if (auto o_info_opt = getPeerState(own_peer_info_.id);
+        o_info_opt.has_value()) {
       auto &o_info = o_info_opt.value();
 
       // Establish outgoing grandpa stream if node synced
-      if (r_info.best_block.number
-          <= o_info.get().best_block.number) {
+      if (r_info.best_block.number <= o_info.get().best_block.number) {
         auto grandpa_protocol = router_->getGrandpaProtocol();
         BOOST_ASSERT_MSG(grandpa_protocol,
                          "Router did not provide grandpa protocol");
-        grandpa_protocol->newOutgoingStream(peer_info,
-                                            [](const auto &...) {});
+        grandpa_protocol->newOutgoingStream(peer_info, [](const auto &...) {});
       }
     }
   }
 
-  void PeerManagerImpl::tryOpenValidationProtocol(PeerInfo const &peer_info, PeerState &peer_state) {
+  void PeerManagerImpl::tryOpenValidationProtocol(PeerInfo const &peer_info,
+                                                  PeerState &peer_state) {
     /// If validator start validation protocol
     if (peer_state.roles.flags.authority) {
       auto validation_protocol = router_->getValidationProtocol();
       BOOST_ASSERT_MSG(validation_protocol,
                        "Router did not provide validation protocol");
 
-      openOutgoing(stream_engine_, validation_protocol, peer_info, [validation_protocol, peer_info, wptr{weak_from_this()}](auto && stream_result) {
-        auto self = wptr.lock();
-        if (not self) {
-          return;
-        }
+      openOutgoing(
+          stream_engine_,
+          validation_protocol,
+          peer_info,
+          [validation_protocol, peer_info, wptr{weak_from_this()}](
+              auto &&stream_result) {
+            auto self = wptr.lock();
+            if (not self) {
+              return;
+            }
 
-        auto &peer_id = peer_info.id;
-        self->stream_engine_->dropReserveOutgoing(peer_id, validation_protocol);
+            auto &peer_id = peer_info.id;
+            self->stream_engine_->dropReserveOutgoing(peer_id,
+                                                      validation_protocol);
 
-        if (!stream_result.has_value()) {
-          self->log_->warn("Unable to create stream {} with {}: {}",
-                           validation_protocol->protocolName(),
-                           peer_id,
-                           stream_result.error().message());
-          return;
-        }
+            if (!stream_result.has_value()) {
+              self->log_->warn("Unable to create stream {} with {}: {}",
+                               validation_protocol->protocolName(),
+                               peer_id,
+                               stream_result.error().message());
+              return;
+            }
 
-        if (auto res = self->stream_engine_->addOutgoing(stream_result.value(), validation_protocol); !res) {
-          SL_VERBOSE(self->log_,
-                     "Can't register outgoing {} stream with {}: {}",
-                     validation_protocol->protocolName(),
-                     stream_result.value()->remotePeerId().value(),
-                     res.error().message());
-          stream_result.value()->reset();
-        }
-      });
+            if (auto res = self->stream_engine_->addOutgoing(
+                    stream_result.value(), validation_protocol);
+                !res) {
+              SL_VERBOSE(self->log_,
+                         "Can't register outgoing {} stream with {}: {}",
+                         validation_protocol->protocolName(),
+                         stream_result.value()->remotePeerId().value(),
+                         res.error().message());
+              stream_result.value()->reset();
+            }
+          });
     }
   }
 
