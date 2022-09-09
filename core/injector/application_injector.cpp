@@ -10,14 +10,15 @@
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
   16  // TODO(Harrm): check how it influences on compilation time
 
+#include <rocksdb/filter_policy.h>
+#include <rocksdb/table.h>
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
-#undef U64  // comes from OpenSSL and messes with WAVM
-#include <rocksdb/filter_policy.h>
-#include <rocksdb/table.h>
 #include <libp2p/injector/kademlia_injector.hpp>
 #include <libp2p/log/configurator.hpp>
+
+#undef U64  // comes from OpenSSL and messes with WAVM
 
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
@@ -1461,10 +1462,13 @@ namespace {
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
     auto trie_storage =
         injector.template create<sptr<const storage::trie::TrieStorage>>();
+    auto authority_manager =
+        injector.template create<sptr<authority::AuthorityManager>>();
 
     initialized.emplace(new application::mode::RecoveryMode(
         [&app_config,
          buffer_storage = std::move(buffer_storage),
+         authority_manager,
          storage = std::move(storage),
          header_repo = std::move(header_repo),
          trie_storage = std::move(trie_storage)] {
@@ -1474,10 +1478,22 @@ namespace {
               storage,
               header_repo,
               trie_storage);
+
+          auto log = log::createLogger("RecoveryMode", "main");
+
           buffer_storage->remove(storage::kAuthorityManagerStateLookupKey)
               .value();
           if (res.has_error()) {
-            auto log = log::createLogger("RecoveryMode", "main");
+            SL_ERROR(
+                log, "Recovery mode has failed: {}", res.error().message());
+            log->flush();
+            return EXIT_FAILURE;
+          }
+
+          auto number =
+              header_repo->getNumberById(app_config.recoverState().value());
+          res = authority_manager->recalculateStoredState(number.value());
+          if (res.has_error()) {
             SL_ERROR(
                 log, "Recovery mode has failed: {}", res.error().message());
             log->flush();
@@ -1633,6 +1649,18 @@ namespace kagome::injector {
   std::shared_ptr<application::mode::RecoveryMode>
   KagomeNodeInjector::injectRecoveryMode() {
     return pimpl_->injector_.create<sptr<application::mode::RecoveryMode>>();
+  }
+
+  std::shared_ptr<blockchain::BlockTree> KagomeNodeInjector::injectBlockTree() {
+    return pimpl_->injector_.create<sptr<blockchain::BlockTree>>();
+  }
+
+  std::shared_ptr<runtime::Executor> KagomeNodeInjector::injectExecutor() {
+    return pimpl_->injector_.create<sptr<runtime::Executor>>();
+  }
+
+  std::shared_ptr<storage::BufferStorage> KagomeNodeInjector::injectStorage() {
+    return pimpl_->injector_.create<sptr<storage::BufferStorage>>();
   }
 
 }  // namespace kagome::injector

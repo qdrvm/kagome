@@ -16,7 +16,7 @@
 namespace kagome::primitives {
 
   using AuthorityWeight = uint64_t;
-  using AuthorityListId = uint64_t;
+  using AuthoritySetId = uint64_t;
   using AuthorityListSize = uint64_t;
 
   struct AuthorityId {
@@ -44,13 +44,40 @@ namespace kagome::primitives {
     AuthorityWeight weight{};
   };
 
-  /// Special type for vector of authorities
-  struct AuthorityList : public std::vector<Authority> {
-    AuthorityListId id{};
+  /**
+   * List of authorities
+   */
+  using AuthorityList = std::vector<Authority>;
 
-    // Attention: When adding a member, we need to ensure correct
-    // destruction to avoid memory leaks or any other problem
-    using std::vector<Authority>::vector;
+  /*
+   * List of authorities with an identifier
+   */
+  struct AuthoritySet {
+    SCALE_TIE(2);
+
+    AuthoritySet() = default;
+
+    AuthoritySet(AuthoritySetId id, AuthorityList authorities)
+        : id{id}, authorities{authorities} {}
+
+    AuthoritySetId id{};
+    AuthorityList authorities;
+
+    auto begin() {
+      return authorities.begin();
+    }
+
+    auto end() {
+      return authorities.end();
+    }
+
+    auto begin() const {
+      return authorities.cbegin();
+    }
+
+    auto end() const {
+      return authorities.cend();
+    }
   };
 
 }  // namespace kagome::primitives

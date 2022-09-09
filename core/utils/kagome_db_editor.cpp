@@ -39,8 +39,10 @@ using sptr = std::shared_ptr<T>;
 
 template <typename T>
 struct is_optional : std::false_type {};
+
 template <typename T>
 struct is_optional<typename std::optional<T>> : std::true_type {};
+
 template <typename T>
 inline auto check(T &&res) {
   if (not res.has_value()) {
@@ -152,14 +154,15 @@ void child_storage_root_hashes(
   }
 }
 
+auto is_hash(const char *s) {
+  return std::strlen(s) == common::Hash256::size() * 2 + 2
+         && std::equal(s, s + 2, "0x");
+};
+
 int main(int argc, char *argv[]) {
   backward::SignalHandling sh;
 
   Command cmd;
-  auto is_hash = [](const char *s) {
-    return std::strlen(s) == common::Hash256::size() + 2
-           && std::equal(s, s + 2, "0x");
-  };
   if (argc == 2 or (argc == 3 && is_hash(argv[2]))
       or (argc == 4 and std::strcmp(argv[MODE], "compact") == 0)) {
     cmd = COMPACT;
@@ -168,6 +171,15 @@ int main(int argc, char *argv[]) {
   } else {
     usage();
     return 0;
+  }
+  std::optional<RootHash> target_state_param;
+  if (argc > 2) {
+    if (!is_hash(argv[2])) {
+      std::cout << "ERROR: Invalid state hash\n";
+      usage();
+      return -1;
+    }
+    target_state_param = RootHash::fromHexWithPrefix(argv[2]).value();
   }
 
   auto logging_system = std::make_shared<soralog::LoggingSystem>(
@@ -281,6 +293,8 @@ int main(int argc, char *argv[]) {
       leafs.emplace(header.number - 1, header.parent_hash);
       to_remove.insert(std::move(node));
     }
+    RootHash target_state =
+        target_state_param.value_or(last_finalized_block_state_root);
 
     log->trace("Autodetected finalized block is {}, state root is {:l}",
                last_finalized_block,
@@ -316,11 +330,9 @@ int main(int argc, char *argv[]) {
             .value();
 
     if (COMPACT == cmd) {
-      auto batch =
-          check(persistent_batch(trie, last_finalized_block_state_root))
-              .value();
+      auto batch = check(persistent_batch(trie, target_state)).value();
       auto finalized_batch =
-          check(persistent_batch(trie, last_finalized_block_state_root))
+          check(persistent_batch(trie, target_state))
               .value();
 
       std::vector<std::unique_ptr<PersistentTrieBatch>> child_batches;

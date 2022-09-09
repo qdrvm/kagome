@@ -27,7 +27,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
       "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-14 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
     echo \
       "deb http://deb.debian.org/debian/ testing main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
-    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \  
+    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
     apt-get update && apt-get install --no-install-recommends -y \
         docker-ce \
         docker-ce-cli \

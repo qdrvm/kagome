@@ -879,7 +879,7 @@ namespace kagome::blockchain {
                   storage_->getJustification(last_finalized_block_info.hash));
       if (justification_opt.has_value()) {
         SL_DEBUG(log_,
-                 "Purge redunant justification for finalized block {}",
+                 "Purge redundant justification for finalized block {}",
                  last_finalized_block_info);
         OUTCOME_TRY(storage_->removeJustification(
             last_finalized_block_info.hash, last_finalized_block_info.number));
@@ -1141,20 +1141,20 @@ namespace kagome::blockchain {
     if (ancestor_node_ptr) {
       ancestor_depth = ancestor_node_ptr->depth;
     } else {
-      auto header_res = header_repo_->getBlockHeader(ancestor);
-      if (!header_res) {
+      auto number_res = header_repo_->getNumberByHash(ancestor);
+      if (!number_res) {
         return false;
       }
-      ancestor_depth = header_res.value().number;
+      ancestor_depth = number_res.value();
     }
     if (descendant_node_ptr) {
       descendant_depth = descendant_node_ptr->depth;
     } else {
-      auto header_res = header_repo_->getBlockHeader(descendant);
-      if (!header_res) {
+      auto number_res = header_repo_->getNumberByHash(descendant);
+      if (!number_res) {
         return false;
       }
-      descendant_depth = header_res.value().number;
+      descendant_depth = number_res.value();
     }
     if (descendant_depth < ancestor_depth) {
       SL_WARN(log_,
@@ -1203,6 +1203,7 @@ namespace kagome::blockchain {
     }
 
     auto current_hash = descendant;
+    KAGOME_PROFILE_START(search_finalized_chain)
     while (current_hash != ancestor) {
       auto current_header_res = header_repo_->getBlockHeader(current_hash);
       if (!current_header_res) {
@@ -1210,6 +1211,7 @@ namespace kagome::blockchain {
       }
       current_hash = current_header_res.value().parent_hash;
     }
+    KAGOME_PROFILE_END(search_finalized_chain)
     return true;
   }
 
