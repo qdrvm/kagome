@@ -490,15 +490,27 @@ namespace kagome::parachain {
       if (auto statement = createAndSignStatement<StatementType::kSeconded>(
               validation_result)) {
         importStatement(statement);
-        notifyStatementDistributionSystem(statement);
+        notifyStatementDistributionSystem(validation_result.relay_parent,
+                                          statement);
         notify(peer_id, validation_result.relay_parent, statement);
       }
     }
   }
 
   void ParachainProcessorImpl::notifyStatementDistributionSystem(
+      primitives::BlockHash const &relay_parent,
       std::shared_ptr<network::Statement> const &statement) {
-    /// Not implemented yet
+    BOOST_ASSERT(statement);
+    auto se = pm_->getStreamEngine();
+    BOOST_ASSERT(se);
+
+    se->broadcast(
+        router_->getValidationProtocol(),
+        std::make_shared<
+            network::WireMessage<network::ValidatorProtocolMessage>>(
+            network::ValidatorProtocolMessage{
+                network::StatementDistributionMessage{network::SignedStatement{
+                    .relay_parent = relay_parent, .statement = *statement}}}));
   }
 
   outcome::result<void> ParachainProcessorImpl::validateCandidate(
@@ -575,7 +587,7 @@ namespace kagome::parachain {
         if (auto statement =
                 createAndSignStatement<StatementType::kValid>(result)) {
           importStatement(statement);
-          notifyStatementDistributionSystem(statement);
+          notifyStatementDistributionSystem(result.relay_parent, statement);
         }
       }
       our_current_state_.issued_statements.insert(candidate_hash);

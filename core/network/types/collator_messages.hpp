@@ -13,6 +13,7 @@
 
 #include "common/blob.hpp"
 #include "consensus/grandpa/common.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 #include "primitives/compact_integer.hpp"
 #include "primitives/digest.hpp"
@@ -336,6 +337,77 @@ namespace kagome::network {
   };
 
   using ApprovalDistributionMessage = boost::variant<Assignments, Approvals>;
+
+  /// Attestation is either an implicit or explicit attestation of the validity
+  /// of a parachain candidate, where 1 implies an implicit vote (in
+  /// correspondence of a Seconded statement) and 2 implies an explicit
+  /// attestation (in correspondence of a Valid statement). Both variants are
+  /// followed by the signature of the validator.
+  using Attestation = boost::variant<Unused<0>,                            // 0
+                                     Tagged<Signature, struct Implicit>,   // 1
+                                     Tagged<Signature, struct Explicit>>;  // 2
+
+  struct CommittedCandidate {
+    SCALE_TIE(3);
+
+    CommittedCandidateReceipt
+        candidate_receipt;  /// Committed candidate receipt
+    std::vector<Attestation>
+        validity_votes;  /// An array of validity votes themselves, expressed as
+                         /// signatures
+    std::vector<bool> indices;  /// A bitfield of indices of the validators
+                                /// within the validator group
+  };
+
+  using DisputeStatement =
+      boost::variant<Tagged<Empty, struct ExplicitStatement>,
+                     Tagged<common::Hash256, struct SecondedStatement>,
+                     Tagged<common::Hash256, struct ValidStatement>,
+                     Tagged<Empty, struct AprovalVote>>;
+
+  struct Vote {
+    SCALE_TIE(3);
+
+    uint32_t validator_index;  /// An unsigned 32-bit integer indicating the
+                               /// validator index in the authority set
+    Signature signature;       /// The signature of the validator
+    DisputeStatement
+        statement;  /// A varying datatype and implies the dispute statement
+  };
+
+  /// The dispute request is sent by clients who want to issue a dispute about a
+  /// candidate.
+  /// @details https://spec.polkadot.network/#net-msg-dispute-request
+  struct DisputeRequest {
+    SCALE_TIE(4);
+
+    CommittedCandidateReceipt
+        candidate;           /// The candidate that is being disputed
+    uint32_t session_index;  /// An unsigned 32-bit integer indicating the
+                             /// session index the candidate appears in
+    Vote invalid_vote;       /// The invalid vote that makes up the request
+    Vote valid_vote;  /// The valid vote that makes this dispute request valid
+  };
+
+  struct ParachainInherentData {
+    SCALE_TIE(4);
+
+    std::vector<BitfieldData>
+        bitfields;  /// The array of signed bitfields by validators claiming the
+                    /// candidate is available (or not). @note The array must be
+                    /// sorted by validator index corresponding to the authority
+                    /// set
+    std::vector<Empty>
+        backed_candidates;  /// The array of backed candidates for inclusion in
+                            /// the current block
+    std::vector<DisputeRequest> disputes;  /// Array of disputes
+    primitives::BlockHeader
+        parent_header;  /// The head data is contains information about a
+                        /// parachain block. The head data is returned by
+                        /// executing the parachain Runtime and relay chain
+                        /// validators are not concerned with its inner
+                        /// structure and treat it as a byte arrays.
+  };
 
   /**
    * Validator -> Validator.

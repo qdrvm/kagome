@@ -240,6 +240,7 @@ namespace kagome::parachain {
         std::shared_ptr<network::Statement> const &statement);
     void notifyAvailableData();
     void notifyStatementDistributionSystem(
+        primitives::BlockHash const &relay_parent,
         std::shared_ptr<network::Statement> const &statement);
     void notify(libp2p::peer::PeerId const &peer_id,
                 primitives::BlockHash const &relay_parent,
