@@ -245,10 +245,6 @@ namespace kagome::authority {
   }
 
   bool AuthorityManagerImpl::prepare() {
-//    if (load()) {
-//      return true;
-//    }
-//
     const auto finalized_block = block_tree_->getLastFinalized();
     auto res = initializeAt(finalized_block);
     if (res.has_error()) {
@@ -791,7 +787,6 @@ namespace kagome::authority {
           [](auto &) {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
-//      save();
       return res;
 
     } else if (message.consensus_engine_id == primitives::kBabeEngineId
@@ -810,40 +805,6 @@ namespace kagome::authority {
       return outcome::success();
     }
   }
-
-//  void AuthorityManagerImpl::save() {
-//    auto data = scale::encode(root_).value();
-//    persistent_storage_
-//        ->put(storage::kAuthorityManagerStateLookupKey, Buffer(data))
-//        .value();
-//  }
-//
-//  bool AuthorityManagerImpl::load() {
-//    auto r =
-//        persistent_storage_->tryLoad(storage::kAuthorityManagerStateLookupKey)
-//            .value();
-//    if (r.has_value()) {
-//      root_ = scale::decode<std::shared_ptr<ScheduleNode>>(r.value()).value();
-//
-//      const auto finalized_block = block_tree_->getLastFinalized();
-//
-//      auto node = getAppropriateAncestor(finalized_block);
-//
-//      if (not node or node->block.number + 512 < finalized_block.number) {
-//        SL_WARN(log_,
-//                "Cached state of authority manager will be rejected: "
-//                "it does not math last finalized block");
-//        root_.reset();
-//        return false;
-//      }
-//
-//      SL_DEBUG(log_, "State of authority manager is is restored from cache");
-//      return true;
-//    }
-//
-//    SL_TRACE(log_, "Cached state of authority manager is not found");
-//    return false;
-//  }
 
   void AuthorityManagerImpl::prune(const primitives::BlockInfo &block) {
     if (block == root_->current_block) {
@@ -879,8 +840,6 @@ namespace kagome::authority {
     storeScheduleGraphRoot(*persistent_storage_, *root_).value();
 
     SL_DEBUG(log_, "Prune authority manager upto block {}", block);
-//
-//    save();
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(
@@ -997,8 +956,6 @@ namespace kagome::authority {
       SL_DEBUG(log_, "Scheduled changes on block {} has removed", block);
       ancestor->descendants.erase(it);
     }
-//
-//    save();
   }
 
 }  // namespace kagome::authority
