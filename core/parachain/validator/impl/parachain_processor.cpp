@@ -5,6 +5,7 @@
 
 #include "parachain/validator/parachain_processor.hpp"
 
+#include <array>
 #include <gsl/span>
 
 #include "crypto/hasher.hpp"
@@ -14,6 +15,7 @@
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
+#include "parachain/candidate_view.hpp"
 #include "scale/scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,

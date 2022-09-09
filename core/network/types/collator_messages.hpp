@@ -32,6 +32,7 @@ namespace kagome::network {
   using ChunkProof = std::vector<common::Buffer>;
   using CandidateIndex = uint32_t;
   using CoreIndex = uint32_t;
+  using CandidateHash = primitives::BlockHash;
 
   /// NU element.
   using Dummy = std::tuple<>;
