@@ -108,6 +108,7 @@
 #include "offchain/impl/offchain_worker_impl.hpp"
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
 #include "outcome/outcome.hpp"
+#include "parachain/availability/store/store_impl.hpp"
 #include "parachain/validator/parachain_observer.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -1182,6 +1183,7 @@ namespace {
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
+        di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
         di::bind<parachain::ParachainObserverImpl>.to([](auto const &injector) {
           return get_parachain_observer_impl(injector);
         }),
