@@ -16,6 +16,7 @@
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/candidate_view.hpp"
+#include "parachain/peer_relay_parent_knowledge.hpp"
 #include "scale/scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
@@ -197,7 +198,8 @@ namespace kagome::parachain {
     /// TODO(iceseer): add to awaiting_validation to be sure no doublicated
     /// validations
 
-    auto opt_descriptor = candidateDescriptorFrom(attesting_data.statement);
+    auto opt_descriptor =
+        candidateDescriptorFrom(attesting_data.statement->payload);
     BOOST_ASSERT(opt_descriptor);
 
     auto const &collator_id = collatorIdFromDescriptor(*opt_descriptor);
@@ -269,7 +271,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handleStatement(
       libp2p::peer::PeerId const &peer_id,
       primitives::BlockHash const &relay_parent,
-      std::shared_ptr<network::Statement> const &statement) {
+      std::shared_ptr<network::Signed<network::Statement>> const &statement) {
     if (auto result = importStatement(statement)) {
       if (result->group_id != our_current_state_.assignment) {
         logger_->warn(
@@ -283,7 +285,7 @@ namespace kagome::parachain {
 
       std::optional<std::reference_wrapper<AttestingData>> attesting_ref =
           visit_in_place(
-              statement->candidate_state,
+              statement->payload.candidate_state,
               [&](network::Dummy const &)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
                 BOOST_ASSERT(!"Not used!");
@@ -298,7 +300,7 @@ namespace kagome::parachain {
                         AttestingData{.statement = statement,
                                       .candidate_hash = candidate_hash,
                                       .pov_hash = seconded.descriptor.pov_hash,
-                                      .from_validator = statement->validator_ix,
+                                      .from_validator = statement->ix,
                                       .backing = {}}));
                 return it->second;
               },
@@ -311,10 +313,10 @@ namespace kagome::parachain {
                   return std::nullopt;
                 if (our_current_state_.awaiting_validation.count(candidate_hash)
                     > 0) {
-                  it->second.backing.push(statement->validator_ix);
+                  it->second.backing.push(statement->ix);
                   return std::nullopt;
                 }
-                it->second.from_validator = statement->validator_ix;
+                it->second.from_validator = statement->ix;
                 return it->second;
               });
 
@@ -325,13 +327,13 @@ namespace kagome::parachain {
   std::optional<ParachainProcessorImpl::ImportStatementSummary>
   ParachainProcessorImpl::importStatementToTable(
       primitives::BlockHash const &candidate_hash,
-      std::shared_ptr<network::Statement> const &statement) {
+      std::shared_ptr<network::Signed<network::Statement>> const &statement) {
     logger_->error("Not implemented. Should be inserted in statement table.");
     return std::nullopt;
   }
 
   void ParachainProcessorImpl::notifyBackedCandidate(
-      std::shared_ptr<network::Statement> const &statement) {
+      std::shared_ptr<network::Signed<network::Statement>> const &statement) {
     logger_->error(
         "Not implemented. Should notify somebody that backed candidate "
         "appeared.");
@@ -339,9 +341,9 @@ namespace kagome::parachain {
 
   std::optional<ParachainProcessorImpl::ImportStatementSummary>
   ParachainProcessorImpl::importStatement(
-      std::shared_ptr<network::Statement> const &statement) {
-    auto import_result =
-        importStatementToTable(candidateHashFrom(statement), statement);
+      std::shared_ptr<network::Signed<network::Statement>> const &statement) {
+    auto import_result = importStatementToTable(
+        candidateHashFrom(statement->payload), statement);
     if (import_result && import_result->attested) {
       notifyBackedCandidate(statement);
     }
@@ -349,7 +351,7 @@ namespace kagome::parachain {
   }
 
   template <ParachainProcessorImpl::StatementType kStatementType>
-  std::shared_ptr<network::Statement>
+  std::shared_ptr<network::Signed<network::Statement>>
   ParachainProcessorImpl::createAndSignStatement(
       ValidateAndSecondResult &validation_result) {
     static_assert(kStatementType == StatementType::kSeconded
@@ -378,10 +380,12 @@ namespace kagome::parachain {
         return nullptr;
       }
 
-      return std::make_shared<network::Statement>(
-          network::Statement{.candidate_state = std::move(receipt),
-                             .validator_ix = *our_ix,
-                             .signature = std::move(sign_result.value())});
+      return std::make_shared<network::Signed<network::Statement>>(
+          network::Signed<network::Statement>{
+              .payload =
+                  network::Statement{.candidate_state = std::move(receipt)},
+              .ix = getOurIndex(),
+              .signature = std::move(sign_result.value())});
     } else if constexpr (kStatementType == StatementType::kValid) {
       auto const candidate_hash =
           candidateHashFrom(*validation_result.fetched_collation);
@@ -396,10 +400,11 @@ namespace kagome::parachain {
         return nullptr;
       }
 
-      return std::make_shared<network::Statement>(
-          network::Statement{.candidate_state = candidate_hash,
-                             .validator_ix = *our_ix,
-                             .signature = std::move(sign_result.value())});
+      return std::make_shared<network::Signed<network::Statement>>(
+          network::Signed<network::Statement>{
+              .payload = network::Statement{.candidate_state = candidate_hash},
+              .ix = getOurIndex(),
+              .signature = std::move(sign_result.value())});
     }
   }
 
@@ -448,7 +453,8 @@ namespace kagome::parachain {
 
     auto &statements_queue = our_current_state_.seconded_statements[peer_id];
     while (!statements_queue.empty()) {
-      std::shared_ptr<network::Statement> statement(statements_queue.front());
+      std::shared_ptr<network::Signed<network::Statement>> statement(
+          statements_queue.front());
       statements_queue.pop_front();
 
       stream_engine->send(
@@ -465,7 +471,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::notify(
       libp2p::peer::PeerId const &peer_id,
       primitives::BlockHash const &relay_parent,
-      std::shared_ptr<network::Statement> const &statement) {
+      std::shared_ptr<network::Signed<network::Statement>> const &statement) {
     our_current_state_.seconded_statements[peer_id].emplace_back(statement);
     handleNotify(peer_id, relay_parent);
   }
@@ -501,7 +507,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::notifyStatementDistributionSystem(
       primitives::BlockHash const &relay_parent,
-      std::shared_ptr<network::Statement> const &statement) {
+      std::shared_ptr<network::Signed<network::Statement>> const &statement) {
     BOOST_ASSERT(statement);
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);

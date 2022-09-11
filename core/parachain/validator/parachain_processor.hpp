@@ -74,9 +74,10 @@ namespace kagome::parachain {
     bool prepare();
     void requestCollations(network::PendingCollation const &pending_collation);
     void setAssignedParachain(std::optional<network::ParachainId> para_id);
-    void handleStatement(libp2p::peer::PeerId const &peer_id,
-                         primitives::BlockHash const &relay_parent,
-                         std::shared_ptr<network::Statement> const &statement);
+    void handleStatement(
+        libp2p::peer::PeerId const &peer_id,
+        primitives::BlockHash const &relay_parent,
+        std::shared_ptr<network::Signed<network::Statement>> const &statement);
 
    private:
     enum struct CollationState { kFetched, kSeconded };
@@ -115,7 +116,7 @@ namespace kagome::parachain {
     };
 
     struct AttestingData {
-      std::shared_ptr<network::Statement> statement;
+      std::shared_ptr<network::Signed<network::Statement>> statement;
       primitives::BlockHash candidate_hash;
       primitives::BlockHash pov_hash;
       network::ValidatorIndex from_validator;
@@ -154,10 +155,10 @@ namespace kagome::parachain {
                                 libp2p::peer::PeerId const &peer_id,
                                 network::CollationFetchingResponse &&response);
     template <StatementType kStatementType>
-    std::shared_ptr<network::Statement> createAndSignStatement(
+    std::shared_ptr<network::Signed<network::Statement>> createAndSignStatement(
         ValidateAndSecondResult &validation_result);
     std::optional<ImportStatementSummary> importStatement(
-        std::shared_ptr<network::Statement> const &statement);
+        std::shared_ptr<network::Signed<network::Statement>> const &statement);
     std::optional<network::ValidatorIndex> getOurIndex();
 
     /*
@@ -185,10 +186,9 @@ namespace kagome::parachain {
     }
 
     std::optional<std::reference_wrapper<network::CandidateDescriptor const>>
-    candidateDescriptorFrom(
-        std::shared_ptr<network::Statement> const &statement) {
+    candidateDescriptorFrom(network::Statement const &statement) {
       return visit_in_place(
-          statement->candidate_state,
+          statement.candidate_state,
           [](network::CommittedCandidateReceipt const &receipt)
               -> std::optional<
                   std::reference_wrapper<network::CandidateDescriptor const>> {
@@ -208,9 +208,9 @@ namespace kagome::parachain {
     }
 
     primitives::BlockHash candidateHashFrom(
-        std::shared_ptr<network::Statement> const &statement) {
+        network::Statement const &statement) {
       return visit_in_place(
-          statement->candidate_state,
+          statement.candidate_state,
           [](network::Dummy const &) {
             BOOST_ASSERT(!"Not used!");
             return primitives::BlockHash{};
@@ -237,14 +237,15 @@ namespace kagome::parachain {
       boost::asio::post(*context, std::forward<F>(func));
     }
     void notifyBackedCandidate(
-        std::shared_ptr<network::Statement> const &statement);
+        std::shared_ptr<network::Signed<network::Statement>> const &statement);
     void notifyAvailableData();
     void notifyStatementDistributionSystem(
         primitives::BlockHash const &relay_parent,
-        std::shared_ptr<network::Statement> const &statement);
-    void notify(libp2p::peer::PeerId const &peer_id,
-                primitives::BlockHash const &relay_parent,
-                std::shared_ptr<network::Statement> const &statement);
+        std::shared_ptr<network::Signed<network::Statement>> const &statement);
+    void notify(
+        libp2p::peer::PeerId const &peer_id,
+        primitives::BlockHash const &relay_parent,
+        std::shared_ptr<network::Signed<network::Statement>> const &statement);
     void handleNotify(libp2p::peer::PeerId const &peer_id,
                       primitives::BlockHash const &relay_parent);
 
@@ -264,7 +265,7 @@ namespace kagome::parachain {
 
     std::optional<ImportStatementSummary> importStatementToTable(
         primitives::BlockHash const &candidate_hash,
-        std::shared_ptr<network::Statement> const &statement);
+        std::shared_ptr<network::Signed<network::Statement>> const &statement);
 
     std::shared_ptr<network::PeerManager> pm_;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
@@ -280,8 +281,9 @@ namespace kagome::parachain {
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
       std::unordered_map<primitives::BlockHash, AttestingData> fallbacks;
-      std::unordered_map<libp2p::peer::PeerId,
-                         std::deque<std::shared_ptr<network::Statement>>>
+      std::unordered_map<
+          libp2p::peer::PeerId,
+          std::deque<std::shared_ptr<network::Signed<network::Statement>>>>
           seconded_statements;
     } our_current_state_;
 

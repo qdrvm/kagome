@@ -62,14 +62,22 @@ namespace kagome::observers {
         network::CollationProtocolMessage &&collation_message) override {
       visit_in_place(
           std::move(collation_message),
-          [&](network::CollatorDeclaration &&collation_decl) {
-            onDeclare(peer_id,
-                      std::move(collation_decl.collator_id),
-                      std::move(collation_decl.para_id),
-                      std::move(collation_decl.signature));
-          },
-          [&](network::CollatorAdvertisement &&collation_adv) {
-            onAdvertise(peer_id, std::move(collation_adv.relay_parent));
+          [&](network::CollationMessage &&collation_msg) {
+            visit_in_place(
+                std::move(collation_msg),
+                [&](network::Signed<network::CollatorDeclaration>
+                        &&collation_decl) {
+                  onDeclare(peer_id,
+                            std::move(collation_decl.payload.collator_id),
+                            std::move(collation_decl.ix),
+                            std::move(collation_decl.signature));
+                },
+                [&](network::CollatorAdvertisement &&collation_adv) {
+                  onAdvertise(peer_id, std::move(collation_adv.relay_parent));
+                },
+                [&](auto &&) {
+                  SL_WARN(logger_, "Unexpected collation message from.");
+                });
           },
           [&](auto &&) {
             SL_WARN(logger_, "Unexpected collation message from.");

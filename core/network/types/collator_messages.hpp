@@ -13,6 +13,7 @@
 
 #include "common/blob.hpp"
 #include "consensus/grandpa/common.hpp"
+#include "crypto/sr25519_signed.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 #include "primitives/compact_integer.hpp"
@@ -21,10 +22,10 @@
 #include "storage/trie/types.hpp"
 
 namespace kagome::network {
-  using Signature = crypto::Sr25519Signature;
+  using Signature = kagome::crypto::sr25519::Signature;
   using ParachainId = uint32_t;
   using CollatorPublicKey = crypto::Sr25519PublicKey;
-  using ValidatorIndex = uint32_t;
+  using ValidatorIndex = kagome::crypto::sr25519::SignerIndex;
   using UpwardMessage = common::Buffer;
   using ParachainRuntime = common::Buffer;
   using HeadData = common::Buffer;
@@ -33,6 +34,9 @@ namespace kagome::network {
   using CandidateIndex = uint32_t;
   using CoreIndex = uint32_t;
   using CandidateHash = primitives::BlockHash;
+
+  template <typename T>
+  using Signed = kagome::crypto::sr25519::Sr25519Signed<T>;
 
   /// NU element.
   using Dummy = std::tuple<>;
@@ -55,12 +59,8 @@ namespace kagome::network {
    * Declaration of the intent to advertise a collation.
    */
   struct CollatorDeclaration {
-    SCALE_TIE(3);
-
+    SCALE_TIE(1);
     CollatorPublicKey collator_id;  /// Public key of the collator.
-    ParachainId para_id;            /// Parachain Id.
-    Signature signature;  /// Signature of the collator using the PeerId of the
-    /// collators node.
   };
 
   /// A chunk of erasure-encoded block data.
@@ -189,58 +189,50 @@ namespace kagome::network {
       >;
 
   struct Statement {
-    SCALE_TIE(3);
-
+    SCALE_TIE(1);
     CandidateState candidate_state;
-    ValidatorIndex validator_ix;
-    Signature signature;
   };
 
   struct SignedStatement {
     SCALE_TIE(2);
 
     primitives::BlockHash relay_parent;  /// relay parent hash
-    Statement statement;                 /// statement of seconded candidate
+    Signed<Statement> statement;         /// statement of seconded candidate
   };
 
   /// Seconded is an alias for signed statement.
   using Seconded = SignedStatement;
 
   struct BitfieldData {
-    SCALE_TIE(3);
-
-    std::vector<bool> bitfield;   /// The availability bitfield
-    ValidatorIndex validator_ix;  /// Validator index in the authority set.
-    Signature signature;          /// Signature of the validator.
+    SCALE_TIE(1);
+    std::vector<bool> bitfield;  /// The availability bitfield
   };
 
   struct BitfieldDistribution {
     SCALE_TIE(2);
 
     primitives::BlockHash relay_parent;  /// Hash of the relay chain block
-    BitfieldData data;
+    Signed<BitfieldData> data;
   };
 
   struct StatementMetadata {
-    SCALE_TIE(4);
+    SCALE_TIE(2);
 
     primitives::BlockHash relay_parent;  /// Hash of the relay chain block
     primitives::BlockHash
-        candidate_hash;           /// Hash of candidate that was used create the
-                                  /// `CommitedCandidateRecept`.
-    ValidatorIndex validator_ix;  /// Validator index in the authority set.
-    Signature signature;          /// Signature of the validator.
+        candidate_hash;  /// Hash of candidate that was used create the
+                         /// `CommitedCandidateRecept`.
   };
 
   using StatementDistributionMessage =
-      boost::variant<SignedStatement, StatementMetadata>;
+      boost::variant<SignedStatement, Signed<StatementMetadata>>;
 
   /**
    * Collator -> Validator and Validator -> Collator if seconded message.
    * Type of the appropriate message.
    */
   using CollationMessage = boost::variant<
-      CollatorDeclaration,    /// collator -> validator. Declare collator.
+      Signed<CollatorDeclaration>,  /// collator -> validator. Declare collator.
       CollatorAdvertisement,  /// collator -> validator. Make advertisement of
       /// the collation
       Dummy,    /// not used
@@ -304,15 +296,13 @@ namespace kagome::network {
   /// In practice, we have a look-up from block hash and candidate index to
   /// candidate hash, so this can be transformed into a `SignedApprovalVote`.
   struct IndirectSignedApprovalVote {
-    SCALE_TIE(4);
+    SCALE_TIE(2);
 
     primitives::BlockHash
         block_hash;  /// A block hash where the candidate appears.
     CandidateIndex
-        candidate_index;       /// The index of the candidate in the list of
-                               /// candidates fully included as-of the block.
-    ValidatorIndex validator;  /// The validator index.
-    Signature signature;       /// The signature by the validator.
+        candidate_index;  /// The index of the candidate in the list of
+                          /// candidates fully included as-of the block.
   };
 
   struct Assignment {
@@ -332,7 +322,7 @@ namespace kagome::network {
   struct Approvals {
     SCALE_TIE(1);
 
-    std::vector<IndirectSignedApprovalVote>
+    std::vector<Signed<IndirectSignedApprovalVote>>
         approvals;  /// Approvals for candidates in some recent, unfinalized
                     /// block.
   };
@@ -393,7 +383,7 @@ namespace kagome::network {
   struct ParachainInherentData {
     SCALE_TIE(4);
 
-    std::vector<BitfieldData>
+    std::vector<Signed<BitfieldData>>
         bitfields;  /// The array of signed bitfields by validators claiming the
                     /// candidate is available (or not). @note The array must be
                     /// sorted by validator index corresponding to the authority
@@ -428,6 +418,18 @@ namespace kagome::network {
   struct AllowerTypeChecker {
     static constexpr bool allowed = (std::is_same_v<T, AllowedTypes> || ...);
   };
+
+  template <size_t I>
+  struct Filler;
+  using CompactStatementSeconded = std::tuple<primitives::BlockHash, Filler<0>>;
+  using CompactStatementValid = std::tuple<primitives::BlockHash, Filler<1>>;
+
+  /// Statements that can be made about parachain candidates. These are the
+  /// actual values that are signed.
+  using CompactStatement = boost::variant<
+      CompactStatementSeconded,  /// Proposal of a parachain candidate.
+      CompactStatementValid      /// State that a parachain candidate is valid.
+      >;
 
   /**
    * Common WireMessage that represents messages in NetworkBridge.
