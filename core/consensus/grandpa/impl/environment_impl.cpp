@@ -94,8 +94,6 @@ namespace kagome::consensus::grandpa {
       const libp2p::peer::PeerId &peer_id,
       VoterSetId set_id,
       RoundNumber round_number) {
-    SL_DEBUG(
-        logger_, "Send Catch-Up-Request beginning with round {}", round_number);
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
     transmitter_->sendCatchUpRequest(peer_id, std::move(message));

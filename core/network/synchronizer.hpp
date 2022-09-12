@@ -8,6 +8,7 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
+#include "network/types/state_request.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
@@ -44,11 +45,16 @@ namespace kagome::network {
     /// Tries to request block justifications from {@param peer_id} for {@param
     /// target_block} or a range of blocks up to {@param limit} count.
     /// Calls {@param handler} when operation finishes
-    virtual void syncMissingJustifications(
-        const libp2p::peer::PeerId &peer_id,
-        primitives::BlockInfo target_block,
-        std::optional<uint32_t> limit,
-        SyncResultHandler &&handler) = 0;
+    virtual void syncMissingJustifications(const libp2p::peer::PeerId &peer_id,
+                                           primitives::BlockInfo target_block,
+                                           std::optional<uint32_t> limit,
+                                           SyncResultHandler &&handler) = 0;
+
+    virtual void syncState(const libp2p::peer::PeerId &peer_id,
+                           const primitives::BlockInfo &block,
+                           SyncResultHandler &&handler) = 0;
+
+    virtual bool hasIncompleteRequestOfStateSync() const = 0;
   };
 
 }  // namespace kagome::network

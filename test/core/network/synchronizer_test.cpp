@@ -9,14 +9,21 @@
 #include <mock/libp2p/basic/scheduler_mock.hpp>
 #include <stdexcept>
 
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/consensus/babe/block_appender_mock.hpp"
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
+#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/storage/persistent_map_mock.hpp"
+#include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -64,21 +71,39 @@ class SynchronizerTest
 
     EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
 
+    EXPECT_CALL(app_config, syncMethod())
+        .WillOnce(Return(application::AppConfiguration::SyncMethod::Full));
+
     synchronizer =
-        std::make_shared<network::SynchronizerImpl>(app_state_manager,
+        std::make_shared<network::SynchronizerImpl>(app_config,
+                                                    app_state_manager,
                                                     block_tree,
+                                                    changes_tracker,
+                                                    block_appender,
                                                     block_executor,
+                                                    serializer,
+                                                    storage,
                                                     router,
                                                     scheduler,
-                                                    hasher);
+                                                    hasher,
+                                                    buffer_storage);
   }
 
+  application::AppConfigurationMock app_config;
   std::shared_ptr<application::AppStateManagerMock> app_state_manager =
       std::make_shared<application::AppStateManagerMock>();
   std::shared_ptr<blockchain::BlockTreeMock> block_tree =
       std::make_shared<blockchain::BlockTreeMock>();
+  std::shared_ptr<changes_trie::ChangesTracker> changes_tracker =
+      std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
+  std::shared_ptr<BlockAppenderMock> block_appender =
+      std::make_shared<BlockAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
       std::make_shared<BlockExecutorMock>();
+  std::shared_ptr<trie::TrieStorageMock> storage =
+      std::make_shared<trie::TrieStorageMock>();
+  std::shared_ptr<trie::TrieSerializerMock> serializer =
+      std::make_shared<trie::TrieSerializerMock>();
   std::shared_ptr<network::SyncProtocolMock> sync_protocol =
       std::make_shared<network::SyncProtocolMock>();
   std::shared_ptr<network::RouterMock> router =
@@ -87,6 +112,13 @@ class SynchronizerTest
       std::make_shared<libp2p::basic::SchedulerMock>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
+  std::shared_ptr<storage::face::GenericStorageMock<common::Buffer,
+                                                    common::Buffer,
+                                                    common::BufferView>>
+      buffer_storage = std::make_shared<
+          storage::face::GenericStorageMock<common::Buffer,
+                                            common::Buffer,
+                                            common::BufferView>>();
 
   std::shared_ptr<network::SynchronizerImpl> synchronizer;
 

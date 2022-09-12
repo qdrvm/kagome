@@ -802,7 +802,7 @@ namespace kagome::authority {
                message.consensus_engine_id.toString());
 
       OUTCOME_TRY(decoded, message.decode());
-      return visit_in_place(
+      auto res = visit_in_place(
           decoded.asGrandpaDigest(),
           [this, &block](
               const primitives::ScheduledChange &msg) -> outcome::result<void> {
@@ -825,9 +825,13 @@ namespace kagome::authority {
           [](auto &) {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
+      return res;
+
     } else if (message.consensus_engine_id == primitives::kBabeEngineId
-               || message.consensus_engine_id
-                      == primitives::kUnsupportedEngineId_BEEF) {
+               or message.consensus_engine_id
+                      == primitives::kUnsupportedEngineId_BEEF
+               or message.consensus_engine_id
+                      == primitives::kUnsupportedEngineId_POL1) {
       // ignore
       return outcome::success();
 
