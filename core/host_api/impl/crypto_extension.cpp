@@ -431,12 +431,14 @@ namespace kagome::host_api {
     return getMemory().storeBuffer(buffer);
   }
 
-  int32_t CryptoExtension::ext_crypto_sr25519_verify_version_1(
+  int32_t CryptoExtension::sr25519_verify(
+      const std::function<outcome::result<bool>(
+          const crypto::Sr25519Signature &,
+          gsl::span<const uint8_t>,
+          const crypto::Sr25519PublicKey &)> &verification_fn,
       runtime::WasmPointer sig,
       runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
-    // TODO(Harrm): this should support deprecated signatures from schnorrkel
-    // 0.1.1 in contrary to version_2
     auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
     auto msg = getMemory().loadN(msg_data, msg_len);
     auto signature_buffer =
@@ -455,7 +457,7 @@ namespace kagome::host_api {
                 sr25519_constants::SIGNATURE_SIZE,
                 signature.begin());
 
-    auto verify_res = sr25519_provider_->verify_deprecated(signature, msg, key);
+    auto verify_res = verification_fn(signature, msg, key);
 
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
@@ -463,13 +465,28 @@ namespace kagome::host_api {
     return res;
   }
 
+  int32_t CryptoExtension::ext_crypto_sr25519_verify_version_1(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg_span,
+      runtime::WasmPointer pubkey_data) {
+    // TODO(Harrm): this should support deprecated signatures from schnorrkel
+    // 0.1.1 in contrary to version_2
+    static auto verify_deprecated_fn = [&provider = sr25519_provider_](
+                                    const auto &sig, auto msg, const auto &pk) {
+      return provider->verify_deprecated(sig, msg, pk);
+    };
+    return sr25519_verify(verify_deprecated_fn, sig, msg_span, pubkey_data);
+  }
+
   int32_t CryptoExtension::ext_crypto_sr25519_verify_version_2(
       runtime::WasmPointer sig,
       runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
-    SL_TRACE_FUNC_CALL(logger_,
-                       "delegated to ext_crypto_sr25519_verify_version_1");
-    return ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data);
+    static auto verify_fn = [&provider = sr25519_provider_](
+                         const auto &sig, auto msg, const auto &pk) {
+      return provider->verify(sig, msg, pk);
+    };
+    return sr25519_verify(verify_fn, sig, msg_span, pubkey_data);
   }
 
   namespace {

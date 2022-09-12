@@ -141,6 +141,15 @@ namespace kagome::host_api {
         runtime::WasmPointer key,
         runtime::WasmSpan msg);
 
+    int32_t sr25519_verify(
+        const std::function<outcome::result<bool>(
+            const crypto::Sr25519Signature &,
+            gsl::span<const uint8_t>,
+            const crypto::Sr25519PublicKey &)> &verification_fn,
+        runtime::WasmPointer sig,
+        runtime::WasmSpan msg_span,
+        runtime::WasmPointer pubkey_data);
+
     /**
      * @see HostApi::ext_crypto_sr25519_verify
      */
