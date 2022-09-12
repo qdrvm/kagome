@@ -158,6 +158,9 @@ namespace kagome::application {
         const override {
       return telemetry_endpoints_;
     }
+    SyncMethod syncMethod() const override {
+      return sync_method_;
+    }
     RuntimeExecutionMethod runtimeExecMethod() const override {
       return runtime_exec_method_;
     }
@@ -310,6 +313,7 @@ namespace kagome::application {
     std::string node_version_;
     uint32_t max_ws_connections_;
     uint32_t random_walk_interval_;
+    SyncMethod sync_method_;
     RuntimeExecutionMethod runtime_exec_method_;
     bool use_wavm_cache_;
     bool purge_wavm_cache_;

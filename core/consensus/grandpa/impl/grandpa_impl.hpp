@@ -273,6 +273,8 @@ namespace kagome::consensus::grandpa {
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_highest_round_;
 
+    libp2p::basic::Scheduler::Handle fallback_timer_handle_;
+
     log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
   };
 
