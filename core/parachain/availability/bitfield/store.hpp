@@ -9,6 +9,7 @@
 #include "network/types/collator_messages.hpp"
 
 namespace kagome::parachain {
+  /// Stores bitfields signed by validators.
   class BitfieldStore {
    public:
     using BlockHash = primitives::BlockHash;
@@ -16,8 +17,11 @@ namespace kagome::parachain {
 
     virtual ~BitfieldStore() = 0;
 
+    /// Store bitfield at given block.
     virtual void putBitfield(const BlockHash &relay_parent,
                              const SignedBitfield &bitfield) = 0;
+
+    /// Get bitfields for given block.
     virtual std::vector<SignedBitfield> getBitfields(
         const BlockHash &relay_parent) const = 0;
   };

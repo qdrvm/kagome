@@ -16,6 +16,7 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 
 namespace kagome::parachain {
+  /// Signs, stores and broadcasts bitfield for every new head.
   class BitfieldSigner : public std::enable_shared_from_this<BitfieldSigner> {
    public:
     BitfieldSigner(std::shared_ptr<crypto::Hasher> hasher,
@@ -25,9 +26,11 @@ namespace kagome::parachain {
                    std::shared_ptr<AvailabilityStore> store,
                    std::shared_ptr<BitfieldStore> bitfield_store);
 
+    /// Subscribes to new heads.
     void start(std::shared_ptr<primitives::events::ChainSubscriptionEngine>
                    chain_sub_engine);
 
+    /// Sign bitfield for given block.
     outcome::result<void> sign(const ValidatorSigner &signer);
 
    private:

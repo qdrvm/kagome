@@ -31,14 +31,18 @@ namespace kagome::network {
   using CandidateHash = primitives::BlockHash;
   using ChunkProof = std::vector<common::Buffer>;
 
+  /// Payload signed by validator.
   template <typename Payload>
   struct Signed {
     SCALE_TIE(3);
 
     static_assert(std::is_same_v<std::decay_t<Payload>, Payload>);
 
+    /// Payload.
     Payload payload;
+    /// Index of validator in validator list.
     ValidatorIndex validator_index;
+    /// Signature of `SigningContext::signable(payload)`.
     Signature signature;
   };
 
@@ -211,6 +215,7 @@ namespace kagome::network {
     Statement statement;                 /// statement of seconded candidate
   };
 
+  /// Signed availability bitfield.
   using SignedBitfield = Signed<scale::BitVec>;
 
   /**

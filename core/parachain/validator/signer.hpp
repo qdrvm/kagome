@@ -17,10 +17,12 @@ namespace kagome::parachain {
   struct SigningContext {
     SCALE_TIE(2);
 
+    /// Make signing context for given block.
     static outcome::result<SigningContext> make(
         const std::shared_ptr<runtime::ParachainHost> &parachain_api,
         const primitives::BlockHash &relay_parent);
 
+    /// Make signable message for payload.
     template <typename T>
     auto signable(const T &payload) const {
       return scale::encode(std::tie(payload, *this));
@@ -32,6 +34,7 @@ namespace kagome::parachain {
     primitives::BlockHash relay_parent;
   };
 
+  /// Signs payload with signing context and validator keypair.
   class ValidatorSigner {
    public:
     using ValidatorIndex = network::ValidatorIndex;
@@ -41,6 +44,7 @@ namespace kagome::parachain {
                     std::shared_ptr<crypto::Sr25519Keypair> keypair,
                     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
 
+    /// Sign payload.
     template <typename T>
     outcome::result<network::Signed<T>> sign(T payload) const {
       OUTCOME_TRY(data, context_.signable(payload));
@@ -52,7 +56,10 @@ namespace kagome::parachain {
       };
     }
 
+    /// Get validator index.
     ValidatorIndex validatorIndex() const;
+
+    /// Get signing context.
     const SigningContext &context() const;
 
    private:
@@ -62,6 +69,7 @@ namespace kagome::parachain {
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
   };
 
+  /// Creates validator signer.
   class ValidatorSignerFactory {
    public:
     ValidatorSignerFactory(
@@ -69,6 +77,7 @@ namespace kagome::parachain {
         std::shared_ptr<crypto::Sr25519Keypair> keypair,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
 
+    /// Create validator signer if keypair belongs to validator at given block.
     outcome::result<std::optional<ValidatorSigner>> at(
         const primitives::BlockHash &relay_parent);
 
