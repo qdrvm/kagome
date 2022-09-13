@@ -56,6 +56,9 @@ namespace kagome::transaction_pool {
         primitives::TransactionSource source,
         primitives::Extrinsic extrinsic) override;
 
+    outcome::result<Transaction::Hash> submitAndWatch(
+        Transaction &&tx) override;
+
     outcome::result<void> submitOne(Transaction &&tx) override;
 
     outcome::result<Transaction> removeOne(

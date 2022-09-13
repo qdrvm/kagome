@@ -43,6 +43,9 @@ namespace kagome::transaction_pool {
         primitives::TransactionSource source,
         primitives::Extrinsic extrinsic) = 0;
 
+    virtual outcome::result<Transaction::Hash> submitAndWatch(
+        Transaction &&tx) = 0;
+
     /**
      * Import one verified transaction to the pool. If it has unresolved
      * dependencies (requires tags of transactions that are not in the pool

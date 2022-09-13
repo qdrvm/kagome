@@ -79,8 +79,9 @@ namespace kagome::transaction_pool {
         },
         [&](const primitives::ValidTransaction &v)
             -> outcome::result<primitives::Transaction> {
-          common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
-          size_t length = extrinsic.data.size();
+          OUTCOME_TRY(extrinsic_enc, scale::encode(extrinsic));
+          common::Hash256 hash = hasher_->blake2b_256(extrinsic_enc);
+          size_t length = extrinsic_enc.size();
 
           return primitives::Transaction{extrinsic,
                                          length,
@@ -96,8 +97,13 @@ namespace kagome::transaction_pool {
   outcome::result<Transaction::Hash> TransactionPoolImpl::submitExtrinsic(
       primitives::TransactionSource source, primitives::Extrinsic extrinsic) {
     OUTCOME_TRY(tx, constructTransaction(source, extrinsic));
+    OUTCOME_TRY(hash, submitAndWatch(std::move(tx)));
+    return hash;
+  }
 
-    if (tx.should_propagate && !imported_txs_.count(tx.hash)) {
+  outcome::result<Transaction::Hash> TransactionPoolImpl::submitAndWatch(
+      Transaction &&tx) {
+    if (tx.should_propagate && imported_txs_.count(tx.hash) == 0) {
       tx_transmitter_->propagateTransactions(gsl::make_span(std::vector{tx}));
     }
     auto hash = tx.hash;
