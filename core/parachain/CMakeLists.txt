@@ -1,5 +1,6 @@
 
 add_library(validator_parachain
+    availability/bitfield/signer.cpp
     availability/bitfield/store_impl.cpp
     availability/store/store_impl.cpp
     validator/impl/parachain_observer.cpp
