@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <scale/bitvec.hpp>
+
 #include "common/stub.hpp"
 #include "common/tagged.hpp"
 #include "common/unused.hpp"
@@ -189,7 +191,7 @@ namespace kagome::consensus::babe {
     std::vector<Attestation> validity_votes;
 
     /// A bitfield of indices of the validators within the validator group
-    std::vector<bool> indices;
+    scale::BitVec indices;
   };
 
   scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
@@ -287,7 +289,7 @@ namespace kagome::consensus::babe {
   /// Bitfields signed by validators claiming the candidate is available or not
   struct SignedBitfields {
     /// The availability bitfield
-    std::vector<bool> bitfield;
+    scale::BitVec bitfield;
 
     /// The signature of the validator
     Signature signature;
