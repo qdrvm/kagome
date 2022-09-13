@@ -3,6 +3,7 @@ add_library(validator_parachain
     availability/store/store_impl.cpp
     validator/impl/parachain_observer.cpp
     validator/impl/parachain_processor.cpp
+    validator/signer.cpp
     )
 
 target_link_libraries(validator_parachain
