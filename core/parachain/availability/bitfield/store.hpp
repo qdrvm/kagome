@@ -15,7 +15,7 @@ namespace kagome::parachain {
     using BlockHash = primitives::BlockHash;
     using SignedBitfield = network::SignedBitfield;
 
-    virtual ~BitfieldStore() = 0;
+    virtual ~BitfieldStore() = default;
 
     /// Store bitfield at given block.
     virtual void putBitfield(const BlockHash &relay_parent,
