@@ -8,6 +8,7 @@
 
 #include <optional>
 
+#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/types/collator_messages.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
@@ -74,7 +75,7 @@ namespace kagome::parachain {
    public:
     ValidatorSignerFactory(
         std::shared_ptr<runtime::ParachainHost> parachain_api,
-        std::shared_ptr<crypto::Sr25519Keypair> keypair,
+        std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
 
     /// Create validator signer if keypair belongs to validator at given block.
@@ -83,7 +84,7 @@ namespace kagome::parachain {
 
    private:
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
-    std::shared_ptr<crypto::Sr25519Keypair> keypair_;
+    std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
   };
 }  // namespace kagome::parachain
