@@ -177,7 +177,6 @@ namespace kagome::api {
 
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
-    auto ext_hex = extrinsic.data.toHex();
     if (auto service = api_service_.lock()) {
       OUTCOME_TRY(tx,
                   pool_->constructTransaction(
