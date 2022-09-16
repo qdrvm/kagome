@@ -69,8 +69,9 @@ namespace kagome::parachain {
         std::shared_ptr<crypto::Hasher> hasher);
     ~ParachainProcessorImpl();
 
-    void start();
+    bool start();
     void stop();
+    bool prepare();
     void requestCollations(network::PendingCollation const &pending_collation);
     void setAssignedParachain(std::optional<network::ParachainId> para_id);
     void handleStatement(libp2p::peer::PeerId const &peer_id,

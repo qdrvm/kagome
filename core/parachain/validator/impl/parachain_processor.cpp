@@ -61,10 +61,15 @@ namespace kagome::parachain {
     }
   }
 
-  void ParachainProcessorImpl::start() {
+  bool ParachainProcessorImpl::prepare() {
     context_ = std::make_shared<WorkersContext>();
     work_guard_ = std::make_shared<WorkGuard>(context_->get_executor());
+    return true;
+  }
 
+  bool ParachainProcessorImpl::start() {
+    BOOST_ASSERT(context_);
+    BOOST_ASSERT(work_guard_);
     for (auto &worker : workers_)
       if (!worker)
         worker = std::make_unique<std::thread>(
@@ -75,17 +80,20 @@ namespace kagome::parachain {
 
               context->run();
             });
+    return true;
   }
 
   void ParachainProcessorImpl::stop() {
+    BOOST_ASSERT(context_);
+    BOOST_ASSERT(work_guard_);
     work_guard_.reset();
     context_->stop();
     for (auto &worker : workers_) {
-      BOOST_ASSERT(worker);
-      BOOST_ASSERT(worker->joinable());
-
-      worker->join();
-      worker.reset();
+      if (worker) {
+        BOOST_ASSERT(worker->joinable());
+        worker->join();
+        worker.reset();
+      }
     }
   }
 
