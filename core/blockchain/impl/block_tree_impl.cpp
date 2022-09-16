@@ -953,20 +953,19 @@ namespace kagome::blockchain {
 
   BlockTree::BlockHashVecRes BlockTreeImpl::getDescendingChainToBlock(
       const primitives::BlockHash &to_block, uint64_t maximum) const {
-    std::deque<primitives::BlockHash> chain;
+    std::vector<primitives::BlockHash> chain;
 
     auto hash = to_block;
 
     // Try to retrieve from cached tree
     if (auto node = tree_->getRoot().findByHash(hash)) {
-      chain.emplace_back(hash);
       while (maximum > chain.size()) {
         auto parent = node->parent.lock();
         if (not parent) {
           hash = node->block_hash;
           break;
         }
-        chain.emplace_back(parent->block_hash);
+        chain.emplace_back(node->block_hash);
         node = parent;
       }
     }
@@ -986,14 +985,14 @@ namespace kagome::blockchain {
 
       chain.emplace_back(hash);
 
-      if (header.parent_hash == primitives::BlockHash{}) {
+      if (header.number == 0) {
         break;
       }
 
       hash = header.parent_hash;
     }
 
-    return std::vector<primitives::BlockHash>(chain.begin(), chain.end());
+    return chain;
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
