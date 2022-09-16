@@ -738,7 +738,7 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   EXPECT_CALL(*header_repo_, getBlockHeader({kFinalizedBlockInfo.hash}))
       .WillOnce(Return(BlockTreeError::HEADER_NOT_FOUND));
 
-  std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockInfo.hash};
+  std::vector<BlockHash> expected_chain{hash2, hash1};
 
   // WHEN
   ASSERT_OUTCOME_SUCCESS(chain,
