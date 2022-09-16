@@ -178,14 +178,18 @@ namespace kagome::api {
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
     if (auto service = api_service_.lock()) {
+      OUTCOME_TRY(
+          tx,
+          pool_->constructTransaction(TransactionSource::External, extrinsic));
+      OUTCOME_TRY(sub_id, service->subscribeForExtrinsicLifecycle(tx.hash));
       OUTCOME_TRY(tx_hash,
                   submitExtrinsic(
                       // submit and watch could be executed only
                       // from RPC call, so External source is chosen
                       TransactionSource::External,
                       extrinsic));
+      BOOST_ASSERT(tx_hash == tx.hash);
 
-      OUTCOME_TRY(sub_id, service->subscribeForExtrinsicLifecycle(tx_hash));
       SL_DEBUG(logger_, "Subscribe for ex hash={}", tx_hash);
 
       return sub_id;

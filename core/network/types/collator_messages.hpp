@@ -27,6 +27,8 @@ namespace kagome::network {
   using UpwardMessage = common::Buffer;
   using ParachainRuntime = common::Buffer;
   using HeadData = common::Buffer;
+  using CandidateHash = primitives::BlockHash;
+  using ChunkProof = std::vector<common::Buffer>;
 
   /// NU element.
   using Dummy = std::tuple<>;
@@ -55,6 +57,18 @@ namespace kagome::network {
     ParachainId para_id;            /// Parachain Id.
     Signature signature;  /// Signature of the collator using the PeerId of the
     /// collators node.
+  };
+
+  /// A chunk of erasure-encoded block data.
+  struct ErasureChunk {
+    SCALE_TIE(3);
+
+    /// The erasure-encoded chunk of data belonging to the candidate block.
+    common::Buffer chunk;
+    /// The index of this erasure-encoded chunk of data.
+    ValidatorIndex index;
+    /// Proof for this chunk's branch in the Merkle tree.
+    ChunkProof proof;
   };
 
   /**

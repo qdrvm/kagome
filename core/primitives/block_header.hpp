@@ -9,7 +9,10 @@
 #include <type_traits>
 #include <vector>
 
+#include <scale/scale.hpp>
+
 #include "common/blob.hpp"
+#include "crypto/hasher.hpp"
 #include "primitives/common.hpp"
 #include "primitives/compact_integer.hpp"
 #include "primitives/digest.hpp"
@@ -75,6 +78,10 @@ namespace kagome::primitives {
     bh.number = number_compact.convert_to<BlockNumber>();
     return s;
   }
+
+  outcome::result<BlockHash> calculateBlockHash(
+      BlockHeader const &header, crypto::Hasher const &hasher);
+
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_PRIMITIVES_BLOCK_HEADER_HPP

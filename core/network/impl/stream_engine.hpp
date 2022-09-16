@@ -10,6 +10,7 @@
 #include <numeric>
 #include <optional>
 #include <queue>
+#include <random>
 #include <unordered_map>
 
 #include "libp2p/connection/stream.hpp"
@@ -20,6 +21,7 @@
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/protocol_base.hpp"
+#include "network/rating_repository.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 #include "utils/safe_object.hpp"
@@ -42,10 +44,34 @@ namespace kagome::network {
     using Stream = libp2p::connection::Stream;
     using StreamEnginePtr = std::shared_ptr<StreamEngine>;
 
+    static constexpr auto kDownVoteByDisconnectionExpirationTimeout =
+        std::chrono::seconds(30);
+
     enum class Direction : uint8_t {
       INCOMING = 1,
       OUTGOING = 2,
       BIDIRECTIONAL = 3
+    };
+
+    template <typename Rng = std::mt19937>
+    struct RandomGossipStrategy {
+      RandomGossipStrategy(const int candidates_num, const int lucky_peers_num)
+          : candidates_num_{candidates_num} {
+        auto lucky_rate = lucky_peers_num > 0
+                              ? static_cast<double>(lucky_peers_num)
+                                    / std::max(candidates_num_, lucky_peers_num)
+                              : 1.;
+        threshold_ = gen_.max() * lucky_rate;
+      }
+      bool operator()(const PeerId &) {
+        auto res = candidates_num_ > 0 && gen_() <= threshold_;
+        return res;
+      }
+
+     private:
+      Rng gen_;
+      int candidates_num_;
+      typename Rng::result_type threshold_;
     };
 
    private:
@@ -62,7 +88,7 @@ namespace kagome::network {
       } outgoing;
 
       std::deque<std::function<void(std::shared_ptr<Stream>)>>
-          deffered_messages;
+          deferred_messages;
 
      public:
       explicit ProtocolDescr(std::shared_ptr<ProtocolBase> proto)
@@ -125,7 +151,9 @@ namespace kagome::network {
     StreamEngine &operator=(StreamEngine &&) = delete;
 
     ~StreamEngine() = default;
-    StreamEngine() : logger_{log::createLogger("StreamEngine", "network")} {}
+    StreamEngine(std::shared_ptr<PeerRatingRepository> peer_rating_repository)
+        : peer_rating_repository_(std::move(peer_rating_repository)),
+          logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
     static StreamEnginePtr create(Args &&...args) {
@@ -316,6 +344,19 @@ namespace kagome::network {
       broadcast(protocol, msg, any);
     }
 
+    int outgoingStreamsNumber(const std::shared_ptr<ProtocolBase> &protocol) {
+      int candidates_num{0};
+      streams_.sharedAccess([&](auto const &streams) {
+        candidates_num = std::count_if(
+            streams.begin(), streams.end(), [&protocol](const auto &entry) {
+              auto &[peer_id, protocol_map] = entry;
+              return protocol_map.find(protocol) != protocol_map.end()
+                     && protocol_map.at(protocol).hasActiveOutgoing();
+            });
+      });
+      return candidates_num;
+    }
+
     template <typename F>
     size_t count(F &&filter) const {
       return streams_.sharedAccess([&](auto const &streams) {
@@ -455,7 +496,7 @@ namespace kagome::network {
             logger_->debug("DUMP:       I={} O={}   Messages:{}",
                            descr.incoming.stream,
                            descr.outgoing.stream,
-                           descr.deffered_messages.size());
+                           descr.deferred_messages.size());
           }
         });
         logger_->debug("DUMP: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
@@ -485,14 +526,17 @@ namespace kagome::network {
                 if (stream_res
                     == outcome::failure(
                         std::make_error_code(std::errc::not_connected))) {
-                  self->del(peer_id);
+                  self->peer_rating_repository_->updateForATime(
+                      peer_id,
+                      -1000,
+                      kDownVoteByDisconnectionExpirationTimeout);
                   return;
                 }
 
                 self->streams_.exclusiveAccess([&](auto &streams) {
                   self->forSubscriber(
                       peer_id, streams, protocol, [&](auto, auto &descr) {
-                        descr.deffered_messages.clear();
+                        descr.deferred_messages.clear();
                         descr.dropReserved();
                       });
                 });
@@ -512,10 +556,10 @@ namespace kagome::network {
                                          Direction::OUTGOING);
                       descr.dropReserved();
 
-                      while (!descr.deffered_messages.empty()) {
-                        auto &msg = descr.deffered_messages.front();
+                      while (!descr.deferred_messages.empty()) {
+                        auto &msg = descr.deferred_messages.front();
                         msg(stream);
-                        descr.deffered_messages.pop_front();
+                        descr.deferred_messages.pop_front();
                       }
                     });
                 BOOST_ASSERT(existing);
@@ -530,7 +574,7 @@ namespace kagome::network {
                       std::shared_ptr<T> msg) {
       streams_.exclusiveAccess([&](auto &streams) {
         forSubscriber(peer_id, streams, protocol, [&](auto, auto &descr) {
-          descr.deffered_messages.push_back(
+          descr.deferred_messages.push_back(
               [wp(weak_from_this()), peer_id, protocol, msg(std::move(msg))](
                   std::shared_ptr<Stream> stream) {
                 if (auto self = wp.lock()) {
@@ -542,7 +586,9 @@ namespace kagome::network {
       });
     }
 
+    std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
     log::Logger logger_;
+
     SafeObject<PeerMap> streams_;
   };
 

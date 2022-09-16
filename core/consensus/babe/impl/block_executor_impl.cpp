@@ -8,7 +8,6 @@
 #include <chrono>
 
 #include "blockchain/block_tree_error.hpp"
-#include "blockchain/impl/common.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
@@ -100,13 +99,13 @@ namespace kagome::consensus {
 
     primitives::BlockInfo block_info(header.number, block_hash);
 
-    if (auto body_res = block_tree_->getBlockBody(header.parent_hash);
-        body_res.has_error()
-        && body_res.error() == blockchain::BlockTreeError::BODY_NOT_FOUND) {
+    if (auto header_res = block_tree_->getBlockHeader(header.parent_hash);
+        header_res.has_error()
+        && header_res.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
       logger_->warn("Skipping a block {} with unknown parent", block_info);
       return Error::PARENT_NOT_FOUND;
-    } else if (body_res.has_error()) {
-      return body_res.as_failure();
+    } else if (header_res.has_error()) {
+      return header_res.as_failure();
     }
 
     // get current time to measure performance if block execution

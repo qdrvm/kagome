@@ -191,7 +191,7 @@ namespace kagome::consensus::grandpa {
     // Getters
 
     RoundNumber roundNumber() const override;
-    MembershipCounter voterSetId() const override;
+    VoterSetId voterSetId() const override;
 
     /**
      * Round is completable when we have block (stored in
@@ -342,11 +342,11 @@ namespace kagome::consensus::grandpa {
     std::optional<BlockInfo> primary_vote_;
 
     // Our vote at prevote stage.
-    // It's deepest descendant of primary vote (or last finalized)
+    // It's the deepest descendant of primary vote (or last finalized)
     std::optional<BlockInfo> prevote_;
 
     // Our vote at precommit stage. Setting once.
-    // It's deepest descendant of best prevote candidate with prevote
+    // It's the deepest descendant of best prevote candidate with prevote
     // supermajority
     std::optional<BlockInfo> precommit_;
 

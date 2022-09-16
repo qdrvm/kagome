@@ -56,6 +56,8 @@ namespace {
     roles.flags.full = 1;
     return roles;
   }();
+  const auto def_sync_method =
+      kagome::application::AppConfiguration::SyncMethod::Full;
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_use_wavm_cache_ = false;
@@ -70,7 +72,9 @@ namespace {
   const uint32_t def_out_peers = 25;
   const uint32_t def_in_peers = 25;
   const uint32_t def_in_peers_light = 100;
+  const auto def_lucky_peers = 4;
   const uint32_t def_random_walk_interval = 15;
+  const auto def_full_sync = "Full";
   const auto def_wasm_execution = "Interpreted";
 
   /**
@@ -88,6 +92,18 @@ namespace {
       name = name.substr(0, max_len);
     }
     return name;
+  }
+
+  std::optional<kagome::application::AppConfiguration::SyncMethod>
+  str_to_sync_method(std::string_view str) {
+    using SM = kagome::application::AppConfiguration::SyncMethod;
+    if (str == "Full") {
+      return SM::Full;
+    }
+    if (str == "Fast") {
+      return SM::Fast;
+    }
+    return std::nullopt;
   }
 
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
@@ -139,6 +155,7 @@ namespace kagome::application {
   AppConfigurationImpl::AppConfigurationImpl(log::Logger logger)
       : logger_(std::move(logger)),
         roles_(def_roles),
+        save_node_key_(false),
         is_telemetry_enabled_(true),
         p2p_port_(def_p2p_port),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
@@ -151,11 +168,13 @@ namespace kagome::application {
         out_peers_(def_out_peers),
         in_peers_(def_in_peers),
         in_peers_light_(def_in_peers_light),
+        lucky_peers_(def_lucky_peers),
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
         node_version_(buildVersion()),
         max_ws_connections_(def_ws_max_connections),
         random_walk_interval_(def_random_walk_interval),
+        sync_method_{def_sync_method},
         runtime_exec_method_{def_runtime_exec_method},
         use_wavm_cache_(def_use_wavm_cache_),
         purge_wavm_cache_(def_purge_wavm_cache_),
@@ -294,6 +313,17 @@ namespace kagome::application {
     return false;
   }
 
+  bool AppConfigurationImpl::load_i32(const rapidjson::Value &val,
+                                      char const *name,
+                                      int32_t &target) {
+    if (auto m = val.FindMember(name);
+        val.MemberEnd() != m && m->value.IsInt()) {
+      target = m->value.GetInt();
+      return true;
+    }
+    return false;
+  }
+
   void AppConfigurationImpl::parse_general_segment(
       const rapidjson::Value &val) {
     bool validator_mode = false;
@@ -350,6 +380,7 @@ namespace kagome::application {
     load_u32(val, "out-peers", out_peers_);
     load_u32(val, "in-peers", in_peers_);
     load_u32(val, "in-peers-light", in_peers_light_);
+    load_i32(val, "lucky-peers", lucky_peers_);
     load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
     load_u32(val, "random-walk-interval", random_walk_interval_);
   }
@@ -676,6 +707,7 @@ namespace kagome::application {
         ("public-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses that other nodes use to connect to it")
         ("node-key", po::value<std::string>(), "the secret key to use for libp2p networking")
         ("node-key-file", po::value<std::string>(), "path to the secret key used for libp2p networking (raw binary or hex-encoded")
+        ("save-node-key", po::bool_switch(), "save generated libp2p networking key, key will be reused on node restart")
         ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("port,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc-host", po::value<std::string>(), "address for RPC over HTTP")
@@ -688,6 +720,7 @@ namespace kagome::application {
         ("out-peers", po::value<uint32_t>()->default_value(def_out_peers), "number of outgoing connections we're trying to maintain")
         ("in-peers", po::value<uint32_t>()->default_value(def_in_peers), "maximum number of inbound full nodes peers")
         ("in-peers-light", po::value<uint32_t>()->default_value(def_in_peers_light), "maximum number of inbound light nodes peers")
+        ("lucky-peers", po::value<int32_t>()->default_value(def_lucky_peers), "number of \"lucky\" peers (peers that are being gossiped to). -1 for broadcast." )
         ("max-blocks-in-response", po::value<uint32_t>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ("no-telemetry", po::bool_switch(), "Disables telemetry broadcasting")
@@ -701,6 +734,8 @@ namespace kagome::application {
     development_desc.add_options()
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
+        ("sync", po::value<std::string>()->default_value(def_full_sync),
+          "choose the desired sync method (Full, Fast). Full is used by default.")
         ("wasm-execution", po::value<std::string>()->default_value(def_wasm_execution),
           "choose the desired wasm execution method (Compiled, Interpreted)")
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
@@ -915,6 +950,9 @@ namespace kagome::application {
           });
     }
 
+    find_argument<bool>(
+        vm, "save-node-key", [&](bool val) { save_node_key_ = val; });
+
     find_argument<uint16_t>(vm, "port", [&](uint16_t val) { p2p_port_ = val; });
 
     auto parse_multiaddrs =
@@ -1046,6 +1084,9 @@ namespace kagome::application {
     find_argument<uint32_t>(
         vm, "in-peers-light", [&](uint32_t val) { in_peers_light_ = val; });
 
+    find_argument<int32_t>(
+        vm, "lucky-peers", [&](int32_t val) { lucky_peers_ = val; });
+
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
     });
@@ -1088,6 +1129,21 @@ namespace kagome::application {
       if (not parse_telemetry_urls("telemetry-url", telemetry_endpoints_)) {
         return false;  // just proxy erroneous case to the top level
       }
+    }
+
+    bool sync_method_value_error = false;
+    find_argument<std::string>(
+        vm, "sync", [this, &sync_method_value_error](std::string const &val) {
+          auto sync_method_opt = str_to_sync_method(val);
+          if (not sync_method_opt) {
+            sync_method_value_error = true;
+            SL_ERROR(logger_, "Invalid sync method specified: '{}'", val);
+          } else {
+            sync_method_ = sync_method_opt.value();
+          }
+        });
+    if (sync_method_value_error) {
+      return false;
     }
 
     bool exec_method_value_error = false;

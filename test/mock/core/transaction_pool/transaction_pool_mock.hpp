@@ -50,6 +50,11 @@ namespace kagome::transaction_pool {
                 (override));
 
     MOCK_METHOD(Status, getStatus, (), (const, override));
+
+    MOCK_METHOD(outcome::result<primitives::Transaction>,
+                constructTransaction,
+                (primitives::TransactionSource, primitives::Extrinsic),
+                (const, override));
   };
 
 }  // namespace kagome::transaction_pool

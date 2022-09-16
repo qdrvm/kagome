@@ -40,7 +40,7 @@ namespace kagome::consensus::grandpa {
 
     const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
     std::shared_ptr<crypto::Ed25519Provider> ed_provider_;
-    RoundNumber round_number_;
+    const RoundNumber round_number_;
     std::shared_ptr<VoterSet> voter_set_;
   };
 
