@@ -1009,124 +1009,21 @@ namespace kagome::blockchain {
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
-      const primitives::BlockHash &top_block,
-      const primitives::BlockHash &bottom_block,
-      const uint32_t max_count) const {
-    return getChainByBlocks(
-        top_block, bottom_block, std::make_optional(max_count));
-  }
-
-  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
-      const primitives::BlockHash &top_block,
-      const primitives::BlockHash &bottom_block,
-      std::optional<uint32_t> max_count) const {
-    OUTCOME_TRY(from, header_repo_->getNumberByHash(top_block));
-    OUTCOME_TRY(to, header_repo_->getNumberByHash(bottom_block));
-
-    if (auto chain_res = tryGetChainByBlocksFromCache(
-            primitives::BlockInfo{from, top_block},
-            primitives::BlockInfo{to, bottom_block},
-            max_count)) {
-      return chain_res.value();
-    }
-
-    std::vector<primitives::BlockHash> result;
+      const primitives::BlockHash &ancestor,
+      const primitives::BlockHash &descendant) const {
+    OUTCOME_TRY(from, header_repo_->getNumberByHash(ancestor));
+    OUTCOME_TRY(to, header_repo_->getNumberByHash(descendant));
     if (to < from) {
-      return result;
+      return BlockTreeError::TARGET_IS_PAST_MAX;
     }
-
-    const auto response_length =
-        max_count ? std::min(to - from + 1, max_count.value())
-                  : (to - from + 1);
-    result.reserve(response_length);
-
-    SL_TRACE(log_,
-             "Try to create {} length chain from number {} to {}.",
-             response_length,
-             from,
-             to);
-
-    auto current_hash = bottom_block;
-
-    std::deque<primitives::BlockHash> chain;
-    chain.emplace_back(current_hash);
-    size_t count = 0;
-    while (current_hash != top_block && result.size() < response_length) {
-      if (max_count.has_value() && ++count > max_count.value()) {
-        log_->warn(
-            "impossible to get chain by blocks: "
-            "max count exceeded at intermediate block {}",
-            current_hash);
-        break;
-      }
-      auto header_res = header_repo_->getBlockHeader(current_hash);
-      if (!header_res) {
-        log_->warn(
-            "impossible to get chain by blocks: "
-            "intermediate block {} was not added to block tree before",
-            current_hash);
-        return BlockTreeError::SOME_BLOCK_IN_CHAIN_NOT_FOUND;
-      }
-      current_hash = header_res.value().parent_hash;
-      if (chain.size() >= response_length) {
-        chain.pop_front();
-      }
-      chain.emplace_back(current_hash);
+    auto count = to - from + 1;
+    OUTCOME_TRY(chain, getDescendingChainToBlock(descendant, count));
+    BOOST_ASSERT(chain.size() == count);
+    if (chain.back() != ancestor) {
+      return BlockTreeError::BLOCK_ON_DEAD_END;
     }
-
-    result.assign(chain.crbegin(), chain.crend());
-    return result;
-  }
-
-  std::optional<std::vector<primitives::BlockHash>>
-  BlockTreeImpl::tryGetChainByBlocksFromCache(
-      const primitives::BlockInfo &top_block,
-      const primitives::BlockInfo &bottom_block,
-      std::optional<uint32_t> max_count) const {
-    if (auto from = tree_->getRoot().findByHash(top_block.hash)) {
-      if (bottom_block.number < from->depth) {
-        return std::nullopt;
-      }
-      const auto in_tree_branch_len = bottom_block.number - from->depth + 1;
-      const auto response_length =
-          max_count ? std::min(in_tree_branch_len, max_count.value())
-                    : in_tree_branch_len;
-
-      std::vector<primitives::BlockHash> result;
-      result.reserve(response_length);
-
-      auto res = from->applyToChain(
-          bottom_block,
-          [&result, response_length](auto &node) -> TreeNode::ExitToken {
-            result.emplace_back(node.block_hash);
-            if (result.size() == response_length) {
-              return TreeNode::ExitToken::EXIT;
-            }
-            return TreeNode::ExitToken::CONTINUE;
-          });
-      if (res.has_error()) {
-        SL_DEBUG(log_,
-                 "Failed to collect a chain of blocks from {} to {}: {}",
-                 top_block,
-                 bottom_block,
-                 res.error().message());
-        return std::nullopt;
-      }
-      SL_TRACE(log_,
-               "Create {} length chain from number {} to {} from cache.",
-               response_length,
-               from->depth,
-               bottom_block.number);
-
-      return result;
-    }
-    return std::nullopt;
-  }
-
-  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
-      const primitives::BlockHash &top_block,
-      const primitives::BlockHash &bottom_block) const {
-    return getChainByBlocks(top_block, bottom_block, std::nullopt);
+    std::reverse(chain.begin(), chain.end());
+    return std::move(chain);
   }
 
   bool BlockTreeImpl::hasDirectChain(

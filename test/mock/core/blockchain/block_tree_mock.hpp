@@ -91,13 +91,6 @@ namespace kagome::blockchain {
                 (const primitives::BlockHash &, const primitives::BlockHash &),
                 (const, override));
 
-    MOCK_METHOD(BlockHashVecRes,
-                getChainByBlocks,
-                (const primitives::BlockHash &,
-                 const primitives::BlockHash &,
-                 const uint32_t),
-                (const, override));
-
     MOCK_METHOD(bool,
                 hasDirectChain,
                 (const primitives::BlockHash &, const primitives::BlockHash &),
