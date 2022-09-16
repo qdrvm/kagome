@@ -80,12 +80,6 @@ namespace kagome::parachain {
    private:
     enum struct CollationState { kFetched, kSeconded };
     enum struct PoVDataState { kComplete, kFetchFromValidator };
-    enum struct WorkersState : uint64_t { kWork = 0, kExit };
-    enum struct BackgroundOperationType {
-      kValidate = 0,
-      kAttest,
-      kAttestNoPoV
-    };
     enum struct StatementType { kSeconded = 0, kValid };
 
     struct FetchedCollationState {
@@ -134,10 +128,11 @@ namespace kagome::parachain {
         FetchedCollation &fetched_collation);
     outcome::result<void> validateErasureCoding(
         FetchedCollation &fetched_collation);
-    template <BackgroundOperationType kBGOperation>
+    template <typename F>
     void validateAndMakeAvailable(libp2p::peer::PeerId const &peer_id,
                                   primitives::BlockHash const &relay_parent,
-                                  FetchedCollation fetched_collation);
+                                  FetchedCollation fetched_collation,
+                                  F &&callback);
     void requestPoV();
 
     /*
@@ -162,7 +157,7 @@ namespace kagome::parachain {
         ValidateAndSecondResult &validation_result);
     std::optional<ImportStatementSummary> importStatement(
         std::shared_ptr<network::Statement> const &statement);
-    network::ValidatorIndex getOurIndex();
+    std::optional<network::ValidatorIndex> getOurIndex();
 
     /*
      * Helpers.

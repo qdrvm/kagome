@@ -39,7 +39,6 @@ namespace kagome::network {
    */
   struct ParachainState {
     std::unordered_map<BlockHash, bool> our_view;
-    //std::deque<PendingCollation> pending_collations;
   };
 
   struct PeerState {

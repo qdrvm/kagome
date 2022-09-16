@@ -96,13 +96,15 @@ namespace kagome::parachain {
     return collations_.sharedAccess(
         [&](auto const &collations)
             -> outcome::result<ParachainProcessorImpl::FetchedCollation> {
-          if (auto para_it = collations.find(id); para_it != collations.end())
+          if (auto para_it = collations.find(id); para_it != collations.end()) {
             if (auto relay_it = para_it->second.find(relay_parent);
-                relay_it != para_it->second.end())
+                relay_it != para_it->second.end()) {
               if (auto peer_it = relay_it->second.find(peer_id);
-                  peer_it != relay_it->second.end())
+                  peer_it != relay_it->second.end()) {
                 return peer_it->second;
-
+              }
+            }
+          }
           return Error::COLLATION_NOT_FOUND;
         });
   }
@@ -220,9 +222,16 @@ namespace kagome::parachain {
 
             if (auto collation_result =
                     self->getFromSlot(id, relay_parent, peer_id))
-              self->validateAndMakeAvailable<
-                  BackgroundOperationType::kValidate>(
-                  peer_id, relay_parent, std::move(collation_result).value());
+              self->validateAndMakeAvailable(
+                  peer_id,
+                  relay_parent,
+                  std::move(collation_result).value(),
+                  [wptr](auto const &peer_id,
+                         auto &&validate_and_second_result) {
+                    if (auto self = wptr.lock())
+                      self->onValidationComplete(
+                          peer_id, std::move(validate_and_second_result));
+                  });
             else
               self->logger_->template warn(
                   "In job retrieve collation result error: {}",
@@ -240,9 +249,9 @@ namespace kagome::parachain {
     return crypto_provider_->sign(*keypair_, payload).value();
   }
 
-  network::ValidatorIndex ParachainProcessorImpl::getOurIndex() {
+  std::optional<network::ValidatorIndex> ParachainProcessorImpl::getOurIndex() {
     logger_->error("Not implemented. Return my validator index.");
-    return 0ull;
+    return std::nullopt;
   }
 
   void ParachainProcessorImpl::handleStatement(
@@ -286,7 +295,7 @@ namespace kagome::parachain {
                 auto it = our_current_state_.fallbacks.find(candidate_hash);
                 if (it == our_current_state_.fallbacks.end())
                   return std::nullopt;
-                if (getOurIndex() == statement->validator_ix)
+                if (!getOurIndex() || *getOurIndex() == statement->validator_ix)
                   return std::nullopt;
                 if (our_current_state_.awaiting_validation.count(candidate_hash)
                     > 0) {
@@ -334,6 +343,13 @@ namespace kagome::parachain {
     static_assert(kStatementType == StatementType::kSeconded
                   || kStatementType == StatementType::kValid);
 
+    auto const our_ix = getOurIndex();
+    if (!our_ix) {
+      logger_->template warn(
+          "We are not validators or we have no validator index.");
+      return nullptr;
+    }
+
     if constexpr (kStatementType == StatementType::kSeconded) {
       network::CommittedCandidateReceipt receipt{
           .descriptor =
@@ -350,7 +366,7 @@ namespace kagome::parachain {
 
       return std::make_shared<network::Statement>(
           network::Statement{.candidate_state = std::move(receipt),
-                             .validator_ix = getOurIndex(),
+                             .validator_ix = *our_ix,
                              .signature = std::move(sign_result.value())});
     } else if constexpr (kStatementType == StatementType::kValid) {
       auto const candidate_hash =
@@ -365,7 +381,7 @@ namespace kagome::parachain {
 
       return std::make_shared<network::Statement>(
           network::Statement{.candidate_state = candidate_hash,
-                             .validator_ix = getOurIndex(),
+                             .validator_ix = *our_ix,
                              .signature = std::move(sign_result.value())});
     }
   }
@@ -484,11 +500,12 @@ namespace kagome::parachain {
     logger_->error("Availability notification is not implemented!");
   }
 
-  template <ParachainProcessorImpl::BackgroundOperationType kBGOperation>
+  template <typename F>
   void ParachainProcessorImpl::validateAndMakeAvailable(
       libp2p::peer::PeerId const &peer_id,
       primitives::BlockHash const &relay_parent,
-      FetchedCollation fetched_collation) {
+      FetchedCollation fetched_collation,
+      F &&callback) {
     BOOST_ASSERT(fetched_collation);
 
     switch (fetched_collation->pov_state) {
@@ -518,29 +535,17 @@ namespace kagome::parachain {
     }
 
     notifyAvailableData();
-    notify_internal(
-        this_context_,
-        [peer_id,
-         validate_and_second_result{
-             ValidateAndSecondResult{.result = outcome::success(),
-                                     .fetched_collation = fetched_collation,
-                                     .relay_parent = relay_parent,
-                                     .commitments = {}}},
-         wptr{weak_from_this()}]() mutable {
-          if (auto self = wptr.lock()) {
-            if constexpr (kBGOperation == BackgroundOperationType::kValidate)
-              self->onValidationComplete(peer_id,
-                                         std::move(validate_and_second_result));
-            else if constexpr (kBGOperation
-                               == BackgroundOperationType::kAttest) {
-              self->onAttestComplete(peer_id,
-                                     std::move(validate_and_second_result));
-            } else {
-              self->onAttestNoPoVComplete(
-                  peer_id, std::move(validate_and_second_result));
-            }
-          }
-        });
+    notify_internal(this_context_,
+                    [peer_id,
+                     callback{std::forward<F>(callback)},
+                     validate_and_second_result{ValidateAndSecondResult{
+                         .result = outcome::success(),
+                         .fetched_collation = fetched_collation,
+                         .relay_parent = relay_parent,
+                         .commitments = nullptr}}]() mutable {
+                      std::forward<F>(callback)(
+                          peer_id, std::move(validate_and_second_result));
+                    });
   }
 
   void ParachainProcessorImpl::onAttestComplete(
