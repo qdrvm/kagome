@@ -928,15 +928,23 @@ namespace kagome::blockchain {
     }
     auto start_block_number = block_number_res.value();
 
+    if (maximum == 1) {
+      return std::vector{block};
+    }
+
     auto deepest_leaf = tree_->getMetadata().deepest_leaf.lock();
     BOOST_ASSERT(deepest_leaf != nullptr);
     auto current_depth = deepest_leaf->depth;
 
-    primitives::BlockNumber finish_block_number =
-        start_block_number + maximum - 1;
-    if (current_depth < finish_block_number) {
-      finish_block_number = current_depth;
+    if (start_block_number >= current_depth) {
+      return std::vector{block};
     }
+
+    auto count =
+        std::min<uint64_t>(current_depth - start_block_number + 1, maximum);
+
+    primitives::BlockNumber finish_block_number =
+        start_block_number + count - 1;
 
     auto finish_block_hash_res =
         header_repo_->getHashByNumber(finish_block_number);
@@ -948,7 +956,12 @@ namespace kagome::blockchain {
     }
     const auto &finish_block_hash = finish_block_hash_res.value();
 
-    return getChainByBlocks(block, finish_block_hash, maximum);
+    OUTCOME_TRY(chain, getDescendingChainToBlock(finish_block_hash, count));
+    if (chain.back() != block) {
+      return std::vector{block};
+    }
+    std::reverse(chain.begin(), chain.end());
+    return std::move(chain);
   }
 
   BlockTree::BlockHashVecRes BlockTreeImpl::getDescendingChainToBlock(
