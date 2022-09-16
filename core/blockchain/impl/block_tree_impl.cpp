@@ -1163,6 +1163,9 @@ namespace kagome::blockchain {
     if (ancestor_node_ptr && descendant_node_ptr) {
       auto current_node = descendant_node_ptr;
       while (current_node != ancestor_node_ptr) {
+        if (current_node->depth <= ancestor_node_ptr->depth) {
+          return false;
+        }
         if (auto parent = current_node->parent; !parent.expired()) {
           current_node = parent.lock();
         } else {
@@ -1201,6 +1204,9 @@ namespace kagome::blockchain {
     while (current_hash != ancestor) {
       auto current_header_res = header_repo_->getBlockHeader(current_hash);
       if (!current_header_res) {
+        return false;
+      }
+      if (current_header_res.value().number <= ancestor_depth) {
         return false;
       }
       current_hash = current_header_res.value().parent_hash;
