@@ -111,9 +111,6 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash,
         const primitives::Justification &justification) override;
 
-    BlockHashVecRes getChainByBlock(
-        const primitives::BlockHash &block) const override;
-
     BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
                                      const primitives::BlockHash &bottom_block,
                                      uint32_t max_count) const override;
@@ -134,8 +131,6 @@ namespace kagome::blockchain {
 
     bool hasDirectChain(const primitives::BlockHash &ancestor,
                         const primitives::BlockHash &descendant) const override;
-
-    BlockHashVecRes longestPath() const override;
 
     primitives::BlockInfo deepestLeaf() const override;
 

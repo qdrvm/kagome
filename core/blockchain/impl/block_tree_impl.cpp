@@ -917,12 +917,6 @@ namespace kagome::blockchain {
     return BlockTreeError::JUSTIFICATION_NOT_FOUND;
   }
 
-  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
-      const primitives::BlockHash &block) const {
-    return getChainByBlocks(
-        tree_->getMetadata().last_finalized.lock()->block_hash, block);
-  }
-
   BlockTree::BlockHashVecRes BlockTreeImpl::getBestChainFromBlock(
       const primitives::BlockHash &block, uint64_t maximum) const {
     auto block_number_res = header_repo_->getNumberByHash(block);
@@ -1213,11 +1207,6 @@ namespace kagome::blockchain {
     }
     KAGOME_PROFILE_END(search_finalized_chain)
     return true;
-  }
-
-  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::longestPath() const {
-    auto &&[_, block_hash] = deepestLeaf();
-    return getChainByBlock(block_hash);
   }
 
   primitives::BlockInfo BlockTreeImpl::deepestLeaf() const {

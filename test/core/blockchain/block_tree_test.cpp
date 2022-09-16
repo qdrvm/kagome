@@ -683,36 +683,6 @@ TEST_F(BlockTreeTest, TreeNode_applyToChain_exitTokenWorks) {
 
 /**
  * @given block tree with at least three blocks inside
- * @when asking for chain from the lowest block to the closest finalized one
- * @then chain from that block to the last finalized one is returned
- */
-TEST_F(BlockTreeTest, GetChainByBlockOnly) {
-  // GIVEN
-  BlockHeader header1{.parent_hash = kFinalizedBlockInfo.hash,
-                      .number = kFinalizedBlockInfo.number + 1,
-                      .digest = {PreRuntime{}}};
-  BlockBody body1{{Buffer{0x55, 0x55}}};
-  Block block1{header1, body1};
-  auto hash1 = addBlock(block1);
-
-  BlockHeader header2{.parent_hash = hash1,
-                      .number = header1.number + 1,
-                      .digest = {Consensus{}}};
-  BlockBody body2{{Buffer{0x55, 0x55}}};
-  Block block2{header2, body2};
-  auto hash2 = addBlock(block2);
-
-  std::vector<BlockHash> expected_chain{kFinalizedBlockInfo.hash, hash1, hash2};
-
-  // WHEN
-  ASSERT_OUTCOME_SUCCESS(chain, block_tree_->getChainByBlock(hash2))
-
-  // THEN
-  ASSERT_EQ(chain, expected_chain);
-}
-
-/**
- * @given block tree with at least three blocks inside
  * @when asking for chain from the given block to top
  * @then expected chain is returned
  */
