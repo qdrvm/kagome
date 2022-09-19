@@ -54,3 +54,9 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+hunter_config(
+    schnorrkel_crust
+    URL "https://github.com/GaroRobe/soramitsu-sr25519-crust/archive/refs/heads/feature/update-0.10.zip"
+    SHA1 "d7532e8f7ed1f61e2ac7251e9ac188b259dc1b54"
+)
+
