@@ -50,7 +50,6 @@ namespace kagome::parachain {
     BOOST_ASSERT(crypto_provider_);
     BOOST_ASSERT(this_context_);
     BOOST_ASSERT(router_);
-    BOOST_ASSERT(keypair_);
     BOOST_ASSERT(hasher_);
   }
 
