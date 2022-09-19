@@ -79,6 +79,10 @@ namespace kagome::transaction_pool {
         const primitives::BlockId &at) = 0;
 
     virtual Status getStatus() const = 0;
+
+    virtual outcome::result<primitives::Transaction> constructTransaction(
+        primitives::TransactionSource source,
+        primitives::Extrinsic extrinsic) const = 0;
   };
 
   struct TransactionPool::Status {

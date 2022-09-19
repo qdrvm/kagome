@@ -33,6 +33,7 @@ target_link_libraries(application_injector
     binaryen_module_factory
     bip39_provider
     block_announce_protocol
+    block_appender
     block_builder_api
     block_executor
     block_header_repository
@@ -66,6 +67,7 @@ target_link_libraries(application_injector
     p2p::p2p_identify
     p2p::p2p_kademlia
     p2p::p2p_ping
+    parachain_host_api
     payment_api_service
     pbkdf2_provider
     peer_manager

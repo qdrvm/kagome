@@ -28,8 +28,12 @@
 #include "outcome/outcome.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
-#include "storage/trie/trie_storage.hpp"
+#include "storage/buffer_map_types.hpp"
 #include "telemetry/service.hpp"
+
+namespace kagome::application {
+  class AppConfiguration;
+}
 
 namespace kagome::network {
   class Synchronizer;
@@ -38,9 +42,10 @@ namespace kagome::network {
 
 namespace kagome::runtime {
   class OffchainWorkerApi;
-}  // namespace kagome::runtime
+}
 
 namespace kagome::consensus::babe {
+  class ConsistencyKeeper;
 
   inline const auto kTimestampId =
       primitives::InherentIdentifier::fromString("timstap0").value();
@@ -60,7 +65,8 @@ namespace kagome::consensus::babe {
     /**
      * Create an instance of Babe implementation
      */
-    BabeImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
+    BabeImpl(const application::AppConfiguration &app_config,
+             std::shared_ptr<application::AppStateManager> app_state_manager,
              std::shared_ptr<BabeLottery> lottery,
              std::shared_ptr<primitives::BabeConfiguration> configuration,
              std::shared_ptr<authorship::Proposer> proposer,
@@ -76,7 +82,8 @@ namespace kagome::consensus::babe {
                  authority_update_observer,
              std::shared_ptr<network::Synchronizer> synchronizer,
              std::shared_ptr<BabeUtil> babe_util,
-             std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api);
+             std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+             std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper);
 
     ~BabeImpl() override = default;
 
@@ -110,6 +117,8 @@ namespace kagome::consensus::babe {
 
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
+
+    void startStateSyncing(const libp2p::peer::PeerId &peer_id);
 
     void runSlot();
 
@@ -148,7 +157,7 @@ namespace kagome::consensus::babe {
 
     bool isSecondarySlotsAllowed() const;
 
-    bool was_synchronized_;
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<authorship::Proposer> proposer_;
@@ -165,8 +174,11 @@ namespace kagome::consensus::babe {
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
+    std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper_;
 
     State current_state_{State::WAIT_REMOTE_STATUS};
+
+    bool was_synchronized_{false};
 
     std::atomic_bool active_{false};
 

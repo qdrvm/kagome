@@ -10,14 +10,15 @@
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
   16  // TODO(Harrm): check how it influences on compilation time
 
+#include <rocksdb/filter_policy.h>
+#include <rocksdb/table.h>
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
-#undef U64  // comes from OpenSSL and messes with WAVM
-#include <rocksdb/filter_policy.h>
-#include <rocksdb/table.h>
 #include <libp2p/injector/kademlia_injector.hpp>
 #include <libp2p/log/configurator.hpp>
+
+#undef U64  // comes from OpenSSL and messes with WAVM
 
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
@@ -66,6 +67,7 @@
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
+#include "consensus/babe/impl/block_appender_impl.hpp"
 #include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/babe/impl/consistency_keeper_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -108,6 +110,8 @@
 #include "offchain/impl/offchain_worker_impl.hpp"
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
 #include "outcome/outcome.hpp"
+#include "parachain/availability/bitfield/store_impl.hpp"
+#include "parachain/availability/store/store_impl.hpp"
 #include "parachain/validator/parachain_observer.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -441,15 +445,25 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
+
+    auto log = log::createLogger("Injector", "injector");
+
     auto configuration_res = babe_api->configuration(block_hash);
     if (not configuration_res) {
+      if (configuration_res
+          == outcome::failure(runtime::RuntimeEnvironmentFactory::Error::
+                                  FAILED_TO_SET_STORAGE_STATE)) {
+        SL_CRITICAL(log,
+                    "State for block {} has not found. "
+                    "Try to launch with `--sync Fast' CLI arg",
+                    block_hash);
+      }
       common::raise(configuration_res.error());
     }
 
     auto configuration = std::make_shared<primitives::BabeConfiguration>(
         std::move(configuration_res.value()));
 
-    auto log = log::createLogger("Injector", "injector");
     for (const auto &authority : configuration->genesis_authorities) {
       SL_DEBUG(log, "Babe authority: {:l}", authority.id.id);
     }
@@ -704,7 +718,9 @@ namespace {
     auto get_instance = [&]() {
       auto instance = std::make_shared<parachain::ParachainObserverImpl>(
           injector.template create<std::shared_ptr<network::PeerManager>>(),
-          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>());
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
+          injector.template create<
+              std::shared_ptr<parachain::ParachainProcessorImpl>>());
 
       auto protocol_factory =
           injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -722,10 +738,21 @@ namespace {
   sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
       const Injector &injector) {
     auto get_instance = [&]() {
-      return std::make_shared<parachain::ParachainProcessorImpl>(
+      auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
+      auto ptr = std::make_shared<parachain::ParachainProcessorImpl>(
           injector.template create<std::shared_ptr<network::PeerManager>>(),
           injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
-          injector.template create<std::shared_ptr<network::Router>>());
+          injector.template create<std::shared_ptr<network::Router>>(),
+          injector
+              .template create<std::shared_ptr<::boost::asio::io_context>>(),
+          session_keys->getBabeKeyPair(),
+          injector.template create<std::shared_ptr<crypto::Hasher>>());
+
+      auto asmgr =
+          injector
+              .template create<std::shared_ptr<application::AppStateManager>>();
+      asmgr->takeControl(*ptr);
+      return ptr;
     };
 
     static auto instance = get_instance();
@@ -960,6 +987,36 @@ namespace {
   }
 
   template <typename Injector>
+  sptr<primitives::GenesisBlockHeader> get_genesis_block_header(
+      const Injector &injector) {
+    static auto initialized =
+        std::optional<sptr<primitives::GenesisBlockHeader>>(std::nullopt);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    auto block_storage =
+        injector.template create<sptr<blockchain::BlockStorage>>();
+    auto block_header_repository =
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
+
+    auto hash_res =
+        block_header_repository->getHashByNumber(primitives::BlockNumber(0));
+    BOOST_ASSERT(hash_res.has_value());
+    auto &hash = hash_res.value();
+
+    auto header_res = block_storage->getBlockHeader(hash);
+    BOOST_ASSERT(header_res.has_value());
+    auto &header_opt = header_res.value();
+    BOOST_ASSERT(header_opt.has_value());
+
+    initialized.emplace(new primitives::GenesisBlockHeader(
+        {.header = header_opt.value(), .hash = hash}));
+
+    return initialized.value();
+  }
+
+  template <typename Injector>
   primitives::BlockHash get_last_finalized_hash(const Injector &injector) {
     auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
     if (auto last = storage->getLastFinalized(); last.has_value()) {
@@ -1174,6 +1231,14 @@ namespace {
         di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
           // need it to add genesis block if it's not there
           auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
+          if (injector.template create<application::AppConfiguration const &>()
+                  .syncMethod()
+              == application::AppConfiguration::SyncMethod::Fast) {
+            auto genesis_block_header =
+                injector
+                    .template create<sptr<primitives::GenesisBlockHeader>>();
+            return get_babe_configuration(genesis_block_header->hash, babe_api);
+          }
           static auto last_finalized_hash = get_last_finalized_hash(injector);
           return get_babe_configuration(last_finalized_hash, babe_api);
         }),
@@ -1207,6 +1272,8 @@ namespace {
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
+        di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
+        di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
         di::bind<parachain::ParachainObserverImpl>.to([](auto const &injector) {
           return get_parachain_observer_impl(injector);
         }),
@@ -1249,6 +1316,7 @@ namespace {
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
+        di::bind<consensus::BlockAppender>.template to<consensus::BlockAppenderImpl>(),
         di::bind<consensus::BlockExecutor>.to(
             [](auto const &injector) { return get_block_executor(injector); }),
         di::bind<consensus::grandpa::Grandpa>.to(
@@ -1345,6 +1413,7 @@ namespace {
     auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
 
     initialized = std::make_shared<consensus::babe::BabeImpl>(
+        injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::BabeLottery>>(),
         injector.template create<sptr<primitives::BabeConfiguration>>(),
@@ -1359,7 +1428,8 @@ namespace {
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<consensus::BabeUtil>>(),
-        injector.template create<sptr<runtime::OffchainWorkerApi>>());
+        injector.template create<sptr<runtime::OffchainWorkerApi>>(),
+        injector.template create<sptr<consensus::babe::ConsistencyKeeper>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1432,14 +1502,20 @@ namespace {
 
     const auto &app_config =
         injector.template create<const application::AppConfiguration &>();
+    auto buffer_storage =
+        injector.template create<sptr<storage::BufferStorage>>();
     auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
     auto header_repo =
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
     auto trie_storage =
         injector.template create<sptr<const storage::trie::TrieStorage>>();
+    auto authority_manager =
+        injector.template create<sptr<authority::AuthorityManager>>();
 
     initialized.emplace(new application::mode::RecoveryMode(
         [&app_config,
+         buffer_storage = std::move(buffer_storage),
+         authority_manager,
          storage = std::move(storage),
          header_repo = std::move(header_repo),
          trie_storage = std::move(trie_storage)] {
@@ -1449,7 +1525,21 @@ namespace {
               storage,
               header_repo,
               trie_storage);
+
           auto log = log::createLogger("RecoveryMode", "main");
+
+          buffer_storage->remove(storage::kAuthorityManagerStateLookupKey)
+              .value();
+          if (res.has_error()) {
+            SL_ERROR(
+                log, "Recovery mode has failed: {}", res.error().message());
+            log->flush();
+            return EXIT_FAILURE;
+          }
+
+          auto number =
+              header_repo->getNumberById(app_config.recoverState().value());
+          res = authority_manager->recalculateStoredState(number.value());
           if (res.has_error()) {
             SL_ERROR(
                 log, "Recovery mode has failed: {}", res.error().message());
@@ -1606,6 +1696,18 @@ namespace kagome::injector {
   std::shared_ptr<application::mode::RecoveryMode>
   KagomeNodeInjector::injectRecoveryMode() {
     return pimpl_->injector_.create<sptr<application::mode::RecoveryMode>>();
+  }
+
+  std::shared_ptr<blockchain::BlockTree> KagomeNodeInjector::injectBlockTree() {
+    return pimpl_->injector_.create<sptr<blockchain::BlockTree>>();
+  }
+
+  std::shared_ptr<runtime::Executor> KagomeNodeInjector::injectExecutor() {
+    return pimpl_->injector_.create<sptr<runtime::Executor>>();
+  }
+
+  std::shared_ptr<storage::BufferStorage> KagomeNodeInjector::injectStorage() {
+    return pimpl_->injector_.create<sptr<storage::BufferStorage>>();
   }
 
 }  // namespace kagome::injector

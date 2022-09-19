@@ -111,8 +111,11 @@ namespace kagome::application {
     uint32_t inPeers() const override {
       return in_peers_;
     }
-    uint32_t inPeersLght() const override {
+    uint32_t inPeersLight() const override {
       return in_peers_light_;
+    }
+    int32_t luckyPeers() const override {
+      return lucky_peers_;
     }
     const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const override {
       return rpc_http_endpoint_;
@@ -154,6 +157,9 @@ namespace kagome::application {
     const std::vector<telemetry::TelemetryEndpoint> &telemetryEndpoints()
         const override {
       return telemetry_endpoints_;
+    }
+    SyncMethod syncMethod() const override {
+      return sync_method_;
     }
     RuntimeExecutionMethod runtimeExecMethod() const override {
       return runtime_exec_method_;
@@ -228,6 +234,9 @@ namespace kagome::application {
     bool load_u32(const rapidjson::Value &val,
                   char const *name,
                   uint32_t &target);
+    bool load_i32(const rapidjson::Value &val,
+                  char const *name,
+                  int32_t &target);
     bool load_bool(const rapidjson::Value &val, char const *name, bool &target);
 
     /**
@@ -297,12 +306,14 @@ namespace kagome::application {
     uint32_t out_peers_;
     uint32_t in_peers_;
     uint32_t in_peers_light_;
+    int32_t lucky_peers_;
     network::PeeringConfig peering_config_;
     bool dev_mode_;
     std::string node_name_;
     std::string node_version_;
     uint32_t max_ws_connections_;
     uint32_t random_walk_interval_;
+    SyncMethod sync_method_;
     RuntimeExecutionMethod runtime_exec_method_;
     bool use_wavm_cache_;
     bool purge_wavm_cache_;

@@ -189,6 +189,11 @@ namespace kagome::network {
     return active_peers_.size();
   }
 
+  std::shared_ptr<StreamEngine> PeerManagerImpl::getStreamEngine() {
+    BOOST_ASSERT(stream_engine_);
+    return stream_engine_;
+  }
+
   void PeerManagerImpl::forEachPeer(
       std::function<void(const PeerId &)> func) const {
     for (auto &it : active_peers_) {
@@ -203,8 +208,9 @@ namespace kagome::network {
     if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
       BOOST_ASSERT(!it->second.collator_state
                    && !!"Collator state should be empty at the time.");
-      it->second.collator_state =
-          CollatorState{.parachain_id = para_id, .collator_id = collator_id};
+      it->second.collator_state = CollatorState{.parachain_id = para_id,
+                                                .collator_id = collator_id,
+                                                .advertisements = {}};
       it->second.time = clock_->now();
     }
   }
@@ -214,19 +220,6 @@ namespace kagome::network {
     if (active_peers_.count(peer_id)) {
       func(peer_id);
     }
-  }
-
-  std::optional<PendingCollation> PeerManagerImpl::pop_pending_collation() {
-    if (parachain_state_.pending_collations.empty()) return std::nullopt;
-
-    std::optional<PendingCollation> collation =
-        std::move(parachain_state_.pending_collations.front());
-    parachain_state_.pending_collations.pop_front();
-    return collation;
-  }
-
-  void PeerManagerImpl::push_pending_collation(PendingCollation &&collation) {
-    parachain_state_.pending_collations.emplace_back(std::move(collation));
   }
 
   outcome::result<
@@ -596,7 +589,7 @@ namespace kagome::network {
             ++in_light_peers_count;
           }
         }
-        if (in_light_peers_count >= app_config_.inPeersLght()) {
+        if (in_light_peers_count >= app_config_.inPeersLight()) {
           connecting_peers_.erase(peer_id);
           disconnectFromPeer(peer_id);
           return;

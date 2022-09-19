@@ -3,9 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <scale/bitvec.hpp>
+
 #include "common/stub.hpp"
 #include "common/tagged.hpp"
 #include "common/unused.hpp"
+#include "network/types/collator_messages.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::consensus::babe {
@@ -189,7 +192,7 @@ namespace kagome::consensus::babe {
     std::vector<Attestation> validity_votes;
 
     /// A bitfield of indices of the validators within the validator group
-    std::vector<bool> indices;
+    scale::BitVec indices;
   };
 
   scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
@@ -284,42 +287,12 @@ namespace kagome::consensus::babe {
     // clang-format on
   }
 
-  /// Bitfields signed by validators claiming the candidate is available or not
-  struct SignedBitfields {
-    /// The availability bitfield
-    std::vector<bool> bitfield;
-
-    /// The signature of the validator
-    Signature signature;
-
-    /// The validator index in the authority set
-    uint32_t validator_index;
-  };
-
-  scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                        const SignedBitfields &data) {
-    // clang-format off
-    return s << data.bitfield
-             << data.signature
-             << data.validator_index;
-    // clang-format on
-  }
-
-  scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                        SignedBitfields &data) {
-    // clang-format off
-    return s >> data.bitfield
-             >> data.signature
-             >> data.validator_index;
-    // clang-format on
-  }
-
   struct ParachainInherentData {
     /// The array of signed bitfields by validators claiming the candidate is
     /// available (or not).
     /// @note The array must be sorted by validator index corresponding to the
     /// authority set
-    std::vector<SignedBitfields> bitfields;
+    std::vector<network::SignedBitfield> bitfields;
 
     /// The array of backed candidates for inclusion in the current block
     std::vector<Empty> backed_candidates;

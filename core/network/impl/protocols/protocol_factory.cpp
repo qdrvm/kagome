@@ -86,6 +86,7 @@ namespace kagome::network {
   ProtocolFactory::makePropagateTransactionsProtocol() const {
     return std::make_shared<PropagateTransactionsProtocol>(
         host_,
+        app_config_,
         chain_spec_,
         babe_.lock(),
         extrinsic_observer_.lock(),

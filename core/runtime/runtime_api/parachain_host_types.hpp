@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP
 #define KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP
 
+#include <scale/bitvec.hpp>
+
 #include "common/blob.hpp"
 #include "common/unused.hpp"
 #include "primitives/block_id.hpp"
@@ -24,7 +26,6 @@ namespace kagome::runtime {
   using CollatorSignature = common::Hash256;
   using ValidationCodeHash = common::Hash256;
   using BlockNumber = primitives::BlockNumber;
-  using Bitvec = std::vector<bool>;
   using CandidateHash = common::Hash256;
   using HeadData = Buffer;
   using GroupRotatePeriod = uint32_t;
@@ -86,7 +87,7 @@ namespace kagome::runtime {
     /// A bitfield with 1 bit for each validator in the set. `1` bits mean that
     /// the corresponding validators has attested to availability on-chain. A
     /// 2/3+ majority of `1` bits means that this will be available.
-    Bitvec availability;
+    scale::BitVec availability;
     /// The group assigned to distribute availability pieces of this candidate.
     GroupIndex group_responsible;
     /// The hash of the candidate occupying the core.

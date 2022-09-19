@@ -77,6 +77,10 @@ namespace kagome::api {
       SL_INFO(logger_, "Grandpa key already exists and won't be replaced");
       return outcome::failure(crypto::CryptoStoreError::GRAN_ALREADY_EXIST);
     }
+    if (crypto::KEY_TYPE_AUDI == key_type && keys_->getAudiKeyPair()) {
+      SL_INFO(logger_, "Authority discovery key already exists and won't be replaced");
+      return outcome::failure(crypto::CryptoStoreError::AUDI_ALREADY_EXIST);
+    }
     if (crypto::KEY_TYPE_BABE == key_type) {
       OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::fromSpan(seed));
       OUTCOME_TRY(public_key_typed,
@@ -191,14 +195,18 @@ namespace kagome::api {
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
     if (auto service = api_service_.lock()) {
+      OUTCOME_TRY(
+          tx,
+          pool_->constructTransaction(TransactionSource::External, extrinsic));
+      OUTCOME_TRY(sub_id, service->subscribeForExtrinsicLifecycle(tx.hash));
       OUTCOME_TRY(tx_hash,
                   submitExtrinsic(
                       // submit and watch could be executed only
                       // from RPC call, so External source is chosen
                       TransactionSource::External,
                       extrinsic));
+      BOOST_ASSERT(tx_hash == tx.hash);
 
-      OUTCOME_TRY(sub_id, service->subscribeForExtrinsicLifecycle(tx_hash));
       SL_DEBUG(logger_, "Subscribe for ex hash={}", tx_hash);
 
       return sub_id;

@@ -219,7 +219,7 @@ namespace kagome::consensus::grandpa {
      */
     std::optional<std::shared_ptr<VotingRound>> selectRound(
         RoundNumber round_number,
-        std::optional<MembershipCounter> voter_set_id);
+        std::optional<VoterSetId> voter_set_id);
 
     /**
      * @return Get grandpa::MovableRoundState for the last completed round
@@ -272,6 +272,8 @@ namespace kagome::consensus::grandpa {
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_highest_round_;
+
+    libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
   };
