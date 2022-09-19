@@ -46,6 +46,7 @@
 #include "application/impl/chain_spec_impl.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
+#include "authority_discovery/impl/address_publisher_impl.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
@@ -658,7 +659,9 @@ namespace {
         injector.template create<sptr<network::Router>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<network::PeerRatingRepository>>());
+        injector.template create<sptr<network::PeerRatingRepository>>(),
+        injector
+            .template create<sptr<authority_discovery::AddressPublisher>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -723,6 +726,29 @@ namespace {
           injector.template create<std::shared_ptr<network::PeerManager>>(),
           injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
           injector.template create<std::shared_ptr<network::Router>>());
+    };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
+  template <typename Injector>
+  sptr<authority_discovery::AddressPublisherImpl> get_address_publisher(
+      const Injector &injector) {
+    auto get_instance = [&]() {
+      return std::make_shared<authority_discovery::AddressPublisherImpl>(
+          injector
+              .template create<std::shared_ptr<authority::AuthorityManager>>(),
+          injector.template create<std::shared_ptr<blockchain::BlockTree>>(),
+          injector.template create<std::shared_ptr<crypto::SessionKeys>>(),
+          injector.template create<std::shared_ptr<crypto::CryptoStore>>(),
+          injector.template create<std::shared_ptr<crypto::Ed25519Provider>>(),
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
+          injector.template create<libp2p::Host &>(),
+          injector.template create<
+              std::shared_ptr<libp2p::protocol::kademlia::Kademlia>>(),
+          injector
+              .template create<std::shared_ptr<libp2p::basic::Scheduler>>());
     };
 
     static auto instance = get_instance();
@@ -1247,6 +1273,10 @@ namespace {
         di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
         di::bind<consensus::babe::ConsistencyKeeper>.template to<consensus::babe::ConsistencyKeeperImpl>(),
         di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
+        di::bind<authority_discovery::AddressPublisher>.to(
+            [](auto const &injector) {
+              return get_address_publisher(injector);
+            }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

@@ -11,7 +11,6 @@
 #include <optional>
 #include <outcome/outcome.hpp>
 
-#include "primitives/authority.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
@@ -55,13 +54,6 @@ namespace kagome::runtime {
      */
     virtual outcome::result<storage::trie::RootHash> initialize_block(
         const primitives::BlockHeader &header) = 0;
-
-    /**
-     * Get current authorities
-     * @return collection of authorities
-     */
-    virtual outcome::result<std::vector<primitives::AuthorityId>> authorities(
-        const primitives::BlockHash &block_hash) = 0;
   };
 
 }  // namespace kagome::runtime

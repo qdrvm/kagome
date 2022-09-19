@@ -30,6 +30,7 @@ namespace kagome::crypto {
   class SessionKeys {
     std::shared_ptr<Sr25519Keypair> babe_key_pair_;
     std::shared_ptr<Ed25519Keypair> gran_key_pair_;
+    std::shared_ptr<Sr25519Keypair> audi_key_pair_;
     network::Roles roles_;
     std::shared_ptr<CryptoStore> store_;
 
@@ -46,6 +47,11 @@ namespace kagome::crypto {
      * @return current GRANDPA session key pair
      */
     const std::shared_ptr<Ed25519Keypair> &getGranKeyPair();
+
+    /**
+     * @return current AUDI session key pair
+     */
+    const std::shared_ptr<Sr25519Keypair> &getAudiKeyPair();
   };
 }  // namespace kagome::crypto
 

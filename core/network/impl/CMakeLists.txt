@@ -79,6 +79,7 @@ add_library(peer_manager
 target_link_libraries(peer_manager
     logger
     scale_libp2p_types
+    authority_discovery_proto
     )
 
 add_library(rating_repository

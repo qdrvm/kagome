@@ -20,6 +20,7 @@
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
+#include "authority_discovery/address_publisher.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "clock/clock.hpp"
@@ -70,7 +71,8 @@ namespace kagome::network {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<PeerRatingRepository> peer_rating_repository);
+        std::shared_ptr<PeerRatingRepository> peer_rating_repository,
+        std::shared_ptr<authority_discovery::AddressPublisher> address_publisher);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -195,6 +197,9 @@ namespace kagome::network {
 
     // parachain
     ParachainState parachain_state_;
+
+    // authority discovery
+    std::shared_ptr<authority_discovery::AddressPublisher> address_publisher_;
 
     log::Logger log_;
   };
