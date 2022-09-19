@@ -26,7 +26,7 @@ namespace kagome::network {
     RequestResponseProtocol(libp2p::Host &host,
                             Protocol const &protocol,
                             ProtocolName const &name)
-        : base_(host, {protocol}, name) {}
+        : base_(host, {protocol}, name), protocol_{protocol} {}
     virtual ~RequestResponseProtocol() {}
 
     bool start() override {
@@ -37,8 +37,7 @@ namespace kagome::network {
     }
 
     const Protocol &protocolName() const override {
-      assert(base_.protocol());
-      return *base_.protocol();
+      return protocol_;
     }
 
     void doRequest(
@@ -305,6 +304,7 @@ namespace kagome::network {
     }
 
     ProtocolBaseImpl base_;
+    Protocol const protocol_;
   };
 
 }  // namespace kagome::network

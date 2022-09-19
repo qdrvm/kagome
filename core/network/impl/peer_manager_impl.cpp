@@ -184,6 +184,11 @@ namespace kagome::network {
     return active_peers_.size();
   }
 
+  std::shared_ptr<StreamEngine> PeerManagerImpl::getStreamEngine() {
+    BOOST_ASSERT(stream_engine_);
+    return stream_engine_;
+  }
+
   void PeerManagerImpl::forEachPeer(
       std::function<void(const PeerId &)> func) const {
     for (auto &it : active_peers_) {
@@ -199,7 +204,8 @@ namespace kagome::network {
       BOOST_ASSERT(!it->second.collator_state
                    && !!"Collator state should be empty at the time.");
       it->second.collator_state = CollatorState{.parachain_id = para_id,
-                                                .collator_id = collator_id};
+                                                .collator_id = collator_id,
+                                                .advertisements = {}};
       it->second.time = clock_->now();
     }
   }
@@ -209,19 +215,6 @@ namespace kagome::network {
     if (active_peers_.count(peer_id)) {
       func(peer_id);
     }
-  }
-
-  std::optional<PendingCollation> PeerManagerImpl::pop_pending_collation() {
-    if (parachain_state_.pending_collations.empty()) return std::nullopt;
-
-    std::optional<PendingCollation> collation =
-        std::move(parachain_state_.pending_collations.front());
-    parachain_state_.pending_collations.pop_front();
-    return collation;
-  }
-
-  void PeerManagerImpl::push_pending_collation(PendingCollation &&collation) {
-    parachain_state_.pending_collations.emplace_back(std::move(collation));
   }
 
   outcome::result<
@@ -673,7 +666,8 @@ namespace kagome::network {
               auto &r_info = r_info_opt.value();
               auto &o_info = o_info_opt.value();
 
-              if (r_info.get().best_block.number <= o_info.get().best_block.number) {
+              if (r_info.get().best_block.number
+                  <= o_info.get().best_block.number) {
                 auto grandpa_protocol = self->router_->getGrandpaProtocol();
                 BOOST_ASSERT_MSG(grandpa_protocol,
                                  "Router did not provide grandpa protocol");

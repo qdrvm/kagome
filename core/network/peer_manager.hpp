@@ -30,8 +30,8 @@ namespace kagome::network {
 
   struct PendingCollation {
     network::ParachainId para_id;
-    BlockHash relay_parent;
-    libp2p::peer::PeerId peer_id;
+    BlockHash const &relay_parent;
+    libp2p::peer::PeerId const &peer_id;
   };
 
   /*
@@ -39,7 +39,6 @@ namespace kagome::network {
    */
   struct ParachainState {
     std::unordered_map<BlockHash, bool> our_view;
-    std::deque<PendingCollation> pending_collations;
   };
 
   struct PeerState {
@@ -51,6 +50,8 @@ namespace kagome::network {
     BlockNumber last_finalized = 0;
     std::optional<CollatorState> collator_state = std::nullopt;
   };
+
+  struct StreamEngine;
 
   /**
    * Manage active peers:
@@ -78,6 +79,11 @@ namespace kagome::network {
      * Reserves stream slots of needed protocols for peer by {@param peer_id}
      */
     virtual void reserveStreams(const PeerId &peer_id) const = 0;
+
+    /**
+     * Return stream engine object.
+     */
+    virtual std::shared_ptr<StreamEngine> getStreamEngine() = 0;
 
     /**
      * Keeps peer with {@param peer_id} alive
@@ -109,16 +115,6 @@ namespace kagome::network {
     insert_advertisement(PeerState &peer_state,
                          ParachainState &parachain_state,
                          primitives::BlockHash para_hash) = 0;
-
-    /**
-     * Retrieves pending collation from queue.
-     */
-    virtual std::optional<PendingCollation> pop_pending_collation() = 0;
-
-    /**
-     * Pushes pending collation from queue.
-     */
-    virtual void push_pending_collation(PendingCollation &&collation) = 0;
 
     /**
      * Allows to update parachains states.

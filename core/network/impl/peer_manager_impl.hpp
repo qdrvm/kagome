@@ -84,14 +84,11 @@ namespace kagome::network {
     /** @see PeerManager::connectToPeer */
     void connectToPeer(const PeerInfo &peer_info) override;
 
-    /** @see PeerManager::pop_pending_collation */
-    std::optional<PendingCollation> pop_pending_collation() override;
-
-    /** @see PeerManager::push_pending_collation */
-    void push_pending_collation(PendingCollation &&collation) override;
-
     /** @see PeerManager::reserveStreams */
     void reserveStreams(const PeerId &peer_id) const override;
+
+    /** @see PeerManager::getStreamEngine */
+    std::shared_ptr<StreamEngine> getStreamEngine() override;
 
     /** @see PeerManager::activePeersNumber */
     size_t activePeersNumber() const override;

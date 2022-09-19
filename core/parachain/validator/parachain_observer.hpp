@@ -27,12 +27,17 @@ namespace kagome::crypto {
 }
 
 namespace kagome::parachain {
+  struct ParachainProcessorImpl;
+}
+
+namespace kagome::parachain {
 
   struct ParachainObserverImpl final : network::CollationObserver,
                                        network::ReqCollationObserver {
     ParachainObserverImpl(
         std::shared_ptr<network::PeerManager> pm,
-        std::shared_ptr<crypto::Sr25519Provider> crypto_provider);
+        std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
+        std::shared_ptr<parachain::ParachainProcessorImpl> processor);
     ~ParachainObserverImpl() = default;
 
     /// collation protocol observer
@@ -51,6 +56,7 @@ namespace kagome::parachain {
     std::shared_ptr<observers::CollationObserverImpl> collation_observer_impl_;
     std::shared_ptr<observers::ReqCollationObserverImpl>
         req_collation_observer_impl_;
+    std::shared_ptr<parachain::ParachainProcessorImpl> processor_;
   };
 
 }  // namespace kagome::parachain
