@@ -26,6 +26,7 @@ namespace kagome::parachain {
     /// Make signable message for payload.
     template <typename T>
     auto signable(const T &payload) const {
+      // TODO(turuslan): Statement requires conversion
       return scale::encode(std::tie(payload, *this));
     }
 
