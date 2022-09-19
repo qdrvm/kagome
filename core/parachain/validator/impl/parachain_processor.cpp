@@ -56,9 +56,11 @@ namespace kagome::parachain {
 
   ParachainProcessorImpl::~ParachainProcessorImpl() {
     /// check that all workers are stopped.
+#ifndef NDEBUG
     for (auto &w : workers_) {
       BOOST_ASSERT(!w);
     }
+#endif  // NDEBUG
   }
 
   bool ParachainProcessorImpl::prepare() {
@@ -364,6 +366,8 @@ namespace kagome::parachain {
               candidateDescriptorFrom(*validation_result.fetched_collation),
           .commitments = std::move(*validation_result.commitments)};
 
+      /// TODO(iceseer):
+      /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
       auto sign_result = sign(receipt);
       if (!sign_result) {
         logger_->error(
@@ -379,6 +383,9 @@ namespace kagome::parachain {
     } else if constexpr (kStatementType == StatementType::kValid) {
       auto const candidate_hash =
           candidateHashFrom(*validation_result.fetched_collation);
+
+      /// TODO(iceseer):
+      /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
       auto sign_result = sign(candidate_hash);
       if (!sign_result) {
         logger_->error(
@@ -517,8 +524,8 @@ namespace kagome::parachain {
     BOOST_ASSERT(fetched_collation);
 
     switch (fetched_collation->pov_state) {
-      case PoVDataState::kComplete: {
-      } break;
+      case PoVDataState::kComplete:
+        break;
       case PoVDataState::kFetchFromValidator:
       default: {
         logger_->error("Unexpected PoV state processing.");
