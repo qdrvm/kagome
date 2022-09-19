@@ -21,7 +21,7 @@ namespace kagome::parachain {
     using ParachainBlock = network::ParachainBlock;
     using PersistedValidationData = runtime::PersistedValidationData;
 
-    virtual ~AvailabilityStore() = 0;
+    virtual ~AvailabilityStore() = default;
 
     /// Has ErasureChunk
     virtual bool hasChunk(const CandidateHash &candidate_hash,

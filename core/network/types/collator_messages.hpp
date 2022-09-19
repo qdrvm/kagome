@@ -7,6 +7,7 @@
 #define KAGOME_COLLATOR_DECLARE_HPP
 
 #include <boost/variant.hpp>
+#include <scale/bitvec.hpp>
 #include <tuple>
 #include <type_traits>
 #include <vector>
@@ -29,6 +30,21 @@ namespace kagome::network {
   using HeadData = common::Buffer;
   using CandidateHash = primitives::BlockHash;
   using ChunkProof = std::vector<common::Buffer>;
+
+  /// Payload signed by validator.
+  template <typename Payload>
+  struct Signed {
+    SCALE_TIE(3);
+
+    static_assert(std::is_same_v<std::decay_t<Payload>, Payload>);
+
+    /// Payload.
+    Payload payload;
+    /// Index of validator in validator list.
+    ValidatorIndex validator_index;
+    /// Signature of `SigningContext::signable(payload)`.
+    Signature signature;
+  };
 
   /// NU element.
   using Dummy = std::tuple<>;
@@ -198,6 +214,9 @@ namespace kagome::network {
     primitives::BlockHash relay_parent;  /// relay parent hash
     Statement statement;                 /// statement of seconded candidate
   };
+
+  /// Signed availability bitfield.
+  using SignedBitfield = Signed<scale::BitVec>;
 
   /**
    * Collator -> Validator and Validator -> Collator if statement message.
