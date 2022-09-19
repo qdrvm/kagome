@@ -420,7 +420,7 @@ namespace kagome::network {
   };
 
   template <size_t I>
-  struct Filler;
+  struct Filler {};
   using CompactStatementSeconded = std::tuple<primitives::BlockHash, Filler<0>>;
   using CompactStatementValid = std::tuple<primitives::BlockHash, Filler<1>>;
 

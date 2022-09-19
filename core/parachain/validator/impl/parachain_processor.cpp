@@ -309,7 +309,7 @@ namespace kagome::parachain {
                 auto it = our_current_state_.fallbacks.find(candidate_hash);
                 if (it == our_current_state_.fallbacks.end())
                   return std::nullopt;
-                if (!getOurIndex() || *getOurIndex() == statement->validator_ix)
+                if (!getOurIndex() || *getOurIndex() == statement->ix)
                   return std::nullopt;
                 if (our_current_state_.awaiting_validation.count(candidate_hash)
                     > 0) {
@@ -384,7 +384,7 @@ namespace kagome::parachain {
           network::Signed<network::Statement>{
               .payload =
                   network::Statement{.candidate_state = std::move(receipt)},
-              .ix = getOurIndex(),
+              .ix = *our_ix,
               .signature = std::move(sign_result.value())});
     } else if constexpr (kStatementType == StatementType::kValid) {
       auto const candidate_hash =
@@ -403,7 +403,7 @@ namespace kagome::parachain {
       return std::make_shared<network::Signed<network::Statement>>(
           network::Signed<network::Statement>{
               .payload = network::Statement{.candidate_state = candidate_hash},
-              .ix = getOurIndex(),
+              .ix = *our_ix,
               .signature = std::move(sign_result.value())});
     }
   }
