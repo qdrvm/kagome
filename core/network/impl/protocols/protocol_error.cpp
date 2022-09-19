@@ -18,6 +18,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, ProtocolError, e) {
       return "Node is not synchronized yet";
     case E::GENESIS_NO_MATCH:
       return "Local and remote genesis don't match";
+    case E::HANDSHAKE_ERROR:
+      return "Handshake exchange failed";
   }
   return "Unknown error (kagome::network::ProtocolError)";
 }
