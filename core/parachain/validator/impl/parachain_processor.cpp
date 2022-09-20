@@ -357,6 +357,21 @@ namespace kagome::parachain {
     static_assert(kStatementType == StatementType::kSeconded
                   || kStatementType == StatementType::kValid);
 
+    if constexpr (kStatementType == StatementType::kSeconded) {
+      return createAndSignStatementFromPayload(
+          network::CommittedCandidateReceipt{
+              .descriptor =
+                  candidateDescriptorFrom(*validation_result.fetched_collation),
+              .commitments = std::move(*validation_result.commitments)});
+    } else if constexpr (kStatementType == StatementType::kValid) {
+      return createAndSignStatementFromPayload(
+          candidateHashFrom(*validation_result.fetched_collation));
+    }
+  }
+
+  template <typename T>
+  std::shared_ptr<network::Signed<network::Statement>>
+  ParachainProcessorImpl::createAndSignStatementFromPayload(T &&payload) {
     auto const our_ix = getOurIndex();
     if (!our_ix) {
       logger_->template warn(
@@ -364,48 +379,22 @@ namespace kagome::parachain {
       return nullptr;
     }
 
-    if constexpr (kStatementType == StatementType::kSeconded) {
-      network::CommittedCandidateReceipt receipt{
-          .descriptor =
-              candidateDescriptorFrom(*validation_result.fetched_collation),
-          .commitments = std::move(*validation_result.commitments)};
-
-      /// TODO(iceseer):
-      /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
-      auto sign_result = sign(receipt);
-      if (!sign_result) {
-        logger_->error(
-            "Unable to sign Commited Candidate Receipt. Failed with error: {}",
-            sign_result.error().message());
-        return nullptr;
-      }
-
-      return std::make_shared<network::Signed<network::Statement>>(
-          network::Signed<network::Statement>{
-              .payload =
-                  network::Statement{.candidate_state = std::move(receipt)},
-              .ix = *our_ix,
-              .signature = std::move(sign_result.value())});
-    } else if constexpr (kStatementType == StatementType::kValid) {
-      auto const candidate_hash =
-          candidateHashFrom(*validation_result.fetched_collation);
-
-      /// TODO(iceseer):
-      /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
-      auto sign_result = sign(candidate_hash);
-      if (!sign_result) {
-        logger_->error(
-            "Unable to sign deemed valid hash. Failed with error: {}",
-            sign_result.error().message());
-        return nullptr;
-      }
-
-      return std::make_shared<network::Signed<network::Statement>>(
-          network::Signed<network::Statement>{
-              .payload = network::Statement{.candidate_state = candidate_hash},
-              .ix = *our_ix,
-              .signature = std::move(sign_result.value())});
+    /// TODO(iceseer):
+    /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
+    auto sign_result = sign(payload);
+    if (!sign_result) {
+      logger_->error(
+          "Unable to sign Commited Candidate Receipt. Failed with error: {}",
+          sign_result.error().message());
+      return nullptr;
     }
+
+    return std::make_shared<network::Signed<network::Statement>>(
+        network::Signed<network::Statement>{
+            .payload =
+                network::Statement{.candidate_state = std::forward<T>(payload)},
+            .ix = *our_ix,
+            .signature = std::move(sign_result.value())});
   }
 
   void ParachainProcessorImpl::handleNotify(

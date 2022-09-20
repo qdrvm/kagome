@@ -103,7 +103,6 @@ namespace kagome::parachain {
     using RelayParentMap = std::unordered_map<primitives::BlockHash, PeerMap>;
     using ParachainMap =
         std::unordered_map<network::ParachainId, RelayParentMap>;
-    using BackgroundTask = std::function<void()>;
     using WorkersContext = boost::asio::io_context;
     using WorkGuard = boost::asio::executor_work_guard<
         boost::asio::io_context::executor_type>;
@@ -157,6 +156,9 @@ namespace kagome::parachain {
     template <StatementType kStatementType>
     std::shared_ptr<network::Signed<network::Statement>> createAndSignStatement(
         ValidateAndSecondResult &validation_result);
+    template <typename T>
+    std::shared_ptr<network::Signed<network::Statement>>
+    createAndSignStatementFromPayload(T &&payload);
     std::optional<ImportStatementSummary> importStatement(
         std::shared_ptr<network::Signed<network::Statement>> const &statement);
     std::optional<network::ValidatorIndex> getOurIndex();
