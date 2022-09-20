@@ -111,13 +111,6 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash,
         const primitives::Justification &justification) override;
 
-    BlockHashVecRes getChainByBlock(
-        const primitives::BlockHash &block) const override;
-
-    BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
-                                     const primitives::BlockHash &bottom_block,
-                                     uint32_t max_count) const override;
-
     BlockHashVecRes getBestChainFromBlock(const primitives::BlockHash &block,
                                           uint64_t maximum) const override;
 
@@ -125,8 +118,8 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block, uint64_t maximum) const override;
 
     BlockHashVecRes getChainByBlocks(
-        const primitives::BlockHash &top_block,
-        const primitives::BlockHash &bottom_block) const override;
+        const primitives::BlockHash &ancestor,
+        const primitives::BlockHash &descendant) const override;
 
     std::optional<primitives::Version> runtimeVersion() const override {
       return actual_runtime_version_;
@@ -134,8 +127,6 @@ namespace kagome::blockchain {
 
     bool hasDirectChain(const primitives::BlockHash &ancestor,
                         const primitives::BlockHash &descendant) const override;
-
-    BlockHashVecRes longestPath() const override;
 
     primitives::BlockInfo deepestLeaf() const override;
 
@@ -184,15 +175,6 @@ namespace kagome::blockchain {
     outcome::result<primitives::BlockHash> walkBackUntilLess(
         const primitives::BlockHash &start,
         const primitives::BlockNumber &limit) const;
-
-    std::optional<std::vector<primitives::BlockHash>>
-    tryGetChainByBlocksFromCache(const primitives::BlockInfo &top_block,
-                                 const primitives::BlockInfo &bottom_block,
-                                 std::optional<uint32_t> max_count) const;
-
-    BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
-                                     const primitives::BlockHash &bottom_block,
-                                     std::optional<uint32_t> max_count) const;
 
     /**
      * @returns the tree leaves sorted by their depth

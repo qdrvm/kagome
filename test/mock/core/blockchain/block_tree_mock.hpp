@@ -77,11 +77,6 @@ namespace kagome::blockchain {
                 (override));
 
     MOCK_METHOD(BlockHashVecRes,
-                getChainByBlock,
-                (const primitives::BlockHash &),
-                (const, override));
-
-    MOCK_METHOD(BlockHashVecRes,
                 getBestChainFromBlock,
                 (const primitives::BlockHash &, uint64_t),
                 (const, override));
@@ -96,13 +91,6 @@ namespace kagome::blockchain {
                 (const primitives::BlockHash &, const primitives::BlockHash &),
                 (const, override));
 
-    MOCK_METHOD(BlockHashVecRes,
-                getChainByBlocks,
-                (const primitives::BlockHash &,
-                 const primitives::BlockHash &,
-                 const uint32_t),
-                (const, override));
-
     MOCK_METHOD(bool,
                 hasDirectChain,
                 (const primitives::BlockHash &, const primitives::BlockHash &),
@@ -113,8 +101,6 @@ namespace kagome::blockchain {
                 (const primitives::BlockHash &,
                  const std::optional<primitives::BlockNumber> &),
                 (const, override));
-
-    MOCK_METHOD(BlockHashVecRes, longestPath, (), (const, override));
 
     MOCK_METHOD(primitives::BlockInfo, deepestLeaf, (), (const, override));
 
@@ -129,8 +115,6 @@ namespace kagome::blockchain {
                 (const, override));
 
     MOCK_METHOD(primitives::BlockInfo, getLastFinalized, (), (const, override));
-
-    MOCK_METHOD(outcome::result<void>, prune, (), ());
 
     MOCK_METHOD(outcome::result<consensus::EpochDigest>,
                 getEpochDigest,
