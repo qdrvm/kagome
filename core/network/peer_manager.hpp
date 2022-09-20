@@ -34,11 +34,70 @@ namespace kagome::network {
     libp2p::peer::PeerId const &peer_id;
   };
 
+  /// A succinct representation of a peer's view. This consists of a bounded
+  /// amount of chain heads
+  /// and the highest known finalized block number.
+  ///
+  /// Up to `N` (5?) chain heads.
+  /// The rust representation:
+  /// https://github.com/paritytech/polkadot/blob/master/node/network/protocol/src/lib.rs#L160
+  class View {
+    /// A bounded amount of chain heads.
+    /// Invariant: Sorted.
+    std::vector<primitives::BlockHash> heads_;
+
+    /// The highest known finalized block hash.
+    primitives::BlockHash finalized_hash_;
+
+    /// The highest known finalized block number.
+    primitives::BlockNumber finalized_number_;
+
+   public:
+    View(std::vector<primitives::BlockHash> &&heads,
+         const primitives::BlockHash &finalized_hash,
+         const primitives::BlockNumber finalized_number)
+        : heads_(std::move(heads)),
+          finalized_hash_(finalized_hash),
+          finalized_number_(finalized_number) {
+      std::sort(heads_.begin(), heads_.end());
+    }
+
+    bool contains(const primitives::BlockHash &hash) const {
+      auto const it = std::lower_bound(heads_.begin(), heads_.end(), hash);
+      return it != heads_.end() && *it == hash;
+    }
+
+    const std::vector<primitives::BlockHash> &getHeads() const {
+      return heads_;
+    }
+
+    const primitives::BlockNumber &finalizedNumber() const {
+      return finalized_number_;
+    }
+
+    primitives::BlockNumber &finalizedNumber() {
+      return finalized_number_;
+    }
+
+    const primitives::BlockHash &finalizedHash() const {
+      return finalized_hash_;
+    }
+
+    primitives::BlockHash &finalizedHash() {
+      return finalized_hash_;
+    }
+
+    void replace_difference(View &other) {
+      heads_.swap(other.heads_);
+    }
+  };
+  using OurView = View;
+
   /*
    * Parachain state view.
    */
   struct ParachainState {
-    std::unordered_map<BlockHash, bool> our_view;
+    OurView our_view;
   };
 
   struct PeerState {
@@ -49,6 +108,7 @@ namespace kagome::network {
     std::optional<VoterSetId> set_id = std::nullopt;
     BlockNumber last_finalized = 0;
     std::optional<CollatorState> collator_state = std::nullopt;
+    std::optional<View> view;
   };
 
   struct StreamEngine;
@@ -119,7 +179,7 @@ namespace kagome::network {
     /**
      * Allows to update parachains states.
      */
-    virtual ParachainState &parachainState() = 0;
+    virtual std::optional<ParachainState> &parachainState() = 0;
 
     /**
      * Updates collation state and stores parachain id. Should be called once

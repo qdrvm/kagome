@@ -743,7 +743,9 @@ namespace {
           injector
               .template create<std::shared_ptr<::boost::asio::io_context>>(),
           session_keys->getBabeKeyPair(),
-          injector.template create<std::shared_ptr<crypto::Hasher>>());
+          injector.template create<std::shared_ptr<crypto::Hasher>>(),
+          injector.template create<
+              primitives::events::ChainSubscriptionEnginePtr>());
 
       auto asmgr =
           injector

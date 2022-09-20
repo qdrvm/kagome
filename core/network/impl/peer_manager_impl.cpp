@@ -246,7 +246,7 @@ namespace kagome::network {
                                         primitives::BlockHash para_hash) {
     if (!peer_state.collator_state) return Error::UNDECLARED_COLLATOR;
 
-    if (parachain_state.our_view.count(para_hash) == 0)
+    if (parachain_state.our_view.contains(para_hash) == 0)
       return Error::OUT_OF_VIEW;
 
     if (peer_state.collator_state.value().advertisements.count(para_hash) != 0)
@@ -502,7 +502,7 @@ namespace kagome::network {
     it->second.best_block = status.best_block;
   }
 
-  ParachainState &PeerManagerImpl::parachainState() {
+  std::optional<ParachainState> &PeerManagerImpl::parachainState() {
     return parachain_state_;
   }
 

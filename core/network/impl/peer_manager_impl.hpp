@@ -99,7 +99,7 @@ namespace kagome::network {
                       network::ParachainId para_id) override;
 
     /** @see PeerManager::parachainState */
-    ParachainState &parachainState() override;
+    std::optional<ParachainState> &parachainState() override;
 
     outcome::result<
         std::pair<network::CollatorPublicKey const &, network::ParachainId>>
@@ -201,7 +201,7 @@ namespace kagome::network {
     metrics::Gauge *sync_peer_num_;
 
     // parachain
-    ParachainState parachain_state_;
+    std::optional<ParachainState> parachain_state_;
 
     log::Logger log_;
   };

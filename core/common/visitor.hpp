@@ -85,6 +85,19 @@ namespace kagome {
         std::forward<TVariant>(variant));
   }
 
+  template <typename TReturn, typename TVariant>
+  constexpr decltype(auto) if_type(TVariant &&variant) {
+    return visit_in_place(
+        std::forward<TVariant>(variant),
+        [](auto &&value)
+            -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(value)>,
+                                               std::decay_t<TReturn>>,
+                                std::optional<TReturn>> {
+          return std::optional<TReturn>{std::forward<TReturn>(value)};
+        },
+        [](...) { return std::nullopt; });
+  }
+
   /// apply Matcher to optional T
   template <typename T, typename Matcher>
   constexpr decltype(auto) match(T &&t, Matcher &&m) {

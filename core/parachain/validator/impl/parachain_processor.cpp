@@ -42,18 +42,21 @@ namespace kagome::parachain {
       std::shared_ptr<network::Router> router,
       std::shared_ptr<boost::asio::io_context> this_context,
       std::shared_ptr<crypto::Sr25519Keypair> keypair,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      primitives::events::ChainSubscriptionEnginePtr chain_events_engine)
       : pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
         this_context_(std::move(this_context)),
         keypair_(std::move(keypair)),
-        hasher_(std::move(hasher)) {
+        hasher_(std::move(hasher)),
+        chain_events_engine_(std::move(chain_events_engine)) {
     BOOST_ASSERT(pm_);
+    BOOST_ASSERT(chain_events_engine_);
     BOOST_ASSERT(crypto_provider_);
     BOOST_ASSERT(this_context_);
     BOOST_ASSERT(router_);
-    BOOST_ASSERT(keypair_);
+    //    BOOST_ASSERT(keypair_);
     BOOST_ASSERT(hasher_);
   }
 
@@ -69,6 +72,39 @@ namespace kagome::parachain {
   bool ParachainProcessorImpl::prepare() {
     context_ = std::make_shared<WorkersContext>();
     work_guard_ = std::make_shared<WorkGuard>(context_->get_executor());
+    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
+        chain_events_engine_);
+    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
+                          primitives::events::ChainEventType::kNewHeads);
+    chain_sub_->setCallback(
+        [wptr{weak_from_this()}](
+            auto /*set_id*/,
+            auto && /*internal_obj*/,
+            auto /*event_type*/,
+            const primitives::events::ChainEventParams &event) {
+          if (auto self = wptr.lock()) {
+            auto const value =
+                if_type<const primitives::events::HeadsEventParams>(event);
+            if (!value) {
+              self->logger_->template error("kNewHeads got not a header!");
+              return;
+            }
+
+            auto parachain_state = self->pm_->parachainState();
+            if (!parachain_state) {
+              parachain_state = network::ParachainState{
+                  .our_view = network::OurView(
+                      {},  /// TODO(iceseer): leaves
+                      self->hasher_->blake2b_256(scale::encode(*value).value()),
+                      value->get().number)};
+            } else {
+              parachain_state->our_view.finalizedNumber() = value->get().number;
+              parachain_state->our_view.finalizedHash() =
+                  self->hasher_->blake2b_256(scale::encode(*value).value());
+            }
+            /// TODO(iceseer): Update leaves
+          }
+        });
     return true;
   }
 
@@ -89,10 +125,10 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::stop() {
-    BOOST_ASSERT(context_);
-    BOOST_ASSERT(work_guard_);
     work_guard_.reset();
-    context_->stop();
+    if (context_) {
+      context_->stop();
+    }
     for (auto &worker : workers_) {
       if (worker) {
         BOOST_ASSERT(worker->joinable());

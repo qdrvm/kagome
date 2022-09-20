@@ -24,6 +24,7 @@
 #include "network/types/collator_messages.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
+#include "primitives/event_types.hpp"
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
 
@@ -66,7 +67,8 @@ namespace kagome::parachain {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<boost::asio::io_context> this_context,
         std::shared_ptr<crypto::Sr25519Keypair> keypair,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<crypto::Hasher> hasher,
+        primitives::events::ChainSubscriptionEnginePtr chain_events_engine);
     ~ParachainProcessorImpl();
 
     bool start();
@@ -297,6 +299,8 @@ namespace kagome::parachain {
     std::shared_ptr<WorkersContext> this_context_;
     std::shared_ptr<crypto::Sr25519Keypair> keypair_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
+    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
   };
 
 }  // namespace kagome::parachain

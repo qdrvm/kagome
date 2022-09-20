@@ -24,8 +24,6 @@ namespace kagome::observers {
         : pm_{std::move(pm)},
           crypto_provider_{std::move(crypto_provider)},
           processor_{std::move(processor)} {
-      BOOST_ASSERT_MSG(crypto_provider_,
-                       "Crypto provider must be initialised!");
       BOOST_ASSERT_MSG(pm_, "Peer manager must be initialised!");
       BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialised!");
     }
@@ -87,8 +85,13 @@ namespace kagome::observers {
     void onAdvertise(libp2p::peer::PeerId const &peer_id,
                      primitives::BlockHash relay_parent) {
       auto &parachain_state = pm_->parachainState();
+      if (!parachain_state) {
+        logger_->error("Parachain state not initialized.");
+        return;
+      }
+
       bool const contains_para_hash =
-          (parachain_state.our_view.count(relay_parent) != 0);
+          (parachain_state->our_view.contains(relay_parent) != 0);
 
       if (!contains_para_hash) {
         logger_->warn("Advertise collation out of view from peer {}", peer_id);
@@ -103,7 +106,7 @@ namespace kagome::observers {
       }
 
       auto result = pm_->insert_advertisement(
-          peer_state->get(), parachain_state, std::move(relay_parent));
+          peer_state->get(), *parachain_state, std::move(relay_parent));
       if (!result) {
         logger_->warn("Insert advertisement from {} failed: {}",
                       peer_id,
