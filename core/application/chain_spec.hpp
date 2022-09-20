@@ -74,6 +74,26 @@ namespace kagome::application {
      */
     virtual const ChildrenDefaultRawData &getGenesisChildrenDefaultSection()
         const = 0;
+
+    bool idStartsWith(std::string_view prefix) const {
+      return id().rfind(prefix, 0) == 0;
+    }
+
+    bool isVersi() const {
+      return idStartsWith("kusama") || idStartsWith("ksm");
+    }
+
+    bool isWococo() const {
+      return idStartsWith("rococo") || idStartsWith("rco");
+    }
+
+    bool isRococo() const {
+      return idStartsWith("wococo") || idStartsWith("wco");
+    }
+
+    bool isKusama() const {
+      return idStartsWith("versi") || idStartsWith("vrs");
+    }
   };
 
 }  // namespace kagome::application
