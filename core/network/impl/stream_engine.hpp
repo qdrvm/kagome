@@ -120,6 +120,10 @@ namespace kagome::network {
         return true;
       }
 
+      bool isOutgoingReserved() const {
+        return outgoing.reserved;
+      }
+
       /**
        * Drops the flag that outgoing stream establishing.
        */
@@ -275,23 +279,18 @@ namespace kagome::network {
       });
     }
 
-    bool isAlive(const PeerId &peer_id,
-                 const std::shared_ptr<ProtocolBase> &protocol) {
+    bool isAlive(PeerId const &peer_id,
+                 std::shared_ptr<ProtocolBase> const &protocol) const {
       BOOST_ASSERT(protocol);
-      return streams_.exclusiveAccess([&](auto &streams) {
-        bool is_alive = false;
-        forSubscriber(peer_id, streams, protocol, [&](auto, auto &descr) {
-          if (descr.incoming.stream and not descr.incoming.stream->isClosed()) {
-            is_alive = true;
-          }
-          if (descr.outgoing.stream and not descr.outgoing.stream->isClosed()) {
-            is_alive = true;
-          }
+      bool alive = false;
+      streams_.sharedAccess([&](auto const &streams) {
+        forSubscriber(peer_id, streams, protocol, [&](auto, auto const &descr) {
+          alive = descr.hasActiveOutgoing() || descr.hasActiveIncoming()
+                  || descr.isOutgoingReserved();
         });
-
-        return is_alive;
       });
-    };
+      return alive;
+    }
 
     template <typename T>
     void send(const PeerId &peer_id,

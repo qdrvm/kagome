@@ -7,6 +7,7 @@
 #define KAGOME_COLLATOR_DECLARE_HPP
 
 #include <boost/variant.hpp>
+#include <scale/bitvec.hpp>
 #include <tuple>
 #include <type_traits>
 #include <vector>
@@ -29,6 +30,21 @@ namespace kagome::network {
   using HeadData = common::Buffer;
   using CandidateHash = primitives::BlockHash;
   using ChunkProof = std::vector<common::Buffer>;
+
+  /// Payload signed by validator.
+  template <typename Payload>
+  struct Signed {
+    SCALE_TIE(3);
+
+    static_assert(std::is_same_v<std::decay_t<Payload>, Payload>);
+
+    /// Payload.
+    Payload payload;
+    /// Index of validator in validator list.
+    ValidatorIndex validator_index;
+    /// Signature of `SigningContext::signable(payload)`.
+    Signature signature;
+  };
 
   /// NU element.
   using Dummy = std::tuple<>;
@@ -56,7 +72,7 @@ namespace kagome::network {
     CollatorPublicKey collator_id;  /// Public key of the collator.
     ParachainId para_id;            /// Parachain Id.
     Signature signature;  /// Signature of the collator using the PeerId of the
-                          /// collators node.
+    /// collators node.
   };
 
   /// A chunk of erasure-encoded block data.
@@ -78,7 +94,7 @@ namespace kagome::network {
     SCALE_TIE(1);
 
     common::Buffer payload;  /// Contains the necessary data to for parachain
-                             /// specific state transition logic
+    /// specific state transition logic
   };
 
   /**
@@ -90,14 +106,14 @@ namespace kagome::network {
     ParachainId para_id;  /// Parachain Id
     primitives::BlockHash
         relay_parent;  /// Hash of the relay chain block the candidate is
-                       /// executed in the context of
+    /// executed in the context of
     CollatorPublicKey collator_id;  /// Collators public key.
     primitives::BlockHash
         persisted_data_hash;         /// Hash of the persisted validation data
     primitives::BlockHash pov_hash;  /// Hash of the PoV block.
     storage::trie::RootHash
         erasure_encoding_root;  /// Root of the block’s erasure encoding Merkle
-                                /// tree.
+    /// tree.
     Signature signature;  /// Collator signature of the concatenated components
     primitives::BlockHash
         para_head_hash;  /// Hash of the parachain head data of this candidate.
@@ -161,10 +177,10 @@ namespace kagome::network {
         opt_para_runtime;          /// new parachain runtime if present
     HeadData para_head;            /// parachain head data
     uint32_t downward_msgs_count;  /// number of downward messages that were
-                                   /// processed by the parachain
+    /// processed by the parachain
     uint32_t watermark;  /// watermark which specifies the relay chain block
-                         /// number up to which all inbound horizontal messages
-                         /// have been processed
+    /// number up to which all inbound horizontal messages
+    /// have been processed
   };
 
   struct CommittedCandidateReceipt {
@@ -172,14 +188,14 @@ namespace kagome::network {
 
     CandidateDescriptor descriptor;    /// Candidate descriptor
     CandidateCommitments commitments;  /// commitments retrieved from validation
-                                       /// result and produced by the execution
-                                       /// and validation parachain candidate
+    /// result and produced by the execution
+    /// and validation parachain candidate
   };
 
   using CandidateState = boost::variant<
       Dummy,                      /// not used
       CommittedCandidateReceipt,  /// Candidate receipt. Should be sent if
-                                  /// validator seconded the candidate
+      /// validator seconded the candidate
       primitives::BlockHash  /// validator has deemed the candidate valid and
                              /// send the candidate hash
       >;
@@ -199,6 +215,9 @@ namespace kagome::network {
     Statement statement;                 /// statement of seconded candidate
   };
 
+  /// Signed availability bitfield.
+  using SignedBitfield = Signed<scale::BitVec>;
+
   /**
    * Collator -> Validator and Validator -> Collator if statement message.
    * Type of the appropriate message.
@@ -206,10 +225,10 @@ namespace kagome::network {
   using CollationMessage = boost::variant<
       CollatorDeclaration,    /// collator -> validator. Declare collator.
       CollatorAdvertisement,  /// collator -> validator. Make advertisement of
-                              /// the collation
-      Dummy,                  /// not used
-      Dummy,                  /// not used
-      Seconded                /// validator -> collator. Candidate was seconded.
+      /// the collation
+      Dummy,    /// not used
+      Dummy,    /// not used
+      Seconded  /// validator -> collator. Candidate was seconded.
       >;
 
   /**
