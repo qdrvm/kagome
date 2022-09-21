@@ -12,13 +12,12 @@
 #include "network/impl/protocols/collation_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
-#include "network/impl/protocols/state_protocol_impl.hpp"
-#include "network/impl/protocols/request_response_protocol.hpp"
 #include "network/impl/protocols/protocol_req_collation.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
+#include "network/impl/protocols/state_protocol_impl.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
-#include "network/rating_repository.hpp"
+#include "network/reputation_repository.hpp"
 #include "primitives/event_types.hpp"
 
 #include <libp2p/basic/scheduler.hpp>
@@ -39,7 +38,7 @@ namespace kagome::network {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo,
-        std::shared_ptr<PeerRatingRepository> peer_rating_repository,
+        std::shared_ptr<ReputationRepository> reputation_repository,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
     void setBlockTree(
@@ -111,7 +110,7 @@ namespace kagome::network {
         extrinsic_events_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         ext_event_key_repo_;
-    std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
+    std::shared_ptr<ReputationRepository> reputation_repository_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::weak_ptr<blockchain::BlockTree> block_tree_;

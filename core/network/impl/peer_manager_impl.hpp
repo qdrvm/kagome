@@ -32,7 +32,7 @@
 #include "network/impl/protocols/protocol_factory.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/protocols/sync_protocol.hpp"
-#include "network/rating_repository.hpp"
+#include "network/reputation_repository.hpp"
 #include "network/router.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -70,7 +70,7 @@ namespace kagome::network {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<PeerRatingRepository> peer_rating_repository);
+        std::shared_ptr<ReputationRepository> reputation_repository);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -172,7 +172,7 @@ namespace kagome::network {
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
+    std::shared_ptr<ReputationRepository> reputation_repository_;
 
     libp2p::event::Handle add_peer_handle_;
     std::unordered_set<PeerId> peers_in_queue_;
