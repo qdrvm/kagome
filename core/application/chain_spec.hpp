@@ -79,19 +79,19 @@ namespace kagome::application {
       return id().rfind(prefix, 0) == 0;
     }
 
-    bool isVersi() const {
+    bool isKusama() const {
       return idStartsWith("kusama") || idStartsWith("ksm");
     }
 
-    bool isWococo() const {
+    bool isRococo() const {
       return idStartsWith("rococo") || idStartsWith("rco");
     }
 
-    bool isRococo() const {
+    bool isWococo() const {
       return idStartsWith("wococo") || idStartsWith("wco");
     }
 
-    bool isKusama() const {
+    bool isVersi() const {
       return idStartsWith("versi") || idStartsWith("vrs");
     }
   };
