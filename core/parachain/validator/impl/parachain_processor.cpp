@@ -83,6 +83,10 @@ namespace kagome::parachain {
             auto /*event_type*/,
             const primitives::events::ChainEventParams &event) {
           if (auto self = wptr.lock()) {
+            BOOST_ASSERT(self->pm_);
+            BOOST_ASSERT(self->router_);
+            BOOST_ASSERT(self->pm_->getStreamEngine());
+
             auto const value =
                 if_type<const primitives::events::HeadsEventParams>(event);
             if (!value) {
@@ -93,16 +97,23 @@ namespace kagome::parachain {
             auto parachain_state = self->pm_->parachainState();
             if (!parachain_state) {
               parachain_state = network::ParachainState{
-                  .our_view = network::OurView(
-                      {},  /// TODO(iceseer): leaves
-                      self->hasher_->blake2b_256(scale::encode(*value).value()),
-                      value->get().number)};
+                  .our_view = network::OurView{
+                      .heads_ = value->block_tree->getLeaves(),
+                      .finalized_number_ = value->block_header.get().number}};
             } else {
-              parachain_state->our_view.finalizedNumber() = value->get().number;
-              parachain_state->our_view.finalizedHash() =
-                  self->hasher_->blake2b_256(scale::encode(*value).value());
+              parachain_state->our_view.finalized_number_ =
+                  value->block_header.get().number;
+              parachain_state->our_view.heads_ = value->block_tree->getLeaves();
             }
-            /// TODO(iceseer): Update leaves
+
+            auto msg = std::make_shared<
+                network::WireMessage<network::ValidatorProtocolMessage>>(
+                network::ViewUpdate{.view = parachain_state->our_view});
+
+            self->pm_->getStreamEngine()->broadcast(
+                self->router_->getValidationProtocol(), msg);
+            self->pm_->getStreamEngine()->broadcast(
+                self->router_->getCollationProtocol(), msg);
           }
         });
     return true;

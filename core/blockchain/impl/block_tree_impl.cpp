@@ -574,8 +574,10 @@ namespace kagome::blockchain {
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
 
-    chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
-                                 header);
+    chain_events_engine_->notify(
+        primitives::events::ChainEventType::kNewHeads,
+        primitives::events::HeadsEventParams{.block_header = header,
+                                             .block_tree = shared_from_this()});
 
     return outcome::success();
   }
@@ -620,7 +622,8 @@ namespace kagome::blockchain {
                                       tree_->getMetadata().leaves.end()}));
 
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
-                                 block.header);
+                                 primitives::events::HeadsEventParams{.block_header = block.header,
+                                     .block_tree = shared_from_this()});
     trie_changes_tracker_->onBlockAdded(block_hash);
     for (const auto &ext : block.body) {
       if (auto key =
@@ -824,7 +827,9 @@ namespace kagome::blockchain {
                                       tree_->getMetadata().leaves.end()}));
 
     chain_events_engine_->notify(
-        primitives::events::ChainEventType::kFinalizedHeads, header);
+        primitives::events::ChainEventType::kFinalizedHeads,
+        primitives::events::HeadsEventParams{.block_header = header,
+            .block_tree = shared_from_this()});
 
     // it has failure result when fast sync is in progress
     auto new_runtime_version = runtime_core_->version(block_hash);
