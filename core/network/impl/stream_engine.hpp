@@ -330,7 +330,7 @@ namespace kagome::network {
             if (descr.hasActiveOutgoing()) {
               send(peer_id, protocol, descr.outgoing.stream, msg);
             } else {
-              updateStream(peer_id, protocol, descr);
+              updateStream(peer_id, protocol, msg);
             }
           });
         }
@@ -390,7 +390,7 @@ namespace kagome::network {
 
     template <typename F>
     void forEachPeer(F &&f) {
-      streams_.exclusiveAccess([&](auto &streams) {
+      streams_.sharedAccess([&](auto &streams) {
         for (auto &[peer_id, protocol_map] : streams) {
           std::forward<F>(f)(peer_id, protocol_map);
         }
@@ -469,7 +469,7 @@ namespace kagome::network {
                             const std::shared_ptr<ProtocolBase> &protocol,
                             F &&f) {
       if (auto it = proto_map.find(protocol); it != proto_map.end()) {
-        auto &descr = it->second;
+        auto descr = it->second;
         std::forward<F>(f)(descr);
       }
     }
@@ -480,7 +480,7 @@ namespace kagome::network {
                               std::shared_ptr<ProtocolBase> const &protocol,
                               F &&f) {
       if (auto it = streams.find(peer_id); it != streams.end()) {
-        forProtocol(it->second, protocol, [&](auto &descr) {
+        forProtocol(it->second, protocol, [&](ProtocolDescr &descr) {
           std::forward<F>(f)(it->second, descr);
         });
       }
@@ -573,17 +573,20 @@ namespace kagome::network {
     void updateStream(const PeerId &peer_id,
                       const std::shared_ptr<ProtocolBase> &protocol,
                       std::shared_ptr<T> msg) {
-      streams_.exclusiveAccess([&](auto &streams) {
-        forSubscriber(peer_id, streams, protocol, [&](auto, auto &descr) {
-          descr.deferred_messages.push_back(
-              [wp(weak_from_this()), peer_id, protocol, msg(std::move(msg))](
-                  std::shared_ptr<Stream> stream) {
-                if (auto self = wp.lock()) {
-                  self->send(peer_id, protocol, stream, msg);
-                }
-              });
-          updateStream(peer_id, protocol, descr);
-        });
+      streams_.sharedAccess([&](auto &streams) {
+        forSubscriber(
+            peer_id, streams, protocol, [&](auto, ProtocolDescr &descr) {
+              descr.deferred_messages.push_back(
+                  [wp(weak_from_this()),
+                   peer_id,
+                   protocol,
+                   msg(std::move(msg))](std::shared_ptr<Stream> stream) {
+                    if (auto self = wp.lock()) {
+                      self->send(peer_id, protocol, stream, msg);
+                    }
+                  });
+              updateStream(peer_id, protocol, descr);
+            });
       });
     }
 
