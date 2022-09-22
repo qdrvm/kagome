@@ -53,7 +53,7 @@ namespace kagome::network {
                       std::shared_ptr<ObserverType> observer,
                       Protocol const &protocol)
         : base_(
-            host, {protocol}, fmt::format("ParachainProtocol [{}]", protocol)),
+            host, {protocol}, fmt::format("Parachain [{}]", protocol)),
           observer_(std::move(observer)),
           app_config_{app_config},
           protocol_{protocol} {}
@@ -220,7 +220,7 @@ namespace kagome::network {
 
             visit_in_place(
                 std::move(result.value()),
-                [&](ViewUpdate &&) {
+                [&](ViewUpdate &&msg) {
                   SL_VERBOSE(self->base_.logger(),
                              "Received ViewUpdate from {}",
                              stream->remotePeerId().has_value()
@@ -228,11 +228,9 @@ namespace kagome::network {
                                  : "{no peerId}");
                 },
                 [&](MessageType &&p) {
-                  visit_in_place(std::move(p), [&](MessageType &&m) {
-                    BOOST_ASSERT(stream->remotePeerId().has_value());
-                    self->observer_->onIncomingMessage(
-                        stream->remotePeerId().value(), std::move(m));
-                  });
+                  BOOST_ASSERT(stream->remotePeerId().has_value());
+                  self->observer_->onIncomingMessage(
+                      stream->remotePeerId().value(), std::move(p));
                 });
             self->readCollationMsg(std::move(stream));
           });
