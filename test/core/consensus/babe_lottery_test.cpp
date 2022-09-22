@@ -47,9 +47,6 @@ struct BabeLotteryTest : public testing::Test {
 
   BabeLotteryImpl lottery_{vrf_provider_, babe_config_, hasher_};
 
-  std::vector<VRFPreOutput> submitted_vrf_values_{uint256_to_le_bytes(28482),
-                                                  uint256_to_le_bytes(57302840),
-                                                  uint256_to_le_bytes(8405)};
   EpochDescriptor current_epoch_;
 
   Randomness randomness_{{0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
@@ -69,9 +66,6 @@ struct BabeLotteryTest : public testing::Test {
  */
 TEST_F(BabeLotteryTest, SlotsLeadership) {
   // GIVEN
-  for (const auto &value : submitted_vrf_values_) {
-    lottery_.submitVRFValue(value);
-  }
 
   std::vector<VRFOutput> vrf_outputs;
   vrf_outputs.reserve(2);
@@ -108,36 +102,4 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   ASSERT_TRUE(leadership[1]);
   EXPECT_EQ(leadership[1]->output, uint256_to_le_bytes(1057472095));
   ASSERT_FALSE(leadership[2]);
-}
-
-/**
- * @given BabeLottery with a number of VRF values submitted
- * @when computing randomness for the next epoch
- * @then randomness is computed as intended
- */
-TEST_F(BabeLotteryTest, ComputeRandomness) {
-  // GIVEN
-  for (const auto &value : submitted_vrf_values_) {
-    lottery_.submitVRFValue(value);
-  }
-
-  // WHEN
-  Buffer concat_values{};
-  concat_values.put(randomness_);
-  concat_values.put(uint64_to_le_bytes(current_epoch_.epoch_number));
-  for (const auto &value : submitted_vrf_values_) {
-    concat_values.put(value);
-  }
-
-  Hash256 new_randomness{};
-  new_randomness.fill(1);
-  new_randomness[10] = 9;
-  EXPECT_CALL(*hasher_, blake2b_256(gsl::span<const uint8_t>(concat_values)))
-      .WillOnce(Return(new_randomness));
-
-  auto returned_randomness =
-      lottery_.computeRandomness(randomness_, current_epoch_.epoch_number);
-
-  // THEN
-  ASSERT_EQ(new_randomness, returned_randomness);
 }
