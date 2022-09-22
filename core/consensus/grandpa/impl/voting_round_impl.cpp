@@ -280,7 +280,7 @@ namespace kagome::consensus::grandpa {
             endPrevoteStage();
           }
         },
-        toMilliseconds(duration_ * 2 - (start_time_ - scheduler_->now())));
+        toMilliseconds(duration_ * 2 - (scheduler_->now() - start_time_)));
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PREVOTE_RUNS) {
@@ -345,7 +345,7 @@ namespace kagome::consensus::grandpa {
             endPrecommitStage();
           }
         },
-        toMilliseconds(duration_ * 4 - (start_time_ - scheduler_->now())));
+        toMilliseconds(duration_ * 4 - (scheduler_->now() - start_time_)));
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PRECOMMIT_RUNS) {
