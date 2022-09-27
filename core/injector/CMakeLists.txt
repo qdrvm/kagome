@@ -21,6 +21,7 @@ target_link_libraries(application_injector
     babe
     babe_api
     babe_lottery
+    babe_config_repository
     synchronizer
     babe_util
     binaryen_executor_factory
