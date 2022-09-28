@@ -126,6 +126,7 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
+#include "runtime/runtime_api/impl/authority_discovery_api.hpp"
 #include "runtime/runtime_api/impl/babe_api.hpp"
 #include "runtime/runtime_api/impl/block_builder.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
@@ -961,6 +962,7 @@ namespace {
         di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderImpl>(),
         di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
+        di::bind<runtime::AuthorityDiscoveryApi>.template to<runtime::AuthorityDiscoveryApiImpl>(),
         di::bind<runtime::SingleModuleCache>.template to<runtime::SingleModuleCache>(),
         std::forward<Ts>(args)...);
   }
