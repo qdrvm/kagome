@@ -167,6 +167,7 @@ namespace kagome::network {
         base_.protocolIds(),
         [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
             auto &&stream_res) mutable {
+          network::streamReadBuffer(stream_res);
           auto self = wp.lock();
           if (not self) {
             cb(ProtocolError::GONE);
