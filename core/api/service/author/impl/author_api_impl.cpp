@@ -83,13 +83,13 @@ namespace kagome::api {
               "Authority discovery key already exists and won't be replaced");
       return outcome::failure(crypto::CryptoStoreError::AUDI_ALREADY_EXIST);
     }
-    if (crypto::KEY_TYPE_BABE == key_type) {
+    if (crypto::KEY_TYPE_BABE == key_type
+        or crypto::KEY_TYPE_AUDI == key_type) {
       OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::fromSpan(seed));
       OUTCOME_TRY(public_key_typed,
                   crypto::Sr25519PublicKey::fromSpan(public_key));
-      OUTCOME_TRY(
-          keypair,
-          store_->generateSr25519Keypair(crypto::KEY_TYPE_BABE, seed_typed));
+      OUTCOME_TRY(keypair,
+                  store_->generateSr25519Keypair(key_type, seed_typed));
       if (public_key_typed != keypair.public_key) {
         return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
       }
@@ -101,17 +101,6 @@ namespace kagome::api {
       OUTCOME_TRY(
           keypair,
           store_->generateEd25519Keypair(crypto::KEY_TYPE_GRAN, seed_typed));
-      if (public_key_typed != keypair.public_key) {
-        return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
-      }
-    }
-    if (crypto::KEY_TYPE_AUDI == key_type) {
-      OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::fromSpan(seed));
-      OUTCOME_TRY(public_key_typed,
-                  crypto::Sr25519PublicKey::fromSpan(public_key));
-      OUTCOME_TRY(
-          keypair,
-          store_->generateSr25519Keypair(crypto::KEY_TYPE_AUDI, seed_typed));
       if (public_key_typed != keypair.public_key) {
         return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
       }
