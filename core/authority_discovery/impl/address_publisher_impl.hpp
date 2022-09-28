@@ -30,7 +30,7 @@ namespace kagome::authority_discovery {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<crypto::SessionKeys> keys,
-        std::shared_ptr<crypto::CryptoStore> store,
+        const libp2p::crypto::KeyPair &libp2p_key,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider2,
         libp2p::Host &host,
@@ -46,7 +46,6 @@ namespace kagome::authority_discovery {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
 
     std::shared_ptr<crypto::SessionKeys> keys_;
-    std::shared_ptr<crypto::CryptoStore> store_;
 
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider2_;
@@ -57,6 +56,8 @@ namespace kagome::authority_discovery {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     log::Logger log_;
+
+    std::optional<crypto::Ed25519Keypair> libp2p_key_;
   };
 
 }  // namespace kagome::authority_discovery

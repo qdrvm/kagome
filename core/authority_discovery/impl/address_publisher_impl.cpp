@@ -15,6 +15,9 @@
 
 namespace kagome::authority_discovery {
   bool AddressPublisherImpl::start() {
+    if (not libp2p_key_) {
+      return true;
+    }
     // TODO(ortyomka): run in scheduler with some interval
     auto maybe_error = publishOwnAddress();
     if (maybe_error.has_error()) {
@@ -54,23 +57,8 @@ namespace kagome::authority_discovery {
     addresses.SerializeToArray(encoded_addresses.data(),
                                encoded_addresses.size());
 
-    auto node_key = store_->getLibp2pKeypair().value();
-
-    if (node_key.privateKey.type != libp2p::crypto::Key::Type::Ed25519) {
-      SL_ERROR(log_, "Peer key is not ed25519");
-      return outcome::success();
-    }
-
-    crypto::Ed25519Keypair libp2p_keypair{
-        .secret_key =
-            crypto::Ed25519PrivateKey::fromSpan(node_key.privateKey.data)
-                .value(),
-        .public_key =
-            crypto::Ed25519PublicKey::fromSpan(node_key.publicKey.data).value(),
-    };
-
     OUTCOME_TRY(signature,
-                crypto_provider_->sign(libp2p_keypair, encoded_addresses));
+                crypto_provider_->sign(*libp2p_key_, encoded_addresses));
 
     ::authority_discovery::v2::SignedAuthorityRecord signed_addresses;
 
@@ -85,8 +73,8 @@ namespace kagome::authority_discovery {
     ::keys_proto::PublicKey proto_key;
 
     proto_key.set_type(::keys_proto::KeyType::Ed25519);
-    proto_key.set_data(libp2p_keypair.public_key.data(),
-                       libp2p_keypair.public_key.size());
+    proto_key.set_data(libp2p_key_->public_key.data(),
+                       libp2p_key_->public_key.size());
 
     std::vector<uint8_t> encoded_key(proto_key.ByteSizeLong());
     proto_key.SerializeToArray(encoded_key.data(), encoded_key.size());
@@ -107,7 +95,7 @@ namespace kagome::authority_discovery {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::SessionKeys> keys,
-      std::shared_ptr<crypto::CryptoStore> store,
+      const libp2p::crypto::KeyPair &libp2p_key,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider2,
       libp2p::Host &host,
@@ -116,7 +104,6 @@ namespace kagome::authority_discovery {
       : authority_discovery_api_(std::move(authority_discovery_api)),
         block_tree_(std::move(block_tree)),
         keys_(std::move(keys)),
-        store_(std::move(store)),
         crypto_provider_(std::move(crypto_provider)),
         crypto_provider2_(std::move(crypto_provider2)),
         host_(host),
@@ -124,5 +111,17 @@ namespace kagome::authority_discovery {
         scheduler_(std::move(scheduler)),
         log_{log::createLogger("AddressPublisher")} {
     app_state_manager->atLaunch([=] { return start(); });
+    if (libp2p_key.privateKey.type == libp2p::crypto::Key::Type::Ed25519) {
+      libp2p_key_.emplace(crypto::Ed25519Keypair{
+          .secret_key =
+              crypto::Ed25519PrivateKey::fromSpan(libp2p_key.privateKey.data)
+                  .value(),
+          .public_key =
+              crypto::Ed25519PublicKey::fromSpan(libp2p_key.publicKey.data)
+                  .value(),
+      });
+    } else {
+      SL_WARN(log_, "Peer key is not ed25519");
+    }
   }
 }  // namespace kagome::authority_discovery
