@@ -45,8 +45,7 @@ namespace kagome::network {
       std::shared_ptr<network::Router> router,
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<PeerRatingRepository> peer_rating_repository,
-      std::shared_ptr<authority_discovery::AddressPublisher> address_publisher)
+      std::shared_ptr<PeerRatingRepository> peer_rating_repository)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -61,7 +60,6 @@ namespace kagome::network {
         storage_{std::move(storage)},
         hasher_{std::move(hasher)},
         peer_rating_repository_{std::move(peer_rating_repository)},
-        address_publisher_{std::move(address_publisher)},
         log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -72,7 +70,6 @@ namespace kagome::network {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(peer_rating_repository_ != nullptr);
-    BOOST_ASSERT(address_publisher_ != nullptr);
 
     // Register metrics
     registry_->registerGaugeFamily(syncPeerMetricName,
@@ -166,8 +163,6 @@ namespace kagome::network {
 
     // Do first alignment of peers count
     align();
-
-    address_publisher_->run();
 
     return true;
   }

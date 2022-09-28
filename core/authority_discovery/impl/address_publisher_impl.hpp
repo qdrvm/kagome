@@ -6,8 +6,6 @@
 #ifndef KAGOME_ADDRESS_PUBLISHER_IMPL_HPP
 #define KAGOME_ADDRESS_PUBLISHER_IMPL_HPP
 
-#include "authority_discovery/address_publisher.hpp"
-
 #include "blockchain/block_tree.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "crypto/crypto_store.hpp"
@@ -25,8 +23,7 @@
 namespace kagome::authority_discovery {
 
   class AddressPublisherImpl
-      : public AddressPublisher,
-        std::enable_shared_from_this<AddressPublisherImpl> {
+      : public std::enable_shared_from_this<AddressPublisherImpl> {
    public:
     AddressPublisherImpl(
         std::shared_ptr<authority::AuthorityManager> authority_manager,
@@ -39,7 +36,7 @@ namespace kagome::authority_discovery {
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
-    void run() override;
+    void run();
 
    private:
     outcome::result<void> publishOwnAddress();
