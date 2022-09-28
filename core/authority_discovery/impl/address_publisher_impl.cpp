@@ -32,6 +32,13 @@ namespace kagome::authority_discovery {
     using libp2p::protocol::kademlia::Key;
     using libp2p::protocol::kademlia::Value;
 
+    auto addresses = host_.getAddresses();
+    // TODO(turuslan): filter local addresses
+    if (addresses.empty()) {
+      SL_ERROR(log_, "No addresses");
+      return outcome::success();
+    }
+
     auto audi_key = keys_->getAudiKeyPair();
     if (not audi_key) {
       SL_VERBOSE(log_, "No authority discovery key");
@@ -50,7 +57,7 @@ namespace kagome::authority_discovery {
 
     ::authority_discovery::v2::AuthorityRecord record;
 
-    for (const auto &address : host_.getPeerInfo().addresses) {
+    for (const auto &address : addresses) {
       auto &bytes = address.getBytesAddress();
       record.add_addresses(bytes.data(), bytes.size());
     }
