@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "authority_discovery/impl/address_publisher_impl.hpp"
+#include "authority_discovery/publisher/address_publisher.hpp"
 
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
 

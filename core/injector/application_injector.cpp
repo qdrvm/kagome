@@ -47,7 +47,7 @@
 #include "application/impl/chain_spec_impl.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
-#include "authority_discovery/impl/address_publisher_impl.hpp"
+#include "authority_discovery/publisher/address_publisher.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
