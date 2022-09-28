@@ -70,18 +70,9 @@ namespace kagome::authority_discovery {
     signed_addresses.set_record(encoded_addresses.data(),
                                 encoded_addresses.size());
 
-    ::keys_proto::PublicKey proto_key;
-
-    proto_key.set_type(::keys_proto::KeyType::Ed25519);
-    proto_key.set_data(libp2p_key_->public_key.data(),
-                       libp2p_key_->public_key.size());
-
-    std::vector<uint8_t> encoded_key(proto_key.ByteSizeLong());
-    proto_key.SerializeToArray(encoded_key.data(), encoded_key.size());
-
     auto ps = signed_addresses.mutable_peer_signature();
     ps->set_signature(signature.data(), signature.size());
-    ps->set_public_key(encoded_key.data(), encoded_key.size());
+    ps->set_public_key(libp2p_key_pb_->key.data(), libp2p_key_pb_->key.size());
 
     std::vector<uint8_t> value(signed_addresses.ByteSizeLong());
     signed_addresses.SerializeToArray(value.data(), value.size());
@@ -96,6 +87,7 @@ namespace kagome::authority_discovery {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::SessionKeys> keys,
       const libp2p::crypto::KeyPair &libp2p_key,
+      const libp2p::crypto::marshaller::KeyMarshaller &key_marshaller,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider2,
       libp2p::Host &host,
@@ -120,6 +112,8 @@ namespace kagome::authority_discovery {
               crypto::Ed25519PublicKey::fromSpan(libp2p_key.publicKey.data)
                   .value(),
       });
+      libp2p_key_pb_.emplace(
+          key_marshaller.marshal(libp2p_key.publicKey).value());
     } else {
       SL_WARN(log_, "Peer key is not ed25519");
     }

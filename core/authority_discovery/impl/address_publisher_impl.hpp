@@ -14,6 +14,7 @@
 #include "crypto/sr25519_provider.hpp"
 #include "runtime/runtime_api/authority_discovery_api.hpp"
 
+#include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/protocol/kademlia/kademlia.hpp>
 #include <memory>
@@ -31,6 +32,7 @@ namespace kagome::authority_discovery {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<crypto::SessionKeys> keys,
         const libp2p::crypto::KeyPair &libp2p_key,
+        const libp2p::crypto::marshaller::KeyMarshaller &key_marshaller,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider2,
         libp2p::Host &host,
@@ -58,6 +60,7 @@ namespace kagome::authority_discovery {
     log::Logger log_;
 
     std::optional<crypto::Ed25519Keypair> libp2p_key_;
+    std::optional<libp2p::crypto::ProtobufKey> libp2p_key_pb_;
   };
 
 }  // namespace kagome::authority_discovery
