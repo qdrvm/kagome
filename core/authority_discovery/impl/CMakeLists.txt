@@ -5,7 +5,6 @@
 
 add_library(address_publisher
         address_publisher_impl.cpp
-        address_publisher_errors.cpp
         )
 target_link_libraries(address_publisher
         logger

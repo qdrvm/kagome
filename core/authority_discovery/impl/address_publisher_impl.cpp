@@ -5,7 +5,6 @@
 
 #include "authority_discovery/impl/address_publisher_impl.hpp"
 
-#include "authority_discovery/impl/address_publisher_errors.hpp"
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
 #include "authority_discovery/protobuf/keys.pb.h"
 
@@ -19,8 +18,7 @@ namespace kagome::authority_discovery {
     // TODO(ortyomka): run in scheduler with some interval
     auto maybe_error = publishOwnAddress();
     if (maybe_error.has_error()) {
-      SL_ERROR(
-          log_, "publishOwnAddress failed: {}", maybe_error.error().message());
+      SL_ERROR(log_, "publishOwnAddress failed: {}", maybe_error.error());
     }
     return true;
   }
@@ -59,7 +57,8 @@ namespace kagome::authority_discovery {
     auto node_key = store_->getLibp2pKeypair().value();
 
     if (node_key.privateKey.type != libp2p::crypto::Key::Type::Ed25519) {
-      return AddressPublisherError::WRONG_KEY_TYPE;
+      SL_ERROR(log_, "Peer key is not ed25519");
+      return outcome::success();
     }
 
     crypto::Ed25519Keypair libp2p_keypair{
