@@ -21,6 +21,46 @@ std::vector<uint8_t> pbEncodeVec(const T &v) {
 }
 
 namespace kagome::authority_discovery {
+  AddressPublisherImpl::AddressPublisherImpl(
+      std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
+      network::Roles roles,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<crypto::SessionKeys> keys,
+      const libp2p::crypto::KeyPair &libp2p_key,
+      const libp2p::crypto::marshaller::KeyMarshaller &key_marshaller,
+      std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
+      std::shared_ptr<crypto::Sr25519Provider> crypto_provider2,
+      libp2p::Host &host,
+      std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
+      : authority_discovery_api_(std::move(authority_discovery_api)),
+        roles_(roles),
+        block_tree_(std::move(block_tree)),
+        keys_(std::move(keys)),
+        crypto_provider_(std::move(crypto_provider)),
+        crypto_provider2_(std::move(crypto_provider2)),
+        host_(host),
+        kademlia_(std::move(kademlia)),
+        scheduler_(std::move(scheduler)),
+        log_{log::createLogger("AddressPublisher")} {
+    app_state_manager->atLaunch([=] { return start(); });
+    if (libp2p_key.privateKey.type == libp2p::crypto::Key::Type::Ed25519) {
+      libp2p_key_.emplace(crypto::Ed25519Keypair{
+          .secret_key =
+              crypto::Ed25519PrivateKey::fromSpan(libp2p_key.privateKey.data)
+                  .value(),
+          .public_key =
+              crypto::Ed25519PublicKey::fromSpan(libp2p_key.publicKey.data)
+                  .value(),
+      });
+      libp2p_key_pb_.emplace(
+          key_marshaller.marshal(libp2p_key.publicKey).value());
+    } else {
+      SL_WARN(log_, "Peer key is not ed25519");
+    }
+  }
+
   bool AddressPublisherImpl::start() {
     if (not libp2p_key_) {
       return true;
@@ -79,45 +119,5 @@ namespace kagome::authority_discovery {
     auto hash = crypto::sha256(audi_key->public_key);
     return kademlia_->putValue({hash.begin(), hash.end()},
                                pbEncodeVec(signed_record));
-  }
-
-  AddressPublisherImpl::AddressPublisherImpl(
-      std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
-      network::Roles roles,
-      std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<crypto::SessionKeys> keys,
-      const libp2p::crypto::KeyPair &libp2p_key,
-      const libp2p::crypto::marshaller::KeyMarshaller &key_marshaller,
-      std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
-      std::shared_ptr<crypto::Sr25519Provider> crypto_provider2,
-      libp2p::Host &host,
-      std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : authority_discovery_api_(std::move(authority_discovery_api)),
-        roles_(roles),
-        block_tree_(std::move(block_tree)),
-        keys_(std::move(keys)),
-        crypto_provider_(std::move(crypto_provider)),
-        crypto_provider2_(std::move(crypto_provider2)),
-        host_(host),
-        kademlia_(std::move(kademlia)),
-        scheduler_(std::move(scheduler)),
-        log_{log::createLogger("AddressPublisher")} {
-    app_state_manager->atLaunch([=] { return start(); });
-    if (libp2p_key.privateKey.type == libp2p::crypto::Key::Type::Ed25519) {
-      libp2p_key_.emplace(crypto::Ed25519Keypair{
-          .secret_key =
-              crypto::Ed25519PrivateKey::fromSpan(libp2p_key.privateKey.data)
-                  .value(),
-          .public_key =
-              crypto::Ed25519PublicKey::fromSpan(libp2p_key.publicKey.data)
-                  .value(),
-      });
-      libp2p_key_pb_.emplace(
-          key_marshaller.marshal(libp2p_key.publicKey).value());
-    } else {
-      SL_WARN(log_, "Peer key is not ed25519");
-    }
   }
 }  // namespace kagome::authority_discovery
