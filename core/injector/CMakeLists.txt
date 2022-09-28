@@ -15,6 +15,7 @@ target_link_libraries(application_injector
     api_transport
     app_config
     app_state_manager
+    authority_discovery_api
     print_chain_info_mode
     assets
     author_api_service
