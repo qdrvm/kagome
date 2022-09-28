@@ -12,6 +12,17 @@
 
 #include "crypto/sha/sha256.hpp"
 
+#define _PB_SPAN(f) [&](gsl::span<const uint8_t> a) { (f)(a.data(), a.size()); }
+#define PB_SPAN_SET(a, b, c) _PB_SPAN((a).set_##b)(c)
+#define PB_SPAN_ADD(a, b, c) _PB_SPAN((a).add_##b)(c)
+
+template <typename T>
+std::vector<uint8_t> pbEncodeVec(const T &v) {
+  std::vector<uint8_t> r(v.ByteSizeLong());
+  v.SerializeToArray(r.data(), r.size());
+  return r;
+}
+
 namespace kagome::authority_discovery {
   bool AddressPublisherImpl::start() {
     if (not libp2p_key_) {
@@ -56,34 +67,24 @@ namespace kagome::authority_discovery {
     }
 
     ::authority_discovery::v2::AuthorityRecord record;
-
     for (const auto &address : addresses) {
-      auto &bytes = address.getBytesAddress();
-      record.add_addresses(bytes.data(), bytes.size());
+      PB_SPAN_ADD(record, addresses, address.getBytesAddress());
     }
 
-    std::vector<uint8_t> record_pb(record.ByteSizeLong());
-    record.SerializeToArray(record_pb.data(), record_pb.size());
-
+    auto record_pb = pbEncodeVec(record);
     OUTCOME_TRY(signature, crypto_provider_->sign(*libp2p_key_, record_pb));
+    OUTCOME_TRY(auth_signature, crypto_provider2_->sign(*audi_key, record_pb));
 
     ::authority_discovery::v2::SignedAuthorityRecord signed_record;
-
-    OUTCOME_TRY(auth_signature, crypto_provider2_->sign(*audi_key, record_pb));
-    signed_record.set_auth_signature(auth_signature.data(),
-                                     auth_signature.size());
-
-    signed_record.set_record(record_pb.data(), record_pb.size());
-
-    auto ps = signed_record.mutable_peer_signature();
-    ps->set_signature(signature.data(), signature.size());
-    ps->set_public_key(libp2p_key_pb_->key.data(), libp2p_key_pb_->key.size());
-
-    std::vector<uint8_t> value(signed_record.ByteSizeLong());
-    signed_record.SerializeToArray(value.data(), value.size());
+    PB_SPAN_SET(signed_record, auth_signature, auth_signature);
+    PB_SPAN_SET(signed_record, record, record_pb);
+    auto &ps = *signed_record.mutable_peer_signature();
+    PB_SPAN_SET(ps, signature, signature);
+    PB_SPAN_SET(ps, public_key, libp2p_key_pb_->key);
 
     auto hash = crypto::sha256(audi_key->public_key);
-    return kademlia_->putValue({hash.begin(), hash.end()}, value);
+    return kademlia_->putValue({hash.begin(), hash.end()},
+                               pbEncodeVec(signed_record));
   }
 
   AddressPublisherImpl::AddressPublisherImpl(
