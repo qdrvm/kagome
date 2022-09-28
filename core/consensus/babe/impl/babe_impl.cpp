@@ -306,7 +306,8 @@ namespace kagome::consensus::babe {
       if (current_state_ == Babe::State::HEADERS_LOADING) {
         current_state_ = Babe::State::HEADERS_LOADED;
         startStateSyncing(peer_id);
-      } else if (current_state_ == Babe::State::CATCHING_UP) {
+      } else if (current_state_ == Babe::State::CATCHING_UP
+                 or current_state_ == Babe::State::WAIT_REMOTE_STATUS) {
         onSynchronized();
       }
       return;
