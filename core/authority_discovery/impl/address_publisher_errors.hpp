@@ -19,7 +19,7 @@ namespace kagome::authority_discovery {
     WRONG_KEY_TYPE,
   };
 
-}  // namespace kagome::network
+}  // namespace kagome::authority_discovery
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::authority_discovery, AddressPublisherError)
 

@@ -64,9 +64,10 @@ namespace kagome::api {
       const gsl::span<const uint8_t> &seed,
       const gsl::span<const uint8_t> &public_key) {
     if (not(crypto::KEY_TYPE_BABE == key_type)
-        && not(crypto::KEY_TYPE_GRAN == key_type) &&
-        not(crypto::KEY_TYPE_AUDI == key_type)) {
-      SL_INFO(logger_, "Unsupported key type, only AUDI, BABE and GRAN are accepted");
+        && not(crypto::KEY_TYPE_GRAN == key_type)
+        && not(crypto::KEY_TYPE_AUDI == key_type)) {
+      SL_INFO(logger_,
+              "Unsupported key type, only AUDI, BABE and GRAN are accepted");
       return outcome::failure(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
     };
     if (crypto::KEY_TYPE_BABE == key_type && keys_->getBabeKeyPair()) {
@@ -78,7 +79,8 @@ namespace kagome::api {
       return outcome::failure(crypto::CryptoStoreError::GRAN_ALREADY_EXIST);
     }
     if (crypto::KEY_TYPE_AUDI == key_type && keys_->getAudiKeyPair()) {
-      SL_INFO(logger_, "Authority discovery key already exists and won't be replaced");
+      SL_INFO(logger_,
+              "Authority discovery key already exists and won't be replaced");
       return outcome::failure(crypto::CryptoStoreError::AUDI_ALREADY_EXIST);
     }
     if (crypto::KEY_TYPE_BABE == key_type) {

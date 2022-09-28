@@ -10,8 +10,8 @@
 
 #include "blockchain/block_tree.hpp"
 #include "consensus/authority/authority_manager.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/crypto_store.hpp"
+#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "runtime/runtime_api/core.hpp"
@@ -28,15 +28,16 @@ namespace kagome::authority_discovery {
       : public AddressPublisher,
         std::enable_shared_from_this<AddressPublisherImpl> {
    public:
-    AddressPublisherImpl(std::shared_ptr<authority::AuthorityManager> authority_manager,
-                         std::shared_ptr<blockchain::BlockTree> block_tree,
-                         std::shared_ptr<crypto::SessionKeys> keys,
-                         std::shared_ptr<crypto::CryptoStore> store,
-                         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
-                         std::shared_ptr<crypto::Sr25519Provider> crypto_provider2,
-                         libp2p::Host &host,
-                         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-                         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
+    AddressPublisherImpl(
+        std::shared_ptr<authority::AuthorityManager> authority_manager,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<crypto::SessionKeys> keys,
+        std::shared_ptr<crypto::CryptoStore> store,
+        std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
+        std::shared_ptr<crypto::Sr25519Provider> crypto_provider2,
+        libp2p::Host &host,
+        std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
     void run() override;
 

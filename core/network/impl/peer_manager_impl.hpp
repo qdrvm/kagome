@@ -72,7 +72,8 @@ namespace kagome::network {
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<PeerRatingRepository> peer_rating_repository,
-        std::shared_ptr<authority_discovery::AddressPublisher> address_publisher);
+        std::shared_ptr<authority_discovery::AddressPublisher>
+            address_publisher);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
