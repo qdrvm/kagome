@@ -29,32 +29,20 @@ namespace kagome::authority_discovery {
     using libp2p::protocol::kademlia::Key;
     using libp2p::protocol::kademlia::Value;
 
-    auto gran_key = keys_->getGranKeyPair();
-    if (not gran_key) {
-      return AddressPublisherError::NO_GRAND_KEY;
-    }
-
-    auto best_hash = block_tree_->deepestLeaf();
-    auto authority_opt = authority_manager_->authorities(best_hash, false);
-    if (not authority_opt.has_value()) {
-      return AddressPublisherError::NO_AUTHORITY;
-    }
-
-    auto &authority = authority_opt.value();
-
-    if (std::find_if(authority->begin(),
-                     authority->end(),
-                     [&gran_key](const auto &elem) {
-                       return elem.id.id == gran_key->public_key;
-                     })
-        == authority->end()) {
-      // we are not authority
+    auto audi_key = keys_->getAudiKeyPair();
+    if (not audi_key) {
+      SL_VERBOSE(log_, "No authority discovery key");
       return outcome::success();
     }
 
-    auto audi_key = keys_->getAudiKeyPair();
-    if (not audi_key) {
-      return AddressPublisherError::NO_AUDI_KEY;
+    OUTCOME_TRY(
+        authorities,
+        authority_discovery_api_->authorities(block_tree_->deepestLeaf().hash));
+
+    if (std::find(authorities.begin(), authorities.end(), audi_key->public_key)
+        == authorities.end()) {
+      // we are not authority
+      return outcome::success();
     }
 
     ::authority_discovery::v2::AuthorityRecord addresses;
@@ -116,7 +104,7 @@ namespace kagome::authority_discovery {
   }
 
   AddressPublisherImpl::AddressPublisherImpl(
-      std::shared_ptr<authority::AuthorityManager> authority_manager,
+      std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::SessionKeys> keys,
@@ -126,7 +114,7 @@ namespace kagome::authority_discovery {
       libp2p::Host &host,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : authority_manager_(std::move(authority_manager)),
+      : authority_discovery_api_(std::move(authority_discovery_api)),
         block_tree_(std::move(block_tree)),
         keys_(std::move(keys)),
         store_(std::move(store)),
