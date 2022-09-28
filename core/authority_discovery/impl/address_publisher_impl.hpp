@@ -28,6 +28,7 @@ namespace kagome::authority_discovery {
    public:
     AddressPublisherImpl(
         std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
+        network::Roles roles,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<crypto::SessionKeys> keys,
@@ -45,6 +46,7 @@ namespace kagome::authority_discovery {
     outcome::result<void> publishOwnAddress();
 
     std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api_;
+    network::Roles roles_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
 
     std::shared_ptr<crypto::SessionKeys> keys_;

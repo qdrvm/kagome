@@ -17,6 +17,9 @@ namespace kagome::authority_discovery {
     if (not libp2p_key_) {
       return true;
     }
+    if (not roles_.flags.authority) {
+      return true;
+    }
     // TODO(ortyomka): run in scheduler with some interval
     auto maybe_error = publishOwnAddress();
     if (maybe_error.has_error()) {
@@ -82,6 +85,7 @@ namespace kagome::authority_discovery {
 
   AddressPublisherImpl::AddressPublisherImpl(
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
+      network::Roles roles,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::SessionKeys> keys,
@@ -93,6 +97,7 @@ namespace kagome::authority_discovery {
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : authority_discovery_api_(std::move(authority_discovery_api)),
+        roles_(roles),
         block_tree_(std::move(block_tree)),
         keys_(std::move(keys)),
         crypto_provider_(std::move(crypto_provider)),
