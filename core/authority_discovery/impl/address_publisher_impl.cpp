@@ -7,9 +7,6 @@
 
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
 
-#include <libp2p/multi/multibase_codec/codecs/base58.hpp>
-#include <utility>
-
 #include "crypto/sha/sha256.hpp"
 
 #define _PB_SPAN(f) [&](gsl::span<const uint8_t> a) { (f)(a.data(), a.size()); }
@@ -40,9 +37,6 @@ namespace kagome::authority_discovery {
   }
 
   outcome::result<void> AddressPublisherImpl::publishOwnAddress() {
-    using libp2p::protocol::kademlia::Key;
-    using libp2p::protocol::kademlia::Value;
-
     auto addresses = host_.getAddresses();
     // TODO(turuslan): filter local addresses
     if (addresses.empty()) {

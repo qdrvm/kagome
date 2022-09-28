@@ -8,10 +8,10 @@
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
-#include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "log/logger.hpp"
 #include "runtime/runtime_api/authority_discovery_api.hpp"
 
 #include <libp2p/crypto/key_marshaller.hpp>
@@ -19,10 +19,7 @@
 #include <libp2p/protocol/kademlia/kademlia.hpp>
 #include <memory>
 
-#include "log/logger.hpp"
-
 namespace kagome::authority_discovery {
-
   class AddressPublisherImpl
       : public std::enable_shared_from_this<AddressPublisherImpl> {
    public:
@@ -64,7 +61,6 @@ namespace kagome::authority_discovery {
     std::optional<crypto::Ed25519Keypair> libp2p_key_;
     std::optional<libp2p::crypto::ProtobufKey> libp2p_key_pb_;
   };
-
 }  // namespace kagome::authority_discovery
 
 #endif  // KAGOME_ADDRESS_PUBLISHER_IMPL_HPP
