@@ -7,6 +7,7 @@ add_library(address_publisher
         address_publisher.cpp
         )
 target_link_libraries(address_publisher
-        logger
         authority_discovery_proto
+        logger
+        sha
         )
