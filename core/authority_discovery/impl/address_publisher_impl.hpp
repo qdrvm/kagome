@@ -20,10 +20,10 @@
 #include <memory>
 
 namespace kagome::authority_discovery {
-  class AddressPublisherImpl
-      : public std::enable_shared_from_this<AddressPublisherImpl> {
+  class AddressPublisher
+      : public std::enable_shared_from_this<AddressPublisher> {
    public:
-    AddressPublisherImpl(
+    AddressPublisher(
         std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
         network::Roles roles,
         std::shared_ptr<application::AppStateManager> app_state_manager,

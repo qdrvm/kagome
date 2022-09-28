@@ -21,7 +21,7 @@ std::vector<uint8_t> pbEncodeVec(const T &v) {
 }
 
 namespace kagome::authority_discovery {
-  AddressPublisherImpl::AddressPublisherImpl(
+  AddressPublisher::AddressPublisher(
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
       network::Roles roles,
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -61,7 +61,7 @@ namespace kagome::authority_discovery {
     }
   }
 
-  bool AddressPublisherImpl::start() {
+  bool AddressPublisher::start() {
     if (not libp2p_key_) {
       return true;
     }
@@ -76,7 +76,7 @@ namespace kagome::authority_discovery {
     return true;
   }
 
-  outcome::result<void> AddressPublisherImpl::publishOwnAddress() {
+  outcome::result<void> AddressPublisher::publishOwnAddress() {
     auto addresses = host_.getAddresses();
     // TODO(turuslan): filter local addresses
     if (addresses.empty()) {
