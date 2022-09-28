@@ -6,7 +6,6 @@
 #include "authority_discovery/impl/address_publisher_impl.hpp"
 
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
-#include "authority_discovery/protobuf/keys.pb.h"
 
 #include <libp2p/multi/multibase_codec/codecs/base58.hpp>
 #include <utility>

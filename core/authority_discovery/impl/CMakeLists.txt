@@ -9,5 +9,4 @@ add_library(address_publisher
 target_link_libraries(address_publisher
         logger
         authority_discovery_proto
-        keys_proto
         )
