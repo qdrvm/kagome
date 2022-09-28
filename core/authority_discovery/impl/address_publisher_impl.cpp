@@ -48,36 +48,32 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
 
-    ::authority_discovery::v2::AuthorityRecord addresses;
+    ::authority_discovery::v2::AuthorityRecord record;
 
     for (const auto &address : host_.getPeerInfo().addresses) {
       auto &bytes = address.getBytesAddress();
-      addresses.add_addresses(bytes.data(), bytes.size());
+      record.add_addresses(bytes.data(), bytes.size());
     }
 
-    std::vector<uint8_t> encoded_addresses(addresses.ByteSizeLong());
-    addresses.SerializeToArray(encoded_addresses.data(),
-                               encoded_addresses.size());
+    std::vector<uint8_t> record_pb(record.ByteSizeLong());
+    record.SerializeToArray(record_pb.data(), record_pb.size());
 
-    OUTCOME_TRY(signature,
-                crypto_provider_->sign(*libp2p_key_, encoded_addresses));
+    OUTCOME_TRY(signature, crypto_provider_->sign(*libp2p_key_, record_pb));
 
-    ::authority_discovery::v2::SignedAuthorityRecord signed_addresses;
+    ::authority_discovery::v2::SignedAuthorityRecord signed_record;
 
-    OUTCOME_TRY(auth_signature,
-                crypto_provider2_->sign(*audi_key, encoded_addresses));
-    signed_addresses.set_auth_signature(auth_signature.data(),
-                                        auth_signature.size());
+    OUTCOME_TRY(auth_signature, crypto_provider2_->sign(*audi_key, record_pb));
+    signed_record.set_auth_signature(auth_signature.data(),
+                                     auth_signature.size());
 
-    signed_addresses.set_record(encoded_addresses.data(),
-                                encoded_addresses.size());
+    signed_record.set_record(record_pb.data(), record_pb.size());
 
-    auto ps = signed_addresses.mutable_peer_signature();
+    auto ps = signed_record.mutable_peer_signature();
     ps->set_signature(signature.data(), signature.size());
     ps->set_public_key(libp2p_key_pb_->key.data(), libp2p_key_pb_->key.size());
 
-    std::vector<uint8_t> value(signed_addresses.ByteSizeLong());
-    signed_addresses.SerializeToArray(value.data(), value.size());
+    std::vector<uint8_t> value(signed_record.ByteSizeLong());
+    signed_record.SerializeToArray(value.data(), value.size());
 
     auto hash = crypto::sha256(audi_key->public_key);
     return kademlia_->putValue({hash.begin(), hash.end()}, value);
