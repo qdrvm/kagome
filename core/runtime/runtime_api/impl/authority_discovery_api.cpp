@@ -14,9 +14,9 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<std::vector<AuthorityDiscoveryId>>
+  outcome::result<std::vector<primitives::AuthorityDiscoveryId>>
   AuthorityDiscoveryApiImpl::authorities(const primitives::BlockHash &block) {
-    return executor_->callAt<std::vector<AuthorityDiscoveryId>>(
+    return executor_->callAt<std::vector<primitives::AuthorityDiscoveryId>>(
         block, "AuthorityDiscoveryApi_authorities");
   }
 }  // namespace kagome::runtime

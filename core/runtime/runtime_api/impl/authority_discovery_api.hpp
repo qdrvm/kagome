@@ -15,7 +15,7 @@ namespace kagome::runtime {
    public:
     explicit AuthorityDiscoveryApiImpl(std::shared_ptr<Executor> executor);
 
-    outcome::result<std::vector<AuthorityDiscoveryId>> authorities(
+    outcome::result<std::vector<primitives::AuthorityDiscoveryId>> authorities(
         const primitives::BlockHash &block) override;
 
    private:
