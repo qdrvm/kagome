@@ -15,13 +15,14 @@
 #include "crypto/sha/sha256.hpp"
 
 namespace kagome::authority_discovery {
-  void AddressPublisherImpl::run() {
+  bool AddressPublisherImpl::start() {
     // TODO(ortyomka): run in scheduler with some interval
     auto maybe_error = publishOwnAddress();
     if (maybe_error.has_error()) {
       SL_ERROR(
           log_, "publishOwnAddress failed: {}", maybe_error.error().message());
     }
+    return true;
   }
 
   outcome::result<void> AddressPublisherImpl::publishOwnAddress() {
@@ -116,6 +117,7 @@ namespace kagome::authority_discovery {
 
   AddressPublisherImpl::AddressPublisherImpl(
       std::shared_ptr<authority::AuthorityManager> authority_manager,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::SessionKeys> keys,
       std::shared_ptr<crypto::CryptoStore> store,
@@ -133,5 +135,7 @@ namespace kagome::authority_discovery {
         host_(host),
         kademlia_(std::move(kademlia)),
         scheduler_(std::move(scheduler)),
-        log_{log::createLogger("AddressPublisher")} {}
+        log_{log::createLogger("AddressPublisher")} {
+    app_state_manager->atLaunch([=] { return start(); });
+  }
 }  // namespace kagome::authority_discovery

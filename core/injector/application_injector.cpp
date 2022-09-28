@@ -680,6 +680,10 @@ namespace {
 
     protocol_factory->setPeerManager(peer_manager);
 
+    static auto address_publisher =
+        injector
+            .template create<sptr<authority_discovery::AddressPublisherImpl>>();
+
     initialized.emplace(std::move(peer_manager));
     return initialized.value();
   }
