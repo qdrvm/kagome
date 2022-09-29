@@ -137,12 +137,12 @@ struct BlockTreeTest : public testing::Test {
 
     EXPECT_CALL(*changes_tracker_, onBlockAdded(_)).WillRepeatedly(Return());
 
-    babe_config_ = std::make_shared<primitives::BabeConfiguration>();
-    babe_config_->slot_duration = 60ms;
-    babe_config_->randomness.fill(0);
-    babe_config_->genesis_authorities = {primitives::Authority{{}, 1}};
-    babe_config_->leadership_rate = {1, 4};
-    babe_config_->epoch_length = 2;
+    babe_config_repo_ = std::make_shared<primitives::BabeConfiguration>();
+    babe_config_repo_->slot_duration = 60ms;
+    babe_config_repo_->randomness.fill(0);
+    babe_config_repo_->genesis_authorities = {primitives::Authority{{}, 1}};
+    babe_config_repo_->leadership_rate = {1, 4};
+    babe_config_repo_->epoch_length = 2;
 
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return(1));
@@ -157,7 +157,7 @@ struct BlockTreeTest : public testing::Test {
                                         extrinsic_event_key_repo,
                                         runtime_core_,
                                         changes_tracker_,
-                                        babe_config_,
+                                        babe_config_repo_,
                                         babe_util_,
                                         justification_storage_policy_)
                       .value();
@@ -253,7 +253,7 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
       std::make_shared<storage::changes_trie::ChangesTrackerMock>();
 
-  std::shared_ptr<primitives::BabeConfiguration> babe_config_;
+  std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;
 
   std::shared_ptr<JustificationStoragePolicyMock>
