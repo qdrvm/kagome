@@ -147,6 +147,16 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(last_finalized_block_info, storage->getLastFinalized());
 
+    // call chain_events_engine->notify to init babe_config_repo preventive
+    auto finalized_block_header_res =
+        storage->getBlockHeader(last_finalized_block_info.hash);
+    BOOST_ASSERT_MSG(finalized_block_header_res.has_value()
+                         and finalized_block_header_res.value().has_value(),
+                     "Initialized block tree must be have finalized block");
+    chain_events_engine->notify(
+        primitives::events::ChainEventType::kFinalizedHeads,
+        finalized_block_header_res.value().value());
+
     std::optional<consensus::EpochNumber> curr_epoch_number;
 
     // First, look up slot number of block number 1
