@@ -20,7 +20,7 @@ namespace kagome::consensus {
 
   BabeLotteryImpl::BabeLotteryImpl(
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
-      std::shared_ptr<primitives::BabeConfiguration> configuration,
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<crypto::Hasher> hasher)
       : vrf_provider_{std::move(vrf_provider)},
         hasher_{std::move(hasher)},
@@ -28,7 +28,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(logger_);
-    BOOST_ASSERT(configuration);
+    BOOST_ASSERT(babe_config_repo);
     epoch_.epoch_number = std::numeric_limits<uint64_t>::max();
   }
 

@@ -17,10 +17,7 @@ namespace kagome::consensus::babe {
 
     /// Returns actual babe configuration, obtaining it from runtime if needed
     /// @return actual babe configuration
-    virtual const primitives::BabeConfiguration &config();
-
-    /// Invalidates internally cached config, to enforce take in from runtime
-    virtual void invalidate();
+    virtual const primitives::BabeConfiguration &config() = 0;
   };
 
 }  // namespace kagome::consensus::babe

@@ -37,7 +37,9 @@
 namespace kagome::application {
   class AppStateManager;
 }
-
+namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+}
 namespace kagome::storage::changes_trie {
   class ChangesTracker;
 }
@@ -62,7 +64,7 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<consensus::BabeUtil> babe_util,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy);

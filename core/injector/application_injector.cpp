@@ -605,9 +605,9 @@ namespace {
         injector.template create<std::shared_ptr<runtime::Core>>();
     auto changes_tracker = injector.template create<
         std::shared_ptr<storage::changes_trie::ChangesTracker>>();
-    auto babe_configuration =
+    auto babe_config_repo =
         injector
-            .template create<std::shared_ptr<primitives::BabeConfiguration>>();
+            .template create<std::shared_ptr<consensus::babe::BabeConfigRepository>>();
     auto babe_util =
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
     auto justification_storage_policy = injector.template create<
@@ -623,7 +623,7 @@ namespace {
         std::move(ext_events_key_repo),
         std::move(runtime_core),
         std::move(changes_tracker),
-        std::move(babe_configuration),
+        std::move(babe_config_repo),
         std::move(babe_util),
         std::move(justification_storage_policy));
 
@@ -695,7 +695,7 @@ namespace {
     auto block_executor = std::make_shared<consensus::BlockExecutorImpl>(
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<runtime::Core>>(),
-        injector.template create<sptr<primitives::BabeConfiguration>>(),
+        injector.template create<sptr<consensus::babe::BabeConfigRepository>>(),
         injector.template create<sptr<consensus::BlockValidator>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
@@ -1387,7 +1387,7 @@ namespace {
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::BabeLottery>>(),
-        injector.template create<sptr<primitives::BabeConfiguration>>(),
+        injector.template create<sptr<consensus::babe::BabeConfigRepository>>(),
         injector.template create<sptr<authorship::Proposer>>(),
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<network::BlockAnnounceTransmitter>>(),

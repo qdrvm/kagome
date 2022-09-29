@@ -7,6 +7,7 @@
 #define KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYIMPL
 
 #include "consensus/babe/babe_config_repository.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/event_types.hpp"
 
 namespace kagome::application {
@@ -30,7 +31,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr,
-        primitives::BlockHash genesis_block_hash);
+        const primitives::GenesisBlockHeader &genesis_block_header);
 
     const primitives::BabeConfiguration &config() override;
 
@@ -42,7 +43,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     primitives::BlockHash block_hash_;
 
-    mutable primitives::BabeConfiguration babe_configuration_;
+    mutable primitives::BabeConfiguration babe_configuration_{};
     bool valid_;
   };
 

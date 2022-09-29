@@ -17,9 +17,8 @@ namespace kagome::consensus::babe {
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
       std::shared_ptr<runtime::BabeApi> babe_api,
       std::shared_ptr<crypto::Hasher> hasher,
-
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-      primitives::BlockHash genesis_block_hash)
+      const primitives::GenesisBlockHeader &genesis_block_header)
       : babe_api_(std::move(babe_api)),
         hasher_(std::move(hasher)),
         chain_sub_([&] {
@@ -27,7 +26,7 @@ namespace kagome::consensus::babe {
           return std::make_shared<primitives::events::ChainEventSubscriber>(
               chain_events_engine);
         }()),
-        block_hash_(std::move(genesis_block_hash)),
+        block_hash_(genesis_block_header.hash),
         valid_(false) {
     BOOST_ASSERT(babe_api_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
@@ -45,16 +44,15 @@ namespace kagome::consensus::babe {
                                 primitives::events::ChainEventType type,
                                 const primitives::events::ChainEventParams
                                     &event) {
-      if (type != primitives::events::ChainEventType::kFinalizedHeads) {
-        return;
-      }
-      if (auto self = wp.lock()) {
-        auto hash = self->hasher_->blake2b_256(
-            scale::encode(
-                boost::get<primitives::events::HeadsEventParams>(event).get())
-                .value());
-        self->block_hash_ = hash;
-        self->valid_ = false;
+      if (type == primitives::events::ChainEventType::kFinalizedHeads) {
+        if (auto self = wp.lock()) {
+          auto hash = self->hasher_->blake2b_256(
+              scale::encode(
+                  boost::get<primitives::events::HeadsEventParams>(event).get())
+                  .value());
+          self->block_hash_ = hash;
+          self->valid_ = false;
+        }
       }
     });
 

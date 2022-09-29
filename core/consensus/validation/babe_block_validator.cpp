@@ -9,6 +9,7 @@
 #include <boost/assert.hpp>
 
 #include "common/mp_utils.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/validation/prepare_transcript.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -42,18 +43,20 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<primitives::BabeConfiguration> configuration)
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo)
       : block_tree_{std::move(block_tree)},
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
         vrf_provider_{std::move(vrf_provider)},
         sr25519_provider_{std::move(sr25519_provider)},
-        configuration_{std::move(configuration)},
+        babe_config_repo_{std::move(babe_config_repo)},
         log_{log::createLogger("BlockValidator", "block_validator")} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
+    BOOST_ASSERT(hasher_);
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(sr25519_provider_);
+    BOOST_ASSERT(babe_config_repo_);
   }
 
   outcome::result<void> BabeBlockValidator::validateHeader(
@@ -71,11 +74,12 @@ namespace kagome::consensus {
     // @see
     // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/client/consensus/babe/src/verification.rs#L111
     if (babe_header.needAuthorCheck()) {
+      const auto &babe_config = babe_config_repo_->config();
       if ((not babe_header.needVRFCheck()
-           and configuration_->allowed_slots
+           and babe_config.allowed_slots
                    != primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots)
           or (babe_header.needVRFCheck()
-              and configuration_->allowed_slots
+              and babe_config.allowed_slots
                       != primitives::AllowedSlots::
                           PrimaryAndSecondaryVRFSlots)) {
         SL_WARN(log_, "Secondary slots assignments disabled");

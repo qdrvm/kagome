@@ -14,6 +14,7 @@
 #include "blockchain/impl/common.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "blockchain/impl/storage_util.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
@@ -54,7 +55,7 @@ namespace kagome::blockchain {
           if (res.has_error()) {
             if (res
                 == outcome::failure(
-                    blockchain::BlockTreeError::EXISTING_BLOCK_NOT_FOUND)) {
+                    blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
               SL_TRACE(log, "Leaf {} not found", hash);
               continue;
             }
@@ -92,7 +93,7 @@ namespace kagome::blockchain {
             SL_TRACE(log, "bisect {} -> not found", number);
             upper = number - 1;
           }
-          if (lower + 1 == upper) {
+          if (lower == upper) {
             number = lower;
             break;
           }
@@ -125,12 +126,13 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-      std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<consensus::BabeUtil> babe_util,
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
+    BOOST_ASSERT(babe_config_repo != nullptr);
 
     log::Logger log = log::createLogger("BlockTree", "blockchain");
 
@@ -175,9 +177,11 @@ namespace kagome::blockchain {
           last_slot_number >= first_slot_number,
           "Non genesis slot must not be less then slot of block number 1");
 
+      const auto &babe_configuration = babe_config_repo->config();
+
       // Now we have all to calculate epoch number
       auto epoch_number = (last_slot_number - first_slot_number)
-                          / babe_configuration->epoch_length;
+                          / babe_configuration.epoch_length;
 
       babe_util->syncEpoch([&] {
         auto is_first_block_finalized = last_finalized_block_info.number > 0;
@@ -207,9 +211,10 @@ namespace kagome::blockchain {
           curr_epoch_number = 0;
         }
         if (not curr_epoch.has_value()) {
+          const auto &babe_configuration = babe_config_repo->config();
           curr_epoch.emplace(consensus::EpochDigest{
-              .authorities = babe_configuration->genesis_authorities,
-              .randomness = babe_configuration->randomness});
+              .authorities = babe_configuration.genesis_authorities,
+              .randomness = babe_configuration.randomness});
           SL_TRACE(log,
                    "Current epoch data has got basing genesis: "
                    "Epoch #{}, Randomness: {}",
@@ -217,9 +222,10 @@ namespace kagome::blockchain {
                    curr_epoch.value().randomness);
         }
         if (not next_epoch.has_value()) {
+          const auto &babe_configuration = babe_config_repo->config();
           next_epoch.emplace(consensus::EpochDigest{
-              .authorities = babe_configuration->genesis_authorities,
-              .randomness = babe_configuration->randomness});
+              .authorities = babe_configuration.genesis_authorities,
+              .randomness = babe_configuration.randomness});
           SL_TRACE(log,
                    "Next epoch data has got basing genesis: "
                    "Epoch #1+, Randomness: {}",

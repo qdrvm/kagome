@@ -29,10 +29,12 @@ namespace kagome::runtime {
   class OffchainWorkerApi;
 };
 
+namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+  class ConsistencyKeeper;
+}  // namespace kagome::consensus::babe
+
 namespace kagome::consensus {
-  namespace babe {
-    class ConsistencyKeeper;
-  }
 
   class BlockExecutorImpl
       : public BlockExecutor,
@@ -43,7 +45,7 @@ namespace kagome::consensus {
     BlockExecutorImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::Core> core,
-        std::shared_ptr<primitives::BabeConfiguration> configuration,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<BlockValidator> block_validator,
         std::shared_ptr<grandpa::Environment> grandpa_environment,
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
@@ -63,7 +65,7 @@ namespace kagome::consensus {
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> core_;
-    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
