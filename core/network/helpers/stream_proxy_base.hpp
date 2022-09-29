@@ -3,16 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_HELPERS_STREAM_PROXY_HPP
-#define KAGOME_NETWORK_HELPERS_STREAM_PROXY_HPP
+#ifndef KAGOME_NETWORK_HELPERS_STREAM_PROXY_BASE_HPP
+#define KAGOME_NETWORK_HELPERS_STREAM_PROXY_BASE_HPP
 
 #include <libp2p/connection/stream.hpp>
 
 namespace libp2p::connection {
-  struct StreamProxy : Stream {
+  /**
+   * Allows implementing only required subset of virtual methods.
+   * Implements all virtual methods and forwards them to stream.
+   */
+  struct StreamProxyBase : Stream {
     std::shared_ptr<Stream> stream;
 
-    explicit StreamProxy(std::shared_ptr<Stream> stream)
+    explicit StreamProxyBase(std::shared_ptr<Stream> stream)
         : stream{std::move(stream)} {}
 
     void read(gsl::span<uint8_t> out,
@@ -78,4 +82,4 @@ namespace libp2p::connection {
   };
 }  // namespace libp2p::connection
 
-#endif  // KAGOME_NETWORK_HELPERS_STREAM_PROXY_HPP
+#endif  // KAGOME_NETWORK_HELPERS_STREAM_PROXY_BASE_HPP
