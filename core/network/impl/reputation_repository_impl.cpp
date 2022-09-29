@@ -95,7 +95,7 @@ namespace kagome::network {
       auto diff = reputation / 50;
 
       if (diff == 0) {
-        diff = reputation > 0 ? -1 : 1;
+        diff = reputation < 0 ? -1 : 1;
       }
       reputation -= diff;
 
