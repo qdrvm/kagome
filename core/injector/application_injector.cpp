@@ -436,41 +436,6 @@ namespace {
     return initialized.value();
   }
 
-//  sptr<primitives::BabeConfiguration> get_babe_configuration(
-//      primitives::BlockHash const &block_hash,
-//      sptr<runtime::BabeApi> babe_api) {
-//    static auto initialized =
-//        std::optional<sptr<primitives::BabeConfiguration>>(std::nullopt);
-//    if (initialized) {
-//      return initialized.value();
-//    }
-//
-//    auto log = log::createLogger("Injector", "injector");
-//
-//    auto configuration_res = babe_api->configuration(block_hash);
-//    if (not configuration_res) {
-//      if (configuration_res
-//          == outcome::failure(runtime::RuntimeEnvironmentFactory::Error::
-//                                  FAILED_TO_SET_STORAGE_STATE)) {
-//        SL_CRITICAL(log,
-//                    "State for block {} has not found. "
-//                    "Try to launch with `--sync Fast' CLI arg",
-//                    block_hash);
-//      }
-//      common::raise(configuration_res.error());
-//    }
-//
-//    auto configuration = std::make_shared<primitives::BabeConfiguration>(
-//        std::move(configuration_res.value()));
-//
-//    for (const auto &authority : configuration->genesis_authorities) {
-//      SL_DEBUG(log, "Babe authority: {:l}", authority.id.id);
-//    }
-//
-//    initialized.emplace(std::move(configuration));
-//    return initialized.value();
-//  }
-
   sptr<crypto::KeyFileStorage> get_key_file_storage(
       application::AppConfiguration const &config,
       sptr<application::ChainSpec> chain_spec) {
@@ -990,17 +955,6 @@ namespace {
     return initialized.value();
   }
 
-//  template <typename Injector>
-//  primitives::BlockHash get_last_finalized_hash(const Injector &injector) {
-//    auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
-//    if (auto last = storage->getLastFinalized(); last.has_value()) {
-//      return last.value().hash;
-//    } else {
-//      throw std::runtime_error("Cannot lookup last finalized block: "
-//                               + last.error().message());
-//    }
-//  };
-
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
                                Ts &&...args) {
@@ -1197,25 +1151,6 @@ namespace {
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
-//        di::bind<clock::SystemClock::Duration>.to([](const auto &injector) {
-//          auto conf =
-//              injector.template create<sptr<primitives::BabeConfiguration>>();
-//          return conf->slot_duration;
-//        }),
-//        di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
-//          // need it to add genesis block if it's not there
-//          auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
-//          if (injector.template create<application::AppConfiguration const &>()
-//                  .syncMethod()
-//              == application::AppConfiguration::SyncMethod::Fast) {
-//            auto genesis_block_header =
-//                injector
-//                    .template create<sptr<primitives::GenesisBlockHeader>>();
-//            return get_babe_configuration(genesis_block_header->hash, babe_api);
-//          }
-//          static auto last_finalized_hash = get_last_finalized_hash(injector);
-//          return get_babe_configuration(last_finalized_hash, babe_api);
-//        }),
         di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
