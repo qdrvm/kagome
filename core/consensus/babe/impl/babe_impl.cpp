@@ -12,6 +12,7 @@
 #include "blockchain/block_storage_error.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -42,7 +43,7 @@ namespace kagome::consensus::babe {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<BabeLottery> lottery,
-      std::shared_ptr<primitives::BabeConfiguration> configuration,
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<authorship::Proposer> proposer,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -60,7 +61,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper)
       : app_config_(app_config),
         lottery_{std::move(lottery)},
-        babe_configuration_{std::move(configuration)},
+        babe_config_repo_{std::move(babe_config_repo)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         block_announce_transmitter_{std::move(block_announce_transmitter)},
@@ -77,6 +78,7 @@ namespace kagome::consensus::babe {
         log_{log::createLogger("Babe", "babe")},
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(lottery_);
+    BOOST_ASSERT(babe_config_repo_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_announce_transmitter_);
@@ -192,11 +194,12 @@ namespace kagome::consensus::babe {
     auto best_block = block_tree_->deepestLeaf();
 
     if (best_block.number == 0) {
+      const auto &babe_config = babe_config_repo_->config();
       EpochDescriptor epoch_descriptor{
           .epoch_number = 0,
           .start_slot =
               static_cast<BabeSlotNumber>(clock_->now().time_since_epoch()
-                                          / babe_configuration_->slot_duration)
+                                          / babe_config.slot_duration)
               + 1};
       return outcome::success(epoch_descriptor);
     }
@@ -246,9 +249,11 @@ namespace kagome::consensus::babe {
       return std::tuple(first_slot_number, is_first_block_finalized);
     });
 
+    const auto &babe_config = babe_config_repo_->config();
+
     auto current_epoch_start_slot =
         first_slot_number
-        + current_epoch_.epoch_number * babe_configuration_->epoch_length;
+        + current_epoch_.epoch_number * babe_config.epoch_length;
 
     if (current_epoch_.start_slot != current_epoch_start_slot) {
       SL_WARN(log_,
@@ -542,6 +547,8 @@ namespace kagome::consensus::babe {
 
     bool rewind_slots;  // NOLINT
     auto slot = current_slot_;
+    const auto &babe_config = babe_config_repo_->config();
+
     do {
       // check that we are really in the middle of the slot, as expected; we
       // can cooperate with a relatively little (kMaxLatency) latency, as our
@@ -551,8 +558,7 @@ namespace kagome::consensus::babe {
       auto finish_time = babe_util_->slotFinishTime(current_slot_);
 
       rewind_slots =
-          now > finish_time
-          and (now - finish_time) > babe_configuration_->slot_duration;
+          now > finish_time and (now - finish_time) > babe_config.slot_duration;
 
       if (rewind_slots) {
         // we are too far behind; after skipping some slots (but not epochs)
@@ -669,8 +675,9 @@ namespace kagome::consensus::babe {
 
           if (expected_author.has_value()
               and authority_index == expected_author.value()) {
+            const auto &babe_config = babe_config_repo_->config();
             if (primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots
-                == babe_configuration_->allowed_slots) {
+                == babe_config.allowed_slots) {
               auto vrf = lottery_->slotVrfSignature(current_slot_);
               processSlotLeadership(
                   SlotType::SecondaryVRF, std::cref(vrf), authority_index);
@@ -1005,9 +1012,10 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    auto threshold = calculateThreshold(babe_configuration_->leadership_rate,
-                                        authorities,
-                                        authority_index_res.value());
+    const auto &babe_config = babe_config_repo_->config();
+
+    auto threshold = calculateThreshold(
+        babe_config.leadership_rate, authorities, authority_index_res.value());
 
     lottery_->changeEpoch(epoch, randomness, threshold, *keypair_);
   }
@@ -1049,10 +1057,11 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeImpl::isSecondarySlotsAllowed() const {
+    const auto &babe_config = babe_config_repo_->config();
     return primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots
-               == babe_configuration_->allowed_slots
+               == babe_config.allowed_slots
            or primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots
-                  == babe_configuration_->allowed_slots;
+                  == babe_config.allowed_slots;
   }
 
 }  // namespace kagome::consensus::babe
