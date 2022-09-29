@@ -54,7 +54,7 @@ namespace kagome::network {
    public:
     static constexpr std::chrono::seconds kTimeoutForConnecting{15};
 
-    enum class Error { UNDECLARED_COLLATOR = 1, OUT_OF_VIEW, DOUPLICATE };
+    enum class Error { UNDECLARED_COLLATOR = 1, OUT_OF_VIEW, DUPLICATE };
 
     PeerManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,

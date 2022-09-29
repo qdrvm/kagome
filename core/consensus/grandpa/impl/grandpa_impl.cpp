@@ -601,6 +601,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
+    bool need_cleanup_when_exiting_scope = false;
     GrandpaContext::Guard cg;
 
     auto ctx = GrandpaContext::get().value();
@@ -634,11 +635,15 @@ namespace kagome::consensus::grandpa {
         return;
       }
 
-      auto cleanup = gsl::finally([this] {
+      need_cleanup_when_exiting_scope = true;
+    }
+
+    auto cleanup = gsl::finally([&] {
+      if (need_cleanup_when_exiting_scope) {
         catchup_request_timer_handle_.cancel();
         pending_catchup_request_.reset();
-      });
-    }
+      }
+    });
 
     BOOST_ASSERT(current_round_ != nullptr);
     // Ignore message of peer whose round in different voter set

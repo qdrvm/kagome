@@ -13,6 +13,8 @@
 
 #include <libp2p/basic/scheduler.hpp>
 
+#include "log/logger.hpp"
+
 namespace kagome::network {
 
   class ReputationRepositoryImpl
@@ -36,9 +38,11 @@ namespace kagome::network {
     void tick();
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
-    std::unordered_map<PeerId, Reputation> rating_table_;
+    std::unordered_map<PeerId, Reputation> reputation_table_;
 
     libp2p::basic::Scheduler::Handle tick_handler_;
+
+    log::Logger log_;
   };
 
 }  // namespace kagome::network

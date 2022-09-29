@@ -24,8 +24,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
       return "Process handling from undeclared collator";
     case E::OUT_OF_VIEW:
       return "Processing para hash, which is out of view";
-    case E::DOUPLICATE:
-      return "Processing doublicated hash";
+    case E::DUPLICATE:
+      return "Processing duplicated hash";
   }
   return "Unknown error in ChainSpecImpl";
 }
@@ -229,7 +229,7 @@ namespace kagome::network {
       return Error::OUT_OF_VIEW;
 
     if (peer_state.collator_state.value().advertisements.count(para_hash) != 0)
-      return Error::DOUPLICATE;
+      return Error::DUPLICATE;
 
     peer_state.collator_state.value().advertisements.insert(
         std::move(para_hash));
