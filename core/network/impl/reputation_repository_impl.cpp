@@ -56,8 +56,8 @@ namespace kagome::network {
              diff.reason);
 
     auto value = static_cast<Reputation>(
-        -static_cast<double>(diff.value)  // opposite original
-        * 0.98 * duration.count()         // multiplier considering timeout
+        -static_cast<double>(diff.value)    // opposite original
+        * std::pow(0.98, duration.count())  // multiplier considering timeout
     );
 
     if (value != 0) {
