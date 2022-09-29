@@ -5,15 +5,15 @@
 
 #include "consensus/babe/impl/babe_util_impl.hpp"
 
+#include "consensus/babe/babe_config_repository.hpp"
+
 namespace kagome::consensus {
 
   BabeUtilImpl::BabeUtilImpl(
-      std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       const BabeClock &clock)
-      : babe_configuration_(std::move(babe_configuration)), clock_(clock) {
-    BOOST_ASSERT(babe_configuration_);
-    BOOST_ASSERT_MSG(babe_configuration_->epoch_length,
-                     "Epoch length must be non zero");
+      : babe_config_repo_(std::move(babe_config_repo)), clock_(clock) {
+    BOOST_ASSERT(babe_config_repo_);
   }
 
   BabeSlotNumber BabeUtilImpl::syncEpoch(
@@ -27,12 +27,20 @@ namespace kagome::consensus {
   }
 
   BabeSlotNumber BabeUtilImpl::getCurrentSlot() const {
+    const auto &babe_config = babe_config_repo_->config();
+    BOOST_ASSERT_MSG(
+        babe_config.slot_duration > std::chrono::nanoseconds::zero(),
+        "Slot duration must be non zero");
     return static_cast<BabeSlotNumber>(clock_.now().time_since_epoch()
-                                       / babe_configuration_->slot_duration);
+                                       / babe_config.slot_duration);
   }
 
   BabeTimePoint BabeUtilImpl::slotStartTime(BabeSlotNumber slot) const {
-    return clock_.zero() + slot * babe_configuration_->slot_duration;
+    const auto &babe_config = babe_config_repo_->config();
+    BOOST_ASSERT_MSG(
+        babe_config.slot_duration > std::chrono::nanoseconds::zero(),
+        "Slot duration must be non zero");
+    return clock_.zero() + slot * babe_config.slot_duration;
   }
 
   BabeDuration BabeUtilImpl::remainToStartOfSlot(BabeSlotNumber slot) const {
@@ -53,7 +61,11 @@ namespace kagome::consensus {
   }
 
   BabeDuration BabeUtilImpl::slotDuration() const {
-    return babe_configuration_->slot_duration;
+    const auto &babe_config = babe_config_repo_->config();
+    BOOST_ASSERT_MSG(
+        babe_config.slot_duration > std::chrono::nanoseconds::zero(),
+        "Slot duration must be non zero");
+    return babe_config.slot_duration;
   }
 
   BabeSlotNumber BabeUtilImpl::getFirstBlockSlotNumber() {
@@ -68,7 +80,10 @@ namespace kagome::consensus {
     auto genesis_slot_number =
         const_cast<BabeUtilImpl &>(*this).getFirstBlockSlotNumber();
     if (slot > genesis_slot_number) {
-      return (slot - genesis_slot_number) / babe_configuration_->epoch_length;
+      const auto &babe_config = babe_config_repo_->config();
+      BOOST_ASSERT_MSG(babe_config.epoch_length > 0,
+                       "Epoch length must be non zero");
+      return (slot - genesis_slot_number) / babe_config.epoch_length;
     }
     return 0;
   }
@@ -77,7 +92,10 @@ namespace kagome::consensus {
     auto genesis_slot_number =
         const_cast<BabeUtilImpl &>(*this).getFirstBlockSlotNumber();
     if (slot > genesis_slot_number) {
-      return (slot - genesis_slot_number) % babe_configuration_->epoch_length;
+      const auto &babe_config = babe_config_repo_->config();
+      BOOST_ASSERT_MSG(babe_config.epoch_length > 0,
+                       "Epoch length must be non zero");
+      return (slot - genesis_slot_number) % babe_config.epoch_length;
     }
     return 0;
   }

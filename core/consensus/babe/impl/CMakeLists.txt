@@ -77,6 +77,13 @@ target_link_libraries(consistency_keeper
     block_storage_error
     )
 
+add_library(babe_config_repository
+    babe_config_repository_impl.cpp
+    )
+target_link_libraries(babe_config_repository
+    primitives
+    )
+
 add_library(babe
     babe_impl.cpp
     babe_impl.hpp

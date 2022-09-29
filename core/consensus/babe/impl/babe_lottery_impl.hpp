@@ -15,12 +15,17 @@
 #include "log/logger.hpp"
 #include "primitives/babe_configuration.hpp"
 
+namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+}
+
 namespace kagome::consensus {
+
   class BabeLotteryImpl : public BabeLottery {
    public:
     BabeLotteryImpl(
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
-        std::shared_ptr<primitives::BabeConfiguration> configuration,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<crypto::Hasher> hasher);
 
     void changeEpoch(const EpochDescriptor &epoch,
