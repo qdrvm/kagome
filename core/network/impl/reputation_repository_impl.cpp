@@ -56,9 +56,8 @@ namespace kagome::network {
              diff.reason);
 
     auto value = static_cast<Reputation>(
-        (std::signbit(diff.value) ? 1 : -1)          // raise or reduce
-        * static_cast<double>(std::abs(diff.value))  // original
-        * 0.98 * duration.count()  // multiplier considering timeout
+        -static_cast<double>(diff.value)  // opposite original
+        * 0.98 * duration.count()         // multiplier considering timeout
     );
 
     if (value != 0) {
