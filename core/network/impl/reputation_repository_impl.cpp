@@ -62,9 +62,16 @@ namespace kagome::network {
 
     if (value != 0) {
       scheduler_->schedule(
-          [wp = weak_from_this(), peer_id, value] {
+          [wp = weak_from_this(), peer_id, value, reason = diff.reason] {
             if (auto self = wp.lock()) {
-              self->change(peer_id, {value, "Revert by timeout"});
+              auto reputation = self->reputation_table_[peer_id] += value;
+              SL_DEBUG(self->log_,
+                       "Reputation of peer {} was changed by {} points to {} "
+                       "points. Reason: reverse of `{}'",
+                       peer_id,
+                       value,
+                       reputation,
+                       reason);
             }
           },
           duration);
