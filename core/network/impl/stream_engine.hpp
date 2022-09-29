@@ -417,7 +417,11 @@ namespace kagome::network {
       bool replaced = false;
       // Reset previous stream if any
       if (dst) {
-        dst->reset();
+        if (direction == Direction::INCOMING) {
+          dst->close([](outcome::result<void>) {});
+        } else {
+          dst->reset();
+        }
         replaced = true;
       }
 
