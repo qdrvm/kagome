@@ -24,14 +24,12 @@ namespace kagome::network {
 
   Reputation ReputationRepositoryImpl::reputation(
       const ReputationRepository::PeerId &peer_id) const {
-    return reputation_table_.count(peer_id) == 0
-               ? 0
-               : reputation_table_.at(peer_id);
+    auto it = reputation_table_.find(peer_id);
+    return it != reputation_table_.end() ? it->second : 0;
   }
 
   Reputation ReputationRepositoryImpl::change(
       const ReputationRepository::PeerId &peer_id, ReputationChange diff) {
-    ensurePeerPresence(peer_id);
     auto reputation = reputation_table_[peer_id] += diff.value;
     SL_DEBUG(log_,
              "Reputation of peer {} was changed by {} points to {} points. "
@@ -43,15 +41,10 @@ namespace kagome::network {
     return reputation;
   }
 
-  void ReputationRepositoryImpl::ensurePeerPresence(const PeerId &peer_id) {
-    reputation_table_.try_emplace(peer_id, 0);
-  }
-
   Reputation ReputationRepositoryImpl::changeForATime(
       const ReputationRepository::PeerId &peer_id,
       ReputationChange diff,
       std::chrono::seconds duration) {
-    ensurePeerPresence(peer_id);
     auto reputation = reputation_table_[peer_id] += diff.value;
     SL_DEBUG(log_,
              "Reputation of peer {} was changed by {} points to {} points "

@@ -33,8 +33,6 @@ namespace kagome::network {
                               std::chrono::seconds duration) override;
 
    private:
-    void ensurePeerPresence(const PeerId &peer_id);
-
     void tick();
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
