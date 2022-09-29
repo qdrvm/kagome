@@ -122,7 +122,7 @@ target_link_libraries(application_injector
     offchain_worker_api
     offchain_persistent_storage
     offchain_local_storage
-    rating_repository
+    reputation_repository
     session_keys_api
     collation_protocol
     req_collation_protocol

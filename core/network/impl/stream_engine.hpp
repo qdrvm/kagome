@@ -21,7 +21,7 @@
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/protocol_base.hpp"
-#include "network/rating_repository.hpp"
+#include "network/reputation_repository.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 #include "utils/safe_object.hpp"
@@ -151,8 +151,8 @@ namespace kagome::network {
     StreamEngine &operator=(StreamEngine &&) = delete;
 
     ~StreamEngine() = default;
-    StreamEngine(std::shared_ptr<PeerRatingRepository> peer_rating_repository)
-        : peer_rating_repository_(std::move(peer_rating_repository)),
+    StreamEngine(std::shared_ptr<ReputationRepository> reputation_repository)
+        : reputation_repository_(std::move(reputation_repository)),
           logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
@@ -530,9 +530,9 @@ namespace kagome::network {
                 if (stream_res
                     == outcome::failure(
                         std::make_error_code(std::errc::not_connected))) {
-                  self->peer_rating_repository_->updateForATime(
+                  self->reputation_repository_->changeForATime(
                       peer_id,
-                      -1000,
+                      reputation::cost::UNEXPECTED_DISCONNECT,
                       kDownVoteByDisconnectionExpirationTimeout);
                   return;
                 }
@@ -590,7 +590,7 @@ namespace kagome::network {
       });
     }
 
-    std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
+    std::shared_ptr<ReputationRepository> reputation_repository_;
     log::Logger logger_;
 
     SafeObject<PeerMap> streams_;
