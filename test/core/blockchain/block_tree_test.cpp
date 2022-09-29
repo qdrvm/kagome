@@ -19,6 +19,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/justification_storage_policy.hpp"
+#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
@@ -37,6 +38,7 @@ using namespace storage;
 using namespace common;
 using namespace clock;
 using namespace consensus;
+using namespace babe;
 using namespace primitives;
 using namespace blockchain;
 using namespace transaction_pool;
@@ -48,6 +50,7 @@ using prefix::Prefix;
 using testing::_;
 using testing::Invoke;
 using testing::Return;
+using testing::ReturnRef;
 using testing::StrictMock;
 
 namespace kagome::primitives {
@@ -137,12 +140,15 @@ struct BlockTreeTest : public testing::Test {
 
     EXPECT_CALL(*changes_tracker_, onBlockAdded(_)).WillRepeatedly(Return());
 
-    babe_config_repo_ = std::make_shared<primitives::BabeConfiguration>();
-    babe_config_repo_->slot_duration = 60ms;
-    babe_config_repo_->randomness.fill(0);
-    babe_config_repo_->genesis_authorities = {primitives::Authority{{}, 1}};
-    babe_config_repo_->leadership_rate = {1, 4};
-    babe_config_repo_->epoch_length = 2;
+    babe_config_.slot_duration = 60ms;
+    babe_config_.randomness.fill(0);
+    babe_config_.genesis_authorities = {primitives::Authority{{}, 1}};
+    babe_config_.leadership_rate = {1, 4};
+    babe_config_.epoch_length = 2;
+
+    babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
+    ON_CALL(*babe_config_repo_, config())
+        .WillByDefault(ReturnRef(babe_config_));
 
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return(1));
@@ -253,7 +259,8 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
       std::make_shared<storage::changes_trie::ChangesTrackerMock>();
 
-  std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
+  primitives::BabeConfiguration babe_config_;
+  std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;
 
   std::shared_ptr<JustificationStoragePolicyMock>
