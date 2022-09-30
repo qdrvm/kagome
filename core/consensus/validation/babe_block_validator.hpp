@@ -28,6 +28,10 @@ namespace kagome::crypto {
 }
 
 namespace kagome::consensus {
+  namespace babe {
+    class BabeConfigRepository;
+  }
+
   /**
    * Validation of blocks in BABE system. Based on the algorithm described here:
    * https://research.web3.foundation/en/latest/polkadot/BABE/Babe/#2-normal-phase
@@ -50,7 +54,7 @@ namespace kagome::consensus {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-        std::shared_ptr<primitives::BabeConfiguration> configuration);
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo);
 
     enum class ValidationError {
       NO_AUTHORITIES = 1,
@@ -110,7 +114,7 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
 
-    std::shared_ptr<primitives::BabeConfiguration> configuration_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
     log::Logger log_;
   };
 }  // namespace kagome::consensus

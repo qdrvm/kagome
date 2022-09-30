@@ -128,16 +128,16 @@ namespace kagome::network {
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
-      std::shared_ptr<PeerRatingRepository> rating_repository)
+      std::shared_ptr<ReputationRepository> reputation_repository)
       : base_(host,
               {fmt::format(kSyncProtocol.data(), chain_spec.protocolId())},
               "SyncProtocol"),
         sync_observer_(std::move(sync_observer)),
-        rating_repository_(std::move(rating_repository)),
+        reputation_repository_(std::move(reputation_repository)),
         response_cache_(kResponsesCacheCapacity,
                         kResponsesCacheExpirationTimeout) {
     BOOST_ASSERT(sync_observer_ != nullptr);
-    BOOST_ASSERT(rating_repository_ != nullptr);
+    BOOST_ASSERT(reputation_repository_ != nullptr);
   }
 
   bool SyncProtocolImpl::start() {
@@ -280,8 +280,10 @@ namespace kagome::network {
                  self->protocolName(),
                  peer_id,
                  block_request.fingerprint());
-        self->rating_repository_->downvoteForATime(
-            peer_id, kResponsesCacheExpirationTimeout);
+        self->reputation_repository_->changeForATime(
+            peer_id,
+            reputation::cost::DUPLICATE_BLOCK_REQUEST,
+            kResponsesCacheExpirationTimeout);
         stream->reset();
         return;
       }

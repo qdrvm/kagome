@@ -21,10 +21,12 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
 
+namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+  class ConsistencyKeeper;
+}  // namespace kagome::consensus::babe
+
 namespace kagome::consensus {
-  namespace babe {
-    class ConsistencyKeeper;
-  }
 
   class BlockAppenderImpl
       : public BlockAppender,
@@ -34,7 +36,7 @@ namespace kagome::consensus {
 
     BlockAppenderImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<primitives::BabeConfiguration> configuration,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<BlockValidator> block_validator,
         std::shared_ptr<grandpa::Environment> grandpa_environment,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -51,7 +53,7 @@ namespace kagome::consensus {
 
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;
     std::shared_ptr<crypto::Hasher> hasher_;

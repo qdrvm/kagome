@@ -877,6 +877,11 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
+    if (auto ctx_opt = GrandpaContext::get()) {
+      const auto &ctx = ctx_opt.value();
+      ctx->checked_signature_counter++;
+    }
+
     bool isValid = vote_crypto_provider_->verifyPrimaryPropose(proposal);
     if (not isValid) {
       logger_->warn(
@@ -884,7 +889,21 @@ namespace kagome::consensus::grandpa {
           "invalid signature",
           round_number_,
           proposal.id);
+
+      if (auto ctx_opt = GrandpaContext::get()) {
+        const auto &ctx = ctx_opt.value();
+        ctx->invalid_signature_counter++;
+      }
+
       return;
+    }
+
+    auto result = voter_set_->indexAndWeight(proposal.id);
+    if (result == outcome::failure(VoterSet::Error::VOTER_NOT_FOUND)) {
+      if (auto ctx_opt = GrandpaContext::get()) {
+        const auto &ctx = ctx_opt.value();
+        ctx->unknown_voter_counter++;
+      }
     }
 
     SL_DEBUG(logger_,
@@ -899,7 +918,7 @@ namespace kagome::consensus::grandpa {
       // Check if node hasn't block
       auto res = env_->hasBlock(proposal.getBlockHash());
       if (res.has_value() and not res.value()) {
-        if (auto ctx_opt = GrandpaContext::get()) {
+        if (auto ctx_opt = GrandpaContext::get(); ctx_opt.has_value()) {
           auto ctx = ctx_opt.value();
           ctx->missing_blocks.emplace(proposal.getBlockInfo());
         }
@@ -921,12 +940,23 @@ namespace kagome::consensus::grandpa {
 
   bool VotingRoundImpl::onPrevote(const SignedMessage &prevote,
                                   Propagation propagation) {
+    if (auto ctx_opt = GrandpaContext::get()) {
+      const auto &ctx = ctx_opt.value();
+      ctx->checked_signature_counter++;
+    }
+
     bool isValid = vote_crypto_provider_->verifyPrevote(prevote);
     if (not isValid) {
       logger_->warn(
           "Round #{}: Prevote signed by {} was rejected: invalid signature",
           round_number_,
           prevote.id);
+
+      if (auto ctx_opt = GrandpaContext::get()) {
+        const auto &ctx = ctx_opt.value();
+        ctx->invalid_signature_counter++;
+      }
+
       return false;
     }
 
@@ -937,6 +967,12 @@ namespace kagome::consensus::grandpa {
       if (result
           == outcome::failure(VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR)) {
         return false;
+      }
+      if (result == outcome::failure(VoterSet::Error::VOTER_NOT_FOUND)) {
+        if (auto ctx_opt = GrandpaContext::get()) {
+          const auto &ctx = ctx_opt.value();
+          ctx->unknown_voter_counter++;
+        }
       }
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
         logger_->warn("Round #{}: Prevote signed by {} was rejected: {}",
@@ -975,6 +1011,11 @@ namespace kagome::consensus::grandpa {
 
   bool VotingRoundImpl::onPrecommit(const SignedMessage &precommit,
                                     Propagation propagation) {
+    if (auto ctx_opt = GrandpaContext::get()) {
+      const auto &ctx = ctx_opt.value();
+      ctx->checked_signature_counter++;
+    }
+
     bool isValid = vote_crypto_provider_->verifyPrecommit(precommit);
     if (not isValid) {
       logger_->warn(
@@ -982,6 +1023,12 @@ namespace kagome::consensus::grandpa {
           "invalid signature",
           round_number_,
           precommit.id);
+
+      if (auto ctx_opt = GrandpaContext::get()) {
+        const auto &ctx = ctx_opt.value();
+        ctx->invalid_signature_counter++;
+      }
+
       return false;
     }
 
