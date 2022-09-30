@@ -43,9 +43,9 @@ namespace kagome::authority_discovery {
 
     bool start();
 
-   private:
     outcome::result<void> publishOwnAddress();
 
+   private:
     std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api_;
     network::Roles roles_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
