@@ -24,6 +24,7 @@
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "network/peer_manager.hpp"
+#include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
 
@@ -64,20 +65,26 @@ namespace kagome::consensus::grandpa {
     /// Maximum number of rounds we are keep to communication
     static const size_t kKeepRecentRounds = 3;
 
+    /// Timeout of waiting catchup response for request
+    static constexpr Clock::Duration kCatchupRequestTimeout =
+        std::chrono::milliseconds(45'000);
+
     ~GrandpaImpl() override = default;
 
-    GrandpaImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
-                std::shared_ptr<Environment> environment,
-                std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
-                std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-                const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
-                const application::ChainSpec &chain_spec,
-                std::shared_ptr<Clock> clock,
-                std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-                std::shared_ptr<authority::AuthorityManager> authority_manager,
-                std::shared_ptr<network::Synchronizer> synchronizer,
-                std::shared_ptr<network::PeerManager> peer_manager,
-                std::shared_ptr<blockchain::BlockTree> block_tree);
+    GrandpaImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<Environment> environment,
+        std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
+        std::shared_ptr<runtime::GrandpaApi> grandpa_api,
+        const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
+        const application::ChainSpec &chain_spec,
+        std::shared_ptr<Clock> clock,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+        std::shared_ptr<authority::AuthorityManager> authority_manager,
+        std::shared_ptr<network::Synchronizer> synchronizer,
+        std::shared_ptr<network::PeerManager> peer_manager,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<network::ReputationRepository> reputation_repository);
 
     /**
      * Prepares for grandpa round execution: e.g. sets justification observer
@@ -220,8 +227,7 @@ namespace kagome::consensus::grandpa {
      * nullopt otherwise
      */
     std::optional<std::shared_ptr<VotingRound>> selectRound(
-        RoundNumber round_number,
-        std::optional<VoterSetId> voter_set_id);
+        RoundNumber round_number, std::optional<VoterSetId> voter_set_id);
 
     /**
      * @return Get grandpa::MovableRoundState for the last completed round
@@ -255,8 +261,6 @@ namespace kagome::consensus::grandpa {
 
     const Clock::Duration round_time_factor_;
 
-    std::shared_ptr<VotingRound> current_round_;
-
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
@@ -267,12 +271,18 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<network::ReputationRepository> reputation_repository_;
+
+    std::shared_ptr<VotingRound> current_round_;
+    std::optional<
+        const std::tuple<libp2p::peer::PeerId, network::CatchUpRequest>>
+        pending_catchup_request_;
+    libp2p::basic::Scheduler::Handle catchup_request_timer_handle_;
+    libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_highest_round_;
-
-    libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
   };

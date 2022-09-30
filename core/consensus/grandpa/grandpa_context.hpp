@@ -42,6 +42,9 @@ namespace kagome::consensus::grandpa {
     std::optional<const network::FullCommitMessage> commit{};
     std::set<primitives::BlockInfo, std::greater<primitives::BlockInfo>>
         missing_blocks{};
+    size_t checked_signature_counter = 0;
+    size_t invalid_signature_counter = 0;
+    size_t unknown_voter_counter = 0;
 
     static void set(std::shared_ptr<GrandpaContext> context) {
       auto &opt = instance();

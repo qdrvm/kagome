@@ -9,6 +9,7 @@
 #include "common/mp_utils.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/validation/prepare_transcript.hpp"
+#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -16,6 +17,7 @@
 using namespace kagome;
 using namespace crypto;
 using namespace consensus;
+using namespace babe;
 using namespace common;
 using namespace primitives;
 
@@ -35,17 +37,21 @@ struct BabeLotteryTest : public testing::Test {
 
   std::shared_ptr<VRFProviderMock> vrf_provider_ =
       std::make_shared<VRFProviderMock>();
-  std::shared_ptr<BabeConfiguration> babe_config_ =
-      std::make_shared<BabeConfiguration>(BabeConfiguration{
-          .epoch_length = 3,
-          .leadership_rate = {},
-          .genesis_authorities = {},
-          .randomness = {},
-          .allowed_slots = {},
-      });
+
+  BabeConfiguration babe_config_{
+      .epoch_length = 3,
+      .leadership_rate = {},
+      .genesis_authorities = {},
+      .randomness = {},
+      .allowed_slots = {},
+  };
+
+  std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_ =
+      std::make_shared<BabeConfigRepositoryMock>();
+
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
 
-  BabeLotteryImpl lottery_{vrf_provider_, babe_config_, hasher_};
+  BabeLotteryImpl lottery_{vrf_provider_, babe_config_repo_, hasher_};
 
   EpochDescriptor current_epoch_;
 
@@ -72,7 +78,7 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   vrf_outputs.push_back({uint256_to_le_bytes(3749373), {}});
   vrf_outputs.push_back({uint256_to_le_bytes(1057472095), {}});
 
-  for (size_t i = 0; i < babe_config_->epoch_length; ++i) {
+  for (size_t i = 0; i < babe_config_.epoch_length; ++i) {
     primitives::Transcript transcript;
     prepareTranscript(transcript, randomness_, i, current_epoch_.epoch_number);
 

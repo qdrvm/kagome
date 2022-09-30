@@ -74,6 +74,7 @@ groups:
           - name: telemetry
           - name: network
             children:
+              - name: reputation
               - name: synchronizer
               - name: kagome_protocols
                 children:

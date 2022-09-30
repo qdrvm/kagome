@@ -114,9 +114,7 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
   EXPECT_CALL(*storage, contains(_)).WillOnce(Return(outcome::success(true)));
   EXPECT_CALL(*storage, tryLoad(_))
       // trying to get header of block number 0 (genesis block)
-      .WillOnce(Return(Buffer{genesis_block_hash}))
-      // trying leaves of block tree
-      .WillOnce(Return(Buffer{}));
+      .WillOnce(Return(Buffer{genesis_block_hash}));
 
   ASSERT_OUTCOME_SUCCESS_TRY(
       BlockStorageImpl::create(root_hash, storage, hasher));

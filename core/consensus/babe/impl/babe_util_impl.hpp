@@ -12,12 +12,16 @@
 #include "primitives/babe_configuration.hpp"
 #include "storage/buffer_map_types.hpp"
 
+namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+}
+
 namespace kagome::consensus {
 
   class BabeUtilImpl final : public BabeUtil {
    public:
     BabeUtilImpl(
-        std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         const BabeClock &clock);
 
     BabeSlotNumber syncEpoch(
@@ -39,7 +43,7 @@ namespace kagome::consensus {
    private:
     BabeSlotNumber getFirstBlockSlotNumber();
 
-    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
     const BabeClock &clock_;
 
     std::optional<BabeSlotNumber> first_block_slot_number_;

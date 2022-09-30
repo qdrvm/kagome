@@ -15,6 +15,7 @@
 #include <libp2p/host/host.hpp>
 #include <libp2p/peer/stream_protocols.hpp>
 
+#include "network/helpers/stream_read_buffer.hpp"
 #include "utils/box.hpp"
 #include "utils/non_copyable.hpp"
 
@@ -44,6 +45,7 @@ namespace kagome::network {
       host_.setProtocolHandler(
           protocols_,
           [log{logger()}, wp(std::move(wptr))](auto &&stream_and_proto) {
+            network::streamReadBuffer(stream_and_proto);
             if (auto peer_id = stream_and_proto.stream->remotePeerId()) {
               SL_TRACE(log,
                        "Handled {} protocol stream from: {}",
