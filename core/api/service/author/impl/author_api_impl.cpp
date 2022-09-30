@@ -25,6 +25,12 @@
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
+  const std::vector<crypto::KnownKeyTypeId> kKeyTypes{
+      crypto::KEY_TYPE_BABE,
+      crypto::KEY_TYPE_GRAN,
+      crypto::KEY_TYPE_AUDI,
+  };
+
   AuthorApiImpl::AuthorApiImpl(sptr<runtime::SessionKeysApi> key_api,
                                sptr<transaction_pool::TransactionPool> pool,
                                sptr<crypto::CryptoStore> store,
@@ -63,11 +69,15 @@ namespace kagome::api {
       crypto::KeyTypeId key_type,
       const gsl::span<const uint8_t> &seed,
       const gsl::span<const uint8_t> &public_key) {
-    if (not(crypto::KEY_TYPE_BABE == key_type)
-        && not(crypto::KEY_TYPE_GRAN == key_type)
-        && not(crypto::KEY_TYPE_AUDI == key_type)) {
-      SL_INFO(logger_,
-              "Unsupported key type, only AUDI, BABE and GRAN are accepted");
+    if (std::find(kKeyTypes.begin(), kKeyTypes.end(), key_type)
+        == kKeyTypes.end()) {
+      std::string types;
+      for (auto &type : kKeyTypes) {
+        types.append(encodeKeyTypeIdToStr(type));
+        types.push_back(' ');
+      }
+      types.pop_back();
+      SL_INFO(logger_, "Unsupported key type, only [{}] are accepted", types);
       return outcome::failure(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
     };
     if (crypto::KEY_TYPE_BABE == key_type && keys_->getBabeKeyPair()) {

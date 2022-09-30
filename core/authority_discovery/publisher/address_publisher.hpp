@@ -20,6 +20,10 @@
 #include <memory>
 
 namespace kagome::authority_discovery {
+  /**
+   * Publishes listening addresses for authority discovery.
+   * Authority discovery public key is used for Kademlia DHT key.
+   */
   class AddressPublisher
       : public std::enable_shared_from_this<AddressPublisher> {
    public:
@@ -31,8 +35,8 @@ namespace kagome::authority_discovery {
         std::shared_ptr<crypto::SessionKeys> keys,
         const libp2p::crypto::KeyPair &libp2p_key,
         const libp2p::crypto::marshaller::KeyMarshaller &key_marshaller,
-        std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
-        std::shared_ptr<crypto::Sr25519Provider> crypto_provider2,
+        std::shared_ptr<crypto::Ed25519Provider> ed_crypto_provider,
+        std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
         libp2p::Host &host,
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
@@ -48,8 +52,8 @@ namespace kagome::authority_discovery {
 
     std::shared_ptr<crypto::SessionKeys> keys_;
 
-    std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
-    std::shared_ptr<crypto::Sr25519Provider> crypto_provider2_;
+    std::shared_ptr<crypto::Ed25519Provider> ed_crypto_provider_;
+    std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider_;
 
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;

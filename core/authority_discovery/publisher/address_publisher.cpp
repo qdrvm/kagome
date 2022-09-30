@@ -29,8 +29,8 @@ namespace kagome::authority_discovery {
       std::shared_ptr<crypto::SessionKeys> keys,
       const libp2p::crypto::KeyPair &libp2p_key,
       const libp2p::crypto::marshaller::KeyMarshaller &key_marshaller,
-      std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
-      std::shared_ptr<crypto::Sr25519Provider> crypto_provider2,
+      std::shared_ptr<crypto::Ed25519Provider> ed_crypto_provider,
+      std::shared_ptr<crypto::Sr25519Provider> sr_crypto_provider,
       libp2p::Host &host,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
@@ -38,12 +38,20 @@ namespace kagome::authority_discovery {
         roles_(roles),
         block_tree_(std::move(block_tree)),
         keys_(std::move(keys)),
-        crypto_provider_(std::move(crypto_provider)),
-        crypto_provider2_(std::move(crypto_provider2)),
+        ed_crypto_provider_(std::move(ed_crypto_provider)),
+        sr_crypto_provider_(std::move(sr_crypto_provider)),
         host_(host),
         kademlia_(std::move(kademlia)),
         scheduler_(std::move(scheduler)),
         log_{log::createLogger("AddressPublisher")} {
+    BOOST_ASSERT(authority_discovery_api_ != nullptr);
+    BOOST_ASSERT(app_state_manager != nullptr);
+    BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(keys_ != nullptr);
+    BOOST_ASSERT(ed_crypto_provider_ != nullptr);
+    BOOST_ASSERT(sr_crypto_provider_ != nullptr);
+    BOOST_ASSERT(kademlia_ != nullptr);
+    BOOST_ASSERT(scheduler_ != nullptr);
     app_state_manager->atLaunch([=] { return start(); });
     if (libp2p_key.privateKey.type == libp2p::crypto::Key::Type::Ed25519) {
       libp2p_key_.emplace(crypto::Ed25519Keypair{
@@ -68,7 +76,7 @@ namespace kagome::authority_discovery {
     if (not roles_.flags.authority) {
       return true;
     }
-    // TODO(ortyomka): run in scheduler with some interval
+    // TODO(ortyomka): #1358, republish in scheduler with some interval
     auto maybe_error = publishOwnAddress();
     if (maybe_error.has_error()) {
       SL_ERROR(log_, "publishOwnAddress failed: {}", maybe_error.error());
@@ -78,9 +86,9 @@ namespace kagome::authority_discovery {
 
   outcome::result<void> AddressPublisher::publishOwnAddress() {
     auto addresses = host_.getAddresses();
-    // TODO(turuslan): filter local addresses
+    // TODO(turuslan): #1357, filter local addresses
     if (addresses.empty()) {
-      SL_ERROR(log_, "No addresses");
+      SL_ERROR(log_, "No listening addresses");
       return outcome::success();
     }
 
@@ -106,8 +114,9 @@ namespace kagome::authority_discovery {
     }
 
     auto record_pb = pbEncodeVec(record);
-    OUTCOME_TRY(signature, crypto_provider_->sign(*libp2p_key_, record_pb));
-    OUTCOME_TRY(auth_signature, crypto_provider2_->sign(*audi_key, record_pb));
+    OUTCOME_TRY(signature, ed_crypto_provider_->sign(*libp2p_key_, record_pb));
+    OUTCOME_TRY(auth_signature,
+                sr_crypto_provider_->sign(*audi_key, record_pb));
 
     ::authority_discovery::v2::SignedAuthorityRecord signed_record;
     PB_SPAN_SET(signed_record, auth_signature, auth_signature);
