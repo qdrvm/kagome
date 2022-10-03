@@ -44,7 +44,7 @@ namespace kagome::consensus {
       return slot_assignment_type == SlotType::Primary;
     }
 
-    bool needAuthorCheck() const {
+    bool isProducedInSecondarySlot() const {
       return slot_assignment_type == SlotType::SecondaryPlain
              or slot_assignment_type == SlotType::SecondaryVRF;
     }

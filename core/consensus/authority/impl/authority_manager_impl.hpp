@@ -39,6 +39,11 @@ namespace kagome::storage::trie {
 }
 
 namespace kagome::authority {
+
+  struct ScheduledChangeEntry;
+  template<typename> struct ForkTree;
+  using ScheduleTree = ForkTree<ScheduledChangeEntry>;
+
   class AuthorityManagerImpl : public AuthorityManager,
                                public AuthorityUpdateObserver {
    public:
@@ -63,7 +68,7 @@ namespace kagome::authority {
         std::shared_ptr<storage::BufferStorage> persistent_storage,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
 
-    ~AuthorityManagerImpl() override = default;
+    ~AuthorityManagerImpl() override;
 
     outcome::result<void> recalculateStoredState(
         primitives::BlockNumber last_finalized_number) override;
@@ -132,8 +137,21 @@ namespace kagome::authority {
     void reorganize(std::shared_ptr<ScheduleNode> node,
                     std::shared_ptr<ScheduleNode> new_node);
 
+
+    ScheduleTree *findClosestAncestor(
+        ScheduleTree &current,
+        primitives::BlockInfo const &block) const;
+
+    ScheduleTree const *findClosestAncestor(
+        ScheduleTree const &current,
+        primitives::BlockInfo const &block) const;
+
+    std::unique_ptr<ScheduleTree> scheduled_changes_;
+    primitives::AuthoritySet current_set_;
+    primitives::BlockInfo current_block_;
+
     Config config_;
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Hasher> hasher_;

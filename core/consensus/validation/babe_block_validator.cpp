@@ -70,14 +70,16 @@ namespace kagome::consensus {
 
     // @see
     // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/client/consensus/babe/src/verification.rs#L111
-    if (babe_header.needAuthorCheck()) {
-      if ((not babe_header.needVRFCheck()
-           and configuration_->allowed_slots
-                   != primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots)
-          or (babe_header.needVRFCheck()
-              and configuration_->allowed_slots
-                      != primitives::AllowedSlots::
-                          PrimaryAndSecondaryVRFSlots)) {
+    if (babe_header.isProducedInSecondarySlot()) {
+      bool plainAndAllowed =
+          babe_header.slotType() == SlotType::SecondaryPlain
+          && configuration_->allowed_slots
+                 == primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots;
+      bool vrfAndAllowed =
+          babe_header.slotType() == SlotType::SecondaryVRF
+          && configuration_->allowed_slots
+                 == primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots;
+      if (!plainAndAllowed and !vrfAndAllowed) {
         SL_WARN(log_, "Secondary slots assignments disabled");
         return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
       }

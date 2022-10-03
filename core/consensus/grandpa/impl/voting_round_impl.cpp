@@ -782,8 +782,13 @@ namespace kagome::consensus::grandpa {
               signed_precommit.id, signed_precommit.getBlockHash());
           success) {
         // New vote
+        auto weight_opt = voter_set_->voterWeight(signed_precommit.id);
+        if (!weight_opt) {
+          SL_DEBUG(logger_, "Voter {} is not in the current voter set", signed_precommit.id.toHex());
+          continue;
+        }
         if (env_->hasAncestry(vote.hash, signed_precommit.getBlockHash())) {
-          total_weight += voter_set_->voterWeight(signed_precommit.id).value();
+          total_weight += weight_opt.value();
         } else {
           SL_DEBUG(logger_,
                    "Vote does not have ancestry with target block: "
@@ -1093,6 +1098,7 @@ namespace kagome::consensus::grandpa {
     // Check if voter is contained in current voter set
     auto index_and_weight_opt = voter_set_->indexAndWeight(vote.id);
     if (!index_and_weight_opt) {
+      SL_DEBUG(logger_, "Voter {} is not in the current voter set", vote.id.toHex());
       return VotingRoundError::UNKNOWN_VOTER;
     }
     const auto &[index, weight] = index_and_weight_opt.value();

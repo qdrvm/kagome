@@ -853,13 +853,16 @@ namespace kagome::consensus::grandpa {
           return VotingRoundError::JUSTIFICATION_FOR_AUTHORITY_SET_IN_PAST;
         }
         if (authority_set->id == current_round_->voterSetId()
-                && justification.round_number
-                       < current_round_->roundNumber()) {
+            && justification.round_number < current_round_->roundNumber()) {
           return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
         }
 
         if (authority_set->id > current_round_->voterSetId() + 1) {
-          return VotingRoundError::WRONG_ORDER_OF_VOTER_SET_ID;
+          SL_WARN(logger_,
+                  "Authority set on block {} with justification has id {}, "
+                  "while the current round set id is {} (difference must be 1)",
+                  block_info, authority_set->id, current_round_->voterSetId());
+          //return VotingRoundError::WRONG_ORDER_OF_VOTER_SET_ID;
         }
 
         auto voters = std::make_shared<VoterSet>(authority_set->id);

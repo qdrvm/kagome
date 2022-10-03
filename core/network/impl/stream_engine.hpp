@@ -485,7 +485,7 @@ namespace kagome::network {
               }
 
               if (!stream_res) {
-                self->logger_->error(
+                self->logger_->debug(
                     "Could not send message to new {} stream with {}: {}",
                     protocol->protocol(),
                     peer_id,
