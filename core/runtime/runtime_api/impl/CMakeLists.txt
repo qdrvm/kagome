@@ -5,6 +5,8 @@ kagome_install(core_api)
 
 add_library(account_nonce_api account_nonce_api.cpp)
 target_link_libraries(account_nonce_api executor)
+add_library(authority_discovery_api authority_discovery_api.cpp)
+target_link_libraries(authority_discovery_api executor)
 add_library(babe_api babe_api.cpp)
 target_link_libraries(babe_api executor)
 add_library(block_builder_api block_builder.cpp)

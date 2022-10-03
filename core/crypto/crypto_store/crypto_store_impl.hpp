@@ -29,6 +29,7 @@ namespace kagome::crypto {
     KEY_NOT_FOUND,
     BABE_ALREADY_EXIST,
     GRAN_ALREADY_EXIST,
+    AUDI_ALREADY_EXIST,
     WRONG_PUBLIC_KEY,
   };
 

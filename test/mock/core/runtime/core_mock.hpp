@@ -30,11 +30,6 @@ namespace kagome::runtime {
                 initialize_block,
                 (const primitives::BlockHeader &),
                 (override));
-
-    MOCK_METHOD(outcome::result<std::vector<primitives::AuthorityId>>,
-                authorities,
-                (const primitives::BlockHash &),
-                (override));
   };
 }  // namespace kagome::runtime
 
