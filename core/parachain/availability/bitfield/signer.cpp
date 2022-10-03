@@ -57,7 +57,7 @@ namespace kagome::parachain {
   }
 
   outcome::result<void> BitfieldSigner::sign(const ValidatorSigner &signer) {
-    auto &relay_parent = signer.context().relay_parent;
+    auto &relay_parent = signer.relayParent();
     scale::BitVec bitfield;
     OUTCOME_TRY(cores, parachain_api_->availability_cores(relay_parent));
     bitfield.bits.reserve(cores.size());

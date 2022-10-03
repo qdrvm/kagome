@@ -14,6 +14,7 @@
 
 #include "common/blob.hpp"
 #include "consensus/grandpa/common.hpp"
+#include "crypto/hasher.hpp"
 #include "primitives/common.hpp"
 #include "primitives/compact_integer.hpp"
 #include "primitives/digest.hpp"
@@ -246,6 +247,28 @@ namespace kagome::network {
                                      ViewUpdate        /// view update message
                                      >;
 
+  inline CandidateHash candidateHash(const crypto::Hasher &hasher,
+                                     const CandidateReceipt &receipt) {
+    return hasher.blake2b_256(scale::encode(receipt).value());
+  }
+
+  inline CandidateHash candidateHash(const crypto::Hasher &hasher,
+                                     const CommittedCandidateReceipt &receipt) {
+    return candidateHash(
+        hasher,
+        CandidateReceipt{
+            receipt.descriptor,
+            hasher.blake2b_256(scale::encode(receipt.commitments).value()),
+        });
+  }
+
+  inline CandidateHash candidateHash(const crypto::Hasher &hasher,
+                                     const CandidateState &statement) {
+    if (auto receipt = boost::get<CommittedCandidateReceipt>(&statement)) {
+      return candidateHash(hasher, *receipt);
+    }
+    return boost::get<CandidateHash>(statement);
+  }
 }  // namespace kagome::network
 
 #endif  // KAGOME_COLLATOR_DECLARE_HPP
