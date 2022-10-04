@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(api)
+add_subdirectory(authority_discovery)
 add_subdirectory(authorship)
 add_subdirectory(application)
 add_subdirectory(blockchain)

@@ -46,6 +46,7 @@
 #include "application/impl/chain_spec_impl.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
+#include "authority_discovery/publisher/address_publisher.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
@@ -125,6 +126,7 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
+#include "runtime/runtime_api/impl/authority_discovery_api.hpp"
 #include "runtime/runtime_api/impl/babe_api.hpp"
 #include "runtime/runtime_api/impl/block_builder.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
@@ -644,6 +646,9 @@ namespace {
 
     protocol_factory->setPeerManager(peer_manager);
 
+    static auto address_publisher =
+        injector.template create<sptr<authority_discovery::AddressPublisher>>();
+
     initialized.emplace(std::move(peer_manager));
     return initialized.value();
   }
@@ -921,6 +926,7 @@ namespace {
         di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderImpl>(),
         di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
+        di::bind<runtime::AuthorityDiscoveryApi>.template to<runtime::AuthorityDiscoveryApiImpl>(),
         di::bind<runtime::SingleModuleCache>.template to<runtime::SingleModuleCache>(),
         std::forward<Ts>(args)...);
   }

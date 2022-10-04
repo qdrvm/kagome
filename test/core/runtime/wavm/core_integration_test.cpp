@@ -85,13 +85,3 @@ TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
 
   ASSERT_TRUE(core_->initialize_block(header));
 }
-
-/**
- * @given initialized core api
- * @when authorities is invoked
- * @then successful result is returned
- */
-TEST_F(CoreTest, DISABLED_AuthoritiesTest) {
-  BlockHash block_hash = "block_hash"_hash256;
-  ASSERT_TRUE(core_->authorities(block_hash));
-}

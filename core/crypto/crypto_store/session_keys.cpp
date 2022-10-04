@@ -45,4 +45,16 @@ namespace kagome::crypto {
     }
     return para_key_pair_;
   }
+
+  const std::shared_ptr<Sr25519Keypair> &SessionKeys::getAudiKeyPair() {
+    if (!audi_key_pair_ && roles_.flags.authority) {
+      auto keys = store_->getSr25519PublicKeys(KEY_TYPE_AUDI);
+      if (keys and not keys.value().empty()) {
+        auto kp = store_->findSr25519Keypair(KEY_TYPE_AUDI, keys.value().at(0));
+        audi_key_pair_ = std::make_shared<Sr25519Keypair>(kp.value());
+      }
+    }
+    return audi_key_pair_;
+  }
+
 }  // namespace kagome::crypto
