@@ -404,16 +404,17 @@ namespace kagome::network {
 
   void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
+    if (peer_id == own_peer_info_.id) {
+      return;
+    }
     if (it != active_peers_.end()) {
       SL_DEBUG(log_, "Disconnect from peer {}", peer_id);
       stream_engine_->del(peer_id);
+      peer_states_.erase(peer_id);
+      host_.disconnect(peer_id);
       active_peers_.erase(it);
       sync_peer_num_->set(active_peers_.size());
       SL_DEBUG(log_, "Remained {} active peers", active_peers_.size());
-    }
-    if (peer_id != own_peer_info_.id) {
-      peer_states_.erase(peer_id);
-      host_.disconnect(peer_id);
     }
   }
 
