@@ -45,7 +45,11 @@ namespace kagome::runtime {
 }
 
 namespace kagome::consensus::babe {
+  class BabeConfigRepository;
   class ConsistencyKeeper;
+}  // namespace kagome::consensus::babe
+
+namespace kagome::consensus::babe {
 
   inline const auto kTimestampId =
       primitives::InherentIdentifier::fromString("timstap0").value();
@@ -65,25 +69,26 @@ namespace kagome::consensus::babe {
     /**
      * Create an instance of Babe implementation
      */
-    BabeImpl(const application::AppConfiguration &app_config,
-             std::shared_ptr<application::AppStateManager> app_state_manager,
-             std::shared_ptr<BabeLottery> lottery,
-             std::shared_ptr<primitives::BabeConfiguration> configuration,
-             std::shared_ptr<authorship::Proposer> proposer,
-             std::shared_ptr<blockchain::BlockTree> block_tree,
-             std::shared_ptr<network::BlockAnnounceTransmitter>
-                 block_announce_transmitter,
-             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-             const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
-             std::shared_ptr<clock::SystemClock> clock,
-             std::shared_ptr<crypto::Hasher> hasher,
-             std::unique_ptr<clock::Timer> timer,
-             std::shared_ptr<authority::AuthorityUpdateObserver>
-                 authority_update_observer,
-             std::shared_ptr<network::Synchronizer> synchronizer,
-             std::shared_ptr<BabeUtil> babe_util,
-             std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-             std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper);
+    BabeImpl(
+        const application::AppConfiguration &app_config,
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<BabeLottery> lottery,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+        std::shared_ptr<authorship::Proposer> proposer,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<network::BlockAnnounceTransmitter>
+            block_announce_transmitter,
+        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+        const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
+        std::shared_ptr<clock::SystemClock> clock,
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::unique_ptr<clock::Timer> timer,
+        std::shared_ptr<authority::AuthorityUpdateObserver>
+            authority_update_observer,
+        std::shared_ptr<network::Synchronizer> synchronizer,
+        std::shared_ptr<BabeUtil> babe_util,
+        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+        std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper);
 
     ~BabeImpl() override = default;
 
@@ -159,7 +164,7 @@ namespace kagome::consensus::babe {
 
     const application::AppConfiguration &app_config_;
     std::shared_ptr<BabeLottery> lottery_;
-    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<network::BlockAnnounceTransmitter>

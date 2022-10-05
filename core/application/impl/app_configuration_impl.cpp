@@ -950,7 +950,8 @@ namespace kagome::application {
           });
     }
 
-    save_node_key_ = vm.count("save-node-key") != 0;
+    find_argument<bool>(
+        vm, "save-node-key", [&](bool val) { save_node_key_ = val; });
 
     find_argument<uint16_t>(vm, "port", [&](uint16_t val) { p2p_port_ = val; });
 

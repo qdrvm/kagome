@@ -55,26 +55,6 @@ namespace kagome::blockchain {
       OUTCOME_TRY(block_storage->setBlockTreeLeaves({genesis_block_hash}));
     }
 
-    // Fallback way to init block tree leaves list on existed storage
-    // TODO(xDimon): After deploy of this change, and using on existing DB,
-    //  this code block should be removed
-    if (block_storage->getBlockTreeLeaves()
-        == outcome::failure(BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND)) {
-      using namespace common::literals;
-      OUTCOME_TRY(last_finalized_block_hash_opt,
-                  storage->tryLoad(":kagome:last_finalized_block_hash"_buf));
-      if (not last_finalized_block_hash_opt.has_value()) {
-        return BlockStorageError::FINALIZED_BLOCK_NOT_FOUND;
-      }
-      auto &hash = last_finalized_block_hash_opt.value();
-
-      primitives::BlockHash last_finalized_block_hash;
-      std::copy(hash.begin(), hash.end(), last_finalized_block_hash.begin());
-
-      OUTCOME_TRY(
-          block_storage->setBlockTreeLeaves({last_finalized_block_hash}));
-    }
-
     return block_storage;
   }
 

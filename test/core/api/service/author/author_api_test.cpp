@@ -247,6 +247,9 @@ TEST_F(AuthorApiTest, InsertKeyBabe) {
   EXPECT_CALL(*store, getEd25519PublicKeys(KEY_TYPE_GRAN))
       .Times(1)
       .WillRepeatedly(Return(CryptoStore::Ed25519Keys{}));
+  EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_AUDI))
+      .Times(1)
+      .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
   EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
       .Times(2)
       .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
@@ -259,6 +262,29 @@ TEST_F(AuthorApiTest, InsertKeyBabe) {
 }
 
 /**
+ * @given authority discovery key type with seed and public key
+ * @when insertKey called, all checks passed
+ * @then call succeeds
+ */
+TEST_F(AuthorApiTest, InsertKeyAudi) {
+  EXPECT_CALL(*store, getEd25519PublicKeys(KEY_TYPE_GRAN))
+      .Times(1)
+      .WillRepeatedly(Return(CryptoStore::Ed25519Keys{}));
+  EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_AUDI))
+      .Times(2)
+      .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
+  EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
+      .Times(1)
+      .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
+  Sr25519Seed seed;
+  Sr25519PublicKey public_key;
+  EXPECT_CALL(*store, generateSr25519Keypair(KEY_TYPE_AUDI, seed))
+      .WillOnce(Return(Sr25519Keypair{{}, public_key}));
+  EXPECT_OUTCOME_SUCCESS(
+      res, author_api->insertKey(KEY_TYPE_AUDI, seed, public_key));
+}
+
+/**
  * @given gran key type with seed and public key
  * @when insertKey called, all checks passed
  * @then call succeeds
@@ -267,6 +293,9 @@ TEST_F(AuthorApiTest, InsertKeyGran) {
   EXPECT_CALL(*store, getEd25519PublicKeys(KEY_TYPE_GRAN))
       .Times(2)
       .WillRepeatedly(Return(CryptoStore::Ed25519Keys{}));
+  EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_AUDI))
+      .Times(1)
+      .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
   EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
       .Times(1)
       .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));

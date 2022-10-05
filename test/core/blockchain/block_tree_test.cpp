@@ -19,6 +19,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/justification_storage_policy.hpp"
+#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
@@ -37,6 +38,7 @@ using namespace storage;
 using namespace common;
 using namespace clock;
 using namespace consensus;
+using namespace babe;
 using namespace primitives;
 using namespace blockchain;
 using namespace transaction_pool;
@@ -48,6 +50,7 @@ using prefix::Prefix;
 using testing::_;
 using testing::Invoke;
 using testing::Return;
+using testing::ReturnRef;
 using testing::StrictMock;
 
 namespace kagome::primitives {
@@ -137,12 +140,15 @@ struct BlockTreeTest : public testing::Test {
 
     EXPECT_CALL(*changes_tracker_, onBlockAdded(_)).WillRepeatedly(Return());
 
-    babe_config_ = std::make_shared<primitives::BabeConfiguration>();
-    babe_config_->slot_duration = 60ms;
-    babe_config_->randomness.fill(0);
-    babe_config_->genesis_authorities = {primitives::Authority{{}, 1}};
-    babe_config_->leadership_rate = {1, 4};
-    babe_config_->epoch_length = 2;
+    babe_config_.slot_duration = 60ms;
+    babe_config_.randomness.fill(0);
+    babe_config_.genesis_authorities = {primitives::Authority{{}, 1}};
+    babe_config_.leadership_rate = {1, 4};
+    babe_config_.epoch_length = 2;
+
+    babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
+    ON_CALL(*babe_config_repo_, config())
+        .WillByDefault(ReturnRef(babe_config_));
 
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return(1));
@@ -157,7 +163,7 @@ struct BlockTreeTest : public testing::Test {
                                         extrinsic_event_key_repo,
                                         runtime_core_,
                                         changes_tracker_,
-                                        babe_config_,
+                                        babe_config_repo_,
                                         babe_util_,
                                         justification_storage_policy_)
                       .value();
@@ -253,7 +259,8 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
       std::make_shared<storage::changes_trie::ChangesTrackerMock>();
 
-  std::shared_ptr<primitives::BabeConfiguration> babe_config_;
+  primitives::BabeConfiguration babe_config_;
+  std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;
 
   std::shared_ptr<JustificationStoragePolicyMock>
@@ -683,36 +690,6 @@ TEST_F(BlockTreeTest, TreeNode_applyToChain_exitTokenWorks) {
 
 /**
  * @given block tree with at least three blocks inside
- * @when asking for chain from the lowest block to the closest finalized one
- * @then chain from that block to the last finalized one is returned
- */
-TEST_F(BlockTreeTest, GetChainByBlockOnly) {
-  // GIVEN
-  BlockHeader header1{.parent_hash = kFinalizedBlockInfo.hash,
-                      .number = kFinalizedBlockInfo.number + 1,
-                      .digest = {PreRuntime{}}};
-  BlockBody body1{{Buffer{0x55, 0x55}}};
-  Block block1{header1, body1};
-  auto hash1 = addBlock(block1);
-
-  BlockHeader header2{.parent_hash = hash1,
-                      .number = header1.number + 1,
-                      .digest = {Consensus{}}};
-  BlockBody body2{{Buffer{0x55, 0x55}}};
-  Block block2{header2, body2};
-  auto hash2 = addBlock(block2);
-
-  std::vector<BlockHash> expected_chain{kFinalizedBlockInfo.hash, hash1, hash2};
-
-  // WHEN
-  ASSERT_OUTCOME_SUCCESS(chain, block_tree_->getChainByBlock(hash2))
-
-  // THEN
-  ASSERT_EQ(chain, expected_chain);
-}
-
-/**
- * @given block tree with at least three blocks inside
  * @when asking for chain from the given block to top
  * @then expected chain is returned
  */
@@ -768,7 +745,7 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   EXPECT_CALL(*header_repo_, getBlockHeader({kFinalizedBlockInfo.hash}))
       .WillOnce(Return(BlockTreeError::HEADER_NOT_FOUND));
 
-  std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockInfo.hash};
+  std::vector<BlockHash> expected_chain{hash2, hash1};
 
   // WHEN
   ASSERT_OUTCOME_SUCCESS(chain,

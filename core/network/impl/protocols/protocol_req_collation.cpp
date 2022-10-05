@@ -27,8 +27,7 @@ namespace kagome::network {
             ScaleMessageReadWriter>{host,
                                     kReqCollationProtocol,
                                     "ReqCollationProtocol"},
-          observer_{std::move(observer)},
-          app_config_{app_config} {}
+          observer_{std::move(observer)} {}
 
    protected:
     outcome::result<CollationFetchingResponse> onRxRequest(
@@ -46,7 +45,6 @@ namespace kagome::network {
 
    private:
     std::shared_ptr<ReqCollationObserver> observer_;
-    application::AppConfiguration const &app_config_;
   };
 
   ReqCollationProtocol::ReqCollationProtocol(

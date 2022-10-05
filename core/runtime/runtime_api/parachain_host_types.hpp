@@ -6,8 +6,11 @@
 #ifndef KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP
 #define KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP
 
+#include <scale/bitvec.hpp>
+
 #include "common/blob.hpp"
 #include "common/unused.hpp"
+#include "primitives/authority_discovery_id.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 #include "primitives/parachain_host.hpp"
@@ -24,7 +27,6 @@ namespace kagome::runtime {
   using CollatorSignature = common::Hash256;
   using ValidationCodeHash = common::Hash256;
   using BlockNumber = primitives::BlockNumber;
-  using Bitvec = std::vector<bool>;
   using CandidateHash = common::Hash256;
   using HeadData = Buffer;
   using GroupRotatePeriod = uint32_t;
@@ -86,7 +88,7 @@ namespace kagome::runtime {
     /// A bitfield with 1 bit for each validator in the set. `1` bits mean that
     /// the corresponding validators has attested to availability on-chain. A
     /// 2/3+ majority of `1` bits means that this will be available.
-    Bitvec availability;
+    scale::BitVec availability;
     /// The group assigned to distribute availability pieces of this candidate.
     GroupIndex group_responsible;
     /// The hash of the candidate occupying the core.
@@ -186,7 +188,6 @@ namespace kagome::runtime {
       >;
 
   using ValidatorIndex = uint32_t;
-  using AuthorityDiscoveryId = common::Hash256;
   using AssignmentId = common::Blob<32>;
   struct SessionInfo {
     /****** New in v2 *******/
@@ -216,7 +217,7 @@ namespace kagome::runtime {
     /// found. This is any authorities not participating in parachain consensus
     /// - see
     /// [`max_validators`](https://github.com/paritytech/polkadot/blob/a52dca2be7840b23c19c153cf7e110b1e3e475f8/runtime/parachains/src/configuration.rs#L148)
-    std::vector<AuthorityDiscoveryId> discovery_keys;
+    std::vector<primitives::AuthorityDiscoveryId> discovery_keys;
     /// The assignment keys for validators.
     ///
     /// NOTE: There might be more authorities in the current session, than

@@ -35,9 +35,6 @@ namespace kagome::runtime {
     outcome::result<storage::trie::RootHash> initialize_block(
         const primitives::BlockHeader &header) override;
 
-    outcome::result<std::vector<primitives::AuthorityId>> authorities(
-        const primitives::BlockHash &block_hash) override;
-
    private:
     std::shared_ptr<Executor> executor_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;

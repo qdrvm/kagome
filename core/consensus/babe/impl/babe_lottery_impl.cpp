@@ -20,7 +20,7 @@ namespace kagome::consensus {
 
   BabeLotteryImpl::BabeLotteryImpl(
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
-      std::shared_ptr<primitives::BabeConfiguration> configuration,
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<crypto::Hasher> hasher)
       : vrf_provider_{std::move(vrf_provider)},
         hasher_{std::move(hasher)},
@@ -28,8 +28,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(logger_);
-    BOOST_ASSERT(configuration);
-    epoch_length_ = configuration->epoch_length;
+    BOOST_ASSERT(babe_config_repo);
     epoch_.epoch_number = std::numeric_limits<uint64_t>::max();
   }
 
@@ -89,43 +88,6 @@ namespace kagome::consensus {
 
     BOOST_ASSERT(res);
     return res.value();
-  }
-
-  Randomness BabeLotteryImpl::computeRandomness(
-      const Randomness &last_epoch_randomness, EpochNumber last_epoch_number) {
-    static std::unordered_set<EpochNumber> computed_epochs_randomnesses{};
-
-    // the function must never be called twice for the same epoch
-    BOOST_ASSERT(computed_epochs_randomnesses.insert(last_epoch_number).second);
-
-    // randomness || epoch_number || rho
-    Buffer new_randomness(
-        vrf_constants::OUTPUT_SIZE + 8 + last_epoch_vrf_values_.size() * 32, 0);
-
-    std::copy(last_epoch_randomness.begin(),
-              last_epoch_randomness.end(),
-              new_randomness.begin());
-
-    auto epoch_number_bytes = common::uint64_to_le_bytes(last_epoch_number);
-    std::copy(epoch_number_bytes.begin(),
-              epoch_number_bytes.end(),
-              new_randomness.begin() + vrf_constants::OUTPUT_SIZE);
-
-    auto new_vrf_value_begin =
-        new_randomness.begin() + vrf_constants::OUTPUT_SIZE + 8;
-    // NOLINTNEXTLINE
-    for (size_t i = 0; i < last_epoch_vrf_values_.size(); ++i) {
-      auto const &value_bytes = last_epoch_vrf_values_[i];
-      std::copy(value_bytes.begin(), value_bytes.end(), new_vrf_value_begin);
-      new_vrf_value_begin += 32;
-    }
-    last_epoch_vrf_values_.clear();
-
-    return hasher_->blake2b_256(new_randomness);
-  }
-
-  void BabeLotteryImpl::submitVRFValue(const crypto::VRFPreOutput &value) {
-    last_epoch_vrf_values_.push_back(value);
   }
 
   std::optional<primitives::AuthorityIndex>

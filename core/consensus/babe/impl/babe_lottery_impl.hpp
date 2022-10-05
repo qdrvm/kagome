@@ -15,12 +15,17 @@
 #include "log/logger.hpp"
 #include "primitives/babe_configuration.hpp"
 
+namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+}
+
 namespace kagome::consensus {
+
   class BabeLotteryImpl : public BabeLottery {
    public:
     BabeLotteryImpl(
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
-        std::shared_ptr<primitives::BabeConfiguration> configuration,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<crypto::Hasher> hasher);
 
     void changeEpoch(const EpochDescriptor &epoch,
@@ -36,11 +41,6 @@ namespace kagome::consensus {
     crypto::VRFOutput slotVrfSignature(
         primitives::BabeSlotNumber slot) const override;
 
-    Randomness computeRandomness(const Randomness &last_epoch_randomness,
-                                 EpochNumber last_epoch_number) override;
-
-    void submitVRFValue(const crypto::VRFPreOutput &value) override;
-
     std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
         primitives::BabeSlotNumber slot,
         primitives::AuthorityListSize authorities_count,
@@ -49,10 +49,7 @@ namespace kagome::consensus {
    private:
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    EpochLength epoch_length_;
 
-    /// also known as "rho" (greek letter) in the spec
-    std::vector<crypto::VRFPreOutput> last_epoch_vrf_values_;
     log::Logger logger_;
 
     EpochDescriptor epoch_;

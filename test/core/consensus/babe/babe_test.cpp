@@ -19,6 +19,7 @@
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/clock/timer_mock.hpp"
 #include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
+#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
@@ -40,6 +41,7 @@
 
 using namespace kagome;
 using namespace consensus;
+using namespace babe;
 using namespace authority;
 using namespace application;
 using namespace blockchain;
@@ -113,13 +115,16 @@ class BabeTest : public testing::Test {
     io_context_ = std::make_shared<boost::asio::io_context>();
 
     // add initialization logic
-    babe_config_ = std::make_shared<primitives::BabeConfiguration>();
-    babe_config_->slot_duration = 60ms;
-    babe_config_->randomness.fill(0);
-    babe_config_->genesis_authorities = {
+    babe_config_.slot_duration = 60ms;
+    babe_config_.randomness.fill(0);
+    babe_config_.genesis_authorities = {
         primitives::Authority{{keypair_->public_key}, 1}};
-    babe_config_->leadership_rate = {1, 4};
-    babe_config_->epoch_length = 2;
+    babe_config_.leadership_rate = {1, 4};
+    babe_config_.epoch_length = 2;
+
+    babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
+    ON_CALL(*babe_config_repo_, config())
+        .WillByDefault(ReturnRef(babe_config_));
 
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
@@ -131,8 +136,8 @@ class BabeTest : public testing::Test {
     consistency_keeper_ = std::make_shared<babe::ConsistencyKeeperMock>();
 
     expected_epoch_digest = {
-        .authorities = babe_config_->genesis_authorities,
-        .randomness = babe_config_->randomness,
+        .authorities = babe_config_.genesis_authorities,
+        .randomness = babe_config_.randomness,
     };
 
     EXPECT_CALL(*block_tree_, getEpochDigest(_, _)).WillRepeatedly([this] {
@@ -152,7 +157,7 @@ class BabeTest : public testing::Test {
     babe_ = std::make_shared<babe::BabeImpl>(app_config_,
                                              app_state_manager_,
                                              lottery_,
-                                             babe_config_,
+                                             babe_config_repo_,
                                              proposer_,
                                              block_tree_,
                                              block_announce_transmitter_,
@@ -200,7 +205,8 @@ class BabeTest : public testing::Test {
   testutil::TimerMock *timer_;
   std::shared_ptr<AuthorityUpdateObserverMock>
       grandpa_authority_update_observer_;
-  std::shared_ptr<primitives::BabeConfiguration> babe_config_;
+  primitives::BabeConfiguration babe_config_;
+  std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;
   std::shared_ptr<runtime::OffchainWorkerApiMock> offchain_worker_api_;
   std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
