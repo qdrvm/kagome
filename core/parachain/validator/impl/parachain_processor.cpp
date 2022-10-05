@@ -85,10 +85,11 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::stop() {
-    BOOST_ASSERT(context_);
-    BOOST_ASSERT(work_guard_);
     work_guard_.reset();
-    context_->stop();
+    if (context_) {
+      context_->stop();
+      context_.reset();
+    }
     for (auto &worker : workers_) {
       if (worker) {
         BOOST_ASSERT(worker->joinable());
