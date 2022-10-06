@@ -520,12 +520,45 @@ namespace kagome::authority {
       return outcome::success();
     };
 
-    /// TODO(Harrm): Should account for finality when fetching an authority set
-    /// for some purposes, but not when scheduling further changes
-    IsBlockFinalized is_ancestor_node_finalized = true;
+    KAGOME_PROFILE_START(is_ancestor_node_finalized)
+    IsBlockFinalized is_ancestor_node_finalized =
+        ancestor_node->current_block == block_tree_->getLastFinalized()
+        or directChainExists(ancestor_node->current_block,
+                             block_tree_->getLastFinalized());
+    KAGOME_PROFILE_END(is_ancestor_node_finalized)
+
+    // maybe_set contains last planned authority set, if present
+    std::optional<std::shared_ptr<const primitives::AuthoritySet>> maybe_set =
+        std::nullopt;
+    if (not is_ancestor_node_finalized) {
+      std::shared_ptr<const ScheduleNode> last_node = ancestor_node;
+      while (last_node and last_node != root_) {
+        if (const auto *action =
+                boost::get<ScheduleNode::ScheduledChange>(&last_node->action);
+            action != nullptr) {
+          if (block.number <= action->applied_block) {
+            // It's mean, that new Scheduled Changes would be scheduled before
+            // previous is activated. So we ignore it
+            return outcome::success();
+          }
+
+          if (action->new_authorities->id
+              > ancestor_node->current_authorities->id) {
+            maybe_set = action->new_authorities;
+          }
+          break;
+        }
+
+        last_node = last_node->parent.lock();
+      }
+    }
 
     if (ancestor_node->current_block == block) {
-      ancestor_node->adjust(is_ancestor_node_finalized);
+      if (maybe_set.has_value()) {
+        ancestor_node->current_authorities = maybe_set.value();
+      } else {
+        ancestor_node->adjust(is_ancestor_node_finalized);
+      }
 
       OUTCOME_TRY(schedule_change(ancestor_node));
     } else {
@@ -533,6 +566,11 @@ namespace kagome::authority {
       auto new_node =
           ancestor_node->makeDescendant(block, is_ancestor_node_finalized);
       KAGOME_PROFILE_END(make_descendant)
+
+      if (maybe_set.has_value()) {
+        new_node->current_authorities = maybe_set.value();
+      }
+
       SL_DEBUG(log_,
                "Make a schedule node for block {}, with actual set id {}",
                block,
