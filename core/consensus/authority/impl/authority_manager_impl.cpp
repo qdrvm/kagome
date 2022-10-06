@@ -325,55 +325,13 @@ namespace kagome::authority {
 
   bool AuthorityManagerImpl::prepare() {
     const auto finalized_block = block_tree_->getLastFinalized();
-
-    auto res = persistent_storage_->tryLoad(storage_key);
+    auto res = initializeAt(finalized_block);
     if (!res) {
       SL_ERROR(log_,
-               "Error loading authority manager root from DB: {}",
+               "Error initializing authority manager: {}",
                res.error().message());
-      return false;
     }
-    auto &root_opt = res.value();
-    if (root_opt) {
-      auto [current_set, scheduled_changes] =
-          scale::decode<std::tuple<primitives::AuthoritySet,
-                                   std::unique_ptr<ScheduleTree>>>(
-              root_opt.value())
-              .value();
-      scheduled_changes_ = std::move(scheduled_changes);
-      current_set_ = std::move(current_set);
-      current_block_ = scheduled_changes_->block;
-    } else if (finalized_block.number == 0) {
-      primitives::BlockInfo genesis_block_info{
-          block_tree_->getGenesisBlockHash(), 0};
-      scheduled_changes_ = std::make_unique<ScheduleTree>(
-          ScheduleTree{.payload{ScheduledChangeEntry{
-                           .new_authorities{primitives::AuthoritySet(
-                               0, grandpa_api_->authorities(0).value())},
-                           .scheduled_at{primitives::BlockInfo{
-                               0, block_tree_->getGenesisBlockHash()}},
-                           .activates_at = 0}},
-                       .block = genesis_block_info,
-                       .children = {},
-                       .parent = nullptr});
-    } else {
-      SL_ERROR(
-          log_,
-          "Failed to initialize authority manager; Try recovering the state.");
-      return false;
-    }
-    SL_DEBUG(log_, "Initialized authority manager at block {} with set id {}",
-             current_block_,
-             current_set_.id);
-    return true;
-    //
-    //    auto res = initializeAt(finalized_block);
-    //    if (!res) {
-    //      SL_ERROR(log_,
-    //               "Error initializing authority manager: {}",
-    //               res.error().message());
-    //    }
-    //    return res.has_value();
+    return res.has_value();
   }
 
   outcome::result<void> AuthorityManagerImpl::initializeAt(
@@ -514,32 +472,24 @@ namespace kagome::authority {
 
     OUTCOME_TRY(initial_authorities, grandpa_api_->authorities(genesis_hash));
     primitives::BlockInfo genesis_info{0, block_tree_->getGenesisBlockHash()};
-    scheduled_changes_ = std::make_unique<ScheduleTree>(ScheduleTree{
-        .payload{ScheduledChangeEntry{
-            .new_authorities{primitives::AuthoritySet(0, initial_authorities)},
-            .scheduled_at{genesis_info},
-            .activates_at = 0}},
-        .block = genesis_info,
-        .children = {},
-        .parent = nullptr});
+
+    root_ = ScheduleNode::createAsRoot(
+        std::make_shared<primitives::AuthoritySet>(0, initial_authorities),
+        {0, genesis_hash});
     SL_INFO(log_,
             "Recovering authority manager state... (might take a few minutes)");
     // if state is pruned
     if (header_repo_->getBlockHeader(1).has_error()) {
       SL_WARN(log_,
-              "Can't recalculate authority set id on a prune state, fall back "
-              "to fetching from runtime");
+              "Can't recalculate authority set id on a prune state, fall"
+              " back to fetching from runtime");
       return clearScheduleGraphRoot(*persistent_storage_);
     }
 
     auto start = std::chrono::steady_clock::now();
     for (primitives::BlockNumber number = 0; number <= last_finalized_number;
          number++) {
-      auto header_res = header_repo_->getBlockHeader(number);
-      if (!header_res)
-        continue;  // Temporary workaround about the justification pruning bug
-      auto &header = header_res.value();
-
+      OUTCOME_TRY(header, header_repo_->getBlockHeader(number));
       OUTCOME_TRY(hash, header_repo_->getHashByNumber(number));
       primitives::BlockInfo info{number, hash};
 
@@ -564,59 +514,7 @@ namespace kagome::authority {
         start = end;
       }
     }
-
     return outcome::success();
-    //
-    //    root_ = ScheduleNode::createAsRoot(
-    //        std::make_shared<primitives::AuthoritySet>(0,
-    //        initial_authorities), {0, genesis_hash});
-    //    SL_INFO(log_,
-    //            "Recovering authority manager state... (might take a few
-    //            minutes)");
-    //    // if state is pruned
-    //    if (header_repo_->getBlockHeader(1).has_error()) {
-    //      SL_WARN(log_,
-    //              "Can't recalculate authority set id on a prune state, fall
-    //              back " "to fetching from runtime");
-    //      return clearScheduleGraphRoot(*persistent_storage_);
-    //    }
-    //
-    //    auto start = std::chrono::steady_clock::now();
-    //    for (primitives::BlockNumber number = 0; number <=
-    //    last_finalized_number;
-    //         number++) {
-    //      auto header_res = header_repo_->getBlockHeader(number);
-    //      if (!header_res)
-    //        continue;  // Temporary workaround about the justification pruning
-    //        bug
-    //      auto &header = header_res.value();
-    //
-    //      OUTCOME_TRY(hash, header_repo_->getHashByNumber(number));
-    //      primitives::BlockInfo info{number, hash};
-    //
-    //      for (auto &msg : header.digest) {
-    //        if (auto consensus_msg = boost::get<primitives::Consensus>(&msg);
-    //            consensus_msg != nullptr) {
-    //          onConsensus(info, *consensus_msg).value();
-    //        }
-    //      }
-    //      auto justification_res = block_tree_->getBlockJustification(hash);
-    //      if (justification_res.has_value()) prune(info);
-    //      auto end = std::chrono::steady_clock::now();
-    //      auto duration = end - start;
-    //      using namespace std::chrono_literals;
-    //      // 5 seconds is nothing special, just a random more-or-like
-    //      convenient
-    //      // duration.
-    //      if (duration > 5s) {
-    //        SL_VERBOSE(log_,
-    //                   "Processed {} out of {} blocks",
-    //                   number,
-    //                   last_finalized_number);
-    //        start = end;
-    //      }
-    //    }
-    //    return outcome::success();
   }
 
   primitives::BlockInfo AuthorityManagerImpl::base() const {
@@ -630,226 +528,102 @@ namespace kagome::authority {
   std::optional<std::shared_ptr<const primitives::AuthoritySet>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &target_block,
                                     IsBlockFinalized finalized) const {
-    auto ancestor = findClosestAncestor(*scheduled_changes_, target_block);
-    assert(ancestor->block.number <= target_block.number);
-    if (ancestor == nullptr) return std::nullopt;
-    if (ancestor->payload.activates_at <= target_block.number) {
-      return std::make_shared<const primitives::AuthoritySet>(
-          ancestor->payload.new_authorities);
+    auto node = getAppropriateAncestor(target_block);
+
+    if (node == nullptr) {
+      return std::nullopt;
     }
-    if (ancestor->parent == scheduled_changes_.get()) {
-      return std::make_shared<const primitives::AuthoritySet>(current_set_);
+
+    auto adjusted_node = node->makeDescendant(target_block, true);
+
+    if (adjusted_node->enabled) {
+      // Original authorities
+      SL_DEBUG(log_,
+               "Pick authority set with id {} for block {}",
+               adjusted_node->current_authorities->id,
+               target_block);
+      for (auto &authority : adjusted_node->current_authorities->authorities) {
+        SL_TRACE(log_, "Authority {}: {}", authority.id.id, authority.weight);
+      }
+      return adjusted_node->current_authorities;
     }
-    BOOST_ASSERT(ancestor->parent != nullptr);
-    return std::make_shared<const primitives::AuthoritySet>(
-        ancestor->parent->payload.new_authorities);
-    //
-    //    auto node = getAppropriateAncestor(target_block);
-    //
-    //    if (node == nullptr) {
-    //      return std::nullopt;
-    //    }
-    //
-    //    IsBlockFinalized node_in_finalized_chain =
-    //        node->current_block == target_block
-    //            ? (bool)finalized
-    //            : node->current_block.number
-    //                  <= block_tree_->getLastFinalized().number;
-    //
-    //    auto adjusted_node =
-    //        node->makeDescendant(target_block, node_in_finalized_chain);
-    //
-    //    if (adjusted_node->enabled) {
-    //      // Original authorities
-    //      SL_DEBUG(log_,
-    //               "Pick authority set with id {} for block {}",
-    //               adjusted_node->current_authorities->id,
-    //               target_block);
-    //      // Since getAppropriateAncestor worked normally on this block
-    //      auto header =
-    //      block_tree_->getBlockHeader(target_block.hash).value(); if (auto
-    //      id_from_storage_res = readSetIdFromRuntime(header);
-    //          id_from_storage_res) {
-    //        auto &id_from_storage_opt = id_from_storage_res.value();
-    //        if (id_from_storage_opt) {
-    //          SL_DEBUG(log_,
-    //                   "Pick authority set id from runtime: {}",
-    //                   id_from_storage_opt.value());
-    //        } else {
-    //          SL_DEBUG(log_,
-    //                   "Failed to pick authority set id from runtime: not
-    //                   found in " "trie storage");
-    //        }
-    //      } else {
-    //        SL_DEBUG(log_,
-    //                 "Failed to obtain authority set id from runtime: ",
-    //                 id_from_storage_res.error().message());
-    //      }
-    //      for (auto &authority :
-    //      adjusted_node->current_authorities->authorities) {
-    //        SL_TRACE(log_, "Authority {}: {}", authority.id.id,
-    //        authority.weight);
-    //      }
-    //      return adjusted_node->current_authorities;
-    //    }
-    //
-    //    // Zero-weighted authorities
-    //    auto authorities = std::make_shared<primitives::AuthoritySet>(
-    //        *adjusted_node->current_authorities);
-    //    std::for_each(authorities->begin(),
-    //                  authorities->end(),
-    //                  [](auto &authority) { authority.weight = 0; });
-    //    return authorities;
+
+    // Zero-weighted authorities
+    auto authorities = std::make_shared<primitives::AuthoritySet>(
+        *adjusted_node->current_authorities);
+    std::for_each(authorities->begin(),
+                  authorities->end(),
+                  [](auto &authority) { authority.weight = 0; });
+    return authorities;
   }
 
   outcome::result<void> AuthorityManagerImpl::applyScheduledChange(
       const primitives::BlockInfo &block,
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber activate_at) {
-    if (activate_at < current_block_.number) {
-      SL_ERROR(log_,
-               "Error: scheduling changes for a block #{} earlier than the "
-               "current root #{}",
-               activate_at,
-               current_block_.number);
+    KAGOME_PROFILE_START(get_appropriate_ancestor)
+    auto ancestor_node = getAppropriateAncestor(block);
+    KAGOME_PROFILE_END(get_appropriate_ancestor)
+
+    if (not ancestor_node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
     }
 
-    ForkTree<ScheduledChangeEntry> *nearest_change_node = nullptr;
-    scheduled_changes_->forEachLeaf(
-        [this, &block, &nearest_change_node](auto &leaf) {
-          if (leaf.block.number <= block.number
-              && block_tree_->hasDirectChain(leaf.block.hash, block.hash)) {
-            nearest_change_node = &leaf;
-            return true;
-          }
-          return false;
-        });
+    SL_DEBUG(log_,
+             "Authorities for block {} found on block {} with set id {}",
+             block,
+             ancestor_node->current_block,
+             ancestor_node->current_authorities->id);
 
-    if (nearest_change_node == nullptr) {
-      SL_ERROR(log_,
-               "Neither of pending scheduled changes could be the ancestor of "
-               "the proposed one (scheduled at #{}).",
-               block.number);
-      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
-    }
+    auto schedule_change = [&](const std::shared_ptr<ScheduleNode> &node)
+        -> outcome::result<void> {
+      auto new_authorities = std::make_shared<primitives::AuthoritySet>(
+          node->current_authorities->id + 1, authorities);
 
-    auto &nearest_change = nearest_change_node->payload;
-    // the earliest change encountered in a block is respected
-    if (nearest_change.scheduled_at.number == block.number) {
-      SL_DEBUG(log_,
-               "Ignore scheduled change at {} as this block already "
-               "schedules a change",
-               block);
-    } else if (nearest_change_node->payload.activates_at >= block.number) {
-      SL_DEBUG(
+      node->action =
+          ScheduleNode::ScheduledChange{activate_at, new_authorities};
+
+      SL_VERBOSE(
           log_,
-          "Ignore scheduled change at {} as the previous scheduled change  "
-          "is not applied yet",
-          block);
-    } else {
-      SL_DEBUG(log_,
-               "Applying scheduled change with id {} on block {} to activate "
-               "at block {}",
-               nearest_change.new_authorities.id + 1,
-               block,
-               activate_at);
-      size_t i = 0;
-      SL_TRACE(log_, "Authorities:");
-      for(auto& authority: authorities) {
-        SL_TRACE(log_, "{} - {}", i++, authority.id.id.toHex());
+          "Authority set change is scheduled after block #{} (set id={})",
+          activate_at,
+          new_authorities->id);
+
+      size_t index = 0;
+      for (auto &authority : *new_authorities) {
+        SL_DEBUG(log_,
+                 "New authority ({}/{}): id={} weight={}",
+                 ++index,
+                 new_authorities->authorities.size(),
+                 authority.id.id,
+                 authority.weight);
       }
 
-      nearest_change_node->children.emplace_back(
-          std::unique_ptr<ForkTree<ScheduledChangeEntry>>{
-              new ForkTree<ScheduledChangeEntry>{
-                  .payload =
-                      ScheduledChangeEntry{
-                          .new_authorities =
-                              primitives::AuthoritySet{
-                                  .id = nearest_change.new_authorities.id + 1,
-                                  .authorities = authorities,
-                              },
-                          .scheduled_at = block,
-                          .activates_at = activate_at},
-                  .block = block,
-                  .children{},
-                  .parent = nearest_change_node}});
+      return outcome::success();
+    };
+
+    if (ancestor_node->current_block == block) {
+      OUTCOME_TRY(schedule_change(ancestor_node));
+    } else {
+      KAGOME_PROFILE_START(make_descendant)
+      auto new_node = ancestor_node->makeDescendant(block, true);
+      KAGOME_PROFILE_END(make_descendant)
+      SL_DEBUG(log_,
+               "Make a schedule node for block {}, with actual set id {}",
+               block,
+               new_node->current_authorities->id);
+
+      KAGOME_PROFILE_START(schedule_change)
+      OUTCOME_TRY(schedule_change(new_node));
+      KAGOME_PROFILE_END(schedule_change)
+
+      // Reorganize ancestry
+      KAGOME_PROFILE_START(reorganize)
+      reorganize(ancestor_node, new_node);
+      KAGOME_PROFILE_END(reorganize)
     }
+
     return outcome::success();
-    //
-    //    KAGOME_PROFILE_START(get_appropriate_ancestor)
-    //    auto ancestor_node = getAppropriateAncestor(block);
-    //    KAGOME_PROFILE_END(get_appropriate_ancestor)
-    //
-    //    if (not ancestor_node) {
-    //      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
-    //    }
-    //
-    //    SL_DEBUG(log_,
-    //             "Authorities for block {} found on block {} with set id {}",
-    //             block,
-    //             ancestor_node->current_block,
-    //             ancestor_node->current_authorities->id);
-    //
-    //    auto schedule_change = [&](const std::shared_ptr<ScheduleNode> &node)
-    //        -> outcome::result<void> {
-    //      auto new_authorities = std::make_shared<primitives::AuthoritySet>(
-    //          node->current_authorities->id + 1, authorities);
-    //
-    //      node->action =
-    //          ScheduleNode::ScheduledChange{activate_at, new_authorities};
-    //
-    //      SL_VERBOSE(
-    //          log_,
-    //          "Authority set change is scheduled after block #{} (set id={})",
-    //          activate_at,
-    //          new_authorities->id);
-    //
-    //      size_t index = 0;
-    //      for (auto &authority : *new_authorities) {
-    //        SL_DEBUG(log_,
-    //                 "New authority ({}/{}): id={} weight={}",
-    //                 ++index,
-    //                 new_authorities->authorities.size(),
-    //                 authority.id.id,
-    //                 authority.weight);
-    //      }
-    //
-    //      return outcome::success();
-    //    };
-    //
-    //    /// TODO(Harrm): Should account for finality when fetching an
-    //    authority set
-    //    /// for some purposes, but not when scheduling further changes
-    //    IsBlockFinalized is_ancestor_node_finalized = true;
-    //
-    //    if (ancestor_node->current_block == block) {
-    //      ancestor_node->adjust(is_ancestor_node_finalized);
-    //
-    //      OUTCOME_TRY(schedule_change(ancestor_node));
-    //    } else {
-    //      KAGOME_PROFILE_START(make_descendant)
-    //      auto new_node =
-    //          ancestor_node->makeDescendant(block,
-    //          is_ancestor_node_finalized);
-    //      KAGOME_PROFILE_END(make_descendant)
-    //      SL_DEBUG(log_,
-    //               "Make a schedule node for block {}, with actual set id {}",
-    //               block,
-    //               new_node->current_authorities->id);
-    //
-    //      KAGOME_PROFILE_START(schedule_change)
-    //      OUTCOME_TRY(schedule_change(new_node));
-    //      KAGOME_PROFILE_END(schedule_change)
-    //
-    //      // Reorganize ancestry
-    //      KAGOME_PROFILE_START(reorganize)
-    //      reorganize(ancestor_node, new_node);
-    //      KAGOME_PROFILE_END(reorganize)
-    //    }
-    //
-    //    return outcome::success();
   }
 
   outcome::result<void> AuthorityManagerImpl::applyForcedChange(
@@ -1079,20 +853,15 @@ namespace kagome::authority {
           },
           [this, &block](const primitives::OnDisabled &msg) {
             SL_DEBUG(log_, "OnDisabled {}", msg.authority_index);
-            //            return applyOnDisabled(block, msg.authority_index);
-            return outcome::success();
+            return applyOnDisabled(block, msg.authority_index);
           },
           [this, &block](const primitives::Pause &msg) {
             SL_DEBUG(log_, "Pause {}", msg.subchain_length);
-            //          return applyPause(block, block.number +
-            //          msg.subchain_length);
-            return outcome::success();
+            return applyPause(block, block.number + msg.subchain_length);
           },
           [this, &block](const primitives::Resume &msg) {
             SL_DEBUG(log_, "Resume {}", msg.subchain_length);
-            //        return applyResume(block, block.number +
-            //        msg.subchain_length);
-            return outcome::success();
+            return applyResume(block, block.number + msg.subchain_length);
           },
           [](auto &) {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
@@ -1113,49 +882,6 @@ namespace kagome::authority {
   }
 
   void AuthorityManagerImpl::prune(const primitives::BlockInfo &block) {
-    if (block.number <= scheduled_changes_->block.number) {
-      return;
-    }
-    auto ancestor = findClosestAncestor(*scheduled_changes_, block);
-    if (ancestor == scheduled_changes_.get()) {
-      if (scheduled_changes_->block.number
-              < scheduled_changes_->payload.activates_at
-          && block.number >= scheduled_changes_->payload.activates_at)
-        current_set_ = scheduled_changes_->payload.new_authorities;
-      scheduled_changes_->block = block;
-      current_block_ = block;
-    }
-    if (ancestor->block < block) {
-      ancestor->block = block;
-    }
-
-    if (ancestor->payload.activates_at > block.number) {
-      if (ancestor->parent != nullptr) {
-        current_set_ = ancestor->parent->payload.new_authorities;
-      } else {
-        assert(ancestor == scheduled_changes_.get());
-        // current set remains unchanged
-      }
-    } else {
-      current_set_ = ancestor->payload.new_authorities;
-    }
-
-    std::unique_ptr<ScheduleTree> new_root{};
-    if (ancestor->parent != nullptr) {
-      new_root = ancestor->parent->detachChild(*ancestor);
-    } else {
-      assert(ancestor == scheduled_changes_.get());
-      new_root = std::move(scheduled_changes_);
-    }
-    assert(new_root->parent == nullptr);
-    current_block_ = new_root->block;
-    scheduled_changes_ = std::move(new_root);
-    persistent_storage_
-        ->put(storage_key,
-              Buffer{scale::encode(current_set_, scheduled_changes_).value()})
-        .value();
-    return;
-
     if (block == root_->current_block) {
       return;
     }
@@ -1270,69 +996,41 @@ namespace kagome::authority {
   }
 
   void AuthorityManagerImpl::cancel(const primitives::BlockInfo &block) {
-    auto ancestor = findClosestAncestor(*scheduled_changes_, block);
+    auto ancestor = getAppropriateAncestor(block);
+
     if (ancestor == nullptr) {
-      SL_TRACE(log_,
-               "Can't cancel scheduled changes for {}, block is either "
-               "finalized or unknown",
-               block);
+      SL_TRACE(log_, "No scheduled changes on block {}: no ancestor", block);
       return;
-    }
-    assert(ancestor->block.number <= block.number);
-    if (ancestor == scheduled_changes_.get()) {
-      SL_TRACE(log_,
-               "Can't cancel scheduled changes for {}, block is the finalized "
-               "root of schedule changes tree",
-               block);
-      return;
-    }
-    assert(ancestor->parent != nullptr);
-    if (ancestor->block == block) {
-      ancestor->parent->detachChild(*ancestor);
-      return;
-    }
-    for (auto &child : ancestor->children) {
-      if (block_tree_->hasDirectChain(block.hash, child->block.hash)) {
-        ancestor->detachChild(*child);
-      }
     }
 
-    //    auto ancestor = getAppropriateAncestor(block);
-    //
-    //    if (ancestor == nullptr) {
-    //      SL_TRACE(log_, "No scheduled changes on block {}: no ancestor",
-    //      block); return;
-    //    }
-    //
-    //    if (ancestor == root_) {
-    //      // Can't remove root
-    //      SL_TRACE(log_,
-    //               "Can't cancel scheduled changes on block {}: it is root",
-    //               block);
-    //      return;
-    //    }
-    //
-    //    if (ancestor->current_block == block) {
-    //      ancestor =
-    //      std::const_pointer_cast<ScheduleNode>(ancestor->parent.lock());
-    //    }
-    //
-    //    auto it = std::find_if(ancestor->descendants.begin(),
-    //                           ancestor->descendants.end(),
-    //                           [&block](std::shared_ptr<ScheduleNode> node) {
-    //                             return node->current_block == block;
-    //                           });
-    //
-    //    if (it != ancestor->descendants.end()) {
-    //      if (not(*it)->descendants.empty()) {
-    //        // Has descendants - is not a leaf
-    //        SL_TRACE(log_, "No scheduled changes on block {}: not found",
-    //        block); return;
-    //      }
-    //
-    //      SL_DEBUG(log_, "Scheduled changes on block {} has removed", block);
-    //      ancestor->descendants.erase(it);
-    //    }
+    if (ancestor == root_) {
+      // Can't remove root
+      SL_TRACE(log_,
+               "Can't cancel scheduled changes on block {}: it is root",
+               block);
+      return;
+    }
+
+    if (ancestor->current_block == block) {
+      ancestor = std::const_pointer_cast<ScheduleNode>(ancestor->parent.lock());
+    }
+
+    auto it = std::find_if(ancestor->descendants.begin(),
+                           ancestor->descendants.end(),
+                           [&block](std::shared_ptr<ScheduleNode> node) {
+                             return node->current_block == block;
+                           });
+
+    if (it != ancestor->descendants.end()) {
+      if (not(*it)->descendants.empty()) {
+        // Has descendants - is not a leaf
+        SL_TRACE(log_, "No scheduled changes on block {}: not found", block);
+        return;
+      }
+
+      SL_DEBUG(log_, "Scheduled changes on block {} has removed", block);
+      ancestor->descendants.erase(it);
+    }
   }
 
   ScheduleTree *AuthorityManagerImpl::findClosestAncestor(

@@ -146,10 +146,6 @@ namespace kagome::authority {
         ScheduleTree const &current,
         primitives::BlockInfo const &block) const;
 
-    std::unique_ptr<ScheduleTree> scheduled_changes_;
-    primitives::AuthoritySet current_set_;
-    primitives::BlockInfo current_block_;
-
     Config config_;
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
