@@ -267,7 +267,7 @@ namespace kagome::authority {
     OUTCOME_TRY(root_header,
                 block_tree_->getBlockHeader(graph_root_block.hash));
 
-    OUTCOME_TRY(set_id_from_runtime, readSetIdFromRuntime(root_header));
+    auto set_id_from_runtime_res = readSetIdFromRuntime(root_header);
 
     OUTCOME_TRY(opt_root, fetchScheduleGraphRoot(*persistent_storage_));
     auto last_finalized_block = block_tree_->getLastFinalized();
@@ -277,14 +277,16 @@ namespace kagome::authority {
       // TODO(Harrm): #1334
       // Correction to bypass the bug where after finishing syncing
       // and restarting the node we get a set id off by one
-      if (opt_root.value()->current_authorities->id
-          == set_id_from_runtime - 1) {
+      if (set_id_from_runtime_res.has_value()
+          && opt_root.value()->current_authorities->id
+                 == set_id_from_runtime_res.value() - 1) {
         auto &authority_list =
             opt_root.value()->current_authorities->authorities;
         opt_root.value()->current_authorities =
-            std::make_shared<primitives::AuthoritySet>(set_id_from_runtime,
-                                                       authority_list);
+            std::make_shared<primitives::AuthoritySet>(
+                set_id_from_runtime_res.value(), authority_list);
       }
+
       root_ = std::move(opt_root.value());
       SL_TRACE(log_,
                "Fetched authority set graph root from database with id {}",
@@ -297,7 +299,7 @@ namespace kagome::authority {
           std::make_shared<primitives::AuthoritySet>(
               0, std::move(initial_authorities)),
           {0, genesis_hash});
-    } else {
+    } else if (set_id_from_runtime_res.has_value()){
       SL_WARN(
           log_,
           "Storage does not contain valid info about the root authority set; "
@@ -307,7 +309,7 @@ namespace kagome::authority {
                   grandpa_api_->authorities(graph_root_block.hash));
 
       auto authority_set = std::make_shared<primitives::AuthoritySet>(
-          set_id_from_runtime, std::move(authorities));
+          set_id_from_runtime_res.value(), std::move(authorities));
       root_ = authority::ScheduleNode::createAsRoot(authority_set,
                                                     graph_root_block);
 
@@ -316,6 +318,9 @@ namespace kagome::authority {
                "Create authority set graph root with id {}, taken from runtime "
                "storage",
                root_->current_authorities->id);
+    } else {
+      SL_ERROR(log_, "Failed to initialize authority manager; Try running recovery mode");
+      return set_id_from_runtime_res.as_failure();
     }
 
     while (not collected_msgs.empty()) {
@@ -446,19 +451,6 @@ namespace kagome::authority {
                "Pick authority set with id {} for block {}",
                adjusted_node->current_authorities->id,
                target_block);
-      SL_TRACE(log_,
-               "Pick authority set id from trie storage: {}",
-               ([this, &target_block]() {
-                 // SAFETY: getAppropriateAncestor worked normally on this block
-                 auto header =
-                     block_tree_->getBlockHeader(target_block.hash).value();
-                 auto id_from_storage =
-                     fetchSetIdFromTrieStorage(
-                         *trie_storage_, *hasher_, header.state_root)
-                         .value()
-                         .value();
-                 return id_from_storage;
-               }()));
       return adjusted_node->current_authorities;
     }
 
