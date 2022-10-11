@@ -32,16 +32,6 @@ namespace kagome::consensus {
                 (primitives::BabeSlotNumber),
                 (const, override));
 
-    MOCK_METHOD(Randomness,
-                computeRandomness,
-                (const Randomness &, EpochNumber),
-                (override));
-
-    MOCK_METHOD(void,
-                submitVRFValue,
-                (const crypto::VRFPreOutput &),
-                (override));
-
     MOCK_METHOD(std::optional<primitives::AuthorityIndex>,
                 secondarySlotAuthor,
                 (primitives::BabeSlotNumber,

@@ -26,6 +26,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
       return "BABE key already exists";
     case E::GRAN_ALREADY_EXIST:
       return "GRAN key already exists";
+    case E::AUDI_ALREADY_EXIST:
+      return "AUDI key already exists";
     case E::WRONG_PUBLIC_KEY:
       return "Public key doesn't match seed";
   }
@@ -238,8 +240,7 @@ namespace kagome::crypto {
     return ed25519KeyToLibp2pKeypair(kp);
   }
 
-  libp2p::crypto::KeyPair CryptoStoreImpl::ed25519KeyToLibp2pKeypair(
-      const Ed25519Keypair &kp) const {
+  libp2p::crypto::KeyPair ed25519KeyToLibp2pKeypair(const Ed25519Keypair &kp) {
     const auto &secret_key = kp.secret_key;
     const auto &public_key = kp.public_key;
     libp2p::crypto::PublicKey lp2p_public{

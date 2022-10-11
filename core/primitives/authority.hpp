@@ -11,6 +11,7 @@
 
 #include "primitives/common.hpp"
 #include "primitives/session_key.hpp"
+#include "scale/tie.hpp"
 
 namespace kagome::primitives {
 
@@ -19,14 +20,9 @@ namespace kagome::primitives {
   using AuthorityListSize = uint64_t;
 
   struct AuthorityId {
-    GenericSessionKey id;
+    SCALE_TIE(1);
 
-    bool operator==(const AuthorityId &other) const {
-      return id == other.id;
-    }
-    bool operator!=(const AuthorityId &other) const {
-      return !(*this == other);
-    }
+    GenericSessionKey id;
   };
 
   inline bool operator<(const AuthorityId &lhs, const AuthorityId &rhs) {
@@ -42,68 +38,11 @@ namespace kagome::primitives {
    * Authority, which participate in block production and finalization
    */
   struct Authority {
+    SCALE_TIE(2);
+
     AuthorityId id;
     AuthorityWeight weight{};
-
-    bool operator==(const Authority &other) const {
-      return id == other.id && weight == other.weight;
-    }
-    bool operator!=(const Authority &other) const {
-      return !(*this == other);
-    }
   };
-
-  /**
-   * @brief outputs object of type AuthorityId to stream
-   * @tparam Stream output stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const AuthorityId &a) {
-    return s << a.id;
-  }
-
-  /**
-   * @brief decodes object of type AuthorityId from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param v value to decode
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, AuthorityId &a) {
-    return s >> a.id;
-  }
-
-  /**
-   * @brief outputs object of type Authority to stream
-   * @tparam Stream output stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Authority &a) {
-    return s << a.id << a.weight;
-  }
-
-  /**
-   * @brief decodes object of type Authority from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param v value to decode
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, Authority &a) {
-    return s >> a.id >> a.weight;
-  }
 
   /**
    * List of authorities
@@ -114,6 +53,8 @@ namespace kagome::primitives {
    * List of authorities with an identifier
    */
   struct AuthoritySet {
+    SCALE_TIE(2);
+
     AuthoritySet() = default;
 
     AuthoritySet(AuthoritySetId id, AuthorityList authorities)
@@ -138,18 +79,6 @@ namespace kagome::primitives {
       return authorities.cend();
     }
   };
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, AuthoritySet &a) {
-    return s >> a.id >> a.authorities;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const AuthoritySet &a) {
-    return s << a.id << a.authorities;
-  }
 
 }  // namespace kagome::primitives
 

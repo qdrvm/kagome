@@ -14,6 +14,7 @@ extern "C" {
 
 #include "common/blob.hpp"
 #include "common/mp_utils.hpp"
+#include "scale/tie.hpp"
 
 namespace kagome::crypto {
   namespace constants::sr25519 {
@@ -52,13 +53,12 @@ namespace kagome::crypto {
    * verification of its randomness.
    */
   struct VRFOutput {
+    SCALE_TIE(2);
+
     // an internal representation of the generated random value
     VRFPreOutput output{};
     // the proof to the output, serves as the verification of its randomness
     VRFProof proof{};
-
-    bool operator==(const VRFOutput &other) const;
-    bool operator!=(const VRFOutput &other) const;
   };
 
   /**
@@ -98,33 +98,6 @@ namespace kagome::crypto {
   struct Sr25519KeypairAndSeed : Sr25519Keypair {
     Sr25519Seed seed;
   };
-
-  /**
-   * @brief outputs object of type VRFOutput to stream
-   * @tparam Stream output stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const VRFOutput &o) {
-    return s << o.output << o.proof;
-  }
-
-  /**
-   * @brief decodes object of type VRFOutput from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, VRFOutput &o) {
-    return s >> o.output >> o.proof;
-  }
-
 }  // namespace kagome::crypto
 
 #endif  // KAGOME_CORE_CRYPTO_VRF_TYPES

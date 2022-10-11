@@ -20,7 +20,7 @@
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
 #include "network/impl/protocols/protocol_base_impl.hpp"
-#include "network/rating_repository.hpp"
+#include "network/reputation_repository.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "utils/non_copyable.hpp"
 
@@ -104,17 +104,18 @@ namespace kagome::network {
         NonCopyable,
         NonMovable {
    public:
-    SyncProtocolImpl(libp2p::Host &host,
-                     const application::ChainSpec &chain_spec,
-                     std::shared_ptr<SyncProtocolObserver> sync_observer,
-                     std::shared_ptr<PeerRatingRepository> rating_repository);
-
-    const Protocol &protocol() const override {
-      return base_.protocol();
-    }
+    SyncProtocolImpl(
+        libp2p::Host &host,
+        const application::ChainSpec &chain_spec,
+        std::shared_ptr<SyncProtocolObserver> sync_observer,
+        std::shared_ptr<ReputationRepository> reputation_repository);
 
     bool start() override;
     bool stop() override;
+
+    const std::string &protocolName() const override {
+      return kSyncProtocolName;
+    }
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
@@ -141,9 +142,10 @@ namespace kagome::network {
                           &&response_handler);
 
    private:
+    const static inline auto kSyncProtocolName = "SyncProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
-    std::shared_ptr<PeerRatingRepository> rating_repository_;
+    std::shared_ptr<ReputationRepository> reputation_repository_;
     detail::BlocksResponseCache response_cache_;
   };
 

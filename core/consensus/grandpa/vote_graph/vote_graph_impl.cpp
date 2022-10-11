@@ -4,6 +4,7 @@
  */
 
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
+#include "consensus/grandpa/vote_graph/vote_graph_error.hpp"
 
 #include <stack>
 
@@ -139,6 +140,9 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> VoteGraphImpl::append(const BlockInfo &block) {
     if (base_.hash == block.hash) {
       return outcome::success();
+    }
+    if (base_.number > block.number) {
+      return VoteGraphError::RECEIVED_BLOCK_LESS_THAN_BASE;
     }
 
     OUTCOME_TRY(ancestry, chain_->getAncestry(base_.hash, block.hash));

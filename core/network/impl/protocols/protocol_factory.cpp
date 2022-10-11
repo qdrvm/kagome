@@ -4,6 +4,7 @@
  */
 
 #include "network/impl/protocols/protocol_factory.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::network {
 
@@ -19,7 +20,7 @@ namespace kagome::network {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           ext_event_key_repo,
-      std::shared_ptr<PeerRatingRepository> peer_rating_repository,
+      std::shared_ptr<ReputationRepository> reputation_repository,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : host_(host),
         app_config_(app_config),
@@ -30,14 +31,14 @@ namespace kagome::network {
         stream_engine_(std::move(stream_engine)),
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)},
-        peer_rating_repository_{std::move(peer_rating_repository)},
+        reputation_repository_{std::move(reputation_repository)},
         scheduler_{std::move(scheduler)} {
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(ext_event_key_repo_ != nullptr);
-    BOOST_ASSERT(peer_rating_repository_ != nullptr);
+    BOOST_ASSERT(reputation_repository_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
   }
 
@@ -54,6 +55,10 @@ namespace kagome::network {
 
   std::shared_ptr<GrandpaProtocol> ProtocolFactory::makeGrandpaProtocol()
       const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     return std::make_shared<GrandpaProtocol>(host_,
                                              io_context_,
                                              app_config_,
@@ -61,6 +66,7 @@ namespace kagome::network {
                                              own_info_,
                                              stream_engine_,
                                              peer_manager_.lock(),
+                                             genesisBlockHash,
                                              scheduler_);
   }
 
@@ -70,10 +76,17 @@ namespace kagome::network {
         host_, app_config_, chain_spec_, collation_observer_.lock());
   }
 
+  std::shared_ptr<ReqCollationProtocol>
+  ProtocolFactory::makeReqCollationProtocol() const {
+    return std::make_shared<ReqCollationProtocol>(
+        host_, app_config_, chain_spec_, req_collation_observer_.lock());
+  }
+
   std::shared_ptr<PropagateTransactionsProtocol>
   ProtocolFactory::makePropagateTransactionsProtocol() const {
     return std::make_shared<PropagateTransactionsProtocol>(
         host_,
+        app_config_,
         chain_spec_,
         babe_.lock(),
         extrinsic_observer_.lock(),
@@ -89,7 +102,7 @@ namespace kagome::network {
 
   std::shared_ptr<SyncProtocol> ProtocolFactory::makeSyncProtocol() const {
     return std::make_shared<SyncProtocolImpl>(
-        host_, chain_spec_, sync_observer_.lock(), peer_rating_repository_);
+        host_, chain_spec_, sync_observer_.lock(), reputation_repository_);
   }
 
 }  // namespace kagome::network

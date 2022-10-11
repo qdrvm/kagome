@@ -5,6 +5,7 @@
 
 add_library(vote_graph
     vote_graph_impl.cpp
+    vote_graph_error.cpp
     )
 target_link_libraries(vote_graph
     Boost::boost

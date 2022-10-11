@@ -87,6 +87,11 @@ namespace kagome::application {
     virtual const std::optional<std::string> &nodeKeyFile() const = 0;
 
     /**
+     * @return true if generated libp2p networking key should be saved
+     */
+    virtual bool shouldSaveNodeKey() const = 0;
+
+    /**
      * @return port for peer to peer interactions.
      */
     virtual uint16_t p2pPort() const = 0;
@@ -104,7 +109,12 @@ namespace kagome::application {
     /**
      * @return maximum number of inbound light nodes peers
      */
-    virtual uint32_t inPeersLght() const = 0;
+    virtual uint32_t inPeersLight() const = 0;
+
+    /**
+     * @return int32_t maximum number or lucky peers (peers being gossiped to)
+     */
+    virtual int32_t luckyPeers() const = 0;
 
     /**
      * @return multiaddresses of bootstrat nodes

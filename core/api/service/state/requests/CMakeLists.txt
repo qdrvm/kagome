@@ -4,6 +4,7 @@
 #
 
 add_library(api_state_requests
+    call.cpp
     get_keys_paged.cpp
     get_storage.cpp
     get_runtime_version.cpp

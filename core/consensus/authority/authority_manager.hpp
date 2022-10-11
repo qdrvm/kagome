@@ -25,8 +25,11 @@ namespace kagome::authority {
 
   using IsBlockFinalized = Tagged<bool, struct IsBlockFinalizedTag>;
 
+  /**
+   * Obtain the current authority set id from the runtime storage
+   */
   outcome::result<std::optional<primitives::AuthoritySetId>>
-  fetchSetIdFromTrieStorage(storage::trie::TrieBatch const &trie_batch,
+  fetchSetIdFromTrieStorage(storage::trie::TrieStorage const &trie_storage,
                             crypto::Hasher const &hasher,
                             storage::trie::RootHash const &state);
 
@@ -63,7 +66,7 @@ namespace kagome::authority {
      * @brief Schedule an authority set change after the given delay of N
      * blocks, after next one would be finalized by the finality consensus
      * engine
-     * @param block is info of block which representing this change
+     * @param block the block where a digest with this change was discovered
      * @param authorities is authority set for renewal
      * @param activateAt is number of block when changes will applied
      */
@@ -75,10 +78,12 @@ namespace kagome::authority {
     /**
      * @brief Force an authority set change after the given delay of N blocks,
      * after next one would be imported block which has been validated by the
-     * block production conensus engine.
-     * @param block is info of block which representing this change
-     * @param authorities is authotity set for renewal
-     * @param activateAt is number of block when changes will applied
+     * block production consensus engine.
+     * @param block the block where a digest with this change was discovered
+     * @param authorities new authority set
+     * @param delay_start block at which the delay before this change is applied
+     * starts
+     * @param delay the chain length until the delay is over
      */
     virtual outcome::result<void> applyForcedChange(
         const primitives::BlockInfo &block,
@@ -96,7 +101,7 @@ namespace kagome::authority {
      * authority role. Once an authority set change after the given delay of N
      * blocks, is an imported block which has been validated by the block
      * production consensus engine.
-     * @param block is info of block which representing this change
+     * @param block the block where a digest with this change was discovered
      * @param authority_index is index of one authority in current authority set
      */
     virtual outcome::result<void> applyOnDisabled(
@@ -106,7 +111,7 @@ namespace kagome::authority {
      * @brief A signal to pause the current authority set after the given delay,
      * is a block finalized by the finality consensus engine. After finalizing
      * block, the authorities should stop voting.
-     * @param block is info of block which representing this change
+     * @param block the block where a digest with this change was discovered
      * @param activateAt is number of block when changes will applied
      */
     virtual outcome::result<void> applyPause(
@@ -118,7 +123,7 @@ namespace kagome::authority {
      * delay, is an imported block and validated by the block production
      * consensus engine. After authoring the block B 0 , the authorities should
      * resume voting.
-     * @param block is info of block which representing this change
+     * @param block the block where a digest with this change was discovered
      * @param activateAt is number of block when changes will applied
      */
     virtual outcome::result<void> applyResume(

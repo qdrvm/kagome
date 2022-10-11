@@ -6,7 +6,7 @@
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 
 #include "blockchain/block_tree.hpp"
-#include "runtime/executor.hpp"
+#include "runtime/common/executor.hpp"
 
 namespace kagome::runtime {
 

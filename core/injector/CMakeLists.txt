@@ -10,10 +10,12 @@ target_link_libraries(application_injector
     Boost::Boost.DI
     runtime_wavm
     account_nonce_api
+    address_publisher
     api_jrpc_server
     api_transport
     app_config
     app_state_manager
+    authority_discovery_api
     print_chain_info_mode
     assets
     author_api_service
@@ -21,6 +23,7 @@ target_link_libraries(application_injector
     babe
     babe_api
     babe_lottery
+    babe_config_repository
     synchronizer
     babe_util
     binaryen_executor_factory
@@ -66,6 +69,7 @@ target_link_libraries(application_injector
     p2p::p2p_identify
     p2p::p2p_kademlia
     p2p::p2p_ping
+    parachain_host_api
     payment_api_service
     pbkdf2_provider
     peer_manager
@@ -102,7 +106,6 @@ target_link_libraries(application_injector
     payment_api_service
     rpc_api_service
     internal_api_service
-    kademlia_storage_backend
     peer_manager
     babe_util
     assets
@@ -121,7 +124,10 @@ target_link_libraries(application_injector
     offchain_worker_api
     offchain_persistent_storage
     offchain_local_storage
-    rating_repository
+    reputation_repository
     session_keys_api
     collation_protocol
+    req_collation_protocol
+    validator_parachain
+    fd_limit
     )

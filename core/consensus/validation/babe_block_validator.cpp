@@ -9,6 +9,7 @@
 #include <boost/assert.hpp>
 
 #include "common/mp_utils.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/validation/prepare_transcript.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -42,18 +43,20 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<primitives::BabeConfiguration> configuration)
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo)
       : block_tree_{std::move(block_tree)},
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
         vrf_provider_{std::move(vrf_provider)},
         sr25519_provider_{std::move(sr25519_provider)},
-        configuration_{std::move(configuration)},
+        babe_config_repo_{std::move(babe_config_repo)},
         log_{log::createLogger("BlockValidator", "block_validator")} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
+    BOOST_ASSERT(hasher_);
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(sr25519_provider_);
+    BOOST_ASSERT(babe_config_repo_);
   }
 
   outcome::result<void> BabeBlockValidator::validateHeader(
@@ -71,17 +74,23 @@ namespace kagome::consensus {
     // @see
     // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/client/consensus/babe/src/verification.rs#L111
     if (babe_header.isProducedInSecondarySlot()) {
+      const auto &babe_config = babe_config_repo_->config();
       bool plainAndAllowed =
           babe_header.slotType() == SlotType::SecondaryPlain
-          && configuration_->allowed_slots
+          && babe_config.allowed_slots
                  == primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots;
       bool vrfAndAllowed =
           babe_header.slotType() == SlotType::SecondaryVRF
-          && configuration_->allowed_slots
+          && babe_config.allowed_slots
                  == primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots;
       if (!plainAndAllowed and !vrfAndAllowed) {
-        SL_WARN(log_, "Secondary slots assignments disabled");
-        return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
+        SL_WARN(log_,
+                "Block {} produced in {} secondary slot, but current "
+                "configuration allows only {}",
+                header.number,
+                babe_header.slotType(),
+                babe_config.allowed_slots);
+        // return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
       }
     }
 

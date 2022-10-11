@@ -19,6 +19,7 @@
 #include "consensus/babe/block_executor.hpp"
 #include "metrics/metrics.hpp"
 #include "network/router.hpp"
+#include "storage/buffer_map_types.hpp"
 #include "telemetry/service.hpp"
 
 namespace kagome::application {
@@ -85,7 +86,17 @@ namespace kagome::network {
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<storage::BufferStorage> buffer_storage);
+
+    /** @see AppStateManager::takeControl */
+    bool prepare();
+
+    /** @see AppStateManager::takeControl */
+    bool start();
+
+    /** @see AppStateManager::takeControl */
+    void stop();
 
     /// Enqueues loading (and applying) blocks from peer {@param peer_id}
     /// since best common block up to provided {@param block_info}.
@@ -111,12 +122,11 @@ namespace kagome::network {
                                    std::optional<uint32_t> limit,
                                    SyncResultHandler &&handler) override;
 
-    /// Enqueues loading and applying state key values starting from {@keys} for
-    /// block {@param block} from peer {@param peer_id}.
+    /// Enqueues loading and applying state on block {@param block}
+    /// from peer {@param peer_id}.
     /// If finished, {@param handler} be called
     void syncState(const libp2p::peer::PeerId &peer_id,
                    const primitives::BlockInfo &block,
-                   const std::vector<common::Buffer> &keys,
                    SyncResultHandler &&handler) override;
 
     /// Finds best common block with peer {@param peer_id} in provided interval.
@@ -148,6 +158,11 @@ namespace kagome::network {
                             primitives::BlockInfo target_block,
                             std::optional<uint32_t> limit,
                             SyncResultHandler &&handler);
+
+    /// Check if incomplete requests of state sync exists
+    bool hasIncompleteRequestOfStateSync() const override {
+      return state_sync_request_.has_value();
+    }
 
    private:
     /// Subscribes handler for block with provided {@param block_info}
@@ -183,6 +198,7 @@ namespace kagome::network {
         const libp2p::peer::PeerId &peer_id,
         const BlocksRequest::Fingerprint &fingerprint);
 
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::changes_trie::ChangesTracker>
         trie_changes_tracker_;
@@ -193,6 +209,8 @@ namespace kagome::network {
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<storage::BufferStorage> buffer_storage_;
+
     application::AppConfiguration::SyncMethod sync_method_;
 
     // Metrics
@@ -202,8 +220,9 @@ namespace kagome::network {
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
-    std::atomic_bool state_syncing_ = false;
     std::atomic_bool state_sync_request_in_progress_ = false;
+    std::optional<network::StateRequest> state_sync_request_;
+    std::optional<primitives::BlockInfo> state_sync_on_block_;
 
     bool node_is_shutting_down_ = false;
 

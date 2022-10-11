@@ -73,13 +73,6 @@ target_link_libraries(sync_protocol_observer
     p2p::p2p_peer_id
     )
 
-add_library(kademlia_storage_backend
-    kademlia_storage_backend.cpp
-    )
-target_link_libraries(kademlia_storage_backend
-    logger
-    )
-
 add_library(peer_manager
     peer_manager_impl.cpp
     )
@@ -88,10 +81,10 @@ target_link_libraries(peer_manager
     scale_libp2p_types
     )
 
-add_library(rating_repository
-    rating_repository_impl.cpp
+add_library(reputation_repository
+    reputation_repository_impl.cpp
     )
-target_link_libraries(rating_repository
+target_link_libraries(reputation_repository
     p2p::p2p_peer_id
     p2p::p2p_basic_scheduler
     )

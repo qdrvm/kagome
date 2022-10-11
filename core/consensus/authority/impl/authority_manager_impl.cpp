@@ -415,7 +415,7 @@ namespace kagome::authority {
     prune(root_block);
 
     SL_DEBUG(log_,
-             "Current grandpa authority set (id={})",
+             "Current grandpa authority set (id={}):",
              root_->current_authorities->id);
     size_t index = 0;
     for (const auto &authority : *root_->current_authorities) {
@@ -534,7 +534,14 @@ namespace kagome::authority {
       return std::nullopt;
     }
 
-    auto adjusted_node = node->makeDescendant(target_block, true);
+    IsBlockFinalized node_in_finalized_chain =
+        node->current_block == target_block
+            ? (bool)finalized
+            : node->current_block.number
+                  <= block_tree_->getLastFinalized().number;
+
+    auto adjusted_node =
+        node->makeDescendant(target_block, node_in_finalized_chain);
 
     if (adjusted_node->enabled) {
       // Original authorities
@@ -561,6 +568,10 @@ namespace kagome::authority {
       const primitives::BlockInfo &block,
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber activate_at) {
+    SL_DEBUG(log_,
+             "Applying scheduled change on block {} to activate at block {}",
+             block,
+             activate_at);
     KAGOME_PROFILE_START(get_appropriate_ancestor)
     auto ancestor_node = getAppropriateAncestor(block);
     KAGOME_PROFILE_END(get_appropriate_ancestor)
@@ -638,13 +649,13 @@ namespace kagome::authority {
              delay,
              current_block,
              delay_start + delay);
-    auto delay_start_header_res = block_tree_->getBlockHeader(delay_start + 1);
-    if (delay_start_header_res.has_error()) {
-      SL_ERROR(log_, "Failed to obtain header by number {}", delay_start + 1);
+    auto delay_start_hash_res = header_repo_->getHashByNumber(delay_start);
+    if (delay_start_hash_res.has_error()) {
+      SL_ERROR(log_, "Failed to obtain hash by number {}", delay_start);
     }
-    OUTCOME_TRY(delay_start_header, delay_start_header_res);
+    OUTCOME_TRY(delay_start_hash, delay_start_hash_res);
     auto ancestor_node =
-        getAppropriateAncestor({delay_start, delay_start_header.parent_hash});
+        getAppropriateAncestor({delay_start, delay_start_hash});
 
     if (not ancestor_node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -690,7 +701,7 @@ namespace kagome::authority {
     };
 
     auto new_node = ancestor_node->makeDescendant(
-        {delay_start, delay_start_header.parent_hash}, true);
+        {delay_start, delay_start_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 
@@ -868,7 +879,8 @@ namespace kagome::authority {
           });
     } else if (message.consensus_engine_id == primitives::kBabeEngineId
                || message.consensus_engine_id
-                      == primitives::kUnsupportedEngineId_BEEF) {
+                      == primitives::kUnsupportedEngineId_BEEF
+               ) {
       // ignore
       return outcome::success();
 

@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "scale/tie.hpp"
+
 namespace kagome::primitives {
 
   // The version number is just hardcoded in substrate implementation
@@ -19,6 +21,8 @@ namespace kagome::primitives {
    * A descriptor for a set of methods supported via RPC
    */
   struct RpcMethods {
+    SCALE_TIE(2);
+
     using Version = uint32_t;
     using Methods = std::vector<std::string>;
 
@@ -28,20 +32,6 @@ namespace kagome::primitives {
     /// A set of methods names as strings
     Methods methods;
   };
-
-  template <typename Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const RpcMethods &v) {
-    return s << s.version << s.methods;
-  }
-
-  template <typename Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, RpcMethods &v) {
-    s >> v.version >> v.methods;
-    return s;
-  }
-
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_RPC_METHODS_HPP

@@ -33,6 +33,14 @@ namespace kagome::common {
     }
   }  // namespace
 
+  std::optional<size_t> getFdLimit() {
+    rlimit r{};
+    if (!getFdLimit(r)) {
+      return std::nullopt;
+    }
+    return r.rlim_cur;
+  }
+
   void setFdLimit(size_t limit) {
     rlimit r{};
     if (!getFdLimit(r)) {

@@ -13,6 +13,7 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
+#include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
 #include "consensus/babe/babe.hpp"
 #include "containers/objects_cache.hpp"
@@ -44,6 +45,7 @@ namespace kagome::network {
 
     PropagateTransactionsProtocol(
         libp2p::Host &host,
+        const application::AppConfiguration &app_config,
         const application::ChainSpec &chain_spec,
         std::shared_ptr<consensus::babe::Babe> babe,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
@@ -53,12 +55,12 @@ namespace kagome::network {
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo);
 
-    const Protocol &protocol() const override {
-      return base_.protocol();
-    }
-
     bool start() override;
     bool stop() override;
+
+    const std::string &protocolName() const override {
+      return kPropogateTransacionsProtocolName;
+    }
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
@@ -80,7 +82,10 @@ namespace kagome::network {
 
     void readPropagatedExtrinsics(std::shared_ptr<Stream> stream);
 
+    const static inline auto kPropogateTransacionsProtocolName =
+        "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<consensus::babe::Babe> babe_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;

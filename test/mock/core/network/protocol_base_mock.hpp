@@ -14,7 +14,7 @@ namespace kagome::network {
 
   class ProtocolBaseMock : public virtual ProtocolBase {
    public:
-    MOCK_METHOD(const Protocol &, protocol, (), (const, override));
+    MOCK_METHOD(const std::string &, protocolName, (), (const, override));
 
     MOCK_METHOD(bool, start, (), (override));
 

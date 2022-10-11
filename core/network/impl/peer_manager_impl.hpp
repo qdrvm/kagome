@@ -32,7 +32,7 @@
 #include "network/impl/protocols/protocol_factory.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/protocols/sync_protocol.hpp"
-#include "network/rating_repository.hpp"
+#include "network/reputation_repository.hpp"
 #include "network/router.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -54,6 +54,8 @@ namespace kagome::network {
    public:
     static constexpr std::chrono::seconds kTimeoutForConnecting{15};
 
+    enum class Error { UNDECLARED_COLLATOR = 1, OUT_OF_VIEW, DUPLICATE };
+
     PeerManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         libp2p::Host &host,
@@ -68,7 +70,7 @@ namespace kagome::network {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<PeerRatingRepository> peer_rating_repository);
+        std::shared_ptr<ReputationRepository> reputation_repository);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -85,8 +87,25 @@ namespace kagome::network {
     /** @see PeerManager::reserveStreams */
     void reserveStreams(const PeerId &peer_id) const override;
 
+    /** @see PeerManager::getStreamEngine */
+    std::shared_ptr<StreamEngine> getStreamEngine() override;
+
     /** @see PeerManager::activePeersNumber */
     size_t activePeersNumber() const override;
+
+    /** @see PeerManager::setCollating */
+    void setCollating(const PeerId &peer_id,
+                      network::CollatorPublicKey const &collator_id,
+                      network::ParachainId para_id) override;
+
+    /** @see PeerManager::parachainState */
+    ParachainState &parachainState() override;
+
+    outcome::result<
+        std::pair<network::CollatorPublicKey const &, network::ParachainId>>
+    insert_advertisement(PeerState &peer_state,
+                         ParachainState &parachain_state,
+                         primitives::BlockHash para_hash) override;
 
     /** @see PeerManager::forEachPeer */
     void forEachPeer(std::function<void(const PeerId &)> func) const override;
@@ -114,7 +133,8 @@ namespace kagome::network {
         const GrandpaNeighborMessage &neighbor_message) override;
 
     /** @see PeerManager::getPeerState */
-    std::optional<PeerState> getPeerState(const PeerId &peer_id) override;
+    std::optional<std::reference_wrapper<PeerState>> getPeerState(
+        const PeerId &peer_id) override;
 
    private:
     /// Right way to check self peer as it takes into account dev mode
@@ -152,7 +172,7 @@ namespace kagome::network {
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
+    std::shared_ptr<ReputationRepository> reputation_repository_;
 
     libp2p::event::Handle add_peer_handle_;
     std::unordered_set<PeerId> peers_in_queue_;
@@ -170,9 +190,14 @@ namespace kagome::network {
     metrics::RegistryPtr registry_ = metrics::createRegistry();
     metrics::Gauge *sync_peer_num_;
 
+    // parachain
+    ParachainState parachain_state_;
+
     log::Logger log_;
   };
 
 }  // namespace kagome::network
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::network, PeerManagerImpl::Error)
 
 #endif  // KAGOME_NETWORK_PEERMANAGERIMPL

@@ -9,6 +9,7 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
@@ -22,6 +23,7 @@
 using namespace kagome;
 using namespace blockchain;
 using namespace consensus;
+using namespace babe;
 using namespace runtime;
 using namespace common;
 using namespace crypto;
@@ -90,14 +92,15 @@ class BlockValidatorTest : public testing::Test {
       std::make_shared<VRFProviderMock>();
   std::shared_ptr<Sr25519ProviderMock> sr25519_provider_ =
       std::make_shared<Sr25519ProviderMock>();
+  std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_ =
+      std::make_shared<BabeConfigRepositoryMock>();
 
-  BabeBlockValidator validator_{
-      tree_,
-      tx_queue_,
-      hasher_,
-      vrf_provider_,
-      sr25519_provider_,
-      std::make_shared<primitives::BabeConfiguration>()};
+  BabeBlockValidator validator_{tree_,
+                                tx_queue_,
+                                hasher_,
+                                vrf_provider_,
+                                sr25519_provider_,
+                                babe_config_repo_};
 
   // fields for block
   Hash256 parent_hash_ =

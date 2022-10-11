@@ -119,12 +119,9 @@ namespace kagome::authority {
 
     friend inline ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, ScheduleNode &node) {
-      auto current_authority_list =
-          std::make_shared<primitives::AuthoritySet>();
       s >> node.enabled
           >> const_cast<primitives::BlockInfo &>(node.current_block)
-          >> *current_authority_list >> node.action;
-      node.current_authorities = std::move(current_authority_list);
+          >> node.current_authorities >> node.action;
       return s;
     }
 

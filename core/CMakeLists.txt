@@ -5,6 +5,7 @@
 
 add_subdirectory(api)
 add_subdirectory(application)
+add_subdirectory(authority_discovery)
 add_subdirectory(authorship)
 add_subdirectory(assets)
 add_subdirectory(blockchain)
@@ -26,3 +27,4 @@ add_subdirectory(telemetry)
 add_subdirectory(transaction_pool)
 add_subdirectory(utils)
 add_subdirectory(offchain)
+add_subdirectory(parachain)

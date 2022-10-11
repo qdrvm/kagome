@@ -7,7 +7,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "log/logger.hpp"
-#include "runtime/executor.hpp"
+#include "runtime/common/executor.hpp"
 
 namespace kagome::runtime {
 
@@ -54,12 +54,6 @@ namespace kagome::runtime {
       return res.value().new_storage_root;
     }
     return res.error();
-  }
-
-  outcome::result<std::vector<primitives::AuthorityId>> CoreImpl::authorities(
-      const primitives::BlockHash &block_hash) {
-    return executor_->callAt<std::vector<primitives::AuthorityId>>(
-        block_hash, "Core_authorities", block_hash);
   }
 
 }  // namespace kagome::runtime

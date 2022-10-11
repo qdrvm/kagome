@@ -459,10 +459,6 @@ class SearchChainCommand : public Command {
         out << "the same block";
       }
       out << "\n";
-      for (auto &authority : scheduled_change->authorities) {
-        out << "Authority " << authority.id.id.toHex() << ": "
-            << authority.weight << "\n";
-      }
 
     } else if (auto *forced_change = boost::get<ForcedChange>(&digest);
                forced_change) {

@@ -12,16 +12,32 @@
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
+#include "network/reputation_repository.hpp"
 #include "scale/scale.hpp"
 
 namespace {
   constexpr auto highestGrandpaRoundMetricName =
       "kagome_finality_grandpa_round";
-}
+
+  template <typename D>
+  auto toMilliseconds(D &&duration) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+  }
+}  // namespace
 
 namespace kagome::consensus::grandpa {
 
   using authority::IsBlockFinalized;
+
+  namespace {
+    Clock::Duration getGossipDuration(const application::ChainSpec &chain) {
+      // https://github.com/paritytech/polkadot/pull/5448
+      auto slow = chain.isVersi() || chain.isWococo() || chain.isRococo()
+                  || chain.isKusama();
+      return std::chrono::duration_cast<Clock::Duration>(
+          std::chrono::milliseconds{slow ? 2000 : 1000});
+    }
+  }  // namespace
 
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -29,13 +45,16 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
+      const application::ChainSpec &chain_spec,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<authority::AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<network::PeerManager> peer_manager,
-      std::shared_ptr<blockchain::BlockTree> block_tree)
-      : environment_{std::move(environment)},
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<network::ReputationRepository> reputation_repository)
+      : round_time_factor_{getGossipDuration(chain_spec)},
+        environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
         keypair_{keypair},
@@ -44,7 +63,8 @@ namespace kagome::consensus::grandpa {
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)),
         peer_manager_(std::move(peer_manager)),
-        block_tree_(std::move(block_tree)) {
+        block_tree_(std::move(block_tree)),
+        reputation_repository_(std::move(reputation_repository)) {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
@@ -54,6 +74,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(synchronizer_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(reputation_repository_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
 
@@ -64,7 +85,7 @@ namespace kagome::consensus::grandpa {
         metrics_registry_->registerGaugeMetric(highestGrandpaRoundMetricName);
     metric_highest_round_->set(0);
 
-    // allow app state mananger to prepare, start and stop grandpa consensus
+    // allow app state manager to prepare, start and stop grandpa consensus
     // pipeline
     app_state_manager->takeControl(*this);
   }
@@ -122,12 +143,34 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    GrandpaImpl::tryExecuteNextRound(current_round_);
+    // Timer to send neighbor message if round does not change long time (1 min)
+    fallback_timer_handle_ = scheduler_->scheduleWithHandle(
+        [wp = weak_from_this()] {
+          auto self = wp.lock();
+          if (not self) {
+            return;
+          }
+          BOOST_ASSERT_MSG(self->current_round_,
+                           "Current round must be defiled anytime after start");
+          auto round =
+              std::dynamic_pointer_cast<VotingRoundImpl>(self->current_round_);
+          if (round) {
+            round->sendNeighborMessage();
+          }
+
+          std::ignore =
+              self->fallback_timer_handle_.reschedule(std::chrono::minutes(1));
+        },
+        std::chrono::minutes(1));
+
+    tryExecuteNextRound(current_round_);
 
     return true;
   }
 
-  void GrandpaImpl::stop() {}
+  void GrandpaImpl::stop() {
+    fallback_timer_handle_.cancel();
+  }
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters) {
@@ -285,6 +328,8 @@ namespace kagome::consensus::grandpa {
 
     current_round_ = makeNextRound(current_round_);
 
+    std::ignore = fallback_timer_handle_.reschedule(std::chrono::minutes(1));
+
     // Truncate chain of rounds
     size_t i = 0;
     for (auto round = current_round_; round != nullptr;
@@ -330,9 +375,10 @@ namespace kagome::consensus::grandpa {
 
     // Iff peer just reached one of recent round, then share known votes
     if (not info.has_value()
-        or (info->set_id.has_value() and msg.voter_set_id != info->set_id)
-        or (info->round_number.has_value()
-            and msg.round_number > info->round_number)) {
+        or (info->get().set_id.has_value()
+            and msg.voter_set_id != info->get().set_id)
+        or (info->get().round_number.has_value()
+            and msg.round_number > info->get().round_number)) {
       if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
           opt_round.has_value()) {
         auto &round = opt_round.value();
@@ -340,15 +386,63 @@ namespace kagome::consensus::grandpa {
       }
     }
 
+    bool reputation_changed = false;
+    if (info.has_value() and info->get().set_id.has_value()
+        and info->get().round_number.has_value()) {
+      const auto prev_set_id = info->get().set_id.value();
+      const auto prev_round_number = info->get().round_number.value();
+
+      // bad order of set id
+      if (msg.voter_set_id < prev_set_id) {
+        reputation_repository_->change(
+            peer_id, network::reputation::cost::INVALID_VIEW_CHANGE);
+        reputation_changed = true;
+      }
+
+      // bad order of round number
+      if (msg.voter_set_id == prev_set_id
+          and msg.round_number < prev_round_number) {
+        reputation_repository_->change(
+            peer_id, network::reputation::cost::INVALID_VIEW_CHANGE);
+        reputation_changed = true;
+      }
+    }
+
     peer_manager_->updatePeerState(peer_id, msg);
+
+    if (not reputation_changed) {
+      reputation_repository_->change(
+          peer_id, network::reputation::benefit::NEIGHBOR_MESSAGE);
+    }
 
     // If peer has the same voter set id
     if (msg.voter_set_id == current_round_->voterSetId()) {
       // Check if needed to catch-up peer, then do that
       if (msg.round_number
           >= current_round_->roundNumber() + kCatchUpThreshold) {
-        std::ignore = environment_->onCatchUpRequested(
+        auto res = environment_->onCatchUpRequested(
             peer_id, msg.voter_set_id, msg.round_number - 1);
+        if (res.has_value()) {
+          pending_catchup_request_.emplace(
+              peer_id,
+              network::CatchUpRequest{msg.round_number - 1, msg.voter_set_id});
+          catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
+              [wp = weak_from_this()] {
+                auto self = wp.lock();
+                if (not self) {
+                  return;
+                }
+                if (self->pending_catchup_request_.has_value()) {
+                  const auto &peer_id =
+                      std::get<0>(self->pending_catchup_request_.value());
+                  self->reputation_repository_->change(
+                      peer_id,
+                      network::reputation::cost::CATCH_UP_REQUEST_TIMEOUT);
+                  self->pending_catchup_request_.reset();
+                }
+              },
+              toMilliseconds(kCatchupRequestTimeout));
+        }
       }
 
       return;
@@ -359,7 +453,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (info->last_finalized <= block_tree_->deepestLeaf().number) {
+    if (info->get().last_finalized <= block_tree_->deepestLeaf().number) {
       //  Trying to substitute with justifications' request only
       auto last_finalized = block_tree_->getLastFinalized();
       synchronizer_->syncMissingJustifications(
@@ -390,6 +484,63 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                                      const network::CatchUpRequest &msg) {
+    auto info_opt = peer_manager_->getPeerState(peer_id);
+    if (not info_opt.has_value() or not info_opt->get().set_id.has_value()
+        or not info_opt->get().round_number.has_value()) {
+      SL_DEBUG(logger_,
+               "Catch-up request to round #{} received from {} was rejected: "
+               "we are not have our view about remote peer",
+               msg.round_number,
+               peer_id);
+      reputation_repository_->change(
+          peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
+      return;
+    }
+    const auto &info = info_opt->get();
+
+    // Check if request is corresponding our view about remote peer by set id
+    if (msg.voter_set_id != info.set_id.value()) {
+      SL_DEBUG(logger_,
+               "Catch-up request to round #{} received from {} was rejected: "
+               "it is not corresponding our view about remote peer ",
+               msg.round_number,
+               peer_id,
+               current_round_->voterSetId(),
+               msg.voter_set_id);
+
+      // NOTE: When we're close to a set change there is potentially a
+      // race where the peer sent us the request before it observed that
+      // we had transitioned to a new set. In this case we charge a lower
+      // cost.
+      if (msg.voter_set_id == info.set_id.value()
+          and msg.round_number
+                  < info.round_number.value() + kCatchUpThreshold) {
+        reputation_repository_->change(
+            peer_id, network::reputation::cost::HONEST_OUT_OF_SCOPE_CATCH_UP);
+        return;
+      }
+
+      reputation_repository_->change(
+          peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
+      return;
+    }
+
+    // Check if request is corresponding our view about remote peer by round
+    // number
+    if (msg.round_number <= info.round_number.value()) {
+      SL_DEBUG(logger_,
+               "Catch-up request to round #{} received from {} was rejected: "
+               "it is not corresponding our view about remote peer ",
+               msg.round_number,
+               peer_id,
+               current_round_->voterSetId(),
+               msg.voter_set_id);
+
+      reputation_repository_->change(
+          peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
+      return;
+    }
+
     // It is also impolite to send a catch-up request to a peer in a new
     // different Set ID.
     if (msg.voter_set_id != current_round_->voterSetId()) {
@@ -412,6 +563,9 @@ namespace kagome::consensus::grandpa {
                msg.round_number,
                peer_id,
                current_round_->roundNumber());
+
+      reputation_repository_->change(
+          peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
       return;
     }
 
@@ -440,10 +594,57 @@ namespace kagome::consensus::grandpa {
              msg.round_number,
              peer_id);
     round->doCatchUpResponse(peer_id);
+
+    reputation_repository_->change(peer_id,
+                                   network::reputation::cost::CATCH_UP_REPLY);
   }
 
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
+    bool need_cleanup_when_exiting_scope = false;
+    GrandpaContext::Guard cg;
+
+    auto ctx = GrandpaContext::get().value();
+    if (not ctx->peer_id.has_value()) {
+      if (not pending_catchup_request_.has_value()) {
+        reputation_repository_->change(
+            peer_id, network::reputation::cost::MALFORMED_CATCH_UP);
+        return;
+      }
+
+      const auto &[remote_peer_id, catchup_request] =
+          pending_catchup_request_.value();
+
+      if (peer_id != remote_peer_id) {
+        reputation_repository_->change(
+            peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
+        return;
+      }
+
+      if (msg.voter_set_id != catchup_request.voter_set_id
+          or msg.round_number != catchup_request.round_number) {
+        reputation_repository_->change(
+            peer_id, network::reputation::cost::MALFORMED_CATCH_UP);
+        return;
+      }
+
+      if (msg.prevote_justification.empty()
+          or msg.precommit_justification.empty()) {
+        reputation_repository_->change(
+            peer_id, network::reputation::cost::MALFORMED_CATCH_UP);
+        return;
+      }
+
+      need_cleanup_when_exiting_scope = true;
+    }
+
+    auto cleanup = gsl::finally([&] {
+      if (need_cleanup_when_exiting_scope) {
+        catchup_request_timer_handle_.cancel();
+        pending_catchup_request_.reset();
+      }
+    });
+
     BOOST_ASSERT(current_round_ != nullptr);
     // Ignore message of peer whose round in different voter set
     if (msg.voter_set_id != current_round_->voterSetId()) {
@@ -473,8 +674,6 @@ namespace kagome::consensus::grandpa {
              "Catch-up response (till round #{}) received from {}",
              msg.round_number,
              peer_id);
-
-    GrandpaContext::Guard cg;
 
     if (msg.round_number > current_round_->roundNumber()) {
       MovableRoundState round_state{
@@ -516,7 +715,20 @@ namespace kagome::consensus::grandpa {
 
       if (not round->completable()
           and not round->finalizedBlock().has_value()) {
-        auto ctx = GrandpaContext::get().value();
+        // Met unknown voter - cost reputation
+        if (ctx->unknown_voter_counter > 0) {
+          reputation_repository_->change(
+              peer_id,
+              network::reputation::cost::UNKNOWN_VOTER
+                  * ctx->unknown_voter_counter);
+        }
+        // Met invalid signature - cost reputation
+        if (ctx->invalid_signature_counter > 0) {
+          reputation_repository_->change(
+              peer_id,
+              network::reputation::cost::BAD_CATCHUP_RESPONSE
+                  * ctx->checked_signature_counter);
+        }
         // Check if missed block are detected and if this is first attempt
         // (considering by definition peer id in context)
         if (not ctx->missing_blocks.empty()) {
@@ -558,7 +770,20 @@ namespace kagome::consensus::grandpa {
 
       // Check if catch-up round is not completable
       if (not current_round_->completable()) {
-        auto ctx = GrandpaContext::get().value();
+        // Met unknown voter - cost reputation
+        if (ctx->unknown_voter_counter > 0) {
+          reputation_repository_->change(
+              peer_id,
+              network::reputation::cost::UNKNOWN_VOTER
+                  * ctx->unknown_voter_counter);
+        }
+        // Met invalid signature - cost reputation
+        if (ctx->invalid_signature_counter > 0) {
+          reputation_repository_->change(
+              peer_id,
+              network::reputation::cost::BAD_CATCHUP_RESPONSE
+                  * ctx->checked_signature_counter);
+        }
         // Check if missed block are detected and if this is first attempt
         // (considering by definition peer id in context)
         if (not ctx->missing_blocks.empty()) {
@@ -573,10 +798,33 @@ namespace kagome::consensus::grandpa {
     }
 
     tryExecuteNextRound(current_round_);
+
+    reputation_repository_->change(
+        peer_id, network::reputation::benefit::BASIC_VALIDATED_CATCH_UP);
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
+    auto info = peer_manager_->getPeerState(peer_id);
+    if (not info.has_value() or not info->get().set_id.has_value()
+        or not info->get().round_number.has_value()) {
+      SL_DEBUG(
+          logger_,
+          "{} signed by {} with set_id={} in round={} has received from {} "
+          "and we are not have our view about remote peer",
+          msg.vote.is<Prevote>()     ? "Prevote"
+          : msg.vote.is<Precommit>() ? "Precommit"
+                                     : "PrimaryPropose",
+          msg.id(),
+          msg.counter,
+          msg.round_number,
+          peer_id,
+          current_round_->voterSetId());
+      reputation_repository_->change(
+          peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
+      return;
+    }
+
     // If a peer is at a given voter set, it is impolite to send messages from
     // an earlier voter set.
     if (msg.counter < current_round_->voterSetId()) {
@@ -592,6 +840,8 @@ namespace kagome::consensus::grandpa {
           msg.round_number,
           peer_id,
           current_round_->voterSetId());
+      reputation_repository_->change(peer_id,
+                                     network::reputation::cost::PAST_REJECTION);
       return;
     }
 
@@ -609,7 +859,17 @@ namespace kagome::consensus::grandpa {
               msg.round_number,
               peer_id,
               current_round_->voterSetId());
+      reputation_repository_->change(peer_id,
+                                     network::reputation::cost::FUTURE_MESSAGE);
       return;
+    }
+
+    if (msg.round_number > current_round_->roundNumber() + 1) {
+      reputation_repository_->change(peer_id,
+                                     network::reputation::cost::FUTURE_MESSAGE);
+    } else if (msg.round_number < current_round_->roundNumber() - 1) {
+      reputation_repository_->change(peer_id,
+                                     network::reputation::cost::PAST_REJECTION);
     }
 
     // If the current peer is at round r, it is impolite to receive messages
@@ -699,15 +959,34 @@ namespace kagome::consensus::grandpa {
             is_precommits_changed = true;
           }
         });
+
+    auto ctx = GrandpaContext::get().value();
+
+    // Met invalid signature - cost reputation
+    if (ctx->invalid_signature_counter > 0) {
+      reputation_repository_->change(peer_id,
+                                     network::reputation::cost::BAD_SIGNATURE
+                                         * ctx->checked_signature_counter);
+    }
+
+    // Met unknown voter - cost reputation
+    if (ctx->unknown_voter_counter > 0) {
+      reputation_repository_->change(peer_id,
+                                     network::reputation::cost::UNKNOWN_VOTER
+                                         * ctx->unknown_voter_counter);
+    }
+
     if (is_prevotes_changed or is_precommits_changed) {
       target_round->update(
           VotingRound::IsPreviousRoundChanged{false},
           VotingRound::IsPrevotesChanged{is_prevotes_changed},
           VotingRound::IsPrecommitsChanged{is_precommits_changed});
+
+      reputation_repository_->change(
+          peer_id, network::reputation::benefit::ROUND_MESSAGE);
     }
 
     if (not target_round->finalizedBlock().has_value()) {
-      auto ctx = GrandpaContext::get().value();
       // Check if missed block are detected and if this is first attempt
       // (considering by definition peer id in context)
       if (not ctx->missing_blocks.empty()) {
@@ -723,6 +1002,12 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCommitMessage(const libp2p::peer::PeerId &peer_id,
                                     const network::FullCommitMessage &msg) {
+    // TODO check if height of commit less then previous one
+    // if (new_commit_height < last_commit_height) {
+    //   reputation_repository_->change(
+    //       peer_id, network::reputation::cost::INVALID_VIEW_CHANGE);
+    // }
+
     // It is especially impolite to send commits which are invalid, or from
     // a different Set ID than the receiving peer has indicated
     if (msg.set_id != current_round_->voterSetId()) {
@@ -735,12 +1020,18 @@ namespace kagome::consensus::grandpa {
           BlockInfo(msg.message.target_number, msg.message.target_hash),
           peer_id,
           current_round_->voterSetId());
+
+      reputation_repository_->change(
+          peer_id,
+          msg.set_id < current_round_->voterSetId()
+              ? network::reputation::cost::PAST_REJECTION
+              : network::reputation::cost::FUTURE_MESSAGE);
       return;
     }
 
     // It is impolite to send commits which are earlier than the last commit
     // sent
-    if (msg.round + kKeepRecentRounds < current_round_->voterSetId()) {
+    if (msg.round + kKeepRecentRounds < current_round_->roundNumber()) {
       SL_DEBUG(
           logger_,
           "Commit with set_id={} in round={} for block {} has received from {} "
@@ -751,6 +1042,21 @@ namespace kagome::consensus::grandpa {
           peer_id,
           current_round_->roundNumber());
       return;
+    }
+
+    if (msg.message.precommits.empty()
+        or msg.message.auth_data.size() != msg.message.precommits.size()) {
+      reputation_repository_->change(
+          peer_id, network::reputation::cost::MALFORMED_COMMIT);
+    }
+
+    if (auto prev_round = current_round_->getPreviousRound()) {
+      if (auto finalized_opt = prev_round->finalizedBlock()) {
+        if (msg.message.target_number < finalized_opt->number) {
+          reputation_repository_->change(
+              peer_id, network::reputation::cost::PAST_REJECTION);
+        }
+      }
     }
 
     if (msg.round < current_round_->roundNumber()) {
@@ -803,6 +1109,9 @@ namespace kagome::consensus::grandpa {
           res.error().message());
       return;
     }
+
+    reputation_repository_->change(
+        peer_id, network::reputation::benefit::BASIC_VALIDATED_COMMIT);
   }
 
   outcome::result<void> GrandpaImpl::applyJustification(
@@ -847,6 +1156,18 @@ namespace kagome::consensus::grandpa {
           return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
         }
         auto &authority_set = authorities_opt.value();
+        SL_INFO(logger_,
+                "Apply justification for block {} with voter set id {}",
+                block_info,
+                authority_set->id);
+        SL_INFO(logger_,
+                "authorities->id: {}, current_round_->voterSetId(): {}, "
+                "justification.round_number: {}, "
+                "current_round_->roundNumber(): {}",
+                authority_set->id,
+                current_round_->voterSetId(),
+                justification.round_number,
+                current_round_->roundNumber());
 
         // This is justification for non-actual round
         if (authority_set->id < current_round_->voterSetId()) {
@@ -862,7 +1183,6 @@ namespace kagome::consensus::grandpa {
                   "Authority set on block {} with justification has id {}, "
                   "while the current round set id is {} (difference must be 1)",
                   block_info, authority_set->id, current_round_->voterSetId());
-          //return VotingRoundError::WRONG_ORDER_OF_VOTER_SET_ID;
         }
 
         auto voters = std::make_shared<VoterSet>(authority_set->id);

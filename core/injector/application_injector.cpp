@@ -4,7 +4,6 @@
  */
 
 #include "injector/application_injector.hpp"
-#include "crypto/hasher.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
@@ -47,6 +46,7 @@
 #include "application/impl/chain_spec_impl.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
+#include "authority_discovery/publisher/address_publisher.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
@@ -57,11 +57,13 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
+#include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/authority/impl/authority_manager_impl.hpp"
 #include "consensus/authority/impl/schedule_node.hpp"
+#include "consensus/babe/impl/babe_config_repository_impl.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
@@ -84,6 +86,7 @@
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "host_api/impl/host_api_impl.hpp"
+#include "injector/get_peer_keypair.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "metrics/impl/exposer_impl.hpp"
@@ -93,9 +96,8 @@
 #include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
-#include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/peer_manager_impl.hpp"
-#include "network/impl/rating_repository_impl.hpp"
+#include "network/impl/reputation_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/state_protocol_observer_impl.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
@@ -108,18 +110,23 @@
 #include "offchain/impl/offchain_worker_impl.hpp"
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
 #include "outcome/outcome.hpp"
+#include "parachain/availability/bitfield/store_impl.hpp"
+#include "parachain/availability/store/store_impl.hpp"
+#include "parachain/validator/parachain_observer.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/common/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
+#include "runtime/runtime_api/impl/authority_discovery_api.hpp"
 #include "runtime/runtime_api/impl/babe_api.hpp"
 #include "runtime/runtime_api/impl/block_builder.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
@@ -379,6 +386,14 @@ namespace {
     options.optimize_filters_for_hits = true;
     options.table_factory.reset(
         rocksdb::NewBlockBasedTableFactory(table_options));
+
+    // Setting limit for open rocksdb files to a half of system soft limit
+    auto soft_limit = common::getFdLimit();
+    if (!soft_limit) {
+      exit(EXIT_FAILURE);
+    }
+    options.max_open_files = soft_limit.value() / 2;
+
     auto db_res =
         storage::RocksDB::create(app_config.databasePath(chain_spec->id()),
                                  options,
@@ -423,41 +438,6 @@ namespace {
     return initialized.value();
   }
 
-  sptr<primitives::BabeConfiguration> get_babe_configuration(
-      primitives::BlockHash const &block_hash,
-      sptr<runtime::BabeApi> babe_api) {
-    static auto initialized =
-        std::optional<sptr<primitives::BabeConfiguration>>(std::nullopt);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto log = log::createLogger("Injector", "injector");
-
-    auto configuration_res = babe_api->configuration(block_hash);
-    if (not configuration_res) {
-      if (configuration_res
-          == outcome::failure(runtime::RuntimeEnvironmentFactory::Error::
-                                  FAILED_TO_SET_STORAGE_STATE)) {
-        SL_CRITICAL(log,
-                    "State for block {} has not found. "
-                    "Try to launch with `--sync Fast' CLI arg",
-                    block_hash);
-      }
-      common::raise(configuration_res.error());
-    }
-
-    auto configuration = std::make_shared<primitives::BabeConfiguration>(
-        std::move(configuration_res.value()));
-
-    for (const auto &authority : configuration->genesis_authorities) {
-      SL_DEBUG(log, "Babe authority: {:l}", authority.id.id);
-    }
-
-    initialized.emplace(std::move(configuration));
-    return initialized.value();
-  }
-
   sptr<crypto::KeyFileStorage> get_key_file_storage(
       application::AppConfiguration const &config,
       sptr<application::ChainSpec> chain_spec) {
@@ -477,91 +457,6 @@ namespace {
     initialized = std::move(key_file_storage_res.value());
     initialized_path = std::move(path);
 
-    return initialized.value();
-  }
-
-  const sptr<libp2p::crypto::KeyPair> &get_peer_keypair(
-      const application::AppConfiguration &app_config,
-      const crypto::Ed25519Provider &crypto_provider,
-      const crypto::CryptoStore &crypto_store) {
-    static auto initialized =
-        std::optional<sptr<libp2p::crypto::KeyPair>>(std::nullopt);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto log = log::createLogger("Injector", "injector");
-
-    if (app_config.nodeKey()) {
-      log->info("Will use LibP2P keypair from config or 'node-key' CLI arg");
-
-      auto provided_keypair =
-          crypto_provider.generateKeypair(app_config.nodeKey().value());
-      BOOST_ASSERT(provided_keypair.secret_key == app_config.nodeKey().value());
-
-      auto &&pub = provided_keypair.public_key;
-      auto &&priv = provided_keypair.secret_key;
-
-      auto key_pair =
-          std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
-              .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                             .data = {pub.begin(), pub.end()}}},
-              .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                              .data = {priv.begin(), priv.end()}}}});
-
-      initialized.emplace(std::move(key_pair));
-      return initialized.value();
-    }
-
-    if (app_config.nodeKeyFile()) {
-      const auto &path = app_config.nodeKeyFile().value();
-      log->info(
-          "Will use LibP2P keypair from config or 'node-key-file' CLI arg");
-      auto key = crypto_store.loadLibp2pKeypair(path);
-      if (key.has_error()) {
-        log->error("Unable to load user provided key from {}. Error: {}",
-                   path,
-                   key.error().message());
-      } else {
-        auto key_pair =
-            std::make_shared<libp2p::crypto::KeyPair>(std::move(key.value()));
-        initialized.emplace(std::move(key_pair));
-        return initialized.value();
-      }
-    }
-
-    if (crypto_store.getLibp2pKeypair().has_value()) {
-      log->info(
-          "Will use LibP2P keypair from config or args (loading from base "
-          "path)");
-
-      auto stored_keypair = crypto_store.getLibp2pKeypair().value();
-
-      auto key_pair =
-          std::make_shared<libp2p::crypto::KeyPair>(std::move(stored_keypair));
-
-      initialized.emplace(std::move(key_pair));
-      return initialized.value();
-    }
-
-    log->warn(
-        "Can not obtain a libp2p keypair from crypto storage. "
-        "A unique one will be generated for the current session");
-
-    auto generated_keypair = crypto_provider.generateKeypair();
-
-    auto &&pub = generated_keypair.public_key;
-    auto &&priv = generated_keypair.secret_key;
-
-    auto key_pair =
-        std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
-            .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                           .data = {pub.begin(), pub.end()}}},
-            .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                            .data = {priv.begin(), priv.end()}}}});
-
-    initialized.emplace(std::move(key_pair));
     return initialized.value();
   }
 
@@ -677,9 +572,9 @@ namespace {
         injector.template create<std::shared_ptr<runtime::Core>>();
     auto changes_tracker = injector.template create<
         std::shared_ptr<storage::changes_trie::ChangesTracker>>();
-    auto babe_configuration =
+    auto babe_config_repo =
         injector
-            .template create<std::shared_ptr<primitives::BabeConfiguration>>();
+            .template create<std::shared_ptr<consensus::babe::BabeConfigRepository>>();
     auto babe_util =
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
     auto justification_storage_policy = injector.template create<
@@ -695,7 +590,7 @@ namespace {
         std::move(ext_events_key_repo),
         std::move(runtime_core),
         std::move(changes_tracker),
-        std::move(babe_configuration),
+        std::move(babe_config_repo),
         std::move(babe_util),
         std::move(justification_storage_policy));
 
@@ -744,12 +639,15 @@ namespace {
         injector.template create<sptr<network::Router>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<network::PeerRatingRepository>>());
+        injector.template create<sptr<network::ReputationRepository>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
     protocol_factory->setPeerManager(peer_manager);
+
+    static auto address_publisher =
+        injector.template create<sptr<authority_discovery::AddressPublisher>>();
 
     initialized.emplace(std::move(peer_manager));
     return initialized.value();
@@ -767,7 +665,7 @@ namespace {
     auto block_executor = std::make_shared<consensus::BlockExecutorImpl>(
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<runtime::Core>>(),
-        injector.template create<sptr<primitives::BabeConfiguration>>(),
+        injector.template create<sptr<consensus::babe::BabeConfigRepository>>(),
         injector.template create<sptr<consensus::BlockValidator>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
@@ -779,6 +677,53 @@ namespace {
 
     initialized.emplace(std::move(block_executor));
     return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<parachain::ParachainObserverImpl> get_parachain_observer_impl(
+      const Injector &injector) {
+    auto get_instance = [&]() {
+      auto instance = std::make_shared<parachain::ParachainObserverImpl>(
+          injector.template create<std::shared_ptr<network::PeerManager>>(),
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
+          injector.template create<
+              std::shared_ptr<parachain::ParachainProcessorImpl>>());
+
+      auto protocol_factory =
+          injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+      protocol_factory->setCollactionObserver(instance);
+      protocol_factory->setReqCollationObserver(instance);
+      return instance;
+    };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
+  template <typename Injector>
+  sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
+      const Injector &injector) {
+    auto get_instance = [&]() {
+      auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
+      auto ptr = std::make_shared<parachain::ParachainProcessorImpl>(
+          injector.template create<std::shared_ptr<network::PeerManager>>(),
+          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
+          injector.template create<std::shared_ptr<network::Router>>(),
+          injector
+              .template create<std::shared_ptr<::boost::asio::io_context>>(),
+          session_keys->getBabeKeyPair(),
+          injector.template create<std::shared_ptr<crypto::Hasher>>());
+
+      auto asmgr =
+          injector
+              .template create<std::shared_ptr<application::AppStateManager>>();
+      asmgr->takeControl(*ptr);
+      return ptr;
+    };
+
+    static auto instance = get_instance();
+    return instance;
   }
 
   template <typename... Ts>
@@ -964,6 +909,7 @@ namespace {
           }
           return initialized.value();
         }),
+        di::bind<runtime::RawExecutor>.template to<runtime::Executor>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
@@ -980,6 +926,7 @@ namespace {
         di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderImpl>(),
         di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
+        di::bind<runtime::AuthorityDiscoveryApi>.template to<runtime::AuthorityDiscoveryApiImpl>(),
         di::bind<runtime::SingleModuleCache>.template to<runtime::SingleModuleCache>(),
         std::forward<Ts>(args)...);
   }
@@ -1013,17 +960,6 @@ namespace {
 
     return initialized.value();
   }
-
-  template <typename Injector>
-  primitives::BlockHash get_last_finalized_hash(const Injector &injector) {
-    auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
-    if (auto last = storage->getLastFinalized(); last.has_value()) {
-      return last.value().hash;
-    } else {
-      throw std::runtime_error("Cannot lookup last finalized block: "
-                               + last.error().message());
-    }
-  };
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
@@ -1103,8 +1039,9 @@ namespace {
           auto &crypto_provider =
               injector.template create<const crypto::Ed25519Provider &>();
           auto &crypto_store =
-              injector.template create<const crypto::CryptoStore &>();
-          return get_peer_keypair(app_config, crypto_provider, crypto_store);
+              injector.template create<crypto::CryptoStore &>();
+          return injector::get_peer_keypair(
+              app_config, crypto_provider, crypto_store);
         })[boost::di::override],
 
         // bind io_context: 1 per injector
@@ -1220,25 +1157,6 @@ namespace {
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
-        di::bind<clock::SystemClock::Duration>.to([](const auto &injector) {
-          auto conf =
-              injector.template create<sptr<primitives::BabeConfiguration>>();
-          return conf->slot_duration;
-        }),
-        di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
-          // need it to add genesis block if it's not there
-          auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
-          if (injector.template create<application::AppConfiguration const &>()
-                  .syncMethod()
-              == application::AppConfiguration::SyncMethod::Fast) {
-            auto genesis_block_header =
-                injector
-                    .template create<sptr<primitives::GenesisBlockHeader>>();
-            return get_babe_configuration(genesis_block_header->hash, babe_api);
-          }
-          static auto last_finalized_hash = get_last_finalized_hash(injector);
-          return get_babe_configuration(last_finalized_hash, babe_api);
-        }),
         di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
@@ -1248,7 +1166,7 @@ namespace {
         di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
         di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
-        di::bind<network::PeerRatingRepository>.template to<network::PeerRatingRepositoryImpl>(),
+        di::bind<network::ReputationRepository>.template to<network::ReputationRepositoryImpl>(),
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
@@ -1269,6 +1187,15 @@ namespace {
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
+        di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
+        di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
+        di::bind<parachain::ParachainObserverImpl>.to([](auto const &injector) {
+          return get_parachain_observer_impl(injector);
+        }),
+        di::bind<parachain::ParachainProcessorImpl>.to(
+            [](auto const &injector) {
+              return get_parachain_processor_impl(injector);
+            }),
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =
@@ -1329,6 +1256,7 @@ namespace {
         di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
         di::bind<consensus::babe::ConsistencyKeeper>.template to<consensus::babe::ConsistencyKeeperImpl>(),
         di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
+        di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1349,11 +1277,10 @@ namespace {
     if (config.roles().flags.authority) {
       auto &crypto_provider =
           injector.template create<const crypto::Ed25519Provider &>();
-      auto &crypto_store =
-          injector.template create<const crypto::CryptoStore &>();
+      auto &crypto_store = injector.template create<crypto::CryptoStore &>();
 
       auto &local_pair =
-          get_peer_keypair(config, crypto_provider, crypto_store);
+          injector::get_peer_keypair(config, crypto_provider, crypto_store);
 
       public_key = local_pair->publicKey;
     } else {
@@ -1401,7 +1328,7 @@ namespace {
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::BabeLottery>>(),
-        injector.template create<sptr<primitives::BabeConfiguration>>(),
+        injector.template create<sptr<consensus::babe::BabeConfigRepository>>(),
         injector.template create<sptr<authorship::Proposer>>(),
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<network::BlockAnnounceTransmitter>>(),
@@ -1461,12 +1388,14 @@ namespace {
         injector.template create<sptr<crypto::Ed25519Provider>>(),
         injector.template create<sptr<runtime::GrandpaApi>>(),
         session_keys->getGranKeyPair(),
+        injector.template create<const application::ChainSpec &>(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<authority::AuthorityManager>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<network::PeerManager>>(),
-        injector.template create<sptr<blockchain::BlockTree>>());
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<network::ReputationRepository>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1487,6 +1416,8 @@ namespace {
 
     const auto &app_config =
         injector.template create<const application::AppConfiguration &>();
+    auto buffer_storage =
+        injector.template create<sptr<storage::BufferStorage>>();
     auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
     auto header_repo =
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
@@ -1497,6 +1428,7 @@ namespace {
 
     initialized.emplace(new application::mode::RecoveryMode(
         [&app_config,
+         buffer_storage = std::move(buffer_storage),
          authority_manager,
          storage = std::move(storage),
          header_repo = std::move(header_repo),
@@ -1509,6 +1441,9 @@ namespace {
               trie_storage);
 
           auto log = log::createLogger("RecoveryMode", "main");
+
+          buffer_storage->remove(storage::kAuthorityManagerStateLookupKey)
+              .value();
           if (res.has_error()) {
             SL_ERROR(
                 log, "Recovery mode has failed: {}", res.error().message());
@@ -1525,6 +1460,7 @@ namespace {
             log->flush();
             return EXIT_FAILURE;
           }
+
           return EXIT_SUCCESS;
         }));
 
@@ -1623,6 +1559,16 @@ namespace kagome::injector {
   std::shared_ptr<network::SyncProtocolObserver>
   KagomeNodeInjector::injectSyncObserver() {
     return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
+  }
+
+  std::shared_ptr<parachain::ParachainObserverImpl>
+  KagomeNodeInjector::injectParachainObserver() {
+    return pimpl_->injector_.create<sptr<parachain::ParachainObserverImpl>>();
+  }
+
+  std::shared_ptr<parachain::ParachainProcessorImpl>
+  KagomeNodeInjector::injectParachainProcessor() {
+    return pimpl_->injector_.create<sptr<parachain::ParachainProcessorImpl>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {

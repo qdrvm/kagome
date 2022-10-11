@@ -8,6 +8,7 @@
 #include <chrono>
 
 #include "blockchain/block_tree_error.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
@@ -32,7 +33,7 @@ namespace kagome::consensus {
 
   BlockAppenderImpl::BlockAppenderImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<primitives::BabeConfiguration> configuration,
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<grandpa::Environment> grandpa_environment,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -41,7 +42,7 @@ namespace kagome::consensus {
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper)
       : block_tree_{std::move(block_tree)},
-        babe_configuration_{std::move(configuration)},
+        babe_config_repo_{std::move(babe_config_repo)},
         block_validator_{std::move(block_validator)},
         grandpa_environment_{std::move(grandpa_environment)},
         hasher_{std::move(hasher)},
@@ -50,7 +51,7 @@ namespace kagome::consensus {
         consistency_keeper_(std::move(consistency_keeper)),
         logger_{log::createLogger("BlockAppender", "block_appender")} {
     BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(babe_configuration_ != nullptr);
+    BOOST_ASSERT(babe_config_repo_ != nullptr);
     BOOST_ASSERT(block_validator_ != nullptr);
     BOOST_ASSERT(grandpa_environment_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
@@ -182,7 +183,9 @@ namespace kagome::consensus {
              epoch_number,
              this_block_epoch_descriptor.randomness);
 
-    auto threshold = calculateThreshold(babe_configuration_->leadership_rate,
+    const auto &babe_config = babe_config_repo_->config();
+
+    auto threshold = calculateThreshold(babe_config.leadership_rate,
                                         this_block_epoch_descriptor.authorities,
                                         babe_header.authority_index);
 

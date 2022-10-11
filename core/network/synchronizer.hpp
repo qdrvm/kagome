@@ -8,6 +8,7 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
+#include "network/types/state_request.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
@@ -51,8 +52,9 @@ namespace kagome::network {
 
     virtual void syncState(const libp2p::peer::PeerId &peer_id,
                            const primitives::BlockInfo &block,
-                           const std::vector<common::Buffer> &keys,
                            SyncResultHandler &&handler) = 0;
+
+    virtual bool hasIncompleteRequestOfStateSync() const = 0;
   };
 
 }  // namespace kagome::network
