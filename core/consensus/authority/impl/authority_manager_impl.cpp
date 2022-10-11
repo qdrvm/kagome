@@ -346,7 +346,7 @@ namespace kagome::authority {
     OUTCOME_TRY(root_header,
                 block_tree_->getBlockHeader(graph_root_block.hash));
 
-    OUTCOME_TRY(set_id_from_runtime, readSetIdFromRuntime(root_header));
+    auto set_id_from_runtime_res = readSetIdFromRuntime(root_header);
 
     OUTCOME_TRY(opt_root, fetchScheduleGraphRoot(*persistent_storage_));
     auto last_finalized_block = block_tree_->getLastFinalized();
@@ -354,17 +354,19 @@ namespace kagome::authority {
     if (opt_root
         && opt_root.value()->current_block.number
                <= last_finalized_block.number) {
-      // FIXME: Correction to bypass bug where after finishing syncing and
-      // restarting the node we get a set id off by one
-      if (set_id_from_runtime.has_value()
+      // TODO(Harrm): #1334
+      // Correction to bypass the bug where after finishing syncing
+      // and restarting the node we get a set id off by one
+      if (set_id_from_runtime_res.has_value()
           && opt_root.value()->current_authorities->id
-                 == set_id_from_runtime.value() - 1) {
+                 == set_id_from_runtime_res.value() - 1) {
         auto &authority_list =
             opt_root.value()->current_authorities->authorities;
         opt_root.value()->current_authorities =
             std::make_shared<primitives::AuthoritySet>(
-                set_id_from_runtime.value(), authority_list);
+                set_id_from_runtime_res.value(), authority_list);
       }
+
       root_ = std::move(opt_root.value());
       SL_DEBUG(log_,
                "Fetched authority set graph root from database with id {}",
@@ -377,7 +379,7 @@ namespace kagome::authority {
           std::make_shared<primitives::AuthoritySet>(
               0, std::move(initial_authorities)),
           {0, genesis_hash});
-    } else if (set_id_from_runtime.has_value()) {
+    } else if (set_id_from_runtime_res.has_value()){
       SL_WARN(
           log_,
           "Storage does not contain valid info about the root authority set; "
@@ -387,7 +389,7 @@ namespace kagome::authority {
                   grandpa_api_->authorities(graph_root_block.hash));
 
       auto authority_set = std::make_shared<primitives::AuthoritySet>(
-          set_id_from_runtime.value(), std::move(authorities));
+          set_id_from_runtime_res.value(), std::move(authorities));
       root_ = authority::ScheduleNode::createAsRoot(authority_set,
                                                     graph_root_block);
 
@@ -397,11 +399,8 @@ namespace kagome::authority {
                "storage",
                root_->current_authorities->id);
     } else {
-      SL_ERROR(log_,
-               "Fail to initialize authority manager: cannot retrieve the "
-               "current authority set id from either the database, the trie "
-               "storage, or the runtime API. Try --recovery.");
-      return AuthorityManagerError::FAILED_TO_INITIALIZE_SET_ID;
+      SL_ERROR(log_, "Failed to initialize authority manager; Try running recovery mode");
+      return set_id_from_runtime_res.as_failure();
     }
 
     while (not collected_msgs.empty()) {
@@ -613,12 +612,56 @@ namespace kagome::authority {
       return outcome::success();
     };
 
+    KAGOME_PROFILE_START(is_ancestor_node_finalized)
+    IsBlockFinalized is_ancestor_node_finalized =
+        ancestor_node->current_block == block_tree_->getLastFinalized()
+        or directChainExists(ancestor_node->current_block,
+                             block_tree_->getLastFinalized());
+    KAGOME_PROFILE_END(is_ancestor_node_finalized)
+
+    // maybe_set contains last planned authority set, if present
+    std::optional<std::shared_ptr<const primitives::AuthoritySet>> maybe_set =
+        std::nullopt;
+    if (not is_ancestor_node_finalized) {
+      std::shared_ptr<const ScheduleNode> last_node = ancestor_node;
+      while (last_node and last_node != root_) {
+        if (const auto *action =
+                boost::get<ScheduleNode::ScheduledChange>(&last_node->action);
+            action != nullptr) {
+          if (block.number <= action->applied_block) {
+            // It's mean, that new Scheduled Changes would be scheduled before
+            // previous is activated. So we ignore it
+            return outcome::success();
+          }
+
+          if (action->new_authorities->id
+              > ancestor_node->current_authorities->id) {
+            maybe_set = action->new_authorities;
+          }
+          break;
+        }
+
+        last_node = last_node->parent.lock();
+      }
+    }
+
     if (ancestor_node->current_block == block) {
+      if (maybe_set.has_value()) {
+        ancestor_node->current_authorities = maybe_set.value();
+      } else {
+        ancestor_node->adjust(is_ancestor_node_finalized);
+      }
+
       OUTCOME_TRY(schedule_change(ancestor_node));
     } else {
       KAGOME_PROFILE_START(make_descendant)
       auto new_node = ancestor_node->makeDescendant(block, true);
       KAGOME_PROFILE_END(make_descendant)
+
+      if (maybe_set.has_value()) {
+        new_node->current_authorities = maybe_set.value();
+      }
+
       SL_DEBUG(log_,
                "Make a schedule node for block {}, with actual set id {}",
                block,
