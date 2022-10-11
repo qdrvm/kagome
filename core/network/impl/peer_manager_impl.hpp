@@ -151,7 +151,7 @@ namespace kagome::network {
     void connectToPeer(const PeerId &peer_id);
 
     /// Closes all streams of provided peer
-    void disconnectFromPeer(const PeerId &peer_id);
+    void disconnectFromPeer(PeerId peer_id);
 
     std::vector<scale::PeerInfoSerializable> loadLastActivePeers();
 
