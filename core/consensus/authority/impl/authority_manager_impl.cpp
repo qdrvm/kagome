@@ -858,7 +858,6 @@ namespace kagome::authority {
                 block, msg.authorities, block.number + msg.subchain_length);
           },
           [this, &block](const primitives::ForcedChange &msg) {
-            throw std::runtime_error{"not implemented"};
             return applyForcedChange(
                 block, msg.authorities, msg.delay_start, msg.subchain_length);
           },

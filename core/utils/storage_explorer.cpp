@@ -414,37 +414,13 @@ class SearchChainCommand : public Command {
                                     consensus_digest->decode());
         if (decoded.consensus_engine_id
             == kagome::primitives::kGrandpaEngineId) {
-          auto info = reportAuthorityUpdate(
-              out, header.number, decoded.asGrandpaDigest());
-          if (info.id_changed) {
-            auto batch_res =
-                trie_storage->getEphemeralBatchAt(header.state_root);
-            if (!batch_res) {
-              std::cerr << "Error fetching trie batch for state "
-                        << header.state_root.toHex() << ": "
-                        << batch_res.error().message() << "\n";
-              continue;
-            }
-            auto res = kagome::authority::fetchSetIdFromTrieStorage(
-                *batch_res.value(), *hasher, header.state_root);
-            if (!res) {
-              std::cerr << "Error fetching authority set id from storage: "
-                        << res.error().message() << "\n";
-              continue;
-            }
-            std::cout << "Set id fetched from storage: "
-                      << res.value().value_or(-1) << "\n";
-          }
+          reportAuthorityUpdate(out, header.number, decoded.asGrandpaDigest());
         }
       }
     }
   }
 
-  struct AuthorityUpdateInfo {
-    bool id_changed = false;
-  };
-
-  AuthorityUpdateInfo reportAuthorityUpdate(std::ostream &out,
+  void reportAuthorityUpdate(std::ostream &out,
                                             BlockNumber digest_origin,
                                             GrandpaDigest const &digest) const {
     using namespace kagome::primitives;
@@ -481,7 +457,6 @@ class SearchChainCommand : public Command {
       out << "Disabled at " << digest_origin << " for authority "
           << disabled->authority_index << "\n";
     }
-    return {.id_changed = has_id_change};
   }
 
   std::shared_ptr<BlockStorage> block_storage;

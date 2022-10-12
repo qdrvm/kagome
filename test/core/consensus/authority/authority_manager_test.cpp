@@ -21,7 +21,7 @@
 #include "primitives/digest.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/predefined_keys.hpp"
-#include "runtime/executor.hpp"
+#include "runtime/common/executor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -79,6 +79,9 @@ class AuthorityManagerTest : public testing::Test {
     grandpa_api = std::make_shared<runtime::GrandpaApiMock>();
     EXPECT_CALL(*grandpa_api, authorities(_))
         .WillRepeatedly(Return(authorities->authorities));
+
+    EXPECT_CALL(*grandpa_api, current_set_id(_))
+        .WillRepeatedly(Return(42));
 
     hasher = std::make_shared<crypto::HasherMock>();
     EXPECT_CALL(*hasher, twox_128(_)).WillRepeatedly(Return(common::Hash128{}));
