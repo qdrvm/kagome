@@ -402,7 +402,7 @@ namespace kagome::network {
         kTimeoutForConnecting);
   }
 
-  void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
+  void PeerManagerImpl::disconnectFromPeer(PeerId peer_id) {
     if (peer_id == own_peer_info_.id) {
       return;
     }

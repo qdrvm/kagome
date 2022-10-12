@@ -289,6 +289,118 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
 
 /**
  * @given initialized manager has some state
+ * @when apply two ScheduledChanges
+ * @then second change based on activated first one. And set ids are correct.
+ */
+TEST_F(AuthorityManagerTest, ScheduledChangeTwice) {
+  prepareAuthorityManager();
+
+  auto old_auth_opt =
+      authority_manager->authorities({20, "D"_hash256}, IsBlockFinalized{true});
+  ASSERT_TRUE(old_auth_opt.has_value());
+  auto &old_authorities = *old_auth_opt.value();
+  auto old_id = old_authorities.id;
+  auto first_id = old_id + 1;
+  auto second_id = first_id + 1;
+
+  primitives::BlockInfo target_block{5, "A"_hash256};
+  primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
+  uint32_t subchain_length = 5;
+
+  primitives::BlockInfo target_block2{15, "C"_hash256};
+  primitives::AuthorityList new_authorities2{makeAuthority("Auth2", 456)};
+
+  EXPECT_OUTCOME_SUCCESS(
+      r1,
+      authority_manager->onConsensus(
+          target_block,
+          primitives::ScheduledChange(new_authorities, subchain_length)));
+  EXPECT_OUTCOME_SUCCESS(
+      r2,
+      authority_manager->onConsensus(
+          target_block2,
+          primitives::ScheduledChange(new_authorities2, subchain_length)));
+
+  examine({5, "A"_hash256}, old_authorities.authorities);
+  examine({10, "B"_hash256}, old_authorities.authorities);
+  examine({15, "C"_hash256}, new_authorities);
+  examine({20, "D"_hash256}, new_authorities);
+  examine({25, "E"_hash256}, new_authorities);
+
+  authority_manager->prune({15, "C"_hash256});
+
+  examine({15, "C"_hash256}, new_authorities);
+  examine({20, "D"_hash256}, new_authorities);
+  examine({25, "E"_hash256}, new_authorities);
+
+  EXPECT_EQ(
+      authority_manager->authorities({15, "C"_hash256}, IsBlockFinalized{true})
+          .value()
+          ->id,
+      first_id);
+  authority_manager->prune({20, "D"_hash256});
+  EXPECT_EQ(
+      authority_manager->authorities({20, "D"_hash256}, IsBlockFinalized{true})
+          .value()
+          ->id,
+      second_id);
+
+  examine({20, "D"_hash256}, new_authorities2);
+  examine({25, "E"_hash256}, new_authorities2);
+}
+
+/**
+ * @given initialized manager has some state
+ * @when apply two ScheduledChanges (with interaction delay)
+ * @then second change is ignored
+ */
+TEST_F(AuthorityManagerTest, ScheduledChangeTwiceIneraction) {
+  prepareAuthorityManager();
+
+  auto old_auth_opt =
+      authority_manager->authorities({20, "D"_hash256}, IsBlockFinalized{true});
+  ASSERT_TRUE(old_auth_opt.has_value());
+  auto &old_authorities = *old_auth_opt.value();
+
+  primitives::BlockInfo target_block{5, "A"_hash256};
+  primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
+  uint32_t subchain_length = 10;
+
+  primitives::BlockInfo target_block2{15, "C"_hash256};
+  primitives::AuthorityList new_authorities2{makeAuthority("Auth2", 456)};
+  uint32_t subchain_length2 = 5;
+
+  EXPECT_OUTCOME_SUCCESS(
+      r1,
+      authority_manager->onConsensus(
+          target_block,
+          primitives::ScheduledChange(new_authorities, subchain_length)));
+  EXPECT_OUTCOME_SUCCESS(
+      r2,
+      authority_manager->onConsensus(
+          target_block2,
+          primitives::ScheduledChange(new_authorities2, subchain_length2)));
+
+  examine({5, "A"_hash256}, old_authorities.authorities);
+  examine({10, "B"_hash256}, old_authorities.authorities);
+  examine({15, "C"_hash256}, old_authorities.authorities);
+  examine({20, "D"_hash256}, old_authorities.authorities);
+  examine({25, "E"_hash256}, old_authorities.authorities);
+
+  authority_manager->prune({15, "C"_hash256});
+
+  examine({15, "C"_hash256}, new_authorities);
+  examine({20, "D"_hash256}, new_authorities);
+  examine({25, "E"_hash256}, new_authorities);
+
+  authority_manager->prune({20, "D"_hash256}); // no action
+
+  examine({20, "D"_hash256}, new_authorities);
+  examine({25, "E"_hash256}, new_authorities);
+}
+
+/**
+ * @given initialized manager has some state
  * @when apply Consensus message as ForcedChange
  * @then actual state was change after delay passed (only for block with number
  * of target block number + subchain_length)
