@@ -5,6 +5,7 @@
 
 #include "network/impl/peer_manager_impl.hpp"
 
+#include <limits>
 #include <memory>
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
@@ -124,6 +125,24 @@ namespace kagome::network {
               }
             });
 
+    peer_disconnected_handler_ =
+        host_.getBus()
+            .getChannel<libp2p::event::network::OnPeerDisconnectedChannel>()
+            .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
+              if (auto self = wp.lock()) {
+                SL_DEBUG(self->log_,
+                         "OnPeerDisconnectedChannel handler from peer {}",
+                         peer_id);
+                self->stream_engine_->del(peer_id);
+                self->peer_states_.erase(peer_id);
+                self->active_peers_.erase(peer_id);
+                self->sync_peer_num_->set(self->active_peers_.size());
+                SL_DEBUG(self->log_,
+                         "Remained {} active peers",
+                         self->active_peers_.size());
+              }
+            });
+
     identify_->onIdentifyReceived([wp = weak_from_this()](
                                       const PeerId &peer_id) {
       if (auto self = wp.lock()) {
@@ -171,6 +190,7 @@ namespace kagome::network {
   void PeerManagerImpl::stop() {
     storeActivePeers();
     add_peer_handle_.unsubscribe();
+    peer_disconnected_handler_.unsubscribe();
   }
 
   void PeerManagerImpl::connectToPeer(const PeerInfo &peer_info) {
@@ -248,47 +268,65 @@ namespace kagome::network {
     align_timer_.cancel();
 
     // disconnect from peers with negative reputation
-    std::vector<PeerId> peers_to_disconnect;
-    for (const auto &[peer_id, _] : active_peers_) {
+    using PriorityType = uint64_t;
+    std::vector<std::pair<PriorityType, PeerId>> peers_list;
+    peers_list.reserve(active_peers_.size());
+
+    for (const auto &[peer_id, desc] : active_peers_) {
       if (reputation_repository_->reputation(peer_id) < 0) {
-        peers_to_disconnect.emplace_back(peer_id);
+        peers_list.emplace_back(
+            std::make_pair(std::numeric_limits<PriorityType>::min(), peer_id));
         // we have to store peers somewhere first due to inability to iterate
         // over active_peers_ and do disconnectFromPeers (which modifies
         // active_peers_) at the same time
+      } else {
+        peers_list.emplace_back(std::make_pair(
+            std::chrono::time_point_cast<std::chrono::milliseconds>(
+                desc.time_point)
+                .time_since_epoch()
+                .count(),
+            peer_id));
       }
     }
-    for (const auto &peer_id : peers_to_disconnect) {
+    std::sort(peers_list.begin(),
+              peers_list.end(),
+              [](auto const &l, auto const &r) { return r.first < l.first; });
+
+    while (peers_list.back().first
+           == std::numeric_limits<PriorityType>::min()) {
+      const auto &peer_id = peers_list.back().second;
       SL_DEBUG(log_,
                "Disconnecting from peer {} due to its negative reputation",
                peer_id);
       disconnectFromPeer(peer_id);
+      peers_list.pop_back();
     }
 
-    // Soft limit is exceeded
-    if (active_peers_.size() > soft_limit) {
-      // Get oldest peer
-      auto it = std::min_element(active_peers_.begin(),
-                                 active_peers_.end(),
-                                 [](const auto &item1, const auto &item2) {
-                                   return item1.second.time_point
-                                          < item2.second.time_point;
-                                 });
-      auto &[oldest_peer_id, oldest_descr] = *it;
+    uint64_t const now_ms =
+        std::chrono::time_point_cast<std::chrono::milliseconds>(clock_->now())
+            .time_since_epoch()
+            .count();
+    uint64_t const idle_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(peer_ttl).count();
 
-      if (active_peers_.size() > hard_limit) {
+    // Soft limit is exceeded
+    while (peers_list.size() > soft_limit) {
+      const auto &peer_id = peers_list.back().second;
+      const auto activity = peers_list.back().first;
+
+      if (peers_list.size() > hard_limit) {
         // Hard limit is exceeded
         SL_DEBUG(log_, "Hard limit of of active peers is exceeded");
-        disconnectFromPeer(oldest_peer_id);
-
-      } else if (oldest_descr.time_point + peer_ttl < clock_->now()) {
+        disconnectFromPeer(peer_id);
+      } else if (activity + idle_ms < now_ms) {
         // Peer is inactive long time
-        auto &oldest_peer_id_ref = oldest_peer_id;
-        SL_DEBUG(log_, "Found inactive peer: {}", oldest_peer_id_ref);
-        disconnectFromPeer(oldest_peer_id);
-
+        SL_DEBUG(log_, "Found inactive peer: {}", peer_id);
+        disconnectFromPeer(peer_id);
       } else {
         SL_TRACE(log_, "No peer to disconnect at soft limit");
+        break;
       }
+      peers_list.pop_back();
     }
 
     // Not enough active peers
@@ -408,15 +446,7 @@ namespace kagome::network {
     }
 
     SL_DEBUG(log_, "Disconnect from peer {}", peer_id);
-    auto it = active_peers_.find(peer_id);
     host_.disconnect(peer_id);
-    if (it != active_peers_.end()) {
-      stream_engine_->del(peer_id);
-      peer_states_.erase(peer_id);
-      active_peers_.erase(it);
-      sync_peer_num_->set(active_peers_.size());
-      SL_DEBUG(log_, "Remained {} active peers", active_peers_.size());
-    }
   }
 
   void PeerManagerImpl::keepAlive(const PeerId &peer_id) {
