@@ -84,13 +84,15 @@ namespace kagome::consensus {
           && babe_config.allowed_slots
                  == primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots;
       if (!plainAndAllowed and !vrfAndAllowed) {
+        // SL_WARN unwraps to a lambda which cannot capture a local binding,
+        // thus this copy
+        auto slot_type = babe_header.slotType();
         SL_WARN(log_,
                 "Block {} produced in {} secondary slot, but current "
                 "configuration allows only {}",
                 header.number,
-                babe_header.slotType(),
-                babe_config.allowed_slots);
-        // return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
+                to_string(slot_type),
+                to_string(babe_config.allowed_slots));
       }
     }
 

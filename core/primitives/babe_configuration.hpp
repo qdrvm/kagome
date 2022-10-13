@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_PRIMITIVES_BABE_CONFIGURATION_HPP
 #define KAGOME_CORE_PRIMITIVES_BABE_CONFIGURATION_HPP
 
+#include <fmt/core.h>
+
 #include "common/blob.hpp"
 #include "consensus/babe/common.hpp"
 #include "crypto/sr25519_types.hpp"
@@ -23,6 +25,18 @@ namespace kagome::primitives {
     PrimaryAndSecondaryPlainSlots,
     PrimaryAndSecondaryVRFSlots
   };
+
+  static std::string_view to_string(AllowedSlots s) {
+    switch(s) {
+      case AllowedSlots::PrimarySlots:
+        return "Primary Slots";
+      case AllowedSlots::PrimaryAndSecondaryPlainSlots:
+          return "Primary and Secondary Plain Slots";
+      case AllowedSlots::PrimaryAndSecondaryVRFSlots:
+        return "Primary and Secondary VRF Slots";
+    }
+    return "Unknown";
+  }
 
   /// Configuration data used by the BABE consensus engine.
   struct BabeConfiguration {
