@@ -15,7 +15,6 @@
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "common/monadic_utils.hpp"
 #include "common/visitor.hpp"
 #include "consensus/authority/authority_manager_error.hpp"
 #include "consensus/authority/authority_update_observer_error.hpp"
@@ -30,81 +29,6 @@ using kagome::common::Buffer;
 using kagome::primitives::AuthoritySetId;
 
 namespace kagome::authority {
-
-  struct ScheduledChangeEntry {
-    primitives::AuthoritySet new_authorities;
-    primitives::BlockInfo scheduled_at;
-    primitives::BlockNumber activates_at;
-  };
-
-  template <typename T>
-  struct ForkTree {
-    T payload;
-    primitives::BlockInfo block;
-    std::vector<std::unique_ptr<ForkTree>> children;
-    ForkTree *parent;
-
-    ForkTree *find(primitives::BlockHash const &block_hash) const {
-      if (block.hash == block_hash) return this;
-      for (auto &child : children) {
-        if (auto *res = child->find(block_hash); res != nullptr) {
-          return res;
-        }
-      }
-      return nullptr;
-    }
-
-    bool forEachLeaf(std::function<bool(ForkTree &)> const &f) {
-      if (children.empty()) {
-        return f(*this);
-      }
-      for (auto &child : children) {
-        bool res = child->forEachLeaf(f);
-        if (res) return true;
-      }
-      return false;
-    }
-
-    std::unique_ptr<ForkTree<T>> detachChild(ForkTree<T> &child) {
-      for (size_t i = 0; i < children.size(); i++) {
-        auto &current_child = children[i];
-        if (current_child.get() == &child) {
-          auto owned_child = std::move(current_child);
-          owned_child->parent = nullptr;
-          children.erase(children.begin() + i);
-          return owned_child;
-        }
-      }
-      return nullptr;
-    }
-  };
-
-  ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
-                                          const ScheduledChangeEntry &entry) {
-    s << entry.scheduled_at << entry.activates_at << entry.new_authorities;
-    return s;
-  }
-
-  ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
-                                          ScheduledChangeEntry &entry) {
-    s >> entry.scheduled_at >> entry.activates_at >> entry.new_authorities;
-    return s;
-  }
-
-  ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
-                                          const ScheduleTree &tree) {
-    s << tree.block << tree.payload << tree.children;
-    return s;
-  }
-
-  ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
-                                          ScheduleTree &change) {
-    s >> change.block >> change.payload >> change.children;
-    for (auto &child : change.children) {
-      child->parent = &change;
-    }
-    return s;
-  }
 
   AuthorityManagerImpl::AuthorityManagerImpl(
       Config config,
@@ -1092,29 +1016,4 @@ namespace kagome::authority {
       ancestor->descendants.erase(it);
     }
   }
-
-  ScheduleTree *AuthorityManagerImpl::findClosestAncestor(
-      ForkTree<ScheduledChangeEntry> &current,
-      primitives::BlockInfo const &block) const {
-    auto *res = findClosestAncestor(
-        const_cast<ForkTree<ScheduledChangeEntry> const &>(current), block);
-    return const_cast<ForkTree<ScheduledChangeEntry> *>(res);
-  }
-
-  ScheduleTree const *AuthorityManagerImpl::findClosestAncestor(
-      ForkTree<ScheduledChangeEntry> const &current,
-      primitives::BlockInfo const &block) const {
-    for (auto &child : current.children) {
-      if (child->block.number < block.number
-          && block_tree_->hasDirectChain(child->block.hash, block.hash)) {
-        return findClosestAncestor(*child, block);
-      }
-    }
-    if (current.block.number <= block.number
-        && block_tree_->hasDirectChain(current.block.hash, block.hash)) {
-      return &current;
-    }
-    return nullptr;
-  }
-
 }  // namespace kagome::authority

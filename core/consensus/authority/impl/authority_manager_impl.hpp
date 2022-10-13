@@ -25,6 +25,7 @@ namespace kagome::blockchain {
   class BlockTree;
   class BlockHeaderRepository;
 }  // namespace kagome::blockchain
+
 namespace kagome::primitives {
   struct BabeConfiguration;
 }  // namespace kagome::primitives
@@ -39,10 +40,6 @@ namespace kagome::storage::trie {
 }
 
 namespace kagome::authority {
-
-  struct ScheduledChangeEntry;
-  template<typename> struct ForkTree;
-  using ScheduleTree = ForkTree<ScheduledChangeEntry>;
 
   class AuthorityManagerImpl : public AuthorityManager,
                                public AuthorityUpdateObserver {
@@ -136,15 +133,6 @@ namespace kagome::authority {
 
     void reorganize(std::shared_ptr<ScheduleNode> node,
                     std::shared_ptr<ScheduleNode> new_node);
-
-
-    ScheduleTree *findClosestAncestor(
-        ScheduleTree &current,
-        primitives::BlockInfo const &block) const;
-
-    ScheduleTree const *findClosestAncestor(
-        ScheduleTree const &current,
-        primitives::BlockInfo const &block) const;
 
     Config config_;
     std::shared_ptr<const blockchain::BlockTree> block_tree_;

@@ -424,10 +424,8 @@ class SearchChainCommand : public Command {
                                             BlockNumber digest_origin,
                                             GrandpaDigest const &digest) const {
     using namespace kagome::primitives;
-    bool has_id_change = false;
     if (auto *scheduled_change = boost::get<ScheduledChange>(&digest);
         scheduled_change) {
-      has_id_change = true;
       out << "ScheduledChange at #" << digest_origin << " for ";
       if (scheduled_change->subchain_length > 0) {
         out << "#" << digest_origin + scheduled_change->subchain_length;
@@ -438,7 +436,6 @@ class SearchChainCommand : public Command {
 
     } else if (auto *forced_change = boost::get<ForcedChange>(&digest);
                forced_change) {
-      has_id_change = true;
       out << "ForcedChange at " << digest_origin << ", delay starts at #"
           << forced_change->delay_start << " for "
           << forced_change->subchain_length << " blocks (so activates at #"
