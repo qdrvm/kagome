@@ -18,7 +18,7 @@ docker build -t soramitsu/kagome:local-dev $DIR
 
 rm $DIR/Dockerfile
 
-docker run -it --rm \
+docker run -i --rm \
    --cap-add SYS_PTRACE \
    -v /tmp/cache/hunter:/root/.hunter \
    -w /workdir \
@@ -26,5 +26,4 @@ docker run -it --rm \
    -e CODECOV_TOKEN \
    -e SONAR_TOKEN \
    $CI_ENV \
-   soramitsu/kagome:local-dev \
-   /bin/bash
+   soramitsu/kagome:local-dev
