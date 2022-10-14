@@ -279,7 +279,7 @@ namespace kagome::network {
 
     auto cmp = [](auto const &l, auto const &r) { return r.first < l.first; };
     std::priority_queue<ItemType, std::vector<ItemType>, decltype(cmp)>
-        peers_list(cmp, cont);
+        peers_list(cmp, std::move(cont));
 
     uint64_t const now_ms =
         std::chrono::time_point_cast<std::chrono::milliseconds>(clock_->now())
