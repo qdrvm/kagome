@@ -151,7 +151,7 @@ namespace kagome::network {
     void connectToPeer(const PeerId &peer_id);
 
     /// Closes all streams of provided peer
-    void disconnectFromPeer(PeerId peer_id);
+    void disconnectFromPeer(const PeerId &peer_id);
 
     std::vector<scale::PeerInfoSerializable> loadLastActivePeers();
 
@@ -195,6 +195,7 @@ namespace kagome::network {
     ParachainState parachain_state_;
 
     log::Logger log_;
+    std::atomic<uint64_t> entry_counter_;
   };
 
 }  // namespace kagome::network

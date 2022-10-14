@@ -6,6 +6,7 @@
 #include "network/impl/peer_manager_impl.hpp"
 
 #include <limits>
+#include <execinfo.h>
 #include <memory>
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
@@ -61,7 +62,8 @@ namespace kagome::network {
         storage_{std::move(storage)},
         hasher_{std::move(hasher)},
         reputation_repository_{std::move(reputation_repository)},
-        log_(log::createLogger("PeerManager", "network")) {
+        log_(log::createLogger("PeerManager", "network")),
+        entry_counter_{0ull} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
@@ -440,12 +442,45 @@ namespace kagome::network {
         kTimeoutForConnecting);
   }
 
-  void PeerManagerImpl::disconnectFromPeer(PeerId peer_id) {
+  inline std::string createBT() {
+    static constexpr size_t kStackSize = 30ull;
+    void *a[kStackSize];
+    auto const count = backtrace(a, kStackSize);
+
+    /// TODO (iceseer): it's a test code and we doesnt care about allocations
+    char **names = backtrace_symbols(a, count);
+    auto cleaner = gsl::finally([names] { free(names); });
+
+    std::string data;
+    data.reserve(64 * kStackSize);
+    for (auto ix = 0; ix < count; ++ix) {
+      data += names[ix];
+      data += '\n';
+    }
+
+    return data;
+  }
+
+  void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
     if (peer_id == own_peer_info_.id) {
       return;
     }
 
-    SL_DEBUG(log_, "Disconnect from peer {}", peer_id);
+    ++entry_counter_;
+    auto locker = gsl::finally([&] { --entry_counter_; });
+    auto entry_counter = entry_counter_.load();
+    SL_INFO(log_,
+            "Disconnect from peer {}, entry {}, thread {}",
+            peer_id,
+            entry_counter,
+            std::this_thread::get_id());
+    if (entry_counter > 1) {
+      SL_INFO(log_,
+              "Found double {} entry: the second one came from\n{}",
+              __func__,
+              createBT());
+    }
+
     host_.disconnect(peer_id);
   }
 
