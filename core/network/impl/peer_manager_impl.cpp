@@ -294,8 +294,9 @@ namespace kagome::network {
               peers_list.end(),
               [](auto const &l, auto const &r) { return r.first < l.first; });
 
-    while (peers_list.back().first
-           == std::numeric_limits<PriorityType>::min()) {
+    while (!peers_list.empty()
+           && peers_list.back().first
+                  == std::numeric_limits<PriorityType>::min()) {
       const auto &peer_id = peers_list.back().second;
       SL_DEBUG(log_,
                "Disconnecting from peer {} due to its negative reputation",
