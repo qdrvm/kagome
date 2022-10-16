@@ -44,9 +44,9 @@ namespace kagome::primitives {
     /// the value provided by this type at genesis will be used.
     ///
     /// Dynamic slot duration may be supported in the future.
-    BabeDuration slot_duration{};
+    BabeDuration slot_duration{};  // must be permanent
 
-    BabeSlotNumber epoch_length{};
+    BabeSlotNumber epoch_length{};  // must be permanent
 
     /// A constant value that is used in the threshold calculation formula.
     /// Expressed as a rational where the first member of the tuple is the
@@ -55,16 +55,23 @@ namespace kagome::primitives {
     /// In substrate it is called `c`
     /// In the threshold formula calculation, `1 - leadership_rate` represents
     /// the probability of a slot being empty.
-    std::pair<uint64_t, uint64_t> leadership_rate;
+    std::pair<uint64_t, uint64_t> leadership_rate;  // changes by NextConfigData
 
-    /// The authorities for the genesis epoch.
-    AuthorityList genesis_authorities;
+    /// The authorities for block production
+    AuthorityList authorities;  // can be changed by NextEpochData & OnDisabled
 
     /// The randomness for the genesis epoch.
-    Randomness randomness;
+    Randomness randomness;  // can be changed by NextEpochData
 
     /// Type of allowed slots.
-    AllowedSlots allowed_slots;
+    AllowedSlots allowed_slots;  // can be changed by NextConfigData
+
+    bool isSecondarySlotsAllowed() const {
+      return allowed_slots
+                 == primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots
+             or allowed_slots
+                    == primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots;
+    }
   };
 
   template <class Stream,
@@ -75,7 +82,7 @@ namespace kagome::primitives {
             config.slot_duration)
             .count();
     return s << slot_duration_u64 << config.epoch_length
-             << config.leadership_rate << config.genesis_authorities
+             << config.leadership_rate << config.authorities
              << config.randomness << static_cast<uint8_t>(config.allowed_slots);
   }
 
@@ -85,7 +92,7 @@ namespace kagome::primitives {
     size_t slot_duration_u64{};
     uint8_t allowed_slots;
     s >> slot_duration_u64 >> config.epoch_length >> config.leadership_rate
-        >> config.genesis_authorities >> config.randomness >> allowed_slots;
+        >> config.authorities >> config.randomness >> allowed_slots;
     config.slot_duration = std::chrono::milliseconds(slot_duration_u64);
     config.allowed_slots = static_cast<AllowedSlots>(allowed_slots);
     return s;

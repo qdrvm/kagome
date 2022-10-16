@@ -20,7 +20,6 @@
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
-#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/epoch_digest.hpp"
 #include "crypto/hasher.hpp"
@@ -64,8 +63,6 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        std::shared_ptr<consensus::BabeUtil> babe_util,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy);
 
@@ -144,10 +141,6 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
-    outcome::result<consensus::EpochDigest> getEpochDigest(
-        consensus::EpochNumber epoch_number,
-        primitives::BlockHash block_hash) const override;
-
    private:
     /**
      * Private constructor, so that instances are created only through the
@@ -166,7 +159,6 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<consensus::BabeUtil> babe_util,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy);
 
@@ -203,7 +195,6 @@ namespace kagome::blockchain {
     std::shared_ptr<runtime::Core> runtime_core_;
     std::shared_ptr<storage::changes_trie::ChangesTracker>
         trie_changes_tracker_;
-    std::shared_ptr<const consensus::BabeUtil> babe_util_;
     std::shared_ptr<const class JustificationStoragePolicy>
         justification_storage_policy_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;

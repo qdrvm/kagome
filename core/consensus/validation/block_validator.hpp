@@ -30,7 +30,7 @@ namespace kagome::consensus {
         const EpochNumber epoch_number,
         const primitives::AuthorityId &authority_id,
         const Threshold &threshold,
-        const Randomness &randomness) const = 0;
+        const primitives::BabeConfiguration& babe_config) const = 0;
   };
 }  // namespace kagome::consensus
 

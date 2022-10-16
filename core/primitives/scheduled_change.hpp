@@ -8,6 +8,7 @@
 
 #include "consensus/babe/types/epoch_digest.hpp"
 #include "primitives/authority.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::primitives {
@@ -33,8 +34,8 @@ namespace kagome::primitives {
     using EpochDigest::EpochDigest;
   };
   struct NextConfigData final {
-    std::tuple<uint64_t, uint64_t> ratio;
-    uint8_t second_slot;
+    std::pair<uint64_t, uint64_t> ratio;
+    AllowedSlots second_slot;
   };
 
   struct ScheduledChange final : public AuthorityListChange {

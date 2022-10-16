@@ -54,7 +54,8 @@ namespace kagome::consensus {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo);
+        std::shared_ptr<consensus::babe::BabeConfigRepository>
+            babe_config_repo);
 
     enum class ValidationError {
       NO_AUTHORITIES = 1,
@@ -69,7 +70,7 @@ namespace kagome::consensus {
         const EpochNumber epoch_number,
         const primitives::AuthorityId &authority_id,
         const Threshold &threshold,
-        const Randomness &randomness) const override;
+        const primitives::BabeConfiguration &babe_config) const override;
 
    private:
     /**

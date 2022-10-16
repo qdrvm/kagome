@@ -148,9 +148,9 @@ namespace kagome::consensus::babe {
      */
     void startNextEpoch();
 
-    void changeLotteryEpoch(const EpochDescriptor &epoch,
-                            const primitives::AuthorityList &authorities,
-                            const Randomness &randomness) const;
+    void changeLotteryEpoch(
+        const EpochDescriptor &epoch,
+        std::shared_ptr<const primitives::BabeConfiguration> babe_config) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(
         SlotType slot_type,
@@ -159,8 +159,6 @@ namespace kagome::consensus::babe {
 
     outcome::result<primitives::Seal> sealBlock(
         const primitives::Block &block) const;
-
-    bool isSecondarySlotsAllowed() const;
 
     const application::AppConfiguration &app_config_;
     std::shared_ptr<BabeLottery> lottery_;

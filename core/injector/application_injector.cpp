@@ -53,6 +53,7 @@
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
+#include "blockchain/impl/digest_tracker_impl.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
@@ -66,7 +67,6 @@
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
-#include "consensus/babe/impl/babe_util_impl.hpp"
 #include "consensus/babe/impl/block_appender_impl.hpp"
 #include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/babe/impl/consistency_keeper_impl.hpp"
@@ -596,10 +596,6 @@ namespace {
         injector.template create<std::shared_ptr<runtime::Core>>();
     auto changes_tracker = injector.template create<
         std::shared_ptr<storage::changes_trie::ChangesTracker>>();
-    auto babe_config_repo = injector.template create<
-        std::shared_ptr<consensus::babe::BabeConfigRepository>>();
-    auto babe_util =
-        injector.template create<std::shared_ptr<consensus::BabeUtil>>();
     auto justification_storage_policy = injector.template create<
         std::shared_ptr<blockchain::JustificationStoragePolicy>>();
 
@@ -613,8 +609,6 @@ namespace {
         std::move(ext_events_key_repo),
         std::move(runtime_core),
         std::move(changes_tracker),
-        std::move(babe_config_repo),
-        std::move(babe_util),
         std::move(justification_storage_policy));
 
     if (not block_tree_res.has_value()) {
@@ -693,7 +687,7 @@ namespace {
         injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
+        injector.template create<sptr<blockchain::DigestTracker>>(),
         injector.template create<sptr<consensus::BabeUtil>>(),
         injector.template create<sptr<runtime::OffchainWorkerApi>>(),
         injector.template create<sptr<consensus::babe::ConsistencyKeeper>>());
@@ -1267,7 +1261,7 @@ namespace {
             [](auto const &injector) { return get_grandpa_impl(injector); }),
         di::bind<consensus::grandpa::GrandpaObserver>.to(
             [](auto const &injector) { return get_grandpa_impl(injector); }),
-        di::bind<consensus::BabeUtil>.template to<consensus::BabeUtilImpl>(),
+        di::bind<consensus::BabeUtil>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
         di::bind<network::BlockAnnounceTransmitter>.template to<network::BlockAnnounceTransmitterImpl>(),
         di::bind<network::GrandpaTransmitter>.template to<network::GrandpaTransmitterImpl>(),
         di::bind<network::TransactionsTransmitter>.template to<network::TransactionsTransmitterImpl>(),
@@ -1280,6 +1274,8 @@ namespace {
         di::bind<consensus::babe::ConsistencyKeeper>.template to<consensus::babe::ConsistencyKeeperImpl>(),
         di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
         di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+        di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
+        di::bind<consensus::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

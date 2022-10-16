@@ -117,7 +117,7 @@ class BabeTest : public testing::Test {
     // add initialization logic
     babe_config_.slot_duration = 60ms;
     babe_config_.randomness.fill(0);
-    babe_config_.genesis_authorities = {
+    babe_config_.authorities = {
         primitives::Authority{{keypair_->public_key}, 1}};
     babe_config_.leadership_rate = {1, 4};
     babe_config_.epoch_length = 2;
@@ -136,7 +136,7 @@ class BabeTest : public testing::Test {
     consistency_keeper_ = std::make_shared<babe::ConsistencyKeeperMock>();
 
     expected_epoch_digest = {
-        .authorities = babe_config_.genesis_authorities,
+        .authorities = babe_config_.authorities,
         .randomness = babe_config_.randomness,
     };
 

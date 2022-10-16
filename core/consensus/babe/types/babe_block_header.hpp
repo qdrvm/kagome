@@ -9,8 +9,10 @@
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/slot.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "primitives/authority.hpp"
 #include "primitives/common.hpp"
-#include "primitives/digest.hpp"
+
+#include <scale/scale.hpp>
 
 namespace kagome::consensus {
   /**
@@ -22,14 +24,14 @@ namespace kagome::consensus {
   struct BabeBlockHeader {
     SlotType slot_assignment_type{};
 
+    /// authority index of the producer
+    primitives::AuthorityIndex authority_index;
+
     /// slot, in which the block was produced
     BabeSlotNumber slot_number;
 
     /// output of VRF function
     crypto::VRFOutput vrf_output{};
-
-    /// authority index of the producer
-    primitives::AuthorityIndex authority_index;
 
     SlotType slotType() const {
       return slot_assignment_type;
@@ -48,43 +50,37 @@ namespace kagome::consensus {
       return slot_assignment_type == SlotType::SecondaryPlain
              or slot_assignment_type == SlotType::SecondaryVRF;
     }
+
+    /**
+     * @brief outputs object of type BabeBlockHeader to stream
+     * @param s stream reference
+     * @param v value to output
+     * @return reference to stream
+     */
+    friend inline ::scale::ScaleEncoderStream &operator<<(
+        ::scale::ScaleEncoderStream &s, const BabeBlockHeader &bh) {
+      s << bh.slot_assignment_type << bh.authority_index << bh.slot_number;
+      if (bh.needVRFCheck()) {
+        s << bh.vrf_output;
+      }
+      return s;
+    }
+
+    /**
+     * @brief decodes object of type BabeBlockHeader from stream
+     * @param s stream reference
+     * @param v value to output
+     * @return reference to stream
+     */
+    friend inline ::scale::ScaleDecoderStream &operator>>(
+        ::scale::ScaleDecoderStream &s, BabeBlockHeader &bh) {
+      s >> bh.slot_assignment_type >> bh.authority_index >> bh.slot_number;
+      if (bh.needVRFCheck()) {
+        s >> bh.vrf_output;
+      }
+      return s;
+    }
   };
-
-  /**
-   * @brief outputs object of type BabeBlockHeader to stream
-   * @tparam Stream output stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const BabeBlockHeader &bh) {
-    s << bh.slot_assignment_type;
-    s << bh.authority_index << bh.slot_number;
-    if (bh.needVRFCheck()) {
-      s << bh.vrf_output;
-    }
-    return s;
-  }
-
-  /**
-   * @brief decodes object of type BabeBlockHeader from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, BabeBlockHeader &bh) {
-    s >> bh.slot_assignment_type;
-    s >> bh.authority_index >> bh.slot_number;
-    if (bh.needVRFCheck()) {
-      s >> bh.vrf_output;
-    }
-    return s;
-  }
 }  // namespace kagome::consensus
 
 #endif  // KAGOME_BABE_BLOCK_HEADER_HPP

@@ -141,7 +141,7 @@ struct BlockTreeTest : public testing::Test {
 
     babe_config_.slot_duration = 60ms;
     babe_config_.randomness.fill(0);
-    babe_config_.genesis_authorities = {primitives::Authority{{}, 1}};
+    babe_config_.authorities = {primitives::Authority{{}, 1}};
     babe_config_.leadership_rate = {1, 4};
     babe_config_.epoch_length = 2;
 

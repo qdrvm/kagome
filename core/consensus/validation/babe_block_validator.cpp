@@ -64,17 +64,17 @@ namespace kagome::consensus {
       const EpochNumber epoch_number,
       const primitives::AuthorityId &authority_id,
       const Threshold &threshold,
-      const Randomness &randomness) const {
+      const primitives::BabeConfiguration &babe_config) const {
     SL_DEBUG(log_, "Validated block signed by authority: {}", authority_id.id);
 
-    // get BABE-specific digests, which must be inside of this block
+    // get BABE-specific digests, which must be inside this block
     OUTCOME_TRY(babe_digests, getBabeDigests(header));
     const auto &[seal, babe_header] = babe_digests;
 
     // @see
     // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/client/consensus/babe/src/verification.rs#L111
+
     if (babe_header.isProducedInSecondarySlot()) {
-      const auto &babe_config = babe_config_repo_->config();
       bool plainAndAllowed =
           babe_header.slotType() == SlotType::SecondaryPlain
           && babe_config.allowed_slots
@@ -110,7 +110,7 @@ namespace kagome::consensus {
                       epoch_number,
                       primitives::BabeSessionKey{authority_id.id},
                       threshold,
-                      randomness,
+                      babe_config.randomness,
                       babe_header.needVRFWithThresholdCheck())) {
       return ValidationError::INVALID_VRF;
     }
