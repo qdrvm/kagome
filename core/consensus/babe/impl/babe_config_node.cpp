@@ -19,6 +19,7 @@ namespace kagome::consensus {
       std::shared_ptr<const primitives::BabeConfiguration> config) {
     auto fake_parent = std::make_shared<BabeConfigNode>(BabeConfigNode());
     auto node = std::make_shared<BabeConfigNode>(fake_parent, block);
+    node->epoch_number = std::numeric_limits<decltype(node->epoch_number)>::max();
     node->current_config = std::move(config);
     return node;
   }
@@ -30,11 +31,11 @@ namespace kagome::consensus {
         std::make_shared<BabeConfigNode>(shared_from_this(), target_block);
     node->epoch_number = target_epoch_number.value_or(epoch_number);
     node->epoch_changed = node->epoch_number != epoch_number;
-    if (not epoch_changed) {
+    if (not node->epoch_changed) {
       node->current_config = current_config;
       node->next_config = next_config;
-    } else if (node->next_config.has_value()) {
-      node->current_config = std::move(next_config).value();
+    } else {
+      node->current_config = next_config.value_or(current_config);
       node->next_config.reset();
     }
 

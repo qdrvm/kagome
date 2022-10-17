@@ -159,14 +159,15 @@ namespace kagome::consensus {
 
     SL_VERBOSE(
         logger_,
-        "Appending header of block {} ({} in slot {}, epoch {})",
+        "Appending header of block {} ({} in slot {}, epoch {}, authority #{})",
         block_info,
         babe_header.slotType() == SlotType::Primary          ? "primary"
         : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
         : babe_header.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
                                                              : "unknown",
         slot_number,
-        epoch_number);
+        epoch_number,
+        babe_header.authority_index);
 
     auto consistency_guard = consistency_keeper_->start(block_info);
 

@@ -178,6 +178,8 @@ namespace kagome::consensus::babe {
           std::make_shared<const primitives::BabeConfiguration>(babe_config));
     }
 
+    BOOST_ASSERT_MSG(root_ != nullptr, "The root must be initialized by now");
+
     // Init slot duration and epoch length
     auto slot_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
         root_->current_config->slot_duration);
@@ -242,7 +244,9 @@ namespace kagome::consensus::babe {
           return res.as_failure();
         }
       }
+
       prune(block_info);
+
       if (block_info.number % (kSavepointEachSuchBlock / 10) == 0) {
         // Make savepoint
         auto save_res = save();
@@ -435,10 +439,6 @@ namespace kagome::consensus::babe {
                                    consensus::EpochNumber epoch_number) {
     auto node = getNode(block);
     if (node) {
-      if (node->current_block != block
-          and (node->epoch_changed or node->epoch_number != epoch_number)) {
-        return node->next_config.value_or(node->current_config);
-      }
       return node->current_config;
     }
     return {};
@@ -462,25 +462,26 @@ namespace kagome::consensus::babe {
 
     auto node = getNode(block);
 
+    SL_LOG(logger_,
+           node->epoch_number != epoch_number ? log::Level::DEBUG
+                                              : log::Level::TRACE,
+           "BabeBlockHeader babe-digest on block {}: "
+           "slot {}, epoch {}, authority #{}, {}",
+           block,
+           digest.slot_number,
+           epoch_number,
+           digest.authority_index,
+           digest.slotType() == SlotType::Primary          ? "primary"
+           : digest.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
+           : digest.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
+                                                           : "???");
+
     if (node->current_block == block) {
       return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
     }
 
     // Create descendant if and only if epoch is changed
     if (node->epoch_number != epoch_number) {
-      SL_DEBUG(logger_,
-               "BabeBlockHeader babe-digest on block {}: "
-               "slot {}, epoch {}, authority #{}, {}",
-               block,
-               digest.slot_number,
-               epoch_number,
-               digest.authority_index,
-               digest.slotType() == SlotType::Primary        ? "primary"
-               : digest.slotType() == SlotType::SecondaryVRF ? "secondary-vrf"
-               : digest.slotType() == SlotType::SecondaryPlain
-                   ? "secondary-plain"
-                   : "???");
-
       auto new_node = node->makeDescendant(block, epoch_number);
 
       node->descendants.emplace_back(std::move(new_node));
@@ -503,13 +504,21 @@ namespace kagome::consensus::babe {
                    msg.randomness);
           return onNextEpochData(block, msg);
         },
-        [&](const primitives::OnDisabled &msg) {
-          // Note: This event type won't be used anymore and must be ignored
+        [&](const primitives::OnDisabled &msg) -> outcome::result<void> {
           SL_DEBUG(logger_,
                    "OnDisabled babe-digest on block {}: "
                    "disable authority #{}",
                    block,
                    msg.authority_index);
+          if (block.number == 1) {
+            // Implemented sending of OnDisabled events before actually
+            // preventing disabled validators from authoring, so it's possible
+            // that there are blocks on the chain that came from disabled
+            // validators (before they were booted from the set at the end of
+            // epoch).
+            // https://matrix.to/#/!oZltgdfyakVMtEAWCI:web3.foundation/$hArAlUKaxvquGdaRG9W8ihcsNrO6wD4Q2CQjDIb3MMY?via=web3.foundation&via=matrix.org&via=matrix.parity.io
+            return outcome::success();
+          }
           return onOnDisabled(block, msg);
         },
         [&](const primitives::NextConfigData &msg) {
@@ -534,18 +543,10 @@ namespace kagome::consensus::babe {
   outcome::result<void> BabeConfigRepositoryImpl::onNextEpochData(
       const primitives::BlockInfo &block,
       const primitives::NextEpochData &msg) {
-    auto ancestor_node = getNode(block);
+    auto node = getNode(block);
 
-    auto node = ancestor_node->current_block == block
-                    ? ancestor_node
-                    : ancestor_node->makeDescendant(block);
-
-    if (node->epoch_changed) {
-      if (node->next_config.has_value()) {
-        node->current_config = std::move(node->next_config).value();
-        node->next_config.reset();
-      }
-      node->epoch_changed = false;
+    if (node->current_block != block) {
+      return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
     }
 
     auto config = node->next_config.value_or(node->current_config);
@@ -557,10 +558,6 @@ namespace kagome::consensus::babe {
       new_config->authorities = msg.authorities;
       new_config->randomness = msg.randomness;
       node->next_config = std::move(new_config);
-
-      if (node != ancestor_node) {
-        ancestor_node->descendants.emplace_back(std::move(node));
-      }
     }
 
     return outcome::success();
@@ -569,6 +566,12 @@ namespace kagome::consensus::babe {
   outcome::result<void> BabeConfigRepositoryImpl::onOnDisabled(
       const primitives::BlockInfo &block, const primitives::OnDisabled &msg) {
     auto ancestor_node = getNode(block);
+
+    if (ancestor_node->current_block == block
+        and ancestor_node->epoch_changed) {
+      // It does not matter if epoch changed
+      return outcome::success();
+    }
 
     auto node = ancestor_node->current_block == block
                     ? ancestor_node
@@ -593,18 +596,10 @@ namespace kagome::consensus::babe {
   outcome::result<void> BabeConfigRepositoryImpl::onNextConfigData(
       const primitives::BlockInfo &block,
       const primitives::NextConfigData &msg) {
-    auto ancestor_node = getNode(block);
+    auto node = getNode(block);
 
-    auto node = ancestor_node->current_block == block
-                    ? ancestor_node
-                    : ancestor_node->makeDescendant(block);
-
-    if (node->epoch_changed) {
-      if (node->next_config.has_value()) {
-        node->current_config = std::move(node->next_config).value();
-        node->next_config.reset();
-      }
-      node->epoch_changed = false;
+    if (node->current_block != block) {
+      return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
     }
 
     auto config = node->next_config.value_or(node->current_config);
@@ -616,10 +611,6 @@ namespace kagome::consensus::babe {
       new_config->leadership_rate = msg.ratio;
       new_config->allowed_slots = msg.second_slot;
       node->next_config = std::move(new_config);
-
-      if (node != ancestor_node) {
-        ancestor_node->descendants.emplace_back(std::move(node));
-      }
     }
 
     return outcome::success();
@@ -696,14 +687,6 @@ namespace kagome::consensus::babe {
         }
       }
       node = std::move(new_node);
-    }
-
-    if (node->epoch_changed) {
-      if (node->next_config.has_value()) {
-        node->current_config = std::move(node->next_config).value();
-        node->next_config.reset();
-      }
-      node->epoch_changed = false;
     }
 
     root_ = std::move(node);
