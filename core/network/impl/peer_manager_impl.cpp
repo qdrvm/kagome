@@ -274,12 +274,8 @@ namespace kagome::network {
     using PriorityType = int32_t;
     using ItemType = std::pair<PriorityType, PeerId>;
 
-    std::vector<ItemType> cont;
-    cont.reserve(active_peers_.size());
-
-    auto cmp = [](auto const &l, auto const &r) { return r.first < l.first; };
-    std::priority_queue<ItemType, std::vector<ItemType>, decltype(cmp)>
-        peers_list(cmp, std::move(cont));
+    std::vector<ItemType> peers_list;
+    peers_list.reserve(active_peers_.size());
 
     uint64_t const now_ms =
         std::chrono::time_point_cast<std::chrono::milliseconds>(clock_->now())
@@ -298,22 +294,26 @@ namespace kagome::network {
       const auto peer_reputation = reputation_repository_->reputation(peer_id);
       if (peer_reputation < kDisconnectReputation
           || last_activity_ms + idle_ms < now_ms) {
-        peers_list.push(
+        peers_list.push_back(
             std::make_pair(std::numeric_limits<PriorityType>::min(), peer_id));
         // we have to store peers somewhere first due to inability to iterate
         // over active_peers_ and do disconnectFromPeers (which modifies
         // active_peers_) at the same time
       } else {
-        peers_list.push(std::make_pair(peer_reputation, peer_id));
+        peers_list.push_back(std::make_pair(peer_reputation, peer_id));
       }
     }
 
+    std::sort(peers_list.begin(),
+              peers_list.end(),
+              [](auto const &l, auto const &r) { return r.first < l.first; });
+
     for (; !peers_list.empty()
            && (peers_list.size() > hard_limit
-               || peers_list.top().first
+               || peers_list.back().first
                       == std::numeric_limits<PriorityType>::min());
-         peers_list.pop()) {
-      const auto &peer_id = peers_list.top().second;
+         peers_list.pop_back()) {
+      const auto &peer_id = peers_list.back().second;
       disconnectFromPeer(peer_id);
     }
 
