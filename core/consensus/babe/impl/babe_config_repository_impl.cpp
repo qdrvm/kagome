@@ -510,7 +510,7 @@ namespace kagome::consensus::babe {
                    "disable authority #{}",
                    block,
                    msg.authority_index);
-          if (block.number == 1084443) {
+          if (block.number == 1084443 or block.number == 2789291) {
             // Implemented sending of OnDisabled events before actually
             // preventing disabled validators from authoring, so it's possible
             // that there are blocks on the chain that came from disabled
