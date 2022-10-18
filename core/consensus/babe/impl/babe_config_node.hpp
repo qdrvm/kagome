@@ -42,23 +42,22 @@ namespace kagome::consensus {
 
     friend inline ::scale::ScaleEncoderStream &operator<<(
         ::scale::ScaleEncoderStream &s, const BabeConfigNode &node) {
-      return s << node.current_block << node.epoch_number << node.current_config
-               << node.next_config;
+      return s << node.block << node.epoch << node.config << node.next_config;
     }
 
     friend inline ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, BabeConfigNode &node) {
-      return s >> const_cast<primitives::BlockInfo &>(node.current_block)
-             >> node.epoch_number >> node.current_config >> node.next_config;
+      return s >> const_cast<primitives::BlockInfo &>(node.block) >> node.epoch
+             >> node.config >> node.next_config;
     }
 
-    const primitives::BlockInfo current_block{};
+    const primitives::BlockInfo block{};
     std::weak_ptr<const BabeConfigNode> parent;
     std::vector<std::shared_ptr<BabeConfigNode>> descendants{};
 
-    consensus::EpochNumber epoch_number{};
+    consensus::EpochNumber epoch{};
     bool epoch_changed = false;
-    std::shared_ptr<const primitives::BabeConfiguration> current_config;
+    std::shared_ptr<const primitives::BabeConfiguration> config;
     std::optional<std::shared_ptr<const primitives::BabeConfiguration>>
         next_config;
   };

@@ -114,8 +114,11 @@ namespace kagome::consensus::babe {
 
       if (last_state_res.has_value()) {
         auto &last_state = last_state_res.value();
-        if (last_state->current_block.number <= finalized_block.number) {
+        if (last_state->block.number <= finalized_block.number) {
           root_ = std::move(last_state);
+          SL_DEBUG(logger_,
+                   "State was initialized by last saved on block {}",
+                   root_->block);
         } else {
           SL_WARN(
               logger_,
@@ -158,6 +161,9 @@ namespace kagome::consensus::babe {
         }
 
         root_ = std::move(saved_state_res.value());
+        SL_DEBUG(logger_,
+                 "State was initialized by savepoint on block {}",
+                 root_->block);
         break;
       }
     }
@@ -176,23 +182,24 @@ namespace kagome::consensus::babe {
       root_ = BabeConfigNode::createAsRoot(
           {0, genesis_block_hash_},
           std::make_shared<const primitives::BabeConfiguration>(babe_config));
+      SL_DEBUG(logger_, "State was initialized by genesis block");
     }
 
     BOOST_ASSERT_MSG(root_ != nullptr, "The root must be initialized by now");
 
     // Init slot duration and epoch length
     auto slot_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-        root_->current_config->slot_duration);
+        root_->config->slot_duration);
     BOOST_ASSERT_MSG(slot_duration.count() > 0,
                      "Slot duration must be greater zero");
     const_cast<BabeDuration &>(slot_duration_) = slot_duration;
-    auto epoch_length = root_->current_config->epoch_length;
+    auto epoch_length = root_->config->epoch_length;
     BOOST_ASSERT_MSG(epoch_length, "Epoch length must be greater zero");
     const_cast<EpochLength &>(epoch_length_) = epoch_length;
 
     // 4. Apply digests before last finalized
     bool need_to_save = false;
-    for (auto block_number = root_->current_block.number + 1;
+    for (auto block_number = root_->block.number + 1;
          block_number <= finalized_block.number;
          ++block_number) {
       auto block_header_res = block_tree_->getBlockHeader(block_number);
@@ -371,7 +378,7 @@ namespace kagome::consensus::babe {
     auto saving_state_node = getNode(finalized_block);
     BOOST_ASSERT_MSG(saving_state_node != nullptr,
                      "Finalized block must have associated node");
-    const auto saving_state_block = saving_state_node->current_block;
+    const auto saving_state_block = saving_state_node->block;
 
     // Does not need to save
     if (last_saved_state_block_ >= saving_state_block.number) {
@@ -394,7 +401,7 @@ namespace kagome::consensus::babe {
 
         auto ancestor_node = getNode(savepoint_block);
         if (ancestor_node != nullptr) {
-          auto node = ancestor_node->current_block == savepoint_block
+          auto node = ancestor_node->block == savepoint_block
                           ? ancestor_node
                           : ancestor_node->makeDescendant(savepoint_block);
           auto res = persistent_storage_->put(
@@ -439,7 +446,7 @@ namespace kagome::consensus::babe {
                                    consensus::EpochNumber epoch_number) {
     auto node = getNode(block);
     if (node) {
-      return node->current_config;
+      return node->config;
     }
     return {};
   }
@@ -463,8 +470,7 @@ namespace kagome::consensus::babe {
     auto node = getNode(block);
 
     SL_LOG(logger_,
-           node->epoch_number != epoch_number ? log::Level::DEBUG
-                                              : log::Level::TRACE,
+           node->epoch != epoch_number ? log::Level::DEBUG : log::Level::TRACE,
            "BabeBlockHeader babe-digest on block {}: "
            "slot {}, epoch {}, authority #{}, {}",
            block,
@@ -476,12 +482,12 @@ namespace kagome::consensus::babe {
            : digest.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
                                                            : "???");
 
-    if (node->current_block == block) {
+    if (node->block == block) {
       return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
     }
 
     // Create descendant if and only if epoch is changed
-    if (node->epoch_number != epoch_number) {
+    if (node->epoch != epoch_number) {
       auto new_node = node->makeDescendant(block, epoch_number);
 
       node->descendants.emplace_back(std::move(new_node));
@@ -528,6 +534,7 @@ namespace kagome::consensus::babe {
                    msg.ratio.first,
                    msg.ratio.second,
                    msg.second_slot);
+          throw std::runtime_error("RUN BREAKER");
           return onNextConfigData(block, msg);
         },
         [&](auto &) {
@@ -535,6 +542,7 @@ namespace kagome::consensus::babe {
                   "Unsupported babe-digest on block {}: variant #{}",
                   block,
                   digest.which());
+          throw std::runtime_error("RUN BREAKER");
           return BabeError::UNKNOWN_DIGEST_TYPE;
         });
   }
@@ -544,11 +552,11 @@ namespace kagome::consensus::babe {
       const primitives::NextEpochData &msg) {
     auto node = getNode(block);
 
-    if (node->current_block != block) {
+    if (node->block != block) {
       return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
     }
 
-    auto config = node->next_config.value_or(node->current_config);
+    auto config = node->next_config.value_or(node->config);
 
     if (config->authorities != msg.authorities
         or config->randomness != msg.randomness) {
@@ -567,11 +575,11 @@ namespace kagome::consensus::babe {
       const primitives::NextConfigData &msg) {
     auto node = getNode(block);
 
-    if (node->current_block != block) {
+    if (node->block != block) {
       return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
     }
 
-    auto config = node->next_config.value_or(node->current_config);
+    auto config = node->next_config.value_or(node->config);
 
     if (config->leadership_rate != msg.ratio
         or config->allowed_slots != msg.second_slot) {
@@ -590,18 +598,17 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(root_ != nullptr);
 
     // Target block is not descendant of the current root
-    if (root_->current_block.number > block.number
-        || (root_->current_block != block
-            && not directChainExists(root_->current_block, block))) {
+    if (root_->block.number > block.number
+        || (root_->block != block
+            && not directChainExists(root_->block, block))) {
       return nullptr;
     }
 
     std::shared_ptr<BabeConfigNode> ancestor = root_;
-    while (ancestor->current_block != block) {
+    while (ancestor->block != block) {
       bool goto_next_generation = false;
       for (const auto &node : ancestor->descendants) {
-        if (node->current_block == block
-            || directChainExists(node->current_block, block)) {
+        if (node->block == block || directChainExists(node->block, block)) {
           ancestor = node;
           goto_next_generation = true;
           break;
@@ -632,11 +639,11 @@ namespace kagome::consensus::babe {
   }
 
   void BabeConfigRepositoryImpl::prune(const primitives::BlockInfo &block) {
-    if (block == root_->current_block) {
+    if (block == root_->block) {
       return;
     }
 
-    if (block.number < root_->current_block.number) {
+    if (block.number < root_->block.number) {
       return;
     }
 
@@ -646,12 +653,12 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    if (node->current_block != block) {
+    if (node->block != block) {
       // Reorganize ancestry
       auto new_node = node->makeDescendant(block);
       auto descendants = std::move(node->descendants);
       for (auto &descendant : descendants) {
-        if (directChainExists(block, descendant->current_block)) {
+        if (directChainExists(block, descendant->block)) {
           new_node->descendants.emplace_back(std::move(descendant));
         }
       }
@@ -677,7 +684,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    if (ancestor->current_block == block) {
+    if (ancestor->block == block) {
       ancestor =
           std::const_pointer_cast<BabeConfigNode>(ancestor->parent.lock());
       BOOST_ASSERT_MSG(ancestor != nullptr, "Non root node must have a parent");
@@ -686,7 +693,7 @@ namespace kagome::consensus::babe {
     auto it = std::find_if(ancestor->descendants.begin(),
                            ancestor->descendants.end(),
                            [&block](std::shared_ptr<BabeConfigNode> node) {
-                             return node->current_block == block;
+                             return node->block == block;
                            });
 
     if (it != ancestor->descendants.end()) {
