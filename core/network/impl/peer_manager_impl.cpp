@@ -136,13 +136,16 @@ namespace kagome::network {
                 SL_DEBUG(self->log_,
                          "OnPeerDisconnectedChannel handler from peer {}",
                          peer_id);
-                self->stream_engine_->del(peer_id);
-                self->peer_states_.erase(peer_id);
-                self->active_peers_.erase(peer_id);
-                self->sync_peer_num_->set(self->active_peers_.size());
-                SL_DEBUG(self->log_,
-                         "Remained {} active peers",
-                         self->active_peers_.size());
+                if (auto it = self->active_peers_.find(peer_id);
+                    it != self->active_peers_.end()) {
+                  self->stream_engine_->del(peer_id);
+                  self->peer_states_.erase(peer_id);
+                  self->active_peers_.erase(it);
+                  self->sync_peer_num_->set(self->active_peers_.size());
+                  SL_DEBUG(self->log_,
+                           "Remained {} active peers",
+                           self->active_peers_.size());
+                }
               }
             });
 
