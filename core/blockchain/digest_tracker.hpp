@@ -6,10 +6,9 @@
 #ifndef KAGOME_BLOCKCHAIN_DIGESTSTRACKER
 #define KAGOME_BLOCKCHAIN_DIGESTSTRACKER
 
-#include "common/buffer.hpp"
-#include "primitives/block_header.hpp"
-#include "primitives/block_id.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "outcome/outcome.hpp"
+#include "primitives/common.hpp"
+#include "primitives/digest.hpp"
 
 namespace kagome::blockchain {
 

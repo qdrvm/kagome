@@ -139,20 +139,6 @@ struct BlockTreeTest : public testing::Test {
 
     EXPECT_CALL(*changes_tracker_, onBlockAdded(_)).WillRepeatedly(Return());
 
-    babe_config_.slot_duration = 60ms;
-    babe_config_.randomness.fill(0);
-    babe_config_.authorities = {primitives::Authority{{}, 1}};
-    babe_config_.leadership_rate = {1, 4};
-    babe_config_.epoch_length = 2;
-
-    babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
-    EXPECT_CALL(*babe_config_repo_, config())
-        .WillRepeatedly(ReturnRef(babe_config_));
-
-    babe_util_ = std::make_shared<BabeUtilMock>();
-    EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return(1));
-    EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
-
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         extrinsic_observer_,
@@ -162,8 +148,6 @@ struct BlockTreeTest : public testing::Test {
                                         extrinsic_event_key_repo,
                                         runtime_core_,
                                         changes_tracker_,
-                                        babe_config_repo_,
-                                        babe_util_,
                                         justification_storage_policy_)
                       .value();
   }
@@ -258,10 +242,6 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
       std::make_shared<storage::changes_trie::ChangesTrackerMock>();
 
-  primitives::BabeConfiguration babe_config_;
-  std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
-  std::shared_ptr<BabeUtilMock> babe_util_;
-
   std::shared_ptr<JustificationStoragePolicyMock>
       justification_storage_policy_ =
           std::make_shared<StrictMock<JustificationStoragePolicyMock>>();
@@ -278,8 +258,8 @@ struct BlockTreeTest : public testing::Test {
 
     BabeBlockHeader babe_header{
         .slot_assignment_type = SlotType::SecondaryPlain,
-        .slot_number = slot,
         .authority_index = 0,
+        .slot_number = slot,
     };
     common::Buffer encoded_header{scale::encode(babe_header).value()};
     digest.emplace_back(
@@ -588,8 +568,7 @@ std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
                                          auto &make_subtree) {
     primitives::BlockHash hash{};
     std::copy_n(name.begin(), name.size(), hash.begin());
-    auto node = std::make_shared<TreeNode>(
-        hash, current_depth, parent, 33, EpochDigest{});
+    auto node = std::make_shared<TreeNode>(hash, current_depth, parent);
     if (current_depth + 1 == max_depth) {
       return node;
     }
@@ -909,7 +888,7 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   Justification new_justification{"justification_56"_buf};
 
   EXPECT_CALL(*runtime_core_, version(b56))
-      .WillOnce(Return(primitives::Version{}));
+      .WillRepeatedly(Return(primitives::Version{}));
 
   // shouldn't keep old justification
   EXPECT_CALL(*justification_storage_policy_,
@@ -936,7 +915,7 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
   Justification new_justification{"justification_56"_buf};
 
   EXPECT_CALL(*runtime_core_, version(b56))
-      .WillOnce(Return(primitives::Version{}));
+      .WillRepeatedly(Return(primitives::Version{}));
 
   // shouldn't keep old justification
   EXPECT_CALL(*justification_storage_policy_,

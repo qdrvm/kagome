@@ -161,10 +161,7 @@ namespace kagome::consensus {
         logger_,
         "Appending header of block {} ({} in slot {}, epoch {}, authority #{})",
         block_info,
-        babe_header.slotType() == SlotType::Primary          ? "primary"
-        : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
-        : babe_header.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
-                                                             : "unknown",
+        to_string(babe_header.slotType()),
         slot_number,
         epoch_number,
         babe_header.authority_index);

@@ -28,7 +28,7 @@ namespace kagome::consensus {
                  const EpochNumber epoch_number,
                  const primitives::AuthorityId &authority_id,
                  const Threshold &threshold,
-                 const Randomness &randomness),
+                 const primitives::BabeConfiguration &config),
                 (const, override));
   };
 
