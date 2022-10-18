@@ -504,22 +504,21 @@ namespace kagome::consensus::babe {
                    msg.randomness);
           return onNextEpochData(block, msg);
         },
-        [&](const primitives::OnDisabled &msg) -> outcome::result<void> {
-          SL_DEBUG(logger_,
-                   "OnDisabled babe-digest on block {}: "
-                   "disable authority #{}",
-                   block,
-                   msg.authority_index);
-          if (block.number == 1084443 or block.number == 2789291) {
-            // Implemented sending of OnDisabled events before actually
-            // preventing disabled validators from authoring, so it's possible
-            // that there are blocks on the chain that came from disabled
-            // validators (before they were booted from the set at the end of
-            // epoch).
-            // https://matrix.to/#/!oZltgdfyakVMtEAWCI:web3.foundation/$hArAlUKaxvquGdaRG9W8ihcsNrO6wD4Q2CQjDIb3MMY?via=web3.foundation&via=matrix.org&via=matrix.parity.io
-            return outcome::success();
-          }
-          return onOnDisabled(block, msg);
+        [&](const primitives::OnDisabled &msg) {
+          SL_TRACE(
+              logger_,
+              "OnDisabled babe-digest on block {}: "
+              "disable authority #{}; ignored (it is checked only by runtime)",
+              block,
+              msg.authority_index);
+          // Implemented sending of OnDisabled events before actually preventing
+          // disabled validators from authoring, so it's possible that there are
+          // blocks on the chain that came from disabled validators (before they
+          // were booted from the set at the end of epoch). Currently, the
+          // runtime prevents disabled validators from authoring (it will just
+          // panic), so we don't do any client-side handling in substrate
+          // https://matrix.to/#/!oZltgdfyakVMtEAWCI:web3.foundation/$hArAlUKaxvquGdaRG9W8ihcsNrO6wD4Q2CQjDIb3MMY?via=web3.foundation&via=matrix.org&via=matrix.parity.io
+          return outcome::success();
         },
         [&](const primitives::NextConfigData &msg) {
           SL_DEBUG(logger_,
@@ -558,36 +557,6 @@ namespace kagome::consensus::babe {
       new_config->authorities = msg.authorities;
       new_config->randomness = msg.randomness;
       node->next_config = std::move(new_config);
-    }
-
-    return outcome::success();
-  }
-
-  outcome::result<void> BabeConfigRepositoryImpl::onOnDisabled(
-      const primitives::BlockInfo &block, const primitives::OnDisabled &msg) {
-    auto ancestor_node = getNode(block);
-
-    if (ancestor_node->current_block == block
-        and ancestor_node->epoch_changed) {
-      // It does not matter if epoch changed
-      return outcome::success();
-    }
-
-    auto node = ancestor_node->current_block == block
-                    ? ancestor_node
-                    : ancestor_node->makeDescendant(block);
-
-    if (msg.authority_index < node->current_config->authorities.size()) {
-      if (node->current_config->authorities[msg.authority_index].weight != 0) {
-        auto new_config = std::make_shared<primitives::BabeConfiguration>(
-            *node->current_config);
-        new_config->authorities[msg.authority_index].weight = 0;
-        node->current_config = std::move(new_config);
-
-        if (node != ancestor_node) {
-          ancestor_node->descendants.emplace_back(std::move(node));
-        }
-      }
     }
 
     return outcome::success();

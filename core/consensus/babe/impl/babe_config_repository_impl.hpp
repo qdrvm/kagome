@@ -98,9 +98,6 @@ namespace kagome::consensus::babe {
     outcome::result<void> onNextEpochData(const primitives::BlockInfo &block,
                                           const primitives::NextEpochData &msg);
 
-    outcome::result<void> onOnDisabled(const primitives::BlockInfo &block,
-                                       const primitives::OnDisabled &msg);
-
     outcome::result<void> onNextConfigData(
         const primitives::BlockInfo &block,
         const primitives::NextConfigData &msg);
