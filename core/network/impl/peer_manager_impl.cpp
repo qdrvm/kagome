@@ -139,6 +139,7 @@ namespace kagome::network {
                 self->stream_engine_->del(peer_id);
                 self->peer_states_.erase(peer_id);
                 self->active_peers_.erase(peer_id);
+                self->connecting_peers_.erase(peer_id);
                 self->sync_peer_num_->set(self->active_peers_.size());
                 SL_DEBUG(self->log_,
                          "Remained {} active peers",
