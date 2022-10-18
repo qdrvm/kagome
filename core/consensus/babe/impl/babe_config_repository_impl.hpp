@@ -100,7 +100,7 @@ namespace kagome::consensus::babe {
 
     outcome::result<void> onNextConfigData(
         const primitives::BlockInfo &block,
-        const primitives::NextConfigData &msg);
+        const primitives::NextConfigDataV1 &msg);
 
     /**
      * @brief Find schedule_node according to the block

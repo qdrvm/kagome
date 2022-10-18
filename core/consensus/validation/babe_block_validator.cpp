@@ -36,6 +36,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
 
 namespace kagome::consensus {
   using common::Buffer;
+  using primitives::AllowedSlots;
 
   BabeBlockValidator::BabeBlockValidator(
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -76,23 +77,26 @@ namespace kagome::consensus {
 
     if (babe_header.isProducedInSecondarySlot()) {
       bool plainAndAllowed =
-          babe_header.slotType() == SlotType::SecondaryPlain
-          && babe_config.allowed_slots
-                 == primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots;
+          babe_config.allowed_slots == AllowedSlots::PrimaryAndSecondaryPlain
+          and babe_header.slotType() == SlotType::SecondaryPlain;
       bool vrfAndAllowed =
-          babe_header.slotType() == SlotType::SecondaryVRF
-          && babe_config.allowed_slots
-                 == primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots;
-      if (!plainAndAllowed and !vrfAndAllowed) {
+          babe_config.allowed_slots == AllowedSlots::PrimaryAndSecondaryVRF
+          and babe_header.slotType() == SlotType::SecondaryVRF;
+      if (not plainAndAllowed and not vrfAndAllowed) {
         // SL_WARN unwraps to a lambda which cannot capture a local binding,
         // thus this copy
         auto slot_type = babe_header.slotType();
-        SL_WARN(log_,
-                "Block {} produced in {} secondary slot, but current "
-                "configuration allows only {}",
-                header.number,
-                to_string(slot_type),
-                to_string(babe_config.allowed_slots));
+        SL_WARN(
+            log_,
+            "Block {} produced in {} slot, but current "
+            "configuration allows only {}",
+            [&] {
+              auto encoded = scale::encode(header).value();
+              auto hash = hasher_->blake2b_256(encoded);
+              return primitives::BlockInfo(header.number, hash);
+            }(),
+            to_string(slot_type),
+            to_string(babe_config.allowed_slots));
       }
     }
 

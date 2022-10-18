@@ -659,11 +659,10 @@ namespace kagome::consensus::babe {
 
           processSlotLeadership(
               SlotType::Primary, std::cref(vrf_result), authority_index);
-        } else if (
-            babe_config->allowed_slots
-                == primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots
-            or babe_config->allowed_slots
-                   == primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots) {
+        } else if (babe_config->allowed_slots
+                       == primitives::AllowedSlots::PrimaryAndSecondaryPlain
+                   or babe_config->allowed_slots
+                          == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
           auto expected_author =
               lottery_->secondarySlotAuthor(current_slot_,
                                             babe_config->authorities.size(),
@@ -671,8 +670,8 @@ namespace kagome::consensus::babe {
 
           if (expected_author.has_value()
               and authority_index == expected_author.value()) {
-            if (primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots
-                == babe_config->allowed_slots) {
+            if (babe_config->allowed_slots
+                == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
               auto vrf = lottery_->slotVrfSignature(current_slot_);
               processSlotLeadership(
                   SlotType::SecondaryVRF, std::cref(vrf), authority_index);

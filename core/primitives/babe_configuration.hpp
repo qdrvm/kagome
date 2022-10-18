@@ -21,19 +21,19 @@ namespace kagome::primitives {
   using Randomness = common::Blob<crypto::constants::sr25519::vrf::OUTPUT_SIZE>;
 
   enum class AllowedSlots : uint8_t {
-    PrimarySlots,
-    PrimaryAndSecondaryPlainSlots,
-    PrimaryAndSecondaryVRFSlots
+    PrimaryOnly,
+    PrimaryAndSecondaryPlain,
+    PrimaryAndSecondaryVRF
   };
 
   inline std::string_view to_string(AllowedSlots s) {
-    switch(s) {
-      case AllowedSlots::PrimarySlots:
-        return "Primary Slots";
-      case AllowedSlots::PrimaryAndSecondaryPlainSlots:
-          return "Primary and Secondary Plain Slots";
-      case AllowedSlots::PrimaryAndSecondaryVRFSlots:
-        return "Primary and Secondary VRF Slots";
+    switch (s) {
+      case AllowedSlots::PrimaryOnly:
+        return "Primary only";
+      case AllowedSlots::PrimaryAndSecondaryPlain:
+        return "Primary and Secondary Plain";
+      case AllowedSlots::PrimaryAndSecondaryVRF:
+        return "Primary and Secondary VRF";
     }
     return "Unknown";
   }
@@ -67,10 +67,9 @@ namespace kagome::primitives {
     AllowedSlots allowed_slots;  // can be changed by NextConfigData
 
     bool isSecondarySlotsAllowed() const {
-      return allowed_slots
-                 == primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots
+      return allowed_slots == primitives::AllowedSlots::PrimaryAndSecondaryPlain
              or allowed_slots
-                    == primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots;
+                    == primitives::AllowedSlots::PrimaryAndSecondaryVRF;
     }
   };
 

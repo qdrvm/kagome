@@ -104,18 +104,16 @@ namespace kagome::consensus {
                    const bool checkThreshold) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<crypto::VRFProvider> vrf_provider_;
+    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
+
     mutable std::unordered_map<BabeSlotNumber,
                                std::unordered_set<primitives::AuthorityIndex>>
         blocks_producers_;
 
-    std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue_;
-
-    std::shared_ptr<crypto::Hasher> hasher_;
-
-    std::shared_ptr<crypto::VRFProvider> vrf_provider_;
-    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
-
-    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
     log::Logger log_;
   };
 }  // namespace kagome::consensus

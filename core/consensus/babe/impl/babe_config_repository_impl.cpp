@@ -527,15 +527,26 @@ namespace kagome::consensus::babe {
           return outcome::success();
         },
         [&](const primitives::NextConfigData &msg) {
-          SL_DEBUG(logger_,
-                   "NextConfigData babe-digest on block {}: "
-                   "ratio={}/{}, second_slot={}",
-                   block,
-                   msg.ratio.first,
-                   msg.ratio.second,
-                   msg.second_slot);
-          throw std::runtime_error("RUN BREAKER");
-          return onNextConfigData(block, msg);
+          return visit_in_place(
+              msg,
+              [&](const primitives::NextConfigDataV1 &msg) {
+                SL_DEBUG(logger_,
+                         "NextConfigData babe-digest on block {}: "
+                         "ratio={}/{}, second_slot={}",
+                         block,
+                         msg.ratio.first,
+                         msg.ratio.second,
+                         to_string(msg.second_slot));
+                return onNextConfigData(block, msg);
+              },
+              [&](const auto &) {
+                SL_WARN(logger_,
+                        "Unsupported NextConfigData babe-digest on block {}: "
+                        "variant #{}",
+                        block,
+                        digest.which());
+                return BabeError::UNKNOWN_DIGEST_TYPE;
+              });
         },
         [&](auto &) {
           SL_WARN(logger_,
@@ -572,7 +583,7 @@ namespace kagome::consensus::babe {
 
   outcome::result<void> BabeConfigRepositoryImpl::onNextConfigData(
       const primitives::BlockInfo &block,
-      const primitives::NextConfigData &msg) {
+      const primitives::NextConfigDataV1 &msg) {
     auto node = getNode(block);
 
     if (node->block != block) {
