@@ -43,21 +43,18 @@ namespace kagome::consensus {
       std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
-      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo)
+      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider)
       : block_tree_{std::move(block_tree)},
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
         vrf_provider_{std::move(vrf_provider)},
         sr25519_provider_{std::move(sr25519_provider)},
-        babe_config_repo_{std::move(babe_config_repo)},
         log_{log::createLogger("BlockValidator", "block_validator")} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(sr25519_provider_);
-    BOOST_ASSERT(babe_config_repo_);
   }
 
   outcome::result<void> BabeBlockValidator::validateHeader(
