@@ -33,7 +33,6 @@ namespace kagome::consensus::grandpa {
 
   bool VoteCryptoProviderImpl::verify(const SignedMessage &vote,
                                       RoundNumber number) const {
-    return true;
     auto payload =
         scale::encode(vote.message, number, voter_set_->id()).value();
     auto verifying_result =
