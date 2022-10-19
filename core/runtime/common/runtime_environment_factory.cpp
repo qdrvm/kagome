@@ -89,7 +89,7 @@ namespace kagome::runtime {
     if (persistent_) {
       if (auto res = env.storage_provider->setToPersistentAt(storage_state_);
           !res) {
-        parent_factory->logger_->debug(
+        parent_factory->logger_->error(
             "Failed to set the storage state to hash {:l} when initializing a "
             "runtime environment; Reason: {}",
             storage_state_,
@@ -99,7 +99,7 @@ namespace kagome::runtime {
     } else {
       if (auto res = env.storage_provider->setToEphemeralAt(storage_state_);
           !res) {
-        parent_factory->logger_->debug(
+        parent_factory->logger_->error(
             "Failed to set the storage state to hash {:l} when initializing a "
             "runtime environment; Reason: {}",
             storage_state_,

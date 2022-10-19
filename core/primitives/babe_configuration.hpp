@@ -26,7 +26,7 @@ namespace kagome::primitives {
     PrimaryAndSecondaryVRFSlots
   };
 
-  static std::string_view to_string(AllowedSlots s) {
+  inline std::string_view to_string(AllowedSlots s) {
     switch(s) {
       case AllowedSlots::PrimarySlots:
         return "Primary Slots";

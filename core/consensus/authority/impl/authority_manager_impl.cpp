@@ -243,9 +243,6 @@ namespace kagome::authority {
     BOOST_UNREACHABLE_RETURN({})
   }
 
-  static const Buffer storage_key =
-      Buffer::fromString("test_authority_manager_root");
-
   AuthorityManagerImpl::~AuthorityManagerImpl() {}
 
   bool AuthorityManagerImpl::prepare() {
@@ -851,8 +848,10 @@ namespace kagome::authority {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
     } else if (message.consensus_engine_id == primitives::kBabeEngineId
-               || message.consensus_engine_id
-                      == primitives::kUnsupportedEngineId_BEEF) {
+               or message.consensus_engine_id
+                      == primitives::kUnsupportedEngineId_BEEF
+               or message.consensus_engine_id
+                      == primitives::kUnsupportedEngineId_POL1) {
       // ignore
       return outcome::success();
 

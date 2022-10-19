@@ -19,7 +19,7 @@ namespace kagome::consensus {
     SecondaryVRF = 3,
   };
 
-  static std::string_view to_string(SlotType s) {
+  inline std::string_view to_string(SlotType s) {
     switch (s) {
       case SlotType::Primary:
         return "Primary";
