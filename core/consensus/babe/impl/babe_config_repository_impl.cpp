@@ -457,7 +457,7 @@ namespace kagome::consensus::babe {
     return slot_duration_;
   }
 
-  size_t BabeConfigRepositoryImpl::epochLength() const {
+  EpochLength BabeConfigRepositoryImpl::epochLength() const {
     BOOST_ASSERT_MSG(epoch_length_ != 0, "Epoch length is not initialized");
     return epoch_length_;
   }
