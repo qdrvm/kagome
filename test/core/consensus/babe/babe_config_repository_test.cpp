@@ -16,6 +16,7 @@
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "primitives/babe_configuration.hpp"
+#include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
@@ -28,6 +29,9 @@ using consensus::BabeUtil;
 using consensus::babe::BabeConfigRepositoryImpl;
 using crypto::HasherMock;
 using primitives::BabeSlotNumber;
+using primitives::BlockHeader;
+using primitives::BlockId;
+using primitives::BlockInfo;
 using primitives::events::ChainSubscriptionEngine;
 using runtime::BabeApiMock;
 using storage::face::GenericStorageMock;
@@ -49,12 +53,28 @@ class BabeConfigRepositoryTest : public testing::Test {
     babe_config.epoch_length = 2;
 
     app_state_manager = std::make_shared<application::AppStateManagerMock>();
-    ON_CALL(*app_state_manager, atPrepare(_)).WillByDefault(Return());
+    EXPECT_CALL(*app_state_manager, atPrepare(_)).WillOnce(Return());
+
     persistent_storage =
         std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
+    EXPECT_CALL(*persistent_storage, tryLoad(_))
+        .WillRepeatedly(Return(std::nullopt));
+
     block_tree = std::make_shared<BlockTreeMock>();
+    EXPECT_CALL(*block_tree, getLastFinalized())
+        .WillOnce(Return(BlockInfo{0, "genesis"_hash256}));
+    EXPECT_CALL(*block_tree, getBlockHeader(BlockId("genesis"_hash256)))
+        .WillOnce(Return(BlockHeader{.number = 0}));
+    EXPECT_CALL(*block_tree, getLeaves())
+        .WillOnce(
+            Return(std::vector<primitives::BlockHash>{"genesis"_hash256}));
+
     header_repo = std::make_shared<BlockHeaderRepositoryMock>();
+
     babe_api = std::make_shared<BabeApiMock>();
+    EXPECT_CALL(*babe_api, configuration(_))
+        .WillRepeatedly(Return(babe_config));
+
     hasher = std::make_shared<HasherMock>();
     chain_events_engine = std::make_shared<ChainSubscriptionEngine>();
     clock = std::make_shared<SystemClockMock>();
@@ -78,7 +98,7 @@ class BabeConfigRepositoryTest : public testing::Test {
       persistent_storage;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<blockchain::BlockHeaderRepository> header_repo;
-  std::shared_ptr<runtime::BabeApi> babe_api;
+  std::shared_ptr<runtime::BabeApiMock> babe_api;
   std::shared_ptr<crypto::Hasher> hasher;
   primitives::events::ChainSubscriptionEnginePtr chain_events_engine;
   primitives::GenesisBlockHeader genesis_block_header{};
@@ -93,6 +113,7 @@ class BabeConfigRepositoryTest : public testing::Test {
  * @then compare slot estimations
  */
 TEST_F(BabeConfigRepositoryTest, getCurrentSlot) {
+  babe_config_repo_->prepare();
   auto time = std::chrono::system_clock::now();
   EXPECT_CALL(*clock, now()).Times(1).WillOnce(Return(time));
   EXPECT_EQ(static_cast<BabeSlotNumber>(time.time_since_epoch()
