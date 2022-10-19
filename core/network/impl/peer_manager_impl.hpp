@@ -175,6 +175,7 @@ namespace kagome::network {
     std::shared_ptr<ReputationRepository> reputation_repository_;
 
     libp2p::event::Handle add_peer_handle_;
+    libp2p::event::Handle peer_disconnected_handler_;
     std::unordered_set<PeerId> peers_in_queue_;
     std::deque<std::reference_wrapper<const PeerId>> queue_to_connect_;
     std::unordered_set<PeerId> connecting_peers_;
@@ -194,7 +195,6 @@ namespace kagome::network {
     ParachainState parachain_state_;
 
     log::Logger log_;
-    std::atomic<uint64_t> entry_counter_;
   };
 
 }  // namespace kagome::network
