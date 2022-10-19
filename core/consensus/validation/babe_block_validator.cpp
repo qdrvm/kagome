@@ -94,6 +94,7 @@ namespace kagome::consensus {
             }(),
             to_string(slot_type),
             to_string(babe_config.allowed_slots));
+        return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
       }
     }
 
