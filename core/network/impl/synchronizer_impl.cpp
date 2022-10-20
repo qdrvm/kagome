@@ -418,7 +418,6 @@ namespace kagome::network {
 
     network::BlocksRequest request{network::BlockAttribute::HEADER,
                                    hint,
-                                   std::nullopt,
                                    network::Direction::ASCENDING,
                                    1};
 
@@ -592,7 +591,6 @@ namespace kagome::network {
 
     network::BlocksRequest request{attributesForSync(sync_method_),
                                    from.hash,
-                                   std::nullopt,
                                    network::Direction::ASCENDING,
                                    std::nullopt};
 
@@ -825,7 +823,6 @@ namespace kagome::network {
     BlocksRequest request{
         BlockAttribute::HEADER | BlockAttribute::JUSTIFICATION,
         target_block.hash,
-        std::nullopt,
         Direction::ASCENDING,
         limit};
 

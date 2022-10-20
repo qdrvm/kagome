@@ -240,10 +240,6 @@ namespace kagome::network {
           logmsg += fmt::format(", from {}", from);
         });
 
-        if (block_request.to.has_value()) {
-          logmsg += fmt::format(" to {}", block_request.to.value());
-        }
-
         logmsg +=
             block_request.direction == Direction::ASCENDING ? " anc" : " desc";
 
@@ -434,10 +430,6 @@ namespace kagome::network {
       visit_in_place(block_request.from, [&](const auto &from) {
         logmsg += fmt::format(" from {}", from);
       });
-
-      if (block_request.to.has_value()) {
-        logmsg += fmt::format(" to {}", block_request.to.value());
-      }
 
       logmsg +=
           block_request.direction == Direction::ASCENDING ? " anc" : " desc";

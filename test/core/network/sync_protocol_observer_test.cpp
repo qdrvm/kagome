@@ -71,7 +71,6 @@ TEST_F(SynchronizerTest, ProcessRequest) {
   // GIVEN
   BlocksRequest received_request{BlocksRequest::kBasicAttributes,
                                  block3_hash_,
-                                 std::nullopt,
                                  Direction::ASCENDING,
                                  std::nullopt};
 
