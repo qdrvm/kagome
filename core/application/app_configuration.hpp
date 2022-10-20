@@ -246,6 +246,11 @@ namespace kagome::application {
      * @return enum constant of the chosen storage backend
      */
     virtual StorageBackend storageBackend() const = 0;
+
+    /**
+     * Optional phrase to use dev account (e.g. Alice and Bob)
+     */
+    virtual std::optional<std::string> devMnemonicPhrase() const = 0;
   };
 
 }  // namespace kagome::application

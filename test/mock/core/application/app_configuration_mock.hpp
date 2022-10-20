@@ -114,7 +114,10 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(AppConfiguration::SyncMethod, syncMethod, (), (const, override));
+    MOCK_METHOD(AppConfiguration::SyncMethod,
+                syncMethod,
+                (),
+                (const, override));
 
     MOCK_METHOD(AppConfiguration::RuntimeExecutionMethod,
                 runtimeExecMethod,
@@ -150,6 +153,11 @@ namespace kagome::application {
     MOCK_METHOD(bool, isTelemetryEnabled, (), (const, override));
 
     MOCK_METHOD(StorageBackend, storageBackend, (), (const, override));
+
+    MOCK_METHOD(std::optional<std::string>,
+                devMnemonicPhrase,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::application

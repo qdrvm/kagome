@@ -24,6 +24,7 @@
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
+#include "crypto/crypto_store/dev_mnemonic_phrase.hpp"
 #include "filesystem/directories.hpp"
 
 namespace {
@@ -147,6 +148,20 @@ namespace {
     }
 
     return std::nullopt;
+  }
+
+  auto &devAccounts() {
+    static auto &dev = kagome::crypto::DevMnemonicPhrase::get();
+    static const std::map<std::string, std::pair<std::string, std::string>>
+        accounts{
+            {"alice", {"Alice", dev.alice}},
+            {"bob", {"Bob", dev.bob}},
+            {"charlie", {"Charlie", dev.charlie}},
+            {"dave", {"Dave", dev.dave}},
+            {"eve", {"Eve", dev.eve}},
+            {"ferdie", {"Ferdie", dev.ferdie}},
+        };
+    return accounts;
   }
 }  // namespace
 
@@ -744,6 +759,10 @@ namespace kagome::application {
 
     // clang-format on
 
+    for (auto &account : devAccounts()) {
+      development_desc.add_options()(account.first.c_str(), po::bool_switch());
+    }
+
     po::variables_map vm;
     // first-run parse to read only general options and to lookup for "help"
     // all the rest options are ignored
@@ -850,6 +869,17 @@ namespace kagome::application {
         rpc_ws_port_ = def_rpc_ws_port;
         openmetrics_http_port_ = def_openmetrics_http_port;
       }
+    }
+
+    for (auto &[flag, _account] : devAccounts()) {
+      auto &account = _account;
+      find_argument<bool>(vm, flag.c_str(), [&](bool val) {
+        if (val) {
+          node_name_ = account.first;
+          dev_mnemonic_phrase_ = account.second;
+          return;
+        }
+      });
     }
 
     find_argument<std::string>(vm, "config-file", [&](std::string const &path) {

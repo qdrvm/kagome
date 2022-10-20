@@ -49,6 +49,7 @@ using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519Provider;
 using kagome::crypto::Ed25519ProviderImpl;
 using kagome::crypto::Ed25519PublicKey;
+using kagome::crypto::Ed25519Seed;
 using kagome::crypto::Ed25519Signature;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
@@ -61,6 +62,7 @@ using kagome::crypto::Sr25519Provider;
 using kagome::crypto::Sr25519ProviderImpl;
 using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519SecretKey;
+using kagome::crypto::Sr25519Seed;
 using kagome::crypto::Sr25519Signature;
 using kagome::crypto::secp256k1::Secp256k1VerifyError;
 using kagome::runtime::Memory;
@@ -140,10 +142,10 @@ class CryptoExtensionTest : public ::testing::Test {
     std::optional<std::string> optional_mnemonic(mnemonic);
     mnemonic_buffer.put(scale::encode(optional_mnemonic).value());
 
-    sr25519_keypair = sr25519_provider_->generateKeypair(seed);
+    sr25519_keypair = sr25519_provider_->generateKeypair(Sr25519Seed{seed});
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
 
-    ed25519_keypair = ed25519_provider_->generateKeypair(seed);
+    ed25519_keypair = ed25519_provider_->generateKeypair(Ed25519Seed{seed});
     ed25519_signature = ed25519_provider_->sign(ed25519_keypair, input).value();
 
     secp_message_hash =
