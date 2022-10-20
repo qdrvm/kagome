@@ -40,3 +40,10 @@ addtest(variant_builder_test
 target_link_libraries(variant_builder_test
     Boost::boost
     )
+
+addtest(size_limited_containers_test
+    size_limited_containers_test.cpp
+    )
+target_link_libraries(size_limited_containers_test
+    fmt::fmt
+    )
