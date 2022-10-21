@@ -43,6 +43,17 @@ namespace {
     }
   }
 
+  template <typename T>
+  inline std::optional<T> find_argument(
+      boost::program_options::variables_map &vm, const std::string &name) {
+    if (auto it = vm.find(name); it != vm.end()) {
+      if (!it->second.defaulted()) {
+        return it->second.as<T>();
+      }
+    }
+    return std::nullopt;
+  }
+
   const std::string def_rpc_http_host = "0.0.0.0";
   const std::string def_rpc_ws_host = "0.0.0.0";
   const std::string def_openmetrics_http_host = "0.0.0.0";
@@ -871,15 +882,19 @@ namespace kagome::application {
       }
     }
 
-    for (auto &[flag, _account] : devAccounts()) {
-      auto &account = _account;
-      find_argument<bool>(vm, flag.c_str(), [&](bool val) {
-        if (val) {
-          node_name_ = account.first;
-          dev_mnemonic_phrase_ = account.second;
-          return;
+    std::optional<std::string> dev_account_flag;
+    for (auto &[flag, account] : devAccounts()) {
+      if (auto val = find_argument<bool>(vm, flag); val && *val) {
+        if (dev_account_flag) {
+          auto &_flag = flag;
+          SL_ERROR(
+              logger_, "--{} conflicts with --{}", _flag, *dev_account_flag);
+          return false;
         }
-      });
+        dev_account_flag = flag;
+        node_name_ = account.first;
+        dev_mnemonic_phrase_ = account.second;
+      }
     }
 
     find_argument<std::string>(vm, "config-file", [&](std::string const &path) {
