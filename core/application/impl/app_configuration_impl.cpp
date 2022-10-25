@@ -163,16 +163,16 @@ namespace {
 
   auto &devAccounts() {
     static auto &dev = kagome::crypto::DevMnemonicPhrase::get();
-    static const std::
-        array<std::tuple<const char *, std::string_view, std::string_view>, 6>
-            accounts{
-                std::tuple("alice", "Alice", dev.alice),
-                std::tuple("bob", "Bob", dev.bob),
-                std::tuple("charlie", "Charlie", dev.charlie),
-                std::tuple("dave", "Dave", dev.dave),
-                std::tuple("eve", "Eve", dev.eve),
-                std::tuple("ferdie", "Ferdie", dev.ferdie),
-            };
+    using Account =
+        std::tuple<const char *, std::string_view, std::string_view>;
+    static const std::array<Account, 6> accounts{
+        Account{"alice", "Alice", dev.alice},
+        Account{"bob", "Bob", dev.bob},
+        Account{"charlie", "Charlie", dev.charlie},
+        Account{"dave", "Dave", dev.dave},
+        Account{"eve", "Eve", dev.eve},
+        Account{"ferdie", "Ferdie", dev.ferdie},
+    };
     return accounts;
   }
 }  // namespace
