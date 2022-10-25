@@ -27,13 +27,13 @@ TEST(SLVector, Constructors_with_size) {
   ASSERT_NO_THROW(Container v0(0ULL));
   ASSERT_NO_THROW(Container v1(1));
   ASSERT_NO_THROW(Container v2(2));
-  ASSERT_THROW(Container v3(3), std::length_error);
+  ASSERT_THROW(Container v3(3), MaxSizeException);
 
   // With size and value
   ASSERT_NO_THROW(Container v0(0, 0));
   ASSERT_NO_THROW(Container v1(1, 1));
   ASSERT_NO_THROW(Container v2(2, 2));
-  ASSERT_THROW(Container v3(3, 3), std::length_error);
+  ASSERT_THROW(Container v3(3, 3), MaxSizeException);
 }
 
 TEST(SLVector, Constructors_by_copy_and_movement) {
@@ -57,26 +57,26 @@ TEST(SLVector, Constructors_by_copy_and_movement) {
   // Copy
   ASSERT_NO_THROW(Container2 dst(v1));
   ASSERT_NO_THROW(Container2 dst(v2));
-  ASSERT_THROW(Container2 dst(v3), std::length_error);
+  ASSERT_THROW(Container2 dst(v3), MaxSizeException);
 
   ASSERT_NO_THROW(Container2 dst(src_1_1));
   ASSERT_NO_THROW(Container2 dst(src_2_1));
   ASSERT_NO_THROW(Container2 dst(src_2_2));
   ASSERT_NO_THROW(Container2 dst(src_3_1));
   ASSERT_NO_THROW(Container2 dst(src_3_2));
-  ASSERT_THROW(Container2 dst(src_3_3), std::length_error);
+  ASSERT_THROW(Container2 dst(src_3_3), MaxSizeException);
 
   // Movement
   ASSERT_NO_THROW(Container2 dst(std::move(v1)));
   ASSERT_NO_THROW(Container2 dst(std::move(v2)));
-  ASSERT_THROW(Container2 dst(std::move(v3)), std::length_error);
+  ASSERT_THROW(Container2 dst(std::move(v3)), MaxSizeException);
 
   ASSERT_NO_THROW(Container2 dst(std::move(src_1_1)));
   ASSERT_NO_THROW(Container2 dst(std::move(src_2_1)));
   ASSERT_NO_THROW(Container2 dst(std::move(src_2_2)));
   ASSERT_NO_THROW(Container2 dst(std::move(src_3_1)));
   ASSERT_NO_THROW(Container2 dst(std::move(src_3_2)));
-  ASSERT_THROW(Container2 dst(std::move(src_3_3)), std::length_error);
+  ASSERT_THROW(Container2 dst(std::move(src_3_3)), MaxSizeException);
 }
 
 TEST(SLVector, Constructors_by_range) {
@@ -88,7 +88,7 @@ TEST(SLVector, Constructors_by_range) {
 
   ASSERT_NO_THROW(Container2 dst(v1.begin(), v1.end()));
   ASSERT_NO_THROW(Container2 dst(v2.begin(), v2.end()));
-  ASSERT_THROW(Container2 dst(v3.begin(), v3.end()), std::length_error);
+  ASSERT_THROW(Container2 dst(v3.begin(), v3.end()), MaxSizeException);
 }
 
 TEST(SLVector, Constructors_by_initialier_list) {
@@ -98,7 +98,7 @@ TEST(SLVector, Constructors_by_initialier_list) {
   ASSERT_NO_THROW(Container3 dst({1}));
   ASSERT_NO_THROW(Container3 dst({1, 2}));
   ASSERT_NO_THROW(Container3 dst({1, 2, 3}));
-  ASSERT_THROW(Container3 dst({1, 2, 3, 4}), std::length_error);
+  ASSERT_THROW(Container3 dst({1, 2, 3, 4}), MaxSizeException);
 }
 
 TEST(SLVector, AssignmentOperators_by_copy_and_movement) {
@@ -124,26 +124,26 @@ TEST(SLVector, AssignmentOperators_by_copy_and_movement) {
   // Copy
   ASSERT_NO_THROW(dst = v1);
   ASSERT_NO_THROW(dst = v2);
-  ASSERT_THROW(dst = v3, std::length_error);
+  ASSERT_THROW(dst = v3, MaxSizeException);
 
   ASSERT_NO_THROW(dst = src_1_1);
   ASSERT_NO_THROW(dst = src_2_1);
   ASSERT_NO_THROW(dst = src_2_2);
   ASSERT_NO_THROW(dst = src_3_1);
   ASSERT_NO_THROW(dst = src_3_2);
-  ASSERT_THROW(dst = src_3_3, std::length_error);
+  ASSERT_THROW(dst = src_3_3, MaxSizeException);
 
   // Movement
   ASSERT_NO_THROW(dst = std::move(v1));
   ASSERT_NO_THROW(dst = std::move(v2));
-  ASSERT_THROW(dst = std::move(v3), std::length_error);
+  ASSERT_THROW(dst = std::move(v3), MaxSizeException);
 
   ASSERT_NO_THROW(dst = std::move(src_1_1));
   ASSERT_NO_THROW(dst = std::move(src_2_1));
   ASSERT_NO_THROW(dst = std::move(src_2_2));
   ASSERT_NO_THROW(dst = std::move(src_3_1));
   ASSERT_NO_THROW(dst = std::move(src_3_2));
-  ASSERT_THROW(dst = std::move(src_3_3), std::length_error);
+  ASSERT_THROW(dst = std::move(src_3_3), MaxSizeException);
 }
 
 TEST(SLVector, Assign_by_size_and_value) {
@@ -154,7 +154,7 @@ TEST(SLVector, Assign_by_size_and_value) {
   ASSERT_NO_THROW(dst.assign(0, 0));
   ASSERT_NO_THROW(dst.assign(1, 0));
   ASSERT_NO_THROW(dst.assign(2, 0));
-  ASSERT_THROW(dst.assign(3, 0), std::length_error);
+  ASSERT_THROW(dst.assign(3, 0), MaxSizeException);
 }
 
 TEST(SLVector, Assign_by_range) {
@@ -170,7 +170,7 @@ TEST(SLVector, Assign_by_range) {
   ASSERT_NO_THROW(dst.assign(v0.begin(), v0.end()));
   ASSERT_NO_THROW(dst.assign(v1.begin(), v1.end()));
   ASSERT_NO_THROW(dst.assign(v2.begin(), v2.end()));
-  ASSERT_THROW(dst.assign(v3.begin(), v3.end()), std::length_error);
+  ASSERT_THROW(dst.assign(v3.begin(), v3.end()), MaxSizeException);
 }
 
 TEST(SLVector, Assign_by_initialier_list) {
@@ -181,7 +181,7 @@ TEST(SLVector, Assign_by_initialier_list) {
   ASSERT_NO_THROW(dst.assign({}));
   ASSERT_NO_THROW(dst.assign({1}));
   ASSERT_NO_THROW(dst.assign({1, 2}));
-  ASSERT_THROW(dst.assign({1, 2, 3}), std::length_error);
+  ASSERT_THROW(dst.assign({1, 2, 3}), MaxSizeException);
 }
 
 TEST(SLVector, Emplace_back) {
@@ -193,7 +193,7 @@ TEST(SLVector, Emplace_back) {
   EXPECT_EQ(dst.size(), 1);
   ASSERT_NO_THROW(dst.emplace_back(2));
   EXPECT_EQ(dst.size(), 2);
-  ASSERT_THROW(dst.emplace_back(3), std::length_error);
+  ASSERT_THROW(dst.emplace_back(3), MaxSizeException);
   EXPECT_EQ(dst.size(), 2);
 }
 
@@ -229,13 +229,13 @@ TEST(SLVector, Emplace) {
   dst = {1, 2, 3};
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.emplace(dst.begin(), 0), std::length_error);
+  ASSERT_THROW(dst.emplace(dst.begin(), 0), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.emplace(std::next(dst.begin()), 0), std::length_error);
+  ASSERT_THROW(dst.emplace(std::next(dst.begin()), 0), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.emplace(dst.end(), 0), std::length_error);
+  ASSERT_THROW(dst.emplace(dst.end(), 0), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 }
 
@@ -270,13 +270,13 @@ TEST(SLVector, Insert_single_value) {
   dst = {1, 2, 3};
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.insert(dst.begin(), 4), std::length_error);
+  ASSERT_THROW(dst.insert(dst.begin(), 4), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.insert(std::next(dst.begin()), 4), std::length_error);
+  ASSERT_THROW(dst.insert(std::next(dst.begin()), 4), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.insert(dst.end(), 4), std::length_error);
+  ASSERT_THROW(dst.insert(dst.end(), 4), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 }
 
@@ -310,19 +310,19 @@ TEST(SLVector, Insert_several_value) {
   EXPECT_EQ(dst, v_1_2_0_0);
 
   dst = {1, 2};
-  ASSERT_THROW(dst.insert(dst.begin(), 3, 0), std::length_error);
+  ASSERT_THROW(dst.insert(dst.begin(), 3, 0), MaxSizeException);
   EXPECT_EQ(dst, v_1_2);
 
   dst = {1, 2, 3};
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.insert(dst.begin(), 2, 0), std::length_error);
+  ASSERT_THROW(dst.insert(dst.begin(), 2, 0), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.insert(std::next(dst.begin()), 2, 0), std::length_error);
+  ASSERT_THROW(dst.insert(std::next(dst.begin()), 2, 0), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.insert(dst.end(), 2, 0), std::length_error);
+  ASSERT_THROW(dst.insert(dst.end(), 2, 0), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 }
 
@@ -360,22 +360,22 @@ TEST(SLVector, Insert_by_range) {
 
   dst = {1, 2};
   ASSERT_THROW(dst.insert(dst.begin(), v_1_2_3.begin(), v_1_2_3.end()),
-               std::length_error);
+               MaxSizeException);
   EXPECT_EQ(dst, v_1_2);
 
   dst = {1, 2, 3};
   EXPECT_EQ(dst, v_1_2_3);
 
   ASSERT_THROW(dst.insert(dst.begin(), v_3_4.begin(), v_3_4.end()),
-               std::length_error);
+               MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 
   ASSERT_THROW(dst.insert(std::next(dst.begin()), v_3_4.begin(), v_3_4.end()),
-               std::length_error);
+               MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 
   ASSERT_THROW(dst.insert(dst.end(), v_3_4.begin(), v_3_4.end()),
-               std::length_error);
+               MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 }
 
@@ -410,19 +410,19 @@ TEST(SLVector, Insert_by_initializer_list) {
   EXPECT_EQ(dst, v_1_2_3_4);
 
   dst = {1, 2};
-  ASSERT_THROW(dst.insert(dst.begin(), {3, 4, 5}), std::length_error);
+  ASSERT_THROW(dst.insert(dst.begin(), {3, 4, 5}), MaxSizeException);
   EXPECT_EQ(dst, v_1_2);
 
   dst = {1, 2, 3};
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.insert(dst.begin(), {4, 5}), std::length_error);
+  ASSERT_THROW(dst.insert(dst.begin(), {4, 5}), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.insert(std::next(dst.begin()), {4, 5}), std::length_error);
+  ASSERT_THROW(dst.insert(std::next(dst.begin()), {4, 5}), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 
-  ASSERT_THROW(dst.insert(dst.end(), {4, 5}), std::length_error);
+  ASSERT_THROW(dst.insert(dst.end(), {4, 5}), MaxSizeException);
   EXPECT_EQ(dst, v_1_2_3);
 }
 
@@ -441,7 +441,7 @@ TEST(SLVector, Push_back) {
   ASSERT_NO_THROW(dst.push_back(2));
   EXPECT_EQ(dst, v2);
 
-  ASSERT_THROW(dst.push_back(3), std::length_error);
+  ASSERT_THROW(dst.push_back(3), MaxSizeException);
   EXPECT_EQ(dst, v2);
 }
 
@@ -458,7 +458,7 @@ TEST(SLVector, Reserve) {
   ASSERT_NO_THROW(dst.reserve(2));
   EXPECT_EQ(dst.capacity(), 2);
 
-  ASSERT_THROW(dst.reserve(3), std::length_error);
+  ASSERT_THROW(dst.reserve(3), MaxSizeException);
   EXPECT_EQ(dst.capacity(), 2);
 }
 
@@ -474,7 +474,7 @@ TEST(SLVector, Resize) {
   ASSERT_NO_THROW(dst.resize(2));
   EXPECT_EQ(dst.size(), 2);
 
-  ASSERT_THROW(dst.resize(3), std::length_error);
+  ASSERT_THROW(dst.resize(3), MaxSizeException);
   EXPECT_EQ(dst.size(), 2);
 }
 
@@ -494,6 +494,6 @@ TEST(SLVector, Resize_with_value) {
   ASSERT_NO_THROW(dst.resize(2, 200));
   EXPECT_EQ(dst, v2);
 
-  ASSERT_THROW(dst.resize(3, 300), std::length_error);
+  ASSERT_THROW(dst.resize(3, 300), MaxSizeException);
   EXPECT_EQ(dst, v2);
 }

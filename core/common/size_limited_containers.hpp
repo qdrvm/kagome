@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#ifndef KAGOME_COMMON_SIZELIMITEDCONTAINER
+#define KAGOME_COMMON_SIZELIMITEDCONTAINER
+
 #include <fmt/format.h>
 #include <limits>
 #include <stdexcept>
@@ -10,6 +13,13 @@
 #include <vector>
 
 namespace kagome::common {
+
+  class MaxSizeException : public std::length_error {
+   public:
+    template <typename... Args>
+    MaxSizeException(Args &&...args)
+        : std::length_error(fmt::format(std::forward<Args>(args)...)) {}
+  };
 
   template <typename ValueType,
             std::size_t MaxSize,
@@ -21,15 +31,12 @@ namespace kagome::common {
     using Base = BaseContainer<ValueType, Args...>;
 
    public:
-    //    using Base::Base;
+    // Next line is required at least for the scale-codec
+    static constexpr bool is_static_collection = false;
 
     [[__nodiscard__]] inline constexpr std::size_t max_size() const {
       return MaxSize;
     }
-
-    // template <typename... CArgs>
-    // SizeLimitedContainer(CArgs &&...args)
-    //     : Base(std::forward<CArgs>(args)...) {}
 
     SizeLimitedContainer() = default;
 
@@ -40,25 +47,32 @@ namespace kagome::common {
             if (size <= max_size()) {
               return Base(size, std::forward<typename Base::value_type>(value));
             }
-            throw std::length_error(fmt::format(
+            throw MaxSizeException(
                 "Destination has limited size by {}; requested size is {}",
                 max_size(),
-                size));
+                size);
           }()) {}
 
-    template <typename Container,
-              typename C = std::decay_t<Container>,
-              typename = std::enable_if_t<
-                  std::is_base_of_v<Base, C> or std::is_same_v<Base, C>>>
-    explicit SizeLimitedContainer(Container &&other)
+    explicit SizeLimitedContainer(const Base &other)
         : Base([&] {
             if (other.size() <= max_size()) {
-              return std::forward<Base>(other);
+              return other;
             }
-            throw std::length_error(fmt::format(
+            throw MaxSizeException(
                 "Destination has limited size by {}; Source size is {}",
                 max_size(),
-                other.size()));
+                other.size());
+          }()) {}
+
+    explicit SizeLimitedContainer(Base &&other)
+        : Base([&] {
+            if (other.size() <= max_size()) {
+              return std::move(other);
+            }
+            throw MaxSizeException(
+                "Destination has limited size by {}; Source size is {}",
+                max_size(),
+                other.size());
           }()) {}
 
     template <typename Iter,
@@ -71,10 +85,10 @@ namespace kagome::common {
             if (size <= max_size()) {
               return Base(std::forward<Iter>(begin), std::forward<Iter>(end));
             }
-            throw std::length_error(fmt::format(
+            throw MaxSizeException(
                 "Container has limited size by {}; Source range size is {}",
                 max_size(),
-                Base::size()));
+                Base::size());
           }()) {}
 
     SizeLimitedContainer(std::initializer_list<ValueType> list)
@@ -82,35 +96,54 @@ namespace kagome::common {
             if (list.size() <= max_size()) {
               return Base(std::forward<std::initializer_list<ValueType>>(list));
             }
-            throw std::length_error(fmt::format(
+            throw MaxSizeException(
                 "Container has limited size by {}; Source range size is {}",
                 max_size(),
-                Base::size()));
+                Base::size());
           }()) {}
 
-    template <typename Container,
-              typename C = std::decay_t<Container>,
-              typename = std::enable_if_t<
-                  std::is_base_of_v<Base, C> or std::is_same_v<Base, C>>>
-    SizeLimitedContainer &operator=(Container &&other) {
+    SizeLimitedContainer &operator=(const Base &other) {
+      if (std::less_equal<size_t>()(other.size(), max_size())) {
+        assign(other.begin(), other.end());
+        return *this;
+      }
+      throw MaxSizeException(
+          "Destination has limited size by {}; Source size is {}",
+          max_size(),
+          other.size());
+    }
+
+    SizeLimitedContainer &operator=(Base &&other) {
       if (other.size() <= max_size()) {
         static_cast<Base &>(*this) = std::forward<Base>(other);
         return *this;
       }
-      throw std::length_error(
-          fmt::format("Destination has limited size by {}; Source size is {}",
-                      max_size(),
-                      other.size()));
+      throw MaxSizeException(
+          "Destination has limited size by {}; Source size is {}",
+          max_size(),
+          other.size());
+    }
+
+    SizeLimitedContainer &operator=(std::initializer_list<ValueType> list) {
+      if (list.size() <= max_size()) {
+        static_cast<Base &>(*this) =
+            std::forward<std::initializer_list<ValueType>>(list);
+        return *this;
+      }
+      throw MaxSizeException(
+          "Destination has limited size by {}; Source size is {}",
+          max_size(),
+          list.size());
     }
 
     void assign(std::size_t size, const ValueType &value) {
       if (size <= max_size()) {
         return Base::assign(size, value);
       }
-      throw std::length_error(fmt::format(
+      throw MaxSizeException(
           "Destination has limited size by {}; Requested size is {}",
           max_size(),
-          size));
+          size);
     }
 
     template <typename Iter,
@@ -122,10 +155,10 @@ namespace kagome::common {
       if (size <= max_size()) {
         return Base::assign(std::forward<Iter>(begin), std::forward<Iter>(end));
       }
-      throw std::length_error(fmt::format(
+      throw MaxSizeException(
           "Container has limited size by {}; Source range size is {}",
           max_size(),
-          Base::size()));
+          Base::size());
     }
 
     void assign(std::initializer_list<ValueType> list) {
@@ -133,10 +166,10 @@ namespace kagome::common {
         return Base::assign(
             std::forward<std::initializer_list<ValueType>>(list));
       }
-      throw std::length_error(fmt::format(
+      throw MaxSizeException(
           "Container has limited size by {}; Source range size is {}",
           max_size(),
-          Base::size()));
+          Base::size());
     }
 
     template <typename V>
@@ -145,10 +178,10 @@ namespace kagome::common {
         Base::emplace_back(std::forward<V>(value));
         return;
       }
-      throw std::length_error(
-          fmt::format("Container has limited size by {}; Size is already {} ",
-                      max_size(),
-                      Base::size()));
+      throw MaxSizeException(
+          "Container has limited size by {}; Size is already {} ",
+          max_size(),
+          Base::size());
     }
 
     template <
@@ -162,10 +195,10 @@ namespace kagome::common {
         Base::emplace(std::forward<Iter>(pos), std::forward<V>(value));
         return;
       }
-      throw std::length_error(
-          fmt::format("Container has limited size by {}; Size is already {} ",
-                      max_size(),
-                      Base::size()));
+      throw MaxSizeException(
+          "Container has limited size by {}; Size is already {} ",
+          max_size(),
+          Base::size());
     }
 
     template <
@@ -178,10 +211,10 @@ namespace kagome::common {
         Base::insert(std::forward<Iter>(pos), value);
         return;
       }
-      throw std::length_error(
-          fmt::format("Destination has limited size by {}; Size is already {} ",
-                      max_size(),
-                      Base::size()));
+      throw MaxSizeException(
+          "Destination has limited size by {}; Size is already {} ",
+          max_size(),
+          Base::size());
     }
 
     template <
@@ -195,10 +228,10 @@ namespace kagome::common {
         Base::insert(std::forward<Iter>(pos), size, value);
         return;
       }
-      throw std::length_error(fmt::format(
+      throw MaxSizeException(
           "Destination has limited size by {}; Requested size is {}",
           max_size(),
-          size));
+          size);
     }
 
     template <
@@ -219,12 +252,12 @@ namespace kagome::common {
                      std::forward<InIt>(end));
         return;
       }
-      throw std::length_error(fmt::format(
+      throw MaxSizeException(
           "Destination has limited size by {} and current size is {}; "
           "Source range size is {} and would overflow destination",
           max_size(),
           Base::size(),
-          size));
+          size);
     }
 
     template <
@@ -239,10 +272,10 @@ namespace kagome::common {
                      std::forward<std::initializer_list<ValueType>>(list));
         return;
       }
-      throw std::length_error(fmt::format(
+      throw MaxSizeException(
           "Container has limited size by {}; Source range size is {}",
           max_size(),
-          Base::size()));
+          Base::size());
     }
 
     template <typename V>
@@ -250,39 +283,65 @@ namespace kagome::common {
       if (Base::size() < max_size()) {
         return Base::push_back(std::forward<V>(value));
       }
-      throw std::length_error(fmt::format(
+      throw MaxSizeException(
           "Container has limited size by {}; Size is already maximum",
-          max_size()));
+          max_size());
     }
 
     void reserve(std::size_t size) {
       if (size <= max_size()) {
         return Base::reserve(size);
       }
-      throw std::length_error(fmt::format(
+      throw MaxSizeException(
           "Destination has limited size by {}; Requested size is {}",
           max_size(),
-          size));
+          size);
     }
 
     void resize(std::size_t size) {
       if (size <= max_size()) {
         return Base::resize(size);
       }
-      throw std::length_error(fmt::format(
+      throw MaxSizeException(
           "Destination has limited size by {}; Requested size is {}",
           max_size(),
-          size));
+          size);
     }
 
     void resize(std::size_t size, const ValueType &value) {
       if (size <= max_size()) {
         return Base::resize(size, value);
       }
-      throw std::length_error(fmt::format(
+      throw MaxSizeException(
           "Destination has limited size by {}; Requested size is {}",
           max_size(),
-          size));
+          size);
+    }
+
+    bool operator==(const Base &other) const noexcept {
+      return Base::size() == other.size()
+             and std::equal(
+                 Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
+    }
+
+    template <size_t Size>
+    bool operator==(const std::array<typename Base::value_type, Size> &other)
+        const noexcept {
+      return Base::size() == Size
+             and std::equal(
+                 Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
+    }
+
+    bool operator<(const Base &other) const noexcept {
+      return std::lexicographical_compare(
+          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
+    }
+
+    template <size_t Size>
+    bool operator<(const std::array<typename Base::value_type, Size> &other)
+        const noexcept {
+      return std::lexicographical_compare(
+          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
     }
   };
 
@@ -291,3 +350,5 @@ namespace kagome::common {
       SizeLimitedContainer<ElementType, MaxSize, std::vector, Args...>;
 
 }  // namespace kagome::common
+
+#endif  // KAGOME_COMMON_SIZELIMITEDCONTAINER
