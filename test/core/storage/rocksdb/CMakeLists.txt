@@ -14,4 +14,5 @@ target_link_libraries(rocksdb_integration_test
     rocksdb_wrapper
     base_rocksdb_test
     Boost::filesystem
+    hexutil
     )

@@ -81,8 +81,8 @@ namespace kagome::storage::trie {
 namespace {
   using namespace kagome::storage::trie;
 
-  uint32_t getCommonPrefixLength(const KeyNibbles &first,
-                                 const KeyNibbles &second) {
+  uint32_t getCommonPrefixLength(const NibblesView &first,
+                                 const NibblesView &second) {
     auto &&[it, _] =
         std::mismatch(first.begin(), first.end(), second.begin(), second.end());
     return it - first.begin();
@@ -191,7 +191,7 @@ namespace {
   [[nodiscard]] outcome::result<void> detachNode(
       const kagome::log::Logger &logger,
       std::shared_ptr<TrieNode> &parent,
-      const KeyNibbles &prefix,
+      const NibblesView &prefix,
       std::optional<uint64_t> limit,
       bool &finished,
       uint32_t &count,
@@ -206,7 +206,8 @@ namespace {
       return outcome::success();
     }
 
-    if (parent->key_nibbles.size() >= prefix.size()) {
+    if (std::greater_equal<size_t>()(parent->key_nibbles.size(),
+                                     prefix.size())) {
       // if this is the node to be detached -- detach it
       if (std::equal(
               prefix.begin(), prefix.end(), parent->key_nibbles.begin())) {

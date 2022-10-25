@@ -12,7 +12,6 @@ add_library(block_builder
     )
 target_link_libraries(block_builder
     outcome
-    buffer
     logger
     scale::scale
     )

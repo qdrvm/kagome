@@ -44,7 +44,6 @@ target_link_libraries(chain_spec
     Boost::filesystem
     p2p::p2p_multiaddress
     p2p::p2p_peer_id
-    buffer
     sr25519_types
     )
 kagome_install(chain_spec)

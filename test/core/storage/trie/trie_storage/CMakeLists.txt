@@ -30,6 +30,5 @@ addtest(trie_storage_backend_test
 target_link_libraries(trie_storage_backend_test
     trie_storage_backend
     blob
-    buffer
     in_memory_storage
     )

@@ -7,7 +7,8 @@ addtest(buffer_test
     buffer_test.cpp
     )
 target_link_libraries(buffer_test
-    buffer
+    fmt::fmt
+    hexutil
     )
 
 addtest(hexutil_test
@@ -30,7 +31,6 @@ addtest(mp_utils_test
 target_link_libraries(mp_utils_test
     mp_utils
     blob
-    buffer
     fmt::fmt
     )
 

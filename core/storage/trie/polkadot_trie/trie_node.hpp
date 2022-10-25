@@ -19,16 +19,11 @@ namespace kagome::storage::trie {
   using NibblesView = common::BufferView;
 
   struct KeyNibbles : public common::Buffer {
-    KeyNibbles() = default;
+    using Buffer = common::Buffer;
 
-    explicit KeyNibbles(common::Buffer b) : Buffer{std::move(b)} {}
-    KeyNibbles(std::initializer_list<uint8_t> b) : Buffer{b} {}
-    KeyNibbles(NibblesView b) : Buffer{b} {}
+    using Buffer::Buffer;
 
-    KeyNibbles &operator=(common::Buffer b) {
-      Buffer::operator=(std::move(b));
-      return *this;
-    }
+    KeyNibbles(common::Buffer b) : Buffer{std::move(b)} {}
 
     /**
      * Def. 14 KeyEncode
@@ -57,7 +52,7 @@ namespace kagome::storage::trie {
      * Collects an array of nibbles to a key
      * TODO(Harrm): Good candidate to rewrite with SIMD
      */
-    Buffer toByteBuffer() const {
+    auto toByteBuffer() const {
       Buffer res;
       if (size() % 2 == 0) {
         res = Buffer(size() / 2, 0);

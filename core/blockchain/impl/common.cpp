@@ -21,8 +21,7 @@ namespace kagome::blockchain {
                                prefix::Prefix::ID_TO_LOOKUP_KEY);
         },
         [](const common::Hash256 &hash) {
-          return prependPrefix(common::Buffer{hash},
-                               prefix::Prefix::ID_TO_LOOKUP_KEY);
+          return prependPrefix(hash, prefix::Prefix::ID_TO_LOOKUP_KEY);
         });
 
     OUTCOME_TRY(key_opt, map.tryLoad(key));

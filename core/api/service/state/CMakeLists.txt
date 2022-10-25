@@ -9,7 +9,6 @@ add_library(state_api_service
     )
 target_link_libraries(state_api_service
     api_state_requests
-    buffer
     api_service
     trie_storage
     blob

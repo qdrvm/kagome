@@ -24,7 +24,6 @@ add_library(collation_protocol
     )
 target_link_libraries(collation_protocol
     blob
-    buffer
     logger
     scale_message_read_writer
     protocol_error
@@ -63,7 +62,6 @@ add_library(sync_protocol
     )
 target_link_libraries(sync_protocol
     blob
-    buffer
     logger
     node_api_proto
     adapter_errors
@@ -76,7 +74,6 @@ add_library(req_collation_protocol
     )
 target_link_libraries(req_collation_protocol
     blob
-    buffer
     logger
     adapter_errors
     protocol_error

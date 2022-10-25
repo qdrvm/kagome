@@ -6,7 +6,7 @@ add_library(trie_storage_backend
     trie_storage_backend_batch.cpp
     )
 target_link_libraries(trie_storage_backend
-    buffer
+    fmt::fmt
     )
 kagome_install(trie_storage_backend)
 
@@ -14,7 +14,7 @@ add_library(topper_trie_batch
     topper_trie_batch_impl.cpp
     )
 target_link_libraries(topper_trie_batch
-    buffer
+    fmt::fmt
     )
 kagome_install(topper_trie_batch)
 
@@ -22,7 +22,6 @@ add_library(persistent_trie_batch
     persistent_trie_batch_impl.cpp
     )
 target_link_libraries(persistent_trie_batch
-    buffer
     trie_error
     polkadot_trie_cursor
     topper_trie_batch
@@ -33,7 +32,6 @@ add_library(ephemeral_trie_batch
     ephemeral_trie_batch_impl.cpp
     )
 target_link_libraries(ephemeral_trie_batch
-    buffer
     polkadot_trie_cursor
     topper_trie_batch
     )

@@ -14,20 +14,27 @@ namespace kagome::offchain {
 
   class OffchainPersistentStorageMock : public OffchainPersistentStorage {
    public:
-    MOCK_METHOD2(set,
-                 outcome::result<void>(const common::BufferView &,
-                                       common::Buffer));
+    MOCK_METHOD(outcome::result<void>,
+                set,
+                (const common::BufferView &, common::Buffer),
+                (override));
 
-    MOCK_METHOD1(clear, outcome::result<void>(const common::BufferView &));
+    MOCK_METHOD(outcome::result<void>,
+                clear,
+                (const common::BufferView &),
+                (override));
 
-    MOCK_METHOD3(
-        compare_and_set,
-        outcome::result<bool>(const common::BufferView &,
-                              const std::optional<common::BufferView> &,
-                              common::Buffer));
+    MOCK_METHOD(outcome::result<bool>,
+                compare_and_set,
+                (const common::BufferView &,
+                 const std::optional<common::BufferView> &,
+                 common::Buffer),
+                (override));
 
-    MOCK_METHOD1(get,
-                 outcome::result<common::Buffer>(const common::BufferView &));
+    MOCK_METHOD(outcome::result<common::Buffer>,
+                get,
+                (const common::BufferView &),
+                (override));
   };
 
 }  // namespace kagome::offchain
