@@ -12,6 +12,9 @@
 #include <type_traits>
 #include <vector>
 
+#define likely(x) __builtin_expect((x), 1)
+#define unlikely(x) __builtin_expect((x), 0)
+
 namespace kagome::common {
 
   class MaxSizeException : public std::length_error {
@@ -29,12 +32,15 @@ namespace kagome::common {
   class SizeLimitedContainer : public BaseContainer<ValueType, Args...> {
    protected:
     using Base = BaseContainer<ValueType, Args...>;
+    static constexpr bool size_check_is_disabled =
+        MaxSize >= std::numeric_limits<typename Base::size_type>::max();
 
    public:
     // Next line is required at least for the scale-codec
     static constexpr bool is_static_collection = false;
 
-    [[__nodiscard__]] inline constexpr std::size_t max_size() const {
+    [[__nodiscard__]] inline static constexpr typename Base::size_type
+    max_size() {
       return MaxSize;
     }
 
@@ -43,36 +49,49 @@ namespace kagome::common {
     SizeLimitedContainer(
         size_t size,
         typename Base::value_type &&value = typename Base::value_type())
-        : Base([&]() -> Base {
-            if (size <= max_size()) {
+        : Base([&] {
+            if constexpr (size_check_is_disabled) {
               return Base(size, std::forward<typename Base::value_type>(value));
+            } else {
+              if (likely(size <= max_size())) {
+                return Base(size,
+                            std::forward<typename Base::value_type>(value));
+              }
+              throw MaxSizeException(
+                  "Destination has limited size by {}; requested size is {}",
+                  max_size(),
+                  size);
             }
-            throw MaxSizeException(
-                "Destination has limited size by {}; requested size is {}",
-                max_size(),
-                size);
           }()) {}
 
     explicit SizeLimitedContainer(const Base &other)
         : Base([&] {
-            if (other.size() <= max_size()) {
+            if constexpr (size_check_is_disabled) {
               return other;
+            } else {
+              if (likely(other.size() <= max_size())) {
+                return other;
+              }
+              throw MaxSizeException(
+                  "Destination has limited size by {}; Source size is {}",
+                  max_size(),
+                  other.size());
             }
-            throw MaxSizeException(
-                "Destination has limited size by {}; Source size is {}",
-                max_size(),
-                other.size());
           }()) {}
 
     explicit SizeLimitedContainer(Base &&other)
         : Base([&] {
-            if (other.size() <= max_size()) {
+            if constexpr (size_check_is_disabled) {
               return std::move(other);
+            } else {
+              if (likely(other.size() <= max_size())) {
+                return std::move(other);
+              }
+              throw MaxSizeException(
+                  "Destination has limited size by {}; Source size is {}",
+                  max_size(),
+                  other.size());
             }
-            throw MaxSizeException(
-                "Destination has limited size by {}; Source size is {}",
-                max_size(),
-                other.size());
           }()) {}
 
     template <typename Iter,
@@ -81,69 +100,95 @@ namespace kagome::common {
                   typename std::iterator_traits<Iter>::iterator_category>>>
     SizeLimitedContainer(Iter begin, Iter end)
         : Base([&] {
-            const size_t size = std::distance(begin, end);
-            if (size <= max_size()) {
+            if constexpr (size_check_is_disabled) {
               return Base(std::forward<Iter>(begin), std::forward<Iter>(end));
+            } else {
+              const size_t size = std::distance(begin, end);
+              if (likely(size <= max_size())) {
+                return Base(std::forward<Iter>(begin), std::forward<Iter>(end));
+              }
+              throw MaxSizeException(
+                  "Container has limited size by {}; Source range size is {}",
+                  max_size(),
+                  Base::size());
             }
-            throw MaxSizeException(
-                "Container has limited size by {}; Source range size is {}",
-                max_size(),
-                Base::size());
           }()) {}
 
     SizeLimitedContainer(std::initializer_list<ValueType> list)
         : Base([&] {
-            if (list.size() <= max_size()) {
+            if constexpr (size_check_is_disabled) {
               return Base(std::forward<std::initializer_list<ValueType>>(list));
+            } else if (likely(list.size() <= max_size())) {
+              return Base(std::forward<std::initializer_list<ValueType>>(list));
+            } else {
+              throw MaxSizeException(
+                  "Container has limited size by {}; Source range size is {}",
+                  max_size(),
+                  Base::size());
             }
-            throw MaxSizeException(
-                "Container has limited size by {}; Source range size is {}",
-                max_size(),
-                Base::size());
           }()) {}
 
     SizeLimitedContainer &operator=(const Base &other) {
-      if (std::less_equal<size_t>()(other.size(), max_size())) {
+      if constexpr (size_check_is_disabled) {
         assign(other.begin(), other.end());
         return *this;
+      } else if (std::less_equal<size_t>()(other.size(), max_size())) {
+        assign(other.begin(), other.end());
+        return *this;
+      } else {
+        throw MaxSizeException(
+            "Destination has limited size by {}; Source size is {}",
+            max_size(),
+            other.size());
       }
-      throw MaxSizeException(
-          "Destination has limited size by {}; Source size is {}",
-          max_size(),
-          other.size());
     }
 
     SizeLimitedContainer &operator=(Base &&other) {
-      if (other.size() <= max_size()) {
+      if constexpr (size_check_is_disabled) {
         static_cast<Base &>(*this) = std::forward<Base>(other);
         return *this;
+      } else {
+        if (likely(other.size() <= max_size())) {
+          static_cast<Base &>(*this) = std::forward<Base>(other);
+          return *this;
+        }
+        throw MaxSizeException(
+            "Destination has limited size by {}; Source size is {}",
+            max_size(),
+            other.size());
       }
-      throw MaxSizeException(
-          "Destination has limited size by {}; Source size is {}",
-          max_size(),
-          other.size());
     }
 
     SizeLimitedContainer &operator=(std::initializer_list<ValueType> list) {
-      if (list.size() <= max_size()) {
+      if constexpr (size_check_is_disabled) {
         static_cast<Base &>(*this) =
             std::forward<std::initializer_list<ValueType>>(list);
         return *this;
+      } else {
+        if (likely(list.size() <= max_size())) {
+          static_cast<Base &>(*this) =
+              std::forward<std::initializer_list<ValueType>>(list);
+          return *this;
+        }
+        throw MaxSizeException(
+            "Destination has limited size by {}; Source size is {}",
+            max_size(),
+            list.size());
       }
-      throw MaxSizeException(
-          "Destination has limited size by {}; Source size is {}",
-          max_size(),
-          list.size());
     }
 
-    void assign(std::size_t size, const ValueType &value) {
-      if (size <= max_size()) {
+    void assign(typename Base::size_type size, const ValueType &value) {
+      if constexpr (size_check_is_disabled) {
         return Base::assign(size, value);
+      } else {
+        if (likely(size <= max_size())) {
+          return Base::assign(size, value);
+        }
+        throw MaxSizeException(
+            "Destination has limited size by {}; Requested size is {}",
+            max_size(),
+            size);
       }
-      throw MaxSizeException(
-          "Destination has limited size by {}; Requested size is {}",
-          max_size(),
-          size);
     }
 
     template <typename Iter,
@@ -151,37 +196,51 @@ namespace kagome::common {
                   std::input_iterator_tag,
                   typename std::iterator_traits<Iter>::iterator_category>>>
     void assign(Iter begin, Iter end) {
-      const size_t size = std::distance(begin, end);
-      if (size <= max_size()) {
+      if constexpr (size_check_is_disabled) {
         return Base::assign(std::forward<Iter>(begin), std::forward<Iter>(end));
+      } else {
+        const size_t size = std::distance(begin, end);
+        if (likely(size <= max_size())) {
+          return Base::assign(std::forward<Iter>(begin),
+                              std::forward<Iter>(end));
+        }
+        throw MaxSizeException(
+            "Container has limited size by {}; Source range size is {}",
+            max_size(),
+            Base::size());
       }
-      throw MaxSizeException(
-          "Container has limited size by {}; Source range size is {}",
-          max_size(),
-          Base::size());
     }
 
     void assign(std::initializer_list<ValueType> list) {
-      if (list.size() <= max_size()) {
+      if constexpr (size_check_is_disabled) {
         return Base::assign(
             std::forward<std::initializer_list<ValueType>>(list));
+      } else {
+        if (likely(list.size() <= max_size())) {
+          return Base::assign(
+              std::forward<std::initializer_list<ValueType>>(list));
+        }
+        throw MaxSizeException(
+            "Container has limited size by {}; Source range size is {}",
+            max_size(),
+            Base::size());
       }
-      throw MaxSizeException(
-          "Container has limited size by {}; Source range size is {}",
-          max_size(),
-          Base::size());
     }
 
     template <typename V>
     void emplace_back(V &&value) {
-      if (Base::size() < max_size()) {
+      if constexpr (size_check_is_disabled) {
         Base::emplace_back(std::forward<V>(value));
-        return;
+      } else {
+        if (likely(Base::size() < max_size())) {
+          Base::emplace_back(std::forward<V>(value));
+          return;
+        }
+        throw MaxSizeException(
+            "Container has limited size by {}; Size is already {} ",
+            max_size(),
+            Base::size());
       }
-      throw MaxSizeException(
-          "Container has limited size by {}; Size is already {} ",
-          max_size(),
-          Base::size());
     }
 
     template <
@@ -191,14 +250,18 @@ namespace kagome::common {
         bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
         typename = std::enable_if_t<isIter or isConstIter>>
     void emplace(Iter &&pos, V &&value) {
-      if (Base::size() < max_size()) {
+      if constexpr (size_check_is_disabled) {
         Base::emplace(std::forward<Iter>(pos), std::forward<V>(value));
-        return;
+      } else {
+        if (likely(Base::size() < max_size())) {
+          Base::emplace(std::forward<Iter>(pos), std::forward<V>(value));
+          return;
+        }
+        throw MaxSizeException(
+            "Container has limited size by {}; Size is already {} ",
+            max_size(),
+            Base::size());
       }
-      throw MaxSizeException(
-          "Container has limited size by {}; Size is already {} ",
-          max_size(),
-          Base::size());
     }
 
     template <
@@ -207,14 +270,18 @@ namespace kagome::common {
         bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
         typename = std::enable_if_t<isIter or isConstIter>>
     void insert(Iter &&pos, const ValueType &value) {
-      if (Base::size() < max_size()) {
+      if constexpr (size_check_is_disabled) {
         Base::insert(std::forward<Iter>(pos), value);
-        return;
+      } else {
+        if (likely(Base::size() < max_size())) {
+          Base::insert(std::forward<Iter>(pos), value);
+          return;
+        }
+        throw MaxSizeException(
+            "Destination has limited size by {}; Size is already {} ",
+            max_size(),
+            Base::size());
       }
-      throw MaxSizeException(
-          "Destination has limited size by {}; Size is already {} ",
-          max_size(),
-          Base::size());
     }
 
     template <
@@ -222,16 +289,22 @@ namespace kagome::common {
         bool isIter = std::is_same_v<Iter, typename Base::iterator>,
         bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
         typename = std::enable_if_t<isIter or isConstIter>>
-    void insert(Iter &&pos, std::size_t size, const ValueType &value) {
-      const auto available = max_size() - Base::size();
-      if (available >= size) {
+    void insert(Iter &&pos,
+                typename Base::size_type size,
+                const ValueType &value) {
+      if constexpr (size_check_is_disabled) {
         Base::insert(std::forward<Iter>(pos), size, value);
-        return;
+      } else {
+        const auto available = max_size() - Base::size();
+        if (likely(available >= size)) {
+          Base::insert(std::forward<Iter>(pos), size, value);
+          return;
+        }
+        throw MaxSizeException(
+            "Destination has limited size by {}; Requested size is {}",
+            max_size(),
+            size);
       }
-      throw MaxSizeException(
-          "Destination has limited size by {}; Requested size is {}",
-          max_size(),
-          size);
     }
 
     template <
@@ -244,20 +317,26 @@ namespace kagome::common {
             std::input_iterator_tag,
             typename std::iterator_traits<InIt>::iterator_category>>>
     void insert(OutIt &&pos, InIt &&begin, InIt &&end) {
-      const size_t size = std::distance(begin, end);
-      const auto available = max_size() - Base::size();
-      if (available >= size) {
+      if constexpr (size_check_is_disabled) {
         Base::insert(std::forward<OutIt>(pos),
                      std::forward<InIt>(begin),
                      std::forward<InIt>(end));
-        return;
+      } else {
+        const size_t size = std::distance(begin, end);
+        const auto available = max_size() - Base::size();
+        if (likely(available >= size)) {
+          Base::insert(std::forward<OutIt>(pos),
+                       std::forward<InIt>(begin),
+                       std::forward<InIt>(end));
+          return;
+        }
+        throw MaxSizeException(
+            "Destination has limited size by {} and current size is {}; "
+            "Source range size is {} and would overflow destination",
+            max_size(),
+            Base::size(),
+            size);
       }
-      throw MaxSizeException(
-          "Destination has limited size by {} and current size is {}; "
-          "Source range size is {} and would overflow destination",
-          max_size(),
-          Base::size(),
-          size);
     }
 
     template <
@@ -266,56 +345,78 @@ namespace kagome::common {
         bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
         typename = std::enable_if_t<isIter or isConstIter>>
     void insert(Iter &&pos, std::initializer_list<ValueType> &&list) {
-      const auto available = max_size() - Base::size();
-      if (available >= list.size()) {
+      if constexpr (size_check_is_disabled) {
         Base::insert(std::forward<Iter>(pos),
                      std::forward<std::initializer_list<ValueType>>(list));
-        return;
+      } else {
+        const auto available = max_size() - Base::size();
+        if (likely(available >= list.size())) {
+          Base::insert(std::forward<Iter>(pos),
+                       std::forward<std::initializer_list<ValueType>>(list));
+          return;
+        }
+        throw MaxSizeException(
+            "Container has limited size by {}; Source range size is {}",
+            max_size(),
+            Base::size());
       }
-      throw MaxSizeException(
-          "Container has limited size by {}; Source range size is {}",
-          max_size(),
-          Base::size());
     }
 
     template <typename V>
     void push_back(V &&value) {
-      if (Base::size() < max_size()) {
-        return Base::push_back(std::forward<V>(value));
+      if constexpr (size_check_is_disabled) {
+        Base::push_back(std::forward<V>(value));
+      } else {
+        if (likely(Base::size() < max_size())) {
+          Base::push_back(std::forward<V>(value));
+          return;
+        }
+        throw MaxSizeException(
+            "Container has limited size by {}; Size is already maximum",
+            max_size());
       }
-      throw MaxSizeException(
-          "Container has limited size by {}; Size is already maximum",
-          max_size());
     }
 
-    void reserve(std::size_t size) {
-      if (size <= max_size()) {
+    void reserve(typename Base::size_type size) {
+      if constexpr (size_check_is_disabled) {
         return Base::reserve(size);
+      } else {
+        if (likely(size <= max_size())) {
+          return Base::reserve(size);
+        }
+        throw MaxSizeException(
+            "Destination has limited size by {}; Requested size is {}",
+            max_size(),
+            size);
       }
-      throw MaxSizeException(
-          "Destination has limited size by {}; Requested size is {}",
-          max_size(),
-          size);
     }
 
-    void resize(std::size_t size) {
-      if (size <= max_size()) {
+    void resize(typename Base::size_type size) {
+      if constexpr (size_check_is_disabled) {
         return Base::resize(size);
+      } else {
+        if (likely(size <= max_size())) {
+          return Base::resize(size);
+        }
+        throw MaxSizeException(
+            "Destination has limited size by {}; Requested size is {}",
+            max_size(),
+            size);
       }
-      throw MaxSizeException(
-          "Destination has limited size by {}; Requested size is {}",
-          max_size(),
-          size);
     }
 
-    void resize(std::size_t size, const ValueType &value) {
-      if (size <= max_size()) {
+    void resize(typename Base::size_type size, const ValueType &value) {
+      if constexpr (size_check_is_disabled) {
         return Base::resize(size, value);
+      } else {
+        if (likely(size <= max_size())) {
+          return Base::resize(size, value);
+        }
+        throw MaxSizeException(
+            "Destination has limited size by {}; Requested size is {}",
+            max_size(),
+            size);
       }
-      throw MaxSizeException(
-          "Destination has limited size by {}; Requested size is {}",
-          max_size(),
-          size);
     }
 
     bool operator==(const Base &other) const noexcept {
@@ -345,10 +446,12 @@ namespace kagome::common {
     }
   };
 
-  template <typename ElementType, std::size_t MaxSize, typename... Args>
+  template <typename ElementType, size_t MaxSize, typename... Args>
   using SLVector =
       SizeLimitedContainer<ElementType, MaxSize, std::vector, Args...>;
 
 }  // namespace kagome::common
+
+#undef likely
 
 #endif  // KAGOME_COMMON_SIZELIMITEDCONTAINER
