@@ -7,16 +7,12 @@
 
 #include <gtest/gtest.h>
 
-#include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
-
 using namespace kagome::common;
 using namespace std::string_literals;
 
 TEST(SLVector, Constructor_default) {
   using Container = SLVector<int, 2>;
 
-  // No arg
   ASSERT_NO_THROW(Container z);
 }
 

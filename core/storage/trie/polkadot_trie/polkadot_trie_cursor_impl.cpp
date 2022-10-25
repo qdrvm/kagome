@@ -401,7 +401,8 @@ namespace kagome::storage::trie {
           search_state.visitChild(idx, *child));
       return outcome::success();
     };
-    auto res = trie_->forNodeInPath(trie_->getRoot(), key, add_visited_child);
+    auto res = trie_->forNodeInPath(
+        trie_->getRoot(), KeyNibbles::fromByteBuffer(key), add_visited_child);
     if (res.has_error()) {
       if (res.error() == TrieError::NO_VALUE) {
         return Error::KEY_NOT_FOUND;
