@@ -39,8 +39,7 @@ namespace kagome::common {
     // Next line is required at least for the scale-codec
     static constexpr bool is_static_collection = false;
 
-    [[__nodiscard__]] inline static constexpr typename Base::size_type
-    max_size() {
+    [[nodiscard]] inline static constexpr typename Base::size_type max_size() {
       return MaxSize;
     }
 
