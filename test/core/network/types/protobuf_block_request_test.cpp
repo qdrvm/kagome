@@ -29,12 +29,6 @@ struct ProtobufBlockRequestAdapterTest : public ::testing::Test {
         BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
                            "c7d43b127ec35cd8325602dd47fd"));
     request.from = hash_from;
-
-    EXPECT_OUTCOME_TRUE(
-        hash_to,
-        BlockHash::fromHex("22221403ba5b6a3f3bd0b0604ce439a78244"
-                           "c7d43b127ec35cd8325602dd47fd"));
-    request.to = hash_to;
   }
 
   BlocksRequest request;
@@ -58,5 +52,4 @@ TEST_F(ProtobufBlockRequestAdapterTest, Serialization) {
   ASSERT_EQ(r2.max, request.max);
   ASSERT_EQ(r2.fields, request.fields);
   ASSERT_EQ(r2.from, request.from);
-  ASSERT_EQ(r2.to, request.to);
 }

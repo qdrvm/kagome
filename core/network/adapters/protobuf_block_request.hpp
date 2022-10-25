@@ -41,11 +41,6 @@ namespace kagome::network {
             msg.set_number(&n, sizeof(n));
           });
 
-      // Note: request.to is not used in substrate
-      if (t.to.has_value()) {
-        msg.set_to_block(t.to->toString());
-      }
-
       msg.set_direction(static_cast<::api::v1::Direction>(t.direction));
 
       if (t.max.has_value()) {
@@ -87,12 +82,6 @@ namespace kagome::network {
 
         default:
           return AdaptersError::UNEXPECTED_VARIANT;
-      }
-
-      if (not msg.to_block().empty()) {
-        OUTCOME_TRY(to_block,
-                    primitives::BlockHash::fromString(msg.to_block()));
-        out.to.emplace(to_block);
       }
 
       if (msg.max_blocks() > 0) {

@@ -25,9 +25,6 @@ namespace kagome::network {
     BlockAttributes fields{};
     /// start from this block
     primitives::BlockId from{};
-    /// end at this block; an implementation defined maximum is used when
-    /// unspecified
-    std::optional<primitives::BlockHash> to{};
     /// sequence direction
     Direction direction{};
     /// maximum number of blocks to return; an implementation defined maximum is
@@ -57,11 +54,6 @@ struct std::hash<kagome::network::BlocksRequest> {
 
     boost::hash_combine(
         result, std::hash<kagome::primitives::BlockId>()(blocks_request.from));
-
-    boost::hash_combine(
-        result,
-        std::hash<std::optional<kagome::primitives::BlockHash>>()(
-            blocks_request.to));
 
     boost::hash_combine(
         result,
