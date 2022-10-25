@@ -185,8 +185,11 @@ namespace kagome::application {
     StorageBackend storageBackend() const override {
       return storage_backend_;
     }
-    std::optional<std::string> devMnemonicPhrase() const override {
-      return dev_mnemonic_phrase_;
+    std::optional<std::string_view> devMnemonicPhrase() const override {
+      if (dev_mnemonic_phrase_) {
+        return *dev_mnemonic_phrase_;
+      }
+      return std::nullopt;
     }
 
    private:

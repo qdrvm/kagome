@@ -154,7 +154,7 @@ namespace kagome::application {
 
     MOCK_METHOD(StorageBackend, storageBackend, (), (const, override));
 
-    MOCK_METHOD(std::optional<std::string>,
+    MOCK_METHOD(std::optional<std::string_view>,
                 devMnemonicPhrase,
                 (),
                 (const, override));

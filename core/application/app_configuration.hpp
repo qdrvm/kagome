@@ -250,7 +250,7 @@ namespace kagome::application {
     /**
      * Optional phrase to use dev account (e.g. Alice and Bob)
      */
-    virtual std::optional<std::string> devMnemonicPhrase() const = 0;
+    virtual std::optional<std::string_view> devMnemonicPhrase() const = 0;
   };
 
 }  // namespace kagome::application

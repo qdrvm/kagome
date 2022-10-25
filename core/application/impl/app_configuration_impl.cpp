@@ -163,15 +163,16 @@ namespace {
 
   auto &devAccounts() {
     static auto &dev = kagome::crypto::DevMnemonicPhrase::get();
-    static const std::map<std::string, std::pair<std::string, std::string>>
-        accounts{
-            {"alice", {"Alice", dev.alice}},
-            {"bob", {"Bob", dev.bob}},
-            {"charlie", {"Charlie", dev.charlie}},
-            {"dave", {"Dave", dev.dave}},
-            {"eve", {"Eve", dev.eve}},
-            {"ferdie", {"Ferdie", dev.ferdie}},
-        };
+    static const std::
+        array<std::tuple<const char *, std::string_view, std::string_view>, 6>
+            accounts{
+                std::tuple("alice", "Alice", dev.alice),
+                std::tuple("bob", "Bob", dev.bob),
+                std::tuple("charlie", "Charlie", dev.charlie),
+                std::tuple("dave", "Dave", dev.dave),
+                std::tuple("eve", "Eve", dev.eve),
+                std::tuple("ferdie", "Ferdie", dev.ferdie),
+            };
     return accounts;
   }
 }  // namespace
@@ -770,8 +771,8 @@ namespace kagome::application {
 
     // clang-format on
 
-    for (auto &account : devAccounts()) {
-      development_desc.add_options()(account.first.c_str(), po::bool_switch());
+    for (auto &[flag, name, dev] : devAccounts()) {
+      development_desc.add_options()(flag, po::bool_switch());
     }
 
     po::variables_map vm;
@@ -883,17 +884,16 @@ namespace kagome::application {
     }
 
     std::optional<std::string> dev_account_flag;
-    for (auto &[flag, account] : devAccounts()) {
+    for (auto &[flag, name, dev] : devAccounts()) {
       if (auto val = find_argument<bool>(vm, flag); val && *val) {
         if (dev_account_flag) {
-          auto &_flag = flag;
           SL_ERROR(
-              logger_, "--{} conflicts with --{}", _flag, *dev_account_flag);
+              logger_, "--{} conflicts with --{}", flag, *dev_account_flag);
           return false;
         }
         dev_account_flag = flag;
-        node_name_ = account.first;
-        dev_mnemonic_phrase_ = account.second;
+        node_name_ = name;
+        dev_mnemonic_phrase_ = dev;
       }
     }
 
