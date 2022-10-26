@@ -361,23 +361,25 @@ namespace kagome::authority {
   AuthorityManagerImpl::readSetIdFromRuntime(
       primitives::BlockHeader const &header) const {
     AuthoritySetId set_id{};
+
+    auto batch_res = trie_storage_->getEphemeralBatchAt(header.state_root);
+    if (batch_res.has_error()) {
+      if (batch_res.error() == storage::DatabaseError::NOT_FOUND) {
+        SL_DEBUG(
+            log_,
+            "Failed to fetch set id from trie storage: state {} is not in "
+            "the storage",
+            header.state_root);
+        return std::nullopt;
+      }
+      return batch_res.as_failure();
+    }
+
     OUTCOME_TRY(hash, primitives::calculateBlockHash(header, *hasher_));
     auto set_id_res = grandpa_api_->current_set_id(hash);
     if (set_id_res) {
       set_id = set_id_res.value();
     } else {
-      auto batch_res = trie_storage_->getEphemeralBatchAt(header.state_root);
-      if (batch_res.has_error()) {
-        if (batch_res.error() == storage::DatabaseError::NOT_FOUND) {
-          SL_DEBUG(
-              log_,
-              "Failed to fetch set id from trie storage: state {} is not in "
-              "the storage",
-              header.state_root);
-          return std::nullopt;
-        }
-        return batch_res.as_failure();
-      }
       auto &batch = batch_res.value();
 
       OUTCOME_TRY(
@@ -529,7 +531,7 @@ namespace kagome::authority {
 
       size_t index = 0;
       for (auto &authority : *new_authorities) {
-        SL_DEBUG(log_,
+        SL_TRACE(log_,
                  "New authority ({}/{}): id={} weight={}",
                  ++index,
                  new_authorities->authorities.size(),
@@ -660,7 +662,7 @@ namespace kagome::authority {
 
       size_t index = 0;
       for (auto &authority : *new_authorities) {
-        SL_DEBUG(log_,
+        SL_TRACE(log_,
                  "New authority ({}/{}): id={} weight={}",
                  ++index,
                  new_authorities->authorities.size(),
