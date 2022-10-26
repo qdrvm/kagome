@@ -184,6 +184,31 @@ namespace {
     });
   }
 
+  template <typename Injector>
+  auto &get_session_keys(const Injector &injector) {
+    static const auto initialized = [&] {
+      auto &app_config =
+          injector.template create<const application::AppConfiguration &>();
+      if (auto dev = app_config.devMnemonicPhrase()) {
+        auto &crypto_store = injector.template create<crypto::CryptoStore &>();
+        crypto_store.generateEd25519Keypair(crypto::KEY_TYPE_GRAN, *dev)
+            .value();
+        crypto_store.generateSr25519Keypair(crypto::KEY_TYPE_BABE, *dev)
+            .value();
+        crypto_store.generateSr25519Keypair(crypto::KEY_TYPE_IMON, *dev)
+            .value();
+        crypto_store.generateSr25519Keypair(crypto::KEY_TYPE_AUDI, *dev)
+            .value();
+        crypto_store.generateSr25519Keypair(crypto::KEY_TYPE_ASGN, *dev)
+            .value();
+        crypto_store.generateSr25519Keypair(crypto::KEY_TYPE_PARA, *dev)
+            .value();
+      }
+      return injector.template create<sptr<crypto::SessionKeys>>();
+    }();
+    return initialized;
+  }
+
   sptr<api::HttpListenerImpl> get_jrpc_api_http_listener(
       application::AppConfiguration const &config,
       sptr<application::AppStateManager> app_state_manager,
@@ -572,9 +597,8 @@ namespace {
         injector.template create<std::shared_ptr<runtime::Core>>();
     auto changes_tracker = injector.template create<
         std::shared_ptr<storage::changes_trie::ChangesTracker>>();
-    auto babe_config_repo =
-        injector
-            .template create<std::shared_ptr<consensus::babe::BabeConfigRepository>>();
+    auto babe_config_repo = injector.template create<
+        std::shared_ptr<consensus::babe::BabeConfigRepository>>();
     auto babe_util =
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
     auto justification_storage_policy = injector.template create<
@@ -705,7 +729,7 @@ namespace {
   sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
       const Injector &injector) {
     auto get_instance = [&]() {
-      auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
+      auto &session_keys = get_session_keys(injector);
       auto ptr = std::make_shared<parachain::ParachainProcessorImpl>(
           injector.template create<std::shared_ptr<network::PeerManager>>(),
           injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
@@ -1322,7 +1346,7 @@ namespace {
       return initialized.value();
     }
 
-    auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
+    auto &session_keys = get_session_keys(injector);
 
     initialized = std::make_shared<consensus::babe::BabeImpl>(
         injector.template create<const application::AppConfiguration &>(),
@@ -1380,7 +1404,7 @@ namespace {
       return initialized.value();
     }
 
-    auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
+    auto &session_keys = get_session_keys(injector);
 
     initialized = std::make_shared<consensus::grandpa::GrandpaImpl>(
         injector.template create<sptr<application::AppStateManager>>(),

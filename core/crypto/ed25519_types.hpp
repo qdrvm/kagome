@@ -37,6 +37,9 @@ KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            Ed25519Signature,
                            constants::ed25519::SIGNATURE_SIZE);
+KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+                           Ed25519Seed,
+                           constants::ed25519::SEED_SIZE);
 
 namespace kagome::crypto {
 
@@ -47,8 +50,6 @@ namespace kagome::crypto {
     bool operator==(const Ed25519Keypair &other) const;
     bool operator!=(const Ed25519Keypair &other) const;
   };
-
-  using Ed25519Seed = common::Blob<constants::ed25519::SEED_SIZE>;
 
   struct Ed25519KeypairAndSeed : Ed25519Keypair {
     Ed25519Seed seed;
