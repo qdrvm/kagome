@@ -37,6 +37,7 @@ using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519Provider;
 using kagome::crypto::Ed25519ProviderImpl;
 using kagome::crypto::Ed25519PublicKey;
+using kagome::crypto::Ed25519Seed;
 using kagome::crypto::Ed25519Suite;
 using kagome::crypto::KeyTypeId;
 using kagome::crypto::KnownKeyTypeId;
@@ -47,6 +48,7 @@ using kagome::crypto::Sr25519Provider;
 using kagome::crypto::Sr25519ProviderImpl;
 using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519SecretKey;
+using kagome::crypto::Sr25519Seed;
 using kagome::crypto::Sr25519Suite;
 
 static CryptoStoreImpl::Path crypto_store_test_directory =
@@ -181,8 +183,8 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairSeedSuccess) {
       err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
 
-  EXPECT_OUTCOME_TRUE(pair,
-                      crypto_store->generateEd25519Keypair(key_type, seed));
+  EXPECT_OUTCOME_TRUE(
+      pair, crypto_store->generateEd25519Keypair(key_type, Ed25519Seed{seed}));
   ASSERT_EQ(pair, ed_pair);
 
   // check that created pair is now contained in memory
@@ -204,8 +206,8 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairSeedSuccess) {
       err, crypto_store->findSr25519Keypair(key_type, sr_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
 
-  EXPECT_OUTCOME_TRUE(pair,
-                      crypto_store->generateSr25519Keypair(key_type, seed));
+  EXPECT_OUTCOME_TRUE(
+      pair, crypto_store->generateSr25519Keypair(key_type, Sr25519Seed{seed}));
   ASSERT_EQ(pair, sr_pair);
 
   // check that created pair is now contained in memory

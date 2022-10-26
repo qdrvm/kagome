@@ -219,7 +219,7 @@ namespace kagome::crypto {
     const auto &contents = lookup_res.value();
     BOOST_ASSERT(ED25519_SEED_LENGTH == contents.size()
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
-    kagome::common::Hash256 seed;
+    Ed25519Seed seed;
     if (ED25519_SEED_LENGTH == contents.size()) {
       OUTCOME_TRY(
           _seed,

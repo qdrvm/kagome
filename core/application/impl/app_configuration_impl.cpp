@@ -24,6 +24,7 @@
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
+#include "crypto/crypto_store/dev_mnemonic_phrase.hpp"
 #include "filesystem/directories.hpp"
 
 namespace {
@@ -40,6 +41,17 @@ namespace {
       }
       std::forward<Func>(f)(it->second.as<T>());
     }
+  }
+
+  template <typename T>
+  inline std::optional<T> find_argument(
+      boost::program_options::variables_map &vm, const std::string &name) {
+    if (auto it = vm.find(name); it != vm.end()) {
+      if (!it->second.defaulted()) {
+        return it->second.as<T>();
+      }
+    }
+    return std::nullopt;
   }
 
   const std::string def_rpc_http_host = "0.0.0.0";
@@ -147,6 +159,21 @@ namespace {
     }
 
     return std::nullopt;
+  }
+
+  auto &devAccounts() {
+    static auto &dev = kagome::crypto::DevMnemonicPhrase::get();
+    using Account =
+        std::tuple<const char *, std::string_view, std::string_view>;
+    static const std::array<Account, 6> accounts{
+        Account{"alice", "Alice", dev.alice},
+        Account{"bob", "Bob", dev.bob},
+        Account{"charlie", "Charlie", dev.charlie},
+        Account{"dave", "Dave", dev.dave},
+        Account{"eve", "Eve", dev.eve},
+        Account{"ferdie", "Ferdie", dev.ferdie},
+    };
+    return accounts;
   }
 }  // namespace
 
@@ -744,6 +771,10 @@ namespace kagome::application {
 
     // clang-format on
 
+    for (auto &[flag, name, dev] : devAccounts()) {
+      development_desc.add_options()(flag, po::bool_switch());
+    }
+
     po::variables_map vm;
     // first-run parse to read only general options and to lookup for "help"
     // all the rest options are ignored
@@ -849,6 +880,20 @@ namespace kagome::application {
         rpc_http_port_ = def_rpc_http_port;
         rpc_ws_port_ = def_rpc_ws_port;
         openmetrics_http_port_ = def_openmetrics_http_port;
+      }
+    }
+
+    std::optional<std::string> dev_account_flag;
+    for (auto &[flag, name, dev] : devAccounts()) {
+      if (auto val = find_argument<bool>(vm, flag); val && *val) {
+        if (dev_account_flag) {
+          SL_ERROR(
+              logger_, "--{} conflicts with --{}", flag, *dev_account_flag);
+          return false;
+        }
+        dev_account_flag = flag;
+        node_name_ = name;
+        dev_mnemonic_phrase_ = dev;
       }
     }
 
