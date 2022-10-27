@@ -48,9 +48,20 @@ namespace kagome::common {
 
     SizeLimitedContainer() = default;
 
-    SizeLimitedContainer(
-        size_t size,
-        const typename Base::value_type &value = typename Base::value_type())
+    SizeLimitedContainer(size_t size)
+        : Base([&] {
+            if constexpr (size_check_is_enabled) {
+              if (unlikely(size > max_size())) {
+                throw MaxSizeException(
+                    "Destination has limited size by {}; requested size is {}",
+                    max_size(),
+                    size);
+              }
+            }
+            return Base(size);
+          }()) {}
+
+    SizeLimitedContainer(size_t size, const typename Base::value_type &value)
         : Base([&] {
             if constexpr (size_check_is_enabled) {
               if (unlikely(size > max_size())) {
