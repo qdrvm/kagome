@@ -136,6 +136,7 @@ namespace {
   }
 
   void registerAllocation(void *ptr) {
+    uint64_t total_allocated = 0ull;
     if (table_ready.load()) {
       std::lock_guard lock(tables_cs);
       static bool skip_profile = false;
@@ -156,7 +157,13 @@ namespace {
       }
       ++entry.count;
       entry.alloc_size += malloc_usable_size(ptr);
+      total_allocated = entry.alloc_size;
       pointersTable()[uintptr_t(ptr)] = hash;
+    }
+
+    if (total_allocated >= 1*1024ull*1024ull*1024ull) {
+      profiler::printTables("./allocations.log");
+      abort();
     }
   }
 }

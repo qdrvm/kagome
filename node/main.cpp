@@ -9,6 +9,7 @@
 #undef TRUE
 #undef FALSE
 #include <libp2p/log/configurator.hpp>
+#include <thread>
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "application/impl/kagome_application_impl.hpp"
@@ -65,7 +66,6 @@ int main(int argc, const char **argv) {
     { /// profile allocations
       profiler::initTables();
       auto keeper = gsl::finally([]() {
-        profiler::printTables("./allocations.log");
         profiler::deinitTables();
       });
 

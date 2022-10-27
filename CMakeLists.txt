@@ -20,6 +20,8 @@ include("cmake/Hunter/init.cmake")
 project(kagome C CXX)
 
 include(cmake/print.cmake)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
+
 print("C flags: ${CMAKE_C_FLAGS}")
 print("CXX flags: ${CMAKE_CXX_FLAGS}")
 print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
