@@ -63,14 +63,8 @@ int main(int argc, const char **argv) {
       return app->recovery();
     }
 
-    { /// profile allocations
-      profiler::initTables();
-      auto keeper = gsl::finally([]() {
-        profiler::deinitTables();
-      });
-
-      app->run();
-    }
+    profiler::initTables();
+    app->run();
   }
 
   return EXIT_SUCCESS;

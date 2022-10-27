@@ -162,6 +162,7 @@ namespace {
     }
 
     if (total_allocated >= 1*1024ull*1024ull*1024ull) {
+      profiler::deinitTables();
       profiler::printTables("./allocations.log");
       abort();
     }
@@ -179,14 +180,9 @@ namespace profiler {
   void deinitTables() {
     std::lock_guard lock(tables_cs);
     table_ready.store(false);
-    allocationsTable().~AllocationsTableType();
-    pointersTable().~PointersTableType();
   }
 
   void printTables(char const *filename) {
-    if (!table_ready.load())
-      return;
-
     std::lock_guard lock(tables_cs);
     std::vector<AllocationDescription *,
                 mmap_allocator<AllocationDescription *>>
