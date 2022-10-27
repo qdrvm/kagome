@@ -365,11 +365,10 @@ namespace kagome::authority {
     auto batch_res = trie_storage_->getEphemeralBatchAt(header.state_root);
     if (batch_res.has_error()) {
       if (batch_res.error() == storage::DatabaseError::NOT_FOUND) {
-        SL_DEBUG(
-            log_,
-            "Failed to fetch set id from trie storage: state {} is not in "
-            "the storage",
-            header.state_root);
+        SL_DEBUG(log_,
+                 "Failed to fetch set id from trie storage: state {} is not in "
+                 "the storage",
+                 header.state_root);
         return std::nullopt;
       }
       return batch_res.as_failure();
@@ -916,7 +915,9 @@ namespace kagome::authority {
     while (ancestor->current_block != block) {
       bool goto_next_generation = false;
       for (const auto &node : ancestor->descendants) {
-        if (node->current_block == block) return node;
+        if (node->current_block == block) {
+          return node;
+        }
         if (directChainExists(node->current_block, block)) {
           ancestor = node;
           goto_next_generation = true;

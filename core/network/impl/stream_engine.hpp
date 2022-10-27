@@ -523,9 +523,9 @@ namespace kagome::network {
               if (!stream_res) {
                 SL_DEBUG(self->logger_,
                          "Could not send message to new {} stream with {}: {}",
-                    protocol->protocolName(),
-                    peer_id,
-                    stream_res.error().message());
+                         protocol->protocolName(),
+                         peer_id,
+                         stream_res.error().message());
 
                 if (stream_res
                     == outcome::failure(
