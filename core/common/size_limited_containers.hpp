@@ -115,7 +115,7 @@ namespace kagome::common {
                     Base::size());
               }
             }
-            return Base(std::forward<Iter>(begin), std::forward<Iter>(end));
+            return Base(std::move(begin), std::move(end));
           }()) {}
 
     SizeLimitedContainer(std::initializer_list<typename Base::value_type> list)
@@ -189,7 +189,7 @@ namespace kagome::common {
               Base::size());
         }
       }
-      return Base::assign(std::forward<Iter>(begin), std::forward<Iter>(end));
+      return Base::assign(std::move(begin), std::move(end));
     }
 
     void assign(std::initializer_list<typename Base::value_type> list) {
