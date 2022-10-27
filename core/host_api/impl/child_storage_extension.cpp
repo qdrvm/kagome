@@ -35,8 +35,7 @@ namespace kagome::host_api {
 
   outcome::result<Buffer> make_prefixed_child_storage_key(
       const Buffer &child_storage_key) {
-    return Buffer{storage::kChildStorageDefaultPrefix}.putBuffer(
-        child_storage_key);
+    return Buffer{storage::kChildStorageDefaultPrefix}.put(child_storage_key);
   }
 
   template <typename R, typename F, typename... Args>

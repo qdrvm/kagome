@@ -47,8 +47,7 @@ namespace kagome::common {
     template <size_t OtherMaxSize>
     SLBuffer(OtherMaxSizeBase<OtherMaxSize> &&other) : Base(std::move(other)) {}
 
-    SLBuffer(const gsl::span<const typename Base::value_type> &s)
-        : Base(s.begin(), s.end()) {}
+    SLBuffer(const BufferView &s) : Base(s.begin(), s.end()) {}
 
     SLBuffer(const uint8_t *begin, const uint8_t *end) : Base(begin, end){};
 
@@ -65,9 +64,8 @@ namespace kagome::common {
       return *this;
     }
 
-    template <size_t OtherMaxSize>
-    SLBuffer &operator+=(const SLBuffer<OtherMaxSize> &other) noexcept {
-      return putBuffer(other);
+    SLBuffer &operator+=(const BufferView &view) noexcept {
+      return put(view);
     }
 
     /**
@@ -86,9 +84,10 @@ namespace kagome::common {
      */
     SLBuffer &putUint32(uint32_t n) {
       n = htobe32(n);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       const auto *begin = reinterpret_cast<uint8_t *>(&n);
       const auto *end = begin + sizeof(n) / sizeof(uint8_t);
-      Base::insert(this->end(), std::move(begin), std::move(end));
+      Base::insert(this->end(), begin, end);
       return *this;
     }
 
@@ -99,9 +98,10 @@ namespace kagome::common {
      */
     SLBuffer &putUint64(uint64_t n) {
       n = htobe64(n);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       const auto *begin = reinterpret_cast<uint8_t *>(&n);
       const auto *end = begin + sizeof(n) / sizeof(uint8_t);
-      Base::insert(this->end(), std::move(begin), std::move(end));
+      Base::insert(this->end(), begin, end);
       return *this;
     }
 
@@ -110,49 +110,18 @@ namespace kagome::common {
      * @param s arbitrary string
      * @return this buffer, suitable for chaining.
      */
-    SLBuffer &put(std::string_view range) {
-      Base::insert(Base::end(), range.begin(), range.end());
+    SLBuffer &put(std::string_view view) {
+      Base::insert(Base::end(), view.begin(), view.end());
       return *this;
     }
 
     /**
-     * @brief Put a vector of bytes into byte buffer
-     * @param s arbitrary vector of bytes
+     * @brief Put a sequence of bytes as view into byte buffer
+     * @param view arbitrary span of bytes
      * @return this buffer, suitable for chaining.
      */
-    SLBuffer &put(const std::vector<uint8_t> &range) {
-      Base::insert(Base::end(), range.begin(), range.end());
-      return *this;
-    }
-
-    /**
-     * @brief Put a sequence of bytes into byte buffer
-     * @param s arbitrary span of bytes
-     * @return this buffer, suitable for chaining.
-     */
-    SLBuffer &put(gsl::span<const uint8_t> range) {
-      Base::insert(Base::end(), range.begin(), range.end());
-      return *this;
-    }
-
-    /**
-     * @brief Put a array of bytes bounded by pointers into byte buffer
-     * @param begin pointer to the array start
-     *        end pointer to the address after the last element
-     * @return this buffer, suitable for chaining.
-     */
-    SLBuffer &putBytes(const uint8_t *begin, const uint8_t *end) {
-      return putRange(begin, end);
-    }
-
-    /**
-     * @brief Put another buffer content at the end of current one
-     * @param buf another buffer
-     * @return this buffer suitable for chaining.
-     */
-    template <size_t OtherMaxSize2>
-    SLBuffer &putBuffer(const SLBuffer<OtherMaxSize2> &range) {
-      Base::insert(Base::end(), range.begin(), range.end());
+    SLBuffer &put(const BufferView &view) {
+      Base::insert(Base::end(), view.begin(), view.end());
       return *this;
     }
 
@@ -160,18 +129,19 @@ namespace kagome::common {
      * @brief getter for vector of bytes
      */
     const std::vector<uint8_t> &asVector() const {
-      return static_cast<const std::vector<uint8_t> &>(*this);
+      return static_cast<const typename Base::Base &>(*this);
     }
+
     std::vector<uint8_t> &asVector() {
-      return static_cast<std::vector<uint8_t> &>(*this);
+      return static_cast<typename Base::Base &>(*this);
     }
 
     std::vector<uint8_t> toVector() & {
-      return static_cast<std::vector<uint8_t> &>(*this);
+      return static_cast<typename Base::Base &>(*this);
     }
 
     std::vector<uint8_t> toVector() && {
-      return std::move(static_cast<std::vector<uint8_t> &>(*this));
+      return std::move(static_cast<typename Base::Base &>(*this));
     }
 
     /**
@@ -179,7 +149,7 @@ namespace kagome::common {
      * Works alike subspan() of gsl::span
      */
     SLBuffer subbuffer(size_t offset = 0, size_t length = -1) const {
-      return SLBuffer(gsl::make_span(*this).subspan(offset, length));
+      return SLBuffer(view(offset, length));
     }
 
     BufferView view(size_t offset = 0, size_t length = -1) const {
@@ -220,8 +190,9 @@ namespace kagome::common {
      * @return string
      */
     std::string_view asString() const {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       return std::string_view(reinterpret_cast<const char *>(Base::data()),
-                              Base::size());  // NOLINT
+                              Base::size());
     }
 
     /**
@@ -229,22 +200,6 @@ namespace kagome::common {
      */
     static SLBuffer fromString(const std::string_view &src) {
       return {src.begin(), src.end()};
-    }
-
-   private:
-    template <
-        typename OutIt,
-        typename InIt,
-        bool isIter = std::is_same_v<OutIt, typename Base::iterator>,
-        bool isConstIter = std::is_same_v<OutIt, typename Base::const_iterator>,
-        typename = std::enable_if_t<isIter or isConstIter>,
-        typename = std::enable_if_t<std::is_base_of_v<
-            std::input_iterator_tag,
-            typename std::iterator_traits<InIt>::iterator_category>>>
-    SLBuffer &putRange(const InIt &begin, const InIt &end) {
-      static_assert(sizeof(*begin) == 1);
-      insert(this->end(), begin, end);
-      return *this;
     }
   };
 

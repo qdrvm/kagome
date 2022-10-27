@@ -131,7 +131,7 @@ namespace {
                  "handleDeletion: turn a branch with single branch child into "
                  "its child");
       }
-      parent->key_nibbles.putUint8(idx).putBuffer(child->key_nibbles);
+      parent->key_nibbles.putUint8(idx).put(child->key_nibbles);
     }
     return outcome::success();
   }

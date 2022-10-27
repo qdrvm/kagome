@@ -632,7 +632,7 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
 TEST_F(StorageExtensionTest, RootTest) {
   // removeEmptyChildStorages
   Buffer prefix = kagome::storage::kChildStorageDefaultPrefix;
-  Buffer current_key = Buffer{prefix}.putBuffer("QWERTY"_buf);
+  Buffer current_key = Buffer{prefix}.put("QWERTY"_buf);
 
   static const auto empty_hash = Buffer(codec_.hash256(Buffer{0}));
 

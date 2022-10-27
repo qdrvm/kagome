@@ -22,30 +22,14 @@ namespace kagome::common {
     using Span = gsl::span<const uint8_t>;
 
    public:
-    BufferView() = default;
+    using Span::Span;
 
     BufferView(const Span &other) noexcept : Span(other) {}
 
-    BufferView(const std::vector<Span::value_type> &vec) noexcept
-        : Span(vec.data(), static_cast<Span::index_type>(vec.size())) {}
-
-    template <size_t Size>
-    BufferView(const std::array<Span::value_type, Size> &arr) noexcept
-        : Span(arr.data(), static_cast<Span::index_type>(arr.size())) {}
-
-    BufferView &operator=(const std::vector<Span::value_type> &vec) noexcept {
-      static_cast<Span &>(*this) =
-          Span(vec.data(), static_cast<Span::index_type>(vec.size()));
-      return *this;
-    }
-
     BufferView &operator=(std::vector<Span::value_type> &&vec) = delete;
 
-    template <size_t Size>
-    BufferView &operator=(
-        const std::array<Span::value_type, Size> &arr) noexcept {
-      static_cast<Span &>(*this) =
-          Span(arr.data(), static_cast<Span::index_type>(arr.size()));
+    BufferView &operator=(const Span &view) noexcept {
+      static_cast<Span &>(*this) = view;
       return *this;
     }
 

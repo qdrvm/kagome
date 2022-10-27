@@ -367,9 +367,8 @@ namespace {
       auto &root_hash = root_hash_res.value();
 
       common::Buffer child_key;
-      child_key.putBuffer(storage::kChildStorageDefaultPrefix);
-      child_key.put(root_hash);
-      auto res = batch->put(child_key, common::Buffer(root_hash));
+      child_key.put(storage::kChildStorageDefaultPrefix).put(root_hash);
+      auto res = batch->put(child_key, root_hash);
       if (res.has_error()) {
         common::raise(res.error());
       }

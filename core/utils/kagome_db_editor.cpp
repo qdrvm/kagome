@@ -409,14 +409,14 @@ int main(int argc, char *argv[]) {
           }
           res = cursor->next();
         }
-        auto cursor = batch->trieCursor();
-        auto res = check(cursor->next());
+
+        cursor = batch->trieCursor();
+        res = check(cursor->next());
         ofs << "values:\n";
         count = 0;
         while (cursor->key().has_value()) {
           ofs << "  - "
-              << common::BufferView(
-                     check(batch->get(check(cursor->key()).value())).value())
+              << check(batch->get(check(cursor->key()).value())).value().get()
               << "\n";
           if (not(++count % 50000)) {
             log->trace("{} values were dumped.", count);

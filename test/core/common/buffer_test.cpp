@@ -53,13 +53,13 @@ TEST(Common, BufferPut) {
 
 /**
  * @given buffer containing bytes {1,2,3}
- * @when putBuffer is applied with another buffer {4,5,6} as parameter
+ * @when put is applied with another buffer {4,5,6} as parameter
  * @then content of current buffer changes to {1,2,3,4,5,6}
  */
-TEST(Common, putBuffer) {
+TEST(Common, put) {
   Buffer current_buffer = {1, 2, 3};
   Buffer another_buffer = {4, 5, 6};
-  auto &buffer = current_buffer.putBuffer(another_buffer);
+  auto &buffer = current_buffer.put(another_buffer);
   ASSERT_EQ(&buffer, &current_buffer);  // line to the same buffer is returned
   Buffer result = {1, 2, 3, 4, 5, 6};
   ASSERT_EQ(buffer, result);
