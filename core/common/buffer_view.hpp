@@ -12,7 +12,7 @@
 
 namespace kagome::common {
   template <size_t MaxSize>
-  class BufferT;
+  class SLBuffer;
 }
 
 namespace kagome::common {

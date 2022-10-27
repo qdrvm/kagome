@@ -18,7 +18,7 @@
 
 namespace kagome::storage {
 
-  using Buffer = common::BufferT<std::numeric_limits<size_t>::max()>;
+  using Buffer = common::SLBuffer<std::numeric_limits<size_t>::max()>;
   using BufferView = common::BufferView;
   using BufferConstRef = common::BufferConstRef;
 

@@ -10,8 +10,8 @@
  * that appends to a container for which it was constructed.
  */
 template <size_t MaxSize>
-class std::back_insert_iterator<kagome::common::BufferT<MaxSize>> {
-  using Container = kagome::common::BufferT<MaxSize>;
+class std::back_insert_iterator<kagome::common::SLBuffer<MaxSize>> {
+  using Container = kagome::common::SLBuffer<MaxSize>;
 
  public:
   using value_type = typename Container::value_type;

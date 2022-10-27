@@ -26,47 +26,47 @@ namespace kagome::common {
    * @brief Class represents arbitrary (including empty) byte buffer.
    */
   template <size_t MaxSize>
-  class BufferT : public SLVector<uint8_t, MaxSize> {
+  class SLBuffer : public SLVector<uint8_t, MaxSize> {
    public:
     using Base = SLVector<uint8_t, MaxSize>;
 
     template <size_t OtherMaxSize>
     using OtherMaxSizeBase = SLVector<uint8_t, OtherMaxSize>;
 
-    BufferT() = default;
+    SLBuffer() = default;
 
     /**
      * @brief lvalue construct buffer from a byte vector
      */
-    explicit BufferT(const typename Base::Base &other) : Base(other) {}
-    explicit BufferT(typename Base::Base &&other) : Base(std::move(other)) {}
+    explicit SLBuffer(const typename Base::Base &other) : Base(other) {}
+    explicit SLBuffer(typename Base::Base &&other) : Base(std::move(other)) {}
 
     template <size_t OtherMaxSize>
-    BufferT(const OtherMaxSizeBase<OtherMaxSize> &other) : Base(other) {}
+    SLBuffer(const OtherMaxSizeBase<OtherMaxSize> &other) : Base(other) {}
 
     template <size_t OtherMaxSize>
-    BufferT(OtherMaxSizeBase<OtherMaxSize> &&other) : Base(std::move(other)) {}
+    SLBuffer(OtherMaxSizeBase<OtherMaxSize> &&other) : Base(std::move(other)) {}
 
-    BufferT(const gsl::span<const typename Base::value_type> &s)
+    SLBuffer(const gsl::span<const typename Base::value_type> &s)
         : Base(s.begin(), s.end()) {}
 
-    BufferT(const uint8_t *begin, const uint8_t *end) : Base(begin, end){};
+    SLBuffer(const uint8_t *begin, const uint8_t *end) : Base(begin, end){};
 
     using Base::Base;
     using Base::operator=;
 
-    BufferT &reserve(size_t size) {
+    SLBuffer &reserve(size_t size) {
       Base::reserve(size);
       return *this;
     }
 
-    BufferT &resize(size_t size) {
+    SLBuffer &resize(size_t size) {
       Base::resize(size);
       return *this;
     }
 
     template <size_t OtherMaxSize>
-    BufferT &operator+=(const BufferT<OtherMaxSize> &other) noexcept {
+    SLBuffer &operator+=(const SLBuffer<OtherMaxSize> &other) noexcept {
       return putBuffer(other);
     }
 
@@ -74,8 +74,8 @@ namespace kagome::common {
      * @brief Put a 8-bit {@param n} in this buffer.
      * @return this buffer, suitable for chaining.
      */
-    BufferT &putUint8(uint8_t n) {
-      BufferT::push_back(n);
+    SLBuffer &putUint8(uint8_t n) {
+      SLBuffer::push_back(n);
       return *this;
     }
 
@@ -84,7 +84,7 @@ namespace kagome::common {
      * as big-endian number.
      * @return this buffer, suitable for chaining.
      */
-    BufferT &putUint32(uint32_t n) {
+    SLBuffer &putUint32(uint32_t n) {
       n = htobe32(n);
       const auto *begin = reinterpret_cast<uint8_t *>(&n);
       const auto *end = begin + sizeof(n) / sizeof(uint8_t);
@@ -97,7 +97,7 @@ namespace kagome::common {
      * as big-endian number.
      * @return this buffer, suitable for chaining.
      */
-    BufferT &putUint64(uint64_t n) {
+    SLBuffer &putUint64(uint64_t n) {
       n = htobe64(n);
       const auto *begin = reinterpret_cast<uint8_t *>(&n);
       const auto *end = begin + sizeof(n) / sizeof(uint8_t);
@@ -110,7 +110,7 @@ namespace kagome::common {
      * @param s arbitrary string
      * @return this buffer, suitable for chaining.
      */
-    BufferT &put(std::string_view range) {
+    SLBuffer &put(std::string_view range) {
       Base::insert(Base::end(), range.begin(), range.end());
       return *this;
     }
@@ -120,7 +120,7 @@ namespace kagome::common {
      * @param s arbitrary vector of bytes
      * @return this buffer, suitable for chaining.
      */
-    BufferT &put(const std::vector<uint8_t> &range) {
+    SLBuffer &put(const std::vector<uint8_t> &range) {
       Base::insert(Base::end(), range.begin(), range.end());
       return *this;
     }
@@ -130,7 +130,7 @@ namespace kagome::common {
      * @param s arbitrary span of bytes
      * @return this buffer, suitable for chaining.
      */
-    BufferT &put(gsl::span<const uint8_t> range) {
+    SLBuffer &put(gsl::span<const uint8_t> range) {
       Base::insert(Base::end(), range.begin(), range.end());
       return *this;
     }
@@ -141,7 +141,7 @@ namespace kagome::common {
      *        end pointer to the address after the last element
      * @return this buffer, suitable for chaining.
      */
-    BufferT &putBytes(const uint8_t *begin, const uint8_t *end) {
+    SLBuffer &putBytes(const uint8_t *begin, const uint8_t *end) {
       return putRange(begin, end);
     }
 
@@ -151,7 +151,7 @@ namespace kagome::common {
      * @return this buffer suitable for chaining.
      */
     template <size_t OtherMaxSize2>
-    BufferT &putBuffer(const BufferT<OtherMaxSize2> &range) {
+    SLBuffer &putBuffer(const SLBuffer<OtherMaxSize2> &range) {
       Base::insert(Base::end(), range.begin(), range.end());
       return *this;
     }
@@ -178,8 +178,8 @@ namespace kagome::common {
      * Returns a copy of a part of the buffer
      * Works alike subspan() of gsl::span
      */
-    BufferT subbuffer(size_t offset = 0, size_t length = -1) const {
-      return BufferT(gsl::make_span(*this).subspan(offset, length));
+    SLBuffer subbuffer(size_t offset = 0, size_t length = -1) const {
+      return SLBuffer(gsl::make_span(*this).subspan(offset, length));
     }
 
     BufferView view(size_t offset = 0, size_t length = -1) const {
@@ -195,14 +195,14 @@ namespace kagome::common {
     }
 
     /**
-     * @brief Construct BufferT from hex string
+     * @brief Construct SLBuffer from hex string
      * @param hex hex-encoded string
      * @return result containing constructed buffer if input string is
      * hex-encoded string.
      */
-    static outcome::result<BufferT> fromHex(std::string_view hex) {
+    static outcome::result<SLBuffer> fromHex(std::string_view hex) {
       OUTCOME_TRY(bytes, unhex(hex));
-      return outcome::success(BufferT(std::move(bytes)));
+      return outcome::success(SLBuffer(std::move(bytes)));
     }
 
     /**
@@ -227,7 +227,7 @@ namespace kagome::common {
     /**
      * @brief stores content of a string to byte array
      */
-    static BufferT fromString(const std::string_view &src) {
+    static SLBuffer fromString(const std::string_view &src) {
       return {src.begin(), src.end()};
     }
 
@@ -241,7 +241,7 @@ namespace kagome::common {
         typename = std::enable_if_t<std::is_base_of_v<
             std::input_iterator_tag,
             typename std::iterator_traits<InIt>::iterator_category>>>
-    BufferT &putRange(const InIt &begin, const InIt &end) {
+    SLBuffer &putRange(const InIt &begin, const InIt &end) {
       static_assert(sizeof(*begin) == 1);
       insert(this->end(), begin, end);
       return *this;
@@ -250,15 +250,12 @@ namespace kagome::common {
 
   template <size_t MaxSize>
   inline std::ostream &operator<<(std::ostream &os,
-                                  const BufferT<MaxSize> &buffer) {
+                                  const SLBuffer<MaxSize> &buffer) {
     return os << BufferView(buffer);
   }
 
-  //  using Buffer = BufferT<std::numeric_limits<size_t>::max()>;
-  typedef BufferT<std::numeric_limits<size_t>::max()> Buffer;
-
-  template <size_t MaxSize>
-  using SLBuffer = BufferT<MaxSize>;
+  //  using Buffer = SLBuffer<std::numeric_limits<size_t>::max()>;
+  typedef SLBuffer<std::numeric_limits<size_t>::max()> Buffer;
 
   static inline const Buffer kEmptyBuffer{};
 
@@ -283,8 +280,8 @@ namespace kagome::common {
 }  // namespace kagome::common
 
 template <size_t N>
-struct std::hash<kagome::common::BufferT<N>> {
-  size_t operator()(const kagome::common::BufferT<N> &x) const {
+struct std::hash<kagome::common::SLBuffer<N>> {
+  size_t operator()(const kagome::common::SLBuffer<N> &x) const {
     return boost::hash_range(x.begin(), x.end());
   }
 };
