@@ -3,6 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(memory_profiler
+    memory_profiler.cpp
+    )
+
+target_link_libraries(memory_profiler
+    )
+
 add_executable(storage_explorer
     storage_explorer.cpp
     ${BACKWARD_ENABLE}

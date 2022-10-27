@@ -15,6 +15,7 @@
 #include "common/fd_limit.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "utils/memory_profiler.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
@@ -23,6 +24,15 @@ int main(int argc, const char **argv) {
   backward::SignalHandling sh;
 
   {
+    profiler::initTables();
+    auto keeper = gsl::finally([]() {
+      profiler::printTables();
+      profiler::deinitTables();
+    });
+
+    std::vector<int> s;
+    s.reserve(1000);
+
     soralog::util::setThreadName("kagome");
 
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
