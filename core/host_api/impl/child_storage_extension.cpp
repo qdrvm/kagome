@@ -349,7 +349,7 @@ namespace kagome::host_api {
 
     auto result = executeOnChildStorage<std::tuple<bool, uint32_t>>(
         child_key_buffer, [](auto &child_batch) {
-          return child_batch->clearPrefix(common::Buffer{}, std::nullopt);
+          return child_batch->clearPrefix({}, std::nullopt);
         });
 
     if (not result) {

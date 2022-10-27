@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BUFFERVIEW_HPP
-#define KAGOME_BUFFERVIEW_HPP
+#ifndef KAGOME_COMMON_BUFFERVIEW
+#define KAGOME_COMMON_BUFFERVIEW
 
 #include <gsl/span>
 
@@ -20,7 +20,6 @@ namespace kagome::common {
 
   class BufferView : public gsl::span<const uint8_t> {
     using Span = gsl::span<const uint8_t>;
-    std::optional<std::vector<Span::value_type>> holder_{};
 
    public:
     BufferView() = default;
@@ -30,34 +29,21 @@ namespace kagome::common {
     BufferView(const std::vector<Span::value_type> &vec) noexcept
         : Span(vec.data(), static_cast<Span::index_type>(vec.size())) {}
 
-    BufferView(std::vector<Span::value_type> &&vec) noexcept
-        : holder_(std::move(vec)) {
-      static_cast<Span &>(*this) =
-          Span(holder_->data(), static_cast<Span::index_type>(holder_->size()));
-    }
-
     template <size_t Size>
     BufferView(const std::array<Span::value_type, Size> &arr) noexcept
         : Span(arr.data(), static_cast<Span::index_type>(arr.size())) {}
 
     BufferView &operator=(const std::vector<Span::value_type> &vec) noexcept {
-      holder_.reset();
       static_cast<Span &>(*this) =
           Span(vec.data(), static_cast<Span::index_type>(vec.size()));
       return *this;
     }
 
-    BufferView &operator=(std::vector<Span::value_type> &&vec) noexcept {
-      holder_.emplace(std::move(vec));
-      static_cast<Span &>(*this) =
-          Span(holder_->data(), static_cast<Span::index_type>(holder_->size()));
-      return *this;
-    }
+    BufferView &operator=(std::vector<Span::value_type> &&vec) = delete;
 
     template <size_t Size>
     BufferView &operator=(
         const std::array<Span::value_type, Size> &arr) noexcept {
-      holder_.reset();
       static_cast<Span &>(*this) =
           Span(arr.data(), static_cast<Span::index_type>(arr.size()));
       return *this;
@@ -156,4 +142,4 @@ struct fmt::formatter<kagome::common::BufferView> {
   }
 };
 
-#endif  // KAGOME_BUFFERVIEW_HPP
+#endif  // KAGOME_COMMON_BUFFERVIEW

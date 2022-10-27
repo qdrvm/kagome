@@ -26,7 +26,8 @@ namespace kagome::storage::trie {
   }
 
   RootHash TrieSerializerImpl::getEmptyRootHash() const {
-    return codec_->hash256(common::Buffer{0});
+    static const auto empty_hash = codec_->hash256(common::Buffer{0});
+    return empty_hash;
   }
 
   outcome::result<RootHash> TrieSerializerImpl::storeTrie(PolkadotTrie &trie) {
@@ -66,7 +67,7 @@ namespace kagome::storage::trie {
 
     OUTCOME_TRY(enc, codec_->encodeNode(node));
     auto key = codec_->hash256(enc);
-    OUTCOME_TRY(batch->put(Buffer{key}, enc));
+    OUTCOME_TRY(batch->put(key, enc));
     OUTCOME_TRY(batch->commit());
 
     return key;
