@@ -81,10 +81,11 @@ KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            Sr25519Signature,
                            constants::sr25519::SIGNATURE_SIZE);
+KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+                           Sr25519Seed,
+                           constants::sr25519::SEED_SIZE);
 
 namespace kagome::crypto {
-  using Sr25519Seed = common::Blob<constants::sr25519::SEED_SIZE>;
-
   struct Sr25519Keypair {
     Sr25519SecretKey secret_key;
     Sr25519PublicKey public_key;

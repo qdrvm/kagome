@@ -185,6 +185,12 @@ namespace kagome::application {
     StorageBackend storageBackend() const override {
       return storage_backend_;
     }
+    std::optional<std::string_view> devMnemonicPhrase() const override {
+      if (dev_mnemonic_phrase_) {
+        return *dev_mnemonic_phrase_;
+      }
+      return std::nullopt;
+    }
 
    private:
     void parse_general_segment(const rapidjson::Value &val);
@@ -322,6 +328,7 @@ namespace kagome::application {
     bool subcommand_chain_info_;
     std::optional<primitives::BlockId> recovery_state_;
     StorageBackend storage_backend_ = StorageBackend::RocksDB;
+    std::optional<std::string> dev_mnemonic_phrase_;
   };
 
 }  // namespace kagome::application

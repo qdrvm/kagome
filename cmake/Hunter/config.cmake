@@ -26,7 +26,7 @@ hunter_config(
 
 hunter_config(
     soralog
-    VERSION 0.1.3
+    VERSION 0.1.4
     KEEP_PACKAGE_SOURCES
 )
 
@@ -52,7 +52,7 @@ hunter_config(
 
 hunter_config(
     wavm
-    VERSION 1.0.4
+    VERSION 1.0.5
     CMAKE_ARGS
       TESTING=OFF
       WAVM_ENABLE_FUZZ_TARGETS=OFF
@@ -61,4 +61,3 @@ hunter_config(
       WAVM_BUILD_TESTS=OFF
     KEEP_PACKAGE_SOURCES
 )
-
