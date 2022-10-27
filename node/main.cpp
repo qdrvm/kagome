@@ -24,15 +24,6 @@ int main(int argc, const char **argv) {
   backward::SignalHandling sh;
 
   {
-    profiler::initTables();
-    auto keeper = gsl::finally([]() {
-      profiler::printTables();
-      profiler::deinitTables();
-    });
-
-    std::vector<int> s;
-    s.reserve(1000);
-
     soralog::util::setThreadName("kagome");
 
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
@@ -71,7 +62,15 @@ int main(int argc, const char **argv) {
       return app->recovery();
     }
 
-    app->run();
+    { /// profile allocations
+      profiler::initTables();
+      auto keeper = gsl::finally([]() {
+        profiler::printTables("./allocations.log");
+        profiler::deinitTables();
+      });
+
+      app->run();
+    }
   }
 
   return EXIT_SUCCESS;

@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fstream>
 
 #include <memory>
 #include <mutex>
@@ -175,7 +176,7 @@ namespace profiler {
     pointersTable().~PointersTableType();
   }
 
-  void printTables() {
+  void printTables(char const *filename) {
     if (!table_ready.load())
       return;
 
@@ -190,7 +191,8 @@ namespace profiler {
       return a->alloc_size > b->alloc_size;
     });
 
-    printf("[MEMORY PROFILER]\n");
+    std::ofstream output(filename, std::ios::out | std::ios::trunc);
+    output << "[MEMORY PROFILER]\n";
     for (auto &item : descriptors) {
       auto pos = snprintf(track,
                           kBufferSize,
@@ -204,9 +206,9 @@ namespace profiler {
         pos += snprintf(track + pos, kBufferSize - pos, "%s\n", names[ix]);
 
       free(names);
-      printf(track);
+      output << track;
     }
-    fflush(stdout);
+    output.flush();
   }
 }
 

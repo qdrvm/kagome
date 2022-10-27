@@ -8,7 +8,7 @@
 
 namespace profiler {
 
-  extern void printTables();
+  extern void printTables(char const *filename);
   extern void initTables();
   extern void deinitTables();
 
