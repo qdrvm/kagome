@@ -23,30 +23,24 @@ namespace kagome::common {
 
    public:
     using Span::Span;
+    using Span::operator=;
 
     BufferView(const Span &other) noexcept : Span(other) {}
-
-    BufferView &operator=(std::vector<Span::value_type> &&vec) = delete;
-
-    BufferView &operator=(const Span &view) noexcept {
-      static_cast<Span &>(*this) = view;
-      return *this;
-    }
 
     std::string toHex() const {
       return hex_lower(*this);
     }
 
-    template <typename Container1,
-              typename Container2,
-              typename = std::enable_if<
-                  std::is_same_v<typename Container1::value_type, value_type>>,
-              typename = std::enable_if<
-                  std::is_same_v<typename Container1::value_type,
-                                 typename Container2::value_type>>>
-    friend bool operator==(const Container1 &lhs,
-                           const Container2 &rhs) noexcept {
-      return std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend());
+    bool operator==(const Span &other) const noexcept {
+      return std::equal(
+          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
+    }
+
+    template <size_t N>
+    bool operator==(
+        const std::array<typename Span::value_type, N> &other) const noexcept {
+      return std::equal(
+          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
     }
 
     bool operator<(const BufferView &other) const noexcept {
@@ -54,21 +48,11 @@ namespace kagome::common {
           cbegin(), cend(), other.cbegin(), other.cend());
     }
 
-    template <typename Container,
-              typename = std::enable_if<
-                  std::is_same_v<typename Container::value_type, value_type>>>
-    bool operator<(const Container &other) const noexcept {
+    template <size_t N>
+    bool operator<(
+        const std::array<typename Span::value_type, N> &other) const noexcept {
       return std::lexicographical_compare(
-          cbegin(), cend(), other.cbegin(), other.cend());
-    }
-
-    template <typename Container,
-              typename = std::enable_if<
-                  std::is_same_v<typename Container::value_type, value_type>>>
-    friend bool operator<(const Container &lhs,
-                          const BufferView &rhs) noexcept {
-      return std::lexicographical_compare(
-          lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend());
+          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
     }
   };
 

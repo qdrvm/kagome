@@ -7,6 +7,7 @@
 #define KAGOME_COMMON_SIZELIMITEDCONTAINER
 
 #include <fmt/format.h>
+#include <gsl/span>
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
@@ -34,6 +35,7 @@ namespace kagome::common {
   class SizeLimitedContainer : public BaseContainer {
    protected:
     using Base = BaseContainer;
+    using Span = gsl::span<typename Base::value_type>;
 
     static constexpr bool size_check_is_enabled =
         MaxSize < std::numeric_limits<typename Base::size_type>::max();
@@ -367,20 +369,20 @@ namespace kagome::common {
     }
 
     bool operator==(const Base &other) const noexcept {
-      return Base::size() == other.size()
-             and std::equal(
-                 Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
+      return std::equal(
+          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
     }
 
-    template <size_t Size>
-    bool operator==(const std::array<typename Base::value_type, Size> &other)
-        const noexcept {
-      return Base::size() == Size
-             and std::equal(
-                 Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
+    bool operator==(const Span &other) const noexcept {
+      return std::equal(
+          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
     }
 
     bool operator!=(const Base &other) const noexcept {
+      return not(*this == other);
+    }
+
+    bool operator!=(const Span &other) const noexcept {
       return not(*this == other);
     }
 
@@ -389,9 +391,7 @@ namespace kagome::common {
           Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
     }
 
-    template <size_t Size>
-    bool operator<(const std::array<typename Base::value_type, Size> &other)
-        const noexcept {
+    bool operator<(const Span &other) const noexcept {
       return std::lexicographical_compare(
           Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
     }

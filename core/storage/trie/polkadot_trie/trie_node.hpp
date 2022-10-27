@@ -22,6 +22,8 @@ namespace kagome::storage::trie {
     using Buffer = common::Buffer;
 
     using Buffer::Buffer;
+    using Buffer::operator==;
+    using Buffer::operator<;
 
     KeyNibbles(common::Buffer b) : Buffer{std::move(b)} {}
 

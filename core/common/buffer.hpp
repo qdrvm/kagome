@@ -31,7 +31,7 @@ namespace kagome::common {
     using Base = SLVector<uint8_t, MaxSize>;
 
     template <size_t OtherMaxSize>
-    using OtherMaxSizeBase = SLVector<uint8_t, OtherMaxSize>;
+    using OtherSLBuffer = SLBuffer<OtherMaxSize>;
 
     SLBuffer() = default;
 
@@ -42,12 +42,16 @@ namespace kagome::common {
     explicit SLBuffer(typename Base::Base &&other) : Base(std::move(other)) {}
 
     template <size_t OtherMaxSize>
-    SLBuffer(const OtherMaxSizeBase<OtherMaxSize> &other) : Base(other) {}
+    SLBuffer(const OtherSLBuffer<OtherMaxSize> &other) : Base(other) {}
 
     template <size_t OtherMaxSize>
-    SLBuffer(OtherMaxSizeBase<OtherMaxSize> &&other) : Base(std::move(other)) {}
+    SLBuffer(OtherSLBuffer<OtherMaxSize> &&other) : Base(std::move(other)) {}
 
     SLBuffer(const BufferView &s) : Base(s.begin(), s.end()) {}
+
+    template <size_t N>
+    SLBuffer(const std::array<typename Base::value_type, N> &other)
+        : Base(other.begin(), other.end()) {}
 
     SLBuffer(const uint8_t *begin, const uint8_t *end) : Base(begin, end){};
 
@@ -200,6 +204,34 @@ namespace kagome::common {
      */
     static SLBuffer fromString(const std::string_view &src) {
       return {src.begin(), src.end()};
+    }
+
+    using Base::operator==;
+
+    bool operator==(const BufferView &other) const noexcept {
+      return std::equal(
+          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
+    }
+
+    template <size_t N>
+    bool operator==(
+        const std::array<typename Base::value_type, N> &other) const noexcept {
+      return std::equal(
+          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
+    }
+
+    using Base::operator<;
+
+    bool operator<(const BufferView &other) const noexcept {
+      return std::lexicographical_compare(
+          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
+    }
+
+    template <size_t N>
+    bool operator<(
+        const std::array<typename Base::value_type, N> &other) const noexcept {
+      return std::lexicographical_compare(
+          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
     }
   };
 
