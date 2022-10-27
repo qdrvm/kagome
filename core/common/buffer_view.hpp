@@ -17,8 +17,7 @@ namespace kagome::common {
 
 namespace kagome::common {
 
-  class BufferView : public gsl::span<const uint8_t>
-  {
+  class BufferView : public gsl::span<const uint8_t> {
     using Span = gsl::span<const uint8_t>;
     std::optional<std::vector<Span::value_type>> holder_{};
 
@@ -100,10 +99,9 @@ namespace kagome::common {
       return std::lexicographical_compare(
           lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend());
     }
-
   };
 
-  inline std::ostream &operator<<(std::ostream &os, BufferView view){
+  inline std::ostream &operator<<(std::ostream &os, BufferView view) {
     return os << view.toHex();
   }
 

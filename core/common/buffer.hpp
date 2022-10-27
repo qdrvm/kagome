@@ -20,9 +20,6 @@
 #include "macro/endianness_utils.hpp"
 #include "outcome/outcome.hpp"
 
-#define likely(x) __builtin_expect((x), 1)
-#define unlikely(x) __builtin_expect((x), 0)
-
 namespace kagome::common {
 
   /**
@@ -295,8 +292,5 @@ struct std::hash<kagome::common::BufferT<N>> {
 template <>
 struct fmt::formatter<kagome::common::Buffer>
     : fmt::formatter<kagome::common::BufferView> {};
-
-#undef likely
-#undef unlikely
 
 #endif  // KAGOME_COMMON_BUFFER
