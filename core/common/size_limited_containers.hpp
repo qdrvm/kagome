@@ -201,8 +201,7 @@ namespace kagome::common {
               Base::size());
         }
       }
-      return Base::assign(
-          std::forward<std::initializer_list<typename Base::value_type>>(list));
+      return Base::assign(std::move(list));
     }
 
     template <typename... Args>
@@ -224,7 +223,7 @@ namespace kagome::common {
         bool isIter = std::is_same_v<Iter, typename Base::iterator>,
         bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
         typename = std::enable_if_t<isIter or isConstIter>>
-    typename Base::iterator emplace(Iter &&pos, Args &&...args) {
+    typename Base::iterator emplace(Iter pos, Args &&...args) {
       if constexpr (size_check_is_enabled) {
         if (unlikely(Base::size() >= max_size())) {
           throw MaxSizeException(
@@ -233,8 +232,7 @@ namespace kagome::common {
               Base::size());
         }
       }
-      return Base::emplace(std::forward<Iter>(pos),
-                           std::forward<Args>(args)...);
+      return Base::emplace(std::move(pos), std::forward<Args>(args)...);
     }
 
     template <
@@ -242,7 +240,7 @@ namespace kagome::common {
         bool isIter = std::is_same_v<Iter, typename Base::iterator>,
         bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
         typename = std::enable_if_t<isIter or isConstIter>>
-    typename Base::iterator insert(Iter &&pos,
+    typename Base::iterator insert(Iter pos,
                                    const typename Base::value_type &value) {
       if constexpr (size_check_is_enabled) {
         if (unlikely(Base::size() >= max_size())) {
@@ -252,7 +250,7 @@ namespace kagome::common {
               Base::size());
         }
       }
-      return Base::insert(std::forward<Iter>(pos), value);
+      return Base::insert(std::move(pos), value);
     }
 
     template <
@@ -260,7 +258,7 @@ namespace kagome::common {
         bool isIter = std::is_same_v<Iter, typename Base::iterator>,
         bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
         typename = std::enable_if_t<isIter or isConstIter>>
-    typename Base::iterator insert(Iter &&pos,
+    typename Base::iterator insert(Iter pos,
                                    typename Base::size_type size,
                                    const typename Base::value_type &value) {
       if constexpr (size_check_is_enabled) {
@@ -272,7 +270,7 @@ namespace kagome::common {
               size);
         }
       }
-      return Base::insert(std::forward<Iter>(pos), size, value);
+      return Base::insert(std::move(pos), size, value);
     }
 
     template <
@@ -284,7 +282,7 @@ namespace kagome::common {
         typename = std::enable_if_t<std::is_base_of_v<
             std::input_iterator_tag,
             typename std::iterator_traits<InIt>::iterator_category>>>
-    typename Base::iterator insert(OutIt &&pos, InIt &&begin, InIt &&end) {
+    typename Base::iterator insert(OutIt pos, InIt begin, InIt end) {
       if constexpr (size_check_is_enabled) {
         const size_t size = std::distance(begin, end);
         const auto available = max_size() - Base::size();
@@ -297,9 +295,7 @@ namespace kagome::common {
               size);
         }
       }
-      return Base::insert(std::forward<OutIt>(pos),
-                          std::forward<InIt>(begin),
-                          std::forward<InIt>(end));
+      return Base::insert(std::move(pos), std::move(begin), std::move(end));
     }
 
     template <
@@ -308,7 +304,7 @@ namespace kagome::common {
         bool isConstIter = std::is_same_v<Iter, typename Base::const_iterator>,
         typename = std::enable_if_t<isIter or isConstIter>>
     typename Base::iterator insert(
-        Iter &&pos, std::initializer_list<typename Base::value_type> &&list) {
+        Iter pos, std::initializer_list<typename Base::value_type> &&list) {
       if constexpr (size_check_is_enabled) {
         const auto available = max_size() - Base::size();
         if (unlikely(available < list.size())) {
@@ -318,9 +314,7 @@ namespace kagome::common {
               Base::size());
         }
       }
-      return Base::insert(
-          std::forward<Iter>(pos),
-          std::forward<std::initializer_list<typename Base::value_type>>(list));
+      return Base::insert(pos, std::move(list));
     }
 
     template <typename V>
