@@ -9,6 +9,7 @@
 #include <gsl/span>
 
 #include "common/hexutil.hpp"
+#include "macro/endianness_utils.hpp"
 
 namespace kagome::common {
   template <size_t MaxSize>
@@ -137,7 +138,7 @@ struct fmt::formatter<kagome::common::BufferView> {
     // ctx.out() is an output iterator to write to.
 
     if (view.empty()) {
-      return format_to(ctx.out(), "empty");
+      return format_to(ctx.out(), "<empty>");
     }
 
     if (presentation == 's' && view.size() > 5) {
