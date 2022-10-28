@@ -120,7 +120,7 @@ This command executes a KAGOME full node with an authority role.
 To run a KAGOME node, you need to provide to it a genesis config, cryptographic keys and a place to store db files.
 * Example of a genesis config file can be found in `examples/first_kagome_chain/localchain.json`
 * Example of a base path dir can be found in `examples/first_kagome_chain/base_path`
-* To create leveldb files, just provide any base path into `kagome` executable (mind that start with authority role requires keys to start).
+* To create database files, just provide any base path into `kagome` executable (mind that start with authority role requires keys to start).
 
 
 ## Contributing Guides
@@ -154,7 +154,7 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
 * [SCALE](https://github.com/soramitsu/scale-codec-cpp) (polkadot-codec)
     * Implements SCALE codec for data types serialization according to [spec](https://substrate.dev/docs/en/conceptual/core/codec).
 * Storage
-    * Contains of key-value storage interfaces with LevelDB- and inmemory-based implementations
+    * Contains key-value storage interfaces with persistent and in-memory implementations
     * Merkle-Patricia trie implementation, described in spec
 * Clock
     * Gets current time for the peer

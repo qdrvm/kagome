@@ -15,12 +15,12 @@
 using namespace kagome::storage;
 namespace fs = boost::filesystem;
 
-struct LevelDB_Open : public test::BaseFS_Test {
+struct RocksDb_Open : public test::BaseFS_Test {
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
 
-  LevelDB_Open() : test::BaseFS_Test("/tmp/kagome_rocksdb_open") {}
+  RocksDb_Open() : test::BaseFS_Test("/tmp/kagome_rocksdb_open") {}
 };
 
 /**
@@ -28,7 +28,7 @@ struct LevelDB_Open : public test::BaseFS_Test {
  * @when open database
  * @then database can not be opened (since there is no db already)
  */
-TEST_F(LevelDB_Open, OpenNonExistingDB) {
+TEST_F(RocksDb_Open, OpenNonExistingDB) {
   rocksdb::Options options;
   options.create_if_missing = false;  // intentionally
 
@@ -42,7 +42,7 @@ TEST_F(LevelDB_Open, OpenNonExistingDB) {
  * @when open database
  * @then database is opened
  */
-TEST_F(LevelDB_Open, OpenExistingDB) {
+TEST_F(RocksDb_Open, OpenExistingDB) {
   rocksdb::Options options;
   options.create_if_missing = true;  // intentionally
 
