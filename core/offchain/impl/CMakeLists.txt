@@ -29,7 +29,6 @@ target_link_libraries(http_request
     Boost::boost
     OpenSSL::Crypto
     OpenSSL::SSL
-    buffer
     )
 kagome_install(http_request)
 

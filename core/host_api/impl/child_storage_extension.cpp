@@ -35,8 +35,7 @@ namespace kagome::host_api {
 
   outcome::result<Buffer> make_prefixed_child_storage_key(
       const Buffer &child_storage_key) {
-    return Buffer{storage::kChildStorageDefaultPrefix}.putBuffer(
-        child_storage_key);
+    return Buffer{storage::kChildStorageDefaultPrefix}.put(child_storage_key);
   }
 
   template <typename R, typename F, typename... Args>
@@ -349,7 +348,7 @@ namespace kagome::host_api {
 
     auto result = executeOnChildStorage<std::tuple<bool, uint32_t>>(
         child_key_buffer, [](auto &child_batch) {
-          return child_batch->clearPrefix(common::Buffer{}, std::nullopt);
+          return child_batch->clearPrefix({}, std::nullopt);
         });
 
     if (not result) {

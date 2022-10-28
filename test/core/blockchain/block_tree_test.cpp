@@ -69,7 +69,6 @@ struct BlockTreeTest : public testing::Test {
   }
 
   void SetUp() override {
-    // for LevelDbBlockTree::create(..)
     EXPECT_CALL(*storage_, getBlockTreeLeaves())
         .WillOnce(Return(
             std::vector<primitives::BlockHash>{kFinalizedBlockInfo.hash}));
@@ -147,8 +146,8 @@ struct BlockTreeTest : public testing::Test {
     babe_config_.epoch_length = 2;
 
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
-    ON_CALL(*babe_config_repo_, config())
-        .WillByDefault(ReturnRef(babe_config_));
+    EXPECT_CALL(*babe_config_repo_, config())
+        .WillRepeatedly(ReturnRef(babe_config_));
 
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return(1));

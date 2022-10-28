@@ -325,7 +325,7 @@ TEST_F(PolkadotTrieCursorTest, CreateAtNonexisting) {
   auto trie = makeTrie(lex_sorted_vals);
   EXPECT_OUTCOME_FALSE_1(
       kagome::storage::trie::PolkadotTrieCursorImpl::createAt(
-          "some_random_key"_buf, trie))
+          "some_random_key"_buf, trie));
 }
 
 TEST_F(PolkadotTrieCursorTest, SeekNonexisting) {

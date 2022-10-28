@@ -5,7 +5,7 @@ add_library(polkadot_node
     trie_node.cpp
     )
 target_link_libraries(polkadot_node
-    buffer
+    fmt::fmt
     )
 kagome_install(polkadot_node)
 
@@ -21,7 +21,6 @@ add_library(polkadot_trie_cursor
     polkadot_trie_cursor_impl.cpp
     )
 target_link_libraries(polkadot_trie_cursor
-    buffer
     polkadot_codec
     logger
     )

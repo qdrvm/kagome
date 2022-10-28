@@ -40,8 +40,7 @@ namespace kagome::blockchain {
                                       const common::Buffer &value) {
     auto block_lookup_key = numberAndHashToLookupKey(num, block_hash);
 
-    auto hash_to_idx_key =
-        prependPrefix(Buffer{block_hash}, Prefix::ID_TO_LOOKUP_KEY);
+    auto hash_to_idx_key = prependPrefix(block_hash, Prefix::ID_TO_LOOKUP_KEY);
     OUTCOME_TRY(map.put(hash_to_idx_key, block_lookup_key));
 
     auto value_lookup_key = prependPrefix(block_lookup_key, prefix);

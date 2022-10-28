@@ -28,7 +28,6 @@ add_library(primitives
     session_key.hpp)
 
 target_link_libraries(primitives
-    buffer
     scale::scale
     blob
     hasher
@@ -39,7 +38,6 @@ add_library(ss58_codec
     ss58_codec.cpp
     )
 target_link_libraries(ss58_codec
-    buffer
     outcome
     p2p::p2p_multibase_codec
     )

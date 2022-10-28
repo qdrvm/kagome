@@ -20,7 +20,6 @@ addtest(proto_block_response_test
 target_link_libraries(proto_block_response_test
     node_api_proto
     blob
-    buffer
     scale::scale
     adapter_errors
     )
@@ -41,7 +40,6 @@ addtest(proto_state_response_test
 target_link_libraries(proto_state_response_test
     adapter_errors
     blob
-    buffer
     node_api_proto
     )
 
@@ -51,7 +49,6 @@ addtest(proto_state_request_test
 target_link_libraries(proto_state_request_test
     node_api_proto
     blob
-    buffer
     adapter_errors
     p2p::p2p_uvarint
     )
@@ -60,7 +57,6 @@ addtest(block_announce_test
     block_announce_test.cpp
     )
 target_link_libraries(block_announce_test
-    buffer
     scale::scale
     testutil_primitives_generator
     )
@@ -84,6 +80,5 @@ addtest(bootstrap_nodes_test
 )
 target_link_libraries(bootstrap_nodes_test
     p2p::p2p
-    buffer
     blob
 )

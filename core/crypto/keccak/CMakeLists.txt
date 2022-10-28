@@ -9,7 +9,6 @@ add_library(keccak
         )
 target_link_libraries(keccak
         OpenSSL::Crypto
-        buffer
         blob
         )
 disable_clang_tidy(keccak)

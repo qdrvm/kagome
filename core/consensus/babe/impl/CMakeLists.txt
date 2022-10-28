@@ -92,7 +92,6 @@ target_link_libraries(babe
     babe_error
     Boost::boost
     schnorrkel_crust::schnorrkel_crust
-    buffer
     logger
     scale::scale
     blob

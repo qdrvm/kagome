@@ -114,7 +114,9 @@ namespace kagome::common {
   template <size_t size_>
   class Blob : public std::array<byte_t, size_> {
    public:
+    // Next line is required at least for the scale-codec
     static constexpr bool is_static_collection = true;
+
     using const_narref = const byte_t (&)[size_];
     using const_narptr = const byte_t (*)[size_];
     /**

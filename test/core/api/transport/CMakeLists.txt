@@ -11,7 +11,6 @@ target_link_libraries(http_listener_test
     api_jrpc_server
     api_transport
     api_service
-    buffer
     blob
     state_api_service
     logger_for_tests
@@ -25,7 +24,6 @@ target_link_libraries(ws_listener_test
     api_jrpc_server
     api_transport
     api_service
-    buffer
     blob
     state_api_service
     logger_for_tests

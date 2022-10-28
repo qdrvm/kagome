@@ -15,7 +15,7 @@ namespace kagome::offchain {
       const auto &prefix = storage::kOffchainWorkerStoragePrefix;
       return common::Buffer()
           .reserve(prefix.size() + key.size())
-          .putBuffer(prefix)
+          .put(prefix)
           .put(key);
     }
   }  // namespace

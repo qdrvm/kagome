@@ -9,5 +9,4 @@ addtest(payment_api_test
 target_link_libraries(payment_api_test
         payment_api_service
         blob
-        buffer
         )

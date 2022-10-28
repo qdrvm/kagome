@@ -417,7 +417,7 @@ namespace kagome::api {
     EXPECT_CALL(*block_header_repo_, getNumberByHash(to))
         .WillOnce(Return(42 + StateApiImpl::kMaxBlockRange + 1));
     EXPECT_OUTCOME_FALSE(
-        error, api_->queryStorage(std::vector{"some_key"_buf}, from, to));
+        error, api_->queryStorage(std::vector({"some_key"_buf}), from, to));
     ASSERT_EQ(error, StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED);
   }
 

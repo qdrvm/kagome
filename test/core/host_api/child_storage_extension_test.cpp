@@ -132,7 +132,7 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
         .WillOnce(Return(new_child_root));
 
     prefixed_child_storage_key =
-        Buffer{kagome::storage::kChildStorageDefaultPrefix}.putBuffer(
+        Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
             child_storage_key);
     EXPECT_CALL(*trie_batch_,
                 put(prefixed_child_storage_key.view(), new_child_root_buffer))
@@ -210,7 +210,7 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
         .WillOnce(Return(new_child_root));
 
     prefixed_child_storage_key =
-        Buffer{kagome::storage::kChildStorageDefaultPrefix}.putBuffer(
+        Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
             child_storage_key);
     EXPECT_CALL(*trie_batch_,
                 put(prefixed_child_storage_key.view(), new_child_root_buffer))
@@ -303,7 +303,7 @@ TEST_P(VoidOutcomeParameterizedTest, SetTest) {
         .WillOnce(Return(new_child_root));
 
     prefixed_child_storage_key =
-        Buffer{kagome::storage::kChildStorageDefaultPrefix}.putBuffer(
+        Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
             child_storage_key);
     EXPECT_CALL(*trie_batch_,
                 put(prefixed_child_storage_key.view(), new_child_root_buffer))
@@ -353,7 +353,7 @@ TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
     EXPECT_CALL(*trie_child_storage_batch_, commit())
         .WillOnce(Return(new_child_root));
     prefixed_child_storage_key =
-        Buffer{kagome::storage::kChildStorageDefaultPrefix}.putBuffer(
+        Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
             child_storage_key);
     EXPECT_CALL(*trie_batch_,
                 put(prefixed_child_storage_key.view(), new_child_root_buffer))
@@ -399,7 +399,7 @@ TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
       .WillOnce(Return(new_child_root));
 
   Buffer prefixed_child_storage_key =
-      Buffer{kagome::storage::kChildStorageDefaultPrefix}.putBuffer(
+      Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
           child_storage_key);
   EXPECT_CALL(*trie_batch_,
               put(prefixed_child_storage_key.view(), new_child_root_buffer))
@@ -426,7 +426,7 @@ TEST_F(ChildStorageExtensionTest, NextKeyTest) {
       PtrSize(child_storage_key_pointer, child_storage_key_size).combine();
   Buffer child_storage_key(8, 'l');
   Buffer prefixed_child_storage_key =
-      Buffer{kagome::storage::kChildStorageDefaultPrefix}.putBuffer(
+      Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
           child_storage_key);
   WasmPointer key_pointer = 43;
   WasmSize key_size = 43;
@@ -469,7 +469,7 @@ TEST_F(ChildStorageExtensionTest, RootTest) {
       PtrSize(child_storage_key_pointer, child_storage_key_size).combine();
   Buffer child_storage_key(8, 'l');
   Buffer prefixed_child_storage_key =
-      Buffer{kagome::storage::kChildStorageDefaultPrefix}.putBuffer(
+      Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
           child_storage_key);
   EXPECT_CALL(*memory_,
               loadN(child_storage_key_pointer, child_storage_key_size))
@@ -519,7 +519,7 @@ TEST_P(BoolOutcomeParameterizedTest, ExistsTest) {
         .WillOnce(Return(new_child_root));
 
     prefixed_child_storage_key =
-        Buffer{kagome::storage::kChildStorageDefaultPrefix}.putBuffer(
+        Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
             child_storage_key);
     EXPECT_CALL(*trie_batch_,
                 put(prefixed_child_storage_key.view(), new_child_root_buffer))

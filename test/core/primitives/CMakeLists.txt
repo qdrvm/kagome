@@ -8,7 +8,6 @@ addtest(primitives_codec_test
     )
 
 target_link_libraries(primitives_codec_test
-    buffer
     outcome
     primitives
     scale::scale

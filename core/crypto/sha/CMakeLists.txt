@@ -10,7 +10,6 @@ add_library(sha
 target_link_libraries(sha
     PUBLIC OpenSSL::SSL
     OpenSSL::Crypto
-    buffer
     blob
     )
 kagome_install(sha)

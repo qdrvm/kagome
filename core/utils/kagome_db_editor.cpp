@@ -332,8 +332,7 @@ int main(int argc, char *argv[]) {
     if (COMPACT == cmd) {
       auto batch = check(persistent_batch(trie, target_state)).value();
       auto finalized_batch =
-          check(persistent_batch(trie, target_state))
-              .value();
+          check(persistent_batch(trie, target_state)).value();
 
       std::vector<std::unique_ptr<PersistentTrieBatch>> child_batches;
       {
@@ -410,13 +409,14 @@ int main(int argc, char *argv[]) {
           }
           res = cursor->next();
         }
-        auto cursor = batch->trieCursor();
-        auto res = check(cursor->next());
+
+        cursor = batch->trieCursor();
+        res = check(cursor->next());
         ofs << "values:\n";
         count = 0;
         while (cursor->key().has_value()) {
           ofs << "  - "
-              << check(batch->get(check(cursor->key()).value())).value()
+              << check(batch->get(check(cursor->key()).value())).value().get()
               << "\n";
           if (not(++count % 50000)) {
             log->trace("{} values were dumped.", count);
