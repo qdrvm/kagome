@@ -17,7 +17,7 @@ namespace kagome::storage {
   /**
    * Simple storage that conforms PersistentMap interface
    * Mostly needed to have an in-memory trie in tests to avoid integration with
-   * LevelDB
+   * an actual persistent database
    */
   class InMemoryStorage : public storage::BufferStorage {
    public:

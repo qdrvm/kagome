@@ -33,7 +33,7 @@ using kagome::subscription::SubscriptionEngine;
 static Buffer kNodePrefix = "\1"_buf;
 
 /**
- * @given an empty persistent trie with LevelDb backend
+ * @given an empty persistent trie with RocksDb backend
  * @when putting a value into it @and its intance is destroyed @and a new
  * instance initialsed with the same DB
  * @then the new instance contains the same data
