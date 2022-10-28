@@ -277,13 +277,10 @@ void free(void *ptr)
   }
 }
 
-void *realloc(void *ptr, size_t size)
-{
-  if (myfn_malloc == NULL)
-  {
+void *realloc(void *ptr, size_t size) {
+  if (myfn_malloc == NULL) {
     void *nptr = malloc(size);
-    if (nptr && ptr)
-    {
+    if (nptr && ptr) {
       memmove(nptr, ptr, size);
       free(ptr);
     }
@@ -291,7 +288,9 @@ void *realloc(void *ptr, size_t size)
   }
 
   void *nptr = myfn_realloc(ptr, size);
+  makeDelete(ptr);
   registerAllocation(nptr);
+
   return nptr;
 }
 
