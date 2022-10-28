@@ -4,9 +4,13 @@
 #include <string_view>
 #include <thread>
 
+#if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
+#endif
+
 #undef TRUE
 #undef FALSE
+
 #include <boost/di.hpp>
 #include <soralog/impl/configurator_from_yaml.hpp>
 
