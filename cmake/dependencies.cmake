@@ -7,8 +7,10 @@ if (TESTING)
     find_package(GTest CONFIG REQUIRED)
 endif()
 
-hunter_add_package(backward-cpp)
-find_package(Backward)
+if (BACKWARD)
+    hunter_add_package(backward-cpp)
+    find_package(Backward)
+endif()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS random filesystem program_options date_time)

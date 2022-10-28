@@ -5,9 +5,13 @@
 
 #include <iostream>
 
+#if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
+#endif
+
 #undef TRUE
 #undef FALSE
+
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
@@ -20,8 +24,9 @@ using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
 int main(int argc, const char **argv) {
+#if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
-
+#endif
   {
     soralog::util::setThreadName("kagome");
 
