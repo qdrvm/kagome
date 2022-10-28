@@ -10,13 +10,14 @@ add_executable(storage_explorer
 target_link_libraries(storage_explorer
     application_injector
     )
-add_backward(storage_explorer)
+if (BACKWARD)
+    add_backward(storage_explorer)
+endif()
 
 add_executable(kagome-db-editor
     kagome_db_editor.cpp
     )
 target_link_libraries(kagome-db-editor
-    Backward::Backward
     Boost::Boost.DI
     block_storage
     changes_tracker
@@ -29,4 +30,8 @@ target_link_libraries(kagome-db-editor
     trie_storage
     trie_storage_backend
     )
+if (BACKWARD)
+  add_backward(kagome-db-editor)
+endif()
 kagome_install(kagome-db-editor)
+

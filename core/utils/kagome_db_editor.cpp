@@ -160,7 +160,9 @@ auto is_hash(const char *s) {
 };
 
 int main(int argc, char *argv[]) {
+#if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
+#endif
 
   Command cmd;
   if (argc == 2 or (argc == 3 && is_hash(argv[2]))
