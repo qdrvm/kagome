@@ -43,14 +43,6 @@ hunter_config(
 )
 
 hunter_config(
-    scale
-    URL  https://github.com/soramitsu/scale-codec-cpp/archive/27c390eb0c465e744bb842fda2edee3f5e3c5913.tar.gz
-    SHA1 b21b2941103bd38a1ec230d04f61ee6813e1b2ba
-    CMAKE_ARGS BACKWARD_TESTS=OFF
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
     wavm
     VERSION 1.0.5
     CMAKE_ARGS
