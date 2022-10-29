@@ -63,8 +63,14 @@ int main(int argc, const char **argv) {
       return app->recovery();
     }
 
-    profiler::initTables();
-    app->run();
+    {
+      profiler::initTables();
+      auto keeper = gsl::finally([]() {
+        profiler::printTables("./222.log");
+        profiler::deinitTables();
+      });
+      app->run();
+    }
   }
 
   return EXIT_SUCCESS;
