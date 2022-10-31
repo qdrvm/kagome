@@ -25,6 +25,7 @@
 #include "network/synchronizer.hpp"
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
+#include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -57,7 +58,9 @@ namespace kagome::consensus::babe {
           authority_update_observer,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
+      primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+      std::shared_ptr<runtime::Core> core,
       std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper)
       : app_config_(app_config),
         lottery_{std::move(lottery)},
@@ -73,7 +76,14 @@ namespace kagome::consensus::babe {
         authority_update_observer_(std::move(authority_update_observer)),
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
+        chain_events_engine_(std::move(chain_events_engine)),
+        chain_sub_([&] {
+          BOOST_ASSERT(chain_events_engine_ != nullptr);
+          return std::make_shared<primitives::events::ChainEventSubscriber>(
+              chain_events_engine_);
+        }()),
         offchain_worker_api_(std::move(offchain_worker_api)),
+        runtime_core_(std::move(core)),
         consistency_keeper_(std::move(consistency_keeper)),
         log_{log::createLogger("Babe", "babe")},
         telemetry_{telemetry::createTelemetryService()} {
@@ -91,6 +101,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(synchronizer_);
     BOOST_ASSERT(babe_util_);
     BOOST_ASSERT(offchain_worker_api_);
+    BOOST_ASSERT(runtime_core_);
     BOOST_ASSERT(consistency_keeper_);
 
     BOOST_ASSERT(app_state_manager);
@@ -115,6 +126,41 @@ namespace kagome::consensus::babe {
     }
 
     current_epoch_ = res.value();
+
+    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
+                          primitives::events::ChainEventType::kFinalizedHeads);
+    chain_sub_->setCallback([wp = weak_from_this()](
+                                subscription::SubscriptionSetId,
+                                auto &&,
+                                primitives::events::ChainEventType type,
+                                const primitives::events::ChainEventParams
+                                    &event) {
+      if (type == primitives::events::ChainEventType::kFinalizedHeads) {
+        if (auto self = wp.lock()) {
+          if (self->current_state_ != Babe::State::HEADERS_LOADING
+              and self->current_state_ != Babe::State::STATE_LOADING) {
+            const auto &header =
+                boost::get<primitives::events::HeadsEventParams>(event).get();
+            auto hash =
+                self->hasher_->blake2b_256(scale::encode(header).value());
+
+            auto version_res = self->runtime_core_->version(hash);
+            if (version_res.has_value()) {
+              auto &version = version_res.value();
+              if (not self->actual_runtime_version_.has_value()
+                  || self->actual_runtime_version_ != version) {
+                self->actual_runtime_version_ = version;
+                self->chain_events_engine_->notify(
+                    primitives::events::ChainEventType::
+                        kFinalizedRuntimeVersion,
+                    version);
+              }
+            }
+          }
+        }
+      }
+    });
+
     return true;
   }
 

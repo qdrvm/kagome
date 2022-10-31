@@ -124,7 +124,6 @@ namespace kagome::blockchain {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
-      std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy) {
@@ -338,7 +337,6 @@ namespace kagome::blockchain {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
-      std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<const JustificationStoragePolicy>
           justification_storage_policy)
@@ -350,7 +348,6 @@ namespace kagome::blockchain {
         chain_events_engine_(std::move(chain_events_engine)),
         extrinsic_events_engine_(std::move(extrinsic_events_engine)),
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
-        runtime_core_(std::move(runtime_core)),
         trie_changes_tracker_(std::move(changes_tracker)),
         justification_storage_policy_{std::move(justification_storage_policy)} {
     BOOST_ASSERT(header_repo_ != nullptr);
@@ -361,7 +358,6 @@ namespace kagome::blockchain {
     BOOST_ASSERT(chain_events_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_event_key_repo_ != nullptr);
-    BOOST_ASSERT(runtime_core_ != nullptr);
     BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(justification_storage_policy_ != nullptr);
     BOOST_ASSERT(telemetry_ != nullptr);
@@ -666,19 +662,6 @@ namespace kagome::blockchain {
 
     chain_events_engine_->notify(
         primitives::events::ChainEventType::kFinalizedHeads, header);
-
-    // TODO(xDimon): Refactor by moving it to BabeImpl
-    // it has failure result when fast sync is in progress
-    auto new_runtime_version = runtime_core_->version(block_hash);
-    if (new_runtime_version.has_value()) {
-      if (not actual_runtime_version_.has_value()
-          || actual_runtime_version_ != new_runtime_version.value()) {
-        actual_runtime_version_ = new_runtime_version.value();
-        chain_events_engine_->notify(
-            primitives::events::ChainEventType::kFinalizedRuntimeVersion,
-            new_runtime_version.value());
-      }
-    }
 
     OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
     if (body.has_value()) {

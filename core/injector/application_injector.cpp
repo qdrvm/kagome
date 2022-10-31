@@ -592,8 +592,6 @@ namespace {
     auto ext_events_key_repo = injector.template create<
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>();
 
-    auto runtime_core =
-        injector.template create<std::shared_ptr<runtime::Core>>();
     auto changes_tracker = injector.template create<
         std::shared_ptr<storage::changes_trie::ChangesTracker>>();
     auto justification_storage_policy = injector.template create<
@@ -607,7 +605,6 @@ namespace {
         chain_events_engine,
         std::move(ext_events_engine),
         std::move(ext_events_key_repo),
-        std::move(runtime_core),
         std::move(changes_tracker),
         std::move(justification_storage_policy));
 
@@ -1359,7 +1356,10 @@ namespace {
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<consensus::BabeUtil>>(),
+        injector
+            .template create<primitives::events::ChainSubscriptionEnginePtr>(),
         injector.template create<sptr<runtime::OffchainWorkerApi>>(),
+        injector.template create<sptr<runtime::Core>>(),
         injector.template create<sptr<consensus::babe::ConsistencyKeeper>>());
 
     auto protocol_factory =

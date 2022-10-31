@@ -28,6 +28,7 @@
 #include "outcome/outcome.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
+#include "primitives/event_types.hpp"
 #include "storage/buffer_map_types.hpp"
 #include "telemetry/service.hpp"
 
@@ -42,7 +43,8 @@ namespace kagome::network {
 
 namespace kagome::runtime {
   class OffchainWorkerApi;
-}
+  class Core;
+}  // namespace kagome::runtime
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
@@ -87,7 +89,9 @@ namespace kagome::consensus::babe {
             authority_update_observer,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<BabeUtil> babe_util,
+        primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+        std::shared_ptr<runtime::Core> core,
         std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper);
 
     ~BabeImpl() override = default;
@@ -176,7 +180,11 @@ namespace kagome::consensus::babe {
         authority_update_observer_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
+    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
+    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    std::optional<primitives::Version> actual_runtime_version_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
+    std::shared_ptr<runtime::Core> runtime_core_;
     std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper_;
 
     State current_state_{State::WAIT_REMOTE_STATUS};
