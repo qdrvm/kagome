@@ -5,7 +5,9 @@
 
 #include "core/api/transport/listener_test.hpp"
 
+#if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
+#endif
 
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "core/api/client/ws_client.hpp"
@@ -21,6 +23,10 @@ using WsListenerTest = ListenerTest<WsListenerImpl>;
  * @then response contains expected value
  */
 TEST_F(WsListenerTest, EchoSuccess) {
+#if defined(BACKWARD_HAS_BACKTRACE)
+  backward::SignalHandling sh;
+#endif
+
   app_state_manager->atLaunch([ctx{main_context}] {
     std::thread([ctx] { ctx->run_for(3s); }).detach();
     return true;
