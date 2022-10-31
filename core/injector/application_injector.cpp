@@ -112,6 +112,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
+#include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/validator/parachain_observer.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -1212,6 +1213,7 @@ namespace {
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
         di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
         di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
+        di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
         di::bind<parachain::ParachainObserverImpl>.to([](auto const &injector) {
           return get_parachain_observer_impl(injector);
         }),
