@@ -26,4 +26,11 @@ target_link_libraries(offchain_worker_api offchain_worker)
 add_library(session_keys_api session_keys_api.cpp)
 target_link_libraries(session_keys_api executor)
 
+add_library(runtime_properties_cache
+    runtime_properties_cache_impl.cpp
+    )
+target_link_libraries(runtime_properties_cache
+    executor
+    )
+
 

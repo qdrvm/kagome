@@ -12,6 +12,7 @@
 #include "runtime/common/executor.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -75,7 +76,8 @@ namespace kagome::runtime::binaryen {
         std::make_shared<OneModuleRepository>(runtime_code,
                                               instance_env_factory_),
         header_repo_);
-    auto executor = std::make_unique<Executor>(env_factory);
+    auto cache = std::make_shared<runtime::RuntimePropertiesCacheImpl>();
+    auto executor = std::make_unique<Executor>(env_factory, cache);
     return std::make_unique<CoreImpl>(
         std::move(executor), changes_tracker_, header_repo_);
   }

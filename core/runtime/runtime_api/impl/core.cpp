@@ -24,7 +24,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<primitives::Version> CoreImpl::version(
-      primitives::BlockHash const &block) {
+      const primitives::BlockHash &block) {
     return executor_->callAt<primitives::Version>(block, "Core_version");
   }
 

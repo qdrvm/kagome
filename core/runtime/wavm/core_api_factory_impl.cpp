@@ -10,6 +10,7 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"
 #include "runtime/runtime_environment_factory.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
@@ -126,7 +127,8 @@ namespace kagome::runtime::wavm {
                     runtime_code.size())},
             last_compiled_module_),
         block_header_repo_);
-    auto executor = std::make_unique<runtime::Executor>(env_factory);
+    auto cache = std::make_shared<runtime::RuntimePropertiesCacheImpl>();
+    auto executor = std::make_unique<runtime::Executor>(env_factory, cache);
     return std::make_unique<CoreImpl>(
         std::move(executor), changes_tracker_, block_header_repo_);
   }

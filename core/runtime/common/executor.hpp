@@ -21,6 +21,7 @@
 #include "runtime/module_repository.hpp"
 #include "runtime/persistent_result.hpp"
 #include "runtime/runtime_environment_factory.hpp"
+#include "runtime/runtime_properties_cache.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/trie_batches.hpp"
@@ -37,8 +38,10 @@ namespace kagome::runtime {
    public:
     using Buffer = common::Buffer;
 
-    Executor(std::shared_ptr<RuntimeEnvironmentFactory> env_factory)
-        : env_factory_{std::move(env_factory)},
+    Executor(std::shared_ptr<RuntimeEnvironmentFactory> env_factory,
+             std::shared_ptr<RuntimePropertiesCache> cache)
+        : env_factory_(std::move(env_factory)),
+          cache_(std::move(cache)),
           logger_{log::createLogger("Executor", "runtime")} {
       BOOST_ASSERT(env_factory_ != nullptr);
     }
@@ -254,6 +257,7 @@ namespace kagome::runtime {
     }
 
     std::shared_ptr<RuntimeEnvironmentFactory> env_factory_;
+    std::shared_ptr<RuntimePropertiesCache> cache_;
     log::Logger logger_;
   };
 

@@ -134,6 +134,7 @@
 #include "runtime/runtime_api/impl/metadata.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
+#include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
@@ -914,12 +915,10 @@ namespace {
           if (!initialized) {
             auto env_factory = injector.template create<
                 std::shared_ptr<runtime::RuntimeEnvironmentFactory>>();
-            auto header_repo = injector.template create<
-                std::shared_ptr<blockchain::BlockHeaderRepository>>();
-            auto storage = injector.template create<
-                std::shared_ptr<storage::trie::TrieStorage>>();
-            initialized =
-                std::make_shared<runtime::Executor>(std::move(env_factory));
+            auto cache = injector.template create<
+                std::shared_ptr<runtime::RuntimePropertiesCache>>();
+            initialized = std::make_shared<runtime::Executor>(
+                std::move(env_factory), std::move(cache));
           }
           return initialized.value();
         }),
@@ -942,6 +941,7 @@ namespace {
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
         di::bind<runtime::AuthorityDiscoveryApi>.template to<runtime::AuthorityDiscoveryApiImpl>(),
         di::bind<runtime::SingleModuleCache>.template to<runtime::SingleModuleCache>(),
+        di::bind<runtime::RuntimePropertiesCache>.template to<runtime::RuntimePropertiesCacheImpl>(),
         std::forward<Ts>(args)...);
   }
 
