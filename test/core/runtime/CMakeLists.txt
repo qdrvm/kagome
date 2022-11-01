@@ -43,7 +43,6 @@ addtest(executor_test
     )
 target_link_libraries(executor_test
     executor
-    buffer
     basic_code_provider
     scale::scale
     logger
@@ -56,7 +55,6 @@ addtest(runtime_upgrade_tracker_test
 target_link_libraries(runtime_upgrade_tracker_test
     runtime_upgrade_tracker
     blob
-    buffer
     in_memory_storage
     logger
     log_configurator

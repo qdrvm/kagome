@@ -7,16 +7,14 @@ if (TESTING)
     find_package(GTest CONFIG REQUIRED)
 endif()
 
-hunter_add_package(backward-cpp)
-find_package(Backward)
+if (BACKWARD)
+    hunter_add_package(backward-cpp)
+    find_package(Backward)
+endif()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS random filesystem program_options date_time)
 find_package(Boost CONFIG REQUIRED random filesystem program_options date_time)
-
-# https://docs.hunter.sh/en/latest/packages/pkg/leveldb.html
-hunter_add_package(leveldb)
-find_package(leveldb CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/xxhash.html
 hunter_add_package(xxhash)

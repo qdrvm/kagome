@@ -25,7 +25,6 @@ add_library(uncompress_if_needed
     uncompress_code_if_needed.cpp
     )
 target_link_libraries(uncompress_if_needed
-    buffer
     zstd::libzstd_static
     )
 kagome_install(uncompress_if_needed)

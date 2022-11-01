@@ -4,9 +4,13 @@
 #include <string_view>
 #include <thread>
 
+#if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
+#endif
+
 #undef TRUE
 #undef FALSE
+
 #include <boost/di.hpp>
 #include <soralog/impl/configurator_from_yaml.hpp>
 
@@ -160,7 +164,9 @@ auto is_hash(const char *s) {
 };
 
 int main(int argc, char *argv[]) {
+#if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
+#endif
 
   Command cmd;
   if (argc == 2 or (argc == 3 && is_hash(argv[2]))
@@ -332,8 +338,7 @@ int main(int argc, char *argv[]) {
     if (COMPACT == cmd) {
       auto batch = check(persistent_batch(trie, target_state)).value();
       auto finalized_batch =
-          check(persistent_batch(trie, target_state))
-              .value();
+          check(persistent_batch(trie, target_state)).value();
 
       std::vector<std::unique_ptr<PersistentTrieBatch>> child_batches;
       {
@@ -410,13 +415,14 @@ int main(int argc, char *argv[]) {
           }
           res = cursor->next();
         }
-        auto cursor = batch->trieCursor();
-        auto res = check(cursor->next());
+
+        cursor = batch->trieCursor();
+        res = check(cursor->next());
         ofs << "values:\n";
         count = 0;
         while (cursor->key().has_value()) {
           ofs << "  - "
-              << check(batch->get(check(cursor->key()).value())).value()
+              << check(batch->get(check(cursor->key()).value())).value().get()
               << "\n";
           if (not(++count % 50000)) {
             log->trace("{} values were dumped.", count);

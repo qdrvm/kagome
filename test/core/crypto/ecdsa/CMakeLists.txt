@@ -9,6 +9,5 @@ addtest(ecdsa_provider_test
 target_link_libraries(ecdsa_provider_test
     ecdsa_provider
     blob
-    buffer
     logger_for_tests
     )

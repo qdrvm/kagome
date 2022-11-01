@@ -8,6 +8,5 @@ add_library(internal_api_service
     impl/internal_api_impl.cpp
     )
 target_link_libraries(internal_api_service
-    buffer
     api_service
     )

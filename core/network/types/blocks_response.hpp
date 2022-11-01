@@ -6,22 +6,18 @@
 #ifndef KAGOME_BLOCKS_RESPONSE_HPP
 #define KAGOME_BLOCKS_RESPONSE_HPP
 
-#include <vector>
-
-#include <optional>
-#include "common/buffer.hpp"
-#include "primitives/block.hpp"
+#include "common/size_limited_containers.hpp"
 #include "primitives/block_data.hpp"
-#include "primitives/common.hpp"
-#include "primitives/justification.hpp"
 
 namespace kagome::network {
+
+  constexpr size_t kMaxBlocksInResponse = 256;
 
   /**
    * Response to the BlockRequest
    */
   struct BlocksResponse {
-    std::vector<primitives::BlockData> blocks{};
+    common::SLVector<primitives::BlockData, kMaxBlocksInResponse> blocks{};
   };
 
 }  // namespace kagome::network

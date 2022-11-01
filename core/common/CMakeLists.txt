@@ -13,15 +13,6 @@ target_link_libraries(hexutil
     )
 kagome_install(hexutil)
 
-add_library(buffer
-    buffer.hpp
-    buffer.cpp
-    )
-target_link_libraries(buffer
-    hexutil
-    )
-kagome_install(buffer)
-
 add_library(blob
     blob.hpp
     blob.cpp

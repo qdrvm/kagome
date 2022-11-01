@@ -11,7 +11,6 @@ add_library(rocksdb_wrapper
 target_link_libraries(rocksdb_wrapper
     RocksDB::rocksdb
     Boost::filesystem
-    buffer
     database_error
     logger
     )

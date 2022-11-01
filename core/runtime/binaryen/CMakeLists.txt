@@ -7,7 +7,6 @@ add_library(binaryen_wasm_memory
     memory_impl.cpp
     )
 target_link_libraries(binaryen_wasm_memory
-    buffer
     logger
     binaryen::binaryen
     memory_allocator

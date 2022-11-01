@@ -10,7 +10,6 @@ target_link_libraries(authority_manager_test
     authority_manager
     scale::scale
     blob
-    buffer
     dummy_error
     logger_for_tests
     in_memory_storage

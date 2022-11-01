@@ -247,7 +247,7 @@ namespace kagome::blockchain {
     SL_TRACE(logger_, "Removing block {}...", block);
 
     auto hash_to_idx_key =
-        prependPrefix(Buffer{block.hash}, Prefix::ID_TO_LOOKUP_KEY);
+        prependPrefix(block.hash, Prefix::ID_TO_LOOKUP_KEY);
     if (auto res = storage_->remove(hash_to_idx_key); res.has_error()) {
       logger_->error("could not remove hash-to-idx from the storage: {}",
                      res.error().message());

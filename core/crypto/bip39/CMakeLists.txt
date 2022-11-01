@@ -12,7 +12,6 @@ add_library(bip39_provider
 target_link_libraries(bip39_provider
     PUBLIC OpenSSL::SSL
     OpenSSL::Crypto
-    buffer
     blob
     logger
     pbkdf2_provider

@@ -9,7 +9,6 @@ add_library(child_state_api_service
     )
 target_link_libraries(child_state_api_service
     api_child_state_requests
-    buffer
     api_service
     trie_storage
     blob

@@ -42,7 +42,6 @@ target_link_libraries(application_injector
     block_storage
     block_tree
     block_validator
-    buffer
     chain_api_service
     changes_tracker
     child_state_api_service

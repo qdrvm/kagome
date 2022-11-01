@@ -152,8 +152,7 @@ namespace kagome::api {
     OUTCOME_TRY(value_opt, getStorage(child_storage_key, key, block_hash_opt));
     if (value_opt.has_value()) {
       storage::trie::PolkadotCodec codec;
-      auto hash =
-          codec.hash256(common::Buffer(gsl::make_span(value_opt.value())));
+      auto hash = codec.hash256(value_opt.value());
       return hash;
     }
     return std::nullopt;
