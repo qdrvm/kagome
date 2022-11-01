@@ -270,6 +270,8 @@ namespace kagome::network {
 
     align_timer_.cancel();
 
+    clearClosedPingingConnections();
+
     // disconnect from peers with negative reputation
     using PriorityType = int32_t;
     using ItemType = std::pair<PriorityType, PeerId>;
@@ -457,6 +459,7 @@ namespace kagome::network {
                peer_id);
       return;
     }
+    clearClosedPingingConnections();
     auto [_, is_emplaced] = pinging_connections_.emplace(conn);
     if (not is_emplaced) {
       // Pinging is already going
@@ -789,4 +792,14 @@ namespace kagome::network {
              last_active_peers.size());
   }
 
+  void PeerManagerImpl::clearClosedPingingConnections() {
+    for (auto it = pinging_connections_.begin();
+         it != pinging_connections_.end();) {
+      if ((**it).isClosed()) {
+        it = pinging_connections_.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
 }  // namespace kagome::network
