@@ -10,7 +10,7 @@
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::parachain {
-  /// Executes pvf
+  /// Executes pvf (Parachain Validation Function, wasm)
   class Pvf {
    public:
     using CandidateReceipt = network::CandidateReceipt;

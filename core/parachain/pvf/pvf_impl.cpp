@@ -14,21 +14,21 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
   switch (e) {
     case PvfError::NO_PERSISTED_DATA:
-      return "PvfError::NO_PERSISTED_DATA";
+      return "PersistedValidationData was not found";
     case PvfError::POV_SIZE:
-      return "PvfError::POV_SIZE";
+      return "PoV is too big";
     case PvfError::POV_HASH:
-      return "PvfError::POV_HASH";
+      return "PoV hash mismatch";
     case PvfError::CODE_HASH:
-      return "PvfError::CODE_HASH";
+      return "Code hash mismatch";
     case PvfError::SIGNATURE:
-      return "PvfError::SIGNATURE";
+      return "Signature is invalid";
     case PvfError::HEAD_HASH:
-      return "PvfError::HEAD_HASH";
+      return "Head hash mismatch";
     case PvfError::COMMITMENTS_HASH:
-      return "PvfError::COMMITMENTS_HASH";
+      return "Commitments hash mismatch";
     case PvfError::OUTPUTS:
-      return "PvfError::OUTPUTS";
+      return "ValidationResult is invalid";
   }
   return fmt::format("PvfError({})", e);
 }

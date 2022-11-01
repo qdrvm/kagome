@@ -120,13 +120,15 @@ namespace kagome::network {
         para_head_hash;  /// Hash of the parachain head data of this candidate.
     primitives::BlockHash para_runtime_hash;  /// Hash of the parachain Runtime.
 
-    auto signable() const {
-      return scale::encode(std::make_tuple(relay_parent,
-                                           para_id,
-                                           persisted_data_hash,
-                                           pov_hash,
-                                           para_runtime_hash))
-          .value();
+    common::Buffer signable() const {
+      return common::Buffer{
+          scale::encode(relay_parent,
+                        para_id,
+                        persisted_data_hash,
+                        pov_hash,
+                        para_runtime_hash)
+              .value(),
+      };
     }
   };
 
