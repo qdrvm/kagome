@@ -64,11 +64,11 @@ int main(int argc, const char **argv) {
     }
 
     {
-      profiler::initTables();
+     /* profiler::initTables();
       auto keeper = gsl::finally([]() {
         profiler::printTables("./222.log");
         profiler::deinitTables();
-      });
+      });*/
       app->run();
     }
   }
