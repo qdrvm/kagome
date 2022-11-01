@@ -146,7 +146,6 @@ struct BlockTreeTest : public testing::Test {
                                         chain_events_engine,
                                         ext_events_engine,
                                         extrinsic_event_key_repo,
-                                        runtime_core_,
                                         changes_tracker_,
                                         justification_storage_policy_)
                       .value();
@@ -235,9 +234,6 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
-
-  std::shared_ptr<runtime::CoreMock> runtime_core_ =
-      std::make_shared<runtime::CoreMock>();
 
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
       std::make_shared<storage::changes_trie::ChangesTrackerMock>();
@@ -401,8 +397,6 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success(header)));
   EXPECT_CALL(*storage_, getBlockBody(bid))
       .WillRepeatedly(Return(outcome::success(body)));
-  EXPECT_CALL(*runtime_core_, version(hash))
-      .WillRepeatedly(Return(primitives::Version{}));
   EXPECT_CALL(*justification_storage_policy_,
               shouldStoreFor(finalized_block_header_))
       .WillOnce(Return(outcome::success(false)));
@@ -463,8 +457,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
       .WillRepeatedly(Return(outcome::success(B1_header)));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B1_hash}))
       .WillRepeatedly(Return(outcome::success(B1_body)));
-  EXPECT_CALL(*runtime_core_, version(B1_hash))
-      .WillRepeatedly(Return(primitives::Version{}));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
       .WillRepeatedly(Return(outcome::success(B1_body)));
   EXPECT_CALL(*pool_, submitExtrinsic(_, _))
@@ -534,8 +526,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
       .WillRepeatedly(Return(outcome::success(B_header)));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
       .WillRepeatedly(Return(outcome::success(B_body)));
-  EXPECT_CALL(*runtime_core_, version(B_hash))
-      .WillRepeatedly(Return(primitives::Version{}));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B1_hash}))
       .WillRepeatedly(Return(outcome::success(B1_body)));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{C1_hash}))
@@ -843,9 +833,6 @@ TEST_F(BlockTreeTest, Reorganize) {
   EXPECT_CALL(*storage_, getBlockBody(_))
       .WillRepeatedly(Return(outcome::success(BlockBody{})));
 
-  EXPECT_CALL(*runtime_core_, version(C2_hash))
-      .WillRepeatedly(Return(primitives::Version{}));
-
   EXPECT_CALL(
       *storage_,
       removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
@@ -887,9 +874,6 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
 
   Justification new_justification{"justification_56"_buf};
 
-  EXPECT_CALL(*runtime_core_, version(b56))
-      .WillRepeatedly(Return(primitives::Version{}));
-
   // shouldn't keep old justification
   EXPECT_CALL(*justification_storage_policy_,
               shouldStoreFor(finalized_block_header_))
@@ -913,9 +897,6 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
       .WillOnce(Return(primitives::BlockBody{}));
 
   Justification new_justification{"justification_56"_buf};
-
-  EXPECT_CALL(*runtime_core_, version(b56))
-      .WillRepeatedly(Return(primitives::Version{}));
 
   // shouldn't keep old justification
   EXPECT_CALL(*justification_storage_policy_,

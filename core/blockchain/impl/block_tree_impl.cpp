@@ -216,7 +216,6 @@ namespace kagome::blockchain {
                           std::move(chain_events_engine),
                           std::move(extrinsic_events_engine),
                           std::move(extrinsic_event_key_repo),
-                          std::move(runtime_core),
                           std::move(changes_tracker),
                           std::move(justification_storage_policy));
 

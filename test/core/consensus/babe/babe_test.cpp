@@ -130,10 +130,14 @@ class BabeTest : public testing::Test {
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
+    chain_events_engine_ =
+        std::make_shared<primitives::events::ChainSubscriptionEngine>();
+
     offchain_worker_api_ = std::make_shared<runtime::OffchainWorkerApiMock>();
     EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
         .WillRepeatedly(Return(outcome::success()));
 
+    core_ = std::make_shared<runtime::CoreMock>();
     consistency_keeper_ = std::make_shared<babe::ConsistencyKeeperMock>();
 
     auto block_executor = std::make_shared<BlockExecutorMock>();
@@ -161,7 +165,9 @@ class BabeTest : public testing::Test {
                                              grandpa_authority_update_observer_,
                                              synchronizer_,
                                              babe_util_,
+                                             chain_events_engine_,
                                              offchain_worker_api_,
+                                             core_,
                                              consistency_keeper_);
 
     epoch_.start_slot = 0;
@@ -200,6 +206,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;
+  primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
   std::shared_ptr<runtime::OffchainWorkerApiMock> offchain_worker_api_;
   std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
   std::shared_ptr<boost::asio::io_context> io_context_;
