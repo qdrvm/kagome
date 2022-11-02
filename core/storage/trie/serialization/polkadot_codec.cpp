@@ -67,21 +67,23 @@ namespace kagome::storage::trie {
     return out;
   }
 
-  outcome::result<common::Buffer> PolkadotCodec::encodeNode(
-      const Node &node) const {
+  outcome::result<common::Buffer> PolkadotCodec::encodeNodeAndStoreChildren(
+      const Node &node, StoreChildren &store_children) const {
     switch (static_cast<TrieNode::Type>(node.getType())) {
       case TrieNode::Type::Leaf:
         return encodeLeaf(dynamic_cast<const LeafNode &>(node));
 
       case TrieNode::Type::BranchEmptyValue:
       case TrieNode::Type::BranchWithValue:
-        return encodeBranch(dynamic_cast<const BranchNode &>(node));
+        return encodeBranch(dynamic_cast<const BranchNode &>(node),
+                            store_children);
 
       case TrieNode::Type::LeafContainingHashes:
         return encodeLeaf(dynamic_cast<const LeafNode &>(node));
 
       case TrieNode::Type::BranchContainingHashes:
-        return encodeBranch(dynamic_cast<const BranchNode &>(node));
+        return encodeBranch(dynamic_cast<const BranchNode &>(node),
+                            store_children);
 
       case TrieNode::Type::Empty:
         return std::errc::invalid_argument;
@@ -166,7 +168,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeBranch(
-      const BranchNode &node) const {
+      const BranchNode &node, StoreChildren &store_children) const {
     // node header
     OUTCOME_TRY(encoding, encodeHeader(node));
 
@@ -191,8 +193,12 @@ namespace kagome::storage::trie {
           OUTCOME_TRY(scale_enc, scale::encode(std::move(merkle_value)));
           encoding.put(scale_enc);
         } else {
-          OUTCOME_TRY(enc, encodeNode(*child));
-          OUTCOME_TRY(scale_enc, scale::encode(merkleValue(enc)));
+          OUTCOME_TRY(enc, encodeNodeAndStoreChildren(*child, store_children));
+          auto merkle = merkleValue(enc);
+          if (isMerkleHash(merkle)) {
+            OUTCOME_TRY(store_children.store(merkle, std::move(enc)));
+          }
+          OUTCOME_TRY(scale_enc, scale::encode(merkle));
           encoding.put(scale_enc);
         }
       }

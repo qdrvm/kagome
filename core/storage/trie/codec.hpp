@@ -11,6 +11,13 @@
 #include "storage/trie/node.hpp"
 
 namespace kagome::storage::trie {
+  struct StoreChildren {
+    virtual ~StoreChildren() = default;
+    virtual outcome::result<void> store(const common::BufferView &hash,
+                                        common::Buffer &&encoded) {
+      return outcome::success();
+    }
+  };
 
   /**
    * @brief Internal codec for nodes in the Trie. Eth and substrate have
@@ -25,8 +32,13 @@ namespace kagome::storage::trie {
      * @param node node in the trie
      * @return encoded representation of a {@param node}
      */
-    virtual outcome::result<common::Buffer> encodeNode(
-        const Node &node) const = 0;
+    virtual outcome::result<common::Buffer> encodeNodeAndStoreChildren(
+        const Node &node, StoreChildren &store_children) const = 0;
+
+    outcome::result<common::Buffer> encodeNode(const Node &node) const {
+      StoreChildren store_children;
+      return encodeNodeAndStoreChildren(node, store_children);
+    }
 
     /**
      * @brief Decode node from bytes
