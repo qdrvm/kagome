@@ -5,6 +5,7 @@
 
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <unordered_map>
 #include <utility>
 
@@ -64,9 +65,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      auto min_size = std::min(prefix.size(), key->size());
-      if (not std::equal(
-              prefix.begin(), prefix.begin() + min_size, key.value().begin())) {
+      if (!boost::algorithm::starts_with(key.value(), prefix)) {
         break;
       }
       result.push_back(cursor->key().value());
@@ -114,9 +113,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      auto min_size = std::min(prefix.size(), key->size());
-      if (not std::equal(
-              prefix.begin(), prefix.begin() + min_size, key.value().begin())) {
+      if (!boost::algorithm::starts_with(key.value(), prefix)) {
         break;
       }
       result.push_back(cursor->key().value());
