@@ -52,6 +52,7 @@
 #include "testutil/runtime/common/basic_code_provider.hpp"
 
 using testing::_;
+using testing::Invoke;
 using testing::Return;
 
 using namespace kagome;
@@ -138,11 +139,11 @@ class RuntimeTestBase : public ::testing::Test {
 
     cache_ = std::make_shared<runtime::RuntimePropertiesCacheMock>();
     ON_CALL(*cache_, getVersion(_, _))
-        .WillByDefault(testing::Invoke(
-            [](const auto &hash, auto func) { return func(); }));
+        .WillByDefault(
+            Invoke([](const auto &hash, auto func) { return func(); }));
     ON_CALL(*cache_, getMetadata(_, _))
-        .WillByDefault(testing::Invoke(
-            [](const auto &hash, auto func) { return func(); }));
+        .WillByDefault(
+            Invoke([](const auto &hash, auto func) { return func(); }));
 
     auto module_factory = createModuleFactory();
 

@@ -69,11 +69,11 @@ class ExecutorTest : public testing::Test {
 
     cache_ = std::make_shared<RuntimePropertiesCacheMock>();
     ON_CALL(*cache_, getVersion(_, _))
-        .WillByDefault(testing::Invoke(
-            [](const auto &hash, auto func) { return func(); }));
+        .WillByDefault(
+            Invoke([](const auto &hash, auto func) { return func(); }));
     ON_CALL(*cache_, getMetadata(_, _))
-        .WillByDefault(testing::Invoke(
-            [](const auto &hash, auto func) { return func(); }));
+        .WillByDefault(
+            Invoke([](const auto &hash, auto func) { return func(); }));
 
     storage_ = std::make_shared<kagome::storage::trie::TrieStorageMock>();
   }

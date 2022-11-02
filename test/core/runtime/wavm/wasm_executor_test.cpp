@@ -80,6 +80,8 @@ using kagome::storage::trie::PolkadotTrieImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorage;
 using kagome::storage::trie::TrieStorageImpl;
+using testing::_;
+using testing::Invoke;
 using testing::Return;
 
 namespace fs = boost::filesystem;
@@ -217,11 +219,11 @@ class WasmExecutorTest : public ::testing::Test {
 
     cache_ = std::make_shared<RuntimePropertiesCacheMock>();
     ON_CALL(*cache_, getVersion(_, _))
-        .WillByDefault(testing::Invoke(
-            [](const auto &hash, auto func) { return func(); }));
+        .WillByDefault(
+            Invoke([](const auto &hash, auto func) { return func(); }));
     ON_CALL(*cache_, getMetadata(_, _))
-        .WillByDefault(testing::Invoke(
-            [](const auto &hash, auto func) { return func(); }));
+        .WillByDefault(
+            Invoke([](const auto &hash, auto func) { return func(); }));
 
     executor_ = std::make_shared<Executor>(env_factory, cache_);
   }
