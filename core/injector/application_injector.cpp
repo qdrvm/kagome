@@ -901,7 +901,8 @@ namespace {
                       sptr<runtime::wavm::InstanceEnvironmentFactory>>(),
                   injector
                       .template create<sptr<runtime::wavm::IntrinsicModule>>(),
-                  module_cache_opt);
+                  module_cache_opt,
+                  injector.template create<sptr<crypto::Hasher>>());
             }),
         di::bind<runtime::ModuleFactory>.template to(
             [method](const auto &injector) {

@@ -76,10 +76,12 @@ namespace kagome::runtime::binaryen {
   ModuleInstanceImpl::ModuleInstanceImpl(
       InstanceEnvironment &&env,
       std::shared_ptr<wasm::Module> parent,
-      std::shared_ptr<RuntimeExternalInterface> rei)
+      std::shared_ptr<RuntimeExternalInterface> rei,
+      const common::Hash256 &code_hash)
       : env_{std::move(env)},
         rei_{std::move(rei)},
         parent_{std::move(parent)},
+        code_hash_(code_hash),
         module_instance_{
             std::make_unique<wasm::ModuleInstance>(*parent_, rei_.get())},
         logger_{log::createLogger("ModuleInstance", "binaryen")} {

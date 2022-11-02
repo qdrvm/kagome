@@ -31,6 +31,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<IntrinsicModule> intrinsic_module,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
         gsl::span<const uint8_t> code,
+        const common::Hash256 &code_hash,
         std::shared_ptr<SingleModuleCache> last_compiled_module)
         : instance_env_factory_{std::move(instance_env_factory)},
           compartment_{compartment},
@@ -53,7 +54,8 @@ namespace kagome::runtime::wavm {
                                               *module_params_,
                                               intrinsic_module_,
                                               instance_env_factory_,
-                                              code_);
+                                              code_,
+                                              code_hash_);
         OUTCOME_TRY(inst, module->instantiate());
         last_compiled_module_->set(std::move(module));
         instance_ = std::move(inst);
@@ -68,6 +70,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<ModuleParams> module_params_;
     std::shared_ptr<IntrinsicModule> intrinsic_module_;
     gsl::span<const uint8_t> code_;
+    const common::Hash256 code_hash_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
   };
 
@@ -114,6 +117,7 @@ namespace kagome::runtime::wavm {
   std::unique_ptr<Core> CoreApiFactoryImpl::make(
       std::shared_ptr<const crypto::Hasher> hasher,
       const std::vector<uint8_t> &runtime_code) const {
+    auto code_hash = hasher->sha2_256(runtime_code);
     auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
         std::make_shared<OneCodeProvider>(runtime_code),
         std::make_shared<OneModuleRepository>(
@@ -125,6 +129,7 @@ namespace kagome::runtime::wavm {
                 runtime_code.data(),
                 static_cast<gsl::span<const uint8_t>::index_type>(
                     runtime_code.size())},
+            code_hash,
             last_compiled_module_),
         block_header_repo_);
     auto cache = std::make_shared<runtime::RuntimePropertiesCacheImpl>();

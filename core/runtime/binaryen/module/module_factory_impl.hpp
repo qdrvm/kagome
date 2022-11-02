@@ -12,6 +12,10 @@ namespace kagome::runtime {
   class TrieStorageProvider;
 }
 
+namespace kagome::crypto {
+  class Hasher;
+}
+
 namespace kagome::host_api {
   class HostApiFactory;
 }
@@ -35,7 +39,8 @@ namespace kagome::runtime::binaryen {
   class ModuleFactoryImpl final : public ModuleFactory {
    public:
     ModuleFactoryImpl(std::shared_ptr<InstanceEnvironmentFactory> env_factory,
-                      std::shared_ptr<storage::trie::TrieStorage> storage);
+                      std::shared_ptr<storage::trie::TrieStorage> storage,
+                      std::shared_ptr<crypto::Hasher> hasher);
 
     outcome::result<std::unique_ptr<Module>> make(
         gsl::span<const uint8_t> code) const override;
@@ -43,6 +48,7 @@ namespace kagome::runtime::binaryen {
    private:
     std::shared_ptr<InstanceEnvironmentFactory> env_factory_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
+    std::shared_ptr<crypto::Hasher> hasher_;
   };
 
 }  // namespace kagome::runtime::binaryen

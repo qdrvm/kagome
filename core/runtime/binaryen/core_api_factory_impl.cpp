@@ -20,8 +20,11 @@ namespace kagome::runtime::binaryen {
    public:
     OneModuleRepository(
         const std::vector<uint8_t> &code,
-        std::shared_ptr<const InstanceEnvironmentFactory> env_factory)
-        : env_factory_{std::move(env_factory)}, code_{code} {
+        std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
+        const common::Hash256 &code_hash)
+        : env_factory_{std::move(env_factory)},
+          code_{code},
+          code_hash_(code_hash) {
       BOOST_ASSERT(env_factory_);
     }
 
@@ -30,7 +33,9 @@ namespace kagome::runtime::binaryen {
         const primitives::BlockInfo &,
         const primitives::BlockHeader &) override {
       if (instance_ == nullptr) {
-        OUTCOME_TRY(module, ModuleImpl::createFromCode(code_, env_factory_));
+        OUTCOME_TRY(
+            module,
+            ModuleImpl::createFromCode(code_, env_factory_, code_hash_));
         OUTCOME_TRY(inst, module->instantiate());
         instance_ = std::move(inst);
       }
@@ -41,6 +46,7 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<ModuleInstance> instance_;
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     const std::vector<uint8_t> &code_;
+    const common::Hash256 code_hash_;
   };
 
   class OneCodeProvider final : public RuntimeCodeProvider {
@@ -71,10 +77,11 @@ namespace kagome::runtime::binaryen {
   std::unique_ptr<Core> CoreApiFactoryImpl::make(
       std::shared_ptr<const crypto::Hasher> hasher,
       const std::vector<uint8_t> &runtime_code) const {
+    auto code_hash = hasher->sha2_256(runtime_code);
     auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
         std::make_shared<OneCodeProvider>(runtime_code),
-        std::make_shared<OneModuleRepository>(runtime_code,
-                                              instance_env_factory_),
+        std::make_shared<OneModuleRepository>(
+            runtime_code, instance_env_factory_, code_hash),
         header_repo_);
     auto cache = std::make_shared<runtime::RuntimePropertiesCacheImpl>();
     auto executor = std::make_unique<Executor>(env_factory, cache);

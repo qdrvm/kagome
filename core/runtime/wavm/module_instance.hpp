@@ -36,11 +36,17 @@ namespace kagome::runtime::wavm {
       EXECUTION_ERROR,
       WRONG_RETURN_TYPE
     };
+
     ModuleInstanceImpl(
         InstanceEnvironment &&env,
         WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
         WAVM::Runtime::ModuleRef module,
-        std::shared_ptr<const CompartmentWrapper> compartment);
+        std::shared_ptr<const CompartmentWrapper> compartment,
+        const common::Hash256 &code_hash);
+
+    const common::Hash256 &getCodeHash() const override {
+      return code_hash_;
+    }
 
     outcome::result<PtrSize> callExportFunction(
         std::string_view name, common::BufferView encoded_args) const override;
@@ -58,6 +64,7 @@ namespace kagome::runtime::wavm {
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance_;
     WAVM::Runtime::ModuleRef module_;
     std::shared_ptr<const CompartmentWrapper> compartment_;
+    common::Hash256 code_hash_;
     log::Logger logger_;
   };
 
