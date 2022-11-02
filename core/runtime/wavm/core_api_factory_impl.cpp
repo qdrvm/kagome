@@ -95,7 +95,8 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-      std::shared_ptr<SingleModuleCache> last_compiled_module)
+      std::shared_ptr<SingleModuleCache> last_compiled_module,
+      std::shared_ptr<runtime::RuntimePropertiesCache> cache)
       : instance_env_factory_{std::move(instance_env_factory)},
         compartment_{compartment},
         module_params_{std::move(module_params)},
@@ -103,7 +104,8 @@ namespace kagome::runtime::wavm {
         storage_{std::move(storage)},
         block_header_repo_{std::move(block_header_repo)},
         changes_tracker_{std::move(changes_tracker)},
-        last_compiled_module_{last_compiled_module} {
+        last_compiled_module_{last_compiled_module},
+        cache_(std::move(cache)) {
     BOOST_ASSERT(compartment_);
     BOOST_ASSERT(module_params_);
     BOOST_ASSERT(intrinsic_module_);
@@ -112,6 +114,7 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(instance_env_factory_);
     BOOST_ASSERT(changes_tracker_);
     BOOST_ASSERT(last_compiled_module_);
+    BOOST_ASSERT(cache_);
   }
 
   std::unique_ptr<Core> CoreApiFactoryImpl::make(
@@ -132,8 +135,7 @@ namespace kagome::runtime::wavm {
             code_hash,
             last_compiled_module_),
         block_header_repo_);
-    auto cache = std::make_shared<runtime::RuntimePropertiesCacheImpl>();
-    auto executor = std::make_unique<runtime::Executor>(env_factory, cache);
+    auto executor = std::make_unique<runtime::Executor>(env_factory, cache_);
     return std::make_unique<CoreImpl>(
         std::move(executor), changes_tracker_, block_header_repo_);
   }

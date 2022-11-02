@@ -18,7 +18,7 @@
 
 class BinaryenRuntimeTest : public RuntimeTestBase {
  public:
-  virtual std::shared_ptr<kagome::runtime::ModuleFactory> createModuleFactory()
+  std::shared_ptr<kagome::runtime::ModuleFactory> createModuleFactory()
       override {
     auto memory_factory =
         std::make_shared<kagome::runtime::binaryen::BinaryenMemoryFactory>();
@@ -32,11 +32,12 @@ class BinaryenRuntimeTest : public RuntimeTestBase {
             serializer_,
             host_api_factory_,
             header_repo_,
-            changes_tracker_);
+            changes_tracker_,
+            cache_);
 
     auto module_factory =
         std::make_shared<kagome::runtime::binaryen::ModuleFactoryImpl>(
-            instance_env_factory, trie_storage_);
+            instance_env_factory, trie_storage_, hasher_);
     return module_factory;
   }
 };

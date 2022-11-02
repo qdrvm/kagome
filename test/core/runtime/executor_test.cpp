@@ -15,6 +15,7 @@
 #include "mock/core/runtime/module_instance_mock.hpp"
 #include "mock/core/runtime/module_repository_mock.hpp"
 #include "mock/core/runtime/runtime_environment_factory_mock.hpp"
+#include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
@@ -37,6 +38,7 @@ using kagome::runtime::ModuleRepositoryMock;
 using kagome::runtime::PtrSize;
 using kagome::runtime::RuntimeEnvironment;
 using kagome::runtime::RuntimeEnvironmentTemplateMock;
+using kagome::runtime::RuntimePropertiesCacheMock;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::storage::trie::PersistentTrieBatch;
 using kagome::storage::trie::PersistentTrieBatchMock;
@@ -54,14 +56,25 @@ class ExecutorTest : public testing::Test {
 
   void SetUp() override {
     memory_ = std::make_unique<MemoryMock>();
+
+    header_repo_ = std::make_shared<BlockHeaderRepositoryMock>();
+
     auto code_provider = std::make_shared<BasicCodeProvider>(
         boost::filesystem::path(__FILE__).parent_path().string()
         + "/wasm/sumtwo.wasm");
     auto module_repo = std::make_shared<ModuleRepositoryMock>();
-    header_repo_ = std::make_shared<BlockHeaderRepositoryMock>();
     env_factory_ =
         std::make_shared<kagome::runtime::RuntimeEnvironmentFactoryMock>(
             code_provider, module_repo, header_repo_);
+
+    cache_ = std::make_shared<RuntimePropertiesCacheMock>();
+    ON_CALL(*cache_, getVersion(_, _))
+        .WillByDefault(testing::Invoke(
+            [](const auto &hash, auto func) { return func(); }));
+    ON_CALL(*cache_, getMetadata(_, _))
+        .WillByDefault(testing::Invoke(
+            [](const auto &hash, auto func) { return func(); }));
+
     storage_ = std::make_shared<kagome::storage::trie::TrieStorageMock>();
   }
 
@@ -190,12 +203,13 @@ class ExecutorTest : public testing::Test {
  protected:
   std::unique_ptr<MemoryMock> memory_;
   std::shared_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock> env_factory_;
+  std::shared_ptr<kagome::runtime::RuntimePropertiesCacheMock> cache_;
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo_;
   std::shared_ptr<kagome::storage::trie::TrieStorageMock> storage_;
 };
 
 TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
-  Executor executor{env_factory_};
+  Executor executor{env_factory_, cache_};
   kagome::primitives::BlockInfo block_info1{42, "block_hash1"_hash256};
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};

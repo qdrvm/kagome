@@ -62,9 +62,9 @@ target_link_libraries(runtime_upgrade_tracker_test
     )
 
 addtest(small_lru_cache_test
-        small_lru_cache_test.cpp
-        )
+    small_lru_cache_test.cpp
+    )
 target_link_libraries(small_lru_cache_test
-        module_repository
-        blob
-        )
+    module_repository
+    blob
+    )
