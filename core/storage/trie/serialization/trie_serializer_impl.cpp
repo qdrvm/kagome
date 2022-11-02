@@ -12,6 +12,17 @@
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
+  struct StoreChildrenToBatch : StoreChildren {
+    StoreChildrenToBatch(storage::BufferBatch &batch) : batch{batch} {}
+
+    outcome::result<void> store(const common::BufferView &hash,
+                                common::Buffer &&encoded) override {
+      return batch.put(hash, std::move(encoded));
+      return outcome::success();
+    }
+
+    storage::BufferBatch &batch;
+  };
 
   TrieSerializerImpl::TrieSerializerImpl(
       std::shared_ptr<PolkadotTrieFactory> factory,
@@ -54,56 +65,14 @@ namespace kagome::storage::trie {
 
   outcome::result<RootHash> TrieSerializerImpl::storeRootNode(TrieNode &node) {
     auto batch = backend_->batch();
-    using T = TrieNode::Type;
 
-    // if node is a branch node, its children must be stored to the storage
-    // before it, as their hashes, which are used as database keys, are a part
-    // of its encoded representation required to save it to the storage
-    if (node.getTrieType() == T::BranchEmptyValue
-        || node.getTrieType() == T::BranchWithValue) {
-      auto &branch = dynamic_cast<BranchNode &>(node);
-      OUTCOME_TRY(storeChildren(branch, *batch));
-    }
-
-    OUTCOME_TRY(enc, codec_->encodeNode(node));
+    StoreChildrenToBatch store_children{*batch};
+    OUTCOME_TRY(enc, codec_->encodeNodeAndStoreChildren(node, store_children));
     auto key = codec_->hash256(enc);
     OUTCOME_TRY(batch->put(key, enc));
     OUTCOME_TRY(batch->commit());
 
     return key;
-  }
-
-  outcome::result<common::Buffer> TrieSerializerImpl::storeNode(
-      TrieNode &node, BufferBatch &batch) {
-    using T = TrieNode::Type;
-
-    // if node is a branch node, its children must be stored to the storage
-    // before it, as their hashes, which are used as database keys, are a part
-    // of its encoded representation required to save it to the storage
-    if (node.getTrieType() == T::BranchEmptyValue
-        || node.getTrieType() == T::BranchWithValue) {
-      auto &branch = dynamic_cast<BranchNode &>(node);
-      OUTCOME_TRY(storeChildren(branch, batch));
-    }
-    OUTCOME_TRY(enc, codec_->encodeNode(node));
-    auto key = Buffer{codec_->merkleValue(enc)};
-    if (codec_->isMerkleHash(key)) {
-      OUTCOME_TRY(batch.put(key, enc));
-    }
-    return key;
-  }
-
-  outcome::result<void> TrieSerializerImpl::storeChildren(BranchNode &branch,
-                                                          BufferBatch &batch) {
-    for (auto &child : branch.children) {
-      if (auto c = std::dynamic_pointer_cast<TrieNode>(child); c != nullptr) {
-        OUTCOME_TRY(hash, storeNode(*c, batch));
-        // when a node is written to the storage, it is replaced with a dummy
-        // node to avoid memory waste
-        child = std::make_shared<DummyNode>(hash);
-      }
-    }
-    return outcome::success();
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
