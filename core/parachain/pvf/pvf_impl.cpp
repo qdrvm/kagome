@@ -94,13 +94,18 @@ namespace kagome::parachain {
         module_factory_{std::move(module_factory)},
         block_header_repository_{std::move(block_header_repository)},
         sr25519_provider_{std::move(sr25519_provider)},
-        parachain_api_{std::move(parachain_api)} {}
+        parachain_api_{std::move(parachain_api)},
+        log_{log::createLogger("Pvf")} {}
 
   outcome::result<Pvf::Result> PvfImpl::pvfSync(
       const CandidateReceipt &receipt, const ParachainBlock &pov) const {
+    SL_DEBUG(log_,
+             "pvfSync relay_parent={} para_id={}",
+             receipt.descriptor.relay_parent,
+             receipt.descriptor.para_id);
     OUTCOME_TRY(data_code, findData(receipt.descriptor));
     auto &[data, code] = data_code;
-    auto pov_encoded = scale::encode(pov).value();
+    OUTCOME_TRY(pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
       return PvfError::POV_SIZE;
     }
@@ -142,7 +147,12 @@ namespace kagome::parachain {
                   parachain_api_->persisted_validation_data(
                       descriptor.relay_parent, descriptor.para_id, assumption));
       if (!data) {
-        break;
+        SL_VERBOSE(log_,
+                   "findData relay_parent={} para_id={}: not found "
+                   "(persisted_validation_data)",
+                   descriptor.relay_parent,
+                   descriptor.para_id);
+        return PvfError::NO_PERSISTED_DATA;
       }
       auto data_hash = hasher_->blake2b_256(scale::encode(*data).value());
       if (descriptor.persisted_data_hash != data_hash) {
@@ -152,10 +162,19 @@ namespace kagome::parachain {
                   parachain_api_->validation_code(
                       descriptor.relay_parent, descriptor.para_id, assumption));
       if (!code) {
-        break;
+        SL_VERBOSE(
+            log_,
+            "findData relay_parent={} para_id={}: not found (validation_code)",
+            descriptor.relay_parent,
+            descriptor.para_id);
+        return PvfError::NO_PERSISTED_DATA;
       }
       return std::make_pair(*data, *code);
     }
+    SL_VERBOSE(log_,
+               "findData relay_parent={} para_id={}: not found",
+               descriptor.relay_parent,
+               descriptor.para_id);
     return PvfError::NO_PERSISTED_DATA;
   }
 
@@ -199,6 +218,11 @@ namespace kagome::parachain {
                     receipt.descriptor.para_id,
                     commitments));
     if (!valid) {
+      SL_VERBOSE(log_,
+                 "fromOutputs relay_parent={} para_id={}: invalid "
+                 "(check_validation_outputs)",
+                 receipt.descriptor.relay_parent,
+                 receipt.descriptor.para_id);
       return PvfError::OUTPUTS;
     }
     return commitments;

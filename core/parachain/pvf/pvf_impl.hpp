@@ -10,6 +10,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "log/logger.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 
@@ -62,6 +63,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
+    log::Logger log_;
   };
 }  // namespace kagome::parachain
 
