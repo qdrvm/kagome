@@ -101,7 +101,7 @@ namespace kagome::network {
     if (request.start.size() == 2) {
       const auto &parent_key = request.start[0];
       const auto &child_prefix = storage::kChildStorageDefaultPrefix;
-      if (!boost::algorithm::starts_with(parent_key, child_prefix)) {
+      if (!boost::starts_with(parent_key, child_prefix)) {
         return Error::INVALID_CHILD_ROOTHASH;
       }
       if (auto value_res = batch->tryGet(parent_key);
@@ -134,8 +134,7 @@ namespace kagome::network {
         size +=
             entry.entries.back().key.size() + entry.entries.back().value.size();
         // if key is child state storage hash iterate child storage keys
-        if (boost::algorithm::starts_with(cursor->key().value(),
-                                          child_prefix)) {
+        if (boost::starts_with(cursor->key().value(), child_prefix)) {
           OUTCOME_TRY(hash,
                       storage::trie::RootHash::fromSpan(
                           value_res.value().value().get()));

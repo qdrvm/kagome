@@ -144,8 +144,7 @@ void child_storage_root_hashes(
   auto res = cursor->seekUpperBound(child_prefix);
   if (res.has_value()) {
     auto key = cursor->key();
-    while (key.has_value()
-           && boost::algorithm::starts_with(key.value(), child_prefix)) {
+    while (key.has_value() && boost::starts_with(key.value(), child_prefix)) {
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
         auto &value_opt = value_res.value();
@@ -364,8 +363,7 @@ int main(int argc, char *argv[]) {
       {
         TicToc t2("Process DB.", log);
         while (db_cursor->isValid() && db_cursor->key().has_value()
-               && boost::algorithm::starts_with(db_cursor->key().value(),
-                                                prefix)) {
+               && boost::starts_with(db_cursor->key().value(), prefix)) {
           auto res2 = check(db_batch->remove(db_cursor->key().value()));
           count++;
           if (not(count % 10000000)) {
