@@ -11,6 +11,9 @@
 #include "storage/trie/node.hpp"
 
 namespace kagome::storage::trie {
+  /**
+   * @brief Stores encoded children node for later retrieval
+   */
   struct StoreChildren {
     virtual ~StoreChildren() = default;
     virtual outcome::result<void> store(const common::BufferView &hash,
@@ -28,13 +31,19 @@ namespace kagome::storage::trie {
     virtual ~Codec() = default;
 
     /**
-     * @brief Encode node to byte representation
+     * @brief Encode node to byte representation and store children
      * @param node node in the trie
+     * @param store_children chidren storer
      * @return encoded representation of a {@param node}
      */
     virtual outcome::result<common::Buffer> encodeNodeAndStoreChildren(
         const Node &node, StoreChildren &store_children) const = 0;
 
+    /**
+     * @brief Encode node to byte representation
+     * @param node node in the trie
+     * @return encoded representation of a {@param node}
+     */
     outcome::result<common::Buffer> encodeNode(const Node &node) const {
       StoreChildren store_children;
       return encodeNodeAndStoreChildren(node, store_children);
