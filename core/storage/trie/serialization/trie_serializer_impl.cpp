@@ -87,7 +87,9 @@ namespace kagome::storage::trie {
     }
     OUTCOME_TRY(enc, codec_->encodeNode(node));
     auto key = Buffer{codec_->merkleValue(enc)};
-    OUTCOME_TRY(batch.put(key, enc));
+    if (codec_->isMerkleHash(key)) {
+      OUTCOME_TRY(batch.put(key, enc));
+    }
     return key;
   }
 
@@ -118,7 +120,13 @@ namespace kagome::storage::trie {
     if (db_key.empty() or db_key == getEmptyRootHash()) {
       return nullptr;
     }
-    OUTCOME_TRY(enc, backend_->load(db_key));
+    Buffer enc;
+    if (codec_->isMerkleHash(db_key)) {
+      OUTCOME_TRY(db, backend_->load(db_key));
+      enc = std::move(db);
+    } else {
+      enc = db_key;
+    }
     OUTCOME_TRY(n, codec_->decodeNode(enc));
     return std::dynamic_pointer_cast<TrieNode>(n);
   }

@@ -48,6 +48,12 @@ namespace kagome::storage::trie {
     return Buffer{hash256(buf)};
   }
 
+  bool PolkadotCodec::isMerkleHash(const common::BufferView &buf) const {
+    const auto size = static_cast<size_t>(buf.size());
+    assert(size <= common::Hash256::size());
+    return size == common::Hash256::size();
+  }
+
   common::Hash256 PolkadotCodec::hash256(const common::BufferView &buf) const {
     common::Hash256 out;
 

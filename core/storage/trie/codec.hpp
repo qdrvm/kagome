@@ -43,6 +43,8 @@ namespace kagome::storage::trie {
      */
     virtual common::Buffer merkleValue(const common::BufferView &buf) const = 0;
 
+    virtual bool isMerkleHash(const common::BufferView &buf) const = 0;
+
     /**
      * @brief Get the hash of a node
      * @param buf byte representation of the node

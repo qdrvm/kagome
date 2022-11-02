@@ -38,6 +38,8 @@ namespace kagome::storage::trie {
 
     common::Buffer merkleValue(const BufferView &buf) const override;
 
+    bool isMerkleHash(const common::BufferView &buf) const override;
+
     common::Hash256 hash256(const BufferView &buf) const override;
 
     /**
