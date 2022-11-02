@@ -159,6 +159,8 @@ namespace kagome::network {
     /// node start
     void storeActivePeers();
 
+    void clearClosedPingingConnections();
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
