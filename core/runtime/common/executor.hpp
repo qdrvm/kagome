@@ -20,12 +20,22 @@
 #include "runtime/module_instance.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/persistent_result.hpp"
+#include "runtime/runtime_api/metadata.hpp"
 #include "runtime/runtime_environment_factory.hpp"
 #include "runtime/runtime_properties_cache.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
+
+#ifdef __has_builtin
+#if __has_builtin(__builtin_expect)
+#define unlikely(x) __builtin_expect((x), 0)
+#endif
+#endif
+#ifndef unlikely
+#define unlikely(x) (x)
+#endif
 
 namespace kagome::runtime {
 
@@ -134,6 +144,25 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
+
+      if constexpr (std::is_same_v<Result, primitives::Version>) {
+        if (unlikely(name == "Core_version")) {
+          return cache_->getVersion(env->module_instance->getCodeHash(), [&] {
+            return callInternal<Result>(
+                *env, name, std::forward<Args>(args)...);
+          });
+        }
+      }
+
+      if constexpr (std::is_same_v<Result, primitives::OpaqueMetadata>) {
+        if (unlikely(name == "Metadata_metadata")) {
+          return cache_->getMetadata(env->module_instance->getCodeHash(), [&] {
+            return callInternal<Result>(
+                *env, name, std::forward<Args>(args)...);
+          });
+        }
+      }
+
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
@@ -148,6 +177,25 @@ namespace kagome::runtime {
                                    Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->make());
+
+      if constexpr (std::is_same_v<Result, primitives::Version>) {
+        if (unlikely(name == "Core_version")) {
+          return cache_->getVersion(env->module_instance->getCodeHash(), [&] {
+            return callInternal<Result>(
+                *env, name, std::forward<Args>(args)...);
+          });
+        }
+      }
+
+      if constexpr (std::is_same_v<Result, primitives::OpaqueMetadata>) {
+        if (unlikely(name == "Metadata_metadata")) {
+          return cache_->getMetadata(env->module_instance->getCodeHash(), [&] {
+            return callInternal<Result>(
+                *env, name, std::forward<Args>(args)...);
+          });
+        }
+      }
+
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
@@ -161,6 +209,25 @@ namespace kagome::runtime {
                                           Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
       OUTCOME_TRY(env, env_template->make());
+
+      if constexpr (std::is_same_v<Result, primitives::Version>) {
+        if (unlikely(name == "Core_version")) {
+          return cache_->getVersion(env->module_instance->getCodeHash(), [&] {
+            return callInternal<Result>(
+                *env, name, std::forward<Args>(args)...);
+          });
+        }
+      }
+
+      if constexpr (std::is_same_v<Result, primitives::OpaqueMetadata>) {
+        if (unlikely(name == "Metadata_metadata")) {
+          return cache_->getMetadata(env->module_instance->getCodeHash(), [&] {
+            return callInternal<Result>(
+                *env, name, std::forward<Args>(args)...);
+          });
+        }
+      }
+
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
@@ -262,5 +329,7 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
+
+#undef unlikely
 
 #endif  // KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP
