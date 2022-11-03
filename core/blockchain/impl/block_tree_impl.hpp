@@ -32,12 +32,6 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "telemetry/service.hpp"
 
-namespace kagome::application {
-  class AppStateManager;
-}
-namespace kagome::consensus::babe {
-  class BabeConfigRepository;
-}
 namespace kagome::storage::changes_trie {
   class ChangesTracker;
 }
@@ -69,7 +63,8 @@ namespace kagome::blockchain {
         primitives::BlockId target_block,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<BlockHeaderRepository> header_repo,
-        std::shared_ptr<const storage::trie::TrieStorage> trie_storage);
+        std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
+        std::shared_ptr<blockchain::BlockTree> block_tree);
 
     ~BlockTreeImpl() override = default;
 
@@ -193,7 +188,6 @@ namespace kagome::blockchain {
         trie_changes_tracker_;
     std::shared_ptr<const class JustificationStoragePolicy>
         justification_storage_policy_;
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
 
     std::optional<primitives::BlockHash> genesis_block_hash_;
     std::optional<primitives::Version> actual_runtime_version_;

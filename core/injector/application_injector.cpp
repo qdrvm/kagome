@@ -1444,6 +1444,7 @@ namespace {
         injector.template create<sptr<const storage::trie::TrieStorage>>();
     auto authority_manager =
         injector.template create<sptr<authority::AuthorityManager>>();
+    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
 
     initialized.emplace(new application::mode::RecoveryMode(
         [&app_config,
@@ -1451,13 +1452,15 @@ namespace {
          authority_manager,
          storage = std::move(storage),
          header_repo = std::move(header_repo),
-         trie_storage = std::move(trie_storage)] {
+         trie_storage = std::move(trie_storage),
+         block_tree = std::move(block_tree)] {
           BOOST_ASSERT(app_config.recoverState().has_value());
           auto res = blockchain::BlockTreeImpl::recover(
               app_config.recoverState().value(),
               storage,
               header_repo,
-              trie_storage);
+              trie_storage,
+              block_tree);
 
           auto log = log::createLogger("RecoveryMode", "main");
 

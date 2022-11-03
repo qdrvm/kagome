@@ -8,13 +8,11 @@
 #include <algorithm>
 #include <stack>
 
-#include "application/app_state_manager.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
 #include "blockchain/impl/common.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "blockchain/impl/storage_util.hpp"
-#include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
@@ -242,7 +240,8 @@ namespace kagome::blockchain {
       primitives::BlockId target_block,
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<BlockHeaderRepository> header_repo,
-      std::shared_ptr<const storage::trie::TrieStorage> trie_storage) {
+      std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
+      std::shared_ptr<blockchain::BlockTree> block_tree) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
     BOOST_ASSERT(trie_storage != nullptr);
@@ -315,7 +314,7 @@ namespace kagome::blockchain {
         return res.as_failure();
       }
 
-      if (auto res = storage->removeBlock(block); res.has_error()) {
+      if (auto res = block_tree->removeLeaf(block.hash); res.has_error()) {
         SL_CRITICAL(
             log, "Can't remove block {}: {}", block, res.error().message());
         return res.as_failure();
@@ -496,10 +495,23 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(node != nullptr,
                      "As checked before, block exists as one of leaves");
 
-    // Remove from block tree
-    tree_->removeFromMeta(node);
+    if (not node->parent.expired()) {
+      // Remove from block tree, ...
+      tree_->removeFromMeta(node);
 
-    OUTCOME_TRY(reorganize());
+      OUTCOME_TRY(reorganize());
+
+    } else {
+      // ... or repair tree by parent of root
+      auto hash_res = header_repo_->getHashByNumber(node->depth - 1);
+      BOOST_ASSERT_MSG(hash_res.has_value(),
+                       "Non genesis block must have parent");
+
+      primitives::BlockInfo block{node->depth - 1, hash_res.value()};
+      auto tree = std::make_shared<TreeNode>(block.hash, block.number, true);
+      auto meta = std::make_shared<TreeMeta>(tree, std::nullopt);
+      tree_ = std::make_unique<CachedTree>(std::move(tree), std::move(meta));
+    }
 
     // Remove from storage
     OUTCOME_TRY(storage_->removeBlock({node->depth, node->block_hash}));
