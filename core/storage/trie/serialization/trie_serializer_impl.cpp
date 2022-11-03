@@ -18,7 +18,6 @@ namespace kagome::storage::trie {
     outcome::result<void> store(const common::BufferView &hash,
                                 common::Buffer &&encoded) override {
       return batch.put(hash, std::move(encoded));
-      return outcome::success();
     }
 
     storage::BufferBatch &batch;

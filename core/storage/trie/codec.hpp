@@ -64,6 +64,9 @@ namespace kagome::storage::trie {
      */
     virtual common::Buffer merkleValue(const common::BufferView &buf) const = 0;
 
+    /**
+     * @brief is this a hash of value, or value itself
+     */
     virtual bool isMerkleHash(const common::BufferView &buf) const = 0;
 
     /**
