@@ -42,18 +42,23 @@ namespace kagome::consensus::grandpa {
                 // calculation errors
     if (!result) {
       auto logger = log::createLogger("VoteCryptoProvider", "authority");
-      for (auto id = voter_set_->id() - 50; id < voter_set_->id() + 50; id++) {
-        auto payload = scale::encode(vote.message, number, id).value();
-        auto verifying_result =
-            ed_provider_->verify(vote.signature, payload, vote.id);
-        if (verifying_result.has_value() and verifying_result.value()) {
-          SL_DEBUG(logger,
-                   "Correct set id is {}, actual is {}",
-                   id,
-                   voter_set_->id());
-          return false;
+      for (auto n = number - 100; n < number + 100; n++) {
+        for (auto id = voter_set_->id() - 100; id < voter_set_->id() + 100; id++) {
+          auto payload = scale::encode(vote.message, n, id).value();
+          auto verifying_result =
+              ed_provider_->verify(vote.signature, payload, vote.id);
+          if (verifying_result.has_value() and verifying_result.value()) {
+            SL_DEBUG(logger,
+                     "Correct set id and number are {} {}, actual are {} {}",
+                     id,
+                     n,
+                     voter_set_->id(),
+                     number);
+            return false;
+          }
         }
       }
+
       SL_DEBUG(logger, "Failed to find correct set id");
     }
 #endif

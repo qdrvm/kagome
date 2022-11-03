@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_VOTING_ROUND_ERROR_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_VOTING_ROUND_ERROR_HPP
 
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
 
 namespace kagome::consensus::grandpa {
 

@@ -1483,6 +1483,7 @@ namespace {
             log->flush();
             return EXIT_FAILURE;
           }
+
           return EXIT_SUCCESS;
         }));
 

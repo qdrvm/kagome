@@ -38,7 +38,7 @@ target_link_libraries(voter_set
     )
 
 add_library(voting_round_error
-    impl/voting_round_error.cpp
+    voting_round_error.cpp
     )
 target_link_libraries(voting_round_error
     outcome

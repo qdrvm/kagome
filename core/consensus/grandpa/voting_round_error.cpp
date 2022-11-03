@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/grandpa/impl/voting_round_error.hpp"
+#include "voting_round_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
   using E = kagome::consensus::grandpa::VotingRoundError;
@@ -32,7 +32,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
       return "New round has an abnormal voter set id, expected "
              "equal or greater by one than the previous voter set id";
     case E::UNKNOWN_VOTER:
-      return "Provided vote is the vote of unknown voter";
+      return "Provided vote's voter is unknown";
     case E::ZERO_WEIGHT_VOTER:
       return "Provided vote of disabled (zero weight) voter";
     case E::DUPLICATED_VOTE:

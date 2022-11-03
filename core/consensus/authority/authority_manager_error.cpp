@@ -16,6 +16,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority, AuthorityManagerError, e) {
       return "Can not save state";
     case E::CANT_RECALCULATE_ON_PRUNED_STATE:
       return "Can't recalculate authority set ids on a pruned database";
+   case E::FAILED_TO_INITIALIZE_SET_ID:
+      return "Failed to initialize the current authority set id on startup";
   }
   return "unknown error (invalid AuthorityManagerError)";
 }

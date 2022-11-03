@@ -25,6 +25,7 @@ namespace kagome::blockchain {
   class BlockTree;
   class BlockHeaderRepository;
 }  // namespace kagome::blockchain
+
 namespace kagome::primitives {
   struct BabeConfiguration;
 }  // namespace kagome::primitives
@@ -39,6 +40,7 @@ namespace kagome::storage::trie {
 }
 
 namespace kagome::authority {
+
   class AuthorityManagerImpl : public AuthorityManager,
                                public AuthorityUpdateObserver {
    public:
@@ -63,7 +65,7 @@ namespace kagome::authority {
         std::shared_ptr<storage::BufferStorage> persistent_storage,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
 
-    ~AuthorityManagerImpl() override = default;
+    ~AuthorityManagerImpl() override;
 
     outcome::result<void> recalculateStoredState(
         primitives::BlockNumber last_finalized_number) override;
@@ -117,8 +119,8 @@ namespace kagome::authority {
     std::shared_ptr<ScheduleNode> getAppropriateAncestor(
         const primitives::BlockInfo &block) const;
 
-    outcome::result<primitives::AuthoritySetId> readSetIdFromRuntime(
-        primitives::BlockHeader const &targetBlock) const;
+    outcome::result<std::optional<primitives::AuthoritySetId>>
+    readSetIdFromRuntime(primitives::BlockHeader const &targetBlock) const;
 
     /**
      * @brief Check if one block is direct ancestor of second one
@@ -133,7 +135,7 @@ namespace kagome::authority {
                     std::shared_ptr<ScheduleNode> new_node);
 
     Config config_;
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
