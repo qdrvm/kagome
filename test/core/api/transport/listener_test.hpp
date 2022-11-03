@@ -21,6 +21,7 @@
 #include "mock/core/api/transport/jrpc_processor_stub.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
@@ -43,6 +44,7 @@ using kagome::primitives::events::ExtrinsicSubscriptionEngine;
 using kagome::primitives::events::ExtrinsicSubscriptionEnginePtr;
 using kagome::primitives::events::StorageSubscriptionEngine;
 using kagome::primitives::events::StorageSubscriptionEnginePtr;
+using kagome::runtime::CoreMock;
 using kagome::storage::trie::TrieStorage;
 using kagome::storage::trie::TrieStorageMock;
 using kagome::subscription::ExtrinsicEventKeyRepository;
@@ -129,6 +131,7 @@ struct ListenerTest : public ::testing::Test {
   std::shared_ptr<BlockTree> block_tree = std::make_shared<BlockTreeMock>();
   std::shared_ptr<TrieStorage> trie_storage =
       std::make_shared<TrieStorageMock>();
+  std::shared_ptr<CoreMock> core = std::make_shared<CoreMock>();
 
   sptr<ApiService> service = std::make_shared<ApiServiceImpl>(
       app_state_manager,
@@ -141,7 +144,8 @@ struct ListenerTest : public ::testing::Test {
       ext_events_engine,
       ext_event_key_repo,
       block_tree,
-      trie_storage);
+      trie_storage,
+      core);
 };
 
 #endif  // KAGOME_TEST_CORE_API_TRANSPORT_LISTENER_TEST_HPP

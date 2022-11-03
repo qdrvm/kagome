@@ -113,10 +113,6 @@ namespace kagome::blockchain {
         const primitives::BlockHash &ancestor,
         const primitives::BlockHash &descendant) const override;
 
-    std::optional<primitives::Version> runtimeVersion() const override {
-      return actual_runtime_version_;
-    }
-
     bool hasDirectChain(const primitives::BlockHash &ancestor,
                         const primitives::BlockHash &descendant) const override;
 
@@ -190,7 +186,6 @@ namespace kagome::blockchain {
         justification_storage_policy_;
 
     std::optional<primitives::BlockHash> genesis_block_hash_;
-    std::optional<primitives::Version> actual_runtime_version_;
 
     log::Logger log_ = log::createLogger("BlockTree", "blockchain");
 

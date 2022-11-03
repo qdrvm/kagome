@@ -534,6 +534,7 @@ namespace {
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
     auto trie_storage =
         injector.template create<sptr<storage::trie::TrieStorage>>();
+    auto core = injector.template create<sptr<runtime::Core>>();
 
     auto api_service =
         std::make_shared<api::ApiServiceImpl>(asmgr,
@@ -546,7 +547,8 @@ namespace {
                                               ext_sub_engine,
                                               extrinsic_event_key_repo,
                                               block_tree,
-                                              trie_storage);
+                                              trie_storage,
+                                              core);
 
     auto child_state_api =
         injector.template create<std::shared_ptr<api::ChildStateApi>>();
