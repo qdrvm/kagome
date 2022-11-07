@@ -93,6 +93,7 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(db, backend_->load(db_key));
       enc = std::move(db);
     } else {
+      // `isMerkleHash(db_key) == false` means `db_key` is value itself
       enc = db_key;
     }
     OUTCOME_TRY(n, codec_->decodeNode(enc));
