@@ -14,6 +14,7 @@
 
 namespace kagome::storage::trie {
   class TrieStorage;
+  class TrieBatch;
 }
 
 namespace kagome::crypto {
@@ -23,14 +24,6 @@ namespace kagome::crypto {
 namespace kagome::authority {
 
   using IsBlockFinalized = Tagged<bool, struct IsBlockFinalizedTag>;
-
-  /**
-   * Obtain the current authority set id from the runtime storage
-   */
-  outcome::result<std::optional<primitives::AuthoritySetId>>
-  fetchSetIdFromTrieStorage(storage::trie::TrieStorage const &trie_storage,
-                            crypto::Hasher const &hasher,
-                            storage::trie::RootHash const &state);
 
   class AuthorityManager {
    public:

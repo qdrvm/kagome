@@ -19,6 +19,18 @@ namespace kagome::consensus {
     SecondaryVRF = 3,
   };
 
-}
+  inline std::string_view to_string(SlotType s) {
+    switch (s) {
+      case SlotType::Primary:
+        return "Primary";
+      case SlotType::SecondaryPlain:
+        return "Secondary Plain";
+      case SlotType::SecondaryVRF:
+        return "Secondary VRF";
+    }
+    return "Unknown";
+  }
+
+}  // namespace kagome::consensus
 
 #endif  // KAGOME_SLOT_HPP

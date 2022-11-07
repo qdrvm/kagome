@@ -53,51 +53,23 @@ namespace kagome::authority {
     };
 
     struct ForcedChange {
+      SCALE_TIE(3);
+
       primitives::BlockNumber delay_start{};
       size_t delay_length{};
       std::shared_ptr<const primitives::AuthoritySet> new_authorities{};
-
-      friend inline ::scale::ScaleEncoderStream &operator<<(
-          ::scale::ScaleEncoderStream &s, const ForcedChange &change) {
-        return s << change.delay_start << change.delay_length
-                 << *change.new_authorities;
-      }
-
-      friend inline ::scale::ScaleDecoderStream &operator>>(
-          ::scale::ScaleDecoderStream &s, ForcedChange &change) {
-        auto authority_list = std::make_shared<primitives::AuthoritySet>();
-        s >> change.delay_start >> change.delay_length >> *authority_list;
-        change.new_authorities = std::move(authority_list);
-        return s;
-      }
     };
 
     struct Pause {
+      SCALE_TIE(1);
+
       primitives::BlockNumber applied_block{};
-
-      friend inline ::scale::ScaleEncoderStream &operator<<(
-          ::scale::ScaleEncoderStream &s, const Pause &change) {
-        return s << change.applied_block;
-      }
-
-      friend inline ::scale::ScaleDecoderStream &operator>>(
-          ::scale::ScaleDecoderStream &s, Pause &change) {
-        return s >> change.applied_block;
-      }
     };
 
     struct Resume {
+      SCALE_TIE(1);
+
       primitives::BlockNumber applied_block{};
-
-      friend inline ::scale::ScaleEncoderStream &operator<<(
-          ::scale::ScaleEncoderStream &s, const Resume &change) {
-        return s << change.applied_block;
-      }
-
-      friend inline ::scale::ScaleDecoderStream &operator>>(
-          ::scale::ScaleDecoderStream &s, Resume &change) {
-        return s >> change.applied_block;
-      }
     };
 
     friend inline ::scale::ScaleEncoderStream &operator<<(
