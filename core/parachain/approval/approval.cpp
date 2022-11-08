@@ -6,6 +6,7 @@
 #include <schnorrkel/schnorrkel.h>
 
 #include "parachain/approval/approval.hpp"
+#include "parachain/approval/criteria.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::approval,
                             UnsafeVRFOutput::Error,
