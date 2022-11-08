@@ -703,12 +703,14 @@ namespace {
           injector.template create<std::shared_ptr<network::PeerManager>>(),
           injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
           injector.template create<
-              std::shared_ptr<parachain::ParachainProcessorImpl>>());
+              std::shared_ptr<parachain::ParachainProcessorImpl>>(),
+          injector.template create<std::shared_ptr<network::PeerView>>());
 
       auto protocol_factory =
           injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
       protocol_factory->setCollactionObserver(instance);
+      protocol_factory->setValidationObserver(instance);
       protocol_factory->setReqCollationObserver(instance);
       return instance;
     };
@@ -729,7 +731,9 @@ namespace {
           injector
               .template create<std::shared_ptr<::boost::asio::io_context>>(),
           session_keys->getBabeKeyPair(),
-          injector.template create<std::shared_ptr<crypto::Hasher>>());
+          injector.template create<std::shared_ptr<crypto::Hasher>>(),
+          injector.template create<std::shared_ptr<network::PeerView>>(),
+          injector.template create<std::shared_ptr<ThreadPool>>());
 
       auto app_state_manager =
           injector

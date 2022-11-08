@@ -29,6 +29,8 @@ namespace kagome::network {
     virtual std::shared_ptr<BlockAnnounceProtocol> getBlockAnnounceProtocol()
         const = 0;
     virtual std::shared_ptr<CollationProtocol> getCollationProtocol() const = 0;
+    virtual std::shared_ptr<ValidationProtocol> getValidationProtocol()
+        const = 0;
     virtual std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const = 0;
     virtual std::shared_ptr<PropagateTransactionsProtocol>
