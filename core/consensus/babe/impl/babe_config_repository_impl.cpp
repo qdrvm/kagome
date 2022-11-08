@@ -220,11 +220,9 @@ namespace kagome::consensus::babe {
             item,
             [&](const primitives::PreRuntime &msg) -> outcome::result<void> {
               if (msg.consensus_engine_id == primitives::kBabeEngineId) {
-                auto res = scale::decode<consensus::BabeBlockHeader>(msg.data);
-                if (res.has_error()) {
-                  return res.as_failure();
-                }
-                const auto &digest_item = res.value();
+                OUTCOME_TRY(
+                    digest_item,
+                    scale::decode<consensus::BabeBlockHeader>(msg.data));
 
                 return onDigest(block_info, digest_item);
               }
@@ -232,11 +230,8 @@ namespace kagome::consensus::babe {
             },
             [&](const primitives::Consensus &msg) -> outcome::result<void> {
               if (msg.consensus_engine_id == primitives::kBabeEngineId) {
-                auto res = scale::decode<primitives::BabeDigest>(msg.data);
-                if (res.has_error()) {
-                  return res.as_failure();
-                }
-                const auto &digest_item = res.value();
+                OUTCOME_TRY(digest_item,
+                            scale::decode<primitives::BabeDigest>(msg.data));
 
                 return onDigest(block_info, digest_item);
               }

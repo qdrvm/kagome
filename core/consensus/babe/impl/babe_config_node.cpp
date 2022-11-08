@@ -17,7 +17,7 @@ namespace kagome::consensus {
   std::shared_ptr<BabeConfigNode> BabeConfigNode::createAsRoot(
       primitives::BlockInfo block,
       std::shared_ptr<const primitives::BabeConfiguration> config) {
-    auto fake_parent = std::make_shared<BabeConfigNode>(BabeConfigNode());
+    auto fake_parent = std::make_shared<BabeConfigNode>();
     auto node = std::make_shared<BabeConfigNode>(fake_parent, block);
     node->epoch = std::numeric_limits<decltype(node->epoch)>::max();
     node->config = std::move(config);

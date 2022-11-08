@@ -40,8 +40,7 @@ namespace kagome::blockchain {
                      "Seal-digest on block {}, engine '{}'",
                      block,
                      item.consensus_engine_id.toString());
-            return outcome::success();
-            // return onSeal(block, item);
+            return outcome::success();  // It does not processed by tracker
           },
           [&](const primitives::PreRuntime &item) {
             SL_TRACE(logger_,
@@ -53,8 +52,7 @@ namespace kagome::blockchain {
           [&](const primitives::RuntimeEnvironmentUpdated &item) {
             SL_TRACE(
                 logger_, "RuntimeEnvironmentUpdated-digest on block {}", block);
-            return outcome::success();
-            // return onRuntimeEnvironmentUpdated(block, item);
+            return outcome::success();  // It does not processed by tracker
           },
           [&](const auto &) {
             SL_WARN(logger_,
@@ -84,20 +82,13 @@ namespace kagome::blockchain {
       return authority_update_observer_->onConsensus(block, message);
 
       // TODO(xDimon): Refactor AuthorityManager to accept grandpa-digest
-      // auto res = scale::decode<primitives::GrandpaDigest>(message.data);
-      // if (res.has_error()) {
-      //   return res.as_failure();
-      // }
-      // const auto &digest = res.value();
+      // OUTCOME_TRY(digest,
+      //             scale::decode<primitives::GrandpaDigest>(message.data));
       //
       // return authority_update_observer_->onDigest(block, digest);
 
     } else if (message.consensus_engine_id == primitives::kBabeEngineId) {
-      auto res = scale::decode<primitives::BabeDigest>(message.data);
-      if (res.has_error()) {
-        return res.as_failure();
-      }
-      const auto &digest = res.value();
+      OUTCOME_TRY(digest, scale::decode<primitives::BabeDigest>(message.data));
 
       return babe_digest_observer_->onDigest(block, digest);
 
@@ -124,11 +115,8 @@ namespace kagome::blockchain {
       const primitives::BlockInfo &block,
       const primitives::PreRuntime &message) {
     if (message.consensus_engine_id == primitives::kBabeEngineId) {
-      auto res = scale::decode<consensus::BabeBlockHeader>(message.data);
-      if (res.has_error()) {
-        return res.as_failure();
-      }
-      const auto &digest = res.value();
+      OUTCOME_TRY(digest,
+                  scale::decode<consensus::BabeBlockHeader>(message.data));
 
       return babe_digest_observer_->onDigest(block, digest);
     } else {
