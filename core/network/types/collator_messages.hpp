@@ -16,6 +16,7 @@
 #include "consensus/grandpa/common.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "parachain/approval/approval.hpp"
 #include "parachain/types.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
@@ -302,13 +303,12 @@ namespace kagome::network {
                           /// candidates fully included as-of the block.
   };
   using IndirectSignedApprovalVote = parachain::IndexedAndSigned<ApprovalVote>;
-  using IndirectAssignmentCert =
-      Dummy;  /// TODO(iceseer) : fixed because of merge
 
   struct Assignment {
     SCALE_TIE(2);
 
-    IndirectAssignmentCert indirect_assignment_cert;
+    kagome::parachain::approval::IndirectAssignmentCert
+        indirect_assignment_cert;
     CandidateIndex candidate_ix;
   };
 

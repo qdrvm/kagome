@@ -16,6 +16,8 @@
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
+#include "parachain/candidate_view.hpp"
+#include "parachain/peer_relay_parent_knowledge.hpp"
 #include "scale/scale.hpp"
 #include "utils/async_sequence.hpp"
 

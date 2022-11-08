@@ -11,7 +11,7 @@ add_library(validator_parachain
     validator/impl/parachain_observer.cpp
     validator/impl/parachain_processor.cpp
     validator/signer.cpp
-    )
+    approval/approval.cpp)
 
 target_link_libraries(validator_parachain
     crypto_store
