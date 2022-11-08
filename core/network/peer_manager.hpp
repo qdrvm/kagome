@@ -34,12 +34,7 @@ namespace kagome::network {
     libp2p::peer::PeerId const &peer_id;
   };
 
-  /*
-   * Parachain state view.
-   */
-  struct ParachainState {
-    std::unordered_map<BlockHash, bool> our_view;
-  };
+  using OurView = network::View;
 
   struct PeerState {
     clock::SteadyClock::TimePoint time;
@@ -49,6 +44,7 @@ namespace kagome::network {
     std::optional<VoterSetId> set_id = std::nullopt;
     BlockNumber last_finalized = 0;
     std::optional<CollatorState> collator_state = std::nullopt;
+    std::optional<View> view;
   };
 
   struct StreamEngine;
@@ -113,13 +109,7 @@ namespace kagome::network {
     virtual outcome::result<
         std::pair<network::CollatorPublicKey const &, network::ParachainId>>
     insert_advertisement(PeerState &peer_state,
-                         ParachainState &parachain_state,
                          primitives::BlockHash para_hash) = 0;
-
-    /**
-     * Allows to update parachains states.
-     */
-    virtual ParachainState &parachainState() = 0;
 
     /**
      * Updates collation state and stores parachain id. Should be called once
