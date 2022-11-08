@@ -103,6 +103,7 @@
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
+#include "network/peer_view.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "offchain/impl/offchain_persistent_storage.hpp"
@@ -725,6 +726,21 @@ namespace {
   }
 
   template <typename Injector>
+  sptr<network::PeerView> get_peer_view(const Injector &injector) {
+    auto get_instance = [&]() {
+      return std::make_shared<network::PeerView>(
+          injector.template create<
+              primitives::events::ChainSubscriptionEnginePtr>(),
+          injector
+              .template create<std::shared_ptr<application::AppStateManager>>(),
+          injector.template create<blockchain::BlockTree>());
+    };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
+  template <typename Injector>
   sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
       const Injector &injector) {
     auto get_instance = [&]() {
@@ -1219,6 +1235,8 @@ namespace {
             [](auto const &injector) {
               return get_parachain_processor_impl(injector);
             }),
+        di::bind<network::PeerView>.to(
+            [](auto const &injector) { return get_peer_view(injector); }),
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =
