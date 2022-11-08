@@ -18,6 +18,10 @@ namespace soralog {
 }
 
 namespace kagome {
+  namespace thread {
+    struct ThreadPool;
+  }
+
   namespace application {
     class AppConfiguration;
     class ChainSpec;
@@ -102,6 +106,7 @@ namespace kagome::injector {
     std::shared_ptr<parachain::ParachainObserverImpl> injectParachainObserver();
     std::shared_ptr<parachain::ParachainProcessorImpl>
     injectParachainProcessor();
+    std::shared_ptr<thread::ThreadPool> injectThreadPool();
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
     std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem();
     std::shared_ptr<storage::trie::TrieStorage> injectTrieStorage();

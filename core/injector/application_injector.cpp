@@ -113,6 +113,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
+#include "parachain/thread_pool.hpp"
 #include "parachain/validator/parachain_observer.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -1584,6 +1585,10 @@ namespace kagome::injector {
   std::shared_ptr<parachain::ParachainProcessorImpl>
   KagomeNodeInjector::injectParachainProcessor() {
     return pimpl_->injector_.create<sptr<parachain::ParachainProcessorImpl>>();
+  }
+
+  std::shared_ptr<thread::ThreadPool> KagomeNodeInjector::injectThreadPool() {
+    return pimpl_->injector_.create<sptr<thread::ThreadPool>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {
