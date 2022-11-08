@@ -691,6 +691,51 @@ namespace kagome::network {
     }
   }
 
+  void PeerManagerImpl::tryOpenValidationProtocol(PeerInfo const &peer_info,
+                                                  PeerState &peer_state) {
+    /// If validator start validation protocol
+    if (peer_state.roles.flags.authority) {
+      auto validation_protocol = router_->getValidationProtocol();
+      BOOST_ASSERT_MSG(validation_protocol,
+                       "Router did not provide validation protocol");
+
+      openOutgoing(
+          stream_engine_,
+          validation_protocol,
+          peer_info,
+          [validation_protocol, peer_info, wptr{weak_from_this()}](
+              auto &&stream_result) {
+            auto self = wptr.lock();
+            if (not self) {
+              return;
+            }
+
+            auto &peer_id = peer_info.id;
+            self->stream_engine_->dropReserveOutgoing(peer_id,
+                                                      validation_protocol);
+
+            if (!stream_result.has_value()) {
+              self->log_->warn("Unable to create stream {} with {}: {}",
+                               validation_protocol->protocolName(),
+                               peer_id,
+                               stream_result.error().message());
+              return;
+            }
+
+            if (auto res = self->stream_engine_->addOutgoing(
+                    stream_result.value(), validation_protocol);
+                !res) {
+              SL_VERBOSE(self->log_,
+                         "Can't register outgoing {} stream with {}: {}",
+                         validation_protocol->protocolName(),
+                         stream_result.value()->remotePeerId().value(),
+                         res.error().message());
+              stream_result.value()->reset();
+            }
+          });
+    }
+  }
+
   void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
     // Skip connection to itself
     if (isSelfPeer(peer_id)) {
@@ -754,6 +799,8 @@ namespace kagome::network {
            std::optional<std::reference_wrapper<PeerState>> peer_state) {
           if (peer_state.has_value()) {
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
+            self->tryOpenValidationProtocol(peer_info,
+                                            peer_state.value().get());
           }
         });
 
