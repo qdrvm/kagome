@@ -32,7 +32,7 @@ namespace kagome::storage::trie {
     ~PolkadotCodec() override = default;
 
     outcome::result<Buffer> encodeNodeAndStoreChildren(
-        const Node &node, StoreChildren &store_children) const override;
+        const Node &node, const StoreChildren &store_children) const override;
 
     outcome::result<std::shared_ptr<Node>> decodeNode(
         gsl::span<const uint8_t> encoded_data) const override;
@@ -50,8 +50,8 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeHeader(const TrieNode &node) const;
 
    private:
-    outcome::result<Buffer> encodeBranch(const BranchNode &node,
-                                         StoreChildren &store_children) const;
+    outcome::result<Buffer> encodeBranch(
+        const BranchNode &node, const StoreChildren &store_children) const;
     outcome::result<Buffer> encodeLeaf(const LeafNode &node) const;
 
     outcome::result<std::pair<TrieNode::Type, size_t>> decodeHeader(

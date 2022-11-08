@@ -12,17 +12,6 @@
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
-  struct StoreChildrenToBatch : StoreChildren {
-    StoreChildrenToBatch(storage::BufferBatch &batch) : batch{batch} {}
-
-    outcome::result<void> store(const common::BufferView &hash,
-                                common::Buffer &&encoded) override {
-      return batch.put(hash, std::move(encoded));
-    }
-
-    storage::BufferBatch &batch;
-  };
-
   TrieSerializerImpl::TrieSerializerImpl(
       std::shared_ptr<PolkadotTrieFactory> factory,
       std::shared_ptr<Codec> codec,
@@ -65,8 +54,12 @@ namespace kagome::storage::trie {
   outcome::result<RootHash> TrieSerializerImpl::storeRootNode(TrieNode &node) {
     auto batch = backend_->batch();
 
-    StoreChildrenToBatch store_children{*batch};
-    OUTCOME_TRY(enc, codec_->encodeNodeAndStoreChildren(node, store_children));
+    OUTCOME_TRY(
+        enc,
+        codec_->encodeNodeAndStoreChildren(
+            node, [&](common::BufferView hash, common::Buffer &&encoded) {
+              return batch->put(hash, std::move(encoded));
+            }));
     auto key = codec_->hash256(enc);
     OUTCOME_TRY(batch->put(key, enc));
     OUTCOME_TRY(batch->commit());

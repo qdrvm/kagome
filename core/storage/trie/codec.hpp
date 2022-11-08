@@ -12,22 +12,14 @@
 
 namespace kagome::storage::trie {
   /**
-   * @brief Stores encoded children node for later retrieval
-   */
-  struct StoreChildren {
-    virtual ~StoreChildren() = default;
-    virtual outcome::result<void> store(const common::BufferView &hash,
-                                        common::Buffer &&encoded) {
-      return outcome::success();
-    }
-  };
-
-  /**
    * @brief Internal codec for nodes in the Trie. Eth and substrate have
    * different codecs, but rest of the code should be same.
    */
   class Codec {
    public:
+    using StoreChildren = std::function<outcome::result<void>(
+        common::BufferView, common::Buffer &&)>;
+
     virtual ~Codec() = default;
 
     /**
@@ -37,7 +29,7 @@ namespace kagome::storage::trie {
      * @return encoded representation of a {@param node}
      */
     virtual outcome::result<common::Buffer> encodeNodeAndStoreChildren(
-        const Node &node, StoreChildren &store_children) const = 0;
+        const Node &node, const StoreChildren &store_children) const = 0;
 
     /**
      * @brief Encode node to byte representation
@@ -45,8 +37,10 @@ namespace kagome::storage::trie {
      * @return encoded representation of a {@param node}
      */
     outcome::result<common::Buffer> encodeNode(const Node &node) const {
-      StoreChildren store_children;
-      return encodeNodeAndStoreChildren(node, store_children);
+      return encodeNodeAndStoreChildren(
+          node, [](common::BufferView, common::Buffer &&) {
+            return outcome::success();
+          });
     }
 
     /**
