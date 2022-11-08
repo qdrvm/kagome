@@ -38,23 +38,24 @@ namespace kagome::consensus::babe {
   bool BabeConfigRepositoryImpl::prepare() {
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
                           primitives::events::ChainEventType::kFinalizedHeads);
-    chain_sub_->setCallback([wp = weak_from_this()](
-                                subscription::SubscriptionSetId,
-                                auto &&,
-                                primitives::events::ChainEventType type,
-                                const primitives::events::ChainEventParams
-                                    &event) {
-      if (type == primitives::events::ChainEventType::kFinalizedHeads) {
-        if (auto self = wp.lock()) {
-          auto hash = self->hasher_->blake2b_256(
-              scale::encode(
-                  boost::get<primitives::events::HeadsEventParams>(event).get())
-                  .value());
-          self->block_hash_ = hash;
-          self->valid_ = false;
-        }
-      }
-    });
+    chain_sub_->setCallback(
+        [wp = weak_from_this()](
+            subscription::SubscriptionSetId,
+            auto &&,
+            primitives::events::ChainEventType type,
+            const primitives::events::ChainEventParams &event) {
+          if (type == primitives::events::ChainEventType::kFinalizedHeads) {
+            if (auto self = wp.lock()) {
+              auto hash = self->hasher_->blake2b_256(
+                  scale::encode(
+                      boost::get<primitives::events::HeadsEventParams>(event)
+                          .block_header)
+                      .value());
+              self->block_hash_ = hash;
+              self->valid_ = false;
+            }
+          }
+        });
 
     return true;
   }

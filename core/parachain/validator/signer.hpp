@@ -61,10 +61,10 @@ namespace kagome::parachain {
 
     /// Sign payload.
     template <typename T>
-    outcome::result<network::Signed<T>> sign(T payload) const {
+    outcome::result<parachain::IndexedAndSigned<T>> sign(T payload) const {
       auto data = context_.signable(*hasher_, payload);
       OUTCOME_TRY(signature, sr25519_provider_->sign(*keypair_, data));
-      return network::Signed<T>{
+      return parachain::IndexedAndSigned<T>{
           std::move(payload),
           validator_index_,
           signature,

@@ -79,6 +79,7 @@ add_library(peer_manager
 target_link_libraries(peer_manager
     logger
     scale_libp2p_types
+    peer_view
     )
 
 add_library(reputation_repository
@@ -87,4 +88,11 @@ add_library(reputation_repository
 target_link_libraries(reputation_repository
     p2p::p2p_peer_id
     p2p::p2p_basic_scheduler
+    )
+
+add_library(peer_view
+    peer_view.cpp
+    )
+target_link_libraries(peer_view
+    p2p::p2p_peer_id
     )

@@ -5,7 +5,9 @@
 
 #include "parachain/validator/parachain_processor.hpp"
 
+#include <array>
 #include <gsl/span>
+#include <unordered_map>
 
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -14,6 +16,8 @@
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
+#include "parachain/candidate_view.hpp"
+#include "parachain/peer_relay_parent_knowledge.hpp"
 #include "scale/scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
@@ -27,9 +31,31 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "Collation not found";
     case E::KEY_NOT_PRESENT:
       return "Private key is not present";
+    case E::VALIDATION_FAILED:
+      return "Validate and make available failed";
+    case E::VALIDATION_SKIPPED:
+      return "Validate and make available skipped";
   }
   return "Unknown parachain processor error";
 }
+
+#if __cplusplus < 202002L
+namespace std {
+  template <typename Container, typename Pred>
+  inline auto erase_if(Container &c, Pred &&pred) ->
+      typename Container::size_type {
+    const auto old_size = c.size();
+    for (auto it = c.begin(); it != c.end();) {
+      if (std::forward<Pred>(pred)(*it)) {
+        it = c.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    return old_size - c.size();
+  }
+}  // namespace std
+#endif
 
 namespace kagome::parachain {
 
@@ -39,71 +65,73 @@ namespace kagome::parachain {
       std::shared_ptr<network::Router> router,
       std::shared_ptr<boost::asio::io_context> this_context,
       std::shared_ptr<crypto::Sr25519Keypair> keypair,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<network::PeerView> peer_view,
+      std::shared_ptr<thread::ThreadPool> thread_pool)
       : pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
         this_context_(std::move(this_context)),
         keypair_(std::move(keypair)),
-        hasher_(std::move(hasher)) {
+        hasher_(std::move(hasher)),
+        peer_view_(std::move(peer_view)),
+        thread_pool_(std::move(thread_pool)) {
     BOOST_ASSERT(pm_);
+    BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
     BOOST_ASSERT(this_context_);
     BOOST_ASSERT(router_);
     BOOST_ASSERT(hasher_);
-  }
-
-  ParachainProcessorImpl::~ParachainProcessorImpl() {
-    /// check that all workers are stopped.
-#ifndef NDEBUG
-    for (auto &w : workers_) {
-      BOOST_ASSERT(!w);
-    }
-#endif  // NDEBUG
+    BOOST_ASSERT(thread_pool_);
   }
 
   bool ParachainProcessorImpl::prepare() {
-    context_ = std::make_shared<WorkersContext>();
-    work_guard_ = std::make_shared<WorkGuard>(context_->get_executor());
+    my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
+        peer_view_->getMyViewObservable(), false);
+    my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
+                            network::PeerView::EventType::kViewUpdated);
+    my_view_sub_->setCallback([wptr{weak_from_this()}](
+                                  auto /*set_id*/,
+                                  auto && /*internal_obj*/,
+                                  auto /*event_type*/,
+                                  const network::View &event) {
+      if (auto self = wptr.lock()) {
+        auto msg = std::make_shared<
+            network::WireMessage<network::ValidatorProtocolMessage>>(
+            network::ViewUpdate{.view = event});
+
+        self->pm_->getStreamEngine()->broadcast(
+            self->router_->getValidationProtocol(), msg);
+        self->pm_->getStreamEngine()->broadcast(
+            self->router_->getCollationProtocol(), msg);
+
+        /// clear caches
+        std::erase_if(
+            self->our_current_state_.state_by_relay_parent,
+            [&](auto const &it) { return !event.contains(it.first); });
+        self->collations_.exclusiveAccess([&](auto &collations) {
+          std::erase_if(collations, [&](auto &it_para) {
+            std::erase_if(it_para.second,
+                          [&](auto &it) { return !event.contains(it.first); });
+            return it_para.second.empty();
+          });
+        });
+      }
+    });
     return true;
   }
 
   bool ParachainProcessorImpl::start() {
-    BOOST_ASSERT(context_);
-    BOOST_ASSERT(work_guard_);
-    for (auto &worker : workers_)
-      if (!worker)
-        worker = std::make_unique<std::thread>(
-            [wptr{weak_from_this()}, context{context_}]() {
-              if (auto self = wptr.lock())
-                self->logger_->debug("Started parachain worker with id: {}",
-                                     std::this_thread::get_id());
-
-              context->run();
-            });
     return true;
   }
 
-  void ParachainProcessorImpl::stop() {
-    work_guard_.reset();
-    if (context_) {
-      context_->stop();
-      context_.reset();
-    }
-    for (auto &worker : workers_) {
-      if (worker) {
-        BOOST_ASSERT(worker->joinable());
-        worker->join();
-        worker.reset();
-      }
-    }
-  }
+  void ParachainProcessorImpl::stop() {}
 
   outcome::result<ParachainProcessorImpl::FetchedCollation>
   ParachainProcessorImpl::getFromSlot(network::ParachainId id,
                                       primitives::BlockHash const &relay_parent,
                                       libp2p::peer::PeerId const &peer_id) {
-    return collations_.sharedAccess(
+    auto fetched_collation = collations_.sharedAccess(
         [&](auto const &collations)
             -> outcome::result<ParachainProcessorImpl::FetchedCollation> {
           if (auto para_it = collations.find(id); para_it != collations.end()) {
@@ -117,6 +145,13 @@ namespace kagome::parachain {
           }
           return Error::COLLATION_NOT_FOUND;
         });
+
+    if (fetched_collation.has_error()) {
+      logger_->warn("getFromSlot fetched collation failed with error: {}",
+                    fetched_collation.error().message());
+    }
+
+    return fetched_collation;
   }
 
   outcome::result<ParachainProcessorImpl::FetchedCollation>
@@ -156,34 +191,39 @@ namespace kagome::parachain {
       return;
     }
 
+    auto &parachain_state = getStateByRelayParent(relay_parent);
+    auto &assignment = parachain_state.assignment;
+    auto &seconded = parachain_state.seconded;
+    auto &issued_statements = parachain_state.issued_statements;
+
     FetchedCollationState const &collation = *store_result.value();
     network::CandidateDescriptor const &descriptor =
         candidateDescriptorFrom(collation);
     primitives::BlockHash const candidate_hash = candidateHashFrom(collation);
 
     auto const candidate_para_id = descriptor.para_id;
-    if (candidate_para_id != our_current_state_.assignment) {
-      logger_->warn("Try to second for para_id {} out of our assignment {}.",
-                    candidate_para_id,
-                    our_current_state_.assignment
-                        ? std::to_string(*our_current_state_.assignment)
-                        : "{no assignment}");
+    if (candidate_para_id != assignment) {
+      logger_->warn(
+          "Try to second for para_id {} out of our assignment {}.",
+          candidate_para_id,
+          assignment ? std::to_string(*assignment) : "{no assignment}");
       return;
     }
 
-    if (our_current_state_.seconded) {
+    if (seconded) {
       logger_->debug("Already have seconded block {} instead of {}.",
-                     our_current_state_.seconded->toString(),
+                     seconded->toString(),
                      candidate_hash);
       return;
     }
 
-    if (our_current_state_.issued_statements.count(candidate_hash) != 0) {
+    if (issued_statements.count(candidate_hash) != 0) {
       logger_->debug("Statement of {} already issued.", candidate_hash);
       return;
     }
 
-    appendAsyncValidationTask(id, relay_parent, peer_id);
+    appendAsyncValidationTask(
+        id, relay_parent, peer_id, parachain_state, candidate_hash);
   }
 
   void ParachainProcessorImpl::requestPoV() {
@@ -191,22 +231,20 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::kickOffValidationWork(
-      AttestingData &attesting_data) {
-    /// TODO(iceseer): add to awaiting_validation to be sure no doublicated
-    /// validations
-
-    auto opt_descriptor = candidateDescriptorFrom(attesting_data.statement);
+      AttestingData &attesting_data, RelayParentState &parachain_state) {
+    parachain_state.awaiting_validation.insert(attesting_data.candidate_hash);
+    auto opt_descriptor = candidateDescriptorFrom(
+        parachain::getPayload(*attesting_data.statement));
     BOOST_ASSERT(opt_descriptor);
 
     auto const &collator_id = collatorIdFromDescriptor(*opt_descriptor);
     if (our_current_state_.required_collator
         && collator_id != *our_current_state_.required_collator) {
-      our_current_state_.issued_statements.insert(
-          attesting_data.candidate_hash);
+      parachain_state.issued_statements.insert(attesting_data.candidate_hash);
       return;
     }
 
-    notify_internal(context_, [wptr{weak_from_this()}] {
+    thread_pool_->execute([wptr{weak_from_this()}] {
       if (auto self = wptr.lock()) {
         /// request PoV
         self->requestPoV();
@@ -218,36 +256,44 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::appendAsyncValidationTask(
       network::ParachainId id,
       primitives::BlockHash const &relay_parent,
-      libp2p::peer::PeerId const &peer_id) {
-    /// TODO(iceseer): add to awaiting_validation to be sure no doublicated
-    /// validations
-    notify_internal(
-        context_, [id, relay_parent, peer_id, wptr{weak_from_this()}] {
-          if (auto self = wptr.lock()) {
-            self->logger_->debug(
-                "Got an async task for VALIDATION execution {}:{}:{}",
-                id,
-                relay_parent,
-                peer_id.toBase58());
-
-            if (auto collation_result =
-                    self->getFromSlot(id, relay_parent, peer_id))
-              self->validateAndMakeAvailable(
-                  peer_id,
-                  relay_parent,
-                  std::move(collation_result).value(),
-                  [wptr](auto const &peer_id,
-                         auto &&validate_and_second_result) {
-                    if (auto self = wptr.lock())
-                      self->onValidationComplete(
-                          peer_id, std::move(validate_and_second_result));
-                  });
-            else
-              self->logger_->template warn(
-                  "In job retrieve collation result error: {}",
-                  collation_result.error().message());
+      libp2p::peer::PeerId const &peer_id,
+      RelayParentState &parachain_state,
+      const primitives::BlockHash &candidate_hash) {
+    parachain_state.awaiting_validation.insert(candidate_hash);
+    thread_pool_->execute(
+        [id, relay_parent, peer_id, wptr{weak_from_this()}]()
+            -> outcome::result<ValidateAndSecondResult> {
+          auto self = wptr.lock();
+          if (!self) {
+            return Error::VALIDATION_SKIPPED;
           }
-        });
+          self->logger_->debug(
+              "Got an async task for VALIDATION execution {}:{}:{}",
+              id,
+              relay_parent,
+              peer_id.toBase58());
+
+          OUTCOME_TRY(collation_result,
+                      self->getFromSlot(id, relay_parent, peer_id));
+          return self->validateAndMakeAvailable(
+              wptr, peer_id, relay_parent, std::move(collation_result));
+        },
+        std::make_pair(
+            thread::createThreadQueueContext(this_context_),
+            [peer_id, wptr{weak_from_this()}](
+                auto &&validate_and_second_result) mutable {
+              if (auto self = wptr.lock()) {
+                auto parachain_state = self->tryGetStateByRelayParent(
+                    validate_and_second_result.relay_parent);
+
+                BOOST_ASSERT(parachain_state);
+                parachain_state->get().awaiting_validation.erase(
+                    self->candidateHashFrom(
+                        *validate_and_second_result.fetched_collation));
+                self->onValidationComplete(
+                    peer_id, std::move(validate_and_second_result));
+              }
+            }));
   }
 
   template <typename T>
@@ -259,29 +305,44 @@ namespace kagome::parachain {
     return crypto_provider_->sign(*keypair_, payload).value();
   }
 
-  std::optional<network::ValidatorIndex> ParachainProcessorImpl::getOurIndex() {
-    logger_->error("Not implemented. Return my validator index.");
+  std::optional<
+      std::reference_wrapper<ParachainProcessorImpl::RelayParentState>>
+  ParachainProcessorImpl::tryGetStateByRelayParent(
+      const primitives::BlockHash &relay_parent) {
+    auto const it = our_current_state_.state_by_relay_parent.find(relay_parent);
+    if (it != our_current_state_.state_by_relay_parent.end()) {
+      return it->second;
+    }
     return std::nullopt;
+  }
+
+  ParachainProcessorImpl::RelayParentState &
+  ParachainProcessorImpl::getStateByRelayParent(
+      const primitives::BlockHash &relay_parent) {
+    return our_current_state_.state_by_relay_parent[relay_parent];
   }
 
   void ParachainProcessorImpl::handleStatement(
       libp2p::peer::PeerId const &peer_id,
       primitives::BlockHash const &relay_parent,
-      std::shared_ptr<network::Statement> const &statement) {
+      std::shared_ptr<network::SignedStatement> const &statement) {
+    auto &parachain_state = getStateByRelayParent(relay_parent);
+    auto &assignment = parachain_state.assignment;
+    auto &fallbacks = parachain_state.fallbacks;
+    auto &awaiting_validation = parachain_state.awaiting_validation;
+
     if (auto result = importStatement(statement)) {
-      if (result->group_id != our_current_state_.assignment) {
+      if (result->group_id != assignment) {
         logger_->warn(
             "Registered statement from not our group(our: {}, registered: {}).",
-            our_current_state_.assignment
-                ? std::to_string(*our_current_state_.assignment)
-                : "{not assigned}",
+            assignment ? std::to_string(*assignment) : "{not assigned}",
             result->group_id);
         return;
       }
 
       std::optional<std::reference_wrapper<AttestingData>> attesting_ref =
           visit_in_place(
-              statement->candidate_state,
+              parachain::getPayload(*statement).candidate_state,
               [&](network::Dummy const &)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
                 BOOST_ASSERT(!"Not used!");
@@ -290,46 +351,45 @@ namespace kagome::parachain {
               [&](network::CommittedCandidateReceipt const &seconded)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
                 auto const &candidate_hash = result->candidate;
-                auto const &[it, _] =
-                    our_current_state_.fallbacks.insert(std::make_pair(
-                        candidate_hash,
-                        AttestingData{.statement = statement,
-                                      .candidate_hash = candidate_hash,
-                                      .pov_hash = seconded.descriptor.pov_hash,
-                                      .from_validator = statement->validator_ix,
-                                      .backing = {}}));
+                auto const &[it, _] = fallbacks.insert(std::make_pair(
+                    candidate_hash,
+                    AttestingData{.statement = statement,
+                                  .candidate_hash = candidate_hash,
+                                  .pov_hash = seconded.descriptor.pov_hash,
+                                  .from_validator = statement->payload.ix,
+                                  .backing = {}}));
                 return it->second;
               },
               [&](primitives::BlockHash const &candidate_hash)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
-                auto it = our_current_state_.fallbacks.find(candidate_hash);
-                if (it == our_current_state_.fallbacks.end())
+                auto it = fallbacks.find(candidate_hash);
+                if (it == fallbacks.end()) return std::nullopt;
+                if (!parachain_state.our_index
+                    || *parachain_state.our_index == statement->payload.ix)
                   return std::nullopt;
-                if (!getOurIndex() || *getOurIndex() == statement->validator_ix)
-                  return std::nullopt;
-                if (our_current_state_.awaiting_validation.count(candidate_hash)
-                    > 0) {
-                  it->second.backing.push(statement->validator_ix);
+                if (awaiting_validation.count(candidate_hash) > 0) {
+                  it->second.backing.push(statement->payload.ix);
                   return std::nullopt;
                 }
-                it->second.from_validator = statement->validator_ix;
+                it->second.from_validator = statement->payload.ix;
                 return it->second;
               });
 
-      if (attesting_ref) kickOffValidationWork(attesting_ref->get());
+      if (attesting_ref)
+        kickOffValidationWork(attesting_ref->get(), parachain_state);
     }
   }
 
   std::optional<ParachainProcessorImpl::ImportStatementSummary>
   ParachainProcessorImpl::importStatementToTable(
       primitives::BlockHash const &candidate_hash,
-      std::shared_ptr<network::Statement> const &statement) {
+      std::shared_ptr<network::SignedStatement> const &statement) {
     logger_->error("Not implemented. Should be inserted in statement table.");
     return std::nullopt;
   }
 
   void ParachainProcessorImpl::notifyBackedCandidate(
-      std::shared_ptr<network::Statement> const &statement) {
+      std::shared_ptr<network::SignedStatement> const &statement) {
     logger_->error(
         "Not implemented. Should notify somebody that backed candidate "
         "appeared.");
@@ -337,9 +397,9 @@ namespace kagome::parachain {
 
   std::optional<ParachainProcessorImpl::ImportStatementSummary>
   ParachainProcessorImpl::importStatement(
-      std::shared_ptr<network::Statement> const &statement) {
-    auto import_result =
-        importStatementToTable(candidateHashFrom(statement), statement);
+      std::shared_ptr<network::SignedStatement> const &statement) {
+    auto import_result = importStatementToTable(
+        candidateHashFrom(parachain::getPayload(*statement)), statement);
     if (import_result && import_result->attested) {
       notifyBackedCandidate(statement);
     }
@@ -347,76 +407,76 @@ namespace kagome::parachain {
   }
 
   template <ParachainProcessorImpl::StatementType kStatementType>
-  std::shared_ptr<network::Statement>
+  std::shared_ptr<network::SignedStatement>
   ParachainProcessorImpl::createAndSignStatement(
       ValidateAndSecondResult &validation_result) {
     static_assert(kStatementType == StatementType::kSeconded
                   || kStatementType == StatementType::kValid);
 
-    auto const our_ix = getOurIndex();
-    if (!our_ix) {
+    auto parachain_state =
+        tryGetStateByRelayParent(validation_result.relay_parent);
+    if (!parachain_state) {
+      logger_->error("Create and sign statement. No such relay_parent {}.",
+                     validation_result.relay_parent);
+      return nullptr;
+    }
+
+    if (!parachain_state->get().our_index) {
       logger_->template warn(
           "We are not validators or we have no validator index.");
       return nullptr;
     }
 
     if constexpr (kStatementType == StatementType::kSeconded) {
-      network::CommittedCandidateReceipt receipt{
-          .descriptor =
-              candidateDescriptorFrom(*validation_result.fetched_collation),
-          .commitments = std::move(*validation_result.commitments)};
-
-      /// TODO(iceseer):
-      /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
-      auto sign_result = sign(receipt);
-      if (!sign_result) {
-        logger_->error(
-            "Unable to sign Commited Candidate Receipt. Failed with error: {}",
-            sign_result.error().message());
-        return nullptr;
-      }
-
-      return std::make_shared<network::Statement>(
-          network::Statement{.candidate_state = std::move(receipt),
-                             .validator_ix = *our_ix,
-                             .signature = std::move(sign_result.value())});
+      return createAndSignStatementFromPayload(
+          network::CommittedCandidateReceipt{
+              .descriptor =
+                  candidateDescriptorFrom(*validation_result.fetched_collation),
+              .commitments = std::move(*validation_result.commitments)},
+          *parachain_state->get().our_index);
     } else if constexpr (kStatementType == StatementType::kValid) {
-      auto const candidate_hash =
-          candidateHashFrom(*validation_result.fetched_collation);
-
-      /// TODO(iceseer):
-      /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
-      auto sign_result = sign(candidate_hash);
-      if (!sign_result) {
-        logger_->error(
-            "Unable to sign deemed valid hash. Failed with error: {}",
-            sign_result.error().message());
-        return nullptr;
-      }
-
-      return std::make_shared<network::Statement>(
-          network::Statement{.candidate_state = candidate_hash,
-                             .validator_ix = *our_ix,
-                             .signature = std::move(sign_result.value())});
+      return createAndSignStatementFromPayload(
+          candidateHashFrom(*validation_result.fetched_collation),
+          *parachain_state->get().our_index);
     }
   }
 
-  void ParachainProcessorImpl::handleNotify(
+  template <typename T>
+  std::shared_ptr<network::SignedStatement>
+  ParachainProcessorImpl::createAndSignStatementFromPayload(
+      T &&payload, network::ValidatorIndex our_ix) {
+    /// TODO(iceseer):
+    /// https://github.com/paritytech/polkadot/blob/master/primitives/src/v2/mod.rs#L1535-L1545
+    auto sign_result = sign(payload);
+    if (!sign_result) {
+      logger_->error(
+          "Unable to sign Commited Candidate Receipt. Failed with error: {}",
+          sign_result.error().message());
+      return nullptr;
+    }
+
+    return std::make_shared<network::SignedStatement>(network::SignedStatement{
+        .payload = {.payload = network::Statement{.candidate_state =
+                                                      std::forward<T>(payload)},
+                    .ix = our_ix},
+        .signature = std::move(sign_result.value())});
+  }
+
+  template <typename F>
+  bool ParachainProcessorImpl::tryOpenOutgoingStream(
       libp2p::peer::PeerId const &peer_id,
-      primitives::BlockHash const &relay_parent) {
+      std::shared_ptr<network::ProtocolBase> protocol,
+      F &&callback) {
     auto stream_engine = pm_->getStreamEngine();
     BOOST_ASSERT(stream_engine);
 
-    auto collation_protocol = router_->getCollationProtocol();
-    BOOST_ASSERT(collation_protocol);
-
-    if (stream_engine->reserveOutgoing(peer_id, collation_protocol)) {
-      collation_protocol->newOutgoingStream(
+    if (stream_engine->reserveOutgoing(peer_id, protocol)) {
+      protocol->newOutgoingStream(
           libp2p::peer::PeerInfo{.id = peer_id, .addresses = {}},
-          [relay_parent,
-           protocol{collation_protocol},
+          [callback{std::forward<F>(callback)},
+           protocol,
            peer_id,
-           wptr{weak_from_this()}](auto &&stream_result) {
+           wptr{weak_from_this()}](auto &&stream_result) mutable {
             auto self = wptr.lock();
             if (not self) return;
 
@@ -431,6 +491,7 @@ namespace kagome::parachain {
               return;
             }
 
+            auto stream = stream_result.value();
             if (auto add_result = stream_engine->addOutgoing(
                     std::move(stream_result.value()), protocol);
                 !add_result) {
@@ -438,30 +499,128 @@ namespace kagome::parachain {
                                    protocol->protocolName(),
                                    peer_id,
                                    add_result.error().message());
+              return;
             }
-            self->handleNotify(peer_id, relay_parent);
+
+            std::forward<F>(callback)(std::move(stream));
           });
+      return true;
+    }
+    return false;
+  }
+
+  template <typename F>
+  bool ParachainProcessorImpl::tryOpenOutgoingCollatingStream(
+      libp2p::peer::PeerId const &peer_id, F &&callback) {
+    auto protocol = router_->getCollationProtocol();
+    BOOST_ASSERT(protocol);
+
+    return tryOpenOutgoingStream(
+        peer_id, std::move(protocol), std::forward<F>(callback));
+  }
+
+  template <typename F>
+  bool ParachainProcessorImpl::tryOpenOutgoingValidationStream(
+      libp2p::peer::PeerId const &peer_id, F &&callback) {
+    auto protocol = router_->getValidationProtocol();
+    BOOST_ASSERT(protocol);
+
+    return tryOpenOutgoingStream(
+        peer_id, std::move(protocol), std::forward<F>(callback));
+  }
+
+  void ParachainProcessorImpl::sendMyView(
+      const libp2p::peer::PeerId &peer_id,
+      const std::shared_ptr<network::Stream> &stream,
+      const std::shared_ptr<network::ProtocolBase> &protocol) {
+    auto my_view = peer_view_->getMyView();
+    BOOST_ASSERT(my_view);
+    BOOST_ASSERT(protocol);
+
+    pm_->getStreamEngine()->template send(
+        peer_id,
+        protocol,
+        std::make_shared<
+            network::WireMessage<network::ValidatorProtocolMessage>>(
+            network::ViewUpdate{.view = my_view->get()}));
+  }
+
+  void ParachainProcessorImpl::onIncomingCollationStream(
+      libp2p::peer::PeerId const &peer_id) {
+    if (tryOpenOutgoingCollatingStream(
+            peer_id, [wptr{weak_from_this()}, peer_id](auto &&stream) {
+              if (auto self = wptr.lock()) {
+                self->sendMyView(
+                    peer_id, stream, self->router_->getCollationProtocol());
+              }
+            })) {
+      logger_->info("Initiated collation protocol with {}", peer_id);
+    }
+  }
+
+  void ParachainProcessorImpl::onIncomingValidationStream(
+      libp2p::peer::PeerId const &peer_id) {
+    if (tryOpenOutgoingValidationStream(
+            peer_id, [wptr{weak_from_this()}, peer_id](auto &&stream) {
+              if (auto self = wptr.lock()) {
+                self->sendMyView(
+                    peer_id, stream, self->router_->getValidationProtocol());
+              }
+            })) {
+      logger_->info("Initiated validation protocol with {}", peer_id);
+    }
+  }
+
+  void ParachainProcessorImpl::onIncomingCollator(
+      libp2p::peer::PeerId const &peer_id,
+      network::CollatorPublicKey pubkey,
+      network::ParachainId para_id) {
+    pm_->setCollating(peer_id, pubkey, para_id);
+  }
+
+  void ParachainProcessorImpl::handleNotify(
+      libp2p::peer::PeerId const &peer_id,
+      primitives::BlockHash const &relay_parent) {
+    if (tryOpenOutgoingCollatingStream(
+            peer_id,
+            [peer_id, relay_parent, wptr{weak_from_this()}](
+                auto && /*stream*/) {
+              auto self = wptr.lock();
+              if (not self) {
+                return;
+              }
+              self->handleNotify(peer_id, relay_parent);
+            })) {
       return;
     }
 
+    auto stream_engine = pm_->getStreamEngine();
+    BOOST_ASSERT(stream_engine);
+
+    auto collation_protocol = router_->getCollationProtocol();
+    BOOST_ASSERT(collation_protocol);
+
     auto &statements_queue = our_current_state_.seconded_statements[peer_id];
     while (!statements_queue.empty()) {
-      std::shared_ptr<network::Statement> statement(statements_queue.front());
+      std::shared_ptr<network::SignedStatement> statement(
+          statements_queue.front());
       statements_queue.pop_front();
 
       stream_engine->send(
           peer_id,
           collation_protocol,
-          std::make_shared<network::WireMessage>(network::ProtocolMessage(
-              network::CollationMessage(network::Seconded{
-                  .relay_parent = relay_parent, .statement = *statement}))));
+          std::make_shared<
+              network::WireMessage<network::CollationProtocolMessage>>(
+              network::CollationProtocolMessage(network::CollationMessage(
+                  network::Seconded{.relay_parent = relay_parent,
+                                    .statement = *statement}))));
     }
   }
 
   void ParachainProcessorImpl::notify(
       libp2p::peer::PeerId const &peer_id,
       primitives::BlockHash const &relay_parent,
-      std::shared_ptr<network::Statement> const &statement) {
+      std::shared_ptr<network::SignedStatement> const &statement) {
     our_current_state_.seconded_statements[peer_id].emplace_back(statement);
     handleNotify(peer_id, relay_parent);
   }
@@ -471,6 +630,9 @@ namespace kagome::parachain {
       ValidateAndSecondResult &&validation_result) {
     BOOST_ASSERT(validation_result.fetched_collation);
 
+    auto &parachain_state =
+        getStateByRelayParent(validation_result.relay_parent);
+    auto &seconded = parachain_state.seconded;
     auto const candidate_hash =
         candidateHashFrom(*validation_result.fetched_collation);
     if (!validation_result.result) {
@@ -478,25 +640,37 @@ namespace kagome::parachain {
                     candidate_hash,
                     validation_result.result.error().message());
       // send invalid
-    } else if (!our_current_state_.seconded
-               && our_current_state_.issued_statements.count(candidate_hash)
+    } else if (!seconded
+               && parachain_state.issued_statements.count(candidate_hash)
                       == 0) {
       validation_result.fetched_collation->collation_state =
           CollationState::kSeconded;
-      our_current_state_.seconded = candidate_hash;
-      our_current_state_.issued_statements.insert(candidate_hash);
+      seconded = candidate_hash;
+      parachain_state.issued_statements.insert(candidate_hash);
       if (auto statement = createAndSignStatement<StatementType::kSeconded>(
               validation_result)) {
         importStatement(statement);
-        notifyStatementDistributionSystem(statement);
+        notifyStatementDistributionSystem(validation_result.relay_parent,
+                                          statement);
         notify(peer_id, validation_result.relay_parent, statement);
       }
     }
   }
 
   void ParachainProcessorImpl::notifyStatementDistributionSystem(
-      std::shared_ptr<network::Statement> const &statement) {
-    /// Not implemented yet
+      primitives::BlockHash const &relay_parent,
+      std::shared_ptr<network::SignedStatement> const &statement) {
+    BOOST_ASSERT(statement);
+    auto se = pm_->getStreamEngine();
+    BOOST_ASSERT(se);
+
+    se->broadcast(
+        router_->getValidationProtocol(),
+        std::make_shared<
+            network::WireMessage<network::ValidatorProtocolMessage>>(
+            network::ValidatorProtocolMessage{
+                network::StatementDistributionMessage{network::Seconded{
+                    .relay_parent = relay_parent, .statement = *statement}}}));
   }
 
   outcome::result<void> ParachainProcessorImpl::validateCandidate(
@@ -515,12 +689,12 @@ namespace kagome::parachain {
     logger_->error("Availability notification is not implemented!");
   }
 
-  template <typename F>
-  void ParachainProcessorImpl::validateAndMakeAvailable(
+  outcome::result<ParachainProcessorImpl::ValidateAndSecondResult>
+  ParachainProcessorImpl::validateAndMakeAvailable(
+      std::weak_ptr<ParachainProcessorImpl> wptr,
       libp2p::peer::PeerId const &peer_id,
       primitives::BlockHash const &relay_parent,
-      FetchedCollation fetched_collation,
-      F &&callback) {
+      FetchedCollation fetched_collation) {
     BOOST_ASSERT(fetched_collation);
 
     switch (fetched_collation->pov_state) {
@@ -530,7 +704,7 @@ namespace kagome::parachain {
       default: {
         logger_->error("Unexpected PoV state processing.");
       }
-        return;
+        return Error::VALIDATION_FAILED;
     }
 
     if (auto validation_result = validateCandidate(fetched_collation);
@@ -538,7 +712,7 @@ namespace kagome::parachain {
       logger_->warn("Candidate {} validation failed with error: {}",
                     candidateHashFrom(*fetched_collation),
                     validation_result.error().message());
-      return;
+      return Error::VALIDATION_FAILED;
     }
 
     if (auto erasure_coding_result = validateErasureCoding(fetched_collation);
@@ -546,46 +720,55 @@ namespace kagome::parachain {
       logger_->warn("Candidate {} validation failed with error: {}",
                     candidateHashFrom(*fetched_collation),
                     erasure_coding_result.error().message());
-      return;
+      return Error::VALIDATION_FAILED;
     }
 
     notifyAvailableData();
-    notify_internal(this_context_,
-                    [peer_id,
-                     callback{std::forward<F>(callback)},
-                     validate_and_second_result{ValidateAndSecondResult{
-                         .result = outcome::success(),
-                         .fetched_collation = fetched_collation,
-                         .relay_parent = relay_parent,
-                         .commitments = nullptr}}]() mutable {
-                      std::forward<F>(callback)(
-                          peer_id, std::move(validate_and_second_result));
-                    });
+    return ValidateAndSecondResult{.result = outcome::success(),
+                                   .fetched_collation = fetched_collation,
+                                   .relay_parent = relay_parent,
+                                   .commitments = nullptr};
   }
 
   void ParachainProcessorImpl::onAttestComplete(
       libp2p::peer::PeerId const &peer_id, ValidateAndSecondResult &&result) {
-    auto const candidate_hash = candidateHashFrom(*result.fetched_collation);
-    our_current_state_.fallbacks.erase(candidate_hash);
+    auto parachain_state = tryGetStateByRelayParent(result.relay_parent);
+    if (!parachain_state) {
+      logger_->warn(
+          "onAttestComplete result based on unexpected relay_parent {}",
+          result.relay_parent);
+      return;
+    }
 
-    if (our_current_state_.issued_statements.count(candidate_hash) == 0) {
+    auto const candidate_hash = candidateHashFrom(*result.fetched_collation);
+    parachain_state->get().fallbacks.erase(candidate_hash);
+
+    if (parachain_state->get().issued_statements.count(candidate_hash) == 0) {
       if (result.result) {
         if (auto statement =
                 createAndSignStatement<StatementType::kValid>(result)) {
           importStatement(statement);
-          notifyStatementDistributionSystem(statement);
+          notifyStatementDistributionSystem(result.relay_parent, statement);
         }
       }
-      our_current_state_.issued_statements.insert(candidate_hash);
+      parachain_state->get().issued_statements.insert(candidate_hash);
     }
   }
 
   void ParachainProcessorImpl::onAttestNoPoVComplete(
       libp2p::peer::PeerId const &peer_id, ValidateAndSecondResult &&result) {
-    auto const candidate_hash = candidateHashFrom(*result.fetched_collation);
-    auto it = our_current_state_.fallbacks.find(candidate_hash);
+    auto parachain_state = tryGetStateByRelayParent(result.relay_parent);
+    if (!parachain_state) {
+      logger_->warn(
+          "onAttestNoPoVComplete result based on unexpected relay_parent {}",
+          result.relay_parent);
+      return;
+    }
 
-    if (it == our_current_state_.fallbacks.end()) {
+    auto const candidate_hash = candidateHashFrom(*result.fetched_collation);
+    auto it = parachain_state->get().fallbacks.find(candidate_hash);
+
+    if (it == parachain_state->get().fallbacks.end()) {
       logger_->error(
           "Internal error. Fallbacks doesn't contain candidate hash {}",
           candidate_hash);
@@ -596,13 +779,15 @@ namespace kagome::parachain {
     if (!attesting.backing.empty()) {
       attesting.from_validator = attesting.backing.front();
       attesting.backing.pop();
-      kickOffValidationWork(attesting);
+      kickOffValidationWork(attesting, *parachain_state);
     }
   }
 
   void ParachainProcessorImpl::setAssignedParachain(
-      std::optional<network::ParachainId> para_id) {
-    our_current_state_.assignment = para_id;
+      std::optional<network::ParachainId> para_id,
+      const primitives::BlockHash &relay_parent) {
+    auto &parachain_state = getStateByRelayParent(relay_parent);
+    parachain_state.assignment = para_id;
   }
 
   void ParachainProcessorImpl::requestCollations(

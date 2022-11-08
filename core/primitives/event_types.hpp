@@ -28,6 +28,10 @@ namespace kagome::primitives {
   struct BlockHeader;
 }
 
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
 namespace kagome::primitives::events {
 
   template <typename T>
@@ -41,7 +45,11 @@ namespace kagome::primitives::events {
     kNewRuntime = 5
   };
 
-  using HeadsEventParams = ref_t<const primitives::BlockHeader>;
+  struct HeadsEventParams {
+    ref_t<const primitives::BlockHeader> block_header;
+    std::shared_ptr<blockchain::BlockTree> block_tree;
+  };
+
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
   using NewRuntimeEventParams = ref_t<const primitives::BlockHash>;
 

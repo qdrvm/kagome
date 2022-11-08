@@ -18,8 +18,6 @@ namespace kagome::network {
         NonCopyable,
         NonMovable {
     ReqCollationProtocolImpl(libp2p::Host &host,
-                             application::AppConfiguration const &app_config,
-                             application::ChainSpec const &chain_spec,
                              std::shared_ptr<ReqCollationObserver> observer)
         : RequestResponseProtocol<
             CollationFetchingRequest,
@@ -48,12 +46,9 @@ namespace kagome::network {
   };
 
   ReqCollationProtocol::ReqCollationProtocol(
-      libp2p::Host &host,
-      application::AppConfiguration const &app_config,
-      application::ChainSpec const &chain_spec,
-      std::shared_ptr<ReqCollationObserver> observer)
+      libp2p::Host &host, std::shared_ptr<ReqCollationObserver> observer)
       : impl_{std::make_shared<ReqCollationProtocolImpl>(
-          host, app_config, chain_spec, std::move(observer))} {}
+          host, std::move(observer))} {}
 
   const Protocol &ReqCollationProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");

@@ -38,8 +38,9 @@ namespace kagome::network {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo,
-        std::shared_ptr<ReputationRepository> reputation_repository,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+        std::shared_ptr<network::PeerView> peer_view,
+        std::shared_ptr<ReputationRepository> reputation_repository);
 
     void setBlockTree(
         const std::shared_ptr<blockchain::BlockTree> &block_tree) {
@@ -64,6 +65,11 @@ namespace kagome::network {
     void setCollactionObserver(
         std::shared_ptr<CollationObserver> const &collation_observer) {
       collation_observer_ = collation_observer;
+    }
+
+    void setValidationObserver(
+        std::shared_ptr<ValidationObserver> const &validation_observer) {
+      validation_observer_ = validation_observer;
     }
 
     void setStateObserver(
@@ -96,6 +102,7 @@ namespace kagome::network {
     std::shared_ptr<SyncProtocol> makeSyncProtocol() const;
 
     std::shared_ptr<CollationProtocol> makeCollationProtocol() const;
+    std::shared_ptr<ValidationProtocol> makeValidationProtocol() const;
     std::shared_ptr<ReqCollationProtocol> makeReqCollationProtocol() const;
 
    private:
@@ -112,6 +119,7 @@ namespace kagome::network {
         ext_event_key_repo_;
     std::shared_ptr<ReputationRepository> reputation_repository_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
+    std::shared_ptr<network::PeerView> peer_view_;
 
     std::weak_ptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<consensus::babe::Babe> babe_;
@@ -121,6 +129,7 @@ namespace kagome::network {
     std::weak_ptr<SyncProtocolObserver> sync_observer_;
     std::weak_ptr<PeerManager> peer_manager_;
     std::weak_ptr<CollationObserver> collation_observer_;
+    std::weak_ptr<ValidationObserver> validation_observer_;
     std::weak_ptr<ReqCollationObserver> req_collation_observer_;
   };
 

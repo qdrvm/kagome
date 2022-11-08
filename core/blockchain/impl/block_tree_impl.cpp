@@ -153,9 +153,6 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(finalized_block_header_res.has_value()
                          and finalized_block_header_res.value().has_value(),
                      "Initialized block tree must be have finalized block");
-    chain_events_engine->notify(
-        primitives::events::ChainEventType::kFinalizedHeads,
-        finalized_block_header_res.value().value());
 
     std::optional<consensus::EpochNumber> curr_epoch_number;
 
@@ -352,7 +349,7 @@ namespace kagome::blockchain {
     SL_DEBUG(log, "Last finalized block #{}", tree->depth);
     auto meta = std::make_shared<TreeMeta>(tree, last_finalized_justification);
 
-    auto *block_tree =
+    std::shared_ptr<BlockTreeImpl> block_tree(
         new BlockTreeImpl(std::move(header_repo),
                           std::move(storage),
                           std::make_unique<CachedTree>(tree, meta),
@@ -364,7 +361,7 @@ namespace kagome::blockchain {
                           std::move(runtime_core),
                           std::move(changes_tracker),
                           std::move(babe_util),
-                          std::move(justification_storage_policy));
+                          std::move(justification_storage_policy)));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -382,7 +379,13 @@ namespace kagome::blockchain {
           log, "Existing non-finalized block {} is added to block tree", block);
     }
 
-    return std::shared_ptr<BlockTreeImpl>(block_tree);
+    chain_events_engine->notify(
+        primitives::events::ChainEventType::kFinalizedHeads,
+        primitives::events::HeadsEventParams{
+            .block_header = finalized_block_header_res.value().value(),
+            .block_tree = block_tree});
+
+    return block_tree;
   }
 
   outcome::result<void> BlockTreeImpl::recover(
@@ -590,8 +593,10 @@ namespace kagome::blockchain {
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
 
-    chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
-                                 header);
+    chain_events_engine_->notify(
+        primitives::events::ChainEventType::kNewHeads,
+        primitives::events::HeadsEventParams{.block_header = header,
+                                             .block_tree = shared_from_this()});
 
     return outcome::success();
   }
@@ -635,8 +640,10 @@ namespace kagome::blockchain {
         storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
                                       tree_->getMetadata().leaves.end()}));
 
-    chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
-                                 block.header);
+    chain_events_engine_->notify(
+        primitives::events::ChainEventType::kNewHeads,
+        primitives::events::HeadsEventParams{.block_header = block.header,
+                                             .block_tree = shared_from_this()});
     trie_changes_tracker_->onBlockAdded(block_hash);
     for (const auto &ext : block.body) {
       if (auto key =
@@ -840,7 +847,9 @@ namespace kagome::blockchain {
                                       tree_->getMetadata().leaves.end()}));
 
     chain_events_engine_->notify(
-        primitives::events::ChainEventType::kFinalizedHeads, header);
+        primitives::events::ChainEventType::kFinalizedHeads,
+        primitives::events::HeadsEventParams{.block_header = header,
+                                             .block_tree = shared_from_this()});
 
     // it has failure result when fast sync is in progress
     auto new_runtime_version = runtime_core_->version(block_hash);

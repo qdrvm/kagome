@@ -67,6 +67,7 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const primitives::Version &);
   inline jsonrpc::Value makeValue(const primitives::Justification &);
   inline jsonrpc::Value makeValue(const primitives::RpcMethods &);
+  inline jsonrpc::Value makeValue(const primitives::events::HeadsEventParams &);
 
   inline jsonrpc::Value makeValue(const uint32_t &val) {
     return static_cast<int64_t>(val);
@@ -213,6 +214,11 @@ namespace kagome::api {
     jArray res;
     res.emplace_back(std::move(frnk));
     return res;
+  }
+
+  inline jsonrpc::Value makeValue(
+      const primitives::events::HeadsEventParams &value) {
+    return makeValue(value.block_header);
   }
 
   inline jsonrpc::Value makeValue(const primitives::RpcMethods &v) {

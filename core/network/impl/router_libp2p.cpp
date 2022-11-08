@@ -68,6 +68,11 @@ namespace kagome::network {
       return false;
     }
 
+    validation_protocol_ = protocol_factory_->makeValidationProtocol();
+    if (not validation_protocol_) {
+      return false;
+    }
+
     req_collation_protocol_ = protocol_factory_->makeReqCollationProtocol();
     if (not req_collation_protocol_) {
       return false;
@@ -100,6 +105,7 @@ namespace kagome::network {
     state_protocol_->start();
     sync_protocol_->start();
     collation_protocol_->start();
+    validation_protocol_->start();
     req_collation_protocol_->start();
 
     return true;
@@ -164,6 +170,11 @@ namespace kagome::network {
   std::shared_ptr<CollationProtocol> RouterLibp2p::getCollationProtocol()
       const {
     return collation_protocol_;
+  }
+
+  std::shared_ptr<ValidationProtocol> RouterLibp2p::getValidationProtocol()
+      const {
+    return validation_protocol_;
   }
 
   std::shared_ptr<ReqCollationProtocol> RouterLibp2p::getReqCollationProtocol()

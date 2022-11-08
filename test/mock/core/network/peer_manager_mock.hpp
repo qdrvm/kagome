@@ -26,7 +26,7 @@ namespace kagome::network {
 
     MOCK_METHOD(AdvResult,
                 insert_advertisement,
-                (PeerState &, ParachainState &, primitives::BlockHash),
+                (PeerState &, primitives::BlockHash),
                 (override));
 
     MOCK_METHOD(ParachainState &, parachainState, (), (override));

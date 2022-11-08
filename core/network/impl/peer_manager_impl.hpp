@@ -31,6 +31,7 @@
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/impl/protocols/protocol_factory.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "network/peer_view.hpp"
 #include "network/protocols/sync_protocol.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/router.hpp"
@@ -70,6 +71,7 @@ namespace kagome::network {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ReputationRepository> reputation_repository);
 
     /** @see AppStateManager::takeControl */
@@ -98,13 +100,9 @@ namespace kagome::network {
                       network::CollatorPublicKey const &collator_id,
                       network::ParachainId para_id) override;
 
-    /** @see PeerManager::parachainState */
-    ParachainState &parachainState() override;
-
     outcome::result<
         std::pair<network::CollatorPublicKey const &, network::ParachainId>>
     insert_advertisement(PeerState &peer_state,
-                         ParachainState &parachain_state,
                          primitives::BlockHash para_hash) override;
 
     /** @see PeerManager::forEachPeer */
@@ -146,6 +144,16 @@ namespace kagome::network {
     void processDiscoveredPeer(const PeerId &peer_id);
 
     void processFullyConnectedPeer(const PeerId &peer_id);
+
+    template <typename F>
+    void openBlockAnnounceProtocol(
+        PeerInfo const &peer_info,
+        libp2p::network::ConnectionManager::ConnectionSPtr const &connection,
+        F &&opened_callback);
+    void tryOpenGrandpaProtocol(PeerInfo const &peer_info,
+                                PeerState &peer_state);
+    void tryOpenValidationProtocol(PeerInfo const &peer_info,
+                                   PeerState &peer_state);
 
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);
@@ -194,7 +202,7 @@ namespace kagome::network {
     metrics::Gauge *sync_peer_num_;
 
     // parachain
-    ParachainState parachain_state_;
+    std::shared_ptr<network::PeerView> peer_view_;
 
     log::Logger log_;
   };

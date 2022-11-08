@@ -8,6 +8,7 @@
 
 #include "network/collation_observer.hpp"
 #include "network/req_collation_observer.hpp"
+#include "network/validation_observer.hpp"
 
 #include <memory>
 
@@ -15,10 +16,12 @@
 
 namespace kagome::network {
   class PeerManager;
-}
+  class PeerView;
+}  // namespace kagome::network
 
 namespace kagome::observers {
   struct CollationObserverImpl;
+  struct ValidationObserverImpl;
   struct ReqCollationObserverImpl;
 }  // namespace kagome::observers
 
@@ -33,20 +36,28 @@ namespace kagome::parachain {
 namespace kagome::parachain {
 
   struct ParachainObserverImpl final : network::CollationObserver,
+                                       network::ValidationObserver,
                                        network::ReqCollationObserver {
     ParachainObserverImpl(
         std::shared_ptr<network::PeerManager> pm,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
-        std::shared_ptr<parachain::ParachainProcessorImpl> processor);
+        std::shared_ptr<parachain::ParachainProcessorImpl> processor,
+        std::shared_ptr<network::PeerView> peer_view);
     ~ParachainObserverImpl() = default;
 
     /// collation protocol observer
-    void onAdvertise(libp2p::peer::PeerId const &peer_id,
-                     primitives::BlockHash para_hash) override;
-    void onDeclare(libp2p::peer::PeerId const &peer_id,
-                   network::CollatorPublicKey pubkey,
-                   network::ParachainId para_id,
-                   network::Signature signature) override;
+    void onIncomingMessage(
+        libp2p::peer::PeerId const &peer_id,
+        network::CollationProtocolMessage &&collation_message) override;
+    void onIncomingCollationStream(
+        libp2p::peer::PeerId const &peer_id) override;
+
+    /// validation protocol observer
+    void onIncomingMessage(
+        libp2p::peer::PeerId const &peer_id,
+        network::ValidatorProtocolMessage &&validation_message) override;
+    void onIncomingValidationStream(
+        libp2p::peer::PeerId const &peer_id) override;
 
     /// fetch collation protocol observer
     outcome::result<network::CollationFetchingResponse> OnCollationRequest(
@@ -54,6 +65,8 @@ namespace kagome::parachain {
 
    private:
     std::shared_ptr<observers::CollationObserverImpl> collation_observer_impl_;
+    std::shared_ptr<observers::ValidationObserverImpl>
+        validation_observer_impl_;
     std::shared_ptr<observers::ReqCollationObserverImpl>
         req_collation_observer_impl_;
     std::shared_ptr<parachain::ParachainProcessorImpl> processor_;

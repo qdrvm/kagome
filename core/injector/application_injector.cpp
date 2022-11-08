@@ -112,6 +112,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
+#include "parachain/thread_pool.hpp"
 #include "parachain/validator/parachain_observer.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -662,6 +663,7 @@ namespace {
         injector.template create<sptr<network::Router>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
         injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<network::PeerView>>(),
         injector.template create<sptr<network::ReputationRepository>>());
 
     auto protocol_factory =
@@ -710,14 +712,44 @@ namespace {
           injector.template create<std::shared_ptr<network::PeerManager>>(),
           injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
           injector.template create<
-              std::shared_ptr<parachain::ParachainProcessorImpl>>());
+              std::shared_ptr<parachain::ParachainProcessorImpl>>(),
+          injector.template create<std::shared_ptr<network::PeerView>>());
 
       auto protocol_factory =
           injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
       protocol_factory->setCollactionObserver(instance);
+      protocol_factory->setValidationObserver(instance);
       protocol_factory->setReqCollationObserver(instance);
       return instance;
+    };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
+  template <typename Injector>
+  sptr<network::PeerView> get_peer_view(const Injector &injector) {
+    auto get_instance = [&]() {
+      return std::make_shared<network::PeerView>(
+          injector.template create<
+              primitives::events::ChainSubscriptionEnginePtr>(),
+          injector.template create<
+              std::shared_ptr<application::AppStateManager>>());
+    };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
+  template <typename Injector>
+  sptr<thread::ThreadPool> get_thread_pool(const Injector &injector) {
+    auto get_instance = [&]() {
+      auto ptr = std::make_shared<thread::ThreadPool>(
+          injector
+              .template create<std::shared_ptr<application::AppStateManager>>(),
+          10ull);
+      return ptr;
     };
 
     static auto instance = get_instance();
@@ -736,7 +768,9 @@ namespace {
           injector
               .template create<std::shared_ptr<::boost::asio::io_context>>(),
           session_keys->getBabeKeyPair(),
-          injector.template create<std::shared_ptr<crypto::Hasher>>());
+          injector.template create<std::shared_ptr<crypto::Hasher>>(),
+          injector.template create<std::shared_ptr<network::PeerView>>(),
+          injector.template create<std::shared_ptr<thread::ThreadPool>>());
 
       auto asmgr =
           injector
@@ -1219,6 +1253,10 @@ namespace {
             [](auto const &injector) {
               return get_parachain_processor_impl(injector);
             }),
+        di::bind<thread::ThreadPool>.to(
+            [](auto const &injector) { return get_thread_pool(injector); }),
+        di::bind<network::PeerView>.to(
+            [](auto const &injector) { return get_peer_view(injector); }),
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =
@@ -1591,6 +1629,10 @@ namespace kagome::injector {
   std::shared_ptr<parachain::ParachainProcessorImpl>
   KagomeNodeInjector::injectParachainProcessor() {
     return pimpl_->injector_.create<sptr<parachain::ParachainProcessorImpl>>();
+  }
+
+  std::shared_ptr<thread::ThreadPool> KagomeNodeInjector::injectThreadPool() {
+    return pimpl_->injector_.create<sptr<thread::ThreadPool>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {

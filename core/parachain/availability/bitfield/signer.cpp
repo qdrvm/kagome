@@ -47,7 +47,8 @@ namespace kagome::parachain {
           if (auto self = weak.lock()) {
             auto r = self->onBlock(self->hasher_->blake2b_256(
                 scale::encode(
-                    boost::get<primitives::events::HeadsEventParams>(event))
+                    boost::get<primitives::events::HeadsEventParams>(event)
+                        .block_header)
                     .value()));
             if (r.has_error()) {
               SL_WARN(log(), "onBlock error {}", r.error());

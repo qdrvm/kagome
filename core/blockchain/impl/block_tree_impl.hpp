@@ -49,7 +49,8 @@ namespace kagome::blockchain {
   class TreeNode;
   class CachedTree;
 
-  class BlockTreeImpl : public BlockTree {
+  class BlockTreeImpl : public BlockTree,
+                        public std::enable_shared_from_this<BlockTreeImpl> {
    public:
     /// Create an instance of block tree
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
