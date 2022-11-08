@@ -4,15 +4,15 @@ else()
   set(POLLY_COMPILER_GCC_9_CMAKE_ 1)
 endif()
 
-find_program(CMAKE_C_COMPILER gcc-9)
-find_program(CMAKE_CXX_COMPILER g++-9)
+find_program(CMAKE_C_COMPILER gcc-10)
+find_program(CMAKE_CXX_COMPILER g++-10)
 
 if(NOT CMAKE_C_COMPILER)
-  fatal_error("gcc-9 not found")
+  fatal_error("gcc-10 not found")
 endif()
 
 if(NOT CMAKE_CXX_COMPILER)
-  fatal_error("g++-9 not found")
+  fatal_error("g++-10 not found")
 endif()
 
 set(
