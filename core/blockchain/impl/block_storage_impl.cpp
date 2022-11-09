@@ -246,11 +246,10 @@ namespace kagome::blockchain {
 
     SL_TRACE(logger_, "Removing block {}...", block);
 
-    auto hash_to_idx_key =
-        prependPrefix(block.hash, Prefix::ID_TO_LOOKUP_KEY);
+    auto hash_to_idx_key = prependPrefix(block.hash, Prefix::ID_TO_LOOKUP_KEY);
     if (auto res = storage_->remove(hash_to_idx_key); res.has_error()) {
       logger_->error("could not remove hash-to-idx from the storage: {}",
-                     res.error().message());
+                     res.error());
       return res;
     }
 
@@ -262,7 +261,7 @@ namespace kagome::blockchain {
         SL_ERROR(logger_,
                  "could not remove num-to-idx from the storage: {}",
                  block,
-                 res.error().message());
+                 res.error());
         return res;
       }
       SL_DEBUG(logger_, "Removed num-to-idx of {}", block);
@@ -276,7 +275,7 @@ namespace kagome::blockchain {
       SL_ERROR(logger_,
                "could not remove body of block {} from the storage: {}",
                block,
-               res.error().message());
+               res.error());
       return res;
     }
 
@@ -285,7 +284,7 @@ namespace kagome::blockchain {
       SL_ERROR(logger_,
                "could not remove header of block {} from the storage: {}",
                block,
-               res.error().message());
+               res.error());
       return res;
     }
 

@@ -64,13 +64,13 @@ struct fmt::formatter<outcome::result<Result, Failure>> {
     // ctx.out() is an output iterator to write to.
 
     if (res.has_value()) {
-      if constexpr (not std::is_same_v<Result, void>) {
+      if constexpr (not std::is_void_v<Result>) {
         return format_to(ctx.out(), res.has_value());
       } else {
         return format_to(ctx.out(), "success");
       }
     } else {
-      return format_to(ctx.out(), res.error().message());
+      return format_to(ctx.out(), res.error());
     }
   }
 };

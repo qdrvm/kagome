@@ -237,12 +237,12 @@ namespace kagome::runtime {
       if (not put_res.has_value()) {
         SL_ERROR(logger_,
                  "Could not store hashes of blocks changing runtime: {}",
-                 put_res.error().message());
+                 put_res.error());
       }
     } else {
       SL_ERROR(logger_,
                "Could not store hashes of blocks changing runtime: {}",
-               encoded_res.error().message());
+               encoded_res.error());
     }
   }
 }  // namespace kagome::runtime

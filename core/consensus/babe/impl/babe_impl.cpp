@@ -119,9 +119,7 @@ namespace kagome::consensus::babe {
   bool BabeImpl::prepare() {
     auto res = getInitialEpochDescriptor();
     if (res.has_error()) {
-      SL_CRITICAL(log_,
-                  "Can't get initial epoch descriptor: {}",
-                  res.error().message());
+      SL_CRITICAL(log_, "Can't get initial epoch descriptor: {}", res.error());
       return false;
     }
 
@@ -458,7 +456,7 @@ namespace kagome::consensus::babe {
                        "Catching up {} to block {} is failed: {}",
                        peer_id,
                        block,
-                       res.error().message());
+                       res.error());
               return;
             }
 
@@ -516,7 +514,7 @@ namespace kagome::consensus::babe {
         if (header_res.has_error()) {
           SL_CRITICAL(log_,
                       "Can't get header of one of removing leave_block: {}",
-                      header_res.error().message());
+                      header_res.error());
           continue;
         }
 
@@ -549,7 +547,7 @@ namespace kagome::consensus::babe {
                       "Syncing of state with {} on block {} is failed: {}",
                       peer_id,
                       block_at_state,
-                      res.error().message());
+                      res.error());
               return;
             }
 
@@ -637,8 +635,7 @@ namespace kagome::consensus::babe {
     timer_->expiresAt(finish_time);
     timer_->asyncWait([this](auto &&ec) {
       if (ec) {
-        log_->error("error happened while waiting on the timer: {}",
-                    ec.message());
+        log_->error("error happened while waiting on the timer: {}", ec);
         return;
       }
       processSlot();
@@ -760,8 +757,7 @@ namespace kagome::consensus::babe {
     timer_->expiresAt(start_time);
     timer_->asyncWait([this](auto &&ec) {
       if (ec) {
-        log_->error("error happened while waiting on the timer: {}",
-                    ec.message());
+        log_->error("error happened while waiting on the timer: {}", ec);
         return;
       }
       runSlot();
@@ -792,7 +788,7 @@ namespace kagome::consensus::babe {
     if (!encoded_header_res) {
       SL_ERROR(log_,
                "cannot encode BabeBlockHeader: {}",
-               encoded_header_res.error().message());
+               encoded_header_res.error());
       return encoded_header_res.error();
     }
     common::Buffer encoded_header{encoded_header_res.value()};
@@ -814,8 +810,7 @@ namespace kagome::consensus::babe {
         signature) {
       seal.signature = signature.value();
     } else {
-      SL_ERROR(
-          log_, "Error signing a block seal: {}", signature.error().message());
+      SL_ERROR(log_, "Error signing a block seal: {}", signature.error());
       return signature.error();
     }
     auto encoded_seal = common::Buffer(scale::encode(seal).value());
@@ -847,13 +842,13 @@ namespace kagome::consensus::babe {
 
     if (auto res = inherent_data.putData<uint64_t>(kTimestampId, now);
         res.has_error()) {
-      SL_ERROR(log_, "cannot put an inherent data: {}", res.error().message());
+      SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
       return;
     }
 
     if (auto res = inherent_data.putData(kBabeSlotId, current_slot_);
         res.has_error()) {
-      SL_ERROR(log_, "cannot put an inherent data: {}", res);
+      SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
       return;
     }
 
@@ -873,7 +868,7 @@ namespace kagome::consensus::babe {
 
     if (auto res = inherent_data.putData(kParachainId, paras_inherent_data);
         res.has_error()) {
-      SL_ERROR(log_, "cannot put an inherent data: {}", res);
+      SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
       return;
     }
 
@@ -882,9 +877,7 @@ namespace kagome::consensus::babe {
     auto babe_pre_digest_res =
         babePreDigest(slot_type, output, authority_index);
     if (not babe_pre_digest_res) {
-      SL_ERROR(log_,
-               "cannot propose a block: {}",
-               babe_pre_digest_res.error().message());
+      SL_ERROR(log_, "cannot propose a block: {}", babe_pre_digest_res.error());
       return;
     }
     const auto &babe_pre_digest = babe_pre_digest_res.value();
@@ -893,9 +886,7 @@ namespace kagome::consensus::babe {
     auto pre_seal_block_res =
         proposer_->propose(best_block_, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
-      SL_ERROR(log_,
-               "Cannot propose a block: {}",
-               pre_seal_block_res.error().message());
+      SL_ERROR(log_, "Cannot propose a block: {}", pre_seal_block_res.error());
       return;
     }
 
@@ -927,8 +918,7 @@ namespace kagome::consensus::babe {
     // seal the block
     auto seal_res = sealBlock(block);
     if (!seal_res) {
-      SL_ERROR(
-          log_, "Failed to seal the block: {}", seal_res.error().message());
+      SL_ERROR(log_, "Failed to seal the block: {}", seal_res.error());
       return;
     }
 
@@ -959,10 +949,7 @@ namespace kagome::consensus::babe {
 
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
-      SL_ERROR(log_,
-               "Could not add block {}: {}",
-               block_info,
-               add_res.error().message());
+      SL_ERROR(log_, "Could not add block {}: {}", block_info, add_res.error());
       auto removal_res = block_tree_->removeLeaf(block_hash);
       if (removal_res.has_error()
           and removal_res
@@ -971,7 +958,7 @@ namespace kagome::consensus::babe {
         SL_WARN(log_,
                 "Rolling back of block {} is failed: {}",
                 block_info,
-                removal_res.error().message());
+                removal_res.error());
       }
       return;
     }
@@ -1023,7 +1010,7 @@ namespace kagome::consensus::babe {
       if (ocw_res.has_failure()) {
         log_->error("Can't spawn offchain worker for block {}: {}",
                     block_info,
-                    ocw_res.error().message());
+                    ocw_res.error());
       }
     }
   }

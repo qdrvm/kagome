@@ -304,7 +304,7 @@ TEST_P(SynchronizerTest, findCommonBlock) {
       auto &bi = res.value();
       std::cout << "Success: " << bi.hash.data() << std::endl;
     } else {
-      std::cout << "Fail: " << res.error().message() << std::endl;
+      std::cout << "Fail: " << res.error() << std::endl;
     }
     std::cout << std::endl;
     mock(res);

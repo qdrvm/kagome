@@ -75,7 +75,7 @@ namespace kagome::runtime {
           "Failed to obtain the block {} when initializing a runtime "
           "environment; Reason: {}",
           blockchain_state_,
-          header_res.error().message());
+          header_res.error());
       return Error::ABSENT_BLOCK;
     }
 
@@ -89,21 +89,23 @@ namespace kagome::runtime {
     if (persistent_) {
       if (auto res = env.storage_provider->setToPersistentAt(storage_state_);
           !res) {
-        SL_DEBUG(parent_factory->logger_,
+        SL_DEBUG(
+            parent_factory->logger_,
             "Failed to set the storage state to hash {:l} when initializing a "
             "runtime environment; Reason: {}",
             storage_state_,
-            res.error().message());
+            res.error());
         return Error::FAILED_TO_SET_STORAGE_STATE;
       }
     } else {
       if (auto res = env.storage_provider->setToEphemeralAt(storage_state_);
           !res) {
-        SL_DEBUG(parent_factory->logger_,
+        SL_DEBUG(
+            parent_factory->logger_,
             "Failed to set the storage state to hash {:l} when initializing a "
             "runtime environment; Reason: {}",
             storage_state_,
-            res.error().message());
+            res.error());
         return Error::FAILED_TO_SET_STORAGE_STATE;
       }
     }
@@ -196,7 +198,7 @@ namespace kagome::runtime {
       logger_->error(
           "Failed to obtain the genesis block for runtime executor "
           "initialization; Reason: {}",
-          genesis_hash.error().message());
+          genesis_hash.error());
       return Error::ABSENT_BLOCK;
     }
     return start(genesis_hash.value());

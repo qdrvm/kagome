@@ -176,7 +176,7 @@ namespace kagome::consensus {
       SL_ERROR(logger_,
                "Error while tracking digest of block {}: {}",
                block_info,
-               digest_tracking_res.error().message());
+               digest_tracking_res.error());
       return digest_tracking_res.as_failure();
     }
 
@@ -235,7 +235,7 @@ namespace kagome::consensus {
           SL_ERROR(logger_,
                    "Error while applying of block {} justification: {}",
                    block_info,
-                   res.error().message());
+                   res.error());
           return res.as_failure();
         }
       } else {

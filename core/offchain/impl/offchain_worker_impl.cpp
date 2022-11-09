@@ -80,7 +80,7 @@ namespace kagome::offchain {
         SL_ERROR(ocw->log_,
                  "Can't execute offchain worker for block {}: {}",
                  ocw->block_,
-                 res.error().message());
+                 res.error());
         return;
       }
 
@@ -177,7 +177,7 @@ namespace kagome::offchain {
     auto &storage = getStorage(storage_type);
     auto result = storage.set(key, std::move(value));
     if (result.has_error()) {
-      SL_WARN(log_, "Can't set value in storage: {}", result.error().message());
+      SL_WARN(log_, "Can't set value in storage: {}", result.error());
     }
   }
 
@@ -186,8 +186,7 @@ namespace kagome::offchain {
     auto &storage = getStorage(storage_type);
     auto result = storage.clear(key);
     if (result.has_error()) {
-      SL_WARN(
-          log_, "Can't clear value in storage: {}", result.error().message());
+      SL_WARN(log_, "Can't clear value in storage: {}", result.error());
     }
   }
 
@@ -199,9 +198,8 @@ namespace kagome::offchain {
     auto &storage = getStorage(storage_type);
     auto result = storage.compare_and_set(key, expected, std::move(value));
     if (result.has_error()) {
-      SL_WARN(log_,
-              "Can't compare-and-set value in storage: {}",
-              result.error().message());
+      SL_WARN(
+          log_, "Can't compare-and-set value in storage: {}", result.error());
       return false;
     }
     return result.value();
@@ -213,7 +211,7 @@ namespace kagome::offchain {
     auto result = storage.get(key);
     if (result.has_error()
         and result != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-      SL_WARN(log_, "Can't get value in storage: {}", result.error().message());
+      SL_WARN(log_, "Can't get value in storage: {}", result.error());
     }
     return result;
   }

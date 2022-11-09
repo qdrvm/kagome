@@ -503,7 +503,7 @@ namespace kagome::consensus::grandpa {
     if (not res) {
       logger_->error("Round #{}: Primary proposal was not sent: {}",
                      round_number_,
-                     res.error().message());
+                     res.error());
     }
   }
 
@@ -564,9 +564,8 @@ namespace kagome::consensus::grandpa {
 
     auto res = env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
     if (not res) {
-      logger_->error("Round #{}: Prevote was not sent: {}",
-                     round_number_,
-                     res.error().message());
+      logger_->error(
+          "Round #{}: Prevote was not sent: {}", round_number_, res.error());
     }
   }
 
@@ -621,9 +620,8 @@ namespace kagome::consensus::grandpa {
 
     auto res = env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
     if (not res) {
-      logger_->error("Round #{}: Precommit was not sent: {}",
-                     round_number_,
-                     res.error().message());
+      logger_->error(
+          "Round #{}: Precommit was not sent: {}", round_number_, res.error());
     }
   }
 
@@ -646,7 +644,7 @@ namespace kagome::consensus::grandpa {
               "Round #{}: Finalizing on block {} is failed: {}",
               round_number_,
               block,
-              res.error().message());
+              res.error());
     }
   }
 
@@ -671,7 +669,7 @@ namespace kagome::consensus::grandpa {
     if (not committed) {
       logger_->error("Round #{}: Commit message was not sent: {}",
                      round_number_,
-                     committed.error().message());
+                     committed.error());
       return;
     }
   }
@@ -942,7 +940,7 @@ namespace kagome::consensus::grandpa {
       if (not res) {
         logger_->error("Round #{}: Primary proposal was not propagated: {}",
                        round_number_,
-                       res.error().message());
+                       res.error());
       }
     }
   }
@@ -987,7 +985,7 @@ namespace kagome::consensus::grandpa {
         logger_->warn("Round #{}: Prevote signed by {} was rejected: {}",
                       round_number_,
                       prevote.id,
-                      result.error().message());
+                      result.error());
         return false;
       }
     }
@@ -1011,7 +1009,7 @@ namespace kagome::consensus::grandpa {
       if (not res) {
         logger_->error("Round #{}: Prevote was not propagated: {}",
                        round_number_,
-                       res.error().message());
+                       res.error());
       }
     }
 
@@ -1053,7 +1051,7 @@ namespace kagome::consensus::grandpa {
         logger_->warn("Round #{}: Precommit signed by {} was rejected: {}",
                       round_number_,
                       precommit.id,
-                      result.error().message());
+                      result.error());
         return false;
       }
     }
@@ -1078,7 +1076,7 @@ namespace kagome::consensus::grandpa {
       if (not res) {
         logger_->error("Round #{}: Precommit was not propagated: {}",
                        round_number_,
-                       res.error().message());
+                       res.error());
       }
     }
 
@@ -1207,7 +1205,7 @@ namespace kagome::consensus::grandpa {
                  type_str,
                  vote.id.toHex(),
                  vote.getBlockInfo(),
-                 result.error().message());
+                 result.error());
           return result.as_failure();
         }
         return outcome::success();
@@ -1570,8 +1568,7 @@ namespace kagome::consensus::grandpa {
                                          std::move(precommit_justification),
                                          finalized_block);
     if (not result) {
-      logger_->warn("Catch-Up-Response was not sent: {}",
-                    result.error().message());
+      logger_->warn("Catch-Up-Response was not sent: {}", result.error());
     }
   }
 
@@ -1581,7 +1578,7 @@ namespace kagome::consensus::grandpa {
         voter_set_->id(),
         finalized_.value_or(last_finalized_block_).number);
     if (res.has_error()) {
-      logger_->warn("Neighbor message was not sent: {}", res.error().message());
+      logger_->warn("Neighbor message was not sent: {}", res.error());
     }
   }
 

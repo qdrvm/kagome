@@ -424,14 +424,13 @@ namespace kagome::network {
     auto request_fingerprint = request.fingerprint();
 
     if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
-      SL_VERBOSE(
-          log_,
-          "Can't check if block #{} in #{}..#{} is common with {}: {}",
-          hint,
-          lower,
-          upper - 1,
-          peer_id,
-          outcome::result<void>(Error::DUPLICATE_REQUEST).error().message());
+      SL_VERBOSE(log_,
+                 "Can't check if block #{} in #{}..#{} is common with {}: {}",
+                 hint,
+                 lower,
+                 upper - 1,
+                 peer_id,
+                 outcome::result<void>(Error::DUPLICATE_REQUEST).error());
       handler(Error::DUPLICATE_REQUEST);
       return;
     }
@@ -459,7 +458,7 @@ namespace kagome::network {
                    lower,
                    upper - 1,
                    peer_id,
-                   response_res.error().message());
+                   response_res.error());
         handler(response_res.as_failure());
         return;
       }
@@ -597,12 +596,11 @@ namespace kagome::network {
     auto request_fingerprint = request.fingerprint();
 
     if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
-      SL_ERROR(
-          log_,
-          "Can't load blocks from {} beginning block {}: {}",
-          peer_id,
-          from,
-          outcome::result<void>(Error::DUPLICATE_REQUEST).error().message());
+      SL_ERROR(log_,
+               "Can't load blocks from {} beginning block {}: {}",
+               peer_id,
+               from,
+               outcome::result<void>(Error::DUPLICATE_REQUEST).error());
       if (handler) handler(Error::DUPLICATE_REQUEST);
       return;
     }
@@ -626,7 +624,7 @@ namespace kagome::network {
                  "Can't load blocks from {} beginning block {}: {}",
                  peer_id,
                  from,
-                 response_res.error().message());
+                 response_res.error());
         if (handler) handler(response_res.as_failure());
         return;
       }
@@ -828,12 +826,11 @@ namespace kagome::network {
 
     auto request_fingerprint = request.fingerprint();
     if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
-      SL_ERROR(
-          log_,
-          "Can't load justification from {} for block {}: {}",
-          peer_id,
-          target_block,
-          outcome::result<void>(Error::DUPLICATE_REQUEST).error().message());
+      SL_ERROR(log_,
+               "Can't load justification from {} for block {}: {}",
+               peer_id,
+               target_block,
+               outcome::result<void>(Error::DUPLICATE_REQUEST).error());
       if (handler) {
         handler(Error::DUPLICATE_REQUEST);
       }
@@ -857,7 +854,7 @@ namespace kagome::network {
                  "Can't load justification from {} for block {}: {}",
                  peer_id,
                  target_block,
-                 response_res.error().message());
+                 response_res.error());
         if (handler) {
           handler(response_res.as_failure());
         }
@@ -968,7 +965,7 @@ namespace kagome::network {
 
             SL_WARN(self->log_,
                     "State syncing failed with error: {}",
-                    response_res.error().message());
+                    response_res.error());
             if (handler) handler(response_res.as_failure());
             return;
           }
@@ -1209,7 +1206,7 @@ namespace kagome::network {
                 "Block {} {} been discarded: {}",
                 block_info,
                 n ? fmt::format("and {} others have", n) : fmt::format("has"),
-                applying_res.error().message());
+                applying_res.error());
             if (handler) handler(Error::DISCARDED_BLOCK);
           } else {
             SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
@@ -1273,7 +1270,7 @@ namespace kagome::network {
         SL_WARN(log_,
                 "Justification for block {} was not applied: {}",
                 block,
-                res.error().message());
+                res.error());
       } else {
         SL_TRACE(log_, "Applied justification for block {}", block);
       }
@@ -1410,7 +1407,7 @@ namespace kagome::network {
               SL_DEBUG(self->log_,
                        "Loading next portion of blocks from {} is failed: {}",
                        peer_id,
-                       res.error().message());
+                       res.error());
               return;
             }
             SL_DEBUG(self->log_,
@@ -1446,7 +1443,7 @@ namespace kagome::network {
                     SL_DEBUG(self->log_,
                              "Can't load next portion of blocks from {}: {}",
                              peer_id,
-                             res.error().message());
+                             res.error());
                     handler(res);
                     return;
                   }

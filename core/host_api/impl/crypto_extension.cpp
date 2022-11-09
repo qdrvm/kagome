@@ -183,9 +183,8 @@ namespace kagome::host_api {
 
     auto public_keys = crypto_store_->getEd25519PublicKeys(key_type_id);
     if (not public_keys) {
-      throw_with_error(logger_,
-                       "error loading public keys: {}",
-                       public_keys.error().message());
+      throw_with_error(
+          logger_, "error loading public keys: {}", public_keys.error());
     }
     common::Buffer buffer{scale::encode(public_keys.value()).value()};
     SL_TRACE_FUNC_CALL(logger_, buffer.size(), key_type_id);
@@ -205,20 +204,19 @@ namespace kagome::host_api {
     auto mnemonic = crypto::bip39::Mnemonic::parse(content);
     if (!mnemonic) {
       throw_with_error(
-          logger_, "failed to parse mnemonic {}", mnemonic.error().message());
+          logger_, "failed to parse mnemonic {}", mnemonic.error());
     }
 
     auto &&entropy = bip39_provider_->calculateEntropy(mnemonic.value().words);
     if (!entropy) {
       throw_with_error(
-          logger_, "failed to calculate entropy {}", entropy.error().message());
+          logger_, "failed to calculate entropy {}", entropy.error());
     }
 
     auto &&big_seed =
         bip39_provider_->makeSeed(entropy.value(), mnemonic.value().password);
     if (!big_seed) {
-      throw_with_error(
-          logger_, "failed to generate seed {}", big_seed.error().message());
+      throw_with_error(logger_, "failed to generate seed {}", big_seed.error());
     }
 
     auto big_span = gsl::span<uint8_t>(big_seed.value());
@@ -254,9 +252,8 @@ namespace kagome::host_api {
       kp_res = crypto_store_->generateEd25519KeypairOnDisk(key_type_id);
     }
     if (!kp_res) {
-      throw_with_error(logger_,
-                       "failed to generate ed25519 key pair: {}",
-                       kp_res.error().message());
+      throw_with_error(
+          logger_, "failed to generate ed25519 key pair: {}", kp_res.error());
     }
     auto &key_pair = kp_res.value();
     SL_TRACE_FUNC_CALL(logger_, key_pair.public_key, key_type_id, seed_buffer);
@@ -291,9 +288,8 @@ namespace kagome::host_api {
 
     auto sign = ed25519_provider_->sign(key_pair.value(), msg_buffer);
     if (!sign) {
-      throw_with_error(logger_,
-                       "failed to sign message, error = {}",
-                       sign.error().message());
+      throw_with_error(
+          logger_, "failed to sign message, error = {}", sign.error());
     }
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
@@ -344,9 +340,8 @@ namespace kagome::host_api {
 
     auto public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
     if (not public_keys) {
-      throw_with_error(logger_,
-                       "error loading public keys: {}",
-                       public_keys.error().message());
+      throw_with_error(
+          logger_, "error loading public keys: {}", public_keys.error());
     }
 
     auto buffer = scale::encode(public_keys.value()).value();
@@ -377,9 +372,8 @@ namespace kagome::host_api {
       kp_res = crypto_store_->generateSr25519KeypairOnDisk(key_type_id);
     }
     if (!kp_res) {
-      throw_with_error(logger_,
-                       "failed to generate sr25519 key pair: {}",
-                       kp_res.error().message());
+      throw_with_error(
+          logger_, "failed to generate sr25519 key pair: {}", kp_res.error());
     }
     auto &key_pair = kp_res.value();
 
@@ -414,16 +408,14 @@ namespace kagome::host_api {
     }
     auto key_pair = crypto_store_->findSr25519Keypair(key_type_id, pk.value());
     if (!key_pair) {
-      logger_->error("failed to find required key: {}",
-                     key_pair.error().message());
+      logger_->error("failed to find required key: {}", key_pair.error());
       return getMemory().storeBuffer(error_result);
     }
 
     auto sign = sr25519_provider_->sign(key_pair.value(), msg_buffer);
     if (!sign) {
-      throw_with_error(logger_,
-                       "failed to sign message, error = {}",
-                       sign.error().message());
+      throw_with_error(
+          logger_, "failed to sign message, error = {}", sign.error());
     }
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
@@ -516,7 +508,7 @@ namespace kagome::host_api {
         secp256k1_provider_->recoverPublickeyUncompressed(signature, message);
     if (!public_key) {
       logger_->error("failed to recover uncompressed secp256k1 public key: {}",
-                     public_key.error().message());
+                     public_key.error());
 
       auto error_code =
           convertFailureToError<UncompressedPublicKey>(public_key.as_failure());
@@ -557,7 +549,7 @@ namespace kagome::host_api {
         secp256k1_provider_->recoverPublickeyCompressed(signature, message);
     if (!public_key) {
       logger_->error("failed to recover uncompressed secp256k1 public key: {}",
-                     public_key.error().message());
+                     public_key.error());
 
       auto error_code =
           convertFailureToError<CompressedPublicKey>(public_key.as_failure());
@@ -581,9 +573,8 @@ namespace kagome::host_api {
 
     auto public_keys = crypto_store_->getEcdsaPublicKeys(key_type_id);
     if (not public_keys) {
-      throw_with_error(logger_,
-                       "error loading public keys: {}",
-                       public_keys.error().message());
+      throw_with_error(
+          logger_, "error loading public keys: {}", public_keys.error());
     }
 
     auto buffer = scale::encode(public_keys.value()).value();
@@ -617,9 +608,8 @@ namespace kagome::host_api {
 
     auto sign = ecdsa_provider_->sign(msg_buffer, key_pair.value().secret_key);
     if (!sign) {
-      throw_with_error(logger_,
-                       "failed to sign message, error = {}",
-                       sign.error().message());
+      throw_with_error(
+          logger_, "failed to sign message, error = {}", sign.error());
     }
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
@@ -655,9 +645,8 @@ namespace kagome::host_api {
     auto sign =
         ecdsa_provider_->signPrehashed(digest, key_pair.value().secret_key);
     if (!sign) {
-      throw_with_error(logger_,
-                       "failed to sign message, error = {}",
-                       sign.error().message());
+      throw_with_error(
+          logger_, "failed to sign message, error = {}", sign.error());
     }
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
@@ -687,9 +676,8 @@ namespace kagome::host_api {
       kp_res = crypto_store_->generateEcdsaKeypairOnDisk(key_type_id);
     }
     if (!kp_res) {
-      throw_with_error(logger_,
-                       "failed to generate ecdsa key pair: {}",
-                       kp_res.error().message());
+      throw_with_error(
+          logger_, "failed to generate ecdsa key pair: {}", kp_res.error());
     }
     auto &key_pair = kp_res.value();
 

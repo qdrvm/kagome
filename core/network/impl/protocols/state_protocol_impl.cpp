@@ -76,7 +76,7 @@ namespace kagome::network {
                 "Error happened while connection over {} stream with {}: {}",
                 self->protocol_,
                 peer_id,
-                stream_res.error().message());
+                stream_res.error());
             cb(stream_res.as_failure());
             return;
           }
@@ -112,7 +112,7 @@ namespace kagome::network {
                    "Error at read request from incoming {} stream with {}: {}",
                    self->protocol_,
                    stream->remotePeerId().value(),
-                   state_request_res.error().message());
+                   state_request_res.error());
 
         stream->reset();
         return;
@@ -149,7 +149,7 @@ namespace kagome::network {
             "Error at execute request from incoming {} stream with {}: {}",
             self->protocol_,
             stream->remotePeerId().value(),
-            state_response_res.error().message());
+            state_response_res.error());
 
         stream->reset();
         return;
@@ -190,9 +190,9 @@ namespace kagome::network {
           }
 
           SL_DEBUG(self->log_,
-                  "Established outgoing {} stream with {}",
-                  self->protocol_,
-                  stream->remotePeerId().value());
+                   "Established outgoing {} stream with {}",
+                   self->protocol_,
+                   stream->remotePeerId().value());
 
           self->writeRequest(stream,
                              std::move(state_request),
@@ -242,7 +242,7 @@ namespace kagome::network {
                 "Error at writing response to incoming {} stream with {}: {}",
                 self->protocol_,
                 stream->remotePeerId().value(),
-                write_res.error().message());
+                write_res.error());
             stream->reset();
             return;
           }
@@ -279,7 +279,7 @@ namespace kagome::network {
                 "Error at write request into outgoing {} stream with {}: {}",
                 self->protocol_,
                 stream->remotePeerId().value(),
-                write_res.error().message());
+                write_res.error());
 
             stream->reset();
             cb(write_res.as_failure());
@@ -301,9 +301,9 @@ namespace kagome::network {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
     SL_DEBUG(log_,
-            "Read response from outgoing {} stream with {}",
-            protocol_,
-            stream->remotePeerId().value());
+             "Read response from outgoing {} stream with {}",
+             protocol_,
+             stream->remotePeerId().value());
 
     read_writer->read<StateResponse>([stream,
                                       wp = weak_from_this(),
@@ -322,7 +322,7 @@ namespace kagome::network {
                 "Error at read response from outgoing {} stream with {}: {}",
                 self->protocol_,
                 stream->remotePeerId().value(),
-                state_response_res.error().message());
+                state_response_res.error());
 
         stream->reset();
         response_handler(state_response_res.as_failure());

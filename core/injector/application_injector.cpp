@@ -429,7 +429,7 @@ namespace {
                     fs::absolute(app_config.databasePath(chain_spec->id()),
                                  fs::current_path())
                         .native(),
-                    db_res.error().message());
+                    db_res.error());
       exit(EXIT_FAILURE);
     }
     auto &db = db_res.value();
@@ -454,7 +454,7 @@ namespace {
       log->critical(
           "Can't load chain spec from {}: {}",
           fs::absolute(chainspec_path.native(), fs::current_path()).native(),
-          chain_spec_res.error().message());
+          chain_spec_res.error());
       exit(EXIT_FAILURE);
     }
     auto &chain_spec = chain_spec_res.value();
@@ -1460,8 +1460,7 @@ namespace {
           buffer_storage->remove(storage::kAuthorityManagerStateLookupKey)
               .value();
           if (res.has_error()) {
-            SL_ERROR(
-                log, "Recovery mode has failed: {}", res.error().message());
+            SL_ERROR(log, "Recovery mode has failed: {}", res.error());
             log->flush();
             return EXIT_FAILURE;
           }
@@ -1470,8 +1469,7 @@ namespace {
               header_repo->getNumberById(app_config.recoverState().value());
           res = authority_manager->recalculateStoredState(number.value());
           if (res.has_error()) {
-            SL_ERROR(
-                log, "Recovery mode has failed: {}", res.error().message());
+            SL_ERROR(log, "Recovery mode has failed: {}", res.error());
             log->flush();
             return EXIT_FAILURE;
           }

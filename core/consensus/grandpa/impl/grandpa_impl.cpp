@@ -102,7 +102,7 @@ namespace kagome::consensus::grandpa {
     if (not round_state_res.has_value()) {
       logger_->critical(
           "Can't retrieve last round data: {}. Stopping grandpa execution",
-          round_state_res.error().message());
+          round_state_res.error());
       return false;
     }
     auto &round_state = round_state_res.value();
@@ -128,7 +128,7 @@ namespace kagome::consensus::grandpa {
       if (res.has_error()) {
         logger_->critical(
             "Can't make voter set: {}. Stopping grandpa execution",
-            res.error().message());
+            res.error());
         return false;
       }
     }
@@ -227,7 +227,7 @@ namespace kagome::consensus::grandpa {
       auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                                 authority.weight);
       if (res.has_error()) {
-        SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
+        SL_CRITICAL(logger_, "Can't make voter set: {}", res.error());
         std::abort();
       }
     }
@@ -471,7 +471,7 @@ namespace kagome::consensus::grandpa {
                       "{} was not loaded: {}",
                       last_finalized,
                       msg.last_finalized,
-                      res.error().message());
+                      res.error());
             } else {
               SL_DEBUG(self->logger_,
                        "Loaded justifications for blocks in range {} - {}",
@@ -706,7 +706,7 @@ namespace kagome::consensus::grandpa {
         auto res = voters->insert(
             primitives::GrandpaSessionKey(authority.id.id), authority.weight);
         if (res.has_error()) {
-          SL_WARN(logger_, "Can't make voter set: {}", res.error().message());
+          SL_WARN(logger_, "Can't make voter set: {}", res.error());
           return;
         }
       }
@@ -1106,7 +1106,7 @@ namespace kagome::consensus::grandpa {
           msg.round,
           BlockInfo(msg.message.target_number, msg.message.target_hash),
           peer_id,
-          res.error().message());
+          res.error());
       return;
     }
 
@@ -1190,8 +1190,7 @@ namespace kagome::consensus::grandpa {
           auto res = voters->insert(
               primitives::GrandpaSessionKey(authority.id.id), authority.weight);
           if (res.has_error()) {
-            SL_CRITICAL(
-                logger_, "Can't make voter set: {}", res.error().message());
+            SL_CRITICAL(logger_, "Can't make voter set: {}", res.error());
             return res.as_failure();
           }
         }

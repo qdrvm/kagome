@@ -194,7 +194,7 @@ namespace kagome::consensus {
       SL_ERROR(logger_,
                "Error while tracking digest of block {}: {}",
                block_info,
-               digest_tracking_res.error().message());
+               digest_tracking_res.error());
       return digest_tracking_res.as_failure();
     }
 
@@ -330,7 +330,7 @@ namespace kagome::consensus {
       if (ocw_res.has_failure()) {
         logger_->error("Can't spawn offchain worker for block {}: {}",
                        block_info,
-                       ocw_res.error().message());
+                       ocw_res.error());
       }
     }
 

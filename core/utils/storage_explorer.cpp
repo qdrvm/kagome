@@ -84,7 +84,7 @@ class Command {
   template <typename T>
   T unwrapResult(std::string_view context, outcome::result<T> &&res) const {
     if (res.has_value()) return std::move(res).value();
-    throwError("{}: {}", context, res.error().message());
+    throwError("{}: {}", context, res.error());
   }
 
  private:
@@ -202,11 +202,11 @@ class InspectBlockCommand : public Command {
         std::cout << "# of extrinsics: " << body_res.value()->size() << "\n";
 
       } else {
-        throwError("Internal error: {}}", body_res.error().message());
+        throwError("Internal error: {}}", body_res.error());
       }
 
     } else {
-      throwError("Internal error: {}}", res.error().message());
+      throwError("Internal error: {}}", res.error());
     }
   }
 
@@ -229,7 +229,7 @@ class RemoveBlockCommand : public Command {
     }
     auto data = block_storage->getBlockData(opt_id.value());
     if (!data) {
-      throwError("Failed getting block data: {}", data.error().message());
+      throwError("Failed getting block data: {}", data.error());
     }
     if (!data.value().has_value()) {
       throwError("Block data not found");
@@ -237,7 +237,7 @@ class RemoveBlockCommand : public Command {
     if (auto res = block_storage->removeBlock(
             {data.value().value().header->number, data.value().value().hash});
         !res) {
-      throwError("{}", res.error().message());
+      throwError("{}", res.error());
     }
   }
 
@@ -265,7 +265,7 @@ class QueryStateCommand : public Command {
     }
     auto batch = trie_storage->getEphemeralBatchAt(state_root);
     if (!batch) {
-      throwError("Failed getting trie batch: {}", batch.error().message());
+      throwError("Failed getting trie batch: {}", batch.error());
     }
     kagome::common::Buffer key{};
     if (auto key_bytes = kagome::common::unhex(args[2]); key_bytes) {
@@ -275,8 +275,7 @@ class QueryStateCommand : public Command {
     }
     auto value_res = batch.value()->tryGet(key);
     if (value_res.has_error()) {
-      throwError("Error retrieving value from Trie: {}",
-                 value_res.error().message());
+      throwError("Error retrieving value from Trie: {}", value_res.error());
     }
     auto &value_opt = value_res.value();
     if (value_opt.has_value()) {
