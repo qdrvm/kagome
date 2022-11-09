@@ -121,9 +121,9 @@ namespace kagome::network {
     return alive;
   }
 
-  int StreamEngine::outgoingStreamsNumber(
+  size_t StreamEngine::outgoingStreamsNumber(
       const std::shared_ptr<ProtocolBase> &protocol) {
-    int candidates_num{0};
+    size_t candidates_num{0};
     streams_.sharedAccess([&](auto const &streams) {
       candidates_num = std::count_if(
           streams.begin(), streams.end(), [&protocol](const auto &entry) {

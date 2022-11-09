@@ -407,7 +407,7 @@ namespace kagome::application {
     load_u32(val, "out-peers", out_peers_);
     load_u32(val, "in-peers", in_peers_);
     load_u32(val, "in-peers-light", in_peers_light_);
-    load_i32(val, "lucky-peers", lucky_peers_);
+    load_u32(val, "lucky-peers", lucky_peers_);
     load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
     load_u32(val, "random-walk-interval", random_walk_interval_);
   }

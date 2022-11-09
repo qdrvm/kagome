@@ -30,7 +30,7 @@ namespace kagome::network {
 
   template <typename Rng = std::mt19937>
   struct RandomGossipStrategy {
-    RandomGossipStrategy(const int candidates_num, const int lucky_peers_num)
+    RandomGossipStrategy(const size_t candidates_num, const size_t lucky_peers_num)
         : candidates_num_{candidates_num} {
       auto lucky_rate = lucky_peers_num > 0
                             ? static_cast<double>(lucky_peers_num)
@@ -45,7 +45,7 @@ namespace kagome::network {
 
    private:
     Rng gen_;
-    int candidates_num_;
+    size_t candidates_num_;
     typename Rng::result_type threshold_;
   };
 
@@ -154,7 +154,8 @@ namespace kagome::network {
     void broadcast(
         const std::shared_ptr<ProtocolBase> &protocol,
         const std::shared_ptr<T> &msg,
-        const std::function<bool(const PeerId &peer_id)> &predicate) {
+        const std::function<bool(const PeerId &peer_id)> &predicate,
+        const std::function<void(libp2p::connection::Stream&)> on_send = [](auto&){}) {
       BOOST_ASSERT(msg != nullptr);
       BOOST_ASSERT(protocol != nullptr);
 
@@ -163,10 +164,12 @@ namespace kagome::network {
           forProtocol(proto_map, protocol, [&](ProtocolDescr &descr) {
             if (descr.hasActiveOutgoing()) {
               send(peer_id, protocol, descr.outgoing.stream, msg);
+              on_send(*descr.outgoing.stream);
             } else {
-              descr.deferred_messages.push_back([weak_self = weak_from_this(), msg, peer_id, protocol](auto stream) {
+              descr.deferred_messages.push_back([weak_self = weak_from_this(), msg, peer_id, protocol, on_send](auto stream) {
                 if (auto self = weak_self.lock()) {
                   self->send(peer_id, protocol, stream, msg);
+                  on_send(*stream);
                 }
               });
               openOutgoingStream(peer_id, protocol, descr);
@@ -184,7 +187,7 @@ namespace kagome::network {
       broadcast(protocol, msg, any);
     }
 
-    int outgoingStreamsNumber(const std::shared_ptr<ProtocolBase> &protocol);
+    size_t outgoingStreamsNumber(const std::shared_ptr<ProtocolBase> &protocol);
 
     template <typename F>
     size_t count(F &&filter) const {

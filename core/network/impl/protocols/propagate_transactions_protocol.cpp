@@ -348,9 +348,7 @@ namespace kagome::network {
     stream_engine_->broadcast<PropagatedExtrinsics>(
         shared_from_this(),
         propagated_exts,
-        RandomGossipStrategy{
-            stream_engine_->outgoingStreamsNumber(shared_from_this()),
-            app_config_.luckyPeers()});
+        [](auto peer) { return true; });
   }
 
 }  // namespace kagome::network
