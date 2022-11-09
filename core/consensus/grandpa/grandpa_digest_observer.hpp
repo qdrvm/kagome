@@ -19,12 +19,12 @@ namespace kagome::consensus::grandpa {
     /**
      * Processes consensus message in block digest
      * @param block - corresponding block
-     * @param message - grandpa digest
+     * @param digest - grandpa digest
      * @return failure or nothing
      */
     virtual outcome::result<void> onDigest(
         const primitives::BlockInfo &block,
-        const primitives::Consensus &message) = 0;
+        const primitives::GrandpaDigest &message) = 0;
 
     /**
      * @brief Cancel changes. Should be called when the block is rolled back

@@ -36,6 +36,10 @@ namespace kagome::application {
   class AppConfiguration;
 }
 
+namespace kagome::blockchain {
+  class DigestTracker;
+}
+
 namespace kagome::network {
   class Synchronizer;
   class BlockAnnounceTransmitter;
@@ -85,8 +89,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<clock::SystemClock> clock,
         std::shared_ptr<crypto::Hasher> hasher,
         std::unique_ptr<clock::Timer> timer,
-        std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
-            grandpa_digest_observer,
+        std::shared_ptr<blockchain::DigestTracker> digest_tracker,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<BabeUtil> babe_util,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -176,8 +179,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::unique_ptr<clock::Timer> timer_;
-    std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
-        grandpa_digest_observer_;
+    std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
     primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;

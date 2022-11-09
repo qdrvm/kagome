@@ -9,8 +9,8 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "application/app_configuration.hpp"
-#include "blockchain/block_storage_error.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "blockchain/digest_tracker.hpp"
 #include "common/buffer.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_error.hpp"
@@ -54,8 +54,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
-      std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
-          grandpa_digest_observer,
+      std::shared_ptr<blockchain::DigestTracker> digest_tracker,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -73,7 +72,7 @@ namespace kagome::consensus::babe {
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
         timer_{std::move(timer)},
-        grandpa_digest_observer_(std::move(grandpa_digest_observer)),
+        digest_tracker_(std::move(digest_tracker)),
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         chain_events_engine_(std::move(chain_events_engine)),
@@ -97,7 +96,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(timer_);
     BOOST_ASSERT(log_);
-    BOOST_ASSERT(grandpa_digest_observer_);
+    BOOST_ASSERT(digest_tracker_);
     BOOST_ASSERT(synchronizer_);
     BOOST_ASSERT(babe_util_);
     BOOST_ASSERT(offchain_worker_api_);
@@ -964,26 +963,16 @@ namespace kagome::consensus::babe {
     }
     telemetry_->notifyBlockImported(block_info, telemetry::BlockOrigin::kOwn);
 
-    // observe possible changes of authorities
+    // observe digest of block
     // (must be done strictly after block will be added)
-    for (auto &digest_item : block.header.digest) {
-      auto res = visit_in_place(
-          digest_item,
-          [&](const primitives::Consensus &consensus_message)
-              -> outcome::result<void> {
-            auto res = grandpa_digest_observer_->onDigest(block_info,
-                                                          consensus_message);
-            if (res.has_error()) {
-              SL_WARN(log_,
-                      "Can't process consensus message digest: {}",
-                      res.error().message());
-            }
-            return res;
-          },
-          [](const auto &) { return outcome::success(); });
-      if (res.has_error()) {
-        return;
-      }
+    auto digest_tracking_res =
+        digest_tracker_->onDigest(block_info, block.header.digest);
+    if (digest_tracking_res.has_error()) {
+      SL_WARN(log_,
+              "Error while tracking digest of block {}: {}",
+              block_info,
+              digest_tracking_res.error());
+      return;
     }
 
     // finally, broadcast the sealed block

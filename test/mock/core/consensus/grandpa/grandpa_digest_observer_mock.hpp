@@ -14,7 +14,8 @@ namespace kagome::consensus::grandpa {
   struct GrandpaDigestObserverMock : public GrandpaDigestObserver {
     MOCK_METHOD(outcome::result<void>,
                 onDigest,
-                (const primitives::BlockInfo &, const primitives::Consensus &),
+                (const primitives::BlockInfo &,
+                 const primitives::GrandpaDigest &),
                 (override));
 
     MOCK_METHOD(void, cancel, (const primitives::BlockInfo &), (override));

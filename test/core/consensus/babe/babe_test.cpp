@@ -16,6 +16,7 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/blockchain/digest_tracker_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/clock/timer_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
@@ -24,7 +25,6 @@
 #include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
-#include "mock/core/consensus/grandpa/grandpa_digest_observer_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
@@ -109,8 +109,10 @@ class BabeTest : public testing::Test {
     hasher_ = std::make_shared<HasherMock>();
     timer_mock_ = std::make_unique<testutil::TimerMock>();
     timer_ = timer_mock_.get();
-    grandpa_grandpa_digest_observer_ =
-        std::make_shared<GrandpaDigestObserverMock>();
+    digest_tracker_ = std::make_shared<DigestTrackerMock>();
+    ON_CALL(*digest_tracker_, onDigest(_, _))
+        .WillByDefault(Return(outcome::success()));
+
     io_context_ = std::make_shared<boost::asio::io_context>();
 
     // add initialization logic
@@ -125,6 +127,8 @@ class BabeTest : public testing::Test {
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
     ON_CALL(*babe_config_repo_, config(_, _))
         .WillByDefault(Return(babe_config_));
+    ON_CALL(*babe_config_repo_, epochLength())
+        .WillByDefault(Return(babe_config_->epoch_length));
 
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
@@ -161,7 +165,7 @@ class BabeTest : public testing::Test {
                                              clock_,
                                              hasher_,
                                              std::move(timer_mock_),
-                                             grandpa_grandpa_digest_observer_,
+                                             digest_tracker_,
                                              synchronizer_,
                                              babe_util_,
                                              chain_events_engine_,
@@ -200,7 +204,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<HasherMock> hasher_;
   std::unique_ptr<testutil::TimerMock> timer_mock_;
   testutil::TimerMock *timer_;
-  std::shared_ptr<GrandpaDigestObserverMock> grandpa_grandpa_digest_observer_;
+  std::shared_ptr<DigestTrackerMock> digest_tracker_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;

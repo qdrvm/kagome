@@ -78,19 +78,16 @@ namespace kagome::blockchain {
   outcome::result<void> DigestTrackerImpl::onConsensus(
       const primitives::BlockInfo &block,
       const primitives::Consensus &message) {
-    if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
-      return grandpa_digest_observer_->onDigest(block, message);
-
-      // TODO(xDimon): Refactor AuthorityManager to accept grandpa-digest
-      // OUTCOME_TRY(digest,
-      //             scale::decode<primitives::GrandpaDigest>(message.data));
-      //
-      // return grandpa_digest_observer_->onDigest(block, digest);
-
-    } else if (message.consensus_engine_id == primitives::kBabeEngineId) {
+    if (message.consensus_engine_id == primitives::kBabeEngineId) {
       OUTCOME_TRY(digest, scale::decode<primitives::BabeDigest>(message.data));
 
       return babe_digest_observer_->onDigest(block, digest);
+
+    } else if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
+      OUTCOME_TRY(digest,
+                  scale::decode<primitives::GrandpaDigest>(message.data));
+
+      return grandpa_digest_observer_->onDigest(block, digest);
 
     } else if (message.consensus_engine_id
                    == primitives::kUnsupportedEngineId_BEEF

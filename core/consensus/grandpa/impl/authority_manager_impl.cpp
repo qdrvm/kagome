@@ -57,15 +57,16 @@ namespace kagome::consensus::grandpa {
     app_state_manager->atPrepare([&] { return prepare(); });
   }
 
-  struct ConsensusMessages {
+  struct DetachedGrandpaDigest {
     primitives::BlockInfo block;
-    primitives::Consensus message;
+    primitives::GrandpaDigest digest;
   };
 
-  outcome::result<std::stack<ConsensusMessages>> collectMsgsFromNonFinalBlocks(
+  outcome::result<std::stack<DetachedGrandpaDigest>>
+  collectMsgsFromNonFinalBlocks(
       blockchain::BlockTree const &block_tree,
       primitives::BlockHash const &finalized_block_hash) {
-    std::stack<ConsensusMessages> collected;
+    std::stack<DetachedGrandpaDigest> collected;
 
     std::unordered_set<primitives::BlockHash> observed;
     for (auto &leaf : block_tree.getLeaves()) {
@@ -84,14 +85,23 @@ namespace kagome::consensus::grandpa {
 
         // observe possible changes of authorities
         for (auto &digest_item : boost::adaptors::reverse(header.digest)) {
-          visit_in_place(
+          OUTCOME_TRY(visit_in_place(
               digest_item,
-              [&](const primitives::Consensus &consensus_message) {
-                collected.emplace(ConsensusMessages{
-                    primitives::BlockInfo(header.number, hash),
-                    consensus_message});
+              [&](const primitives::Consensus &consensus_message)
+                  -> outcome::result<void> {
+                if (consensus_message.consensus_engine_id
+                    == primitives::kGrandpaEngineId) {
+                  OUTCOME_TRY(digest,
+                              scale::decode<primitives::GrandpaDigest>(
+                                  consensus_message.data));
+
+                  collected.emplace(DetachedGrandpaDigest{
+                      primitives::BlockInfo(header.number, hash),
+                      std::move(digest)});
+                }
+                return outcome::success();
               },
-              [](const auto &) {});
+              [](const auto &) { return outcome::success(); }));
         }
 
         hash = header.parent_hash;
@@ -159,7 +169,7 @@ namespace kagome::consensus::grandpa {
    */
   outcome::result<primitives::BlockInfo>
   collectConsensusMsgsUntilNearestSetChangeTo(
-      std::stack<ConsensusMessages> &collected_msgs,
+      std::stack<DetachedGrandpaDigest> &collected_msgs,
       const primitives::BlockInfo &finalized_block,
       const blockchain::BlockTree &block_tree,
       log::Logger &log) {
@@ -182,18 +192,18 @@ namespace kagome::consensus::grandpa {
           visit_in_place(
               digest_item,
               [&](const primitives::Consensus &consensus_message) {
-                const bool is_grandpa = consensus_message.consensus_engine_id
-                                        == primitives::kGrandpaEngineId;
-                if (not is_grandpa) {
+                if (consensus_message.consensus_engine_id
+                    != primitives::kGrandpaEngineId) {
                   return;
                 }
 
-                auto decoded_res = consensus_message.decode();
-                if (decoded_res.has_error()) {
-                  log->critical("Error decoding consensus message: {}",
-                                decoded_res.error().message());
+                auto digest_res = scale::decode<primitives::GrandpaDigest>(
+                    consensus_message.data);
+                if (digest_res.has_error()) {
+                  log->critical("Error decoding grandpa digest: {}",
+                                digest_res.error());
                 }
-                auto &grandpa_digest = decoded_res.value().asGrandpaDigest();
+                auto &grandpa_digest = digest_res.value();
 
                 auto scheduled_change =
                     boost::get<primitives::ScheduledChange>(&grandpa_digest);
@@ -203,9 +213,9 @@ namespace kagome::consensus::grandpa {
                       header.number + scheduled_change->subchain_length
                       >= finalized_block.number;
                   if (is_unapplied_change) {
-                    collected_msgs.emplace(ConsensusMessages{
+                    collected_msgs.emplace(DetachedGrandpaDigest{
                         primitives::BlockInfo(header.number, hash),
-                        consensus_message});
+                        std::move(grandpa_digest)});
                   }
                   return;
                 }
@@ -218,9 +228,9 @@ namespace kagome::consensus::grandpa {
                       header.number + forced_change->subchain_length
                       >= finalized_block.number;
                   if (is_unapplied_change) {
-                    collected_msgs.emplace(ConsensusMessages{
+                    collected_msgs.emplace(DetachedGrandpaDigest{
                         primitives::BlockInfo(header.number, hash),
-                        consensus_message});
+                        std::move(grandpa_digest)});
                   }
                   return;
                 }
@@ -332,7 +342,8 @@ namespace kagome::consensus::grandpa {
 
     while (not collected_msgs.empty()) {
       const auto &args = collected_msgs.top();
-      OUTCOME_TRY(onDigest(args.block, args.message));
+
+      OUTCOME_TRY(onDigest(args.block, args.digest));
 
       collected_msgs.pop();
     }
@@ -421,9 +432,16 @@ namespace kagome::consensus::grandpa {
       primitives::BlockInfo info{number, hash};
 
       for (auto &msg : header.digest) {
-        if (auto consensus_msg = boost::get<primitives::Consensus>(&msg);
-            consensus_msg != nullptr) {
-          onDigest(info, *consensus_msg).value();
+        if (auto consensus_message = boost::get<primitives::Consensus>(&msg);
+            consensus_message != nullptr) {
+          if (consensus_message->consensus_engine_id
+              == primitives::kGrandpaEngineId) {
+            OUTCOME_TRY(digest,
+                        scale::decode<primitives::GrandpaDigest>(
+                            consensus_message->data));
+
+            OUTCOME_TRY(onDigest(info, digest));
+          }
         }
       }
       auto justification_res = block_tree_->getBlockJustification(hash);
@@ -813,55 +831,33 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> AuthorityManagerImpl::onDigest(
       const primitives::BlockInfo &block,
-      const primitives::Consensus &message) {
-    if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
-      SL_TRACE(log_,
-               "Apply consensus message from block {}, engine {}",
-               block,
-               message.consensus_engine_id.toString());
-
-      OUTCOME_TRY(decoded, message.decode());
-      return visit_in_place(
-          decoded.asGrandpaDigest(),
-          [this, &block](
-              const primitives::ScheduledChange &msg) -> outcome::result<void> {
-            return applyScheduledChange(
-                block, msg.authorities, block.number + msg.subchain_length);
-          },
-          [this, &block](const primitives::ForcedChange &msg) {
-            return applyForcedChange(
-                block, msg.authorities, msg.delay_start, msg.subchain_length);
-          },
-          [this, &block](const primitives::OnDisabled &msg) {
-            SL_DEBUG(log_, "OnDisabled {}", msg.authority_index);
-            return applyOnDisabled(block, msg.authority_index);
-          },
-          [this, &block](const primitives::Pause &msg) {
-            SL_DEBUG(log_, "Pause {}", msg.subchain_length);
-            return applyPause(block, block.number + msg.subchain_length);
-          },
-          [this, &block](const primitives::Resume &msg) {
-            SL_DEBUG(log_, "Resume {}", msg.subchain_length);
-            return applyResume(block, block.number + msg.subchain_length);
-          },
-          [](auto &) {
-            return GrandpaDigestObserverError::UNSUPPORTED_MESSAGE_TYPE;
-          });
-    } else if (message.consensus_engine_id == primitives::kBabeEngineId
-               or message.consensus_engine_id
-                      == primitives::kUnsupportedEngineId_BEEF
-               or message.consensus_engine_id
-                      == primitives::kUnsupportedEngineId_POL1) {
-      // ignore
-      return outcome::success();
-
-    } else {
-      SL_DEBUG(log_,
-               "Unknown consensus engine id in block {}: {}",
-               block,
-               message.consensus_engine_id.toString());
-      return outcome::success();
-    }
+      const primitives::GrandpaDigest &digest) {
+    return visit_in_place(
+        digest,
+        [this, &block](
+            const primitives::ScheduledChange &msg) -> outcome::result<void> {
+          return applyScheduledChange(
+              block, msg.authorities, block.number + msg.subchain_length);
+        },
+        [this, &block](const primitives::ForcedChange &msg) {
+          return applyForcedChange(
+              block, msg.authorities, msg.delay_start, msg.subchain_length);
+        },
+        [this, &block](const primitives::OnDisabled &msg) {
+          SL_DEBUG(log_, "OnDisabled {}", msg.authority_index);
+          return applyOnDisabled(block, msg.authority_index);
+        },
+        [this, &block](const primitives::Pause &msg) {
+          SL_DEBUG(log_, "Pause {}", msg.subchain_length);
+          return applyPause(block, block.number + msg.subchain_length);
+        },
+        [this, &block](const primitives::Resume &msg) {
+          SL_DEBUG(log_, "Resume {}", msg.subchain_length);
+          return applyResume(block, block.number + msg.subchain_length);
+        },
+        [](auto &) {
+          return GrandpaDigestObserverError::UNSUPPORTED_MESSAGE_TYPE;
+        });
   }
 
   void AuthorityManagerImpl::prune(const primitives::BlockInfo &block) {

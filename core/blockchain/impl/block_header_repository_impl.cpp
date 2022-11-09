@@ -5,13 +5,10 @@
 
 #include "blockchain/impl/block_header_repository_impl.hpp"
 
-#include <string_view>
-
 #include <optional>
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
-#include "common/hexutil.hpp"
 #include "scale/scale.hpp"
 
 using kagome::blockchain::prefix::Prefix;

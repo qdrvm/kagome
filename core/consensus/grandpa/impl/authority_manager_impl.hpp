@@ -102,7 +102,7 @@ namespace kagome::consensus::grandpa {
 
     outcome::result<void> onDigest(
         const primitives::BlockInfo &block,
-        const primitives::Consensus &message) override;
+        const primitives::GrandpaDigest &digest) override;
 
     void cancel(const primitives::BlockInfo &block) override;
 

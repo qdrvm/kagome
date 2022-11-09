@@ -1345,8 +1345,7 @@ namespace {
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
-        injector
-            .template create<sptr<consensus::grandpa::GrandpaDigestObserver>>(),
+        injector.template create<sptr<blockchain::DigestTracker>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<consensus::BabeUtil>>(),
         injector
