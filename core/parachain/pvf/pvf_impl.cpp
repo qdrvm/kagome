@@ -189,8 +189,7 @@ namespace kagome::parachain {
         std::make_shared<ReturnModuleInstance>(instance),
         block_header_repository_);
     auto executor = std::make_unique<runtime::Executor>(env_factory);
-    return executor->callAtGenesis<ValidationResult>("validate_block", params)
-        .value();
+    return executor->callAtGenesis<ValidationResult>("validate_block", params);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(
