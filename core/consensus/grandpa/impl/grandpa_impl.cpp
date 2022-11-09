@@ -8,9 +8,9 @@
 #include "consensus/grandpa/grandpa_context.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
-#include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
+#include "consensus/grandpa/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/reputation_repository.hpp"
 #include "scale/scale.hpp"
@@ -1179,7 +1179,10 @@ namespace kagome::consensus::grandpa {
         }
 
         if (authority_set->id > current_round_->voterSetId() + 1) {
-          return VotingRoundError::WRONG_ORDER_OF_VOTER_SET_ID;
+          SL_WARN(logger_,
+                  "Authority set on block {} with justification has id {}, "
+                  "while the current round set id is {} (difference must be 1)",
+                  block_info, authority_set->id, current_round_->voterSetId());
         }
 
         auto voters = std::make_shared<VoterSet>(authority_set->id);

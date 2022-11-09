@@ -11,22 +11,37 @@
 #include "storage/trie/node.hpp"
 
 namespace kagome::storage::trie {
-
   /**
    * @brief Internal codec for nodes in the Trie. Eth and substrate have
    * different codecs, but rest of the code should be same.
    */
   class Codec {
    public:
+    using StoreChildren = std::function<outcome::result<void>(
+        common::BufferView, common::Buffer &&)>;
+
     virtual ~Codec() = default;
+
+    /**
+     * @brief Encode node to byte representation and store children
+     * @param node node in the trie
+     * @param store_children chidren storer
+     * @return encoded representation of a {@param node}
+     */
+    virtual outcome::result<common::Buffer> encodeNodeAndStoreChildren(
+        const Node &node, const StoreChildren &store_children) const = 0;
 
     /**
      * @brief Encode node to byte representation
      * @param node node in the trie
      * @return encoded representation of a {@param node}
      */
-    virtual outcome::result<common::Buffer> encodeNode(
-        const Node &node) const = 0;
+    outcome::result<common::Buffer> encodeNode(const Node &node) const {
+      return encodeNodeAndStoreChildren(
+          node, [](common::BufferView, common::Buffer &&) {
+            return outcome::success();
+          });
+    }
 
     /**
      * @brief Decode node from bytes
@@ -42,6 +57,11 @@ namespace kagome::storage::trie {
      * @return hash of \param buf or \param buf if it is shorter than the hash
      */
     virtual common::Buffer merkleValue(const common::BufferView &buf) const = 0;
+
+    /**
+     * @brief is this a hash of value, or value itself
+     */
+    virtual bool isMerkleHash(const common::BufferView &buf) const = 0;
 
     /**
      * @brief Get the hash of a node

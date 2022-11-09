@@ -73,17 +73,26 @@ namespace kagome::consensus {
 
     // @see
     // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/client/consensus/babe/src/verification.rs#L111
-    if (babe_header.needAuthorCheck()) {
+    if (babe_header.isProducedInSecondarySlot()) {
       const auto &babe_config = babe_config_repo_->config();
-      if ((not babe_header.needVRFCheck()
-           and babe_config.allowed_slots
-                   != primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots)
-          or (babe_header.needVRFCheck()
-              and babe_config.allowed_slots
-                      != primitives::AllowedSlots::
-                          PrimaryAndSecondaryVRFSlots)) {
-        SL_WARN(log_, "Secondary slots assignments disabled");
-        return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
+      bool plainAndAllowed =
+          babe_header.slotType() == SlotType::SecondaryPlain
+          && babe_config.allowed_slots
+                 == primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots;
+      bool vrfAndAllowed =
+          babe_header.slotType() == SlotType::SecondaryVRF
+          && babe_config.allowed_slots
+                 == primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots;
+      if (!plainAndAllowed and !vrfAndAllowed) {
+        // SL_WARN unwraps to a lambda which cannot capture a local binding,
+        // thus this copy
+        auto slot_type = babe_header.slotType();
+        SL_WARN(log_,
+                "Block {} produced in {} secondary slot, but current "
+                "configuration allows only {}",
+                header.number,
+                to_string(slot_type),
+                to_string(babe_config.allowed_slots));
       }
     }
 

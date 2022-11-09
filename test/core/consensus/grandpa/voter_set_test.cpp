@@ -66,12 +66,11 @@ TEST_F(VoterSetTest, GetIndex) {
 
   for (auto &[voter, weight] : voters) {
     // WHEN+THEN.1
-    EXPECT_OUTCOME_SUCCESS(index, testee->voterIndex(voter));
+    ASSERT_NE(std::nullopt, testee->voterIndex(voter));
   }
 
   // WHEN+THEN.2
-  EXPECT_OUTCOME_ERROR(
-      res, testee->voterIndex("Unknown"_ID), VoterSet::Error::VOTER_NOT_FOUND);
+  ASSERT_EQ(testee->voterIndex("Unknown"_ID), std::nullopt);
 }
 
 TEST_F(VoterSetTest, GetWeight) {
@@ -85,8 +84,9 @@ TEST_F(VoterSetTest, GetWeight) {
   for (auto &[voter, weight] : voters) {
     {
       // WHEN+THEN.1
-      EXPECT_OUTCOME_SUCCESS(actual_weight_res, testee->voterWeight(voter));
-      auto &actual_weight = actual_weight_res.value();
+      auto actual_weight_opt = testee->voterWeight(voter);
+      ASSERT_TRUE(actual_weight_opt.has_value());
+      auto &actual_weight = actual_weight_opt.value();
       EXPECT_EQ(weight, actual_weight);
     }
     {
@@ -100,9 +100,7 @@ TEST_F(VoterSetTest, GetWeight) {
 
   {
     // WHEN+THEN.3
-    EXPECT_OUTCOME_ERROR(res,
-                         testee->voterWeight("Unknown"_ID),
-                         VoterSet::Error::VOTER_NOT_FOUND);
+    ASSERT_EQ(std::nullopt, testee->voterWeight("Unknown"_ID));
   }
   {
     // WHEN+THEN.4
@@ -141,8 +139,9 @@ TEST_F(VoterSetTest, GetIndexAndWeight) {
   size_t index = 0;
   for (auto &[voter, weight] : voters) {
     // WHEN+THEN.1
-    ASSERT_OUTCOME_SUCCESS(res, testee->indexAndWeight(voter));
-    auto [actual_index, actual_weight] = res;
+    auto res = testee->indexAndWeight(voter);
+    ASSERT_NE(res, std::nullopt);
+    auto [actual_index, actual_weight] = res.value();
     EXPECT_TRUE(actual_index == index);
     EXPECT_TRUE(actual_weight == weight);
     ++index;
@@ -150,8 +149,6 @@ TEST_F(VoterSetTest, GetIndexAndWeight) {
 
   {
     // WHEN+THEN.2
-    EXPECT_OUTCOME_ERROR(res,
-                         testee->indexAndWeight("Unknown"_ID),
-                         VoterSet::Error::VOTER_NOT_FOUND);
+    ASSERT_EQ(std::nullopt, testee->indexAndWeight("Unknown"_ID));
   }
 }

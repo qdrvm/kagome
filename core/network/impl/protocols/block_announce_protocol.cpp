@@ -322,7 +322,7 @@ namespace kagome::network {
           }
 
           if (not block_announce_res.has_value()) {
-            SL_WARN(self->base_.logger(),
+            SL_DEBUG(self->base_.logger(),
                     "Can't read block announce from {}: {}",
                     stream->remotePeerId().value(),
                     block_announce_res.error().message());

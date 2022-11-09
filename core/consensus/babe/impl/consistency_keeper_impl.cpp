@@ -55,7 +55,7 @@ namespace kagome::consensus::babe {
       auto &block = block_res.value();
 
       SL_WARN(logger_,
-              "Found partial applied block {}. Trying to rollback him",
+              "Found partial applied block {}. Trying to rollback it",
               block);
 
       rollback(block);
