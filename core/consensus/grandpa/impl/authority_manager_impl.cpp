@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "authority_manager_impl.hpp"
 
 #include <stack>
 #include <unordered_set>
@@ -14,21 +14,20 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
-#include "blockchain/block_tree_error.hpp"
 #include "common/visitor.hpp"
-#include "consensus/authority/authority_manager_error.hpp"
-#include "consensus/authority/authority_update_observer_error.hpp"
-#include "consensus/authority/impl/schedule_node.hpp"
+#include "consensus/grandpa/authority_manager_error.hpp"
+#include "consensus/grandpa/grandpa_digest_observer_error.hpp"
 #include "crypto/hasher.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
+#include "schedule_node.hpp"
 #include "storage/database_error.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 using kagome::common::Buffer;
 using kagome::primitives::AuthoritySetId;
 
-namespace kagome::authority {
+namespace kagome::consensus::grandpa {
 
   AuthorityManagerImpl::AuthorityManagerImpl(
       Config config,
@@ -300,7 +299,7 @@ namespace kagome::authority {
     } else if (last_finalized_block.number == 0) {
       auto &genesis_hash = block_tree_->getGenesisBlockHash();
       OUTCOME_TRY(initial_authorities, grandpa_api_->authorities(genesis_hash));
-      root_ = authority::ScheduleNode::createAsRoot(
+      root_ = consensus::grandpa::ScheduleNode::createAsRoot(
           std::make_shared<primitives::AuthoritySet>(
               0, std::move(initial_authorities)),
           {0, genesis_hash});
@@ -316,8 +315,8 @@ namespace kagome::authority {
 
       auto authority_set = std::make_shared<primitives::AuthoritySet>(
           set_id_from_runtime_opt.value(), std::move(authorities));
-      root_ = authority::ScheduleNode::createAsRoot(authority_set,
-                                                    graph_root_block);
+      root_ = consensus::grandpa::ScheduleNode::createAsRoot(authority_set,
+                                                             graph_root_block);
 
       OUTCOME_TRY(storeScheduleGraphRoot(*persistent_storage_, *root_));
       SL_TRACE(log_,
@@ -333,7 +332,7 @@ namespace kagome::authority {
 
     while (not collected_msgs.empty()) {
       const auto &args = collected_msgs.top();
-      OUTCOME_TRY(onConsensus(args.block, args.message));
+      OUTCOME_TRY(onDigest(args.block, args.message));
 
       collected_msgs.pop();
     }
@@ -424,7 +423,7 @@ namespace kagome::authority {
       for (auto &msg : header.digest) {
         if (auto consensus_msg = boost::get<primitives::Consensus>(&msg);
             consensus_msg != nullptr) {
-          onConsensus(info, *consensus_msg).value();
+          onDigest(info, *consensus_msg).value();
         }
       }
       auto justification_res = block_tree_->getBlockJustification(hash);
@@ -707,7 +706,7 @@ namespace kagome::authority {
 
       // Check if index not out of bound
       if (authority_index >= node->current_authorities->authorities.size()) {
-        return AuthorityUpdateObserverError::WRONG_AUTHORITY_INDEX;
+        return GrandpaDigestObserverError::WRONG_AUTHORITY_INDEX;
       }
 
       new_authority_set->authorities[authority_index].weight = 0;
@@ -812,7 +811,7 @@ namespace kagome::authority {
     return outcome::success();
   }
 
-  outcome::result<void> AuthorityManagerImpl::onConsensus(
+  outcome::result<void> AuthorityManagerImpl::onDigest(
       const primitives::BlockInfo &block,
       const primitives::Consensus &message) {
     if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
@@ -846,7 +845,7 @@ namespace kagome::authority {
             return applyResume(block, block.number + msg.subchain_length);
           },
           [](auto &) {
-            return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
+            return GrandpaDigestObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
     } else if (message.consensus_engine_id == primitives::kBabeEngineId
                or message.consensus_engine_id
@@ -1018,4 +1017,4 @@ namespace kagome::authority {
       ancestor->descendants.erase(it);
     }
   }
-}  // namespace kagome::authority
+}  // namespace kagome::consensus::grandpa

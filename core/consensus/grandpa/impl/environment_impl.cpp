@@ -17,7 +17,7 @@
 
 namespace kagome::consensus::grandpa {
 
-  using authority::IsBlockFinalized;
+  using consensus::grandpa::IsBlockFinalized;
   using primitives::BlockHash;
   using primitives::BlockNumber;
   using primitives::Justification;
@@ -25,7 +25,7 @@ namespace kagome::consensus::grandpa {
   EnvironmentImpl::EnvironmentImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-      std::shared_ptr<authority::AuthorityManager> authority_manager,
+      std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
       std::shared_ptr<network::GrandpaTransmitter> transmitter)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
@@ -61,8 +61,7 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
-      const BlockHash &base,
-      std::optional<VoterSetId> voter_set_id) const {
+      const BlockHash &base, std::optional<VoterSetId> voter_set_id) const {
     SL_DEBUG(logger_, "Finding best chain containing block {}", base);
     OUTCOME_TRY(best_block, block_tree_->getBestContaining(base, std::nullopt));
 

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_AUTHORITY_MANAGER
-#define KAGOME_AUTHORITY_MANAGER
+#ifndef KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGER
+#define KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGER
 
 #include <boost/optional.hpp>
 
@@ -15,13 +15,13 @@
 namespace kagome::storage::trie {
   class TrieStorage;
   class TrieBatch;
-}
+}  // namespace kagome::storage::trie
 
 namespace kagome::crypto {
   class Hasher;
 }
 
-namespace kagome::authority {
+namespace kagome::consensus::grandpa {
 
   using IsBlockFinalized = Tagged<bool, struct IsBlockFinalizedTag>;
 
@@ -128,6 +128,6 @@ namespace kagome::authority {
      */
     virtual void prune(const primitives::BlockInfo &block) = 0;
   };
-}  // namespace kagome::authority
+}  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_AUTHORITY_MANAGER
+#endif  // KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGER

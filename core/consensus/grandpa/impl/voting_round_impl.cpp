@@ -45,7 +45,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      std::shared_ptr<authority::AuthorityManager> authority_manager,
+      std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
       std::shared_ptr<Environment> env,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker> prevotes,
@@ -94,7 +94,8 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      const std::shared_ptr<authority::AuthorityManager> authority_manager,
+      const std::shared_ptr<consensus::grandpa::AuthorityManager>
+          authority_manager,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
@@ -123,7 +124,8 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      const std::shared_ptr<authority::AuthorityManager> authority_manager,
+      const std::shared_ptr<consensus::grandpa::AuthorityManager>
+          authority_manager,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
@@ -784,7 +786,9 @@ namespace kagome::consensus::grandpa {
         // New vote
         auto weight_opt = voter_set_->voterWeight(signed_precommit.id);
         if (!weight_opt) {
-          SL_DEBUG(logger_, "Voter {} is not in the current voter set", signed_precommit.id.toHex());
+          SL_DEBUG(logger_,
+                   "Voter {} is not in the current voter set",
+                   signed_precommit.id.toHex());
           continue;
         }
         if (env_->hasAncestry(vote.hash, signed_precommit.getBlockHash())) {
@@ -1145,7 +1149,8 @@ namespace kagome::consensus::grandpa {
     // Check if voter is contained in current voter set
     auto index_and_weight_opt = voter_set_->indexAndWeight(vote.id);
     if (!index_and_weight_opt) {
-      SL_DEBUG(logger_, "Voter {} is not in the current voter set", vote.id.toHex());
+      SL_DEBUG(
+          logger_, "Voter {} is not in the current voter set", vote.id.toHex());
       return VotingRoundError::UNKNOWN_VOTER;
     }
     const auto &[index, weight] = index_and_weight_opt.value();

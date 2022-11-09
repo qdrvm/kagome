@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/authority/authority_manager_error.hpp"
+#include "authority_manager_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority, AuthorityManagerError, e) {
-  using E = kagome::authority::AuthorityManagerError;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa,
+                            AuthorityManagerError,
+                            e) {
+  using E = kagome::consensus::grandpa::AuthorityManagerError;
   switch (e) {
     case E::UNKNOWN_ENGINE_ID:
       return "Unknown engine_id";
@@ -16,7 +18,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority, AuthorityManagerError, e) {
       return "Can not save state";
     case E::CANT_RECALCULATE_ON_PRUNED_STATE:
       return "Can't recalculate authority set ids on a pruned database";
-   case E::FAILED_TO_INITIALIZE_SET_ID:
+    case E::FAILED_TO_INITIALIZE_SET_ID:
       return "Failed to initialize the current authority set id on startup";
   }
   return "unknown error (invalid AuthorityManagerError)";

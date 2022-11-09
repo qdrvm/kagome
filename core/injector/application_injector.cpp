@@ -60,18 +60,18 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
-#include "consensus/authority/authority_manager.hpp"
-#include "consensus/authority/authority_update_observer.hpp"
-#include "consensus/authority/impl/authority_manager_impl.hpp"
-#include "consensus/authority/impl/schedule_node.hpp"
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/block_appender_impl.hpp"
 #include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/babe/impl/consistency_keeper_impl.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
+#include "consensus/grandpa/grandpa_digest_observer.hpp"
+#include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
+#include "consensus/grandpa/impl/schedule_node.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
@@ -1222,17 +1222,18 @@ namespace {
         di::bind<network::ExtrinsicObserver>.to([](const auto &injector) {
           return get_extrinsic_observer_impl(injector);
         }),
-        di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
-        bind_by_lambda<authority::AuthorityManager>([](auto const &injector) {
-          auto auth_manager_impl =
-              injector.template create<sptr<authority::AuthorityManagerImpl>>();
-          auto block_tree_impl =
-              injector.template create<sptr<blockchain::BlockTree>>();
-          auto justification_storage_policy = injector.template create<
-              sptr<blockchain::JustificationStoragePolicyImpl>>();
-          justification_storage_policy->initBlockchainInfo(block_tree_impl);
-          return auth_manager_impl;
-        }),
+        di::bind<consensus::grandpa::GrandpaDigestObserver>.template to<consensus::grandpa::AuthorityManagerImpl>(),
+        bind_by_lambda<consensus::grandpa::AuthorityManager>(
+            [](auto const &injector) {
+              auto auth_manager_impl = injector.template create<
+                  sptr<consensus::grandpa::AuthorityManagerImpl>>();
+              auto block_tree_impl =
+                  injector.template create<sptr<blockchain::BlockTree>>();
+              auto justification_storage_policy = injector.template create<
+                  sptr<blockchain::JustificationStoragePolicyImpl>>();
+              justification_storage_policy->initBlockchainInfo(block_tree_impl);
+              return auth_manager_impl;
+            }),
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
@@ -1344,7 +1345,8 @@ namespace {
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
-        injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
+        injector
+            .template create<sptr<consensus::grandpa::GrandpaDigestObserver>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<consensus::BabeUtil>>(),
         injector
@@ -1401,7 +1403,7 @@ namespace {
         injector.template create<const application::ChainSpec &>(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<libp2p::basic::Scheduler>>(),
-        injector.template create<sptr<authority::AuthorityManager>>(),
+        injector.template create<sptr<consensus::grandpa::AuthorityManager>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<network::PeerManager>>(),
         injector.template create<sptr<blockchain::BlockTree>>(),
@@ -1434,7 +1436,7 @@ namespace {
     auto trie_storage =
         injector.template create<sptr<const storage::trie::TrieStorage>>();
     auto authority_manager =
-        injector.template create<sptr<authority::AuthorityManager>>();
+        injector.template create<sptr<consensus::grandpa::AuthorityManager>>();
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
 
     initialized.emplace(new application::mode::RecoveryMode(

@@ -12,7 +12,7 @@
 #include "common/tagged.hpp"
 #include "primitives/authority.hpp"
 
-namespace kagome::authority {
+namespace kagome::consensus::grandpa {
 
   using IsBlockFinalized = Tagged<bool, struct IsBlockFinalizedTag>;
 
@@ -94,6 +94,6 @@ namespace kagome::authority {
     bool enabled = true;
   };
 
-}  // namespace kagome::authority
+}  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE

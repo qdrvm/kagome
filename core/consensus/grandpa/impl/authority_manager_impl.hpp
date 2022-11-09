@@ -6,8 +6,8 @@
 #ifndef KAGOME_CONSENSUS_AUTHORITIES_MANAGER_IMPL
 #define KAGOME_CONSENSUS_AUTHORITIES_MANAGER_IMPL
 
-#include "consensus/authority/authority_manager.hpp"
-#include "consensus/authority/authority_update_observer.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
+#include "consensus/grandpa/grandpa_digest_observer.hpp"
 
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
@@ -18,7 +18,7 @@
 namespace kagome::application {
   class AppStateManager;
 }
-namespace kagome::authority {
+namespace kagome::consensus::grandpa {
   class ScheduleNode;
 }
 namespace kagome::blockchain {
@@ -39,10 +39,10 @@ namespace kagome::storage::trie {
   class TrieStorage;
 }
 
-namespace kagome::authority {
+namespace kagome::consensus::grandpa {
 
   class AuthorityManagerImpl : public AuthorityManager,
-                               public AuthorityUpdateObserver {
+                               public GrandpaDigestObserver {
    public:
     inline static const std::vector<primitives::ConsensusEngineId>
         kKnownEngines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
@@ -100,7 +100,7 @@ namespace kagome::authority {
         const primitives::BlockInfo &block,
         primitives::BlockNumber activate_at) override;
 
-    outcome::result<void> onConsensus(
+    outcome::result<void> onDigest(
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) override;
 
@@ -145,6 +145,6 @@ namespace kagome::authority {
     std::shared_ptr<ScheduleNode> root_;
     log::Logger log_;
   };
-}  // namespace kagome::authority
+}  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CONSENSUS_AUTHORITIES_MANAGER_IMPL

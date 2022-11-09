@@ -8,14 +8,14 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 
 #include "blockchain/impl/justification_storage_policy.hpp"
-#include "mock/core/consensus/authority/authority_manager_mock.hpp"
+#include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
 #include "testutil/literals.hpp"
 
 using testing::Return;
 
-using kagome::authority::AuthorityManagerMock;
 using kagome::blockchain::JustificationStoragePolicyImpl;
 using kagome::common::Hash256;
+using kagome::consensus::grandpa::AuthorityManagerMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;

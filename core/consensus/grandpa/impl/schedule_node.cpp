@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/authority/impl/schedule_node.hpp"
-#include "consensus/authority/authority_update_observer_error.hpp"
+#include "schedule_node.hpp"
+#include "consensus/grandpa/grandpa_digest_observer_error.hpp"
 
-namespace kagome::authority {
+namespace kagome::consensus::grandpa {
 
   ScheduleNode::ScheduleNode(
       const std::shared_ptr<const ScheduleNode> &ancestor,
@@ -63,4 +63,4 @@ namespace kagome::authority {
     node->adjust(finalized);
     return node;
   }
-}  // namespace kagome::authority
+}  // namespace kagome::consensus::grandpa

@@ -3,24 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_AUTHORITY_UPDATE_OBSERVER
-#define KAGOME_AUTHORITY_UPDATE_OBSERVER
+#ifndef KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER
+#define KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER
 
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
 
 #include "primitives/digest.hpp"
 
-namespace kagome::authority {
-  class AuthorityUpdateObserver {
+namespace kagome::consensus::grandpa {
+
+  class GrandpaDigestObserver {
    public:
-    virtual ~AuthorityUpdateObserver() = default;
+    virtual ~GrandpaDigestObserver() = default;
 
     /**
      * Processes consensus message in block digest
-     * @param message
+     * @param block - corresponding block
+     * @param message - grandpa digest
      * @return failure or nothing
      */
-    virtual outcome::result<void> onConsensus(
+    virtual outcome::result<void> onDigest(
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) = 0;
 
@@ -30,6 +32,7 @@ namespace kagome::authority {
      */
     virtual void cancel(const primitives::BlockInfo &block) = 0;
   };
-}  // namespace kagome::authority
 
-#endif  // KAGOME_AUTHORITY_UPDATE_OBSERVER
+}  // namespace kagome::consensus::grandpa
+
+#endif  // KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER

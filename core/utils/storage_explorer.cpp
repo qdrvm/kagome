@@ -8,18 +8,18 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
-#include "blockchain/block_tree.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "injector/application_injector.hpp"
 #include "log/configurator.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "storage/trie/trie_storage.hpp"
 
-using kagome::authority::AuthorityManagerImpl;
 using kagome::blockchain::BlockStorage;
+using kagome::consensus::grandpa::AuthorityManager;
+using kagome::consensus::grandpa::AuthorityManagerImpl;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
 using kagome::primitives::BlockHeader;
@@ -295,7 +295,7 @@ class SearchChainCommand : public Command {
   explicit SearchChainCommand(
       std::shared_ptr<BlockStorage> block_storage,
       std::shared_ptr<TrieStorage> trie_storage,
-      std::shared_ptr<kagome::authority::AuthorityManager> authority_manager,
+      std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<Hasher> hasher)
       : Command{"search-chain",
                 "target [start block/0] [end block/deepest finalized] - search "
@@ -421,8 +421,8 @@ class SearchChainCommand : public Command {
   }
 
   void reportAuthorityUpdate(std::ostream &out,
-                                            BlockNumber digest_origin,
-                                            GrandpaDigest const &digest) const {
+                             BlockNumber digest_origin,
+                             GrandpaDigest const &digest) const {
     using namespace kagome::primitives;
     if (auto *scheduled_change = boost::get<ScheduledChange>(&digest);
         scheduled_change) {
@@ -518,15 +518,14 @@ int main(int argc, const char **argv) {
       std::make_shared<kagome::runtime::GrandpaApiImpl>(header_repo, executor);
 
   auto authority_manager =
-      std::make_shared<kagome::authority::AuthorityManagerImpl>(
-          kagome::authority::AuthorityManagerImpl::Config{},
-          app_state_manager,
-          block_tree,
-          trie_storage,
-          grandpa_api,
-          hasher,
-          persistent_storage,
-          header_repo);
+      std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
+                                             app_state_manager,
+                                             block_tree,
+                                             trie_storage,
+                                             grandpa_api,
+                                             hasher,
+                                             persistent_storage,
+                                             header_repo);
 
   parser.addCommand(std::make_unique<InspectBlockCommand>(block_storage));
   parser.addCommand(std::make_unique<RemoveBlockCommand>(block_storage));

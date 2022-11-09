@@ -66,3 +66,30 @@ target_link_libraries(grandpa
     vote_tracker
     metrics
     )
+
+add_library(authority_manager_error
+    authority_manager_error.cpp
+    )
+target_link_libraries(authority_manager_error
+    outcome
+    )
+
+add_library(grandpa_digest_observer_error
+    grandpa_digest_observer_error.cpp
+    )
+target_link_libraries(grandpa_digest_observer_error
+    outcome
+    )
+
+add_library(authority_manager
+    impl/authority_manager_impl.cpp
+    impl/schedule_node.cpp
+    )
+target_link_libraries(authority_manager
+    logger
+    authority_manager_error
+    grandpa_digest_observer_error
+    block_tree_error
+    primitives
+    )
+

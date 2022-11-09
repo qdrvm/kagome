@@ -12,7 +12,7 @@
 #include <boost/signals2.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
-#include "consensus/authority/authority_manager.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
@@ -31,7 +31,7 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
         const GrandpaConfig &config,
-        std::shared_ptr<authority::AuthorityManager> authority_manager,
+        std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
         std::shared_ptr<Environment> env,
         std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
         std::shared_ptr<VoteTracker> prevotes,
@@ -48,7 +48,8 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
         const GrandpaConfig &config,
-        const std::shared_ptr<authority::AuthorityManager> authority_manager,
+        const std::shared_ptr<consensus::grandpa::AuthorityManager>
+            authority_manager,
         const std::shared_ptr<Environment> &env,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
@@ -61,7 +62,8 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
         const GrandpaConfig &config,
-        const std::shared_ptr<authority::AuthorityManager> authority_manager,
+        const std::shared_ptr<consensus::grandpa::AuthorityManager>
+            authority_manager,
         const std::shared_ptr<Environment> &env,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
@@ -308,7 +310,7 @@ namespace kagome::consensus::grandpa {
     std::chrono::milliseconds start_time_;  // time of start round to play
 
     std::weak_ptr<Grandpa> grandpa_;
-    std::shared_ptr<authority::AuthorityManager> authority_manager_;
+    std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager_;
     std::shared_ptr<const primitives::AuthorityList> authorities_;
     std::shared_ptr<Environment> env_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;

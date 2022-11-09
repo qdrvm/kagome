@@ -18,13 +18,13 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/clock/timer_mock.hpp"
-#include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/grandpa/grandpa_digest_observer_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
@@ -42,7 +42,7 @@
 using namespace kagome;
 using namespace consensus;
 using namespace babe;
-using namespace authority;
+using namespace grandpa;
 using namespace application;
 using namespace blockchain;
 using namespace authorship;
@@ -51,7 +51,6 @@ using namespace primitives;
 using namespace clock;
 using namespace common;
 using namespace network;
-using babe::ConsistencyKeeperMock;
 
 using testing::_;
 using testing::A;
@@ -110,8 +109,8 @@ class BabeTest : public testing::Test {
     hasher_ = std::make_shared<HasherMock>();
     timer_mock_ = std::make_unique<testutil::TimerMock>();
     timer_ = timer_mock_.get();
-    grandpa_authority_update_observer_ =
-        std::make_shared<AuthorityUpdateObserverMock>();
+    grandpa_grandpa_digest_observer_ =
+        std::make_shared<GrandpaDigestObserverMock>();
     io_context_ = std::make_shared<boost::asio::io_context>();
 
     // add initialization logic
@@ -162,7 +161,7 @@ class BabeTest : public testing::Test {
                                              clock_,
                                              hasher_,
                                              std::move(timer_mock_),
-                                             grandpa_authority_update_observer_,
+                                             grandpa_grandpa_digest_observer_,
                                              synchronizer_,
                                              babe_util_,
                                              chain_events_engine_,
@@ -201,8 +200,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<HasherMock> hasher_;
   std::unique_ptr<testutil::TimerMock> timer_mock_;
   testutil::TimerMock *timer_;
-  std::shared_ptr<AuthorityUpdateObserverMock>
-      grandpa_authority_update_observer_;
+  std::shared_ptr<GrandpaDigestObserverMock> grandpa_grandpa_digest_observer_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;

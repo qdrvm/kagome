@@ -14,7 +14,7 @@
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "core/consensus/grandpa/literals.hpp"
-#include "mock/core/consensus/authority/authority_manager_mock.hpp"
+#include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
@@ -27,8 +27,8 @@
 using namespace kagome::consensus::grandpa;
 using namespace std::chrono_literals;
 
-using kagome::authority::AuthorityManagerMock;
 using kagome::clock::SteadyClockImpl;
+using kagome::consensus::grandpa::AuthorityManagerMock;
 using kagome::consensus::grandpa::EnvironmentMock;
 using kagome::consensus::grandpa::GrandpaConfig;
 using kagome::consensus::grandpa::VoteCryptoProviderMock;

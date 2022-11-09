@@ -6,20 +6,20 @@
 #include "digest_tracker_impl.hpp"
 
 #include "common/visitor.hpp"
-#include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_digest_observer.hpp"
+#include "consensus/grandpa/grandpa_digest_observer.hpp"
 
 namespace kagome::blockchain {
 
   DigestTrackerImpl::DigestTrackerImpl(
       std::shared_ptr<consensus::BabeDigestObserver> babe_update_observer,
-      std::shared_ptr<authority::AuthorityUpdateObserver>
-          authority_update_observer)
+      std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
+          grandpa_digest_observer)
       : babe_digest_observer_(std::move(babe_update_observer)),
-        authority_update_observer_(std::move(authority_update_observer)),
+        grandpa_digest_observer_(std::move(grandpa_digest_observer)),
         logger_(log::createLogger("DigestTracker", "digest_tracker")) {
     BOOST_ASSERT(babe_digest_observer_ != nullptr);
-    BOOST_ASSERT(authority_update_observer_ != nullptr);
+    BOOST_ASSERT(grandpa_digest_observer_ != nullptr);
   }
 
   outcome::result<void> DigestTrackerImpl::onDigest(
@@ -72,20 +72,20 @@ namespace kagome::blockchain {
     babe_digest_observer_->cancel(block);
 
     // Cancel tracked grandpa digest
-    authority_update_observer_->cancel(block);
+    grandpa_digest_observer_->cancel(block);
   }
 
   outcome::result<void> DigestTrackerImpl::onConsensus(
       const primitives::BlockInfo &block,
       const primitives::Consensus &message) {
     if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
-      return authority_update_observer_->onConsensus(block, message);
+      return grandpa_digest_observer_->onDigest(block, message);
 
       // TODO(xDimon): Refactor AuthorityManager to accept grandpa-digest
       // OUTCOME_TRY(digest,
       //             scale::decode<primitives::GrandpaDigest>(message.data));
       //
-      // return authority_update_observer_->onDigest(block, digest);
+      // return grandpa_digest_observer_->onDigest(block, digest);
 
     } else if (message.consensus_engine_id == primitives::kBabeEngineId) {
       OUTCOME_TRY(digest, scale::decode<primitives::BabeDigest>(message.data));

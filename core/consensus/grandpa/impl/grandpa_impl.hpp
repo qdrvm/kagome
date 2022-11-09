@@ -14,7 +14,7 @@
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
 #include "blockchain/block_tree.hpp"
-#include "consensus/authority/authority_manager.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
@@ -80,7 +80,7 @@ namespace kagome::consensus::grandpa {
         const application::ChainSpec &chain_spec,
         std::shared_ptr<Clock> clock,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-        std::shared_ptr<authority::AuthorityManager> authority_manager,
+        std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -267,7 +267,7 @@ namespace kagome::consensus::grandpa {
     const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
-    std::shared_ptr<authority::AuthorityManager> authority_manager_;
+    std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

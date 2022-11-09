@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_AUTHORITY_AUTHORITYMANAGERMOCK
-#define KAGOME_AUTHORITY_AUTHORITYMANAGERMOCK
+#ifndef KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK
+#define KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK
 
-#include "consensus/authority/authority_manager.hpp"
-#include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
+#include "grandpa_digest_observer_mock.hpp"
 
 #include <gmock/gmock.h>
 
-namespace kagome::authority {
+namespace kagome::consensus::grandpa {
 
   struct AuthorityManagerMock : public AuthorityManager {
     MOCK_METHOD(primitives::BlockInfo, base, (), (const, override));
@@ -57,6 +57,6 @@ namespace kagome::authority {
                 recalculateStoredState,
                 (primitives::BlockNumber last_finalized_number));
   };
-}  // namespace kagome::authority
+}  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_AUTHORITY_AUTHORITYMANAGERMOCK
+#endif  // KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK

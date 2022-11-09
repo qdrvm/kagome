@@ -10,8 +10,8 @@
 
 #include "log/logger.hpp"
 
-namespace kagome::authority {
-  class AuthorityUpdateObserver;
+namespace kagome::consensus::grandpa {
+  class GrandpaDigestObserver;
 }
 namespace kagome::consensus {
   class BabeDigestObserver;
@@ -23,8 +23,8 @@ namespace kagome::blockchain {
    public:
     DigestTrackerImpl(
         std::shared_ptr<consensus::BabeDigestObserver> babe_update_observer,
-        std::shared_ptr<authority::AuthorityUpdateObserver>
-            authority_update_observer);
+        std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
+            grandpa_digest_observer);
 
     outcome::result<void> onDigest(const primitives::BlockInfo &block,
                                    const primitives::Digest &digest) override;
@@ -40,8 +40,8 @@ namespace kagome::blockchain {
         const primitives::Consensus &consensus_message);
 
     std::shared_ptr<consensus::BabeDigestObserver> babe_digest_observer_;
-    std::shared_ptr<authority::AuthorityUpdateObserver>
-        authority_update_observer_;
+    std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
+        grandpa_digest_observer_;
 
     log::Logger logger_;
   };

@@ -54,8 +54,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
-      std::shared_ptr<authority::AuthorityUpdateObserver>
-          authority_update_observer,
+      std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
+          grandpa_digest_observer,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -73,7 +73,7 @@ namespace kagome::consensus::babe {
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
         timer_{std::move(timer)},
-        authority_update_observer_(std::move(authority_update_observer)),
+        grandpa_digest_observer_(std::move(grandpa_digest_observer)),
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         chain_events_engine_(std::move(chain_events_engine)),
@@ -97,7 +97,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(timer_);
     BOOST_ASSERT(log_);
-    BOOST_ASSERT(authority_update_observer_);
+    BOOST_ASSERT(grandpa_digest_observer_);
     BOOST_ASSERT(synchronizer_);
     BOOST_ASSERT(babe_util_);
     BOOST_ASSERT(offchain_worker_api_);
@@ -984,8 +984,8 @@ namespace kagome::consensus::babe {
           digest_item,
           [&](const primitives::Consensus &consensus_message)
               -> outcome::result<void> {
-            auto res = authority_update_observer_->onConsensus(
-                block_info, consensus_message);
+            auto res = grandpa_digest_observer_->onDigest(block_info,
+                                                          consensus_message);
             if (res.has_error()) {
               SL_WARN(log_,
                       "Can't process consensus message digest: {}",

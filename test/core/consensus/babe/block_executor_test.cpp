@@ -11,11 +11,11 @@
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/digest_tracker_mock.hpp"
-#include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/grandpa/grandpa_digest_observer_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
@@ -25,8 +25,6 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
-using kagome::authority::AuthorityUpdateObserver;
-using kagome::authority::AuthorityUpdateObserverMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
@@ -43,6 +41,7 @@ using kagome::consensus::babe::BabeConfigRepositoryMock;
 using kagome::consensus::babe::ConsistencyKeeperMock;
 using kagome::consensus::grandpa::Environment;
 using kagome::consensus::grandpa::EnvironmentMock;
+using kagome::consensus::grandpa::GrandpaDigestObserverMock;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherMock;
 using kagome::crypto::VRFThreshold;
