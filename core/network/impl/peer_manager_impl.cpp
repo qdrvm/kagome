@@ -435,7 +435,7 @@ namespace kagome::network {
       return;
     }
 
-    SL_INFO(log_, "Disconnect from peer {}", peer_id);
+    SL_VERBOSE(log_, "Disconnect from peer {}", peer_id);
     host_.disconnect(peer_id);
   }
 

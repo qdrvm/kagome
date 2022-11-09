@@ -73,12 +73,19 @@ target_link_libraries(sync_protocol_observer
     p2p::p2p_peer_id
     )
 
+add_library(stream_engine stream_engine.cpp)
+target_link_libraries(stream_engine
+        logger
+        outcome
+    )
+
 add_library(peer_manager
     peer_manager_impl.cpp
     )
 target_link_libraries(peer_manager
     logger
     scale_libp2p_types
+    stream_engine
     )
 
 add_library(reputation_repository

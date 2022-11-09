@@ -263,37 +263,49 @@ namespace kagome::api {
   outcome::result<ApiServiceImpl::PubsubSubscriptionId>
   ApiServiceImpl::subscribeSessionToKeys(
       const std::vector<common::Buffer> &keys) {
-    return withThisSession([&](kagome::api::Session::SessionId tid) {
-      return withSession(tid, [&](SessionSubscriptions &session_context) {
-        auto &session = session_context.storage_sub;
-        const auto id = session->generateSubscriptionSetId();
-        const auto &best_block_hash = block_tree_->deepestLeaf().hash;
-        const auto &header = block_tree_->getBlockHeader(best_block_hash);
-        BOOST_ASSERT(header.has_value());
-        auto persistent_batch =
-            trie_storage_->getPersistentBatchAt(header.value().state_root);
-        BOOST_ASSERT(persistent_batch.has_value());
+    return withThisSession(
+        [&](kagome::api::Session::SessionId tid)
+            -> outcome::result<ApiServiceImpl::PubsubSubscriptionId> {
+          return withSession(
+              tid,
+              [&](SessionSubscriptions &session_context)
+                  -> outcome::result<ApiServiceImpl::PubsubSubscriptionId> {
+                auto &session = session_context.storage_sub;
+                const auto id = session->generateSubscriptionSetId();
+                const auto &best_block_hash = block_tree_->deepestLeaf().hash;
+                const auto &header =
+                    block_tree_->getBlockHeader(best_block_hash);
+                BOOST_ASSERT(header.has_value());
+                auto persistent_batch = trie_storage_->getPersistentBatchAt(
+                    header.value().state_root);
+                if (!persistent_batch.has_value()) {
+                  SL_ERROR(logger_,
+                           "Failed to get storage state for block {}",
+                           best_block_hash);
+                  return persistent_batch.as_failure();
+                }
 
-        auto &pb = persistent_batch.value();
-        BOOST_ASSERT(pb);
+                auto &batch = persistent_batch.value();
 
-        session_context.messages = uploadMessagesListFromCache();
+                session_context.messages = uploadMessagesListFromCache();
 
-        std::vector<std::pair<common::Buffer, std::optional<common::Buffer>>>
-            pairs;
-        pairs.reserve(keys.size());
+                std::vector<
+                    std::pair<common::Buffer, std::optional<common::Buffer>>>
+                    pairs;
+                pairs.reserve(keys.size());
 
-        for (auto &key : keys) {
-          session->subscribe(id, key);
+                for (auto &key : keys) {
+                  session->subscribe(id, key);
 
-          auto value_opt_res = pb->tryGet(key);
-          if (value_opt_res.has_value()) {
-            pairs.emplace_back(std::move(key),
-                               std::move(value_opt_res.value()));
-          }
-        }
+                  auto value_opt_res = batch->tryGet(key);
+                  if (value_opt_res.has_value()) {
+                    pairs.emplace_back(std::move(key),
+                                       std::move(value_opt_res.value()));
+                  }
+                }
 
-        forJsonData(server_,
+                forJsonData(
+                    server_,
                     logger_,
                     id,
                     kRpcEventSubscribeStorage,
@@ -303,9 +315,9 @@ namespace kagome::api {
                           uploadFromCache(result.data()));
                     });
 
-        return static_cast<PubsubSubscriptionId>(id);
-      });
-    });
+                return static_cast<PubsubSubscriptionId>(id);
+              });
+        });
   }
 
   outcome::result<ApiServiceImpl::PubsubSubscriptionId>

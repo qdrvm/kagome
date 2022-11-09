@@ -208,7 +208,7 @@ namespace kagome::api {
                       extrinsic));
       BOOST_ASSERT(tx_hash == tx.hash);
 
-      SL_DEBUG(logger_, "Subscribe for ex hash={}", tx_hash);
+      SL_DEBUG(logger_, "Submit and watch transaction with hash {}", tx_hash);
 
       return sub_id;
     }

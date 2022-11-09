@@ -451,7 +451,7 @@ namespace kagome::network {
     stream_engine_->broadcast<GrandpaMessage>(
         shared_from_this(),
         shared_msg,
-        StreamEngine::RandomGossipStrategy{
+        RandomGossipStrategy{
             stream_engine_->outgoingStreamsNumber(shared_from_this()),
             app_config_.luckyPeers()});
   }
