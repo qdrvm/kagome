@@ -1,15 +1,16 @@
 /**
-* Copyright Soramitsu Co., Ltd. All Rights Reserved.
-* SPDX-License-Identifier: Apache-2.0
-*/
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #include <network/impl/stream_engine.hpp>
 
 namespace kagome::network {
 
-  outcome::result<void> StreamEngine::add(std::shared_ptr<Stream> stream,
-                            const std::shared_ptr<ProtocolBase> &protocol,
-                            Direction direction) {
+  outcome::result<void> StreamEngine::add(
+      std::shared_ptr<Stream> stream,
+      const std::shared_ptr<ProtocolBase> &protocol,
+      Direction direction) {
     BOOST_ASSERT(protocol != nullptr);
     BOOST_ASSERT(stream != nullptr);
 
@@ -52,13 +53,11 @@ namespace kagome::network {
     });
   }
 
-  void StreamEngine::reserveStreams(const PeerId &peer_id,
-                      const std::shared_ptr<ProtocolBase> &protocol) {
+  void StreamEngine::reserveStreams(
+      const PeerId &peer_id, const std::shared_ptr<ProtocolBase> &protocol) {
     BOOST_ASSERT(protocol != nullptr);
     auto const reserved = streams_.exclusiveAccess([&](auto &streams) {
-      return streams[peer_id]
-          .emplace(protocol, ProtocolDescr{protocol})
-          .second;
+      return streams[peer_id].emplace(protocol, ProtocolDescr{protocol}).second;
     });
 
     if (reserved) {
@@ -86,8 +85,8 @@ namespace kagome::network {
     });
   }
 
-  bool StreamEngine::reserveOutgoing(PeerId const &peer_id,
-                       std::shared_ptr<ProtocolBase> const &protocol) {
+  bool StreamEngine::reserveOutgoing(
+      PeerId const &peer_id, std::shared_ptr<ProtocolBase> const &protocol) {
     BOOST_ASSERT(protocol);
     return streams_.exclusiveAccess([&](PeerMap &streams) {
       auto &proto_map = streams[peer_id];
@@ -96,30 +95,34 @@ namespace kagome::network {
     });
   }
 
-  void StreamEngine::dropReserveOutgoing(PeerId const &peer_id,
-                           std::shared_ptr<ProtocolBase> const &protocol) {
+  void StreamEngine::dropReserveOutgoing(
+      PeerId const &peer_id, std::shared_ptr<ProtocolBase> const &protocol) {
     BOOST_ASSERT(protocol);
     return streams_.exclusiveAccess([&](auto &streams) {
-      forPeerProtocol(peer_id, streams, protocol, [&](auto, ProtocolDescr &descr) {
-        return descr.dropReserved();
-      });
+      forPeerProtocol(
+          peer_id, streams, protocol, [&](auto, ProtocolDescr &descr) {
+            return descr.dropReserved();
+          });
     });
   }
 
-  bool StreamEngine::isAlive(PeerId const &peer_id,
-               std::shared_ptr<ProtocolBase> const &protocol) const {
+  bool StreamEngine::isAlive(
+      PeerId const &peer_id,
+      std::shared_ptr<ProtocolBase> const &protocol) const {
     BOOST_ASSERT(protocol);
     bool alive = false;
     streams_.sharedAccess([&](auto const &streams) {
-      forPeerProtocol(peer_id, streams, protocol, [&](auto, ProtocolDescr const &descr) {
-        alive = descr.hasActiveOutgoing() || descr.hasActiveIncoming()
-                || descr.isOutgoingReserved();
-      });
+      forPeerProtocol(
+          peer_id, streams, protocol, [&](auto, ProtocolDescr const &descr) {
+            alive = descr.hasActiveOutgoing() || descr.hasActiveIncoming()
+                    || descr.isOutgoingReserved();
+          });
     });
     return alive;
   }
 
-  int StreamEngine::outgoingStreamsNumber(const std::shared_ptr<ProtocolBase> &protocol) {
+  int StreamEngine::outgoingStreamsNumber(
+      const std::shared_ptr<ProtocolBase> &protocol) {
     int candidates_num{0};
     streams_.sharedAccess([&](auto const &streams) {
       candidates_num = std::count_if(
@@ -132,8 +135,8 @@ namespace kagome::network {
     return candidates_num;
   }
 
-
-  outcome::result<PeerInfo> StreamEngine::from(std::shared_ptr<Stream> &stream) const {
+  outcome::result<PeerInfo> StreamEngine::from(
+      std::shared_ptr<Stream> &stream) const {
     BOOST_ASSERT(stream);
     auto peer_id_res = stream->remotePeerId();
     if (!peer_id_res.has_value()) {
@@ -144,9 +147,9 @@ namespace kagome::network {
   }
 
   void StreamEngine::uploadStream(std::shared_ptr<Stream> &dst,
-                    std::shared_ptr<Stream> const &src,
-                    std::shared_ptr<ProtocolBase> const &protocol,
-                    Direction direction) {
+                                  std::shared_ptr<Stream> const &src,
+                                  std::shared_ptr<ProtocolBase> const &protocol,
+                                  Direction direction) {
     BOOST_ASSERT(src);
     // Skip the same stream
     if (dst.get() == src.get()) return;
@@ -193,14 +196,14 @@ namespace kagome::network {
     }
   }
 
-  void StreamEngine::openOutgoingStream(PeerId const &peer_id,
-                          std::shared_ptr<ProtocolBase> const &protocol,
-                          ProtocolDescr &descr) {
+  void StreamEngine::openOutgoingStream(
+      PeerId const &peer_id,
+      std::shared_ptr<ProtocolBase> const &protocol,
+      ProtocolDescr &descr) {
     if (descr.tryReserveOutgoing()) {
       protocol->newOutgoingStream(
           PeerInfo{peer_id, {}},
-          [wp(weak_from_this()), protocol, peer_id](
-              auto &&stream_res) mutable {
+          [wp(weak_from_this()), protocol, peer_id](auto &&stream_res) mutable {
             auto self = wp.lock();
             if (not self) {
               return;
@@ -257,4 +260,4 @@ namespace kagome::network {
           });
     }
   }
-}
+}  // namespace kagome::network

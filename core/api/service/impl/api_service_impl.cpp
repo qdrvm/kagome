@@ -280,7 +280,8 @@ namespace kagome::api {
                     header.value().state_root);
                 if (!persistent_batch.has_value()) {
                   SL_ERROR(logger_,
-                           "Failed to get storage state for block {}",
+                           "Failed to get storage state for block {}, required "
+                           "to subscribe an RPC session to some storage keys.",
                            best_block_hash);
                   return persistent_batch.as_failure();
                 }
@@ -299,8 +300,8 @@ namespace kagome::api {
 
                   auto value_opt_res = batch->tryGet(key);
                   if (value_opt_res.has_value()) {
-                    pairs.emplace_back(std::move(key),
-                                       std::move(value_opt_res.value()));
+                    pairs.emplace_back(key,
+                                       value_opt_res.value());
                   }
                 }
 
@@ -309,7 +310,7 @@ namespace kagome::api {
                     logger_,
                     id,
                     kRpcEventSubscribeStorage,
-                    createStateStorageEvent(std::move(pairs), best_block_hash),
+                    createStateStorageEvent(pairs, best_block_hash),
                     [&](const auto &result) {
                       session_context.messages->emplace_back(
                           uploadFromCache(result.data()));
