@@ -5,6 +5,8 @@
 
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include "common/buffer.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -108,7 +110,7 @@ namespace kagome::storage::trie {
   outcome::result<std::tuple<bool, uint32_t>> TopperTrieBatchImpl::clearPrefix(
       const BufferView &prefix, std::optional<uint64_t>) {
     for (auto it = cache_.lower_bound(prefix);
-         it != cache_.end() && it->first.subbuffer(0, prefix.size()) == prefix;
+         it != cache_.end() && boost::starts_with(it->first, prefix);
          ++it)
       it->second = std::nullopt;
 
@@ -138,10 +140,9 @@ namespace kagome::storage::trie {
 
   bool TopperTrieBatchImpl::wasClearedByPrefix(const BufferView &key) const {
     for (const auto &prefix : cleared_prefixes_) {
-      auto key_end = key.begin();
-      std::advance(key_end, std::min<size_t>(key.size(), prefix.size()) - 1);
-      auto is_cleared = std::equal(key.begin(), key_end, prefix.begin());
-      if (is_cleared) return true;
+      if (boost::starts_with(key, prefix)) {
+        return true;
+      }
     }
     return false;
   }

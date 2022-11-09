@@ -185,11 +185,11 @@ TEST_F(TrieBatchTest, Replace) {
 TEST_F(TrieBatchTest, ConsistentOnFailure) {
   auto db = std::make_unique<MockDb>();
   /**
-   * Five times the storage will function correctly, after which it will yield
+   * First time the storage will function correctly, after which it will yield
    * an error
    */
   auto &&expectation = EXPECT_CALL(*db, put(_, _))
-                           .Times(5)
+                           .Times(1)
                            .WillRepeatedly(Invoke(db.get(), &MockDb::true_put));
 
   EXPECT_CALL(*db, put(_, _))

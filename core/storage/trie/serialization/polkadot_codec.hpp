@@ -31,12 +31,15 @@ namespace kagome::storage::trie {
 
     ~PolkadotCodec() override = default;
 
-    outcome::result<Buffer> encodeNode(const Node &node) const override;
+    outcome::result<Buffer> encodeNodeAndStoreChildren(
+        const Node &node, const StoreChildren &store_children) const override;
 
     outcome::result<std::shared_ptr<Node>> decodeNode(
         gsl::span<const uint8_t> encoded_data) const override;
 
     common::Buffer merkleValue(const BufferView &buf) const override;
+
+    bool isMerkleHash(const common::BufferView &buf) const override;
 
     common::Hash256 hash256(const BufferView &buf) const override;
 
@@ -47,7 +50,8 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeHeader(const TrieNode &node) const;
 
    private:
-    outcome::result<Buffer> encodeBranch(const BranchNode &node) const;
+    outcome::result<Buffer> encodeBranch(
+        const BranchNode &node, const StoreChildren &store_children) const;
     outcome::result<Buffer> encodeLeaf(const LeafNode &node) const;
 
     outcome::result<std::pair<TrieNode::Type, size_t>> decodeHeader(
