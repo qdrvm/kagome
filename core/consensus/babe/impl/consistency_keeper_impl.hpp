@@ -11,12 +11,15 @@
 #include <memory>
 
 #include "blockchain/block_tree.hpp"
-#include "consensus/authority/authority_update_observer.hpp"
 #include "log/logger.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::application {
   class AppStateManager;
+};
+
+namespace kagome::blockchain {
+  class DigestTracker;
 };
 
 namespace kagome::consensus::babe {
@@ -27,8 +30,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<authority::AuthorityUpdateObserver>
-            authority_update_observer);
+        std::shared_ptr<blockchain::DigestTracker> digest_tracker);
 
     ~ConsistencyKeeperImpl() override = default;
 
@@ -45,8 +47,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<authority::AuthorityUpdateObserver>
-        authority_update_observer_;
+    std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
 
     log::Logger logger_;
     std::atomic_bool in_progress_{false};

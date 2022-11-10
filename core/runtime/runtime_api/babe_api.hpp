@@ -24,7 +24,7 @@ namespace kagome::runtime {
      * @return Babe configuration
      */
     virtual outcome::result<primitives::BabeConfiguration> configuration(
-        primitives::BlockHash const &block) = 0;
+        const primitives::BlockHash &block) = 0;
   };
 
 }  // namespace kagome::runtime

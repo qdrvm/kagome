@@ -92,15 +92,9 @@ class BlockValidatorTest : public testing::Test {
       std::make_shared<VRFProviderMock>();
   std::shared_ptr<Sr25519ProviderMock> sr25519_provider_ =
       std::make_shared<Sr25519ProviderMock>();
-  std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_ =
-      std::make_shared<BabeConfigRepositoryMock>();
 
-  BabeBlockValidator validator_{tree_,
-                                tx_queue_,
-                                hasher_,
-                                vrf_provider_,
-                                sr25519_provider_,
-                                babe_config_repo_};
+  BabeBlockValidator validator_{
+      tree_, tx_queue_, hasher_, vrf_provider_, sr25519_provider_};
 
   // fields for block
   Hash256 parent_hash_ =
@@ -111,9 +105,9 @@ class BlockValidatorTest : public testing::Test {
   VRFProof vrf_proof_{};
   AuthorityIndex authority_index_ = {1};
   BabeBlockHeader babe_header_{SlotType::Primary,
+                               authority_index_,
                                slot_number_,
-                               {vrf_value_, vrf_proof_},
-                               authority_index_};
+                               {vrf_value_, vrf_proof_}};
   Buffer encoded_babe_header_{scale::encode(babe_header_).value()};
 
   BlockHeader block_header_{
@@ -125,7 +119,9 @@ class BlockValidatorTest : public testing::Test {
 
   Threshold threshold_ = 3820948573;
   primitives::AuthorityList authorities_;
-  Randomness randomness_{uint256_to_le_bytes(475995757021)};
+
+  primitives::BabeConfiguration config_{
+      .randomness = Randomness{uint256_to_le_bytes(475995757021)}};
 };
 
 /**
@@ -161,7 +157,7 @@ TEST_F(BlockValidatorTest, Success) {
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   auto validate_res = validator_.validateHeader(
-      valid_block_.header, 0ull, authority.id, threshold_, randomness_);
+      valid_block_.header, 0ull, authority.id, threshold_, config_);
   ASSERT_TRUE(validate_res) << validate_res.error().message();
 }
 
@@ -178,7 +174,7 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, config_));
   ASSERT_EQ(err, kagome::consensus::DigestError::REQUIRED_DIGESTS_NOT_FOUND);
 }
 
@@ -209,7 +205,7 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, config_));
   ASSERT_EQ(err, consensus::DigestError::REQUIRED_DIGESTS_NOT_FOUND);
 }
 
@@ -249,7 +245,7 @@ TEST_F(BlockValidatorTest, NoAuthority) {
   EXPECT_OUTCOME_ERROR(
       err,
       validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, randomness_),
+          valid_block_.header, 0ull, authority.id, threshold_, config_),
       BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
@@ -289,7 +285,7 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, config_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
@@ -328,7 +324,7 @@ TEST_F(BlockValidatorTest, VRFFail) {
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, config_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
 
@@ -369,6 +365,6 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, config_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
