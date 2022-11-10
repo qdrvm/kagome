@@ -27,7 +27,6 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::BabeApi> babe_api,
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-      const primitives::GenesisBlockHeader &genesis_block_header,
       const BabeClock &clock)
       : persistent_storage_(std::move(persistent_storage)),
         block_tree_(std::move(block_tree)),
@@ -39,7 +38,6 @@ namespace kagome::consensus::babe {
           return std::make_shared<primitives::events::ChainEventSubscriber>(
               chain_events_engine);
         }()),
-        genesis_block_hash_(genesis_block_header.hash),
         clock_(clock),
         logger_(log::createLogger("BabeConfigRepo", "babe_config_repo")) {
     BOOST_ASSERT(persistent_storage_ != nullptr);
@@ -170,18 +168,20 @@ namespace kagome::consensus::babe {
 
     // 3. Load state from genesis, if state is still not found
     if (root_ == nullptr) {
-      auto babe_config_res = babe_api_->configuration(genesis_block_hash_);
+      auto genesis_hash = block_tree_->getGenesisBlockHash();
+      auto babe_config_res = babe_api_->configuration(genesis_hash);
       if (babe_config_res.has_error()) {
         SL_WARN(logger_,
                 "Can't get babe config over babe API on genesis block: {}",
                 babe_config_res.error());
         return babe_config_res.as_failure();
       }
-      const auto &babe_config = babe_config_res.value();
+      auto &babe_config = babe_config_res.value();
 
       root_ = BabeConfigNode::createAsRoot(
-          {0, genesis_block_hash_},
-          std::make_shared<const primitives::BabeConfiguration>(babe_config));
+          {0, genesis_hash},
+          std::make_shared<primitives::BabeConfiguration>(
+              std::move(babe_config)));
       SL_DEBUG(logger_, "State was initialized by genesis block");
     }
 
@@ -472,10 +472,7 @@ namespace kagome::consensus::babe {
            digest.slot_number,
            epoch_number,
            digest.authority_index,
-           digest.slotType() == SlotType::Primary          ? "primary"
-           : digest.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
-           : digest.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
-                                                           : "???");
+           to_string(digest.slotType()));
 
     if (node->block == block) {
       return BabeError::BAD_ORDER_OF_DIGEST_ITEM;

@@ -70,7 +70,7 @@ struct fmt::formatter<outcome::result<Result, Failure>> {
         return format_to(ctx.out(), "success");
       }
     } else {
-      return format_to(ctx.out(), res.error());
+      return format_to(ctx.out(), res.error().message());
     }
   }
 };

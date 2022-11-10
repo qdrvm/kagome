@@ -1456,7 +1456,8 @@ namespace {
 
           auto log = log::createLogger("RecoveryMode", "main");
 
-          buffer_storage->remove(storage::kAuthorityManagerStateLookupKey)
+          buffer_storage
+              ->remove(storage::kAuthorityManagerStateLookupKey("last"))
               .value();
           if (res.has_error()) {
             SL_ERROR(log, "Recovery mode has failed: {}", res.error());

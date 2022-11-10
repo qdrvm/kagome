@@ -15,6 +15,8 @@ namespace kagome::consensus::grandpa {
     CAN_NOT_SAVE_STATE,
     CANT_RECALCULATE_ON_PRUNED_STATE,
     FAILED_TO_INITIALIZE_SET_ID,
+    BAD_ORDER_OF_DIGEST_ITEM,
+    UNKNOWN_DIGEST_TYPE
   };
 }
 

@@ -742,7 +742,7 @@ namespace kagome::consensus::grandpa {
       return finalized.as_failure();
     }
 
-    authority_manager_->prune(last_finalized_block_);
+    // authority_manager_->prune(last_finalized_block_);
 
     return outcome::success();
   }

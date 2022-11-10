@@ -16,15 +16,22 @@ namespace kagome::consensus::grandpa {
    public:
     virtual ~GrandpaDigestObserver() = default;
 
-    /**
-     * Processes consensus message in block digest
-     * @param block - corresponding block
-     * @param digest - grandpa digest
-     * @return failure or nothing
-     */
+    /// Observes PreRuntime of block
+    /// @param block - block digest of which observed
+    /// @param digest - BabeBlockHeader as decoded content of PreRuntime digest
+    /// @return failure or nothing
     virtual outcome::result<void> onDigest(
         const primitives::BlockInfo &block,
-        const primitives::GrandpaDigest &message) = 0;
+        const consensus::BabeBlockHeader &digest) = 0;
+
+    /// Observes ConsensusLog of block
+    /// @param block - block digest of which observed
+    /// @param digest - GrandpaDigest as particular variant of ConsensusLog
+    /// digest
+    /// @return failure or nothing
+    virtual outcome::result<void> onDigest(
+        const primitives::BlockInfo &block,
+        const primitives::GrandpaDigest &digest) = 0;
 
     /**
      * @brief Cancel changes. Should be called when the block is rolled back

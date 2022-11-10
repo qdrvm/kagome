@@ -122,11 +122,11 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockInfo &block,
         primitives::BlockNumber activate_at) = 0;
 
-    /**
-     * @brief Prunes data which was needed only till {@param block}
-     * and won't be used anymore
-     */
-    virtual void prune(const primitives::BlockInfo &block) = 0;
+    // /**
+    //  * @brief Prunes data which was needed only till {@param block}
+    //  * and won't be used anymore
+    //  */
+    // virtual void prune(const primitives::BlockInfo &block) = 0;
   };
 }  // namespace kagome::consensus::grandpa
 

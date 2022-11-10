@@ -16,16 +16,18 @@ namespace kagome::consensus {
    public:
     virtual ~BabeDigestObserver() = default;
 
-    /// Observes BabeDigest of block
+    /// Observes PreRuntime of block
     /// @param block - block digest of which observed
     /// @param digest - BabeBlockHeader as decoded content of PreRuntime digest
+    /// @return failure or nothing
     virtual outcome::result<void> onDigest(
         const primitives::BlockInfo &block,
         const consensus::BabeBlockHeader &digest) = 0;
 
-    /// Observes BabeDigest of block
+    /// Observes ConsensusLog of block
     /// @param block - block digest of which observed
     /// @param digest - BabeDigest as particular variant of ConsensusLog digest
+    /// @return failure or nothing
     virtual outcome::result<void> onDigest(
         const primitives::BlockInfo &block,
         const primitives::BabeDigest &digest) = 0;

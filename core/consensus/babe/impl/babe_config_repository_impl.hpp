@@ -47,7 +47,6 @@ namespace kagome::consensus::babe {
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-        const primitives::GenesisBlockHeader &genesis_block_header,
         const BabeClock &clock);
 
     bool prepare();
@@ -103,9 +102,9 @@ namespace kagome::consensus::babe {
         const primitives::NextConfigDataV1 &msg);
 
     /**
-     * @brief Find schedule_node according to the block
+     * @brief Find node according to the block
      * @param block for which to find the schedule node
-     * @return oldest schedule_node according to the block
+     * @return oldest node according to the block
      */
     std::shared_ptr<BabeConfigNode> getNode(
         const primitives::BlockInfo &block) const;
@@ -127,7 +126,6 @@ namespace kagome::consensus::babe {
     std::shared_ptr<runtime::BabeApi> babe_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
-    primitives::BlockHash genesis_block_hash_;
 
     const BabeDuration slot_duration_{};
     const EpochLength epoch_length_{};

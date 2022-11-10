@@ -13,6 +13,7 @@
 #include "log/logger.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/block_header.hpp"
+#include "primitives/event_types.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::application {
@@ -41,11 +42,15 @@ namespace kagome::storage::trie {
 
 namespace kagome::consensus::grandpa {
 
-  class AuthorityManagerImpl : public AuthorityManager,
-                               public GrandpaDigestObserver {
+  class AuthorityManagerImpl final
+      : public AuthorityManager,
+        public GrandpaDigestObserver,
+        public std::enable_shared_from_this<AuthorityManagerImpl> {
    public:
     inline static const std::vector<primitives::ConsensusEngineId>
         kKnownEngines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
+
+    static const primitives::BlockNumber kSavepointEachSuchBlock = 100000;
 
     struct Config {
       // Whether OnDisabled digest message should be processed.
@@ -63,7 +68,8 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
         std::shared_ptr<crypto::Hasher> hash,
         std::shared_ptr<storage::BufferStorage> persistent_storage,
-        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+        primitives::events::ChainSubscriptionEnginePtr chain_events_engine);
 
     ~AuthorityManagerImpl() override;
 
@@ -71,6 +77,20 @@ namespace kagome::consensus::grandpa {
         primitives::BlockNumber last_finalized_number) override;
 
     bool prepare();
+
+    // GrandpaDigestObserver
+
+    outcome::result<void> onDigest(
+        const primitives::BlockInfo &block,
+        const consensus::BabeBlockHeader &digest) override;
+
+    outcome::result<void> onDigest(
+        const primitives::BlockInfo &block,
+        const primitives::GrandpaDigest &digest) override;
+
+    void cancel(const primitives::BlockInfo &block) override;
+
+    // AuthorityManager
 
     primitives::BlockInfo base() const override;
 
@@ -100,15 +120,12 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockInfo &block,
         primitives::BlockNumber activate_at) override;
 
-    outcome::result<void> onDigest(
-        const primitives::BlockInfo &block,
-        const primitives::GrandpaDigest &digest) override;
-
-    void cancel(const primitives::BlockInfo &block) override;
-
-    void prune(const primitives::BlockInfo &block) override;
-
    private:
+    void prune(const primitives::BlockInfo &block);
+
+    outcome::result<void> load();
+    outcome::result<void> save();
+
     outcome::result<void> initializeAt(const primitives::BlockInfo &root_block);
 
     /**
@@ -121,6 +138,16 @@ namespace kagome::consensus::grandpa {
 
     outcome::result<std::optional<primitives::AuthoritySetId>>
     readSetIdFromRuntime(primitives::BlockHeader const &targetBlock) const;
+
+    /**
+     * @brief Find node according to the block
+     * @param block for which to find the schedule node
+     * @return oldest node according to the block
+     */
+    std::shared_ptr<ScheduleNode> getNode(
+        const primitives::BlockInfo &block) const {
+      return getAppropriateAncestor(block);
+    }
 
     /**
      * @brief Check if one block is direct ancestor of second one
@@ -141,9 +168,12 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
+    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
     std::shared_ptr<ScheduleNode> root_;
-    log::Logger log_;
+    primitives::BlockNumber last_saved_state_block_ = 0;
+
+    log::Logger logger_;
   };
 }  // namespace kagome::consensus::grandpa
 
