@@ -33,6 +33,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
       "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-15 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
     echo \
       "deb http://deb.debian.org/debian/ testing main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
+    wget -q -O- https://github.com/rui314/mold/releases/download/v1.3.1/mold-1.3.1-x86_64-linux.tar.gz | tar -C /usr/local --strip-components=1 -xzf - && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
     apt-get update && apt-get install --no-install-recommends -y \
         docker-ce \
