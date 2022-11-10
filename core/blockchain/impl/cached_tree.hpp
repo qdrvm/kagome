@@ -27,24 +27,16 @@ namespace kagome::blockchain {
 
     TreeNode(const primitives::BlockHash &hash,
              primitives::BlockNumber depth,
-             consensus::EpochDigest &&curr_epoch_digest,
-             consensus::EpochNumber epoch_number,
-             consensus::EpochDigest &&next_epoch_digest,
              bool finalized = false);
 
     TreeNode(const primitives::BlockHash &hash,
              primitives::BlockNumber depth,
              const std::shared_ptr<TreeNode> &parent,
-             consensus::EpochNumber epoch_number,
-             std::optional<consensus::EpochDigest> next_epoch_digest,
              bool finalized = false);
 
     primitives::BlockHash block_hash;
     primitives::BlockNumber depth;
     std::weak_ptr<TreeNode> parent;
-    consensus::EpochNumber epoch_number;
-    std::shared_ptr<consensus::EpochDigest> epoch_digest;
-    std::shared_ptr<consensus::EpochDigest> next_epoch_digest;
     bool finalized;
 
     std::vector<std::shared_ptr<TreeNode>> children{};

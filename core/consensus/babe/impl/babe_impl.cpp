@@ -25,6 +25,7 @@
 #include "network/synchronizer.hpp"
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
+#include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -57,7 +58,9 @@ namespace kagome::consensus::babe {
           authority_update_observer,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
+      primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+      std::shared_ptr<runtime::Core> core,
       std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper)
       : app_config_(app_config),
         lottery_{std::move(lottery)},
@@ -73,7 +76,14 @@ namespace kagome::consensus::babe {
         authority_update_observer_(std::move(authority_update_observer)),
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
+        chain_events_engine_(std::move(chain_events_engine)),
+        chain_sub_([&] {
+          BOOST_ASSERT(chain_events_engine_ != nullptr);
+          return std::make_shared<primitives::events::ChainEventSubscriber>(
+              chain_events_engine_);
+        }()),
         offchain_worker_api_(std::move(offchain_worker_api)),
+        runtime_core_(std::move(core)),
         consistency_keeper_(std::move(consistency_keeper)),
         log_{log::createLogger("Babe", "babe")},
         telemetry_{telemetry::createTelemetryService()} {
@@ -91,6 +101,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(synchronizer_);
     BOOST_ASSERT(babe_util_);
     BOOST_ASSERT(offchain_worker_api_);
+    BOOST_ASSERT(runtime_core_);
     BOOST_ASSERT(consistency_keeper_);
 
     BOOST_ASSERT(app_state_manager);
@@ -115,6 +126,41 @@ namespace kagome::consensus::babe {
     }
 
     current_epoch_ = res.value();
+
+    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
+                          primitives::events::ChainEventType::kFinalizedHeads);
+    chain_sub_->setCallback([wp = weak_from_this()](
+                                subscription::SubscriptionSetId,
+                                auto &&,
+                                primitives::events::ChainEventType type,
+                                const primitives::events::ChainEventParams
+                                    &event) {
+      if (type == primitives::events::ChainEventType::kFinalizedHeads) {
+        if (auto self = wp.lock()) {
+          if (self->current_state_ != Babe::State::HEADERS_LOADING
+              and self->current_state_ != Babe::State::STATE_LOADING) {
+            const auto &header =
+                boost::get<primitives::events::HeadsEventParams>(event).get();
+            auto hash =
+                self->hasher_->blake2b_256(scale::encode(header).value());
+
+            auto version_res = self->runtime_core_->version(hash);
+            if (version_res.has_value()) {
+              auto &version = version_res.value();
+              if (not self->actual_runtime_version_.has_value()
+                  || self->actual_runtime_version_ != version) {
+                self->actual_runtime_version_ = version;
+                self->chain_events_engine_->notify(
+                    primitives::events::ChainEventType::
+                        kFinalizedRuntimeVersion,
+                    version);
+              }
+            }
+          }
+        }
+      }
+    });
+
     return true;
   }
 
@@ -129,24 +175,23 @@ namespace kagome::consensus::babe {
              current_epoch_.start_slot);
 
     if (keypair_) {
-      if (auto epoch_res = block_tree_->getEpochDigest(
-              current_epoch_.epoch_number, best_block_.hash);
-          epoch_res.has_value()) {
-        const auto &authorities = epoch_res.value().authorities;
-        if (authorities.size() == 1
-            and authorities[0].id.id == keypair_->public_key) {
-          SL_INFO(log_, "Starting single validating node.");
-          onSynchronized();
-          return true;
-        }
-      } else {
+      auto babe_config =
+          babe_config_repo_->config(best_block_, current_epoch_.epoch_number);
+      if (babe_config == nullptr) {
         SL_CRITICAL(
             log_,
-            "Can't obtain digest of epoch {} from block tree for block {}: {}",
+            "Can't obtain digest of epoch {} from block tree for block {}",
             current_epoch_.epoch_number,
-            best_block_,
-            epoch_res.error().message());
+            best_block_);
         return false;
+      }
+
+      const auto &authorities = babe_config->authorities;
+      if (authorities.size() == 1
+          and authorities[0].id.id == keypair_->public_key) {
+        SL_INFO(log_, "Starting single validating node.");
+        onSynchronized();
+        return true;
       }
     }
 
@@ -194,12 +239,11 @@ namespace kagome::consensus::babe {
     auto best_block = block_tree_->deepestLeaf();
 
     if (best_block.number == 0) {
-      const auto &babe_config = babe_config_repo_->config();
       EpochDescriptor epoch_descriptor{
           .epoch_number = 0,
           .start_slot =
               static_cast<BabeSlotNumber>(clock_->now().time_since_epoch()
-                                          / babe_config.slot_duration)
+                                          / babe_config_repo_->slotDuration())
               + 1};
       return outcome::success(epoch_descriptor);
     }
@@ -249,11 +293,9 @@ namespace kagome::consensus::babe {
       return std::tuple(first_slot_number, is_first_block_finalized);
     });
 
-    const auto &babe_config = babe_config_repo_->config();
-
     auto current_epoch_start_slot =
         first_slot_number
-        + current_epoch_.epoch_number * babe_config.epoch_length;
+        + current_epoch_.epoch_number * babe_config_repo_->epochLength();
 
     if (current_epoch_.start_slot != current_epoch_start_slot) {
       SL_WARN(log_,
@@ -281,7 +323,8 @@ namespace kagome::consensus::babe {
         "Starting an epoch {}. Session key: {:l}. Secondary slots allowed={}",
         epoch.epoch_number,
         keypair_->public_key,
-        isSecondarySlotsAllowed());
+        babe_config_repo_->config(best_block_, epoch.epoch_number)
+            ->isSecondarySlotsAllowed());
     current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
 
@@ -547,7 +590,6 @@ namespace kagome::consensus::babe {
 
     bool rewind_slots;  // NOLINT
     auto slot = current_slot_;
-    const auto &babe_config = babe_config_repo_->config();
 
     do {
       // check that we are really in the middle of the slot, as expected; we
@@ -558,7 +600,8 @@ namespace kagome::consensus::babe {
       auto finish_time = babe_util_->slotFinishTime(current_slot_);
 
       rewind_slots =
-          now > finish_time and (now - finish_time) > babe_config.slot_duration;
+          now > finish_time
+          and (now - finish_time) > babe_config_repo_->slotDuration();
 
       if (rewind_slots) {
         // we are too far behind; after skipping some slots (but not epochs)
@@ -579,7 +622,7 @@ namespace kagome::consensus::babe {
 
     // Slot processing begins in 1/3 slot time before end
     auto finish_time = babe_util_->slotFinishTime(current_slot_)
-                       - babe_util_->slotDuration() / 3;
+                       - babe_config_repo_->slotDuration() / 3;
 
     SL_VERBOSE(log_,
                "Starting a slot {} in epoch {} (remains {:.2f} sec.)",
@@ -634,17 +677,11 @@ namespace kagome::consensus::babe {
       BOOST_ASSERT(babe_digests_res.has_value());
     }
 
-    auto epoch_res = block_tree_->getEpochDigest(current_epoch_.epoch_number,
-                                                 best_block_.hash);
-    if (epoch_res.has_error()) {
-      SL_ERROR(log_,
-               "Fail to get epoch: {}; Skipping slot processing",
-               epoch_res.error().message());
-    } else {
-      const auto &epoch = epoch_res.value();
-
+    auto babe_config =
+        babe_config_repo_->config(best_block_, current_epoch_.epoch_number);
+    if (babe_config) {
       auto authority_index_res =
-          getAuthorityIndex(epoch.authorities, keypair_->public_key);
+          getAuthorityIndex(babe_config->authorities, keypair_->public_key);
       if (not authority_index_res) {
         SL_ERROR(log_,
                  "Authority not known, skipping slot processing. "
@@ -653,8 +690,7 @@ namespace kagome::consensus::babe {
         const auto &authority_index = authority_index_res.value();
 
         if (lottery_->getEpoch() != current_epoch_) {
-          changeLotteryEpoch(
-              current_epoch_, epoch.authorities, epoch.randomness);
+          changeLotteryEpoch(current_epoch_, babe_config);
         }
 
         auto slot_leadership = lottery_->getSlotLeadership(current_slot_);
@@ -669,15 +705,19 @@ namespace kagome::consensus::babe {
 
           processSlotLeadership(
               SlotType::Primary, std::cref(vrf_result), authority_index);
-        } else if (isSecondarySlotsAllowed()) {
-          auto expected_author = lottery_->secondarySlotAuthor(
-              current_slot_, epoch.authorities.size(), epoch.randomness);
+        } else if (babe_config->allowed_slots
+                       == primitives::AllowedSlots::PrimaryAndSecondaryPlain
+                   or babe_config->allowed_slots
+                          == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
+          auto expected_author =
+              lottery_->secondarySlotAuthor(current_slot_,
+                                            babe_config->authorities.size(),
+                                            babe_config->randomness);
 
           if (expected_author.has_value()
               and authority_index == expected_author.value()) {
-            const auto &babe_config = babe_config_repo_->config();
-            if (primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots
-                == babe_config.allowed_slots) {
+            if (babe_config->allowed_slots
+                == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
               auto vrf = lottery_->slotVrfSignature(current_slot_);
               processSlotLeadership(
                   SlotType::SecondaryVRF, std::cref(vrf), authority_index);
@@ -688,6 +728,8 @@ namespace kagome::consensus::babe {
           }
         }
       }
+    } else {
+      SL_ERROR(log_, "Can not get epoch; Skipping slot processing");
     }
 
     SL_DEBUG(log_,
@@ -732,8 +774,8 @@ namespace kagome::consensus::babe {
       primitives::AuthorityIndex authority_index) const {
     BabeBlockHeader babe_header{
         .slot_assignment_type = slot_type,
-        .slot_number = current_slot_,
         .authority_index = authority_index,
+        .slot_number = current_slot_,
     };
 
     if (babe_header.needVRFCheck()) {
@@ -957,16 +999,6 @@ namespace kagome::consensus::babe {
       }
     }
 
-    if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
-        next_epoch_digest_res.has_value()) {
-      auto &next_epoch_digest = next_epoch_digest_res.value();
-      SL_VERBOSE(log_,
-                 "Got next epoch digest in slot {} (block #{}). Randomness: {}",
-                 current_slot_,
-                 block.header.number,
-                 next_epoch_digest.randomness);
-    }
-
     // finally, broadcast the sealed block
     block_announce_transmitter_->blockAnnounce(
         network::BlockAnnounce{block.header});
@@ -998,12 +1030,11 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::changeLotteryEpoch(
       const EpochDescriptor &epoch,
-      const primitives::AuthorityList &authorities,
-      const Randomness &randomness) const {
+      std::shared_ptr<const primitives::BabeConfiguration> babe_config) const {
     BOOST_ASSERT(keypair_ != nullptr);
 
     auto authority_index_res =
-        getAuthorityIndex(authorities, keypair_->public_key);
+        getAuthorityIndex(babe_config->authorities, keypair_->public_key);
     if (not authority_index_res) {
       SL_CRITICAL(log_,
                   "Block production failed: This node is not in the list of "
@@ -1012,12 +1043,11 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    const auto &babe_config = babe_config_repo_->config();
+    auto threshold = calculateThreshold(babe_config->leadership_rate,
+                                        babe_config->authorities,
+                                        authority_index_res.value());
 
-    auto threshold = calculateThreshold(
-        babe_config.leadership_rate, authorities, authority_index_res.value());
-
-    lottery_->changeEpoch(epoch, randomness, threshold, *keypair_);
+    lottery_->changeEpoch(epoch, babe_config->randomness, threshold, *keypair_);
   }
 
   void BabeImpl::startNextEpoch() {
@@ -1054,14 +1084,6 @@ namespace kagome::consensus::babe {
               is_first_block_finalized ? "" : "non-");
       return std::tuple(first_slot_number, is_first_block_finalized);
     });
-  }
-
-  bool BabeImpl::isSecondarySlotsAllowed() const {
-    const auto &babe_config = babe_config_repo_->config();
-    return primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots
-               == babe_config.allowed_slots
-           or primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots
-                  == babe_config.allowed_slots;
   }
 
 }  // namespace kagome::consensus::babe

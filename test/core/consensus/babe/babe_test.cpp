@@ -73,8 +73,8 @@ static Digest make_digest(BabeSlotNumber slot) {
 
   BabeBlockHeader babe_header{
       .slot_assignment_type = SlotType::SecondaryPlain,
-      .slot_number = slot,
       .authority_index = 0,
+      .slot_number = slot,
   };
   common::Buffer encoded_header{scale::encode(babe_header).value()};
   digest.emplace_back(
@@ -115,34 +115,30 @@ class BabeTest : public testing::Test {
     io_context_ = std::make_shared<boost::asio::io_context>();
 
     // add initialization logic
-    babe_config_.slot_duration = 60ms;
-    babe_config_.randomness.fill(0);
-    babe_config_.genesis_authorities = {
+    babe_config_ = std::make_shared<primitives::BabeConfiguration>();
+    babe_config_->slot_duration = 60ms;
+    babe_config_->randomness.fill(0);
+    babe_config_->authorities = {
         primitives::Authority{{keypair_->public_key}, 1}};
-    babe_config_.leadership_rate = {1, 4};
-    babe_config_.epoch_length = 2;
+    babe_config_->leadership_rate = {1, 4};
+    babe_config_->epoch_length = 2;
 
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
-    ON_CALL(*babe_config_repo_, config())
-        .WillByDefault(ReturnRef(babe_config_));
+    ON_CALL(*babe_config_repo_, config(_, _))
+        .WillByDefault(Return(babe_config_));
 
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
+
+    chain_events_engine_ =
+        std::make_shared<primitives::events::ChainSubscriptionEngine>();
 
     offchain_worker_api_ = std::make_shared<runtime::OffchainWorkerApiMock>();
     EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
         .WillRepeatedly(Return(outcome::success()));
 
+    core_ = std::make_shared<runtime::CoreMock>();
     consistency_keeper_ = std::make_shared<babe::ConsistencyKeeperMock>();
-
-    expected_epoch_digest = {
-        .authorities = babe_config_.genesis_authorities,
-        .randomness = babe_config_.randomness,
-    };
-
-    EXPECT_CALL(*block_tree_, getEpochDigest(_, _)).WillRepeatedly([this] {
-      return expected_epoch_digest;
-    });
 
     auto block_executor = std::make_shared<BlockExecutorMock>();
 
@@ -169,7 +165,9 @@ class BabeTest : public testing::Test {
                                              grandpa_authority_update_observer_,
                                              synchronizer_,
                                              babe_util_,
+                                             chain_events_engine_,
                                              offchain_worker_api_,
+                                             core_,
                                              consistency_keeper_);
 
     epoch_.start_slot = 0;
@@ -205,9 +203,10 @@ class BabeTest : public testing::Test {
   testutil::TimerMock *timer_;
   std::shared_ptr<AuthorityUpdateObserverMock>
       grandpa_authority_update_observer_;
-  primitives::BabeConfiguration babe_config_;
+  std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;
+  primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
   std::shared_ptr<runtime::OffchainWorkerApiMock> offchain_worker_api_;
   std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
   std::shared_ptr<boost::asio::io_context> io_context_;
@@ -272,7 +271,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*clock_, now())
       .WillRepeatedly(Return(clock::SystemClockMock::zero()));
 
-  EXPECT_CALL(*babe_util_, slotDuration()).WillRepeatedly(Return(1ms));
+  EXPECT_CALL(*babe_config_repo_, slotDuration()).WillRepeatedly(Return(1ms));
   EXPECT_CALL(*babe_util_, slotStartTime(_))
       .WillRepeatedly(Return(clock::SystemClockMock::zero()));
   EXPECT_CALL(*babe_util_, slotFinishTime(_))
@@ -337,7 +336,7 @@ TEST_F(BabeTest, Success) {
  */
 TEST_F(BabeTest, NotAuthority) {
   EXPECT_CALL(*clock_, now());
-  EXPECT_CALL(*babe_util_, slotDuration());
+  EXPECT_CALL(*babe_config_repo_, slotDuration());
   EXPECT_CALL(*babe_util_, slotFinishTime(_)).Times(testing::AnyNumber());
   EXPECT_CALL(*babe_util_, syncEpoch(_));
   EXPECT_CALL(*timer_, expiresAt(_));

@@ -8,6 +8,7 @@
 #include <chrono>
 
 #include "blockchain/block_tree_error.hpp"
+#include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -48,8 +49,7 @@ namespace kagome::consensus {
       std::shared_ptr<grandpa::Environment> grandpa_environment,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<authority::AuthorityUpdateObserver>
-          authority_update_observer,
+      std::shared_ptr<blockchain::DigestTracker> digest_tracker,
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper)
@@ -60,7 +60,7 @@ namespace kagome::consensus {
         grandpa_environment_{std::move(grandpa_environment)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
-        authority_update_observer_{std::move(authority_update_observer)},
+        digest_tracker_(std::move(digest_tracker)),
         babe_util_(std::move(babe_util)),
         offchain_worker_api_(std::move(offchain_worker_api)),
         consistency_keeper_(std::move(consistency_keeper)),
@@ -73,7 +73,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(grandpa_environment_ != nullptr);
     BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(authority_update_observer_ != nullptr);
+    BOOST_ASSERT(digest_tracker_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
     BOOST_ASSERT(offchain_worker_api_ != nullptr);
     BOOST_ASSERT(consistency_keeper_ != nullptr);
@@ -131,8 +131,6 @@ namespace kagome::consensus {
     }
     auto &body = b.body.value();
 
-    auto consistency_guard = consistency_keeper_->start(block_info);
-
     primitives::Block block{.header = std::move(header),
                             .body = std::move(body)};
 
@@ -177,19 +175,33 @@ namespace kagome::consensus {
 
     auto epoch_number = babe_util_->slotToEpoch(slot_number);
 
-    logger_->info(
-        "Applying block {} ({} in slot {}, epoch {})",  //
+    SL_INFO(
+        logger_,
+        "Applying block {} ({} in slot {}, epoch {}, authority #{})",  //   .
         block_info,
-        babe_header.slotType() == SlotType::Primary          ? "primary"
-        : babe_header.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
-        : babe_header.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
-                                                             : "unknown",
+        to_string(babe_header.slotType()),
         slot_number,
-        epoch_number);
+        epoch_number,
+        babe_header.authority_index);
 
-    OUTCOME_TRY(
-        this_block_epoch_descriptor,
-        block_tree_->getEpochDigest(epoch_number, block.header.parent_hash));
+    auto consistency_guard = consistency_keeper_->start(block_info);
+
+    // observe digest of block
+    // (must be done strictly after block will be added)
+    auto digest_tracking_res =
+        digest_tracker_->onDigest(block_info, block.header.digest);
+    if (digest_tracking_res.has_error()) {
+      SL_ERROR(logger_,
+               "Error while tracking digest of block {}: {}",
+               block_info,
+               digest_tracking_res.error().message());
+      return digest_tracking_res.as_failure();
+    }
+
+    auto babe_config = babe_config_repo_->config(block_info, epoch_number);
+    if (babe_config == nullptr) {
+      return Error::INVALID_BLOCK;  // TODO Change to more appropriate error
+    }
 
     SL_TRACE(logger_,
              "Actual epoch digest to apply block {} (slot {}, epoch {}). "
@@ -197,30 +209,18 @@ namespace kagome::consensus {
              block_info,
              slot_number,
              epoch_number,
-             this_block_epoch_descriptor.randomness);
+             babe_config->randomness);
 
-    const auto &babe_config = babe_config_repo_->config();
-
-    auto threshold = calculateThreshold(babe_config.leadership_rate,
-                                        this_block_epoch_descriptor.authorities,
+    auto threshold = calculateThreshold(babe_config->leadership_rate,
+                                        babe_config->authorities,
                                         babe_header.authority_index);
 
     OUTCOME_TRY(block_validator_->validateHeader(
         block.header,
         epoch_number,
-        this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
+        babe_config->authorities[babe_header.authority_index].id,
         threshold,
-        this_block_epoch_descriptor.randomness));
-
-    if (auto next_epoch_digest_res = getNextEpochDigest(block.header)) {
-      auto &next_epoch_digest = next_epoch_digest_res.value();
-      SL_VERBOSE(logger_,
-                 "Next epoch digest has gotten in block {} (slot {}). "
-                 "Randomness: {}",
-                 block_info,
-                 slot_number,
-                 next_epoch_digest.randomness);
-    }
+        *babe_config));
 
     auto block_without_seal_digest = block;
 
@@ -259,27 +259,6 @@ namespace kagome::consensus {
       OUTCOME_TRY(block_tree_->addBlock(block));
     }
 
-    // observe possible changes of authorities
-    // (must be done strictly after block will be added)
-    for (auto &digest_item : block_without_seal_digest.header.digest) {
-      auto res = visit_in_place(
-          digest_item,
-          [&](const primitives::Consensus &consensus_message)
-              -> outcome::result<void> {
-            return authority_update_observer_->onConsensus(
-                primitives::BlockInfo{block.header.number, block_hash},
-                consensus_message);
-          },
-          [](const auto &) { return outcome::success(); });
-      if (res.has_error()) {
-        SL_ERROR(logger_,
-                 "Error while processing consensus digests of block {}: {}",
-                 block_hash,
-                 res.error().message());
-        return res.as_failure();
-      }
-    }
-
     // apply justification if any (must be done strictly after block will be
     // added and his consensus-digests will be handled)
     if (b.justification.has_value()) {
@@ -303,7 +282,6 @@ namespace kagome::consensus {
       }
 
       auto res = applyJustification(block_info, b.justification.value());
-
       if (res.has_error()) {
         if (res
             == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {

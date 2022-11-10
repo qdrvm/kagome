@@ -41,9 +41,6 @@ namespace kagome::storage::trie {
      * avoid memory waste
      */
     outcome::result<RootHash> storeRootNode(TrieNode &node);
-    outcome::result<common::Buffer> storeNode(TrieNode &node,
-                                              BufferBatch &batch);
-    outcome::result<void> storeChildren(BranchNode &branch, BufferBatch &batch);
     /**
      * Fetches a node from the storage. A nullptr is returned in case that there
      * is no entry for provided key. Mind that a branch node will have dummy

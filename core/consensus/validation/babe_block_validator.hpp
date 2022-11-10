@@ -28,9 +28,6 @@ namespace kagome::crypto {
 }
 
 namespace kagome::consensus {
-  namespace babe {
-    class BabeConfigRepository;
-  }
 
   /**
    * Validation of blocks in BABE system. Based on the algorithm described here:
@@ -53,8 +50,7 @@ namespace kagome::consensus {
         std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
-        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo);
+        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
 
     enum class ValidationError {
       NO_AUTHORITIES = 1,
@@ -69,7 +65,7 @@ namespace kagome::consensus {
         const EpochNumber epoch_number,
         const primitives::AuthorityId &authority_id,
         const Threshold &threshold,
-        const Randomness &randomness) const override;
+        const primitives::BabeConfiguration &babe_config) const override;
 
    private:
     /**
@@ -103,18 +99,15 @@ namespace kagome::consensus {
                    const bool checkThreshold) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<crypto::VRFProvider> vrf_provider_;
+    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
+
     mutable std::unordered_map<BabeSlotNumber,
                                std::unordered_set<primitives::AuthorityIndex>>
         blocks_producers_;
 
-    std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue_;
-
-    std::shared_ptr<crypto::Hasher> hasher_;
-
-    std::shared_ptr<crypto::VRFProvider> vrf_provider_;
-    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
-
-    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
     log::Logger log_;
   };
 }  // namespace kagome::consensus

@@ -44,8 +44,6 @@ namespace kagome::consensus {
                 (BabeSlotNumber slot),
                 (const, override));
 
-    MOCK_METHOD(BabeDuration, slotDuration, (), (const, override));
-
     MOCK_METHOD(EpochNumber, slotToEpoch, (BabeSlotNumber), (const, override));
 
     MOCK_METHOD(BabeSlotNumber,
