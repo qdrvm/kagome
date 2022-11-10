@@ -19,5 +19,4 @@ set(FLAGS
     )
 foreach(FLAG IN LISTS FLAGS)
   add_cache_flag(CMAKE_EXE_LINKER_FLAGS  ${FLAG})
-  add_cache_flag(CMAKE_STATIC_LINKER_FLAGS ${FLAG})
 endforeach()
