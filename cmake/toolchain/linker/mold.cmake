@@ -12,11 +12,5 @@ if(NOT MOLD_FOUND)
   fatal_error("mold not found")
 endif()
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../add_cache_flag.cmake)
-
-set(FLAGS
-    -fuse-ld=mold
-    )
-foreach(FLAG IN LISTS FLAGS)
-  add_cache_flag(CMAKE_EXE_LINKER_FLAGS  ${FLAG})
-endforeach()
+include(add_cache_flag.cmake)
+add_cache_flag(CMAKE_EXE_LINKER_FLAGS -fuse-ld=mold)
