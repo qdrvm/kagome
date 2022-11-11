@@ -26,6 +26,7 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::GrandpaDigest;
+using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::runtime::GrandpaApi;
 using kagome::storage::trie::TrieStorage;
 
@@ -516,6 +517,8 @@ int main(int argc, const char **argv) {
   auto grandpa_api =
       std::make_shared<kagome::runtime::GrandpaApiImpl>(header_repo, executor);
 
+  auto chain_events_engine = std::make_shared<ChainSubscriptionEngine>();
+
   auto authority_manager =
       std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
                                              app_state_manager,
@@ -524,7 +527,8 @@ int main(int argc, const char **argv) {
                                              grandpa_api,
                                              hasher,
                                              persistent_storage,
-                                             header_repo);
+                                             header_repo,
+                                             chain_events_engine);
 
   parser.addCommand(std::make_unique<InspectBlockCommand>(block_storage));
   parser.addCommand(std::make_unique<RemoveBlockCommand>(block_storage));

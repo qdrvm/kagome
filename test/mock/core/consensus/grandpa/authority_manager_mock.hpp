@@ -51,8 +51,6 @@ namespace kagome::consensus::grandpa {
                 (const primitives::BlockInfo &, primitives::BlockNumber),
                 (override));
 
-    MOCK_METHOD(void, prune, (const primitives::BlockInfo &block), (override));
-
     MOCK_METHOD(outcome::result<void>,
                 recalculateStoredState,
                 (primitives::BlockNumber last_finalized_number));

@@ -87,7 +87,6 @@ class BabeConfigRepositoryTest : public testing::Test {
                                                    babe_api,
                                                    hasher,
                                                    chain_events_engine,
-                                                   genesis_block_header,
                                                    *clock);
   }
 
@@ -101,7 +100,6 @@ class BabeConfigRepositoryTest : public testing::Test {
   std::shared_ptr<runtime::BabeApiMock> babe_api;
   std::shared_ptr<crypto::Hasher> hasher;
   primitives::events::ChainSubscriptionEnginePtr chain_events_engine;
-  primitives::GenesisBlockHeader genesis_block_header{};
   std::shared_ptr<SystemClockMock> clock;
 
   std::shared_ptr<BabeConfigRepositoryImpl> babe_config_repo_;
