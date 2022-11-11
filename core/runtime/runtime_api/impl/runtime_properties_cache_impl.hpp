@@ -12,7 +12,7 @@ namespace kagome::runtime {
 
   class RuntimePropertiesCacheImpl final : public RuntimePropertiesCache {
    public:
-    RuntimePropertiesCacheImpl() {}
+    RuntimePropertiesCacheImpl() = default;
 
     outcome::result<primitives::Version> getVersion(
         const common::Hash256 &hash,

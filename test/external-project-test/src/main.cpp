@@ -26,6 +26,7 @@
 #include <kagome/runtime/common/runtime_upgrade_tracker_impl.hpp>
 #include <kagome/runtime/common/storage_code_provider.hpp>
 #include <kagome/runtime/module.hpp>
+#include <kagome/runtime/runtime_api/impl/runtime_properties_cache_impl.hpp>
 #include <kagome/runtime/wavm/compartment_wrapper.hpp>
 #include <kagome/runtime/wavm/instance_environment_factory.hpp>
 #include <kagome/runtime/wavm/intrinsics/intrinsic_module.hpp>
@@ -218,8 +219,10 @@ int main() {
   auto env_factory =
       std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
           code_provider, module_repo, header_repo);
+  auto cache = std::make_shared<kagome::runtime::RuntimePropertiesCacheImpl>();
 
-  [[maybe_unused]] auto executor = kagome::runtime::Executor(env_factory);
+  [[maybe_unused]] auto executor =
+      kagome::runtime::Executor(env_factory, cache);
 
   // TODO(Harrm): Currently, the test only checks if kagome builds as
   // a dependency in some project. However, we can use the test to run
