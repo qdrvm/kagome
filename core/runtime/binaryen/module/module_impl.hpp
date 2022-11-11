@@ -36,7 +36,7 @@ namespace kagome::runtime::binaryen {
     enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
 
     ModuleImpl(ModuleImpl &&) = default;
-    //    ModuleImpl &operator=(ModuleImpl &&) = default;
+    ModuleImpl &operator=(ModuleImpl &&) = default;
 
     ModuleImpl(const ModuleImpl &) = delete;
     ModuleImpl &operator=(const ModuleImpl &) = delete;
