@@ -42,8 +42,9 @@ namespace kagome::consensus::grandpa {
                 // calculation errors
     if (!result) {
       auto logger = log::createLogger("VoteCryptoProvider", "authority");
-      for (auto n = number - 100; n < number + 100; n++) {
-        for (auto id = voter_set_->id() - 100; id < voter_set_->id() + 100; id++) {
+      for (auto n = number > 100 ? number - 100 : 0; n < number + 100; n++) {
+        for (auto id = voter_set_->id() - 100; id < voter_set_->id() + 100;
+             id++) {
           auto payload = scale::encode(vote.message, n, id).value();
           auto verifying_result =
               ed_provider_->verify(vote.signature, payload, vote.id);
