@@ -1006,6 +1006,25 @@ namespace kagome::consensus::grandpa {
              delay,
              current_block,
              delay_start + delay);
+    if (delay_start < root_->block.number) {
+      auto lag = root_->block.number - delay_start;
+      if (delay > lag) {
+        delay_start = root_->block.number;
+        delay -= lag;
+      } else {
+        delay_start = current_block.number;
+        delay = 0;
+      }
+      SL_DEBUG(
+          logger_,
+          "Applying forced change on block {} is delayed {} blocks. "
+          "Normalized to (delay start: {}, delay: {}) to activate at block {}",
+          current_block,
+          lag,
+          delay_start,
+          delay,
+          delay_start + delay);
+    }
     auto delay_start_hash_res = header_repo_->getHashByNumber(delay_start);
     if (delay_start_hash_res.has_error()) {
       SL_ERROR(logger_, "Failed to obtain hash by number {}", delay_start);
