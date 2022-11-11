@@ -211,8 +211,8 @@ namespace kagome::storage::trie {
 template <>
 struct fmt::formatter<kagome::storage::trie::KeyNibbles> {
   template <typename FormatContext>
-  auto format(const kagome::storage::trie::KeyNibbles &p, FormatContext &ctx)
-      -> decltype(ctx.out()) {
+  auto format(const kagome::storage::trie::KeyNibbles &p,
+              FormatContext &ctx) const -> decltype(ctx.out()) {
     if (p.size() % 2 != 0) {
       format_to(ctx.out(), "{:x}", p[0]);
     }

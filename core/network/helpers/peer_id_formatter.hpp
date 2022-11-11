@@ -38,7 +38,7 @@ struct fmt::formatter<libp2p::peer::PeerId> {
   // Formats the Blob using the parsed format specification (presentation)
   // stored in this formatter.
   template <typename FormatContext>
-  auto format(const libp2p::peer::PeerId &peer_id, FormatContext &ctx)
+  auto format(const libp2p::peer::PeerId &peer_id, FormatContext &ctx) const
       -> decltype(ctx.out()) {
     // ctx.out() is an output iterator to write to.
 
