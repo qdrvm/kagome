@@ -215,7 +215,8 @@ int main() {
           module_params,
           instance_env_factory,
           intrinsic_module,
-          std::nullopt);
+          std::nullopt,
+          hasher);
   auto runtime_instances_pool =
       std::make_shared<kagome::runtime::RuntimeInstancesPool>();
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
