@@ -913,18 +913,6 @@ namespace {
                   runtime::binaryen::ModuleFactoryImpl,
                   runtime::wavm::ModuleFactoryImpl>(injector, method);
             }),
-        di::bind<runtime::Executor>.template to([](const auto &injector) {
-          static std::optional<std::shared_ptr<runtime::Executor>> initialized;
-          if (!initialized) {
-            auto env_factory = injector.template create<
-                std::shared_ptr<runtime::RuntimeEnvironmentFactory>>();
-            auto cache = injector.template create<
-                std::shared_ptr<runtime::RuntimePropertiesCache>>();
-            initialized = std::make_shared<runtime::Executor>(
-                std::move(env_factory), std::move(cache));
-          }
-          return initialized.value();
-        }),
         di::bind<runtime::RawExecutor>.template to<runtime::Executor>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),

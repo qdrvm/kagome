@@ -406,7 +406,7 @@ namespace kagome::api {
         session->subscribe(
             id, primitives::events::ChainEventType::kFinalizedRuntimeVersion);
 
-        auto version_res = core_->version();
+        auto version_res = core_->version(block_tree_->getLastFinalized().hash);
         if (version_res.has_value()) {
           const auto &version = version_res.value();
           session_context.messages = uploadMessagesListFromCache();
