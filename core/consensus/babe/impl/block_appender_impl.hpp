@@ -12,7 +12,6 @@
 
 #include "blockchain/block_tree.hpp"
 #include "clock/timer.hpp"
-#include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_util.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/validation/block_validator.hpp"
@@ -25,6 +24,10 @@ namespace kagome::consensus::babe {
   class BabeConfigRepository;
   class ConsistencyKeeper;
 }  // namespace kagome::consensus::babe
+
+namespace kagome::blockchain {
+  class DigestTracker;
+}
 
 namespace kagome::consensus {
 
@@ -40,8 +43,7 @@ namespace kagome::consensus {
         std::shared_ptr<BlockValidator> block_validator,
         std::shared_ptr<grandpa::Environment> grandpa_environment,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<authority::AuthorityUpdateObserver>
-            authority_update_observer,
+        std::shared_ptr<blockchain::DigestTracker> digest_tracker,
         std::shared_ptr<BabeUtil> babe_util,
         std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper);
 
@@ -57,8 +59,7 @@ namespace kagome::consensus {
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<authority::AuthorityUpdateObserver>
-        authority_update_observer_;
+    std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper_;
 

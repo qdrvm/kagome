@@ -115,11 +115,6 @@ namespace kagome::blockchain {
                 (const, override));
 
     MOCK_METHOD(primitives::BlockInfo, getLastFinalized, (), (const, override));
-
-    MOCK_METHOD(outcome::result<consensus::EpochDigest>,
-                getEpochDigest,
-                (consensus::EpochNumber, primitives::BlockHash),
-                (const, override));
   };
 }  // namespace kagome::blockchain
 
