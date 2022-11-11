@@ -66,7 +66,8 @@ namespace kagome::consensus {
     std::optional<primitives::BlockInfo> last_appended_;
 
     // Justification Store for Future Applying
-    std::map<primitives::BlockInfo, primitives::Justification> justifications_;
+    std::map<primitives::BlockInfo, primitives::Justification>
+        postponed_justifications_;
 
     struct {
       std::chrono::high_resolution_clock::time_point time;

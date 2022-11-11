@@ -78,7 +78,8 @@ namespace kagome::consensus {
     std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper_;
 
     // Justification Store for Future Applying
-    std::map<primitives::BlockInfo, primitives::Justification> justifications_;
+    std::map<primitives::BlockInfo, primitives::Justification>
+        postponed_justifications_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

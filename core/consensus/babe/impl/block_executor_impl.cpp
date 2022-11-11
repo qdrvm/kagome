@@ -259,39 +259,49 @@ namespace kagome::consensus {
       OUTCOME_TRY(block_tree_->addBlock(block));
     }
 
+    // try to apply postponed justifications first if any
+    if (not postponed_justifications_.empty()) {
+      std::vector<primitives::BlockInfo> to_remove;
+      for (const auto &[block_justified_for, justification] :
+           postponed_justifications_) {
+        SL_DEBUG(logger_,
+                 "Try to apply postponed justification received for block {}",
+                 block_justified_for);
+        auto res = applyJustification(block_justified_for, justification);
+        if (res.has_value()) {
+          to_remove.push_back(block_justified_for);
+        }
+      }
+      for (const auto &item : to_remove) {
+        postponed_justifications_.erase(item);
+      }
+    }
+
     // apply justification if any (must be done strictly after block will be
     // added and his consensus-digests will be handled)
     if (b.justification.has_value()) {
       SL_VERBOSE(logger_, "Justification received for block {}", block_info);
 
-      // try to apply left in justification store values first
-      if (not justifications_.empty()) {
-        std::vector<primitives::BlockInfo> to_remove;
-        for (const auto &[block_justified_for, justification] :
-             justifications_) {
-          auto res = applyJustification(block_justified_for, justification);
-          if (res) {
-            to_remove.push_back(block_justified_for);
-          }
-        }
-        if (not to_remove.empty()) {
-          for (const auto &item : to_remove) {
-            justifications_.erase(item);
-          }
-        }
-      }
-
       auto res = applyJustification(block_info, b.justification.value());
       if (res.has_error()) {
         if (res
             == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
-          justifications_.emplace(block_info, b.justification.value());
+          postponed_justifications_.emplace(block_info,
+                                            b.justification.value());
+          SL_VERBOSE(logger_,
+                     "Postpone justification received for block {}: {}",
+                     block_info,
+                     res);
         } else {
+          SL_ERROR(logger_,
+                   "Error while applying justification of block {}: {}",
+                   block_info,
+                   res.error());
           return res.as_failure();
         }
       } else {
         // safely could be remove if current justification applied successfully
-        justifications_.clear();
+        postponed_justifications_.clear();
       }
     }
 
