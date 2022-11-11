@@ -134,6 +134,7 @@
 #include "runtime/runtime_api/impl/metadata.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
+#include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
@@ -533,6 +534,7 @@ namespace {
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
     auto trie_storage =
         injector.template create<sptr<storage::trie::TrieStorage>>();
+    auto core = injector.template create<sptr<runtime::Core>>();
 
     auto api_service =
         std::make_shared<api::ApiServiceImpl>(asmgr,
@@ -545,7 +547,8 @@ namespace {
                                               ext_sub_engine,
                                               extrinsic_event_key_repo,
                                               block_tree,
-                                              trie_storage);
+                                              trie_storage,
+                                              core);
 
     auto child_state_api =
         injector.template create<std::shared_ptr<api::ChildStateApi>>();
@@ -900,7 +903,8 @@ namespace {
                       sptr<runtime::wavm::InstanceEnvironmentFactory>>(),
                   injector
                       .template create<sptr<runtime::wavm::IntrinsicModule>>(),
-                  module_cache_opt);
+                  module_cache_opt,
+                  injector.template create<sptr<crypto::Hasher>>());
             }),
         di::bind<runtime::ModuleFactory>.template to(
             [method](const auto &injector) {
@@ -909,20 +913,6 @@ namespace {
                   runtime::binaryen::ModuleFactoryImpl,
                   runtime::wavm::ModuleFactoryImpl>(injector, method);
             }),
-        di::bind<runtime::Executor>.template to([](const auto &injector) {
-          static std::optional<std::shared_ptr<runtime::Executor>> initialized;
-          if (!initialized) {
-            auto env_factory = injector.template create<
-                std::shared_ptr<runtime::RuntimeEnvironmentFactory>>();
-            auto header_repo = injector.template create<
-                std::shared_ptr<blockchain::BlockHeaderRepository>>();
-            auto storage = injector.template create<
-                std::shared_ptr<storage::trie::TrieStorage>>();
-            initialized =
-                std::make_shared<runtime::Executor>(std::move(env_factory));
-          }
-          return initialized.value();
-        }),
         di::bind<runtime::RawExecutor>.template to<runtime::Executor>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
@@ -942,6 +932,7 @@ namespace {
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
         di::bind<runtime::AuthorityDiscoveryApi>.template to<runtime::AuthorityDiscoveryApiImpl>(),
         di::bind<runtime::SingleModuleCache>.template to<runtime::SingleModuleCache>(),
+        di::bind<runtime::RuntimePropertiesCache>.template to<runtime::RuntimePropertiesCacheImpl>(),
         std::forward<Ts>(args)...);
   }
 

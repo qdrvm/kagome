@@ -16,6 +16,7 @@
 #include "common/hexutil.hpp"
 #include "primitives/common.hpp"
 #include "primitives/transaction.hpp"
+#include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
@@ -127,13 +128,15 @@ namespace kagome::api {
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<storage::trie::TrieStorage> trie_storage)
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+      std::shared_ptr<runtime::Core> core)
       : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners.listeners)),
         server_(std::move(server)),
         logger_{log::createLogger("ApiService", "api")},
         block_tree_{std::move(block_tree)},
         trie_storage_{std::move(trie_storage)},
+        core_(std::move(core)),
         subscription_engines_{.storage = std::move(storage_sub_engine),
                               .chain = std::move(chain_sub_engine),
                               .ext = std::move(ext_sub_engine)},
@@ -141,6 +144,7 @@ namespace kagome::api {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
+    BOOST_ASSERT(core_);
     BOOST_ASSERT(
         std::all_of(listeners_.cbegin(), listeners_.cend(), [](auto &listener) {
           return listener != nullptr;
@@ -402,14 +406,15 @@ namespace kagome::api {
         session->subscribe(
             id, primitives::events::ChainEventType::kFinalizedRuntimeVersion);
 
-        auto ver = block_tree_->runtimeVersion();
-        if (ver) {
+        auto version_res = core_->version(block_tree_->getLastFinalized().hash);
+        if (version_res.has_value()) {
+          const auto &version = version_res.value();
           session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,
                       logger_,
                       id,
                       kRpcEventRuntimeVersion,
-                      makeValue(*ver),
+                      makeValue(version),
                       [&](const auto &result) {
                         session_context.messages->emplace_back(
                             uploadFromCache(result.data()));

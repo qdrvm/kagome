@@ -31,6 +31,8 @@ namespace kagome::runtime {
    public:
     virtual ~ModuleInstance() = default;
 
+    virtual const common::Hash256 &getCodeHash() const = 0;
+
     /**
      * Call the instance's function
      * @param name - name of the function

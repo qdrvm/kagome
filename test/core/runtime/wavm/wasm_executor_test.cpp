@@ -21,6 +21,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
 #include "mock/core/offchain/offchain_worker_pool_mock.hpp"
+#include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "runtime/common/executor.hpp"
@@ -32,8 +33,6 @@
 #include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
-#include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
-#include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "runtime/wavm/module_params.hpp"
@@ -70,6 +69,7 @@ using kagome::runtime::Executor;
 using kagome::runtime::RuntimeCodeProvider;
 using kagome::runtime::RuntimeEnvironmentFactory;
 using kagome::runtime::RuntimeInstancesPool;
+using kagome::runtime::RuntimePropertiesCacheMock;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
 using kagome::runtime::wavm::ModuleParams;
@@ -80,6 +80,8 @@ using kagome::storage::trie::PolkadotTrieImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorage;
 using kagome::storage::trie::TrieStorageImpl;
+using testing::_;
+using testing::Invoke;
 using testing::Return;
 
 namespace fs = boost::filesystem;
@@ -180,7 +182,8 @@ class WasmExecutorTest : public ::testing::Test {
             host_api_factory,
             header_repo_,
             changes_tracker,
-            bogus_smc);
+            bogus_smc,
+            cache_);
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
@@ -188,7 +191,8 @@ class WasmExecutorTest : public ::testing::Test {
             module_params,
             instance_env_factory,
             intrinsic_module,
-            std::nullopt);
+            std::nullopt,
+            hasher);
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
         std::make_shared<RuntimeInstancesPool>(),
         runtime_upgrade_tracker_,
@@ -204,14 +208,24 @@ class WasmExecutorTest : public ::testing::Test {
             header_repo_,
             instance_env_factory,
             changes_tracker,
-            std::make_shared<kagome::runtime::SingleModuleCache>());
+            std::make_shared<kagome::runtime::SingleModuleCache>(),
+            cache_);
     auto host_api =
         std::shared_ptr<kagome::host_api::HostApi>{host_api_factory->make(
             core_provider, memory_provider, storage_provider_)};
 
     auto env_factory = std::make_shared<RuntimeEnvironmentFactory>(
         wasm_provider_, module_repo, header_repo_);
-    executor_ = std::make_shared<Executor>(env_factory);
+
+    cache_ = std::make_shared<RuntimePropertiesCacheMock>();
+    ON_CALL(*cache_, getVersion(_, _))
+        .WillByDefault(
+            Invoke([](const auto &hash, auto func) { return func(); }));
+    ON_CALL(*cache_, getMetadata(_, _))
+        .WillByDefault(
+            Invoke([](const auto &hash, auto func) { return func(); }));
+
+    executor_ = std::make_shared<Executor>(env_factory, cache_);
   }
 
  protected:
@@ -219,6 +233,7 @@ class WasmExecutorTest : public ::testing::Test {
   std::shared_ptr<TrieStorageProvider> storage_provider_;
   std::shared_ptr<RuntimeCodeProvider> wasm_provider_;
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo_;
+  std::shared_ptr<RuntimePropertiesCacheMock> cache_;
   std::shared_ptr<kagome::runtime::RuntimeUpgradeTrackerMock>
       runtime_upgrade_tracker_;
 };

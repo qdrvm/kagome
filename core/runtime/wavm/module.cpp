@@ -25,7 +25,8 @@ namespace kagome::runtime::wavm {
       ModuleParams &module_params,
       std::shared_ptr<IntrinsicModule> intrinsic_module,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
-      gsl::span<const uint8_t> code) {
+      gsl::span<const uint8_t> code,
+      const common::Hash256 &code_hash) {
     std::shared_ptr<WAVM::Runtime::Module> module = nullptr;
     WAVM::WASM::LoadError loadError;
     WAVM::IR::FeatureSpec featureSpec;
@@ -53,18 +54,21 @@ namespace kagome::runtime::wavm {
         new ModuleImpl{std::move(compartment),
                        std::move(intrinsic_module),
                        std::move(env_factory),
-                       std::move(module)});
+                       std::move(module),
+                       code_hash});
   }
 
   ModuleImpl::ModuleImpl(
       std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<const IntrinsicModule> intrinsic_module,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
-      std::shared_ptr<WAVM::Runtime::Module> module)
+      std::shared_ptr<WAVM::Runtime::Module> module,
+      const common::Hash256 &code_hash)
       : env_factory_{std::move(env_factory)},
         compartment_{std::move(compartment)},
         intrinsic_module_{std::move(intrinsic_module)},
         module_{std::move(module)},
+        code_hash_(code_hash),
         logger_{log::createLogger("WAVM Module", "wavm")} {
     BOOST_ASSERT(compartment_);
     BOOST_ASSERT(env_factory_);
@@ -103,7 +107,7 @@ namespace kagome::runtime::wavm {
         memory_origin, internal_instance, new_intrinsic_module_instance);
 
     auto instance = std::make_shared<ModuleInstanceImpl>(
-        std::move(env), internal_instance, module_, compartment_);
+        std::move(env), internal_instance, module_, compartment_, code_hash_);
 
     return instance;
   }
