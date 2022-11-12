@@ -1,7 +1,7 @@
 /**
-* Copyright Soramitsu Co., Ltd. All Rights Reserved.
-* SPDX-License-Identifier: Apache-2.0
-*/
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #include "core/consensus/grandpa/vote_graph/fixture.hpp"
 
@@ -12,16 +12,17 @@ using kagome::consensus::grandpa::VoteGraphError;
 /**
  * @given vote graph with base at block B with number 2
  * @when try to insert block A with number 2
- * @then error RECEIVED_BLOCK_LESS_THAN_BASE is received and graph is not changed
+ * @then error RECEIVED_BLOCK_LESS_THAN_BASE is received and graph is not
+ * changed
  */
 TEST_F(VoteGraphFixture, InsertBlockLessThanBaseTest) {
- // GIVEN
+  // GIVEN
 
- BlockInfo base{2, "B"_H};
- auto voter = "w10_a"_ID;
- graph = std::make_shared<VoteGraphImpl>(base, voter_set, chain);
+  BlockInfo base{2, "B"_H};
+  auto voter = "w10_a"_ID;
+  graph = std::make_shared<VoteGraphImpl>(base, voter_set, chain);
 
- AssertGraphCorrect(*graph, R"(
+  AssertGraphCorrect(*graph, R"(
         {
           "entries": {
             "B": {
@@ -39,13 +40,14 @@ TEST_F(VoteGraphFixture, InsertBlockLessThanBaseTest) {
         }
  )");
 
- // WHEN
+  // WHEN
 
- ASSERT_OUTCOME_ERROR(graph->insert(vt, {1, "A"_H}, voter), VoteGraphError::RECEIVED_BLOCK_LESS_THAN_BASE);
+  ASSERT_OUTCOME_ERROR(graph->insert(vt, {1, "A"_H}, voter),
+                       VoteGraphError::RECEIVED_BLOCK_LESS_THAN_BASE);
 
- // THEN
+  // THEN
 
- AssertGraphCorrect(*graph, R"(
+  AssertGraphCorrect(*graph, R"(
 {
           "entries": {
             "B": {

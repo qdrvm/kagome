@@ -50,7 +50,6 @@ namespace kagome {
     class Executor;
   }
 
-
   namespace api {
     class ApiService;
   }
@@ -66,7 +65,7 @@ namespace kagome {
   namespace blockchain {
     class BlockStorage;
     class BlockTree;
-  }
+  }  // namespace blockchain
 
   namespace storage::trie {
     class TrieStorage;
