@@ -41,6 +41,7 @@ using std::chrono_literals::operator""ms;
 using testing::_;
 using testing::Return;
 using testing::ReturnRef;
+using testing::ReturnRefOfCopy;
 
 class BabeConfigRepositoryTest : public testing::Test {
  public:
@@ -63,11 +64,8 @@ class BabeConfigRepositoryTest : public testing::Test {
     block_tree = std::make_shared<BlockTreeMock>();
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillOnce(Return(BlockInfo{0, "genesis"_hash256}));
-    EXPECT_CALL(*block_tree, getBlockHeader(BlockId("genesis"_hash256)))
-        .WillOnce(Return(BlockHeader{.number = 0}));
-    EXPECT_CALL(*block_tree, getLeaves())
-        .WillOnce(
-            Return(std::vector<primitives::BlockHash>{"genesis"_hash256}));
+    EXPECT_CALL(*block_tree, getGenesisBlockHash())
+        .WillOnce(testing::ReturnRefOfCopy("genesis"_hash256));
 
     header_repo = std::make_shared<BlockHeaderRepositoryMock>();
 
