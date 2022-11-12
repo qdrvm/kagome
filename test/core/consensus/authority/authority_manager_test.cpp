@@ -13,7 +13,6 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
-#include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
@@ -100,7 +99,7 @@ class AuthorityManagerTest : public testing::Test {
                                                header_repo,
                                                chain_events_engine);
 
-    static auto genesis_hash = "genesis"_hash256;
+    static auto genesis_hash = "GEN"_hash256;
     ON_CALL(*block_tree, getGenesisBlockHash())
         .WillByDefault(testing::ReturnRef(genesis_hash));
 
@@ -218,9 +217,17 @@ class AuthorityManagerTest : public testing::Test {
   }
 
   void finalize_block(const primitives::BlockInfo &block) {
+    EXPECT_CALL(*block_tree, getLastFinalized()).WillRepeatedly(Return(block));
     primitives::BlockHeader header{
         .number = block.number,
+        .state_root = block.hash  // fake just for blocks differentiation
     };
+    static std::map<primitives::BlockHash, common::Buffer> encoded_headers;
+    auto encoded_header =
+        encoded_headers.emplace(block.hash, scale::encode(header).value())
+            .first->second;
+    EXPECT_CALL(*hasher, blake2b_256(gsl::span<const uint8_t>(encoded_header)))
+        .WillRepeatedly(Return(block.hash));
     chain_events_engine->notify(
         primitives::events::ChainEventType::kFinalizedHeads, header);
   }
@@ -341,15 +348,17 @@ TEST_F(AuthorityManagerTest, ScheduledChangeTwice) {
   finalize_block({15, "C"_hash256});
 
   examine({15, "C"_hash256}, new_authorities);
-  examine({20, "D"_hash256}, new_authorities);
-  examine({25, "E"_hash256}, new_authorities);
+  examine({20, "D"_hash256}, new_authorities2);
+  examine({25, "E"_hash256}, new_authorities2);
 
   EXPECT_EQ(
       authority_manager->authorities({15, "C"_hash256}, IsBlockFinalized{true})
           .value()
           ->id,
       first_id);
+
   finalize_block({20, "D"_hash256});
+
   EXPECT_EQ(
       authority_manager->authorities({20, "D"_hash256}, IsBlockFinalized{true})
           .value()
