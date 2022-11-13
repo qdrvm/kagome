@@ -38,6 +38,8 @@ groups:
           - name: authorship
           - name: blockchain
             children:
+              - name: block_tree
+              - name: block_storage
               - name: digest_tracker
           - name: offchain
           - name: authority

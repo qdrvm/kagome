@@ -93,7 +93,7 @@ namespace kagome::blockchain {
                    == primitives::kUnsupportedEngineId_BEEF
                or message.consensus_engine_id
                       == primitives::kUnsupportedEngineId_POL1) {
-      SL_DEBUG(logger_,
+      SL_TRACE(logger_,
                "Unsupported consensus engine id in block {}: {}",
                block,
                message.consensus_engine_id.toString());

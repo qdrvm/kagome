@@ -1305,7 +1305,7 @@ namespace kagome::consensus::grandpa {
     }
     //    storeScheduleGraphRoot(*persistent_storage_, *root_).value();
 
-    SL_TRACE(logger_, "Prune authority manager upto block {}", block);
+    SL_DEBUG(logger_, "Prune authority manager upto block {}", block);
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(

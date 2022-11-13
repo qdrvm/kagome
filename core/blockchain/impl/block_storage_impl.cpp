@@ -22,7 +22,7 @@ namespace kagome::blockchain {
       std::shared_ptr<crypto::Hasher> hasher)
       : storage_{std::move(storage)},
         hasher_{std::move(hasher)},
-        logger_{log::createLogger("BlockStorage", "blockchain")} {
+        logger_{log::createLogger("BlockStorage", "block_storage")} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
   }
