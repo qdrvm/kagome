@@ -34,15 +34,19 @@ namespace kagome::runtime::binaryen {
 
   ModuleImpl::ModuleImpl(
       std::unique_ptr<wasm::Module> &&module,
-      std::shared_ptr<const InstanceEnvironmentFactory> env_factory)
-      : env_factory_{std::move(env_factory)}, module_{std::move(module)} {
+      std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
+      const common::Hash256 &code_hash)
+      : env_factory_{std::move(env_factory)},
+        module_{std::move(module)},
+        code_hash_(code_hash) {
     BOOST_ASSERT(module_ != nullptr);
     BOOST_ASSERT(env_factory_ != nullptr);
   }
 
   outcome::result<std::unique_ptr<ModuleImpl>> ModuleImpl::createFromCode(
       const std::vector<uint8_t> &code,
-      std::shared_ptr<const InstanceEnvironmentFactory> env_factory) {
+      std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
+      const common::Hash256 &code_hash) {
     auto log = log::createLogger("wasm_module", "binaryen");
     // that nolint suppresses false positive in a library function
     // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)
@@ -54,8 +58,7 @@ namespace kagome::runtime::binaryen {
     {
       wasm::WasmBinaryBuilder parser(
           *module,
-          reinterpret_cast<std::vector<char> const &>(  // NOLINT
-              code),
+          reinterpret_cast<std::vector<char> const &>(code),  // NOLINT
           false);
 
       try {
@@ -71,7 +74,7 @@ namespace kagome::runtime::binaryen {
     module->memory.initial = kDefaultHeappages;
 
     std::unique_ptr<ModuleImpl> wasm_module_impl(
-        new ModuleImpl(std::move(module), std::move(env_factory)));
+        new ModuleImpl(std::move(module), std::move(env_factory), code_hash));
     return wasm_module_impl;
   }
 
@@ -79,7 +82,7 @@ namespace kagome::runtime::binaryen {
       const {
     auto env = env_factory_->make();
     return std::make_shared<ModuleInstanceImpl>(
-        std::move(env.env), module_, env.rei);
+        std::move(env.env), module_, env.rei, code_hash_);
   }
 
 }  // namespace kagome::runtime::binaryen

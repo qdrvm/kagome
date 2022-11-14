@@ -17,8 +17,11 @@ namespace kagome::runtime::binaryen {
 
   ModuleFactoryImpl::ModuleFactoryImpl(
       std::shared_ptr<InstanceEnvironmentFactory> env_factory,
-      std::shared_ptr<storage::trie::TrieStorage> storage)
-      : env_factory_{std::move(env_factory)}, storage_{std::move(storage)} {
+      std::shared_ptr<storage::trie::TrieStorage> storage,
+      std::shared_ptr<crypto::Hasher> hasher)
+      : env_factory_{std::move(env_factory)},
+        storage_{std::move(storage)},
+        hasher_(std::move(hasher)) {
     BOOST_ASSERT(env_factory_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
   }
@@ -26,7 +29,8 @@ namespace kagome::runtime::binaryen {
   outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(
       gsl::span<const uint8_t> code) const {
     std::vector<uint8_t> code_vec{code.begin(), code.end()};
-    auto res = ModuleImpl::createFromCode(code_vec, env_factory_);
+    auto res = ModuleImpl::createFromCode(
+        code_vec, env_factory_, hasher_->sha2_256(code));
     if (res.has_value()) {
       return std::unique_ptr<Module>(std::move(res.value()));
     }

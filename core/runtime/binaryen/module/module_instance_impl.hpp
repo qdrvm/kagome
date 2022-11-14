@@ -30,7 +30,12 @@ namespace kagome::runtime::binaryen {
 
     ModuleInstanceImpl(InstanceEnvironment &&env,
                        std::shared_ptr<wasm::Module> parent,
-                       std::shared_ptr<RuntimeExternalInterface> rei);
+                       std::shared_ptr<RuntimeExternalInterface> rei,
+                       const common::Hash256 &code_hash);
+
+    const common::Hash256 &getCodeHash() const override {
+      return code_hash_;
+    }
 
     outcome::result<PtrSize> callExportFunction(
         std::string_view name, common::BufferView args) const override;
@@ -50,6 +55,8 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<wasm::Module>
         parent_;  // must be kept alive because binaryen's module instance keeps
                   // a reference to it
+    common::Hash256 code_hash_;
+
     std::unique_ptr<wasm::ModuleInstance> module_instance_;
     log::Logger logger_;
   };

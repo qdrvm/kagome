@@ -20,7 +20,6 @@
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
-#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/epoch_digest.hpp"
 #include "crypto/hasher.hpp"
@@ -29,17 +28,10 @@
 #include "network/extrinsic_observer.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
-#include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "telemetry/service.hpp"
 
-namespace kagome::application {
-  class AppStateManager;
-}
-namespace kagome::consensus::babe {
-  class BabeConfigRepository;
-}
 namespace kagome::storage::changes_trie {
   class ChangesTracker;
 }
@@ -62,10 +54,7 @@ namespace kagome::blockchain {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
-        std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        std::shared_ptr<consensus::BabeUtil> babe_util,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy);
 
@@ -74,7 +63,8 @@ namespace kagome::blockchain {
         primitives::BlockId target_block,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<BlockHeaderRepository> header_repo,
-        std::shared_ptr<const storage::trie::TrieStorage> trie_storage);
+        std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
+        std::shared_ptr<blockchain::BlockTree> block_tree);
 
     ~BlockTreeImpl() override = default;
 
@@ -123,10 +113,6 @@ namespace kagome::blockchain {
         const primitives::BlockHash &ancestor,
         const primitives::BlockHash &descendant) const override;
 
-    std::optional<primitives::Version> runtimeVersion() const override {
-      return actual_runtime_version_;
-    }
-
     bool hasDirectChain(const primitives::BlockHash &ancestor,
                         const primitives::BlockHash &descendant) const override;
 
@@ -144,10 +130,6 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
-    outcome::result<consensus::EpochDigest> getEpochDigest(
-        consensus::EpochNumber epoch_number,
-        primitives::BlockHash block_hash) const override;
-
    private:
     /**
      * Private constructor, so that instances are created only through the
@@ -164,9 +146,7 @@ namespace kagome::blockchain {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
-        std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<consensus::BabeUtil> babe_util,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy);
 
@@ -200,16 +180,12 @@ namespace kagome::blockchain {
     primitives::events::ExtrinsicSubscriptionEnginePtr extrinsic_events_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         extrinsic_event_key_repo_;
-    std::shared_ptr<runtime::Core> runtime_core_;
     std::shared_ptr<storage::changes_trie::ChangesTracker>
         trie_changes_tracker_;
-    std::shared_ptr<const consensus::BabeUtil> babe_util_;
     std::shared_ptr<const class JustificationStoragePolicy>
         justification_storage_policy_;
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
 
     std::optional<primitives::BlockHash> genesis_block_hash_;
-    std::optional<primitives::Version> actual_runtime_version_;
 
     log::Logger log_ = log::createLogger("BlockTree", "blockchain");
 

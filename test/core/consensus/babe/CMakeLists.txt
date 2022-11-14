@@ -15,14 +15,16 @@ target_link_libraries(babe_test
     logger_for_tests
     )
 
-addtest(babe_util_test
-    babe_util_test.cpp
+addtest(babe_config_repository_test
+    babe_config_repository_test.cpp
     )
-target_link_libraries(babe_util_test
-    babe_util
+target_link_libraries(babe_config_repository_test
+    babe_config_repository
     clock
     in_memory_storage
     logger_for_tests
+    babe_error
+    babe_digests_util
     )
 
 addtest(threshold_util_test

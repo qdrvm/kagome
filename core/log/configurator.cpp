@@ -37,6 +37,8 @@ groups:
                 - name: author_api
           - name: authorship
           - name: blockchain
+            children:
+              - name: digest_tracker
           - name: offchain
           - name: authority
           - name: crypto
@@ -53,6 +55,7 @@ groups:
                   - name: block_appender
                   - name: block_executor
                   - name: block_validator
+                  - name: babe_config_repo
               - name: grandpa
                 children:
                   - name: voting_round

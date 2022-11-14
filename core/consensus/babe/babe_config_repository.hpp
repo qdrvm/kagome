@@ -15,9 +15,19 @@ namespace kagome::consensus::babe {
    public:
     virtual ~BabeConfigRepository() = default;
 
-    /// Returns actual babe configuration, obtaining it from runtime if needed
+    /// Returns duration of slot in milliseconds
+    /// @return slot duration
+    virtual BabeDuration slotDuration() const = 0;
+
+    /// Returns epoch length in number of slot
+    /// @return slot duration
+    virtual EpochLength epochLength() const = 0;
+
+    /// Returns actual babe configuration
     /// @return actual babe configuration
-    virtual const primitives::BabeConfiguration &config() = 0;
+    virtual std::shared_ptr<const primitives::BabeConfiguration> config(
+        const primitives::BlockInfo &parent_block,
+        consensus::EpochNumber epoch_number) = 0;
   };
 
 }  // namespace kagome::consensus::babe
