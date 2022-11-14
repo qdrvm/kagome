@@ -186,18 +186,6 @@ namespace kagome::consensus {
 
     auto consistency_guard = consistency_keeper_->start(block_info);
 
-    // observe digest of block
-    // (must be done strictly after block will be added)
-    auto digest_tracking_res =
-        digest_tracker_->onDigest(block_info, block.header.digest);
-    if (digest_tracking_res.has_error()) {
-      SL_ERROR(logger_,
-               "Error while tracking digest of block {}: {}",
-               block_info,
-               digest_tracking_res.error());
-      return digest_tracking_res.as_failure();
-    }
-
     auto babe_config = babe_config_repo_->config(block_info, epoch_number);
     if (babe_config == nullptr) {
       return Error::INVALID_BLOCK;  // TODO Change to more appropriate error
@@ -259,6 +247,18 @@ namespace kagome::consensus {
       OUTCOME_TRY(block_tree_->addBlock(block));
     }
 
+    // observe digest of block
+    // (must be done strictly after block will be added)
+    auto digest_tracking_res =
+        digest_tracker_->onDigest(block_info, block.header.digest);
+    if (digest_tracking_res.has_error()) {
+      SL_ERROR(logger_,
+               "Error while tracking digest of block {}: {}",
+               block_info,
+               digest_tracking_res.error());
+      return digest_tracking_res.as_failure();
+    }
+
     // try to apply postponed justifications first if any
     if (not postponed_justifications_.empty()) {
       std::vector<primitives::BlockInfo> to_remove;
@@ -280,7 +280,8 @@ namespace kagome::consensus {
     // apply justification if any (must be done strictly after block will be
     // added and his consensus-digests will be handled)
     if (b.justification.has_value()) {
-      SL_VERBOSE(logger_, "Apply justification received for block {}", block_info);
+      SL_VERBOSE(
+          logger_, "Apply justification received for block {}", block_info);
 
       auto res = applyJustification(block_info, b.justification.value());
       if (res.has_error()) {

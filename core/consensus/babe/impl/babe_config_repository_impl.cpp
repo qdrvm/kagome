@@ -463,6 +463,7 @@ namespace kagome::consensus::babe {
     EpochNumber epoch_number = slotToEpoch(digest.slot_number);
 
     auto node = getNode(block);
+    BOOST_ASSERT(node != nullptr);
 
     SL_LOG(logger_,
            node->epoch != epoch_number ? log::Level::DEBUG : log::Level::TRACE,
