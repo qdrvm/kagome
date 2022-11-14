@@ -225,6 +225,7 @@ namespace kagome::blockchain {
       const primitives::Justification &j,
       const primitives::BlockHash &hash,
       primitives::BlockNumber block_number) {
+    BOOST_ASSERT(not j.data.empty());
     // insert justification into the database as a part of BlockData
     primitives::BlockData block_data{.hash = hash, .justification = j};
     OUTCOME_TRY(putBlockData(block_number, block_data));
