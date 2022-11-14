@@ -37,11 +37,6 @@ namespace kagome::blockchain {
                 (const primitives::BlockId &),
                 (const, override));
 
-    MOCK_METHOD(std::optional<primitives::Version>,
-                runtimeVersion,
-                (),
-                (const, override));
-
     MOCK_METHOD(outcome::result<void>,
                 addBlockHeader,
                 (const primitives::BlockHeader &),

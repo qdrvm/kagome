@@ -10,6 +10,7 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"
 #include "runtime/runtime_environment_factory.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
@@ -30,6 +31,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<IntrinsicModule> intrinsic_module,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
         gsl::span<const uint8_t> code,
+        const common::Hash256 &code_hash,
         std::shared_ptr<SingleModuleCache> last_compiled_module)
         : instance_env_factory_{std::move(instance_env_factory)},
           compartment_{compartment},
@@ -52,7 +54,8 @@ namespace kagome::runtime::wavm {
                                               *module_params_,
                                               intrinsic_module_,
                                               instance_env_factory_,
-                                              code_);
+                                              code_,
+                                              code_hash_);
         OUTCOME_TRY(inst, module->instantiate());
         last_compiled_module_->set(std::move(module));
         instance_ = std::move(inst);
@@ -67,6 +70,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<ModuleParams> module_params_;
     std::shared_ptr<IntrinsicModule> intrinsic_module_;
     gsl::span<const uint8_t> code_;
+    const common::Hash256 code_hash_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
   };
 
@@ -91,7 +95,8 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-      std::shared_ptr<SingleModuleCache> last_compiled_module)
+      std::shared_ptr<SingleModuleCache> last_compiled_module,
+      std::shared_ptr<runtime::RuntimePropertiesCache> cache)
       : instance_env_factory_{std::move(instance_env_factory)},
         compartment_{compartment},
         module_params_{std::move(module_params)},
@@ -99,7 +104,8 @@ namespace kagome::runtime::wavm {
         storage_{std::move(storage)},
         block_header_repo_{std::move(block_header_repo)},
         changes_tracker_{std::move(changes_tracker)},
-        last_compiled_module_{last_compiled_module} {
+        last_compiled_module_{last_compiled_module},
+        cache_(std::move(cache)) {
     BOOST_ASSERT(compartment_);
     BOOST_ASSERT(module_params_);
     BOOST_ASSERT(intrinsic_module_);
@@ -108,11 +114,13 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(instance_env_factory_);
     BOOST_ASSERT(changes_tracker_);
     BOOST_ASSERT(last_compiled_module_);
+    BOOST_ASSERT(cache_);
   }
 
   std::unique_ptr<Core> CoreApiFactoryImpl::make(
       std::shared_ptr<const crypto::Hasher> hasher,
       const std::vector<uint8_t> &runtime_code) const {
+    auto code_hash = hasher->sha2_256(runtime_code);
     auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
         std::make_shared<OneCodeProvider>(runtime_code),
         std::make_shared<OneModuleRepository>(
@@ -124,9 +132,10 @@ namespace kagome::runtime::wavm {
                 runtime_code.data(),
                 static_cast<gsl::span<const uint8_t>::index_type>(
                     runtime_code.size())},
+            code_hash,
             last_compiled_module_),
         block_header_repo_);
-    auto executor = std::make_unique<runtime::Executor>(env_factory);
+    auto executor = std::make_unique<runtime::Executor>(env_factory, cache_);
     return std::make_unique<CoreImpl>(
         std::move(executor), changes_tracker_, block_header_repo_);
   }

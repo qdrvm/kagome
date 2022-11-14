@@ -86,11 +86,13 @@ namespace kagome::runtime::wavm {
       InstanceEnvironment &&env,
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
       WAVM::Runtime::ModuleRef module,
-      std::shared_ptr<const CompartmentWrapper> compartment)
+      std::shared_ptr<const CompartmentWrapper> compartment,
+      const common::Hash256 &code_hash)
       : env_{std::move(env)},
         instance_{std::move(instance)},
         module_{std::move(module)},
         compartment_{std::move(compartment)},
+        code_hash_(code_hash),
         logger_{log::createLogger("ModuleInstance", "wavm")} {
     BOOST_ASSERT(instance_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);

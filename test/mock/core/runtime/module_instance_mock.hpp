@@ -14,6 +14,8 @@ namespace kagome::runtime {
 
   class ModuleInstanceMock : public ModuleInstance {
    public:
+    MOCK_METHOD(const common::Hash256 &, getCodeHash, (), (const, override));
+
     MOCK_METHOD(outcome::result<PtrSize>,
                 callExportFunction,
                 (std::string_view name, common::BufferView args),
