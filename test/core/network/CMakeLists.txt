@@ -23,6 +23,7 @@ target_link_libraries(stream_engine_test
     blob
     outcome
     logger_for_tests
+    stream_engine
     )
 
 addtest(rpc_libp2p_test

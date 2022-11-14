@@ -56,6 +56,11 @@ namespace kagome::authority {
     MOCK_METHOD(outcome::result<void>,
                 recalculateStoredState,
                 (primitives::BlockNumber last_finalized_number));
+
+    MOCK_METHOD(outcome::result<bool>,
+                overwriteStoredRootId,
+                (primitives::AuthoritySetId id),
+                (override));
   };
 }  // namespace kagome::authority
 
