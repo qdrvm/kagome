@@ -1465,15 +1465,6 @@ namespace {
             return EXIT_FAILURE;
           }
 
-          auto number =
-              header_repo->getNumberById(app_config.recoverState().value());
-          res = authority_manager->recalculateStoredState(number.value());
-          if (res.has_error()) {
-            SL_ERROR(log, "Recovery mode has failed: {}", res.error());
-            log->flush();
-            return EXIT_FAILURE;
-          }
-
           return EXIT_SUCCESS;
         }));
 
