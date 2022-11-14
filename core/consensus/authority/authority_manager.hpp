@@ -15,7 +15,7 @@
 namespace kagome::storage::trie {
   class TrieStorage;
   class TrieBatch;
-}
+}  // namespace kagome::storage::trie
 
 namespace kagome::crypto {
   class Hasher;
@@ -37,6 +37,9 @@ namespace kagome::authority {
      */
     virtual outcome::result<void> recalculateStoredState(
         primitives::BlockNumber last_finalized_number) = 0;
+
+    virtual outcome::result<bool> overwriteStoredRootId(
+        primitives::AuthoritySetId id) = 0;
 
     /**
      * @return block associated with the root of scheduled changes tree
