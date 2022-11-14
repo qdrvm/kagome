@@ -112,7 +112,7 @@ namespace kagome::consensus {
     // get current time to measure performance if block execution
     auto t_start = std::chrono::high_resolution_clock::now();
 
-    bool block_already_exists = false;
+    bool block_was_applied_earlier = false;
 
     // check if block body already exists. If so, do not apply
     if (auto body_res = block_tree_->getBlockBody(block_hash);
@@ -120,7 +120,7 @@ namespace kagome::consensus {
       SL_DEBUG(logger_, "Skip existing block: {}", block_info);
 
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
-      block_already_exists = true;
+      block_was_applied_earlier = true;
     } else if (body_res.error() != blockchain::BlockTreeError::BODY_NOT_FOUND) {
       return body_res.as_failure();
     }
@@ -186,6 +186,23 @@ namespace kagome::consensus {
 
     auto consistency_guard = consistency_keeper_->start(block_info);
 
+    if (not block_was_applied_earlier) {
+      // add block header if it does not exist
+      OUTCOME_TRY(block_tree_->addBlock(block));
+    }
+
+    // observe digest of block
+    // (must be done strictly after block will be added)
+    auto digest_tracking_res =
+        digest_tracker_->onDigest(block_info, block.header.digest);
+    if (digest_tracking_res.has_error()) {
+      SL_ERROR(logger_,
+               "Error while tracking digest of block {}: {}",
+               block_info,
+               digest_tracking_res.error());
+      return digest_tracking_res.as_failure();
+    }
+
     auto babe_config = babe_config_repo_->config(block_info, epoch_number);
     if (babe_config == nullptr) {
       return Error::INVALID_BLOCK;  // TODO Change to more appropriate error
@@ -210,27 +227,30 @@ namespace kagome::consensus {
         threshold,
         *babe_config));
 
-    auto block_without_seal_digest = block;
-
-    // block should be applied without last digest which contains the seal
-    block_without_seal_digest.header.digest.pop_back();
-
-    auto parent = block_tree_->getBlockHeader(block.header.parent_hash).value();
-
+    // Calculate best block before new one will be applied
     auto last_finalized_block = block_tree_->getLastFinalized();
     auto previous_best_block_res =
         block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(previous_best_block_res.has_value());
     const auto &previous_best_block = previous_best_block_res.value();
 
-    if (not block_already_exists) {
+    if (not block_was_applied_earlier) {
       auto exec_start = std::chrono::high_resolution_clock::now();
+
+      auto parent =
+          block_tree_->getBlockHeader(block.header.parent_hash).value();
+
       SL_DEBUG(logger_,
                "Execute block {}, state {}, a child of block {}, state {}",
                block_info,
                block.header.state_root,
                primitives::BlockInfo(parent.number, block.header.parent_hash),
                parent.state_root);
+
+      auto block_without_seal_digest = block;
+
+      // block should be applied without last digest which contains the seal
+      block_without_seal_digest.header.digest.pop_back();
 
       OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
 
@@ -242,21 +262,6 @@ namespace kagome::consensus {
 
       metric_block_execution_time_->observe(static_cast<double>(duration_ms)
                                             / 1000);
-
-      // add block header if it does not exist
-      OUTCOME_TRY(block_tree_->addBlock(block));
-    }
-
-    // observe digest of block
-    // (must be done strictly after block will be added)
-    auto digest_tracking_res =
-        digest_tracker_->onDigest(block_info, block.header.digest);
-    if (digest_tracking_res.has_error()) {
-      SL_ERROR(logger_,
-               "Error while tracking digest of block {}: {}",
-               block_info,
-               digest_tracking_res.error());
-      return digest_tracking_res.as_failure();
     }
 
     // try to apply postponed justifications first if any
