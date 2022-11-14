@@ -248,9 +248,9 @@ namespace kagome::consensus::grandpa {
     /**
      * Takes given round and creates next one for it
      * @param previous_round VotingRound from which the new one is created
-     * @return new VotingRound
+     * @return new VotingRound or error
      */
-    std::shared_ptr<VotingRound> makeNextRound(
+    outcome::result<std::shared_ptr<VotingRound>> makeNextRound(
         const std::shared_ptr<VotingRound> &previous_round);
 
     /**

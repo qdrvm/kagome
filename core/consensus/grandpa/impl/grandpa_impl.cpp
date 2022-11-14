@@ -205,7 +205,7 @@ namespace kagome::consensus::grandpa {
     return new_round;
   }
 
-  std::shared_ptr<VotingRound> GrandpaImpl::makeNextRound(
+  outcome::result<std::shared_ptr<VotingRound>> GrandpaImpl::makeNextRound(
       const std::shared_ptr<VotingRound> &round) {
     BlockInfo best_block =
         round->finalizedBlock().value_or(round->lastFinalizedBlock());
@@ -213,10 +213,10 @@ namespace kagome::consensus::grandpa {
     auto authorities_opt =
         authority_manager_->authorities(best_block, IsBlockFinalized{true});
     if (!authorities_opt) {
-      SL_CRITICAL(logger_,
-                  "Can't retrieve authorities for finalized block {}",
-                  best_block);
-      std::abort();
+      SL_WARN(logger_,
+              "Can't retrieve authorities for finalized block {}",
+              best_block);
+      return VotingRoundError::VOTER_SET_NOT_FOUND_FOR_BLOCK;
     }
 
     auto &authority_set = authorities_opt.value();
@@ -227,8 +227,8 @@ namespace kagome::consensus::grandpa {
       auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                                 authority.weight);
       if (res.has_error()) {
-        SL_CRITICAL(logger_, "Can't make voter set: {}", res.error());
-        std::abort();
+        SL_WARN(logger_, "Can't make voter set: {}", res.error());
+        return res.as_failure();
       }
     }
 
@@ -326,7 +326,10 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    current_round_ = makeNextRound(current_round_);
+    auto res = makeNextRound(current_round_);
+    BOOST_ASSERT_MSG(res.value(),
+                     "Next round for current must be created anyway");
+    current_round_ = std::move(res.value());
 
     std::ignore = fallback_timer_handle_.reschedule(std::chrono::minutes(1));
 
@@ -1132,9 +1135,16 @@ namespace kagome::consensus::grandpa {
 
       if (prev_round_opt.has_value()) {
         const auto &prev_round = prev_round_opt.value();
-        round = makeNextRound(prev_round);
+        auto res = makeNextRound(prev_round);
+        if (res.has_error()) {
+          SL_DEBUG(logger_,
+                   "Can't create next round to apply justification: {}",
+                   res.error());
+          return res.as_failure();
+        }
+
+        round = res.value();
         need_to_make_round_current = true;
-        BOOST_ASSERT(round);
 
         SL_DEBUG(logger_,
                  "Hop grandpa to round #{} by received justification",
