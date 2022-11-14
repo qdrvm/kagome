@@ -34,6 +34,7 @@ namespace kagome::host_api {
       case WasmLevel::Trace:
         return SlLevel::TRACE;
     }
+    return SlLevel::ERROR;
   }
 
   void IOExtension::ext_logging_log_version_1(runtime::WasmEnum wasm_level,
