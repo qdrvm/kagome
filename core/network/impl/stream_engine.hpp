@@ -193,9 +193,9 @@ namespace kagome::network {
     size_t count(F &&filter) const {
       return streams_.sharedAccess([&](auto const &streams) {
         size_t result = 0;
-        for (auto const &i : streams) {
-          if (filter(i.first)) {
-            result += i.second.size();
+        for (auto const &stream : streams) {
+          if (filter(stream.first)) {
+            result += stream.second.size();
           }
         }
 

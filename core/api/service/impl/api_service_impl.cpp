@@ -517,7 +517,8 @@ namespace kagome::api {
 
         session_context.messages.reset();
       });
-    } catch (jsonrpc::InternalErrorFault &) {
+    } catch (jsonrpc::InternalErrorFault & e) {
+      SL_DEBUG(logger_, "Internal jsonrpc error: {}", e.what());
     }
   }
 

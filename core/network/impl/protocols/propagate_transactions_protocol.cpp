@@ -5,6 +5,8 @@
 
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 
+#include <algorithm>
+
 #include "application/app_configuration.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
@@ -344,11 +346,9 @@ namespace kagome::network {
                    txs.end(),
                    propagated_exts->extrinsics.begin(),
                    [](auto &tx) { return tx.ext; });
-
     stream_engine_->broadcast<PropagatedExtrinsics>(
         shared_from_this(),
-        propagated_exts,
-        [](auto peer) { return true; });
+        propagated_exts);
   }
 
 }  // namespace kagome::network
