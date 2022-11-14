@@ -13,6 +13,9 @@
 namespace kagome::application {
   class AppConfiguration;
 }
+namespace kagome::crypto {
+  class Hasher;
+}
 
 namespace kagome::runtime::wavm {
 
@@ -29,7 +32,8 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<ModuleParams> module_params,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
         std::shared_ptr<IntrinsicModule> intrinsic_module,
-        std::optional<std::shared_ptr<ModuleCache>> module_cache);
+        std::optional<std::shared_ptr<ModuleCache>> module_cache,
+        std::shared_ptr<crypto::Hasher> hasher);
 
     outcome::result<std::unique_ptr<Module>> make(
         gsl::span<const uint8_t> code) const override;
@@ -39,6 +43,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<ModuleParams> module_params_;
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     std::shared_ptr<IntrinsicModule> intrinsic_module_;
+    std::shared_ptr<crypto::Hasher> hasher_;
   };
 
 }  // namespace kagome::runtime::wavm

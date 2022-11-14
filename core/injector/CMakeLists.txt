@@ -82,6 +82,7 @@ target_link_libraries(application_injector
     rpc_thread_pool
     runtime_upgrade_tracker
     runtime_environment_factory
+    runtime_properties_cache
     executor
     secp256k1_provider
     soralog::fallback_configurator

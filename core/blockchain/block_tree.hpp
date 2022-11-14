@@ -73,12 +73,6 @@ namespace kagome::blockchain {
         const primitives::BlockId &block) const = 0;
 
     /**
-     * Method to get actual runtime version.
-     * @return runtime version.
-     */
-    virtual std::optional<primitives::Version> runtimeVersion() const = 0;
-
-    /**
      * Adds header to the storage
      * @param header that we are adding
      * @return result with success if header's parent exists on storage and new
