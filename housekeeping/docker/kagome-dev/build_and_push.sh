@@ -2,7 +2,7 @@
 
 cd "$(dirname "$0")"
 
-VERSION=${VERSION:-4.1}
+VERSION=${VERSION:-4}
 TAG=soramitsu/kagome-dev:$VERSION
 
 docker build -t ${TAG}-minideb -f minideb.Dockerfile .

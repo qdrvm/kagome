@@ -1,4 +1,4 @@
-FROM bitnami/minideb@sha256:f643a1ae18ea62acdc1d85d1892b41a0270faeb0e127c15e6afe41209d838b33
+FROM bitnami/minideb@sha256:297209ec9579cf8a5db349d5d3f3d3894e2d4281ee79df40d479c16896fdf41e
 
 MAINTAINER Vladimir Shcherba <abrehchs@gmail.com>
 
@@ -24,10 +24,17 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     echo \
       "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-11 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
     echo \
+      "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-12 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
+    echo \
+      "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-13 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
+    echo \
       "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-14 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
+    echo \
+      "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-15 main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
     echo \
       "deb http://deb.debian.org/debian/ testing main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
+    wget -q -O- https://github.com/rui314/mold/releases/download/v1.5.1/mold-1.5.1-x86_64-linux.tar.gz | tar -C /usr/local --strip-components=1 -xzf - && \
     apt-get update && apt-get install --no-install-recommends -y \
         docker-ce \
         docker-ce-cli \
@@ -35,16 +42,30 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         build-essential \
         gcc-10 \
         g++-10 \
+        gcc-11 \
+        g++-11 \
         gcc-12 \
         g++-12 \
         clang-11 \
         llvm-11-dev \
         clang-tidy-11 \
         clang-format-11 \
+        clang-12 \
+        llvm-12-dev \
+        clang-tidy-12 \
+        clang-format-12 \
+        clang-13 \
+        llvm-13-dev \
+        clang-tidy-13 \
+        clang-format-13 \
         clang-14 \
         llvm-14-dev \
         clang-tidy-14 \
         clang-format-14 \
+        clang-15 \
+        llvm-15-dev \
+        clang-tidy-15 \
+        clang-format-15 \
         make \
         git \
         ccache \
@@ -84,20 +105,40 @@ ENV CXX=g++-10
 
 # set default compilers and tools
 RUN update-alternatives --install /usr/bin/python       python       /usr/bin/python3               90 && \
+    
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-11         90 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-11       90 && \
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-11/bin/clang-11  90 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-11            90 && \
 
-    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-14         80 && \
-    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-14       80 && \
-    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-14/bin/clang-14  80 && \
-    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-14            80 && \
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-12         80 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-12       80 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-12/bin/clang-12  80 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-12            80 && \
+
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-13         70 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-13       70 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-13/bin/clang-13  70 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-13            70 && \
+
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-14         60 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-14       60 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-14/bin/clang-14  60 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-14            60 && \
+
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-15         50 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-15       50 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-15/bin/clang-15  50 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-15            50 && \
 
     update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-10                90 && \
     update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-10                90 && \
     update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-10               90 && \
 
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                80 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                80 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               80
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-11                80 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-11                80 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-11               80 && \
+
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                70 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                70 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               70
