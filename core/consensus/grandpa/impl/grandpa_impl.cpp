@@ -1166,18 +1166,6 @@ namespace kagome::consensus::grandpa {
           return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
         }
         auto &authority_set = authorities_opt.value();
-        SL_INFO(logger_,
-                "Apply justification for block {} with voter set id {}",
-                block_info,
-                authority_set->id);
-        SL_INFO(logger_,
-                "authorities->id: {}, current_round_->voterSetId(): {}, "
-                "justification.round_number: {}, "
-                "current_round_->roundNumber(): {}",
-                authority_set->id,
-                current_round_->voterSetId(),
-                justification.round_number,
-                current_round_->roundNumber());
 
         // This is justification for non-actual round
         if (authority_set->id < current_round_->voterSetId()) {
@@ -1192,7 +1180,9 @@ namespace kagome::consensus::grandpa {
           SL_WARN(logger_,
                   "Authority set on block {} with justification has id {}, "
                   "while the current round set id is {} (difference must be 1)",
-                  block_info, authority_set->id, current_round_->voterSetId());
+                  block_info,
+                  authority_set->id,
+                  current_round_->voterSetId());
         }
 
         auto voters = std::make_shared<VoterSet>(authority_set->id);

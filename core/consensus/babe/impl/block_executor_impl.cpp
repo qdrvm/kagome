@@ -280,7 +280,7 @@ namespace kagome::consensus {
     // apply justification if any (must be done strictly after block will be
     // added and his consensus-digests will be handled)
     if (b.justification.has_value()) {
-      SL_VERBOSE(logger_, "Justification received for block {}", block_info);
+      SL_VERBOSE(logger_, "Apply justification received for block {}", block_info);
 
       auto res = applyJustification(block_info, b.justification.value());
       if (res.has_error()) {

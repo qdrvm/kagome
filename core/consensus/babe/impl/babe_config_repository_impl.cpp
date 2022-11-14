@@ -545,7 +545,6 @@ namespace kagome::consensus::babe {
                   "Unsupported babe-digest on block {}: variant #{}",
                   block,
                   digest.which());
-          throw std::runtime_error("RUN BREAKER");
           return BabeError::UNKNOWN_DIGEST_TYPE;
         });
   }
