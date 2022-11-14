@@ -326,13 +326,14 @@ namespace kagome::consensus::grandpa {
                    "State was initialized by last saved on block {}",
                    root_->block);
         } else {
-          SL_WARN(
-              logger_,
-              "Last state not match with last finalized; Try to use savepoint");
+          SL_WARN(logger_,
+                  "Last state not match with last finalized; "
+                  "Trying to use savepoint");
         }
       } else {
-        SL_WARN(
-            logger_, "Can not decode last state: {}", last_state_res.error());
+        SL_WARN(logger_,
+                "Can not decode last state: {}; Trying to use savepoint",
+                last_state_res.error());
         std::ignore = persistent_storage_->remove(
             storage::kAuthorityManagerStateLookupKey("last"));
       }
@@ -377,6 +378,8 @@ namespace kagome::consensus::grandpa {
 
     // 3. Load state from genesis, if state is still not found
     if (root_ == nullptr) {
+      SL_DEBUG(logger_,
+               "Appropriate savepoint was not found; Using genesis state");
       auto genesis_hash = block_tree_->getGenesisBlockHash();
       auto authorities_res = grandpa_api_->authorities(genesis_hash);
       if (authorities_res.has_error()) {
@@ -398,6 +401,9 @@ namespace kagome::consensus::grandpa {
 
     // 4. Apply digests before last finalized
     bool need_to_save = false;
+    if (auto n = finalized_block.number - root_->block.number; n > 0) {
+      SL_DEBUG(logger_, "Applying digests of {} finalized blocks", n);
+    }
     for (auto block_number = root_->block.number + 1;
          block_number <= finalized_block.number;
          ++block_number) {
@@ -543,6 +549,11 @@ namespace kagome::consensus::grandpa {
       }
     }
     // 4.2 Apply digests
+    if (not digests.empty()) {
+      SL_DEBUG(logger_,
+               "Applying digest of {} non-finalized blocks",
+               digests.size());
+    }
     for (const auto &[block_info_tmp, digests_of_block] : digests) {
       const auto &block_info = block_info_tmp;
       for (const auto &digest : digests_of_block) {
@@ -858,7 +869,7 @@ namespace kagome::consensus::grandpa {
 
     if (adjusted_node->enabled) {
       // Original authorities
-      SL_DEBUG(logger_,
+      SL_TRACE(logger_,
                "Pick authority set with id {} for block {}",
                adjusted_node->authorities->id,
                target_block);
@@ -976,7 +987,7 @@ namespace kagome::consensus::grandpa {
         new_node->authorities = maybe_set.value();
       }
 
-      SL_DEBUG(logger_,
+      SL_TRACE(logger_,
                "Make a schedule node for block {}, with actual set id {}",
                block,
                new_node->authorities->id);
