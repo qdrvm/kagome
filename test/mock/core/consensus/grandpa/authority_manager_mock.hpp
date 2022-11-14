@@ -50,10 +50,6 @@ namespace kagome::consensus::grandpa {
                 applyResume,
                 (const primitives::BlockInfo &, primitives::BlockNumber),
                 (override));
-
-    MOCK_METHOD(outcome::result<void>,
-                recalculateStoredState,
-                (primitives::BlockNumber last_finalized_number));
   };
 }  // namespace kagome::consensus::grandpa
 

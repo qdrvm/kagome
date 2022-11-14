@@ -73,9 +73,6 @@ namespace kagome::consensus::grandpa {
 
     ~AuthorityManagerImpl() override;
 
-    outcome::result<void> recalculateStoredState(
-        primitives::BlockNumber last_finalized_number) override;
-
     bool prepare();
 
     // GrandpaDigestObserver
@@ -126,8 +123,6 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> load();
     outcome::result<void> save();
 
-    outcome::result<void> initializeAt(const primitives::BlockInfo &root_block);
-
     /**
      * @brief Find schedule_node according to the block
      * @param block for which to find the schedule node
@@ -135,9 +130,6 @@ namespace kagome::consensus::grandpa {
      */
     std::shared_ptr<ScheduleNode> getAppropriateAncestor(
         const primitives::BlockInfo &block) const;
-
-    outcome::result<std::optional<primitives::AuthoritySetId>>
-    readSetIdFromRuntime(primitives::BlockHeader const &targetBlock) const;
 
     /**
      * @brief Find node according to the block

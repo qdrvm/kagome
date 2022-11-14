@@ -30,15 +30,6 @@ namespace kagome::consensus::grandpa {
     virtual ~AuthorityManager() = default;
 
     /**
-     * Recalculate the authority change graph starting from genesis and up to
-     * the last finalized block. The result shall be stored in the provided
-     * storage. This operation may take a considerable amount of time.
-     * @return nothing on success, error otherwise
-     */
-    virtual outcome::result<void> recalculateStoredState(
-        primitives::BlockNumber last_finalized_number) = 0;
-
-    /**
      * @return block associated with the root of scheduled changes tree
      */
     virtual primitives::BlockInfo base() const = 0;
@@ -121,12 +112,6 @@ namespace kagome::consensus::grandpa {
     virtual outcome::result<void> applyResume(
         const primitives::BlockInfo &block,
         primitives::BlockNumber activate_at) = 0;
-
-    // /**
-    //  * @brief Prunes data which was needed only till {@param block}
-    //  * and won't be used anymore
-    //  */
-    // virtual void prune(const primitives::BlockInfo &block) = 0;
   };
 }  // namespace kagome::consensus::grandpa
 
