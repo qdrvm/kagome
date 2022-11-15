@@ -262,15 +262,6 @@ namespace kagome::consensus::grandpa {
   AuthorityManagerImpl::~AuthorityManagerImpl() {}
 
   bool AuthorityManagerImpl::prepare() {
-    //    const auto finalized_block = block_tree_->getLastFinalized();
-    //    auto res = initializeAt(finalized_block);
-    //    if (!res) {
-    //      SL_ERROR(logger_,
-    //               "Error initializing authority manager: {}",
-    //               res.error().message());
-    //    }
-    //    return res.has_value();
-
     auto load_res = load();
     if (load_res.has_error()) {
       SL_VERBOSE(logger_, "Can not load state: {}", load_res.error());
