@@ -17,13 +17,11 @@
 #include "common/visitor.hpp"
 #include "consensus/grandpa/authority_manager_error.hpp"
 #include "consensus/grandpa/grandpa_digest_observer_error.hpp"
-#include "crypto/hasher.hpp"
+#include "consensus/grandpa/impl/schedule_node.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
-#include "schedule_node.hpp"
-#include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"
-#include "storage/trie/trie_storage.hpp"
+#include "storage/trie/trie_batches.hpp"
 
 using kagome::common::Buffer;
 using kagome::primitives::AuthoritySetId;

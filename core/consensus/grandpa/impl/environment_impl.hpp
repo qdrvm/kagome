@@ -3,13 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CHAIN_IMPL_HPP
-#define KAGOME_CHAIN_IMPL_HPP
+#ifndef KAGOME_CONSENSUS_GRANDPA_ENVIRONMENTIMPL
+#define KAGOME_CONSENSUS_GRANDPA_ENVIRONMENTIMPL
 
 #include "consensus/grandpa/environment.hpp"
 
-#include "consensus/grandpa/authority_manager.hpp"
 #include "log/logger.hpp"
+
+namespace kagome::blockchain {
+  class BlockHeaderRepository;
+  class BlockTree;
+}  // namespace kagome::blockchain
+
+namespace kagome::consensus::grandpa {
+  class AuthorityManager;
+}
 
 namespace kagome::network {
   class GrandpaTransmitter;
@@ -109,4 +117,4 @@ namespace kagome::consensus::grandpa {
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CHAIN_IMPL_HPP
+#endif  // KAGOME_CONSENSUS_GRANDPA_ENVIRONMENTIMPL

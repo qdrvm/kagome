@@ -5,12 +5,9 @@
 
 #include "consistency_keeper_impl.hpp"
 
-#include <boost/assert.hpp>
-#include <scale/scale.hpp>
-
 #include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
 #include "blockchain/digest_tracker.hpp"
-#include "storage/buffer_map_types.hpp"
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::consensus::babe {

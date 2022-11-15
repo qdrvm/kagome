@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE
-#define KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE
+#ifndef KAGOME_CONSENSUS_GRANDPA_AUTHORITIESSCHEDULENODE
+#define KAGOME_CONSENSUS_GRANDPA_AUTHORITIESSCHEDULENODE
 
 #include <boost/variant.hpp>
 
@@ -97,4 +97,4 @@ namespace kagome::consensus::grandpa {
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE
+#endif  // KAGOME_CONSENSUS_GRANDPA_AUTHORITIESSCHEDULENODE

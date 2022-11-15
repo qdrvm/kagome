@@ -27,7 +27,8 @@ namespace kagome::consensus::babe {
    *    - that value is then is used in slotsLeadership(..)
    *
    */
-  struct BabeLottery {
+  class BabeLottery {
+   public:
     virtual ~BabeLottery() = default;
 
     /**

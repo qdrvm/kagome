@@ -9,7 +9,6 @@
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/grandpa_digest_observer.hpp"
 
-#include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/block_header.hpp"
@@ -19,9 +18,15 @@
 namespace kagome::application {
   class AppStateManager;
 }
+
 namespace kagome::consensus::grandpa {
   class ScheduleNode;
 }
+
+namespace kagome::crypto {
+  class Hasher;
+}
+
 namespace kagome::blockchain {
   class BlockTree;
   class BlockHeaderRepository;

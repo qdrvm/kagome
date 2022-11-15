@@ -9,24 +9,40 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 
-#include <boost/operators.hpp>
+#include <libp2p/basic/scheduler.hpp>
 
-#include "application/app_state_manager.hpp"
-#include "application/chain_spec.hpp"
-#include "blockchain/block_tree.hpp"
-#include "consensus/grandpa/authority_manager.hpp"
-#include "consensus/grandpa/environment.hpp"
-#include "consensus/grandpa/impl/voting_round_impl.hpp"
-#include "consensus/grandpa/movable_round_state.hpp"
-#include "consensus/grandpa/voter_set.hpp"
-#include "crypto/ed25519_provider.hpp"
-#include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
-#include "network/peer_manager.hpp"
-#include "network/reputation_repository.hpp"
-#include "network/synchronizer.hpp"
-#include "runtime/runtime_api/grandpa_api.hpp"
+
+namespace kagome::application {
+  class AppStateManager;
+  class ChainSpec;
+}  // namespace kagome::application
+
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
+namespace kagome::consensus::grandpa {
+  class AuthorityManager;
+  class Environment;
+  struct MovableRoundState;
+  class VoterSet;
+}  // namespace kagome::consensus::grandpa
+
+namespace kagome::crypto {
+  class Ed25519Provider;
+}
+
+namespace kagome::network {
+  class PeerManager;
+  class ReputationRepository;
+  class Synchronizer;
+}  // namespace kagome::network
+
+namespace kagome::runtime {
+  class GrandpaApi;
+}
 
 namespace kagome::consensus::grandpa {
 

@@ -5,8 +5,9 @@
 
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 
-#include "primitives/common.hpp"
-#include "scale/scale.hpp"
+#include "consensus/grandpa/voter_set.hpp"
+#include "crypto/ed25519_provider.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::consensus::grandpa {
 

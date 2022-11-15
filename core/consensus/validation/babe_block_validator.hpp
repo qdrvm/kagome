@@ -6,25 +6,28 @@
 #ifndef KAGOME_BABE_BLOCK_VALIDATOR_HPP
 #define KAGOME_BABE_BLOCK_VALIDATOR_HPP
 
-#include <memory>
-#include <unordered_map>
-#include <unordered_set>
-#include <utility>
-
-#include "blockchain/block_tree.hpp"
-#include "consensus/babe/types/babe_block_header.hpp"
-#include "consensus/babe/types/seal.hpp"
 #include "consensus/validation/block_validator.hpp"
-#include "crypto/hasher.hpp"
-#include "crypto/vrf_provider.hpp"
+
+#include <unordered_set>
+
 #include "log/logger.hpp"
-#include "primitives/authority.hpp"
-#include "primitives/babe_configuration.hpp"
-#include "primitives/transcript.hpp"
-#include "runtime/runtime_api/tagged_transaction_queue.hpp"
+
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
+namespace kagome::consensus::babe {
+  struct Seal;
+}
 
 namespace kagome::crypto {
   class Sr25519Provider;
+  class VRFProvider;
+  class Sr25519Provider;
+}  // namespace kagome::crypto
+
+namespace kagome::runtime {
+  class TaggedTransactionQueue;
 }
 
 namespace kagome::consensus::babe {

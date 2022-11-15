@@ -7,6 +7,7 @@
 #define KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER
 
 #include "consensus/grandpa/structs.hpp"
+#include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::consensus::grandpa {

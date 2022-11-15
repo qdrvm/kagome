@@ -4,10 +4,11 @@
  */
 
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
-#include "consensus/grandpa/vote_graph/vote_graph_error.hpp"
 
 #include <stack>
 
+#include "consensus/grandpa/chain.hpp"
+#include "consensus/grandpa/vote_graph/vote_graph_error.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 
 namespace kagome::consensus::grandpa {

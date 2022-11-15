@@ -5,6 +5,13 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
+#include "application/app_state_manager.hpp"
+#include "application/chain_spec.hpp"
+#include "blockchain/block_tree.hpp"
+#include "common/tagged.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
+#include "consensus/grandpa/environment.hpp"
+#include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
@@ -12,10 +19,13 @@
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
+#include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
-#include "scale/scale.hpp"
+#include "network/synchronizer.hpp"
 
 namespace {
+  using IsBlockFinalized = kagome::Tagged<bool, struct IsBlockFinalizedTag>;
+
   constexpr auto highestGrandpaRoundMetricName =
       "kagome_finality_grandpa_round";
 

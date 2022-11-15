@@ -3,15 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_CHAIN_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_CHAIN_HPP
-
-#include <vector>
+#ifndef KAGOME_CONSENSUS_GRANDPA_CHAIN
+#define KAGOME_CONSENSUS_GRANDPA_CHAIN
 
 #include <optional>
+#include <vector>
+
 #include <outcome/outcome.hpp>
+
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/structs.hpp"
+
+namespace kagome::consensus::grandpa {
+  class VoterSet;
+}
 
 namespace kagome::consensus::grandpa {
 
@@ -51,7 +56,7 @@ namespace kagome::consensus::grandpa {
      * block hash, even if that block is {@param base} itself. If base is
      * unknown, return None.
      */
-    virtual outcome::result<BlockInfo> bestChainContaining(
+    virtual outcome::result<primitives::BlockInfo> bestChainContaining(
         const primitives::BlockHash &base,
         std::optional<VoterSetId> voter_set_id) const = 0;
 
@@ -67,4 +72,4 @@ namespace kagome::consensus::grandpa {
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_CHAIN_HPP
+#endif  // KAGOME_CONSENSUS_GRANDPA_CHAIN

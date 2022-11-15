@@ -10,23 +10,28 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
-#include "blockchain/block_tree.hpp"
-#include "clock/timer.hpp"
-#include "consensus/babe/babe_util.hpp"
-#include "consensus/grandpa/environment.hpp"
-#include "consensus/validation/block_validator.hpp"
-#include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
+  class BabeUtil;
+  class BlockValidator;
   class ConsistencyKeeper;
 }  // namespace kagome::consensus::babe
 
+namespace kagome::consensus::grandpa {
+  class Environment;
+}
+
 namespace kagome::blockchain {
+  class BlockTree;
   class DigestTracker;
+}  // namespace kagome::blockchain
+
+namespace kagome::crypto {
+  class Hasher;
 }
 
 namespace kagome::consensus::babe {

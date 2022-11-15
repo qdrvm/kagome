@@ -5,14 +5,9 @@
 
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 
-#include <unordered_set>
-
-#include <boost/assert.hpp>
-#include <scale/scale.hpp>
-
-#include "common/buffer.hpp"
-#include "common/mp_utils.hpp"
 #include "consensus/validation/prepare_transcript.hpp"
+#include "crypto/hasher.hpp"
+#include "crypto/vrf_provider.hpp"
 
 namespace kagome::consensus::babe {
   using common::Buffer;

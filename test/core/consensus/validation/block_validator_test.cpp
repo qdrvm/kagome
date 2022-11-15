@@ -175,8 +175,7 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
       err,
       validator_.validateHeader(
           valid_block_.header, 0ull, authority.id, threshold_, config_));
-  ASSERT_EQ(err,
-            kagome::consensus::babe::DigestError::REQUIRED_DIGESTS_NOT_FOUND);
+  ASSERT_EQ(err, consensus::babe::DigestError::REQUIRED_DIGESTS_NOT_FOUND);
 }
 
 /**

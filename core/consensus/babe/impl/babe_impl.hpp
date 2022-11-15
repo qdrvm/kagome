@@ -8,37 +8,42 @@
 
 #include "consensus/babe/babe.hpp"
 
-#include <boost/asio/basic_waitable_timer.hpp>
-#include <memory>
-
-#include "application/app_state_manager.hpp"
-#include "authorship/proposer.hpp"
-#include "blockchain/block_tree.hpp"
 #include "clock/timer.hpp"
-#include "consensus/babe/babe_lottery.hpp"
-#include "consensus/babe/babe_util.hpp"
-#include "consensus/babe/block_executor.hpp"
-#include "consensus/babe/types/slot.hpp"
-#include "consensus/grandpa/grandpa_digest_observer.hpp"
-#include "crypto/hasher.hpp"
-#include "crypto/sr25519_provider.hpp"
-#include "crypto/sr25519_types.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
-#include "outcome/outcome.hpp"
-#include "primitives/babe_configuration.hpp"
-#include "primitives/common.hpp"
+#include "primitives/block.hpp"
 #include "primitives/event_types.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "primitives/inherent_data.hpp"
 #include "telemetry/service.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
-}
+  class AppStateManager;
+}  // namespace kagome::application
+
+namespace kagome::authorship {
+  class Proposer;
+}  // namespace kagome::authorship
 
 namespace kagome::blockchain {
   class DigestTracker;
+  class BlockTree;
+}  // namespace kagome::blockchain
+
+namespace kagome::consensus::babe {
+  class BabeLottery;
+  class BabeUtil;
+  class BlockExecutor;
+}  // namespace kagome::consensus::babe
+
+namespace kagome::consensus::grandpa {
+  class GrandpaDigestObserver;
 }
+
+namespace kagome::crypto {
+  class Hasher;
+  class Sr25519Provider;
+}  // namespace kagome::crypto
 
 namespace kagome::network {
   class Synchronizer;

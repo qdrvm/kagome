@@ -5,13 +5,10 @@
 
 #include <gtest/gtest.h>
 
-#include <chrono>
-#include <memory>
-
 #include <boost/asio/io_context.hpp>
 
-#include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
+#include "consensus/babe/types/seal.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
@@ -33,7 +30,6 @@
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
-#include "primitives/block.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"

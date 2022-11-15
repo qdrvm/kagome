@@ -10,7 +10,9 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "consensus/grandpa/movable_round_state.hpp"
 #include "network/grandpa_transmitter.hpp"
 #include "primitives/common.hpp"
 #include "scale/scale.hpp"

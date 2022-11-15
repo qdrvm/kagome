@@ -7,7 +7,6 @@
 #define KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK
 
 #include "consensus/grandpa/authority_manager.hpp"
-#include "grandpa_digest_observer_mock.hpp"
 
 #include <gmock/gmock.h>
 

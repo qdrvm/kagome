@@ -3,16 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "consensus/grandpa/impl/voting_round_impl.hpp"
+
 #include <gtest/gtest.h>
 
 #include <mock/libp2p/basic/scheduler_mock.hpp>
 
 #include "clock/impl/clock_impl.hpp"
-#include "common/visitor.hpp"
+#include "consensus/grandpa/common.hpp"
+#include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
-#include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
-#include "consensus/grandpa/voting_round_error.hpp"
 #include "core/consensus/grandpa/literals.hpp"
 #include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
@@ -20,27 +21,19 @@
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
 #include "mock/core/consensus/grandpa/voting_round_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
-#include "primitives/authority.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::consensus::grandpa;
-using namespace std::chrono_literals;
-
 using kagome::clock::SteadyClockImpl;
-using kagome::consensus::grandpa::AuthorityManagerMock;
-using kagome::consensus::grandpa::EnvironmentMock;
-using kagome::consensus::grandpa::GrandpaConfig;
-using kagome::consensus::grandpa::VoteCryptoProviderMock;
-using kagome::consensus::grandpa::VotingRound;
 using kagome::crypto::Ed25519Keypair;
 using kagome::crypto::Ed25519Signature;
 using kagome::crypto::HasherMock;
 using kagome::primitives::Authority;
-using kagome::primitives::AuthorityList;
 using kagome::primitives::AuthoritySet;
 using Propagation = kagome::consensus::grandpa::VotingRound::Propagation;
-using kagome::visit_in_place;
+
+using namespace std::chrono_literals;
 
 using testing::_;
 using testing::AnyNumber;

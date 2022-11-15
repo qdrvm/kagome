@@ -7,8 +7,14 @@
 #define KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_VOTE_CRYPTO_PROVIDER_IMPL_HPP
 
 #include "consensus/grandpa/vote_crypto_provider.hpp"
-#include "consensus/grandpa/voter_set.hpp"
-#include "crypto/ed25519_provider.hpp"
+
+namespace kagome::consensus::grandpa {
+  class VoterSet;
+}
+
+namespace kagome::crypto {
+  class Ed25519Provider;
+}
 
 namespace kagome::consensus::grandpa {
 

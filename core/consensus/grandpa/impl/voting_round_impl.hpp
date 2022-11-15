@@ -8,22 +8,20 @@
 
 #include "consensus/grandpa/voting_round.hpp"
 
-#include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/signals2.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
-#include "consensus/grandpa/environment.hpp"
-#include "consensus/grandpa/grandpa_config.hpp"
-#include "consensus/grandpa/movable_round_state.hpp"
-#include "consensus/grandpa/structs.hpp"
-#include "consensus/grandpa/vote_crypto_provider.hpp"
-#include "consensus/grandpa/vote_graph.hpp"
-#include "consensus/grandpa/vote_tracker.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::consensus::grandpa {
   class AuthorityManager;
+  class Environment;
   class Grandpa;
+  struct GrandpaConfig;
+  struct MovableRoundState;
+  class VoteCryptoProvider;
+  class VoteGraph;
+  class VoteTracker;
+  class VoterSet;
 }  // namespace kagome::consensus::grandpa
 
 namespace kagome::consensus::grandpa {

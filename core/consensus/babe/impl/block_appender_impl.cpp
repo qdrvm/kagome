@@ -5,19 +5,17 @@
 
 #include "consensus/babe/impl/block_appender_impl.hpp"
 
-#include <chrono>
-
+#include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
+#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
-#include "consensus/babe/types/slot.hpp"
+#include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
-#include "primitives/common.hpp"
-#include "scale/scale.hpp"
+#include "consensus/validation/block_validator.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
                             BlockAppenderImpl::Error,

@@ -8,10 +8,15 @@
 #include <unordered_set>
 
 #include "blockchain/block_tree_error.hpp"
-#include "common/visitor.hpp"
-#include "consensus/grandpa/authority_manager.hpp"
+#include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa.hpp"
+#include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
+#include "consensus/grandpa/vote_crypto_provider.hpp"
+#include "consensus/grandpa/vote_graph.hpp"
+#include "consensus/grandpa/vote_tracker.hpp"
+#include "consensus/grandpa/vote_types.hpp"
+#include "consensus/grandpa/vote_weight.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 
 namespace kagome::consensus::grandpa {

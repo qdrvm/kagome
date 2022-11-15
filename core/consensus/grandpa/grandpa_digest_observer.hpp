@@ -7,7 +7,6 @@
 #define KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER
 
 #include "outcome/outcome.hpp"
-
 #include "primitives/digest.hpp"
 
 namespace kagome::consensus::grandpa {

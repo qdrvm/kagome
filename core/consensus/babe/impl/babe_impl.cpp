@@ -5,29 +5,28 @@
 
 #include "consensus/babe/impl/babe_impl.hpp"
 
-#include <boost/assert.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
+#include "authorship/proposer.hpp"
+#include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/digest_tracker.hpp"
-#include "common/buffer.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_error.hpp"
+#include "consensus/babe/babe_lottery.hpp"
+#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/parachains_inherent_data.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
-#include "consensus/babe/types/babe_block_header.hpp"
-#include "consensus/babe/types/seal.hpp"
+#include "crypto/sr25519_provider.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
-#include "network/types/block_announce.hpp"
-#include "primitives/inherent_data.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
-#include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 namespace {

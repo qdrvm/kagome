@@ -5,20 +5,20 @@
 
 #include "consensus/babe/impl/block_executor_impl.hpp"
 
-#include <chrono>
-
+#include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
+#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
-#include "consensus/babe/types/slot.hpp"
+#include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
-#include "primitives/common.hpp"
+#include "consensus/validation/block_validator.hpp"
+#include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
-#include "scale/scale.hpp"
+#include "transaction_pool/transaction_pool.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,

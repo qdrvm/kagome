@@ -10,7 +10,6 @@
 
 #include <memory>
 
-#include "blockchain/block_tree.hpp"
 #include "log/logger.hpp"
 #include "storage/buffer_map_types.hpp"
 
@@ -20,7 +19,8 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class DigestTracker;
-};
+  class BlockTree;
+};  // namespace kagome::blockchain
 
 namespace kagome::consensus::babe {
 
