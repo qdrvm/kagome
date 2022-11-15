@@ -119,10 +119,10 @@ namespace kagome::runtime {
     if (runtime_upgrades_.empty()) {
       // even if it doesn't actually upgrade runtime, still a solid source of
       // runtime code
-      OUTCOME_TRY(state, push(block.hash));
+      OUTCOME_TRY(res, push(block.hash));
       SL_DEBUG(
           logger_, "Pick runtime state at block {} for the same block", block);
-      return std::move(state);
+      return std::move(res.first);
     }
 
     KAGOME_PROFILE_START(blocks_with_runtime_upgrade_search)
@@ -210,23 +210,41 @@ namespace kagome::runtime {
               boost::get<primitives::events::NewRuntimeEventParams>(
                   event_params)
                   .get();
-          SL_INFO(logger_, "Runtime upgrade at block {}", block_hash.toHex());
-          (void)push(block_hash);
+          auto res = push(block_hash);
+          if (res.has_value() and res.value().second) {
+            auto header_res = header_repo_->getBlockHeader(block_hash);
+            if (header_res.has_value()) {
+              auto &header = header_res.value();
+              primitives::BlockInfo block_info{header.number, block_hash};
+              SL_INFO(logger_, "Runtime upgrade at block {}", block_info);
+            }
+          }
         });
   }
 
-  outcome::result<storage::trie::RootHash> RuntimeUpgradeTrackerImpl::push(
-      const primitives::BlockHash &hash) {
+  outcome::result<std::pair<storage::trie::RootHash, bool>>
+  RuntimeUpgradeTrackerImpl::push(const primitives::BlockHash &hash) {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(hash));
-    runtime_upgrades_.emplace_back(primitives::BlockInfo{header.number, hash},
-                                   std::move(header.state_root));
-    std::sort(runtime_upgrades_.begin(),
-              runtime_upgrades_.end(),
-              [](const auto &lhs, const auto &rhs) {
-                return lhs.block.number < rhs.block.number;
-              });
-    save();
-    return header.state_root;
+    primitives::BlockInfo block_info{header.number, hash};
+
+    if (std::find_if(runtime_upgrades_.begin(),
+                     runtime_upgrades_.end(),
+                     [&](const RuntimeUpgradeData &rud) {
+                       return rud.block == block_info;
+                     })
+        == runtime_upgrades_.end()) {
+      runtime_upgrades_.emplace_back(block_info, std::move(header.state_root));
+
+      std::sort(runtime_upgrades_.begin(),
+                runtime_upgrades_.end(),
+                [](const auto &lhs, const auto &rhs) {
+                  return lhs.block.number < rhs.block.number;
+                });
+      save();
+      return std::make_pair(header.state_root, true);
+    }
+
+    return std::make_pair(header.state_root, false);
   }
 
   void RuntimeUpgradeTrackerImpl::save() {
