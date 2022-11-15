@@ -44,7 +44,7 @@ namespace kagome::consensus::babe {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<BabeLottery> lottery,
-      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+      std::shared_ptr<BabeConfigRepository> babe_config_repo,
       std::shared_ptr<authorship::Proposer> proposer,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -60,7 +60,7 @@ namespace kagome::consensus::babe {
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<runtime::Core> core,
-      std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper)
+      std::shared_ptr<ConsistencyKeeper> consistency_keeper)
       : app_config_(app_config),
         lottery_{std::move(lottery)},
         babe_config_repo_{std::move(babe_config_repo)},
@@ -274,7 +274,7 @@ namespace kagome::consensus::babe {
       }
 
       const auto &first_block_header = res.value();
-      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
       auto first_slot_number = babe_digest_res.value().second.slot_number;
@@ -1045,7 +1045,7 @@ namespace kagome::consensus::babe {
       }
 
       const auto &first_block_header = res.value();
-      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
       auto first_slot_number = babe_digest_res.value().second.slot_number;

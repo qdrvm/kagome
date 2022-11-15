@@ -79,7 +79,7 @@ static Digest make_digest(BabeSlotNumber slot) {
   digest.emplace_back(
       primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
-  consensus::Seal seal{};
+  consensus::babe::Seal seal{};
   common::Buffer encoded_seal{scale::encode(seal).value()};
   digest.emplace_back(
       primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
@@ -241,7 +241,7 @@ class BabeTest : public testing::Test {
 
   Hash256 created_block_hash_{"block#1"_hash256};
 
-  consensus::EpochDigest expected_epoch_digest;
+  consensus::babe::EpochDigest expected_epoch_digest;
 };
 
 ACTION_P(CheckBlockHeader, expected_block_header) {

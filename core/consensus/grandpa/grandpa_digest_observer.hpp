@@ -22,7 +22,7 @@ namespace kagome::consensus::grandpa {
     /// @return failure or nothing
     virtual outcome::result<void> onDigest(
         const primitives::BlockInfo &block,
-        const consensus::BabeBlockHeader &digest) = 0;
+        const consensus::babe::BabeBlockHeader &digest) = 0;
 
     /// Observes ConsensusLog of block
     /// @param block - block digest of which observed

@@ -401,12 +401,6 @@ namespace kagome::blockchain {
     }
     OUTCOME_TRY(block_hash, storage_->putBlockHeader(header));
 
-    std::optional<consensus::EpochDigest> next_epoch;
-    if (auto digest = consensus::getNextEpochDigest(header);
-        digest.has_value()) {
-      next_epoch.emplace(std::move(digest.value()));
-    }
-
     // update local meta with the new block
     auto new_node =
         std::make_shared<TreeNode>(block_hash, header.number, parent);
@@ -439,12 +433,6 @@ namespace kagome::blockchain {
 
     // Save block
     OUTCOME_TRY(block_hash, storage_->putBlock(block));
-
-    std::optional<consensus::EpochDigest> next_epoch;
-    if (auto digest = consensus::getNextEpochDigest(block.header);
-        digest.has_value()) {
-      next_epoch.emplace(std::move(digest.value()));
-    }
 
     // Update local meta with the block
     auto new_node =
@@ -591,12 +579,6 @@ namespace kagome::blockchain {
       SL_TRACE(log_,
                "Trying to add block {} into block tree",
                primitives::BlockInfo(block_header.number, block_hash));
-    }
-
-    std::optional<consensus::EpochDigest> next_epoch;
-    if (auto digest = consensus::getNextEpochDigest(block_header);
-        digest.has_value()) {
-      next_epoch.emplace(std::move(digest.value()));
     }
 
     // Update local meta with the block

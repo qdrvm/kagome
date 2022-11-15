@@ -93,7 +93,7 @@ namespace kagome::consensus::babe {
     if (finalized_block.number > 0) {
       OUTCOME_TRY(first_block_header, block_tree_->getBlockHeader(1));
 
-      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
       auto first_slot_number = babe_digest_res.value().second.slot_number;
@@ -220,9 +220,8 @@ namespace kagome::consensus::babe {
             item,
             [&](const primitives::PreRuntime &msg) -> outcome::result<void> {
               if (msg.consensus_engine_id == primitives::kBabeEngineId) {
-                OUTCOME_TRY(
-                    digest_item,
-                    scale::decode<consensus::BabeBlockHeader>(msg.data));
+                OUTCOME_TRY(digest_item,
+                            scale::decode<BabeBlockHeader>(msg.data));
 
                 return onDigest(block_info, digest_item);
               }
@@ -272,7 +271,7 @@ namespace kagome::consensus::babe {
     // 4. Collect and apply digests of non-finalized blocks
     auto leaves = block_tree_->getLeaves();
     std::map<primitives::BlockInfo,
-             std::vector<boost::variant<consensus::BabeBlockHeader,
+             std::vector<boost::variant<consensus::babe::BabeBlockHeader,
                                         primitives::BabeDigest>>>
         digests;
     // 4.1 Collect digests
@@ -308,7 +307,7 @@ namespace kagome::consensus::babe {
               [&](const primitives::PreRuntime &msg) -> outcome::result<void> {
                 if (msg.consensus_engine_id == primitives::kBabeEngineId) {
                   auto res =
-                      scale::decode<consensus::BabeBlockHeader>(msg.data);
+                      scale::decode<consensus::babe::BabeBlockHeader>(msg.data);
                   if (res.has_error()) {
                     return res.as_failure();
                   }
@@ -438,7 +437,7 @@ namespace kagome::consensus::babe {
 
   std::shared_ptr<const primitives::BabeConfiguration>
   BabeConfigRepositoryImpl::config(const primitives::BlockInfo &block,
-                                   consensus::EpochNumber epoch_number) {
+                                   EpochNumber epoch_number) {
     auto node = getNode(block);
     if (node) {
       return node->config;
@@ -459,7 +458,7 @@ namespace kagome::consensus::babe {
 
   outcome::result<void> BabeConfigRepositoryImpl::onDigest(
       const primitives::BlockInfo &block,
-      const consensus::BabeBlockHeader &digest) {
+      const consensus::babe::BabeBlockHeader &digest) {
     EpochNumber epoch_number = slotToEpoch(digest.slot_number);
 
     auto node = getNode(block);

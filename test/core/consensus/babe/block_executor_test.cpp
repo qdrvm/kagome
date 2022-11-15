@@ -30,15 +30,15 @@ using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
 using kagome::blockchain::DigestTrackerMock;
 using kagome::common::Buffer;
-using kagome::consensus::BabeBlockHeader;
-using kagome::consensus::BabeUtil;
-using kagome::consensus::BabeUtilMock;
-using kagome::consensus::BlockExecutorImpl;
-using kagome::consensus::BlockValidator;
-using kagome::consensus::BlockValidatorMock;
-using kagome::consensus::EpochDigest;
+using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
+using kagome::consensus::babe::BabeUtil;
+using kagome::consensus::babe::BabeUtilMock;
+using kagome::consensus::babe::BlockExecutorImpl;
+using kagome::consensus::babe::BlockValidator;
+using kagome::consensus::babe::BlockValidatorMock;
 using kagome::consensus::babe::ConsistencyKeeperMock;
+using kagome::consensus::babe::EpochDigest;
 using kagome::consensus::grandpa::Environment;
 using kagome::consensus::grandpa::EnvironmentMock;
 using kagome::consensus::grandpa::GrandpaDigestObserverMock;
@@ -162,7 +162,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
               kagome::primitives::ScheduledChange{authorities, 0}},
           kagome::primitives::Seal{{
               kagome::primitives::kBabeEngineId,
-              Buffer{scale::encode(kagome::consensus::Seal{}).value()},
+              Buffer{scale::encode(kagome::consensus::babe::Seal{}).value()},
           }}}};
   kagome::primitives::Justification justification{.data =
                                                       "justification_data"_buf};
@@ -182,7 +182,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
               validateHeader(header,
                              1,
                              AuthorityId{"auth3"_hash256},
-                             kagome::consensus::calculateThreshold(
+                             kagome::consensus::babe::calculateThreshold(
                                  babe_config_->leadership_rate, authorities, 0),
                              testing::Ref(*babe_config_)))
       .WillOnce(testing::Return(outcome::success()));

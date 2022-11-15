@@ -17,7 +17,6 @@
 
 namespace kagome::consensus::grandpa {
 
-  using consensus::grandpa::IsBlockFinalized;
   using primitives::BlockHash;
   using primitives::BlockNumber;
   using primitives::Justification;
@@ -25,7 +24,7 @@ namespace kagome::consensus::grandpa {
   EnvironmentImpl::EnvironmentImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-      std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
+      std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::GrandpaTransmitter> transmitter)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
@@ -213,9 +212,8 @@ namespace kagome::consensus::grandpa {
     auto justification_observer = justification_observer_.lock();
     BOOST_ASSERT(justification_observer);
 
-    OUTCOME_TRY(
-        justification,
-        scale::decode<grandpa::GrandpaJustification>(raw_justification.data));
+    OUTCOME_TRY(justification,
+                scale::decode<GrandpaJustification>(raw_justification.data));
 
     SL_DEBUG(logger_,
              "Trying to apply justification on round #{} for block {}",

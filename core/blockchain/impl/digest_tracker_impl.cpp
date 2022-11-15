@@ -12,7 +12,7 @@
 namespace kagome::blockchain {
 
   DigestTrackerImpl::DigestTrackerImpl(
-      std::shared_ptr<consensus::BabeDigestObserver> babe_update_observer,
+      std::shared_ptr<consensus::babe::BabeDigestObserver> babe_update_observer,
       std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
           grandpa_digest_observer)
       : babe_digest_observer_(std::move(babe_update_observer)),
@@ -112,8 +112,9 @@ namespace kagome::blockchain {
       const primitives::BlockInfo &block,
       const primitives::PreRuntime &message) {
     if (message.consensus_engine_id == primitives::kBabeEngineId) {
-      OUTCOME_TRY(digest,
-                  scale::decode<consensus::BabeBlockHeader>(message.data));
+      OUTCOME_TRY(
+          digest,
+          scale::decode<consensus::babe::BabeBlockHeader>(message.data));
 
       return babe_digest_observer_->onDigest(block, digest);
     } else {

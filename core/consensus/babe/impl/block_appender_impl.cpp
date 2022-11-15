@@ -19,8 +19,10 @@
 #include "primitives/common.hpp"
 #include "scale/scale.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockAppenderImpl::Error, e) {
-  using E = kagome::consensus::BlockAppenderImpl::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
+                            BlockAppenderImpl::Error,
+                            e) {
+  using E = kagome::consensus::babe::BlockAppenderImpl::Error;
   switch (e) {
     case E::INVALID_BLOCK:
       return "Invalid block";
@@ -30,7 +32,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockAppenderImpl::Error, e) {
   return "Unknown error";
 }
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   BlockAppenderImpl::BlockAppenderImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -139,7 +141,7 @@ namespace kagome::consensus {
       }
 
       const auto &first_block_header = res.value();
-      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
       auto first_slot_number = babe_digest_res.value().second.slot_number;
@@ -225,7 +227,8 @@ namespace kagome::consensus {
     // apply justification if any (must be done strictly after block will be
     // added and his consensus-digests will be handled)
     if (b.justification.has_value()) {
-      SL_VERBOSE(logger_, "Apply justification received for block {}", block_info);
+      SL_VERBOSE(
+          logger_, "Apply justification received for block {}", block_info);
 
       auto res = applyJustification(block_info, b.justification.value());
       if (res.has_error()) {
@@ -285,4 +288,4 @@ namespace kagome::consensus {
     return grandpa_environment_->applyJustification(block_info, justification);
   }
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

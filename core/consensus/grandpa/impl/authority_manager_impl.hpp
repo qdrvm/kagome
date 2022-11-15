@@ -79,7 +79,7 @@ namespace kagome::consensus::grandpa {
 
     outcome::result<void> onDigest(
         const primitives::BlockInfo &block,
-        const consensus::BabeBlockHeader &digest) override;
+        const consensus::babe::BabeBlockHeader &digest) override;
 
     outcome::result<void> onDigest(
         const primitives::BlockInfo &block,

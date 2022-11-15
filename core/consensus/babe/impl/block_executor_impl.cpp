@@ -21,8 +21,10 @@
 #include "scale/scale.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockExecutorImpl::Error, e) {
-  using E = kagome::consensus::BlockExecutorImpl::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
+                            BlockExecutorImpl::Error,
+                            e) {
+  using E = kagome::consensus::babe::BlockExecutorImpl::Error;
   switch (e) {
     case E::INVALID_BLOCK:
       return "Invalid block";
@@ -39,12 +41,12 @@ namespace {
       "kagome_block_verification_and_import_time";
 }
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   BlockExecutorImpl::BlockExecutorImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> core,
-      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+      std::shared_ptr<BabeConfigRepository> babe_config_repo,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<grandpa::Environment> grandpa_environment,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
@@ -52,7 +54,7 @@ namespace kagome::consensus {
       std::shared_ptr<blockchain::DigestTracker> digest_tracker,
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper)
+      std::shared_ptr<ConsistencyKeeper> consistency_keeper)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         babe_config_repo_{std::move(babe_config_repo)},
@@ -157,7 +159,7 @@ namespace kagome::consensus {
       }
 
       const auto &first_block_header = res.value();
-      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
       auto first_slot_number = babe_digest_res.value().second.slot_number;
@@ -361,4 +363,4 @@ namespace kagome::consensus {
     return grandpa_environment_->applyJustification(block_info, justification);
   }
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

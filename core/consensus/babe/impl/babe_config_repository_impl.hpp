@@ -53,9 +53,8 @@ namespace kagome::consensus::babe {
 
     // BabeDigestObserver
 
-    outcome::result<void> onDigest(
-        const primitives::BlockInfo &block,
-        const consensus::BabeBlockHeader &digest) override;
+    outcome::result<void> onDigest(const primitives::BlockInfo &block,
+                                   const BabeBlockHeader &digest) override;
 
     outcome::result<void> onDigest(
         const primitives::BlockInfo &block,
@@ -71,7 +70,7 @@ namespace kagome::consensus::babe {
 
     std::shared_ptr<const primitives::BabeConfiguration> config(
         const primitives::BlockInfo &parent_block,
-        consensus::EpochNumber epoch_number) override;
+        EpochNumber epoch_number) override;
 
     // BabeUtil
 

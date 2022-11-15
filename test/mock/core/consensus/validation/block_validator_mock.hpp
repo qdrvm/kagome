@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   class BlockValidatorMock : public BlockValidator {
    public:
@@ -32,6 +32,6 @@ namespace kagome::consensus {
                 (const, override));
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_TEST_MOCK_CORE_CONSENSUS_VALIDATION_BLOCK_VALIDATOR_MOCK_HPP

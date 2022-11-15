@@ -9,6 +9,7 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "common/visitor.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
@@ -45,7 +46,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
+      std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<Environment> env,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker> prevotes,
@@ -94,8 +95,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      const std::shared_ptr<consensus::grandpa::AuthorityManager>
-          authority_manager,
+      const std::shared_ptr<AuthorityManager> authority_manager,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
@@ -124,8 +124,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      const std::shared_ptr<consensus::grandpa::AuthorityManager>
-          authority_manager,
+      const std::shared_ptr<AuthorityManager> authority_manager,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
@@ -741,8 +740,6 @@ namespace kagome::consensus::grandpa {
     if (not finalized) {
       return finalized.as_failure();
     }
-
-    // authority_manager_->prune(last_finalized_block_);
 
     return outcome::success();
   }

@@ -37,7 +37,7 @@ namespace kagome::blockchain {
   class DigestTracker;
 }
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   class BlockExecutorImpl
       : public BlockExecutor,
@@ -48,7 +48,7 @@ namespace kagome::consensus {
     BlockExecutorImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::Core> core,
-        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+        std::shared_ptr<BabeConfigRepository> babe_config_repo,
         std::shared_ptr<BlockValidator> block_validator,
         std::shared_ptr<grandpa::Environment> grandpa_environment,
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
@@ -56,7 +56,7 @@ namespace kagome::consensus {
         std::shared_ptr<blockchain::DigestTracker> digest_tracker,
         std::shared_ptr<BabeUtil> babe_util,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-        std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper);
+        std::shared_ptr<ConsistencyKeeper> consistency_keeper);
 
     outcome::result<void> applyBlock(primitives::BlockData &&block) override;
 
@@ -67,7 +67,7 @@ namespace kagome::consensus {
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> core_;
-    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
+    std::shared_ptr<BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
@@ -75,7 +75,7 @@ namespace kagome::consensus {
     std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
-    std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper_;
+    std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
 
     // Justification Store for Future Applying
     std::map<primitives::BlockInfo, primitives::Justification>
@@ -89,8 +89,8 @@ namespace kagome::consensus {
     telemetry::Telemetry telemetry_;
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, BlockExecutorImpl::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, BlockExecutorImpl::Error);
 
 #endif  // KAGOME_CONSENSUS_BLOCKEXECUTORIMPL

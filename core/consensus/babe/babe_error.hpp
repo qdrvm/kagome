@@ -8,7 +8,7 @@
 
 #include <outcome/outcome.hpp>
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   enum class BabeError {
     TIMER_ERROR = 1,
     NODE_FALL_BEHIND,
@@ -18,6 +18,6 @@ namespace kagome::consensus {
   };
 }
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, BabeError)
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, BabeError)
 
 #endif  // KAGOME_BABE_ERROR_HPP

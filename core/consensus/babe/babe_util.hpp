@@ -9,7 +9,7 @@
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/epoch_descriptor.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   /**
    * Auxiliary class to calculate epoch index by slot number.
@@ -64,5 +64,5 @@ namespace kagome::consensus {
     virtual BabeSlotNumber slotInEpoch(BabeSlotNumber slot_number) const = 0;
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 #endif  // KAGOME_CONSENSUS_BABEUTIL

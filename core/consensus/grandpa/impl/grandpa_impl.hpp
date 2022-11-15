@@ -80,7 +80,7 @@ namespace kagome::consensus::grandpa {
         const application::ChainSpec &chain_spec,
         std::shared_ptr<Clock> clock,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-        std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
+        std::shared_ptr<AuthorityManager> authority_manager,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -267,7 +267,7 @@ namespace kagome::consensus::grandpa {
     const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
-    std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager_;
+    std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

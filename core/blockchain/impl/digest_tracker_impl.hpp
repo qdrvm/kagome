@@ -13,7 +13,7 @@
 namespace kagome::consensus::grandpa {
   class GrandpaDigestObserver;
 }
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   class BabeDigestObserver;
 }
 
@@ -21,10 +21,10 @@ namespace kagome::blockchain {
 
   class DigestTrackerImpl final : public DigestTracker {
    public:
-    DigestTrackerImpl(
-        std::shared_ptr<consensus::BabeDigestObserver> babe_update_observer,
-        std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
-            grandpa_digest_observer);
+    DigestTrackerImpl(std::shared_ptr<consensus::babe::BabeDigestObserver>
+                          babe_update_observer,
+                      std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
+                          grandpa_digest_observer);
 
     outcome::result<void> onDigest(const primitives::BlockInfo &block,
                                    const primitives::Digest &digest) override;
@@ -39,7 +39,7 @@ namespace kagome::blockchain {
         const primitives::BlockInfo &block,
         const primitives::Consensus &consensus_message);
 
-    std::shared_ptr<consensus::BabeDigestObserver> babe_digest_observer_;
+    std::shared_ptr<consensus::babe::BabeDigestObserver> babe_digest_observer_;
     std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
         grandpa_digest_observer_;
 

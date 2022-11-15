@@ -15,10 +15,10 @@
 #include "crypto/sr25519_provider.hpp"
 #include "scale/scale.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
                             BabeBlockValidator::ValidationError,
                             e) {
-  using E = kagome::consensus::BabeBlockValidator::ValidationError;
+  using E = kagome::consensus::babe::BabeBlockValidator::ValidationError;
   switch (e) {
     case E::NO_AUTHORITIES:
       return "no authorities are provided for the validation";
@@ -34,7 +34,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
   return "unknown error";
 }
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   using common::Buffer;
   using primitives::AllowedSlots;
 
@@ -171,4 +171,4 @@ namespace kagome::consensus {
 
     return true;
   }
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

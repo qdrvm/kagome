@@ -11,7 +11,8 @@
 #include "clock/clock.hpp"
 #include "crypto/sr25519_types.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
+
   using BabeClock = clock::SystemClock;
 
   /// BABE uses system clock's time points
@@ -34,6 +35,7 @@ namespace kagome::consensus {
 
   /// random value, which serves as a seed for VRF slot leadership selection
   using Randomness = common::Blob<crypto::constants::sr25519::vrf::OUTPUT_SIZE>;
-}  // namespace kagome::consensus
+
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_COMMON_HPP

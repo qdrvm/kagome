@@ -427,7 +427,7 @@ namespace kagome::consensus::grandpa {
               if (msg.consensus_engine_id == primitives::kBabeEngineId) {
                 OUTCOME_TRY(
                     digest_item,
-                    scale::decode<consensus::BabeBlockHeader>(msg.data));
+                    scale::decode<consensus::babe::BabeBlockHeader>(msg.data));
 
                 return onDigest(block_info, digest_item);
               }
@@ -477,7 +477,7 @@ namespace kagome::consensus::grandpa {
     // 4. Collect and apply digests of non-finalized blocks
     auto leaves = block_tree_->getLeaves();
     std::map<primitives::BlockInfo,
-             std::vector<boost::variant<consensus::BabeBlockHeader,
+             std::vector<boost::variant<consensus::babe::BabeBlockHeader,
                                         primitives::GrandpaDigest>>>
         digests;
     // 4.1 Collect digests
@@ -513,7 +513,7 @@ namespace kagome::consensus::grandpa {
               [&](const primitives::PreRuntime &msg) -> outcome::result<void> {
                 if (msg.consensus_engine_id == primitives::kBabeEngineId) {
                   auto res =
-                      scale::decode<consensus::BabeBlockHeader>(msg.data);
+                      scale::decode<consensus::babe::BabeBlockHeader>(msg.data);
                   if (res.has_error()) {
                     return res.as_failure();
                   }
@@ -1032,7 +1032,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> AuthorityManagerImpl::onDigest(
       const primitives::BlockInfo &block,
-      const consensus::BabeBlockHeader &digest) {
+      const consensus::babe::BabeBlockHeader &digest) {
     auto node = getNode(block);
 
     SL_TRACE(logger_,

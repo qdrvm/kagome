@@ -27,7 +27,7 @@ namespace kagome::crypto {
   class Sr25519Provider;
 }
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   /**
    * Validation of blocks in BABE system. Based on the algorithm described here:
@@ -110,9 +110,9 @@ namespace kagome::consensus {
 
     log::Logger log_;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus,
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe,
                           BabeBlockValidator::ValidationError)
 
 #endif  // KAGOME_BABE_BLOCK_VALIDATOR_HPP

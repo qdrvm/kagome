@@ -22,7 +22,7 @@ namespace kagome::consensus::grandpa {
     EnvironmentImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-        std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
+        std::shared_ptr<AuthorityManager> authority_manager,
         std::shared_ptr<network::GrandpaTransmitter> transmitter);
 
     ~EnvironmentImpl() override = default;
@@ -100,7 +100,7 @@ namespace kagome::consensus::grandpa {
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repository_;
-    std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager_;
+    std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::GrandpaTransmitter> transmitter_;
     std::weak_ptr<JustificationObserver> justification_observer_;
 

@@ -27,7 +27,7 @@ namespace kagome::consensus::babe {
     /// @return actual babe configuration
     virtual std::shared_ptr<const primitives::BabeConfiguration> config(
         const primitives::BlockInfo &parent_block,
-        consensus::EpochNumber epoch_number) = 0;
+        EpochNumber epoch_number) = 0;
   };
 
 }  // namespace kagome::consensus::babe

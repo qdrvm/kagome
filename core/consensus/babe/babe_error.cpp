@@ -5,8 +5,8 @@
 
 #include "consensus/babe/babe_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BabeError, e) {
-  using E = kagome::consensus::BabeError;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, BabeError, e) {
+  using E = kagome::consensus::babe::BabeError;
   switch (e) {
     case E::TIMER_ERROR:
       return "some internal error happened while using the timer in BABE; "

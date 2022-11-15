@@ -29,7 +29,7 @@
 
 using namespace kagome;
 using namespace clock;
-using namespace consensus;
+using namespace consensus::babe;
 using namespace storage;
 
 using std::chrono_literals::operator""ms;

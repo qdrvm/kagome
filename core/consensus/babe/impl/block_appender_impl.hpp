@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BLOCKAPPENDERIMPL
-#define KAGOME_CONSENSUS_BLOCKAPPENDERIMPL
+#ifndef KAGOME_CONSENSUS_BABE_BLOCKAPPENDERIMPL
+#define KAGOME_CONSENSUS_BABE_BLOCKAPPENDERIMPL
 
 #include "consensus/babe/block_appender.hpp"
 
@@ -29,23 +29,21 @@ namespace kagome::blockchain {
   class DigestTracker;
 }
 
-namespace kagome::consensus {
-
+namespace kagome::consensus::babe {
   class BlockAppenderImpl
       : public BlockAppender,
         public std::enable_shared_from_this<BlockAppenderImpl> {
    public:
     enum class Error { INVALID_BLOCK = 1, PARENT_NOT_FOUND };
 
-    BlockAppenderImpl(
-        std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        std::shared_ptr<BlockValidator> block_validator,
-        std::shared_ptr<grandpa::Environment> grandpa_environment,
-        std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<blockchain::DigestTracker> digest_tracker,
-        std::shared_ptr<BabeUtil> babe_util,
-        std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper);
+    BlockAppenderImpl(std::shared_ptr<blockchain::BlockTree> block_tree,
+                      std::shared_ptr<BabeConfigRepository> babe_config_repo,
+                      std::shared_ptr<BlockValidator> block_validator,
+                      std::shared_ptr<grandpa::Environment> grandpa_environment,
+                      std::shared_ptr<crypto::Hasher> hasher,
+                      std::shared_ptr<blockchain::DigestTracker> digest_tracker,
+                      std::shared_ptr<BabeUtil> babe_util,
+                      std::shared_ptr<ConsistencyKeeper> consistency_keeper);
 
     outcome::result<void> appendBlock(primitives::BlockData &&b) override;
 
@@ -55,13 +53,13 @@ namespace kagome::consensus {
 
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
+    std::shared_ptr<BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
     std::shared_ptr<BabeUtil> babe_util_;
-    std::shared_ptr<babe::ConsistencyKeeper> consistency_keeper_;
+    std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
 
     std::optional<primitives::BlockInfo> last_appended_;
 
@@ -77,8 +75,8 @@ namespace kagome::consensus {
     log::Logger logger_;
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, BlockAppenderImpl::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, BlockAppenderImpl::Error);
 
-#endif  // KAGOME_CONSENSUS_BLOCKAPPENDERIMPL
+#endif  // KAGOME_CONSENSUS_BABE_BLOCKAPPENDERIMPL
