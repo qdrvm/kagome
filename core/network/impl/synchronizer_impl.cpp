@@ -1024,16 +1024,16 @@ namespace kagome::network {
 
                 if (actual == expected) {
                   SL_INFO(self->log_,
-                          "Syncing of {}state on block {} has finished. "
+                          "Syncing of {} on block {} has finished. "
                           "Root hashes match: {}",
-                          i != 0 ? "child " : "",
+                          i != 0 ? fmt::format("child state #{}", i) : "state",
                           block,
                           actual);
                 } else {
                   SL_WARN(self->log_,
-                          "Syncing of {}state on block {} has finished. "
+                          "Syncing of {} on block {} has finished. "
                           "Root hashes mismatch: expected={}, actual={}",
-                          i != 0 ? "child " : "",
+                          i != 0 ? fmt::format("child state #{}", i) : "state",
                           block,
                           expected,
                           actual);
