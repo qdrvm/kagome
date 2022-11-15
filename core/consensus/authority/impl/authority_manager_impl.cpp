@@ -236,9 +236,8 @@ namespace kagome::authority {
                                          : finalized_block;
 
         return block;
-      } else {
-        hash = header.parent_hash;
       }
+      hash = header.parent_hash;
     }
     BOOST_UNREACHABLE_RETURN({})
   }
