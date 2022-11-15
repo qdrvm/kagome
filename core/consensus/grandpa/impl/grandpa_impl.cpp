@@ -1099,22 +1099,47 @@ namespace kagome::consensus::grandpa {
     ctx->peer_id.emplace(peer_id);
     ctx->commit.emplace(msg);
 
-    auto res = applyJustification(justification.block_info, justification);
-    if (not res.has_value()) {
-      SL_WARN(
-          logger_,
-          "Commit with set_id={} in round={} for block {} has received from {} "
-          "and has not applied: {}",
-          msg.set_id,
-          msg.round,
-          BlockInfo(msg.message.target_number, msg.message.target_hash),
-          peer_id,
-          res.error());
+    // Check if commit of already finalized block
+    if (block_tree_->getLastFinalized().number
+        >= justification.block_info.number) {
       return;
     }
 
-    reputation_repository_->change(
-        peer_id, network::reputation::benefit::BASIC_VALIDATED_COMMIT);
+    auto has_direct_chain = block_tree_->hasDirectChain(
+        block_tree_->getLastFinalized().hash, justification.block_info.hash);
+    if (not has_direct_chain) {
+      auto res = applyJustification(justification.block_info, justification);
+      if (res.has_value()) {
+        reputation_repository_->change(
+            peer_id, network::reputation::benefit::BASIC_VALIDATED_COMMIT);
+        return;
+      }
+
+      if (ctx->missing_blocks.empty()) {
+        SL_WARN(logger_,
+                "Commit with set_id={} in round={} for block {} has received "
+                "from {} "
+                "and has not applied: {}",
+                msg.set_id,
+                msg.round,
+                BlockInfo(msg.message.target_number, msg.message.target_hash),
+                peer_id,
+                res.error());
+        return;
+      }
+    } else {
+      ctx->missing_blocks.emplace(justification.block_info);
+    }
+
+    // Check if missed block are detected and if this is first attempt
+    // (considering by definition peer id in context)
+    if (not ctx->missing_blocks.empty()) {
+      if (not ctx->peer_id.has_value()) {
+        ctx->peer_id.emplace(peer_id);
+        ctx->commit.emplace(msg);
+        loadMissingBlocks();
+      }
+    }
   }
 
   outcome::result<void> GrandpaImpl::applyJustification(
@@ -1159,10 +1184,6 @@ namespace kagome::consensus::grandpa {
         auto authorities_opt = authority_manager_->authorities(
             block_info, IsBlockFinalized{false});
         if (!authorities_opt) {
-          SL_WARN(logger_,
-                  "Can't retrieve authorities to apply a justification "
-                  "at block {}",
-                  block_info);
           return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
         }
         auto &authority_set = authorities_opt.value();

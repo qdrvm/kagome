@@ -26,8 +26,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
     case E::JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED:
       return "Justified block is greater than actually finalized";
     case E::NO_KNOWN_AUTHORITIES_FOR_BLOCK:
-      return "Can't retrieve authorities for the given block. Likely indicates "
-             "the block is invalid.";
+      return "Can't retrieve authorities for the given block; Probably block "
+             "is not retrieved yet";
     case E::VOTER_SET_NOT_FOUND_FOR_BLOCK:
       return "Voter set not found for block; Probably block already finalized "
              "but is not last finalized";
