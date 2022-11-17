@@ -129,22 +129,12 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> save();
 
     /**
-     * @brief Find schedule_node according to the block
-     * @param block for which to find the schedule node
-     * @return oldest schedule_node according to the block
-     */
-    std::shared_ptr<ScheduleNode> getAppropriateAncestor(
-        const primitives::BlockInfo &block) const;
-
-    /**
      * @brief Find node according to the block
      * @param block for which to find the schedule node
      * @return oldest node according to the block
      */
     std::shared_ptr<ScheduleNode> getNode(
-        const primitives::BlockInfo &block) const {
-      return getAppropriateAncestor(block);
-    }
+        const primitives::BlockInfo &block) const;
 
     /**
      * @brief Check if one block is direct ancestor of second one

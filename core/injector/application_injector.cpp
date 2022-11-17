@@ -508,7 +508,7 @@ namespace {
       return initialized.value();
     }
 
-    auto asmgr =
+    auto app_state_manager =
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
     auto thread_pool = injector.template create<sptr<api::RpcThreadPool>>();
@@ -533,7 +533,7 @@ namespace {
     auto core = injector.template create<sptr<runtime::Core>>();
 
     auto api_service =
-        std::make_shared<api::ApiServiceImpl>(asmgr,
+        std::make_shared<api::ApiServiceImpl>(app_state_manager,
                                               thread_pool,
                                               listeners,
                                               server,
@@ -728,10 +728,10 @@ namespace {
           session_keys->getBabeKeyPair(),
           injector.template create<std::shared_ptr<crypto::Hasher>>());
 
-      auto asmgr =
+      auto app_state_manager =
           injector
               .template create<std::shared_ptr<application::AppStateManager>>();
-      asmgr->takeControl(*ptr);
+      app_state_manager->takeControl(*ptr);
       return ptr;
     };
 

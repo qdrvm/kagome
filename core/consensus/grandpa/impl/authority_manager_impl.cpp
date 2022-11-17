@@ -647,7 +647,7 @@ namespace kagome::consensus::grandpa {
   std::optional<std::shared_ptr<const primitives::AuthoritySet>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &target_block,
                                     IsBlockFinalized finalized) const {
-    auto node = getAppropriateAncestor(target_block);
+    auto node = getNode(target_block);
 
     if (node == nullptr) {
       return std::nullopt;
@@ -692,7 +692,7 @@ namespace kagome::consensus::grandpa {
              block,
              activate_at);
     KAGOME_PROFILE_START(get_appropriate_ancestor)
-    auto ancestor_node = getAppropriateAncestor(block);
+    auto ancestor_node = getNode(block);
     KAGOME_PROFILE_END(get_appropriate_ancestor)
 
     if (not ancestor_node) {
@@ -835,8 +835,7 @@ namespace kagome::consensus::grandpa {
       SL_ERROR(logger_, "Failed to obtain hash by number {}", delay_start);
     }
     OUTCOME_TRY(delay_start_hash, delay_start_hash_res);
-    auto ancestor_node =
-        getAppropriateAncestor({delay_start, delay_start_hash});
+    auto ancestor_node = getNode({delay_start, delay_start_hash});
 
     if (not ancestor_node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -902,7 +901,7 @@ namespace kagome::consensus::grandpa {
     }
     SL_DEBUG(logger_, "Applying disable authority on block {}", block);
 
-    auto node = getAppropriateAncestor(block);
+    auto node = getNode(block);
 
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -967,7 +966,7 @@ namespace kagome::consensus::grandpa {
       const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
     SL_DEBUG(logger_, "Applying pause on block {}", block);
 
-    auto node = getAppropriateAncestor(block);
+    auto node = getNode(block);
 
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -997,7 +996,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> AuthorityManagerImpl::applyResume(
       const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
-    auto node = getAppropriateAncestor(block);
+    auto node = getNode(block);
 
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -1035,13 +1034,6 @@ namespace kagome::consensus::grandpa {
     if (node->block == block) {
       return AuthorityManagerError::BAD_ORDER_OF_DIGEST_ITEM;
     }
-
-    // // Create descendant if and only if epoch is changed
-    // if (node->epoch != epoch_number) {
-    //   auto new_node = node->makeDescendant(block, epoch_number);
-    //
-    //   node->descendants.emplace_back(std::move(new_node));
-    // }
 
     return outcome::success();
   }
@@ -1086,7 +1078,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    auto node = getAppropriateAncestor(block);
+    auto node = getNode(block);
 
     if (not node) {
       return;
@@ -1112,7 +1104,7 @@ namespace kagome::consensus::grandpa {
     SL_TRACE(logger_, "Prune authority manager upto block {}", block);
   }
 
-  std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(
+  std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getNode(
       const primitives::BlockInfo &block) const {
     BOOST_ASSERT(root_ != nullptr);
 
@@ -1191,7 +1183,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void AuthorityManagerImpl::cancel(const primitives::BlockInfo &block) {
-    auto ancestor = getAppropriateAncestor(block);
+    auto ancestor = getNode(block);
 
     if (ancestor == nullptr) {
       SL_TRACE(logger_, "Can't remove node of block {}: no ancestor", block);
