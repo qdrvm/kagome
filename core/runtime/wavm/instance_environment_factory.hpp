@@ -31,7 +31,8 @@ namespace WAVM::Runtime {
 
 namespace kagome::runtime {
   class SingleModuleCache;
-}
+  class RuntimePropertiesCache;
+}  // namespace kagome::runtime
 
 namespace kagome::runtime::wavm {
   class IntrinsicModule;
@@ -52,7 +53,8 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<SingleModuleCache> last_compiled_module);
+        std::shared_ptr<SingleModuleCache> last_compiled_module,
+        std::shared_ptr<RuntimePropertiesCache> cache);
 
     enum class MemoryOrigin { EXTERNAL, INTERNAL };
     [[nodiscard]] InstanceEnvironment make(
@@ -70,6 +72,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
+    std::shared_ptr<RuntimePropertiesCache> cache_;
   };
 
 }  // namespace kagome::runtime::wavm

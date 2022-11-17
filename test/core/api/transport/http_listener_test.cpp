@@ -5,7 +5,9 @@
 
 #include "core/api/transport/listener_test.hpp"
 
+#if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
+#endif
 
 #include "api/transport/impl/http/http_listener_impl.hpp"
 #include "core/api/client/http_client.hpp"
@@ -21,6 +23,10 @@ using HttpListenerTest = ListenerTest<HttpListenerImpl>;
  * @then response contains expected value
  */
 TEST_F(HttpListenerTest, EchoSuccess) {
+#if defined(BACKWARD_HAS_BACKTRACE)
+  backward::SignalHandling sh;
+#endif
+
   app_state_manager->atLaunch([ctx{main_context}] {
     std::thread([ctx] { ctx->run_for(3s); }).detach();
     return true;

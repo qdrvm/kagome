@@ -109,6 +109,7 @@ namespace kagome::consensus::grandpa {
     BlockInfo base_;
     std::shared_ptr<VoterSet> voter_set_;
     std::shared_ptr<Chain> chain_;
+    log::Logger logger_;
 
     std::unordered_map<BlockHash, Entry> entries_;
     std::unordered_set<BlockHash> heads_;

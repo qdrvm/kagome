@@ -25,7 +25,6 @@ target_link_libraries(application_injector
     babe_lottery
     babe_config_repository
     synchronizer
-    babe_util
     binaryen_executor_factory
     binaryen_runtime_external_interface
     binaryen_wasm_memory
@@ -49,6 +48,7 @@ target_link_libraries(application_injector
     chain_spec
     core_api
     crypto_store
+    digest_tracker
     ecdsa_provider
     ed25519_provider
     environment
@@ -82,6 +82,7 @@ target_link_libraries(application_injector
     rpc_thread_pool
     runtime_upgrade_tracker
     runtime_environment_factory
+    runtime_properties_cache
     executor
     secp256k1_provider
     soralog::fallback_configurator
@@ -106,7 +107,6 @@ target_link_libraries(application_injector
     rpc_api_service
     internal_api_service
     peer_manager
-    babe_util
     assets
     block_announce_protocol
     propagate_transactions_protocol

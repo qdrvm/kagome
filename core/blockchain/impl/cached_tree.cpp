@@ -22,57 +22,14 @@ namespace kagome::blockchain {
 
   TreeNode::TreeNode(const primitives::BlockHash &hash,
                      primitives::BlockNumber depth,
-                     consensus::EpochDigest &&curr_epoch_digest,
-                     consensus::EpochNumber epoch_number,
-                     consensus::EpochDigest &&next_epoch_digest,
                      bool finalized)
-      : block_hash{hash},
-        depth{depth},
-        epoch_number(epoch_number),
-        finalized{finalized} {
-    this->epoch_digest =
-        std::make_shared<consensus::EpochDigest>(std::move(curr_epoch_digest));
-    this->next_epoch_digest = *epoch_digest == next_epoch_digest
-                                  ? epoch_digest
-                                  : std::make_shared<consensus::EpochDigest>(
-                                      std::move(next_epoch_digest));
-  }
+      : block_hash{hash}, depth{depth}, finalized{finalized} {}
 
-  TreeNode::TreeNode(
-      const primitives::BlockHash &hash,
-      primitives::BlockNumber depth,
-      const std::shared_ptr<TreeNode> &parent,
-      consensus::EpochNumber epoch_number,
-      std::optional<consensus::EpochDigest> next_epoch_digest_opt,
-      bool finalized)
-      : block_hash{hash},
-        depth{depth},
-        parent{parent},
-        epoch_number(epoch_number),
-        finalized{finalized} {
-    BOOST_ASSERT(parent != nullptr or next_epoch_digest_opt.has_value());
-    if (parent) {
-      epoch_digest = epoch_number != parent->epoch_number
-                         ? parent->next_epoch_digest
-                         : epoch_digest = parent->epoch_digest;
-      next_epoch_digest = parent->next_epoch_digest;
-    } else {
-      epoch_digest = std::make_shared<consensus::EpochDigest>(
-          next_epoch_digest_opt.value());
-      next_epoch_digest = epoch_digest;
-    }
-
-    if (next_epoch_digest_opt.has_value()) {
-      if (next_epoch_digest_opt != *next_epoch_digest) {
-        if (next_epoch_digest_opt == *epoch_digest) {
-          next_epoch_digest = epoch_digest;
-        } else {
-          next_epoch_digest = std::make_shared<consensus::EpochDigest>(
-              std::move(next_epoch_digest_opt.value()));
-        }
-      }
-    }
-  }
+  TreeNode::TreeNode(const primitives::BlockHash &hash,
+                     primitives::BlockNumber depth,
+                     const std::shared_ptr<TreeNode> &parent,
+                     bool finalized)
+      : block_hash{hash}, depth{depth}, parent{parent}, finalized{finalized} {}
 
   outcome::result<void> TreeNode::applyToChain(
       const primitives::BlockInfo &chain_end,

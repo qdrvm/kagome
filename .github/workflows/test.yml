@@ -43,8 +43,8 @@ jobs:
       fail-fast: false
       matrix:
         options:
-          - name: "Linux: gcc-9 ASAN No Toolchain"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DASAN=ON
+          - name: "Linux: gcc-10 ASAN No Toolchain"
+            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DASAN=ON
           - name: "Linux: gcc-12 ASAN No Toolchain"
             run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
           - name: "Linux: clang-11 TSAN"
@@ -53,8 +53,8 @@ jobs:
             run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
           - name: "Linux: clang-11 External Project"
             run: ./housekeeping/make_external_build.sh -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-11_cxx17.cmake
-          - name: "Linux: clang-14 UBSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-14_cxx17.cmake -DUBSAN=ON
+          - name: "Linux: clang-15 UBSAN"
+            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DUBSAN=ON
           
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
@@ -65,8 +65,6 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-      - name: Install mold
-        run: ./housekeeping/ci_install_mold.sh --make-default
       - name: "${{ matrix.options.name }}"
         run: "${{ matrix.options.run }}"
 
@@ -91,7 +89,7 @@ jobs:
           ./housekeeping/clang-tidy-diff.sh
 
   coverage:
-    name: "Linux: gcc-9 coverage/sonar"
+    name: "Linux: gcc-10 coverage/sonar"
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev:4-minideb
     steps:
@@ -100,12 +98,10 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - name: Install mold
-        run: ./housekeeping/ci_install_mold.sh --make-default
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
-        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DCOVERAGE=ON
+        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON
       - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         name: Submit Coverage
         env:

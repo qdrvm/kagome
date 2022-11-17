@@ -10,6 +10,7 @@
 
 #include <memory>
 
+#include "common/blob.hpp"
 #include "log/logger.hpp"
 
 namespace WAVM::Runtime {
@@ -34,7 +35,8 @@ namespace kagome::runtime::wavm {
         ModuleParams &module_params,
         std::shared_ptr<IntrinsicModule> intrinsic_module,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
-        gsl::span<const uint8_t> code);
+        gsl::span<const uint8_t> code,
+        const common::Hash256 &code_hash);
 
     outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const override;
@@ -43,7 +45,8 @@ namespace kagome::runtime::wavm {
     ModuleImpl(std::shared_ptr<CompartmentWrapper> compartment,
                std::shared_ptr<const IntrinsicModule> intrinsic_module,
                std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
-               std::shared_ptr<WAVM::Runtime::Module> module);
+               std::shared_ptr<WAVM::Runtime::Module> module,
+               const common::Hash256 &code_hash);
 
     WAVM::Runtime::ImportBindings link(IntrinsicResolver &resolver) const;
 
@@ -51,6 +54,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<const IntrinsicModule> intrinsic_module_;
     std::shared_ptr<WAVM::Runtime::Module> module_;
+    const common::Hash256 code_hash_;
     log::Logger logger_;
   };
 

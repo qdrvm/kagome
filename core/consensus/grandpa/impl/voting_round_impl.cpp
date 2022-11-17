@@ -11,7 +11,7 @@
 #include "common/visitor.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
-#include "consensus/grandpa/impl/voting_round_error.hpp"
+#include "consensus/grandpa/voting_round_error.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -782,8 +782,13 @@ namespace kagome::consensus::grandpa {
               signed_precommit.id, signed_precommit.getBlockHash());
           success) {
         // New vote
+        auto weight_opt = voter_set_->voterWeight(signed_precommit.id);
+        if (!weight_opt) {
+          SL_DEBUG(logger_, "Voter {} is not in the current voter set", signed_precommit.id.toHex());
+          continue;
+        }
         if (env_->hasAncestry(vote.hash, signed_precommit.getBlockHash())) {
-          total_weight += voter_set_->voterWeight(signed_precommit.id).value();
+          total_weight += weight_opt.value();
         } else {
           SL_DEBUG(logger_,
                    "Vote does not have ancestry with target block: "
@@ -899,7 +904,7 @@ namespace kagome::consensus::grandpa {
     }
 
     auto result = voter_set_->indexAndWeight(proposal.id);
-    if (result == outcome::failure(VoterSet::Error::VOTER_NOT_FOUND)) {
+    if (!result) {
       if (auto ctx_opt = GrandpaContext::get()) {
         const auto &ctx = ctx_opt.value();
         ctx->unknown_voter_counter++;
@@ -968,7 +973,7 @@ namespace kagome::consensus::grandpa {
           == outcome::failure(VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR)) {
         return false;
       }
-      if (result == outcome::failure(VoterSet::Error::VOTER_NOT_FOUND)) {
+      if (result == outcome::failure(VotingRoundError::UNKNOWN_VOTER)) {
         if (auto ctx_opt = GrandpaContext::get()) {
           const auto &ctx = ctx_opt.value();
           ctx->unknown_voter_counter++;
@@ -1138,8 +1143,12 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(vote.is<T>());
 
     // Check if voter is contained in current voter set
-    OUTCOME_TRY(index_and_weight, voter_set_->indexAndWeight(vote.id));
-    const auto &[index, weight] = index_and_weight;
+    auto index_and_weight_opt = voter_set_->indexAndWeight(vote.id);
+    if (!index_and_weight_opt) {
+      SL_DEBUG(logger_, "Voter {} is not in the current voter set", vote.id.toHex());
+      return VotingRoundError::UNKNOWN_VOTER;
+    }
+    const auto &[index, weight] = index_and_weight_opt.value();
 
     auto [type, type_str_, equivocators, tracker] =
         [&]() -> std::tuple<VoteType,
@@ -1189,8 +1198,9 @@ namespace kagome::consensus::grandpa {
           }
           SL_LOG(logger_,
                  log_lvl,
-                 "{} for block {} was not inserted with error: {}",
+                 "{} from {} for block {} was not inserted with error: {}",
                  type_str,
+                 vote.id.toHex(),
                  vote.getBlockInfo(),
                  result.error().message());
           return result.as_failure();

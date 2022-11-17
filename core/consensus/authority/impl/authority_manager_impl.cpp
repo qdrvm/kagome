@@ -14,6 +14,7 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
+#include "blockchain/block_tree_error.hpp"
 #include "common/visitor.hpp"
 #include "consensus/authority/authority_manager_error.hpp"
 #include "consensus/authority/authority_update_observer_error.hpp"
@@ -21,6 +22,7 @@
 #include "crypto/hasher.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
+#include "storage/database_error.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 using kagome::common::Buffer;
@@ -100,11 +102,9 @@ namespace kagome::authority {
   }
 
   outcome::result<std::optional<AuthoritySetId>> fetchSetIdFromTrieStorage(
-      storage::trie::TrieStorage const &trie_storage,
+      storage::trie::TrieBatch const &trie_batch,
       crypto::Hasher const &hasher,
       storage::trie::RootHash const &state) {
-    OUTCOME_TRY(batch, trie_storage.getEphemeralBatchAt(state));
-
     std::optional<AuthoritySetId> set_id_opt;
     auto current_set_id_keypart =
         hasher.twox_128(Buffer::fromString("CurrentSetId"));
@@ -113,7 +113,7 @@ namespace kagome::authority {
       auto set_id_key =
           Buffer().put(prefix_key_part).put(current_set_id_keypart);
 
-      OUTCOME_TRY(val_opt, batch->tryGet(set_id_key));
+      OUTCOME_TRY(val_opt, trie_batch.tryGet(set_id_key));
       if (val_opt.has_value()) {
         auto &val = val_opt.value();
         set_id_opt.emplace(scale::decode<AuthoritySetId>(val.get()).value());
@@ -129,11 +129,10 @@ namespace kagome::authority {
   outcome::result<std::optional<std::unique_ptr<ScheduleNode>>>
   fetchScheduleGraphRoot(storage::BufferStorage const &storage) {
     OUTCOME_TRY(opt_root, storage.tryLoad(kScheduleGraphRootKey));
-    if (not opt_root) return std::nullopt;
+    if (!opt_root) return std::nullopt;
     auto &encoded_root = opt_root.value();
-    OUTCOME_TRY(root,
-                scale::decode<std::unique_ptr<ScheduleNode>>(encoded_root));
-    return std::make_optional(std::move(root));
+    OUTCOME_TRY(root, scale::decode<ScheduleNode>(encoded_root));
+    return std::make_unique<ScheduleNode>(std::move(root));
   }
 
   outcome::result<void> storeScheduleGraphRoot(storage::BufferStorage &storage,
@@ -170,7 +169,7 @@ namespace kagome::authority {
 
     for (auto hash = finalized_block.hash; !found_set_change;) {
       auto header_res = block_tree.getBlockHeader(hash);
-      if (header_res.has_error()) {
+      if (!header_res) {
         SL_ERROR(
             log, "Failed to obtain the last finalized block header {}", hash);
       }
@@ -244,10 +243,12 @@ namespace kagome::authority {
     BOOST_UNREACHABLE_RETURN({})
   }
 
+  AuthorityManagerImpl::~AuthorityManagerImpl() {}
+
   bool AuthorityManagerImpl::prepare() {
     const auto finalized_block = block_tree_->getLastFinalized();
     auto res = initializeAt(finalized_block);
-    if (res.has_error()) {
+    if (!res) {
       SL_ERROR(log_,
                "Error initializing authority manager: {}",
                res.error().message());
@@ -268,27 +269,31 @@ namespace kagome::authority {
                 block_tree_->getBlockHeader(graph_root_block.hash));
 
     auto set_id_from_runtime_res = readSetIdFromRuntime(root_header);
+    auto set_id_from_runtime_opt = set_id_from_runtime_res.has_value()
+                                       ? set_id_from_runtime_res.value()
+                                       : std::nullopt;
 
     OUTCOME_TRY(opt_root, fetchScheduleGraphRoot(*persistent_storage_));
     auto last_finalized_block = block_tree_->getLastFinalized();
+
     if (opt_root
         && opt_root.value()->current_block.number
                <= last_finalized_block.number) {
       // TODO(Harrm): #1334
       // Correction to bypass the bug where after finishing syncing
       // and restarting the node we get a set id off by one
-      if (set_id_from_runtime_res.has_value()
+      if (set_id_from_runtime_opt.has_value()
           && opt_root.value()->current_authorities->id
-                 == set_id_from_runtime_res.value() - 1) {
+                 == set_id_from_runtime_opt.value() - 1) {
         auto &authority_list =
             opt_root.value()->current_authorities->authorities;
         opt_root.value()->current_authorities =
             std::make_shared<primitives::AuthoritySet>(
-                set_id_from_runtime_res.value(), authority_list);
+                set_id_from_runtime_opt.value(), authority_list);
       }
 
       root_ = std::move(opt_root.value());
-      SL_TRACE(log_,
+      SL_DEBUG(log_,
                "Fetched authority set graph root from database with id {}",
                root_->current_authorities->id);
 
@@ -299,7 +304,8 @@ namespace kagome::authority {
           std::make_shared<primitives::AuthoritySet>(
               0, std::move(initial_authorities)),
           {0, genesis_hash});
-    } else if (set_id_from_runtime_res.has_value()){
+    } else if (set_id_from_runtime_res.has_value()
+               && set_id_from_runtime_opt.has_value()) {
       SL_WARN(
           log_,
           "Storage does not contain valid info about the root authority set; "
@@ -309,7 +315,7 @@ namespace kagome::authority {
                   grandpa_api_->authorities(graph_root_block.hash));
 
       auto authority_set = std::make_shared<primitives::AuthoritySet>(
-          set_id_from_runtime_res.value(), std::move(authorities));
+          set_id_from_runtime_opt.value(), std::move(authorities));
       root_ = authority::ScheduleNode::createAsRoot(authority_set,
                                                     graph_root_block);
 
@@ -319,7 +325,9 @@ namespace kagome::authority {
                "storage",
                root_->current_authorities->id);
     } else {
-      SL_ERROR(log_, "Failed to initialize authority manager; Try running recovery mode");
+      SL_ERROR(
+          log_,
+          "Failed to initialize authority manager; Try running recovery mode");
       return set_id_from_runtime_res.as_failure();
     }
 
@@ -349,18 +357,39 @@ namespace kagome::authority {
     return outcome::success();
   }
 
-  outcome::result<AuthoritySetId> AuthorityManagerImpl::readSetIdFromRuntime(
+  outcome::result<std::optional<AuthoritySetId>>
+  AuthorityManagerImpl::readSetIdFromRuntime(
       primitives::BlockHeader const &header) const {
     AuthoritySetId set_id{};
+
+    auto batch_res = trie_storage_->getEphemeralBatchAt(header.state_root);
+    if (batch_res.has_error()) {
+      if (batch_res.error() == storage::DatabaseError::NOT_FOUND) {
+        SL_DEBUG(log_,
+                 "Failed to fetch set id from trie storage: state {} is not in "
+                 "the storage",
+                 header.state_root);
+        return std::nullopt;
+      }
+      return batch_res.as_failure();
+    }
+
     OUTCOME_TRY(hash, primitives::calculateBlockHash(header, *hasher_));
     auto set_id_res = grandpa_api_->current_set_id(hash);
     if (set_id_res) {
       set_id = set_id_res.value();
     } else {
-      OUTCOME_TRY(set_id_,
-                  fetchSetIdFromTrieStorage(
-                      *trie_storage_, *hasher_, header.state_root));
-      set_id = set_id_.value();
+      auto &batch = batch_res.value();
+
+      OUTCOME_TRY(
+          set_id_opt,
+          fetchSetIdFromTrieStorage(*batch, *hasher_, header.state_root));
+      if (set_id_opt) return set_id_opt.value();
+
+      SL_DEBUG(log_,
+               "Failed to read authority set id from runtime (attempted both "
+               "GrandpaApi_current_set_id and trie storage)");
+      return std::nullopt;
     }
     return set_id;
   }
@@ -370,6 +399,7 @@ namespace kagome::authority {
     auto genesis_hash = block_tree_->getGenesisBlockHash();
 
     OUTCOME_TRY(initial_authorities, grandpa_api_->authorities(genesis_hash));
+    primitives::BlockInfo genesis_info{0, block_tree_->getGenesisBlockHash()};
 
     root_ = ScheduleNode::createAsRoot(
         std::make_shared<primitives::AuthoritySet>(0, initial_authorities),
@@ -379,19 +409,15 @@ namespace kagome::authority {
     // if state is pruned
     if (header_repo_->getBlockHeader(1).has_error()) {
       SL_WARN(log_,
-              "Can't recalculate authority set id on a prune state, fall back "
-              "to fetching from runtime");
+              "Can't recalculate authority set id on a prune state, fall"
+              " back to fetching from runtime");
       return clearScheduleGraphRoot(*persistent_storage_);
     }
 
     auto start = std::chrono::steady_clock::now();
     for (primitives::BlockNumber number = 0; number <= last_finalized_number;
          number++) {
-      auto header_res = header_repo_->getBlockHeader(number);
-      if (!header_res)
-        continue;  // Temporary workaround about the justification pruning bug
-      auto &header = header_res.value();
-
+      OUTCOME_TRY(header, header_repo_->getBlockHeader(number));
       OUTCOME_TRY(hash, header_repo_->getHashByNumber(number));
       primitives::BlockInfo info{number, hash};
 
@@ -451,6 +477,9 @@ namespace kagome::authority {
                "Pick authority set with id {} for block {}",
                adjusted_node->current_authorities->id,
                target_block);
+      for (auto &authority : adjusted_node->current_authorities->authorities) {
+        SL_TRACE(log_, "Authority {}: {}", authority.id.id, authority.weight);
+      }
       return adjusted_node->current_authorities;
     }
 
@@ -501,7 +530,7 @@ namespace kagome::authority {
 
       size_t index = 0;
       for (auto &authority : *new_authorities) {
-        SL_DEBUG(log_,
+        SL_TRACE(log_,
                  "New authority ({}/{}): id={} weight={}",
                  ++index,
                  new_authorities->authorities.size(),
@@ -555,8 +584,7 @@ namespace kagome::authority {
       OUTCOME_TRY(schedule_change(ancestor_node));
     } else {
       KAGOME_PROFILE_START(make_descendant)
-      auto new_node =
-          ancestor_node->makeDescendant(block, is_ancestor_node_finalized);
+      auto new_node = ancestor_node->makeDescendant(block, true);
       KAGOME_PROFILE_END(make_descendant)
 
       if (maybe_set.has_value()) {
@@ -633,7 +661,7 @@ namespace kagome::authority {
 
       size_t index = 0;
       for (auto &authority : *new_authorities) {
-        SL_DEBUG(log_,
+        SL_TRACE(log_,
                  "New authority ({}/{}): id={} weight={}",
                  ++index,
                  new_authorities->authorities.size(),
@@ -794,7 +822,7 @@ namespace kagome::authority {
                message.consensus_engine_id.toString());
 
       OUTCOME_TRY(decoded, message.decode());
-      auto res = visit_in_place(
+      return visit_in_place(
           decoded.asGrandpaDigest(),
           [this, &block](
               const primitives::ScheduledChange &msg) -> outcome::result<void> {
@@ -806,19 +834,20 @@ namespace kagome::authority {
                 block, msg.authorities, msg.delay_start, msg.subchain_length);
           },
           [this, &block](const primitives::OnDisabled &msg) {
+            SL_DEBUG(log_, "OnDisabled {}", msg.authority_index);
             return applyOnDisabled(block, msg.authority_index);
           },
           [this, &block](const primitives::Pause &msg) {
+            SL_DEBUG(log_, "Pause {}", msg.subchain_length);
             return applyPause(block, block.number + msg.subchain_length);
           },
           [this, &block](const primitives::Resume &msg) {
+            SL_DEBUG(log_, "Resume {}", msg.subchain_length);
             return applyResume(block, block.number + msg.subchain_length);
           },
           [](auto &) {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
           });
-      return res;
-
     } else if (message.consensus_engine_id == primitives::kBabeEngineId
                or message.consensus_engine_id
                       == primitives::kUnsupportedEngineId_BEEF
@@ -886,8 +915,10 @@ namespace kagome::authority {
     while (ancestor->current_block != block) {
       bool goto_next_generation = false;
       for (const auto &node : ancestor->descendants) {
-        if (node->current_block == block
-            || directChainExists(node->current_block, block)) {
+        if (node->current_block == block) {
+          return node;
+        }
+        if (directChainExists(node->current_block, block)) {
           ancestor = node;
           goto_next_generation = true;
           break;
@@ -987,5 +1018,4 @@ namespace kagome::authority {
       ancestor->descendants.erase(it);
     }
   }
-
 }  // namespace kagome::authority

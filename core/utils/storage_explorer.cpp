@@ -38,8 +38,8 @@ class CommandExecutionError : public std::runtime_error {
 
   friend std::ostream &operator<<(std::ostream &out,
                                   CommandExecutionError const &err) {
-    return out << "Error in command '" << err.command_name << ": " << err.what()
-               << "\n";
+    return out << "Error in command '" << err.command_name
+               << "': " << err.what() << "\n";
   }
 
  private:
@@ -82,9 +82,8 @@ class Command {
   }
 
   template <typename T>
-  const T &unwrapResult(std::string_view context,
-                        outcome::result<T> const &res) const {
-    if (res.has_value()) return res.value();
+  T unwrapResult(std::string_view context, outcome::result<T> &&res) const {
+    if (res.has_value()) return std::move(res).value();
     throwError("{}: {}", context, res.error().message());
   }
 
@@ -112,9 +111,9 @@ class CommandParser {
       try {
         command->second->execute(std::cout, cmd_args);
       } catch (CommandExecutionError &e) {
-        std::cerr << e;
+        std::cerr << "Command execution error: " << e;
       } catch (std::exception &e) {
-        std::cerr << e.what();
+        std::cerr << "Exception occurred: " << e.what();
       }
     } else {
       std::cerr << "Unknown command '" << args[1]
@@ -349,14 +348,14 @@ class SearchChainCommand : public Command {
     auto start_header_opt = unwrapResult("Getting 'start' block header",
                                          block_storage->getBlockHeader(start));
     if (!start_header_opt) {
-      throwError("'Start' block header not found");
+      throwError("Start block header {} not found", start);
     }
     auto &start_header = start_header_opt.value();
 
     auto end_header_opt = unwrapResult("Getting 'end' block header",
                                        block_storage->getBlockHeader(end));
     if (!end_header_opt) {
-      throwError("'End' block header not found");
+      throwError("'End block header {} not found", end);
     }
     auto &end_header = end_header_opt.value();
 
@@ -415,36 +414,18 @@ class SearchChainCommand : public Command {
                                     consensus_digest->decode());
         if (decoded.consensus_engine_id
             == kagome::primitives::kGrandpaEngineId) {
-          auto info = reportAuthorityUpdate(
-              out, header.number, decoded.asGrandpaDigest());
-          if (info.id_changed) {
-            auto res = kagome::authority::fetchSetIdFromTrieStorage(
-                *trie_storage, *hasher, header.state_root);
-            if (res.has_error()) {
-              std::cerr << "Error fetching authority set id from storage: "
-                        << res.error().message() << "\n";
-              continue;
-            }
-            std::cout << "Set id fetched from storage: "
-                      << res.value().value_or(-1) << "\n";
-          }
+          reportAuthorityUpdate(out, header.number, decoded.asGrandpaDigest());
         }
       }
     }
   }
 
-  struct AuthorityUpdateInfo {
-    bool id_changed = false;
-  };
-
-  AuthorityUpdateInfo reportAuthorityUpdate(std::ostream &out,
+  void reportAuthorityUpdate(std::ostream &out,
                                             BlockNumber digest_origin,
                                             GrandpaDigest const &digest) const {
     using namespace kagome::primitives;
-    bool has_id_change = false;
     if (auto *scheduled_change = boost::get<ScheduledChange>(&digest);
         scheduled_change) {
-      has_id_change = true;
       out << "ScheduledChange at #" << digest_origin << " for ";
       if (scheduled_change->subchain_length > 0) {
         out << "#" << digest_origin + scheduled_change->subchain_length;
@@ -455,7 +436,6 @@ class SearchChainCommand : public Command {
 
     } else if (auto *forced_change = boost::get<ForcedChange>(&digest);
                forced_change) {
-      has_id_change = true;
       out << "ForcedChange at " << digest_origin << ", delay starts at #"
           << forced_change->delay_start << " for "
           << forced_change->subchain_length << " blocks (so activates at #"
@@ -474,7 +454,6 @@ class SearchChainCommand : public Command {
       out << "Disabled at " << digest_origin << " for authority "
           << disabled->authority_index << "\n";
     }
-    return {.id_changed = has_id_change};
   }
 
   std::shared_ptr<BlockStorage> block_storage;

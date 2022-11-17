@@ -9,6 +9,7 @@
 #include <scale/scale.hpp>
 
 #include "application/app_state_manager.hpp"
+#include "blockchain/digest_tracker.hpp"
 #include "storage/buffer_map_types.hpp"
 #include "storage/predefined_keys.hpp"
 
@@ -18,17 +19,16 @@ namespace kagome::consensus::babe {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<authority::AuthorityUpdateObserver>
-          authority_update_observer)
+      std::shared_ptr<blockchain::DigestTracker> digest_tracker)
       : app_state_manager_(std::move(app_state_manager)),
         storage_(std::move(storage)),
         block_tree_(std::move(block_tree)),
-        authority_update_observer_(std::move(authority_update_observer)),
+        digest_tracker_(std::move(digest_tracker)),
         logger_{log::createLogger("ConsistencyKeeper", "block_executor")} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(authority_update_observer_ != nullptr);
+    BOOST_ASSERT(digest_tracker_ != nullptr);
 
     app_state_manager_->atPrepare([&] { return prepare(); });
   }
@@ -55,7 +55,7 @@ namespace kagome::consensus::babe {
       auto &block = block_res.value();
 
       SL_WARN(logger_,
-              "Found partial applied block {}. Trying to rollback him",
+              "Found partial applied block {}. Trying to rollback it",
               block);
 
       rollback(block);
@@ -94,8 +94,8 @@ namespace kagome::consensus::babe {
   }
 
   void ConsistencyKeeperImpl::rollback(primitives::BlockInfo block) {
-    // Remove possible authority changes scheduled on block
-    authority_update_observer_->cancel(block);
+    // Cancel tracked block digest
+    digest_tracker_->cancel(block);
 
     // Remove block as leaf of block tree
     auto removal_res = block_tree_->removeLeaf(block.hash);
