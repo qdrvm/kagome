@@ -220,8 +220,7 @@ namespace kagome::network {
   using SignedBitfield = Signed<scale::BitVec>;
 
   /// A succinct representation of a peer's view. This consists of a bounded
-  /// amount of chain heads
-  /// and the highest known finalized block number.
+  /// amount of chain heads and the highest known finalized block number.
   ///
   /// Up to `N` (5?) chain heads.
   /// The rust representation:

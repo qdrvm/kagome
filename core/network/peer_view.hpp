@@ -20,11 +20,14 @@
 
 namespace kagome::network {
 
-  class PeerView : public NonCopyable,
-                   public NonMovable,
-                   public std::enable_shared_from_this<PeerView> {
+  /**
+   * Observable class for current heads and finalized block number tracking.
+   */
+  class PeerView final : public NonCopyable,
+                         public NonMovable,
+                         public std::enable_shared_from_this<PeerView> {
    public:
-    enum struct EventType : uint32_t { kViewUpdated };
+    enum struct EventType : uint32_t { kViewUpdated, kPeerRemoved };
 
     using PeerId = libp2p::peer::PeerId;
 
@@ -44,9 +47,9 @@ namespace kagome::network {
 
     PeerView(const primitives::events::ChainSubscriptionEnginePtr
                  &chain_events_engine,
-             std::shared_ptr<application::AppStateManager> asmgr,
+             std::shared_ptr<application::AppStateManager> app_state_manager,
              std::shared_ptr<blockchain::BlockTree> block_tree);
-    virtual ~PeerView() = default;
+    ~PeerView() = default;
 
     /**
      * Object lifetime control subsystem.
@@ -58,6 +61,7 @@ namespace kagome::network {
     MyViewSubscriptionEnginePtr getMyViewObservable();
     PeerViewSubscriptionEnginePtr getRemoteViewObservable();
 
+    void removePeer(const PeerId &peer_id);
     void updateRemoteView(const PeerId &peer_id, network::View &&view);
     std::optional<std::reference_wrapper<const View>> getMyView() const;
 

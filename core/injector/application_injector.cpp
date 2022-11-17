@@ -663,7 +663,8 @@ namespace {
         injector.template create<sptr<network::Router>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<network::ReputationRepository>>());
+        injector.template create<sptr<network::ReputationRepository>>(),
+        injector.template create<sptr<network::PeerView>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -719,21 +720,6 @@ namespace {
       protocol_factory->setCollactionObserver(instance);
       protocol_factory->setReqCollationObserver(instance);
       return instance;
-    };
-
-    static auto instance = get_instance();
-    return instance;
-  }
-
-  template <typename Injector>
-  sptr<network::PeerView> get_peer_view(const Injector &injector) {
-    auto get_instance = [&]() {
-      return std::make_shared<network::PeerView>(
-          injector.template create<
-              primitives::events::ChainSubscriptionEnginePtr>(),
-          injector
-              .template create<std::shared_ptr<application::AppStateManager>>(),
-          injector.template create<blockchain::BlockTree>());
     };
 
     static auto instance = get_instance();
@@ -1235,8 +1221,6 @@ namespace {
             [](auto const &injector) {
               return get_parachain_processor_impl(injector);
             }),
-        di::bind<network::PeerView>.to(
-            [](auto const &injector) { return get_peer_view(injector); }),
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =

@@ -11,7 +11,7 @@ namespace kagome::network {
 
   PeerView::PeerView(
       const primitives::events::ChainSubscriptionEnginePtr &chain_events_engine,
-      std::shared_ptr<application::AppStateManager> asmgr,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree)
       : chain_events_engine_{chain_events_engine},
         my_view_update_observable_{
@@ -21,7 +21,7 @@ namespace kagome::network {
         block_tree_{std::move(block_tree)} {
     BOOST_ASSERT(chain_events_engine_);
     BOOST_ASSERT(block_tree_);
-    asmgr->takeControl(*this);
+    app_state_manager->takeControl(*this);
   }
 
   bool PeerView::start() {
@@ -50,10 +50,11 @@ namespace kagome::network {
             if (auto const value =
                     if_type<const primitives::events::HeadsEventParams>(
                         event)) {
-              self->updateMyView(
-                  View{.heads_ = self->block_tree_->getLeaves(),
-                       .finalized_number_ =
-                           self->block_tree_->getLastFinalized().number});
+              self->updateMyView(View{
+                  .heads_ = self->block_tree_->getLeaves(),
+                  .finalized_number_ =
+                      self->block_tree_->getLastFinalized().number,
+              });
             }
           }
         });
@@ -78,6 +79,15 @@ namespace kagome::network {
 
       BOOST_ASSERT(my_view_);
       my_view_update_observable_->notify(EventType::kViewUpdated, *my_view_);
+    }
+  }
+
+  void PeerView::removePeer(const PeerId &peer_id) {
+    if (auto it = remote_view_.find(peer_id); it != remote_view_.end()) {
+      network::View old_view{std::move(it->second)};
+      remote_view_.erase(peer_id);
+      remote_view_update_observable_->notify(
+          EventType::kPeerRemoved, peer_id, std::move(old_view));
     }
   }
 
