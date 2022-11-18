@@ -865,7 +865,6 @@ namespace {
       application::AppConfiguration::RuntimeExecutionMethod method,
       Ts &&...args) {
     return di::make_injector(
-        di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<runtime::RuntimeUpgradeTrackerImpl>.template to(
             [](auto const &injector) {
               return get_runtime_upgrade_tracker(injector);
@@ -1185,7 +1184,6 @@ namespace {
           return get_key_file_storage(config, chain_spec);
         }),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
-        di::bind<host_api::HostApi>.template to<host_api::HostApiImpl>(),
         di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
         makeRuntimeInjector(config.runtimeExecMethod()),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
