@@ -75,11 +75,11 @@ namespace kagome::thread {
     ThreadPool &operator=(const ThreadPool &) = delete;
     ThreadPool &operator=(ThreadPool &&) = delete;
 
-    ThreadPool(std::shared_ptr<application::AppStateManager> asmgr,
+    ThreadPool(std::shared_ptr<application::AppStateManager> app_state_manager,
                size_t thread_count = 5ull)
         : thread_count_{thread_count} {
       BOOST_ASSERT(thread_count_ > 0);
-      asmgr->takeControl(*this);
+      app_state_manager->takeControl(*this);
     }
 
     ThreadPool(size_t thread_count = 5ull) : thread_count_{thread_count} {
