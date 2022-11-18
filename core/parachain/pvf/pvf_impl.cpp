@@ -84,14 +84,17 @@ namespace kagome::parachain {
     BlockNumber hrmp_watermark;
   };
 
-  PvfImpl::PvfImpl(std::shared_ptr<crypto::Hasher> hasher,
-                   std::shared_ptr<runtime::ModuleFactory> module_factory,
-                   std::shared_ptr<blockchain::BlockHeaderRepository>
-                       block_header_repository,
-                   std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-                   std::shared_ptr<runtime::ParachainHost> parachain_api)
+  PvfImpl::PvfImpl(
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<runtime::ModuleFactory> module_factory,
+      std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
+      std::shared_ptr<blockchain::BlockHeaderRepository>
+          block_header_repository,
+      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<runtime::ParachainHost> parachain_api)
       : hasher_{std::move(hasher)},
         module_factory_{std::move(module_factory)},
+        runtime_properties_cache_{std::move(runtime_properties_cache)},
         block_header_repository_{std::move(block_header_repository)},
         sr25519_provider_{std::move(sr25519_provider)},
         parachain_api_{std::move(parachain_api)},
@@ -188,7 +191,8 @@ namespace kagome::parachain {
         std::make_shared<DontProvideCode>(),
         std::make_shared<ReturnModuleInstance>(instance),
         block_header_repository_);
-    auto executor = std::make_unique<runtime::Executor>(env_factory, nullptr);
+    auto executor = std::make_unique<runtime::Executor>(
+        env_factory, runtime_properties_cache_);
     return executor->callAtGenesis<ValidationResult>("validate_block", params);
   }
 

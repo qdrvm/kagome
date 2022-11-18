@@ -13,6 +13,7 @@
 #include "log/logger.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+#include "runtime/runtime_properties_cache.hpp"
 
 namespace kagome::parachain {
   enum class PvfError {
@@ -38,6 +39,8 @@ namespace kagome::parachain {
    public:
     PvfImpl(std::shared_ptr<crypto::Hasher> hasher,
             std::shared_ptr<runtime::ModuleFactory> module_factory,
+            std::shared_ptr<runtime::RuntimePropertiesCache>
+                runtime_properties_cache,
             std::shared_ptr<blockchain::BlockHeaderRepository>
                 block_header_repository,
             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
@@ -60,6 +63,7 @@ namespace kagome::parachain {
 
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::ModuleFactory> module_factory_;
+    std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
