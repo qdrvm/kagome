@@ -24,7 +24,7 @@
 
 class WavmRuntimeTest : public RuntimeTestBase {
  public:
-  virtual std::shared_ptr<kagome::runtime::ModuleFactory> createModuleFactory()
+  std::shared_ptr<kagome::runtime::ModuleFactory> createModuleFactory()
       override {
     auto compartment =
         std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
@@ -52,7 +52,8 @@ class WavmRuntimeTest : public RuntimeTestBase {
             host_api_factory_,
             header_repo_,
             changes_tracker,
-            std::make_shared<kagome::runtime::SingleModuleCache>());
+            std::make_shared<kagome::runtime::SingleModuleCache>(),
+            cache_);
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
@@ -60,7 +61,8 @@ class WavmRuntimeTest : public RuntimeTestBase {
             module_params,
             instance_env_factory,
             intrinsic_module,
-            std::nullopt);
+            std::nullopt,
+            hasher_);
 
     return module_factory;
   }

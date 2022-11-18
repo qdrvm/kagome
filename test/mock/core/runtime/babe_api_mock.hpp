@@ -16,7 +16,7 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD(outcome::result<primitives::BabeConfiguration>,
                 configuration,
-                (),
+                (const primitives::BlockHash &block),
                 (override));
   };
 

@@ -20,11 +20,22 @@
 #include "runtime/module_instance.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/persistent_result.hpp"
+#include "runtime/runtime_api/metadata.hpp"
 #include "runtime/runtime_environment_factory.hpp"
+#include "runtime/runtime_properties_cache.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
+
+#ifdef __has_builtin
+#if __has_builtin(__builtin_expect)
+#define likely(x) __builtin_expect((x), 1)
+#endif
+#endif
+#ifndef likely
+#define likely(x) (x)
+#endif
 
 namespace kagome::runtime {
 
@@ -37,8 +48,10 @@ namespace kagome::runtime {
    public:
     using Buffer = common::Buffer;
 
-    Executor(std::shared_ptr<RuntimeEnvironmentFactory> env_factory)
-        : env_factory_{std::move(env_factory)},
+    Executor(std::shared_ptr<RuntimeEnvironmentFactory> env_factory,
+             std::shared_ptr<RuntimePropertiesCache> cache)
+        : env_factory_(std::move(env_factory)),
+          cache_(std::move(cache)),
           logger_{log::createLogger("Executor", "runtime")} {
       BOOST_ASSERT(env_factory_ != nullptr);
     }
@@ -131,7 +144,8 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
-      return callInternal<Result>(*env, name, std::forward<Args>(args)...);
+      return callMediateInternal<Result>(
+          *env, name, std::forward<Args>(args)...);
     }
 
     /**
@@ -145,7 +159,8 @@ namespace kagome::runtime {
                                    Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->make());
-      return callInternal<Result>(*env, name, std::forward<Args>(args)...);
+      return callMediateInternal<Result>(
+          *env, name, std::forward<Args>(args)...);
     }
 
     /**
@@ -158,7 +173,8 @@ namespace kagome::runtime {
                                           Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
       OUTCOME_TRY(env, env_template->make());
-      return callInternal<Result>(*env, name, std::forward<Args>(args)...);
+      return callMediateInternal<Result>(
+          *env, name, std::forward<Args>(args)...);
     }
 
     outcome::result<common::Buffer> callAtRaw(
@@ -185,6 +201,36 @@ namespace kagome::runtime {
     }
 
    private:
+    /**
+     * Internal method for calling a Runtime API method
+     * Resets the runtime memory with the module's heap base,
+     * encodes the arguments with SCALE codec, calls the method from the
+     * provided module instance and  returns a result, decoded from SCALE.
+     * Changes, made to the Host API state, are reset after the call.
+     */
+    template <typename Result, typename... Args>
+    inline outcome::result<Result> callMediateInternal(RuntimeEnvironment &env,
+                                                       std::string_view name,
+                                                       Args &&...args) {
+      if constexpr (std::is_same_v<Result, primitives::Version>) {
+        if (likely(name == "Core_version")) {
+          return cache_->getVersion(env.module_instance->getCodeHash(), [&] {
+            return callInternal<Result>(env, name, std::forward<Args>(args)...);
+          });
+        }
+      }
+
+      if constexpr (std::is_same_v<Result, primitives::OpaqueMetadata>) {
+        if (likely(name == "Metadata_metadata")) {
+          return cache_->getMetadata(env.module_instance->getCodeHash(), [&] {
+            return callInternal<Result>(env, name, std::forward<Args>(args)...);
+          });
+        }
+      }
+
+      return callInternal<Result>(env, name, std::forward<Args>(args)...);
+    }
+
     /**
      * Internal method for calling a Runtime API method
      * Resets the runtime memory with the module's heap base,
@@ -254,9 +300,12 @@ namespace kagome::runtime {
     }
 
     std::shared_ptr<RuntimeEnvironmentFactory> env_factory_;
+    std::shared_ptr<RuntimePropertiesCache> cache_;
     log::Logger logger_;
   };
 
 }  // namespace kagome::runtime
+
+#undef likely
 
 #endif  // KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP

@@ -73,12 +73,6 @@ namespace kagome::blockchain {
         const primitives::BlockId &block) const = 0;
 
     /**
-     * Method to get actual runtime version.
-     * @return runtime version.
-     */
-    virtual std::optional<primitives::Version> runtimeVersion() const = 0;
-
-    /**
      * Adds header to the storage
      * @param header that we are adding
      * @return result with success if header's parent exists on storage and new
@@ -224,15 +218,6 @@ namespace kagome::blockchain {
      * @return hash of the block
      */
     virtual primitives::BlockInfo getLastFinalized() const = 0;
-
-    /**
-     * Finds epoch descriptor for epoch with index {@param epoch_number}.
-     * Search starts of block with hash {@param block_hash}.
-     * @returns epoch descriptor, or error if it impossible.
-     */
-    virtual outcome::result<consensus::EpochDigest> getEpochDigest(
-        consensus::EpochNumber epoch_number,
-        primitives::BlockHash block_hash) const = 0;
   };
 
 }  // namespace kagome::blockchain

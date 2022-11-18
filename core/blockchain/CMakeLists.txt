@@ -41,3 +41,12 @@ target_link_libraries(block_tree_error
     outcome
     )
 kagome_install(block_tree_error)
+
+add_library(digest_tracker
+    impl/digest_tracker_impl.cpp
+    )
+target_link_libraries(digest_tracker
+    blockchain_common
+    )
+kagome_install(digest_tracker)
+

@@ -60,15 +60,6 @@ target_link_libraries(block_executor
     consistency_keeper
     )
 
-add_library(babe_util
-    babe_util_impl.cpp
-    )
-target_link_libraries(babe_util
-    primitives
-    scale::scale
-    babe_digests_util
-    )
-
 add_library(consistency_keeper
     consistency_keeper_impl.cpp
     )
@@ -79,9 +70,11 @@ target_link_libraries(consistency_keeper
 
 add_library(babe_config_repository
     babe_config_repository_impl.cpp
+    babe_config_node.cpp
     )
 target_link_libraries(babe_config_repository
     primitives
+    scale::scale
     )
 
 add_library(babe

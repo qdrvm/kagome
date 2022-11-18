@@ -13,6 +13,8 @@ namespace kagome::consensus {
     TIMER_ERROR = 1,
     NODE_FALL_BEHIND,
     MISSING_PROOF,
+    BAD_ORDER_OF_DIGEST_ITEM,
+    UNKNOWN_DIGEST_TYPE,
   };
 }
 

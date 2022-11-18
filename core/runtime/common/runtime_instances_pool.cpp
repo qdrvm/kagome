@@ -32,20 +32,28 @@ namespace kagome::runtime {
       }
     }
 
+    const common::Hash256 &getCodeHash() const override {
+      return instance_->getCodeHash();
+    }
+
     outcome::result<PtrSize> callExportFunction(
         std::string_view name, common::BufferView encoded_args) const override {
       return instance_->callExportFunction(name, encoded_args);
     }
+
     outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const override {
       return instance_->getGlobal(name);
     }
+
     void forDataSegment(DataSegmentProcessor const &callback) const override {
       return instance_->forDataSegment(callback);
     }
+
     InstanceEnvironment const &getEnvironment() const override {
       return instance_->getEnvironment();
     }
+
     outcome::result<void> resetEnvironment() override {
       return instance_->resetEnvironment();
     }
@@ -86,15 +94,18 @@ namespace kagome::runtime {
 
     pool.emplace(std::move(instance));
   }
+
   std::optional<std::shared_ptr<Module>> RuntimeInstancesPool::getModule(
       const RuntimeInstancesPool::RootHash &state) {
     std::lock_guard guard{mt_};
     return modules_.get(state);
   }
+
   void RuntimeInstancesPool::putModule(
       const RuntimeInstancesPool::RootHash &state,
       std::shared_ptr<Module> module) {
     std::lock_guard guard{mt_};
     modules_.put(state, std::move(module));
   }
+
 }  // namespace kagome::runtime

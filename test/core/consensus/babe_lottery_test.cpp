@@ -41,7 +41,7 @@ struct BabeLotteryTest : public testing::Test {
   BabeConfiguration babe_config_{
       .epoch_length = 3,
       .leadership_rate = {},
-      .genesis_authorities = {},
+      .authorities = {},
       .randomness = {},
       .allowed_slots = {},
   };

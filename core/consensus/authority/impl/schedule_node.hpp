@@ -80,10 +80,9 @@ namespace kagome::authority {
 
     friend inline ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, ScheduleNode &node) {
-      s >> node.enabled
-          >> const_cast<primitives::BlockInfo &>(node.current_block)
-          >> node.current_authorities >> node.action;
-      return s;
+      return s >> node.enabled
+             >> const_cast<primitives::BlockInfo &>(node.current_block)
+             >> node.current_authorities >> node.action;
     }
 
     const primitives::BlockInfo current_block{};

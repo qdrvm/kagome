@@ -25,6 +25,10 @@ namespace kagome::blockchain {
   class BlockHeaderRepository;
 }
 
+namespace kagome::runtime {
+  class RuntimePropertiesCache;
+}
+
 namespace kagome::runtime::binaryen {
 
   class RuntimeExternalInterface;
@@ -42,7 +46,8 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
+        std::shared_ptr<RuntimePropertiesCache> cache);
 
     [[nodiscard]] BinaryenInstanceEnvironment make() const;
 
@@ -52,6 +57,7 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
+    std::shared_ptr<RuntimePropertiesCache> cache_;
   };
 
 }  // namespace kagome::runtime::binaryen
