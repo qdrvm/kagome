@@ -10,6 +10,8 @@ cd "$(dirname $0)/.."
 
 git submodule update --init
 
+ccache --max-size 2G
+
 cmake . -B${BUILD_DIR} "$@"
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
   cmake --build "${BUILD_DIR}" -- -j${BUILD_THREADS}

@@ -26,6 +26,8 @@ EXTERNAL_PROJECT_BINARY_DIR="$BUILD_DIR"
 
 mkdir -p "$EXTERNAL_PROJECT_BINARY_DIR"
 
+ccache --max-size 2G
+
 cmake -B "$EXTERNAL_PROJECT_BINARY_DIR" "$@"
 BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) + 1 ))}"
 cmake --build "$EXTERNAL_PROJECT_BINARY_DIR" --target "${BUILD_TARGET}" -- -j${BUILD_THREADS}
