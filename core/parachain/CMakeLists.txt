@@ -14,4 +14,5 @@ target_link_libraries(validator_parachain
     req_collation_protocol
     collation_protocol
     protocol_error
+    peer_view
     )
