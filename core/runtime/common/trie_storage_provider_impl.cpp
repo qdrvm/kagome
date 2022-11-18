@@ -41,6 +41,7 @@ namespace kagome::runtime {
              "Setting storage provider to ephemeral batch with root {}",
              state_root.toHex());
     OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(state_root));
+    persistent_batch_.reset();
     current_batch_ = std::move(batch);
     return outcome::success();
   }

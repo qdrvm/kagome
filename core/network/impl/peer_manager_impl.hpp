@@ -31,6 +31,7 @@
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/impl/protocols/protocol_factory.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "network/peer_view.hpp"
 #include "network/protocols/sync_protocol.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/router.hpp"
@@ -70,7 +71,8 @@ namespace kagome::network {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<ReputationRepository> reputation_repository);
+        std::shared_ptr<ReputationRepository> reputation_repository,
+        std::shared_ptr<PeerView> peer_view);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -195,6 +197,7 @@ namespace kagome::network {
 
     // parachain
     ParachainState parachain_state_;
+    std::shared_ptr<PeerView> peer_view_;
 
     log::Logger log_;
   };

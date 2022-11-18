@@ -47,9 +47,9 @@ namespace kagome::runtime {
         block, "ParachainHost_validators");
   }
 
-  outcome::result<std::vector<ValidatorGroup>>
+  outcome::result<ValidatorGroupsAndDescriptor>
   ParachainHostImpl::validator_groups(const primitives::BlockHash &block) {
-    return executor_->callAt<std::vector<ValidatorGroup>>(
+    return executor_->callAt<ValidatorGroupsAndDescriptor>(
         block, "ParachainHost_validator_groups");
   }
 
@@ -87,7 +87,7 @@ namespace kagome::runtime {
                                      ParachainId id,
                                      OccupiedCoreAssumption assumption) {
     return executor_->callAt<std::optional<ValidationCode>>(
-        block, "ParachainHost_validation_code");
+        block, "ParachainHost_validation_code", id, assumption);
   }
 
   outcome::result<std::optional<ValidationCode>>
