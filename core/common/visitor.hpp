@@ -6,6 +6,7 @@
 #ifndef KAGOME_VISITOR_HPP
 #define KAGOME_VISITOR_HPP
 
+#include <optional>
 #include <type_traits>  // for std::decay
 #include <utility>      // for std::forward
 

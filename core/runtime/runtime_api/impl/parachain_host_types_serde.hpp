@@ -32,10 +32,6 @@ namespace kagome::runtime {
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           OutboundHrmpMessage &val);
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
-                                          const CandidateCommitments &val);
-  ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
-                                          CandidateCommitments &val);
-  ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
                                           const CommittedCandidateReceipt &val);
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           CommittedCandidateReceipt &val);
