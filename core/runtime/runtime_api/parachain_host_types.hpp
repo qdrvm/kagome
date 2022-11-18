@@ -35,6 +35,7 @@ namespace kagome::runtime {
   using ValidationCode = Buffer;
   using SessionIndex = uint32_t;
   using CoreIndex = uint32_t;
+  using network::ValidatorIndex;
 
   /// Information about a core which is currently occupied.
   struct ScheduledCore {
@@ -100,7 +101,8 @@ namespace kagome::runtime {
 
   using GroupDescriptor =
       std::tuple<BlockNumber, GroupRotatePeriod, BlockNumber>;
-  using ValidatorGroup = std::tuple<std::vector<ValidatorId>, GroupDescriptor>;
+  using ValidatorGroupsAndDescriptor =
+      std::tuple<std::vector<std::vector<ValidatorIndex>>, GroupDescriptor>;
   using CoreState = boost::variant<OccupiedCore,   // 0
                                    ScheduledCore,  // 1
                                    Unused<2>>;     // 2
@@ -176,7 +178,6 @@ namespace kagome::runtime {
       CandidateTimedOut  // 2
       >;
 
-  using ValidatorIndex = uint32_t;
   using AssignmentId = common::Blob<32>;
   struct SessionInfo {
     /****** New in v2 *******/
