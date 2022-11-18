@@ -64,6 +64,15 @@ namespace kagome::thread {
     }
   };
 
+  /**
+   *    Thread pool with sequenced task execution on different threads.
+   *    TODO(iceseer): refactor to the next:
+   *    execute(
+   *        task(execution_context, []{ return A;}),
+   *        task(execution_context, [](A&&){ return B; }),
+   *        task(execution_context, [](B&&){ return C; }),
+   *    )
+   */
   struct ThreadPool final : std::enable_shared_from_this<ThreadPool> {
     using WorkersContext = boost::asio::io_context;
     using WorkGuard = boost::asio::executor_work_guard<
