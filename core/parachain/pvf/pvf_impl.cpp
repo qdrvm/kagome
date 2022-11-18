@@ -188,7 +188,7 @@ namespace kagome::parachain {
         std::make_shared<DontProvideCode>(),
         std::make_shared<ReturnModuleInstance>(instance),
         block_header_repository_);
-    auto executor = std::make_unique<runtime::Executor>(env_factory);
+    auto executor = std::make_unique<runtime::Executor>(env_factory, nullptr);
     return executor->callAtGenesis<ValidationResult>("validate_block", params);
   }
 
