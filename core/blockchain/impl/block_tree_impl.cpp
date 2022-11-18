@@ -205,7 +205,7 @@ namespace kagome::blockchain {
     SL_DEBUG(log, "Last finalized block #{}", tree->depth);
     auto meta = std::make_shared<TreeMeta>(tree, last_finalized_justification);
 
-    auto *block_tree =
+    std::shared_ptr<BlockTreeImpl> block_tree(
         new BlockTreeImpl(std::move(header_repo),
                           std::move(storage),
                           std::make_unique<CachedTree>(tree, meta),
@@ -215,7 +215,7 @@ namespace kagome::blockchain {
                           std::move(extrinsic_events_engine),
                           std::move(extrinsic_event_key_repo),
                           std::move(changes_tracker),
-                          std::move(justification_storage_policy));
+                          std::move(justification_storage_policy)));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -233,7 +233,7 @@ namespace kagome::blockchain {
           log, "Existing non-finalized block {} is added to block tree", block);
     }
 
-    return std::shared_ptr<BlockTreeImpl>(block_tree);
+    return block_tree;
   }
 
   outcome::result<void> BlockTreeImpl::recover(
