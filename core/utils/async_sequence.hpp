@@ -87,8 +87,8 @@ namespace kagome {
    * First function accepts no parameters.
    * All other functions accept value.
    */
-  template <typename F1, typename... Fs>
-  auto sequenceIgnore(F1 &&f1, Fs &&...fs) {
+  template <typename... Fs>
+  auto sequenceIgnore(Fs &&...fs) {
     sequence(std::forward<Fs>(fs)..., [](auto &&) {});
   }
 }  // namespace kagome
