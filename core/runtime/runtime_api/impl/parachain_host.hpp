@@ -32,7 +32,7 @@ namespace kagome::runtime {
     outcome::result<std::vector<ValidatorId>> validators(
         const primitives::BlockHash &block) override;
 
-    outcome::result<std::vector<ValidatorGroup>> validator_groups(
+    outcome::result<ValidatorGroupsAndDescriptor> validator_groups(
         const primitives::BlockHash &block) override;
 
     outcome::result<std::vector<CoreState>> availability_cores(

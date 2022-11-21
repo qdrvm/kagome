@@ -64,7 +64,7 @@ namespace kagome::runtime {
      * number of the block.
      * @return vector of validator groups
      */
-    virtual outcome::result<std::vector<ValidatorGroup>> validator_groups(
+    virtual outcome::result<ValidatorGroupsAndDescriptor> validator_groups(
         const primitives::BlockHash &block) = 0;
 
     /**

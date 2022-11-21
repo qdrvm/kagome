@@ -119,6 +119,17 @@ namespace kagome::network {
     primitives::BlockHash
         para_head_hash;  /// Hash of the parachain head data of this candidate.
     primitives::BlockHash para_runtime_hash;  /// Hash of the parachain Runtime.
+
+    common::Buffer signable() const {
+      return common::Buffer{
+          scale::encode(relay_parent,
+                        para_id,
+                        persisted_data_hash,
+                        pov_hash,
+                        para_runtime_hash)
+              .value(),
+      };
+    }
   };
 
   /**
