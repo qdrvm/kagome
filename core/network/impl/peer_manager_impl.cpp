@@ -49,7 +49,8 @@ namespace kagome::network {
       std::shared_ptr<network::Router> router,
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<ReputationRepository> reputation_repository)
+      std::shared_ptr<ReputationRepository> reputation_repository,
+      std::shared_ptr<PeerView> peer_view)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -64,6 +65,7 @@ namespace kagome::network {
         storage_{std::move(storage)},
         hasher_{std::move(hasher)},
         reputation_repository_{std::move(reputation_repository)},
+        peer_view_{std::move(peer_view)},
         log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -74,6 +76,7 @@ namespace kagome::network {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
+    BOOST_ASSERT(peer_view_ != nullptr);
 
     // Register metrics
     registry_->registerGaugeFamily(syncPeerMetricName,
@@ -140,6 +143,7 @@ namespace kagome::network {
                 self->peer_states_.erase(peer_id);
                 self->active_peers_.erase(peer_id);
                 self->connecting_peers_.erase(peer_id);
+                self->peer_view_->removePeer(peer_id);
                 self->sync_peer_num_->set(self->active_peers_.size());
                 SL_DEBUG(self->log_,
                          "Remained {} active peers",
