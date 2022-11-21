@@ -20,7 +20,8 @@ namespace kagome {
    * Creates `io_context` and runs it on `thread_count` threads.
    */
   class ThreadPool final : NonCopyable, NonMovable {
-    ThreadPool(size_t thread_count)
+   public:
+    explicit ThreadPool(size_t thread_count)
         : io_context_{std::make_shared<boost::asio::io_context>()},
           work_guard_{io_context_->get_executor()} {
       BOOST_ASSERT(thread_count > 0);
@@ -29,9 +30,6 @@ namespace kagome {
         threads_.emplace_back([io{io_context_}] { io->run(); });
       }
     }
-
-    explicit ThreadPool(size_t thread_count)
-        : ThreadPool{thread_count, [](size_t) {}} {}
 
     ~ThreadPool() {
       io_context_->stop();
