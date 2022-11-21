@@ -1,9 +1,7 @@
-add_library(thread_pool
-        thread_pool.cpp
-        )
-target_link_libraries(thread_pool
-        Boost::boost
-        )
+#
+# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
 
 add_library(validator_parachain
     availability/bitfield/signer.cpp
@@ -20,5 +18,4 @@ target_link_libraries(validator_parachain
     collation_protocol
     protocol_error
     peer_view
-    thread_pool
     )
