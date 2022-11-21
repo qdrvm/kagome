@@ -10,7 +10,7 @@ cd "$(dirname $0)/.."
 
 git submodule update --init
 
-ccache --max-size 2G
+export CCACHE_DISABLE=1
 
 cmake . -B${BUILD_DIR} "$@"
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
