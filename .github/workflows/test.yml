@@ -60,6 +60,11 @@ jobs:
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev:4-minideb
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
         with:
