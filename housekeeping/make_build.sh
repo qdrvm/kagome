@@ -2,15 +2,13 @@
 
 BUILD_DIR="${BUILD_DIR:?BUILD_DIR variable is not defined}"
 BUILD_FINAL_TARGET="${BUILD_FINAL_TARGET:-test}"
-BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1))}"
-
+#BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1))}"
+BUILD_THREADS=1
 which git
 
 cd "$(dirname $0)/.."
 
 git submodule update --init
-
-export CCACHE_DISABLE=1
 
 cmake . -B${BUILD_DIR} "$@"
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then

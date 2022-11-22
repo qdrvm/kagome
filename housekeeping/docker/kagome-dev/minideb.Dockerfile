@@ -75,7 +75,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     rm -rf /var/lib/apt/lists/*
 
 # install rustc
-ENV RUST_VERSION=nightly-2021-10-04
+ENV RUST_VERSION=nightly-2022-11-20
 ENV RUSTUP_HOME=/root/.rustup
 ENV CARGO_HOME=/root/.cargo
 ENV PATH="${CARGO_HOME}/bin:${PATH}"
