@@ -64,9 +64,9 @@ namespace kagome::subscription {
 
    public:
     template <typename... SubscriberConstructorArgs>
-    explicit Subscriber(SubscriptionEnginePtr &ptr,
+    explicit Subscriber(SubscriptionEnginePtr ptr,
                         SubscriberConstructorArgs &&...args)
-        : engine_(ptr),
+        : engine_(std::move(ptr)),
           object_(std::forward<SubscriberConstructorArgs>(args)...) {}
 
     ~Subscriber() {
