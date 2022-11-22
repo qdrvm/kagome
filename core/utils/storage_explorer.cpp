@@ -461,7 +461,7 @@ class SearchChainCommand : public Command {
   std::shared_ptr<Hasher> hasher;
 };
 
-int main(int argc, const char **argv) {
+int storage_explorer_main(int argc, const char **argv) {
   ArgumentList args{argv, argc};
 
   CommandParser parser;

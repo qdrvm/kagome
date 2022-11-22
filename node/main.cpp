@@ -23,7 +23,20 @@
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
+int storage_explorer_main(int argc, const char **argv);
+int db_editor_main(int argc, const char **argv);
+
 int main(int argc, const char **argv) {
+  if (argc > 1) {
+    std::string_view name{argv[1]};
+    if (name == "storage-explorer") {
+      return storage_explorer_main(argc, argv + 1);
+    }
+    if (name == "db-editor") {
+      return db_editor_main(argc, argv + 1);
+    }
+  }
+
 #if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
 #endif

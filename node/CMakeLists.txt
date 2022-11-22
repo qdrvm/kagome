@@ -14,6 +14,9 @@ target_link_libraries(kagome
     fd_limit
     p2p::p2p_identify
     p2p::p2p_ping
+
+    kagome-db-editor
+    storage_explorer
     )
 if (BACKWARD)
   add_backward(kagome)
