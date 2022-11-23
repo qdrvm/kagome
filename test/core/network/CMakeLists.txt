@@ -43,14 +43,9 @@ addtest(state_protocol_observer_test
     state_protocol_observer_test.cpp
     )
 target_link_libraries(state_protocol_observer_test
-    in_memory_storage
     logger_for_tests
-    polkadot_trie
-    polkadot_trie_factory
+    storage
     state_protocol_observer
-    trie_serializer
-    trie_storage
-    trie_storage_backend
     )
 
 addtest(sync_protocol_observer_test
@@ -58,7 +53,7 @@ addtest(sync_protocol_observer_test
     )
 target_link_libraries(sync_protocol_observer_test
     sync_protocol_observer
-    polkadot_trie
+    storage
     logger_for_tests
     )
 
@@ -70,7 +65,7 @@ target_link_libraries(synchronizer_test
     logger_for_tests
     sync_protocol
     block_tree_error
-    polkadot_codec
+    storage
     p2p::p2p_basic_scheduler
     p2p::p2p_message_read_writer
     p2p::p2p_peer_id

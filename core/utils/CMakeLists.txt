@@ -21,7 +21,6 @@ add_executable(kagome-db-editor
 target_link_libraries(kagome-db-editor
     Boost::Boost.DI
     block_storage
-    changes_tracker
     hasher
     storage
     runtime_upgrade_tracker

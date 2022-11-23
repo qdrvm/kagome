@@ -34,7 +34,7 @@ target_link_libraries(core_integration_test
     wavm_runtime_test
     core_api
     basic_code_provider
-    in_memory_storage
+    storage
     logger_for_tests
     )
 
@@ -45,10 +45,7 @@ target_link_libraries(wasm_executor_test
     runtime_wavm
     basic_code_provider
     core_api
-    trie_storage
-    trie_storage_backend
     trie_storage_provider
-    in_memory_storage
     host_api_factory
     crypto_store
     key_file_storage
@@ -58,8 +55,7 @@ target_link_libraries(wasm_executor_test
     pbkdf2_provider
     hasher
     primitives
-    polkadot_trie_factory
-    trie_serializer
+    storage
     logger_for_tests
     module_repository
     )

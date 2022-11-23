@@ -21,7 +21,7 @@ addtest(babe_config_repository_test
 target_link_libraries(babe_config_repository_test
     babe_config_repository
     clock
-    in_memory_storage
+    storage
     logger_for_tests
     babe_error
     babe_digests_util

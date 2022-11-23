@@ -6,10 +6,8 @@ addtest(polkadot_trie_test
     polkadot_trie_test.cpp
     )
 target_link_libraries(polkadot_trie_test
-    polkadot_trie_factory
+    storage
     Boost::boost
-    trie_serializer
-    trie_error
     log_configurator
     )
 
@@ -17,7 +15,6 @@ addtest(polkadot_trie_cursor_test
     polkadot_trie_cursor_test.cpp
     )
 target_link_libraries(polkadot_trie_cursor_test
-    polkadot_trie_cursor
-    polkadot_trie
+    storage
     log_configurator
     )
