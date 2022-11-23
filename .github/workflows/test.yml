@@ -43,18 +43,18 @@ jobs:
       fail-fast: false
       matrix:
         options:
-          - name: "Linux: gcc-10 ASAN No Toolchain"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DASAN=ON
-          - name: "Linux: gcc-12 ASAN No Toolchain"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
-          - name: "Linux: clang-11 TSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DTSAN=ON
-          - name: "Linux: clang-11 UBSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
+          #- name: "Linux: gcc-10 ASAN No Toolchain"
+          #  run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DASAN=ON
+          #- name: "Linux: gcc-12 ASAN No Toolchain"
+          #  run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
+          #- name: "Linux: clang-11 TSAN"
+          #  run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DTSAN=ON
+          #- name: "Linux: clang-11 UBSAN"
+          #  run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
           - name: "Linux: clang-11 External Project"
             run: ./housekeeping/make_external_build.sh -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-11_cxx17.cmake
-          - name: "Linux: clang-15 UBSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DUBSAN=ON
+          #- name: "Linux: clang-15 UBSAN"
+          #  run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DUBSAN=ON
           
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
@@ -88,33 +88,33 @@ jobs:
           ./housekeeping/make_build.sh
           ./housekeeping/clang-tidy-diff.sh
 
-  coverage:
-    name: "Linux: gcc-10 coverage/sonar"
-    runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:4-minideb
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - name: makeBuild
-        env:
-          BUILD_FINAL_TARGET: ctest_coverage
-        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON
-      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        name: Submit Coverage
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
-      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        name: Sonar
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH_NAME: ${{ github.ref }}
-        run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
+  # coverage:
+  #   name: "Linux: gcc-10 coverage/sonar"
+  #   runs-on: ubuntu-latest
+  #   container: soramitsu/kagome-dev:4-minideb
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHE_PATHS }}
+  #         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+  #     - name: makeBuild
+  #       env:
+  #         BUILD_FINAL_TARGET: ctest_coverage
+  #       run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON
+  #     - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+  #       name: Submit Coverage
+  #       env:
+  #         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  #       run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
+  #     - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+  #       name: Sonar
+  #       env:
+  #         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  #         GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         BRANCH_NAME: ${{ github.ref }}
+  #       run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
   Minideb:
     strategy:
