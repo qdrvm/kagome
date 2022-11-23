@@ -23,7 +23,7 @@ add_library(metrics
 
 target_link_libraries(metrics
     app_state_manager
-    api_transport
+    api
     Boost::boost
     prometheus-cpp::core
     )
