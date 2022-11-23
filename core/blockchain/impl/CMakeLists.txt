@@ -10,12 +10,7 @@ add_library(blockchain_common
 target_link_libraries(blockchain_common
     blob
     Boost::boost
-    database_error
-    in_memory_storage
-    trie_storage
-    trie_storage_backend
-    polkadot_trie
-    polkadot_codec
+    storage
     primitives
     )
 kagome_install(blockchain_common)

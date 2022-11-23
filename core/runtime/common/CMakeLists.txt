@@ -42,8 +42,7 @@ add_library(trie_storage_provider
     )
 target_link_libraries(trie_storage_provider
     runtime_transaction_error
-    trie_storage
-    trie_serializer
+    storage
     blob
     )
 kagome_install(trie_storage_provider)
@@ -64,7 +63,7 @@ kagome_install(module_repository)
 add_library(runtime_environment_factory runtime_environment_factory.cpp)
 target_link_libraries(runtime_environment_factory
     logger
-    trie_error
+    storage
     mp_utils
     )
 kagome_install(runtime_environment_factory)

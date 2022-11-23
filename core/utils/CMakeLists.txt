@@ -23,13 +23,9 @@ target_link_libraries(kagome-db-editor
     block_storage
     changes_tracker
     hasher
-    rocksdb_wrapper
-    polkadot_codec
-    polkadot_trie_factory
+    storage
     runtime_upgrade_tracker
-    trie_serializer
-    trie_storage
-    trie_storage_backend
+    storage
     )
 if (BACKWARD)
   add_backward(kagome-db-editor)

@@ -61,7 +61,7 @@ target_link_libraries(api
     crypto_store
     hexutil
     scale::scale
-    trie_storage
+    storage
     blob
     metadata_api
     babe
