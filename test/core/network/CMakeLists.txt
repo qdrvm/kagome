@@ -10,14 +10,14 @@ addtest(block_response_cache_test
     )
 target_link_libraries(block_response_cache_test
     p2p::p2p_peer_id
-    sync_protocol
+    network
     )
 
 addtest(stream_engine_test
     stream_engine_test.cpp
     )
 target_link_libraries(stream_engine_test
-    scale_message_read_writer
+    network
     p2p::p2p_peer_id
     scale::scale
     blob
@@ -29,7 +29,7 @@ addtest(rpc_libp2p_test
     rpc_libp2p_test.cpp
     )
 target_link_libraries(rpc_libp2p_test
-    scale_message_read_writer
+    network
     scale::scale
     outcome
     blob
@@ -45,14 +45,14 @@ addtest(state_protocol_observer_test
 target_link_libraries(state_protocol_observer_test
     logger_for_tests
     storage
-    state_protocol_observer
+    network
     )
 
 addtest(sync_protocol_observer_test
     sync_protocol_observer_test.cpp
     )
 target_link_libraries(sync_protocol_observer_test
-    sync_protocol_observer
+    network
     storage
     logger_for_tests
     )
@@ -61,9 +61,8 @@ addtest(synchronizer_test
     synchronizer_test.cpp
     )
 target_link_libraries(synchronizer_test
-    synchronizer
     logger_for_tests
-    sync_protocol
+    network
     block_tree_error
     storage
     p2p::p2p_basic_scheduler

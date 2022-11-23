@@ -23,7 +23,6 @@ target_link_libraries(application_injector
     babe_api
     babe_lottery
     babe_config_repository
-    synchronizer
     binaryen_executor_factory
     binaryen_runtime_external_interface
     binaryen_wasm_memory
@@ -32,7 +31,6 @@ target_link_libraries(application_injector
     module_repository
     binaryen_module_factory
     bip39_provider
-    block_announce_protocol
     block_appender
     block_builder_api
     block_executor
@@ -48,11 +46,8 @@ target_link_libraries(application_injector
     ecdsa_provider
     ed25519_provider
     environment
-    extrinsic_observer
     transaction_pool
     host_api_factory
-    kagome_router
-    kagome_router
     key_file_storage
     log_configurator
     metadata_api
@@ -65,10 +60,7 @@ target_link_libraries(application_injector
     p2p::p2p_ping
     parachain_host_api
     pbkdf2_provider
-    peer_manager
-    propagate_transactions_protocol
     proposer
-    protocol_factory
     runtime_upgrade_tracker
     runtime_environment_factory
     runtime_properties_cache
@@ -77,9 +69,8 @@ target_link_libraries(application_injector
     soralog::fallback_configurator
     soralog::soralog
     sr25519_provider
-    state_protocol_observer
+    network
     storage_code_provider
-    sync_protocol_observer
     telemetry
     tagged_transaction_queue_api
     transaction_payment_api
@@ -88,27 +79,16 @@ target_link_libraries(application_injector
     vrf_provider
     waitable_timer
     authority_manager
-    peer_manager
     assets
-    block_announce_protocol
-    propagate_transactions_protocol
-    grandpa_protocol
     grandpa_api
     grandpa
-    protocol_factory
     p2p::p2p_loopback_stream
-    grandpa_transmitter
-    block_announce_transmitter
-    transactions_transmitter
     offchain_worker_factory
     offchain_worker_pool
     offchain_worker_api
     offchain_persistent_storage
     offchain_local_storage
-    reputation_repository
     session_keys_api
-    collation_protocol
-    req_collation_protocol
     validator_parachain
     fd_limit
     )
