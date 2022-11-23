@@ -380,7 +380,7 @@ namespace {
 
     auto &root_hash = res.value();
 
-    SL_TRACE(log, "root hash is {}", root_hash.toHex());
+    SL_TRACE(log, "root hash is {}", root_hash);
 
     initialized.emplace(std::move(trie_storage), root_hash);
     return initialized.value();

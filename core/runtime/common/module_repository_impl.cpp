@@ -53,8 +53,7 @@ namespace kagome::runtime {
       // Compile new module if required
       if (auto opt_module = runtime_instances_pool_->getModule(state);
           !opt_module.has_value()) {
-        SL_DEBUG(
-            logger_, "Runtime module cache miss for state {}", state.toHex());
+        SL_DEBUG(logger_, "Runtime module cache miss for state {}", state);
         auto code = code_provider->getCodeAt(state);
         if (not code.has_value()) {
           code = code_provider->getCodeAt(header.state_root);

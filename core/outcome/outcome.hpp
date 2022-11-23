@@ -99,7 +99,7 @@ struct fmt::formatter<std::optional<T>> {
     // ctx.out() is an output iterator to write to.
 
     if (opt.has_value()) {
-      return format_to(ctx.out(), opt.value());
+      return format_to(ctx.out(), "{}", opt.value());
     } else {
       return format_to(ctx.out(), "<none>");
     }

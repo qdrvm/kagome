@@ -125,7 +125,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
-    log::Logger log = log::createLogger("BlockTree", "blockchain");
+    log::Logger log = log::createLogger("BlockTree", "block_tree");
 
     OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
 
@@ -243,7 +243,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT(header_repo != nullptr);
     BOOST_ASSERT(trie_storage != nullptr);
 
-    log::Logger log = log::createLogger("BlockTree", "blockchain");
+    log::Logger log = log::createLogger("BlockTree", "block_tree");
 
     OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
 
@@ -733,9 +733,8 @@ namespace kagome::blockchain {
       const primitives::BlockHash &block, uint64_t maximum) const {
     auto block_number_res = header_repo_->getNumberByHash(block);
     if (block_number_res.has_error()) {
-      log_->error("cannot retrieve block with hash {}: {}",
-                  block.toHex(),
-                  block_number_res.error());
+      log_->error(
+          "cannot retrieve block {}: {}", block, block_number_res.error());
       return BlockTreeError::HEADER_NOT_FOUND;
     }
     auto start_block_number = block_number_res.value();
@@ -993,8 +992,8 @@ namespace kagome::blockchain {
     log_->warn(
         "Block {} exists in chain but not found when following all leaves "
         "backwards. Max block number = {}",
-        target_hash.toHex(),
-        max_number.has_value() ? max_number.value() : -1);
+        target_hash,
+        max_number);
     return BlockTreeError::EXISTING_BLOCK_NOT_FOUND;
   }
 

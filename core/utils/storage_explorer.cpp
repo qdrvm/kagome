@@ -316,9 +316,8 @@ class SearchChainCommand : public Command {
     assertArgumentCount(args, 2, 4);
     Target target = parseTarget(args[1]);
     if (target == Target::LastBlock) {
-      std::cout << "#" << block_storage->getLastFinalized().value().number
-                << " " << block_storage->getLastFinalized().value().hash.toHex()
-                << "\n";
+      std::cout << fmt::format("{}\n",
+                               block_storage->getLastFinalized().value());
       return;
     }
 
