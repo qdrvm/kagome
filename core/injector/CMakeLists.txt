@@ -11,14 +11,12 @@ target_link_libraries(application_injector
     runtime_wavm
     account_nonce_api
     address_publisher
-    api_jrpc_server
-    api_transport
+    api
     app_config
     app_state_manager
     authority_discovery_api
     print_chain_info_mode
     assets
-    author_api_service
     authority_manager
     babe
     babe_api
@@ -41,9 +39,7 @@ target_link_libraries(application_injector
     block_storage
     block_tree
     block_validator
-    chain_api_service
     changes_tracker
-    child_state_api_service
     clock
     chain_spec
     core_api
@@ -69,7 +65,6 @@ target_link_libraries(application_injector
     p2p::p2p_kademlia
     p2p::p2p_ping
     parachain_host_api
-    payment_api_service
     pbkdf2_provider
     peer_manager
     polkadot_codec
@@ -78,8 +73,6 @@ target_link_libraries(application_injector
     propagate_transactions_protocol
     proposer
     protocol_factory
-    rpc_api_service
-    rpc_thread_pool
     runtime_upgrade_tracker
     runtime_environment_factory
     runtime_properties_cache
@@ -88,7 +81,6 @@ target_link_libraries(application_injector
     soralog::fallback_configurator
     soralog::soralog
     sr25519_provider
-    state_api_service
     state_protocol_observer
     storage_code_provider
     sync_protocol_observer
@@ -102,10 +94,6 @@ target_link_libraries(application_injector
     vrf_provider
     waitable_timer
     authority_manager
-    system_api_service
-    payment_api_service
-    rpc_api_service
-    internal_api_service
     peer_manager
     assets
     block_announce_protocol
@@ -130,3 +118,10 @@ target_link_libraries(application_injector
     validator_parachain
     fd_limit
     )
+
+add_custom_command(TARGET application_injector
+    POST_BUILD
+    COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Removing object files..."
+)
