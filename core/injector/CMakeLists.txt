@@ -19,6 +19,7 @@ target_link_libraries(application_injector
     assets
     authority_manager
     babe
+    storage
     babe_api
     babe_lottery
     babe_config_repository
@@ -39,7 +40,6 @@ target_link_libraries(application_injector
     block_storage
     block_tree
     block_validator
-    changes_tracker
     clock
     chain_spec
     core_api
@@ -54,7 +54,6 @@ target_link_libraries(application_injector
     kagome_router
     kagome_router
     key_file_storage
-    rocksdb_wrapper
     log_configurator
     metadata_api
     metrics
@@ -67,9 +66,6 @@ target_link_libraries(application_injector
     parachain_host_api
     pbkdf2_provider
     peer_manager
-    polkadot_codec
-    polkadot_trie
-    polkadot_trie_factory
     propagate_transactions_protocol
     proposer
     protocol_factory
@@ -88,8 +84,6 @@ target_link_libraries(application_injector
     tagged_transaction_queue_api
     transaction_payment_api
     transaction_pool
-    trie_serializer
-    trie_storage
     trie_storage_provider
     vrf_provider
     waitable_timer

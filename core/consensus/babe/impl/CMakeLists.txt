@@ -93,7 +93,7 @@ target_link_libraries(babe
     babe_digests_util
     threshold_util
     block_executor
-    polkadot_trie
+    storage
     metrics
     block_storage_error
     telemetry

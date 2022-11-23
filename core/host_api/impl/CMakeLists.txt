@@ -63,10 +63,9 @@ add_library(storage_extension
 target_link_libraries(storage_extension
     blob
     logger
-    ordered_trie_hash
+    storage
     scale::scale_encode_append
     runtime_transaction_error
-    polkadot_codec
     )
 kagome_install(storage_extension)
 
@@ -76,7 +75,7 @@ add_library(child_storage_extension
 target_link_libraries(child_storage_extension
     blob
     logger
-    ordered_trie_hash
+    storage
     scale::scale_encode_append
     runtime_transaction_error
     )
