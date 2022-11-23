@@ -45,9 +45,6 @@ namespace kagome::blockchain {
                  "List of leaves has loaded: {} leaves",
                  block_tree_unordered_leaves.size());
 
-        BOOST_ASSERT_MSG(not block_tree_unordered_leaves.empty(),
-                         "Must be known or calculated at least one leaf");
-
         for (auto &hash : block_tree_unordered_leaves) {
           auto res = header_repo->getNumberById(hash);
           if (res.has_error()) {
@@ -74,7 +71,7 @@ namespace kagome::blockchain {
         auto upper = std::numeric_limits<primitives::BlockNumber>::max();
 
         for (;;) {
-          number = lower + (upper - lower) / 2;
+          number = lower + (upper - lower) / 2  + 1;
 
           auto res = storage->hasBlockHeader(number);
           if (res.has_failure()) {
