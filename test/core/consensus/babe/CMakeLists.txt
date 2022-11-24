@@ -7,7 +7,7 @@ addtest(babe_test
     babe_test.cpp
     )
 target_link_libraries(babe_test
-    babe
+    consensus
     clock
     waitable_timer
     sr25519_types
@@ -19,26 +19,23 @@ addtest(babe_config_repository_test
     babe_config_repository_test.cpp
     )
 target_link_libraries(babe_config_repository_test
-    babe_config_repository
+    consensus
     clock
     storage
     logger_for_tests
-    babe_error
-    babe_digests_util
     )
 
 addtest(threshold_util_test
     threshold_util_test.cpp
     )
 target_link_libraries(threshold_util_test
-    threshold_util
+    consensus
     )
 
 addtest(block_executor_test
     block_executor_test.cpp
     )
 target_link_libraries(block_executor_test
-    block_executor
+    consensus
     log_configurator
-    voting_round_error
     )

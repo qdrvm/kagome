@@ -9,7 +9,7 @@ add_executable(storage_explorer
     )
 target_link_libraries(storage_explorer
     application_injector
-    authority_manager
+    consensus
     )
 if (BACKWARD)
     add_backward(storage_explorer)

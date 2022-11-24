@@ -64,7 +64,7 @@ target_link_libraries(api
     storage
     blob
     metadata_api
-    babe
+    consensus
     ss58_codec
     outcome
     build_version

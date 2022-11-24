@@ -7,7 +7,7 @@ addtest(authority_manager_test
     authority_manager_test.cpp
     )
 target_link_libraries(authority_manager_test
-    authority_manager
+    consensus
     scale::scale
     blob
     dummy_error

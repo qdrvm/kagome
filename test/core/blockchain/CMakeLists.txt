@@ -18,7 +18,7 @@ addtest(block_tree_test
 target_link_libraries(block_tree_test
     blockchain
     network
-    babe_digests_util
+    consensus
     logger_for_tests
     dummy_error
     )

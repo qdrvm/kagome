@@ -17,12 +17,8 @@ target_link_libraries(application_injector
     authority_discovery_api
     print_chain_info_mode
     assets
-    authority_manager
-    babe
     storage
     babe_api
-    babe_lottery
-    babe_config_repository
     binaryen_executor_factory
     binaryen_runtime_external_interface
     binaryen_wasm_memory
@@ -31,18 +27,15 @@ target_link_libraries(application_injector
     module_repository
     binaryen_module_factory
     bip39_provider
-    block_appender
     block_builder_api
-    block_executor
+    consensus
     blockchain
-    block_validator
     clock
     chain_spec
     core_api
     crypto_store
     ecdsa_provider
     ed25519_provider
-    environment
     transaction_pool
     host_api_factory
     key_file_storage
@@ -75,10 +68,8 @@ target_link_libraries(application_injector
     trie_storage_provider
     vrf_provider
     waitable_timer
-    authority_manager
     assets
     grandpa_api
-    grandpa
     p2p::p2p_loopback_stream
     offchain_worker_factory
     offchain_worker_pool
