@@ -28,6 +28,7 @@
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace {
   constexpr const char *kBlockProposalTime =
@@ -59,7 +60,8 @@ namespace kagome::consensus::babe {
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<runtime::Core> core,
-      std::shared_ptr<ConsistencyKeeper> consistency_keeper)
+      std::shared_ptr<ConsistencyKeeper> consistency_keeper,
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage)
       : app_config_(app_config),
         lottery_{std::move(lottery)},
         babe_config_repo_{std::move(babe_config_repo)},
@@ -83,6 +85,7 @@ namespace kagome::consensus::babe {
         offchain_worker_api_(std::move(offchain_worker_api)),
         runtime_core_(std::move(core)),
         consistency_keeper_(std::move(consistency_keeper)),
+        trie_storage_(std::move(trie_storage)),
         log_{log::createLogger("Babe", "babe")},
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(lottery_);
@@ -101,6 +104,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(offchain_worker_api_);
     BOOST_ASSERT(runtime_core_);
     BOOST_ASSERT(consistency_keeper_);
+    BOOST_ASSERT(trie_storage_);
 
     BOOST_ASSERT(app_state_manager);
 
@@ -119,6 +123,33 @@ namespace kagome::consensus::babe {
     if (res.has_error()) {
       SL_CRITICAL(log_, "Can't get initial epoch descriptor: {}", res.error());
       return false;
+    }
+
+    best_block_ = block_tree_->deepestLeaf();
+
+    // Check if best block has state for usual sync method
+    if (app_config_.syncMethod() != SyncMethod::Fast) {
+      auto best_block_header_res =
+          block_tree_->getBlockHeader(best_block_.hash);
+      if (best_block_header_res.has_error()) {
+        SL_CRITICAL(log_,
+                    "Can't get header of best block ({}): {}",
+                    best_block_,
+                    best_block_header_res.error());
+        return false;
+      }
+      const auto &best_block_header = best_block_header_res.value();
+
+      const auto &state_root = best_block_header.state_root;
+
+      // Check if target block has state
+      if (auto res = trie_storage_->getEphemeralBatchAt(state_root);
+          res.has_error()) {
+        SL_WARN(log_, "Can't get state of best block: {}", res.error());
+        SL_CRITICAL(log_,
+                    "Try restart at least once with `--sync Fast' CLI arg");
+        return false;
+      }
     }
 
     current_epoch_ = res.value();

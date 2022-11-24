@@ -1350,7 +1350,8 @@ namespace {
             .template create<primitives::events::ChainSubscriptionEnginePtr>(),
         injector.template create<sptr<runtime::OffchainWorkerApi>>(),
         injector.template create<sptr<runtime::Core>>(),
-        injector.template create<sptr<consensus::babe::ConsistencyKeeper>>());
+        injector.template create<sptr<consensus::babe::ConsistencyKeeper>>(),
+        injector.template create<sptr<storage::trie::TrieStorage>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();

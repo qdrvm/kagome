@@ -60,6 +60,10 @@ namespace kagome::consensus::babe {
   class ConsistencyKeeper;
 }  // namespace kagome::consensus::babe
 
+namespace kagome::storage::trie {
+  class TrieStorage;
+}
+
 namespace kagome::consensus::babe {
 
   inline const auto kTimestampId =
@@ -99,7 +103,8 @@ namespace kagome::consensus::babe {
              primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
              std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
              std::shared_ptr<runtime::Core> core,
-             std::shared_ptr<ConsistencyKeeper> consistency_keeper);
+             std::shared_ptr<ConsistencyKeeper> consistency_keeper,
+             std::shared_ptr<storage::trie::TrieStorage> trie_storage);
 
     ~BabeImpl() override = default;
 
@@ -192,6 +197,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
     std::shared_ptr<runtime::Core> runtime_core_;
     std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
+    std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
 
     State current_state_{State::WAIT_REMOTE_STATUS};
 
