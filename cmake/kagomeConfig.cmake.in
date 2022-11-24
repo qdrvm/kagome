@@ -3,7 +3,7 @@
 include(CMakeFindDependencyMacro)
 
 find_dependency(Threads REQUIRED)
-find_dependency(Boost REQUIRED random filesystem)
+find_dependency(Boost REQUIRED random filesystem date_time)
 find_dependency(soralog REQUIRED)
 find_dependency(libp2p REQUIRED)
 find_dependency(xxhash REQUIRED)
@@ -13,6 +13,7 @@ find_dependency(libsecp256k1 REQUIRED)
 find_dependency(OpenSSL REQUIRED)
 find_dependency(RocksDB REQUIRED)
 find_dependency(scale REQUIRED)
+find_dependency(prometheus-cpp REQUIRED core)
 
 option(KAGOME_ENABLE_WAVM "Include WAVM webassembly executor dependency" ON)
 if (KAGOME_ENABLE_WAVM)
