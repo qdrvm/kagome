@@ -60,7 +60,7 @@ target_link_libraries(application_injector
     p2p::p2p_ping
     parachain_host_api
     pbkdf2_provider
-    proposer
+    block_builder
     runtime_upgrade_tracker
     runtime_environment_factory
     runtime_properties_cache

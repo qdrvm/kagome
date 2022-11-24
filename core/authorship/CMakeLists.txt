@@ -4,35 +4,21 @@
 #
 
 add_library(block_builder
-    block_builder.hpp
     impl/block_builder_impl.cpp
-    impl/block_builder_impl.hpp
     impl/block_builder_error.cpp
-    impl/block_builder_error.hpp
+    impl/proposer_impl.cpp
+    impl/block_builder_factory_impl.cpp
     )
 target_link_libraries(block_builder
     outcome
     logger
-    scale::scale
-    )
-
-add_library(block_builder_factory
-    block_builder_factory.hpp
-    impl/block_builder_factory_impl.cpp
-    impl/block_builder_factory_impl.hpp
-    )
-target_link_libraries(block_builder_factory
-    block_builder
     block_header_repository
-    )
-
-add_library(proposer
-    proposer.hpp
-    impl/proposer_impl.cpp
-    impl/proposer_impl.hpp
-    )
-target_link_libraries(proposer
-    block_builder_factory
     scale::scale
     metrics
     )
+add_custom_command(TARGET block_builder
+    POST_BUILD
+    COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Removing object files from '${CMAKE_CURRENT_BINARY_DIR}'"
+)
