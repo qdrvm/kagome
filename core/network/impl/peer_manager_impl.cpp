@@ -297,9 +297,13 @@ namespace kagome::network {
               .time_since_epoch()
               .count();
 
+      // TODO(turuslan): #1419 disconnect peers when all relevant components
+      // update peer activity time with `keepAlive`.
+      [[maybe_unused]] bool activity_timeout =
+          last_activity_ms + idle_ms < now_ms;
+
       const auto peer_reputation = reputation_repository_->reputation(peer_id);
-      if (peer_reputation < kDisconnectReputation
-          || last_activity_ms + idle_ms < now_ms) {
+      if (peer_reputation < kDisconnectReputation) {
         peers_list.push_back(
             std::make_pair(std::numeric_limits<PriorityType>::min(), peer_id));
         // we have to store peers somewhere first due to inability to iterate
