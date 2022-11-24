@@ -61,10 +61,10 @@ jobs:
     container: soramitsu/kagome-dev:4-minideb
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+      # - uses: actions/cache@v2
+      #   with:
+      #     path: ${{ env.CACHE_PATHS }}
+      #     key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
       - name: "${{ matrix.options.name }}"
         run: "${{ matrix.options.run }}"
 
@@ -94,10 +94,10 @@ jobs:
     container: soramitsu/kagome-dev:4-minideb
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      # - uses: actions/cache@v2
+      #   with:
+      #     path: ${{ env.CACHE_PATHS }}
+      #     key: ${{ github.job }}-${{ env.CACHE_VERSION }}
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
