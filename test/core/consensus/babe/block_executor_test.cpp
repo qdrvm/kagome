@@ -51,6 +51,7 @@ using kagome::primitives::Authority;
 using kagome::primitives::AuthorityId;
 using kagome::primitives::AuthorityList;
 using kagome::primitives::BabeConfiguration;
+using kagome::primitives::BlockContext;
 using kagome::primitives::BlockData;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
@@ -209,7 +210,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
     testing::InSequence s;
 
     EXPECT_CALL(*digest_tracker_,
-                onDigest(BlockInfo{42, "some_hash"_hash256}, _))
+                onDigest(BlockContext{.block = {42, "some_hash"_hash256}}, _))
         .WillOnce(testing::Return(outcome::success()));
 
     EXPECT_CALL(

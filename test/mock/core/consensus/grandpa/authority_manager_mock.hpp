@@ -22,14 +22,14 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(outcome::result<void>,
                 applyScheduledChange,
-                (const primitives::BlockInfo &,
+                (const primitives::BlockContext &,
                  const primitives::AuthorityList &,
                  primitives::BlockNumber),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 applyForcedChange,
-                (const primitives::BlockInfo &,
+                (const primitives::BlockContext &,
                  const primitives::AuthorityList &,
                  primitives::BlockNumber,
                  size_t),
@@ -37,17 +37,17 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(outcome::result<void>,
                 applyOnDisabled,
-                (const primitives::BlockInfo &, uint64_t),
+                (const primitives::BlockContext &, uint64_t),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 applyPause,
-                (const primitives::BlockInfo &, primitives::BlockNumber),
+                (const primitives::BlockContext &, primitives::BlockNumber),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 applyResume,
-                (const primitives::BlockInfo &, primitives::BlockNumber),
+                (const primitives::BlockContext &, primitives::BlockNumber),
                 (override));
   };
 }  // namespace kagome::consensus::grandpa

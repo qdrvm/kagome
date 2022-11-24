@@ -29,6 +29,7 @@
 #include "mock/core/network/synchronizer_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/literals.hpp"
@@ -139,6 +140,8 @@ class BabeTest : public testing::Test {
     core_ = std::make_shared<runtime::CoreMock>();
     consistency_keeper_ = std::make_shared<babe::ConsistencyKeeperMock>();
 
+    trie_storage_ = std::make_shared<storage::trie::TrieStorageMock>();
+
     auto block_executor = std::make_shared<BlockExecutorMock>();
 
     EXPECT_CALL(*app_state_manager_, atPrepare(_)).Times(testing::AnyNumber());
@@ -167,7 +170,8 @@ class BabeTest : public testing::Test {
                                              chain_events_engine_,
                                              offchain_worker_api_,
                                              core_,
-                                             consistency_keeper_);
+                                             consistency_keeper_,
+                                             trie_storage_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -207,6 +211,7 @@ class BabeTest : public testing::Test {
   primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
   std::shared_ptr<runtime::OffchainWorkerApiMock> offchain_worker_api_;
   std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
+  std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<boost::asio::io_context> io_context_;
 
   std::shared_ptr<babe::BabeImpl> babe_;

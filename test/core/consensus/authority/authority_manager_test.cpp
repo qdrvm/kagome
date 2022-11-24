@@ -290,7 +290,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   EXPECT_OUTCOME_SUCCESS(
       r1,
       authority_manager->onDigest(
-          target_block,
+          {.block = target_block},
           primitives::ScheduledChange(new_authorities, subchain_length)));
 
   examine({5, "A"_hash256}, old_authorities.authorities);
@@ -331,12 +331,12 @@ TEST_F(AuthorityManagerTest, ScheduledChangeTwice) {
   EXPECT_OUTCOME_SUCCESS(
       r1,
       authority_manager->onDigest(
-          target_block,
+          {.block = target_block},
           primitives::ScheduledChange(new_authorities, subchain_length)));
   EXPECT_OUTCOME_SUCCESS(
       r2,
       authority_manager->onDigest(
-          target_block2,
+          {.block = target_block2},
           primitives::ScheduledChange(new_authorities2, subchain_length)));
 
   examine({5, "A"_hash256}, old_authorities.authorities);
@@ -393,12 +393,12 @@ TEST_F(AuthorityManagerTest, ScheduledChangeTwiceIneraction) {
   EXPECT_OUTCOME_SUCCESS(
       r1,
       authority_manager->onDigest(
-          target_block,
+          {.block = target_block},
           primitives::ScheduledChange(new_authorities, subchain_length)));
   EXPECT_OUTCOME_SUCCESS(
       r2,
       authority_manager->onDigest(
-          target_block2,
+          {.block = target_block2},
           primitives::ScheduledChange(new_authorities2, subchain_length2)));
 
   examine({5, "A"_hash256}, old_authorities.authorities);
@@ -442,7 +442,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   EXPECT_OUTCOME_SUCCESS(
       r1,
       authority_manager->onDigest(
-          target_block,
+          {.block = target_block},
           primitives::ForcedChange(
               new_authorities, subchain_length, target_block.number)));
 
@@ -478,7 +478,7 @@ TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
 
   EXPECT_OUTCOME_SUCCESS(
       r1,
-      authority_manager->onDigest(target_block,
+      authority_manager->onDigest({.block = target_block},
                                   primitives::OnDisabled({authority_index})));
 
   examine({5, "A"_hash256}, old_authorities.authorities);
@@ -504,8 +504,9 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   primitives::BlockInfo target_block{5, "A"_hash256};
   uint32_t delay = 10;
 
-  EXPECT_OUTCOME_SUCCESS(
-      r1, authority_manager->onDigest(target_block, primitives::Pause(delay)));
+  EXPECT_OUTCOME_SUCCESS(r1,
+                         authority_manager->onDigest({.block = target_block},
+                                                     primitives::Pause(delay)));
 
   primitives::AuthoritySet new_authorities = old_authorities;
   for (auto &authority : new_authorities) {
@@ -552,7 +553,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
 
     EXPECT_OUTCOME_SUCCESS(
         r1,
-        authority_manager->onDigest(target_block, primitives::Pause(delay)));
+        authority_manager->onDigest({.block = target_block},
+                                    primitives::Pause(delay)));
 
     finalize_block({10, "B"_hash256});
   }
@@ -568,7 +570,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
 
     EXPECT_OUTCOME_SUCCESS(
         r1,
-        authority_manager->onDigest(target_block, primitives::Resume(delay)));
+        authority_manager->onDigest({.block = target_block},
+                                    primitives::Resume(delay)));
   }
 
   examine({10, "B"_hash256}, disabled_authorities.authorities);

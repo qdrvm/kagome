@@ -61,6 +61,10 @@ namespace kagome::primitives {
     bool operator<(const BlockContext &other) const noexcept {
       return block < other.block;
     }
+
+    bool operator==(const BlockContext &other) const noexcept {
+      return block == other.block;
+    }
   };
 
 }  // namespace kagome::primitives
