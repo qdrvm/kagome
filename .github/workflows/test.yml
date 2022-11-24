@@ -44,17 +44,17 @@ jobs:
       matrix:
         options:
           - name: "Linux: gcc-10 ASAN No Toolchain"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DASAN=ON
+            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_mold_cxx17.cmake -DASAN=ON
           - name: "Linux: gcc-12 ASAN No Toolchain"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
+            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_mold_cxx17.cmake -DASAN=ON
           - name: "Linux: clang-11 TSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DTSAN=ON
+            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_mold_cxx17.cmake -DTSAN=ON
           - name: "Linux: clang-11 UBSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
+            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_mold_cxx17.cmake -DUBSAN=ON
           - name: "Linux: clang-11 External Project"
-            run: ./housekeeping/make_external_build.sh -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-11_cxx17.cmake
+            run: ./housekeeping/make_external_build.sh -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-11_mold_cxx17.cmake
           - name: "Linux: clang-14 UBSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-14_cxx17.cmake -DUBSAN=ON
+            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-14_mold_cxx17.cmake -DUBSAN=ON
           
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
@@ -101,7 +101,7 @@ jobs:
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
-        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON
+        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_mold_cxx17.cmake -DCOVERAGE=ON
       - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         name: Submit Coverage
         env:
