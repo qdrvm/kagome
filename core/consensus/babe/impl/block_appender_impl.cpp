@@ -185,7 +185,7 @@ namespace kagome::consensus::babe {
       return digest_tracking_res.as_failure();
     }
 
-    auto babe_config = babe_config_repo_->config(block_info, epoch_number);
+    auto babe_config = babe_config_repo_->config(context, epoch_number);
     if (babe_config == nullptr) {
       return Error::INVALID_BLOCK;  // TODO Change to more appropriate error
     }

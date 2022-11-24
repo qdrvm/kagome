@@ -7,6 +7,7 @@
 #define KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORY
 
 #include "primitives/babe_configuration.hpp"
+#include "primitives/block_data.hpp"
 
 namespace kagome::consensus::babe {
 
@@ -26,8 +27,7 @@ namespace kagome::consensus::babe {
     /// Returns actual babe configuration
     /// @return actual babe configuration
     virtual std::shared_ptr<const primitives::BabeConfiguration> config(
-        const primitives::BlockInfo &parent_block,
-        EpochNumber epoch_number) = 0;
+        const primitives::BlockContext &context, EpochNumber epoch_number) = 0;
   };
 
 }  // namespace kagome::consensus::babe

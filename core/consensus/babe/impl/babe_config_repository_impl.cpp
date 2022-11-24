@@ -438,9 +438,9 @@ namespace kagome::consensus::babe {
   }
 
   std::shared_ptr<const primitives::BabeConfiguration>
-  BabeConfigRepositoryImpl::config(const primitives::BlockInfo &block,
+  BabeConfigRepositoryImpl::config(const primitives::BlockContext &context,
                                    EpochNumber epoch_number) {
-    auto node = getNode({.block = block});
+    auto node = getNode(context);
     if (node) {
       return node->config;
     }

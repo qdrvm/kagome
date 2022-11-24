@@ -202,8 +202,8 @@ namespace kagome::consensus::babe {
              current_epoch_.start_slot);
 
     if (keypair_) {
-      auto babe_config =
-          babe_config_repo_->config(best_block_, current_epoch_.epoch_number);
+      auto babe_config = babe_config_repo_->config({.block = best_block_},
+                                                   current_epoch_.epoch_number);
       if (babe_config == nullptr) {
         SL_CRITICAL(
             log_,
@@ -350,7 +350,7 @@ namespace kagome::consensus::babe {
         "Starting an epoch {}. Session key: {:l}. Secondary slots allowed={}",
         epoch.epoch_number,
         keypair_->public_key,
-        babe_config_repo_->config(best_block_, epoch.epoch_number)
+        babe_config_repo_->config({.block = best_block_}, epoch.epoch_number)
             ->isSecondarySlotsAllowed());
     current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
@@ -703,8 +703,8 @@ namespace kagome::consensus::babe {
       BOOST_ASSERT(babe_digests_res.has_value());
     }
 
-    auto babe_config =
-        babe_config_repo_->config(best_block_, current_epoch_.epoch_number);
+    auto babe_config = babe_config_repo_->config({.block = best_block_},
+                                                 current_epoch_.epoch_number);
     if (babe_config) {
       auto authority_index_res =
           getAuthorityIndex(babe_config->authorities, keypair_->public_key);
