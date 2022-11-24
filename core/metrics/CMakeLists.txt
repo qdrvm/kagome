@@ -27,6 +27,7 @@ target_link_libraries(metrics
     Boost::boost
     prometheus-cpp::core
     )
+kagome_install(metrics)
 
 add_library(metrics_watcher
     impl/metrics_watcher.cpp

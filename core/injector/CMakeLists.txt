@@ -34,15 +34,12 @@ target_link_libraries(application_injector
     block_appender
     block_builder_api
     block_executor
-    block_header_repository
-    block_storage
-    block_tree
+    blockchain
     block_validator
     clock
     chain_spec
     core_api
     crypto_store
-    digest_tracker
     ecdsa_provider
     ed25519_provider
     environment

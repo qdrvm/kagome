@@ -23,6 +23,7 @@ add_custom_command(
 add_library(build_version
     ${CMAKE_CURRENT_BINARY_DIR}/build_version.cpp
     )
+kagome_install(build_version)
 
 add_library(app_config
     impl/app_configuration_impl.cpp
@@ -54,6 +55,7 @@ add_library(app_state_manager
 target_link_libraries(app_state_manager
     logger
     )
+kagome_install(app_state_manager)
 
 add_library(print_chain_info_mode
     modes/print_chain_info_mode.cpp

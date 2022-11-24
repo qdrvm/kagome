@@ -69,6 +69,7 @@ target_link_libraries(api
     outcome
     build_version
     )
+kagome_install(api)
 
 add_custom_command(TARGET api
     POST_BUILD

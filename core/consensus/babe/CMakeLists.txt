@@ -12,3 +12,4 @@ add_library(babe_error
 target_link_libraries(babe_error
     outcome
     )
+kagome_install(babe_error)

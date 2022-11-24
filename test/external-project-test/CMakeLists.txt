@@ -52,7 +52,7 @@ target_link_libraries(main
     kagome::storage_code_provider
     kagome::offchain_persistent_storage
     kagome::offchain_worker_pool
-    kagome::block_header_repository
+    kagome::blockchain
     kagome::runtime_upgrade_tracker
     kagome::runtime_properties_cache
     )

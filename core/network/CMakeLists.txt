@@ -33,7 +33,7 @@ add_library(network
 target_link_libraries(network
     p2p::p2p_basic_scheduler
     scale_libp2p_types
-    block_header_repository
+    blockchain
     logger
     p2p::p2p_peer_id
     primitives

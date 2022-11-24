@@ -12,7 +12,7 @@ add_library(block_builder
 target_link_libraries(block_builder
     outcome
     logger
-    block_header_repository
+    blockchain
     scale::scale
     metrics
     )

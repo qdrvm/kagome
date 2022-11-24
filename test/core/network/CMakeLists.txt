@@ -63,7 +63,7 @@ addtest(synchronizer_test
 target_link_libraries(synchronizer_test
     logger_for_tests
     network
-    block_tree_error
+    blockchain
     storage
     p2p::p2p_basic_scheduler
     p2p::p2p_message_read_writer

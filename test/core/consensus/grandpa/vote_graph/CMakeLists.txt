@@ -20,5 +20,5 @@ target_link_libraries(vote_graph_test
     vote_tracker
     voter_set
     blob
-    block_tree
+    blockchain
     )

@@ -20,6 +20,7 @@ add_library(threshold_util
 target_link_libraries(threshold_util
     primitives
     )
+kagome_install(threshold_util)
 
 add_library(babe_digests_util
     babe_digests_util.cpp
@@ -27,8 +28,9 @@ add_library(babe_digests_util
 target_link_libraries(babe_digests_util
     primitives
     scale::scale
-    block_storage_error
+    blockchain
     )
+kagome_install(babe_digests_util)
 
 add_library(block_appender
     block_appender_impl.cpp
@@ -37,10 +39,9 @@ target_link_libraries(block_appender
     logger
     primitives
     scale::scale
-    block_tree_error
+    blockchain
     threshold_util
     babe_digests_util
-    blockchain_common
     )
 
 add_library(block_executor
@@ -50,23 +51,24 @@ target_link_libraries(block_executor
     logger
     primitives
     scale::scale
-    block_tree_error
+    blockchain
     threshold_util
     transaction_pool_error
     babe_digests_util
     metrics
     telemetry
-    blockchain_common
     consistency_keeper
     )
+kagome_install(block_executor)
 
 add_library(consistency_keeper
     consistency_keeper_impl.cpp
     )
 target_link_libraries(consistency_keeper
     Boost::boost
-    block_storage_error
+    blockchain
     )
+kagome_install(consistency_keeper)
 
 add_library(babe_config_repository
     babe_config_repository_impl.cpp
@@ -95,6 +97,7 @@ target_link_libraries(babe
     block_executor
     storage
     metrics
-    block_storage_error
+    blockchain
     telemetry
     )
+kagome_install(babe)

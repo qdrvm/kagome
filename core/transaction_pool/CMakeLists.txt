@@ -17,6 +17,7 @@ add_library(transaction_pool_error
 target_link_libraries(transaction_pool_error
     outcome
     )
+kagome_install(transaction_pool_error)
 
 add_library(transaction_pool
     impl/transaction_pool_impl.cpp)
@@ -26,6 +27,6 @@ target_link_libraries(transaction_pool
     logger
     blob
     transaction_pool_error
-    block_header_repository
+    blockchain
     metrics
     )
