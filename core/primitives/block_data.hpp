@@ -45,6 +45,24 @@ namespace kagome::primitives {
     bool message_queue{};
     bool justification{};
   };
+
+  class BlockContext {
+    template <typename T>
+    using OtpConstRef = std::optional<std::reference_wrapper<const T>>;
+
+   public:
+    primitives::BlockInfo block;
+    OtpConstRef<primitives::BlockHeader> header{};
+    OtpConstRef<primitives::BlockBody> body{};
+    OtpConstRef<common::Buffer> receipt{};
+    OtpConstRef<common::Buffer> message_queue{};
+    OtpConstRef<primitives::Justification> justification{};
+
+    bool operator<(const BlockContext &other) const noexcept {
+      return block < other.block;
+    }
+  };
+
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP

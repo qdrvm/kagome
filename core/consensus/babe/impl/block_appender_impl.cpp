@@ -73,6 +73,11 @@ namespace kagome::consensus::babe {
 
     primitives::BlockInfo block_info(header.number, block_hash);
 
+    primitives::BlockContext context{
+        .block = {header.number, block_hash},
+        .header = header,
+    };
+
     if (last_appended_.has_value()) {
       if (last_appended_->number > block_info.number) {
         SL_TRACE(
@@ -171,7 +176,7 @@ namespace kagome::consensus::babe {
     // observe digest of block
     // (must be done strictly after block will be added)
     auto digest_tracking_res =
-        digest_tracker_->onDigest(block_info, block.header.digest);
+        digest_tracker_->onDigest(context, block.header.digest);
     if (digest_tracking_res.has_error()) {
       SL_ERROR(logger_,
                "Error while tracking digest of block {}: {}",

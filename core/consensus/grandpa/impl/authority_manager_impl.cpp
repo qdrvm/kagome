@@ -407,7 +407,9 @@ namespace kagome::consensus::grandpa {
       // TODO(xDimon): Would be more efficient to take parent hash of next block
       auto block_hash =
           hasher_->blake2b_256(scale::encode(block_header).value());
-      primitives::BlockInfo block_info(block_number, block_hash);
+
+      primitives::BlockContext context{.block = {block_number, block_hash},
+                                       .header = block_header};
 
       for (auto &item : block_header.digest) {
         auto res = visit_in_place(
@@ -418,7 +420,7 @@ namespace kagome::consensus::grandpa {
                     digest_item,
                     scale::decode<consensus::babe::BabeBlockHeader>(msg.data));
 
-                return onDigest(block_info, digest_item);
+                return onDigest(context, digest_item);
               }
               return outcome::success();
             },
@@ -427,7 +429,7 @@ namespace kagome::consensus::grandpa {
                 OUTCOME_TRY(digest_item,
                             scale::decode<primitives::GrandpaDigest>(msg.data));
 
-                return onDigest(block_info, digest_item);
+                return onDigest(context, digest_item);
               }
               return outcome::success();
             },
@@ -441,9 +443,9 @@ namespace kagome::consensus::grandpa {
         }
       }
 
-      prune(block_info);
+      prune(context.block);
 
-      if (block_info.number % (kSavepointEachSuchBlock / 10) == 0) {
+      if (context.block.number % (kSavepointEachSuchBlock / 10) == 0) {
         // Make savepoint
         auto save_res = save();
         if (save_res.has_error()) {
@@ -465,7 +467,7 @@ namespace kagome::consensus::grandpa {
 
     // 4. Collect and apply digests of non-finalized blocks
     auto leaves = block_tree_->getLeaves();
-    std::map<primitives::BlockInfo,
+    std::map<primitives::BlockContext,
              std::vector<boost::variant<consensus::babe::BabeBlockHeader,
                                         primitives::GrandpaDigest>>>
         digests;
@@ -486,14 +488,14 @@ namespace kagome::consensus::grandpa {
           break;
         }
 
-        primitives::BlockInfo block_info{block_header.number, hash};
+        primitives::BlockContext context{.block = {block_header.number, hash}};
 
         // This block was meet earlier
-        if (digests.find(block_info) != digests.end()) {
+        if (digests.find(context) != digests.end()) {
           break;
         }
 
-        auto &digest_of_block = digests[block_info];
+        auto &digest_of_block = digests[context];
 
         // Search and collect babe digests
         for (auto &item : block_header.digest) {
@@ -528,7 +530,7 @@ namespace kagome::consensus::grandpa {
           if (res.has_error()) {
             SL_WARN(logger_,
                     "Can't collect babe digest of non-finalized block {}: {}",
-                    block_info,
+                    context.block,
                     res.error());
             return res.as_failure();
           }
@@ -543,16 +545,16 @@ namespace kagome::consensus::grandpa {
                "Applying digest of {} non-finalized blocks",
                digests.size());
     }
-    for (const auto &[block_info_tmp, digests_of_block] : digests) {
-      const auto &block_info = block_info_tmp;
+    for (const auto &[context_tmp, digests_of_block] : digests) {
+      const auto &context = context_tmp;
       for (const auto &digest : digests_of_block) {
         auto res = visit_in_place(digest, [&](const auto &digest_item) {
-          return onDigest(block_info, digest_item);
+          return onDigest(context, digest_item);
         });
         if (res.has_error()) {
           SL_WARN(logger_,
                   "Can't apply babe digest of non-finalized block {}: {}",
-                  block_info,
+                  context.block,
                   res.error());
           return res.as_failure();
         }
@@ -569,7 +571,7 @@ namespace kagome::consensus::grandpa {
 
     BOOST_ASSERT(last_saved_state_block_ <= finalized_block.number);
 
-    auto saving_state_node = getNode(finalized_block);
+    auto saving_state_node = getNode({.block = finalized_block});
     BOOST_ASSERT_MSG(saving_state_node != nullptr,
                      "Finalized block must have associated node");
     const auto saving_state_block = saving_state_node->block;
@@ -593,7 +595,7 @@ namespace kagome::consensus::grandpa {
       if (hash_res.has_value()) {
         primitives::BlockInfo savepoint_block(new_savepoint, hash_res.value());
 
-        auto ancestor_node = getNode(savepoint_block);
+        auto ancestor_node = getNode({.block = savepoint_block});
         if (ancestor_node != nullptr) {
           auto node = ancestor_node->block == savepoint_block
                           ? ancestor_node
@@ -647,7 +649,7 @@ namespace kagome::consensus::grandpa {
   std::optional<std::shared_ptr<const primitives::AuthoritySet>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &target_block,
                                     IsBlockFinalized finalized) const {
-    auto node = getNode(target_block);
+    auto node = getNode({.block = target_block});
 
     if (node == nullptr) {
       return std::nullopt;
@@ -684,15 +686,15 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> AuthorityManagerImpl::applyScheduledChange(
-      const primitives::BlockInfo &block,
+      const primitives::BlockContext &context,
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber activate_at) {
     SL_DEBUG(logger_,
              "Applying scheduled change on block {} to activate at block {}",
-             block,
+             context.block,
              activate_at);
     KAGOME_PROFILE_START(get_appropriate_ancestor)
-    auto ancestor_node = getNode(block);
+    auto ancestor_node = getNode(context);
     KAGOME_PROFILE_END(get_appropriate_ancestor)
 
     if (not ancestor_node) {
@@ -701,7 +703,7 @@ namespace kagome::consensus::grandpa {
 
     SL_DEBUG(logger_,
              "Authorities for block {} found on block {} with set id {}",
-             block,
+             context.block,
              ancestor_node->block,
              ancestor_node->authorities->id);
 
@@ -748,7 +750,7 @@ namespace kagome::consensus::grandpa {
         if (const auto *action =
                 boost::get<ScheduleNode::ScheduledChange>(&last_node->action);
             action != nullptr) {
-          if (block.number <= action->applied_block) {
+          if (context.block.number <= action->applied_block) {
             // It's mean, that new Scheduled Changes would be scheduled before
             // previous is activated. So we ignore it
             return outcome::success();
@@ -764,7 +766,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    if (ancestor_node->block == block) {
+    if (ancestor_node->block == context.block) {
       if (maybe_set.has_value()) {
         ancestor_node->authorities = maybe_set.value();
       } else {
@@ -774,7 +776,7 @@ namespace kagome::consensus::grandpa {
       OUTCOME_TRY(schedule_change(ancestor_node));
     } else {
       KAGOME_PROFILE_START(make_descendant)
-      auto new_node = ancestor_node->makeDescendant(block, true);
+      auto new_node = ancestor_node->makeDescendant(context.block, true);
       KAGOME_PROFILE_END(make_descendant)
 
       if (maybe_set.has_value()) {
@@ -783,7 +785,7 @@ namespace kagome::consensus::grandpa {
 
       SL_TRACE(logger_,
                "Make a schedule node for block {}, with actual set id {}",
-               block,
+               context.block,
                new_node->authorities->id);
 
       KAGOME_PROFILE_START(schedule_change)
@@ -800,7 +802,7 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> AuthorityManagerImpl::applyForcedChange(
-      const primitives::BlockInfo &current_block,
+      const primitives::BlockContext &context,
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber delay_start,
       size_t delay) {
@@ -809,7 +811,7 @@ namespace kagome::consensus::grandpa {
              "to activate at block {}",
              delay_start,
              delay,
-             current_block,
+             context.block,
              delay_start + delay);
     if (delay_start < root_->block.number) {
       auto lag = root_->block.number - delay_start;
@@ -817,14 +819,14 @@ namespace kagome::consensus::grandpa {
         delay_start = root_->block.number;
         delay -= lag;
       } else {
-        delay_start = current_block.number;
+        delay_start = context.block.number;
         delay = 0;
       }
       SL_DEBUG(
           logger_,
           "Applying forced change on block {} is delayed {} blocks. "
           "Normalized to (delay start: {}, delay: {}) to activate at block {}",
-          current_block,
+          context.block,
           lag,
           delay_start,
           delay,
@@ -835,7 +837,7 @@ namespace kagome::consensus::grandpa {
       SL_ERROR(logger_, "Failed to obtain hash by number {}", delay_start);
     }
     OUTCOME_TRY(delay_start_hash, delay_start_hash_res);
-    auto ancestor_node = getNode({delay_start, delay_start_hash});
+    auto ancestor_node = getNode({.block = {delay_start, delay_start_hash}});
 
     if (not ancestor_node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -894,14 +896,14 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> AuthorityManagerImpl::applyOnDisabled(
-      const primitives::BlockInfo &block, uint64_t authority_index) {
+      const primitives::BlockContext &context, uint64_t authority_index) {
     if (!config_.on_disable_enabled) {
       SL_TRACE(logger_, "Ignore 'on disabled' message due to config");
       return outcome::success();
     }
-    SL_DEBUG(logger_, "Applying disable authority on block {}", block);
+    SL_DEBUG(logger_, "Applying disable authority on block {}", context.block);
 
-    auto node = getNode(block);
+    auto node = getNode(context);
 
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -935,18 +937,19 @@ namespace kagome::consensus::grandpa {
     IsBlockFinalized node_in_finalized_chain =
         node->block.number <= block_tree_->getLastFinalized().number;
 
-    if (node->block == block) {
+    if (node->block == context.block) {
       node->adjust(node_in_finalized_chain);
       OUTCOME_TRY(disable_authority(node));
     } else {
-      auto new_node = node->makeDescendant(block, node_in_finalized_chain);
+      auto new_node =
+          node->makeDescendant(context.block, node_in_finalized_chain);
 
       OUTCOME_TRY(disable_authority(new_node));
 
       // Reorganize ancestry
       auto descendants = std::move(node->descendants);
       for (auto &descendant : descendants) {
-        if (directChainExists(block, descendant->block)) {
+        if (directChainExists(context.block, descendant->block)) {
           // Propagate change to descendants
           if (descendant->authorities == node->authorities) {
             descendant->authorities = new_node->authorities;
@@ -963,10 +966,11 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> AuthorityManagerImpl::applyPause(
-      const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
-    SL_DEBUG(logger_, "Applying pause on block {}", block);
+      const primitives::BlockContext &context,
+      primitives::BlockNumber activate_at) {
+    SL_DEBUG(logger_, "Applying pause on block {}", context.block);
 
-    auto node = getNode(block);
+    auto node = getNode(context);
 
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -975,7 +979,8 @@ namespace kagome::consensus::grandpa {
     IsBlockFinalized node_in_finalized_chain =
         node->block.number <= block_tree_->getLastFinalized().number;
 
-    auto new_node = node->makeDescendant(block, node_in_finalized_chain);
+    auto new_node =
+        node->makeDescendant(context.block, node_in_finalized_chain);
 
     new_node->action = ScheduleNode::Pause{activate_at};
 
@@ -986,7 +991,7 @@ namespace kagome::consensus::grandpa {
     auto descendants = std::move(node->descendants);
     for (auto &descendant : descendants) {
       auto &ancestor =
-          block.number <= descendant->block.number ? new_node : node;
+          context.block.number <= descendant->block.number ? new_node : node;
       ancestor->descendants.emplace_back(std::move(descendant));
     }
     node->descendants.emplace_back(std::move(new_node));
@@ -995,8 +1000,9 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> AuthorityManagerImpl::applyResume(
-      const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
-    auto node = getNode(block);
+      const primitives::BlockContext &context,
+      primitives::BlockNumber activate_at) {
+    auto node = getNode(context);
 
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -1005,7 +1011,8 @@ namespace kagome::consensus::grandpa {
     IsBlockFinalized node_in_finalized_chain =
         node->block.number <= block_tree_->getLastFinalized().number;
 
-    auto new_node = node->makeDescendant(block, node_in_finalized_chain);
+    auto new_node =
+        node->makeDescendant(context.block, node_in_finalized_chain);
 
     new_node->action = ScheduleNode::Resume{activate_at};
 
@@ -1019,19 +1026,19 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> AuthorityManagerImpl::onDigest(
-      const primitives::BlockInfo &block,
+      const primitives::BlockContext &context,
       const consensus::babe::BabeBlockHeader &digest) {
-    auto node = getNode(block);
+    auto node = getNode(context);
 
     SL_TRACE(logger_,
              "BabeBlockHeader babe-digest on block {}: "
              "slot {}, authority #{}, {}",
-             block,
+             context.block,
              digest.slot_number,
              digest.authority_index,
              to_string(digest.slotType()));
 
-    if (node->block == block) {
+    if (node->block == context.block) {
       return AuthorityManagerError::BAD_ORDER_OF_DIGEST_ITEM;
     }
 
@@ -1039,30 +1046,34 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> AuthorityManagerImpl::onDigest(
-      const primitives::BlockInfo &block,
+      const primitives::BlockContext &context,
       const primitives::GrandpaDigest &digest) {
     return visit_in_place(
         digest,
-        [this, &block](
+        [this, &context](
             const primitives::ScheduledChange &msg) -> outcome::result<void> {
           return applyScheduledChange(
-              block, msg.authorities, block.number + msg.subchain_length);
+              context,
+              msg.authorities,
+              context.block.number + msg.subchain_length);
         },
-        [this, &block](const primitives::ForcedChange &msg) {
+        [this, &context](const primitives::ForcedChange &msg) {
           return applyForcedChange(
-              block, msg.authorities, msg.delay_start, msg.subchain_length);
+              context, msg.authorities, msg.delay_start, msg.subchain_length);
         },
-        [this, &block](const primitives::OnDisabled &msg) {
+        [this, &context](const primitives::OnDisabled &msg) {
           SL_DEBUG(logger_, "OnDisabled {}", msg.authority_index);
-          return applyOnDisabled(block, msg.authority_index);
+          return applyOnDisabled(context, msg.authority_index);
         },
-        [this, &block](const primitives::Pause &msg) {
+        [this, &context](const primitives::Pause &msg) {
           SL_DEBUG(logger_, "Pause {}", msg.subchain_length);
-          return applyPause(block, block.number + msg.subchain_length);
+          return applyPause(context,
+                            context.block.number + msg.subchain_length);
         },
-        [this, &block](const primitives::Resume &msg) {
+        [this, &context](const primitives::Resume &msg) {
           SL_DEBUG(logger_, "Resume {}", msg.subchain_length);
-          return applyResume(block, block.number + msg.subchain_length);
+          return applyResume(context,
+                             context.block.number + msg.subchain_length);
         },
         [](auto &) {
           return GrandpaDigestObserverError::UNSUPPORTED_MESSAGE_TYPE;
@@ -1078,7 +1089,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    auto node = getNode(block);
+    auto node = getNode({.block = block});
 
     if (not node) {
       return;
@@ -1105,23 +1116,38 @@ namespace kagome::consensus::grandpa {
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getNode(
-      const primitives::BlockInfo &block) const {
+      const primitives::BlockContext &context) const {
     BOOST_ASSERT(root_ != nullptr);
 
+    // Caching getter of direct chain best block
+    auto get_block =
+        [&, block = std::optional<primitives::BlockInfo>()]() mutable {
+          if (not block.has_value()) {
+            if (context.header.has_value()) {
+              const auto &header = context.header.value().get();
+              block.emplace(header.number - 1, header.parent_hash);
+            } else {
+              block.emplace(context.block);
+            }
+          }
+          return block.value();
+        };
+
     // Target block is not descendant of the current root
-    if (root_->block.number > block.number
-        || (root_->block != block
-            && not directChainExists(root_->block, block))) {
+    if (root_->block.number > context.block.number
+        || (root_->block != context.block
+            && not directChainExists(root_->block, get_block()))) {
       return nullptr;
     }
+
     std::shared_ptr<ScheduleNode> ancestor = root_;
-    while (ancestor->block != block) {
+    while (ancestor->block != context.block) {
       bool goto_next_generation = false;
       for (const auto &node : ancestor->descendants) {
-        if (node->block == block) {
+        if (node->block == context.block) {
           return node;
         }
-        if (directChainExists(node->block, block)) {
+        if (directChainExists(node->block, get_block())) {
           ancestor = node;
           goto_next_generation = true;
           break;
@@ -1142,13 +1168,19 @@ namespace kagome::consensus::grandpa {
              ancestor,
              descendant);
     KAGOME_PROFILE_START(direct_chain_exists)
-    // Any block is descendant of genesis
-    if (ancestor.number <= 1 && ancestor.number < descendant.number) {
+    // Check if it's one-block chain
+    if (ancestor == descendant) {
       return true;
     }
-    auto result =
-        ancestor.number < descendant.number
-        && block_tree_->hasDirectChain(ancestor.hash, descendant.hash);
+    // Any block is descendant of genesis
+    if (ancestor.number == 0) {
+      return true;
+    }
+    // No direct chain if order is wrong
+    if (ancestor.number > descendant.number) {
+      return false;
+    }
+    auto result = block_tree_->hasDirectChain(ancestor.hash, descendant.hash);
     KAGOME_PROFILE_END(direct_chain_exists)
     return result;
   }
@@ -1183,7 +1215,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void AuthorityManagerImpl::cancel(const primitives::BlockInfo &block) {
-    auto ancestor = getNode(block);
+    auto ancestor = getNode({.block = block});
 
     if (ancestor == nullptr) {
       SL_TRACE(logger_, "Can't remove node of block {}: no ancestor", block);

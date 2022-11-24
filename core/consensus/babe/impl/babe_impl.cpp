@@ -964,8 +964,9 @@ namespace kagome::consensus::babe {
 
     // observe digest of block
     // (must be done strictly after block will be added)
-    auto digest_tracking_res =
-        digest_tracker_->onDigest(block_info, block.header.digest);
+    auto digest_tracking_res = digest_tracker_->onDigest(
+        {.block = block_info, .header = block.header}, block.header.digest);
+
     if (digest_tracking_res.has_error()) {
       SL_WARN(log_,
               "Error while tracking digest of block {}: {}",

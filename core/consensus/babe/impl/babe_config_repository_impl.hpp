@@ -12,6 +12,7 @@
 
 #include "consensus/babe/impl/babe_config_node.hpp"
 #include "log/logger.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/buffer_map_types.hpp"
 
@@ -53,11 +54,11 @@ namespace kagome::consensus::babe {
 
     // BabeDigestObserver
 
-    outcome::result<void> onDigest(const primitives::BlockInfo &block,
+    outcome::result<void> onDigest(const primitives::BlockContext &context,
                                    const BabeBlockHeader &digest) override;
 
     outcome::result<void> onDigest(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::BabeDigest &digest) override;
 
     void cancel(const primitives::BlockInfo &block) override;
@@ -93,11 +94,12 @@ namespace kagome::consensus::babe {
 
     void prune(const primitives::BlockInfo &block);
 
-    outcome::result<void> onNextEpochData(const primitives::BlockInfo &block,
-                                          const primitives::NextEpochData &msg);
+    outcome::result<void> onNextEpochData(
+        const primitives::BlockContext &context,
+        const primitives::NextEpochData &msg);
 
     outcome::result<void> onNextConfigData(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::NextConfigDataV1 &msg);
 
     /**
@@ -106,7 +108,7 @@ namespace kagome::consensus::babe {
      * @return oldest node according to the block
      */
     std::shared_ptr<BabeConfigNode> getNode(
-        const primitives::BlockInfo &block) const;
+        const primitives::BlockContext &context) const;
 
     /**
      * @brief Check if one block is direct ancestor of second one

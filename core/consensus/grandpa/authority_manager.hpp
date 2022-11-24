@@ -10,6 +10,7 @@
 
 #include "common/tagged.hpp"
 #include "primitives/authority.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/block_header.hpp"
 
 namespace kagome::storage::trie {
@@ -49,12 +50,13 @@ namespace kagome::consensus::grandpa {
      * @brief Schedule an authority set change after the given delay of N
      * blocks, after next one would be finalized by the finality consensus
      * engine
-     * @param block the block where a digest with this change was discovered
+     * @param context data about block where a digest with this change was
+     * discovered
      * @param authorities is authority set for renewal
      * @param activateAt is number of block when changes will applied
      */
     virtual outcome::result<void> applyScheduledChange(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::AuthorityList &authorities,
         primitives::BlockNumber activate_at) = 0;
 
@@ -62,14 +64,15 @@ namespace kagome::consensus::grandpa {
      * @brief Force an authority set change after the given delay of N blocks,
      * after next one would be imported block which has been validated by the
      * block production consensus engine.
-     * @param block the block where a digest with this change was discovered
+     * @param context data about block where a digest with this change was
+     * discovered
      * @param authorities new authority set
      * @param delay_start block at which the delay before this change is applied
      * starts
      * @param delay the chain length until the delay is over
      */
     virtual outcome::result<void> applyForcedChange(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::AuthorityList &authorities,
         primitives::BlockNumber delay_start,
         size_t delay) = 0;
@@ -84,21 +87,23 @@ namespace kagome::consensus::grandpa {
      * authority role. Once an authority set change after the given delay of N
      * blocks, is an imported block which has been validated by the block
      * production consensus engine.
-     * @param block the block where a digest with this change was discovered
+     * @param context data about block where a digest with this change was
+     * discovered
      * @param authority_index is index of one authority in current authority set
      */
     virtual outcome::result<void> applyOnDisabled(
-        const primitives::BlockInfo &block, uint64_t authority_index) = 0;
+        const primitives::BlockContext &context, uint64_t authority_index) = 0;
 
     /**
      * @brief A signal to pause the current authority set after the given delay,
      * is a block finalized by the finality consensus engine. After finalizing
      * block, the authorities should stop voting.
-     * @param block the block where a digest with this change was discovered
+     * @param context data about block where a digest with this change was
+     * discovered
      * @param activateAt is number of block when changes will applied
      */
     virtual outcome::result<void> applyPause(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         primitives::BlockNumber activate_at) = 0;
 
     /**
@@ -106,11 +111,12 @@ namespace kagome::consensus::grandpa {
      * delay, is an imported block and validated by the block production
      * consensus engine. After authoring the block B 0 , the authorities should
      * resume voting.
-     * @param block the block where a digest with this change was discovered
+     * @param context data about block where a digest with this change was
+     * discovered
      * @param activateAt is number of block when changes will applied
      */
     virtual outcome::result<void> applyResume(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         primitives::BlockNumber activate_at) = 0;
   };
 }  // namespace kagome::consensus::grandpa

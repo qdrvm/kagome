@@ -102,6 +102,11 @@ namespace kagome::consensus::babe {
 
     primitives::BlockInfo block_info(header.number, block_hash);
 
+    primitives::BlockContext context{
+        .block = {header.number, block_hash},
+        .header = header,
+    };
+
     if (auto header_res = block_tree_->getBlockHeader(header.parent_hash);
         header_res.has_error()
         && header_res.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
@@ -188,15 +193,10 @@ namespace kagome::consensus::babe {
 
     auto consistency_guard = consistency_keeper_->start(block_info);
 
-    if (not block_was_applied_earlier) {
-      // add block header if it does not exist
-      OUTCOME_TRY(block_tree_->addBlock(block));
-    }
-
     // observe digest of block
     // (must be done strictly after block will be added)
     auto digest_tracking_res =
-        digest_tracker_->onDigest(block_info, block.header.digest);
+        digest_tracker_->onDigest(context, block.header.digest);
     if (digest_tracking_res.has_error()) {
       SL_ERROR(logger_,
                "Error while tracking digest of block {}: {}",
@@ -264,6 +264,9 @@ namespace kagome::consensus::babe {
 
       metric_block_execution_time_->observe(static_cast<double>(duration_ms)
                                             / 1000);
+
+      // add block header if it does not exist
+      OUTCOME_TRY(block_tree_->addBlock(block));
     }
 
     // try to apply postponed justifications first if any

@@ -83,11 +83,11 @@ namespace kagome::consensus::grandpa {
     // GrandpaDigestObserver
 
     outcome::result<void> onDigest(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const consensus::babe::BabeBlockHeader &digest) override;
 
     outcome::result<void> onDigest(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::GrandpaDigest &digest) override;
 
     void cancel(const primitives::BlockInfo &block) override;
@@ -100,26 +100,29 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockInfo &target_block,
         IsBlockFinalized finalized) const override;
 
+    // GrandpaDigestObserver
+
     outcome::result<void> applyScheduledChange(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::AuthorityList &authorities,
         primitives::BlockNumber activate_at) override;
 
     outcome::result<void> applyForcedChange(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::AuthorityList &authorities,
         primitives::BlockNumber delay_start,
         size_t delay) override;
 
-    outcome::result<void> applyOnDisabled(const primitives::BlockInfo &block,
-                                          uint64_t authority_index) override;
+    outcome::result<void> applyOnDisabled(
+        const primitives::BlockContext &context,
+        uint64_t authority_index) override;
 
     outcome::result<void> applyPause(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         primitives::BlockNumber activate_at) override;
 
     outcome::result<void> applyResume(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         primitives::BlockNumber activate_at) override;
 
    private:
@@ -134,7 +137,7 @@ namespace kagome::consensus::grandpa {
      * @return oldest node according to the block
      */
     std::shared_ptr<ScheduleNode> getNode(
-        const primitives::BlockInfo &block) const;
+        const primitives::BlockContext &context) const;
 
     /**
      * @brief Check if one block is direct ancestor of second one

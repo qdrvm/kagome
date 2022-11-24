@@ -7,6 +7,7 @@
 #define KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER
 
 #include "outcome/outcome.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/digest.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -16,20 +17,20 @@ namespace kagome::consensus::grandpa {
     virtual ~GrandpaDigestObserver() = default;
 
     /// Observes PreRuntime of block
-    /// @param block - block digest of which observed
+    /// @param context - data of accorded block
     /// @param digest - BabeBlockHeader as decoded content of PreRuntime digest
     /// @return failure or nothing
     virtual outcome::result<void> onDigest(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const consensus::babe::BabeBlockHeader &digest) = 0;
 
     /// Observes ConsensusLog of block
-    /// @param block - block digest of which observed
+    /// @param context - data of accorded block
     /// @param digest - GrandpaDigest as particular variant of ConsensusLog
     /// digest
     /// @return failure or nothing
     virtual outcome::result<void> onDigest(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::GrandpaDigest &digest) = 0;
 
     /**

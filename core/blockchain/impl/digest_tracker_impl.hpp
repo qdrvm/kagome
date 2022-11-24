@@ -26,17 +26,17 @@ namespace kagome::blockchain {
                       std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
                           grandpa_digest_observer);
 
-    outcome::result<void> onDigest(const primitives::BlockInfo &block,
+    outcome::result<void> onDigest(const primitives::BlockContext &context,
                                    const primitives::Digest &digest) override;
 
     void cancel(const primitives::BlockInfo &block) override;
 
    private:
-    outcome::result<void> onPreRuntime(const primitives::BlockInfo &block,
+    outcome::result<void> onPreRuntime(const primitives::BlockContext &context,
                                        const primitives::PreRuntime &message);
 
     outcome::result<void> onConsensus(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::Consensus &consensus_message);
 
     std::shared_ptr<consensus::babe::BabeDigestObserver> babe_digest_observer_;
