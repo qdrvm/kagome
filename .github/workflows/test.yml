@@ -53,8 +53,8 @@ jobs:
             run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_mold_cxx17.cmake -DUBSAN=ON
           - name: "Linux: clang-11 External Project"
             run: ./housekeeping/make_external_build.sh -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-11_mold_cxx17.cmake
-          - name: "Linux: clang-14 UBSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-14_mold_cxx17.cmake -DUBSAN=ON
+          - name: "Linux: clang-15 UBSAN"
+            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_mold_cxx17.cmake -DUBSAN=ON
           
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
