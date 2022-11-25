@@ -14,6 +14,7 @@ find_dependency(OpenSSL REQUIRED)
 find_dependency(RocksDB REQUIRED)
 find_dependency(scale REQUIRED)
 find_dependency(prometheus-cpp REQUIRED core)
+find_dependency(RapidJSON REQUIRED rapidjson)
 
 option(KAGOME_ENABLE_WAVM "Include WAVM webassembly executor dependency" ON)
 if (KAGOME_ENABLE_WAVM)
