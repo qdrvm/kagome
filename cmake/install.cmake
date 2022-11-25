@@ -12,12 +12,14 @@ endfunction()
 
 ### kagome_clear_objects should be called right after target_link_libraries(target) or kagome_install(target)
 function(kagome_clear_objects target)
-    add_custom_command(TARGET ${target}
-        POST_BUILD
-        COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Removing object files from '${CMAKE_CURRENT_BINARY_DIR}'"
-    )
+    if(CLEAR_OBJS)
+        add_custom_command(TARGET ${target}
+            POST_BUILD
+            COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Removing object files from '${CMAKE_CURRENT_BINARY_DIR}'"
+        )
+    endif()
 endfunction()
 
 ### workaround for imported libraries
