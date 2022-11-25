@@ -292,7 +292,6 @@ namespace kagome::consensus::babe {
           break;
         }
 
-        //        primitives::BlockInfo block_info{block_header.number, hash};
         primitives::BlockContext context{.block = {block_header.number, hash}};
 
         // This block was meet earlier
