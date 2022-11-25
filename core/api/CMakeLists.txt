@@ -52,22 +52,24 @@ add_library(api
     )
 
 target_link_libraries(api
-    PUBLIC Boost::boost
-    PRIVATE RapidJSON::rapidjson
-    PRIVATE metrics
-    PUBLIC logger
-    PUBLIC app_state_manager
-    PUBLIC p2p::p2p_peer_id
-    PUBLIC crypto_store
-    PUBLIC hexutil
-    PUBLIC scale::scale
-    PUBLIC storage
-    PUBLIC blob
-    PUBLIC metadata_api
-    PUBLIC consensus
-    PUBLIC ss58_codec
-    PUBLIC outcome
-    PUBLIC build_version
+    PUBLIC
+    Boost::boost
+    logger
+    app_state_manager
+    p2p::p2p_peer_id
+    crypto_store
+    hexutil
+    scale::scale
+    storage
+    blob
+    metadata_api
+    consensus
+    ss58_codec
+    outcome
+    build_version
+    PRIVATE 
+    RapidJSON::rapidjson
+    metrics
     )
 kagome_install(api)
 kagome_clear_objects(api)
