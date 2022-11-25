@@ -77,6 +77,3 @@ find_package(zstd CONFIG REQUIRED)
 
 hunter_add_package(rocksdb)
 find_package(RocksDB CONFIG REQUIRED)
-
-hunter_add_package(RapidJSON)
-find_package(RapidJSON CONFIG REQUIRED)
