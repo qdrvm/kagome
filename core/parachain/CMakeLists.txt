@@ -15,8 +15,5 @@ add_library(validator_parachain
 
 target_link_libraries(validator_parachain
     crypto_store
-    req_collation_protocol
-    collation_protocol
-    protocol_error
-    peer_view
+    network
     )

@@ -23,10 +23,7 @@ addtest(trie_storage_provider_test
     )
 target_link_libraries(trie_storage_provider_test
     trie_storage_provider
-    in_memory_storage
-    trie_storage_backend
-    polkadot_trie_factory
-    trie_serializer
+    storage
     logger_for_tests
     )
 
@@ -55,7 +52,7 @@ addtest(runtime_upgrade_tracker_test
 target_link_libraries(runtime_upgrade_tracker_test
     runtime_upgrade_tracker
     blob
-    in_memory_storage
+    storage
     logger
     log_configurator
     scale::scale
