@@ -65,10 +65,19 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+      - name: df du
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
       - name: Install mold
         run: ./housekeeping/ci_install_mold.sh --make-default
       - name: "${{ matrix.options.name }}"
         run: "${{ matrix.options.run }}"
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
 
   clang-tidy:
     name: "Linux: clang-tidy"
@@ -100,12 +109,21 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - name: df du
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
       - name: Install mold
         run: ./housekeeping/ci_install_mold.sh --make-default
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
         run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
       - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         name: Submit Coverage
         env:
