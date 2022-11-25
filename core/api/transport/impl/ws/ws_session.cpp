@@ -187,11 +187,7 @@ namespace kagome::api {
 
   void WsSession::reportError(boost::system::error_code ec,
                               std::string_view message) {
-    SL_ERROR(logger_,
-             "error occurred: {}, code: {}, message: {}",
-             message,
-             ec,
-             ec.message());
+    SL_ERROR(logger_, "error occurred: {}, message: {}", message, ec);
   }
 
 }  // namespace kagome::api

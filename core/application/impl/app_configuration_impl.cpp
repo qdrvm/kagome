@@ -660,7 +660,7 @@ namespace kagome::application {
                  "Telemetry endpoint '{}' cannot be interpreted as a valid "
                  "multiaddress and was skipped due to error: {}",
                  uri_part,
-                 ma_res.error().message());
+                 ma_res.error());
         return std::nullopt;
       }
 
@@ -956,8 +956,8 @@ namespace kagome::application {
       for (auto &addr_str : boot_nodes) {
         auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
         if (not ma_res.has_value()) {
-          auto err_msg = "Bootnode '" + addr_str
-                         + "' is invalid: " + ma_res.error().message();
+          auto err_msg = fmt::format(
+              "Bootnode '{}' is invalid: {}", addr_str, ma_res.error());
           SL_ERROR(logger_, "{}", err_msg);
           std::cout << err_msg << std::endl;
           return false;
@@ -979,8 +979,8 @@ namespace kagome::application {
     if (node_key.has_value()) {
       auto key_res = crypto::Ed25519PrivateKey::fromHex(node_key.value());
       if (not key_res.has_value()) {
-        auto err_msg = "Node key '" + node_key.value()
-                       + "' is invalid: " + key_res.error().message();
+        auto err_msg = fmt::format(
+            "Node key '{}' is invalid: {}", node_key.value(), key_res.error());
         SL_ERROR(logger_, "{}", err_msg);
         std::cout << err_msg << std::endl;
         return false;
@@ -1017,7 +1017,7 @@ namespace kagome::application {
                    "Address {} passed as value to {} is invalid: {}",
                    s,
                    param_name,
-                   ma_res.error().message());
+                   ma_res.error());
           return false;
         }
         output_field.emplace_back(std::move(ma_res.value()));
@@ -1054,7 +1054,7 @@ namespace kagome::application {
               "Cannot construct IPv6 listen multiaddress from port {}. Error: "
               "{}",
               p2p_port_,
-              ma_res.error().message());
+              ma_res.error());
         } else {
           SL_INFO(logger_,
                   "Automatically added IPv6 listen address {}",
@@ -1073,7 +1073,7 @@ namespace kagome::application {
               "Cannot construct IPv4 listen multiaddress from port {}. Error: "
               "{}",
               p2p_port_,
-              ma_res.error().message());
+              ma_res.error());
         } else {
           SL_INFO(logger_,
                   "Automatically added IPv4 listen address {}",
@@ -1223,7 +1223,7 @@ namespace kagome::application {
           SL_ERROR(logger_,
                    "Failed to purge cache in {} ['{}']",
                    runtimeCacheDirPath(),
-                   ec.message());
+                   ec);
         }
       }
     }
