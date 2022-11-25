@@ -16,4 +16,3 @@ RUN apt-get update && \
 
 
 COPY kagome /usr/local/bin/
-COPY kagome-db-editor /usr/local/bin/

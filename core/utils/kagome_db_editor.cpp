@@ -163,7 +163,7 @@ auto is_hash(const char *s) {
          && std::equal(s, s + 2, "0x");
 };
 
-int main(int argc, char *argv[]) {
+int db_editor_main(int argc, const char **argv) {
 #if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
 #endif
@@ -441,4 +441,6 @@ int main(int argc, char *argv[]) {
     dynamic_cast<storage::RocksDB *>(storage.get())
         ->compact(common::Buffer(), common::Buffer());
   }
+
+  return 0;
 }

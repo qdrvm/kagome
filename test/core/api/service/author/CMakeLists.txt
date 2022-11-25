@@ -7,7 +7,7 @@ addtest(author_api_test
     author_api_test.cpp
     )
 target_link_libraries(author_api_test
-    author_api_service
+    api
     blob
     hasher
     testutil_primitives_generator

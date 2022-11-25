@@ -40,6 +40,7 @@ option(COVERAGE     "Enable generation of coverage info"          OFF)
 option(EMBEDDINGS   "Embed developers assets"                     ON )
 option(PROFILING    "Enable internal profiling instruments"       OFF)
 option(BACKWARD     "Enable stacktrace logging instruments"       ON )
+option(CLEAR_OBJS   "Clear object files"                          OFF)
 
 # sanitizers will be enabled only for Kagome, and will be disabled for dependencies
 option(ASAN         "Enable address sanitizer"                    OFF)
