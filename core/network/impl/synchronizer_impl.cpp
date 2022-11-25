@@ -430,7 +430,7 @@ namespace kagome::network {
                  lower,
                  upper - 1,
                  peer_id,
-                 outcome::result<void>(Error::DUPLICATE_REQUEST).error());
+                 make_error_code(Error::DUPLICATE_REQUEST));
       handler(Error::DUPLICATE_REQUEST);
       return;
     }
@@ -600,7 +600,7 @@ namespace kagome::network {
                "Can't load blocks from {} beginning block {}: {}",
                peer_id,
                from,
-               outcome::result<void>(Error::DUPLICATE_REQUEST).error());
+               make_error_code(Error::DUPLICATE_REQUEST));
       if (handler) handler(Error::DUPLICATE_REQUEST);
       return;
     }
@@ -830,7 +830,7 @@ namespace kagome::network {
                "Can't load justification from {} for block {}: {}",
                peer_id,
                target_block,
-               outcome::result<void>(Error::DUPLICATE_REQUEST).error());
+               make_error_code(Error::DUPLICATE_REQUEST));
       if (handler) {
         handler(Error::DUPLICATE_REQUEST);
       }
