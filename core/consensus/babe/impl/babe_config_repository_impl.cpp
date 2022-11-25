@@ -600,7 +600,7 @@ namespace kagome::consensus::babe {
       const primitives::BlockContext &context) const {
     BOOST_ASSERT(root_ != nullptr);
 
-    // Caching getter of direct chain best block
+    // Lazy getter of direct chain best block ('cause it may be not used)
     auto get_block =
         [&, block = std::optional<primitives::BlockInfo>()]() mutable {
           if (not block.has_value()) {

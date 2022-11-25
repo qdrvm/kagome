@@ -46,6 +46,9 @@ namespace kagome::primitives {
     bool justification{};
   };
 
+  /// Context of processing block, to avoid additional obtaining data from
+  /// storage, or redundant calculation. Contains the same data like BlockData,
+  /// but by reference, not by value.
   class BlockContext {
     template <typename T>
     using OptConstRef = std::optional<std::reference_wrapper<const T>>;
