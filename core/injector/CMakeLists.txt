@@ -80,10 +80,4 @@ target_link_libraries(application_injector
     validator_parachain
     fd_limit
     )
-
-add_custom_command(TARGET application_injector
-    POST_BUILD
-    COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Removing object files from '${CMAKE_CURRENT_BINARY_DIR}'"
-)
+kagome_clear_objects(application_injector)

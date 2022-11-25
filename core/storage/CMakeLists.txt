@@ -33,11 +33,5 @@ target_link_libraries(storage
     logger
     blake2
     )
-add_custom_command(TARGET storage
-    POST_BUILD
-    COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Removing object files from '${CMAKE_CURRENT_BINARY_DIR}'"
-)
-
 kagome_install(storage)
+kagome_clear_objects(storage)

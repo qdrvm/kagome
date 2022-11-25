@@ -16,9 +16,4 @@ target_link_libraries(block_builder
     scale::scale
     metrics
     )
-add_custom_command(TARGET block_builder
-    POST_BUILD
-    COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Removing object files from '${CMAKE_CURRENT_BINARY_DIR}'"
-)
+kagome_clear_objects(block_builder)

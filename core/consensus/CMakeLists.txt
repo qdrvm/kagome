@@ -49,9 +49,4 @@ target_link_libraries(consensus
     telemetry
     )
 kagome_install(consensus)
-add_custom_command(TARGET consensus
-    POST_BUILD
-    COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Removing object files from '${CMAKE_CURRENT_BINARY_DIR}'"
-)
+kagome_clear_objects(consensus)

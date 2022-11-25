@@ -46,9 +46,4 @@ target_link_libraries(network
     node_api_proto
     p2p::p2p_loopback_stream
     )
-add_custom_command(TARGET network
-    POST_BUILD
-    COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Removing object files from '${CMAKE_CURRENT_BINARY_DIR}'"
-)
+kagome_clear_objects(network)
