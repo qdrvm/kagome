@@ -227,12 +227,14 @@ namespace kagome::runtime {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(hash));
     primitives::BlockInfo block_info{header.number, hash};
 
-    if (std::find_if(runtime_upgrades_.begin(),
-                     runtime_upgrades_.end(),
-                     [&](const RuntimeUpgradeData &rud) {
-                       return rud.block == block_info;
-                     })
-        == runtime_upgrades_.end()) {
+    bool is_new_upgrade = std::find_if(runtime_upgrades_.begin(),
+                                       runtime_upgrades_.end(),
+                                       [&](const RuntimeUpgradeData &rud) {
+                                         return rud.block == block_info;
+                                       })
+                          == runtime_upgrades_.end();
+
+    if (is_new_upgrade) {
       runtime_upgrades_.emplace_back(block_info, std::move(header.state_root));
 
       std::sort(runtime_upgrades_.begin(),

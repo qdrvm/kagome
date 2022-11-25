@@ -55,7 +55,7 @@ namespace kagome::consensus::grandpa {
     inline static const std::vector<primitives::ConsensusEngineId>
         kKnownEngines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
 
-    static const primitives::BlockNumber kSavepointEachSuchBlock = 100000;
+    static const primitives::BlockNumber kSavepointBlockInterval = 100000;
 
     struct Config {
       // Whether OnDisabled digest message should be processed.

@@ -295,6 +295,10 @@ namespace kagome::consensus::babe {
 
       auto res = applyJustification(block_info, b.justification.value());
       if (res.has_error()) {
+        // If the total weight is not enough, this justification is deferred to
+        // try to apply it after the next block is added. One of the reasons for
+        // this error is the presence of preliminary votes for future blocks
+        // that have not yet been applied.
         if (res
             == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
           postponed_justifications_.emplace(block_info,

@@ -133,10 +133,10 @@ namespace kagome::consensus::babe {
     // 2. Load from last control point, if state is still not found
     if (root_ == nullptr) {
       for (auto block_number =
-               (finalized_block.number / kSavepointEachSuchBlock)
-               * kSavepointEachSuchBlock;
+               (finalized_block.number / kSavepointBlockInterval)
+               * kSavepointBlockInterval;
            block_number > 0;
-           block_number -= kSavepointEachSuchBlock) {
+           block_number -= kSavepointBlockInterval) {
         OUTCOME_TRY(encoded_saved_state_opt,
                     persistent_storage_->tryLoad(
                         storage::kBabeConfigRepoStateLookupKey(block_number)));
@@ -249,7 +249,7 @@ namespace kagome::consensus::babe {
 
       prune(context.block);
 
-      if (context.block.number % (kSavepointEachSuchBlock / 10) == 0) {
+      if (context.block.number % (kSavepointBlockInterval / 10) == 0) {
         // Make savepoint
         auto save_res = save();
         if (save_res.has_error()) {
@@ -382,12 +382,12 @@ namespace kagome::consensus::babe {
     }
 
     const auto last_savepoint =
-        (last_saved_state_block_ / kSavepointEachSuchBlock)
-        * kSavepointEachSuchBlock;
+        (last_saved_state_block_ / kSavepointBlockInterval)
+        * kSavepointBlockInterval;
 
     const auto new_savepoint =
-        (saving_state_block.number / kSavepointEachSuchBlock)
-        * kSavepointEachSuchBlock;
+        (saving_state_block.number / kSavepointBlockInterval)
+        * kSavepointBlockInterval;
 
     // It's time to make savepoint
     if (new_savepoint > last_savepoint) {

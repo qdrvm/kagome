@@ -1110,6 +1110,15 @@ namespace kagome::consensus::grandpa {
     // Check if commit of already finalized block
     if (block_tree_->getLastFinalized().number
         >= justification.block_info.number) {
+      SL_DEBUG(
+          logger_,
+          "Commit with set_id={} in round={} for block {} has received from {} "
+          "ignored: justified block less then our last finalized ({})",
+          msg.set_id,
+          msg.round,
+          BlockInfo(msg.message.target_number, msg.message.target_hash),
+          peer_id,
+          block_tree_->getLastFinalized().number);
       return;
     }
 

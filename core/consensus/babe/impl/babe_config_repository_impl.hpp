@@ -37,7 +37,7 @@ namespace kagome::consensus::babe {
         public BabeDigestObserver,
         public BabeUtil,
         public std::enable_shared_from_this<BabeConfigRepositoryImpl> {
-    static const primitives::BlockNumber kSavepointEachSuchBlock = 100000;
+    static const primitives::BlockNumber kSavepointBlockInterval = 100000;
 
    public:
     BabeConfigRepositoryImpl(
