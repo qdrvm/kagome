@@ -12,6 +12,7 @@
 #include "primitives/common.hpp"
 
 namespace kagome::consensus::babe {
+
   using Signature = crypto::Ed25519Signature;  // FIXME check actual type
   using ParachainId = uint32_t;
   using CollatorPublicKey =

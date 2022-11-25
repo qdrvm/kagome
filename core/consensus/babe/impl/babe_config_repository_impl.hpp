@@ -12,6 +12,7 @@
 
 #include "consensus/babe/impl/babe_config_node.hpp"
 #include "log/logger.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/buffer_map_types.hpp"
 
@@ -36,7 +37,7 @@ namespace kagome::consensus::babe {
         public BabeDigestObserver,
         public BabeUtil,
         public std::enable_shared_from_this<BabeConfigRepositoryImpl> {
-    static const primitives::BlockNumber kSavepointEachSuchBlock = 100000;
+    static const primitives::BlockNumber kSavepointBlockInterval = 100000;
 
    public:
     BabeConfigRepositoryImpl(
@@ -47,19 +48,17 @@ namespace kagome::consensus::babe {
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-        const primitives::GenesisBlockHeader &genesis_block_header,
         const BabeClock &clock);
 
     bool prepare();
 
     // BabeDigestObserver
 
-    outcome::result<void> onDigest(
-        const primitives::BlockInfo &block,
-        const consensus::BabeBlockHeader &digest) override;
+    outcome::result<void> onDigest(const primitives::BlockContext &context,
+                                   const BabeBlockHeader &digest) override;
 
     outcome::result<void> onDigest(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::BabeDigest &digest) override;
 
     void cancel(const primitives::BlockInfo &block) override;
@@ -71,8 +70,8 @@ namespace kagome::consensus::babe {
     EpochLength epochLength() const override;
 
     std::shared_ptr<const primitives::BabeConfiguration> config(
-        const primitives::BlockInfo &parent_block,
-        consensus::EpochNumber epoch_number) override;
+        const primitives::BlockContext &context,
+        EpochNumber epoch_number) override;
 
     // BabeUtil
 
@@ -95,20 +94,21 @@ namespace kagome::consensus::babe {
 
     void prune(const primitives::BlockInfo &block);
 
-    outcome::result<void> onNextEpochData(const primitives::BlockInfo &block,
-                                          const primitives::NextEpochData &msg);
+    outcome::result<void> onNextEpochData(
+        const primitives::BlockContext &context,
+        const primitives::NextEpochData &msg);
 
     outcome::result<void> onNextConfigData(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::NextConfigDataV1 &msg);
 
     /**
-     * @brief Find schedule_node according to the block
+     * @brief Find node according to the block
      * @param block for which to find the schedule node
-     * @return oldest schedule_node according to the block
+     * @return oldest node according to the block
      */
     std::shared_ptr<BabeConfigNode> getNode(
-        const primitives::BlockInfo &block) const;
+        const primitives::BlockContext &context) const;
 
     /**
      * @brief Check if one block is direct ancestor of second one
@@ -127,7 +127,6 @@ namespace kagome::consensus::babe {
     std::shared_ptr<runtime::BabeApi> babe_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
-    primitives::BlockHash genesis_block_hash_;
 
     const BabeDuration slot_duration_{};
     const EpochLength epoch_length_{};

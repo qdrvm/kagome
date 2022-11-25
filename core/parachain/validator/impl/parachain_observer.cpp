@@ -52,9 +52,8 @@ namespace kagome::observers {
       auto result = pm_->insert_advertisement(
           peer_state->get(), parachain_state, std::move(relay_parent));
       if (!result) {
-        logger_->warn("Insert advertisement from {} failed: {}",
-                      peer_id,
-                      result.error().message());
+        logger_->warn(
+            "Insert advertisement from {} failed: {}", peer_id, result.error());
         return;
       }
 

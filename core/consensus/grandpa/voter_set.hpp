@@ -16,12 +16,9 @@ namespace kagome::consensus::grandpa {
   /**
    * Stores voters with their corresponding weights
    */
-  struct VoterSet final {
+  class VoterSet final {
    public:
-    enum class Error {
-      VOTER_ALREADY_EXISTS = 1,
-      INDEX_OUTBOUND
-    };
+    enum class Error { VOTER_ALREADY_EXISTS = 1, INDEX_OUTBOUND };
 
     using Index = size_t;
     using Weight = size_t;

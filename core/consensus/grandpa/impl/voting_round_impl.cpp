@@ -8,9 +8,15 @@
 #include <unordered_set>
 
 #include "blockchain/block_tree_error.hpp"
-#include "common/visitor.hpp"
+#include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa.hpp"
+#include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
+#include "consensus/grandpa/vote_crypto_provider.hpp"
+#include "consensus/grandpa/vote_graph.hpp"
+#include "consensus/grandpa/vote_tracker.hpp"
+#include "consensus/grandpa/vote_types.hpp"
+#include "consensus/grandpa/vote_weight.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -45,7 +51,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      std::shared_ptr<authority::AuthorityManager> authority_manager,
+      std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<Environment> env,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker> prevotes,
@@ -94,7 +100,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      const std::shared_ptr<authority::AuthorityManager> authority_manager,
+      const std::shared_ptr<AuthorityManager> authority_manager,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
@@ -123,7 +129,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      const std::shared_ptr<authority::AuthorityManager> authority_manager,
+      const std::shared_ptr<AuthorityManager> authority_manager,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
@@ -501,7 +507,7 @@ namespace kagome::consensus::grandpa {
     if (not res) {
       logger_->error("Round #{}: Primary proposal was not sent: {}",
                      round_number_,
-                     res.error().message());
+                     res.error());
     }
   }
 
@@ -562,9 +568,8 @@ namespace kagome::consensus::grandpa {
 
     auto res = env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
     if (not res) {
-      logger_->error("Round #{}: Prevote was not sent: {}",
-                     round_number_,
-                     res.error().message());
+      logger_->error(
+          "Round #{}: Prevote was not sent: {}", round_number_, res.error());
     }
   }
 
@@ -619,9 +624,8 @@ namespace kagome::consensus::grandpa {
 
     auto res = env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
     if (not res) {
-      logger_->error("Round #{}: Precommit was not sent: {}",
-                     round_number_,
-                     res.error().message());
+      logger_->error(
+          "Round #{}: Precommit was not sent: {}", round_number_, res.error());
     }
   }
 
@@ -644,7 +648,7 @@ namespace kagome::consensus::grandpa {
               "Round #{}: Finalizing on block {} is failed: {}",
               round_number_,
               block,
-              res.error().message());
+              res.error());
     }
   }
 
@@ -669,7 +673,7 @@ namespace kagome::consensus::grandpa {
     if (not committed) {
       logger_->error("Round #{}: Commit message was not sent: {}",
                      round_number_,
-                     committed.error().message());
+                     committed.error());
       return;
     }
   }
@@ -742,8 +746,6 @@ namespace kagome::consensus::grandpa {
       return finalized.as_failure();
     }
 
-    authority_manager_->prune(last_finalized_block_);
-
     return outcome::success();
   }
 
@@ -784,7 +786,9 @@ namespace kagome::consensus::grandpa {
         // New vote
         auto weight_opt = voter_set_->voterWeight(signed_precommit.id);
         if (!weight_opt) {
-          SL_DEBUG(logger_, "Voter {} is not in the current voter set", signed_precommit.id.toHex());
+          SL_DEBUG(logger_,
+                   "Voter {} is not in the current voter set",
+                   signed_precommit.id.toHex());
           continue;
         }
         if (env_->hasAncestry(vote.hash, signed_precommit.getBlockHash())) {
@@ -938,7 +942,7 @@ namespace kagome::consensus::grandpa {
       if (not res) {
         logger_->error("Round #{}: Primary proposal was not propagated: {}",
                        round_number_,
-                       res.error().message());
+                       res.error());
       }
     }
   }
@@ -983,7 +987,7 @@ namespace kagome::consensus::grandpa {
         logger_->warn("Round #{}: Prevote signed by {} was rejected: {}",
                       round_number_,
                       prevote.id,
-                      result.error().message());
+                      result.error());
         return false;
       }
     }
@@ -1007,7 +1011,7 @@ namespace kagome::consensus::grandpa {
       if (not res) {
         logger_->error("Round #{}: Prevote was not propagated: {}",
                        round_number_,
-                       res.error().message());
+                       res.error());
       }
     }
 
@@ -1049,7 +1053,7 @@ namespace kagome::consensus::grandpa {
         logger_->warn("Round #{}: Precommit signed by {} was rejected: {}",
                       round_number_,
                       precommit.id,
-                      result.error().message());
+                      result.error());
         return false;
       }
     }
@@ -1074,7 +1078,7 @@ namespace kagome::consensus::grandpa {
       if (not res) {
         logger_->error("Round #{}: Precommit was not propagated: {}",
                        round_number_,
-                       res.error().message());
+                       res.error());
       }
     }
 
@@ -1145,7 +1149,8 @@ namespace kagome::consensus::grandpa {
     // Check if voter is contained in current voter set
     auto index_and_weight_opt = voter_set_->indexAndWeight(vote.id);
     if (!index_and_weight_opt) {
-      SL_DEBUG(logger_, "Voter {} is not in the current voter set", vote.id.toHex());
+      SL_DEBUG(
+          logger_, "Voter {} is not in the current voter set", vote.id.toHex());
       return VotingRoundError::UNKNOWN_VOTER;
     }
     const auto &[index, weight] = index_and_weight_opt.value();
@@ -1202,7 +1207,7 @@ namespace kagome::consensus::grandpa {
                  type_str,
                  vote.id.toHex(),
                  vote.getBlockInfo(),
-                 result.error().message());
+                 result.error());
           return result.as_failure();
         }
         return outcome::success();
@@ -1565,8 +1570,7 @@ namespace kagome::consensus::grandpa {
                                          std::move(precommit_justification),
                                          finalized_block);
     if (not result) {
-      logger_->warn("Catch-Up-Response was not sent: {}",
-                    result.error().message());
+      logger_->warn("Catch-Up-Response was not sent: {}", result.error());
     }
   }
 
@@ -1576,7 +1580,7 @@ namespace kagome::consensus::grandpa {
         voter_set_->id(),
         finalized_.value_or(last_finalized_block_).number);
     if (res.has_error()) {
-      logger_->warn("Neighbor message was not sent: {}", res.error().message());
+      logger_->warn("Neighbor message was not sent: {}", res.error());
     }
   }
 

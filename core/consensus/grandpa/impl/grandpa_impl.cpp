@@ -5,6 +5,13 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
+#include "application/app_state_manager.hpp"
+#include "application/chain_spec.hpp"
+#include "blockchain/block_tree.hpp"
+#include "common/tagged.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
+#include "consensus/grandpa/environment.hpp"
+#include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
@@ -12,10 +19,13 @@
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
+#include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
-#include "scale/scale.hpp"
+#include "network/synchronizer.hpp"
 
 namespace {
+  using IsBlockFinalized = kagome::Tagged<bool, struct IsBlockFinalizedTag>;
+
   constexpr auto highestGrandpaRoundMetricName =
       "kagome_finality_grandpa_round";
 
@@ -26,8 +36,6 @@ namespace {
 }  // namespace
 
 namespace kagome::consensus::grandpa {
-
-  using authority::IsBlockFinalized;
 
   namespace {
     Clock::Duration getGossipDuration(const application::ChainSpec &chain) {
@@ -48,7 +56,7 @@ namespace kagome::consensus::grandpa {
       const application::ChainSpec &chain_spec,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-      std::shared_ptr<authority::AuthorityManager> authority_manager,
+      std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<network::PeerManager> peer_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -102,7 +110,7 @@ namespace kagome::consensus::grandpa {
     if (not round_state_res.has_value()) {
       logger_->critical(
           "Can't retrieve last round data: {}. Stopping grandpa execution",
-          round_state_res.error().message());
+          round_state_res.error());
       return false;
     }
     auto &round_state = round_state_res.value();
@@ -128,7 +136,7 @@ namespace kagome::consensus::grandpa {
       if (res.has_error()) {
         logger_->critical(
             "Can't make voter set: {}. Stopping grandpa execution",
-            res.error().message());
+            res.error());
         return false;
       }
     }
@@ -205,7 +213,7 @@ namespace kagome::consensus::grandpa {
     return new_round;
   }
 
-  std::shared_ptr<VotingRound> GrandpaImpl::makeNextRound(
+  outcome::result<std::shared_ptr<VotingRound>> GrandpaImpl::makeNextRound(
       const std::shared_ptr<VotingRound> &round) {
     BlockInfo best_block =
         round->finalizedBlock().value_or(round->lastFinalizedBlock());
@@ -213,10 +221,10 @@ namespace kagome::consensus::grandpa {
     auto authorities_opt =
         authority_manager_->authorities(best_block, IsBlockFinalized{true});
     if (!authorities_opt) {
-      SL_CRITICAL(logger_,
-                  "Can't retrieve authorities for finalized block {}",
-                  best_block);
-      std::abort();
+      SL_WARN(logger_,
+              "Can't retrieve authorities for finalized block {}",
+              best_block);
+      return VotingRoundError::VOTER_SET_NOT_FOUND_FOR_BLOCK;
     }
 
     auto &authority_set = authorities_opt.value();
@@ -227,8 +235,8 @@ namespace kagome::consensus::grandpa {
       auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                                 authority.weight);
       if (res.has_error()) {
-        SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
-        std::abort();
+        SL_WARN(logger_, "Can't make voter set: {}", res.error());
+        return res.as_failure();
       }
     }
 
@@ -326,7 +334,10 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    current_round_ = makeNextRound(current_round_);
+    auto res = makeNextRound(current_round_);
+    BOOST_ASSERT_MSG(res.value(),
+                     "Next round for current must be created anyway");
+    current_round_ = std::move(res.value());
 
     std::ignore = fallback_timer_handle_.reschedule(std::chrono::minutes(1));
 
@@ -471,7 +482,7 @@ namespace kagome::consensus::grandpa {
                       "{} was not loaded: {}",
                       last_finalized,
                       msg.last_finalized,
-                      res.error().message());
+                      res.error());
             } else {
               SL_DEBUG(self->logger_,
                        "Loaded justifications for blocks in range {} - {}",
@@ -706,7 +717,7 @@ namespace kagome::consensus::grandpa {
         auto res = voters->insert(
             primitives::GrandpaSessionKey(authority.id.id), authority.weight);
         if (res.has_error()) {
-          SL_WARN(logger_, "Can't make voter set: {}", res.error().message());
+          SL_WARN(logger_, "Can't make voter set: {}", res.error());
           return;
         }
       }
@@ -1096,22 +1107,56 @@ namespace kagome::consensus::grandpa {
     ctx->peer_id.emplace(peer_id);
     ctx->commit.emplace(msg);
 
-    auto res = applyJustification(justification.block_info, justification);
-    if (not res.has_value()) {
-      SL_WARN(
+    // Check if commit of already finalized block
+    if (block_tree_->getLastFinalized().number
+        >= justification.block_info.number) {
+      SL_DEBUG(
           logger_,
           "Commit with set_id={} in round={} for block {} has received from {} "
-          "and has not applied: {}",
+          "ignored: justified block less then our last finalized ({})",
           msg.set_id,
           msg.round,
           BlockInfo(msg.message.target_number, msg.message.target_hash),
           peer_id,
-          res.error().message());
+          block_tree_->getLastFinalized().number);
       return;
     }
 
-    reputation_repository_->change(
-        peer_id, network::reputation::benefit::BASIC_VALIDATED_COMMIT);
+    auto has_direct_chain = block_tree_->hasDirectChain(
+        block_tree_->getLastFinalized().hash, justification.block_info.hash);
+    if (not has_direct_chain) {
+      auto res = applyJustification(justification.block_info, justification);
+      if (res.has_value()) {
+        reputation_repository_->change(
+            peer_id, network::reputation::benefit::BASIC_VALIDATED_COMMIT);
+        return;
+      }
+
+      if (ctx->missing_blocks.empty()) {
+        SL_WARN(logger_,
+                "Commit with set_id={} in round={} for block {} has received "
+                "from {} "
+                "and has not applied: {}",
+                msg.set_id,
+                msg.round,
+                BlockInfo(msg.message.target_number, msg.message.target_hash),
+                peer_id,
+                res.error());
+        return;
+      }
+    } else {
+      ctx->missing_blocks.emplace(justification.block_info);
+    }
+
+    // Check if missed block are detected and if this is first attempt
+    // (considering by definition peer id in context)
+    if (not ctx->missing_blocks.empty()) {
+      if (not ctx->peer_id.has_value()) {
+        ctx->peer_id.emplace(peer_id);
+        ctx->commit.emplace(msg);
+        loadMissingBlocks();
+      }
+    }
   }
 
   outcome::result<void> GrandpaImpl::applyJustification(
@@ -1132,9 +1177,16 @@ namespace kagome::consensus::grandpa {
 
       if (prev_round_opt.has_value()) {
         const auto &prev_round = prev_round_opt.value();
-        round = makeNextRound(prev_round);
+        auto res = makeNextRound(prev_round);
+        if (res.has_error()) {
+          SL_DEBUG(logger_,
+                   "Can't create next round to apply justification: {}",
+                   res.error());
+          return res.as_failure();
+        }
+
+        round = res.value();
         need_to_make_round_current = true;
-        BOOST_ASSERT(round);
 
         SL_DEBUG(logger_,
                  "Hop grandpa to round #{} by received justification",
@@ -1149,25 +1201,9 @@ namespace kagome::consensus::grandpa {
         auto authorities_opt = authority_manager_->authorities(
             block_info, IsBlockFinalized{false});
         if (!authorities_opt) {
-          SL_WARN(logger_,
-                  "Can't retrieve authorities to apply a justification "
-                  "at block {}",
-                  block_info);
           return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
         }
         auto &authority_set = authorities_opt.value();
-        SL_INFO(logger_,
-                "Apply justification for block {} with voter set id {}",
-                block_info,
-                authority_set->id);
-        SL_INFO(logger_,
-                "authorities->id: {}, current_round_->voterSetId(): {}, "
-                "justification.round_number: {}, "
-                "current_round_->roundNumber(): {}",
-                authority_set->id,
-                current_round_->voterSetId(),
-                justification.round_number,
-                current_round_->roundNumber());
 
         // This is justification for non-actual round
         if (authority_set->id < current_round_->voterSetId()) {
@@ -1182,7 +1218,9 @@ namespace kagome::consensus::grandpa {
           SL_WARN(logger_,
                   "Authority set on block {} with justification has id {}, "
                   "while the current round set id is {} (difference must be 1)",
-                  block_info, authority_set->id, current_round_->voterSetId());
+                  block_info,
+                  authority_set->id,
+                  current_round_->voterSetId());
         }
 
         auto voters = std::make_shared<VoterSet>(authority_set->id);
@@ -1190,8 +1228,7 @@ namespace kagome::consensus::grandpa {
           auto res = voters->insert(
               primitives::GrandpaSessionKey(authority.id.id), authority.weight);
           if (res.has_error()) {
-            SL_CRITICAL(
-                logger_, "Can't make voter set: {}", res.error().message());
+            SL_CRITICAL(logger_, "Can't make voter set: {}", res.error());
             return res.as_failure();
           }
         }

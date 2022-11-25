@@ -10,7 +10,7 @@
 #include "primitives/authority.hpp"
 #include "scale/tie.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   /// Data are corresponding to the epoch
   struct EpochDigest {
@@ -22,6 +22,6 @@ namespace kagome::consensus {
     /// The value of randomness to use for the slot-assignment.
     Randomness randomness;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_CONSENSUS_EPOCHDIGEST

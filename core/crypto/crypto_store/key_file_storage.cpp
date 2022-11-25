@@ -92,7 +92,7 @@ namespace kagome::crypto {
     boost::system::error_code ec{};
     bool does_exist = boost::filesystem::exists(keystore_path_, ec);
     if (ec and ec != boost::system::errc::no_such_file_or_directory) {
-      logger_->error("Error initializing key storage: {}", ec.message());
+      logger_->error("Error initializing key storage: {}", ec);
       return outcome::failure(ec);
     }
     if (does_exist) {
@@ -101,7 +101,7 @@ namespace kagome::crypto {
         return Error::KEYS_PATH_IS_NOT_DIRECTORY;
       }
       if (ec) {
-        logger_->error("Error scanning key storage: {}", ec.message());
+        logger_->error("Error scanning key storage: {}", ec);
         return outcome::failure(ec);
       }
     } else {
@@ -110,7 +110,7 @@ namespace kagome::crypto {
         return Error::FAILED_CREATE_KEYS_DIRECTORY;
       }
       if (ec) {
-        logger_->error("Error creating keystore dir: {}", ec.message());
+        logger_->error("Error creating keystore dir: {}", ec);
         return outcome::failure(ec);
       }
     }
@@ -161,7 +161,7 @@ namespace kagome::crypto {
 
     fs::directory_iterator it{keystore_path_, ec}, end{};
     if (ec) {
-      logger_->error("Error scanning keystore: {}", ec.message());
+      logger_->error("Error scanning keystore: {}", ec);
       return Error::FAILED_OPEN_FILE;
     }
     for (; it != end; ++it) {

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE
-#define KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE
+#ifndef KAGOME_CONSENSUS_GRANDPA_AUTHORITIESSCHEDULENODE
+#define KAGOME_CONSENSUS_GRANDPA_AUTHORITIESSCHEDULENODE
 
 #include <boost/variant.hpp>
 
@@ -12,7 +12,7 @@
 #include "common/tagged.hpp"
 #include "primitives/authority.hpp"
 
-namespace kagome::authority {
+namespace kagome::consensus::grandpa {
 
   using IsBlockFinalized = Tagged<bool, struct IsBlockFinalizedTag>;
 
@@ -74,26 +74,27 @@ namespace kagome::authority {
 
     friend inline ::scale::ScaleEncoderStream &operator<<(
         ::scale::ScaleEncoderStream &s, const ScheduleNode &node) {
-      return s << node.enabled << node.current_block
-               << *node.current_authorities << node.action;
+      return s << node.enabled << node.block << *node.authorities
+               << node.action;
     }
 
     friend inline ::scale::ScaleDecoderStream &operator>>(
         ::scale::ScaleDecoderStream &s, ScheduleNode &node) {
       return s >> node.enabled
-             >> const_cast<primitives::BlockInfo &>(node.current_block)
-             >> node.current_authorities >> node.action;
+             >> const_cast<primitives::BlockInfo &>(node.block)
+             >> node.authorities >> node.action;
     }
 
-    const primitives::BlockInfo current_block{};
+    const primitives::BlockInfo block{};
     std::weak_ptr<const ScheduleNode> parent;
     std::vector<std::shared_ptr<ScheduleNode>> descendants{};
+
     boost::variant<NoAction, ScheduledChange, ForcedChange, Pause, Resume>
         action;
-    std::shared_ptr<const primitives::AuthoritySet> current_authorities;
+    std::shared_ptr<const primitives::AuthoritySet> authorities;
     bool enabled = true;
   };
 
-}  // namespace kagome::authority
+}  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE
+#endif  // KAGOME_CONSENSUS_GRANDPA_AUTHORITIESSCHEDULENODE

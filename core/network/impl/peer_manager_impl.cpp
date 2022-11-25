@@ -412,7 +412,7 @@ namespace kagome::network {
             SL_DEBUG(self->log_,
                      "Connecting to peer {} is failed: {}",
                      peer_id,
-                     res.error().message());
+                     res.error());
             self->connecting_peers_.erase(peer_id);
             return;
           }
@@ -443,7 +443,7 @@ namespace kagome::network {
       return;
     }
 
-    SL_INFO(log_, "Disconnect from peer {}", peer_id);
+    SL_DEBUG(log_, "Disconnect from peer {}", peer_id);
     host_.disconnect(peer_id);
   }
 
@@ -490,7 +490,7 @@ namespace kagome::network {
                        "Stop pinging of {} (conn={}): {}",
                        peer_id,
                        static_cast<void *>(conn.get()),
-                       session_res.error().message());
+                       session_res.error());
               self->pinging_connections_.erase(conn);
               self->disconnectFromPeer(peer_id);
             } else {
@@ -650,7 +650,7 @@ namespace kagome::network {
               self->log_->warn("Unable to create stream {} with {}: {}",
                                protocol->protocolName(),
                                peer_id,
-                               stream_res.error().message());
+                               stream_res.error());
               self->connecting_peers_.erase(peer_id);
               self->disconnectFromPeer(peer_id);
               return;
@@ -750,7 +750,7 @@ namespace kagome::network {
       SL_ERROR(log_,
                "List of last active peers cannot be obtained from storage. "
                "Error={}",
-               get_res.error().message());
+               get_res.error());
       return {};
     }
 
@@ -790,9 +790,7 @@ namespace kagome::network {
     auto save_res = storage_->put(storage::kActivePeersKey,
                                   common::Buffer{out.to_vector()});
     if (not save_res) {
-      SL_ERROR(log_,
-               "Cannot store active peers. Error={}",
-               save_res.error().message());
+      SL_ERROR(log_, "Cannot store active peers. Error={}", save_res.error());
       return;
     }
     SL_DEBUG(log_,

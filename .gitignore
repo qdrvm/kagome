@@ -1,8 +1,6 @@
-config/__pycahe__
-**/__pycache__/*
-__pycache__/*
-**/build/*
-**/build-*/*
+**/build/
+**/build-*/
+**/cmake-build-*/
 *.DS_Store
 *.vscode/
 *.swp
@@ -15,36 +13,22 @@ __pycache__/*
 *.retry
 .gradle/*
 .vscode/*
-.idea/*
+**/.idea/*
 *xcworkspace*
-*cmake-build-debug*
 CMakeLists.txt.user
-CMakeCache.txt
-CMakeFiles/*
-cmake-build-debu/*
-docker/build/iroha.tar
-cmake-build-debug/*
-external/*
-core/infra/protobuf
-docker/tiny/iroha/
-include/generated/*
 .scannerwork/
 peers.list
 cmake-build*
 
-cmake-build*
 .gtm
 /.gtm/
 
-*.deb
 *.idx
 
-build
-dist
-ninja_build_release
-_builds
-_logs
-_build
 examples/**/db
 .cache/**
-/test/external-project-test/.idea/*
+
+# examples working directory
+/examples/polkadot/syncing/
+/examples/kusama/syncing/
+/examples/rococo/syncing/

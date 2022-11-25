@@ -100,7 +100,7 @@ namespace kagome::host_api {
     if (not result) {
       logger_->error(
           "ext_default_child_storage_set_version_1 failed with reason: {}",
-          result.error().message());
+          result.error());
     }
   }
 
@@ -130,7 +130,7 @@ namespace kagome::host_api {
                    logger_->error(error_message,
                                   child_key_buffer.toHex(),
                                   key_buffer.toHex(),
-                                  result.error().message());
+                                  result.error());
                  }
                  // okay to throw, we want to end this runtime call with error
                  return memory.storeBuffer(
@@ -158,7 +158,7 @@ namespace kagome::host_api {
           "ext_default_child_storage_clear_version_1 failed, due to fail in "
           "trie "
           "db with reason: {}",
-          result.error().message());
+          result.error());
     }
   }
 
@@ -180,7 +180,7 @@ namespace kagome::host_api {
       logger_->error(
           "ext_default_child_storage_next_key_version_1 resulted with error: "
           "{}",
-          child_batch_outcome.error().message());
+          child_batch_outcome.error());
       storage_provider_->clearChildBatches();
       return kErrorSpan;
     }
@@ -193,7 +193,7 @@ namespace kagome::host_api {
       logger_->error(
           "ext_default_child_storage_next_key_version_1 resulted with error: "
           "{}",
-          seek_result.error().message());
+          seek_result.error());
       return kErrorSpan;
     }
     auto next_key_opt = cursor->key();
@@ -208,7 +208,7 @@ namespace kagome::host_api {
       logger_->error(
           "ext_default_child_storage_next_key_version_1 result encoding "
           "resulted with error: {}",
-          enc_res.error().message());
+          enc_res.error());
     }
     return kErrorSpan;
   }
@@ -234,7 +234,7 @@ namespace kagome::host_api {
     if (res.has_error()) {
       logger_->error(
           "ext_default_child_storage_root resulted with an error: {}",
-          res.error().message());
+          res.error());
     }
     const auto &root = res.value();
     SL_TRACE_FUNC_CALL(logger_, root, child_key_buffer);
@@ -260,7 +260,7 @@ namespace kagome::host_api {
       logger_->error(
           "ext_default_child_storage_clear_prefix_version_1 failed with "
           "reason: {}",
-          result.error().message());
+          result.error());
     }
   }
 
@@ -309,7 +309,7 @@ namespace kagome::host_api {
     } else {
       SL_ERROR(logger_,
                "Error in ext_storage_read_version_1: {}",
-               data_opt_res.error().message());
+               data_opt_res.error());
       throw std::runtime_error{data_opt_res.error().message()};
     }
 
@@ -333,7 +333,7 @@ namespace kagome::host_api {
       logger_->error(
           "ext_default_child_storage_exists_version_1 failed with "
           "reason: {}",
-          res.error().message());
+          res.error());
     }
 
     return (res.has_value() and res.value()) ? 1 : 0;
@@ -355,7 +355,7 @@ namespace kagome::host_api {
       logger_->error(
           "ext_default_child_storage_storage_kill_version_1 failed with "
           "reason: {}",
-          result.error().message());
+          result.error());
     }
   }
 

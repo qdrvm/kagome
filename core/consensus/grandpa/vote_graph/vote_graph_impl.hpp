@@ -8,9 +8,14 @@
 
 #include "consensus/grandpa/vote_graph.hpp"
 
-#include <numeric>
-#include <unordered_map>
 #include <unordered_set>
+
+#include "log/logger.hpp"
+
+namespace kagome::consensus::grandpa {
+  struct Chain;
+  class VoterSet;
+}  // namespace kagome::consensus::grandpa
 
 namespace kagome::consensus::grandpa {
 

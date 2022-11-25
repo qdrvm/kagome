@@ -188,7 +188,7 @@ namespace kagome::blockchain {
 
     std::optional<primitives::BlockHash> genesis_block_hash_;
 
-    log::Logger log_ = log::createLogger("BlockTree", "blockchain");
+    log::Logger log_ = log::createLogger("BlockTree", "block_tree");
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

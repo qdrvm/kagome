@@ -4,10 +4,6 @@
 #
 
 add_library(consensus
-    authority/impl/schedule_node.cpp
-    authority/impl/authority_manager_impl.cpp
-    authority/authority_update_observer_error.cpp
-    authority/authority_manager_error.cpp
     babe/impl/babe_digests_util.cpp
     babe/impl/babe_config_node.cpp
     babe/impl/block_executor_impl.cpp
@@ -19,11 +15,15 @@ add_library(consensus
     babe/impl/consistency_keeper_impl.cpp
     babe/babe_error.cpp
     validation/babe_block_validator.cpp
+    grandpa/impl/schedule_node.cpp
+    grandpa/impl/authority_manager_impl.cpp
     grandpa/impl/vote_tracker_impl.cpp
     grandpa/impl/vote_crypto_provider_impl.cpp
     grandpa/impl/grandpa_impl.cpp
     grandpa/impl/voting_round_impl.cpp
     grandpa/impl/environment_impl.cpp
+    grandpa/grandpa_digest_observer_error.cpp
+    grandpa/authority_manager_error.cpp
     grandpa/vote_graph/vote_graph_error.cpp
     grandpa/vote_graph/vote_graph_impl.cpp
     grandpa/voter_set.cpp

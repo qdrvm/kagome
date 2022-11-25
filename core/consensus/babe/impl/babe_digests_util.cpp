@@ -7,8 +7,8 @@
 
 #include "scale/scale.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, DigestError, e) {
-  using E = kagome::consensus::DigestError;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, DigestError, e) {
+  using E = kagome::consensus::babe::DigestError;
   switch (e) {
     case E::REQUIRED_DIGESTS_NOT_FOUND:
       return "the block must contain at least BABE "
@@ -23,7 +23,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, DigestError, e) {
   return "unknown error";
 }
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   outcome::result<std::pair<Seal, BabeBlockHeader>> getBabeDigests(
       const primitives::BlockHeader &block_header) {
@@ -90,4 +90,4 @@ namespace kagome::consensus {
     }
     return epoch_digest;
   }
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

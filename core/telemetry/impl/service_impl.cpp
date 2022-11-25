@@ -139,7 +139,7 @@ namespace kagome::telemetry {
                   "Telemetry endpoint '{}' cannot be interpreted as a valid "
                   "multiaddress and was skipped due to error: {}",
                   uri_candidate,
-                  ma_res.error().message());
+                  ma_res.error());
           continue;
         }
 

@@ -8,37 +8,36 @@
 
 #include "consensus/grandpa/voting_round.hpp"
 
-#include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/signals2.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
-#include "consensus/authority/authority_manager.hpp"
-#include "consensus/grandpa/environment.hpp"
-#include "consensus/grandpa/grandpa_config.hpp"
-#include "consensus/grandpa/movable_round_state.hpp"
-#include "consensus/grandpa/structs.hpp"
-#include "consensus/grandpa/vote_crypto_provider.hpp"
-#include "consensus/grandpa/vote_graph.hpp"
-#include "consensus/grandpa/vote_tracker.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::consensus::grandpa {
-
+  class AuthorityManager;
+  class Environment;
   class Grandpa;
+  struct GrandpaConfig;
+  struct MovableRoundState;
+  class VoteCryptoProvider;
+  class VoteGraph;
+  class VoteTracker;
+  class VoterSet;
+}  // namespace kagome::consensus::grandpa
+
+namespace kagome::consensus::grandpa {
 
   class VotingRoundImpl : public VotingRound {
    private:
-    VotingRoundImpl(
-        const std::shared_ptr<Grandpa> &grandpa,
-        const GrandpaConfig &config,
-        std::shared_ptr<authority::AuthorityManager> authority_manager,
-        std::shared_ptr<Environment> env,
-        std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
-        std::shared_ptr<VoteTracker> prevotes,
-        std::shared_ptr<VoteTracker> precommits,
-        std::shared_ptr<VoteGraph> vote_graph,
-        std::shared_ptr<Clock> clock,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler);
+    VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
+                    const GrandpaConfig &config,
+                    std::shared_ptr<AuthorityManager> authority_manager,
+                    std::shared_ptr<Environment> env,
+                    std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
+                    std::shared_ptr<VoteTracker> prevotes,
+                    std::shared_ptr<VoteTracker> precommits,
+                    std::shared_ptr<VoteGraph> vote_graph,
+                    std::shared_ptr<Clock> clock,
+                    std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
    protected:
     // This ctor is needed only for tests purposes
@@ -48,7 +47,7 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
         const GrandpaConfig &config,
-        const std::shared_ptr<authority::AuthorityManager> authority_manager,
+        const std::shared_ptr<AuthorityManager> authority_manager,
         const std::shared_ptr<Environment> &env,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
@@ -61,7 +60,7 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
         const GrandpaConfig &config,
-        const std::shared_ptr<authority::AuthorityManager> authority_manager,
+        const std::shared_ptr<AuthorityManager> authority_manager,
         const std::shared_ptr<Environment> &env,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
@@ -308,7 +307,7 @@ namespace kagome::consensus::grandpa {
     std::chrono::milliseconds start_time_;  // time of start round to play
 
     std::weak_ptr<Grandpa> grandpa_;
-    std::shared_ptr<authority::AuthorityManager> authority_manager_;
+    std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<const primitives::AuthorityList> authorities_;
     std::shared_ptr<Environment> env_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;

@@ -45,6 +45,31 @@ namespace kagome::primitives {
     bool message_queue{};
     bool justification{};
   };
+
+  /// Context of processing block, to avoid additional obtaining data from
+  /// storage, or redundant calculation. Contains the same data like BlockData,
+  /// but by reference, not by value.
+  class BlockContext {
+    template <typename T>
+    using OptConstRef = std::optional<std::reference_wrapper<const T>>;
+
+   public:
+    primitives::BlockInfo block;
+    OptConstRef<primitives::BlockHeader> header{};
+    OptConstRef<primitives::BlockBody> body{};
+    OptConstRef<common::Buffer> receipt{};
+    OptConstRef<common::Buffer> message_queue{};
+    OptConstRef<primitives::Justification> justification{};
+
+    bool operator<(const BlockContext &other) const noexcept {
+      return block < other.block;
+    }
+
+    bool operator==(const BlockContext &other) const noexcept {
+      return block == other.block;
+    }
+  };
+
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP

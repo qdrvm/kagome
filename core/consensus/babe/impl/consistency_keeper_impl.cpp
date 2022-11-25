@@ -5,12 +5,9 @@
 
 #include "consistency_keeper_impl.hpp"
 
-#include <boost/assert.hpp>
-#include <scale/scale.hpp>
-
 #include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
 #include "blockchain/digest_tracker.hpp"
-#include "storage/buffer_map_types.hpp"
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::consensus::babe {
@@ -39,7 +36,7 @@ namespace kagome::consensus::babe {
     if (buf_opt_res.has_error()) {
       SL_WARN(logger_,
               "Can't check existence of partial applied block",
-              buf_opt_res.error().message());
+              buf_opt_res.error());
       return false;
     }
 
@@ -64,7 +61,7 @@ namespace kagome::consensus::babe {
 
     SL_WARN(logger_,
             "Can't check existence of partial applied block",
-            block_res.error().message());
+            block_res.error());
     return false;
   }
 
@@ -81,7 +78,7 @@ namespace kagome::consensus::babe {
     if (put_res.has_error()) {
       SL_WARN(logger_,
               "Can't store record of partial applied block",
-              put_res.error().message());
+              put_res.error());
     }
 
     SL_DEBUG(logger_, "Start applying of block {}", block);
@@ -103,7 +100,7 @@ namespace kagome::consensus::babe {
       SL_WARN(logger_,
               "Rolling back of block {} is failed: {}",
               block,
-              removal_res.error().message());
+              removal_res.error());
     }
 
     cleanup();
@@ -118,7 +115,7 @@ namespace kagome::consensus::babe {
     if (removal_res.has_error()) {
       SL_WARN(logger_,
               "Can't remove record of partial applied block",
-              removal_res.error().message());
+              removal_res.error());
       return;
     }
   }

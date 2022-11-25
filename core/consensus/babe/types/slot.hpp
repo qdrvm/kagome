@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   enum class SlotType : uint8_t {
     /// A primary VRF-based slot assignment
@@ -31,6 +31,6 @@ namespace kagome::consensus {
     return "Unknown";
   }
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_SLOT_HPP

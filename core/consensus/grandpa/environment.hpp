@@ -3,46 +3,33 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
+#ifndef KAGOME_CONSENSUS_GRANDPA_ENVIRONMENT
+#define KAGOME_CONSENSUS_GRANDPA_ENVIRONMENT
 
 #include "consensus/grandpa/chain.hpp"
-
-#include <functional>
-#include <memory>
-
-#include "consensus/grandpa/common.hpp"
-#include "consensus/grandpa/movable_round_state.hpp"
-#include "consensus/grandpa/structs.hpp"
-#include "primitives/block_id.hpp"
-
-namespace kagome::blockchain {
-  class BlockHeaderRepository;
-  class BlockTree;
-}  // namespace kagome::blockchain
 
 namespace kagome::primitives {
   struct Justification;
 }
+
 namespace libp2p::peer {
   class PeerId;
 }
-namespace kagome::consensus::grandpa {
-  struct JustificationObserver;
-}
 
 namespace kagome::consensus::grandpa {
-
   class Grandpa;
+  struct JustificationObserver;
+  struct MovableRoundState;
+}  // namespace kagome::consensus::grandpa
+
+namespace kagome::consensus::grandpa {
 
   /**
    * Necessary environment for a voter.
    * This encapsulates the database and networking layers of the chain.
    */
-  struct Environment : public virtual Chain {
-    using CompleteHandler =
-        std::function<void(outcome::result<MovableRoundState>)>;
-
+  class Environment : public virtual Chain {
+   public:
     ~Environment() override = default;
 
     /**
@@ -138,4 +125,4 @@ namespace kagome::consensus::grandpa {
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
+#endif  // KAGOME_CONSENSUS_GRANDPA_ENVIRONMENT

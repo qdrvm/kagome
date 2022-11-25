@@ -3,19 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABEDIGESTOBSERVER
-#define KAGOME_CONSENSUS_BABEDIGESTOBSERVER
+#ifndef KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER
+#define KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER
 
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
-#include "primitives/common.hpp"
 #include "primitives/digest.hpp"
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus::grandpa {
 
-  class BabeDigestObserver {
+  class GrandpaDigestObserver {
    public:
-    virtual ~BabeDigestObserver() = default;
+    virtual ~GrandpaDigestObserver() = default;
 
     /// Observes PreRuntime of block
     /// @param context - data of accorded block
@@ -23,19 +22,24 @@ namespace kagome::consensus::babe {
     /// @return failure or nothing
     virtual outcome::result<void> onDigest(
         const primitives::BlockContext &context,
-        const BabeBlockHeader &digest) = 0;
+        const consensus::babe::BabeBlockHeader &digest) = 0;
 
     /// Observes ConsensusLog of block
     /// @param context - data of accorded block
-    /// @param digest - BabeDigest as particular variant of ConsensusLog digest
+    /// @param digest - GrandpaDigest as particular variant of ConsensusLog
+    /// digest
     /// @return failure or nothing
     virtual outcome::result<void> onDigest(
         const primitives::BlockContext &context,
-        const primitives::BabeDigest &digest) = 0;
+        const primitives::GrandpaDigest &digest) = 0;
 
+    /**
+     * @brief Cancel changes. Should be called when the block is rolled back
+     * @param block - corresponding block
+     */
     virtual void cancel(const primitives::BlockInfo &block) = 0;
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CONSENSUS_BABEDIGESTOBSERVER
+#endif  // KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER

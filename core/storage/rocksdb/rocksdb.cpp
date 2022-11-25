@@ -51,7 +51,7 @@ namespace kagome::storage {
     if (not fs::create_directory(absolute_path.native(), ec) and ec.value()) {
       log->error("Can't create directory {} for database: {}",
                  absolute_path.native(),
-                 ec.message());
+                 ec);
       return DatabaseError::IO_ERROR;
     }
     if (not fs::is_directory(absolute_path.native())) {

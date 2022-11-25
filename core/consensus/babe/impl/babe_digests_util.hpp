@@ -16,7 +16,7 @@
 #include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   enum class DigestError {
     REQUIRED_DIGESTS_NOT_FOUND = 1,
@@ -43,8 +43,8 @@ namespace kagome::consensus {
   outcome::result<EpochDigest> getNextEpochDigest(
       const primitives::BlockHeader &header);
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, DigestError)
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, DigestError)
 
 #endif  // KAGOME_CORE_CONSENSUS_BABE_IMPL_BABE_DIGESTS_UTIL_HPP

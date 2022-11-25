@@ -47,7 +47,7 @@ namespace kagome::authorship {
     auto inherent_xts_res = block_builder->getInherentExtrinsics(inherent_data);
     if (not inherent_xts_res) {
       logger_->error("BlockBuilder->inherent_extrinsics failed with error: {}",
-                     inherent_xts_res.error().message());
+                     inherent_xts_res.error());
       return inherent_xts_res.error();
     }
     const auto &inherent_xts = inherent_xts_res.value();
@@ -69,7 +69,7 @@ namespace kagome::authorship {
           SL_ERROR(
               logger_,
               "Inherent extrinsic returned unexpected error: {}. Dropping.",
-              inserted_res.error().message());
+              inserted_res.error());
           return inserted_res.error();
         }
       }
@@ -79,7 +79,7 @@ namespace kagome::authorship {
     if (remove_res.has_error()) {
       SL_ERROR(logger_,
                "Stale transactions remove failure: {}, Parent is {}",
-               remove_res.error().message(),
+               remove_res.error(),
                parent_block);
     }
     const auto &ready_txs = transaction_pool_->getReadyTransactions();
@@ -136,7 +136,7 @@ namespace kagome::authorship {
         } else {  // any other error than exhausted resources
           logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
                         tx->ext.data,
-                        inserted_res.error().message());
+                        inserted_res.error());
         }
       } else {  // tx was pushed successfully
         block_size += estimate_tx_size;
@@ -160,7 +160,7 @@ namespace kagome::authorship {
         logger_->error(
             "Can't remove extrinsic {} after adding to the block. Reason: {}",
             hash,
-            removed_res.error().message());
+            removed_res.error());
       }
     }
 

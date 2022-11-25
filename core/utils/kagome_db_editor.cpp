@@ -148,7 +148,7 @@ void child_storage_root_hashes(
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
         auto &value_opt = value_res.value();
-        log->trace("Found child root hash {}", value_opt.value().get().toHex());
+        log->trace("Found child root hash {}", value_opt.value().get());
         hashes.insert(
             common::Hash256::fromSpan(value_opt.value().get()).value());
       }
@@ -350,8 +350,8 @@ int db_editor_main(int argc, const char **argv) {
           if (child_batch_res.has_value()) {
             child_batches.emplace_back(std::move(child_batch_res.value()));
           } else {
-            log->error("Child batch 0x{} not found in the storage",
-                       child_root_hash.toHex());
+            log->error("Child batch {} not found in the storage",
+                       child_root_hash);
           }
         }
       }

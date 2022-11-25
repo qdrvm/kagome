@@ -457,7 +457,7 @@ namespace kagome::host_api {
 
     auto result = offchain_storage_->set(key_buffer, std::move(value_buffer));
     if (result.has_error()) {
-      SL_WARN(log_, "Can't set value in storage: {}", result.error().message());
+      SL_WARN(log_, "Can't set value in storage: {}", result.error());
     }
   }
 
@@ -474,8 +474,7 @@ namespace kagome::host_api {
 
     auto result = offchain_storage_->clear(key_buffer);
     if (result.has_error()) {
-      SL_WARN(
-          log_, "Can't clear value in storage: {}", result.error().message());
+      SL_WARN(log_, "Can't clear value in storage: {}", result.error());
     }
   }
 

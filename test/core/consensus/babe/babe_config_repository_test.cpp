@@ -25,8 +25,8 @@ using blockchain::BlockTreeMock;
 using clock::SystemClockMock;
 using common::Buffer;
 using common::BufferView;
-using consensus::BabeUtil;
 using consensus::babe::BabeConfigRepositoryImpl;
+using consensus::babe::BabeUtil;
 using crypto::HasherMock;
 using primitives::BabeSlotNumber;
 using primitives::BlockHeader;
@@ -41,6 +41,7 @@ using std::chrono_literals::operator""ms;
 using testing::_;
 using testing::Return;
 using testing::ReturnRef;
+using testing::ReturnRefOfCopy;
 
 class BabeConfigRepositoryTest : public testing::Test {
  public:
@@ -63,11 +64,8 @@ class BabeConfigRepositoryTest : public testing::Test {
     block_tree = std::make_shared<BlockTreeMock>();
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillOnce(Return(BlockInfo{0, "genesis"_hash256}));
-    EXPECT_CALL(*block_tree, getBlockHeader(BlockId("genesis"_hash256)))
-        .WillOnce(Return(BlockHeader{.number = 0}));
-    EXPECT_CALL(*block_tree, getLeaves())
-        .WillOnce(
-            Return(std::vector<primitives::BlockHash>{"genesis"_hash256}));
+    EXPECT_CALL(*block_tree, getGenesisBlockHash())
+        .WillOnce(testing::ReturnRefOfCopy("genesis"_hash256));
 
     header_repo = std::make_shared<BlockHeaderRepositoryMock>();
 
@@ -87,7 +85,6 @@ class BabeConfigRepositoryTest : public testing::Test {
                                                    babe_api,
                                                    hasher,
                                                    chain_events_engine,
-                                                   genesis_block_header,
                                                    *clock);
   }
 
@@ -101,7 +98,6 @@ class BabeConfigRepositoryTest : public testing::Test {
   std::shared_ptr<runtime::BabeApiMock> babe_api;
   std::shared_ptr<crypto::Hasher> hasher;
   primitives::events::ChainSubscriptionEnginePtr chain_events_engine;
-  primitives::GenesisBlockHeader genesis_block_header{};
   std::shared_ptr<SystemClockMock> clock;
 
   std::shared_ptr<BabeConfigRepositoryImpl> babe_config_repo_;

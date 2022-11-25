@@ -33,7 +33,7 @@ namespace kagome::primitives {
     virtual ~AuthorityListChange() = default;
   };
 
-  struct NextEpochData final : public consensus::EpochDigest {
+  struct NextEpochData final : public consensus::babe::EpochDigest {
     using EpochDigest::EpochDigest;
   };
 

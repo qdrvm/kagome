@@ -152,7 +152,7 @@ namespace kagome::parachain {
       logger_->warn("Fetch collation from {}:{} store failed with: {}",
                     peer_id.toBase58(),
                     relay_parent,
-                    store_result.error().message());
+                    store_result.error());
       return;
     }
 
@@ -245,7 +245,7 @@ namespace kagome::parachain {
             else
               self->logger_->template warn(
                   "In job retrieve collation result error: {}",
-                  collation_result.error().message());
+                  collation_result.error());
           }
         });
   }
@@ -372,7 +372,7 @@ namespace kagome::parachain {
       if (!sign_result) {
         logger_->error(
             "Unable to sign Commited Candidate Receipt. Failed with error: {}",
-            sign_result.error().message());
+            sign_result.error());
         return nullptr;
       }
 
@@ -390,7 +390,7 @@ namespace kagome::parachain {
       if (!sign_result) {
         logger_->error(
             "Unable to sign deemed valid hash. Failed with error: {}",
-            sign_result.error().message());
+            sign_result.error());
         return nullptr;
       }
 
@@ -427,7 +427,7 @@ namespace kagome::parachain {
               self->logger_->warn("Unable to create stream {} with {}: {}",
                                   protocol->protocolName(),
                                   peer_id,
-                                  stream_result.error().message());
+                                  stream_result.error());
               return;
             }
 
@@ -437,7 +437,7 @@ namespace kagome::parachain {
               self->logger_->error("Unable to store stream {} with {}: {}",
                                    protocol->protocolName(),
                                    peer_id,
-                                   add_result.error().message());
+                                   add_result.error());
             }
             self->handleNotify(peer_id, relay_parent);
           });
@@ -476,7 +476,7 @@ namespace kagome::parachain {
     if (!validation_result.result) {
       logger_->warn("Candidate {} validation failed with: {}",
                     candidate_hash,
-                    validation_result.result.error().message());
+                    validation_result.result.error());
       // send invalid
     } else if (!our_current_state_.seconded
                && our_current_state_.issued_statements.count(candidate_hash)
@@ -537,7 +537,7 @@ namespace kagome::parachain {
         !validation_result) {
       logger_->warn("Candidate {} validation failed with error: {}",
                     candidateHashFrom(*fetched_collation),
-                    validation_result.error().message());
+                    validation_result.error());
       return;
     }
 
@@ -545,7 +545,7 @@ namespace kagome::parachain {
         !erasure_coding_result) {
       logger_->warn("Candidate {} validation failed with error: {}",
                     candidateHashFrom(*fetched_collation),
-                    erasure_coding_result.error().message());
+                    erasure_coding_result.error());
       return;
     }
 
@@ -624,7 +624,7 @@ namespace kagome::parachain {
             self->logger_->warn("Fetch collation from {}:{} failed with: {}",
                                 peer_id.toBase58(),
                                 relay_parent,
-                                result.error().message());
+                                result.error());
             return;
           }
 

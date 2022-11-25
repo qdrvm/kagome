@@ -8,7 +8,6 @@
 #include <memory>
 
 #include "blockchain/block_tree.hpp"
-#include "consensus/authority/authority_manager.hpp"
 #include "primitives/digest.hpp"
 
 namespace kagome::blockchain {

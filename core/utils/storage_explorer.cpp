@@ -8,24 +8,25 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
-#include "blockchain/block_tree.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "injector/application_injector.hpp"
 #include "log/configurator.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "storage/trie/trie_storage.hpp"
 
-using kagome::authority::AuthorityManagerImpl;
 using kagome::blockchain::BlockStorage;
+using kagome::consensus::grandpa::AuthorityManager;
+using kagome::consensus::grandpa::AuthorityManagerImpl;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::GrandpaDigest;
+using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::runtime::GrandpaApi;
 using kagome::storage::trie::TrieStorage;
 
@@ -84,7 +85,7 @@ class Command {
   template <typename T>
   T unwrapResult(std::string_view context, outcome::result<T> &&res) const {
     if (res.has_value()) return std::move(res).value();
-    throwError("{}: {}", context, res.error().message());
+    throwError("{}: {}", context, res.error());
   }
 
  private:
@@ -202,11 +203,11 @@ class InspectBlockCommand : public Command {
         std::cout << "# of extrinsics: " << body_res.value()->size() << "\n";
 
       } else {
-        throwError("Internal error: {}}", body_res.error().message());
+        throwError("Internal error: {}}", body_res.error());
       }
 
     } else {
-      throwError("Internal error: {}}", res.error().message());
+      throwError("Internal error: {}}", res.error());
     }
   }
 
@@ -229,7 +230,7 @@ class RemoveBlockCommand : public Command {
     }
     auto data = block_storage->getBlockData(opt_id.value());
     if (!data) {
-      throwError("Failed getting block data: {}", data.error().message());
+      throwError("Failed getting block data: {}", data.error());
     }
     if (!data.value().has_value()) {
       throwError("Block data not found");
@@ -237,7 +238,7 @@ class RemoveBlockCommand : public Command {
     if (auto res = block_storage->removeBlock(
             {data.value().value().header->number, data.value().value().hash});
         !res) {
-      throwError("{}", res.error().message());
+      throwError("{}", res.error());
     }
   }
 
@@ -265,7 +266,7 @@ class QueryStateCommand : public Command {
     }
     auto batch = trie_storage->getEphemeralBatchAt(state_root);
     if (!batch) {
-      throwError("Failed getting trie batch: {}", batch.error().message());
+      throwError("Failed getting trie batch: {}", batch.error());
     }
     kagome::common::Buffer key{};
     if (auto key_bytes = kagome::common::unhex(args[2]); key_bytes) {
@@ -275,8 +276,7 @@ class QueryStateCommand : public Command {
     }
     auto value_res = batch.value()->tryGet(key);
     if (value_res.has_error()) {
-      throwError("Error retrieving value from Trie: {}",
-                 value_res.error().message());
+      throwError("Error retrieving value from Trie: {}", value_res.error());
     }
     auto &value_opt = value_res.value();
     if (value_opt.has_value()) {
@@ -295,7 +295,7 @@ class SearchChainCommand : public Command {
   explicit SearchChainCommand(
       std::shared_ptr<BlockStorage> block_storage,
       std::shared_ptr<TrieStorage> trie_storage,
-      std::shared_ptr<kagome::authority::AuthorityManager> authority_manager,
+      std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<Hasher> hasher)
       : Command{"search-chain",
                 "target [start block/0] [end block/deepest finalized] - search "
@@ -316,9 +316,8 @@ class SearchChainCommand : public Command {
     assertArgumentCount(args, 2, 4);
     Target target = parseTarget(args[1]);
     if (target == Target::LastBlock) {
-      std::cout << "#" << block_storage->getLastFinalized().value().number
-                << " " << block_storage->getLastFinalized().value().hash.toHex()
-                << "\n";
+      std::cout << fmt::format("{}\n",
+                               block_storage->getLastFinalized().value());
       return;
     }
 
@@ -421,8 +420,8 @@ class SearchChainCommand : public Command {
   }
 
   void reportAuthorityUpdate(std::ostream &out,
-                                            BlockNumber digest_origin,
-                                            GrandpaDigest const &digest) const {
+                             BlockNumber digest_origin,
+                             GrandpaDigest const &digest) const {
     using namespace kagome::primitives;
     if (auto *scheduled_change = boost::get<ScheduledChange>(&digest);
         scheduled_change) {
@@ -517,16 +516,18 @@ int storage_explorer_main(int argc, const char **argv) {
   auto grandpa_api =
       std::make_shared<kagome::runtime::GrandpaApiImpl>(header_repo, executor);
 
+  auto chain_events_engine = std::make_shared<ChainSubscriptionEngine>();
+
   auto authority_manager =
-      std::make_shared<kagome::authority::AuthorityManagerImpl>(
-          kagome::authority::AuthorityManagerImpl::Config{},
-          app_state_manager,
-          block_tree,
-          trie_storage,
-          grandpa_api,
-          hasher,
-          persistent_storage,
-          header_repo);
+      std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
+                                             app_state_manager,
+                                             block_tree,
+                                             trie_storage,
+                                             grandpa_api,
+                                             hasher,
+                                             persistent_storage,
+                                             header_repo,
+                                             chain_events_engine);
 
   parser.addCommand(std::make_unique<InspectBlockCommand>(block_storage));
   parser.addCommand(std::make_unique<RemoveBlockCommand>(block_storage));

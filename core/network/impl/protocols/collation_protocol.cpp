@@ -55,7 +55,7 @@ namespace kagome::network {
                        "Can't create outgoing {} stream with {}: {}",
                        self->protocolName(),
                        peer_id,
-                       stream_res.error().message());
+                       stream_res.error());
             cb(stream_res.as_failure());
             return;
           }
@@ -126,7 +126,7 @@ namespace kagome::network {
                     "Can't read incoming collation message from stream {} with "
                     "error {}",
                     stream->remotePeerId().value(),
-                    result.error().message());
+                    result.error());
             self->base_.closeStream(wptr, stream);
             return;
           }

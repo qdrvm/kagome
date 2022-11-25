@@ -180,7 +180,7 @@ namespace kagome::network {
                 "Error happened while connection over {} stream with {}: {}",
                 self->protocolName(),
                 peer_id,
-                stream_res.error().message());
+                stream_res.error());
             cb(stream_res.as_failure());
             return;
           }
@@ -216,7 +216,7 @@ namespace kagome::network {
                    "Error at read request from incoming {} stream with {}: {}",
                    self->protocolName(),
                    stream->remotePeerId().value(),
-                   block_request_res.error().message());
+                   block_request_res.error());
 
         stream->reset();
         return;
@@ -259,7 +259,7 @@ namespace kagome::network {
             "Error at execute request from incoming {} stream with {}: {}",
             self->protocolName(),
             stream->remotePeerId().value(),
-            block_response_res.error().message());
+            block_response_res.error());
 
         stream->reset();
         return;
@@ -308,7 +308,7 @@ namespace kagome::network {
                 "Error at writing response to incoming {} stream with {}: {}",
                 self->protocolName(),
                 stream->remotePeerId().value(),
-                write_res.error().message());
+                write_res.error());
             stream->reset();
             return;
           }
@@ -345,7 +345,7 @@ namespace kagome::network {
                 "Error at write request into outgoing {} stream with {}: {}",
                 self->protocolName(),
                 stream->remotePeerId().value(),
-                write_res.error().message());
+                write_res.error());
 
             stream->reset();
             cb(write_res.as_failure());
@@ -388,7 +388,7 @@ namespace kagome::network {
                    "Error at read response from outgoing {} stream with {}: {}",
                    self->protocolName(),
                    stream->remotePeerId().value(),
-                   block_response_res.error().message());
+                   block_response_res.error());
 
         stream->reset();
         response_handler(block_response_res.as_failure());
