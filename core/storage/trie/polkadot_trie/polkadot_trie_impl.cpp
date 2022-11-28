@@ -350,12 +350,14 @@ namespace kagome::storage::trie {
     const auto node_type = parent->getTrieType();
 
     switch (node_type) {
+      case T::BranchContainingHashes:
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
         auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
         return updateBranch(parent_as_branch, key_nibbles, node);
       }
 
+      case T::LeafContainingHashes:
       case T::Leaf: {
         // need to convert this leaf into a branch
         auto br = std::make_shared<BranchNode>();
@@ -402,12 +404,6 @@ namespace kagome::storage::trie {
 
         return br;
       }
-
-      case T::LeafContainingHashes:
-        return Error::INVALID_NODE_TYPE;
-
-      case T::BranchContainingHashes:
-        return Error::INVALID_NODE_TYPE;
 
       case T::Empty:
         return Error::INVALID_NODE_TYPE;
@@ -500,6 +496,7 @@ namespace kagome::storage::trie {
 
     const auto node_type = current->getTrieType();
     switch (node_type) {
+      case T::BranchContainingHashes:
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
         if (current->key_nibbles == nibbles or nibbles.empty()) {
@@ -515,17 +512,12 @@ namespace kagome::storage::trie {
         return getNode(n, nibbles.subspan(length + 1));
       }
 
+      case T::LeafContainingHashes:
       case T::Leaf:
         if (current->key_nibbles == nibbles) {
           return current;
         }
         break;
-
-      case T::LeafContainingHashes:
-        return Error::INVALID_NODE_TYPE;
-
-      case T::BranchContainingHashes:
-        return Error::INVALID_NODE_TYPE;
 
       case T::Empty:
         return Error::INVALID_NODE_TYPE;
@@ -551,6 +543,7 @@ namespace kagome::storage::trie {
 
     const auto node_type = parent->getTrieType();
     switch (node_type) {
+      case T::BranchContainingHashes:
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
         // path is completely covered by the parent key
@@ -575,17 +568,12 @@ namespace kagome::storage::trie {
         return forNodeInPath(child, path.subspan(common_length + 1), callback);
       }
 
+      case T::LeafContainingHashes:
       case T::Leaf:
         if (parent->key_nibbles == path) {
           return outcome::success();
         }
         break;
-
-      case T::LeafContainingHashes:
-        return Error::INVALID_NODE_TYPE;
-
-      case T::BranchContainingHashes:
-        return Error::INVALID_NODE_TYPE;
 
       case T::Empty:
         return Error::INVALID_NODE_TYPE;
