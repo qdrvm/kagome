@@ -167,6 +167,18 @@ namespace kagome::storage::trie {
     return out;
   }
 
+  outcome::result<void> PolkadotCodec::encodeValue(common::Buffer &out,
+                                                   const TrieNode &node) const {
+    if (node.value.hash) {
+      out += *node.value.hash;
+    } else if (node.value.value) {
+      // TODO(turuslan): soramitsu/scale-codec-cpp non-allocating methods
+      OUTCOME_TRY(value, scale::encode(*node.value.value));
+      out += value;
+    }
+    return outcome::success();
+  }
+
   outcome::result<common::Buffer> PolkadotCodec::encodeBranch(
       const BranchNode &node, const StoreChildren &store_children) const {
     // node header
@@ -178,11 +190,7 @@ namespace kagome::storage::trie {
     // children bitmap
     encoding += ushortToBytes(node.childrenBitmap());
 
-    if (node.getTrieType() == TrieNode::Type::BranchWithValue) {
-      // scale encoded value
-      OUTCOME_TRY(encNodeValue, scale::encode(node.value.value()));
-      encoding += Buffer(std::move(encNodeValue));
-    }
+    OUTCOME_TRY(encodeValue(encoding, node));
 
     // encode each child
     for (auto &child : node.children) {
@@ -215,9 +223,8 @@ namespace kagome::storage::trie {
     encoding += node.key_nibbles.toByteBuffer();
 
     if (!node.value) return Error::NO_NODE_VALUE;
-    // scale encoded value
-    OUTCOME_TRY(encNodeValue, scale::encode(node.value.value()));
-    encoding += Buffer(std::move(encNodeValue));
+
+    OUTCOME_TRY(encodeValue(encoding, node));
 
     return outcome::success(std::move(encoding));
   }
@@ -243,8 +250,10 @@ namespace kagome::storage::trie {
         return decodeBranch(type, partial_key, stream);
 
       case TrieNode::Type::LeafContainingHashes: {
-        OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
-        return std::make_shared<LeafContainingHashesNode>(partial_key, value);
+        auto node = std::make_shared<LeafNode>(partial_key, common::Buffer{});
+        OUTCOME_TRY(hash, scale::decode<common::Hash256>(stream.leftBytes()));
+        node->value.hash = hash;
+        return node;
       }
 
       case TrieNode::Type::BranchContainingHashes:
@@ -359,7 +368,17 @@ namespace kagome::storage::trie {
       } catch (std::system_error &e) {
         return outcome::failure(e.code());
       }
-      node->value = value;
+      node->value.value = value;
+    } else if (type == TrieNode::Type::BranchContainingHashes) {
+      common::Hash256 hash;
+      try {
+        ss >> hash;
+      } catch (std::system_error &e) {
+        return outcome::failure(e.code());
+      }
+      node->value.hash = hash;
+    } else if (type != TrieNode::Type::BranchEmptyValue) {
+      return Error::UNKNOWN_NODE_TYPE;
     }
 
     uint8_t i = 0;

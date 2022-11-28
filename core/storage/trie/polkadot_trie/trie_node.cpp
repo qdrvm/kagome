@@ -8,8 +8,9 @@
 namespace kagome::storage::trie {
 
   int BranchNode::getType() const {
-    return static_cast<int>(value ? TrieNode::Type::BranchWithValue
-                                  : TrieNode::Type::BranchEmptyValue);
+    return static_cast<int>(value.hash    ? Type::BranchContainingHashes
+                            : value.value ? Type::BranchWithValue
+                                          : Type::BranchEmptyValue);
   }
 
   uint16_t BranchNode::childrenBitmap() const {
@@ -29,31 +30,7 @@ namespace kagome::storage::trie {
   }
 
   int LeafNode::getType() const {
-    return static_cast<int>(TrieNode::Type::Leaf);
+    return static_cast<int>(value.hash ? Type::LeafContainingHashes
+                                       : Type::Leaf);
   }
-
-  int BranchContainingHashesNode::getType() const {
-    return static_cast<int>(TrieNode::Type::BranchContainingHashes);
-  }
-
-  uint16_t BranchContainingHashesNode::childrenBitmap() const {
-    uint16_t bitmap = 0u;
-    for (auto i = 0u; i < kMaxChildren; i++) {
-      if (children.at(i)) {
-        bitmap = bitmap | 1u << i;
-      }
-    }
-    return bitmap;
-  }
-
-  uint8_t BranchContainingHashesNode::childrenNum() const {
-    return std::count_if(children.begin(),
-                         children.end(),
-                         [](const auto &child) { return child; });
-  }
-
-  int LeafContainingHashesNode::getType() const {
-    return static_cast<int>(TrieNode::Type::LeafContainingHashes);
-  }
-
 }  // namespace kagome::storage::trie

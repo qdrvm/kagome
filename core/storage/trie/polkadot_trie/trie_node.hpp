@@ -80,6 +80,15 @@ namespace kagome::storage::trie {
     }
   };
 
+  struct ValueAndHash {
+    operator bool() const {
+      return hash || value;
+    }
+
+    std::optional<common::Hash256> hash;
+    std::optional<common::Buffer> value;
+  };
+
   /**
    * For specification see
    * 5.3 The Trie structure in the Polkadot Host specification
@@ -117,7 +126,7 @@ namespace kagome::storage::trie {
     }
 
     KeyNibbles key_nibbles;
-    std::optional<common::Buffer> value;
+    ValueAndHash value;
   };
 
   struct BranchNode : public TrieNode {
@@ -147,39 +156,6 @@ namespace kagome::storage::trie {
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
     ~LeafNode() override = default;
-
-    int getType() const override;
-  };
-
-  struct BranchContainingHashesNode : public TrieNode {
-    static constexpr uint8_t kMaxChildren = 16;
-
-    BranchContainingHashesNode() = default;
-    explicit BranchContainingHashesNode(
-        KeyNibbles key_nibbles,
-        std::optional<common::Buffer> value = std::nullopt)
-        : TrieNode{std::move(key_nibbles), std::move(value)} {}
-
-    ~BranchContainingHashesNode() override = default;
-
-    int getType() const override;
-
-    uint16_t childrenBitmap() const;
-    uint8_t childrenNum() const;
-
-    // Has 1..16 children.
-    // Stores their hashes to search for them in a storage and encode them more
-    // easily. @see DummyNode
-    std::array<std::shared_ptr<OpaqueTrieNode>, kMaxChildren> children;
-  };
-
-  struct LeafContainingHashesNode : public TrieNode {
-    LeafContainingHashesNode() = default;
-    LeafContainingHashesNode(KeyNibbles key_nibbles,
-                             std::optional<common::Buffer> value)
-        : TrieNode{std::move(key_nibbles), std::move(value)} {}
-
-    ~LeafContainingHashesNode() override = default;
 
     int getType() const override;
   };
