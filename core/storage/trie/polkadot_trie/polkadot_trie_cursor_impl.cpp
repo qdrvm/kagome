@@ -86,7 +86,7 @@ namespace kagome::storage::trie {
     auto &current = std::get<SearchState>(state_).getCurrent();
     // while there is a node in a trie with the given key, it contains no value,
     // thus cannot be pointed at by the cursor
-    if (not current.value.has_value()) {
+    if (not current.value) {
       state_ = InvalidState{Error::KEY_NOT_FOUND};
       return false;
     }
@@ -257,7 +257,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieCursorImpl::nextNodeWithValueInSubTree(
       const TrieNode &parent) {
     auto *current = &parent;
-    while (not current->value.has_value()) {
+    while (not current->value) {
       if (not current->isBranch()) {
         return Error::INVALID_NODE_TYPE;
       }

@@ -47,7 +47,7 @@ namespace kagome::storage::trie {
             stream_ << std::setfill('-') << std::setw(nest_level) << ""
                     << std::setw(0) << "(leaf) key: <"
                     << hex_lower(node->key_nibbles.toByteBuffer())
-                    << "> value: " << node->value.value().toHex() << "\n";
+                    << "> value: " << node->value.value->toHex() << "\n";
             break;
           }
           default:
@@ -62,7 +62,7 @@ namespace kagome::storage::trie {
                        size_t nest_level) {
         std::string indent(nest_level, '\t');
         auto value =
-            (node->value ? "\"" + node->value.value().toHex() + "\"" : "NONE");
+            (node->value ? "\"" + node->value.value->toHex() + "\"" : "NONE");
         auto branch = std::dynamic_pointer_cast<const BranchNode>(node);
         stream_ << std::setfill('-') << std::setw(nest_level) << ""
                 << std::setw(0) << "(branch) key: <"

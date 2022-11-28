@@ -156,7 +156,7 @@ namespace {
       auto &branch = dynamic_cast<BranchNode &>(*node);
       if (node->key_nibbles == sought_key) {
         SL_TRACE(logger, "deleteNode: deleting value in branch; stop");
-        node->value = std::nullopt;
+        node->value.reset();
       } else {
         auto length = getCommonPrefixLength(node->key_nibbles, sought_key);
         OUTCOME_TRY(child, node_storage.getChild(branch, sought_key[length]));

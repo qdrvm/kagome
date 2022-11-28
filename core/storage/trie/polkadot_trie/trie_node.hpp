@@ -85,6 +85,11 @@ namespace kagome::storage::trie {
       return hash || value;
     }
 
+    void reset() {
+      hash.reset();
+      value.reset();
+    }
+
     std::optional<common::Hash256> hash;
     std::optional<common::Buffer> value;
   };
@@ -98,7 +103,7 @@ namespace kagome::storage::trie {
 
   struct TrieNode : public OpaqueTrieNode {
     TrieNode() = default;
-    TrieNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
+    TrieNode(KeyNibbles key_nibbles, ValueAndHash value)
         : key_nibbles{std::move(key_nibbles)}, value{std::move(value)} {}
 
     ~TrieNode() override = default;
@@ -135,7 +140,7 @@ namespace kagome::storage::trie {
     BranchNode() = default;
     explicit BranchNode(KeyNibbles key_nibbles,
                         std::optional<common::Buffer> value = std::nullopt)
-        : TrieNode{std::move(key_nibbles), std::move(value)} {}
+        : TrieNode{std::move(key_nibbles), {.value = std::move(value)}} {}
 
     ~BranchNode() override = default;
 
@@ -153,6 +158,8 @@ namespace kagome::storage::trie {
   struct LeafNode : public TrieNode {
     LeafNode() = default;
     LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
+        : TrieNode{std::move(key_nibbles), {.value = std::move(value)}} {}
+    LeafNode(KeyNibbles key_nibbles, ValueAndHash value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
     ~LeafNode() override = default;
