@@ -189,6 +189,13 @@ namespace kagome::storage::trie {
     common::Buffer db_key;
   };
 
+  struct TODO_GetValue : OpaqueTrieNode {
+    ValueAndHash *value;
+
+    int getType() const override {
+      abort();
+    }
+  };
 }  // namespace kagome::storage::trie
 
 template <>

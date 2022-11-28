@@ -72,7 +72,6 @@ namespace kagome::storage::trie {
       return child;
     }
 
-   private:
     PolkadotTrie::NodeRetrieveFunctor retrieve_node_;
     std::shared_ptr<TrieNode> root_;
   };
@@ -178,7 +177,7 @@ namespace {
       PolkadotTrie::NodePtr &node,
       const PolkadotTrie::OnDetachCallback &callback) {
     auto key = node->key_nibbles.toByteBuffer();
-    OUTCOME_TRY(callback(key, std::move(node->value)));
+    OUTCOME_TRY(callback(key, std::move(node->value.value)));
     return outcome::success();
   }
 
@@ -196,6 +195,7 @@ namespace {
       bool &finished,
       uint32_t &count,
       const PolkadotTrie::OnDetachCallback &callback,
+      PolkadotTrie &trie,
       OpaqueNodeStorage &node_storage) {
     if (parent == nullptr) {
       return outcome::success();
@@ -225,6 +225,7 @@ namespace {
                                      finished,
                                      count,
                                      callback,
+                                     trie,
                                      node_storage));
               branch.children[child_idx] = child_node;
             }
@@ -232,6 +233,7 @@ namespace {
         }
         if (not limit or count < limit.value()) {
           if (parent->value) {
+            OUTCOME_TRY(trie.getValue(parent->value));
             OUTCOME_TRY(notifyOnDetached(parent, callback));
             ++count;
           }
@@ -271,6 +273,7 @@ namespace {
                                finished,
                                count,
                                callback,
+                               trie,
                                node_storage));
         branch.children[prefix[length]] = child_node;
         OUTCOME_TRY(handleDeletion(logger, parent, node_storage));
@@ -331,8 +334,15 @@ namespace kagome::storage::trie {
     uint32_t count = 0;
     auto key_nibbles = KeyNibbles::fromByteBuffer(prefix);
     auto root = nodes_->getRoot();
-    OUTCOME_TRY(detachNode(
-        logger_, root, key_nibbles, limit, finished, count, callback, *nodes_));
+    OUTCOME_TRY(detachNode(logger_,
+                           root,
+                           key_nibbles,
+                           limit,
+                           finished,
+                           count,
+                           callback,
+                           *this,
+                           *nodes_));
     nodes_->setRoot(root);
     return {finished, count};
   }
@@ -470,7 +480,8 @@ namespace kagome::storage::trie {
     auto nibbles = KeyNibbles::fromByteBuffer(key);
     OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
     if (node && node->value) {
-      return node->value.value();
+      OUTCOME_TRY(getValue(const_cast<ValueAndHash &>(node->value)));
+      return *node->value.value;
     }
     return std::nullopt;
   }
@@ -630,4 +641,12 @@ namespace kagome::storage::trie {
     return nodes_->getChild(parent, idx);
   }
 
+  outcome::result<void> PolkadotTrieImpl::getValue(ValueAndHash &value) const {
+    if (value.hash && !value.value) {
+      auto p = std::make_shared<TODO_GetValue>();
+      p->value = &value;
+      OUTCOME_TRY(nodes_->retrieve_node_(p));
+    }
+    return outcome::success();
+  }
 }  // namespace kagome::storage::trie

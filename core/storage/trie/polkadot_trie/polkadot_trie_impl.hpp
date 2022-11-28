@@ -85,6 +85,8 @@ namespace kagome::storage::trie {
     outcome::result<NodePtr> retrieveChild(const BranchNode &parent,
                                            uint8_t idx) override;
 
+    outcome::result<void> getValue(ValueAndHash &value) const override;
+
    private:
     outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const NibblesView &key_nibbles,
