@@ -12,7 +12,11 @@ namespace kagome::storage::trie {
 
   using RootHash = common::Hash256;
 
-  enum class StateVersion { V0, V1 };
+  enum class StateVersion {
+    V0,
+    V1,
+    TODO_NotSpecified = V0,
+  };
 
 }  // namespace kagome::storage::trie
 

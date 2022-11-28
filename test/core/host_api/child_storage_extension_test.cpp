@@ -128,7 +128,7 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
   if (GetParam()) {
     RootHash new_child_root = "123456"_hash256;
     Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
-    EXPECT_CALL(*trie_child_storage_batch_, commit())
+    EXPECT_CALL(*trie_child_storage_batch_, commit(_))
         .WillOnce(Return(new_child_root));
 
     prefixed_child_storage_key =
@@ -206,7 +206,7 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
   if (GetParam()) {
     RootHash new_child_root = "123456"_hash256;
     Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
-    EXPECT_CALL(*trie_child_storage_batch_, commit())
+    EXPECT_CALL(*trie_child_storage_batch_, commit(_))
         .WillOnce(Return(new_child_root));
 
     prefixed_child_storage_key =
@@ -299,7 +299,7 @@ TEST_P(VoidOutcomeParameterizedTest, SetTest) {
   if (GetParam()) {
     RootHash new_child_root = "123456"_hash256;
     Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
-    EXPECT_CALL(*trie_child_storage_batch_, commit())
+    EXPECT_CALL(*trie_child_storage_batch_, commit(_))
         .WillOnce(Return(new_child_root));
 
     prefixed_child_storage_key =
@@ -350,7 +350,7 @@ TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
   if (GetParam()) {
     RootHash new_child_root = "123456"_hash256;
     Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
-    EXPECT_CALL(*trie_child_storage_batch_, commit())
+    EXPECT_CALL(*trie_child_storage_batch_, commit(_))
         .WillOnce(Return(new_child_root));
     prefixed_child_storage_key =
         Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
@@ -395,7 +395,7 @@ TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
 
   RootHash new_child_root = "123456"_hash256;
   Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
-  EXPECT_CALL(*trie_child_storage_batch_, commit())
+  EXPECT_CALL(*trie_child_storage_batch_, commit(_))
       .WillOnce(Return(new_child_root));
 
   Buffer prefixed_child_storage_key =
@@ -480,7 +480,7 @@ TEST_F(ChildStorageExtensionTest, RootTest) {
   WasmPointer new_child_root_size = 12;
   WasmSpan new_child_root_span =
       PtrSize(new_child_root_ptr, new_child_root_size).combine();
-  EXPECT_CALL(*trie_child_storage_batch_, commit())
+  EXPECT_CALL(*trie_child_storage_batch_, commit(_))
       .WillOnce(Return(new_child_root));
   EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(new_child_root)))
       .WillOnce(Return(new_child_root_span));
@@ -515,7 +515,7 @@ TEST_P(BoolOutcomeParameterizedTest, ExistsTest) {
   if (GetParam()) {
     RootHash new_child_root = "123456"_hash256;
     Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
-    EXPECT_CALL(*trie_child_storage_batch_, commit())
+    EXPECT_CALL(*trie_child_storage_batch_, commit(_))
         .WillOnce(Return(new_child_root));
 
     prefixed_child_storage_key =

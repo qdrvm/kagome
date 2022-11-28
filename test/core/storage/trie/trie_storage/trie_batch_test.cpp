@@ -25,6 +25,7 @@ using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHash;
 using kagome::storage::face::WriteBatch;
+using kagome::storage::trie::StateVersion;
 using kagome::subscription::SubscriptionEngine;
 using testing::_;
 using testing::Invoke;
@@ -120,7 +121,8 @@ TEST_F(TrieBatchTest, Put) {
     ASSERT_OUTCOME_ERROR(new_batch->get(entry.first),
                          kagome::storage::trie::TrieError::NO_VALUE);
   }
-  ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit());
+  ASSERT_OUTCOME_SUCCESS(root_hash,
+                         batch->commit(StateVersion::TODO_NotSpecified));
   // changes are commited
   new_batch = trie->getEphemeralBatchAt(root_hash).value();
   for (auto &entry : data) {
@@ -151,7 +153,8 @@ TEST_F(TrieBatchTest, Remove) {
   ASSERT_OUTCOME_SUCCESS_TRY(batch->remove(data[3].first));
   ASSERT_OUTCOME_SUCCESS_TRY(batch->remove(data[4].first));
 
-  ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit());
+  ASSERT_OUTCOME_SUCCESS(root_hash,
+                         batch->commit(StateVersion::TODO_NotSpecified));
 
   auto read_batch = trie->getEphemeralBatchAt(root_hash).value();
   for (auto i : {2, 3, 4}) {
@@ -170,7 +173,8 @@ TEST_F(TrieBatchTest, Remove) {
 TEST_F(TrieBatchTest, Replace) {
   auto batch = trie->getPersistentBatchAt(empty_hash).value();
   ASSERT_OUTCOME_SUCCESS_TRY(batch->put(data[1].first, data[3].second));
-  ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit());
+  ASSERT_OUTCOME_SUCCESS(root_hash,
+                         batch->commit(StateVersion::TODO_NotSpecified));
   auto read_batch = trie->getEphemeralBatchAt(root_hash).value();
   ASSERT_OUTCOME_SUCCESS(res, read_batch->get(data[1].first));
   ASSERT_EQ(res.get(), data[3].second);
@@ -208,12 +212,12 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   auto batch = trie->getPersistentBatchAt(empty_hash).value();
 
   ASSERT_OUTCOME_SUCCESS_TRY(batch->put("123"_buf, "111"_buf));
-  ASSERT_OUTCOME_SUCCESS_TRY(batch->commit());
+  ASSERT_OUTCOME_SUCCESS_TRY(batch->commit(StateVersion::TODO_NotSpecified));
 
   ASSERT_OUTCOME_SUCCESS_TRY(batch->put("133"_buf, "111"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(batch->put("124"_buf, "111"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(batch->put("154"_buf, "111"_buf));
-  ASSERT_FALSE(batch->commit());
+  ASSERT_FALSE(batch->commit(StateVersion::TODO_NotSpecified));
 }
 
 TEST_F(TrieBatchTest, TopperBatchAtomic) {

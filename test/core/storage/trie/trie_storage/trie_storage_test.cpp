@@ -25,6 +25,7 @@ using kagome::storage::RocksDB;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::RootHash;
+using kagome::storage::trie::StateVersion;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
 using kagome::storage::trie::TrieStorageImpl;
@@ -65,7 +66,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
     EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "abc"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("345"_buf, "def"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("678"_buf, "xyz"_buf));
-    EXPECT_OUTCOME_TRUE(root_, batch->commit());
+    EXPECT_OUTCOME_TRUE(root_, batch->commit(StateVersion::TODO_NotSpecified));
     root = root_;
   }
   EXPECT_OUTCOME_TRUE(new_level_db,

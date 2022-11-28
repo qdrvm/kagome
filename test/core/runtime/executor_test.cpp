@@ -130,7 +130,7 @@ class ExecutorTest : public testing::Test {
                         kagome::runtime::TrieStorageProviderMock>();
                     auto batch = std::make_shared<
                         kagome::storage::trie::PersistentTrieBatchMock>();
-                    EXPECT_CALL(*batch, commit())
+                    EXPECT_CALL(*batch, commit(_))
                         .WillOnce(Return(next_storage_state));
                     EXPECT_CALL(*storage_provider, tryGetPersistentBatch())
                         .WillRepeatedly(Return(

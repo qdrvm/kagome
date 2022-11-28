@@ -57,7 +57,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<storage::trie::RootHash>,
                 commit,
-                (),
+                (StateVersion),
                 (override));
 
     MOCK_METHOD(std::unique_ptr<TopperTrieBatch>, batchOnTop, (), (override));
@@ -106,7 +106,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(bool, empty, (), (const, override));
 
-    MOCK_METHOD(outcome::result<RootHash>, hash, (), (override));
+    MOCK_METHOD(outcome::result<RootHash>, hash, (StateVersion), (override));
   };
 
   class TopperTrieBatchMock : public TopperTrieBatch {

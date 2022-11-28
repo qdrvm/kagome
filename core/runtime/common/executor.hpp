@@ -291,7 +291,9 @@ namespace kagome::runtime {
           "Current batch should always be persistent for a persistent call");
       auto persistent_batch =
           env.storage_provider->tryGetPersistentBatch().value();
-      OUTCOME_TRY(new_state_root, persistent_batch->commit());
+      OUTCOME_TRY(new_state_root,
+                  persistent_batch->commit(
+                      storage::trie::StateVersion::TODO_NotSpecified));
       SL_DEBUG(logger_,
                "Runtime call committed new state with hash {}",
                new_state_root.toHex());

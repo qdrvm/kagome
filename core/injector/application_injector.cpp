@@ -358,7 +358,8 @@ namespace {
     for (const auto &[key_, val_] : children_default_raw_configs) {
       auto child_batch = batch_with_raw_data(val_);
 
-      auto root_hash_res = child_batch->commit();
+      auto root_hash_res =
+          child_batch->commit(storage::trie::StateVersion::TODO_NotSpecified);
       if (root_hash_res.has_error()) {
         common::raise(root_hash_res.error());
       }
@@ -373,7 +374,7 @@ namespace {
       }
     }
 
-    auto res = batch->commit();
+    auto res = batch->commit(storage::trie::StateVersion::TODO_NotSpecified);
     if (res.has_error()) {
       common::raise(res.error());
     }

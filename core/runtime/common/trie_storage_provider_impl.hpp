@@ -45,7 +45,8 @@ namespace kagome::runtime {
     outcome::result<std::shared_ptr<PersistentBatch>> getChildBatchAt(
         const common::Buffer &root_path) override;
 
-    outcome::result<storage::trie::RootHash> forceCommit() override;
+    outcome::result<storage::trie::RootHash> forceCommit(
+        StateVersion version) override;
 
     outcome::result<void> startTransaction() override;
     outcome::result<void> rollbackTransaction() override;

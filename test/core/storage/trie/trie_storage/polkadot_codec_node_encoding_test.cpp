@@ -28,7 +28,10 @@ struct NodeEncodingTest : public ::testing::TestWithParam<Case> {
 TEST_P(NodeEncodingTest, GetHeader) {
   auto [node, expected] = GetParam();
 
-  EXPECT_OUTCOME_TRUE_2(actual, codec->encodeHeader(*node));
+  EXPECT_OUTCOME_TRUE_2(
+      actual,
+      codec->encodeHeader(*node,
+                          storage::trie::StateVersion::TODO_NotSpecified));
   EXPECT_EQ(actual.toHex(), expected.toHex());
 }
 

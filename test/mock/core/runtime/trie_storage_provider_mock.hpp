@@ -42,7 +42,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<storage::trie::RootHash>,
                 forceCommit,
-                (),
+                (StateVersion),
                 (override));
 
     MOCK_METHOD(outcome::result<void>, startTransaction, (), (override));

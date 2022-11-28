@@ -30,7 +30,7 @@ namespace kagome::storage::trie {
         std::shared_ptr<PolkadotTrie> trie);
     ~PersistentTrieBatchImpl() override = default;
 
-    outcome::result<RootHash> commit() override;
+    outcome::result<RootHash> commit(StateVersion version) override;
     std::unique_ptr<TopperTrieBatch> batchOnTop() override;
 
     outcome::result<BufferConstRef> get(const BufferView &key) const override;

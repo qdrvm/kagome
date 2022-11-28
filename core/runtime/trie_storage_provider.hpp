@@ -27,6 +27,7 @@ namespace kagome::runtime {
    public:
     using Batch = storage::trie::TrieBatch;
     using PersistentBatch = storage::trie::PersistentTrieBatch;
+    using StateVersion = storage::trie::StateVersion;
 
     virtual ~TrieStorageProvider() = default;
 
@@ -81,7 +82,8 @@ namespace kagome::runtime {
     /**
      * Commits persistent changes even if the current batch is not persistent
      */
-    virtual outcome::result<storage::trie::RootHash> forceCommit() = 0;
+    virtual outcome::result<storage::trie::RootHash> forceCommit(
+        StateVersion version) = 0;
 
     // ------ Transaction methods ------
 

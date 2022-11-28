@@ -1005,7 +1005,8 @@ namespace kagome::network {
 
             // Handle completion of syncing
             if (state_entry.complete) {
-              auto res = batch->commit();
+              auto res =
+                  batch->commit(storage::trie::StateVersion::TODO_NotSpecified);
               if (res.has_value()) {
                 const auto &expected = [&] {
                   if (i != 0) {  // Child state

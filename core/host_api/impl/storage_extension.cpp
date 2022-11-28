@@ -226,16 +226,16 @@ namespace kagome::host_api {
 
   runtime::WasmSpan StorageExtension::ext_storage_root_version_2(
       runtime::WasmI32 version) {
-    [[maybe_unused]] auto state_version = toStateVersion(version);
+    auto state_version = toStateVersion(version);
 
     outcome::result<storage::trie::RootHash> res{{}};
     removeEmptyChildStorages();
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
         opt_batch.has_value() and opt_batch.value() != nullptr) {
-      res = opt_batch.value()->commit();
+      res = opt_batch.value()->commit(state_version);
     } else {
       logger_->warn("ext_storage_root called in an ephemeral extension");
-      res = storage_provider_->forceCommit();
+      res = storage_provider_->forceCommit(state_version);
     }
     if (res.has_error()) {
       logger_->error("ext_storage_root resulted with an error: {}",
@@ -386,7 +386,8 @@ namespace kagome::host_api {
             put_res.error());
       }
     }
-    const auto &enc = codec.encodeNode(*trie.getRoot(), {});
+    const auto &enc = codec.encodeNode(
+        *trie.getRoot(), storage::trie::StateVersion::TODO_NotSpecified, {});
     if (!enc) {
       logger_->error("failed to encode trie root: {}", enc.error());
       throw std::runtime_error(enc.error().message());
@@ -417,10 +418,10 @@ namespace kagome::host_api {
     }
     const auto &collection = values.value();
 
-    [[maybe_unused]] auto state_version = toStateVersion(version);
+    auto state_version = toStateVersion(version);
 
     auto ordered_hash = storage::trie::calculateOrderedTrieHash(
-        collection.begin(), collection.end());
+        state_version, collection.begin(), collection.end());
     if (!ordered_hash.has_value()) {
       logger_->error(
           "ext_blake2_256_enumerated_trie_root resulted with an error: {}",

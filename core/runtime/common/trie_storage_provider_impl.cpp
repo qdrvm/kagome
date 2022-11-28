@@ -98,17 +98,17 @@ namespace kagome::runtime {
     child_batches_.clear();
   }
 
-  outcome::result<storage::trie::RootHash>
-  TrieStorageProviderImpl::forceCommit() {
+  outcome::result<storage::trie::RootHash> TrieStorageProviderImpl::forceCommit(
+      StateVersion version) {
     if (persistent_batch_) {
-      return persistent_batch_->commit();
+      return persistent_batch_->commit(version);
     }
     if (auto ephemeral =
             std::dynamic_pointer_cast<storage::trie::EphemeralTrieBatch>(
                 current_batch_)) {
       // won't actually write any data to the storage but will calculate the
       // root hash for the state represented by the batch
-      OUTCOME_TRY(root, ephemeral->hash());
+      OUTCOME_TRY(root, ephemeral->hash(version));
       SL_TRACE(logger_, "Force commit ephemeral batch, root: {}", root);
       return std::move(root);
     }

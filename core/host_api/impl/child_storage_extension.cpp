@@ -52,7 +52,9 @@ namespace kagome::host_api {
       return result;
     }
 
-    OUTCOME_TRY(new_child_root, child_batch->commit());
+    OUTCOME_TRY(
+        new_child_root,
+        child_batch->commit(storage::trie::StateVersion::TODO_NotSpecified));
     OUTCOME_TRY(storage_provider_->getCurrentBatch()->put(
         prefixed_child_key, Buffer{scale::encode(new_child_root).value()}));
     SL_TRACE(logger_,
@@ -224,11 +226,13 @@ namespace kagome::host_api {
     if (auto child_batch =
             storage_provider_->getChildBatchAt(prefixed_child_key.value());
         child_batch.has_value() and child_batch.value() != nullptr) {
-      res = child_batch.value()->commit();
+      res = child_batch.value()->commit(
+          storage::trie::StateVersion::TODO_NotSpecified);
     } else {
       logger_->warn(
           "ext_default_child_storage_root called in an ephemeral extension");
-      res = storage_provider_->forceCommit();
+      res = storage_provider_->forceCommit(
+          storage::trie::StateVersion::TODO_NotSpecified);
       storage_provider_->clearChildBatches();
     }
     if (res.has_error()) {

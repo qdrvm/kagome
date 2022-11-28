@@ -26,7 +26,10 @@ struct NodeDecodingTest
 TEST_P(NodeDecodingTest, GetHeader) {
   auto node = GetParam();
 
-  EXPECT_OUTCOME_TRUE(encoded, codec->encodeNode(*node, {}));
+  EXPECT_OUTCOME_TRUE(
+      encoded,
+      codec->encodeNode(
+          *node, storage::trie::StateVersion::TODO_NotSpecified, {}));
   EXPECT_OUTCOME_TRUE(decoded, codec->decodeNode(encoded));
   auto decoded_node = std::dynamic_pointer_cast<TrieNode>(decoded);
   EXPECT_EQ(decoded_node->key_nibbles, node->key_nibbles);

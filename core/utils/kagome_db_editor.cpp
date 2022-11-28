@@ -383,10 +383,15 @@ int db_editor_main(int argc, const char **argv) {
 
       {
         TicToc t3("Commit state.", log);
-        check(finalized_batch->commit()).value();
-        check(batch->commit()).value();
+        check(finalized_batch->commit(
+                  storage::trie::StateVersion::TODO_NotSpecified))
+            .value();
+        check(batch->commit(storage::trie::StateVersion::TODO_NotSpecified))
+            .value();
         for (const auto &child_batch : child_batches) {
-          check(child_batch->commit()).value();
+          check(child_batch->commit(
+                    storage::trie::StateVersion::TODO_NotSpecified))
+              .value();
         }
       }
 

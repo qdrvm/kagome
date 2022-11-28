@@ -18,7 +18,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<RootHash>,
                 storeTrie,
-                (PolkadotTrie &),
+                (PolkadotTrie &, StateVersion),
                 (override));
 
     MOCK_METHOD(outcome::result<std::shared_ptr<PolkadotTrie>>,

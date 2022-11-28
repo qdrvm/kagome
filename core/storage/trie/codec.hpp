@@ -30,7 +30,9 @@ namespace kagome::storage::trie {
      * @return encoded representation of a {@param node}
      */
     virtual outcome::result<common::Buffer> encodeNode(
-        const Node &node, const StoreChildren &store_children) const = 0;
+        const Node &node,
+        StateVersion version,
+        const StoreChildren &store_children) const = 0;
 
     /**
      * @brief Decode node from bytes

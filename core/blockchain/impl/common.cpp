@@ -43,7 +43,8 @@ namespace kagome::blockchain {
       static const auto zero_hash = codec.hash256(common::Buffer{0});
       return zero_hash;
     }
-    auto encode_res = codec.encodeNode(*root, {});
+    auto encode_res = codec.encodeNode(
+        *root, storage::trie::StateVersion::TODO_NotSpecified, {});
     BOOST_ASSERT_MSG(encode_res.has_value(), "Trie encoding failed");
     return codec.hash256(encode_res.value());
   }
