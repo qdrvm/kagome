@@ -250,7 +250,7 @@ namespace kagome::storage::trie {
         return decodeBranch(type, partial_key, stream);
 
       case TrieNode::Type::LeafContainingHashes: {
-        auto node = std::make_shared<LeafNode>(partial_key, common::Buffer{});
+        auto node = std::make_shared<LeafNode>(partial_key, std::nullopt);
         OUTCOME_TRY(hash, scale::decode<common::Hash256>(stream.leftBytes()));
         node->value.hash = hash;
         return node;
