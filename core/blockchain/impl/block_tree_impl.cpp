@@ -71,7 +71,7 @@ namespace kagome::blockchain {
         auto upper = std::numeric_limits<primitives::BlockNumber>::max();
 
         for (;;) {
-          number = lower + (upper - lower) / 2  + 1;
+          number = lower + (upper - lower) / 2 + 1;
 
           auto res = storage->hasBlockHeader(number);
           if (res.has_failure()) {
@@ -868,10 +868,10 @@ namespace kagome::blockchain {
       descendant_depth = number_res.value();
     }
     if (descendant_depth < ancestor_depth) {
-      SL_WARN(log_,
-              "Ancestor block is lower. {} in comparison with {}",
-              primitives::BlockInfo(ancestor_depth, ancestor),
-              primitives::BlockInfo(descendant_depth, descendant));
+      SL_DEBUG(log_,
+               "Ancestor block is lower. {} in comparison with {}",
+               primitives::BlockInfo(ancestor_depth, ancestor),
+               primitives::BlockInfo(descendant_depth, descendant));
       return false;
     }
 

@@ -527,16 +527,6 @@ namespace kagome::network {
                          peer_id,
                          stream_res.error());
 
-                if (stream_res
-                    == outcome::failure(
-                        std::make_error_code(std::errc::not_connected))) {
-                  self->reputation_repository_->changeForATime(
-                      peer_id,
-                      reputation::cost::UNEXPECTED_DISCONNECT,
-                      kDownVoteByDisconnectionExpirationTimeout);
-                  return;
-                }
-
                 self->streams_.exclusiveAccess([&](auto &streams) {
                   self->forSubscriber(
                       peer_id, streams, protocol, [&](auto, auto &descr) {
@@ -544,6 +534,15 @@ namespace kagome::network {
                         descr.dropReserved();
                       });
                 });
+
+                if (stream_res
+                    == outcome::failure(
+                        std::make_error_code(std::errc::not_connected))) {
+                  self->reputation_repository_->changeForATime(
+                      peer_id,
+                      reputation::cost::UNEXPECTED_DISCONNECT,
+                      kDownVoteByDisconnectionExpirationTimeout);
+                }
 
                 return;
               }
