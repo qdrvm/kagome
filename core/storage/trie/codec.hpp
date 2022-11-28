@@ -9,6 +9,7 @@
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "storage/trie/node.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
   /**

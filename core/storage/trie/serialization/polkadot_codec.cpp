@@ -29,6 +29,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
 }
 
 namespace kagome::storage::trie {
+  constexpr size_t kMaxInlineValueVersion1 = 33;
 
   inline common::Buffer ushortToBytes(uint16_t b) {
     common::Buffer out(2, 0);
@@ -71,7 +72,7 @@ namespace kagome::storage::trie {
       const Node &node, const StoreChildren &store_children) const {
     switch (static_cast<TrieNode::Type>(node.getType())) {
       case TrieNode::Type::Leaf:
-        return encodeLeaf(dynamic_cast<const LeafNode &>(node));
+        return encodeLeaf(dynamic_cast<const LeafNode &>(node), store_children);
 
       case TrieNode::Type::BranchEmptyValue:
       case TrieNode::Type::BranchWithValue:
@@ -79,7 +80,7 @@ namespace kagome::storage::trie {
                             store_children);
 
       case TrieNode::Type::LeafContainingHashes:
-        return encodeLeaf(dynamic_cast<const LeafNode &>(node));
+        return encodeLeaf(dynamic_cast<const LeafNode &>(node), store_children);
 
       case TrieNode::Type::BranchContainingHashes:
         return encodeBranch(dynamic_cast<const BranchNode &>(node),
@@ -109,8 +110,17 @@ namespace kagome::storage::trie {
     uint8_t head;
     uint8_t partial_length_mask;  // max partial key length
 
+    auto type = node.getTrieType();
+    if (shouldBeHashed(node)) {
+      if (type == TrieNode::Type::Leaf) {
+        type = TrieNode::Type::LeafContainingHashes;
+      } else if (type == TrieNode::Type::BranchWithValue) {
+        type = TrieNode::Type::BranchContainingHashes;
+      }
+    }
+
     // set bits of type
-    switch (node.getTrieType()) {
+    switch (type) {
       case TrieNode::Type::Leaf:
         head = 0b01'000000;
         partial_length_mask = 0b00'111111;  // 63
@@ -167,10 +177,35 @@ namespace kagome::storage::trie {
     return out;
   }
 
-  outcome::result<void> PolkadotCodec::encodeValue(common::Buffer &out,
-                                                   const TrieNode &node) const {
-    if (node.value.hash) {
-      out += *node.value.hash;
+  bool PolkadotCodec::shouldBeHashed(const TrieNode &node) const {
+    StateVersion version{};  // TODO
+    if (node.value.hash || !node.value.value) {
+      return false;
+    }
+    switch (version) {
+      case StateVersion::V0: {
+        return false;
+      }
+      case StateVersion::V1: {
+        return node.value.value->size() >= kMaxInlineValueVersion1;
+      }
+    }
+    BOOST_UNREACHABLE_RETURN();
+  }
+
+  outcome::result<void> PolkadotCodec::encodeValue(
+      common::Buffer &out,
+      const TrieNode &node,
+      const StoreChildren &store_children) const {
+    auto hash = node.value.hash;
+    if (shouldBeHashed(node)) {
+      hash = hash256(*node.value.value);
+      if (store_children) {
+        OUTCOME_TRY(store_children(*hash, Buffer{*node.value.value}));
+      }
+    }
+    if (hash) {
+      out += *hash;
     } else if (node.value.value) {
       // TODO(turuslan): soramitsu/scale-codec-cpp non-allocating methods
       OUTCOME_TRY(value, scale::encode(*node.value.value));
@@ -190,7 +225,7 @@ namespace kagome::storage::trie {
     // children bitmap
     encoding += ushortToBytes(node.childrenBitmap());
 
-    OUTCOME_TRY(encodeValue(encoding, node));
+    OUTCOME_TRY(encodeValue(encoding, node, store_children));
 
     // encode each child
     for (auto &child : node.children) {
@@ -216,7 +251,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeLeaf(
-      const LeafNode &node) const {
+      const LeafNode &node, const StoreChildren &store_children) const {
     OUTCOME_TRY(encoding, encodeHeader(node));
 
     // key
@@ -224,7 +259,7 @@ namespace kagome::storage::trie {
 
     if (!node.value) return Error::NO_NODE_VALUE;
 
-    OUTCOME_TRY(encodeValue(encoding, node));
+    OUTCOME_TRY(encodeValue(encoding, node, store_children));
 
     return outcome::success(std::move(encoding));
   }

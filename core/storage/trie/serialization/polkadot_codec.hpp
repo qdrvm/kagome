@@ -50,11 +50,15 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeHeader(const TrieNode &node) const;
 
    private:
-    outcome::result<void> encodeValue(common::Buffer &out,
-                                      const TrieNode &node) const;
+    bool shouldBeHashed(const TrieNode &node) const;
+    outcome::result<void> encodeValue(
+        common::Buffer &out,
+        const TrieNode &node,
+        const StoreChildren &store_children) const;
     outcome::result<Buffer> encodeBranch(
         const BranchNode &node, const StoreChildren &store_children) const;
-    outcome::result<Buffer> encodeLeaf(const LeafNode &node) const;
+    outcome::result<Buffer> encodeLeaf(
+        const LeafNode &node, const StoreChildren &store_children) const;
 
     outcome::result<std::pair<TrieNode::Type, size_t>> decodeHeader(
         BufferStream &stream) const;
