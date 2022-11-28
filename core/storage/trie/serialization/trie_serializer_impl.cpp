@@ -56,7 +56,7 @@ namespace kagome::storage::trie {
 
     OUTCOME_TRY(
         enc,
-        codec_->encodeNodeAndStoreChildren(
+        codec_->encodeNode(
             node, [&](common::BufferView hash, common::Buffer &&encoded) {
               return batch->put(hash, std::move(encoded));
             }));

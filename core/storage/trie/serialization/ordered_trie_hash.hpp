@@ -41,7 +41,7 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(trie.put(common::Buffer{enc}, *it));
       it++;
     }
-    OUTCOME_TRY(enc, codec.encodeNode(*trie.getRoot()));
+    OUTCOME_TRY(enc, codec.encodeNode(*trie.getRoot(), {}));
     return common::Buffer{codec.hash256(enc)};
   }
 

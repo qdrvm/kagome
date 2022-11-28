@@ -386,7 +386,7 @@ namespace kagome::host_api {
             put_res.error());
       }
     }
-    const auto &enc = codec.encodeNode(*trie.getRoot());
+    const auto &enc = codec.encodeNode(*trie.getRoot(), {});
     if (!enc) {
       logger_->error("failed to encode trie root: {}", enc.error());
       throw std::runtime_error(enc.error().message());

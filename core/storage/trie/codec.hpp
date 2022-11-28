@@ -28,20 +28,8 @@ namespace kagome::storage::trie {
      * @param store_children chidren storer
      * @return encoded representation of a {@param node}
      */
-    virtual outcome::result<common::Buffer> encodeNodeAndStoreChildren(
+    virtual outcome::result<common::Buffer> encodeNode(
         const Node &node, const StoreChildren &store_children) const = 0;
-
-    /**
-     * @brief Encode node to byte representation
-     * @param node node in the trie
-     * @return encoded representation of a {@param node}
-     */
-    outcome::result<common::Buffer> encodeNode(const Node &node) const {
-      return encodeNodeAndStoreChildren(
-          node, [](common::BufferView, common::Buffer &&) {
-            return outcome::success();
-          });
-    }
 
     /**
      * @brief Decode node from bytes

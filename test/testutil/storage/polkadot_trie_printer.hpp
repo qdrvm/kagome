@@ -91,7 +91,7 @@ namespace kagome::storage::trie {
 
       void printEncAndHash(const PolkadotTrie::ConstNodePtr &node,
                            size_t nest_level) {
-        auto enc = codec_.encodeNode(*node).value();
+        auto enc = codec_.encodeNode(*node, {}).value();
         if (print_enc_) {
           stream_ << std::setfill('-') << std::setw(nest_level) << ""
                   << std::setw(0) << "enc: " << enc << "\n";

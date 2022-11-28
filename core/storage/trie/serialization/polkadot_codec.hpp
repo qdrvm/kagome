@@ -31,7 +31,7 @@ namespace kagome::storage::trie {
 
     ~PolkadotCodec() override = default;
 
-    outcome::result<Buffer> encodeNodeAndStoreChildren(
+    outcome::result<Buffer> encodeNode(
         const Node &node, const StoreChildren &store_children) const override;
 
     outcome::result<std::shared_ptr<Node>> decodeNode(

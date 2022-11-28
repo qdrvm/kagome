@@ -67,7 +67,7 @@ namespace kagome::storage::trie {
     return out;
   }
 
-  outcome::result<common::Buffer> PolkadotCodec::encodeNodeAndStoreChildren(
+  outcome::result<common::Buffer> PolkadotCodec::encodeNode(
       const Node &node, const StoreChildren &store_children) const {
     switch (static_cast<TrieNode::Type>(node.getType())) {
       case TrieNode::Type::Leaf:
@@ -193,9 +193,9 @@ namespace kagome::storage::trie {
           OUTCOME_TRY(scale_enc, scale::encode(std::move(merkle_value)));
           encoding.put(scale_enc);
         } else {
-          OUTCOME_TRY(enc, encodeNodeAndStoreChildren(*child, store_children));
+          OUTCOME_TRY(enc, encodeNode(*child, store_children));
           auto merkle = merkleValue(enc);
-          if (isMerkleHash(merkle)) {
+          if (isMerkleHash(merkle) && store_children) {
             OUTCOME_TRY(store_children(merkle, std::move(enc)));
           }
           OUTCOME_TRY(scale_enc, scale::encode(merkle));

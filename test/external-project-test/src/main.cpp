@@ -56,7 +56,7 @@ kagome::storage::trie::RootHash trieRoot(
   if (root == nullptr) {
     return codec.hash256(kagome::common::BufferView{{0}});
   }
-  auto encode_res = codec.encodeNode(*root);
+  auto encode_res = codec.encodeNode(*root, {});
   BOOST_ASSERT_MSG(encode_res.has_value(), "Trie encoding failed");
   return codec.hash256(encode_res.value());
 }
