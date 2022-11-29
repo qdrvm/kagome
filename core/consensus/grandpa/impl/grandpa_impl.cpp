@@ -431,7 +431,7 @@ namespace kagome::consensus::grandpa {
       // Check if needed to catch-up peer, then do that
       if (msg.round_number
           >= current_round_->roundNumber() + kCatchUpThreshold) {
-        // Do catch-up only other one is not in progress
+        // Do catch-up only when another one is not in progress
         if (not pending_catchup_request_.has_value()) {
           auto res = environment_->onCatchUpRequested(
               peer_id, msg.voter_set_id, msg.round_number - 1);
