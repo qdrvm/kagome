@@ -322,9 +322,10 @@ namespace kagome::network {
             self->grandpa_observer_->onCommitMessage(peer_id, commit_message);
           },
           [&](const GrandpaNeighborMessage &neighbor_message) {
-            SL_VERBOSE(self->base_.logger(),
-                       "NeighborMessage has received from {}",
-                       peer_id);
+            if (peer_id != self->own_info_.id)
+              SL_VERBOSE(self->base_.logger(),
+                         "NeighborMessage has received from {}",
+                         peer_id);
             self->grandpa_observer_->onNeighborMessage(peer_id,
                                                        neighbor_message);
           },

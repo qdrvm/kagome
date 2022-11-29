@@ -111,7 +111,7 @@ namespace kagome::network {
                  SL_VERBOSE(self->base_.logger(),
                             "Fully established incoming {} stream with {}",
                             self->protocolName(),
-                            peer_id.toBase58());
+                            peer_id);
                });
   }
 
