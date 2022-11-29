@@ -664,7 +664,7 @@ namespace kagome::consensus::grandpa {
         return;
       }
 
-      if (msg.round_number != catchup_request.round_number) {
+      if (msg.round_number < catchup_request.round_number) {
         SL_DEBUG(logger_,
                  "Catch-up request to round #{} received from {}, "
                  "but last catch-up request was sent for round {}",
