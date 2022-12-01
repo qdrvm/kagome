@@ -191,6 +191,9 @@ namespace kagome::storage::trie {
         return false;
       }
       case StateVersion::V1: {
+        if (!node.value.dirty) {
+          return false;
+        }
         return node.value.value->size() >= kMaxInlineValueVersion1;
       }
     }
@@ -286,7 +289,9 @@ namespace kagome::storage::trie {
     switch (type) {
       case TrieNode::Type::Leaf: {
         OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
-        return std::make_shared<LeafNode>(partial_key, value);
+        auto node = std::make_shared<LeafNode>(partial_key, value);
+        node->value.dirty = false;
+        return node;
       }
 
       case TrieNode::Type::BranchEmptyValue:
@@ -295,6 +300,7 @@ namespace kagome::storage::trie {
 
       case TrieNode::Type::LeafContainingHashes: {
         auto node = std::make_shared<LeafNode>(partial_key, std::nullopt);
+        node->value.dirty = false;
         OUTCOME_TRY(hash, scale::decode<common::Hash256>(stream.leftBytes()));
         node->value.hash = hash;
         return node;
@@ -398,6 +404,7 @@ namespace kagome::storage::trie {
       return Error::INPUT_TOO_SMALL;
     }
     auto node = std::make_shared<BranchNode>(partial_key);
+    node->value.dirty = false;
 
     uint16_t children_bitmap = stream.next();
     children_bitmap += stream.next() << 8u;

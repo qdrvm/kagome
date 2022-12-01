@@ -92,6 +92,7 @@ namespace kagome::storage::trie {
 
     std::optional<common::Hash256> hash;
     std::optional<common::Buffer> value;
+    bool dirty = true;
   };
 
   /**
