@@ -117,13 +117,12 @@ namespace {
       while (bitmap >>= 1u) ++idx;
       OUTCOME_TRY(child, node_storage.getChild(branch, idx));
 
-      using T = TrieNode::Type;
-      if (child->getTrieType() == T::Leaf) {
+      if (!child->isBranch()) {
         parent = std::make_shared<LeafNode>(parent->key_nibbles, child->value);
         SL_TRACE(logger,
                  "handleDeletion: turn a branch with single leaf child into "
                  "its child");
-      } else if (child->isBranch()) {
+      } else {
         branch.children = dynamic_cast<BranchNode &>(*child).children;
         parent->value = child->value;
         SL_TRACE(logger,
@@ -349,81 +348,59 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::insert(
       const NodePtr &parent, const NibblesView &key_nibbles, NodePtr node) {
-    using T = TrieNode::Type;
-
     // just update the node key and return it as the new root
     if (parent == nullptr) {
       node->key_nibbles = key_nibbles;
       return node;
     }
 
-    const auto node_type = parent->getTrieType();
-
-    switch (node_type) {
-      case T::BranchContainingHashes:
-      case T::BranchEmptyValue:
-      case T::BranchWithValue: {
-        auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
-        return updateBranch(parent_as_branch, key_nibbles, node);
-      }
-
-      case T::LeafContainingHashes:
-      case T::Leaf: {
-        // need to convert this leaf into a branch
-        auto br = std::make_shared<BranchNode>();
-        auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
-
-        if (parent->key_nibbles == key_nibbles
-            && key_nibbles.size() == length) {
-          node->key_nibbles = key_nibbles;
-          return node;
-        }
-
-        br->key_nibbles = KeyNibbles{key_nibbles.subspan(0, length)};
-        auto parentKey = parent->key_nibbles;
-
-        // value goes at this branch
-        if (key_nibbles.size() == length) {
-          br->value = node->value;
-
-          // if we are not replacing previous leaf, then add it as a
-          // child to the new branch
-          if (static_cast<std::ptrdiff_t>(parent->key_nibbles.size())
-              > key_nibbles.size()) {
-            parent->key_nibbles = parent->key_nibbles.subbuffer(length + 1);
-            br->children.at(parentKey[length]) = parent;
-          }
-
-          return br;
-        }
-
-        node->key_nibbles = KeyNibbles{key_nibbles.subspan(length + 1)};
-
-        if (length == parent->key_nibbles.size()) {
-          // if leaf's key is covered by this branch, then make the leaf's
-          // value the value at this branch
-          br->value = parent->value;
-          br->children.at(key_nibbles[length]) = node;
-        } else {
-          // otherwise, make the leaf a child of the branch and update its
-          // partial key
-          parent->key_nibbles = parent->key_nibbles.subbuffer(length + 1);
-          br->children.at(parentKey[length]) = parent;
-          br->children.at(key_nibbles[length]) = node;
-        }
-
-        return br;
-      }
-
-      case T::Empty:
-        return Error::INVALID_NODE_TYPE;
-
-      case T::ReservedForCompactEncoding:
-        return Error::INVALID_NODE_TYPE;
-
-      default:
-        return Error::INVALID_NODE_TYPE;
+    if (parent->isBranch()) {
+      auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
+      return updateBranch(parent_as_branch, key_nibbles, node);
     }
+    // need to convert this leaf into a branch
+    auto br = std::make_shared<BranchNode>();
+    auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
+
+    if (parent->key_nibbles == key_nibbles && key_nibbles.size() == length) {
+      node->key_nibbles = key_nibbles;
+      return node;
+    }
+
+    br->key_nibbles = KeyNibbles{key_nibbles.subspan(0, length)};
+    auto parentKey = parent->key_nibbles;
+
+    // value goes at this branch
+    if (key_nibbles.size() == length) {
+      br->value = node->value;
+
+      // if we are not replacing previous leaf, then add it as a
+      // child to the new branch
+      if (static_cast<std::ptrdiff_t>(parent->key_nibbles.size())
+          > key_nibbles.size()) {
+        parent->key_nibbles = parent->key_nibbles.subbuffer(length + 1);
+        br->children.at(parentKey[length]) = parent;
+      }
+
+      return br;
+    }
+
+    node->key_nibbles = KeyNibbles{key_nibbles.subspan(length + 1)};
+
+    if (length == parent->key_nibbles.size()) {
+      // if leaf's key is covered by this branch, then make the leaf's
+      // value the value at this branch
+      br->value = parent->value;
+      br->children.at(key_nibbles[length]) = node;
+    } else {
+      // otherwise, make the leaf a child of the branch and update its
+      // partial key
+      parent->key_nibbles = parent->key_nibbles.subbuffer(length + 1);
+      br->children.at(parentKey[length]) = parent;
+      br->children.at(key_nibbles[length]) = node;
+    }
+
+    return br;
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::updateBranch(
@@ -500,44 +477,25 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::ConstNodePtr> PolkadotTrieImpl::getNode(
       ConstNodePtr current, const NibblesView &nibbles) const {
-    using T = TrieNode::Type;
     if (current == nullptr) {
       return nullptr;
     }
 
-    const auto node_type = current->getTrieType();
-    switch (node_type) {
-      case T::BranchContainingHashes:
-      case T::BranchEmptyValue:
-      case T::BranchWithValue: {
-        if (current->key_nibbles == nibbles or nibbles.empty()) {
-          return current;
-        }
-        if (nibbles.size() < static_cast<long>(current->key_nibbles.size())) {
-          return nullptr;
-        }
-        auto parent_as_branch =
-            std::dynamic_pointer_cast<const BranchNode>(current);
-        auto length = getCommonPrefixLength(current->key_nibbles, nibbles);
-        OUTCOME_TRY(n, retrieveChild(*parent_as_branch, nibbles[length]));
-        return getNode(n, nibbles.subspan(length + 1));
+    if (current->isBranch()) {
+      if (current->key_nibbles == nibbles or nibbles.empty()) {
+        return current;
       }
-
-      case T::LeafContainingHashes:
-      case T::Leaf:
-        if (current->key_nibbles == nibbles) {
-          return current;
-        }
-        break;
-
-      case T::Empty:
-        return Error::INVALID_NODE_TYPE;
-
-      case T::ReservedForCompactEncoding:
-        return Error::INVALID_NODE_TYPE;
-
-      default:
-        return Error::INVALID_NODE_TYPE;
+      if (nibbles.size() < static_cast<long>(current->key_nibbles.size())) {
+        return nullptr;
+      }
+      auto parent_as_branch =
+          std::dynamic_pointer_cast<const BranchNode>(current);
+      auto length = getCommonPrefixLength(current->key_nibbles, nibbles);
+      OUTCOME_TRY(n, retrieveChild(*parent_as_branch, nibbles[length]));
+      return getNode(n, nibbles.subspan(length + 1));
+    }
+    if (current->key_nibbles == nibbles) {
+      return current;
     }
     return nullptr;
   }
@@ -547,53 +505,32 @@ namespace kagome::storage::trie {
       const NibblesView &path,
       const std::function<outcome::result<void>(BranchNode const &,
                                                 uint8_t idx)> &callback) const {
-    using T = TrieNode::Type;
     if (parent == nullptr) {
       return TrieError::NO_VALUE;
     }
 
-    const auto node_type = parent->getTrieType();
-    switch (node_type) {
-      case T::BranchContainingHashes:
-      case T::BranchEmptyValue:
-      case T::BranchWithValue: {
-        // path is completely covered by the parent key
-        if (parent->key_nibbles == path or path.empty()) {
-          return outcome::success();
-        }
-        auto common_length = getCommonPrefixLength(parent->key_nibbles, path);
-        auto common_nibbles =
-            gsl::make_span(parent->key_nibbles.data(), common_length);
-        // path is even less than the parent key (path is the prefix of the
-        // parent key)
-        if (path == common_nibbles
-            and path.size()
-                    < static_cast<ssize_t>(parent->key_nibbles.size())) {
-          return outcome::success();
-        }
-        auto parent_as_branch =
-            std::dynamic_pointer_cast<const BranchNode>(parent);
-        OUTCOME_TRY(child,
-                    retrieveChild(*parent_as_branch, path[common_length]));
-        OUTCOME_TRY(callback(*parent_as_branch, path[common_length]));
-        return forNodeInPath(child, path.subspan(common_length + 1), callback);
+    if (parent->isBranch()) {
+      // path is completely covered by the parent key
+      if (parent->key_nibbles == path or path.empty()) {
+        return outcome::success();
       }
-
-      case T::LeafContainingHashes:
-      case T::Leaf:
-        if (parent->key_nibbles == path) {
-          return outcome::success();
-        }
-        break;
-
-      case T::Empty:
-        return Error::INVALID_NODE_TYPE;
-
-      case T::ReservedForCompactEncoding:
-        return Error::INVALID_NODE_TYPE;
-
-      default:
-        return Error::INVALID_NODE_TYPE;
+      auto common_length = getCommonPrefixLength(parent->key_nibbles, path);
+      auto common_nibbles =
+          gsl::make_span(parent->key_nibbles.data(), common_length);
+      // path is even less than the parent key (path is the prefix of the
+      // parent key)
+      if (path == common_nibbles
+          and path.size() < static_cast<ssize_t>(parent->key_nibbles.size())) {
+        return outcome::success();
+      }
+      auto parent_as_branch =
+          std::dynamic_pointer_cast<const BranchNode>(parent);
+      OUTCOME_TRY(child, retrieveChild(*parent_as_branch, path[common_length]));
+      OUTCOME_TRY(callback(*parent_as_branch, path[common_length]));
+      return forNodeInPath(child, path.subspan(common_length + 1), callback);
+    }
+    if (parent->key_nibbles == path) {
+      return outcome::success();
     }
     return TrieError::NO_VALUE;
   }
