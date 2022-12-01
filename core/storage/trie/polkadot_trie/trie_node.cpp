@@ -6,13 +6,6 @@
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
-
-  int BranchNode::getType() const {
-    return static_cast<int>(value.hash    ? Type::BranchContainingHashes
-                            : value.value ? Type::BranchWithValue
-                                          : Type::BranchEmptyValue);
-  }
-
   uint16_t BranchNode::childrenBitmap() const {
     uint16_t bitmap = 0u;
     for (auto i = 0u; i < kMaxChildren; i++) {
@@ -27,10 +20,5 @@ namespace kagome::storage::trie {
     return std::count_if(children.begin(),
                          children.end(),
                          [](const auto &child) { return child; });
-  }
-
-  int LeafNode::getType() const {
-    return static_cast<int>(value.hash ? Type::LeafContainingHashes
-                                       : Type::Leaf);
   }
 }  // namespace kagome::storage::trie

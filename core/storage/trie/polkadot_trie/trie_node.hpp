@@ -120,16 +120,7 @@ namespace kagome::storage::trie {
       ReservedForCompactEncoding  // 0001 0000
     };
 
-    // just to avoid static_casts every time you need a switch on a node type
-    Type getTrieType() const noexcept {
-      return static_cast<Type>(getType());
-    }
-
-    bool isBranch() const noexcept {
-      auto type = getTrieType();
-      return type == Type::BranchWithValue or type == Type::BranchEmptyValue
-             or type == Type::BranchContainingHashes;
-    }
+    inline bool isBranch() const noexcept;
 
     KeyNibbles key_nibbles;
     ValueAndHash value;
@@ -145,8 +136,6 @@ namespace kagome::storage::trie {
 
     ~BranchNode() override = default;
 
-    int getType() const override;
-
     uint16_t childrenBitmap() const;
     uint8_t childrenNum() const;
 
@@ -156,6 +145,10 @@ namespace kagome::storage::trie {
     std::array<std::shared_ptr<OpaqueTrieNode>, kMaxChildren> children;
   };
 
+  bool TrieNode::isBranch() const noexcept {
+    return dynamic_cast<const BranchNode *>(this) != nullptr;
+  }
+
   struct LeafNode : public TrieNode {
     LeafNode() = default;
     LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
@@ -164,8 +157,6 @@ namespace kagome::storage::trie {
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
     ~LeafNode() override = default;
-
-    int getType() const override;
   };
 
   /**
@@ -180,22 +171,11 @@ namespace kagome::storage::trie {
      */
     explicit DummyNode(common::Buffer key) : db_key{std::move(key)} {}
 
-    int getType() const override {
-      // Special only because a node has to have a type. Actually this is not
-      // the real node and the type of the underlying node is inaccessible
-      // before reading from the storage
-      return static_cast<int>(TrieNode::Type::Special);
-    }
-
     common::Buffer db_key;
   };
 
   struct TODO_GetValue : OpaqueTrieNode {
     ValueAndHash *value;
-
-    int getType() const override {
-      abort();
-    }
   };
 }  // namespace kagome::storage::trie
 

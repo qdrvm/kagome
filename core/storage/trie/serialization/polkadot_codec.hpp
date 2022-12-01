@@ -53,7 +53,6 @@ namespace kagome::storage::trie {
                                          StateVersion version) const;
 
    private:
-    bool shouldBeHashed(const TrieNode &node, StateVersion version) const;
     outcome::result<void> encodeValue(
         common::Buffer &out,
         const TrieNode &node,

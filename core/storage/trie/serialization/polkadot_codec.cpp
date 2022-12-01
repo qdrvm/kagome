@@ -38,6 +38,43 @@ namespace kagome::storage::trie {
     return out;
   }
 
+  inline bool shouldBeHashed(const TrieNode &node, StateVersion version) {
+    if (node.value.hash || !node.value.value) {
+      return false;
+    }
+    switch (version) {
+      case StateVersion::V0: {
+        return false;
+      }
+      case StateVersion::V1: {
+        if (!node.value.dirty) {
+          return false;
+        }
+        return node.value.value->size() >= kMaxInlineValueVersion1;
+      }
+    }
+    BOOST_UNREACHABLE_RETURN();
+  }
+
+  inline TrieNode::Type getType(const TrieNode &node) {
+    if (node.isBranch()) {
+      if (node.value.hash) {
+        return TrieNode::Type::BranchContainingHashes;
+      }
+      if (node.value.value) {
+        return TrieNode::Type::BranchWithValue;
+      }
+      return TrieNode::Type::BranchEmptyValue;
+    }
+    if (node.value.hash) {
+      return TrieNode::Type::LeafContainingHashes;
+    }
+    if (node.value.value) {
+      return TrieNode::Type::Leaf;
+    }
+    return TrieNode::Type::Empty;
+  }
+
   common::Buffer PolkadotCodec::merkleValue(
       const common::BufferView &buf) const {
     // if a buffer size is less than the size of a would-be hash, just return
@@ -72,37 +109,13 @@ namespace kagome::storage::trie {
       const Node &node,
       StateVersion version,
       const StoreChildren &store_children) const {
-    switch (static_cast<TrieNode::Type>(node.getType())) {
-      case TrieNode::Type::Leaf:
-        return encodeLeaf(
-            dynamic_cast<const LeafNode &>(node), version, store_children);
-
-      case TrieNode::Type::BranchEmptyValue:
-      case TrieNode::Type::BranchWithValue:
-        return encodeBranch(
-            dynamic_cast<const BranchNode &>(node), version, store_children);
-
-      case TrieNode::Type::LeafContainingHashes:
-        return encodeLeaf(
-            dynamic_cast<const LeafNode &>(node), version, store_children);
-
-      case TrieNode::Type::BranchContainingHashes:
-        return encodeBranch(
-            dynamic_cast<const BranchNode &>(node), version, store_children);
-
-      case TrieNode::Type::Empty:
-        return std::errc::invalid_argument;
-
-      case TrieNode::Type::ReservedForCompactEncoding:
-        return std::errc::invalid_argument;
-
-      case TrieNode::Type::Special:
-        // special node is not handled right now
-        return std::errc::invalid_argument;
-
-      default:
-        return std::errc::invalid_argument;
+    auto &trie = dynamic_cast<const TrieNode &>(node);
+    if (trie.isBranch()) {
+      return encodeBranch(
+          dynamic_cast<const BranchNode &>(node), version, store_children);
     }
+    return encodeLeaf(
+        dynamic_cast<const LeafNode &>(node), version, store_children);
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeHeader(
@@ -114,12 +127,12 @@ namespace kagome::storage::trie {
     uint8_t head;
     uint8_t partial_length_mask;  // max partial key length
 
-    auto type = node.getTrieType();
+    auto type = getType(node);
     if (shouldBeHashed(node, version)) {
-      if (type == TrieNode::Type::Leaf) {
-        type = TrieNode::Type::LeafContainingHashes;
-      } else if (type == TrieNode::Type::BranchWithValue) {
+      if (node.isBranch()) {
         type = TrieNode::Type::BranchContainingHashes;
+      } else {
+        type = TrieNode::Type::LeafContainingHashes;
       }
     }
 
@@ -179,25 +192,6 @@ namespace kagome::storage::trie {
     out[out.size() - 1] = l % 0xffu;
 
     return out;
-  }
-
-  bool PolkadotCodec::shouldBeHashed(const TrieNode &node,
-                                     StateVersion version) const {
-    if (node.value.hash || !node.value.value) {
-      return false;
-    }
-    switch (version) {
-      case StateVersion::V0: {
-        return false;
-      }
-      case StateVersion::V1: {
-        if (!node.value.dirty) {
-          return false;
-        }
-        return node.value.value->size() >= kMaxInlineValueVersion1;
-      }
-    }
-    BOOST_UNREACHABLE_RETURN();
   }
 
   outcome::result<void> PolkadotCodec::encodeValue(
