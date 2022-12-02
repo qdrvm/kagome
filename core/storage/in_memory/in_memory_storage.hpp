@@ -30,10 +30,7 @@ namespace kagome::storage {
         const common::BufferView &key) const override;
 
     outcome::result<void> put(const common::BufferView &key,
-                              const common::Buffer &value) override;
-
-    outcome::result<void> put(const common::BufferView &key,
-                              common::Buffer &&value) override;
+                              BufferOrView &&value) override;
 
     outcome::result<bool> contains(
         const common::BufferView &key) const override;

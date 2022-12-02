@@ -29,8 +29,7 @@ namespace kagome::storage::trie {
     bool empty() const override;
 
     outcome::result<void> put(const BufferView &key,
-                              const Buffer &value) override;
-    outcome::result<void> put(const BufferView &key, Buffer &&value) override;
+                              BufferOrView &&value) override;
     outcome::result<void> remove(const common::BufferView &key) override;
 
     size_t size() const override;

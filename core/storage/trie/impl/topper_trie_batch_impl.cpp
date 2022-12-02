@@ -91,13 +91,8 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
-                                                 const Buffer &value) {
-    return put(key, Buffer(value));
-  }
-
-  outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
-                                                 Buffer &&value) {
-    cache_.insert_or_assign(Buffer{key}, std::move(value));
+                                                 BufferOrView &&value) {
+    cache_.insert_or_assign(Buffer{key}, value.into());
     return outcome::success();
   }
 
@@ -128,7 +123,7 @@ namespace kagome::storage::trie {
       }
       for (auto it = cache_.begin(); it != cache_.end(); it++) {
         if (it->second.has_value()) {
-          OUTCOME_TRY(p->put(it->first, it->second.value()));
+          OUTCOME_TRY(p->put(it->first, BufferView{it->second.value()}));
         } else {
           OUTCOME_TRY(p->remove(it->first));
         }

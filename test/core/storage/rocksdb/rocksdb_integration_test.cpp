@@ -37,7 +37,7 @@ struct RocksDb_Integration_Test : public test::BaseRocksDB_Test {
  * @then {value} is correct
  */
 TEST_F(RocksDb_Integration_Test, Put_Get) {
-  ASSERT_OUTCOME_SUCCESS_TRY(db_->put(key_, value_));
+  ASSERT_OUTCOME_SUCCESS_TRY(db_->put(key_, BufferView{value_}));
   ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
   EXPECT_TRUE(contains);
   EXPECT_OUTCOME_TRUE_2(val, db_->load(key_));
@@ -72,7 +72,7 @@ TEST_F(RocksDb_Integration_Test, WriteBatch) {
   ASSERT_TRUE(batch);
 
   for (const auto &item : keys) {
-    ASSERT_OUTCOME_SUCCESS_TRY(batch->put(item, item));
+    ASSERT_OUTCOME_SUCCESS_TRY(batch->put(item, BufferView{item}));
     ASSERT_OUTCOME_SUCCESS(contains, db_->contains(item));
     EXPECT_FALSE(contains);
   }
@@ -104,7 +104,7 @@ TEST_F(RocksDb_Integration_Test, Iterator) {
   }
 
   for (const auto &item : keys) {
-    ASSERT_OUTCOME_SUCCESS_TRY(db_->put(item, item));
+    ASSERT_OUTCOME_SUCCESS_TRY(db_->put(item, BufferView{item}));
   }
 
   std::array<size_t, size> counter{};

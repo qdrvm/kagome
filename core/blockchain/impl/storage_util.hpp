@@ -66,7 +66,7 @@ namespace kagome::blockchain {
                                       prefix::Prefix prefix,
                                       primitives::BlockNumber num,
                                       common::Hash256 block_hash,
-                                      const common::Buffer &value);
+                                      common::BufferOrView &&value);
 
   /**
    * Chech if an entry from the database

@@ -49,12 +49,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TrieStorageBackendImpl::put(const BufferView &key,
-                                                    const Buffer &value) {
-    return storage_->put(prefixKey(key), value);
-  }
-
-  outcome::result<void> TrieStorageBackendImpl::put(const BufferView &key,
-                                                    Buffer &&value) {
+                                                    BufferOrView &&value) {
     return storage_->put(prefixKey(key), std::move(value));
   }
 

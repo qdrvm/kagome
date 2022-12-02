@@ -37,8 +37,7 @@ namespace kagome::storage::trie {
     bool empty() const override;
 
     outcome::result<void> put(const BufferView &key,
-                              const Buffer &value) override;
-    outcome::result<void> put(const BufferView &key, Buffer &&value) override;
+                              BufferOrView &&value) override;
     outcome::result<void> remove(const BufferView &key) override;
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
         const BufferView &prefix, std::optional<uint64_t> limit) override;

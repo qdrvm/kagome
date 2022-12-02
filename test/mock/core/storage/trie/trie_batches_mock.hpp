@@ -36,11 +36,10 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<void>,
                 put,
-                (const common::BufferView &, const common::Buffer &),
-                (override));
+                (const common::BufferView &, const Buffer &));
     outcome::result<void> put(const common::BufferView &k,
-                              common::Buffer &&v) override {
-      return put(k, v);
+                              BufferOrView &&v) override {
+      return put(k, v.mut());
     }
 
     MOCK_METHOD(outcome::result<void>,
@@ -87,11 +86,10 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<void>,
                 put,
-                (const common::BufferView &, const common::Buffer &),
-                (override));
+                (const common::BufferView &, const Buffer &));
     outcome::result<void> put(const common::BufferView &k,
-                              common::Buffer &&v) override {
-      return put(k, v);
+                              BufferOrView &&v) override {
+      return put(k, v.mut());
     }
 
     MOCK_METHOD(outcome::result<void>,
@@ -127,11 +125,10 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<void>,
                 put,
-                (const common::BufferView &, const common::Buffer &),
-                (override));
+                (const common::BufferView &, const Buffer &));
     outcome::result<void> put(const common::BufferView &k,
-                              common::Buffer &&v) override {
-      return put(k, v);
+                              BufferOrView &&v) override {
+      return put(k, v.mut());
     }
 
     MOCK_METHOD(outcome::result<void>,

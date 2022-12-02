@@ -29,12 +29,9 @@ namespace kagome::storage::face {
 
     MOCK_CONST_METHOD0_T(empty, bool());
 
-    MOCK_METHOD(outcome::result<void>,
-                put,
-                (const KView &, const V &),
-                (override));
-    outcome::result<void> put(const KView &k, V &&v) override {
-      return put(k, v);
+    MOCK_METHOD(outcome::result<void>, put, (const KView &, const V &));
+    outcome::result<void> put(const KView &k, OwnedOrViewOf<V> &&v) override {
+      return put(k, v.mut());
     }
 
     MOCK_METHOD1_T(remove, outcome::result<void>(const KView &));

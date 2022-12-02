@@ -83,19 +83,17 @@ namespace kagome::host_api {
       runtime::WasmSpan key,
       runtime::WasmSpan value) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_key_buffer, key_buffer, value_buffer] =
-        loadBuffer(memory, child_storage_key, key, value);
+    auto child_key_buffer = loadBuffer(memory, child_storage_key);
+    auto key_buffer = loadBuffer(memory, key);
+    auto value_buffer = loadBuffer(memory, value);
 
     SL_TRACE_VOID_FUNC_CALL(
         logger_, child_key_buffer, key_buffer, value_buffer);
 
     auto result = executeOnChildStorage<void>(
-        child_key_buffer,
-        [](auto &child_batch, auto &key, auto &value) {
-          return child_batch->put(key, value);
-        },
-        key_buffer,
-        value_buffer);
+        child_key_buffer, [&](auto &child_batch) mutable {
+          return child_batch->put(key_buffer, std::move(value_buffer));
+        });
 
     if (not result) {
       logger_->error(

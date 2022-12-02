@@ -129,7 +129,7 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
 
     auto batch = storage_provider_->getCurrentBatch();
-    auto put_result = batch->put(key, value);
+    auto put_result = batch->put(key, std::move(value));
     if (not put_result) {
       logger_->error(
           "ext_set_storage failed, due to fail in trie db with reason: {}",
@@ -374,7 +374,7 @@ namespace kagome::host_api {
     storage::trie::PolkadotTrieImpl trie;
     for (auto &&p : pv) {
       auto &&key = p.first;
-      auto &&value = p.second;
+      common::BufferView value = p.second;
       // already scale-encoded
       auto put_res = trie.put(key, value);
       if (not put_res) {

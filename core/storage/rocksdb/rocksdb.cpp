@@ -153,18 +153,13 @@ namespace kagome::storage {
   }
 
   outcome::result<void> RocksDB::put(const BufferView &key,
-                                     const Buffer &value) {
+                                     BufferOrView &&value) {
     auto status = db_->Put(wo_, make_slice(key), make_slice(value));
     if (status.ok()) {
       return outcome::success();
     }
 
     return status_as_error(status);
-  }
-
-  outcome::result<void> RocksDB::put(const BufferView &key, Buffer &&value) {
-    Buffer copy(std::move(value));
-    return put(key, copy);
   }
 
   outcome::result<void> RocksDB::remove(const BufferView &key) {

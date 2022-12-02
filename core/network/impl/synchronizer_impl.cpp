@@ -991,7 +991,8 @@ namespace kagome::network {
                        state_entry.entries[0].key.toHex(),
                        state_entry.entries.size());
               for (const auto &entry : state_entry.entries) {
-                std::ignore = batch->put(entry.key, entry.value);
+                std::ignore =
+                    batch->put(entry.key, common::BufferView{entry.value});
               }
 
               // store batch to continue at next state_entry

@@ -61,7 +61,7 @@ namespace kagome::storage::trie {
               return batch->put(hash, std::move(encoded));
             }));
     auto key = codec_->hash256(enc);
-    OUTCOME_TRY(batch->put(key, enc));
+    OUTCOME_TRY(batch->put(key, std::move(enc)));
     OUTCOME_TRY(batch->commit());
 
     return key;

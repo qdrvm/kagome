@@ -293,12 +293,6 @@ namespace kagome::storage::trie {
 
   PolkadotTrieImpl::~PolkadotTrieImpl() {}
 
-  outcome::result<void> PolkadotTrieImpl::put(const BufferView &key,
-                                              const Buffer &value) {
-    auto value_copy = value;
-    return put(key, std::move(value_copy));
-  }
-
   PolkadotTrie::ConstNodePtr PolkadotTrieImpl::getRoot() const {
     return nodes_->getRoot();
   }
@@ -308,7 +302,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PolkadotTrieImpl::put(const BufferView &key,
-                                              Buffer &&value) {
+                                              BufferOrView &&value) {
     auto k_enc = KeyNibbles::fromByteBuffer(key);
 
     NodePtr root = nodes_->getRoot();
@@ -316,8 +310,9 @@ namespace kagome::storage::trie {
     // insert fetches a sequence of nodes (a path) from the storage and
     // these nodes are processed in memory, so any changes applied to them
     // will be written back to the storage only on storeNode call
-    OUTCOME_TRY(n,
-                insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
+    OUTCOME_TRY(
+        n,
+        insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value.into())));
     nodes_->setRoot(n);
 
     return outcome::success();

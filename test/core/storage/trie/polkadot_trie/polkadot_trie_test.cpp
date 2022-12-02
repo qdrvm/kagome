@@ -14,6 +14,7 @@
 #include "testutil/storage/polkadot_trie_printer.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::storage::trie::BranchNode;
 using kagome::storage::trie::KeyNibbles;
@@ -59,7 +60,7 @@ const std::vector<std::pair<Buffer, Buffer>> TrieTest::data = {
 
 void FillSmallTree(PolkadotTrie &trie) {
   for (auto &entry : TrieTest::data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(trie.put(entry.first, entry.second));
+    ASSERT_OUTCOME_SUCCESS_TRY(trie.put(entry.first, BufferView{entry.second}));
   }
 }
 
@@ -98,7 +99,7 @@ TEST_P(TrieTest, RunCommand) {
       }
       case Command::PUT: {
         ASSERT_OUTCOME_SUCCESS_TRY(
-            trie->put(command.key, command.value.value()));
+            trie->put(command.key, BufferView{command.value.value()}));
         break;
       }
       case Command::REMOVE: {
@@ -308,7 +309,8 @@ TEST_F(TrieTest, Remove) {
 TEST_F(TrieTest, Replace) {
   FillSmallTree(*trie);
 
-  ASSERT_OUTCOME_SUCCESS_TRY(trie->put(data[1].first, data[3].second));
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      trie->put(data[1].first, BufferView{data[3].second}));
   ASSERT_OUTCOME_SUCCESS(res, trie->get(data[1].first));
   ASSERT_EQ(res.get(), data[3].second);
 }
@@ -324,7 +326,8 @@ TEST_F(TrieTest, ClearPrefix) {
                                                  {"bat"_buf, "789"_buf},
                                                  {"batch"_buf, "0-="_buf}};
   for (auto &entry : data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry.first, entry.second));
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        trie->put(entry.first, BufferView{entry.second}));
   }
   ASSERT_OUTCOME_SUCCESS_TRY(
       trie->clearPrefix("bar"_buf, std::nullopt, [](const auto &, auto &&) {
@@ -535,7 +538,8 @@ TEST_F(TrieTest, GetPath) {
       {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
   for (const auto &entry : TrieTest::data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry.first, entry.second));
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        trie->put(entry.first, BufferView{entry.second}));
   }
 
   std::vector<std::pair<const BranchNode *, uint8_t>> path;
@@ -568,7 +572,8 @@ TEST_F(TrieTest, GetPathToInvalid) {
       {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
   for (const auto &entry : TrieTest::data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry.first, entry.second));
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        trie->put(entry.first, BufferView{entry.second}));
   }
   EXPECT_OUTCOME_SOME_ERROR(
       _,
@@ -592,7 +597,8 @@ TEST_F(TrieTest, GetNodeReturnsNullptrWhenNotFound) {
       {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
   for (auto &entry : TrieTest::data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(trie->put(entry.first, entry.second));
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        trie->put(entry.first, BufferView{entry.second}));
   }
   ASSERT_OUTCOME_SUCCESS(
       res,

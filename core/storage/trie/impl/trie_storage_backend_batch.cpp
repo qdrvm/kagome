@@ -25,12 +25,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TrieStorageBackendBatch::put(
-      const common::BufferView &key, const common::Buffer &value) {
-    return storage_batch_->put(prefixKey(key), value);
-  }
-
-  outcome::result<void> TrieStorageBackendBatch::put(
-      const common::BufferView &key, common::Buffer &&value) {
+      const common::BufferView &key, BufferOrView &&value) {
     return storage_batch_->put(prefixKey(key), std::move(value));
   }
 

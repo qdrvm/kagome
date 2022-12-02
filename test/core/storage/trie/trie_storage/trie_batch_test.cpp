@@ -21,6 +21,7 @@
 using namespace kagome::storage::trie;
 using kagome::api::Session;
 using kagome::common::Buffer;
+using kagome::common::BufferOrView;
 using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHash;
@@ -84,25 +85,22 @@ const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
 
 void FillSmallTrieWithBatch(TrieBatch &batch) {
   for (auto &entry : TrieBatchTest::data) {
-    ASSERT_OUTCOME_SUCCESS_TRY(batch.put(entry.first, entry.second));
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        batch.put(entry.first, BufferView{entry.second}));
   }
 }
 
 class MockDb : public kagome::storage::InMemoryStorage {
  public:
-  MOCK_METHOD(outcome::result<void>,
-              put,
-              (const BufferView &, const Buffer &),
-              (override));
-
-  outcome::result<void> put(const BufferView &k, Buffer &&v) override {
-    return put(k, v);
+  MOCK_METHOD(outcome::result<void>, put, (const BufferView &, const Buffer &));
+  outcome::result<void> put(const BufferView &k, BufferOrView &&v) override {
+    return put(k, v.mut());
   }
 
   // to retain the ability to call the actual implementation of put from the
   // superclass
   outcome::result<void> true_put(const BufferView &key, const Buffer &value) {
-    return InMemoryStorage::put(key, value);
+    return InMemoryStorage::put(key, BufferView{value});
   }
 };
 
@@ -169,7 +167,8 @@ TEST_F(TrieBatchTest, Remove) {
  */
 TEST_F(TrieBatchTest, Replace) {
   auto batch = trie->getPersistentBatchAt(empty_hash).value();
-  ASSERT_OUTCOME_SUCCESS_TRY(batch->put(data[1].first, data[3].second));
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      batch->put(data[1].first, BufferView{data[3].second}));
   ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit());
   auto read_batch = trie->getEphemeralBatchAt(root_hash).value();
   ASSERT_OUTCOME_SUCCESS(res, read_batch->get(data[1].first));

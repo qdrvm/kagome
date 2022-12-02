@@ -22,9 +22,7 @@ namespace kagome::storage {
     void clear() override;
 
     outcome::result<void> put(const BufferView &key,
-                              const Buffer &value) override;
-
-    outcome::result<void> put(const BufferView &key, Buffer &&value) override;
+                              BufferOrView &&value) override;
 
     outcome::result<void> remove(const BufferView &key) override;
 

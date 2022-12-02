@@ -18,6 +18,7 @@
 #include "testutil/storage/polkadot_trie_printer.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::storage::trie::PolkadotTrie;
 using kagome::storage::trie::PolkadotTrieCursorImpl;
 using kagome::storage::trie::PolkadotTrieImpl;
@@ -55,7 +56,7 @@ std::tuple<std::shared_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(
   for (size_t i = 0; i < keys_num; i++) {
     kagome::common::Buffer key(key_length_gen(), 0);
     std::generate(key.begin(), key.end(), std::ref(key_gen));
-    EXPECT_OUTCOME_TRUE_1(trie->put(key, key))
+    EXPECT_OUTCOME_TRUE_1(trie->put(key, BufferView{key}))
     keys.emplace(std::move(key));
   }
   std::get<0>(res) = std::move(trie);
@@ -66,7 +67,7 @@ std::shared_ptr<PolkadotTrie> makeTrie(
     const std::vector<std::pair<Buffer, Buffer>> &vals) {
   auto trie = std::make_shared<PolkadotTrieImpl>();
   for (auto &p : vals) {
-    EXPECT_OUTCOME_TRUE_1(trie->put(p.first, p.second))
+    EXPECT_OUTCOME_TRUE_1(trie->put(p.first, BufferView{p.second}));
   }
   return trie;
 }
