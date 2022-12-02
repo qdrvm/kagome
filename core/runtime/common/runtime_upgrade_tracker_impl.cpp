@@ -113,8 +113,6 @@ namespace kagome::runtime {
     if (hasCodeSubstitute(block)) {
       OUTCOME_TRY(push(block.hash));
     }
-    OUTCOME_TRY(header, header_repo_->getBlockHeader(block.hash));
-    return header.state_root;
 
     // if there are no known blocks with runtime upgrades, we just fall back to
     // returning the state of the current block
