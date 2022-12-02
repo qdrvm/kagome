@@ -79,7 +79,7 @@ jobs:
       - name: df du
         if: ${{ always() }}
         run: |
-          du -h --max-depth=1 /__w/_temp
+          du -h --max-depth=3 /__w/_temp/_github_home
 
   clang-tidy:
     name: "Linux: clang-tidy"
