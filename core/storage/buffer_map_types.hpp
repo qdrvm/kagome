@@ -12,15 +12,24 @@
  */
 
 #include "common/buffer.hpp"
+#include "common/buffer_or_view.hpp"
 #include "storage/face/batch_writeable.hpp"
 #include "storage/face/generic_maps.hpp"
 #include "storage/face/write_batch.hpp"
+
+namespace kagome::storage::face {
+  template <>
+  struct OwnedOrView<common::Buffer> {
+    using type = common::BufferOrView;
+  };
+}  // namespace kagome::storage::face
 
 namespace kagome::storage {
 
   using Buffer = common::SLBuffer<std::numeric_limits<size_t>::max()>;
   using BufferView = common::BufferView;
   using BufferConstRef = common::BufferConstRef;
+  using common::BufferOrView;
 
   using BufferBatch = face::WriteBatch<BufferView, Buffer>;
 
