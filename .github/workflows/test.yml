@@ -64,14 +64,14 @@ jobs:
       - name: df du
         if: ${{ always() }}
         run: |
-          du -h --max-depth=1 /__w/temp
+          du -h --max-depth=1 /__w/_temp
       - uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
       - name: df du
         run: |
-          du -h --max-depth=1 /__w/temp
+          du -h --max-depth=1 /__w/_temp
       - name: Install mold
         run: ./housekeeping/ci_install_mold.sh --make-default
       - name: "${{ matrix.options.name }}"
@@ -79,7 +79,7 @@ jobs:
       - name: df du
         if: ${{ always() }}
         run: |
-          du -h --max-depth=1 /__w/temp
+          du -h --max-depth=1 /__w/_temp
 
   clang-tidy:
     name: "Linux: clang-tidy"
