@@ -86,8 +86,7 @@ namespace kagome::storage::trie {
     }
 
     void reset() {
-      hash.reset();
-      value.reset();
+      *this = {};
     }
 
     std::optional<common::Hash256> hash;

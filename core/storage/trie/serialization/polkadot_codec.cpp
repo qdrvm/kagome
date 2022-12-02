@@ -283,7 +283,7 @@ namespace kagome::storage::trie {
     switch (type) {
       case TrieNode::Type::Leaf: {
         OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
-        auto node = std::make_shared<LeafNode>(partial_key, value);
+        auto node = std::make_shared<LeafNode>(partial_key, std::move(value));
         node->value.dirty = false;
         return node;
       }
@@ -413,7 +413,7 @@ namespace kagome::storage::trie {
       } catch (std::system_error &e) {
         return outcome::failure(e.code());
       }
-      node->value.value = value;
+      node->value.value = std::move(value);
     } else if (type == TrieNode::Type::BranchContainingHashes) {
       common::Hash256 hash;
       try {
