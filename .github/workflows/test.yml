@@ -61,14 +61,17 @@ jobs:
     container: soramitsu/kagome-dev:4-minideb
     steps:
       - uses: actions/checkout@v2
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          du -h --max-depth=1 /__w /tmp
       - uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
       - name: df du
         run: |
-          df -m || true
-          du -hd1 /__w /github || true
+          du -h --max-depth=1 /__w /tmp
       - name: Install mold
         run: ./housekeeping/ci_install_mold.sh --make-default
       - name: "${{ matrix.options.name }}"
