@@ -79,8 +79,6 @@ jobs:
       - name: df du
         if: ${{ always() }}
         run: |
-          df -m || true
-          du -hd1 /__w /github || true
           du -h --max-depth=1 /__w /tmp
 
   clang-tidy:
