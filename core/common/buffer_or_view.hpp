@@ -12,6 +12,8 @@
 
 namespace kagome::common {
   class BufferOrView {
+    using Span = gsl::span<const uint8_t>;
+
    public:
     BufferOrView() = default;
 
@@ -64,6 +66,19 @@ namespace kagome::common {
 
    private:
     std::variant<BufferView, Buffer> variant;
+
+    friend bool operator==(const BufferOrView &l, const Span &r) {
+      return l.view() == r;
+    }
+    friend bool operator!=(const BufferOrView &l, const Span &r) {
+      return l.view() != r;
+    }
+    friend bool operator==(const Span &l, const BufferOrView &r) {
+      return l == r.view();
+    }
+    friend bool operator!=(const Span &l, const BufferOrView &r) {
+      return l != r.view();
+    }
   };
 }  // namespace kagome::common
 
