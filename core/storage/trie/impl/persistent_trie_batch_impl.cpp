@@ -62,13 +62,13 @@ namespace kagome::storage::trie {
     return std::make_unique<TopperTrieBatchImpl>(shared_from_this());
   }
 
-  outcome::result<BufferConstRef> PersistentTrieBatchImpl::get(
+  outcome::result<BufferOrView> PersistentTrieBatchImpl::get(
       const BufferView &key) const {
     return trie_->get(key);
   }
 
-  outcome::result<std::optional<BufferConstRef>>
-  PersistentTrieBatchImpl::tryGet(const BufferView &key) const {
+  outcome::result<std::optional<BufferOrView>> PersistentTrieBatchImpl::tryGet(
+      const BufferView &key) const {
     return trie_->tryGet(key);
   }
 

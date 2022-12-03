@@ -85,7 +85,7 @@ namespace kagome::api {
     EXPECT_CALL(*storage_, getEphemeralBatchAt(_))
         .WillRepeatedly(testing::Invoke([&in_buf, &out_buf](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, tryGet(in_buf.view()))
+          EXPECT_CALL(*batch, tryGetMock(in_buf.view()))
               .WillRepeatedly(testing::Return(std::cref(out_buf)));
           return batch;
         }));
@@ -384,7 +384,7 @@ namespace kagome::api {
             auto batch =
                 std::make_unique<storage::trie::EphemeralTrieBatchMock>();
             for (auto &key : keys) {
-              EXPECT_CALL(*batch, tryGet(key.view()))
+              EXPECT_CALL(*batch, tryGetMock(key.view()))
                   .WillOnce(testing::Return(common::Buffer(root)));
             }
             return batch;
@@ -456,7 +456,7 @@ namespace kagome::api {
           auto batch =
               std::make_unique<storage::trie::EphemeralTrieBatchMock>();
           for (auto &key : keys) {
-            EXPECT_CALL(*batch, tryGet(key.view()))
+            EXPECT_CALL(*batch, tryGetMock(key.view()))
                 .WillOnce(testing::Return(common::Buffer(root)));
           }
           return batch;

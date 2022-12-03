@@ -28,20 +28,20 @@ namespace kagome::storage::trie {
       const std::shared_ptr<TrieBatch> &parent)
       : parent_(parent) {}
 
-  outcome::result<common::BufferConstRef> TopperTrieBatchImpl::get(
+  outcome::result<BufferOrView> TopperTrieBatchImpl::get(
       const BufferView &key) const {
     OUTCOME_TRY(opt_value, tryGet(key));
     if (opt_value) {
-      return opt_value.value();
+      return std::move(*opt_value);
     }
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  TopperTrieBatchImpl::tryGet(const BufferView &key) const {
+  outcome::result<std::optional<BufferOrView>> TopperTrieBatchImpl::tryGet(
+      const BufferView &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
       if (it->second.has_value()) {
-        return it->second.value();
+        return BufferView{it->second.value()};
       }
       return std::nullopt;
     }

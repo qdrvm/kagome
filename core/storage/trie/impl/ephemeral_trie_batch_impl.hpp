@@ -18,8 +18,8 @@ namespace kagome::storage::trie {
                            std::shared_ptr<PolkadotTrie> trie);
     ~EphemeralTrieBatchImpl() override = default;
 
-    outcome::result<BufferConstRef> get(const BufferView &key) const override;
-    outcome::result<std::optional<BufferConstRef>> tryGet(
+    outcome::result<BufferOrView> get(const BufferView &key) const override;
+    outcome::result<std::optional<BufferOrView>> tryGet(
         const BufferView &key) const override;
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
     outcome::result<bool> contains(const BufferView &key) const override;

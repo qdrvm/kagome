@@ -452,24 +452,24 @@ namespace kagome::storage::trie {
     return br;
   }
 
-  outcome::result<common::BufferConstRef> PolkadotTrieImpl::get(
+  outcome::result<BufferOrView> PolkadotTrieImpl::get(
       const common::BufferView &key) const {
     OUTCOME_TRY(opt_value, tryGet(key));
     if (opt_value.has_value()) {
-      return opt_value.value();
+      return std::move(*opt_value);
     }
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  PolkadotTrieImpl::tryGet(const common::BufferView &key) const {
+  outcome::result<std::optional<BufferOrView>> PolkadotTrieImpl::tryGet(
+      const common::BufferView &key) const {
     if (not nodes_->getRoot()) {
       return std::nullopt;
     }
     auto nibbles = KeyNibbles::fromByteBuffer(key);
     OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
     if (node && node->value) {
-      return node->value.value();
+      return BufferView{node->value.value()};
     }
     return std::nullopt;
   }

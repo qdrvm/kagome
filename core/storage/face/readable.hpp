@@ -39,9 +39,6 @@ namespace kagome::storage::face {
   template <typename K, typename V>
   struct ReadableMap : public ReadableBase<K> {
     using Key = K;
-    using Value = V;
-    using ValueView = std::reference_wrapper<V>;
-    using ConstValueView = std::reference_wrapper<const V>;
 
     virtual ~ReadableMap() = default;
 
@@ -50,14 +47,14 @@ namespace kagome::storage::face {
      * @param key K
      * @return V
      */
-    virtual outcome::result<ConstValueView> get(const Key &key) const = 0;
+    virtual outcome::result<OwnedOrViewOf<V>> get(const Key &key) const = 0;
 
     /**
      * @brief Get value by key
      * @param key K
      * @return V if contains(K) or std::nullopt
      */
-    virtual outcome::result<std::optional<ConstValueView>> tryGet(
+    virtual outcome::result<std::optional<OwnedOrViewOf<V>>> tryGet(
         const Key &key) const = 0;
   };
 

@@ -122,7 +122,7 @@ TEST_F(TrieBatchTest, Put) {
   new_batch = trie->getEphemeralBatchAt(root_hash).value();
   for (auto &entry : data) {
     ASSERT_OUTCOME_SUCCESS(res, new_batch->get(entry.first));
-    ASSERT_EQ(res.get(), entry.second);
+    ASSERT_EQ(res, entry.second);
   }
 
   ASSERT_OUTCOME_SUCCESS_TRY(
@@ -130,9 +130,9 @@ TEST_F(TrieBatchTest, Put) {
   ASSERT_OUTCOME_SUCCESS_TRY(
       new_batch->put("104050"_hex2buf, "0a0b0c"_hex2buf));
   ASSERT_OUTCOME_SUCCESS(v1, new_batch->get("102030"_hex2buf));
-  ASSERT_EQ(v1.get(), "010203"_hex2buf);
+  ASSERT_EQ(v1, "010203"_hex2buf);
   ASSERT_OUTCOME_SUCCESS(v2, new_batch->get("104050"_hex2buf));
-  ASSERT_EQ(v2.get(), "0a0b0c"_hex2buf);
+  ASSERT_EQ(v2, "0a0b0c"_hex2buf);
 }
 
 /**
@@ -171,7 +171,7 @@ TEST_F(TrieBatchTest, Replace) {
   ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit());
   auto read_batch = trie->getEphemeralBatchAt(root_hash).value();
   ASSERT_OUTCOME_SUCCESS(res, read_batch->get(data[1].first));
-  ASSERT_EQ(res.get(), data[3].second);
+  ASSERT_EQ(res, data[3].second);
 }
 
 /**

@@ -24,9 +24,8 @@ namespace kagome::storage::trie {
 
     explicit TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent);
 
-    outcome::result<common::BufferConstRef> get(
-        const BufferView &key) const override;
-    outcome::result<std::optional<common::BufferConstRef>> tryGet(
+    outcome::result<BufferOrView> get(const BufferView &key) const override;
+    outcome::result<std::optional<BufferOrView>> tryGet(
         const BufferView &key) const override;
 
     /**

@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "clock/impl/clock_impl.hpp"
+#include "common/monadic_utils.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
@@ -78,7 +79,7 @@ namespace kagome::host_api {
     if (auto data_opt_res = get(key); data_opt_res.has_value()) {
       auto &data_opt = data_opt_res.value();
       if (data_opt.has_value()) {
-        common::BufferView data = data_opt.value().get();
+        common::BufferView data = *data_opt;
         data = data.subspan(std::min<size_t>(offset, data.size()));
         auto written = std::min<size_t>(data.size(), value.size);
         memory.storeBuffer(value.ptr, data.subspan(0, written));
@@ -98,7 +99,7 @@ namespace kagome::host_api {
     return memory.storeBuffer(scale::encode(res).value());
   }
 
-  outcome::result<std::optional<common::BufferConstRef>> StorageExtension::get(
+  outcome::result<std::optional<common::BufferOrView>> StorageExtension::get(
       const common::BufferView &key) const {
     auto batch = storage_provider_->getCurrentBatch();
     return batch->tryGet(key);
@@ -156,7 +157,10 @@ namespace kagome::host_api {
 
     auto &option = result.value();
 
-    return memory.storeBuffer(scale::encode(option).value());
+    return memory.storeBuffer(
+        scale::encode(common::map_optional(option, [](auto &r) {
+          return r.view();
+        })).value());
   }
 
   void StorageExtension::ext_storage_clear_version_1(
@@ -472,7 +476,7 @@ namespace kagome::host_api {
       // SAFETY: key obtained by getStorageNextKey method, thus must exist in
       // the storage
       auto value_opt = get(current_key).value();
-      if (value_opt and value_opt.value().get() == empty_hash) {
+      if (value_opt == empty_hash) {
         auto batch = storage_provider_->getCurrentBatch();
         auto remove_res = batch->remove(current_key);
         if (not remove_res) {

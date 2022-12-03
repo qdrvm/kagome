@@ -63,10 +63,10 @@ namespace kagome::storage::trie {
 
     outcome::result<void> remove(const common::BufferView &key) override;
 
-    outcome::result<common::BufferConstRef> get(
+    outcome::result<BufferOrView> get(
         const common::BufferView &key) const override;
 
-    outcome::result<std::optional<common::BufferConstRef>> tryGet(
+    outcome::result<std::optional<BufferOrView>> tryGet(
         const common::BufferView &key) const override;
 
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;

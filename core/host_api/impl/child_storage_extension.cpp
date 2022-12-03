@@ -132,7 +132,10 @@ namespace kagome::host_api {
                  }
                  // okay to throw, we want to end this runtime call with error
                  return memory.storeBuffer(
-                     scale::encode(result.value()).value());
+                     scale::encode(
+                         common::map_optional(result.value(),
+                                              [](auto &r) { return r.view(); }))
+                         .value());
                },
                key_buffer)
         .value();
@@ -273,17 +276,13 @@ namespace kagome::host_api {
         loadBuffer(memory, child_storage_key, key);
     auto [value_ptr, value_size] = runtime::PtrSize(value_out);
 
-    auto value = executeOnChildStorage<std::optional<common::Buffer>>(
+    auto value = executeOnChildStorage<std::optional<common::BufferOrView>>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) {
-          return common::map_result_optional(
-              child_batch->tryGet(key),
-              [](auto &v) -> common::Buffer { return v.get(); });
-        },
+        [](auto &child_batch, auto &key) { return child_batch->tryGet(key); },
         key_buffer);
     std::optional<uint32_t> res{std::nullopt};
-    if (auto data_opt_res = value; data_opt_res.has_value()) {
-      auto &data_opt = data_opt_res.value();
+    if (value) {
+      auto &data_opt = value.value();
       if (data_opt.has_value()) {
         common::BufferView data = data_opt.value();
         data = data.subspan(std::min<size_t>(offset, data.size()));
@@ -305,10 +304,9 @@ namespace kagome::host_api {
                            offset);
       }
     } else {
-      SL_ERROR(logger_,
-               "Error in ext_storage_read_version_1: {}",
-               data_opt_res.error());
-      throw std::runtime_error{data_opt_res.error().message()};
+      SL_ERROR(
+          logger_, "Error in ext_storage_read_version_1: {}", value.error());
+      throw std::runtime_error{value.error().message()};
     }
 
     return memory.storeBuffer(scale::encode(res).value());

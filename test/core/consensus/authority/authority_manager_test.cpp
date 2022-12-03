@@ -69,7 +69,7 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*trie_storage, getEphemeralBatchAt(_))
         .WillRepeatedly(testing::Invoke([] {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, tryGet(_))
+          EXPECT_CALL(*batch, tryGetMock(_))
               .WillRepeatedly(
                   Return(storage::Buffer::fromHex("0000000000000000").value()));
           return batch;
