@@ -27,7 +27,6 @@
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
-using kagome::common::BufferConstRef;
 using kagome::host_api::ChildStorageExtension;
 using kagome::runtime::Memory;
 using kagome::runtime::MemoryMock;

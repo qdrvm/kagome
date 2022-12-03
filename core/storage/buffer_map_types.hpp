@@ -28,7 +28,6 @@ namespace kagome::storage {
 
   using Buffer = common::SLBuffer<std::numeric_limits<size_t>::max()>;
   using BufferView = common::BufferView;
-  using BufferConstRef = common::BufferConstRef;
   using common::BufferOrView;
 
   using BufferBatch = face::WriteBatch<BufferView, Buffer>;

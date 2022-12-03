@@ -18,7 +18,6 @@
 #include <utility>
 
 using kagome::common::Buffer;
-using kagome::common::BufferConstRef;
 using kagome::storage::trie::TrieError;
 
 namespace kagome::host_api {
