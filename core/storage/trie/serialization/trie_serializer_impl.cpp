@@ -84,7 +84,7 @@ namespace kagome::storage::trie {
     Buffer enc;
     if (codec_->isMerkleHash(db_key)) {
       OUTCOME_TRY(db, backend_->load(db_key));
-      enc = std::move(db);
+      enc = db.into();
     } else {
       // `isMerkleHash(db_key) == false` means `db_key` is value itself
       enc = db_key;

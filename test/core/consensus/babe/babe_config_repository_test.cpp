@@ -58,7 +58,7 @@ class BabeConfigRepositoryTest : public testing::Test {
 
     persistent_storage =
         std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
-    EXPECT_CALL(*persistent_storage, tryLoad(_))
+    EXPECT_CALL(*persistent_storage, tryLoadMock(_))
         .WillRepeatedly(Return(std::nullopt));
 
     block_tree = std::make_shared<BlockTreeMock>();

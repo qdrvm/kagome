@@ -66,7 +66,8 @@ namespace kagome::offchain {
   outcome::result<common::Buffer> OffchainPersistentStorageImpl::get(
       const common::BufferView &key) {
     auto iKey = internalKey(key);
-    return storage_->load(iKey);
+    OUTCOME_TRY(value, storage_->load(iKey));
+    return value.into();
   }
 
 }  // namespace kagome::offchain

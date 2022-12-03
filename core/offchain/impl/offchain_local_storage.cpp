@@ -87,6 +87,7 @@ namespace kagome::offchain {
     throw std::invalid_argument("Off-chain local storage is unavailable yet");
 
     auto iKey = internalKey(key);
-    return storage_->load(iKey);
+    OUTCOME_TRY(value, storage_->load(iKey));
+    return value.into();
   }
 }  // namespace kagome::offchain

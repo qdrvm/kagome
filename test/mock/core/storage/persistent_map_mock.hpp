@@ -20,10 +20,26 @@ namespace kagome::storage::face {
         cursor,
         std::unique_ptr<typename face::GenericStorage<K, V, KView>::Cursor>());
 
-    MOCK_CONST_METHOD1_T(load, outcome::result<V>(const KView &));
+    MOCK_METHOD(outcome::result<V>, loadMock, (const KView &), (const));
 
-    MOCK_CONST_METHOD1_T(tryLoad,
-                         outcome::result<std::optional<V>>(const KView &));
+    MOCK_METHOD(outcome::result<std::optional<V>>,
+                tryLoadMock,
+                (const KView &),
+                (const));
+
+    outcome::result<OwnedOrViewOf<V>> load(const KView &key) const override {
+      OUTCOME_TRY(value, loadMock(key));
+      return std::move(value);
+    }
+
+    outcome::result<std::optional<OwnedOrViewOf<V>>> tryLoad(
+        const KView &key) const override {
+      OUTCOME_TRY(value, tryLoadMock(key));
+      if (value) {
+        return std::move(*value);
+      }
+      return std::nullopt;
+    }
 
     MOCK_CONST_METHOD1_T(contains, outcome::result<bool>(const KView &));
 

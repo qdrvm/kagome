@@ -12,19 +12,19 @@ using kagome::common::Buffer;
 
 namespace kagome::storage {
 
-  outcome::result<common::Buffer> InMemoryStorage::load(
+  outcome::result<BufferOrView> InMemoryStorage::load(
       const BufferView &key) const {
     if (storage.find(key.toHex()) != storage.end()) {
-      return storage.at(key.toHex());
+      return BufferView{storage.at(key.toHex())};
     }
 
     return DatabaseError::NOT_FOUND;
   }
 
-  outcome::result<std::optional<Buffer>> InMemoryStorage::tryLoad(
+  outcome::result<std::optional<BufferOrView>> InMemoryStorage::tryLoad(
       const common::BufferView &key) const {
     if (storage.find(key.toHex()) != storage.end()) {
-      return storage.at(key.toHex());
+      return BufferView{storage.at(key.toHex())};
     }
 
     return std::nullopt;

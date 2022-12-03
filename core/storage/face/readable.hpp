@@ -8,7 +8,7 @@
 
 #include <outcome/outcome.hpp>
 
-#include "storage/face/map_cursor.hpp"
+#include "storage/face/owned_or_view.hpp"
 
 namespace kagome::storage::face {
 
@@ -64,7 +64,6 @@ namespace kagome::storage::face {
   template <typename K, typename V>
   struct ReadableStorage : public ReadableBase<K> {
     using Key = K;
-    using Value = V;
 
     virtual ~ReadableStorage() = default;
 
@@ -73,14 +72,15 @@ namespace kagome::storage::face {
      * @param key K
      * @return V
      */
-    virtual outcome::result<V> load(const Key &key) const = 0;
+    virtual outcome::result<OwnedOrViewOf<V>> load(const Key &key) const = 0;
 
     /**
      * @brief Load value by key
      * @param key K
      * @return V if contains(K) or std::nullopt
      */
-    virtual outcome::result<std::optional<V>> tryLoad(const Key &key) const = 0;
+    virtual outcome::result<std::optional<OwnedOrViewOf<V>>> tryLoad(
+        const Key &key) const = 0;
   };
 
 }  // namespace kagome::storage::face

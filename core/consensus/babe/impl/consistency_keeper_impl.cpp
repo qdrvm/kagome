@@ -41,7 +41,7 @@ namespace kagome::consensus::babe {
     }
 
     // check if record exists
-    auto buf_opt = buf_opt_res.value();
+    auto &buf_opt = buf_opt_res.value();
     if (not buf_opt.has_value()) {
       return true;
     }

@@ -12,7 +12,7 @@
 
 namespace kagome::blockchain {
 
-  outcome::result<std::optional<common::Buffer>> idToLookupKey(
+  outcome::result<std::optional<common::BufferOrView>> idToLookupKey(
       const ReadableBufferStorage &map, const primitives::BlockId &id) {
     auto key = visit_in_place(
         id,

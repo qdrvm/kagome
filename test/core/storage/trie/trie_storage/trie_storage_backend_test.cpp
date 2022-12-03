@@ -54,7 +54,8 @@ TEST_F(TrieDbBackendTest, Put) {
 TEST_F(TrieDbBackendTest, Get) {
   Buffer prefixed{kNodePrefix};
   prefixed.put("abc"_buf);
-  EXPECT_CALL(*storage, load(BufferView{prefixed})).WillOnce(Return("123"_buf));
+  EXPECT_CALL(*storage, loadMock(BufferView{prefixed}))
+      .WillOnce(Return("123"_buf));
   EXPECT_OUTCOME_TRUE_1(backend.load("abc"_buf));
 }
 

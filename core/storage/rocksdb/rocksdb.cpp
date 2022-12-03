@@ -123,7 +123,7 @@ namespace kagome::storage {
     return it->Valid();
   }
 
-  outcome::result<Buffer> RocksDB::load(const BufferView &key) const {
+  outcome::result<BufferOrView> RocksDB::load(const BufferView &key) const {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);
     if (status.ok()) {
@@ -135,7 +135,7 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
-  outcome::result<std::optional<Buffer>> RocksDB::tryLoad(
+  outcome::result<std::optional<BufferOrView>> RocksDB::tryLoad(
       const BufferView &key) const {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);

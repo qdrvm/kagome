@@ -86,7 +86,7 @@ namespace kagome::blockchain {
    * @param block_id - id of the block to get entry for
    * @return error, or an encoded entry, if any, or std::nullopt, if none
    */
-  outcome::result<std::optional<common::Buffer>> getWithPrefix(
+  outcome::result<std::optional<common::BufferOrView>> getWithPrefix(
       const storage::BufferStorage &storage,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id);
