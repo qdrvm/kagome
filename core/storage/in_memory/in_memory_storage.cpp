@@ -60,8 +60,7 @@ namespace kagome::storage {
     return outcome::success();
   }
 
-  std::unique_ptr<kagome::storage::face::WriteBatch<BufferView, Buffer>>
-  InMemoryStorage::batch() {
+  std::unique_ptr<BufferBatch> InMemoryStorage::batch() {
     return std::make_unique<InMemoryBatch>(*this);
   }
 

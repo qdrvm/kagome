@@ -25,7 +25,6 @@ using kagome::common::BufferOrView;
 using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHash;
-using kagome::storage::face::WriteBatch;
 using kagome::subscription::SubscriptionEngine;
 using testing::_;
 using testing::Invoke;

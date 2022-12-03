@@ -12,8 +12,7 @@
 namespace kagome::storage {
   using kagome::common::Buffer;
 
-  class InMemoryBatch
-      : public kagome::storage::face::WriteBatch<BufferView, Buffer> {
+  class InMemoryBatch : public BufferBatch {
    public:
     explicit InMemoryBatch(InMemoryStorage &db) : db{db} {}
 

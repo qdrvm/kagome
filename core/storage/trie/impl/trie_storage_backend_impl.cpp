@@ -23,8 +23,7 @@ namespace kagome::storage::trie {
         ->cursor();  // TODO(Harrm): perhaps should iterate over trie nodes only
   }
 
-  std::unique_ptr<face::WriteBatch<BufferView, Buffer>>
-  TrieStorageBackendImpl::batch() {
+  std::unique_ptr<BufferBatch> TrieStorageBackendImpl::batch() {
     return std::make_unique<TrieStorageBackendBatch>(storage_->batch(),
                                                      node_prefix_);
   }

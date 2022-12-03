@@ -12,8 +12,6 @@
 namespace kagome::blockchain {
   using primitives::Block;
   using primitives::BlockId;
-  using storage::face::MapCursor;
-  using storage::face::WriteBatch;
   using Buffer = common::Buffer;
   using Prefix = prefix::Prefix;
 

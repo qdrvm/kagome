@@ -8,9 +8,7 @@
 namespace kagome::storage::trie {
 
   TrieStorageBackendBatch::TrieStorageBackendBatch(
-      std::unique_ptr<face::WriteBatch<common::BufferView, common::Buffer>>
-          storage_batch,
-      common::Buffer node_prefix)
+      std::unique_ptr<BufferBatch> storage_batch, common::Buffer node_prefix)
       : storage_batch_{std::move(storage_batch)},
         node_prefix_{std::move(node_prefix)} {
     BOOST_ASSERT(storage_batch_ != nullptr);

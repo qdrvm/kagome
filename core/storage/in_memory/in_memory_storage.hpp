@@ -39,9 +39,7 @@ namespace kagome::storage {
 
     outcome::result<void> remove(const common::BufferView &key) override;
 
-    std::unique_ptr<
-        kagome::storage::face::WriteBatch<common::BufferView, common::Buffer>>
-    batch() override;
+    std::unique_ptr<BufferBatch> batch() override;
 
     std::unique_ptr<storage::BufferStorage::Cursor> cursor() override;
 

@@ -19,8 +19,6 @@ namespace kagome::storage::trie {
    public:
     ~TrieBatch() override = default;
 
-    using Cursor =
-        face::Iterable<Buffer, common::BufferConstRef, BufferView>::Cursor;
     std::unique_ptr<Cursor> cursor() final {
       return trieCursor();
     }
