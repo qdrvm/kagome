@@ -79,6 +79,18 @@ namespace kagome::common {
     friend bool operator!=(const Span &l, const BufferOrView &r) {
       return l != r.view();
     }
+    friend bool operator==(const BufferOrView &l, const Buffer &r) {
+      return l.view() == BufferView{r};
+    }
+    friend bool operator!=(const BufferOrView &l, const Buffer &r) {
+      return l.view() != BufferView{r};
+    }
+    friend bool operator==(const Buffer &l, const BufferOrView &r) {
+      return BufferView{l} == r.view();
+    }
+    friend bool operator!=(const Buffer &l, const BufferOrView &r) {
+      return BufferView{l} != r.view();
+    }
   };
 }  // namespace kagome::common
 

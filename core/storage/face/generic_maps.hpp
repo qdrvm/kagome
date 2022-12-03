@@ -19,9 +19,8 @@ namespace kagome::storage::face {
    * @tparam V value type
    */
   template <typename K, typename V, typename KView = K>
-  struct ReadOnlyMap
-      : public Iterable<K, typename ReadableMap<K, V>::ConstValueView, KView>,
-        public ReadableMap<KView, V> {};
+  struct ReadOnlyMap : public Iterable<K, V, KView>,
+                       public ReadableMap<KView, V> {};
 
   template <typename K, typename V, typename KView = K>
   struct ReadOnlyStorage : public Iterable<K, V, KView>,

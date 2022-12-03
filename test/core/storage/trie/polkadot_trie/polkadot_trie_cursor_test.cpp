@@ -109,7 +109,7 @@ TEST_F(PolkadotTrieCursorTest, NextOnSmallTrie) {
     ASSERT_TRUE(cursor.key());
     ASSERT_TRUE(cursor.value());
     ASSERT_EQ(cursor.key().value(), p.first);
-    ASSERT_EQ(cursor.value().value().get(), p.second);
+    ASSERT_EQ(cursor.value().value(), p.second);
   }
   EXPECT_OUTCOME_SUCCESS(r1, cursor.next())
   ASSERT_FALSE(cursor.isValid());
@@ -190,9 +190,9 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundKeyNotPresent) {
   auto trie = makeTrie(lex_sorted_vals);
   auto cursor = trie->trieCursor();
   cursor->seekLowerBound("06066666"_hex2buf).value();
-  ASSERT_EQ(cursor->value().value().get(), "0607"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "0607"_hex2buf);
   EXPECT_OUTCOME_TRUE_1(cursor->next())
-  ASSERT_EQ(cursor->value().value().get(), "060708"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "060708"_hex2buf);
 }
 
 /**
@@ -218,9 +218,9 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundMiddleFromRoot) {
   auto trie = makeTrie(lex_sorted_vals);
   auto cursor = trie->trieCursor();
   cursor->seekLowerBound("03"_hex2buf).value();
-  ASSERT_EQ(cursor->value().value().get(), "05"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "05"_hex2buf);
   EXPECT_OUTCOME_TRUE_1(cursor->next())
-  ASSERT_EQ(cursor->value().value().get(), "06"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "06"_hex2buf);
 }
 
 /**
@@ -234,9 +234,9 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundFirstKey) {
   auto cursor = trie->trieCursor();
 
   cursor->seekLowerBound("00"_hex2buf).value();
-  ASSERT_EQ(cursor->value().value().get(), "0102"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "0102"_hex2buf);
   EXPECT_OUTCOME_TRUE_1(cursor->next())
-  ASSERT_EQ(cursor->value().value().get(), "0103"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "0103"_hex2buf);
 }
 
 /**

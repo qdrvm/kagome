@@ -9,6 +9,7 @@
 #include <optional>
 
 #include "outcome/outcome.hpp"
+#include "storage/face/owned_or_view.hpp"
 
 namespace kagome::storage::face {
 
@@ -62,7 +63,7 @@ namespace kagome::storage::face {
      * @brief Getter for value of the element currently pointed at.
      * @return value if isValid()
      */
-    virtual std::optional<V> value() const = 0;
+    virtual std::optional<OwnedOrViewOf<V>> value() const = 0;
   };
 
 }  // namespace kagome::storage::face

@@ -117,7 +117,7 @@ TEST_F(RocksDb_Integration_Test, Iterator) {
     auto v = it->value().value();
     EXPECT_EQ(k, v);
 
-    logger->info("key: {}, value: {}", k.toHex(), v.toHex());
+    logger->info("key: {}, value: {}", k.toHex(), v.view().toHex());
 
     EXPECT_GE(k[0], 0);
     EXPECT_LT(k[0], size);
