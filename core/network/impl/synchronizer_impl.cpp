@@ -117,7 +117,7 @@ namespace kagome::network {
   /** @see AppStateManager::takeControl */
   bool SynchronizerImpl::prepare() {
     auto opt_res =
-        buffer_storage_->tryLoad(storage::kBlockOfIncompleteSyncStateLookupKey);
+        buffer_storage_->tryGet(storage::kBlockOfIncompleteSyncStateLookupKey);
     if (opt_res.has_error()) {
       SL_ERROR(
           log_, "Can't check of incomplete state sync: {}", opt_res.error());

@@ -69,14 +69,14 @@ namespace kagome::storage::face {
      * @param key K
      * @return V
      */
-    virtual outcome::result<OwnedOrView<V>> load(const Key &key) const = 0;
+    virtual outcome::result<OwnedOrView<V>> get(const Key &key) const = 0;
 
     /**
      * @brief Load value by key
      * @param key K
      * @return V if contains(K) or std::nullopt
      */
-    virtual outcome::result<std::optional<OwnedOrView<V>>> tryLoad(
+    virtual outcome::result<std::optional<OwnedOrView<V>>> tryGet(
         const Key &key) const = 0;
   };
 

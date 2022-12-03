@@ -24,7 +24,7 @@ namespace kagome::blockchain {
           return prependPrefix(hash, prefix::Prefix::ID_TO_LOOKUP_KEY);
         });
 
-    OUTCOME_TRY(key_opt, map.tryLoad(key));
+    OUTCOME_TRY(key_opt, map.tryGet(key));
 
     return std::move(key_opt);
   }

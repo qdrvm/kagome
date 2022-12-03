@@ -12,7 +12,7 @@ using kagome::common::Buffer;
 
 namespace kagome::storage {
 
-  outcome::result<BufferOrView> InMemoryStorage::load(
+  outcome::result<BufferOrView> InMemoryStorage::get(
       const BufferView &key) const {
     if (storage.find(key.toHex()) != storage.end()) {
       return BufferView{storage.at(key.toHex())};
@@ -21,7 +21,7 @@ namespace kagome::storage {
     return DatabaseError::NOT_FOUND;
   }
 
-  outcome::result<std::optional<BufferOrView>> InMemoryStorage::tryLoad(
+  outcome::result<std::optional<BufferOrView>> InMemoryStorage::tryGet(
       const common::BufferView &key) const {
     if (storage.find(key.toHex()) != storage.end()) {
       return BufferView{storage.at(key.toHex())};

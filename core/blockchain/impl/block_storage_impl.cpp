@@ -254,7 +254,7 @@ namespace kagome::blockchain {
 
     auto num_to_idx_key =
         prependPrefix(numberToIndexKey(block.number), Prefix::ID_TO_LOOKUP_KEY);
-    OUTCOME_TRY(num_to_idx_val_opt, storage_->tryLoad(num_to_idx_key.view()));
+    OUTCOME_TRY(num_to_idx_val_opt, storage_->tryGet(num_to_idx_key.view()));
     if (num_to_idx_val_opt == block_lookup_key) {
       if (auto res = storage_->remove(num_to_idx_key); res.has_error()) {
         SL_ERROR(logger_,
@@ -299,7 +299,7 @@ namespace kagome::blockchain {
     }
 
     OUTCOME_TRY(leaves_opt,
-                storage_->tryLoad(storage::kBlockTreeLeavesLookupKey));
+                storage_->tryGet(storage::kBlockTreeLeavesLookupKey));
     if (not leaves_opt.has_value()) {
       return BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND;
     }

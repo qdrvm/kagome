@@ -61,7 +61,7 @@ namespace kagome::blockchain {
       const primitives::BlockId &block_id) {
     OUTCOME_TRY(key, idToLookupKey(map, block_id));
     if (!key.has_value()) return std::nullopt;
-    return map.tryLoad(prependPrefix(key.value(), prefix));
+    return map.tryGet(prependPrefix(key.value(), prefix));
   }
 
   common::Buffer numberToIndexKey(primitives::BlockNumber n) {

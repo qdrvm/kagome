@@ -105,7 +105,7 @@ namespace kagome::consensus::grandpa {
 
     // 1. Load last state
     OUTCOME_TRY(encoded_last_state_opt,
-                persistent_storage_->tryLoad(
+                persistent_storage_->tryGet(
                     storage::kAuthorityManagerStateLookupKey("last")));
 
     if (encoded_last_state_opt.has_value()) {
@@ -142,7 +142,7 @@ namespace kagome::consensus::grandpa {
            block_number -= kSavepointBlockInterval) {
         OUTCOME_TRY(
             encoded_saved_state_opt,
-            persistent_storage_->tryLoad(
+            persistent_storage_->tryGet(
                 storage::kAuthorityManagerStateLookupKey(block_number)));
 
         if (not encoded_saved_state_opt.has_value()) {

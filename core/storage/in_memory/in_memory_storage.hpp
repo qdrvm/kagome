@@ -23,10 +23,10 @@ namespace kagome::storage {
    public:
     ~InMemoryStorage() override = default;
 
-    outcome::result<BufferOrView> load(
+    outcome::result<BufferOrView> get(
         const common::BufferView &key) const override;
 
-    outcome::result<std::optional<BufferOrView>> tryLoad(
+    outcome::result<std::optional<BufferOrView>> tryGet(
         const common::BufferView &key) const override;
 
     outcome::result<void> put(const common::BufferView &key,

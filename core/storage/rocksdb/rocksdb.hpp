@@ -42,9 +42,9 @@ namespace kagome::storage {
 
     bool empty() const override;
 
-    outcome::result<BufferOrView> load(const Key &key) const override;
+    outcome::result<BufferOrView> get(const Key &key) const override;
 
-    outcome::result<std::optional<BufferOrView>> tryLoad(
+    outcome::result<std::optional<BufferOrView>> tryGet(
         const Key &key) const override;
 
     outcome::result<void> put(const BufferView &key,

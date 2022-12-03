@@ -28,14 +28,14 @@ namespace kagome::storage::trie {
                                                      node_prefix_);
   }
 
-  outcome::result<BufferOrView> TrieStorageBackendImpl::load(
+  outcome::result<BufferOrView> TrieStorageBackendImpl::get(
       const BufferView &key) const {
-    return storage_->load(prefixKey(key));
+    return storage_->get(prefixKey(key));
   }
 
-  outcome::result<std::optional<BufferOrView>> TrieStorageBackendImpl::tryLoad(
+  outcome::result<std::optional<BufferOrView>> TrieStorageBackendImpl::tryGet(
       const BufferView &key) const {
-    return storage_->tryLoad(prefixKey(key));
+    return storage_->tryGet(prefixKey(key));
   }
 
   outcome::result<bool> TrieStorageBackendImpl::contains(

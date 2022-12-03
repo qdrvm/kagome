@@ -22,8 +22,8 @@ namespace kagome::storage::trie {
     std::unique_ptr<Cursor> cursor() override;
     std::unique_ptr<BufferBatch> batch() override;
 
-    outcome::result<BufferOrView> load(const BufferView &key) const override;
-    outcome::result<std::optional<BufferOrView>> tryLoad(
+    outcome::result<BufferOrView> get(const BufferView &key) const override;
+    outcome::result<std::optional<BufferOrView>> tryGet(
         const BufferView &key) const override;
     outcome::result<bool> contains(const BufferView &key) const override;
     bool empty() const override;
