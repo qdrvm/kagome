@@ -17,6 +17,8 @@ namespace kagome::common {
     template <typename T>
     using AsSpan = std::enable_if_t<std::is_convertible_v<T, Span>>;
 
+    struct Moved {};
+
    public:
     BufferOrView() = default;
 
@@ -33,6 +35,10 @@ namespace kagome::common {
     BufferOrView &operator=(BufferOrView &&) = default;
 
     bool owned() const {
+      if (variant.index() == 2) {
+        // moved with `.into()`
+        abort();
+      }
       return variant.index() == 1;
     }
 
@@ -63,12 +69,12 @@ namespace kagome::common {
     // move buffer away, copy once if view
     Buffer into() {
       auto buffer = std::move(mut());
-      variant.emplace<BufferView>();
+      variant.emplace<Moved>();
       return buffer;
     }
 
    private:
-    std::variant<BufferView, Buffer> variant;
+    std::variant<BufferView, Buffer, Moved> variant;
 
     template <typename T, typename = AsSpan<T>>
     friend bool operator==(const BufferOrView &l, const T &r) {
