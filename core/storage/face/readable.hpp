@@ -14,8 +14,6 @@ namespace kagome::storage::face {
 
   template <typename K>
   struct ReadableBase {
-    using Key = K;
-
     virtual ~ReadableBase() = default;
 
     /**
@@ -23,7 +21,7 @@ namespace kagome::storage::face {
      * @param key K
      * @return true if key has value, false if does not, or error at .
      */
-    virtual outcome::result<bool> contains(const Key &key) const = 0;
+    virtual outcome::result<bool> contains(const K &key) const = 0;
 
     /**
      * @brief Returns true if the storage is empty.
@@ -38,8 +36,6 @@ namespace kagome::storage::face {
    */
   template <typename K, typename V>
   struct ReadableMap : public ReadableBase<K> {
-    using Key = K;
-
     virtual ~ReadableMap() = default;
 
     /**
@@ -47,7 +43,7 @@ namespace kagome::storage::face {
      * @param key K
      * @return V
      */
-    virtual outcome::result<OwnedOrView<V>> get(const Key &key) const = 0;
+    virtual outcome::result<OwnedOrView<V>> get(const K &key) const = 0;
 
     /**
      * @brief Get value by key
@@ -55,13 +51,11 @@ namespace kagome::storage::face {
      * @return V if contains(K) or std::nullopt
      */
     virtual outcome::result<std::optional<OwnedOrView<V>>> tryGet(
-        const Key &key) const = 0;
+        const K &key) const = 0;
   };
 
   template <typename K, typename V>
   struct ReadableStorage : public ReadableBase<K> {
-    using Key = K;
-
     virtual ~ReadableStorage() = default;
 
     /**
@@ -69,7 +63,7 @@ namespace kagome::storage::face {
      * @param key K
      * @return V
      */
-    virtual outcome::result<OwnedOrView<V>> get(const Key &key) const = 0;
+    virtual outcome::result<OwnedOrView<V>> get(const K &key) const = 0;
 
     /**
      * @brief Load value by key
@@ -77,7 +71,7 @@ namespace kagome::storage::face {
      * @return V if contains(K) or std::nullopt
      */
     virtual outcome::result<std::optional<OwnedOrView<V>>> tryGet(
-        const Key &key) const = 0;
+        const K &key) const = 0;
   };
 
 }  // namespace kagome::storage::face
