@@ -20,11 +20,11 @@ namespace kagome::storage::face {
    */
   template <typename K, typename V, typename KView = K>
   struct ReadOnlyMap : public Iterable<K, V, KView>,
-                       public ReadableMap<KView, V> {};
+                       public Readable<KView, V> {};
 
   template <typename K, typename V, typename KView = K>
   struct ReadOnlyStorage : public Iterable<K, V, KView>,
-                           public ReadableStorage<KView, V> {};
+                           public Readable<KView, V> {};
 
   /**
    * @brief An abstraction over a readable, writeable, iterable key-value map.

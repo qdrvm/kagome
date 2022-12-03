@@ -11,10 +11,14 @@
 #include "storage/face/owned_or_view.hpp"
 
 namespace kagome::storage::face {
-
-  template <typename K>
-  struct ReadableBase {
-    virtual ~ReadableBase() = default;
+  /**
+   * @brief A mixin for read-only map.
+   * @tparam K key type
+   * @tparam V value type
+   */
+  template <typename K, typename V>
+  struct Readable {
+    virtual ~Readable() = default;
 
     /**
      * @brief Checks if given key-value binding exists in the storage.
@@ -27,16 +31,6 @@ namespace kagome::storage::face {
      * @brief Returns true if the storage is empty.
      */
     virtual bool empty() const = 0;
-  };
-
-  /**
-   * @brief A mixin for read-only map.
-   * @tparam K key type
-   * @tparam V value type
-   */
-  template <typename K, typename V>
-  struct ReadableMap : public ReadableBase<K> {
-    virtual ~ReadableMap() = default;
 
     /**
      * @brief Get value by key
@@ -53,27 +47,6 @@ namespace kagome::storage::face {
     virtual outcome::result<std::optional<OwnedOrView<V>>> tryGet(
         const K &key) const = 0;
   };
-
-  template <typename K, typename V>
-  struct ReadableStorage : public ReadableBase<K> {
-    virtual ~ReadableStorage() = default;
-
-    /**
-     * @brief Load value by key
-     * @param key K
-     * @return V
-     */
-    virtual outcome::result<OwnedOrView<V>> get(const K &key) const = 0;
-
-    /**
-     * @brief Load value by key
-     * @param key K
-     * @return V if contains(K) or std::nullopt
-     */
-    virtual outcome::result<std::optional<OwnedOrView<V>>> tryGet(
-        const K &key) const = 0;
-  };
-
 }  // namespace kagome::storage::face
 
 #endif  // KAGOME_READABLE_HPP

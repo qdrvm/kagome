@@ -12,7 +12,7 @@
 
 namespace kagome::storage::trie {
 
-  class TrieBatch : public face::ReadableMap<BufferView, Buffer>,
+  class TrieBatch : public face::Readable<BufferView, Buffer>,
                     public face::Writeable<BufferView, Buffer>,
                     public face::Iterable<Buffer, Buffer, BufferView> {
    public:
