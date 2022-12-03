@@ -38,7 +38,7 @@ struct fmt::formatter<std::error_code> {
       -> decltype(ctx.out()) {
     // ctx.out() is an output iterator to write to.
 
-    return format_to(ctx.out(), ec.message());
+    return format_to(ctx.out(), "{}", ec.message());
   }
 };
 
@@ -66,12 +66,12 @@ struct fmt::formatter<outcome::result<Result, Failure>> {
 
     if (res.has_value()) {
       if constexpr (not std::is_void_v<Result>) {
-        return format_to(ctx.out(), res.value());
+        return format_to(ctx.out(), "{}", res.value());
       } else {
         return format_to(ctx.out(), "<success>");
       }
     } else {
-      return format_to(ctx.out(), res.error().message());
+      return format_to(ctx.out(), "{}", res.error());
     }
   }
 };
