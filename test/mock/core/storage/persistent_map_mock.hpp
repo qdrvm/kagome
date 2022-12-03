@@ -27,12 +27,12 @@ namespace kagome::storage::face {
                 (const KView &),
                 (const));
 
-    outcome::result<OwnedOrViewOf<V>> load(const KView &key) const override {
+    outcome::result<OwnedOrView<V>> load(const KView &key) const override {
       OUTCOME_TRY(value, loadMock(key));
       return std::move(value);
     }
 
-    outcome::result<std::optional<OwnedOrViewOf<V>>> tryLoad(
+    outcome::result<std::optional<OwnedOrView<V>>> tryLoad(
         const KView &key) const override {
       OUTCOME_TRY(value, tryLoadMock(key));
       if (value) {
@@ -46,7 +46,7 @@ namespace kagome::storage::face {
     MOCK_CONST_METHOD0_T(empty, bool());
 
     MOCK_METHOD(outcome::result<void>, put, (const KView &, const V &));
-    outcome::result<void> put(const KView &k, OwnedOrViewOf<V> &&v) override {
+    outcome::result<void> put(const KView &k, OwnedOrView<V> &&v) override {
       return put(k, v.mut());
     }
 

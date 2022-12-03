@@ -63,7 +63,7 @@ namespace kagome::storage::face {
      * @brief Getter for value of the element currently pointed at.
      * @return value if isValid()
      */
-    virtual std::optional<OwnedOrViewOf<V>> value() const = 0;
+    virtual std::optional<OwnedOrView<V>> value() const = 0;
   };
 
 }  // namespace kagome::storage::face

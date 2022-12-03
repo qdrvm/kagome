@@ -8,10 +8,10 @@
 
 namespace kagome::storage::face {
   template <typename T>
-  struct OwnedOrView;
+  struct OwnedOrViewTrait;
 
   template <typename T>
-  using OwnedOrViewOf = typename OwnedOrView<T>::type;
+  using OwnedOrView = typename OwnedOrViewTrait<T>::type;
 }  // namespace kagome::storage::face
 
 #endif  // KAGOME_STORAGE_FACE_OWNED_OR_VIEW_HPP

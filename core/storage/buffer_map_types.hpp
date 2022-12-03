@@ -19,7 +19,7 @@
 
 namespace kagome::storage::face {
   template <>
-  struct OwnedOrView<common::Buffer> {
+  struct OwnedOrViewTrait<common::Buffer> {
     using type = common::BufferOrView;
   };
 }  // namespace kagome::storage::face
