@@ -6,6 +6,7 @@
 #ifndef KAGOME_COMMON_BUFFER_OR_VIEW_HPP
 #define KAGOME_COMMON_BUFFER_OR_VIEW_HPP
 
+#include <type_traits>
 #include <variant>
 
 #include "common/buffer.hpp"
@@ -13,6 +14,8 @@
 namespace kagome::common {
   class BufferOrView {
     using Span = gsl::span<const uint8_t>;
+    template <typename T>
+    using AsSpan = std::enable_if_t<std::is_convertible_v<T, Span>>;
 
    public:
     BufferOrView() = default;
@@ -67,29 +70,21 @@ namespace kagome::common {
    private:
     std::variant<BufferView, Buffer> variant;
 
-    friend bool operator==(const BufferOrView &l, const Span &r) {
-      return l.view() == r;
+    template <typename T, typename = AsSpan<T>>
+    friend bool operator==(const BufferOrView &l, const T &r) {
+      return l.view() == Span{r};
     }
-    friend bool operator!=(const BufferOrView &l, const Span &r) {
-      return l.view() != r;
+    template <typename T, typename = AsSpan<T>>
+    friend bool operator!=(const BufferOrView &l, const T &r) {
+      return l.view() != Span{r};
     }
-    friend bool operator==(const Span &l, const BufferOrView &r) {
-      return l == r.view();
+    template <typename T, typename = AsSpan<T>>
+    friend bool operator==(const T &l, const BufferOrView &r) {
+      return Span{l} == r.view();
     }
-    friend bool operator!=(const Span &l, const BufferOrView &r) {
-      return l != r.view();
-    }
-    friend bool operator==(const BufferOrView &l, const Buffer &r) {
-      return l.view() == BufferView{r};
-    }
-    friend bool operator!=(const BufferOrView &l, const Buffer &r) {
-      return l.view() != BufferView{r};
-    }
-    friend bool operator==(const Buffer &l, const BufferOrView &r) {
-      return BufferView{l} == r.view();
-    }
-    friend bool operator!=(const Buffer &l, const BufferOrView &r) {
-      return BufferView{l} != r.view();
+    template <typename T, typename = AsSpan<T>>
+    friend bool operator!=(const T &l, const BufferOrView &r) {
+      return Span{l} != r.view();
     }
   };
 }  // namespace kagome::common
