@@ -15,7 +15,7 @@
 namespace kagome::blockchain {
 
   using ReadableBufferStorage =
-      storage::face::Readable<common::BufferView, common::Buffer>;
+      storage::face::Readable<common::Buffer, common::Buffer>;
 
   /**
    * Convert a block ID into a key, which is a first part of a key, by which the

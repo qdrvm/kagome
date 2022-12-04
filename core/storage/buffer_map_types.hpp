@@ -22,26 +22,23 @@ namespace kagome::storage::face {
   struct OwnedOrViewTrait<common::Buffer> {
     using type = common::BufferOrView;
   };
+
+  template <>
+  struct ViewTrait<common::Buffer> {
+    using type = common::BufferView;
+  };
 }  // namespace kagome::storage::face
 
 namespace kagome::storage {
-
-  using Buffer = common::SLBuffer<std::numeric_limits<size_t>::max()>;
-  using BufferView = common::BufferView;
+  using common::Buffer;
   using common::BufferOrView;
+  using common::BufferView;
 
-  using BufferBatch = face::WriteBatch<BufferView, Buffer>;
+  using BufferBatch = face::WriteBatch<Buffer, Buffer>;
 
-  using ReadOnlyBufferMap = face::ReadOnlyMap<BufferView, Buffer>;
+  using BufferStorage = face::GenericStorage<Buffer, Buffer>;
 
-  using BufferStorage = face::GenericStorage<Buffer, Buffer, BufferView>;
-
-  using BufferMap = face::GenericMap<BufferView, Buffer>;
-
-  using BufferMapCursor = face::MapCursor<BufferView, Buffer, BufferView>;
-
-  using BufferStorageCursor = face::MapCursor<Buffer, Buffer, BufferView>;
-
+  using BufferStorageCursor = face::MapCursor<Buffer, Buffer>;
 }  // namespace kagome::storage
 
 #endif  // KAGOME_BUFFER_MAP_TYPES_HPP

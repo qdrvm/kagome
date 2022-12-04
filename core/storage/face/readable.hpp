@@ -9,6 +9,7 @@
 #include <outcome/outcome.hpp>
 
 #include "storage/face/owned_or_view.hpp"
+#include "storage/face/view.hpp"
 
 namespace kagome::storage::face {
   /**
@@ -25,7 +26,7 @@ namespace kagome::storage::face {
      * @param key K
      * @return true if key has value, false if does not, or error at .
      */
-    virtual outcome::result<bool> contains(const K &key) const = 0;
+    virtual outcome::result<bool> contains(const View<K> &key) const = 0;
 
     /**
      * @brief Returns true if the storage is empty.
@@ -37,7 +38,7 @@ namespace kagome::storage::face {
      * @param key K
      * @return V
      */
-    virtual outcome::result<OwnedOrView<V>> get(const K &key) const = 0;
+    virtual outcome::result<OwnedOrView<V>> get(const View<K> &key) const = 0;
 
     /**
      * @brief Get value by key
@@ -45,7 +46,7 @@ namespace kagome::storage::face {
      * @return V if contains(K) or std::nullopt
      */
     virtual outcome::result<std::optional<OwnedOrView<V>>> tryGet(
-        const K &key) const = 0;
+        const View<K> &key) const = 0;
   };
 }  // namespace kagome::storage::face
 

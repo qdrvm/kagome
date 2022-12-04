@@ -34,7 +34,7 @@ using primitives::BlockId;
 using primitives::BlockInfo;
 using primitives::events::ChainSubscriptionEngine;
 using runtime::BabeApiMock;
-using storage::face::GenericStorageMock;
+using storage::BufferStorageMock;
 
 using std::chrono_literals::operator""ms;
 
@@ -56,8 +56,7 @@ class BabeConfigRepositoryTest : public testing::Test {
     app_state_manager = std::make_shared<application::AppStateManagerMock>();
     EXPECT_CALL(*app_state_manager, atPrepare(_)).WillOnce(Return());
 
-    persistent_storage =
-        std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
+    persistent_storage = std::make_shared<BufferStorageMock>();
     EXPECT_CALL(*persistent_storage, tryGetMock(_))
         .WillRepeatedly(Return(std::nullopt));
 
@@ -91,8 +90,7 @@ class BabeConfigRepositoryTest : public testing::Test {
   primitives::BabeConfiguration babe_config;
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
-  std::shared_ptr<GenericStorageMock<Buffer, Buffer, BufferView>>
-      persistent_storage;
+  std::shared_ptr<BufferStorageMock> persistent_storage;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<blockchain::BlockHeaderRepository> header_repo;
   std::shared_ptr<runtime::BabeApiMock> babe_api;

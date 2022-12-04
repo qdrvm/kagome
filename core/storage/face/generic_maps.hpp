@@ -18,28 +18,26 @@ namespace kagome::storage::face {
    * @tparam K key type
    * @tparam V value type
    */
-  template <typename K, typename V, typename KView = K>
-  struct ReadOnlyMap : public Iterable<K, V, KView>,
-                       public Readable<KView, V> {};
+  template <typename K, typename V>
+  struct ReadOnlyMap : Iterable<K, V>, Readable<K, V> {};
 
-  template <typename K, typename V, typename KView = K>
-  struct ReadOnlyStorage : public Iterable<K, V, KView>,
-                           public Readable<KView, V> {};
+  template <typename K, typename V>
+  struct ReadOnlyStorage : Iterable<K, V>, Readable<K, V> {};
 
   /**
    * @brief An abstraction over a readable, writeable, iterable key-value map.
    * @tparam K key type
    * @tparam V value type
    */
-  template <typename K, typename V, typename KView = K>
-  struct GenericMap : public ReadOnlyMap<K, V, KView>,
-                      public Writeable<KView, V>,
-                      public BatchWriteable<KView, V> {};
+  template <typename K, typename V>
+  struct GenericMap : ReadOnlyMap<K, V>,
+                      Writeable<K, V>,
+                      BatchWriteable<K, V> {};
 
-  template <typename K, typename V, typename KView = K>
-  struct GenericStorage : public ReadOnlyStorage<K, V, KView>,
-                          public Writeable<KView, V>,
-                          public BatchWriteable<KView, V> {
+  template <typename K, typename V>
+  struct GenericStorage : ReadOnlyStorage<K, V>,
+                          Writeable<K, V>,
+                          BatchWriteable<K, V> {
     /**
      * Reports RAM state size
      * @return size in bytes

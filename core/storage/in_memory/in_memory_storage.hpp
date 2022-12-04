@@ -41,7 +41,7 @@ namespace kagome::storage {
 
     std::unique_ptr<BufferBatch> batch() override;
 
-    std::unique_ptr<storage::BufferStorage::Cursor> cursor() override;
+    std::unique_ptr<Cursor> cursor() override;
 
     size_t size() const override;
 

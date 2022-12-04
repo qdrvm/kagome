@@ -12,9 +12,9 @@
 
 namespace kagome::storage::trie {
 
-  class TrieBatch : public face::Readable<BufferView, Buffer>,
-                    public face::Writeable<BufferView, Buffer>,
-                    public face::Iterable<Buffer, Buffer, BufferView> {
+  class TrieBatch : public face::Readable<Buffer, Buffer>,
+                    public face::Writeable<Buffer, Buffer>,
+                    public face::Iterable<Buffer, Buffer> {
    public:
     ~TrieBatch() override = default;
 

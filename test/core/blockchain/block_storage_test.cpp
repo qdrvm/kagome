@@ -27,7 +27,7 @@ using kagome::primitives::BlockData;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
-using kagome::storage::face::GenericStorageMock;
+using kagome::storage::BufferStorageMock;
 using kagome::storage::trie::RootHash;
 using scale::encode;
 using testing::_;
@@ -43,8 +43,8 @@ class BlockStorageTest : public testing::Test {
     root_hash.fill(1);
   }
   std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
-  std::shared_ptr<GenericStorageMock<Buffer, Buffer, BufferView>> storage =
-      std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
+  std::shared_ptr<BufferStorageMock> storage =
+      std::make_shared<BufferStorageMock>();
 
   BlockHash genesis_block_hash{{'g', 'e', 'n', 'e', 's', 'i', 's'}};
   BlockHash regular_block_hash{{'r', 'e', 'g', 'u', 'l', 'a', 'r'}};
@@ -84,8 +84,7 @@ TEST_F(BlockStorageTest, CreateWithGenesis) {
  * @then storage will be initialized by genesis block
  */
 TEST_F(BlockStorageTest, CreateWithEmptyStorage) {
-  auto empty_storage =
-      std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
+  auto empty_storage = std::make_shared<BufferStorageMock>();
 
   // calculate hash of genesis block at put block header
   EXPECT_CALL(*hasher, blake2b_256(_))
@@ -128,8 +127,7 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
  * @then initialisation will fail
  */
 TEST_F(BlockStorageTest, CreateWithStorageError) {
-  auto empty_storage =
-      std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
+  auto empty_storage = std::make_shared<BufferStorageMock>();
 
   // check if storage contained genesis block
   EXPECT_CALL(*empty_storage, tryGetMock(_))

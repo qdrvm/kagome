@@ -15,7 +15,7 @@
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;
-using kagome::storage::face::GenericStorageMock;
+using kagome::storage::BufferStorageMock;
 using kagome::storage::face::WriteBatchMock;
 using kagome::storage::trie::TrieStorageBackendImpl;
 using testing::Invoke;
@@ -25,8 +25,8 @@ static const Buffer kNodePrefix{1};
 
 class TrieDbBackendTest : public testing::Test {
  public:
-  std::shared_ptr<GenericStorageMock<Buffer, Buffer, BufferView>> storage =
-      std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
+  std::shared_ptr<BufferStorageMock> storage =
+      std::make_shared<BufferStorageMock>();
   TrieStorageBackendImpl backend{storage, kNodePrefix};
 };
 
@@ -65,7 +65,7 @@ TEST_F(TrieDbBackendTest, Get) {
  * @then it delegates them to the underlying storage batch with added prefixes
  */
 TEST_F(TrieDbBackendTest, Batch) {
-  auto batch_mock = std::make_unique<WriteBatchMock<BufferView, Buffer>>();
+  auto batch_mock = std::make_unique<WriteBatchMock<Buffer, Buffer>>();
   auto buf_abc = Buffer{kNodePrefix}.put("abc"_buf);
   EXPECT_CALL(*batch_mock, put(buf_abc.view(), "123"_buf))
       .WillOnce(Return(outcome::success()));
