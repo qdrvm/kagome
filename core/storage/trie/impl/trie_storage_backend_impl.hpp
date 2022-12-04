@@ -32,8 +32,6 @@ namespace kagome::storage::trie {
                               BufferOrView &&value) override;
     outcome::result<void> remove(const common::BufferView &key) override;
 
-    size_t size() const override;
-
    private:
     common::Buffer prefixKey(const common::BufferView &key) const;
 

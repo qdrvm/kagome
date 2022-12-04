@@ -17,8 +17,7 @@ namespace kagome::storage::trie {
    * For specification see Polkadot Runtime Environment Protocol Specification
    * '2.1.2 The General Tree Structure' and further
    */
-  class PolkadotTrie : public face::ReadOnlyMap<Buffer, Buffer>,
-                       public face::Writeable<Buffer, Buffer> {
+  class PolkadotTrie : public BufferStorage {
    public:
     using NodePtr = std::shared_ptr<TrieNode>;
     using ConstNodePtr = std::shared_ptr<const TrieNode>;
