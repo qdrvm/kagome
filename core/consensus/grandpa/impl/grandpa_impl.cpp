@@ -431,31 +431,38 @@ namespace kagome::consensus::grandpa {
       // Check if needed to catch-up peer, then do that
       if (msg.round_number
           >= current_round_->roundNumber() + kCatchUpThreshold) {
-        auto res = environment_->onCatchUpRequested(
-            peer_id, msg.voter_set_id, msg.round_number - 1);
-        if (res.has_value()) {
-          pending_catchup_request_.emplace(
-              peer_id,
-              network::CatchUpRequest{msg.round_number - 1, msg.voter_set_id});
-          catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
-              [wp = weak_from_this()] {
-                auto self = wp.lock();
-                if (not self) {
-                  return;
-                }
-                if (self->pending_catchup_request_.has_value()) {
-                  const auto &peer_id =
-                      std::get<0>(self->pending_catchup_request_.value());
-                  self->reputation_repository_->change(
-                      peer_id,
-                      network::reputation::cost::CATCH_UP_REQUEST_TIMEOUT);
-                  self->pending_catchup_request_.reset();
-                }
-              },
-              toMilliseconds(kCatchupRequestTimeout));
+        // Do catch-up only when another one is not in progress
+        if (not pending_catchup_request_.has_value()) {
+          auto res = environment_->onCatchUpRequested(
+              peer_id, msg.voter_set_id, msg.round_number - 1);
+          if (res.has_value()) {
+            if (pending_catchup_request_.has_value()) {
+              SL_WARN(logger_,
+                      "Catch up request pending, but another one has done");
+            }
+            pending_catchup_request_.emplace(
+                peer_id,
+                network::CatchUpRequest{msg.round_number - 1,
+                                        msg.voter_set_id});
+            catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
+                [wp = weak_from_this()] {
+                  auto self = wp.lock();
+                  if (not self) {
+                    return;
+                  }
+                  if (self->pending_catchup_request_.has_value()) {
+                    const auto &peer_id =
+                        std::get<0>(self->pending_catchup_request_.value());
+                    self->reputation_repository_->change(
+                        peer_id,
+                        network::reputation::cost::CATCH_UP_REQUEST_TIMEOUT);
+                    self->pending_catchup_request_.reset();
+                  }
+                },
+                toMilliseconds(kCatchupRequestTimeout));
+          }
         }
       }
-
       return;
     }
 
@@ -618,6 +625,11 @@ namespace kagome::consensus::grandpa {
     auto ctx = GrandpaContext::get().value();
     if (not ctx->peer_id.has_value()) {
       if (not pending_catchup_request_.has_value()) {
+        SL_DEBUG(logger_,
+                 "Catch-up request to round #{} received from {}, "
+                 "but catch-up request is not pending or timed out",
+                 msg.round_number,
+                 peer_id);
         reputation_repository_->change(
             peer_id, network::reputation::cost::MALFORMED_CATCH_UP);
         return;
@@ -627,13 +639,38 @@ namespace kagome::consensus::grandpa {
           pending_catchup_request_.value();
 
       if (peer_id != remote_peer_id) {
+        SL_DEBUG(logger_,
+                 "Catch-up request to round #{} received from {}, "
+                 "but last catch-up request was sent to {}",
+                 msg.round_number,
+                 peer_id,
+                 remote_peer_id);
         reputation_repository_->change(
             peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
         return;
       }
 
-      if (msg.voter_set_id != catchup_request.voter_set_id
-          or msg.round_number != catchup_request.round_number) {
+      if (msg.voter_set_id != catchup_request.voter_set_id) {
+        SL_DEBUG(logger_,
+                 "Catch-up request to round #{} received from {}, "
+                 "but last catch-up request was sent for voter set {} "
+                 "(received for {})",
+                 msg.round_number,
+                 peer_id,
+                 catchup_request.voter_set_id,
+                 msg.voter_set_id);
+        reputation_repository_->change(
+            peer_id, network::reputation::cost::MALFORMED_CATCH_UP);
+        return;
+      }
+
+      if (msg.round_number < catchup_request.round_number) {
+        SL_DEBUG(logger_,
+                 "Catch-up request to round #{} received from {}, "
+                 "but last catch-up request was sent for round {}",
+                 msg.round_number,
+                 peer_id,
+                 catchup_request.round_number);
         reputation_repository_->change(
             peer_id, network::reputation::cost::MALFORMED_CATCH_UP);
         return;
@@ -641,6 +678,11 @@ namespace kagome::consensus::grandpa {
 
       if (msg.prevote_justification.empty()
           or msg.precommit_justification.empty()) {
+        SL_DEBUG(logger_,
+                 "Catch-up request to round #{} received from {}, "
+                 "without any votes",
+                 msg.round_number,
+                 peer_id);
         reputation_repository_->change(
             peer_id, network::reputation::cost::MALFORMED_CATCH_UP);
         return;
@@ -1113,7 +1155,7 @@ namespace kagome::consensus::grandpa {
       SL_DEBUG(
           logger_,
           "Commit with set_id={} in round={} for block {} has received from {} "
-          "ignored: justified block less then our last finalized ({})",
+          "and ignored: justified block less then our last finalized ({})",
           msg.set_id,
           msg.round,
           BlockInfo(msg.message.target_number, msg.message.target_hash),
@@ -1124,7 +1166,7 @@ namespace kagome::consensus::grandpa {
 
     auto has_direct_chain = block_tree_->hasDirectChain(
         block_tree_->getLastFinalized().hash, justification.block_info.hash);
-    if (not has_direct_chain) {
+    if (has_direct_chain) {
       auto res = applyJustification(justification.block_info, justification);
       if (res.has_value()) {
         reputation_repository_->change(
@@ -1134,9 +1176,8 @@ namespace kagome::consensus::grandpa {
 
       if (ctx->missing_blocks.empty()) {
         SL_WARN(logger_,
-                "Commit with set_id={} in round={} for block {} has received "
-                "from {} "
-                "and has not applied: {}",
+                "Commit with set_id={} in round={} for block {} "
+                "has received from {} and has not applied: {}",
                 msg.set_id,
                 msg.round,
                 BlockInfo(msg.message.target_number, msg.message.target_hash),
