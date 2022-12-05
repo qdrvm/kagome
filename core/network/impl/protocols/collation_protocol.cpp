@@ -19,7 +19,9 @@ namespace kagome::network {
       application::AppConfiguration const &app_config,
       application::ChainSpec const & /*chain_spec*/,
       std::shared_ptr<CollationObserver> observer)
-      : base_(host, {kCollationProtocol}, "CollationProtocol"),
+      : base_(host,
+              {kCollationProtocol},
+              log::createLogger("CollationProtocol", "collation_protocol")),
         observer_(std::move(observer)),
         app_config_{app_config} {}
 

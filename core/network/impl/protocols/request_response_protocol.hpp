@@ -25,8 +25,8 @@ namespace kagome::network {
 
     RequestResponseProtocol(libp2p::Host &host,
                             Protocol const &protocol,
-                            ProtocolName const &name)
-        : base_(host, {protocol}, name), protocol_{protocol} {}
+                            log::Logger logger)
+        : base_(host, {protocol}, logger), protocol_{protocol} {}
     virtual ~RequestResponseProtocol() {}
 
     bool start() override {
