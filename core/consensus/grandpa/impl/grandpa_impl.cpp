@@ -1155,7 +1155,7 @@ namespace kagome::consensus::grandpa {
       SL_DEBUG(
           logger_,
           "Commit with set_id={} in round={} for block {} has received from {} "
-          "ignored: justified block less then our last finalized ({})",
+          "and ignored: justified block less then our last finalized ({})",
           msg.set_id,
           msg.round,
           BlockInfo(msg.message.target_number, msg.message.target_hash),
@@ -1166,7 +1166,7 @@ namespace kagome::consensus::grandpa {
 
     auto has_direct_chain = block_tree_->hasDirectChain(
         block_tree_->getLastFinalized().hash, justification.block_info.hash);
-    if (not has_direct_chain) {
+    if (has_direct_chain) {
       auto res = applyJustification(justification.block_info, justification);
       if (res.has_value()) {
         reputation_repository_->change(
@@ -1176,9 +1176,8 @@ namespace kagome::consensus::grandpa {
 
       if (ctx->missing_blocks.empty()) {
         SL_WARN(logger_,
-                "Commit with set_id={} in round={} for block {} has received "
-                "from {} "
-                "and has not applied: {}",
+                "Commit with set_id={} in round={} for block {} "
+                "has received from {} and has not applied: {}",
                 msg.set_id,
                 msg.round,
                 BlockInfo(msg.message.target_number, msg.message.target_hash),

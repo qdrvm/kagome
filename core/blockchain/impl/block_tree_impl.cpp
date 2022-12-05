@@ -176,8 +176,8 @@ namespace kagome::blockchain {
           auto &header_opt = header_res.value();
           if (!header_opt.has_value()) {
             SL_WARN(log,
-                    "Can't get header of existing block {}: not found in block "
-                    "storage",
+                    "Can't get header of existing block {}: "
+                    "not found in block storage",
                     hash,
                     header_res.error());
             break;
