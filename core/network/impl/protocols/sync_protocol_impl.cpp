@@ -131,7 +131,7 @@ namespace kagome::network {
       std::shared_ptr<ReputationRepository> reputation_repository)
       : base_(host,
               {fmt::format(kSyncProtocol.data(), chain_spec.protocolId())},
-              "SyncProtocol"),
+              log::createLogger("SyncProtocol", "sync_protocol")),
         sync_observer_(std::move(sync_observer)),
         reputation_repository_(std::move(reputation_repository)),
         response_cache_(kResponsesCacheCapacity,

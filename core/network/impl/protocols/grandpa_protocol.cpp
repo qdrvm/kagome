@@ -33,7 +33,7 @@ namespace kagome::network {
       : base_(host,
               {fmt::format(kGrandpaProtocol, hex_lower(genesis_hash)),
                kGrandpaProtocolLegacy},
-              "GrandpaProtocol"),
+              log::createLogger("GrandpaProtocol", "grandpa_protocol")),
         io_context_(std::move(io_context)),
         app_config_(app_config),
         grandpa_observer_(std::move(grandpa_observer)),
