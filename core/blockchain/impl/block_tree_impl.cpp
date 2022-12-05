@@ -418,7 +418,7 @@ namespace kagome::blockchain {
                                  header);
 
     SL_VERBOSE(log_,
-               "Block {} has added into block tree",
+               "Block {} has been added into block tree",
                primitives::BlockInfo(header.number, block_hash));
 
     return outcome::success();
@@ -465,7 +465,7 @@ namespace kagome::blockchain {
         tree_->getMetadata().deepest_leaf.lock()->depth);
 
     SL_VERBOSE(log_,
-               "Block {} has added into block tree",
+               "Block {} has been added into block tree",
                primitives::BlockInfo(block.header.number, block_hash));
 
     return outcome::success();
@@ -603,7 +603,7 @@ namespace kagome::blockchain {
         tree_->getMetadata().deepest_leaf.lock()->depth);
 
     SL_VERBOSE(log_,
-               "Block {} has added into block tree from storage",
+               "Block {} has been restored in block tree from storage",
                primitives::BlockInfo(block_header.number, block_hash));
 
     return outcome::success();
