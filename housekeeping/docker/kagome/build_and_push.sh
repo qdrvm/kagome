@@ -18,7 +18,7 @@ VERSION="${VERSION:?VERSION variable is not defined}"
 # For github action we need remove ref prefix
 if [ "$VERSION" = "refs/heads/master" ]; then
   VERSION=latest
-if [ "$VERSION" = "refs/heads/feature/DOPS-2131/update-push" ]; then
+elif [ "$VERSION" = "refs/heads/feature/DOPS-2131/update-push" ]; then
   VERSION=latest
 elif [[ "$VERSION"  == refs/tags/* ]]; then
   VERSION="${VERSION#refs/tags/}"
@@ -54,6 +54,8 @@ elif [ "$BUILD_TYPE" = "Debug" ]; then
 
 
 elif [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
+  strip ${CTX_DIR}/kagome
+  
   docker build -t $TAG -f housekeeping/docker/kagome/minideb-release.Dockerfile ${CTX_DIR}
 
 else
