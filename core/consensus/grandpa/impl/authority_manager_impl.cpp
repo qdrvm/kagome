@@ -204,7 +204,8 @@ namespace kagome::consensus::grandpa {
       auto block_header_res = block_tree_->getBlockHeader(block_number);
       if (block_header_res.has_error()) {
         SL_WARN(logger_,
-                "Can't get header of some finalized block: {}",
+                "Can't get header of an already finalized block #{}: {}",
+                block_number,
                 block_header_res.error());
         return block_header_res.as_failure();
       }
@@ -282,7 +283,8 @@ namespace kagome::consensus::grandpa {
         auto block_header_res = block_tree_->getBlockHeader(hash);
         if (block_header_res.has_error()) {
           SL_WARN(logger_,
-                  "Can't get header of some finalized block: {}",
+                  "Can't get header of non-finalized block {}: {}",
+                  hash,
                   block_header_res.error());
           return block_header_res.as_failure();
         }

@@ -44,6 +44,9 @@ find_package(RapidJSON CONFIG REQUIRED)
 hunter_add_package(Microsoft.GSL)
 find_package(Microsoft.GSL CONFIG REQUIRED)
 
+hunter_add_package(erasure_coding_crust)
+find_package(erasure_coding_crust CONFIG REQUIRED)
+
 hunter_add_package(schnorrkel_crust)
 find_package(schnorrkel_crust CONFIG REQUIRED)
 

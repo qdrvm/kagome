@@ -1141,6 +1141,7 @@ namespace kagome::network {
     auto node = known_blocks_.extract(hash);
     if (node) {
       auto &block = node.mapped().data;
+      auto &peers = node.mapped().peers;
       BOOST_ASSERT(block.header.has_value());
       const BlockInfo block_info(block.header->number, block.hash);
 
@@ -1217,6 +1218,42 @@ namespace kagome::network {
           telemetry_->notifyBlockImported(
               block_info, telemetry::BlockOrigin::kNetworkInitialSync);
           if (handler) handler(block_info);
+
+          // Check if finality lag greater than justification saving interval
+          static const BlockNumber kJustificationInterval = 512;
+          static const BlockNumber kMaxJustificationLag = 5;
+          auto last_finalized = block_tree_->getLastFinalized();
+          if ((block_info.number - kMaxJustificationLag)
+                  / kJustificationInterval
+              > last_finalized.number / kJustificationInterval) {
+            //  Trying to substitute with justifications' request only
+            for (const auto &peer_id : peers) {
+              syncMissingJustifications(
+                  peer_id,
+                  last_finalized,
+                  std::nullopt,
+                  [wp = weak_from_this(), last_finalized, block_info](
+                      auto res) {
+                    if (auto self = wp.lock()) {
+                      if (res.has_value()) {
+                        SL_DEBUG(
+                            self->log_,
+                            "Loaded justifications for blocks in range {} - {}",
+                            last_finalized,
+                            res.value());
+                        return;
+                      }
+
+                      SL_WARN(self->log_,
+                              "Missing justifications between blocks {} and "
+                              "{} was not loaded: {}",
+                              last_finalized,
+                              block_info.number,
+                              res.error());
+                    }
+                  });
+            }
+          }
         }
       }
     }

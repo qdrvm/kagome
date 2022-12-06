@@ -34,11 +34,11 @@ namespace kagome::network {
     ~ProtocolBaseImpl() = default;
 
     ProtocolBaseImpl(libp2p::Host &host,
-                     Protocols const &protocols,
-                     std::string const &log_section)
+                     const Protocols &protocols,
+                     log::Logger logger)
         : host_{host},
           protocols_{std::move(protocols)},
-          log_{log::createLogger(log_section, "kagome_protocols")} {}
+          log_{std::move(logger)} {}
 
     template <typename T>
     bool start(std::weak_ptr<T> wptr) {
