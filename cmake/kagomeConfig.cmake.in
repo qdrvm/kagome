@@ -2,8 +2,6 @@
 
 include(CMakeFindDependencyMacro)
 
-hunter_add_package(RapidJSON)
-
 find_dependency(Threads REQUIRED)
 find_dependency(RapidJSON REQUIRED)
 find_dependency(prometheus-cpp REQUIRED)
