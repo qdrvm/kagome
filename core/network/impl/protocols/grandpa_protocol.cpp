@@ -30,10 +30,10 @@ namespace kagome::network {
       std::shared_ptr<PeerManager> peer_manager,
       const primitives::BlockHash &genesis_hash,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : base_(host,
-              {fmt::format(kGrandpaProtocol, hex_lower(genesis_hash)),
-               kGrandpaProtocolLegacy},
-              log::createLogger("GrandpaProtocol", "grandpa_protocol")),
+      : base_(kGrandpaProtocolName,
+              host,
+              make_protocols(kGrandpaProtocol, genesis_hash, "paritytech"),
+              log::createLogger(kGrandpaProtocolName, "grandpa_protocol")),
         io_context_(std::move(io_context)),
         app_config_(app_config),
         grandpa_observer_(std::move(grandpa_observer)),
@@ -54,6 +54,10 @@ namespace kagome::network {
 
   bool GrandpaProtocol::stop() {
     return base_.stop();
+  }
+
+  const ProtocolName &GrandpaProtocol::protocolName() const {
+    return base_.protocolName();
   }
 
   void GrandpaProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {

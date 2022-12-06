@@ -44,6 +44,7 @@ namespace kagome::network {
     BlockAnnounceProtocol(libp2p::Host &host,
                           const application::AppConfiguration &app_config,
                           const application::ChainSpec &chain_spec,
+                          const primitives::BlockHash &genesis_hash,
                           std::shared_ptr<StreamEngine> stream_engine,
                           std::shared_ptr<blockchain::BlockTree> block_tree,
                           std::shared_ptr<BlockAnnounceObserver> observer,
@@ -52,9 +53,7 @@ namespace kagome::network {
     bool start() override;
     bool stop() override;
 
-    const std::string &protocolName() const override {
-      return kBlockAnnounceProtocolName;
-    }
+    const std::string &protocolName() const override;
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(

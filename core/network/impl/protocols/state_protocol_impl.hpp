@@ -15,7 +15,9 @@
 
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
+#include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/state_protocol_observer.hpp"
+#include "utils/non_copyable.hpp"
 
 namespace kagome::network {
 
@@ -26,10 +28,13 @@ namespace kagome::network {
 
   class StateProtocolImpl final
       : public StateProtocol,
-        public std::enable_shared_from_this<StateProtocolImpl> {
+        public std::enable_shared_from_this<StateProtocolImpl>,
+        NonCopyable,
+        NonMovable {
    public:
     StateProtocolImpl(libp2p::Host &host,
                       const application::ChainSpec &chain_spec,
+                      const primitives::BlockHash &genesis_hash,
                       std::shared_ptr<StateProtocolObserver> state_observer);
 
     bool start() override;
@@ -65,10 +70,8 @@ namespace kagome::network {
 
    private:
     const static inline auto kStateProtocolName = "StateProtocol"s;
-    libp2p::Host &host_;
+    ProtocolBaseImpl base_;
     std::shared_ptr<StateProtocolObserver> state_observer_;
-    const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("StateProtocol", "state_protocol");
   };
 
 }  // namespace kagome::network
