@@ -6,8 +6,9 @@
 #ifndef KAGOME_COMMON_BUFFER_OR_VIEW_HPP
 #define KAGOME_COMMON_BUFFER_OR_VIEW_HPP
 
+#include <boost/variant/get.hpp>
+#include <boost/variant/variant.hpp>
 #include <type_traits>
-#include <variant>
 
 #include "common/buffer.hpp"
 
@@ -35,18 +36,18 @@ namespace kagome::common {
     BufferOrView &operator=(BufferOrView &&) = default;
 
     bool owned() const {
-      if (variant.index() == 2) {
+      if (variant.which() == 2) {
         // moved with `.into()`
         abort();
       }
-      return variant.index() == 1;
+      return variant.which() == 1;
     }
 
     BufferView view() const {
       if (!owned()) {
-        return std::get<BufferView>(variant);
+        return boost::get<BufferView>(variant);
       }
-      return BufferView{std::get<Buffer>(variant)};
+      return BufferView{boost::get<Buffer>(variant)};
     }
 
     operator BufferView() const {
@@ -60,21 +61,21 @@ namespace kagome::common {
     // get mutable buffer reference, copy once if view
     Buffer &mut() {
       if (!owned()) {
-        auto view = std::get<BufferView>(variant);
-        variant.emplace<Buffer>(view);
+        auto view = boost::get<BufferView>(variant);
+        variant = Buffer{view};
       }
-      return std::get<Buffer>(variant);
+      return boost::get<Buffer>(variant);
     }
 
     // move buffer away, copy once if view
     Buffer into() {
       auto buffer = std::move(mut());
-      variant.emplace<Moved>();
+      variant = Moved{};
       return buffer;
     }
 
    private:
-    std::variant<BufferView, Buffer, Moved> variant;
+    boost::variant<BufferView, Buffer, Moved> variant;
 
     template <typename T, typename = AsSpan<T>>
     friend bool operator==(const BufferOrView &l, const T &r) {
