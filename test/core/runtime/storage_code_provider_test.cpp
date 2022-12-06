@@ -53,7 +53,8 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
   EXPECT_CALL(*trie_db, getEphemeralBatchAt(first_state_root))
       .WillOnce(Invoke([this]() {
         auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-        EXPECT_CALL(*batch, get(common::BufferView{storage::kRuntimeCodeKey}))
+        EXPECT_CALL(*batch,
+                    getMock(common::BufferView{storage::kRuntimeCodeKey}))
             .WillOnce(Return(state_code_));
         return batch;
       }));
@@ -94,7 +95,8 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
   EXPECT_CALL(*trie_db, getEphemeralBatchAt(first_state_root))
       .WillOnce(Invoke([this]() {
         auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-        EXPECT_CALL(*batch, get(common::BufferView{storage::kRuntimeCodeKey}))
+        EXPECT_CALL(*batch,
+                    getMock(common::BufferView{storage::kRuntimeCodeKey}))
             .WillOnce(Return(state_code_));
         return batch;
       }));
@@ -108,7 +110,8 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
   EXPECT_CALL(*trie_db, getEphemeralBatchAt(second_state_root))
       .WillOnce(Invoke([&new_state_code](auto &) {
         auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-        EXPECT_CALL(*batch, get(common::BufferView{storage::kRuntimeCodeKey}))
+        EXPECT_CALL(*batch,
+                    getMock(common::BufferView{storage::kRuntimeCodeKey}))
             .WillOnce(Return(new_state_code));
         return batch;
       }));

@@ -38,7 +38,7 @@ namespace kagome::runtime {
     virtual outcome::result<
         std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>
     decode_session_keys(const primitives::BlockHash &block_hash,
-                        common::BufferConstRef encoded) const = 0;
+                        common::BufferView encoded) const = 0;
   };
 
 }  // namespace kagome::runtime

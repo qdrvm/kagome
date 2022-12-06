@@ -81,10 +81,9 @@ namespace kagome::runtime {
                root_path.toHex());
       OUTCOME_TRY(child_root_value, getCurrentBatch()->tryGet(root_path));
       auto child_root_hash =
-          child_root_value ? common::Hash256::fromSpan(
-                                 gsl::make_span(child_root_value.value().get()))
-                                 .value()
-                           : trie_serializer_->getEmptyRootHash();
+          child_root_value
+              ? common::Hash256::fromSpan(*child_root_value).value()
+              : trie_serializer_->getEmptyRootHash();
       OUTCOME_TRY(child_batch,
                   trie_storage_->getPersistentBatchAt(child_root_hash));
       child_batches_.emplace(root_path, std::move(child_batch));
