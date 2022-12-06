@@ -13,6 +13,7 @@
 #include "common/buffer.hpp"
 
 namespace kagome::common {
+  /// Moved owned buffer or readonly view.
   class BufferOrView {
     using Span = gsl::span<const uint8_t>;
     template <typename T>
@@ -35,6 +36,7 @@ namespace kagome::common {
     BufferOrView &operator=(const BufferOrView &) = delete;
     BufferOrView &operator=(BufferOrView &&) = default;
 
+    /// Is buffer owned.
     bool owned() const {
       if (variant.which() == 2) {
         throw std::logic_error{"Tried to use moved BufferOrView"};
@@ -42,6 +44,7 @@ namespace kagome::common {
       return variant.which() == 1;
     }
 
+    /// Get view.
     BufferView view() const {
       if (!owned()) {
         return boost::get<BufferView>(variant);
@@ -49,15 +52,17 @@ namespace kagome::common {
       return BufferView{boost::get<Buffer>(variant)};
     }
 
+    /// Get view.
     operator BufferView() const {
       return view();
     }
 
+    /// Byte size.
     size_t size() const {
       return view().size();
     }
 
-    // get mutable buffer reference, copy once if view
+    /// Get mutable buffer reference. Copy once if view.
     Buffer &mut() {
       if (!owned()) {
         auto view = boost::get<BufferView>(variant);
@@ -66,7 +71,7 @@ namespace kagome::common {
       return boost::get<Buffer>(variant);
     }
 
-    // move buffer away, copy once if view
+    /// Move buffer away. Copy once if view.
     Buffer into() {
       auto buffer = std::move(mut());
       variant = Moved{};
