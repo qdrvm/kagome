@@ -37,8 +37,7 @@ namespace kagome::common {
 
     bool owned() const {
       if (variant.which() == 2) {
-        // moved with `.into()`
-        abort();
+        throw std::logic_error{"Tried to use moved BufferOrView"};
       }
       return variant.which() == 1;
     }

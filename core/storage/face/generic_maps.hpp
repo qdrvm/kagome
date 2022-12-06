@@ -27,7 +27,7 @@ namespace kagome::storage::face {
      * @return size in bytes
      */
     virtual size_t size() const {
-      abort();
+      throw std::logic_error{"GenericStorage::size not implemented"};
     }
   };
 

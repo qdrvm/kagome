@@ -28,7 +28,7 @@ namespace kagome::storage::face {
      * efficiently write bulk data.
      */
     virtual std::unique_ptr<WriteBatch<K, V>> batch() {
-      abort();
+      throw std::logic_error{"BatchWriteable::batch not implemented"};
     }
   };
 
