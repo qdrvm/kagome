@@ -27,7 +27,7 @@ using kagome::primitives::BlockData;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
-using kagome::storage::face::GenericStorageMock;
+using kagome::storage::BufferStorageMock;
 using kagome::storage::trie::RootHash;
 using scale::encode;
 using testing::_;
@@ -43,8 +43,8 @@ class BlockStorageTest : public testing::Test {
     root_hash.fill(1);
   }
   std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
-  std::shared_ptr<GenericStorageMock<Buffer, Buffer, BufferView>> storage =
-      std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
+  std::shared_ptr<BufferStorageMock> storage =
+      std::make_shared<BufferStorageMock>();
 
   BlockHash genesis_block_hash{{'g', 'e', 'n', 'e', 's', 'i', 's'}};
   BlockHash regular_block_hash{{'r', 'e', 'g', 'u', 'l', 'a', 'r'}};
@@ -56,7 +56,7 @@ class BlockStorageTest : public testing::Test {
         .WillRepeatedly(Return(genesis_block_hash));
 
     // check if storage contained genesis block
-    EXPECT_CALL(*storage, tryLoad(_)).WillRepeatedly(Return(std::nullopt));
+    EXPECT_CALL(*storage, tryGetMock(_)).WillRepeatedly(Return(std::nullopt));
 
     // put genesis block into storage
     EXPECT_CALL(*storage, put(_, _)).WillRepeatedly(Return(outcome::success()));
@@ -84,15 +84,15 @@ TEST_F(BlockStorageTest, CreateWithGenesis) {
  * @then storage will be initialized by genesis block
  */
 TEST_F(BlockStorageTest, CreateWithEmptyStorage) {
-  auto empty_storage =
-      std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
+  auto empty_storage = std::make_shared<BufferStorageMock>();
 
   // calculate hash of genesis block at put block header
   EXPECT_CALL(*hasher, blake2b_256(_))
       .WillRepeatedly(Return(genesis_block_hash));
 
   // check if storage contained genesis block
-  EXPECT_CALL(*empty_storage, tryLoad(_)).WillRepeatedly(Return(std::nullopt));
+  EXPECT_CALL(*empty_storage, tryGetMock(_))
+      .WillRepeatedly(Return(std::nullopt));
 
   // put genesis block into storage
   EXPECT_CALL(*empty_storage, put(_, _))
@@ -112,7 +112,7 @@ TEST_F(BlockStorageTest, CreateWithEmptyStorage) {
 TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
   // trying to get header of block number 0 (genesis block)
   EXPECT_CALL(*storage, contains(_)).WillOnce(Return(outcome::success(true)));
-  EXPECT_CALL(*storage, tryLoad(_))
+  EXPECT_CALL(*storage, tryGetMock(_))
       // trying to get header of block number 0 (genesis block)
       .WillOnce(Return(Buffer{genesis_block_hash}));
 
@@ -127,11 +127,10 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
  * @then initialisation will fail
  */
 TEST_F(BlockStorageTest, CreateWithStorageError) {
-  auto empty_storage =
-      std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
+  auto empty_storage = std::make_shared<BufferStorageMock>();
 
   // check if storage contained genesis block
-  EXPECT_CALL(*empty_storage, tryLoad(_))
+  EXPECT_CALL(*empty_storage, tryGetMock(_))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
 
   EXPECT_OUTCOME_ERROR(
@@ -150,7 +149,7 @@ TEST_F(BlockStorageTest, PutBlock) {
 
   EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(regular_block_hash));
 
-  EXPECT_CALL(*storage, tryLoad(_)).WillOnce(Return(std::nullopt));
+  EXPECT_CALL(*storage, tryGetMock(_)).WillOnce(Return(std::nullopt));
 
   Block block;
   block.header.number = 1;
@@ -167,7 +166,7 @@ TEST_F(BlockStorageTest, PutBlock) {
 TEST_F(BlockStorageTest, PutWithStorageError) {
   auto block_storage = createWithGenesis();
 
-  EXPECT_CALL(*storage, tryLoad(_))
+  EXPECT_CALL(*storage, tryGetMock(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
 

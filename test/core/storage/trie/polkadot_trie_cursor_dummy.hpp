@@ -61,8 +61,8 @@ namespace kagome::storage::trie {
       return current_->first;
     }
 
-    std::optional<common::BufferConstRef> value() const override {
-      return current_->second;
+    std::optional<BufferOrView> value() const override {
+      return BufferView{current_->second};
     }
   };
 }  // namespace kagome::storage::trie

@@ -22,7 +22,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<std::vector<TypedKey>>,
                 decode_session_keys,
-                (const primitives::BlockHash &, common::BufferConstRef),
+                (const primitives::BlockHash &, common::BufferView),
                 (const, override));
   };
 

@@ -12,40 +12,23 @@
 #include "storage/face/writeable.hpp"
 
 namespace kagome::storage::face {
-
-  /**
-   * @brief An abstraction over a readable and iterable key-value map.
-   * @tparam K key type
-   * @tparam V value type
-   */
-  template <typename K, typename V, typename KView = K>
-  struct ReadOnlyMap
-      : public Iterable<K, typename ReadableMap<K, V>::ConstValueView, KView>,
-        public ReadableMap<KView, V> {};
-
-  template <typename K, typename V, typename KView = K>
-  struct ReadOnlyStorage : public Iterable<K, V, KView>,
-                           public ReadableStorage<KView, V> {};
-
   /**
    * @brief An abstraction over a readable, writeable, iterable key-value map.
    * @tparam K key type
    * @tparam V value type
    */
-  template <typename K, typename V, typename KView = K>
-  struct GenericMap : public ReadOnlyMap<K, V, KView>,
-                      public Writeable<KView, V>,
-                      public BatchWriteable<KView, V> {};
-
-  template <typename K, typename V, typename KView = K>
-  struct GenericStorage : public ReadOnlyStorage<K, V, KView>,
-                          public Writeable<KView, V>,
-                          public BatchWriteable<KView, V> {
+  template <typename K, typename V>
+  struct GenericStorage : Readable<K, V>,
+                          Iterable<K, V>,
+                          Writeable<K, V>,
+                          BatchWriteable<K, V> {
     /**
      * Reports RAM state size
      * @return size in bytes
      */
-    virtual size_t size() const = 0;
+    virtual size_t size() const {
+      throw std::logic_error{"GenericStorage::size not implemented"};
+    }
   };
 
 }  // namespace kagome::storage::face

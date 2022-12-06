@@ -103,7 +103,7 @@ namespace kagome::consensus::babe {
 
     // 1. Load last state
     OUTCOME_TRY(encoded_last_state_opt,
-                persistent_storage_->tryLoad(
+                persistent_storage_->tryGet(
                     storage::kBabeConfigRepoStateLookupKey("last")));
 
     if (encoded_last_state_opt.has_value()) {
@@ -138,7 +138,7 @@ namespace kagome::consensus::babe {
            block_number > 0;
            block_number -= kSavepointBlockInterval) {
         OUTCOME_TRY(encoded_saved_state_opt,
-                    persistent_storage_->tryLoad(
+                    persistent_storage_->tryGet(
                         storage::kBabeConfigRepoStateLookupKey(block_number)));
 
         if (not encoded_saved_state_opt.has_value()) {

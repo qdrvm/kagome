@@ -34,10 +34,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(std::optional<common::Buffer>, key, (), (const, override));
 
-    MOCK_METHOD(std::optional<common::BufferConstRef>,
-                value,
-                (),
-                (const, override));
+    MOCK_METHOD(std::optional<BufferOrView>, value, (), (const, override));
   };
 }  // namespace kagome::storage::trie
 

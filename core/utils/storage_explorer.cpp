@@ -280,7 +280,7 @@ class QueryStateCommand : public Command {
     }
     auto &value_opt = value_res.value();
     if (value_opt.has_value()) {
-      std::cout << "Value is " << value_opt->get().toHex() << "\n";
+      std::cout << "Value is " << value_opt->view().toHex() << "\n";
     } else {
       std::cout << "No value by given key\n";
     }

@@ -98,8 +98,9 @@ namespace kagome::common {
   template <typename T, typename F, typename R = std::invoke_result_t<F, T &&>>
   outcome::result<std::optional<R>> map_result_optional(
       outcome::result<std::optional<T>> &&res_opt, F const &f) {
-    return map_result(res_opt, [&f](auto &opt) {
-      return map_optional(opt, [&f](auto &v) { return f(std::move(v)); });
+    return map_result(std::move(res_opt), [&f](std::optional<T> &&opt) {
+      return map_optional(std::move(opt),
+                          [&f](T &&v) { return f(std::move(v)); });
     });
   }
 

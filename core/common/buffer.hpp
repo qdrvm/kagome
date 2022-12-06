@@ -245,9 +245,6 @@ namespace kagome::common {
 
   static inline const Buffer kEmptyBuffer{};
 
-  using BufferMutRef = std::reference_wrapper<Buffer>;
-  using BufferConstRef = std::reference_wrapper<const Buffer>;
-
   namespace literals {
     /// creates a buffer filled with characters from the original string
     /// mind that it does not perform unhexing, there is ""_unhex for it

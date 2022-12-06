@@ -340,7 +340,7 @@ namespace {
 
       for (const auto &[key_, val_] : raw_configs) {
         auto &key = key_;
-        auto &val = val_;
+        common::BufferView val = val_;
         SL_TRACE(
             log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
         if (auto res = batch->put(key, val); not res) {
@@ -367,7 +367,7 @@ namespace {
 
       common::Buffer child_key;
       child_key.put(storage::kChildStorageDefaultPrefix).put(root_hash);
-      auto res = batch->put(child_key, root_hash);
+      auto res = batch->put(child_key, common::BufferView{root_hash});
       if (res.has_error()) {
         common::raise(res.error());
       }
