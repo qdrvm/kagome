@@ -3,7 +3,7 @@
 include(CMakeFindDependencyMacro)
 
 find_dependency(Threads REQUIRED)
-find_dependency(RapidJSON REQUIRED)
+find_dependency(RapidJSON CONFIG REQUIRED)
 find_dependency(prometheus-cpp REQUIRED)
 find_dependency(Boost REQUIRED random filesystem date_time)
 find_dependency(soralog REQUIRED)
