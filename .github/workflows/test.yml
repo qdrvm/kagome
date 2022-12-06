@@ -162,7 +162,7 @@ jobs:
         run: ./housekeeping/docker/kagome-dev/make.sh
 
   Push:
-    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/DOPS-2131/update-push' || startsWith( github.ref, 'refs/tags/' ) }}
     needs: [clang-tidy, MacOS, Minideb]
     strategy:
       fail-fast: false
