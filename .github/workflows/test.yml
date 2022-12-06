@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, feature/DOPS-2131/update-push ]
     tags: [ '*' ]
   pull_request:
 
@@ -168,10 +168,12 @@ jobs:
       fail-fast: false
       matrix:
         options:
-          - name: "Push Debug Docker image"
-            build-type: "Debug"
-          - name: "Push Release Docker image"
-            build-type: "Release"
+          #- name: "Push Debug Docker image"
+          #  build-type: "Debug"
+          #- name: "Push Release Docker image"
+          #  build-type: "Release"
+          - name: "Push RelWithDebInfo Docker image"
+            build-type: "RelWithDebInfo"
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev:4-minideb
     steps:
