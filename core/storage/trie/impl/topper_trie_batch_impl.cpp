@@ -28,20 +28,20 @@ namespace kagome::storage::trie {
       const std::shared_ptr<TrieBatch> &parent)
       : parent_(parent) {}
 
-  outcome::result<common::BufferConstRef> TopperTrieBatchImpl::get(
+  outcome::result<BufferOrView> TopperTrieBatchImpl::get(
       const BufferView &key) const {
     OUTCOME_TRY(opt_value, tryGet(key));
     if (opt_value) {
-      return opt_value.value();
+      return std::move(*opt_value);
     }
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  TopperTrieBatchImpl::tryGet(const BufferView &key) const {
+  outcome::result<std::optional<BufferOrView>> TopperTrieBatchImpl::tryGet(
+      const BufferView &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
       if (it->second.has_value()) {
-        return it->second.value();
+        return BufferView{it->second.value()};
       }
       return std::nullopt;
     }
@@ -91,13 +91,8 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
-                                                 const Buffer &value) {
-    return put(key, Buffer(value));
-  }
-
-  outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
-                                                 Buffer &&value) {
-    cache_.insert_or_assign(Buffer{key}, std::move(value));
+                                                 BufferOrView &&value) {
+    cache_.insert_or_assign(Buffer{key}, value.into());
     return outcome::success();
   }
 
@@ -128,7 +123,7 @@ namespace kagome::storage::trie {
       }
       for (auto it = cache_.begin(); it != cache_.end(); it++) {
         if (it->second.has_value()) {
-          OUTCOME_TRY(p->put(it->first, it->second.value()));
+          OUTCOME_TRY(p->put(it->first, BufferView{it->second.value()}));
         } else {
           OUTCOME_TRY(p->remove(it->first));
         }

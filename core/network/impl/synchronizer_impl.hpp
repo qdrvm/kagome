@@ -30,6 +30,15 @@ namespace kagome::storage::changes_trie {
   class ChangesTracker;
 }
 
+namespace kagome::consensus::babe {
+  class BlockAppender;
+  class BlockExecutor;
+}  // namespace kagome::consensus::babe
+
+namespace kagome::consensus::grandpa {
+  class ChangesTracker;
+}
+
 namespace kagome::storage::trie {
   class PersistentTrieBatch;
   class TrieSerializer;
@@ -80,8 +89,8 @@ namespace kagome::network {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<consensus::BlockAppender> block_appender,
-        std::shared_ptr<consensus::BlockExecutor> block_executor,
+        std::shared_ptr<consensus::babe::BlockAppender> block_appender,
+        std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<network::Router> router,
@@ -202,8 +211,8 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::changes_trie::ChangesTracker>
         trie_changes_tracker_;
-    std::shared_ptr<consensus::BlockAppender> block_appender_;
-    std::shared_ptr<consensus::BlockExecutor> block_executor_;
+    std::shared_ptr<consensus::babe::BlockAppender> block_appender_;
+    std::shared_ptr<consensus::babe::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<network::Router> router_;

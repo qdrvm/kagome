@@ -1,10 +1,9 @@
 /**
-* Copyright Soramitsu Co., Ltd. All Rights Reserved.
-* SPDX-License-Identifier: Apache-2.0
-*/
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #include "consensus/grandpa/vote_graph/vote_graph_error.hpp"
-
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VoteGraphError, e) {
   using E = kagome::consensus::grandpa::VoteGraphError;

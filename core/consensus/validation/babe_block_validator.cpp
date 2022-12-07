@@ -5,20 +5,15 @@
 
 #include "consensus/validation/babe_block_validator.hpp"
 
-#include <algorithm>
-#include <boost/assert.hpp>
-
-#include "common/mp_utils.hpp"
-#include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/validation/prepare_transcript.hpp"
 #include "crypto/sr25519_provider.hpp"
-#include "scale/scale.hpp"
+#include "crypto/vrf_provider.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
                             BabeBlockValidator::ValidationError,
                             e) {
-  using E = kagome::consensus::BabeBlockValidator::ValidationError;
+  using E = kagome::consensus::babe::BabeBlockValidator::ValidationError;
   switch (e) {
     case E::NO_AUTHORITIES:
       return "no authorities are provided for the validation";
@@ -34,7 +29,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
   return "unknown error";
 }
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   using common::Buffer;
   using primitives::AllowedSlots;
 
@@ -171,4 +166,4 @@ namespace kagome::consensus {
 
     return true;
   }
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

@@ -27,7 +27,6 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::BabeApi> babe_api,
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-      const primitives::GenesisBlockHeader &genesis_block_header,
       const BabeClock &clock)
       : persistent_storage_(std::move(persistent_storage)),
         block_tree_(std::move(block_tree)),
@@ -39,7 +38,6 @@ namespace kagome::consensus::babe {
           return std::make_shared<primitives::events::ChainEventSubscriber>(
               chain_events_engine);
         }()),
-        genesis_block_hash_(genesis_block_header.hash),
         clock_(clock),
         logger_(log::createLogger("BabeConfigRepo", "babe_config_repo")) {
     BOOST_ASSERT(persistent_storage_ != nullptr);
@@ -95,7 +93,7 @@ namespace kagome::consensus::babe {
     if (finalized_block.number > 0) {
       OUTCOME_TRY(first_block_header, block_tree_->getBlockHeader(1));
 
-      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
       auto first_slot_number = babe_digest_res.value().second.slot_number;
@@ -105,7 +103,7 @@ namespace kagome::consensus::babe {
 
     // 1. Load last state
     OUTCOME_TRY(encoded_last_state_opt,
-                persistent_storage_->tryLoad(
+                persistent_storage_->tryGet(
                     storage::kBabeConfigRepoStateLookupKey("last")));
 
     if (encoded_last_state_opt.has_value()) {
@@ -135,12 +133,12 @@ namespace kagome::consensus::babe {
     // 2. Load from last control point, if state is still not found
     if (root_ == nullptr) {
       for (auto block_number =
-               (finalized_block.number / kSavepointEachSuchBlock)
-               * kSavepointEachSuchBlock;
+               (finalized_block.number / kSavepointBlockInterval)
+               * kSavepointBlockInterval;
            block_number > 0;
-           block_number -= kSavepointEachSuchBlock) {
+           block_number -= kSavepointBlockInterval) {
         OUTCOME_TRY(encoded_saved_state_opt,
-                    persistent_storage_->tryLoad(
+                    persistent_storage_->tryGet(
                         storage::kBabeConfigRepoStateLookupKey(block_number)));
 
         if (not encoded_saved_state_opt.has_value()) {
@@ -170,18 +168,20 @@ namespace kagome::consensus::babe {
 
     // 3. Load state from genesis, if state is still not found
     if (root_ == nullptr) {
-      auto babe_config_res = babe_api_->configuration(genesis_block_hash_);
+      auto genesis_hash = block_tree_->getGenesisBlockHash();
+      auto babe_config_res = babe_api_->configuration(genesis_hash);
       if (babe_config_res.has_error()) {
         SL_WARN(logger_,
                 "Can't get babe config over babe API on genesis block: {}",
                 babe_config_res.error());
         return babe_config_res.as_failure();
       }
-      const auto &babe_config = babe_config_res.value();
+      auto &babe_config = babe_config_res.value();
 
       root_ = BabeConfigNode::createAsRoot(
-          {0, genesis_block_hash_},
-          std::make_shared<const primitives::BabeConfiguration>(babe_config));
+          {0, genesis_hash},
+          std::make_shared<primitives::BabeConfiguration>(
+              std::move(babe_config)));
       SL_DEBUG(logger_, "State was initialized by genesis block");
     }
 
@@ -205,7 +205,8 @@ namespace kagome::consensus::babe {
       auto block_header_res = block_tree_->getBlockHeader(block_number);
       if (block_header_res.has_error()) {
         SL_WARN(logger_,
-                "Can't get header of some finalized block: {}",
+                "Can't get header of an already finalized block #{}: {}",
+                block_number,
                 block_header_res.error());
         return block_header_res.as_failure();
       }
@@ -213,18 +214,18 @@ namespace kagome::consensus::babe {
       // TODO(xDimon): Would be more efficient to take parent hash of next block
       auto block_hash =
           hasher_->blake2b_256(scale::encode(block_header).value());
-      primitives::BlockInfo block_info(block_number, block_hash);
+
+      primitives::BlockContext context{.block = {block_number, block_hash}};
 
       for (auto &item : block_header.digest) {
         auto res = visit_in_place(
             item,
             [&](const primitives::PreRuntime &msg) -> outcome::result<void> {
               if (msg.consensus_engine_id == primitives::kBabeEngineId) {
-                OUTCOME_TRY(
-                    digest_item,
-                    scale::decode<consensus::BabeBlockHeader>(msg.data));
+                OUTCOME_TRY(digest_item,
+                            scale::decode<BabeBlockHeader>(msg.data));
 
-                return onDigest(block_info, digest_item);
+                return onDigest(context, digest_item);
               }
               return outcome::success();
             },
@@ -233,23 +234,23 @@ namespace kagome::consensus::babe {
                 OUTCOME_TRY(digest_item,
                             scale::decode<primitives::BabeDigest>(msg.data));
 
-                return onDigest(block_info, digest_item);
+                return onDigest(context, digest_item);
               }
               return outcome::success();
             },
             [](const auto &) { return outcome::success(); });
         if (res.has_error()) {
           SL_WARN(logger_,
-                  "Can't apply babe digest of finalized block #{}: {}",
-                  block_number,
+                  "Can't apply babe digest of finalized block {}: {}",
+                  context.block,
                   res.error());
           return res.as_failure();
         }
       }
 
-      prune(block_info);
+      prune(context.block);
 
-      if (block_info.number % (kSavepointEachSuchBlock / 10) == 0) {
+      if (context.block.number % (kSavepointBlockInterval / 10) == 0) {
         // Make savepoint
         auto save_res = save();
         if (save_res.has_error()) {
@@ -271,8 +272,8 @@ namespace kagome::consensus::babe {
 
     // 4. Collect and apply digests of non-finalized blocks
     auto leaves = block_tree_->getLeaves();
-    std::map<primitives::BlockInfo,
-             std::vector<boost::variant<consensus::BabeBlockHeader,
+    std::map<primitives::BlockContext,
+             std::vector<boost::variant<consensus::babe::BabeBlockHeader,
                                         primitives::BabeDigest>>>
         digests;
     // 4.1 Collect digests
@@ -281,7 +282,8 @@ namespace kagome::consensus::babe {
         auto block_header_res = block_tree_->getBlockHeader(hash);
         if (block_header_res.has_error()) {
           SL_WARN(logger_,
-                  "Can't get header of some finalized block: {}",
+                  "Can't get header of non-finalized block {}: {}",
+                  hash,
                   block_header_res.error());
           return block_header_res.as_failure();
         }
@@ -292,14 +294,14 @@ namespace kagome::consensus::babe {
           break;
         }
 
-        primitives::BlockInfo block_info{block_header.number, hash};
+        primitives::BlockContext context{.block = {block_header.number, hash}};
 
         // This block was meet earlier
-        if (digests.find(block_info) != digests.end()) {
+        if (digests.find(context) != digests.end()) {
           break;
         }
 
-        auto &digest_of_block = digests[block_info];
+        auto &digest_of_block = digests[context];
 
         // Search and collect babe digests
         for (auto &item : block_header.digest) {
@@ -308,7 +310,7 @@ namespace kagome::consensus::babe {
               [&](const primitives::PreRuntime &msg) -> outcome::result<void> {
                 if (msg.consensus_engine_id == primitives::kBabeEngineId) {
                   auto res =
-                      scale::decode<consensus::BabeBlockHeader>(msg.data);
+                      scale::decode<consensus::babe::BabeBlockHeader>(msg.data);
                   if (res.has_error()) {
                     return res.as_failure();
                   }
@@ -334,7 +336,7 @@ namespace kagome::consensus::babe {
           if (res.has_error()) {
             SL_WARN(logger_,
                     "Can't collect babe digest of non-finalized block {}: {}",
-                    block_info,
+                    context.block,
                     res.error());
             return res.as_failure();
           }
@@ -344,16 +346,16 @@ namespace kagome::consensus::babe {
       }
     }
     // 4.2 Apply digests
-    for (const auto &[block_info_tmp, digests_of_block] : digests) {
-      const auto &block_info = block_info_tmp;
+    for (const auto &[context_tmp, digests_of_block] : digests) {
+      const auto &context = context_tmp;
       for (const auto &digest : digests_of_block) {
         auto res = visit_in_place(digest, [&](const auto &digest_item) {
-          return onDigest(block_info, digest_item);
+          return onDigest(context, digest_item);
         });
         if (res.has_error()) {
           SL_WARN(logger_,
                   "Can't apply babe digest of non-finalized block {}: {}",
-                  block_info,
+                  context.block,
                   res.error());
           return res.as_failure();
         }
@@ -370,7 +372,7 @@ namespace kagome::consensus::babe {
 
     BOOST_ASSERT(last_saved_state_block_ <= finalized_block.number);
 
-    auto saving_state_node = getNode(finalized_block);
+    auto saving_state_node = getNode({.block = finalized_block});
     BOOST_ASSERT_MSG(saving_state_node != nullptr,
                      "Finalized block must have associated node");
     const auto saving_state_block = saving_state_node->block;
@@ -381,12 +383,12 @@ namespace kagome::consensus::babe {
     }
 
     const auto last_savepoint =
-        (last_saved_state_block_ / kSavepointEachSuchBlock)
-        * kSavepointEachSuchBlock;
+        (last_saved_state_block_ / kSavepointBlockInterval)
+        * kSavepointBlockInterval;
 
     const auto new_savepoint =
-        (saving_state_block.number / kSavepointEachSuchBlock)
-        * kSavepointEachSuchBlock;
+        (saving_state_block.number / kSavepointBlockInterval)
+        * kSavepointBlockInterval;
 
     // It's time to make savepoint
     if (new_savepoint > last_savepoint) {
@@ -394,7 +396,7 @@ namespace kagome::consensus::babe {
       if (hash_res.has_value()) {
         primitives::BlockInfo savepoint_block(new_savepoint, hash_res.value());
 
-        auto ancestor_node = getNode(savepoint_block);
+        auto ancestor_node = getNode({.block = savepoint_block});
         if (ancestor_node != nullptr) {
           auto node = ancestor_node->block == savepoint_block
                           ? ancestor_node
@@ -437,9 +439,9 @@ namespace kagome::consensus::babe {
   }
 
   std::shared_ptr<const primitives::BabeConfiguration>
-  BabeConfigRepositoryImpl::config(const primitives::BlockInfo &block,
-                                   consensus::EpochNumber epoch_number) {
-    auto node = getNode(block);
+  BabeConfigRepositoryImpl::config(const primitives::BlockContext &context,
+                                   EpochNumber epoch_number) {
+    auto node = getNode(context);
     if (node) {
       return node->config;
     }
@@ -458,32 +460,30 @@ namespace kagome::consensus::babe {
   }
 
   outcome::result<void> BabeConfigRepositoryImpl::onDigest(
-      const primitives::BlockInfo &block,
-      const consensus::BabeBlockHeader &digest) {
+      const primitives::BlockContext &context,
+      const consensus::babe::BabeBlockHeader &digest) {
     EpochNumber epoch_number = slotToEpoch(digest.slot_number);
 
-    auto node = getNode(block);
+    auto node = getNode(context);
+    BOOST_ASSERT(node != nullptr);
 
     SL_LOG(logger_,
            node->epoch != epoch_number ? log::Level::DEBUG : log::Level::TRACE,
            "BabeBlockHeader babe-digest on block {}: "
            "slot {}, epoch {}, authority #{}, {}",
-           block,
+           context.block,
            digest.slot_number,
            epoch_number,
            digest.authority_index,
-           digest.slotType() == SlotType::Primary          ? "primary"
-           : digest.slotType() == SlotType::SecondaryVRF   ? "secondary-vrf"
-           : digest.slotType() == SlotType::SecondaryPlain ? "secondary-plain"
-                                                           : "???");
+           to_string(digest.slotType()));
 
-    if (node->block == block) {
+    if (node->block == context.block) {
       return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
     }
 
     // Create descendant if and only if epoch is changed
     if (node->epoch != epoch_number) {
-      auto new_node = node->makeDescendant(block, epoch_number);
+      auto new_node = node->makeDescendant(context.block, epoch_number);
 
       node->descendants.emplace_back(std::move(new_node));
     }
@@ -492,7 +492,7 @@ namespace kagome::consensus::babe {
   }
 
   outcome::result<void> BabeConfigRepositoryImpl::onDigest(
-      const primitives::BlockInfo &block,
+      const primitives::BlockContext &context,
       const primitives::BabeDigest &digest) {
     return visit_in_place(
         digest,
@@ -500,17 +500,17 @@ namespace kagome::consensus::babe {
           SL_DEBUG(logger_,
                    "NextEpochData babe-digest on block {}: "
                    "{} authorities, randomness {}",
-                   block,
+                   context.block,
                    msg.authorities.size(),
                    msg.randomness);
-          return onNextEpochData(block, msg);
+          return onNextEpochData(context, msg);
         },
         [&](const primitives::OnDisabled &msg) {
           SL_TRACE(
               logger_,
               "OnDisabled babe-digest on block {}: "
               "disable authority #{}; ignored (it is checked only by runtime)",
-              block,
+              context.block,
               msg.authority_index);
           // Implemented sending of OnDisabled events before actually preventing
           // disabled validators from authoring, so it's possible that there are
@@ -528,17 +528,17 @@ namespace kagome::consensus::babe {
                 SL_DEBUG(logger_,
                          "NextConfigData babe-digest on block {}: "
                          "ratio={}/{}, second_slot={}",
-                         block,
+                         context.block,
                          msg.ratio.first,
                          msg.ratio.second,
                          to_string(msg.second_slot));
-                return onNextConfigData(block, msg);
+                return onNextConfigData(context, msg);
               },
               [&](const auto &) {
                 SL_WARN(logger_,
                         "Unsupported NextConfigData babe-digest on block {}: "
                         "variant #{}",
-                        block,
+                        context.block,
                         digest.which());
                 return BabeError::UNKNOWN_DIGEST_TYPE;
               });
@@ -546,19 +546,18 @@ namespace kagome::consensus::babe {
         [&](auto &) {
           SL_WARN(logger_,
                   "Unsupported babe-digest on block {}: variant #{}",
-                  block,
+                  context.block,
                   digest.which());
-          throw std::runtime_error("RUN BREAKER");
           return BabeError::UNKNOWN_DIGEST_TYPE;
         });
   }
 
   outcome::result<void> BabeConfigRepositoryImpl::onNextEpochData(
-      const primitives::BlockInfo &block,
+      const primitives::BlockContext &context,
       const primitives::NextEpochData &msg) {
-    auto node = getNode(block);
+    auto node = getNode(context);
 
-    if (node->block != block) {
+    if (node->block != context.block) {
       return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
     }
 
@@ -577,11 +576,11 @@ namespace kagome::consensus::babe {
   }
 
   outcome::result<void> BabeConfigRepositoryImpl::onNextConfigData(
-      const primitives::BlockInfo &block,
+      const primitives::BlockContext &context,
       const primitives::NextConfigDataV1 &msg) {
-    auto node = getNode(block);
+    auto node = getNode(context);
 
-    if (node->block != block) {
+    if (node->block != context.block) {
       return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
     }
 
@@ -600,21 +599,38 @@ namespace kagome::consensus::babe {
   }
 
   std::shared_ptr<BabeConfigNode> BabeConfigRepositoryImpl::getNode(
-      const primitives::BlockInfo &block) const {
+      const primitives::BlockContext &context) const {
     BOOST_ASSERT(root_ != nullptr);
 
+    // Lazy getter of direct chain best block ('cause it may be not used)
+    auto get_block =
+        [&, block = std::optional<primitives::BlockInfo>()]() mutable {
+          if (not block.has_value()) {
+            if (context.header.has_value()) {
+              const auto &header = context.header.value().get();
+              block.emplace(header.number - 1, header.parent_hash);
+            } else {
+              block.emplace(context.block);
+            }
+          }
+          return block.value();
+        };
+
     // Target block is not descendant of the current root
-    if (root_->block.number > block.number
-        || (root_->block != block
-            && not directChainExists(root_->block, block))) {
+    if (root_->block.number > context.block.number
+        || (root_->block != context.block
+            && not directChainExists(root_->block, get_block()))) {
       return nullptr;
     }
 
     std::shared_ptr<BabeConfigNode> ancestor = root_;
-    while (ancestor->block != block) {
+    while (ancestor->block != context.block) {
       bool goto_next_generation = false;
       for (const auto &node : ancestor->descendants) {
-        if (node->block == block || directChainExists(node->block, block)) {
+        if (node->block == context.block) {
+          return node;
+        }
+        if (directChainExists(node->block, get_block())) {
           ancestor = node;
           goto_next_generation = true;
           break;
@@ -634,13 +650,19 @@ namespace kagome::consensus::babe {
              "Looking if direct chain exists between {} and {}",
              ancestor,
              descendant);
-    // Any block is descendant of genesis
-    if (ancestor.number <= 1 && ancestor.number < descendant.number) {
+    // Check if it's one-block chain
+    if (ancestor == descendant) {
       return true;
     }
-    auto result =
-        ancestor.number < descendant.number
-        && block_tree_->hasDirectChain(ancestor.hash, descendant.hash);
+    // Any block is descendant of genesis
+    if (ancestor.number == 0) {
+      return true;
+    }
+    // No direct chain if order is wrong
+    if (ancestor.number > descendant.number) {
+      return false;
+    }
+    auto result = block_tree_->hasDirectChain(ancestor.hash, descendant.hash);
     return result;
   }
 
@@ -653,7 +675,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    auto node = getNode(block);
+    auto node = getNode({.block = block});
 
     if (not node) {
       return;
@@ -677,7 +699,7 @@ namespace kagome::consensus::babe {
   }
 
   void BabeConfigRepositoryImpl::cancel(const primitives::BlockInfo &block) {
-    auto ancestor = getNode(block);
+    auto ancestor = getNode({.block = block});
 
     if (ancestor == nullptr) {
       SL_TRACE(logger_, "Can't remove node of block {}: no ancestor", block);
@@ -698,7 +720,7 @@ namespace kagome::consensus::babe {
 
     auto it = std::find_if(ancestor->descendants.begin(),
                            ancestor->descendants.end(),
-                           [&block](std::shared_ptr<BabeConfigNode> node) {
+                           [&](std::shared_ptr<BabeConfigNode> node) {
                              return node->block == block;
                            });
 

@@ -6,12 +6,11 @@
 #ifndef KAGOME_BABE_LOTTERY_IMPL_HPP
 #define KAGOME_BABE_LOTTERY_IMPL_HPP
 
+#include "consensus/babe/babe_lottery.hpp"
+
 #include <memory>
 #include <vector>
 
-#include "consensus/babe/babe_lottery.hpp"
-#include "crypto/hasher.hpp"
-#include "crypto/vrf_provider.hpp"
 #include "log/logger.hpp"
 #include "primitives/babe_configuration.hpp"
 
@@ -19,14 +18,18 @@ namespace kagome::consensus::babe {
   class BabeConfigRepository;
 }
 
-namespace kagome::consensus {
+namespace kagome::crypto {
+  class Hasher;
+  class VRFProvider;
+}  // namespace kagome::crypto
+
+namespace kagome::consensus::babe {
 
   class BabeLotteryImpl : public BabeLottery {
    public:
-    BabeLotteryImpl(
-        std::shared_ptr<crypto::VRFProvider> vrf_provider,
-        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-        std::shared_ptr<crypto::Hasher> hasher);
+    BabeLotteryImpl(std::shared_ptr<crypto::VRFProvider> vrf_provider,
+                    std::shared_ptr<BabeConfigRepository> babe_config_repo,
+                    std::shared_ptr<crypto::Hasher> hasher);
 
     void changeEpoch(const EpochDescriptor &epoch,
                      const Randomness &randomness,
@@ -57,6 +60,6 @@ namespace kagome::consensus {
     Threshold threshold_;
     crypto::Sr25519Keypair keypair_;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_BABE_LOTTERY_IMPL_HPP

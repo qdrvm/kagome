@@ -3,19 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "consensus/babe/impl/block_executor_impl.hpp"
+
 #include <gtest/gtest.h>
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
-#include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
+#include "consensus/babe/types/seal.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/digest_tracker_mock.hpp"
-#include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/grandpa/grandpa_digest_observer_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
@@ -25,24 +27,23 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
-using kagome::authority::AuthorityUpdateObserver;
-using kagome::authority::AuthorityUpdateObserverMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
 using kagome::blockchain::DigestTrackerMock;
 using kagome::common::Buffer;
-using kagome::consensus::BabeBlockHeader;
-using kagome::consensus::BabeUtil;
-using kagome::consensus::BabeUtilMock;
-using kagome::consensus::BlockExecutorImpl;
-using kagome::consensus::BlockValidator;
-using kagome::consensus::BlockValidatorMock;
-using kagome::consensus::EpochDigest;
+using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
+using kagome::consensus::babe::BabeUtil;
+using kagome::consensus::babe::BabeUtilMock;
+using kagome::consensus::babe::BlockExecutorImpl;
+using kagome::consensus::babe::BlockValidator;
+using kagome::consensus::babe::BlockValidatorMock;
 using kagome::consensus::babe::ConsistencyKeeperMock;
+using kagome::consensus::babe::EpochDigest;
 using kagome::consensus::grandpa::Environment;
 using kagome::consensus::grandpa::EnvironmentMock;
+using kagome::consensus::grandpa::GrandpaDigestObserverMock;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherMock;
 using kagome::crypto::VRFThreshold;
@@ -50,6 +51,7 @@ using kagome::primitives::Authority;
 using kagome::primitives::AuthorityId;
 using kagome::primitives::AuthorityList;
 using kagome::primitives::BabeConfiguration;
+using kagome::primitives::BlockContext;
 using kagome::primitives::BlockData;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
@@ -163,7 +165,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
               kagome::primitives::ScheduledChange{authorities, 0}},
           kagome::primitives::Seal{{
               kagome::primitives::kBabeEngineId,
-              Buffer{scale::encode(kagome::consensus::Seal{}).value()},
+              Buffer{scale::encode(kagome::consensus::babe::Seal{}).value()},
           }}}};
   kagome::primitives::Justification justification{.data =
                                                       "justification_data"_buf};
@@ -183,7 +185,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
               validateHeader(header,
                              1,
                              AuthorityId{"auth3"_hash256},
-                             kagome::consensus::calculateThreshold(
+                             kagome::consensus::babe::calculateThreshold(
                                  babe_config_->leadership_rate, authorities, 0),
                              testing::Ref(*babe_config_)))
       .WillOnce(testing::Return(outcome::success()));
@@ -208,7 +210,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
     testing::InSequence s;
 
     EXPECT_CALL(*digest_tracker_,
-                onDigest(BlockInfo{42, "some_hash"_hash256}, _))
+                onDigest(BlockContext{.block = {42, "some_hash"_hash256}}, _))
         .WillOnce(testing::Return(outcome::success()));
 
     EXPECT_CALL(

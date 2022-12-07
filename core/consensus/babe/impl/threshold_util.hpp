@@ -9,7 +9,7 @@
 #include "consensus/babe/common.hpp"
 #include "primitives/authority.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   /// Calculates the primary selection threshold for a given authority, taking
   /// into account `c` (`1 - c` represents the probability of a slot being
@@ -19,6 +19,6 @@ namespace kagome::consensus {
                                const primitives::AuthorityList &authorities,
                                primitives::AuthorityIndex authority_index);
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_CORE_CONSENSUS_BABE_IMPL_THRESHOLD_UTIL_HPP

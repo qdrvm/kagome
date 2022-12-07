@@ -29,7 +29,7 @@ namespace kagome::storage {
 
     std::optional<Buffer> key() const override;
 
-    std::optional<Buffer> value() const override;
+    std::optional<BufferOrView> value() const override;
 
    private:
     std::shared_ptr<rocksdb::Iterator> i_;

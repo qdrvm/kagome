@@ -11,7 +11,7 @@
 #include "primitives/block.hpp"
 #include "scale/scale.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   using IsBlockFinalized = Tagged<bool, struct IsBlockFinalizedTag>;
 
@@ -55,13 +55,13 @@ namespace kagome::consensus {
     std::weak_ptr<const BabeConfigNode> parent;
     std::vector<std::shared_ptr<BabeConfigNode>> descendants{};
 
-    consensus::EpochNumber epoch{};
+    EpochNumber epoch{};
     bool epoch_changed = false;
     std::shared_ptr<const primitives::BabeConfiguration> config;
     std::optional<std::shared_ptr<const primitives::BabeConfiguration>>
         next_config;
   };
 
-};  // namespace kagome::consensus
+};  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_CONSENSUS_BABECONFIGNODE

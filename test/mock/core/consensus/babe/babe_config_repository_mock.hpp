@@ -20,8 +20,7 @@ namespace kagome::consensus::babe {
 
     MOCK_METHOD(std::shared_ptr<const primitives::BabeConfiguration>,
                 config,
-                (const primitives::BlockInfo &parent_block,
-                 consensus::EpochNumber epoch_number),
+                (const primitives::BlockContext &, EpochNumber),
                 (override));
   };
 

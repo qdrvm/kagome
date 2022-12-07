@@ -91,6 +91,7 @@ namespace kagome::network {
       return std::make_shared<StreamEngine>(std::forward<Args>(args)...);
     }
 
+   private:
     outcome::result<void> add(std::shared_ptr<Stream> stream,
                               const std::shared_ptr<ProtocolBase> &protocol,
                               Direction direction);
@@ -325,7 +326,7 @@ namespace kagome::network {
                          "Could not send message to {} stream with {}: {}",
                          protocol->protocolName(),
                          peer_id,
-                         res.error().message());
+                         res.error());
                 stream->reset();
               }
             }

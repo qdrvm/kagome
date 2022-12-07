@@ -32,6 +32,20 @@ namespace kagome::network {
     Roles(uint8_t v) : value(v) {}
   };
 
+  inline std::string to_string(Roles r) {
+    switch (r.value) {
+      case 0:
+        return "none";
+      case 1:
+        return "full";
+      case 2:
+        return "light";
+      case 4:
+        return "authority";
+    }
+    return to_string(r.value);
+  }
+
   /**
    * @brief compares two Roles instances
    * @param lhs first instance

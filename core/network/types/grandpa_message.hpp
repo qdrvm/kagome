@@ -10,11 +10,11 @@
 
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/structs.hpp"
+#include "primitives/common.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::network {
 
-  using consensus::grandpa::BlockInfo;
   using consensus::grandpa::CompactCommit;
   using consensus::grandpa::GrandpaJustification;
   using consensus::grandpa::RoundNumber;
@@ -23,6 +23,8 @@ namespace kagome::network {
   using consensus::grandpa::SignedPrevote;
   using consensus::grandpa::VoteMessage;
   using consensus::grandpa::VoterSetId;
+  using primitives::BlockHash;
+  using primitives::BlockInfo;
   using primitives::BlockNumber;
 
   struct GrandpaVote : public VoteMessage {

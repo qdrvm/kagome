@@ -5,8 +5,9 @@
 
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 
-#include "primitives/common.hpp"
-#include "scale/scale.hpp"
+#include "consensus/grandpa/voter_set.hpp"
+#include "crypto/ed25519_provider.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -42,8 +43,9 @@ namespace kagome::consensus::grandpa {
                 // calculation errors
     if (!result) {
       auto logger = log::createLogger("VoteCryptoProvider", "authority");
-      for (auto n = number - 100; n < number + 100; n++) {
-        for (auto id = voter_set_->id() - 100; id < voter_set_->id() + 100; id++) {
+      for (auto n = number > 100 ? number - 100 : 0; n < number + 100; n++) {
+        for (auto id = voter_set_->id() - 100; id < voter_set_->id() + 100;
+             id++) {
           auto payload = scale::encode(vote.message, n, id).value();
           auto verifying_result =
               ed_provider_->verify(vote.signature, payload, vote.id);

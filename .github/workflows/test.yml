@@ -36,7 +36,7 @@ jobs:
     - name: build
       env:
         DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
-      run: ./housekeeping/make_build.sh -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
+      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
     strategy:
@@ -44,17 +44,17 @@ jobs:
       matrix:
         options:
           - name: "Linux: gcc-10 ASAN No Toolchain"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DASAN=ON
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DASAN=ON
           - name: "Linux: gcc-12 ASAN No Toolchain"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
           - name: "Linux: clang-11 TSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DTSAN=ON
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DTSAN=ON
           - name: "Linux: clang-11 UBSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
           - name: "Linux: clang-11 External Project"
-            run: ./housekeeping/make_external_build.sh -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-11_cxx17.cmake
+            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-11_cxx17.cmake
           - name: "Linux: clang-15 UBSAN"
-            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DUBSAN=ON
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DUBSAN=ON
           
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
@@ -65,8 +65,19 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+      - name: df du
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - name: Install mold
+        run: ./housekeeping/ci_install_mold.sh --make-default
       - name: "${{ matrix.options.name }}"
         run: "${{ matrix.options.run }}"
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
 
   clang-tidy:
     name: "Linux: clang-tidy"
@@ -98,10 +109,21 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - name: df du
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - name: Install mold
+        run: ./housekeeping/ci_install_mold.sh --make-default
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
         run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
       - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         name: Submit Coverage
         env:
@@ -141,7 +163,7 @@ jobs:
 
   Push:
     if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-    needs: [clang-tidy, Linux, MacOS, Minideb]
+    needs: [clang-tidy, MacOS, Minideb]
     strategy:
       fail-fast: false
       matrix:

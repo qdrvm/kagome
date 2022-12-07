@@ -45,9 +45,6 @@ namespace kagome::blockchain {
                  "List of leaves has loaded: {} leaves",
                  block_tree_unordered_leaves.size());
 
-        BOOST_ASSERT_MSG(not block_tree_unordered_leaves.empty(),
-                         "Must be known or calculated at least one leaf");
-
         for (auto &hash : block_tree_unordered_leaves) {
           auto res = header_repo->getNumberById(hash);
           if (res.has_error()) {
@@ -57,8 +54,7 @@ namespace kagome::blockchain {
               SL_TRACE(log, "Leaf {} not found", hash);
               continue;
             }
-            SL_ERROR(
-                log, "Leaf {} is corrupted: {}", hash, res.error().message());
+            SL_ERROR(log, "Leaf {} is corrupted: {}", hash, res.error());
             return res.as_failure();
           }
           auto number = res.value();
@@ -75,12 +71,11 @@ namespace kagome::blockchain {
         auto upper = std::numeric_limits<primitives::BlockNumber>::max();
 
         for (;;) {
-          number = lower + (upper - lower) / 2;
+          number = lower + (upper - lower) / 2 + 1;
 
           auto res = storage->hasBlockHeader(number);
           if (res.has_failure()) {
-            SL_CRITICAL(
-                log, "Search best block has failed: {}", res.error().message());
+            SL_CRITICAL(log, "Search best block has failed: {}", res.error());
             return BlockTreeError::HEADER_NOT_FOUND;
           }
 
@@ -101,9 +96,8 @@ namespace kagome::blockchain {
         block_tree_leaves.emplace(number, hash);
 
         if (auto res = storage->setBlockTreeLeaves({hash}); res.has_error()) {
-          SL_CRITICAL(log,
-                      "Can't save recovered block tree leaves: {}",
-                      res.error().message());
+          SL_CRITICAL(
+              log, "Can't save recovered block tree leaves: {}", res.error());
           return res.as_failure();
         }
       }
@@ -128,7 +122,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
-    log::Logger log = log::createLogger("BlockTree", "blockchain");
+    log::Logger log = log::createLogger("BlockTree", "block_tree");
 
     OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
 
@@ -176,16 +170,16 @@ namespace kagome::blockchain {
             SL_WARN(log,
                     "Can't get header of existing non-finalized block {}: {}",
                     hash,
-                    header_res.error().message());
+                    header_res.error());
             break;
           }
           auto &header_opt = header_res.value();
           if (!header_opt.has_value()) {
             SL_WARN(log,
-                    "Can't get header of existing block {}: not found in block "
-                    "storage",
+                    "Can't get header of existing block {}: "
+                    "not found in block storage",
                     hash,
-                    header_res.error().message());
+                    header_res.error());
             break;
           }
 
@@ -205,7 +199,7 @@ namespace kagome::blockchain {
     SL_DEBUG(log, "Last finalized block #{}", tree->depth);
     auto meta = std::make_shared<TreeMeta>(tree, last_finalized_justification);
 
-    auto *block_tree =
+    std::shared_ptr<BlockTreeImpl> block_tree(
         new BlockTreeImpl(std::move(header_repo),
                           std::move(storage),
                           std::make_unique<CachedTree>(tree, meta),
@@ -215,7 +209,7 @@ namespace kagome::blockchain {
                           std::move(extrinsic_events_engine),
                           std::move(extrinsic_event_key_repo),
                           std::move(changes_tracker),
-                          std::move(justification_storage_policy));
+                          std::move(justification_storage_policy)));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -227,13 +221,13 @@ namespace kagome::blockchain {
         SL_WARN(log,
                 "Can't add existing non-finalized block {} to block tree: {}",
                 block,
-                res.error().message());
+                res.error());
       }
       SL_TRACE(
           log, "Existing non-finalized block {} is added to block tree", block);
     }
 
-    return std::shared_ptr<BlockTreeImpl>(block_tree);
+    return block_tree;
   }
 
   outcome::result<void> BlockTreeImpl::recover(
@@ -246,7 +240,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT(header_repo != nullptr);
     BOOST_ASSERT(trie_storage != nullptr);
 
-    log::Logger log = log::createLogger("BlockTree", "blockchain");
+    log::Logger log = log::createLogger("BlockTree", "block_tree");
 
     OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
 
@@ -258,7 +252,7 @@ namespace kagome::blockchain {
     if (target_block_header_opt_res.has_error()) {
       SL_CRITICAL(log,
                   "Can't get header of target block: {}",
-                  target_block_header_opt_res.error().message());
+                  target_block_header_opt_res.error());
       return target_block_header_opt_res.as_failure();
     }
     const auto &target_block_header_opt = target_block_header_opt_res.value();
@@ -272,8 +266,7 @@ namespace kagome::blockchain {
     // Check if target block has state
     if (auto res = trie_storage->getEphemeralBatchAt(state_root);
         res.has_error()) {
-      SL_WARN(
-          log, "Can't get state of target block: {}", res.error().message());
+      SL_WARN(log, "Can't get state of target block: {}", res.error());
       SL_CRITICAL(
           log,
           "You will need to use `--sync Fast' CLI arg the next time you start");
@@ -290,7 +283,7 @@ namespace kagome::blockchain {
       if (header_opt_res.has_error()) {
         SL_CRITICAL(log,
                     "Can't get header of one of removing block: {}",
-                    header_opt_res.error().message());
+                    header_opt_res.error());
         return header_opt_res.as_failure();
       }
       const auto &header_opt = header_opt_res.value();
@@ -308,15 +301,13 @@ namespace kagome::blockchain {
                      std::back_inserter(leaves),
                      [](const auto it) { return it.hash; });
       if (auto res = storage->setBlockTreeLeaves(leaves); res.has_error()) {
-        SL_CRITICAL(log,
-                    "Can't save updated block tree leaves: {}",
-                    res.error().message());
+        SL_CRITICAL(
+            log, "Can't save updated block tree leaves: {}", res.error());
         return res.as_failure();
       }
 
       if (auto res = block_tree->removeLeaf(block.hash); res.has_error()) {
-        SL_CRITICAL(
-            log, "Can't remove block {}: {}", block, res.error().message());
+        SL_CRITICAL(log, "Can't remove block {}: {}", block, res.error());
         return res.as_failure();
       }
     }
@@ -407,12 +398,6 @@ namespace kagome::blockchain {
     }
     OUTCOME_TRY(block_hash, storage_->putBlockHeader(header));
 
-    std::optional<consensus::EpochDigest> next_epoch;
-    if (auto digest = consensus::getNextEpochDigest(header);
-        digest.has_value()) {
-      next_epoch.emplace(std::move(digest.value()));
-    }
-
     // update local meta with the new block
     auto new_node =
         std::make_shared<TreeNode>(block_hash, header.number, parent);
@@ -432,6 +417,10 @@ namespace kagome::blockchain {
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  header);
 
+    SL_VERBOSE(log_,
+               "Block {} has been added into block tree",
+               primitives::BlockInfo(header.number, block_hash));
+
     return outcome::success();
   }
 
@@ -445,12 +434,6 @@ namespace kagome::blockchain {
 
     // Save block
     OUTCOME_TRY(block_hash, storage_->putBlock(block));
-
-    std::optional<consensus::EpochDigest> next_epoch;
-    if (auto digest = consensus::getNextEpochDigest(block.header);
-        digest.has_value()) {
-      next_epoch.emplace(std::move(digest.value()));
-    }
 
     // Update local meta with the block
     auto new_node =
@@ -483,6 +466,10 @@ namespace kagome::blockchain {
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
+
+    SL_VERBOSE(log_,
+               "Block {} has been added into block tree",
+               primitives::BlockInfo(block.header.number, block_hash));
 
     return outcome::success();
   }
@@ -602,12 +589,6 @@ namespace kagome::blockchain {
                primitives::BlockInfo(block_header.number, block_hash));
     }
 
-    std::optional<consensus::EpochDigest> next_epoch;
-    if (auto digest = consensus::getNextEpochDigest(block_header);
-        digest.has_value()) {
-      next_epoch.emplace(std::move(digest.value()));
-    }
-
     // Update local meta with the block
     auto new_node =
         std::make_shared<TreeNode>(block_hash, block_header.number, parent);
@@ -623,6 +604,10 @@ namespace kagome::blockchain {
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
         tree_->getMetadata().deepest_leaf.lock()->depth);
+
+    SL_VERBOSE(log_,
+               "Block {} has been restored in block tree from storage",
+               primitives::BlockInfo(block_header.number, block_hash));
 
     return outcome::success();
   }
@@ -760,9 +745,8 @@ namespace kagome::blockchain {
       const primitives::BlockHash &block, uint64_t maximum) const {
     auto block_number_res = header_repo_->getNumberByHash(block);
     if (block_number_res.has_error()) {
-      log_->error("cannot retrieve block with hash {}: {}",
-                  block.toHex(),
-                  block_number_res.error().message());
+      log_->error(
+          "cannot retrieve block {}: {}", block, block_number_res.error());
       return BlockTreeError::HEADER_NOT_FOUND;
     }
     auto start_block_number = block_number_res.value();
@@ -790,7 +774,7 @@ namespace kagome::blockchain {
     if (finish_block_hash_res.has_error()) {
       log_->error("cannot retrieve block with number {}: {}",
                   finish_block_number,
-                  finish_block_hash_res.error().message());
+                  finish_block_hash_res.error());
       return BlockTreeError::HEADER_NOT_FOUND;
     }
     const auto &finish_block_hash = finish_block_hash_res.value();
@@ -828,7 +812,7 @@ namespace kagome::blockchain {
         if (chain.empty()) {
           log_->error("cannot retrieve block with hash {}: {}",
                       hash,
-                      header_res.error().message());
+                      header_res.error());
           return BlockTreeError::HEADER_NOT_FOUND;
         }
         break;
@@ -899,10 +883,10 @@ namespace kagome::blockchain {
       descendant_depth = number_res.value();
     }
     if (descendant_depth < ancestor_depth) {
-      SL_WARN(log_,
-              "Ancestor block is lower. {} in comparison with {}",
-              primitives::BlockInfo(ancestor_depth, ancestor),
-              primitives::BlockInfo(descendant_depth, descendant));
+      SL_DEBUG(log_,
+               "Ancestor block is lower. {} in comparison with {}",
+               primitives::BlockInfo(ancestor_depth, ancestor),
+               primitives::BlockInfo(descendant_depth, descendant));
       return false;
     }
 
@@ -1020,8 +1004,8 @@ namespace kagome::blockchain {
     log_->warn(
         "Block {} exists in chain but not found when following all leaves "
         "backwards. Max block number = {}",
-        target_hash.toHex(),
-        max_number.has_value() ? max_number.value() : -1);
+        target_hash,
+        max_number);
     return BlockTreeError::EXISTING_BLOCK_NOT_FOUND;
   }
 
@@ -1154,7 +1138,7 @@ namespace kagome::blockchain {
       if (result) {
         SL_DEBUG(log_, "Tx {} was reapplied", result.value().toHex());
       } else {
-        SL_DEBUG(log_, "Tx was skipped: {}", result.error().message());
+        SL_DEBUG(log_, "Tx was skipped: {}", result.error());
       }
     }
 

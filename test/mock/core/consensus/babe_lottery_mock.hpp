@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   struct BabeLotteryMock : public BabeLottery {
     MOCK_METHOD(void,
                 changeEpoch,
@@ -39,6 +39,6 @@ namespace kagome::consensus {
                  const Randomness &),
                 (const, override));
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_BABE_LOTTERY_MOCK_HPP

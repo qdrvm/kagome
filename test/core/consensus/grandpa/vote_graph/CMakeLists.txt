@@ -16,9 +16,7 @@ addtest(vote_graph_test
     small_block_number_test.cpp
     )
 target_link_libraries(vote_graph_test
-    vote_graph
-    vote_tracker
-    voter_set
+    consensus
     blob
-    block_tree
+    blockchain
     )

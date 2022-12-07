@@ -84,8 +84,7 @@ namespace {
       if (response.has_value())
         std::forward<F>(f)(response.value());
       else
-        logger->error("process Json data failed => {}",
-                      response.error().message());
+        logger->error("process Json data failed => {}", response.error());
     });
   }
   inline void sendEvent(std::shared_ptr<JRpcServer> server,
@@ -352,7 +351,7 @@ namespace kagome::api {
               "Request block header of the last finalized "
               "failed with error: "
               "{}",
-              header.error().message());
+              header.error());
         }
         return static_cast<PubsubSubscriptionId>(id);
       });
@@ -393,7 +392,7 @@ namespace kagome::api {
         } else {
           logger_->error(
               "Request block header of the deepest leaf failed with error: {}",
-              header.error().message());
+              header.error());
         }
         return static_cast<PubsubSubscriptionId>(id);
       });

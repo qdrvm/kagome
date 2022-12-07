@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   class BabeUtilMock : public BabeUtil {
    public:
@@ -52,6 +52,6 @@ namespace kagome::consensus {
                 (const, override));
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_CONSENSUS_BABEUTILMOCK

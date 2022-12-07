@@ -57,8 +57,7 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(outcome::result<void>,
                 finalize,
-                (VoterSetId id,
-                 const GrandpaJustification &justification),
+                (VoterSetId id, const GrandpaJustification &justification),
                 (override));
 
     MOCK_METHOD(outcome::result<GrandpaJustification>,

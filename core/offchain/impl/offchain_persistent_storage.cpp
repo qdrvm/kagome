@@ -47,7 +47,7 @@ namespace kagome::offchain {
       common::Buffer value) {
     auto iKey = internalKey(key);
     std::lock_guard lg(mutex_);
-    OUTCOME_TRY(get_opt, storage_->tryLoad(iKey));
+    OUTCOME_TRY(get_opt, storage_->tryGet(iKey));
 
     std::optional<common::BufferView> existing;
     if (get_opt.has_value()) {
@@ -66,7 +66,8 @@ namespace kagome::offchain {
   outcome::result<common::Buffer> OffchainPersistentStorageImpl::get(
       const common::BufferView &key) {
     auto iKey = internalKey(key);
-    return storage_->load(iKey);
+    OUTCOME_TRY(value, storage_->get(iKey));
+    return value.into();
   }
 
 }  // namespace kagome::offchain

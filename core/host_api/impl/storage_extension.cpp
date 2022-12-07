@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "clock/impl/clock_impl.hpp"
+#include "common/monadic_utils.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
@@ -56,7 +57,7 @@ namespace kagome::host_api {
           res.has_error()) {
         if (res.error()
             != runtime::RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED) {
-          logger_->error(res.error().message());
+          logger_->error(res.error());
         }
         break;
       }
@@ -78,7 +79,7 @@ namespace kagome::host_api {
     if (auto data_opt_res = get(key); data_opt_res.has_value()) {
       auto &data_opt = data_opt_res.value();
       if (data_opt.has_value()) {
-        common::BufferView data = data_opt.value().get();
+        common::BufferView data = *data_opt;
         data = data.subspan(std::min<size_t>(offset, data.size()));
         auto written = std::min<size_t>(data.size(), value.size);
         memory.storeBuffer(value.ptr, data.subspan(0, written));
@@ -93,12 +94,12 @@ namespace kagome::host_api {
     } else {
       SL_ERROR(logger_,
                "Error in ext_storage_read_version_1: {}",
-               data_opt_res.error().message());
+               data_opt_res.error());
     }
     return memory.storeBuffer(scale::encode(res).value());
   }
 
-  outcome::result<std::optional<common::BufferConstRef>> StorageExtension::get(
+  outcome::result<std::optional<common::BufferOrView>> StorageExtension::get(
       const common::BufferView &key) const {
     auto batch = storage_provider_->getCurrentBatch();
     return batch->tryGet(key);
@@ -129,11 +130,11 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
 
     auto batch = storage_provider_->getCurrentBatch();
-    auto put_result = batch->put(key, value);
+    auto put_result = batch->put(key, std::move(value));
     if (not put_result) {
       logger_->error(
           "ext_set_storage failed, due to fail in trie db with reason: {}",
-          put_result.error().message());
+          put_result.error());
     }
   }
 
@@ -151,13 +152,15 @@ namespace kagome::host_api {
     if (result) {
       SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
     } else {
-      logger_->error(
-          error_message, key_buffer.toHex(), result.error().message());
+      logger_->error(error_message, key_buffer.toHex(), result.error());
     }
 
     auto &option = result.value();
 
-    return memory.storeBuffer(scale::encode(option).value());
+    return memory.storeBuffer(
+        scale::encode(common::map_optional(option, [](auto &r) {
+          return r.view();
+        })).value());
   }
 
   void StorageExtension::ext_storage_clear_version_1(
@@ -173,7 +176,7 @@ namespace kagome::host_api {
           "ext_storage_clear_version_1 did not delete key {} from trie db "
           "with reason: {}",
           key_data,
-          del_result.error().message());
+          del_result.error());
     }
   }
 
@@ -240,7 +243,7 @@ namespace kagome::host_api {
     }
     if (res.has_error()) {
       logger_->error("ext_storage_root resulted with an error: {}",
-                     res.error().message());
+                     res.error());
     }
     const auto &root = res.value();
     auto &memory = memory_provider_->getCurrentMemory()->get();
@@ -264,7 +267,7 @@ namespace kagome::host_api {
     auto res = getStorageNextKey(key_bytes);
     if (res.has_error()) {
       logger_->error("ext_storage_next_key resulted with error: {}",
-                     res.error().message());
+                     res.error());
       return kErrorSpan;
     }
     auto &&next_key_opt = res.value();
@@ -278,7 +281,7 @@ namespace kagome::host_api {
     } else {  // NOLINT(readability-else-after-return)
       logger_->error(
           "ext_storage_next_key result encoding resulted with error: {}",
-          enc_res.error().message());
+          enc_res.error());
     }
     return kErrorSpan;
   }
@@ -293,9 +296,8 @@ namespace kagome::host_api {
 
     auto val_opt_res = get(key_bytes);
     if (val_opt_res.has_error()) {
-      throw std::runtime_error{
-          fmt::format("Error fetching value from storage: {}",
-                      val_opt_res.error().message())};
+      throw std::runtime_error{fmt::format(
+          "Error fetching value from storage: {}", val_opt_res.error())};
     }
     auto &val_opt = val_opt_res.value();
     auto &&val = val_opt ? common::Buffer{val_opt.value()} : common::Buffer{};
@@ -308,7 +310,7 @@ namespace kagome::host_api {
         logger_->error(
             "ext_storage_append_version_1 failed, due to fail in trie db "
             "with reason: {}",
-            put_result.error().message());
+            put_result.error());
       }
       return;
     }
@@ -317,8 +319,7 @@ namespace kagome::host_api {
   void StorageExtension::ext_storage_start_transaction_version_1() {
     auto res = storage_provider_->startTransaction();
     if (res.has_error()) {
-      logger_->error("Storage transaction start has failed: {}",
-                     res.error().message());
+      logger_->error("Storage transaction start has failed: {}", res.error());
       throw std::runtime_error(res.error().message());
     }
   }
@@ -328,7 +329,7 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction rollback has failed: {}",
-                     res.error().message());
+                     res.error());
       throw std::runtime_error(res.error().message());
     }
   }
@@ -337,8 +338,7 @@ namespace kagome::host_api {
     auto res = storage_provider_->rollbackTransaction();
     SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
-      logger_->error("Storage transaction commit has failed: {}",
-                     res.error().message());
+      logger_->error("Storage transaction commit has failed: {}", res.error());
       throw std::runtime_error(res.error().message());
     }
   }
@@ -363,7 +363,7 @@ namespace kagome::host_api {
     const auto &buffer = memory.loadN(ptr, size);
     const auto &pairs = scale::decode<KeyValueCollection>(buffer);
     if (!pairs) {
-      logger_->error("failed to decode pairs: {}", pairs.error().message());
+      logger_->error("failed to decode pairs: {}", pairs.error());
       throw std::runtime_error(pairs.error().message());
     }
 
@@ -378,7 +378,7 @@ namespace kagome::host_api {
     storage::trie::PolkadotTrieImpl trie;
     for (auto &&p : pv) {
       auto &&key = p.first;
-      auto &&value = p.second;
+      common::BufferView value = p.second;
       // already scale-encoded
       auto put_res = trie.put(key, value);
       if (not put_res) {
@@ -387,12 +387,12 @@ namespace kagome::host_api {
             "error: {}",
             value.toHex(),
             key.toHex(),
-            put_res.error().message());
+            put_res.error());
       }
     }
     const auto &enc = codec.encodeNode(*trie.getRoot());
     if (!enc) {
-      logger_->error("failed to encode trie root: {}", enc.error().message());
+      logger_->error("failed to encode trie root: {}", enc.error());
       throw std::runtime_error(enc.error().message());
     }
     const auto &hash = codec.hash256(enc.value());
@@ -416,7 +416,7 @@ namespace kagome::host_api {
     const auto &buffer = memory.loadN(address, size);
     const auto &values = scale::decode<ValuesCollection>(buffer);
     if (!values) {
-      logger_->error("failed to decode values: {}", values.error().message());
+      logger_->error("failed to decode values: {}", values.error());
       throw std::runtime_error(values.error().message());
     }
     const auto &collection = values.value();
@@ -428,7 +428,7 @@ namespace kagome::host_api {
     if (!ordered_hash.has_value()) {
       logger_->error(
           "ext_blake2_256_enumerated_trie_root resulted with an error: {}",
-          ordered_hash.error().message());
+          ordered_hash.error());
       throw std::runtime_error(ordered_hash.error().message());
     }
     SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());
@@ -444,15 +444,15 @@ namespace kagome::host_api {
     auto res = batch->clearPrefix(
         prefix, limit ? std::optional<uint64_t>(limit.value()) : std::nullopt);
     if (not res) {
-      auto msg = fmt::format("ext_storage_clear_prefix failed: {}",
-                             res.error().message());
+      auto msg =
+          fmt::format("ext_storage_clear_prefix failed: {}", res.error());
       logger_->error(msg);
       throw std::runtime_error(msg);
     }
     auto enc_res = scale::encode(res.value());
     if (not enc_res) {
-      auto msg = fmt::format("ext_storage_clear_prefix failed: {}",
-                             enc_res.error().message());
+      auto msg =
+          fmt::format("ext_storage_clear_prefix failed: {}", enc_res.error());
       logger_->error(msg);
       throw std::runtime_error(msg);
     }
@@ -476,14 +476,14 @@ namespace kagome::host_api {
       // SAFETY: key obtained by getStorageNextKey method, thus must exist in
       // the storage
       auto value_opt = get(current_key).value();
-      if (value_opt and value_opt.value().get() == empty_hash) {
+      if (value_opt == empty_hash) {
         auto batch = storage_provider_->getCurrentBatch();
         auto remove_res = batch->remove(current_key);
         if (not remove_res) {
           logger_->error(
               "Unable to remove empty child storage under key {}, error is {}",
               current_key,
-              remove_res.error().message());
+              remove_res.error());
         } else {
           SL_TRACE(
               logger_, "Removed empty child trie under key {}", current_key);

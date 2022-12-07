@@ -5,7 +5,7 @@
 
 #include "babe_config_node.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   BabeConfigNode::BabeConfigNode(
       const std::shared_ptr<const BabeConfigNode> &ancestor,
@@ -42,4 +42,4 @@ namespace kagome::consensus {
     return node;
   }
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

@@ -72,8 +72,7 @@ namespace kagome::consensus::grandpa {
     return index;
   }
 
-  std::optional<VoterSet::Weight> VoterSet::voterWeight(
-      const Id &voter) const {
+  std::optional<VoterSet::Weight> VoterSet::voterWeight(const Id &voter) const {
     if (voter == Id{}) {
       return std::nullopt;
     }

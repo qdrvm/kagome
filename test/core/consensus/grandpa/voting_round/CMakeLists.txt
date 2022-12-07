@@ -8,9 +8,7 @@ addtest(voting_round_test
     )
 
 target_link_libraries(voting_round_test
-    voting_round
-    vote_graph
-    vote_tracker
+    consensus
     blob
     clock
     logger_for_tests

@@ -12,6 +12,6 @@ addtest(babe_lottery_test
     babe_lottery_test.cpp
     )
 target_link_libraries(babe_lottery_test
-    babe_lottery
+    consensus
     logger_for_tests
     )

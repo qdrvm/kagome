@@ -119,6 +119,17 @@ namespace kagome::network {
     primitives::BlockHash
         para_head_hash;  /// Hash of the parachain head data of this candidate.
     primitives::BlockHash para_runtime_hash;  /// Hash of the parachain Runtime.
+
+    common::Buffer signable() const {
+      return common::Buffer{
+          scale::encode(relay_parent,
+                        para_id,
+                        persisted_data_hash,
+                        pov_hash,
+                        para_runtime_hash)
+              .value(),
+      };
+    }
   };
 
   /**
@@ -218,6 +229,28 @@ namespace kagome::network {
 
   /// Signed availability bitfield.
   using SignedBitfield = Signed<scale::BitVec>;
+
+  /// A succinct representation of a peer's view. This consists of a bounded
+  /// amount of chain heads and the highest known finalized block number.
+  ///
+  /// Up to `N` (5?) chain heads.
+  /// The rust representation:
+  /// https://github.com/paritytech/polkadot/blob/master/node/network/protocol/src/lib.rs#L160
+  struct View {
+    SCALE_TIE(2);
+
+    /// A bounded amount of chain heads.
+    /// Invariant: Sorted.
+    std::vector<primitives::BlockHash> heads_;
+
+    /// The highest known finalized block number.
+    primitives::BlockNumber finalized_number_;
+
+    bool contains(const primitives::BlockHash &hash) const {
+      auto const it = std::lower_bound(heads_.begin(), heads_.end(), hash);
+      return it != heads_.end() && *it == hash;
+    }
+  };
 
   /**
    * Collator -> Validator and Validator -> Collator if statement message.

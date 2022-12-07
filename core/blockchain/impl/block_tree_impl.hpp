@@ -41,7 +41,8 @@ namespace kagome::blockchain {
   class TreeNode;
   class CachedTree;
 
-  class BlockTreeImpl : public BlockTree {
+  class BlockTreeImpl : public BlockTree,
+                        public std::enable_shared_from_this<BlockTreeImpl> {
    public:
     /// Create an instance of block tree
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
@@ -187,7 +188,7 @@ namespace kagome::blockchain {
 
     std::optional<primitives::BlockHash> genesis_block_hash_;
 
-    log::Logger log_ = log::createLogger("BlockTree", "blockchain");
+    log::Logger log_ = log::createLogger("BlockTree", "block_tree");
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

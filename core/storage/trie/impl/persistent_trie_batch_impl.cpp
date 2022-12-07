@@ -62,13 +62,13 @@ namespace kagome::storage::trie {
     return std::make_unique<TopperTrieBatchImpl>(shared_from_this());
   }
 
-  outcome::result<BufferConstRef> PersistentTrieBatchImpl::get(
+  outcome::result<BufferOrView> PersistentTrieBatchImpl::get(
       const BufferView &key) const {
     return trie_->get(key);
   }
 
-  outcome::result<std::optional<BufferConstRef>>
-  PersistentTrieBatchImpl::tryGet(const BufferView &key) const {
+  outcome::result<std::optional<BufferOrView>> PersistentTrieBatchImpl::tryGet(
+      const BufferView &key) const {
     return trie_->tryGet(key);
   }
 
@@ -99,22 +99,17 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PersistentTrieBatchImpl::put(const BufferView &key,
-                                                     const Buffer &value) {
+                                                     BufferOrView &&value) {
     OUTCOME_TRY(contains, trie_->contains(key));
     bool is_new_entry = not contains;
-    auto res = trie_->put(key, value);
+    auto value_copy = value.mut();
+    auto res = trie_->put(key, std::move(value));
     if (res and changes_.has_value()) {
-      SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
+      SL_TRACE_VOID_FUNC_CALL(logger_, key, value_copy);
 
-      changes_.value()->onPut(key, value, is_new_entry);
+      changes_.value()->onPut(key, value_copy, is_new_entry);
     }
     return res;
-  }
-
-  outcome::result<void> PersistentTrieBatchImpl::put(const BufferView &key,
-                                                     Buffer &&value) {
-    return put(key, value);  // cannot take possession of value, check the
-                             // const-ref version definition
   }
 
   outcome::result<void> PersistentTrieBatchImpl::remove(const BufferView &key) {

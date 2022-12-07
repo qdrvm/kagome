@@ -79,8 +79,8 @@ namespace kagome::primitives {
     return s;
   }
 
-  outcome::result<BlockHash> calculateBlockHash(
-      BlockHeader const &header, crypto::Hasher const &hasher);
+  outcome::result<BlockHash> calculateBlockHash(BlockHeader const &header,
+                                                crypto::Hasher const &hasher);
 
 }  // namespace kagome::primitives
 

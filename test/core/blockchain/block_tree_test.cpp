@@ -261,7 +261,7 @@ struct BlockTreeTest : public testing::Test {
     digest.emplace_back(
         primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
-    consensus::Seal seal{};
+    kagome::consensus::babe::Seal seal{};
     common::Buffer encoded_seal{scale::encode(seal).value()};
     digest.emplace_back(
         primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});

@@ -14,7 +14,7 @@
 
 #include <scale/scale.hpp>
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   /**
    * Contains specific data, needed in BABE for validation
    *
@@ -81,6 +81,6 @@ namespace kagome::consensus {
       return s;
     }
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_BABE_BLOCK_HEADER_HPP

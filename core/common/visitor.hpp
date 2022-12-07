@@ -6,9 +6,11 @@
 #ifndef KAGOME_VISITOR_HPP
 #define KAGOME_VISITOR_HPP
 
+#include <optional>
 #include <type_traits>  // for std::decay
 #include <utility>      // for std::forward
 
+#include <boost/variant.hpp>
 #include <boost/variant/apply_visitor.hpp>  // for boost::apply_visitor
 
 namespace kagome {
@@ -83,6 +85,13 @@ namespace kagome {
     return boost::apply_visitor(
         make_visitor(std::forward<TVisitors>(visitors)...),
         std::forward<TVariant>(variant));
+  }
+
+  template <typename TReturn, typename TVariant>
+  constexpr std::optional<std::reference_wrapper<TReturn>> if_type(
+      TVariant &&variant) {
+    if (auto ptr = boost::get<TReturn>(&variant)) return *ptr;
+    return std::nullopt;
   }
 
   /// apply Matcher to optional T

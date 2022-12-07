@@ -12,7 +12,7 @@
 #include "crypto/sr25519_types.hpp"
 #include "primitives/babe_configuration.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   /**
    * Interface for acquiring leadership information for the current Babe epoch.
    * It is expected to be used as follows:
@@ -27,7 +27,8 @@ namespace kagome::consensus {
    *    - that value is then is used in slotsLeadership(..)
    *
    */
-  struct BabeLottery {
+  class BabeLottery {
+   public:
     virtual ~BabeLottery() = default;
 
     /**
@@ -78,6 +79,6 @@ namespace kagome::consensus {
         primitives::AuthorityListSize authorities_count,
         const Randomness &randomness) const = 0;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_BABE_LOTTERY_HPP

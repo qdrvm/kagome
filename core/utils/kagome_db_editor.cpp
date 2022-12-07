@@ -148,9 +148,8 @@ void child_storage_root_hashes(
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
         auto &value_opt = value_res.value();
-        log->trace("Found child root hash {}", value_opt.value().get().toHex());
-        hashes.insert(
-            common::Hash256::fromSpan(value_opt.value().get()).value());
+        log->trace("Found child root hash {}", *value_opt);
+        hashes.insert(common::Hash256::fromSpan(*value_opt).value());
       }
       res = cursor->next();
       key = cursor->key();
@@ -163,7 +162,7 @@ auto is_hash(const char *s) {
          && std::equal(s, s + 2, "0x");
 };
 
-int main(int argc, char *argv[]) {
+int db_editor_main(int argc, const char **argv) {
 #if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
 #endif
@@ -350,8 +349,8 @@ int main(int argc, char *argv[]) {
           if (child_batch_res.has_value()) {
             child_batches.emplace_back(std::move(child_batch_res.value()));
           } else {
-            log->error("Child batch 0x{} not found in the storage",
-                       child_root_hash.toHex());
+            log->error("Child batch {} not found in the storage",
+                       child_root_hash);
           }
         }
       }
@@ -422,7 +421,7 @@ int main(int argc, char *argv[]) {
         count = 0;
         while (cursor->key().has_value()) {
           ofs << "  - "
-              << check(batch->get(check(cursor->key()).value())).value().get()
+              << check(batch->get(check(cursor->key()).value())).value().view()
               << "\n";
           if (not(++count % 50000)) {
             log->trace("{} values were dumped.", count);
@@ -441,4 +440,6 @@ int main(int argc, char *argv[]) {
     dynamic_cast<storage::RocksDB *>(storage.get())
         ->compact(common::Buffer(), common::Buffer());
   }
+
+  return 0;
 }

@@ -165,7 +165,7 @@ TEST_F(RuntimeUpgradeTrackerTest, CorrectUpgradeScenario) {
       .WillRepeatedly(testing::Return(genesis_block_header));
   EXPECT_CALL(*header_repo_,
               getBlockHeader(kagome::primitives::BlockId{block_42.hash}))
-      .WillOnce(testing::Return(block_42_header));
+      .WillRepeatedly(testing::Return(block_42_header));
 
   EXPECT_OUTCOME_TRUE(state42, tracker_->getLastCodeUpdateState(block_41));
   ASSERT_EQ(state42, genesis_block_header.state_root);
@@ -207,7 +207,7 @@ TEST_F(RuntimeUpgradeTrackerTest, CodeSubstituteAndStore) {
   auto block1_header = makeBlockHeader(5200000);
   EXPECT_CALL(*header_repo_,
               getBlockHeader(kagome::primitives::BlockId{block1.hash}))
-      .WillOnce(testing::Return(block1_header));
+      .WillRepeatedly(testing::Return(block1_header));
   sub_engine_->notify(
       kagome::primitives::events::ChainEventType::kNewRuntime,
       kagome::primitives::events::NewRuntimeEventParams{block1.hash});

@@ -85,7 +85,14 @@ namespace kagome::runtime {
     bool hasCodeSubstitute(
         const kagome::primitives::BlockInfo &block_info) const;
 
-    outcome::result<storage::trie::RootHash> push(
+    /**
+     * Pushes record [block info + state root] of block whose state contains
+     * particular runtime code first time
+     * @param hash - hash of such block
+     * @return pair of state root hash and true or false if such record is
+     * already existing or not, or error
+     */
+    outcome::result<std::pair<storage::trie::RootHash, bool>> push(
         const primitives::BlockHash &hash);
 
     void save();

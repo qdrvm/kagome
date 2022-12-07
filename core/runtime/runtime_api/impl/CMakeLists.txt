@@ -38,7 +38,7 @@ add_library(grandpa_api
     grandpa_api.cpp
     )
 target_link_libraries(grandpa_api
-    block_header_repository
+    blockchain
     executor
     )
 
@@ -48,6 +48,7 @@ add_library(metadata_api
 target_link_libraries(metadata_api
     executor
     )
+kagome_install(metadata_api)
 
 add_library(parachain_host_api
     parachain_host.cpp

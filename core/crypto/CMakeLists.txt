@@ -43,6 +43,7 @@ target_link_libraries(vrf_provider
     blob
     p2p::p2p_random_generator # generator from libp2p
     )
+kagome_install(vrf_provider)
 
 add_library(sr25519_provider
     sr25519/sr25519_provider_impl.cpp

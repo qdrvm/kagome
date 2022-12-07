@@ -60,16 +60,13 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
-#include "consensus/authority/authority_manager.hpp"
-#include "consensus/authority/authority_update_observer.hpp"
-#include "consensus/authority/impl/authority_manager_impl.hpp"
-#include "consensus/authority/impl/schedule_node.hpp"
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/block_appender_impl.hpp"
 #include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/babe/impl/consistency_keeper_impl.hpp"
+#include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
@@ -103,7 +100,7 @@
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
-#include "network/sync_protocol_observer.hpp"
+#include "network/peer_view.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "offchain/impl/offchain_persistent_storage.hpp"
 #include "offchain/impl/offchain_worker_factory_impl.hpp"
@@ -112,6 +109,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
+#include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/validator/parachain_observer.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -342,7 +340,7 @@ namespace {
 
       for (const auto &[key_, val_] : raw_configs) {
         auto &key = key_;
-        auto &val = val_;
+        common::BufferView val = val_;
         SL_TRACE(
             log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
         if (auto res = batch->put(key, val); not res) {
@@ -369,7 +367,7 @@ namespace {
 
       common::Buffer child_key;
       child_key.put(storage::kChildStorageDefaultPrefix).put(root_hash);
-      auto res = batch->put(child_key, root_hash);
+      auto res = batch->put(child_key, common::BufferView{root_hash});
       if (res.has_error()) {
         common::raise(res.error());
       }
@@ -382,7 +380,7 @@ namespace {
 
     auto &root_hash = res.value();
 
-    SL_TRACE(log, "root hash is {}", root_hash.toHex());
+    SL_TRACE(log, "root hash is {}", root_hash);
 
     initialized.emplace(std::move(trie_storage), root_hash);
     return initialized.value();
@@ -429,7 +427,7 @@ namespace {
                     fs::absolute(app_config.databasePath(chain_spec->id()),
                                  fs::current_path())
                         .native(),
-                    db_res.error().message());
+                    db_res.error());
       exit(EXIT_FAILURE);
     }
     auto &db = db_res.value();
@@ -454,7 +452,7 @@ namespace {
       log->critical(
           "Can't load chain spec from {}: {}",
           fs::absolute(chainspec_path.native(), fs::current_path()).native(),
-          chain_spec_res.error().message());
+          chain_spec_res.error());
       exit(EXIT_FAILURE);
     }
     auto &chain_spec = chain_spec_res.value();
@@ -512,7 +510,7 @@ namespace {
       return initialized.value();
     }
 
-    auto asmgr =
+    auto app_state_manager =
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
     auto thread_pool = injector.template create<sptr<api::RpcThreadPool>>();
@@ -537,7 +535,7 @@ namespace {
     auto core = injector.template create<sptr<runtime::Core>>();
 
     auto api_service =
-        std::make_shared<api::ApiServiceImpl>(asmgr,
+        std::make_shared<api::ApiServiceImpl>(app_state_manager,
                                               thread_pool,
                                               listeners,
                                               server,
@@ -656,7 +654,8 @@ namespace {
         injector.template create<sptr<network::Router>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<network::ReputationRepository>>());
+        injector.template create<sptr<network::ReputationRepository>>(),
+        injector.template create<sptr<network::PeerView>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -671,24 +670,24 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<consensus::BlockExecutorImpl> get_block_executor(
+  sptr<consensus::babe::BlockExecutorImpl> get_block_executor(
       const Injector &injector) {
     static auto initialized =
-        std::optional<sptr<consensus::BlockExecutorImpl>>(std::nullopt);
+        std::optional<sptr<consensus::babe::BlockExecutorImpl>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
 
-    auto block_executor = std::make_shared<consensus::BlockExecutorImpl>(
+    auto block_executor = std::make_shared<consensus::babe::BlockExecutorImpl>(
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<runtime::Core>>(),
         injector.template create<sptr<consensus::babe::BabeConfigRepository>>(),
-        injector.template create<sptr<consensus::BlockValidator>>(),
+        injector.template create<sptr<consensus::babe::BlockValidator>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<blockchain::DigestTracker>>(),
-        injector.template create<sptr<consensus::BabeUtil>>(),
+        injector.template create<sptr<consensus::babe::BabeUtil>>(),
         injector.template create<sptr<runtime::OffchainWorkerApi>>(),
         injector.template create<sptr<consensus::babe::ConsistencyKeeper>>());
 
@@ -732,10 +731,10 @@ namespace {
           session_keys->getBabeKeyPair(),
           injector.template create<std::shared_ptr<crypto::Hasher>>());
 
-      auto asmgr =
+      auto app_state_manager =
           injector
               .template create<std::shared_ptr<application::AppStateManager>>();
-      asmgr->takeControl(*ptr);
+      app_state_manager->takeControl(*ptr);
       return ptr;
     };
 
@@ -864,7 +863,6 @@ namespace {
       application::AppConfiguration::RuntimeExecutionMethod method,
       Ts &&...args) {
     return di::make_injector(
-        di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<runtime::RuntimeUpgradeTrackerImpl>.template to(
             [](auto const &injector) {
               return get_runtime_upgrade_tracker(injector);
@@ -1164,7 +1162,7 @@ namespace {
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
         di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
-        di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
+        di::bind<consensus::babe::BlockValidator>.template to<consensus::babe::BabeBlockValidator>(),
         di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
@@ -1184,7 +1182,6 @@ namespace {
           return get_key_file_storage(config, chain_spec);
         }),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
-        di::bind<host_api::HostApi>.template to<host_api::HostApiImpl>(),
         di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
         makeRuntimeInjector(config.runtimeExecMethod()),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
@@ -1194,6 +1191,7 @@ namespace {
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
         di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
         di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
+        di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
         di::bind<parachain::ParachainObserverImpl>.to([](auto const &injector) {
           return get_parachain_observer_impl(injector);
         }),
@@ -1222,22 +1220,23 @@ namespace {
         di::bind<network::ExtrinsicObserver>.to([](const auto &injector) {
           return get_extrinsic_observer_impl(injector);
         }),
-        di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
-        bind_by_lambda<authority::AuthorityManager>([](auto const &injector) {
-          auto auth_manager_impl =
-              injector.template create<sptr<authority::AuthorityManagerImpl>>();
-          auto block_tree_impl =
-              injector.template create<sptr<blockchain::BlockTree>>();
-          auto justification_storage_policy = injector.template create<
-              sptr<blockchain::JustificationStoragePolicyImpl>>();
-          justification_storage_policy->initBlockchainInfo(block_tree_impl);
-          return auth_manager_impl;
-        }),
+        di::bind<consensus::grandpa::GrandpaDigestObserver>.template to<consensus::grandpa::AuthorityManagerImpl>(),
+        bind_by_lambda<consensus::grandpa::AuthorityManager>(
+            [](auto const &injector) {
+              auto auth_manager_impl = injector.template create<
+                  sptr<consensus::grandpa::AuthorityManagerImpl>>();
+              auto block_tree_impl =
+                  injector.template create<sptr<blockchain::BlockTree>>();
+              auto justification_storage_policy = injector.template create<
+                  sptr<blockchain::JustificationStoragePolicyImpl>>();
+              justification_storage_policy->initBlockchainInfo(block_tree_impl);
+              return auth_manager_impl;
+            }),
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
-        di::bind<consensus::BlockAppender>.template to<consensus::BlockAppenderImpl>(),
-        di::bind<consensus::BlockExecutor>.to(
+        di::bind<consensus::babe::BlockAppender>.template to<consensus::babe::BlockAppenderImpl>(),
+        di::bind<consensus::babe::BlockExecutor>.to(
             [](auto const &injector) { return get_block_executor(injector); }),
         di::bind<consensus::grandpa::Grandpa>.to(
             [](auto const &injector) { return get_grandpa_impl(injector); }),
@@ -1249,7 +1248,7 @@ namespace {
             [](auto const &injector) { return get_grandpa_impl(injector); }),
         di::bind<consensus::grandpa::GrandpaObserver>.to(
             [](auto const &injector) { return get_grandpa_impl(injector); }),
-        di::bind<consensus::BabeUtil>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+        di::bind<consensus::babe::BabeUtil>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
         di::bind<network::BlockAnnounceTransmitter>.template to<network::BlockAnnounceTransmitterImpl>(),
         di::bind<network::GrandpaTransmitter>.template to<network::GrandpaTransmitterImpl>(),
         di::bind<network::TransactionsTransmitter>.template to<network::TransactionsTransmitterImpl>(),
@@ -1263,7 +1262,7 @@ namespace {
         di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
         di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
         di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
-        di::bind<consensus::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+        di::bind<consensus::babe::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1334,7 +1333,7 @@ namespace {
     initialized = std::make_shared<consensus::babe::BabeImpl>(
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<application::AppStateManager>>(),
-        injector.template create<sptr<consensus::BabeLottery>>(),
+        injector.template create<sptr<consensus::babe::BabeLottery>>(),
         injector.template create<sptr<consensus::babe::BabeConfigRepository>>(),
         injector.template create<sptr<authorship::Proposer>>(),
         injector.template create<sptr<blockchain::BlockTree>>(),
@@ -1344,14 +1343,15 @@ namespace {
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
-        injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
+        injector.template create<sptr<blockchain::DigestTracker>>(),
         injector.template create<sptr<network::Synchronizer>>(),
-        injector.template create<sptr<consensus::BabeUtil>>(),
+        injector.template create<sptr<consensus::babe::BabeUtil>>(),
         injector
             .template create<primitives::events::ChainSubscriptionEnginePtr>(),
         injector.template create<sptr<runtime::OffchainWorkerApi>>(),
         injector.template create<sptr<runtime::Core>>(),
-        injector.template create<sptr<consensus::babe::ConsistencyKeeper>>());
+        injector.template create<sptr<consensus::babe::ConsistencyKeeper>>(),
+        injector.template create<sptr<storage::trie::TrieStorage>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1401,7 +1401,7 @@ namespace {
         injector.template create<const application::ChainSpec &>(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<libp2p::basic::Scheduler>>(),
-        injector.template create<sptr<authority::AuthorityManager>>(),
+        injector.template create<sptr<consensus::grandpa::AuthorityManager>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<network::PeerManager>>(),
         injector.template create<sptr<blockchain::BlockTree>>(),
@@ -1434,7 +1434,7 @@ namespace {
     auto trie_storage =
         injector.template create<sptr<const storage::trie::TrieStorage>>();
     auto authority_manager =
-        injector.template create<sptr<authority::AuthorityManager>>();
+        injector.template create<sptr<consensus::grandpa::AuthorityManager>>();
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
 
     initialized.emplace(new application::mode::RecoveryMode(
@@ -1455,21 +1455,11 @@ namespace {
 
           auto log = log::createLogger("RecoveryMode", "main");
 
-          buffer_storage->remove(storage::kAuthorityManagerStateLookupKey)
+          buffer_storage
+              ->remove(storage::kAuthorityManagerStateLookupKey("last"))
               .value();
           if (res.has_error()) {
-            SL_ERROR(
-                log, "Recovery mode has failed: {}", res.error().message());
-            log->flush();
-            return EXIT_FAILURE;
-          }
-
-          auto number =
-              header_repo->getNumberById(app_config.recoverState().value());
-          res = authority_manager->recalculateStoredState(number.value());
-          if (res.has_error()) {
-            SL_ERROR(
-                log, "Recovery mode has failed: {}", res.error().message());
+            SL_ERROR(log, "Recovery mode has failed: {}", res.error());
             log->flush();
             return EXIT_FAILURE;
           }
@@ -1492,7 +1482,7 @@ namespace {
             [](const auto &injector) { return get_own_peer_info(injector); }),
         di::bind<consensus::babe::Babe>.to(
             [](auto const &injector) { return get_babe(injector); }),
-        di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
+        di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
         di::bind<network::BlockAnnounceObserver>.to(
             [](auto const &injector) { return get_babe(injector); }),
 

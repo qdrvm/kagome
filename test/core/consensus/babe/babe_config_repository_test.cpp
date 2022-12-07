@@ -25,8 +25,8 @@ using blockchain::BlockTreeMock;
 using clock::SystemClockMock;
 using common::Buffer;
 using common::BufferView;
-using consensus::BabeUtil;
 using consensus::babe::BabeConfigRepositoryImpl;
+using consensus::babe::BabeUtil;
 using crypto::HasherMock;
 using primitives::BabeSlotNumber;
 using primitives::BlockHeader;
@@ -34,13 +34,14 @@ using primitives::BlockId;
 using primitives::BlockInfo;
 using primitives::events::ChainSubscriptionEngine;
 using runtime::BabeApiMock;
-using storage::face::GenericStorageMock;
+using storage::BufferStorageMock;
 
 using std::chrono_literals::operator""ms;
 
 using testing::_;
 using testing::Return;
 using testing::ReturnRef;
+using testing::ReturnRefOfCopy;
 
 class BabeConfigRepositoryTest : public testing::Test {
  public:
@@ -55,19 +56,15 @@ class BabeConfigRepositoryTest : public testing::Test {
     app_state_manager = std::make_shared<application::AppStateManagerMock>();
     EXPECT_CALL(*app_state_manager, atPrepare(_)).WillOnce(Return());
 
-    persistent_storage =
-        std::make_shared<GenericStorageMock<Buffer, Buffer, BufferView>>();
-    EXPECT_CALL(*persistent_storage, tryLoad(_))
+    persistent_storage = std::make_shared<BufferStorageMock>();
+    EXPECT_CALL(*persistent_storage, tryGetMock(_))
         .WillRepeatedly(Return(std::nullopt));
 
     block_tree = std::make_shared<BlockTreeMock>();
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillOnce(Return(BlockInfo{0, "genesis"_hash256}));
-    EXPECT_CALL(*block_tree, getBlockHeader(BlockId("genesis"_hash256)))
-        .WillOnce(Return(BlockHeader{.number = 0}));
-    EXPECT_CALL(*block_tree, getLeaves())
-        .WillOnce(
-            Return(std::vector<primitives::BlockHash>{"genesis"_hash256}));
+    EXPECT_CALL(*block_tree, getGenesisBlockHash())
+        .WillOnce(testing::ReturnRefOfCopy("genesis"_hash256));
 
     header_repo = std::make_shared<BlockHeaderRepositoryMock>();
 
@@ -87,21 +84,18 @@ class BabeConfigRepositoryTest : public testing::Test {
                                                    babe_api,
                                                    hasher,
                                                    chain_events_engine,
-                                                   genesis_block_header,
                                                    *clock);
   }
 
   primitives::BabeConfiguration babe_config;
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
-  std::shared_ptr<GenericStorageMock<Buffer, Buffer, BufferView>>
-      persistent_storage;
+  std::shared_ptr<BufferStorageMock> persistent_storage;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<blockchain::BlockHeaderRepository> header_repo;
   std::shared_ptr<runtime::BabeApiMock> babe_api;
   std::shared_ptr<crypto::Hasher> hasher;
   primitives::events::ChainSubscriptionEnginePtr chain_events_engine;
-  primitives::GenesisBlockHeader genesis_block_header{};
   std::shared_ptr<SystemClockMock> clock;
 
   std::shared_ptr<BabeConfigRepositoryImpl> babe_config_repo_;

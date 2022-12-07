@@ -7,6 +7,6 @@ addtest(payment_api_test
         payment_api_test.cpp
         )
 target_link_libraries(payment_api_test
-        payment_api_service
+        api
         blob
         )
