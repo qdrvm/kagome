@@ -6,16 +6,14 @@
 #ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_POLKADOT_TRIE_CURSOR
 #define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_POLKADOT_TRIE_CURSOR
 
-#include "storage/face/map_cursor.hpp"
+#include "storage/buffer_map_types.hpp"
 
 #include "common/buffer.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
 
-  class PolkadotTrieCursor : public face::MapCursor<common::Buffer,
-                                                    common::BufferConstRef,
-                                                    common::BufferView> {
+  class PolkadotTrieCursor : public BufferStorageCursor {
    public:
     virtual ~PolkadotTrieCursor() override = default;
 

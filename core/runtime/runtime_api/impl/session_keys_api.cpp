@@ -24,7 +24,7 @@ namespace kagome::runtime {
   outcome::result<std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>
   SessionKeysApiImpl::decode_session_keys(
       const primitives::BlockHash &block_hash,
-      common::BufferConstRef encoded) const {
+      common::BufferView encoded) const {
     return executor_
         ->callAt<std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>(
             block_hash, "SessionKeys_decode_session_keys", encoded);

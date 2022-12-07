@@ -24,9 +24,8 @@ namespace kagome::storage::trie {
 
     explicit TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent);
 
-    outcome::result<common::BufferConstRef> get(
-        const BufferView &key) const override;
-    outcome::result<std::optional<common::BufferConstRef>> tryGet(
+    outcome::result<BufferOrView> get(const BufferView &key) const override;
+    outcome::result<std::optional<BufferOrView>> tryGet(
         const BufferView &key) const override;
 
     /**
@@ -37,8 +36,7 @@ namespace kagome::storage::trie {
     bool empty() const override;
 
     outcome::result<void> put(const BufferView &key,
-                              const Buffer &value) override;
-    outcome::result<void> put(const BufferView &key, Buffer &&value) override;
+                              BufferOrView &&value) override;
     outcome::result<void> remove(const BufferView &key) override;
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
         const BufferView &prefix, std::optional<uint64_t> limit) override;

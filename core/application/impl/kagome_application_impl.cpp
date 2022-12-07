@@ -73,7 +73,7 @@ namespace kagome::application {
     if (not res) {
       logger_->critical("Error initializing chain directory {}: {}",
                         chain_path.native(),
-                        res.error().message());
+                        res.error());
       exit(EXIT_FAILURE);
     }
 

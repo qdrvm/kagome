@@ -32,7 +32,7 @@ namespace kagome::consensus::babe {
 
   bool ConsistencyKeeperImpl::prepare() {
     // try to get record
-    auto buf_opt_res = storage_->tryLoad(storage::kApplyingBlockInfoLookupKey);
+    auto buf_opt_res = storage_->tryGet(storage::kApplyingBlockInfoLookupKey);
     if (buf_opt_res.has_error()) {
       SL_WARN(logger_,
               "Can't check existence of partial applied block",
@@ -41,7 +41,7 @@ namespace kagome::consensus::babe {
     }
 
     // check if record exists
-    auto buf_opt = buf_opt_res.value();
+    auto &buf_opt = buf_opt_res.value();
     if (not buf_opt.has_value()) {
       return true;
     }

@@ -65,11 +65,7 @@ namespace kagome::log {
     return arg;
   }
 
-  template <typename T,
-            typename = std::enable_if_t<std::is_same_v<
-                std::decay_t<decltype(*std::declval<T>().begin())>,
-                uint8_t>>>
-  std::string format_arg(T const &buffer) {
+  inline std::string format_arg(gsl::span<const uint8_t> buffer) {
     if (buffer.size() == 0) return "";
     std::string res;
     if (std::all_of(buffer.begin(), buffer.end(), isalnum)) {
