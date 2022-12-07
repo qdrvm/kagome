@@ -52,8 +52,6 @@ elif [ "$BUILD_TYPE" = "Debug" ]; then
 
 
 elif [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
-  strip ${CTX_DIR}/kagome
-  
   docker build -t $TAG -f housekeeping/docker/kagome/minideb-release.Dockerfile ${CTX_DIR}
 
 else
