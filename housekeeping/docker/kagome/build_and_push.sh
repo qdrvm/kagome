@@ -18,8 +18,6 @@ VERSION="${VERSION:?VERSION variable is not defined}"
 # For github action we need remove ref prefix
 if [ "$VERSION" = "refs/heads/master" ]; then
   VERSION=latest
-elif [ "$VERSION" = "refs/heads/feature/DOPS-2131/update-push" ]; then
-  VERSION=latest
 elif [[ "$VERSION"  == refs/tags/* ]]; then
   VERSION="${VERSION#refs/tags/}"
 else
