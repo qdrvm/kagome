@@ -20,20 +20,17 @@ namespace kagome::storage::trie {
     ~TrieStorageBackendImpl() override = default;
 
     std::unique_ptr<Cursor> cursor() override;
-    std::unique_ptr<face::WriteBatch<BufferView, Buffer>> batch() override;
+    std::unique_ptr<BufferBatch> batch() override;
 
-    outcome::result<Buffer> load(const BufferView &key) const override;
-    outcome::result<std::optional<Buffer>> tryLoad(
+    outcome::result<BufferOrView> get(const BufferView &key) const override;
+    outcome::result<std::optional<BufferOrView>> tryGet(
         const BufferView &key) const override;
     outcome::result<bool> contains(const BufferView &key) const override;
     bool empty() const override;
 
     outcome::result<void> put(const BufferView &key,
-                              const Buffer &value) override;
-    outcome::result<void> put(const BufferView &key, Buffer &&value) override;
+                              BufferOrView &&value) override;
     outcome::result<void> remove(const common::BufferView &key) override;
-
-    size_t size() const override;
 
    private:
     common::Buffer prefixKey(const common::BufferView &key) const;

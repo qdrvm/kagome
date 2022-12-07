@@ -39,6 +39,7 @@ using primitives::BlockHash;
 using primitives::BlockHeader;
 using primitives::BlockInfo;
 using primitives::BlockNumber;
+using storage::BufferStorageMock;
 
 using ::testing::_;
 using ::testing::AnyNumber;
@@ -112,13 +113,8 @@ class SynchronizerTest
       std::make_shared<libp2p::basic::SchedulerMock>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
-  std::shared_ptr<storage::face::GenericStorageMock<common::Buffer,
-                                                    common::Buffer,
-                                                    common::BufferView>>
-      buffer_storage = std::make_shared<
-          storage::face::GenericStorageMock<common::Buffer,
-                                            common::Buffer,
-                                            common::BufferView>>();
+  std::shared_ptr<BufferStorageMock> buffer_storage =
+      std::make_shared<BufferStorageMock>();
 
   std::shared_ptr<network::SynchronizerImpl> synchronizer;
 

@@ -22,7 +22,7 @@ namespace kagome::runtime {
 
     outcome::result<std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>
     decode_session_keys(const primitives::BlockHash &block_hash,
-                        common::BufferConstRef encoded) const override;
+                        common::BufferView encoded) const override;
 
    private:
     std::shared_ptr<Executor> executor_;

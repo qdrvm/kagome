@@ -8,6 +8,7 @@
 
 #include <cstdint>
 
+#include "common/buffer_or_view.hpp"
 #include "log/logger.hpp"
 #include "runtime/types.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
@@ -143,7 +144,7 @@ namespace kagome::host_api {
      * @param key Buffer representation of the key
      * @return result containing Buffer with the value
      */
-    outcome::result<std::optional<common::BufferConstRef>> get(
+    outcome::result<std::optional<common::BufferOrView>> get(
         const common::BufferView &key) const;
 
     /**

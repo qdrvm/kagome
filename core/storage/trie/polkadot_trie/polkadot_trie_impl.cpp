@@ -293,12 +293,6 @@ namespace kagome::storage::trie {
 
   PolkadotTrieImpl::~PolkadotTrieImpl() {}
 
-  outcome::result<void> PolkadotTrieImpl::put(const BufferView &key,
-                                              const Buffer &value) {
-    auto value_copy = value;
-    return put(key, std::move(value_copy));
-  }
-
   PolkadotTrie::ConstNodePtr PolkadotTrieImpl::getRoot() const {
     return nodes_->getRoot();
   }
@@ -308,7 +302,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PolkadotTrieImpl::put(const BufferView &key,
-                                              Buffer &&value) {
+                                              BufferOrView &&value) {
     auto k_enc = KeyNibbles::fromByteBuffer(key);
 
     NodePtr root = nodes_->getRoot();
@@ -316,8 +310,9 @@ namespace kagome::storage::trie {
     // insert fetches a sequence of nodes (a path) from the storage and
     // these nodes are processed in memory, so any changes applied to them
     // will be written back to the storage only on storeNode call
-    OUTCOME_TRY(n,
-                insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
+    OUTCOME_TRY(
+        n,
+        insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value.into())));
     nodes_->setRoot(n);
 
     return outcome::success();
@@ -457,24 +452,24 @@ namespace kagome::storage::trie {
     return br;
   }
 
-  outcome::result<common::BufferConstRef> PolkadotTrieImpl::get(
+  outcome::result<BufferOrView> PolkadotTrieImpl::get(
       const common::BufferView &key) const {
     OUTCOME_TRY(opt_value, tryGet(key));
     if (opt_value.has_value()) {
-      return opt_value.value();
+      return std::move(*opt_value);
     }
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  PolkadotTrieImpl::tryGet(const common::BufferView &key) const {
+  outcome::result<std::optional<BufferOrView>> PolkadotTrieImpl::tryGet(
+      const common::BufferView &key) const {
     if (not nodes_->getRoot()) {
       return std::nullopt;
     }
     auto nibbles = KeyNibbles::fromByteBuffer(key);
     OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
     if (node && node->value) {
-      return node->value.value();
+      return BufferView{node->value.value()};
     }
     return std::nullopt;
   }

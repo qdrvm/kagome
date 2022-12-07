@@ -117,7 +117,7 @@ namespace kagome::network {
   /** @see AppStateManager::takeControl */
   bool SynchronizerImpl::prepare() {
     auto opt_res =
-        buffer_storage_->tryLoad(storage::kBlockOfIncompleteSyncStateLookupKey);
+        buffer_storage_->tryGet(storage::kBlockOfIncompleteSyncStateLookupKey);
     if (opt_res.has_error()) {
       SL_ERROR(
           log_, "Can't check of incomplete state sync: {}", opt_res.error());
@@ -991,7 +991,8 @@ namespace kagome::network {
                        state_entry.entries[0].key.toHex(),
                        state_entry.entries.size());
               for (const auto &entry : state_entry.entries) {
-                std::ignore = batch->put(entry.key, entry.value);
+                std::ignore =
+                    batch->put(entry.key, common::BufferView{entry.value});
               }
 
               // store batch to continue at next state_entry

@@ -64,7 +64,7 @@ namespace kagome::storage::trie {
 
     [[nodiscard]] std::optional<common::Buffer> key() const override;
 
-    [[nodiscard]] std::optional<common::BufferConstRef> value() const override;
+    [[nodiscard]] std::optional<BufferOrView> value() const override;
 
    private:
     outcome::result<void> seekLowerBoundInternal(
