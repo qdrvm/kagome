@@ -172,6 +172,8 @@ jobs:
             build-type: "Debug"
           - name: "Push Release Docker image"
             build-type: "Release"
+          - name: "Push RelWithDebInfo Docker image"
+            build-type: "RelWithDebInfo"
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev:4-minideb
     steps:
