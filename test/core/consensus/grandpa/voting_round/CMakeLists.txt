@@ -12,6 +12,6 @@ target_link_libraries(voting_round_test
     blob
     clock
     logger_for_tests
-    stream_engine
+    network
     p2p::p2p_basic_scheduler
     )

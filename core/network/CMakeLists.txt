@@ -15,6 +15,7 @@ add_library(network
     impl/extrinsic_observer_impl.cpp
     impl/transactions_transmitter_impl.cpp
     impl/sync_protocol_observer_impl.cpp
+    impl/stream_engine.cpp
     impl/protocols/protocol_error.cpp
     impl/protocols/state_protocol_impl.cpp
     impl/protocols/protocol_factory.cpp
