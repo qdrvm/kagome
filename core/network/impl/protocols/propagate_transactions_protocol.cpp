@@ -37,7 +37,6 @@ namespace kagome::network {
                            chain_spec.protocolId())},
               log::createLogger("PropagateTransactionsProtocol",
                                 "propagate_transactions_protocol")),
-        app_config_(app_config),
         babe_(std::move(babe)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)),
