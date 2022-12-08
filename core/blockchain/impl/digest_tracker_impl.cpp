@@ -6,64 +6,66 @@
 #include "digest_tracker_impl.hpp"
 
 #include "common/visitor.hpp"
-#include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_digest_observer.hpp"
+#include "consensus/grandpa/grandpa_digest_observer.hpp"
 
 namespace kagome::blockchain {
 
   DigestTrackerImpl::DigestTrackerImpl(
-      std::shared_ptr<consensus::BabeDigestObserver> babe_update_observer,
-      std::shared_ptr<authority::AuthorityUpdateObserver>
-          authority_update_observer)
+      std::shared_ptr<consensus::babe::BabeDigestObserver> babe_update_observer,
+      std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
+          grandpa_digest_observer)
       : babe_digest_observer_(std::move(babe_update_observer)),
-        authority_update_observer_(std::move(authority_update_observer)),
+        grandpa_digest_observer_(std::move(grandpa_digest_observer)),
         logger_(log::createLogger("DigestTracker", "digest_tracker")) {
     BOOST_ASSERT(babe_digest_observer_ != nullptr);
-    BOOST_ASSERT(authority_update_observer_ != nullptr);
+    BOOST_ASSERT(grandpa_digest_observer_ != nullptr);
   }
 
   outcome::result<void> DigestTrackerImpl::onDigest(
-      const primitives::BlockInfo &block, const primitives::Digest &digest) {
-    SL_TRACE(logger_, "Start process digest on block {}", block);
+      const primitives::BlockContext &context,
+      const primitives::Digest &digest) {
+    SL_TRACE(logger_, "Start process digest on block {}", context.block);
     for (auto &item : digest) {
       auto res = visit_in_place(
           item,
           [&](const primitives::Consensus &item) {
             SL_TRACE(logger_,
                      "Consensus-digest on block {}, engine '{}'",
-                     block,
+                     context.block,
                      item.consensus_engine_id.toString());
-            return onConsensus(block, item);
+            return onConsensus(context, item);
           },
           [&](const primitives::Seal &item) {
             SL_TRACE(logger_,
                      "Seal-digest on block {}, engine '{}'",
-                     block,
+                     context.block,
                      item.consensus_engine_id.toString());
             return outcome::success();  // It does not processed by tracker
           },
           [&](const primitives::PreRuntime &item) {
             SL_TRACE(logger_,
                      "PreRuntime-digest on block {}, engine '{}'",
-                     block,
+                     context.block,
                      item.consensus_engine_id.toString());
-            return onPreRuntime(block, item);
+            return onPreRuntime(context, item);
           },
           [&](const primitives::RuntimeEnvironmentUpdated &item) {
-            SL_TRACE(
-                logger_, "RuntimeEnvironmentUpdated-digest on block {}", block);
+            SL_TRACE(logger_,
+                     "RuntimeEnvironmentUpdated-digest on block {}",
+                     context.block);
             return outcome::success();  // It does not processed by tracker
           },
           [&](const auto &) {
             SL_WARN(logger_,
                     "Unsupported digest on block {}: variant #{}",
-                    block,
+                    context.block,
                     item.which());
             return outcome::success();
           });
       OUTCOME_TRY(res);
     }
-    SL_TRACE(logger_, "End process digest on block {}", block);
+    SL_TRACE(logger_, "End process digest on block {}", context.block);
     return outcome::success();
   }
 
@@ -72,57 +74,55 @@ namespace kagome::blockchain {
     babe_digest_observer_->cancel(block);
 
     // Cancel tracked grandpa digest
-    authority_update_observer_->cancel(block);
+    grandpa_digest_observer_->cancel(block);
   }
 
   outcome::result<void> DigestTrackerImpl::onConsensus(
-      const primitives::BlockInfo &block,
+      const primitives::BlockContext &context,
       const primitives::Consensus &message) {
-    if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
-      return authority_update_observer_->onConsensus(block, message);
-
-      // TODO(xDimon): Refactor AuthorityManager to accept grandpa-digest
-      // OUTCOME_TRY(digest,
-      //             scale::decode<primitives::GrandpaDigest>(message.data));
-      //
-      // return authority_update_observer_->onDigest(block, digest);
-
-    } else if (message.consensus_engine_id == primitives::kBabeEngineId) {
+    if (message.consensus_engine_id == primitives::kBabeEngineId) {
       OUTCOME_TRY(digest, scale::decode<primitives::BabeDigest>(message.data));
 
-      return babe_digest_observer_->onDigest(block, digest);
+      return babe_digest_observer_->onDigest(context, digest);
+
+    } else if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
+      OUTCOME_TRY(digest,
+                  scale::decode<primitives::GrandpaDigest>(message.data));
+
+      return grandpa_digest_observer_->onDigest(context, digest);
 
     } else if (message.consensus_engine_id
                    == primitives::kUnsupportedEngineId_BEEF
                or message.consensus_engine_id
                       == primitives::kUnsupportedEngineId_POL1) {
-      SL_DEBUG(logger_,
+      SL_TRACE(logger_,
                "Unsupported consensus engine id in block {}: {}",
-               block,
+               context.block,
                message.consensus_engine_id.toString());
       return outcome::success();
 
     } else {
       SL_WARN(logger_,
               "Unknown consensus engine id in block {}: {}",
-              block,
+              context.block,
               message.consensus_engine_id.toString());
       return outcome::success();
     }
   }
 
   outcome::result<void> DigestTrackerImpl::onPreRuntime(
-      const primitives::BlockInfo &block,
+      const primitives::BlockContext &context,
       const primitives::PreRuntime &message) {
     if (message.consensus_engine_id == primitives::kBabeEngineId) {
-      OUTCOME_TRY(digest,
-                  scale::decode<consensus::BabeBlockHeader>(message.data));
+      OUTCOME_TRY(
+          digest,
+          scale::decode<consensus::babe::BabeBlockHeader>(message.data));
 
-      return babe_digest_observer_->onDigest(block, digest);
+      return babe_digest_observer_->onDigest(context, digest);
     } else {
       SL_WARN(logger_,
               "Unknown consensus engine id in block {}: {}",
-              block,
+              context.block,
               message.consensus_engine_id.toString());
       return outcome::success();
     }

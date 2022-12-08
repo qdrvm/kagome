@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/authority/authority_update_observer_error.hpp"
+#include "grandpa_digest_observer_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority,
-                            AuthorityUpdateObserverError,
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa,
+                            GrandpaDigestObserverError,
                             e) {
-  using E = kagome::authority::AuthorityUpdateObserverError;
+  using E = kagome::consensus::grandpa::GrandpaDigestObserverError;
   switch (e) {
     case E::UNSUPPORTED_MESSAGE_TYPE:
       return "unsupported message type";
@@ -23,5 +23,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority,
     case E::NO_RESUME_APPLIED_YET:
       return "no previous change (resume) applied yet";
   }
-  return "unknown error (invalid AuthorityUpdateObserverError)";
+  return "unknown error (invalid GrandpaDigestObserverError)";
 }

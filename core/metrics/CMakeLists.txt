@@ -23,10 +23,11 @@ add_library(metrics
 
 target_link_libraries(metrics
     app_state_manager
-    api_transport
+    api
     Boost::boost
     prometheus-cpp::core
     )
+kagome_install(metrics)
 
 add_library(metrics_watcher
     impl/metrics_watcher.cpp

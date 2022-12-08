@@ -5,22 +5,17 @@
 
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 
-#include <unordered_set>
-
-#include <boost/assert.hpp>
-#include <scale/scale.hpp>
-
-#include "common/buffer.hpp"
-#include "common/mp_utils.hpp"
 #include "consensus/validation/prepare_transcript.hpp"
+#include "crypto/hasher.hpp"
+#include "crypto/vrf_provider.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   using common::Buffer;
   namespace vrf_constants = crypto::constants::sr25519::vrf;
 
   BabeLotteryImpl::BabeLotteryImpl(
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
-      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+      std::shared_ptr<BabeConfigRepository> babe_config_repo,
       std::shared_ptr<crypto::Hasher> hasher)
       : vrf_provider_{std::move(vrf_provider)},
         hasher_{std::move(hasher)},
@@ -117,4 +112,4 @@ namespace kagome::consensus {
     return index;
   }
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

@@ -7,7 +7,7 @@
 #define KAGOME_BLOCKCHAIN_DIGESTSTRACKER
 
 #include "outcome/outcome.hpp"
-#include "primitives/common.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/digest.hpp"
 
 namespace kagome::blockchain {
@@ -18,11 +18,12 @@ namespace kagome::blockchain {
 
     /**
      * Processes block digest
-     * @param message
+     * @param context - data of accorded block
+     * @param digest - applying digest
      * @return failure or nothing
      */
     virtual outcome::result<void> onDigest(
-        const primitives::BlockInfo &block,
+        const primitives::BlockContext &context,
         const primitives::Digest &digest) = 0;
 
     /**

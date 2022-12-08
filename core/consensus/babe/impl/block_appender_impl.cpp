@@ -5,22 +5,22 @@
 
 #include "consensus/babe/impl/block_appender_impl.hpp"
 
-#include <chrono>
-
+#include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
+#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
-#include "consensus/babe/types/slot.hpp"
+#include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
-#include "primitives/common.hpp"
-#include "scale/scale.hpp"
+#include "consensus/validation/block_validator.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockAppenderImpl::Error, e) {
-  using E = kagome::consensus::BlockAppenderImpl::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
+                            BlockAppenderImpl::Error,
+                            e) {
+  using E = kagome::consensus::babe::BlockAppenderImpl::Error;
   switch (e) {
     case E::INVALID_BLOCK:
       return "Invalid block";
@@ -30,7 +30,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockAppenderImpl::Error, e) {
   return "Unknown error";
 }
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   BlockAppenderImpl::BlockAppenderImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -72,6 +72,11 @@ namespace kagome::consensus {
     auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
 
     primitives::BlockInfo block_info(header.number, block_hash);
+
+    primitives::BlockContext context{
+        .block = {header.number, block_hash},
+        .header = header,
+    };
 
     if (last_appended_.has_value()) {
       if (last_appended_->number > block_info.number) {
@@ -139,7 +144,7 @@ namespace kagome::consensus {
       }
 
       const auto &first_block_header = res.value();
-      auto babe_digest_res = consensus::getBabeDigests(first_block_header);
+      auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
       auto first_slot_number = babe_digest_res.value().second.slot_number;
@@ -171,16 +176,16 @@ namespace kagome::consensus {
     // observe digest of block
     // (must be done strictly after block will be added)
     auto digest_tracking_res =
-        digest_tracker_->onDigest(block_info, block.header.digest);
+        digest_tracker_->onDigest(context, block.header.digest);
     if (digest_tracking_res.has_error()) {
       SL_ERROR(logger_,
                "Error while tracking digest of block {}: {}",
                block_info,
-               digest_tracking_res.error().message());
+               digest_tracking_res.error());
       return digest_tracking_res.as_failure();
     }
 
-    auto babe_config = babe_config_repo_->config(block_info, epoch_number);
+    auto babe_config = babe_config_repo_->config(context, epoch_number);
     if (babe_config == nullptr) {
       return Error::INVALID_BLOCK;  // TODO Change to more appropriate error
     }
@@ -204,43 +209,54 @@ namespace kagome::consensus {
         threshold,
         *babe_config));
 
+    // try to apply postponed justifications first if any
+    if (not postponed_justifications_.empty()) {
+      std::vector<primitives::BlockInfo> to_remove;
+      for (const auto &[block_justified_for, justification] :
+           postponed_justifications_) {
+        SL_DEBUG(logger_,
+                 "Try to apply postponed justification received for block {}",
+                 block_justified_for);
+        auto res = applyJustification(block_justified_for, justification);
+        if (res.has_value()) {
+          to_remove.push_back(block_justified_for);
+        }
+      }
+      for (const auto &item : to_remove) {
+        postponed_justifications_.erase(item);
+      }
+    }
+
     // apply justification if any (must be done strictly after block will be
     // added and his consensus-digests will be handled)
     if (b.justification.has_value()) {
-      SL_VERBOSE(logger_, "Justification received for block {}", block_info);
-
-      // try to apply left in justification store values first
-      if (not justifications_.empty()) {
-        std::vector<primitives::BlockInfo> to_remove;
-        for (const auto &[block_justified_for, justification] :
-             justifications_) {
-          auto res = applyJustification(block_justified_for, justification);
-          if (res) {
-            to_remove.push_back(block_justified_for);
-          }
-        }
-        if (not to_remove.empty()) {
-          for (const auto &item : to_remove) {
-            justifications_.erase(item);
-          }
-        }
-      }
+      SL_VERBOSE(
+          logger_, "Apply justification received for block {}", block_info);
 
       auto res = applyJustification(block_info, b.justification.value());
       if (res.has_error()) {
+        // If the total weight is not enough, this justification is deferred to
+        // try to apply it after the next block is added. One of the reasons for
+        // this error is the presence of preliminary votes for future blocks
+        // that have not yet been applied.
         if (res
             == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
-          justifications_.emplace(block_info, b.justification.value());
+          postponed_justifications_.emplace(block_info,
+                                            b.justification.value());
+          SL_VERBOSE(logger_,
+                     "Postpone justification received for block {}: {}",
+                     block_info,
+                     res);
         } else {
           SL_ERROR(logger_,
-                   "Error while applying of block {} justification: {}",
+                   "Error while applying justification of block {}: {}",
                    block_info,
-                   res.error().message());
+                   res.error());
           return res.as_failure();
         }
       } else {
         // safely could be remove if current justification applied successfully
-        justifications_.clear();
+        postponed_justifications_.clear();
       }
     }
 
@@ -279,4 +295,4 @@ namespace kagome::consensus {
     return grandpa_environment_->applyJustification(block_info, justification);
   }
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

@@ -29,7 +29,7 @@
 
 using namespace kagome;
 using namespace clock;
-using namespace consensus;
+using namespace consensus::babe;
 using namespace storage;
 
 using std::chrono_literals::operator""ms;
@@ -39,6 +39,7 @@ using primitives::BlockHash;
 using primitives::BlockHeader;
 using primitives::BlockInfo;
 using primitives::BlockNumber;
+using storage::BufferStorageMock;
 
 using ::testing::_;
 using ::testing::AnyNumber;
@@ -112,13 +113,8 @@ class SynchronizerTest
       std::make_shared<libp2p::basic::SchedulerMock>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
-  std::shared_ptr<storage::face::GenericStorageMock<common::Buffer,
-                                                    common::Buffer,
-                                                    common::BufferView>>
-      buffer_storage = std::make_shared<
-          storage::face::GenericStorageMock<common::Buffer,
-                                            common::Buffer,
-                                            common::BufferView>>();
+  std::shared_ptr<BufferStorageMock> buffer_storage =
+      std::make_shared<BufferStorageMock>();
 
   std::shared_ptr<network::SynchronizerImpl> synchronizer;
 
@@ -304,7 +300,7 @@ TEST_P(SynchronizerTest, findCommonBlock) {
       auto &bi = res.value();
       std::cout << "Success: " << bi.hash.data() << std::endl;
     } else {
-      std::cout << "Fail: " << res.error().message() << std::endl;
+      std::cout << "Fail: " << res.error() << std::endl;
     }
     std::cout << std::endl;
     mock(res);

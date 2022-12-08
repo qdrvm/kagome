@@ -122,8 +122,8 @@ namespace kagome::offchain {
                                     std::string(uri_.Host).c_str())) {
         boost::beast::error_code ec{static_cast<int>(::ERR_get_error()),
                                     boost::asio::error::get_ssl_category()};
-        error_message_ = fmt::format(
-            "Can't resolve hostname {}: {}", uri_.Host, ec.message());
+        error_message_ =
+            fmt::format("Can't resolve hostname {}: {}", uri_.Host, ec);
         SL_ERROR(log_, "{}", error_message_);
         status_ = ErrorHasOccurred;
         return;
@@ -145,8 +145,8 @@ namespace kagome::offchain {
           return;
         }
 
-        self->error_message_ = fmt::format(
-            "Can't resolve hostname {}: {}", self->uri_.Host, ec.message());
+        self->error_message_ =
+            fmt::format("Can't resolve hostname {}: {}", self->uri_.Host, ec);
         SL_ERROR(self->log_, "{}", self->error_message_);
         self->status_ = ErrorHasOccurred;
       }
@@ -190,7 +190,7 @@ namespace kagome::offchain {
           return;
         }
 
-        SL_ERROR(self->log_, "Connection failed: {}", ec.message());
+        SL_ERROR(self->log_, "Connection failed: {}", ec);
 
         // Try to connect next endpoint if any
         if (++self->resolver_iterator_
@@ -198,8 +198,7 @@ namespace kagome::offchain {
           SL_TRACE(self->log_, "Trying next endpoint...");
           self->connect();
         } else {
-          self->error_message_ =
-              fmt::format("Connection failed: {}", ec.message());
+          self->error_message_ = fmt::format("Connection failed: {}", ec);
           self->status_ = ErrorHasOccurred;
         }
       }
@@ -232,8 +231,7 @@ namespace kagome::offchain {
           return;
         }
 
-        self->error_message_ =
-            fmt::format("Handshake failed: {}", ec.message());
+        self->error_message_ = fmt::format("Handshake failed: {}", ec);
         SL_ERROR(self->log_, "{}", self->error_message_);
         self->status_ = ErrorHasOccurred;
       }
@@ -281,8 +279,7 @@ namespace kagome::offchain {
           return;
         }
 
-        self->error_message_ =
-            fmt::format("Request send was fail: {}", ec.message());
+        self->error_message_ = fmt::format("Request send was fail: {}", ec);
         SL_ERROR(self->log_, "{}", self->error_message_);
         self->status_ = ErrorHasOccurred;
       }
@@ -323,7 +320,7 @@ namespace kagome::offchain {
         }
 
         self->error_message_ =
-            fmt::format("Response reception has failed: {}", ec.message());
+            fmt::format("Response reception has failed: {}", ec);
         SL_ERROR(self->log_, "{}", self->error_message_);
         self->status_ = ErrorHasOccurred;
       }

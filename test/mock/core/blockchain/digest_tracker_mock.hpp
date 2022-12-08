@@ -16,7 +16,7 @@ namespace kagome::blockchain {
    public:
     MOCK_METHOD(outcome::result<void>,
                 onDigest,
-                (const primitives::BlockInfo &, const primitives::Digest &),
+                (const primitives::BlockContext &, const primitives::Digest &),
                 (override));
 
     MOCK_METHOD(void, cancel, (const primitives::BlockInfo &), (override));

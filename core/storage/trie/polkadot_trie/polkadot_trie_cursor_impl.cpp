@@ -373,13 +373,12 @@ namespace kagome::storage::trie {
     return std::nullopt;
   }
 
-  std::optional<common::BufferConstRef> PolkadotTrieCursorImpl::value() const {
+  std::optional<BufferOrView> PolkadotTrieCursorImpl::value() const {
     if (const auto *search_state = std::get_if<SearchState>(&state_);
         search_state != nullptr) {
       const auto &value_opt = search_state->getCurrent().value;
       if (value_opt) {
-        return std::make_optional<common::BufferConstRef>(
-            std::cref(value_opt.value()));
+        return BufferView{*value_opt};
       }
       return std::nullopt;
     }

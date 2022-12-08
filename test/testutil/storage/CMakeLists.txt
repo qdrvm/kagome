@@ -19,7 +19,7 @@ target_link_libraries(base_rocksdb_test
     base_fs_test
     Boost::filesystem
     Boost::boost
-    rocksdb_wrapper
+    storage
     logger_for_tests
     )
 

@@ -17,7 +17,7 @@ target_link_libraries(binaryen_runtime_test INTERFACE
     binaryen_wasm_memory_factory
     module_repository
     runtime_upgrade_tracker
-    in_memory_storage
+    storage
     )
 
 addtest(tagged_transaction_queue_test
@@ -61,7 +61,7 @@ addtest(grandpa_api_test
 target_link_libraries(grandpa_api_test
     binaryen_runtime_test
     grandpa_api
-    trie_storage_backend
+    storage
     basic_code_provider
     key_file_storage
     core_api
@@ -75,7 +75,7 @@ target_link_libraries(metadata_test
     binaryen_runtime_test
     metadata_api
     basic_code_provider
-    trie_storage
+    storage
     core_api
     logger_for_tests
     )

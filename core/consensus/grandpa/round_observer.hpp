@@ -6,12 +6,17 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
 
-#include <libp2p/peer/peer_id.hpp>
-#include <optional>
+namespace libp2p::peer {
+  class PeerId;
+}
 
-#include "consensus/grandpa/structs.hpp"
-#include "network/types/grandpa_message.hpp"
-#include "primitives/justification.hpp"
+namespace kagome::consensus::grandpa {
+  struct VoteMessage;
+}
+
+namespace kagome::network {
+  struct FullCommitMessage;
+}
 
 namespace kagome::consensus::grandpa {
 

@@ -381,7 +381,7 @@ namespace kagome::network {
       BOOST_ASSERT(stream);
       auto peer_id_res = stream->remotePeerId();
       if (!peer_id_res.has_value()) {
-        logger_->error("Can't get peer_id: {}", peer_id_res.error().message());
+        logger_->error("Can't get peer_id: {}", peer_id_res.error());
         return peer_id_res.as_failure();
       }
       return from(std::move(peer_id_res.value()));
@@ -460,7 +460,7 @@ namespace kagome::network {
                          "Could not send message to {} stream with {}: {}",
                          protocol->protocolName(),
                          peer_id,
-                         res.error().message());
+                         res.error());
                 stream->reset();
               }
             }
@@ -525,17 +525,7 @@ namespace kagome::network {
                          "Could not send message to new {} stream with {}: {}",
                          protocol->protocolName(),
                          peer_id,
-                         stream_res.error().message());
-
-                if (stream_res
-                    == outcome::failure(
-                        std::make_error_code(std::errc::not_connected))) {
-                  self->reputation_repository_->changeForATime(
-                      peer_id,
-                      reputation::cost::UNEXPECTED_DISCONNECT,
-                      kDownVoteByDisconnectionExpirationTimeout);
-                  return;
-                }
+                         stream_res.error());
 
                 self->streams_.exclusiveAccess([&](auto &streams) {
                   self->forSubscriber(
@@ -544,6 +534,15 @@ namespace kagome::network {
                         descr.dropReserved();
                       });
                 });
+
+                if (stream_res
+                    == outcome::failure(
+                        std::make_error_code(std::errc::not_connected))) {
+                  self->reputation_repository_->changeForATime(
+                      peer_id,
+                      reputation::cost::UNEXPECTED_DISCONNECT,
+                      kDownVoteByDisconnectionExpirationTimeout);
+                }
 
                 return;
               }

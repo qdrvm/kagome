@@ -8,7 +8,7 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/range/numeric.hpp>
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   Threshold calculateThreshold(const std::pair<uint64_t, uint64_t> &ratio,
                                const primitives::AuthorityList &authorities,
@@ -29,4 +29,4 @@ namespace kagome::consensus {
     return Threshold{a * numerator(p_rat) / denominator(p_rat)};
   }
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

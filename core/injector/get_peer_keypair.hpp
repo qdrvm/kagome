@@ -47,7 +47,7 @@ namespace kagome::injector {
       if (key.has_error()) {
         log->error("Unable to load user provided key from {}. Error: {}",
                    path,
-                   key.error().message());
+                   key.error());
         common::raise(key.error());
       } else {
         auto key_pair =

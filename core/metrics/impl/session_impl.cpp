@@ -91,10 +91,7 @@ namespace kagome::metrics {
 
   void SessionImpl::reportError(boost::system::error_code ec,
                                 std::string_view message) {
-    logger_->error("error occured: {}, code: {}, message: {}",
-                   message,
-                   ec.value(),
-                   ec.message());
+    logger_->error("error occurred: {}, message: {}", ec, message);
   }
 
 }  // namespace kagome::metrics

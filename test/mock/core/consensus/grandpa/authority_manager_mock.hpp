@@ -3,15 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_AUTHORITY_AUTHORITYMANAGERMOCK
-#define KAGOME_AUTHORITY_AUTHORITYMANAGERMOCK
+#ifndef KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK
+#define KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK
 
-#include "consensus/authority/authority_manager.hpp"
-#include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
 
 #include <gmock/gmock.h>
 
-namespace kagome::authority {
+namespace kagome::consensus::grandpa {
 
   struct AuthorityManagerMock : public AuthorityManager {
     MOCK_METHOD(primitives::BlockInfo, base, (), (const, override));
@@ -23,14 +22,14 @@ namespace kagome::authority {
 
     MOCK_METHOD(outcome::result<void>,
                 applyScheduledChange,
-                (const primitives::BlockInfo &,
+                (const primitives::BlockContext &,
                  const primitives::AuthorityList &,
                  primitives::BlockNumber),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 applyForcedChange,
-                (const primitives::BlockInfo &,
+                (const primitives::BlockContext &,
                  const primitives::AuthorityList &,
                  primitives::BlockNumber,
                  size_t),
@@ -38,25 +37,19 @@ namespace kagome::authority {
 
     MOCK_METHOD(outcome::result<void>,
                 applyOnDisabled,
-                (const primitives::BlockInfo &, uint64_t),
+                (const primitives::BlockContext &, uint64_t),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 applyPause,
-                (const primitives::BlockInfo &, primitives::BlockNumber),
+                (const primitives::BlockContext &, primitives::BlockNumber),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 applyResume,
-                (const primitives::BlockInfo &, primitives::BlockNumber),
+                (const primitives::BlockContext &, primitives::BlockNumber),
                 (override));
-
-    MOCK_METHOD(void, prune, (const primitives::BlockInfo &block), (override));
-
-    MOCK_METHOD(outcome::result<void>,
-                recalculateStoredState,
-                (primitives::BlockNumber last_finalized_number));
   };
-}  // namespace kagome::authority
+}  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_AUTHORITY_AUTHORITYMANAGERMOCK
+#endif  // KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK

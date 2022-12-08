@@ -113,7 +113,7 @@ namespace kagome::network {
       if (not append_res) {
         log_->error("Cannot append peer id info to listen addr {}. Error: {}",
                     listen_address.getStringAddress(),
-                    append_res.error().message());
+                    append_res.error());
         // despite the possible failure of address reformatting we still
         // intentionally try to start listening the interface
       }
@@ -121,7 +121,7 @@ namespace kagome::network {
       if (not res) {
         log_->error("Cannot listen on address {}. Error: {}",
                     listen_address.getStringAddress(),
-                    res.error().message());
+                    res.error());
       }
     }
 
@@ -130,8 +130,7 @@ namespace kagome::network {
     auto upsert_res = addr_repo.upsertAddresses(
         own_info_.id, own_info_.addresses, libp2p::peer::ttl::kPermanent);
     if (!upsert_res) {
-      log_->error("Cannot add own addresses to repo: {}",
-                  upsert_res.error().message());
+      log_->error("Cannot add own addresses to repo: {}", upsert_res.error());
     }
 
     host_.start();

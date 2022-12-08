@@ -3,36 +3,29 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_executable(storage_explorer
+add_library(storage_explorer
     storage_explorer.cpp
     ${BACKWARD_ENABLE}
     )
 target_link_libraries(storage_explorer
     application_injector
-    authority_manager
+    consensus
     )
 if (BACKWARD)
     add_backward(storage_explorer)
 endif()
 
-add_executable(kagome-db-editor
+add_library(kagome-db-editor
     kagome_db_editor.cpp
     )
 target_link_libraries(kagome-db-editor
     Boost::Boost.DI
-    block_storage
-    changes_tracker
+    blockchain
     hasher
-    rocksdb_wrapper
-    polkadot_codec
-    polkadot_trie_factory
+    storage
     runtime_upgrade_tracker
-    trie_serializer
-    trie_storage
-    trie_storage_backend
+    storage
     )
 if (BACKWARD)
   add_backward(kagome-db-editor)
 endif()
-kagome_install(kagome-db-editor)
-

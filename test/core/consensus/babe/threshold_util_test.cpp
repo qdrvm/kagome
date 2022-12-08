@@ -7,8 +7,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace kagome::consensus;  // NOLINT
-using namespace kagome;             // NOLINT
+using namespace kagome;  // NOLINT
 
 /**
  * Same test and outputs as in go:
@@ -31,7 +30,8 @@ TEST(ThresholdTest, OutputAsInGossamer) {
   authorities.push_back(primitives::Authority{.id = {}, .weight = 6});
   authorities.push_back(primitives::Authority{.id = {}, .weight = 10});
 
-  Threshold expected{"28377230912881121443596276039380107264"};
-  auto threshold = calculateThreshold(c, authorities, authority_index);
+  consensus::babe::Threshold expected{"28377230912881121443596276039380107264"};
+  auto threshold =
+      consensus::babe::calculateThreshold(c, authorities, authority_index);
   ASSERT_EQ(threshold, expected);
 }

@@ -165,9 +165,7 @@ namespace kagome::telemetry {
         self->is_connected_ = false;
         self->busy_ = false;
         self->releaseQueue();
-        SL_ERROR(self->log_,
-                 "Unable to send data through websocket: {}",
-                 ec.message());
+        SL_ERROR(self->log_, "Unable to send data through websocket: {}", ec);
         self->reconnect();
         return;
       }
@@ -187,7 +185,7 @@ namespace kagome::telemetry {
       boost::beast::error_code ec,
       boost::asio::ip::tcp::resolver::results_type results) {
     if (ec) {
-      SL_ERROR(log_, "Unable to resolve host: {}", ec.message());
+      SL_ERROR(log_, "Unable to resolve host: {}", ec);
       reconnect();
       return;
     }
@@ -203,7 +201,7 @@ namespace kagome::telemetry {
       boost::beast::error_code ec,
       boost::asio::ip::tcp::resolver::results_type::endpoint_type endpoint) {
     if (ec) {
-      SL_ERROR(log_, "Unable to connect to endpoint: {}", ec.message());
+      SL_ERROR(log_, "Unable to connect to endpoint: {}", ec);
       reconnect();
       return;
     }
@@ -215,7 +213,7 @@ namespace kagome::telemetry {
         ec = boost::beast::error_code(static_cast<int>(::ERR_get_error()),
                                       boost::asio::error::get_ssl_category());
         reconnect();
-        SL_ERROR(log_, "Unable to set SNI hostname: {}", ec.message());
+        SL_ERROR(log_, "Unable to set SNI hostname: {}", ec);
       }
     }
 
@@ -256,7 +254,7 @@ namespace kagome::telemetry {
 
   void TelemetryConnectionImpl::onSslHandshake(boost::beast::error_code ec) {
     if (ec) {
-      SL_ERROR(log_, "Unable to perform SSL handshake: {}", ec.message());
+      SL_ERROR(log_, "Unable to perform SSL handshake: {}", ec);
       reconnect();
       return;
     }
@@ -266,7 +264,7 @@ namespace kagome::telemetry {
 
   void TelemetryConnectionImpl::onHandshake(boost::beast::error_code ec) {
     if (ec) {
-      SL_ERROR(log_, "Websocket handshake failed: {}", ec.message());
+      SL_ERROR(log_, "Websocket handshake failed: {}", ec);
       reconnect();
       return;
     }

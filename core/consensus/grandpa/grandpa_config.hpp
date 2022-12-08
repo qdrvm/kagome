@@ -6,7 +6,11 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA_CONFIG_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA_CONFIG_HPP
 
-#include "consensus/grandpa/voter_set.hpp"
+#include "consensus/grandpa/common.hpp"
+
+namespace kagome::consensus::grandpa {
+  class VoterSet;
+}
 
 namespace kagome::consensus::grandpa {
 

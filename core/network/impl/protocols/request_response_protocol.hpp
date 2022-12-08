@@ -25,8 +25,8 @@ namespace kagome::network {
 
     RequestResponseProtocol(libp2p::Host &host,
                             Protocol const &protocol,
-                            ProtocolName const &name)
-        : base_(host, {protocol}, name), protocol_{protocol} {}
+                            log::Logger logger)
+        : base_(host, {protocol}, logger), protocol_{protocol} {}
     virtual ~RequestResponseProtocol() {}
 
     bool start() override {
@@ -165,7 +165,7 @@ namespace kagome::network {
                          "Error at write into {} stream with {}: {}",
                          self->protocolName(),
                          stream->remotePeerId().value(),
-                         write_res.error().message());
+                         write_res.error());
 
               cb(write_res.as_failure(), nullptr);
               self->base_.closeStream(std::move(wptr), std::move(stream));
@@ -243,7 +243,7 @@ namespace kagome::network {
                          "Error at read from outgoing {} stream with {}: {}",
                          self->protocolName(),
                          stream->remotePeerId().value(),
-                         read_result.error().message());
+                         read_result.error());
 
               cb(read_result.as_failure(), nullptr);
               self->base_.closeStream(std::move(wptr), std::move(stream));
@@ -294,7 +294,7 @@ namespace kagome::network {
                          "with {}: {}",
                          self->protocolName(),
                          stream->remotePeerId().value(),
-                         response_result.error().message());
+                         response_result.error());
               self->base_.closeStream(std::move(wptr), std::move(stream));
               return;
             }

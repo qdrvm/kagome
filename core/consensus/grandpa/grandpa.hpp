@@ -3,15 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA
-#define KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA
+#ifndef KAGOME_CONSENSUS_GRANDPA_GRANDPA
+#define KAGOME_CONSENSUS_GRANDPA_GRANDPA
 
-#include "consensus/grandpa/grandpa_observer.hpp"
-#include "consensus/grandpa/voting_round.hpp"
+#include "consensus/grandpa/common.hpp"
+
+#include <memory>
 
 namespace kagome::consensus::grandpa {
-
   class VotingRound;
+}
+
+namespace kagome::consensus::grandpa {
 
   /**
    * Interface for launching new grandpa rounds. See more details in
@@ -41,4 +44,4 @@ namespace kagome::consensus::grandpa {
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA
+#endif  // KAGOME_CONSENSUS_GRANDPA_GRANDPA

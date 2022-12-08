@@ -67,11 +67,9 @@ class RuntimeTestBase : public ::testing::Test {
   using Digest = primitives::Digest;
   using PersistentTrieBatchMock = storage::trie::PersistentTrieBatchMock;
   using EphemeralTrieBatchMock = storage::trie::EphemeralTrieBatchMock;
-  using TopperTrieBatchMock = storage::trie::TopperTrieBatchMock;
 
   void initStorage() {
     using storage::trie::PersistentTrieBatch;
-    using storage::trie::TopperTrieBatchMock;
 
     auto random_generator = std::make_shared<crypto::BoostRandomGenerator>();
     auto sr25519_provider =
@@ -192,7 +190,7 @@ class RuntimeTestBase : public ::testing::Test {
 
   template <typename BatchMock>
   void prepareStorageBatchExpectations(BatchMock &batch) {
-    ON_CALL(batch, get(_)).WillByDefault(testing::Invoke([](auto &key) {
+    ON_CALL(batch, getMock(_)).WillByDefault(testing::Invoke([](auto &key) {
       static common::Buffer buf;
       return std::cref(buf);
     }));
@@ -209,7 +207,7 @@ class RuntimeTestBase : public ::testing::Test {
       return cursor;
     }));
     static auto heappages_key = ":heappages"_buf;
-    EXPECT_CALL(batch, get(heappages_key.view()));
+    EXPECT_CALL(batch, getMock(heappages_key.view()));
   }
 
   primitives::BlockHeader createBlockHeader(primitives::BlockHash const &hash,

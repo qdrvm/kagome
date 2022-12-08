@@ -8,19 +8,19 @@
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/consensus/authority/authority_manager_mock.hpp"
+#include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
 #include "mock/core/network/grandpa_transmitter_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
-using kagome::authority::AuthorityManagerMock;
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Blob;
 using kagome::common::Hash256;
+using kagome::consensus::grandpa::AuthorityManagerMock;
 using kagome::consensus::grandpa::Chain;
 using kagome::consensus::grandpa::EnvironmentImpl;
 using kagome::network::GrandpaTransmitterMock;

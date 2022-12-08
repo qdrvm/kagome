@@ -90,7 +90,7 @@ struct fmt::formatter<kagome::primitives::detail::BlockInfoT<Tag>> {
   // stored in this formatter.
   template <typename FormatContext>
   auto format(const kagome::primitives::detail::BlockInfoT<Tag> &block_info,
-              FormatContext &ctx) -> decltype(ctx.out()) {
+              FormatContext &ctx) const -> decltype(ctx.out()) {
     // ctx.out() is an output iterator to write to.
 
     if (presentation == 's') {

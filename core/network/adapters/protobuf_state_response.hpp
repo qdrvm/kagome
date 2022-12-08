@@ -53,12 +53,13 @@ namespace kagome::network {
       for (const auto &kvEntry : msg.entries()) {
         KeyValueStateEntry kv;
         auto root = kvEntry.state_root();
-        if(!root.empty()) {
+        if (!root.empty()) {
           kv.state_root = storage::trie::RootHash::fromString(root).value();
         }
         for (const auto &sEntry : kvEntry.entries()) {
-          kv.entries.emplace_back(StateEntry{common::Buffer().put(sEntry.key()),
-                                   common::Buffer().put(sEntry.value())});
+          kv.entries.emplace_back(
+              StateEntry{common::Buffer().put(sEntry.key()),
+                         common::Buffer().put(sEntry.value())});
         }
         kv.complete = kvEntry.complete();
 
