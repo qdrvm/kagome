@@ -118,7 +118,7 @@ jobs:
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
-        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON
+        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
       - name: df du
         if: ${{ always() }}
         run: |
