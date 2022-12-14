@@ -147,6 +147,7 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(last_finalized_justification,
                 storage->getJustification(last_finalized_block_info.hash));
+    SL_INFO(log, "Best block: {}, Last finalized: {}", best_leaf, last_finalized_block_info);
 
     auto hash_tmp = last_finalized_block_info.hash;
 
