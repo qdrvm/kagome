@@ -9,28 +9,59 @@
 #include "storage/buffer_map_types.hpp"
 
 #include <rocksdb/db.h>
+#include <boost/container/flat_map.hpp>
 #include <boost/filesystem/path.hpp>
 #include "log/logger.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace kagome::storage {
 
-  class RocksDB : public BufferStorage {
+  class RocksDb : public SpacedStorage,
+                  public std::enable_shared_from_this<RocksDb> {
    public:
-    class Batch;
-
-    ~RocksDB() override;
+    ~RocksDb() override;
 
     /**
-     * @brief Factory method to create an instance of RocksDB class.
+     * @brief Factory method to create an instance of RocksDb class.
      * @param path filesystem path where database is going to be
      * @param options rocksdb options, such as caching, logging, etc.
      * @param prevent_destruction - avoid destruction of underlying db if true
      * @return instance of RocksDB
      */
-    static outcome::result<std::unique_ptr<RocksDB>> create(
+    static outcome::result<std::shared_ptr<RocksDb>> create(
         const boost::filesystem::path &path,
         rocksdb::Options options = rocksdb::Options(),
         bool prevent_destruction = false);
+
+    std::shared_ptr<BufferStorage> getSpace(Space space) override;
+
+    friend class RocksDbSpace;
+    friend class RocksDbBatch;
+
+   private:
+    struct ColumnFamilyHandle {
+      std::string name;
+      rocksdb::ColumnFamilyHandle *handle;
+    };
+
+    RocksDb(bool prevent_destruction, std::vector<ColumnFamilyHandle> columns);
+
+    bool prevent_destruction_;
+    std::unique_ptr<rocksdb::DB> db_;
+    std::vector<ColumnFamilyHandle> cf_handles_;
+    boost::container::flat_map<Space, std::shared_ptr<BufferStorage>> spaces_;
+    rocksdb::ReadOptions ro_;
+    rocksdb::WriteOptions wo_;
+    log::Logger logger_;
+  };
+
+  class RocksDbSpace : public BufferStorage {
+   public:
+    ~RocksDbSpace() override = default;
+
+    RocksDbSpace(std::weak_ptr<RocksDb> storage,
+                 RocksDb::ColumnFamilyHandle column,
+                 log::Logger logger);
 
     std::unique_ptr<BufferBatch> batch() override;
 
@@ -54,14 +85,11 @@ namespace kagome::storage {
 
     void compact(const Buffer &first, const Buffer &last);
 
+    friend class RocksDbBatch;
+
    private:
-    RocksDB(bool prevent_destruction);
-
-    bool prevent_destruction_ = false;
-
-    std::unique_ptr<rocksdb::DB> db_;
-    rocksdb::ReadOptions ro_;
-    rocksdb::WriteOptions wo_;
+    std::weak_ptr<RocksDb> storage_;
+    RocksDb::ColumnFamilyHandle column_;
     log::Logger logger_;
   };
 }  // namespace kagome::storage

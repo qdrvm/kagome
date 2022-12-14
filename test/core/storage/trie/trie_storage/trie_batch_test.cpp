@@ -26,6 +26,7 @@ using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHash;
 using kagome::storage::trie::StateVersion;
+using kagome::storage::Space;
 using kagome::subscription::SubscriptionEngine;
 using testing::_;
 using testing::Invoke;
@@ -112,7 +113,7 @@ class MockDb : public kagome::storage::InMemoryStorage {
 TEST_F(TrieBatchTest, Put) {
   auto batch = trie->getPersistentBatchAt(empty_hash).value();
   FillSmallTrieWithBatch(*batch);
-  // changes are not yet commited
+  // changes are not yet committed
   auto new_batch = trie->getEphemeralBatchAt(empty_hash).value();
   for (auto &entry : data) {
     ASSERT_OUTCOME_ERROR(new_batch->get(entry.first),

@@ -150,6 +150,7 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
+#include "storage/spaces.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -274,11 +275,11 @@ namespace {
     return initialized.value();
   }
 
-  sptr<storage::BufferStorage> get_rocks_db(
+  sptr<storage::SpacedStorage> get_rocks_db(
       application::AppConfiguration const &app_config,
       sptr<application::ChainSpec> chain_spec) {
     static auto initialized =
-        std::optional<sptr<storage::BufferStorage>>(std::nullopt);
+        std::optional<sptr<storage::SpacedStorage>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -306,7 +307,7 @@ namespace {
     options.max_open_files = soft_limit.value() / 2;
 
     auto db_res =
-        storage::RocksDB::create(app_config.databasePath(chain_spec->id()),
+        storage::RocksDb::create(app_config.databasePath(chain_spec->id()),
                                  options,
                                  prevent_destruction);
     if (!db_res) {
@@ -1024,7 +1025,7 @@ namespace {
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
-        di::bind<storage::BufferStorage>.to([](const auto &injector) {
+        di::bind<storage::SpacedStorage>.to([](const auto &injector) {
           const application::AppConfiguration &config =
               injector.template create<application::AppConfiguration const &>();
           auto chain_spec =
@@ -1033,6 +1034,14 @@ namespace {
               config.storageBackend()
               == application::AppConfiguration::StorageBackend::RocksDB);
           return get_rocks_db(config, chain_spec);
+        }),
+        di::bind<storage::BufferStorage>.to([](const auto &injector) {
+          auto spaced_storage =
+              injector.template create<sptr<storage::SpacedStorage>>();
+          auto default_space =
+              spaced_storage->getSpace(storage::Space::kDefault);
+          BOOST_ASSERT(default_space);
+          return default_space;
         }),
         bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
           auto root =
