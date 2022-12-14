@@ -112,9 +112,9 @@ namespace kagome::application {
     virtual uint32_t inPeersLight() const = 0;
 
     /**
-     * @return int32_t maximum number or lucky peers (peers being gossiped to)
+     * @return uint32_t maximum number or lucky peers (peers being gossiped to)
      */
-    virtual int32_t luckyPeers() const = 0;
+    virtual uint32_t luckyPeers() const = 0;
 
     /**
      * @return multiaddresses of bootstrat nodes
