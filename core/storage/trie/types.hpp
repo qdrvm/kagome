@@ -15,6 +15,7 @@ namespace kagome::storage::trie {
   enum class StateVersion {
     V0,
     V1,
+    // TODO(turuslan): #1457 find out correct state version usage
     TODO_NotSpecified = V0,
   };
 
