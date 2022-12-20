@@ -443,6 +443,9 @@ namespace kagome::consensus::babe {
                                    EpochNumber epoch_number) {
     auto node = getNode(context);
     if (node) {
+      if (epoch_number > node->epoch) {
+        return node->next_config.value_or(node->config);
+      }
       return node->config;
     }
     return {};
