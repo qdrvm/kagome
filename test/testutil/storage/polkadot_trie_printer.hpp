@@ -65,7 +65,9 @@ namespace kagome::storage::trie {
           }
         }
         stream_ << "\n";
-        // printEncAndHash(node, nest_level);
+        if (false) {
+          printEncAndHash(node, nest_level);
+        }
         for (size_t i = 0; i < branch->children.size(); i++) {
           auto child = branch->children.at(i);
           if (child) {
@@ -82,7 +84,7 @@ namespace kagome::storage::trie {
 
       void printEncAndHash(const PolkadotTrie::ConstNodePtr &node,
                            size_t nest_level) {
-        auto enc = codec_.encodeNode(*node, {}).value();
+        auto enc = codec_.encodeNode(*node, {}, {}).value();
         if (print_enc_) {
           stream_ << std::setfill('-') << std::setw(nest_level) << ""
                   << std::setw(0) << "enc: " << enc << "\n";
