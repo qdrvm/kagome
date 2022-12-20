@@ -173,7 +173,7 @@ namespace kagome::storage::trie {
     common::Buffer db_key;
   };
 
-  struct TODO_GetValue : OpaqueTrieNode {
+  struct DummyValue : OpaqueTrieNode {
     ValueAndHash *value;
   };
 }  // namespace kagome::storage::trie

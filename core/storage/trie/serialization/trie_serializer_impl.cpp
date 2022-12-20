@@ -72,8 +72,7 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
       const std::shared_ptr<OpaqueTrieNode> &parent) const {
-    if (auto p = std::dynamic_pointer_cast<TODO_GetValue>(parent);
-        p != nullptr) {
+    if (auto p = std::dynamic_pointer_cast<DummyValue>(parent); p != nullptr) {
       OUTCOME_TRY(value, backend_->get(*p->value->hash));
       p->value->value = value.into();
       return nullptr;

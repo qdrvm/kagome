@@ -575,7 +575,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PolkadotTrieImpl::getValue(ValueAndHash &value) const {
     if (value.hash && !value.value) {
-      auto p = std::make_shared<TODO_GetValue>();
+      auto p = std::make_shared<DummyValue>();
       p->value = &value;
       OUTCOME_TRY(nodes_->retrieve_node_(p));
     }
