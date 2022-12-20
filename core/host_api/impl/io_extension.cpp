@@ -19,7 +19,25 @@ namespace kagome::host_api {
     BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
   }
 
-  void IOExtension::ext_logging_log_version_1(runtime::WasmEnum level,
+  soralog::Level mapLevel(runtime::WasmLogLevel wasm_level) {
+    using WasmLevel = runtime::WasmLogLevel;
+    using SlLevel = soralog::Level;
+    switch (wasm_level) {
+      case WasmLevel::Error:
+        return SlLevel::ERROR;
+      case WasmLevel::Warn:
+        return SlLevel::WARN;
+      case WasmLevel::Info:
+        return SlLevel::INFO;
+      case WasmLevel::Debug:
+        return SlLevel::DEBUG;
+      case WasmLevel::Trace:
+        return SlLevel::TRACE;
+    }
+    return SlLevel::ERROR;
+  }
+
+  void IOExtension::ext_logging_log_version_1(runtime::WasmEnum wasm_level,
                                               runtime::WasmSpan target,
                                               runtime::WasmSpan message) {
     using runtime::WasmLogLevel;
@@ -32,30 +50,9 @@ namespace kagome::host_api {
     const auto target_str = read_str_from_position(runtime::PtrSize(target));
     const auto message_str = read_str_from_position(runtime::PtrSize(message));
 
-    switch (static_cast<WasmLogLevel>(level)) {
-      case WasmLogLevel::Error:
-        logger_->error("target: {}, message: {}", target_str, message_str);
-        break;
-      case WasmLogLevel::Warn:
-        logger_->warn("target: {}, message: {}", target_str, message_str);
-        break;
-      case WasmLogLevel::Info:
-        logger_->info("target: {}, message: {}", target_str, message_str);
-        break;
-      case WasmLogLevel::Debug:
-        SL_DEBUG(logger_, "target: {}, message: {}", target_str, message_str);
-        break;
-      case WasmLogLevel::Trace:
-        SL_TRACE(logger_, "target: {}, message: {}", target_str, message_str);
-        break;
-      default: {
-        BOOST_UNREACHABLE_RETURN();
-        logger_->error(
-            "Message with incorrect log level. Target: {}, message: {}",
-            target_str,
-            message_str);
-      }
-    }
+    auto level = std::max(mapLevel(static_cast<WasmLogLevel>(wasm_level)),
+                          soralog::Level::VERBOSE);
+    logger_->log(level, "{}: {}", target_str, message_str);
   }
 
   runtime::WasmEnum IOExtension::ext_logging_max_level_version_1() {

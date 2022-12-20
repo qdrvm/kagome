@@ -26,7 +26,8 @@ namespace kagome::network {
       : base_(host,
               {fmt::format(kBlockAnnouncesProtocol.data(),
                            chain_spec.protocolId())},
-              "BlockAnnounceProtocol"),
+              log::createLogger("BlockAnnounceProtocol",
+                                "block_announce_protocol")),
         app_config_(app_config),
         stream_engine_(std::move(stream_engine)),
         block_tree_(std::move(block_tree)),
@@ -360,7 +361,7 @@ namespace kagome::network {
     stream_engine_->broadcast(
         shared_from_this(),
         shared_msg,
-        StreamEngine::RandomGossipStrategy{
+        RandomGossipStrategy{
             stream_engine_->outgoingStreamsNumber(shared_from_this()),
             app_config_.luckyPeers()});
   }

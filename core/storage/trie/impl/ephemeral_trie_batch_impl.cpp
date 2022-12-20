@@ -16,12 +16,12 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(trie_ != nullptr);
   }
 
-  outcome::result<BufferConstRef> EphemeralTrieBatchImpl::get(
+  outcome::result<BufferOrView> EphemeralTrieBatchImpl::get(
       const BufferView &key) const {
     return trie_->get(key);
   }
 
-  outcome::result<std::optional<BufferConstRef>> EphemeralTrieBatchImpl::tryGet(
+  outcome::result<std::optional<BufferOrView>> EphemeralTrieBatchImpl::tryGet(
       const BufferView &key) const {
     return trie_->tryGet(key);
   }
@@ -48,12 +48,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> EphemeralTrieBatchImpl::put(const BufferView &key,
-                                                    const Buffer &value) {
-    return trie_->put(key, value);
-  }
-
-  outcome::result<void> EphemeralTrieBatchImpl::put(const BufferView &key,
-                                                    Buffer &&value) {
+                                                    BufferOrView &&value) {
     return trie_->put(key, std::move(value));
   }
 

@@ -49,7 +49,7 @@ kagome::storage::trie::RootHash trieRoot(
   auto codec = kagome::storage::trie::PolkadotCodec();
 
   for (const auto &[key, val] : key_vals) {
-    [[maybe_unused]] auto res = trie.put(key, val);
+    [[maybe_unused]] auto res = trie.put(key, val.view());
     BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie failed");
   }
   auto root = trie.getRoot();
@@ -134,7 +134,7 @@ int main() {
       trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
           .value();
   for (auto &kv : chain_spec->getGenesisTopSection()) {
-    storage_batch->put(kv.first, kv.second).value();
+    storage_batch->put(kv.first, kv.second.view()).value();
   }
   storage_batch->commit().value();
 

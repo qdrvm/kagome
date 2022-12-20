@@ -117,7 +117,7 @@ namespace kagome::network {
   /** @see AppStateManager::takeControl */
   bool SynchronizerImpl::prepare() {
     auto opt_res =
-        buffer_storage_->tryLoad(storage::kBlockOfIncompleteSyncStateLookupKey);
+        buffer_storage_->tryGet(storage::kBlockOfIncompleteSyncStateLookupKey);
     if (opt_res.has_error()) {
       SL_ERROR(
           log_, "Can't check of incomplete state sync: {}", opt_res.error());
@@ -430,7 +430,7 @@ namespace kagome::network {
                  lower,
                  upper - 1,
                  peer_id,
-                 outcome::result<void>(Error::DUPLICATE_REQUEST).error());
+                 make_error_code(Error::DUPLICATE_REQUEST));
       handler(Error::DUPLICATE_REQUEST);
       return;
     }
@@ -600,7 +600,7 @@ namespace kagome::network {
                "Can't load blocks from {} beginning block {}: {}",
                peer_id,
                from,
-               outcome::result<void>(Error::DUPLICATE_REQUEST).error());
+               make_error_code(Error::DUPLICATE_REQUEST));
       if (handler) handler(Error::DUPLICATE_REQUEST);
       return;
     }
@@ -830,7 +830,7 @@ namespace kagome::network {
                "Can't load justification from {} for block {}: {}",
                peer_id,
                target_block,
-               outcome::result<void>(Error::DUPLICATE_REQUEST).error());
+               make_error_code(Error::DUPLICATE_REQUEST));
       if (handler) {
         handler(Error::DUPLICATE_REQUEST);
       }
@@ -991,7 +991,8 @@ namespace kagome::network {
                        state_entry.entries[0].key.toHex(),
                        state_entry.entries.size());
               for (const auto &entry : state_entry.entries) {
-                std::ignore = batch->put(entry.key, entry.value);
+                std::ignore =
+                    batch->put(entry.key, common::BufferView{entry.value});
               }
 
               // store batch to continue at next state_entry
@@ -1141,6 +1142,7 @@ namespace kagome::network {
     auto node = known_blocks_.extract(hash);
     if (node) {
       auto &block = node.mapped().data;
+      auto &peers = node.mapped().peers;
       BOOST_ASSERT(block.header.has_value());
       const BlockInfo block_info(block.header->number, block.hash);
 
@@ -1217,6 +1219,42 @@ namespace kagome::network {
           telemetry_->notifyBlockImported(
               block_info, telemetry::BlockOrigin::kNetworkInitialSync);
           if (handler) handler(block_info);
+
+          // Check if finality lag greater than justification saving interval
+          static const BlockNumber kJustificationInterval = 512;
+          static const BlockNumber kMaxJustificationLag = 5;
+          auto last_finalized = block_tree_->getLastFinalized();
+          if ((block_info.number - kMaxJustificationLag)
+                  / kJustificationInterval
+              > last_finalized.number / kJustificationInterval) {
+            //  Trying to substitute with justifications' request only
+            for (const auto &peer_id : peers) {
+              syncMissingJustifications(
+                  peer_id,
+                  last_finalized,
+                  std::nullopt,
+                  [wp = weak_from_this(), last_finalized, block_info](
+                      auto res) {
+                    if (auto self = wp.lock()) {
+                      if (res.has_value()) {
+                        SL_DEBUG(
+                            self->log_,
+                            "Loaded justifications for blocks in range {} - {}",
+                            last_finalized,
+                            res.value());
+                        return;
+                      }
+
+                      SL_WARN(self->log_,
+                              "Missing justifications between blocks {} and "
+                              "{} was not loaded: {}",
+                              last_finalized,
+                              block_info.number,
+                              res.error());
+                    }
+                  });
+            }
+          }
         }
       }
     }

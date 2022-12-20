@@ -23,20 +23,19 @@ namespace kagome::storage::trie {
         ->cursor();  // TODO(Harrm): perhaps should iterate over trie nodes only
   }
 
-  std::unique_ptr<face::WriteBatch<BufferView, Buffer>>
-  TrieStorageBackendImpl::batch() {
+  std::unique_ptr<BufferBatch> TrieStorageBackendImpl::batch() {
     return std::make_unique<TrieStorageBackendBatch>(storage_->batch(),
                                                      node_prefix_);
   }
 
-  outcome::result<Buffer> TrieStorageBackendImpl::load(
+  outcome::result<BufferOrView> TrieStorageBackendImpl::get(
       const BufferView &key) const {
-    return storage_->load(prefixKey(key));
+    return storage_->get(prefixKey(key));
   }
 
-  outcome::result<std::optional<Buffer>> TrieStorageBackendImpl::tryLoad(
+  outcome::result<std::optional<BufferOrView>> TrieStorageBackendImpl::tryGet(
       const BufferView &key) const {
-    return storage_->tryLoad(prefixKey(key));
+    return storage_->tryGet(prefixKey(key));
   }
 
   outcome::result<bool> TrieStorageBackendImpl::contains(
@@ -49,12 +48,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TrieStorageBackendImpl::put(const BufferView &key,
-                                                    const Buffer &value) {
-    return storage_->put(prefixKey(key), value);
-  }
-
-  outcome::result<void> TrieStorageBackendImpl::put(const BufferView &key,
-                                                    Buffer &&value) {
+                                                    BufferOrView &&value) {
     return storage_->put(prefixKey(key), std::move(value));
   }
 
@@ -66,9 +60,4 @@ namespace kagome::storage::trie {
       const common::BufferView &key) const {
     return common::Buffer{node_prefix_}.put(key);
   }
-
-  size_t TrieStorageBackendImpl::size() const {
-    return storage_->size();
-  }
-
 }  // namespace kagome::storage::trie

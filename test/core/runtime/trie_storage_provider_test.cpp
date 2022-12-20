@@ -84,7 +84,7 @@ TEST_F(TrieStorageProviderTest, NestedTransactions) {
           ASSERT_OUTCOME_SUCCESS(
               val,
               batch->get(Buffer(std::vector<uint8_t>(key.begin(), key.end()))));
-          actual_view += val.get().asString();
+          actual_view += val.mut().asString();
         }
         EXPECT_EQ(actual_view, expected_view);
       };

@@ -41,7 +41,7 @@ namespace kagome::storage {
                      : std::nullopt;
   }
 
-  std::optional<Buffer> RocksDBCursor::value() const {
+  std::optional<BufferOrView> RocksDBCursor::value() const {
     return isValid() ? std::make_optional(make_buffer(i_->value()))
                      : std::nullopt;
   }

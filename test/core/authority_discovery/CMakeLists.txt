@@ -10,4 +10,5 @@ target_link_libraries(address_publisher_test
     address_publisher
     crypto_store
     logger_for_tests
+    network
     )

@@ -33,7 +33,7 @@ namespace kagome::network {
       : base_(host,
               {fmt::format(kGrandpaProtocol, hex_lower(genesis_hash)),
                kGrandpaProtocolLegacy},
-              "GrandpaProtocol"),
+              log::createLogger("GrandpaProtocol", "grandpa_protocol")),
         io_context_(std::move(io_context)),
         app_config_(app_config),
         grandpa_observer_(std::move(grandpa_observer)),
@@ -218,11 +218,12 @@ namespace kagome::network {
             cb(remote_roles_res.as_failure());
             return;
           }
-          // auto &remote_roles = remote_roles_res.value();
+          [[maybe_unused]] auto &remote_roles = remote_roles_res.value();
 
           SL_TRACE(self->base_.logger(),
-                   "Handshake has received from {}",
-                   stream->remotePeerId().value());
+                   "Handshake has received from {}; roles={}",
+                   stream->remotePeerId().value(),
+                   to_string(remote_roles));
 
           switch (direction) {
             case Direction::OUTGOING:
@@ -246,6 +247,7 @@ namespace kagome::network {
 
     read_writer->write(roles,
                        [stream = std::move(stream),
+                        roles,
                         direction,
                         wp = weak_from_this(),
                         cb = std::move(cb)](auto &&write_res) mutable {
@@ -267,8 +269,9 @@ namespace kagome::network {
                          }
 
                          SL_TRACE(self->base_.logger(),
-                                  "Handshake has sent to {}",
-                                  stream->remotePeerId().value());
+                                  "Handshake has sent to {}; roles={}",
+                                  stream->remotePeerId().value(),
+                                  to_string(roles));
 
                          switch (direction) {
                            case Direction::OUTGOING:
@@ -454,7 +457,7 @@ namespace kagome::network {
     stream_engine_->broadcast<GrandpaMessage>(
         shared_from_this(),
         shared_msg,
-        StreamEngine::RandomGossipStrategy{
+        RandomGossipStrategy{
             stream_engine_->outgoingStreamsNumber(shared_from_this()),
             app_config_.luckyPeers()});
   }

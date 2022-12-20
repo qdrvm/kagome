@@ -27,7 +27,6 @@
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
-using kagome::common::BufferConstRef;
 using kagome::host_api::ChildStorageExtension;
 using kagome::runtime::Memory;
 using kagome::runtime::MemoryMock;
@@ -152,11 +151,9 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
 
   // 'func' (lambda)
   auto &param = GetParam();
-  auto param_ref = kagome::common::map_result_optional(
-      param, [](auto &v) { return std::cref(v); });
 
-  EXPECT_CALL(*trie_child_storage_batch_, tryGet(key.view()))
-      .WillOnce(Return(param_ref));
+  EXPECT_CALL(*trie_child_storage_batch_, tryGetMock(key.view()))
+      .WillOnce(Return(param));
 
   // results
   if (GetParam().has_error()) {
@@ -244,13 +241,8 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
 
   // 'func' (lambda)
   auto &param = GetParam();
-  EXPECT_CALL(*trie_child_storage_batch_, tryGet(key.view()))
-      .WillOnce(Return([&]() -> outcome::result<std::optional<BufferConstRef>> {
-        if (param.has_error()) return param.as_failure();
-        auto &opt = param.value();
-        if (opt) return std::cref(opt.value());
-        return std::nullopt;
-      }()));
+  EXPECT_CALL(*trie_child_storage_batch_, tryGetMock(key.view()))
+      .WillOnce(Return(param));
 
   // results
 

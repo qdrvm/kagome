@@ -103,7 +103,7 @@ namespace kagome::consensus::babe {
 
     // 1. Load last state
     OUTCOME_TRY(encoded_last_state_opt,
-                persistent_storage_->tryLoad(
+                persistent_storage_->tryGet(
                     storage::kBabeConfigRepoStateLookupKey("last")));
 
     if (encoded_last_state_opt.has_value()) {
@@ -138,7 +138,7 @@ namespace kagome::consensus::babe {
            block_number > 0;
            block_number -= kSavepointBlockInterval) {
         OUTCOME_TRY(encoded_saved_state_opt,
-                    persistent_storage_->tryLoad(
+                    persistent_storage_->tryGet(
                         storage::kBabeConfigRepoStateLookupKey(block_number)));
 
         if (not encoded_saved_state_opt.has_value()) {
@@ -205,7 +205,8 @@ namespace kagome::consensus::babe {
       auto block_header_res = block_tree_->getBlockHeader(block_number);
       if (block_header_res.has_error()) {
         SL_WARN(logger_,
-                "Can't get header of some finalized block: {}",
+                "Can't get header of an already finalized block #{}: {}",
+                block_number,
                 block_header_res.error());
         return block_header_res.as_failure();
       }
@@ -240,8 +241,8 @@ namespace kagome::consensus::babe {
             [](const auto &) { return outcome::success(); });
         if (res.has_error()) {
           SL_WARN(logger_,
-                  "Can't apply babe digest of finalized block #{}: {}",
-                  block_number,
+                  "Can't apply babe digest of finalized block {}: {}",
+                  context.block,
                   res.error());
           return res.as_failure();
         }
@@ -281,7 +282,8 @@ namespace kagome::consensus::babe {
         auto block_header_res = block_tree_->getBlockHeader(hash);
         if (block_header_res.has_error()) {
           SL_WARN(logger_,
-                  "Can't get header of some finalized block: {}",
+                  "Can't get header of non-finalized block {}: {}",
+                  hash,
                   block_header_res.error());
           return block_header_res.as_failure();
         }
@@ -441,6 +443,9 @@ namespace kagome::consensus::babe {
                                    EpochNumber epoch_number) {
     auto node = getNode(context);
     if (node) {
+      if (epoch_number > node->epoch) {
+        return node->next_config.value_or(node->config);
+      }
       return node->config;
     }
     return {};

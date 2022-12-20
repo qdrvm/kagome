@@ -26,7 +26,9 @@ namespace kagome::network {
             CollationFetchingResponse,
             ScaleMessageReadWriter>{host,
                                     kReqCollationProtocol,
-                                    "ReqCollationProtocol"},
+                                    log::createLogger(
+                                        "ReqCollationProtocol",
+                                        "request_collation_protocol")},
           observer_{std::move(observer)} {}
 
    protected:

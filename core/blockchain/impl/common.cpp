@@ -12,7 +12,7 @@
 
 namespace kagome::blockchain {
 
-  outcome::result<std::optional<common::Buffer>> idToLookupKey(
+  outcome::result<std::optional<common::BufferOrView>> idToLookupKey(
       const ReadableBufferStorage &map, const primitives::BlockId &id) {
     auto key = visit_in_place(
         id,
@@ -24,7 +24,7 @@ namespace kagome::blockchain {
           return prependPrefix(hash, prefix::Prefix::ID_TO_LOOKUP_KEY);
         });
 
-    OUTCOME_TRY(key_opt, map.tryLoad(key));
+    OUTCOME_TRY(key_opt, map.tryGet(key));
 
     return std::move(key_opt);
   }
@@ -35,7 +35,7 @@ namespace kagome::blockchain {
     auto codec = storage::trie::PolkadotCodec();
 
     for (const auto &[key, val] : key_vals) {
-      [[maybe_unused]] auto res = trie.put(key, val);
+      [[maybe_unused]] auto res = trie.put(key, common::BufferView{val});
       BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie failed");
     }
     auto root = trie.getRoot();

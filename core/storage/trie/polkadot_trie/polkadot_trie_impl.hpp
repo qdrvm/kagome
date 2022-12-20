@@ -58,19 +58,15 @@ namespace kagome::storage::trie {
         std::optional<uint64_t> limit,
         const OnDetachCallback &callback) override;
 
-    // value will be copied
     outcome::result<void> put(const common::BufferView &key,
-                              const common::Buffer &value) override;
-
-    outcome::result<void> put(const common::BufferView &key,
-                              common::Buffer &&value) override;
+                              BufferOrView &&value) override;
 
     outcome::result<void> remove(const common::BufferView &key) override;
 
-    outcome::result<common::BufferConstRef> get(
+    outcome::result<BufferOrView> get(
         const common::BufferView &key) const override;
 
-    outcome::result<std::optional<common::BufferConstRef>> tryGet(
+    outcome::result<std::optional<BufferOrView>> tryGet(
         const common::BufferView &key) const override;
 
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;

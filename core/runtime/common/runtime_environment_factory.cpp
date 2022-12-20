@@ -124,7 +124,7 @@ namespace kagome::runtime {
     auto heappages_res =
         env.storage_provider->getCurrentBatch()->get(heappages_key);
     if (heappages_res.has_value()) {
-      const auto &heappages = heappages_res.value().get();
+      const auto &heappages = heappages_res.value();
       if (sizeof(uint64_t) != heappages.size()) {
         parent_factory->logger_->error(
             "Unable to read :heappages value. Type size mismatch. "
@@ -132,7 +132,7 @@ namespace kagome::runtime {
             sizeof(uint64_t),
             heappages.size());
       } else {
-        uint64_t pages = common::le_bytes_to_uint64(heappages.asVector());
+        uint64_t pages = common::le_bytes_to_uint64(heappages.view());
         env.memory_provider->getCurrentMemory()->get().resize(
             pages * kMemoryPageSize);
         parent_factory->logger_->trace(

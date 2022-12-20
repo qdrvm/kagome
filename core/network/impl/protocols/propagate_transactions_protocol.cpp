@@ -5,6 +5,8 @@
 
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 
+#include <algorithm>
+
 #include "application/app_configuration.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
@@ -33,8 +35,8 @@ namespace kagome::network {
       : base_(host,
               {fmt::format(kPropagateTransactionsProtocol.data(),
                            chain_spec.protocolId())},
-              "PropagateTransactionsProtocol"),
-        app_config_(app_config),
+              log::createLogger("PropagateTransactionsProtocol",
+                                "propagate_transactions_protocol")),
         babe_(std::move(babe)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)),
@@ -335,23 +337,16 @@ namespace kagome::network {
       }
     }
 
-    PropagatedExtrinsics exts;
-    exts.extrinsics.resize(txs.size());
-    std::transform(
-        txs.begin(), txs.end(), exts.extrinsics.begin(), [](auto &tx) {
-          return tx.ext;
-        });
-
-    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(PropagateTransactionsProtocol,
-                                                  PropagatedExtrinsics);
-    (*shared_msg) = std::move(exts);
-
+    auto propagated_exts = KAGOME_EXTRACT_SHARED_CACHE(
+        PropagateTransactionsProtocol, PropagatedExtrinsics);
+    propagated_exts->extrinsics.resize(txs.size());
+    std::transform(txs.begin(),
+                   txs.end(),
+                   propagated_exts->extrinsics.begin(),
+                   [](auto &tx) { return tx.ext; });
     stream_engine_->broadcast<PropagatedExtrinsics>(
         shared_from_this(),
-        shared_msg,
-        StreamEngine::RandomGossipStrategy{
-            stream_engine_->outgoingStreamsNumber(shared_from_this()),
-            app_config_.luckyPeers()});
+        propagated_exts);
   }
 
 }  // namespace kagome::network

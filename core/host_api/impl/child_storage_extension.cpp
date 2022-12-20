@@ -18,7 +18,6 @@
 #include <utility>
 
 using kagome::common::Buffer;
-using kagome::common::BufferConstRef;
 using kagome::storage::trie::TrieError;
 
 namespace kagome::host_api {
@@ -85,19 +84,17 @@ namespace kagome::host_api {
       runtime::WasmSpan key,
       runtime::WasmSpan value) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto [child_key_buffer, key_buffer, value_buffer] =
-        loadBuffer(memory, child_storage_key, key, value);
+    auto child_key_buffer = loadBuffer(memory, child_storage_key);
+    auto key_buffer = loadBuffer(memory, key);
+    auto value_buffer = loadBuffer(memory, value);
 
     SL_TRACE_VOID_FUNC_CALL(
         logger_, child_key_buffer, key_buffer, value_buffer);
 
     auto result = executeOnChildStorage<void>(
-        child_key_buffer,
-        [](auto &child_batch, auto &key, auto &value) {
-          return child_batch->put(key, value);
-        },
-        key_buffer,
-        value_buffer);
+        child_key_buffer, [&](auto &child_batch) mutable {
+          return child_batch->put(key_buffer, std::move(value_buffer));
+        });
 
     if (not result) {
       logger_->error(
@@ -136,7 +133,10 @@ namespace kagome::host_api {
                  }
                  // okay to throw, we want to end this runtime call with error
                  return memory.storeBuffer(
-                     scale::encode(result.value()).value());
+                     scale::encode(
+                         common::map_optional(result.value(),
+                                              [](auto &r) { return r.view(); }))
+                         .value());
                },
                key_buffer)
         .value();
@@ -279,17 +279,13 @@ namespace kagome::host_api {
         loadBuffer(memory, child_storage_key, key);
     auto [value_ptr, value_size] = runtime::PtrSize(value_out);
 
-    auto value = executeOnChildStorage<std::optional<common::Buffer>>(
+    auto value = executeOnChildStorage<std::optional<common::BufferOrView>>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) {
-          return common::map_result_optional(
-              child_batch->tryGet(key),
-              [](auto &v) -> common::Buffer { return v.get(); });
-        },
+        [](auto &child_batch, auto &key) { return child_batch->tryGet(key); },
         key_buffer);
     std::optional<uint32_t> res{std::nullopt};
-    if (auto data_opt_res = value; data_opt_res.has_value()) {
-      auto &data_opt = data_opt_res.value();
+    if (value) {
+      auto &data_opt = value.value();
       if (data_opt.has_value()) {
         common::BufferView data = data_opt.value();
         data = data.subspan(std::min<size_t>(offset, data.size()));
@@ -311,10 +307,9 @@ namespace kagome::host_api {
                            offset);
       }
     } else {
-      SL_ERROR(logger_,
-               "Error in ext_storage_read_version_1: {}",
-               data_opt_res.error());
-      throw std::runtime_error{data_opt_res.error().message()};
+      SL_ERROR(
+          logger_, "Error in ext_storage_read_version_1: {}", value.error());
+      throw std::runtime_error{value.error().message()};
     }
 
     return memory.storeBuffer(scale::encode(res).value());

@@ -1523,32 +1523,66 @@ namespace kagome::consensus::grandpa {
 
   std::vector<SignedPrecommit> VotingRoundImpl::getPrecommitJustification(
       const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const {
-    auto result = std::accumulate(
+    std::vector<SignedPrecommit> result;
+    VoteWeight::Weight weight = 0;
+
+    // Collect equivocations first (until threshold is reached)
+    result = std::accumulate(
         votes.begin(),
         votes.end(),
-        std::vector<SignedPrecommit>(),
-        [this, &estimate](auto &precommits, const auto &voting_variant) {
-          visit_in_place(
-              voting_variant,
-              [this, &precommits, &estimate](
-                  const SignedMessage &voting_message) {
-                if (voting_message.is<Precommit>()) {
-                  if (env_->isEqualOrDescendOf(estimate.hash,
-                                               voting_message.getBlockHash())) {
-                    precommits.push_back(
-                        static_cast<const SignedPrecommit &>(voting_message));
+        std::move(result),
+        [this, &weight](auto &precommits, const auto &voting_variant) {
+          if (weight < threshold_) {
+            visit_in_place(
+                voting_variant,
+                [this, &precommits, &weight](const EquivocatorySignedMessage
+                                                 &equivocatory_voting_message) {
+                  auto &signed_precommit = static_cast<const SignedPrecommit &>(
+                      equivocatory_voting_message.first);
+                  auto voter_weight =
+                      voter_set_->voterWeight(signed_precommit.id);
+                  if (voter_weight.has_value() and voter_weight.value() > 0) {
+                    weight += voter_weight.value();
+                    precommits.push_back(static_cast<const SignedPrecommit &>(
+                        equivocatory_voting_message.first));
+                    precommits.push_back(static_cast<const SignedPrecommit &>(
+                        equivocatory_voting_message.second));
                   }
-                }
-              },
-              [&precommits](const EquivocatorySignedMessage
-                                &equivocatory_voting_message) {
-                precommits.push_back(static_cast<const SignedPrecommit &>(
-                    equivocatory_voting_message.first));
-                precommits.push_back(static_cast<const SignedPrecommit &>(
-                    equivocatory_voting_message.second));
-              });
+                },
+                [](const auto &) {});
+          }
           return precommits;
         });
+
+    // Then collect valid precommits (until threshold is reached)
+    result = std::accumulate(
+        votes.begin(),
+        votes.end(),
+        std::move(result),
+        [this, &weight, &estimate](auto &precommits,
+                                   const auto &voting_variant) {
+          if (weight < threshold_) {
+            visit_in_place(
+                voting_variant,
+                [this, &precommits, &weight, &estimate](
+                    const SignedMessage &voting_message) {
+                  BOOST_ASSERT(voting_message.is<Precommit>());
+
+                  if (estimate.number <= voting_message.getBlockNumber()
+                      and env_->isEqualOrDescendOf(
+                          estimate.hash, voting_message.getBlockHash())) {
+                    auto &signed_precommit =
+                        static_cast<const SignedPrecommit &>(voting_message);
+                    weight +=
+                        voter_set_->voterWeight(signed_precommit.id).value();
+                    precommits.push_back(signed_precommit);
+                  }
+                },
+                [](const auto &) {});
+          }
+          return precommits;
+        });
+
     return result;
   }
 

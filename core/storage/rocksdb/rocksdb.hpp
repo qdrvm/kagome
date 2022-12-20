@@ -38,20 +38,17 @@ namespace kagome::storage {
 
     std::unique_ptr<Cursor> cursor() override;
 
-    outcome::result<bool> contains(const Key &key) const override;
+    outcome::result<bool> contains(const BufferView &key) const override;
 
     bool empty() const override;
 
-    outcome::result<kagome::storage::Buffer> load(
-        const Key &key) const override;
+    outcome::result<BufferOrView> get(const BufferView &key) const override;
 
-    outcome::result<std::optional<Buffer>> tryLoad(
-        const Key &key) const override;
+    outcome::result<std::optional<BufferOrView>> tryGet(
+        const BufferView &key) const override;
 
     outcome::result<void> put(const BufferView &key,
-                              const Buffer &value) override;
-
-    outcome::result<void> put(const BufferView &key, Buffer &&value) override;
+                              BufferOrView &&value) override;
 
     outcome::result<void> remove(const BufferView &key) override;
 
