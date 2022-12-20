@@ -74,8 +74,8 @@ namespace kagome::storage::trie {
       const std::shared_ptr<OpaqueTrieNode> &parent) const {
     if (auto p = std::dynamic_pointer_cast<TODO_GetValue>(parent);
         p != nullptr) {
-      OUTCOME_TRY(value, backend_->load(*p->value->hash));
-      p->value->value = std::move(value);
+      OUTCOME_TRY(value, backend_->get(*p->value->hash));
+      p->value->value = value.into();
       return nullptr;
     }
     if (auto p = std::dynamic_pointer_cast<DummyNode>(parent); p != nullptr) {
