@@ -32,7 +32,7 @@ namespace kagome::runtime {
     outcome::result<void> execute_block(
         const primitives::Block &block) override;
 
-    outcome::result<storage::trie::RootHash> initialize_block(
+    outcome::result<std::unique_ptr<RuntimeEnvironment>> initialize_block(
         const primitives::BlockHeader &header) override;
 
    private:

@@ -14,30 +14,24 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<PersistentResult<primitives::ApplyExtrinsicResult>>
-  BlockBuilderImpl::apply_extrinsic(const primitives::BlockInfo &block,
-                                    storage::trie::RootHash const &storage_hash,
+  outcome::result<primitives::ApplyExtrinsicResult>
+  BlockBuilderImpl::apply_extrinsic(RuntimeEnvironment &env,
                                     const primitives::Extrinsic &extrinsic) {
-    return executor_->persistentCallAt<primitives::ApplyExtrinsicResult>(
-        block, storage_hash, "BlockBuilder_apply_extrinsic", extrinsic);
+    return executor_->call<primitives::ApplyExtrinsicResult>(
+        env, "BlockBuilder_apply_extrinsic", extrinsic);
   }
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block(
-      const primitives::BlockInfo &block,
-      storage::trie::RootHash const &storage_hash) {
-    const auto res = executor_->persistentCallAt<primitives::BlockHeader>(
-        block, storage_hash, "BlockBuilder_finalize_block");
-    if (res) return res.value().result;
-    return res.error();
+      RuntimeEnvironment &env) {
+    return executor_->call<primitives::BlockHeader>(
+        env, "BlockBuilder_finalize_block");
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>
-  BlockBuilderImpl::inherent_extrinsics(
-      const primitives::BlockInfo &block,
-      storage::trie::RootHash const &storage_hash,
-      const primitives::InherentData &data) {
-    return executor_->callAt<std::vector<primitives::Extrinsic>>(
-        block, storage_hash, "BlockBuilder_inherent_extrinsics", data);
+  BlockBuilderImpl::inherent_extrinsics(RuntimeEnvironment &env,
+                                        const primitives::InherentData &data) {
+    return executor_->call<std::vector<primitives::Extrinsic>>(
+        env, "BlockBuilder_inherent_extrinsics", data);
   }
 
   outcome::result<primitives::CheckInherentsResult>

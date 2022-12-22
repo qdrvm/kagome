@@ -16,19 +16,15 @@ namespace kagome::runtime {
    public:
     explicit BlockBuilderImpl(std::shared_ptr<Executor> executor);
 
-    outcome::result<PersistentResult<primitives::ApplyExtrinsicResult>>
-    apply_extrinsic(const primitives::BlockInfo &block,
-                    storage::trie::RootHash const &storage_hash,
-                    const primitives::Extrinsic &extrinsic) override;
+    outcome::result<primitives::ApplyExtrinsicResult> apply_extrinsic(
+        RuntimeEnvironment &env,
+        const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<primitives::BlockHeader> finalize_block(
-        const primitives::BlockInfo &block,
-        storage::trie::RootHash const &storage_hash) override;
+        RuntimeEnvironment &env) override;
 
     outcome::result<std::vector<primitives::Extrinsic>> inherent_extrinsics(
-        const primitives::BlockInfo &block,
-        storage::trie::RootHash const &storage_hash,
-        const primitives::InherentData &data) override;
+        RuntimeEnvironment &env, const primitives::InherentData &data) override;
 
     outcome::result<primitives::CheckInherentsResult> check_inherents(
         const primitives::Block &block,

@@ -65,8 +65,9 @@ class BlockBuilderFactoryTest : public ::testing::Test {
  */
 TEST_F(BlockBuilderFactoryTest, CreateSuccessful) {
   // given
-  EXPECT_CALL(*core_, initialize_block(expected_header_))
-      .WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*core_, initialize_block(expected_header_)).WillOnce([] {
+    return outcome::success();
+  });
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
@@ -85,8 +86,9 @@ TEST_F(BlockBuilderFactoryTest, CreateSuccessful) {
  */
 TEST_F(BlockBuilderFactoryTest, CreateFailed) {
   // given
-  EXPECT_CALL(*core_, initialize_block(expected_header_))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+  EXPECT_CALL(*core_, initialize_block(expected_header_)).WillOnce([] {
+    return boost::system::error_code{};
+  });
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when

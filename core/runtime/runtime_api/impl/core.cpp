@@ -40,20 +40,17 @@ namespace kagome::runtime {
              and parent_res.value().number == block.header.number - 1;
     }());
     changes_tracker_->onBlockExecutionStart(block.header.parent_hash);
-    OUTCOME_TRY(executor_->persistentCallAt<void>(
-        block.header.parent_hash, "Core_execute_block", block));
+    OUTCOME_TRY(env, executor_->persistentAt(block.header.parent_hash));
+    OUTCOME_TRY(executor_->call<void>(*env, "Core_execute_block", block));
     return outcome::success();
   }
 
-  outcome::result<storage::trie::RootHash> CoreImpl::initialize_block(
-      const primitives::BlockHeader &header) {
+  outcome::result<std::unique_ptr<RuntimeEnvironment>>
+  CoreImpl::initialize_block(const primitives::BlockHeader &header) {
     changes_tracker_->onBlockExecutionStart(header.parent_hash);
-    const auto res = executor_->persistentCallAt<void>(
-        header.parent_hash, "Core_initialize_block", header);
-    if (res.has_value()) {
-      return res.value().new_storage_root;
-    }
-    return res.error();
+    OUTCOME_TRY(env, executor_->persistentAt(header.parent_hash));
+    OUTCOME_TRY(executor_->call<void>(*env, "Core_initialize_block", header));
+    return std::move(env);
   }
 
 }  // namespace kagome::runtime

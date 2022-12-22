@@ -26,7 +26,7 @@ namespace kagome::runtime {
                 (const primitives::Block &),
                 (override));
 
-    MOCK_METHOD(outcome::result<storage::trie::RootHash>,
+    MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeEnvironment>>,
                 initialize_block,
                 (const primitives::BlockHeader &),
                 (override));
