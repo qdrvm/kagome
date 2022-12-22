@@ -120,7 +120,8 @@ int main() {
   auto batch =
       trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
           .value();
-  auto root_hash = batch->commit().value();
+  auto root_hash =
+      batch->commit(kagome::storage::trie::StateVersion::V0).value();
   auto block_storage =
       kagome::blockchain::BlockStorageImpl::create(root_hash, storage, hasher)
           .value();
@@ -136,7 +137,7 @@ int main() {
   for (auto &kv : chain_spec->getGenesisTopSection()) {
     storage_batch->put(kv.first, kv.second.view()).value();
   }
-  storage_batch->commit().value();
+  storage_batch->commit(kagome::storage::trie::StateVersion::V0).value();
 
   auto code_provider =
       std::make_shared<const kagome::runtime::StorageCodeProvider>(
