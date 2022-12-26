@@ -14,6 +14,7 @@
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/babe/is_primary.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
@@ -28,6 +29,7 @@ namespace kagome::blockchain {
   using Buffer = common::Buffer;
   using Prefix = prefix::Prefix;
   using DatabaseError = kagome::storage::DatabaseError;
+  using consensus::babe::isPrimary;
 
   namespace {
     /// Function-helper for loading (and repair if it needed) of leaves
@@ -141,13 +143,17 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(finalized_block_header_res.has_value()
                          and finalized_block_header_res.value().has_value(),
                      "Initialized block tree must be have finalized block");
+    auto &finalized_block_header = finalized_block_header_res.value().value();
     chain_events_engine->notify(
         primitives::events::ChainEventType::kFinalizedHeads,
-        finalized_block_header_res.value().value());
+        finalized_block_header);
 
     OUTCOME_TRY(last_finalized_justification,
                 storage->getJustification(last_finalized_block_info.hash));
-    SL_INFO(log, "Best block: {}, Last finalized: {}", best_leaf, last_finalized_block_info);
+    SL_INFO(log,
+            "Best block: {}, Last finalized: {}",
+            best_leaf,
+            last_finalized_block_info);
 
     auto hash_tmp = last_finalized_block_info.hash;
 
@@ -195,8 +201,11 @@ namespace kagome::blockchain {
     }
 
     // Prepare and create block tree basing last finalized block
-    auto tree = std::make_shared<TreeNode>(
-        last_finalized_block_info.hash, last_finalized_block_info.number, true);
+    auto tree = std::make_shared<TreeNode>(last_finalized_block_info.hash,
+                                           last_finalized_block_info.number,
+                                           nullptr,
+                                           true,
+                                           isPrimary(finalized_block_header));
     SL_DEBUG(log, "Last finalized block #{}", tree->depth);
     auto meta = std::make_shared<TreeMeta>(tree, last_finalized_justification);
 
@@ -400,8 +409,8 @@ namespace kagome::blockchain {
     OUTCOME_TRY(block_hash, storage_->putBlockHeader(header));
 
     // update local meta with the new block
-    auto new_node =
-        std::make_shared<TreeNode>(block_hash, header.number, parent);
+    auto new_node = std::make_shared<TreeNode>(
+        block_hash, header.number, parent, false, isPrimary(header));
 
     tree_->updateMeta(new_node);
 
@@ -437,8 +446,11 @@ namespace kagome::blockchain {
     OUTCOME_TRY(block_hash, storage_->putBlock(block));
 
     // Update local meta with the block
-    auto new_node =
-        std::make_shared<TreeNode>(block_hash, block.header.number, parent);
+    auto new_node = std::make_shared<TreeNode>(block_hash,
+                                               block.header.number,
+                                               parent,
+                                               false,
+                                               isPrimary(block.header));
 
     tree_->updateMeta(new_node);
 
@@ -455,8 +467,7 @@ namespace kagome::blockchain {
     for (const auto &ext : block.body) {
       auto hash = hasher_->blake2b_256(ext.data);
       SL_DEBUG(log_, "Adding extrinsic with hash {}", hash);
-      if (auto key =
-              extrinsic_event_key_repo_->get(hash)) {
+      if (auto key = extrinsic_event_key_repo_->get(hash)) {
         extrinsic_events_engine_->notify(
             key.value(),
             primitives::events::ExtrinsicLifecycleEvent::InBlock(key.value(),
@@ -494,12 +505,15 @@ namespace kagome::blockchain {
 
     } else {
       // ... or repair tree by parent of root
-      auto hash_res = header_repo_->getHashByNumber(node->depth - 1);
-      BOOST_ASSERT_MSG(hash_res.has_value(),
-                       "Non genesis block must have parent");
-
-      primitives::BlockInfo block{node->depth - 1, hash_res.value()};
-      auto tree = std::make_shared<TreeNode>(block.hash, block.number, true);
+      auto _header = header_repo_->getBlockHeader(node->depth - 1);
+      BOOST_ASSERT_MSG(_header, "Non genesis block must have parent");
+      auto &header = _header.value();
+      primitives::BlockInfo block{
+          node->depth - 1,
+          hasher_->blake2b_256(scale::encode(header).value()),
+      };
+      auto tree = std::make_shared<TreeNode>(
+          block.hash, block.number, nullptr, true, isPrimary(header));
       auto meta = std::make_shared<TreeMeta>(tree, std::nullopt);
       tree_ = std::make_unique<CachedTree>(std::move(tree), std::move(meta));
     }
@@ -591,8 +605,11 @@ namespace kagome::blockchain {
     }
 
     // Update local meta with the block
-    auto new_node =
-        std::make_shared<TreeNode>(block_hash, block_header.number, parent);
+    auto new_node = std::make_shared<TreeNode>(block_hash,
+                                               block_header.number,
+                                               parent,
+                                               false,
+                                               isPrimary(block_header));
 
     tree_->updateMeta(new_node);
 

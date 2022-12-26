@@ -558,7 +558,8 @@ std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
                                          auto &make_subtree) {
     primitives::BlockHash hash{};
     std::copy_n(name.begin(), name.size(), hash.begin());
-    auto node = std::make_shared<TreeNode>(hash, current_depth, parent);
+    auto node =
+        std::make_shared<TreeNode>(hash, current_depth, parent, false, false);
     if (current_depth + 1 == max_depth) {
       return node;
     }
@@ -695,14 +696,17 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
 TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
-                     .number = 1,
+                     .number = kFinalizedBlockInfo.number + 1,
                      .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
-  header =
-      BlockHeader{.parent_hash = hash1, .number = 2, .digest = {Consensus{}}};
+  header = BlockHeader{
+      .parent_hash = hash1,
+      .number = header.number + 1,
+      .digest = {Consensus{}},
+  };
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
