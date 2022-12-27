@@ -91,6 +91,11 @@ namespace kagome::blockchain {
         std::optional<primitives::Justification> last_finalized_justification);
 
     Weight getWeight(std::shared_ptr<TreeNode> node) const;
+
+    /**
+     * Compare node weight with best and replace if heavier.
+     * @return true if heavier and replaced.
+     */
     bool chooseBest(std::shared_ptr<TreeNode> node);
 
     std::unordered_set<primitives::BlockHash> leaves;

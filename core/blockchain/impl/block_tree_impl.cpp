@@ -506,7 +506,8 @@ namespace kagome::blockchain {
     } else {
       // ... or repair tree by parent of root
       auto _header = header_repo_->getBlockHeader(node->depth - 1);
-      BOOST_ASSERT_MSG(_header, "Non genesis block must have parent");
+      BOOST_ASSERT_MSG(_header.has_value(),
+                       "Non genesis block must have parent");
       auto &header = _header.value();
       primitives::BlockInfo block{
           node->depth - 1,
