@@ -232,8 +232,9 @@ namespace kagome::blockchain {
       metadata_->leaves.insert(parent->block_hash);
     }
 
-    BOOST_ASSERT(not metadata_->deepest_leaf.expired());
-    if (node == metadata_->deepest_leaf.lock()) {
+    auto best = metadata_->deepest_leaf.lock();
+    BOOST_ASSERT(best);
+    if (node == best) {
       metadata_->deepest_leaf = parent;
       for (auto it = metadata_->leaves.begin();
            it != metadata_->leaves.end();) {
