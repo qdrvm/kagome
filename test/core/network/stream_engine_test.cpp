@@ -103,7 +103,7 @@ namespace kagome::network {
     auto peers_num = stream_engine->outgoingStreamsNumber(protocol1);
     ASSERT_EQ(peers_num, 5);
     auto gossip_strategy =
-        StreamEngine::RandomGossipStrategy<RngMock>{peers_num, lucky_peers};
+        RandomGossipStrategy<RngMock>{peers_num, lucky_peers};
 
     auto msg = std::make_shared<int>(42);
     stream_engine->broadcast<int>(protocol1, msg, gossip_strategy);

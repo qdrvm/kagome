@@ -147,6 +147,7 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(last_finalized_justification,
                 storage->getJustification(last_finalized_block_info.hash));
+    SL_INFO(log, "Best block: {}, Last finalized: {}", best_leaf, last_finalized_block_info);
 
     auto hash_tmp = last_finalized_block_info.hash;
 
@@ -450,9 +451,12 @@ namespace kagome::blockchain {
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
     trie_changes_tracker_->onBlockAdded(block_hash);
+    SL_DEBUG(log_, "Adding block {}", block_hash);
     for (const auto &ext : block.body) {
+      auto hash = hasher_->blake2b_256(ext.data);
+      SL_DEBUG(log_, "Adding extrinsic with hash {}", hash);
       if (auto key =
-              extrinsic_event_key_repo_->get(hasher_->blake2b_256(ext.data))) {
+              extrinsic_event_key_repo_->get(hash)) {
         extrinsic_events_engine_->notify(
             key.value(),
             primitives::events::ExtrinsicLifecycleEvent::InBlock(key.value(),

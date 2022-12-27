@@ -118,7 +118,7 @@ jobs:
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
-        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON
+        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
       - name: df du
         if: ${{ always() }}
         run: |
@@ -172,6 +172,8 @@ jobs:
             build-type: "Debug"
           - name: "Push Release Docker image"
             build-type: "Release"
+          - name: "Push RelWithDebInfo Docker image"
+            build-type: "RelWithDebInfo"
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev:4-minideb
     steps:

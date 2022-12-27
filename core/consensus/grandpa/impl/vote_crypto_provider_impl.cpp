@@ -26,7 +26,7 @@ namespace kagome::consensus::grandpa {
       return std::nullopt;
     }
     auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
-    auto signature = ed_provider_->sign(*keypair_.get(), payload).value();
+    auto signature = ed_provider_->sign(*keypair_, payload).value();
     return {{.message = std::move(vote),
              .signature = signature,
              .id = keypair_->public_key}};

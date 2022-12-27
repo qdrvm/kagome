@@ -42,20 +42,21 @@ namespace libp2p::connection {
       readSome(out,
                out.size(),
                [weak{weak_from_this()}, out, total, cb{std::move(cb)}](
-                   outcome::result<size_t> _r) mutable {
+                   outcome::result<size_t> bytes_num_res) mutable {
                  if (auto self{weak.lock()}) {
-                   if (_r.has_error()) {
-                     return cb(_r.error());
+                   if (bytes_num_res.has_error()) {
+                     return cb(bytes_num_res.error());
                    }
-                   const auto &r = _r.value();
-                   const auto _r{gsl::narrow<ptrdiff_t>(r)};
-                   BOOST_ASSERT(_r <= out.size());
-                   if (_r == out.size()) {
+                   const auto &bytes_num = bytes_num_res.value();
+                   BOOST_ASSERT(bytes_num != 0);
+                   const auto bytes_num_ptrdiff{gsl::narrow<ptrdiff_t>(bytes_num)};
+                   BOOST_ASSERT(bytes_num_ptrdiff <= out.size());
+                   if (bytes_num_ptrdiff == out.size()) {
                      // successfully read last bytes
                      return cb(total);
                    }
                    // read remaining bytes
-                   self->readFull(out.subspan(r), total, std::move(cb));
+                   self->readFull(out.subspan(bytes_num_ptrdiff), total, std::move(cb));
                  }
                });
     }

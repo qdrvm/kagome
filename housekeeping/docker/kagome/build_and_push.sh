@@ -9,8 +9,8 @@ BUILD_DIR="${BUILD_DIR:-$(pwd)/build}"
 
 BUILD_TYPE="${BUILD_TYPE:?BUILD_TYPE variable is not defined}"
 
-if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ]; then
-  echo "Invalid build type $BUILD_TYPE, should be either Debug or Release"
+if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ] && [ "$BUILD_TYPE" != "RelWithDebInfo" ]; then
+  echo "Invalid build type $BUILD_TYPE, should be either Debug, Release or RelWithDebInfo"
   exit 1
 fi
 
@@ -26,6 +26,9 @@ fi
 
 if [ "$BUILD_TYPE" = "Debug" ]; then
   VERSION="${VERSION}-debug"
+fi
+if [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
+  VERSION="${VERSION}-rel-with-deb-info"
 fi
 
 TAG="soramitsu/kagome:$VERSION"
@@ -46,6 +49,10 @@ if [ "$BUILD_TYPE" = "Release" ]; then
 
 elif [ "$BUILD_TYPE" = "Debug" ]; then
   docker build -t $TAG -f housekeeping/docker/kagome/minideb-debug.Dockerfile ${CTX_DIR}
+
+
+elif [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
+  docker build -t $TAG -f housekeeping/docker/kagome/minideb-release.Dockerfile ${CTX_DIR}
 
 else
   echo "Unknown build type: $BUILD_TYPE"
