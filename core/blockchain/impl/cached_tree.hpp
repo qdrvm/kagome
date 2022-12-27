@@ -99,7 +99,7 @@ namespace kagome::blockchain {
     bool chooseBest(std::shared_ptr<TreeNode> node);
 
     std::unordered_set<primitives::BlockHash> leaves;
-    std::weak_ptr<TreeNode> deepest_leaf;
+    std::weak_ptr<TreeNode> best_leaf;
 
     std::weak_ptr<TreeNode> last_finalized;
     std::optional<primitives::Justification> last_finalized_justification;

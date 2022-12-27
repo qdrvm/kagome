@@ -119,7 +119,7 @@ namespace kagome::blockchain {
   TreeMeta::TreeMeta(
       const std::shared_ptr<TreeNode> &subtree_root_node,
       std::optional<primitives::Justification> last_finalized_justification)
-      : deepest_leaf{subtree_root_node},
+      : best_leaf{subtree_root_node},
         last_finalized{subtree_root_node},
         last_finalized_justification{std::move(last_finalized_justification)} {
     std::function<void(std::shared_ptr<TreeNode>)> handle =
@@ -162,10 +162,10 @@ namespace kagome::blockchain {
   }
 
   bool TreeMeta::chooseBest(std::shared_ptr<TreeNode> node) {
-    auto best = deepest_leaf.lock();
+    auto best = best_leaf.lock();
     BOOST_ASSERT(best);
     if (getWeight(node) > getWeight(best)) {
-      deepest_leaf = node;
+      best_leaf = node;
       return true;
     }
     return false;
@@ -232,10 +232,10 @@ namespace kagome::blockchain {
       metadata_->leaves.insert(parent->block_hash);
     }
 
-    auto best = metadata_->deepest_leaf.lock();
+    auto best = metadata_->best_leaf.lock();
     BOOST_ASSERT(best);
     if (node == best) {
-      metadata_->deepest_leaf = parent;
+      metadata_->best_leaf = parent;
       for (auto it = metadata_->leaves.begin();
            it != metadata_->leaves.end();) {
         const auto &hash = *it++;
