@@ -966,7 +966,7 @@ namespace kagome::blockchain {
     return true;
   }
 
-  primitives::BlockInfo BlockTreeImpl::deepestLeaf() const {
+  primitives::BlockInfo BlockTreeImpl::bestLeaf() const {
     auto &&leaf = tree_->getMetadata().best_leaf.lock();
     BOOST_ASSERT(leaf != nullptr);
     return {leaf->depth, leaf->block_hash};
@@ -1165,7 +1165,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<void> BlockTreeImpl::reorganize() {
-    auto block = BlockTreeImpl::deepestLeaf();
+    auto block = BlockTreeImpl::bestLeaf();
     if (block.number == 0) {
       return outcome::success();
     }

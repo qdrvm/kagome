@@ -471,7 +471,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (info->get().last_finalized <= block_tree_->deepestLeaf().number) {
+    if (info->get().last_finalized <= block_tree_->bestLeaf().number) {
       //  Trying to substitute with justifications' request only
       auto last_finalized = block_tree_->getLastFinalized();
       synchronizer_->syncMissingJustifications(

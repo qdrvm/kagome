@@ -275,7 +275,7 @@ namespace kagome::api {
                   -> outcome::result<ApiServiceImpl::PubsubSubscriptionId> {
                 auto &session = session_context.storage_sub;
                 const auto id = session->generateSubscriptionSetId();
-                const auto &best_block_hash = block_tree_->deepestLeaf().hash;
+                const auto &best_block_hash = block_tree_->bestLeaf().hash;
                 const auto &header =
                     block_tree_->getBlockHeader(best_block_hash);
                 BOOST_ASSERT(header.has_value());
@@ -377,7 +377,7 @@ namespace kagome::api {
         session->subscribe(id, primitives::events::ChainEventType::kNewHeads);
 
         auto header =
-            block_tree_->getBlockHeader(block_tree_->deepestLeaf().hash);
+            block_tree_->getBlockHeader(block_tree_->bestLeaf().hash);
         if (!header.has_error()) {
           session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,

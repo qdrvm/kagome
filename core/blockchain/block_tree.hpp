@@ -185,7 +185,7 @@ namespace kagome::blockchain {
      * @note best leaf is also a result of "SelectBestChain": if we are the
      * leader, we connect a block, which we constructed, to that best leaf
      */
-    virtual primitives::BlockInfo deepestLeaf() const = 0;
+    virtual primitives::BlockInfo bestLeaf() const = 0;
 
     /**
      * @brief Get the most recent block of the best (longest) chain among

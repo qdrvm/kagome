@@ -100,7 +100,7 @@ namespace kagome::authority_discovery {
 
     OUTCOME_TRY(
         authorities,
-        authority_discovery_api_->authorities(block_tree_->deepestLeaf().hash));
+        authority_discovery_api_->authorities(block_tree_->bestLeaf().hash));
 
     if (std::find(authorities.begin(), authorities.end(), audi_key->public_key)
         == authorities.end()) {
