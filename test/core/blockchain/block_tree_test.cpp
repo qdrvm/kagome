@@ -312,8 +312,7 @@ TEST_F(BlockTreeTest, GetBody) {
  */
 TEST_F(BlockTreeTest, AddBlock) {
   // GIVEN
-  auto &&[deepest_block_number, deepest_block_hash] =
-      block_tree_->bestLeaf();
+  auto &&[deepest_block_number, deepest_block_hash] = block_tree_->bestLeaf();
   ASSERT_EQ(deepest_block_hash, kFinalizedBlockInfo.hash);
 
   auto leaves = block_tree_->getLeaves();

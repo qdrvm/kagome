@@ -125,8 +125,8 @@ namespace kagome::api {
 
   outcome::result<common::Buffer> AuthorApiImpl::rotateKeys() {
     OUTCOME_TRY(encoded_session_keys,
-                keys_api_->generate_session_keys(
-                    block_tree_->bestLeaf().hash, std::nullopt));
+                keys_api_->generate_session_keys(block_tree_->bestLeaf().hash,
+                                                 std::nullopt));
     return std::move(encoded_session_keys);
   }
 
