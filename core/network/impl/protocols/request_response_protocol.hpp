@@ -23,10 +23,12 @@ namespace kagome::network {
     using ResponseType = Response;
     using ReadWriterType = ReadWriter;
 
-    RequestResponseProtocol(libp2p::Host &host,
-                            Protocol const &protocol,
+    RequestResponseProtocol(Protocol name,
+                            libp2p::Host &host,
+                            Protocols protocols,
                             log::Logger logger)
-        : base_(host, {protocol}, logger), protocol_{protocol} {}
+        : base_(
+            std::move(name), host, std::move(protocols), std::move(logger)) {}
     virtual ~RequestResponseProtocol() {}
 
     bool start() override {
@@ -36,8 +38,8 @@ namespace kagome::network {
       return base_.stop();
     }
 
-    const Protocol &protocolName() const override {
-      return protocol_;
+    const ProtocolName &protocolName() const override {
+      return base_.protocolName();
     }
 
     void doRequest(
@@ -304,7 +306,6 @@ namespace kagome::network {
     }
 
     ProtocolBaseImpl base_;
-    Protocol const protocol_;
   };
 
 }  // namespace kagome::network

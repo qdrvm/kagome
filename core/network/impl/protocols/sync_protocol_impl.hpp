@@ -107,6 +107,7 @@ namespace kagome::network {
     SyncProtocolImpl(
         libp2p::Host &host,
         const application::ChainSpec &chain_spec,
+        const primitives::BlockHash &genesis_hash,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
         std::shared_ptr<ReputationRepository> reputation_repository);
 
