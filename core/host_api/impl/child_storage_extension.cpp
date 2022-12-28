@@ -226,13 +226,11 @@ namespace kagome::host_api {
     if (auto child_batch =
             storage_provider_->getChildBatchAt(prefixed_child_key.value());
         child_batch.has_value() and child_batch.value() != nullptr) {
-      res = child_batch.value()->commit(
-          storage::trie::StateVersion::TODO_NotSpecified);
+      res = child_batch.value()->commit(storage::trie::StateVersion::V0);
     } else {
       logger_->warn(
           "ext_default_child_storage_root called in an ephemeral extension");
-      res = storage_provider_->forceCommit(
-          storage::trie::StateVersion::TODO_NotSpecified);
+      res = storage_provider_->forceCommit(storage::trie::StateVersion::V0);
       storage_provider_->clearChildBatches();
     }
     if (res.has_error()) {

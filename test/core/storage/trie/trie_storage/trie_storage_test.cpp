@@ -66,7 +66,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
     EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "abc"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("345"_buf, "def"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("678"_buf, "xyz"_buf));
-    EXPECT_OUTCOME_TRUE(root_, batch->commit(StateVersion::TODO_NotSpecified));
+    EXPECT_OUTCOME_TRUE(root_, batch->commit(StateVersion::V0));
     root = root_;
   }
   EXPECT_OUTCOME_TRUE(new_level_db,

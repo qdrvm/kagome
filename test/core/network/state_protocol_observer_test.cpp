@@ -117,8 +117,7 @@ TEST_F(StateProtocolObserverTest, Simple) {
   EXPECT_OUTCOME_TRUE(batch, persistent_empty_batch());
   std::ignore = batch->put("abc"_buf, "123"_buf);
   std::ignore = batch->put("cde"_buf, "345"_buf);
-  EXPECT_OUTCOME_TRUE(
-      hash, batch->commit(storage::trie::StateVersion::TODO_NotSpecified));
+  EXPECT_OUTCOME_TRUE(hash, batch->commit(storage::trie::StateVersion::V0));
 
   auto header = makeBlockHeader(hash);
   EXPECT_CALL(*headers_, getBlockHeader({"1"_hash256}))

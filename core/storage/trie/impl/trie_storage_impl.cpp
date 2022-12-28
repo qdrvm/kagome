@@ -23,8 +23,7 @@ namespace kagome::storage::trie {
     auto empty_trie =
         trie_factory->createEmpty([](auto &) { return outcome::success(); });
     // ensure retrieval of empty trie succeeds
-    OUTCOME_TRY(
-        serializer->storeTrie(*empty_trie, StateVersion::TODO_NotSpecified));
+    OUTCOME_TRY(serializer->storeTrie(*empty_trie, StateVersion::V0));
     return std::unique_ptr<TrieStorageImpl>(new TrieStorageImpl(
         std::move(codec), std::move(serializer), std::move(changes)));
   }

@@ -182,7 +182,7 @@ class BabeTest : public testing::Test {
     created_block_.header.extrinsics_root =
         common::Hash256::fromSpan(
             kagome::storage::trie::calculateOrderedTrieHash(
-                storage::trie::StateVersion::TODO_NotSpecified,
+                storage::trie::StateVersion::V0,
                 encoded_exts.begin(),
                 encoded_exts.end())
                 .value())

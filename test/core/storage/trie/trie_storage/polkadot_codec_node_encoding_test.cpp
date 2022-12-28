@@ -29,9 +29,7 @@ TEST_P(NodeEncodingTest, GetHeader) {
   auto [node, expected] = GetParam();
 
   EXPECT_OUTCOME_TRUE_2(
-      actual,
-      codec->encodeHeader(*node,
-                          storage::trie::StateVersion::TODO_NotSpecified));
+      actual, codec->encodeHeader(*node, storage::trie::StateVersion::V0));
   EXPECT_EQ(actual.toHex(), expected.toHex());
 }
 
