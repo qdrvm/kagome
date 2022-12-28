@@ -85,6 +85,7 @@ namespace kagome::network {
     const static inline auto kPropogateTransacionsProtocolName =
         "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<consensus::babe::Babe> babe_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;
