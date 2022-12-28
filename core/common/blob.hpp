@@ -114,6 +114,8 @@ namespace kagome::common {
    */
   template <size_t size_>
   class Blob : public std::array<byte_t, size_> {
+    using Base = std::array<byte_t, size_>;
+
    public:
     // Next line is required at least for the scale-codec
     static constexpr bool is_static_collection = true;
@@ -123,9 +125,7 @@ namespace kagome::common {
     /**
      * Initialize blob value
      */
-    Blob() {
-      this->fill(0);
-    }
+    constexpr Blob() : Base{} {}
 
     const_narref internal_array_reference() const {
       return *const_narptr(this->data());
@@ -135,11 +135,7 @@ namespace kagome::common {
      * @brief constructor enabling initializer list
      * @param l initializer list
      */
-    explicit Blob(const std::array<byte_t, size_> &l) {
-      std::copy(l.begin(), l.end(), this->begin());
-    }
-
-    virtual ~Blob() = default;
+    constexpr explicit Blob(const Base &l) : Base{l} {}
 
     /**
      * In compile-time returns size of current blob.
