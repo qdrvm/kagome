@@ -7,8 +7,6 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "common/visitor.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
-#include "storage/trie/serialization/trie_serializer_impl.hpp"
 
 namespace kagome::blockchain {
 
@@ -27,25 +25,5 @@ namespace kagome::blockchain {
     OUTCOME_TRY(key_opt, map.tryGet(key));
 
     return std::move(key_opt);
-  }
-
-  storage::trie::RootHash trieRoot(
-      const std::vector<std::pair<common::Buffer, common::Buffer>> &key_vals) {
-    auto trie = storage::trie::PolkadotTrieImpl();
-    auto codec = storage::trie::PolkadotCodec();
-
-    for (const auto &[key, val] : key_vals) {
-      [[maybe_unused]] auto res = trie.put(key, common::BufferView{val});
-      BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie failed");
-    }
-    auto root = trie.getRoot();
-    if (root == nullptr) {
-      static const auto zero_hash = codec.hash256(common::Buffer{0});
-      return zero_hash;
-    }
-    auto encode_res = codec.encodeNode(
-        *root, storage::trie::StateVersion::TODO_NotSpecified, {});
-    BOOST_ASSERT_MSG(encode_res.has_value(), "Trie encoding failed");
-    return codec.hash256(encode_res.value());
   }
 }  // namespace kagome::blockchain

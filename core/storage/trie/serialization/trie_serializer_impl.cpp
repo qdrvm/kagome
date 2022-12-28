@@ -25,8 +25,7 @@ namespace kagome::storage::trie {
   }
 
   RootHash TrieSerializerImpl::getEmptyRootHash() const {
-    static const auto empty_hash = codec_->hash256(common::Buffer{0});
-    return empty_hash;
+    return kEmptyRootHash;
   }
 
   outcome::result<RootHash> TrieSerializerImpl::storeTrie(

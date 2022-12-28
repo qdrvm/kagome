@@ -70,8 +70,7 @@ class StateProtocolObserverTest : public testing::Test {
   outcome::result<std::unique_ptr<PersistentTrieBatch>>
   persistent_empty_batch() {
     auto codec = std::make_shared<PolkadotCodec>();
-    OUTCOME_TRY(batch,
-                trie_->getPersistentBatchAt(codec->hash256(common::Buffer{0})));
+    OUTCOME_TRY(batch, trie_->getPersistentBatchAt(kEmptyRootHash));
     return std::move(batch);
   }
 
