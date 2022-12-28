@@ -129,8 +129,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
                      "Must be known or calculated at least one leaf");
 
-    // Find the least and best leaf
-    auto least_leaf = *block_tree_leaves.begin();
+    // Find best leaf
     auto best_leaf = *block_tree_leaves.rbegin();
 
     OUTCOME_TRY(last_finalized_block_info, storage->getLastFinalized());
@@ -147,9 +146,10 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(last_finalized_justification,
                 storage->getJustification(last_finalized_block_info.hash));
-    SL_INFO(log, "Best block: {}, Last finalized: {}", best_leaf, last_finalized_block_info);
-
-    auto hash_tmp = last_finalized_block_info.hash;
+    SL_INFO(log,
+            "Best block: {}, Last finalized: {}",
+            best_leaf,
+            last_finalized_block_info);
 
     // Load non-finalized block from block storage
     std::multimap<primitives::BlockInfo, primitives::BlockHeader> collected;
@@ -455,8 +455,7 @@ namespace kagome::blockchain {
     for (const auto &ext : block.body) {
       auto hash = hasher_->blake2b_256(ext.data);
       SL_DEBUG(log_, "Adding extrinsic with hash {}", hash);
-      if (auto key =
-              extrinsic_event_key_repo_->get(hash)) {
+      if (auto key = extrinsic_event_key_repo_->get(hash)) {
         extrinsic_events_engine_->notify(
             key.value(),
             primitives::events::ExtrinsicLifecycleEvent::InBlock(key.value(),
