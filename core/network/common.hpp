@@ -6,7 +6,11 @@
 #ifndef KAGOME_NETWORK_COMMON_HPP
 #define KAGOME_NETWORK_COMMON_HPP
 
-#include "libp2p/peer/protocol.hpp"
+#include <libp2p/peer/protocol.hpp>
+#include <libp2p/peer/stream_protocols.hpp>
+
+#include "application/chain_spec.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::network {
   /// Current protocol version.
@@ -20,13 +24,31 @@ namespace kagome::network {
       "/{}/transactions/1";
   const libp2p::peer::Protocol kBlockAnnouncesProtocol =
       "/{}/block-announces/1";
-  const libp2p::peer::Protocol kGrandpaProtocolLegacy = "/paritytech/grandpa/1";
   const libp2p::peer::Protocol kGrandpaProtocol = "/{}/grandpa/1";
+  const libp2p::peer::Protocol kCollationProtocol{"/{}/collation/1"};
+  const libp2p::peer::Protocol kValidationProtocol{"/{}/validation/1"};
+  const libp2p::peer::Protocol kReqCollationProtocol{"/{}/req_collation/1"};
 
-  const libp2p::peer::Protocol kCollationProtocol{"/polkadot/collation/1"};
-  const libp2p::peer::Protocol kValidationProtocol{"/polkadot/validation/1"};
-  const libp2p::peer::Protocol kReqCollationProtocol{
-      "/polkadot/req_collation/1"};
+  template <typename... Args>
+  libp2p::StreamProtocols make_protocols(std::string_view format,
+                                         const Args &...args) {
+    libp2p::StreamProtocols protocols;
+    auto instantiate = [&](const auto &arg) {
+      if constexpr (std::is_same_v<std::decay_t<decltype(arg)>,
+                                   std::decay_t<primitives::BlockHash>>) {
+        protocols.emplace_back(fmt::format(format, hex_lower(arg)));
+      } else if constexpr (std::is_same_v<
+                               std::decay_t<decltype(arg)>,
+                               std::decay_t<application::ChainSpec>>) {
+        protocols.emplace_back(fmt::format(format, arg.protocolId()));
+      } else {
+        protocols.emplace_back(fmt::format(format, arg));
+      }
+    };
+    (instantiate(args), ...);
+    return protocols;
+  }
+
 }  // namespace kagome::network
 
 #endif  // KAGOME_NETWORK_COMMON_HPP

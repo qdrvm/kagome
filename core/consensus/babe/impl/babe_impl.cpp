@@ -125,7 +125,7 @@ namespace kagome::consensus::babe {
       return false;
     }
 
-    best_block_ = block_tree_->deepestLeaf();
+    best_block_ = block_tree_->bestLeaf();
 
     // Check if best block has state for usual sync method
     if (app_config_.syncMethod() != SyncMethod::Fast) {
@@ -192,7 +192,7 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeImpl::start() {
-    best_block_ = block_tree_->deepestLeaf();
+    best_block_ = block_tree_->bestLeaf();
 
     SL_DEBUG(log_, "Babe is starting with syncing from block {}", best_block_);
 
@@ -263,7 +263,7 @@ namespace kagome::consensus::babe {
   }
 
   outcome::result<EpochDescriptor> BabeImpl::getInitialEpochDescriptor() {
-    auto best_block = block_tree_->deepestLeaf();
+    auto best_block = block_tree_->bestLeaf();
 
     if (best_block.number == 0) {
       EpochDescriptor epoch_descriptor{
@@ -600,7 +600,7 @@ namespace kagome::consensus::babe {
     telemetry_->notifyWasSynchronized();
 
     if (not active_) {
-      best_block_ = block_tree_->deepestLeaf();
+      best_block_ = block_tree_->bestLeaf();
 
       SL_DEBUG(log_, "Babe is synchronized on block {}", best_block_);
 
@@ -674,7 +674,7 @@ namespace kagome::consensus::babe {
   void BabeImpl::processSlot() {
     BOOST_ASSERT(keypair_ != nullptr);
 
-    best_block_ = block_tree_->deepestLeaf();
+    best_block_ = block_tree_->bestLeaf();
 
     // Resolve slot collisions: if best block slot greater than current slot,
     // that select his ancestor as best

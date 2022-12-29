@@ -47,6 +47,7 @@ namespace kagome::network {
         libp2p::Host &host,
         const application::AppConfiguration &app_config,
         const application::ChainSpec &chain_spec,
+        const primitives::BlockHash &genesis_hash,
         std::shared_ptr<consensus::babe::Babe> babe,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<StreamEngine> stream_engine,
@@ -58,9 +59,7 @@ namespace kagome::network {
     bool start() override;
     bool stop() override;
 
-    const std::string &protocolName() const override {
-      return kPropogateTransacionsProtocolName;
-    }
+    const std::string &protocolName() const override;
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
@@ -82,7 +81,7 @@ namespace kagome::network {
 
     void readPropagatedExtrinsics(std::shared_ptr<Stream> stream);
 
-    const static inline auto kPropogateTransacionsProtocolName =
+    const static inline auto kPropagateTransactionsProtocolName =
         "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<consensus::babe::Babe> babe_;

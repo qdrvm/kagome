@@ -20,14 +20,18 @@ namespace kagome::network {
     ReqCollationProtocolImpl(libp2p::Host &host,
                              application::AppConfiguration const &app_config,
                              application::ChainSpec const &chain_spec,
+                             const primitives::BlockHash &genesis_hash,
                              std::shared_ptr<ReqCollationObserver> observer)
         : RequestResponseProtocol<
             CollationFetchingRequest,
             CollationFetchingResponse,
-            ScaleMessageReadWriter>{host,
-                                    kReqCollationProtocol,
+            ScaleMessageReadWriter>{kReqCollationProtocolName,
+                                    host,
+                                    make_protocols(kReqCollationProtocol,
+                                                   genesis_hash,
+                                                   chain_spec),
                                     log::createLogger(
-                                        "ReqCollationProtocol",
+                                        kReqCollationProtocolName,
                                         "request_collation_protocol")},
           observer_{std::move(observer)} {}
 
@@ -46,6 +50,9 @@ namespace kagome::network {
     }
 
    private:
+    const static inline auto kReqCollationProtocolName =
+        "ReqCollationProtocol"s;
+
     std::shared_ptr<ReqCollationObserver> observer_;
   };
 
@@ -53,9 +60,10 @@ namespace kagome::network {
       libp2p::Host &host,
       application::AppConfiguration const &app_config,
       application::ChainSpec const &chain_spec,
+      const primitives::BlockHash &genesis_hash,
       std::shared_ptr<ReqCollationObserver> observer)
       : impl_{std::make_shared<ReqCollationProtocolImpl>(
-          host, app_config, chain_spec, std::move(observer))} {}
+          host, app_config, chain_spec, genesis_hash, std::move(observer))} {}
 
   const Protocol &ReqCollationProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");

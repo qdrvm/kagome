@@ -275,7 +275,7 @@ namespace kagome::api {
                   -> outcome::result<ApiServiceImpl::PubsubSubscriptionId> {
                 auto &session = session_context.storage_sub;
                 const auto id = session->generateSubscriptionSetId();
-                const auto &best_block_hash = block_tree_->deepestLeaf().hash;
+                const auto &best_block_hash = block_tree_->bestLeaf().hash;
                 const auto &header =
                     block_tree_->getBlockHeader(best_block_hash);
                 BOOST_ASSERT(header.has_value());
@@ -303,21 +303,19 @@ namespace kagome::api {
 
                   auto value_opt_res = batch->tryGet(key);
                   if (value_opt_res.has_value()) {
-                    pairs.emplace_back(key,
-                                       value_opt_res.value());
+                    pairs.emplace_back(key, value_opt_res.value());
                   }
                 }
 
-                forJsonData(
-                    server_,
-                    logger_,
-                    id,
-                    kRpcEventSubscribeStorage,
-                    createStateStorageEvent(pairs, best_block_hash),
-                    [&](const auto &result) {
-                      session_context.messages->emplace_back(
-                          uploadFromCache(result.data()));
-                    });
+                forJsonData(server_,
+                            logger_,
+                            id,
+                            kRpcEventSubscribeStorage,
+                            createStateStorageEvent(pairs, best_block_hash),
+                            [&](const auto &result) {
+                              session_context.messages->emplace_back(
+                                  uploadFromCache(result.data()));
+                            });
 
                 return static_cast<PubsubSubscriptionId>(id);
               });
@@ -376,8 +374,7 @@ namespace kagome::api {
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id, primitives::events::ChainEventType::kNewHeads);
 
-        auto header =
-            block_tree_->getBlockHeader(block_tree_->deepestLeaf().hash);
+        auto header = block_tree_->getBlockHeader(block_tree_->bestLeaf().hash);
         if (!header.has_error()) {
           session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,
@@ -521,7 +518,7 @@ namespace kagome::api {
 
         session_context.messages.reset();
       });
-    } catch (jsonrpc::InternalErrorFault & e) {
+    } catch (jsonrpc::InternalErrorFault &e) {
       SL_DEBUG(logger_, "Internal jsonrpc error: {}", e.what());
     }
   }
