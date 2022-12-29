@@ -33,10 +33,12 @@ namespace kagome::network {
     ProtocolBaseImpl() = delete;
     ~ProtocolBaseImpl() = default;
 
-    ProtocolBaseImpl(libp2p::Host &host,
-                     const Protocols &protocols,
+    ProtocolBaseImpl(ProtocolName name,
+                     libp2p::Host &host,
+                     Protocols protocols,
                      log::Logger logger)
-        : host_{host},
+        : name_(std::move(name)),
+          host_{host},
           protocols_{std::move(protocols)},
           log_{std::move(logger)} {}
 
@@ -67,6 +69,10 @@ namespace kagome::network {
 
     bool stop() {
       return true;
+    }
+
+    const ProtocolName &protocolName() const {
+      return name_;
     }
 
     Protocols const &protocolIds() const {
@@ -103,8 +109,9 @@ namespace kagome::network {
     }
 
    private:
+    const ProtocolName name_;
     Host &host_;
-    Protocols const protocols_;
+    const Protocols protocols_;
     log::Logger log_;
   };
 
