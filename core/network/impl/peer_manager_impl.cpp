@@ -45,10 +45,7 @@ namespace {
     BOOST_ASSERT(protocol);
 
     if (se->reserveOutgoing(pi.id, protocol)) {
-      protocol->newOutgoingStream(
-          pi, [func{std::forward<F>(func)}](auto &&stream_res) mutable {
-            return std::forward<F>(func)(std::move(stream_res));
-          });
+      protocol->newOutgoingStream(pi, std::forward<F>(func));
       return true;
     }
     return false;
@@ -271,7 +268,7 @@ namespace kagome::network {
 
   outcome::result<
       std::pair<network::CollatorPublicKey const &, network::ParachainId>>
-  PeerManagerImpl::insert_advertisement(PeerState &peer_state,
+  PeerManagerImpl::insertAdvertisement(PeerState &peer_state,
                                         primitives::BlockHash para_hash) {
     if (!peer_state.collator_state) return Error::UNDECLARED_COLLATOR;
 
