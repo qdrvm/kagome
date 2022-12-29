@@ -29,8 +29,6 @@ namespace kagome::network {
                 (PeerState &, primitives::BlockHash),
                 (override));
 
-    MOCK_METHOD(ParachainState &, parachainState, (), (override));
-
     MOCK_METHOD(void,
                 setCollating,
                 (const PeerId &,
