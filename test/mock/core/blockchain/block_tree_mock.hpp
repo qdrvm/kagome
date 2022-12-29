@@ -97,7 +97,7 @@ namespace kagome::blockchain {
                  const std::optional<primitives::BlockNumber> &),
                 (const, override));
 
-    MOCK_METHOD(primitives::BlockInfo, deepestLeaf, (), (const, override));
+    MOCK_METHOD(primitives::BlockInfo, bestLeaf, (), (const, override));
 
     MOCK_METHOD(std::vector<primitives::BlockHash>,
                 getLeaves,

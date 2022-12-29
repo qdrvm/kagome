@@ -109,8 +109,6 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<AuthorApiImpl> author_api;
   sptr<Extrinsic> extrinsic;
   sptr<ValidTransaction> valid_transaction;
-  Hash256 deepest_leaf_hash;
-  sptr<BlockInfo> deepest_leaf;
   sptr<BlockTreeMock> block_tree;
   sptr<ExtrinsicSubscriptionEngine> sub_engine;
   sptr<ExtrinsicEventSubscriber> subscriber;
@@ -152,8 +150,6 @@ struct AuthorApiTest : public ::testing::Test {
     author_api->setApiService(api_service_mock);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
-    deepest_leaf_hash = createHash256({1u, 2u, 3u});
-    deepest_leaf.reset(new BlockInfo{1u, deepest_leaf_hash});
   }
 };
 

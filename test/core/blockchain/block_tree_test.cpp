@@ -312,8 +312,7 @@ TEST_F(BlockTreeTest, GetBody) {
  */
 TEST_F(BlockTreeTest, AddBlock) {
   // GIVEN
-  auto &&[deepest_block_number, deepest_block_hash] =
-      block_tree_->deepestLeaf();
+  auto &&[deepest_block_number, deepest_block_hash] = block_tree_->bestLeaf();
   ASSERT_EQ(deepest_block_hash, kFinalizedBlockInfo.hash);
 
   auto leaves = block_tree_->getLeaves();
@@ -333,7 +332,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   auto hash = addBlock(new_block);
 
   // THEN
-  auto new_deepest_block = block_tree_->deepestLeaf();
+  auto new_deepest_block = block_tree_->bestLeaf();
   ASSERT_EQ(new_deepest_block.hash, hash);
 
   leaves = block_tree_->getLeaves();
@@ -476,7 +475,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, B1_hash);
   ASSERT_EQ(block_tree_->getLeaves().size(), 1);
-  ASSERT_EQ(block_tree_->deepestLeaf().hash, C1_hash);
+  ASSERT_EQ(block_tree_->bestLeaf().hash, C1_hash);
 }
 
 /**
@@ -547,7 +546,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, B_hash);
   ASSERT_EQ(block_tree_->getLeaves().size(), 1);
-  ASSERT_EQ(block_tree_->deepestLeaf().hash, B_hash);
+  ASSERT_EQ(block_tree_->bestLeaf().hash, B_hash);
 }
 
 std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
@@ -558,7 +557,8 @@ std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
                                          auto &make_subtree) {
     primitives::BlockHash hash{};
     std::copy_n(name.begin(), name.size(), hash.begin());
-    auto node = std::make_shared<TreeNode>(hash, current_depth, parent);
+    auto node =
+        std::make_shared<TreeNode>(hash, current_depth, parent, false, false);
     if (current_depth + 1 == max_depth) {
       return node;
     }
@@ -695,14 +695,17 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
 TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
-                     .number = 1,
+                     .number = kFinalizedBlockInfo.number + 1,
                      .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
-  header =
-      BlockHeader{.parent_hash = hash1, .number = 2, .digest = {Consensus{}}};
+  header = BlockHeader{
+      .parent_hash = hash1,
+      .number = header.number + 1,
+      .digest = {Consensus{}},
+  };
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
@@ -810,7 +813,7 @@ TEST_F(BlockTreeTest, Reorganize) {
   //   LF - A - B - C1 - D1 - E1
 
   // THEN.2
-  ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E1_hash));
+  ASSERT_TRUE(block_tree_->bestLeaf() == BlockInfo(47, E1_hash));
 
   // WHEN.2
   auto C2_hash = addHeaderToRepository(B_hash, 45, "2"_hash256);
@@ -824,7 +827,7 @@ TEST_F(BlockTreeTest, Reorganize) {
   //   LF - A - B - C1 - D1 - E1
 
   // THEN.2
-  ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E1_hash));
+  ASSERT_TRUE(block_tree_->bestLeaf() == BlockInfo(47, E1_hash));
 
   // WHEN.3
   EXPECT_CALL(*storage_, putJustification(_, _, _))
@@ -848,7 +851,7 @@ TEST_F(BlockTreeTest, Reorganize) {
   //   LF - A - B - C2 - D2 - E2
 
   // THEN.3
-  ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E2_hash));
+  ASSERT_TRUE(block_tree_->bestLeaf() == BlockInfo(47, E2_hash));
 }
 
 /**

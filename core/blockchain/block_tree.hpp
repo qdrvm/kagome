@@ -179,13 +179,13 @@ namespace kagome::blockchain {
         const primitives::BlockHash &descendant) const = 0;
 
     /**
-     * Get a deepest leaf of the tree
-     * @return deepest leaf
+     * Get a best leaf of the tree
+     * @return best leaf
      *
-     * @note deepest leaf is also a result of "SelectBestChain": if we are the
-     * leader, we connect a block, which we constructed, to that deepest leaf
+     * @note best leaf is also a result of "SelectBestChain": if we are the
+     * leader, we connect a block, which we constructed, to that best leaf
      */
-    virtual primitives::BlockInfo deepestLeaf() const = 0;
+    virtual primitives::BlockInfo bestLeaf() const = 0;
 
     /**
      * @brief Get the most recent block of the best (longest) chain among
