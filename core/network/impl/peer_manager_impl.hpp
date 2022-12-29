@@ -103,7 +103,7 @@ namespace kagome::network {
     outcome::result<
         std::pair<network::CollatorPublicKey const &, network::ParachainId>>
     insertAdvertisement(PeerState &peer_state,
-                         primitives::BlockHash para_hash) override;
+                        primitives::BlockHash para_hash) override;
 
     /** @see PeerManager::forEachPeer */
     void forEachPeer(std::function<void(const PeerId &)> func) const override;

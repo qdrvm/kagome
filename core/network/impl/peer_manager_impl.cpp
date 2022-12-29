@@ -269,7 +269,7 @@ namespace kagome::network {
   outcome::result<
       std::pair<network::CollatorPublicKey const &, network::ParachainId>>
   PeerManagerImpl::insertAdvertisement(PeerState &peer_state,
-                                        primitives::BlockHash para_hash) {
+                                       primitives::BlockHash para_hash) {
     if (!peer_state.collator_state) return Error::UNDECLARED_COLLATOR;
 
     auto my_view = peer_view_->getMyView();
@@ -620,8 +620,8 @@ namespace kagome::network {
                 self->log_->warn("Unable to create stream {} with {}: {}",
                                  protocol->protocolName(),
                                  peer_id,
-                               stream_res.error());
-              self->connecting_peers_.erase(peer_id);
+                                 stream_res.error());
+                self->connecting_peers_.erase(peer_id);
                 self->disconnectFromPeer(peer_id);
                 return;
               }

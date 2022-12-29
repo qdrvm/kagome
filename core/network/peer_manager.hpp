@@ -109,7 +109,7 @@ namespace kagome::network {
     virtual outcome::result<
         std::pair<network::CollatorPublicKey const &, network::ParachainId>>
     insertAdvertisement(PeerState &peer_state,
-                         primitives::BlockHash para_hash) = 0;
+                        primitives::BlockHash para_hash) = 0;
 
     /**
      * Updates collation state and stores parachain id. Should be called once
