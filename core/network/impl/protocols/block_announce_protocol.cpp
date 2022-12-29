@@ -19,14 +19,15 @@ namespace kagome::network {
       libp2p::Host &host,
       const application::AppConfiguration &app_config,
       const application::ChainSpec &chain_spec,
+      const primitives::BlockHash &genesis_hash,
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<BlockAnnounceObserver> observer,
       std::shared_ptr<PeerManager> peer_manager)
-      : base_(host,
-              {fmt::format(kBlockAnnouncesProtocol.data(),
-                           chain_spec.protocolId())},
-              log::createLogger("BlockAnnounceProtocol",
+      : base_(kBlockAnnounceProtocolName,
+              host,
+              make_protocols(kBlockAnnouncesProtocol, genesis_hash, chain_spec),
+              log::createLogger(kBlockAnnounceProtocolName,
                                 "block_announce_protocol")),
         app_config_(app_config),
         stream_engine_(std::move(stream_engine)),
@@ -45,6 +46,10 @@ namespace kagome::network {
 
   bool BlockAnnounceProtocol::stop() {
     return base_.stop();
+  }
+
+  const ProtocolName &BlockAnnounceProtocol::protocolName() const {
+    return base_.protocolName();
   }
 
   outcome::result<Status> BlockAnnounceProtocol::createStatus() const {

@@ -42,6 +42,7 @@ namespace kagome::network {
     CollationProtocol(libp2p::Host &host,
                       application::AppConfiguration const &app_config,
                       application::ChainSpec const &chain_spec,
+                      const primitives::BlockHash &genesis_hash,
                       std::shared_ptr<CollationObserver> observer);
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
@@ -126,6 +127,7 @@ namespace kagome::network {
     void onCollationAdvRx(libp2p::peer::PeerId const &peer_id,
                           CollatorAdvertisement &&collation_adv);
 
+    const static inline auto kCollationProtocolName = "CollationProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<CollationObserver> observer_;
     application::AppConfiguration const &app_config_;
