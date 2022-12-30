@@ -49,6 +49,9 @@ namespace kagome::blockchain {
       OUTCOME_TRY(block_storage->putNumberToIndexKey({0, genesis_block_hash}));
 
       OUTCOME_TRY(block_storage->setBlockTreeLeaves({genesis_block_hash}));
+
+      block_storage->logger_->info(
+          "Genesis block {}, state {}", genesis_block_hash, state_root);
     }
 
     return block_storage;

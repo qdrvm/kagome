@@ -19,8 +19,11 @@ namespace kagome::runtime {
         changes_tracker_{std::move(changes_tracker)},
         header_repo_{std::move(header_repo)} {
     BOOST_ASSERT(executor_ != nullptr);
-    BOOST_ASSERT(changes_tracker_ != nullptr);
-    BOOST_ASSERT(header_repo_ != nullptr);
+  }
+
+  outcome::result<primitives::Version> CoreImpl::version(
+      RuntimeEnvironment &env) {
+    return executor_->call<primitives::Version>(env, "Core_version");
   }
 
   outcome::result<primitives::Version> CoreImpl::version(

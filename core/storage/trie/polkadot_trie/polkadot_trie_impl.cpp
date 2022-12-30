@@ -284,6 +284,7 @@ namespace {
 }  // namespace
 
 namespace kagome::storage::trie {
+  PolkadotTrieImpl::PolkadotTrieImpl(PolkadotTrieImpl &&) = default;
 
   PolkadotTrieImpl::PolkadotTrieImpl(NodeRetrieveFunctor f)
       : nodes_{std::make_unique<OpaqueNodeStorage>(std::move(f), nullptr)},

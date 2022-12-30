@@ -18,6 +18,11 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<primitives::Version>,
                 version,
+                (RuntimeEnvironment &),
+                (override));
+
+    MOCK_METHOD(outcome::result<primitives::Version>,
+                version,
                 (primitives::BlockHash const &block),
                 (override));
 

@@ -29,6 +29,8 @@ namespace kagome::runtime {
                        std::shared_ptr<TrieStorageProvider> storage_provider,
                        primitives::BlockInfo blockchain_state);
 
+    outcome::result<void> resetMemory();
+
     const std::shared_ptr<ModuleInstance> module_instance;
     const std::shared_ptr<const MemoryProvider> memory_provider;
     const std::shared_ptr<TrieStorageProvider> storage_provider;

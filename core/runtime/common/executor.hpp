@@ -51,9 +51,7 @@ namespace kagome::runtime {
              std::shared_ptr<RuntimePropertiesCache> cache)
         : env_factory_(std::move(env_factory)),
           cache_(std::move(cache)),
-          logger_{log::createLogger("Executor", "runtime")} {
-      BOOST_ASSERT(env_factory_ != nullptr);
-    }
+          logger_{log::createLogger("Executor", "runtime")} {}
 
     /**
      * Call a runtime method in a persistent environment, e. g. the storage

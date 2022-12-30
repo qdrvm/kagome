@@ -22,6 +22,8 @@ namespace kagome::storage::trie {
    public:
     enum class Error { INVALID_NODE_TYPE = 1 };
 
+    PolkadotTrieImpl(PolkadotTrieImpl &&);
+
     /**
      * Creates an empty Trie
      * @param f a functor that will be used to obtain a child of a branch node

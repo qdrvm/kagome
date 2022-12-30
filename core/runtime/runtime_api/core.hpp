@@ -33,6 +33,13 @@ namespace kagome::runtime {
      * @return runtime version
      */
     virtual outcome::result<primitives::Version> version(
+        RuntimeEnvironment &env) = 0;
+
+    /**
+     * @brief Returns the version of the runtime
+     * @return runtime version
+     */
+    virtual outcome::result<primitives::Version> version(
         primitives::BlockHash const &block) = 0;
 
     /**
