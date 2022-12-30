@@ -8,6 +8,7 @@ add_subdirectory(protobuf)
 
 add_library(network
     impl/state_protocol_observer_impl.cpp
+    impl/state_sync_request_flow.cpp
     impl/synchronizer_impl.cpp
     impl/router_libp2p.cpp
     impl/grandpa_transmitter_impl.cpp
@@ -34,6 +35,7 @@ add_library(network
 target_link_libraries(network
     p2p::p2p_basic_scheduler
     scale_libp2p_types
+    uncompress_if_needed
     blockchain
     logger
     p2p::p2p_peer_id
