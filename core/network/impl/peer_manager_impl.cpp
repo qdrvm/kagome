@@ -45,7 +45,19 @@ namespace {
     BOOST_ASSERT(protocol);
 
     if (se->reserveOutgoing(pi.id, protocol)) {
-      protocol->newOutgoingStream(pi, std::forward<F>(func));
+      protocol->newOutgoingStream(
+          pi,
+          [pid{pi.id},
+           wptr_proto{std::weak_ptr<P>{protocol}},
+           wptr_se{std::weak_ptr<kagome::network::StreamEngine>{se}},
+           func{std::forward<F>(func)}](auto &&stream) mutable {
+            auto se = wptr_se.lock();
+            auto proto = wptr_proto.lock();
+            if (se && proto) {
+              se->dropReserveOutgoing(pid, proto);
+            }
+            std::forward<F>(func)(std::forward<decltype(stream)>(stream));
+          });
       return true;
     }
     return false;
@@ -615,7 +627,6 @@ namespace kagome::network {
 
               auto &peer_id = peer_info.id;
 
-              self->stream_engine_->dropReserveOutgoing(peer_id, protocol);
               if (not stream_res.has_value()) {
                 self->log_->warn("Unable to create stream {} with {}: {}",
                                  protocol->protocolName(),
@@ -683,7 +694,9 @@ namespace kagome::network {
         auto grandpa_protocol = router_->getGrandpaProtocol();
         BOOST_ASSERT_MSG(grandpa_protocol,
                          "Router did not provide grandpa protocol");
-        grandpa_protocol->newOutgoingStream(peer_info, [](const auto &...) {});
+        openOutgoing(
+            stream_engine_, grandpa_protocol, peer_info, [](const auto &...) {
+            });
       }
     }
   }
