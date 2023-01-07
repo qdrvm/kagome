@@ -7,7 +7,8 @@
 
 #include "network/impl/state_sync_request_flow.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
-#include "runtime/core_api_factory.hpp"
+#include "runtime/module.hpp"
+#include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
@@ -84,16 +85,15 @@ namespace kagome::network {
   }
 
   outcome::result<void> StateSyncRequestFlow::commit(
-      const runtime::CoreApiFactory &core_api_factory,
-      const std::shared_ptr<crypto::Hasher> &hasher,
+      const runtime::ModuleFactory &module_factory,
+      runtime::Core &core_api,
       storage::trie::TrieSerializer &trie_serializer) {
     assert(complete());
     auto &top = roots_[std::nullopt];
-    OUTCOME_TRY(code_zstd, top.trie.get(storage::kRuntimeCodeKey));
-    common::Buffer code;
-    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-    auto core_api = core_api_factory.make(hasher, code);
-    OUTCOME_TRY(runtime_version, core_api->version());
+    OUTCOME_TRY(code, top.trie.get(storage::kRuntimeCodeKey));
+    OUTCOME_TRY(env,
+                runtime::RuntimeEnvironment::fromCode(module_factory, code));
+    OUTCOME_TRY(runtime_version, core_api.version(env));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     for (auto &[expected, root] : roots_) {
       if (not expected) {

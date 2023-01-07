@@ -63,6 +63,7 @@ kagome_install(module_repository)
 add_library(runtime_environment_factory runtime_environment_factory.cpp)
 target_link_libraries(runtime_environment_factory
     logger
+    uncompress_if_needed
     storage
     mp_utils
     )

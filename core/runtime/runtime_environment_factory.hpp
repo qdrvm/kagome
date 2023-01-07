@@ -21,6 +21,7 @@
 #include "storage/trie/trie_batches.hpp"
 
 namespace kagome::runtime {
+  class ModuleFactory;
 
   class RuntimeEnvironment {
    public:
@@ -28,6 +29,10 @@ namespace kagome::runtime {
                        std::shared_ptr<const MemoryProvider> memory_provider,
                        std::shared_ptr<TrieStorageProvider> storage_provider,
                        primitives::BlockInfo blockchain_state);
+
+    static outcome::result<RuntimeEnvironment> fromCode(
+        const runtime::ModuleFactory &module_factory,
+        common::BufferView code_zstd);
 
     outcome::result<void> resetMemory();
 

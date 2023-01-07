@@ -7,9 +7,6 @@
 #define KAGOME_CORE_INJECTOR_GET_GENESIS_STATE_HPP
 
 #include "application/chain_spec.hpp"
-#include "runtime/common/uncompress_code_if_needed.hpp"
-#include "runtime/module.hpp"
-#include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
@@ -28,20 +25,9 @@ namespace kagome::injector {
       return trie;
     };
     auto top_trie = trie_from(chain_spec.getGenesisTopSection());
-    OUTCOME_TRY(code_zstd, top_trie.get(storage::kRuntimeCodeKey));
-    common::Buffer code;
-    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-    OUTCOME_TRY(module, module_factory.make(code));
-    OUTCOME_TRY(instance, module->instantiate());
-    runtime::RuntimeEnvironment env{
-        instance,
-        instance->getEnvironment().memory_provider,
-        instance->getEnvironment().storage_provider,
-        {},
-    };
-    env.storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
-        .value();
-    OUTCOME_TRY(env.resetMemory());
+    OUTCOME_TRY(code, top_trie.get(storage::kRuntimeCodeKey));
+    OUTCOME_TRY(env,
+                runtime::RuntimeEnvironment::fromCode(module_factory, code));
     runtime::CoreImpl core_api{
         std::make_shared<runtime::Executor>(nullptr, nullptr),
         nullptr,

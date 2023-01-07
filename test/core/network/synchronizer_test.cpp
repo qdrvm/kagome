@@ -89,6 +89,7 @@ class SynchronizerTest
                                                     hasher,
                                                     nullptr,
                                                     nullptr,
+                                                    nullptr,
                                                     buffer_storage);
   }
 
