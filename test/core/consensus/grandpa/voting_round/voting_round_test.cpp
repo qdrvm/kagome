@@ -518,7 +518,6 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
       .Times(AnyNumber())
       .WillRepeatedly(Return(outcome::success()));
   auto base_block = previous_round_->bestFinalCandidate();
-  auto finalized_block = *previous_round_->finalizedBlock();
 
   ASSERT_EQ(base_block, (BlockInfo{3, "C"_H}));
 
