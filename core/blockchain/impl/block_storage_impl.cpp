@@ -38,12 +38,10 @@ namespace kagome::blockchain {
     }
 
     if (not res.value()) {
-      auto extrinsics_root = trieRoot({});
-
       // genesis block initialization
       primitives::Block genesis_block;
       genesis_block.header.number = 0;
-      genesis_block.header.extrinsics_root = extrinsics_root;
+      genesis_block.header.extrinsics_root = storage::trie::kEmptyRootHash;
       genesis_block.header.state_root = state_root;
       // the rest of the fields have default value
 
