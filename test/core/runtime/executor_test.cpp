@@ -92,14 +92,16 @@ class ExecutorTest : public testing::Test {
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
-    EXPECT_CALL(*env_factory_, start(blockchain_state, storage_state))
+    EXPECT_CALL(*env_factory_, start(blockchain_state.hash))
         .WillOnce(Invoke(
             [weak_env_factory =
                  std::weak_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock>{
                      env_factory_},
+             blockchain_state,
+             storage_state,
              next_storage_state = std::move(next_storage_state),
              this,
-             RESULT_LOCATION](auto &blockchain_state, auto &storage_state) {
+             RESULT_LOCATION](auto &) {
               auto env_template =
                   std::make_unique<RuntimeEnvironmentTemplateMock>(
                       weak_env_factory, blockchain_state, storage_state);
@@ -214,7 +216,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
 
   preparePersistentCall(
       block_info1, "state_hash1"_hash256, 2, 3, 5, "state_hash2"_hash256);
-  auto env = executor.persistentAt(block_info1, "state_hash1"_hash256).value();
+  auto env = executor.persistentAt(block_info1.hash).value();
   EXPECT_EQ(executor.call<int>(*env, "addTwo", 2, 3).value(), 5);
 
   prepareEphemeralCall(block_info1, "state_hash2"_hash256, 7, 10, 17);
@@ -225,7 +227,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
 
   preparePersistentCall(
       block_info1, "state_hash2"_hash256, 0, 0, 0, "state_hash3"_hash256);
-  auto env3 = executor.persistentAt(block_info1, "state_hash2"_hash256).value();
+  auto env3 = executor.persistentAt(block_info1.hash).value();
   EXPECT_EQ(executor.call<int>(*env3, "addTwo", 0, 0).value(), 0);
 
   prepareEphemeralCall(block_info1, "state_hash3"_hash256, 7, 10, 17);
@@ -236,7 +238,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
 
   preparePersistentCall(
       block_info2, "state_hash4"_hash256, -5, 5, 0, "state_hash5"_hash256);
-  auto env5 = executor.persistentAt(block_info2, "state_hash4"_hash256).value();
+  auto env5 = executor.persistentAt(block_info2.hash).value();
   EXPECT_EQ(executor.call<int>(*env5, "addTwo", -5, 5).value(), 0);
 
   prepareEphemeralCall(block_info2, "state_hash5"_hash256, 7, 10, 17);
