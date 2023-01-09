@@ -35,7 +35,7 @@ namespace kagome::runtime {
         const storage::trie::RootHash &state) const override;
 
    private:
-    outcome::result<void> setCodeFromBatch(
+    outcome::result<common::Buffer> setCodeFromBatch(
         const storage::trie::EphemeralTrieBatch &batch) const;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
@@ -44,6 +44,7 @@ namespace kagome::runtime {
     mutable common::Buffer cached_code_;
     mutable storage::trie::RootHash last_state_root_;
     log::Logger logger_;
+    mutable std::mutex mutex_;
   };
 
 }  // namespace kagome::runtime
