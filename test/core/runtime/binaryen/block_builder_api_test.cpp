@@ -64,10 +64,12 @@ TEST_F(BlockBuilderApiTest, CheckInherents) {
 TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
   preparePersistentStorageExpects();
   createBlock("block_hash_43"_hash256, 43);
+  auto env = executor_
+                 ->persistentAt(BlockInfo{43, "block_hash_43"_hash256},
+                                "state_root"_hash256)
+                 .value();
   EXPECT_OUTCOME_FALSE_1(
-      builder_->apply_extrinsic(BlockInfo{43, "block_hash_43"_hash256},
-                                "state_root"_hash256,
-                                Extrinsic{Buffer{1, 2, 3}}));
+      builder_->apply_extrinsic(*env, Extrinsic{Buffer{1, 2, 3}}));
 }
 
 /**
@@ -86,12 +88,13 @@ TEST_F(BlockBuilderApiTest, DISABLED_RandomSeed){
  * were valid
  */
 TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
-  prepareEphemeralStorageExpects();
+  preparePersistentStorageExpects();
   createBlock("block_hash_44"_hash256, 44);
-  EXPECT_OUTCOME_FALSE_1(
-      builder_->inherent_extrinsics(BlockInfo{44, "block_hash_44"_hash256},
-                                    "state_root"_hash256,
-                                    InherentData{}))
+  auto env = executor_
+                 ->persistentAt(BlockInfo{44, "block_hash_44"_hash256},
+                                "state_root"_hash256)
+                 .value();
+  EXPECT_OUTCOME_FALSE_1(builder_->inherent_extrinsics(*env, InherentData{}));
 }
 
 /**
@@ -103,6 +106,9 @@ TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
 TEST_F(BlockBuilderApiTest, DISABLED_FinalizeBlock) {
   preparePersistentStorageExpects();
   createBlock("block_hash"_hash256, 42);
-  EXPECT_OUTCOME_FALSE_1(builder_->finalize_block(
-      BlockInfo{42, "block_hash"_hash256}, "state_root"_hash256))
+  auto env = executor_
+                 ->persistentAt(BlockInfo{42, "block_hash"_hash256},
+                                "state_root"_hash256)
+                 .value();
+  EXPECT_OUTCOME_FALSE_1(builder_->finalize_block(*env));
 }

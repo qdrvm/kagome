@@ -17,11 +17,11 @@ namespace kagome::authorship {
 
   BlockBuilderImpl::BlockBuilderImpl(
       primitives::BlockHeader block_header,
-      const storage::trie::RootHash &storage_state,
+      std::unique_ptr<runtime::RuntimeEnvironment> env,
       std::shared_ptr<runtime::BlockBuilder> block_builder_api)
       : block_header_{std::move(block_header)},
         block_builder_api_{std::move(block_builder_api)},
-        storage_state_{std::move(storage_state)},
+        env_{std::move(env)},
         logger_{log::createLogger("BlockBuilder", "authorship")} {
     BOOST_ASSERT(block_builder_api_ != nullptr);
   }
@@ -29,18 +29,12 @@ namespace kagome::authorship {
   outcome::result<std::vector<primitives::Extrinsic>>
   BlockBuilderImpl::getInherentExtrinsics(
       const primitives::InherentData &data) const {
-    return block_builder_api_->inherent_extrinsics(
-        {block_header_.number - 1, block_header_.parent_hash},
-        storage_state_,
-        data);
+    return block_builder_api_->inherent_extrinsics(*env_, data);
   }
 
   outcome::result<primitives::ExtrinsicIndex> BlockBuilderImpl::pushExtrinsic(
       const primitives::Extrinsic &extrinsic) {
-    auto apply_res = block_builder_api_->apply_extrinsic(
-        {block_header_.number - 1, block_header_.parent_hash},
-        storage_state_,
-        extrinsic);
+    auto apply_res = block_builder_api_->apply_extrinsic(*env_, extrinsic);
     if (not apply_res) {
       // Takes place when API method execution fails for some technical kind of
       // problem. This WON'T be executed when apply_extrinsic returned an error
@@ -52,11 +46,10 @@ namespace kagome::authorship {
           apply_res.error());
       return apply_res.error();
     }
-    storage_state_ = apply_res.value().new_storage_root;
 
     using return_type = outcome::result<primitives::ExtrinsicIndex>;
     return visit_in_place(
-        apply_res.value().result,
+        apply_res.value(),
         [this, &extrinsic](
             const primitives::DispatchOutcome &outcome) -> return_type {
           if (1 == outcome.which()) {  // DispatchError
@@ -102,10 +95,7 @@ namespace kagome::authorship {
   }
 
   outcome::result<primitives::Block> BlockBuilderImpl::bake() const {
-    OUTCOME_TRY(finalized_header,
-                block_builder_api_->finalize_block(
-                    {block_header_.number - 1, block_header_.parent_hash},
-                    storage_state_));
+    OUTCOME_TRY(finalized_header, block_builder_api_->finalize_block(*env_));
     return primitives::Block{finalized_header, extrinsics_};
   }
 

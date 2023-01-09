@@ -130,8 +130,6 @@ class ExecutorTest : public testing::Test {
                         kagome::runtime::TrieStorageProviderMock>();
                     auto batch = std::make_shared<
                         kagome::storage::trie::PersistentTrieBatchMock>();
-                    EXPECT_CALL(*batch, commit())
-                        .WillOnce(Return(next_storage_state));
                     EXPECT_CALL(*storage_provider, tryGetPersistentBatch())
                         .WillRepeatedly(Return(
                             std::make_optional<std::shared_ptr<
@@ -216,11 +214,8 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
 
   preparePersistentCall(
       block_info1, "state_hash1"_hash256, 2, 3, 5, "state_hash2"_hash256);
-  EXPECT_OUTCOME_TRUE(res,
-                      executor.persistentCallAt<int>(
-                          block_info1, "state_hash1"_hash256, "addTwo", 2, 3));
-  ASSERT_EQ(res.result, 5);
-  ASSERT_EQ(res.new_storage_root, "state_hash2"_hash256);
+  auto env = executor.persistentAt(block_info1, "state_hash1"_hash256).value();
+  EXPECT_EQ(executor.call<int>(*env, "addTwo", 2, 3).value(), 5);
 
   prepareEphemeralCall(block_info1, "state_hash2"_hash256, 7, 10, 17);
   EXPECT_OUTCOME_TRUE(res2,
@@ -230,11 +225,8 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
 
   preparePersistentCall(
       block_info1, "state_hash2"_hash256, 0, 0, 0, "state_hash3"_hash256);
-  EXPECT_OUTCOME_TRUE(res3,
-                      executor.persistentCallAt<int>(
-                          block_info1, "state_hash2"_hash256, "addTwo", 0, 0));
-  ASSERT_EQ(res3.result, 0);
-  ASSERT_EQ(res3.new_storage_root, "state_hash3"_hash256);
+  auto env3 = executor.persistentAt(block_info1, "state_hash2"_hash256).value();
+  EXPECT_EQ(executor.call<int>(*env3, "addTwo", 0, 0).value(), 0);
 
   prepareEphemeralCall(block_info1, "state_hash3"_hash256, 7, 10, 17);
   EXPECT_OUTCOME_TRUE(res4,
@@ -244,11 +236,8 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
 
   preparePersistentCall(
       block_info2, "state_hash4"_hash256, -5, 5, 0, "state_hash5"_hash256);
-  EXPECT_OUTCOME_TRUE(res5,
-                      executor.persistentCallAt<int>(
-                          block_info2, "state_hash4"_hash256, "addTwo", -5, 5));
-  ASSERT_EQ(res5.result, 0);
-  ASSERT_EQ(res5.new_storage_root, "state_hash5"_hash256);
+  auto env5 = executor.persistentAt(block_info2, "state_hash4"_hash256).value();
+  EXPECT_EQ(executor.call<int>(*env5, "addTwo", -5, 5).value(), 0);
 
   prepareEphemeralCall(block_info2, "state_hash5"_hash256, 7, 10, 17);
   EXPECT_OUTCOME_TRUE(res6,
