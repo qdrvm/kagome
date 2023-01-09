@@ -7,16 +7,14 @@ if (TESTING)
     find_package(GTest CONFIG REQUIRED)
 endif()
 
-hunter_add_package(backward-cpp)
-find_package(Backward)
+if (BACKWARD)
+    hunter_add_package(backward-cpp)
+    find_package(Backward)
+endif()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS random filesystem program_options date_time)
 find_package(Boost CONFIG REQUIRED random filesystem program_options date_time)
-
-# https://docs.hunter.sh/en/latest/packages/pkg/leveldb.html
-hunter_add_package(leveldb)
-find_package(leveldb CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/xxhash.html
 hunter_add_package(xxhash)
@@ -45,6 +43,9 @@ find_package(RapidJSON CONFIG REQUIRED)
 # https://docs.hunter.sh/en/latest/packages/pkg/Microsoft.GSL.html
 hunter_add_package(Microsoft.GSL)
 find_package(Microsoft.GSL CONFIG REQUIRED)
+
+hunter_add_package(erasure_coding_crust)
+find_package(erasure_coding_crust CONFIG REQUIRED)
 
 hunter_add_package(schnorrkel_crust)
 find_package(schnorrkel_crust CONFIG REQUIRED)

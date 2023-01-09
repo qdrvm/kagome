@@ -16,14 +16,9 @@ namespace kagome::consensus::grandpa {
   /**
    * Stores voters with their corresponding weights
    */
-  struct VoterSet final {
+  class VoterSet final {
    public:
-    enum class Error {
-      VOTER_ALREADY_EXISTS = 1,
-      VOTER_NOT_FOUND,
-      INDEX_OUTBOUND,
-      QUERYING_ZERO_VOTER
-    };
+    enum class Error { VOTER_ALREADY_EXISTS = 1, INDEX_OUTBOUND };
 
     using Index = size_t;
     using Weight = size_t;
@@ -44,7 +39,7 @@ namespace kagome::consensus::grandpa {
       return id_;
     }
 
-    outcome::result<std::tuple<Index, Weight>> indexAndWeight(
+    std::optional<std::tuple<Index, Weight>> indexAndWeight(
         const Id &voter) const;
 
     outcome::result<Id> voterId(Index index) const;
@@ -52,12 +47,12 @@ namespace kagome::consensus::grandpa {
     /**
      * \return index of \param voter
      */
-    outcome::result<Index> voterIndex(const Id &voter) const;
+    std::optional<Index> voterIndex(const Id &voter) const;
 
     /**
      * \return weight of \param voter
      */
-    outcome::result<Weight> voterWeight(const Id &voter) const;
+    std::optional<Weight> voterWeight(const Id &voter) const;
 
     /**
      * \return weight of voter by index \param voter_index

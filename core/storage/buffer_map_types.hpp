@@ -12,29 +12,33 @@
  */
 
 #include "common/buffer.hpp"
+#include "common/buffer_or_view.hpp"
 #include "storage/face/batch_writeable.hpp"
 #include "storage/face/generic_maps.hpp"
 #include "storage/face/write_batch.hpp"
 
+namespace kagome::storage::face {
+  template <>
+  struct OwnedOrViewTrait<common::Buffer> {
+    using type = common::BufferOrView;
+  };
+
+  template <>
+  struct ViewTrait<common::Buffer> {
+    using type = common::BufferView;
+  };
+}  // namespace kagome::storage::face
+
 namespace kagome::storage {
+  using common::Buffer;
+  using common::BufferOrView;
+  using common::BufferView;
 
-  using Buffer = common::Buffer;
-  using BufferView = common::BufferView;
-  using BufferConstRef = common::BufferConstRef;
+  using BufferBatch = face::WriteBatch<Buffer, Buffer>;
 
-  using BufferBatch = face::WriteBatch<BufferView, Buffer>;
+  using BufferStorage = face::GenericStorage<Buffer, Buffer>;
 
-  using ReadOnlyBufferMap = face::ReadOnlyMap<BufferView, Buffer>;
-
-  using BufferStorage = face::GenericStorage<Buffer, Buffer, BufferView>;
-
-  using BufferMap = face::GenericMap<BufferView, Buffer>;
-
-  using BufferMapCursor =
-      face::MapCursor<BufferView, BufferConstRef, BufferView>;
-
-  using BufferStorageCursor = face::MapCursor<Buffer, Buffer, BufferView>;
-
+  using BufferStorageCursor = face::MapCursor<Buffer, Buffer>;
 }  // namespace kagome::storage
 
 #endif  // KAGOME_BUFFER_MAP_TYPES_HPP

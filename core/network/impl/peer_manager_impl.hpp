@@ -31,8 +31,9 @@
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/impl/protocols/protocol_factory.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "network/peer_view.hpp"
 #include "network/protocols/sync_protocol.hpp"
-#include "network/rating_repository.hpp"
+#include "network/reputation_repository.hpp"
 #include "network/router.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -54,7 +55,7 @@ namespace kagome::network {
    public:
     static constexpr std::chrono::seconds kTimeoutForConnecting{15};
 
-    enum class Error { UNDECLARED_COLLATOR = 1, OUT_OF_VIEW, DOUPLICATE };
+    enum class Error { UNDECLARED_COLLATOR = 1, OUT_OF_VIEW, DUPLICATE };
 
     PeerManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -70,7 +71,8 @@ namespace kagome::network {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<PeerRatingRepository> peer_rating_repository);
+        std::shared_ptr<ReputationRepository> reputation_repository,
+        std::shared_ptr<PeerView> peer_view);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -84,14 +86,11 @@ namespace kagome::network {
     /** @see PeerManager::connectToPeer */
     void connectToPeer(const PeerInfo &peer_info) override;
 
-    /** @see PeerManager::pop_pending_collation */
-    std::optional<PendingCollation> pop_pending_collation() override;
-
-    /** @see PeerManager::push_pending_collation */
-    void push_pending_collation(PendingCollation &&collation) override;
-
     /** @see PeerManager::reserveStreams */
     void reserveStreams(const PeerId &peer_id) const override;
+
+    /** @see PeerManager::getStreamEngine */
+    std::shared_ptr<StreamEngine> getStreamEngine() override;
 
     /** @see PeerManager::activePeersNumber */
     size_t activePeersNumber() const override;
@@ -101,14 +100,10 @@ namespace kagome::network {
                       network::CollatorPublicKey const &collator_id,
                       network::ParachainId para_id) override;
 
-    /** @see PeerManager::parachainState */
-    ParachainState &parachainState() override;
-
     outcome::result<
         std::pair<network::CollatorPublicKey const &, network::ParachainId>>
-    insert_advertisement(PeerState &peer_state,
-                         ParachainState &parachain_state,
-                         primitives::BlockHash para_hash) override;
+    insertAdvertisement(PeerState &peer_state,
+                        primitives::BlockHash para_hash) override;
 
     /** @see PeerManager::forEachPeer */
     void forEachPeer(std::function<void(const PeerId &)> func) const override;
@@ -150,6 +145,14 @@ namespace kagome::network {
 
     void processFullyConnectedPeer(const PeerId &peer_id);
 
+    template <typename F>
+    void openBlockAnnounceProtocol(
+        PeerInfo const &peer_info,
+        libp2p::network::ConnectionManager::ConnectionSPtr const &connection,
+        F &&opened_callback);
+    void tryOpenGrandpaProtocol(PeerInfo const &peer_info,
+                                PeerState &peer_state);
+
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);
 
@@ -161,6 +164,8 @@ namespace kagome::network {
     /// Stores peers addresses to the state storage to warm up the following
     /// node start
     void storeActivePeers();
+
+    void clearClosedPingingConnections();
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
@@ -175,9 +180,10 @@ namespace kagome::network {
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<PeerRatingRepository> peer_rating_repository_;
+    std::shared_ptr<ReputationRepository> reputation_repository_;
 
     libp2p::event::Handle add_peer_handle_;
+    libp2p::event::Handle peer_disconnected_handler_;
     std::unordered_set<PeerId> peers_in_queue_;
     std::deque<std::reference_wrapper<const PeerId>> queue_to_connect_;
     std::unordered_set<PeerId> connecting_peers_;
@@ -194,7 +200,7 @@ namespace kagome::network {
     metrics::Gauge *sync_peer_num_;
 
     // parachain
-    ParachainState parachain_state_;
+    std::shared_ptr<network::PeerView> peer_view_;
 
     log::Logger log_;
   };

@@ -9,6 +9,5 @@ addtest(hasher_test
 
 target_link_libraries(hasher_test
         hasher
-        buffer
         blob
         )

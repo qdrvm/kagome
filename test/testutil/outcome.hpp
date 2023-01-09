@@ -153,22 +153,22 @@
     }                                                    \
   }
 
-#define ASSERT_OUTCOME_ERROR(_expression_, _error_)                       \
-  {                                                                       \
-    auto &&result = (_expression_);                                       \
-    if (result.has_error()) {                                             \
-      if (result != outcome::failure(_error_)) {                          \
-        GTEST_FATAL_FAILURE_("Outcome of: " #_expression_)                \
-            << "  Actual:   Error '" << result.error().message() << "'\n" \
-            << "Expected:   Error '"                                      \
-            << outcome::result<void>(_error_).error().message() << "'";   \
-      }                                                                   \
-    } else {                                                              \
-      GTEST_FATAL_FAILURE_("Outcome of: " #_expression_)                  \
-          << "  Actual:   Success\n"                                      \
-          << "Expected:   Error '"                                        \
-          << outcome::result<void>(_error_).error().message() << "'";     \
-    }                                                                     \
+#define ASSERT_OUTCOME_ERROR(_expression_, _error_)                        \
+  {                                                                        \
+    auto &&result = (_expression_);                                        \
+    if (result.has_error()) {                                              \
+      if (result != outcome::failure(_error_)) {                           \
+        GTEST_FATAL_FAILURE_("Outcome of: " #_expression_)                 \
+            << "  Actual:   Error '" << result.error().message() << "'\n"  \
+            << "Expected:   Error '" << make_error_code(_error_).message() \
+            << "'";                                                        \
+      }                                                                    \
+    } else {                                                               \
+      GTEST_FATAL_FAILURE_("Outcome of: " #_expression_)                   \
+          << "  Actual:   Success\n"                                       \
+          << "Expected:   Error '" << make_error_code(_error_).message()   \
+          << "'";                                                          \
+    }                                                                      \
   }
 
 #define EXPECT_OUTCOME_SUCCESS(_result_, _expression_)                  \
@@ -187,20 +187,19 @@
         << "Expected:   Some error";                      \
   }
 
-#define EXPECT_OUTCOME_ERROR(_result_, _expression_, _error_)             \
-  [[maybe_unused]] auto &&_result_ = (_expression_);                      \
-  if (_result_.has_error()) {                                             \
-    if (_result_ != outcome::failure(_error_)) {                          \
-      GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)               \
-          << "  Actual:   Error '" << _result_.error().message() << "'\n" \
-          << "Expected:   Error '"                                        \
-          << outcome::result<void>(_error_).error().message() << "'";     \
-    }                                                                     \
-  } else {                                                                \
-    GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)                 \
-        << "  Actual:   Success\n"                                        \
-        << "Expected:   Error '"                                          \
-        << outcome::result<void>(_error_).error().message() << "'";       \
+#define EXPECT_OUTCOME_ERROR(_result_, _expression_, _error_)                  \
+  [[maybe_unused]] auto &&_result_ = (_expression_);                           \
+  if (_result_.has_error()) {                                                  \
+    if (_result_ != outcome::failure(_error_)) {                               \
+      GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)                    \
+          << "  Actual:   Error '" << _result_.error().message() << "'\n"      \
+          << "Expected:   Error '" << make_error_code(_error_).message()       \
+          << "'";                                                              \
+    }                                                                          \
+  } else {                                                                     \
+    GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)                      \
+        << "  Actual:   Success\n"                                             \
+        << "Expected:   Error '" << make_error_code(_error_).message() << "'"; \
   }
 
 #endif  // KAGOME_GTEST_OUTCOME_UTIL_HPP

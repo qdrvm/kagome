@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   class BlockValidatorMock : public BlockValidator {
    public:
@@ -28,10 +28,10 @@ namespace kagome::consensus {
                  const EpochNumber epoch_number,
                  const primitives::AuthorityId &authority_id,
                  const Threshold &threshold,
-                 const Randomness &randomness),
+                 const primitives::BabeConfiguration &config),
                 (const, override));
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_TEST_MOCK_CORE_CONSENSUS_VALIDATION_BLOCK_VALIDATOR_MOCK_HPP

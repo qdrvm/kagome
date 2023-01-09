@@ -8,14 +8,14 @@
 
 #include <outcome/outcome.hpp>
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   enum class BabeError {
-    TIMER_ERROR = 1,
-    NODE_FALL_BEHIND,
-    MISSING_PROOF,
+    MISSING_PROOF = 1,
+    BAD_ORDER_OF_DIGEST_ITEM,
+    UNKNOWN_DIGEST_TYPE,
   };
 }
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, BabeError)
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, BabeError)
 
 #endif  // KAGOME_BABE_ERROR_HPP

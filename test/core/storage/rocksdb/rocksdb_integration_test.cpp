@@ -19,12 +19,12 @@
 using namespace kagome::storage;
 namespace fs = boost::filesystem;
 
-struct LevelDB_Integration_Test : public test::BaseRocksDB_Test {
+struct RocksDb_Integration_Test : public test::BaseRocksDB_Test {
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
 
-  LevelDB_Integration_Test()
+  RocksDb_Integration_Test()
       : test::BaseRocksDB_Test("/tmp/kagome_rocksdb_integration_test") {}
 
   Buffer key_{1, 3, 3, 7};
@@ -36,11 +36,11 @@ struct LevelDB_Integration_Test : public test::BaseRocksDB_Test {
  * @when read {key}
  * @then {value} is correct
  */
-TEST_F(LevelDB_Integration_Test, Put_Get) {
-  ASSERT_OUTCOME_SUCCESS_TRY(db_->put(key_, value_));
+TEST_F(RocksDb_Integration_Test, Put_Get) {
+  ASSERT_OUTCOME_SUCCESS_TRY(db_->put(key_, BufferView{value_}));
   ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
   EXPECT_TRUE(contains);
-  EXPECT_OUTCOME_TRUE_2(val, db_->load(key_));
+  EXPECT_OUTCOME_TRUE_2(val, db_->get(key_));
   EXPECT_EQ(val, value_);
 }
 
@@ -49,11 +49,11 @@ TEST_F(LevelDB_Integration_Test, Put_Get) {
  * @when read {key}
  * @then get "not found"
  */
-TEST_F(LevelDB_Integration_Test, Get_NonExistent) {
+TEST_F(RocksDb_Integration_Test, Get_NonExistent) {
   ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
   EXPECT_FALSE(contains);
   ASSERT_OUTCOME_SUCCESS_TRY(db_->remove(key_));
-  auto r = db_->load(key_);
+  auto r = db_->get(key_);
   EXPECT_FALSE(r);
   EXPECT_EQ(r.error().value(), (int)DatabaseError::NOT_FOUND);
 }
@@ -63,7 +63,7 @@ TEST_F(LevelDB_Integration_Test, Get_NonExistent) {
  * @when create batch and write KVs
  * @then data is written only after commit
  */
-TEST_F(LevelDB_Integration_Test, WriteBatch) {
+TEST_F(RocksDb_Integration_Test, WriteBatch) {
   std::list<Buffer> keys{{0}, {1}, {2}, {3}, {4}, {5}};
   Buffer toBeRemoved = {3};
   std::list<Buffer> expected{{0}, {1}, {2}, {4}, {5}};
@@ -72,7 +72,7 @@ TEST_F(LevelDB_Integration_Test, WriteBatch) {
   ASSERT_TRUE(batch);
 
   for (const auto &item : keys) {
-    ASSERT_OUTCOME_SUCCESS_TRY(batch->put(item, item));
+    ASSERT_OUTCOME_SUCCESS_TRY(batch->put(item, BufferView{item}));
     ASSERT_OUTCOME_SUCCESS(contains, db_->contains(item));
     EXPECT_FALSE(contains);
   }
@@ -82,7 +82,7 @@ TEST_F(LevelDB_Integration_Test, WriteBatch) {
   for (const auto &item : expected) {
     ASSERT_OUTCOME_SUCCESS(contains, db_->contains(item));
     EXPECT_TRUE(contains);
-    ASSERT_OUTCOME_SUCCESS(val, db_->load(item));
+    ASSERT_OUTCOME_SUCCESS(val, db_->get(item));
     EXPECT_EQ(val, item);
   }
 
@@ -95,7 +95,7 @@ TEST_F(LevelDB_Integration_Test, WriteBatch) {
  * @when iterate over kv pairs forward and backward
  * @then we iterate over all items
  */
-TEST_F(LevelDB_Integration_Test, Iterator) {
+TEST_F(RocksDb_Integration_Test, Iterator) {
   const size_t size = 100;
   // 100 buffers of size 1 each; 0..99
   std::list<Buffer> keys;
@@ -104,7 +104,7 @@ TEST_F(LevelDB_Integration_Test, Iterator) {
   }
 
   for (const auto &item : keys) {
-    ASSERT_OUTCOME_SUCCESS_TRY(db_->put(item, item));
+    ASSERT_OUTCOME_SUCCESS_TRY(db_->put(item, BufferView{item}));
   }
 
   std::array<size_t, size> counter{};
@@ -117,7 +117,7 @@ TEST_F(LevelDB_Integration_Test, Iterator) {
     auto v = it->value().value();
     EXPECT_EQ(k, v);
 
-    logger->info("key: {}, value: {}", k.toHex(), v.toHex());
+    logger->info("key: {}, value: {}", k.toHex(), v.view().toHex());
 
     EXPECT_GE(k[0], 0);
     EXPECT_LT(k[0], size);

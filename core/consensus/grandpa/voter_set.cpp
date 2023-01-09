@@ -10,12 +10,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VoterSet::Error, e) {
   switch (e) {
     case E::VOTER_ALREADY_EXISTS:
       return "Voter already exists";
-    case E::VOTER_NOT_FOUND:
-      return "Voter not found";
     case E::INDEX_OUTBOUND:
       return "Index outbound";
-    case E::QUERYING_ZERO_VOTER:
-      return "Weight of a voter with a zero public key is queried";
   }
   return "Unknown error (invalid VoterSet::Error)";
 }
@@ -49,14 +45,14 @@ namespace kagome::consensus::grandpa {
     return voter;
   }
 
-  outcome::result<std::tuple<VoterSet::Index, VoterSet::Weight>>
+  std::optional<std::tuple<VoterSet::Index, VoterSet::Weight>>
   VoterSet::indexAndWeight(const Id &voter) const {
     if (voter == Id{}) {
-      return Error::QUERYING_ZERO_VOTER;
+      return std::nullopt;
     }
     auto it = map_.find(voter);
     if (it == map_.end()) {
-      return Error::VOTER_NOT_FOUND;
+      return std::nullopt;
     }
     auto index = it->second;
     BOOST_ASSERT(index < list_.size());
@@ -64,26 +60,25 @@ namespace kagome::consensus::grandpa {
     return std::tuple(index, weight);
   }
 
-  outcome::result<VoterSet::Index> VoterSet::voterIndex(const Id &voter) const {
+  std::optional<VoterSet::Index> VoterSet::voterIndex(const Id &voter) const {
     if (voter == Id{}) {
-      return Error::QUERYING_ZERO_VOTER;
+      return std::nullopt;
     }
     auto it = map_.find(voter);
     if (it == map_.end()) {
-      return Error::VOTER_NOT_FOUND;
+      return std::nullopt;
     }
     auto index = it->second;
     return index;
   }
 
-  outcome::result<VoterSet::Weight> VoterSet::voterWeight(
-      const Id &voter) const {
+  std::optional<VoterSet::Weight> VoterSet::voterWeight(const Id &voter) const {
     if (voter == Id{}) {
-      return Error::QUERYING_ZERO_VOTER;
+      return std::nullopt;
     }
     auto it = map_.find(voter);
     if (it == map_.end()) {
-      return Error::VOTER_NOT_FOUND;
+      return std::nullopt;
     }
     auto index = it->second;
     BOOST_ASSERT(index < list_.size());

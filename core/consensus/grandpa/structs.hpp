@@ -6,27 +6,12 @@
 #ifndef KAGOME_CONSENSUS_GRANDPA_STRUCTS_
 #define KAGOME_CONSENSUS_GRANDPA_STRUCTS_
 
-#include <boost/asio/steady_timer.hpp>
-#include <boost/variant.hpp>
-#include <common/buffer.hpp>
-
-#include "common/blob.hpp"
-#include "common/buffer.hpp"
 #include "common/visitor.hpp"
-#include "common/wrapper.hpp"
 #include "consensus/grandpa/common.hpp"
-#include "crypto/ed25519_types.hpp"
-#include "log/logger.hpp"
-#include "primitives/authority.hpp"
 #include "primitives/common.hpp"
-#include "scale/scale.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::consensus::grandpa {
 
-  using Timer = boost::asio::basic_waitable_timer<std::chrono::steady_clock>;
-
-  using BlockInfo = primitives::BlockInfo;
   using Precommit = primitives::detail::BlockInfoT<struct PrecommitTag>;
   using Prevote = primitives::detail::BlockInfoT<struct PrevoteTag>;
   using PrimaryPropose =
@@ -52,9 +37,9 @@ namespace kagome::consensus::grandpa {
                             [](const auto &vote) { return vote.hash; });
     }
 
-    BlockInfo getBlockInfo() const {
+    primitives::BlockInfo getBlockInfo() const {
       return visit_in_place(message, [](const auto &vote) {
-        return BlockInfo(vote.number, vote.hash);
+        return primitives::BlockInfo(vote.number, vote.hash);
       });
     }
 
@@ -152,13 +137,13 @@ namespace kagome::consensus::grandpa {
     SCALE_TIE(3);
 
     RoundNumber round_number;
-    BlockInfo block_info;
+    primitives::BlockInfo block_info;
     std::vector<SignedPrecommit> items{};
   };
 
   /// A commit message which is an aggregate of precommits.
   struct Commit {
-    BlockInfo vote;
+    primitives::BlockInfo vote;
     GrandpaJustification justification;
   };
 

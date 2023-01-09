@@ -16,6 +16,7 @@
 #include "crypto/bip39/mnemonic.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/crypto_suites.hpp"
+#include "crypto/crypto_store/dev_mnemonic_phrase.hpp"
 #include "crypto/crypto_store/key_cache.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "log/logger.hpp"
@@ -29,6 +30,7 @@ namespace kagome::crypto {
     KEY_NOT_FOUND,
     BABE_ALREADY_EXIST,
     GRAN_ALREADY_EXIST,
+    AUDI_ALREADY_EXIST,
     WRONG_PUBLIC_KEY,
   };
 
@@ -153,6 +155,9 @@ namespace kagome::crypto {
     outcome::result<typename CryptoSuite::Keypair> generateKeypair(
         std::string_view mnemonic_phrase, const CryptoSuite &suite) {
       using Seed = typename CryptoSuite::Seed;
+      if (auto seed = DevMnemonicPhrase::get().find<Seed>(mnemonic_phrase)) {
+        return suite.generateKeypair(seed.value());
+      }
       OUTCOME_TRY(bip_seed, bip39_provider_->generateSeed(mnemonic_phrase));
       if (bip_seed.size() < Seed::size()) {
         return CryptoStoreError::WRONG_SEED_SIZE;

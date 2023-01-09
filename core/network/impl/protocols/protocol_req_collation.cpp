@@ -20,15 +20,20 @@ namespace kagome::network {
     ReqCollationProtocolImpl(libp2p::Host &host,
                              application::AppConfiguration const &app_config,
                              application::ChainSpec const &chain_spec,
+                             const primitives::BlockHash &genesis_hash,
                              std::shared_ptr<ReqCollationObserver> observer)
         : RequestResponseProtocol<
             CollationFetchingRequest,
             CollationFetchingResponse,
-            ScaleMessageReadWriter>{host,
-                                    kReqCollationProtocol,
-                                    "ReqCollationProtocol"},
-          observer_{std::move(observer)},
-          app_config_{app_config} {}
+            ScaleMessageReadWriter>{kReqCollationProtocolName,
+                                    host,
+                                    make_protocols(kReqCollationProtocol,
+                                                   genesis_hash,
+                                                   chain_spec),
+                                    log::createLogger(
+                                        kReqCollationProtocolName,
+                                        "request_collation_protocol")},
+          observer_{std::move(observer)} {}
 
    protected:
     outcome::result<CollationFetchingResponse> onRxRequest(
@@ -45,17 +50,20 @@ namespace kagome::network {
     }
 
    private:
+    const static inline auto kReqCollationProtocolName =
+        "ReqCollationProtocol"s;
+
     std::shared_ptr<ReqCollationObserver> observer_;
-    application::AppConfiguration const &app_config_;
   };
 
   ReqCollationProtocol::ReqCollationProtocol(
       libp2p::Host &host,
       application::AppConfiguration const &app_config,
       application::ChainSpec const &chain_spec,
+      const primitives::BlockHash &genesis_hash,
       std::shared_ptr<ReqCollationObserver> observer)
       : impl_{std::make_shared<ReqCollationProtocolImpl>(
-          host, app_config, chain_spec, std::move(observer))} {}
+          host, app_config, chain_spec, genesis_hash, std::move(observer))} {}
 
   const Protocol &ReqCollationProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");

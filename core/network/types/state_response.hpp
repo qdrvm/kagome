@@ -7,8 +7,8 @@
 #define KAGOME_STATE_RESPONSE_HPP
 
 #include "common/buffer.hpp"
-#include "storage/trie/types.hpp"
 #include "primitives/common.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::network {
   /// A key-value pair.

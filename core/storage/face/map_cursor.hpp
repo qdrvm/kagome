@@ -9,6 +9,8 @@
 #include <optional>
 
 #include "outcome/outcome.hpp"
+#include "storage/face/owned_or_view.hpp"
+#include "storage/face/view.hpp"
 
 namespace kagome::storage::face {
 
@@ -16,9 +18,8 @@ namespace kagome::storage::face {
    * @brief An abstraction over generic map cursor.
    * @tparam K key type
    * @tparam V value type
-   * @tparam KView key view type
    */
-  template <typename K, typename V, typename KView = K>
+  template <typename K, typename V>
   struct MapCursor {
     virtual ~MapCursor() = default;
 
@@ -32,7 +33,7 @@ namespace kagome::storage::face {
      * @brief Find given key and seek iterator to this key.
      * @return error if any, true if \arg key found, false otherwise
      */
-    virtual outcome::result<bool> seek(const KView &key) = 0;
+    virtual outcome::result<bool> seek(const View<K> &key) = 0;
 
     /**
      * @brief Same as std::rbegin(...);, e.g. points to the last valid element
@@ -62,7 +63,7 @@ namespace kagome::storage::face {
      * @brief Getter for value of the element currently pointed at.
      * @return value if isValid()
      */
-    virtual std::optional<V> value() const = 0;
+    virtual std::optional<OwnedOrView<V>> value() const = 0;
   };
 
 }  // namespace kagome::storage::face

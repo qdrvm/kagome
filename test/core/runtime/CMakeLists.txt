@@ -23,10 +23,7 @@ addtest(trie_storage_provider_test
     )
 target_link_libraries(trie_storage_provider_test
     trie_storage_provider
-    in_memory_storage
-    trie_storage_backend
-    polkadot_trie_factory
-    trie_serializer
+    storage
     logger_for_tests
     )
 
@@ -43,7 +40,6 @@ addtest(executor_test
     )
 target_link_libraries(executor_test
     executor
-    buffer
     basic_code_provider
     scale::scale
     logger
@@ -56,17 +52,16 @@ addtest(runtime_upgrade_tracker_test
 target_link_libraries(runtime_upgrade_tracker_test
     runtime_upgrade_tracker
     blob
-    buffer
-    in_memory_storage
+    storage
     logger
     log_configurator
     scale::scale
     )
 
 addtest(small_lru_cache_test
-        small_lru_cache_test.cpp
-        )
+    small_lru_cache_test.cpp
+    )
 target_link_libraries(small_lru_cache_test
-        module_repository
-        blob
-        )
+    module_repository
+    blob
+    )

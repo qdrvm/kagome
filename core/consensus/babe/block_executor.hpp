@@ -9,7 +9,7 @@
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   class BlockExecutor {
    public:
@@ -22,6 +22,6 @@ namespace kagome::consensus {
         const primitives::Justification &justification) = 0;
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_CONSENSUS_BLOCKEXECUTOR

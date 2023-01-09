@@ -37,6 +37,10 @@ groups:
                 - name: author_api
           - name: authorship
           - name: blockchain
+            children:
+              - name: block_tree
+              - name: block_storage
+              - name: digest_tracker
           - name: offchain
           - name: authority
           - name: crypto
@@ -53,6 +57,7 @@ groups:
                   - name: block_appender
                   - name: block_executor
                   - name: block_validator
+                  - name: babe_config_repo
               - name: grandpa
                 children:
                   - name: voting_round
@@ -74,12 +79,17 @@ groups:
           - name: telemetry
           - name: network
             children:
+              - name: reputation
               - name: synchronizer
               - name: kagome_protocols
                 children:
-                  - name: state_protocol
-                  - name: sync_protocol
+                  - name: block_announce_protocol
                   - name: grandpa_protocol
+                  - name: propagate_transactions_protocol
+                  - name: sync_protocol
+                  - name: state_protocol
+                  - name: collation_protocol
+                  - name: request_collation_protocol
           - name: changes_trie
           - name: storage
             children:

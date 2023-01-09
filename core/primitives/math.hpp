@@ -6,6 +6,7 @@
 #ifndef KAGOME_MATH_HPP
 #define KAGOME_MATH_HPP
 
+#include <common/blob.hpp>
 #include <type_traits>
 
 namespace kagome::math {
@@ -22,6 +23,16 @@ namespace kagome::math {
     static_assert((X & (X - 1)) == 0, "Must be POW 2!");
     static_assert(X != 0, "Must not be 0!");
     return (t + (X - 1)) & ~(X - 1);
+  }
+
+  template <typename T>
+  inline constexpr T sat_sub_unsigned(T x, T y) {
+    static_assert(std::numeric_limits<T>::is_integer
+                      && !std::numeric_limits<T>::is_signed,
+                  "Value must be integer and unsigned!");
+    auto res = x - y;
+    res &= -(res <= x);
+    return res;
   }
 
 }  // namespace kagome::math

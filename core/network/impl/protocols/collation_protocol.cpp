@@ -17,9 +17,13 @@ namespace kagome::network {
   CollationProtocol::CollationProtocol(
       libp2p::Host &host,
       application::AppConfiguration const &app_config,
-      application::ChainSpec const & /*chain_spec*/,
+      const application::ChainSpec &chain_spec,
+      const primitives::BlockHash &genesis_hash,
       std::shared_ptr<CollationObserver> observer)
-      : base_(host, {kCollationProtocol}, "CollationProtocol"),
+      : base_(kCollationProtocolName,
+              host,
+              make_protocols(kCollationProtocol, genesis_hash, chain_spec),
+              log::createLogger(kCollationProtocolName, "collation_protocol")),
         observer_(std::move(observer)),
         app_config_{app_config} {}
 
@@ -34,8 +38,44 @@ namespace kagome::network {
   void CollationProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    BOOST_ASSERT(!"Skip call.");
-    cb(ProtocolError::PROTOCOL_NOT_IMPLEMENTED);
+    SL_DEBUG(base_.logger(),
+             "Connect for {} stream with {}",
+             protocolName(),
+             peer_info.id);
+
+    base_.host().newStream(
+        peer_info.id,
+        base_.protocolIds(),
+        [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
+            auto &&stream_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            cb(ProtocolError::GONE);
+            return;
+          }
+
+          if (not stream_res.has_value()) {
+            SL_VERBOSE(self->base_.logger(),
+                       "Can't create outgoing {} stream with {}: {}",
+                       self->protocolName(),
+                       peer_id,
+                       stream_res.error());
+            cb(stream_res.as_failure());
+            return;
+          }
+
+          auto &stream = stream_res.value().stream;
+          BOOST_ASSERT(stream->remotePeerId().has_value());
+          self->doCollatorHandshake<false>(
+              stream,
+              [wptr{wp},
+               cb{std::move(cb)}](std::shared_ptr<Stream> const &stream) {
+                if (!stream)
+                  cb(ProtocolError::HANDSHAKE_ERROR);
+                else
+                  cb(stream);
+              });
+        });
   }
 
   void CollationProtocol::onCollationDeclRx(
@@ -90,7 +130,7 @@ namespace kagome::network {
                     "Can't read incoming collation message from stream {} with "
                     "error {}",
                     stream->remotePeerId().value(),
-                    result.error().message());
+                    result.error());
             self->base_.closeStream(wptr, stream);
             return;
           }
@@ -123,11 +163,17 @@ namespace kagome::network {
 
   void CollationProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
-    doCollatorHandshake(stream, [stream, wptr{weak_from_this()}]() mutable {
-      if (auto self = wptr.lock()) {
-        self->readCollationMsg(stream);
-      }
-    });
+    doCollatorHandshake<true>(
+        stream,
+        [wptr{weak_from_this()}](
+            std::shared_ptr<Stream> const &stream) mutable {
+          if (!stream) {
+            return;
+          }
+          if (auto self = wptr.lock()) {
+            self->readCollationMsg(stream);
+          }
+        });
   }
 
 }  // namespace kagome::network

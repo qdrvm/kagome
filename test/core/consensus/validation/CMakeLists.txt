@@ -7,7 +7,7 @@ addtest(block_validator_test
     block_validator_test.cpp
     )
 target_link_libraries(block_validator_test
-    block_validator
+    consensus
     p2p::p2p_peer_id
     testutil_primitives_generator
     sr25519_provider

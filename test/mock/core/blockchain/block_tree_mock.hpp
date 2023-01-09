@@ -37,11 +37,6 @@ namespace kagome::blockchain {
                 (const primitives::BlockId &),
                 (const, override));
 
-    MOCK_METHOD(std::optional<primitives::Version>,
-                runtimeVersion,
-                (),
-                (const, override));
-
     MOCK_METHOD(outcome::result<void>,
                 addBlockHeader,
                 (const primitives::BlockHeader &),
@@ -77,11 +72,6 @@ namespace kagome::blockchain {
                 (override));
 
     MOCK_METHOD(BlockHashVecRes,
-                getChainByBlock,
-                (const primitives::BlockHash &),
-                (const, override));
-
-    MOCK_METHOD(BlockHashVecRes,
                 getBestChainFromBlock,
                 (const primitives::BlockHash &, uint64_t),
                 (const, override));
@@ -96,13 +86,6 @@ namespace kagome::blockchain {
                 (const primitives::BlockHash &, const primitives::BlockHash &),
                 (const, override));
 
-    MOCK_METHOD(BlockHashVecRes,
-                getChainByBlocks,
-                (const primitives::BlockHash &,
-                 const primitives::BlockHash &,
-                 const uint32_t),
-                (const, override));
-
     MOCK_METHOD(bool,
                 hasDirectChain,
                 (const primitives::BlockHash &, const primitives::BlockHash &),
@@ -114,9 +97,7 @@ namespace kagome::blockchain {
                  const std::optional<primitives::BlockNumber> &),
                 (const, override));
 
-    MOCK_METHOD(BlockHashVecRes, longestPath, (), (const, override));
-
-    MOCK_METHOD(primitives::BlockInfo, deepestLeaf, (), (const, override));
+    MOCK_METHOD(primitives::BlockInfo, bestLeaf, (), (const, override));
 
     MOCK_METHOD(std::vector<primitives::BlockHash>,
                 getLeaves,
@@ -129,13 +110,6 @@ namespace kagome::blockchain {
                 (const, override));
 
     MOCK_METHOD(primitives::BlockInfo, getLastFinalized, (), (const, override));
-
-    MOCK_METHOD(outcome::result<void>, prune, (), ());
-
-    MOCK_METHOD(outcome::result<consensus::EpochDigest>,
-                getEpochDigest,
-                (consensus::EpochNumber, primitives::BlockHash),
-                (const, override));
   };
 }  // namespace kagome::blockchain
 

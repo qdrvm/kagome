@@ -9,7 +9,7 @@
 #include "consensus/babe/common.hpp"
 #include "scale/tie.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   /**
    * Metainformation about the Babe epoch
@@ -22,6 +22,6 @@ namespace kagome::consensus {
     /// starting slot of the epoch
     BabeSlotNumber start_slot = 0;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_CONSENSUS_EPOCHDESCRIPTOR

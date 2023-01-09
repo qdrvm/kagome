@@ -17,11 +17,12 @@
 namespace kagome::consensus::grandpa {
 
   using Id = crypto::Ed25519PublicKey;
-
-  // vote signature
   using Signature = crypto::Ed25519Signature;
-  using BlockHash = primitives::BlockHash;
+
   using BlockNumber = primitives::BlockNumber;
+  using BlockHash = primitives::BlockHash;
+  using BlockInfo = primitives::BlockInfo;
+
   using RoundNumber = uint64_t;
   using VoterSetId = uint64_t;
 

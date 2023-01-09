@@ -9,7 +9,7 @@ addtest(chain_test
     chain_test.cpp
     )
 target_link_libraries(chain_test
-    environment
+    consensus
     logger_for_tests
     )
 
@@ -17,19 +17,19 @@ addtest(vote_tracker_test
     vote_tracker_test.cpp
     )
 target_link_libraries(vote_tracker_test
-    vote_tracker
+    consensus
     )
 
 addtest(voter_set_test
     voter_set_test.cpp
     )
 target_link_libraries(voter_set_test
-    voter_set
+    consensus
     )
 
 addtest(vote_weight_test
     vote_weight_test.cpp
     )
 target_link_libraries(vote_weight_test
-    voter_set
+    consensus
     )

@@ -6,6 +6,7 @@
 #ifndef KAGOME_JUSTIFICATION_STORAGE_POLICY_HPP
 #define KAGOME_JUSTIFICATION_STORAGE_POLICY_HPP
 
+#include "outcome/outcome.hpp"
 #include "primitives/block_header.hpp"
 
 namespace kagome::blockchain {

@@ -30,10 +30,10 @@ namespace kagome::network {
       std::shared_ptr<PeerManager> peer_manager,
       const primitives::BlockHash &genesis_hash,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : base_(host,
-              {fmt::format(kGrandpaProtocol, hex_lower(genesis_hash)),
-               kGrandpaProtocolLegacy},
-              "GrandpaProtocol"),
+      : base_(kGrandpaProtocolName,
+              host,
+              make_protocols(kGrandpaProtocol, genesis_hash, "paritytech"),
+              log::createLogger(kGrandpaProtocolName, "grandpa_protocol")),
         io_context_(std::move(io_context)),
         app_config_(app_config),
         grandpa_observer_(std::move(grandpa_observer)),
@@ -56,6 +56,10 @@ namespace kagome::network {
     return base_.stop();
   }
 
+  const ProtocolName &GrandpaProtocol::protocolName() const {
+    return base_.protocolName();
+  }
+
   void GrandpaProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 
@@ -76,7 +80,7 @@ namespace kagome::network {
                        "Handshake failed on incoming {} stream with {}: {}",
                        self->protocolName(),
                        peer_id,
-                       res.error().message());
+                       res.error());
             stream->reset();
             return;
           }
@@ -87,7 +91,7 @@ namespace kagome::network {
                        "Can't register incoming {} stream with {}: {}",
                        self->protocolName(),
                        peer_id,
-                       res.error().message());
+                       res.error());
             stream->reset();
             return;
           }
@@ -118,7 +122,7 @@ namespace kagome::network {
                        "Can't create outgoing {} stream with {}: {}",
                        self->protocolName(),
                        peer_id,
-                       stream_res.error().message());
+                       stream_res.error());
             cb(stream_res.as_failure());
             return;
           }
@@ -139,7 +143,7 @@ namespace kagome::network {
                          "Handshake failed on outgoing {} stream with {}: {}",
                          protocol,
                          stream->remotePeerId().value(),
-                         res.error().message());
+                         res.error());
               stream->reset();
               cb(res.as_failure());
               return;
@@ -151,7 +155,7 @@ namespace kagome::network {
                          "Can't register outgoing {} stream with {}: {}",
                          protocol,
                          stream->remotePeerId().value(),
-                         res.error().message());
+                         res.error());
               stream->reset();
               cb(res.as_failure());
               return;
@@ -167,7 +171,8 @@ namespace kagome::network {
                 self->peer_manager_->getPeerState(self->own_info_.id);
             if (own_peer_state.has_value()) {
               GrandpaNeighborMessage msg{
-                  .round_number = own_peer_state->get().round_number.value_or(1),
+                  .round_number =
+                      own_peer_state->get().round_number.value_or(1),
                   .voter_set_id = own_peer_state->get().set_id.value_or(0),
                   .last_finalized = own_peer_state->get().last_finalized};
 
@@ -212,16 +217,17 @@ namespace kagome::network {
             SL_VERBOSE(self->base_.logger(),
                        "Can't read handshake from {}: {}",
                        stream->remotePeerId().value(),
-                       remote_roles_res.error().message());
+                       remote_roles_res.error());
             stream->reset();
             cb(remote_roles_res.as_failure());
             return;
           }
-          // auto &remote_roles = remote_roles_res.value();
+          [[maybe_unused]] auto &remote_roles = remote_roles_res.value();
 
           SL_TRACE(self->base_.logger(),
-                   "Handshake has received from {}",
-                   stream->remotePeerId().value());
+                   "Handshake has received from {}; roles={}",
+                   stream->remotePeerId().value(),
+                   to_string(remote_roles));
 
           switch (direction) {
             case Direction::OUTGOING:
@@ -245,6 +251,7 @@ namespace kagome::network {
 
     read_writer->write(roles,
                        [stream = std::move(stream),
+                        roles,
                         direction,
                         wp = weak_from_this(),
                         cb = std::move(cb)](auto &&write_res) mutable {
@@ -259,15 +266,16 @@ namespace kagome::network {
                            SL_VERBOSE(self->base_.logger(),
                                       "Can't send handshake to {}: {}",
                                       stream->remotePeerId().value(),
-                                      write_res.error().message());
+                                      write_res.error());
                            stream->reset();
                            cb(write_res.as_failure());
                            return;
                          }
 
                          SL_TRACE(self->base_.logger(),
-                                  "Handshake has sent to {}",
-                                  stream->remotePeerId().value());
+                                  "Handshake has sent to {}; roles={}",
+                                  stream->remotePeerId().value(),
+                                  to_string(roles));
 
                          switch (direction) {
                            case Direction::OUTGOING:
@@ -298,7 +306,7 @@ namespace kagome::network {
         SL_VERBOSE(self->base_.logger(),
                    "Can't read grandpa message from {}: {}",
                    stream->remotePeerId().value(),
-                   grandpa_message_res.error().message());
+                   grandpa_message_res.error());
         stream->reset();
         return;
       }
@@ -321,9 +329,10 @@ namespace kagome::network {
             self->grandpa_observer_->onCommitMessage(peer_id, commit_message);
           },
           [&](const GrandpaNeighborMessage &neighbor_message) {
-            SL_VERBOSE(self->base_.logger(),
-                       "NeighborMessage has received from {}",
-                       peer_id);
+            if (peer_id != self->own_info_.id)
+              SL_VERBOSE(self->base_.logger(),
+                         "NeighborMessage has received from {}",
+                         peer_id);
             self->grandpa_observer_->onNeighborMessage(peer_id,
                                                        neighbor_message);
           },
@@ -366,7 +375,8 @@ namespace kagome::network {
       }
       const auto &info = info_opt.value();
 
-      if (not info.get().set_id.has_value() or not info.get().round_number.has_value()) {
+      if (not info.get().set_id.has_value()
+          or not info.get().round_number.has_value()) {
         SL_DEBUG(base_.logger(),
                  "Vote signed by {} with set_id={} in round={} "
                  "has not been sent to {}: set id or round number unknown",
@@ -451,7 +461,7 @@ namespace kagome::network {
     stream_engine_->broadcast<GrandpaMessage>(
         shared_from_this(),
         shared_msg,
-        StreamEngine::RandomGossipStrategy{
+        RandomGossipStrategy{
             stream_engine_->outgoingStreamsNumber(shared_from_this()),
             app_config_.luckyPeers()});
   }
@@ -480,7 +490,8 @@ namespace kagome::network {
       }
       const auto &info = info_opt.value();
 
-      if (not info.get().set_id.has_value() or not info.get().round_number.has_value()) {
+      if (not info.get().set_id.has_value()
+          or not info.get().round_number.has_value()) {
         SL_DEBUG(base_.logger(),
                  "Commit with set_id={} in round={} "
                  "has not been sent to {}: set id or round number unknown",
@@ -566,7 +577,8 @@ namespace kagome::network {
     }
     const auto &info = info_opt.value();
 
-    if (not info.get().set_id.has_value() or not info.get().round_number.has_value()) {
+    if (not info.get().set_id.has_value()
+        or not info.get().round_number.has_value()) {
       SL_DEBUG(base_.logger(),
                "Catch-up-request with set_id={} in round={} "
                "has not been sent to {}: set id or round number unknown",
@@ -599,7 +611,8 @@ namespace kagome::network {
       return;
     }
 
-    auto round_id = std::tuple(info.get().round_number.value(), info.get().set_id.value());
+    auto round_id =
+        std::tuple(info.get().round_number.value(), info.get().set_id.value());
 
     auto [iter_by_round, ok_by_round] =
         recent_catchup_requests_by_round_.emplace(round_id);
@@ -664,7 +677,8 @@ namespace kagome::network {
     }
     const auto &info = info_opt.value();
 
-    if (not info.get().set_id.has_value() or not info.get().round_number.has_value()) {
+    if (not info.get().set_id.has_value()
+        or not info.get().round_number.has_value()) {
       SL_DEBUG(base_.logger(),
                "Catch-up-response with set_id={} in round={} "
                "has not been sent to {}: set id or round number unknown",

@@ -3,41 +3,29 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(impl)
-
-add_library(block_header_repository
-    impl/block_header_repository_impl.cpp
-    )
-target_link_libraries(block_header_repository
-    blockchain_common
-    block_tree_error
-    )
-kagome_install(block_header_repository)
-
-add_library(block_storage_error
+add_library(blockchain
+    impl/storage_util.cpp
+    impl/block_tree_error.cpp
+    impl/cached_tree.cpp
+    impl/block_tree_impl.cpp
+    impl/digest_tracker_impl.cpp
     impl/block_storage_error.cpp
-    )
-target_link_libraries(block_storage_error
-    outcome
-    )
-kagome_install(block_storage_error)
-
-add_library(block_storage
+    impl/justification_storage_policy.cpp
     impl/block_storage_impl.cpp
+    impl/block_header_repository_impl.cpp
+    impl/common.cpp
     )
-target_link_libraries(block_storage
-    blockchain_common
-    block_storage_error
+target_link_libraries(blockchain
+    Boost::boost
+    storage
+    primitives
+    logger
+    blob
+    metrics
+    telemetry
+    outcome
     hasher
     scale::scale
     )
-kagome_install(block_storage)
-
-add_library(block_tree_error
-    block_tree_error.hpp
-    impl/block_tree_error.cpp
-    )
-target_link_libraries(block_tree_error
-    outcome
-    )
-kagome_install(block_tree_error)
+kagome_install(blockchain)
+kagome_clear_objects(blockchain)

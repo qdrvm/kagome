@@ -5,6 +5,5 @@ add_library(basic_code_provider
     common/basic_code_provider.cpp
     )
 target_link_libraries(basic_code_provider
-    buffer
     Boost::filesystem
     )

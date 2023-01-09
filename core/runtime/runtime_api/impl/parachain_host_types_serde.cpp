@@ -74,21 +74,6 @@ namespace kagome::runtime {
     return s >> val.recipient >> val.data;
   }
 
-  ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
-                                          const CandidateCommitments &val) {
-    s << val.upward_messages << val.horizontal_messages
-      << val.new_validation_code << val.head_data
-      << val.processed_downward_messages << val.hrmp_watermark;
-    return s;
-  }
-
-  ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
-                                          CandidateCommitments &val) {
-    return s >> val.upward_messages >> val.horizontal_messages
-           >> val.new_validation_code >> val.head_data
-           >> val.processed_downward_messages >> val.hrmp_watermark;
-  }
-
   ::scale::ScaleEncoderStream &operator<<(
       ::scale::ScaleEncoderStream &s, const CommittedCandidateReceipt &val) {
     s << val.descriptor << val.commitments;

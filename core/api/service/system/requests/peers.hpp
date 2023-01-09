@@ -39,13 +39,11 @@ namespace kagome::api::system::request {
 
           jsonrpc::Value::Struct peer;
           peer.emplace("PeerId", peer_id.toBase58());
-          peer.emplace(
-              "roles",
-              status.get().roles.flags.authority
-                  ? "AUTHORITY"
-                  : status.get().roles.flags.full
-                        ? "FULL"
-                        : status.get().roles.flags.light ? "LIGHT" : "NONE");
+          peer.emplace("roles",
+                       status.get().roles.flags.authority ? "AUTHORITY"
+                       : status.get().roles.flags.full    ? "FULL"
+                       : status.get().roles.flags.light   ? "LIGHT"
+                                                          : "NONE");
           peer.emplace("bestHash", makeValue(status.get().best_block.hash));
           peer.emplace("bestNumber", makeValue(status.get().best_block.number));
 

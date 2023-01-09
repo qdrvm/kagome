@@ -43,9 +43,7 @@ namespace kagome::host_api {
         scale::encode<std::optional<primitives::Version>>(std::nullopt).value();
 
     if (uncompress_res.has_error()) {
-      SL_ERROR(logger_,
-               "Error uncompressing code: {}",
-               uncompress_res.error().message());
+      SL_ERROR(logger_, "Error decompressing code: {}", uncompress_res.error());
       return memory.storeBuffer(kErrorRes);
     }
 
@@ -57,16 +55,15 @@ namespace kagome::host_api {
       auto enc_version_res = scale::encode(
           std::make_optional(scale::encode(version_res.value()).value()));
       if (enc_version_res.has_error()) {
-        logger_->error(
-            "Error encoding ext_misc_runtime_version_version_1 result: {}",
-            enc_version_res.error().message());
+        SL_ERROR(logger_,
+                 "Error encoding ext_misc_runtime_version_version_1 result: {}",
+                 enc_version_res.error());
         return memory.storeBuffer(kErrorRes);
       }
       auto res_span = memory.storeBuffer(enc_version_res.value());
       return res_span;
     }
-    logger_->error("Error inside Core_version: {}",
-                   version_res.error().message());
+    SL_ERROR(logger_, "Error inside Core_version: {}", version_res.error());
     return memory.storeBuffer(kErrorRes);
   }
 

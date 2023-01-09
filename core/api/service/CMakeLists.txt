@@ -10,7 +10,7 @@ target_link_libraries(api_service
     Boost::boost
     logger
     app_state_manager
-    rpc_thread_pool
+    api
     p2p::p2p_peer_id
     )
 

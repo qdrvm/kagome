@@ -9,22 +9,40 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 
-#include <boost/operators.hpp>
+#include <libp2p/basic/scheduler.hpp>
 
-#include "application/app_state_manager.hpp"
-#include "blockchain/block_tree.hpp"
-#include "consensus/authority/authority_manager.hpp"
-#include "consensus/grandpa/environment.hpp"
-#include "consensus/grandpa/impl/voting_round_impl.hpp"
-#include "consensus/grandpa/movable_round_state.hpp"
-#include "consensus/grandpa/voter_set.hpp"
-#include "crypto/ed25519_provider.hpp"
-#include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
-#include "network/peer_manager.hpp"
-#include "network/synchronizer.hpp"
-#include "runtime/runtime_api/grandpa_api.hpp"
+
+namespace kagome::application {
+  class AppStateManager;
+  class ChainSpec;
+}  // namespace kagome::application
+
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
+namespace kagome::consensus::grandpa {
+  class AuthorityManager;
+  class Environment;
+  struct MovableRoundState;
+  class VoterSet;
+}  // namespace kagome::consensus::grandpa
+
+namespace kagome::crypto {
+  class Ed25519Provider;
+}
+
+namespace kagome::network {
+  class PeerManager;
+  class ReputationRepository;
+  class Synchronizer;
+}  // namespace kagome::network
+
+namespace kagome::runtime {
+  class GrandpaApi;
+}
 
 namespace kagome::consensus::grandpa {
 
@@ -63,19 +81,26 @@ namespace kagome::consensus::grandpa {
     /// Maximum number of rounds we are keep to communication
     static const size_t kKeepRecentRounds = 3;
 
+    /// Timeout of waiting catchup response for request
+    static constexpr Clock::Duration kCatchupRequestTimeout =
+        std::chrono::milliseconds(45'000);
+
     ~GrandpaImpl() override = default;
 
-    GrandpaImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
-                std::shared_ptr<Environment> environment,
-                std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
-                std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-                const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
-                std::shared_ptr<Clock> clock,
-                std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-                std::shared_ptr<authority::AuthorityManager> authority_manager,
-                std::shared_ptr<network::Synchronizer> synchronizer,
-                std::shared_ptr<network::PeerManager> peer_manager,
-                std::shared_ptr<blockchain::BlockTree> block_tree);
+    GrandpaImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<Environment> environment,
+        std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
+        std::shared_ptr<runtime::GrandpaApi> grandpa_api,
+        const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
+        const application::ChainSpec &chain_spec,
+        std::shared_ptr<Clock> clock,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+        std::shared_ptr<AuthorityManager> authority_manager,
+        std::shared_ptr<network::Synchronizer> synchronizer,
+        std::shared_ptr<network::PeerManager> peer_manager,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<network::ReputationRepository> reputation_repository);
 
     /**
      * Prepares for grandpa round execution: e.g. sets justification observer
@@ -218,8 +243,7 @@ namespace kagome::consensus::grandpa {
      * nullopt otherwise
      */
     std::optional<std::shared_ptr<VotingRound>> selectRound(
-        RoundNumber round_number,
-        std::optional<VoterSetId> voter_set_id);
+        RoundNumber round_number, std::optional<VoterSetId> voter_set_id);
 
     /**
      * @return Get grandpa::MovableRoundState for the last completed round
@@ -240,9 +264,9 @@ namespace kagome::consensus::grandpa {
     /**
      * Takes given round and creates next one for it
      * @param previous_round VotingRound from which the new one is created
-     * @return new VotingRound
+     * @return new VotingRound or error
      */
-    std::shared_ptr<VotingRound> makeNextRound(
+    outcome::result<std::shared_ptr<VotingRound>> makeNextRound(
         const std::shared_ptr<VotingRound> &previous_round);
 
     /**
@@ -251,12 +275,7 @@ namespace kagome::consensus::grandpa {
      */
     void loadMissingBlocks();
 
-    // Note: Duration value was gotten from substrate
-    // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166
-    // Perhaps, 333ms is not enough for normal communication during the round
-    const Clock::Duration round_time_factor_ = std::chrono::milliseconds(333);
-
-    std::shared_ptr<VotingRound> current_round_;
+    const Clock::Duration round_time_factor_;
 
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
@@ -264,16 +283,22 @@ namespace kagome::consensus::grandpa {
     const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
-    std::shared_ptr<authority::AuthorityManager> authority_manager_;
+    std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<network::ReputationRepository> reputation_repository_;
+
+    std::shared_ptr<VotingRound> current_round_;
+    std::optional<
+        const std::tuple<libp2p::peer::PeerId, network::CatchUpRequest>>
+        pending_catchup_request_;
+    libp2p::basic::Scheduler::Handle catchup_request_timer_handle_;
+    libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_highest_round_;
-
-    libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
   };

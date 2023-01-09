@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   class BabeUtilMock : public BabeUtil {
    public:
@@ -44,8 +44,6 @@ namespace kagome::consensus {
                 (BabeSlotNumber slot),
                 (const, override));
 
-    MOCK_METHOD(BabeDuration, slotDuration, (), (const, override));
-
     MOCK_METHOD(EpochNumber, slotToEpoch, (BabeSlotNumber), (const, override));
 
     MOCK_METHOD(BabeSlotNumber,
@@ -54,6 +52,6 @@ namespace kagome::consensus {
                 (const, override));
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_CONSENSUS_BABEUTILMOCK

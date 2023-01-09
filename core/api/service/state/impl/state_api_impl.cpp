@@ -5,6 +5,7 @@
 
 #include "api/service/state/impl/state_api_impl.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <unordered_map>
 #include <utility>
 
@@ -66,7 +67,7 @@ namespace kagome::api {
       common::Buffer data,
       const std::optional<primitives::BlockHash> &opt_at) const {
     auto at =
-        opt_at.has_value() ? opt_at.value() : block_tree_->deepestLeaf().hash;
+        opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
     return executor_->callAtRaw(at, method, data);
   }
 
@@ -102,9 +103,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      auto min_size = std::min<ssize_t>(prefix.size(), key->size());
-      if (not std::equal(
-              prefix.begin(), prefix.begin() + min_size, key.value().begin())) {
+      if (!boost::starts_with(key.value(), prefix)) {
         break;
       }
       result.push_back(cursor->key().value());
@@ -125,8 +124,8 @@ namespace kagome::api {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     auto res = trie_reader->tryGet(key);
-    return common::map_result_optional(res,
-                                       [](const auto &r) { return r.get(); });
+    return common::map_result_optional(
+        std::move(res), [](common::BufferOrView &&r) { return r.into(); });
   }
 
   outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
@@ -137,7 +136,7 @@ namespace kagome::api {
     // TODO(Harrm): Optimize once changes trie is enabled (and a warning/assert
     // for now that will fire once it is, just not to forget)
     auto to =
-        opt_to.has_value() ? opt_to.value() : block_tree_->deepestLeaf().hash;
+        opt_to.has_value() ? opt_to.value() : block_tree_->bestLeaf().hash;
     if (keys.size() > static_cast<ssize_t>(kMaxKeySetSize)) {
       return Error::MAX_KEY_SET_SIZE_EXCEEDED;
     }
@@ -165,14 +164,13 @@ namespace kagome::api {
       OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root));
       StorageChangeSet change{block, {}};
       for (auto &key : keys) {
-        OUTCOME_TRY(opt_value, batch->tryGet(key));
+        OUTCOME_TRY(opt_get, batch->tryGet(key));
+        auto opt_value = common::map_optional(
+            std::move(opt_get),
+            [](common::BufferOrView &&r) { return r.into(); });
         auto it = last_values.find(key);
         if (it == last_values.end() || it->second != opt_value) {
-          std::optional<common::Buffer> opt_buffer =
-              opt_value ? std::make_optional(opt_value.value().get())
-                        : std::nullopt;
-          change.changes.push_back(
-              StorageChangeSet::Change{common::Buffer{key}, opt_buffer});
+          change.changes.push_back(StorageChangeSet::Change{key, opt_value});
         }
         last_values[key] = std::move(opt_value);
       }
@@ -188,7 +186,7 @@ namespace kagome::api {
       gsl::span<const common::Buffer> keys,
       std::optional<primitives::BlockHash> opt_at) const {
     auto at =
-        opt_at.has_value() ? opt_at.value() : block_tree_->deepestLeaf().hash;
+        opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
     return queryStorage(keys, at, at);
   }
 
@@ -197,7 +195,7 @@ namespace kagome::api {
     if (at) {
       return runtime_core_->version(at.value());
     }
-    return runtime_core_->version(block_tree_->deepestLeaf().hash);
+    return runtime_core_->version(block_tree_->bestLeaf().hash);
   }
 
   outcome::result<uint32_t> StateApiImpl::subscribeStorage(
@@ -240,7 +238,7 @@ namespace kagome::api {
   }
 
   outcome::result<std::string> StateApiImpl::getMetadata() {
-    OUTCOME_TRY(data, metadata_->metadata(block_tree_->deepestLeaf().hash));
+    OUTCOME_TRY(data, metadata_->metadata(block_tree_->bestLeaf().hash));
     return common::hex_lower_0x(data);
   }
 

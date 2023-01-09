@@ -58,7 +58,7 @@ namespace kagome::network {
     auto chain_hash_res = retrieveRequestedHashes(request, from_hash);
     if (not chain_hash_res.has_value()) {
       log_->warn("cannot retrieve a chain of blocks: {}",
-                 chain_hash_res.error().message());
+                 chain_hash_res.error());
       requested_ids_.erase(request_id);
       return response;
     }

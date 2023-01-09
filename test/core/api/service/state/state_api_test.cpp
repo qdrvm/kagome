@@ -85,7 +85,7 @@ namespace kagome::api {
     EXPECT_CALL(*storage_, getEphemeralBatchAt(_))
         .WillRepeatedly(testing::Invoke([&in_buf, &out_buf](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, tryGet(in_buf.view()))
+          EXPECT_CALL(*batch, tryGetMock(in_buf.view()))
               .WillRepeatedly(testing::Return(std::cref(out_buf)));
           return batch;
         }));
@@ -224,7 +224,7 @@ namespace kagome::api {
                                      .impl_version = 0x202,
                                      .apis = {}};
 
-    EXPECT_CALL(*block_tree_, deepestLeaf())
+    EXPECT_CALL(*block_tree_, bestLeaf())
         .WillOnce(Return(primitives::BlockInfo{42, "block42"_hash256}));
     EXPECT_CALL(*runtime_core_, version("block42"_hash256))
         .WillOnce(testing::Return(test_version));
@@ -384,7 +384,7 @@ namespace kagome::api {
             auto batch =
                 std::make_unique<storage::trie::EphemeralTrieBatchMock>();
             for (auto &key : keys) {
-              EXPECT_CALL(*batch, tryGet(key.view()))
+              EXPECT_CALL(*batch, tryGetMock(key.view()))
                   .WillOnce(testing::Return(common::Buffer(root)));
             }
             return batch;
@@ -417,7 +417,7 @@ namespace kagome::api {
     EXPECT_CALL(*block_header_repo_, getNumberByHash(to))
         .WillOnce(Return(42 + StateApiImpl::kMaxBlockRange + 1));
     EXPECT_OUTCOME_FALSE(
-        error, api_->queryStorage(std::vector{"some_key"_buf}, from, to));
+        error, api_->queryStorage(std::vector({"some_key"_buf}), from, to));
     ASSERT_EQ(error, StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED);
   }
 
@@ -456,7 +456,7 @@ namespace kagome::api {
           auto batch =
               std::make_unique<storage::trie::EphemeralTrieBatchMock>();
           for (auto &key : keys) {
-            EXPECT_CALL(*batch, tryGet(key.view()))
+            EXPECT_CALL(*batch, tryGetMock(key.view()))
                 .WillOnce(testing::Return(common::Buffer(root)));
           }
           return batch;

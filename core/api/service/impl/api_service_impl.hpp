@@ -41,6 +41,9 @@ namespace kagome::primitives {
 namespace kagome::storage::trie {
   class TrieStorage;
 }
+namespace kagome::runtime {
+  class Core;
+}
 namespace kagome::subscription {
   class ExtrinsicEventKeyRepository;
 }
@@ -135,7 +138,8 @@ namespace kagome::api {
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<storage::trie::TrieStorage> trie_storage);
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+        std::shared_ptr<runtime::Core> core);
 
     ~ApiServiceImpl() override = default;
 
@@ -241,6 +245,7 @@ namespace kagome::api {
     log::Logger logger_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
+    std::shared_ptr<runtime::Core> core_;
 
     std::mutex subscribed_sessions_cs_;
     std::unordered_map<Session::SessionId,

@@ -33,7 +33,7 @@ using kagome::subscription::SubscriptionEngine;
 static Buffer kNodePrefix = "\1"_buf;
 
 /**
- * @given an empty persistent trie with LevelDb backend
+ * @given an empty persistent trie with RocksDb backend
  * @when putting a value into it @and its intance is destroyed @and a new
  * instance initialsed with the same DB
  * @then the new instance contains the same data
@@ -80,11 +80,11 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
           .value();
   auto batch = storage->getPersistentBatchAt(root).value();
   EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));
-  ASSERT_EQ(v1.get(), "abc"_buf);
+  ASSERT_EQ(v1, "abc"_buf);
   EXPECT_OUTCOME_TRUE(v2, batch->get("345"_buf));
-  ASSERT_EQ(v2.get(), "def"_buf);
+  ASSERT_EQ(v2, "def"_buf);
   EXPECT_OUTCOME_TRUE(v3, batch->get("678"_buf));
-  ASSERT_EQ(v3.get(), "xyz"_buf);
+  ASSERT_EQ(v3, "xyz"_buf);
 
   boost::filesystem::remove_all("/tmp/kagome_rocksdb_persistency_test");
 }

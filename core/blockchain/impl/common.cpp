@@ -12,7 +12,7 @@
 
 namespace kagome::blockchain {
 
-  outcome::result<std::optional<common::Buffer>> idToLookupKey(
+  outcome::result<std::optional<common::BufferOrView>> idToLookupKey(
       const ReadableBufferStorage &map, const primitives::BlockId &id) {
     auto key = visit_in_place(
         id,
@@ -21,11 +21,10 @@ namespace kagome::blockchain {
                                prefix::Prefix::ID_TO_LOOKUP_KEY);
         },
         [](const common::Hash256 &hash) {
-          return prependPrefix(common::Buffer{hash},
-                               prefix::Prefix::ID_TO_LOOKUP_KEY);
+          return prependPrefix(hash, prefix::Prefix::ID_TO_LOOKUP_KEY);
         });
 
-    OUTCOME_TRY(key_opt, map.tryLoad(key));
+    OUTCOME_TRY(key_opt, map.tryGet(key));
 
     return std::move(key_opt);
   }
@@ -36,12 +35,13 @@ namespace kagome::blockchain {
     auto codec = storage::trie::PolkadotCodec();
 
     for (const auto &[key, val] : key_vals) {
-      [[maybe_unused]] auto res = trie.put(key, val);
+      [[maybe_unused]] auto res = trie.put(key, common::BufferView{val});
       BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie failed");
     }
     auto root = trie.getRoot();
     if (root == nullptr) {
-      return codec.hash256(common::Buffer{0});
+      static const auto zero_hash = codec.hash256(common::Buffer{0});
+      return zero_hash;
     }
     auto encode_res = codec.encodeNode(*root);
     BOOST_ASSERT_MSG(encode_res.has_value(), "Trie encoding failed");

@@ -3,11 +3,23 @@ function(kagome_install target)
     install(TARGETS ${target} EXPORT kagomeTargets
         LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}/kagome
         ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}/kagome
-        RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}/kagome
+        RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
         INCLUDES      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/kagome
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/kagome
         FRAMEWORK     DESTINATION ${CMAKE_INSTALL_PREFIX}/kagome
         )
+endfunction()
+
+### kagome_clear_objects should be called right after target_link_libraries(target) or kagome_install(target)
+function(kagome_clear_objects target)
+    if(CLEAR_OBJS)
+        add_custom_command(TARGET ${target}
+            POST_BUILD
+            COMMAND find ${CMAKE_CURRENT_BINARY_DIR} -name "*.o" -type f -delete
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Removing object files from '${CMAKE_CURRENT_BINARY_DIR}'"
+        )
+    endif()
 endfunction()
 
 ### workaround for imported libraries

@@ -19,60 +19,16 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, TreeNode::Error, e) {
 }
 
 namespace kagome::blockchain {
-
   TreeNode::TreeNode(const primitives::BlockHash &hash,
                      primitives::BlockNumber depth,
-                     consensus::EpochDigest &&curr_epoch_digest,
-                     consensus::EpochNumber epoch_number,
-                     consensus::EpochDigest &&next_epoch_digest,
-                     bool finalized)
-      : block_hash{hash},
-        depth{depth},
-        epoch_number(epoch_number),
-        finalized{finalized} {
-    this->epoch_digest =
-        std::make_shared<consensus::EpochDigest>(std::move(curr_epoch_digest));
-    this->next_epoch_digest = *epoch_digest == next_epoch_digest
-                                  ? epoch_digest
-                                  : std::make_shared<consensus::EpochDigest>(
-                                      std::move(next_epoch_digest));
-  }
-
-  TreeNode::TreeNode(
-      const primitives::BlockHash &hash,
-      primitives::BlockNumber depth,
-      const std::shared_ptr<TreeNode> &parent,
-      consensus::EpochNumber epoch_number,
-      std::optional<consensus::EpochDigest> next_epoch_digest_opt,
-      bool finalized)
+                     const std::shared_ptr<TreeNode> &parent,
+                     bool finalized,
+                     bool babe_primary)
       : block_hash{hash},
         depth{depth},
         parent{parent},
-        epoch_number(epoch_number),
-        finalized{finalized} {
-    BOOST_ASSERT(parent != nullptr or next_epoch_digest_opt.has_value());
-    if (parent) {
-      epoch_digest = epoch_number != parent->epoch_number
-                         ? parent->next_epoch_digest
-                         : epoch_digest = parent->epoch_digest;
-      next_epoch_digest = parent->next_epoch_digest;
-    } else {
-      epoch_digest = std::make_shared<consensus::EpochDigest>(
-          next_epoch_digest_opt.value());
-      next_epoch_digest = epoch_digest;
-    }
-
-    if (next_epoch_digest_opt.has_value()) {
-      if (next_epoch_digest_opt != *next_epoch_digest) {
-        if (next_epoch_digest_opt == *epoch_digest) {
-          next_epoch_digest = epoch_digest;
-        } else {
-          next_epoch_digest = std::make_shared<consensus::EpochDigest>(
-              std::move(next_epoch_digest_opt.value()));
-        }
-      }
-    }
-  }
+        finalized{finalized},
+        babe_primary{babe_primary} {}
 
   outcome::result<void> TreeNode::applyToChain(
       const primitives::BlockInfo &chain_end,
@@ -163,7 +119,7 @@ namespace kagome::blockchain {
   TreeMeta::TreeMeta(
       const std::shared_ptr<TreeNode> &subtree_root_node,
       std::optional<primitives::Justification> last_finalized_justification)
-      : deepest_leaf{subtree_root_node},
+      : best_leaf{subtree_root_node},
         last_finalized{subtree_root_node},
         last_finalized_justification{std::move(last_finalized_justification)} {
     std::function<void(std::shared_ptr<TreeNode>)> handle =
@@ -176,11 +132,7 @@ namespace kagome::blockchain {
           // is a leaf
           if (node->children.empty()) {
             leaves.emplace(node->block_hash);
-            // NOLINTNEXTLINE(bugprone-lambda-function-name)
-            BOOST_ASSERT(not deepest_leaf.expired());
-            if (node->depth > deepest_leaf.lock()->depth) {
-              deepest_leaf = node;
-            }
+            chooseBest(node);
           } else {
             // follow descendants recursively
             for (const auto &child : node->children) {
@@ -192,14 +144,32 @@ namespace kagome::blockchain {
     handle(subtree_root_node);
   }
 
-  TreeMeta::TreeMeta(std::unordered_set<primitives::BlockHash> leaves,
-                     const std::shared_ptr<TreeNode> &deepest_leaf,
-                     const std::shared_ptr<TreeNode> &last_finalized,
-                     primitives::Justification last_finalized_justification)
-      : leaves{std::move(leaves)},
-        deepest_leaf{deepest_leaf},
-        last_finalized{last_finalized},
-        last_finalized_justification{std::move(last_finalized_justification)} {}
+  inline TreeMeta::Weight TreeMeta::getWeight(
+      std::shared_ptr<TreeNode> node) const {
+    auto finalized = last_finalized.lock();
+    BOOST_ASSERT(finalized);
+    Weight weight{0, node->depth};
+    while (node != finalized) {
+      BOOST_ASSERT(node->depth > finalized->depth);
+      if (node->babe_primary) {
+        ++weight.first;
+      }
+      auto parent = node->parent.lock();
+      BOOST_ASSERT(parent);
+      node = std::move(parent);
+    }
+    return weight;
+  }
+
+  bool TreeMeta::chooseBest(std::shared_ptr<TreeNode> node) {
+    auto best = best_leaf.lock();
+    BOOST_ASSERT(best);
+    if (getWeight(node) > getWeight(best)) {
+      best_leaf = node;
+      return true;
+    }
+    return false;
+  }
 
   void CachedTree::updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root,
                                   primitives::Justification justification) {
@@ -242,10 +212,7 @@ namespace kagome::blockchain {
 
     metadata_->leaves.insert(new_node->block_hash);
     metadata_->leaves.erase(parent->block_hash);
-    BOOST_ASSERT(metadata_->deepest_leaf.lock() != nullptr);
-    if (new_node->depth > metadata_->deepest_leaf.lock()->depth) {
-      metadata_->deepest_leaf = new_node;
-    }
+    metadata_->chooseBest(new_node);
   }
 
   void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
@@ -265,9 +232,10 @@ namespace kagome::blockchain {
       metadata_->leaves.insert(parent->block_hash);
     }
 
-    BOOST_ASSERT(not metadata_->deepest_leaf.expired());
-    if (node == metadata_->deepest_leaf.lock()) {
-      metadata_->deepest_leaf = parent;
+    auto best = metadata_->best_leaf.lock();
+    BOOST_ASSERT(best);
+    if (node == best) {
+      metadata_->best_leaf = parent;
       for (auto it = metadata_->leaves.begin();
            it != metadata_->leaves.end();) {
         const auto &hash = *it++;
@@ -275,8 +243,7 @@ namespace kagome::blockchain {
         if (leaf_node == nullptr) {
           // Already removed with removed subtree
           metadata_->leaves.erase(hash);
-        } else if (leaf_node->depth > parent->depth) {
-          metadata_->deepest_leaf = leaf_node;
+        } else if (metadata_->chooseBest(leaf_node)) {
           break;
         }
       }

@@ -28,8 +28,8 @@ namespace kagome::injector {
     if (app_config.nodeKey()) {
       log->info("Will use LibP2P keypair from config or 'node-key' CLI arg");
 
-      auto provided_keypair =
-          crypto_provider.generateKeypair(app_config.nodeKey().value());
+      auto provided_keypair = crypto_provider.generateKeypair(
+          crypto::Ed25519Seed{app_config.nodeKey().value()});
       BOOST_ASSERT(provided_keypair.secret_key == app_config.nodeKey().value());
 
       auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(
@@ -47,7 +47,7 @@ namespace kagome::injector {
       if (key.has_error()) {
         log->error("Unable to load user provided key from {}. Error: {}",
                    path,
-                   key.error().message());
+                   key.error());
         common::raise(key.error());
       } else {
         auto key_pair =

@@ -10,19 +10,15 @@ target_link_libraries(application_injector
     Boost::Boost.DI
     runtime_wavm
     account_nonce_api
-    api_jrpc_server
-    api_transport
+    address_publisher
+    api
     app_config
     app_state_manager
+    authority_discovery_api
     print_chain_info_mode
     assets
-    author_api_service
-    authority_manager
-    babe
+    storage
     babe_api
-    babe_lottery
-    synchronizer
-    babe_util
     binaryen_executor_factory
     binaryen_runtime_external_interface
     binaryen_wasm_memory
@@ -31,32 +27,18 @@ target_link_libraries(application_injector
     module_repository
     binaryen_module_factory
     bip39_provider
-    block_announce_protocol
-    block_appender
     block_builder_api
-    block_executor
-    block_header_repository
-    block_storage
-    block_tree
-    block_validator
-    buffer
-    chain_api_service
-    changes_tracker
-    child_state_api_service
+    consensus
+    blockchain
     clock
     chain_spec
     core_api
     crypto_store
     ecdsa_provider
     ed25519_provider
-    environment
-    extrinsic_observer
     transaction_pool
     host_api_factory
-    kagome_router
-    kagome_router
     key_file_storage
-    rocksdb_wrapper
     log_configurator
     metadata_api
     metrics
@@ -66,64 +48,36 @@ target_link_libraries(application_injector
     p2p::p2p_identify
     p2p::p2p_kademlia
     p2p::p2p_ping
-    payment_api_service
+    parachain_host_api
     pbkdf2_provider
-    peer_manager
-    polkadot_codec
-    polkadot_trie
-    polkadot_trie_factory
-    propagate_transactions_protocol
-    proposer
-    protocol_factory
-    rpc_api_service
-    rpc_thread_pool
+    block_builder
     runtime_upgrade_tracker
     runtime_environment_factory
+    runtime_properties_cache
     executor
     secp256k1_provider
     soralog::fallback_configurator
     soralog::soralog
     sr25519_provider
-    state_api_service
-    state_protocol_observer
+    network
     storage_code_provider
-    sync_protocol_observer
     telemetry
     tagged_transaction_queue_api
     transaction_payment_api
     transaction_pool
-    trie_serializer
-    trie_storage
     trie_storage_provider
     vrf_provider
     waitable_timer
-    authority_manager
-    system_api_service
-    payment_api_service
-    rpc_api_service
-    internal_api_service
-    peer_manager
-    babe_util
     assets
-    block_announce_protocol
-    propagate_transactions_protocol
-    grandpa_protocol
     grandpa_api
-    grandpa
-    protocol_factory
     p2p::p2p_loopback_stream
-    grandpa_transmitter
-    block_announce_transmitter
-    transactions_transmitter
     offchain_worker_factory
     offchain_worker_pool
     offchain_worker_api
     offchain_persistent_storage
     offchain_local_storage
-    rating_repository
     session_keys_api
-    collation_protocol
-    req_collation_protocol
     validator_parachain
     fd_limit
     )
+kagome_clear_objects(application_injector)

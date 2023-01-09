@@ -24,6 +24,7 @@
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
+#include "crypto/crypto_store/dev_mnemonic_phrase.hpp"
 #include "filesystem/directories.hpp"
 
 namespace {
@@ -40,6 +41,17 @@ namespace {
       }
       std::forward<Func>(f)(it->second.as<T>());
     }
+  }
+
+  template <typename T>
+  inline std::optional<T> find_argument(
+      boost::program_options::variables_map &vm, const std::string &name) {
+    if (auto it = vm.find(name); it != vm.end()) {
+      if (!it->second.defaulted()) {
+        return it->second.as<T>();
+      }
+    }
+    return std::nullopt;
   }
 
   const std::string def_rpc_http_host = "0.0.0.0";
@@ -147,6 +159,21 @@ namespace {
     }
 
     return std::nullopt;
+  }
+
+  auto &devAccounts() {
+    static auto &dev = kagome::crypto::DevMnemonicPhrase::get();
+    using Account =
+        std::tuple<const char *, std::string_view, std::string_view>;
+    static const std::array<Account, 6> accounts{
+        Account{"alice", "Alice", dev.alice},
+        Account{"bob", "Bob", dev.bob},
+        Account{"charlie", "Charlie", dev.charlie},
+        Account{"dave", "Dave", dev.dave},
+        Account{"eve", "Eve", dev.eve},
+        Account{"ferdie", "Ferdie", dev.ferdie},
+    };
+    return accounts;
   }
 }  // namespace
 
@@ -380,7 +407,7 @@ namespace kagome::application {
     load_u32(val, "out-peers", out_peers_);
     load_u32(val, "in-peers", in_peers_);
     load_u32(val, "in-peers-light", in_peers_light_);
-    load_i32(val, "lucky-peers", lucky_peers_);
+    load_u32(val, "lucky-peers", lucky_peers_);
     load_telemetry_uris(val, "telemetry-endpoints", telemetry_endpoints_);
     load_u32(val, "random-walk-interval", random_walk_interval_);
   }
@@ -633,7 +660,7 @@ namespace kagome::application {
                  "Telemetry endpoint '{}' cannot be interpreted as a valid "
                  "multiaddress and was skipped due to error: {}",
                  uri_part,
-                 ma_res.error().message());
+                 ma_res.error());
         return std::nullopt;
       }
 
@@ -744,6 +771,10 @@ namespace kagome::application {
 
     // clang-format on
 
+    for (auto &[flag, name, dev] : devAccounts()) {
+      development_desc.add_options()(flag, po::bool_switch());
+    }
+
     po::variables_map vm;
     // first-run parse to read only general options and to lookup for "help"
     // all the rest options are ignored
@@ -852,6 +883,20 @@ namespace kagome::application {
       }
     }
 
+    std::optional<std::string> dev_account_flag;
+    for (auto &[flag, name, dev] : devAccounts()) {
+      if (auto val = find_argument<bool>(vm, flag); val && *val) {
+        if (dev_account_flag) {
+          SL_ERROR(
+              logger_, "--{} conflicts with --{}", flag, *dev_account_flag);
+          return false;
+        }
+        dev_account_flag = flag;
+        node_name_ = name;
+        dev_mnemonic_phrase_ = dev;
+      }
+    }
+
     find_argument<std::string>(vm, "config-file", [&](std::string const &path) {
       if (dev_mode_) {
         std::cerr << "Warning: config file has ignored because dev mode"
@@ -911,8 +956,8 @@ namespace kagome::application {
       for (auto &addr_str : boot_nodes) {
         auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
         if (not ma_res.has_value()) {
-          auto err_msg = "Bootnode '" + addr_str
-                         + "' is invalid: " + ma_res.error().message();
+          auto err_msg = fmt::format(
+              "Bootnode '{}' is invalid: {}", addr_str, ma_res.error());
           SL_ERROR(logger_, "{}", err_msg);
           std::cout << err_msg << std::endl;
           return false;
@@ -934,8 +979,8 @@ namespace kagome::application {
     if (node_key.has_value()) {
       auto key_res = crypto::Ed25519PrivateKey::fromHex(node_key.value());
       if (not key_res.has_value()) {
-        auto err_msg = "Node key '" + node_key.value()
-                       + "' is invalid: " + key_res.error().message();
+        auto err_msg = fmt::format(
+            "Node key '{}' is invalid: {}", node_key.value(), key_res.error());
         SL_ERROR(logger_, "{}", err_msg);
         std::cout << err_msg << std::endl;
         return false;
@@ -972,7 +1017,7 @@ namespace kagome::application {
                    "Address {} passed as value to {} is invalid: {}",
                    s,
                    param_name,
-                   ma_res.error().message());
+                   ma_res.error());
           return false;
         }
         output_field.emplace_back(std::move(ma_res.value()));
@@ -1009,7 +1054,7 @@ namespace kagome::application {
               "Cannot construct IPv6 listen multiaddress from port {}. Error: "
               "{}",
               p2p_port_,
-              ma_res.error().message());
+              ma_res.error());
         } else {
           SL_INFO(logger_,
                   "Automatically added IPv6 listen address {}",
@@ -1028,7 +1073,7 @@ namespace kagome::application {
               "Cannot construct IPv4 listen multiaddress from port {}. Error: "
               "{}",
               p2p_port_,
-              ma_res.error().message());
+              ma_res.error());
         } else {
           SL_INFO(logger_,
                   "Automatically added IPv4 listen address {}",
@@ -1178,7 +1223,7 @@ namespace kagome::application {
           SL_ERROR(logger_,
                    "Failed to purge cache in {} ['{}']",
                    runtimeCacheDirPath(),
-                   ec.message());
+                   ec);
         }
       }
     }

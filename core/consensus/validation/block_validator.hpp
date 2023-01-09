@@ -6,10 +6,11 @@
 #ifndef KAGOME_BLOCK_VALIDATOR_HPP
 #define KAGOME_BLOCK_VALIDATOR_HPP
 
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "primitives/block.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   /**
    * Validator of the blocks
    */
@@ -22,7 +23,7 @@ namespace kagome::consensus {
      * @param block to be validated
      * @param authority_id authority that sent this block
      * @param threshold is vrf threshold for this epoch
-     * @param randomness is randomness used in this epoch
+     * @param config is babe config for this epoch
      * @return nothing or validation error
      */
     virtual outcome::result<void> validateHeader(
@@ -30,8 +31,8 @@ namespace kagome::consensus {
         const EpochNumber epoch_number,
         const primitives::AuthorityId &authority_id,
         const Threshold &threshold,
-        const Randomness &randomness) const = 0;
+        const primitives::BabeConfiguration &config) const = 0;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_BLOCK_VALIDATOR_HPP

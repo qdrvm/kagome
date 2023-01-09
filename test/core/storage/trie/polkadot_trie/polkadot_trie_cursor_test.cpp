@@ -18,6 +18,7 @@
 #include "testutil/storage/polkadot_trie_printer.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::storage::trie::PolkadotTrie;
 using kagome::storage::trie::PolkadotTrieCursorImpl;
 using kagome::storage::trie::PolkadotTrieImpl;
@@ -55,7 +56,7 @@ std::tuple<std::shared_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(
   for (size_t i = 0; i < keys_num; i++) {
     kagome::common::Buffer key(key_length_gen(), 0);
     std::generate(key.begin(), key.end(), std::ref(key_gen));
-    EXPECT_OUTCOME_TRUE_1(trie->put(key, key))
+    EXPECT_OUTCOME_TRUE_1(trie->put(key, BufferView{key}))
     keys.emplace(std::move(key));
   }
   std::get<0>(res) = std::move(trie);
@@ -66,7 +67,7 @@ std::shared_ptr<PolkadotTrie> makeTrie(
     const std::vector<std::pair<Buffer, Buffer>> &vals) {
   auto trie = std::make_shared<PolkadotTrieImpl>();
   for (auto &p : vals) {
-    EXPECT_OUTCOME_TRUE_1(trie->put(p.first, p.second))
+    EXPECT_OUTCOME_TRUE_1(trie->put(p.first, BufferView{p.second}));
   }
   return trie;
 }
@@ -108,7 +109,7 @@ TEST_F(PolkadotTrieCursorTest, NextOnSmallTrie) {
     ASSERT_TRUE(cursor.key());
     ASSERT_TRUE(cursor.value());
     ASSERT_EQ(cursor.key().value(), p.first);
-    ASSERT_EQ(cursor.value().value().get(), p.second);
+    ASSERT_EQ(cursor.value().value(), p.second);
   }
   EXPECT_OUTCOME_SUCCESS(r1, cursor.next())
   ASSERT_FALSE(cursor.isValid());
@@ -189,9 +190,9 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundKeyNotPresent) {
   auto trie = makeTrie(lex_sorted_vals);
   auto cursor = trie->trieCursor();
   cursor->seekLowerBound("06066666"_hex2buf).value();
-  ASSERT_EQ(cursor->value().value().get(), "0607"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "0607"_hex2buf);
   EXPECT_OUTCOME_TRUE_1(cursor->next())
-  ASSERT_EQ(cursor->value().value().get(), "060708"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "060708"_hex2buf);
 }
 
 /**
@@ -217,9 +218,9 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundMiddleFromRoot) {
   auto trie = makeTrie(lex_sorted_vals);
   auto cursor = trie->trieCursor();
   cursor->seekLowerBound("03"_hex2buf).value();
-  ASSERT_EQ(cursor->value().value().get(), "05"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "05"_hex2buf);
   EXPECT_OUTCOME_TRUE_1(cursor->next())
-  ASSERT_EQ(cursor->value().value().get(), "06"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "06"_hex2buf);
 }
 
 /**
@@ -233,9 +234,9 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundFirstKey) {
   auto cursor = trie->trieCursor();
 
   cursor->seekLowerBound("00"_hex2buf).value();
-  ASSERT_EQ(cursor->value().value().get(), "0102"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "0102"_hex2buf);
   EXPECT_OUTCOME_TRUE_1(cursor->next())
-  ASSERT_EQ(cursor->value().value().get(), "0103"_hex2buf);
+  ASSERT_EQ(cursor->value().value(), "0103"_hex2buf);
 }
 
 /**
@@ -325,7 +326,7 @@ TEST_F(PolkadotTrieCursorTest, CreateAtNonexisting) {
   auto trie = makeTrie(lex_sorted_vals);
   EXPECT_OUTCOME_FALSE_1(
       kagome::storage::trie::PolkadotTrieCursorImpl::createAt(
-          "some_random_key"_buf, trie))
+          "some_random_key"_buf, trie));
 }
 
 TEST_F(PolkadotTrieCursorTest, SeekNonexisting) {

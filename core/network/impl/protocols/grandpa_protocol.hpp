@@ -59,9 +59,7 @@ namespace kagome::network {
     bool start() override;
     bool stop() override;
 
-    const std::string &protocolName() const override {
-      return kGrandpaProtocolName;
-    }
+    const std::string &protocolName() const override;
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(

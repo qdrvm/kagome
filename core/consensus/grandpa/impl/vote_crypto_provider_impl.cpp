@@ -5,8 +5,9 @@
 
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 
-#include "primitives/common.hpp"
-#include "scale/scale.hpp"
+#include "consensus/grandpa/voter_set.hpp"
+#include "crypto/ed25519_provider.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -25,7 +26,7 @@ namespace kagome::consensus::grandpa {
       return std::nullopt;
     }
     auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
-    auto signature = ed_provider_->sign(*keypair_.get(), payload).value();
+    auto signature = ed_provider_->sign(*keypair_, payload).value();
     return {{.message = std::move(vote),
              .signature = signature,
              .id = keypair_->public_key}};
@@ -42,18 +43,24 @@ namespace kagome::consensus::grandpa {
                 // calculation errors
     if (!result) {
       auto logger = log::createLogger("VoteCryptoProvider", "authority");
-      for (auto id = voter_set_->id() - 50; id < voter_set_->id() + 50; id++) {
-        auto payload = scale::encode(vote.message, number, id).value();
-        auto verifying_result =
-            ed_provider_->verify(vote.signature, payload, vote.id);
-        if (verifying_result.has_value() and verifying_result.value()) {
-          SL_DEBUG(logger,
-                   "Correct set id is {}, actual is {}",
-                   id,
-                   voter_set_->id());
-          return false;
+      for (auto n = number > 100 ? number - 100 : 0; n < number + 100; n++) {
+        for (auto id = voter_set_->id() - 100; id < voter_set_->id() + 100;
+             id++) {
+          auto payload = scale::encode(vote.message, n, id).value();
+          auto verifying_result =
+              ed_provider_->verify(vote.signature, payload, vote.id);
+          if (verifying_result.has_value() and verifying_result.value()) {
+            SL_DEBUG(logger,
+                     "Correct set id and number are {} {}, actual are {} {}",
+                     id,
+                     n,
+                     voter_set_->id(),
+                     number);
+            return false;
+          }
         }
       }
+
       SL_DEBUG(logger, "Failed to find correct set id");
     }
 #endif

@@ -81,8 +81,8 @@ namespace kagome::storage::trie {
 namespace {
   using namespace kagome::storage::trie;
 
-  uint32_t getCommonPrefixLength(const KeyNibbles &first,
-                                 const KeyNibbles &second) {
+  uint32_t getCommonPrefixLength(const NibblesView &first,
+                                 const NibblesView &second) {
     auto &&[it, _] =
         std::mismatch(first.begin(), first.end(), second.begin(), second.end());
     return it - first.begin();
@@ -131,7 +131,7 @@ namespace {
                  "handleDeletion: turn a branch with single branch child into "
                  "its child");
       }
-      parent->key_nibbles.putUint8(idx).putBuffer(child->key_nibbles);
+      parent->key_nibbles.putUint8(idx).put(child->key_nibbles);
     }
     return outcome::success();
   }
@@ -191,7 +191,7 @@ namespace {
   [[nodiscard]] outcome::result<void> detachNode(
       const kagome::log::Logger &logger,
       std::shared_ptr<TrieNode> &parent,
-      const KeyNibbles &prefix,
+      const NibblesView &prefix,
       std::optional<uint64_t> limit,
       bool &finished,
       uint32_t &count,
@@ -206,7 +206,8 @@ namespace {
       return outcome::success();
     }
 
-    if (parent->key_nibbles.size() >= prefix.size()) {
+    if (std::greater_equal<size_t>()(parent->key_nibbles.size(),
+                                     prefix.size())) {
       // if this is the node to be detached -- detach it
       if (std::equal(
               prefix.begin(), prefix.end(), parent->key_nibbles.begin())) {
@@ -292,12 +293,6 @@ namespace kagome::storage::trie {
 
   PolkadotTrieImpl::~PolkadotTrieImpl() {}
 
-  outcome::result<void> PolkadotTrieImpl::put(const BufferView &key,
-                                              const Buffer &value) {
-    auto value_copy = value;
-    return put(key, std::move(value_copy));
-  }
-
   PolkadotTrie::ConstNodePtr PolkadotTrieImpl::getRoot() const {
     return nodes_->getRoot();
   }
@@ -307,7 +302,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PolkadotTrieImpl::put(const BufferView &key,
-                                              Buffer &&value) {
+                                              BufferOrView &&value) {
     auto k_enc = KeyNibbles::fromByteBuffer(key);
 
     NodePtr root = nodes_->getRoot();
@@ -315,8 +310,9 @@ namespace kagome::storage::trie {
     // insert fetches a sequence of nodes (a path) from the storage and
     // these nodes are processed in memory, so any changes applied to them
     // will be written back to the storage only on storeNode call
-    OUTCOME_TRY(n,
-                insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
+    OUTCOME_TRY(
+        n,
+        insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value.into())));
     nodes_->setRoot(n);
 
     return outcome::success();
@@ -456,24 +452,24 @@ namespace kagome::storage::trie {
     return br;
   }
 
-  outcome::result<common::BufferConstRef> PolkadotTrieImpl::get(
+  outcome::result<BufferOrView> PolkadotTrieImpl::get(
       const common::BufferView &key) const {
     OUTCOME_TRY(opt_value, tryGet(key));
     if (opt_value.has_value()) {
-      return opt_value.value();
+      return std::move(*opt_value);
     }
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  PolkadotTrieImpl::tryGet(const common::BufferView &key) const {
+  outcome::result<std::optional<BufferOrView>> PolkadotTrieImpl::tryGet(
+      const common::BufferView &key) const {
     if (not nodes_->getRoot()) {
       return std::nullopt;
     }
     auto nibbles = KeyNibbles::fromByteBuffer(key);
     OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
     if (node && node->value) {
-      return node->value.value();
+      return BufferView{node->value.value()};
     }
     return std::nullopt;
   }

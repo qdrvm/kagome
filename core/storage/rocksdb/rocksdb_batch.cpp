@@ -13,14 +13,9 @@ namespace kagome::storage {
   RocksDB::Batch::Batch(RocksDB &db) : db_(db) {}
 
   outcome::result<void> RocksDB::Batch::put(const BufferView &key,
-                                            const Buffer &value) {
+                                            BufferOrView &&value) {
     batch_.Put(make_slice(key), make_slice(value));
     return outcome::success();
-  }
-
-  outcome::result<void> RocksDB::Batch::put(const BufferView &key,
-                                            Buffer &&value) {
-    return put(key, static_cast<const Buffer &>(value));
   }
 
   outcome::result<void> RocksDB::Batch::remove(const BufferView &key) {

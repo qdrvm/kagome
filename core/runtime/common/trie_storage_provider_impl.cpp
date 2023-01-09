@@ -39,8 +39,9 @@ namespace kagome::runtime {
       const common::Hash256 &state_root) {
     SL_DEBUG(logger_,
              "Setting storage provider to ephemeral batch with root {}",
-             state_root.toHex());
+             state_root);
     OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(state_root));
+    persistent_batch_.reset();
     current_batch_ = std::move(batch);
     return outcome::success();
   }
@@ -49,7 +50,7 @@ namespace kagome::runtime {
       const common::Hash256 &state_root) {
     SL_DEBUG(logger_,
              "Setting storage provider to new persistent batch with root {}",
-             state_root.toHex());
+             state_root);
     OUTCOME_TRY(batch, trie_storage_->getPersistentBatchAt(state_root));
     persistent_batch_ = std::move(batch);
     current_batch_ = persistent_batch_;
@@ -80,17 +81,15 @@ namespace kagome::runtime {
                root_path.toHex());
       OUTCOME_TRY(child_root_value, getCurrentBatch()->tryGet(root_path));
       auto child_root_hash =
-          child_root_value ? common::Hash256::fromSpan(
-                                 gsl::make_span(child_root_value.value().get()))
-                                 .value()
-                           : trie_serializer_->getEmptyRootHash();
+          child_root_value
+              ? common::Hash256::fromSpan(*child_root_value).value()
+              : trie_serializer_->getEmptyRootHash();
       OUTCOME_TRY(child_batch,
                   trie_storage_->getPersistentBatchAt(child_root_hash));
       child_batches_.emplace(root_path, std::move(child_batch));
     }
-    SL_DEBUG(logger_,
-             "Fetching persistent batch for child storage {}",
-             root_path.toHex());
+    SL_DEBUG(
+        logger_, "Fetching persistent batch for child storage {}", root_path);
     return child_batches_.at(root_path);
   }
 

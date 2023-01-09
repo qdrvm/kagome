@@ -3,17 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "consensus/grandpa/impl/authority_manager_impl.hpp"
 
 #include <gtest/gtest.h>
 
-#include "consensus/authority/impl/schedule_node.hpp"
+#include "consensus/grandpa/impl/schedule_node.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
-#include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
@@ -27,11 +26,12 @@
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
-using authority::AuthorityManagerImpl;
-using authority::IsBlockFinalized;
+using consensus::grandpa::AuthorityManagerImpl;
+using consensus::grandpa::IsBlockFinalized;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using primitives::AuthorityList;
 using primitives::AuthoritySet;
+using primitives::events::ChainSubscriptionEngine;
 using testing::_;
 using testing::Return;
 
@@ -59,6 +59,8 @@ class AuthorityManagerTest : public testing::Test {
 
     authorities = std::make_shared<AuthoritySet>(0, authority_list);
 
+    header_repo = std::make_shared<blockchain::BlockHeaderRepositoryMock>();
+
     block_tree = std::make_shared<blockchain::BlockTreeMock>();
 
     persistent_storage = std::make_shared<storage::InMemoryStorage>();
@@ -67,7 +69,7 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*trie_storage, getEphemeralBatchAt(_))
         .WillRepeatedly(testing::Invoke([] {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, tryGet(_))
+          EXPECT_CALL(*batch, tryGetMock(_))
               .WillRepeatedly(
                   Return(storage::Buffer::fromHex("0000000000000000").value()));
           return batch;
@@ -76,6 +78,7 @@ class AuthorityManagerTest : public testing::Test {
     grandpa_api = std::make_shared<runtime::GrandpaApiMock>();
     EXPECT_CALL(*grandpa_api, authorities(_))
         .WillRepeatedly(Return(authorities->authorities));
+
     EXPECT_CALL(*grandpa_api, current_set_id(_)).WillRepeatedly(Return(42));
 
     hasher = std::make_shared<crypto::HasherMock>();
@@ -83,7 +86,7 @@ class AuthorityManagerTest : public testing::Test {
 
     EXPECT_CALL(*app_state_manager, atPrepare(_));
 
-    header_repo = std::make_shared<blockchain::BlockHeaderRepositoryMock>();
+    chain_events_engine = std::make_shared<ChainSubscriptionEngine>();
 
     authority_manager =
         std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
@@ -93,9 +96,10 @@ class AuthorityManagerTest : public testing::Test {
                                                grandpa_api,
                                                hasher,
                                                persistent_storage,
-                                               header_repo);
+                                               header_repo,
+                                               chain_events_engine);
 
-    static auto genesis_hash = "genesis"_hash256;
+    static auto genesis_hash = "GEN"_hash256;
     ON_CALL(*block_tree, getGenesisBlockHash())
         .WillByDefault(testing::ReturnRef(genesis_hash));
 
@@ -165,12 +169,13 @@ class AuthorityManagerTest : public testing::Test {
   const std::vector<primitives::BlockHash> leaves{genesis_block.hash};
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
-  std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<blockchain::BlockHeaderRepositoryMock> header_repo;
+  std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage;
   std::shared_ptr<storage::InMemoryStorage> persistent_storage;
   std::shared_ptr<runtime::GrandpaApiMock> grandpa_api;
   std::shared_ptr<crypto::HasherMock> hasher;
+  std::shared_ptr<ChainSubscriptionEngine> chain_events_engine;
   std::shared_ptr<AuthorityManagerImpl> authority_manager;
   std::shared_ptr<AuthoritySet> authorities;
 
@@ -185,8 +190,8 @@ class AuthorityManagerTest : public testing::Test {
 
   /// Init by data from genesis config
   void prepareAuthorityManager() {
-    auto node =
-        authority::ScheduleNode::createAsRoot(authorities, genesis_block);
+    auto node = consensus::grandpa::ScheduleNode::createAsRoot(authorities,
+                                                               genesis_block);
 
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillRepeatedly(Return(genesis_block));
@@ -199,19 +204,32 @@ class AuthorityManagerTest : public testing::Test {
   /**
    * @brief Check if authorities gotten from the examined block are equal to
    * expected ones
+   * @param examining_block
+   * @param expected_authorities
    */
-  void examine(const primitives::BlockInfo &examined_block,
+  void examine(const primitives::BlockInfo &examining_block,
                const primitives::AuthorityList &expected_authorities) {
-//    EXPECT_CALL(*block_tree,
-//                getBlockHeader(primitives::BlockId{examined_block.hash}))
-//        .WillOnce(Return(outcome::success(
-//            primitives::BlockHeader{.number = examined_block.number,
-//                                    .state_root = "examined_root"_hash256})));
-    auto actual_authorities_sptr =
-        authority_manager->authorities(examined_block, IsBlockFinalized{false});
+    auto actual_authorities_sptr = authority_manager->authorities(
+        examining_block, IsBlockFinalized{false});
     ASSERT_TRUE(actual_authorities_sptr.has_value());
     const auto &actual_authorities = *actual_authorities_sptr.value();
     EXPECT_EQ(actual_authorities.authorities, expected_authorities);
+  }
+
+  void finalize_block(const primitives::BlockInfo &block) {
+    EXPECT_CALL(*block_tree, getLastFinalized()).WillRepeatedly(Return(block));
+    primitives::BlockHeader header{
+        .number = block.number,
+        .state_root = block.hash  // fake just for blocks differentiation
+    };
+    static std::map<primitives::BlockHash, common::Buffer> encoded_headers;
+    auto encoded_header =
+        encoded_headers.emplace(block.hash, scale::encode(header).value())
+            .first->second;
+    EXPECT_CALL(*hasher, blake2b_256(gsl::span<const uint8_t>(encoded_header)))
+        .WillRepeatedly(Return(block.hash));
+    chain_events_engine->notify(
+        primitives::events::ChainEventType::kFinalizedHeads, header);
   }
 };
 
@@ -241,11 +259,11 @@ TEST_F(AuthorityManagerTest, Prune) {
   auto &orig_authorities = *authorities_opt.value();
 
   // Make expected state
-  auto node = authority::ScheduleNode::createAsRoot(
+  auto node = consensus::grandpa::ScheduleNode::createAsRoot(
       std::make_shared<primitives::AuthoritySet>(orig_authorities),
       {20, "D"_hash256});
 
-  authority_manager->prune({20, "D"_hash256});
+  finalize_block({20, "D"_hash256});
 
   examine({30, "F"_hash256}, orig_authorities.authorities);
 }
@@ -271,8 +289,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
 
   EXPECT_OUTCOME_SUCCESS(
       r1,
-      authority_manager->onConsensus(
-          target_block,
+      authority_manager->onDigest(
+          {.block = target_block},
           primitives::ScheduledChange(new_authorities, subchain_length)));
 
   examine({5, "A"_hash256}, old_authorities.authorities);
@@ -281,7 +299,121 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   examine({20, "D"_hash256}, old_authorities.authorities);
   examine({25, "E"_hash256}, old_authorities.authorities);
 
-  authority_manager->prune({20, "D"_hash256});
+  finalize_block({20, "D"_hash256});
+
+  examine({20, "D"_hash256}, new_authorities);
+  examine({25, "E"_hash256}, new_authorities);
+}
+
+/**
+ * @given initialized manager has some state
+ * @when apply two ScheduledChanges
+ * @then second change based on activated first one. And set ids are correct.
+ */
+TEST_F(AuthorityManagerTest, ScheduledChangeTwice) {
+  prepareAuthorityManager();
+
+  auto old_auth_opt =
+      authority_manager->authorities({20, "D"_hash256}, IsBlockFinalized{true});
+  ASSERT_TRUE(old_auth_opt.has_value());
+  auto &old_authorities = *old_auth_opt.value();
+  auto old_id = old_authorities.id;
+  auto first_id = old_id + 1;
+  auto second_id = first_id + 1;
+
+  primitives::BlockInfo target_block{5, "A"_hash256};
+  primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
+  uint32_t subchain_length = 5;
+
+  primitives::BlockInfo target_block2{15, "C"_hash256};
+  primitives::AuthorityList new_authorities2{makeAuthority("Auth2", 456)};
+
+  EXPECT_OUTCOME_SUCCESS(
+      r1,
+      authority_manager->onDigest(
+          {.block = target_block},
+          primitives::ScheduledChange(new_authorities, subchain_length)));
+  EXPECT_OUTCOME_SUCCESS(
+      r2,
+      authority_manager->onDigest(
+          {.block = target_block2},
+          primitives::ScheduledChange(new_authorities2, subchain_length)));
+
+  examine({5, "A"_hash256}, old_authorities.authorities);
+  examine({10, "B"_hash256}, old_authorities.authorities);
+  examine({15, "C"_hash256}, new_authorities);
+  examine({20, "D"_hash256}, new_authorities);
+  examine({25, "E"_hash256}, new_authorities);
+
+  finalize_block({15, "C"_hash256});
+
+  examine({15, "C"_hash256}, new_authorities);
+  examine({20, "D"_hash256}, new_authorities2);
+  examine({25, "E"_hash256}, new_authorities2);
+
+  EXPECT_EQ(
+      authority_manager->authorities({15, "C"_hash256}, IsBlockFinalized{true})
+          .value()
+          ->id,
+      first_id);
+
+  finalize_block({20, "D"_hash256});
+
+  EXPECT_EQ(
+      authority_manager->authorities({20, "D"_hash256}, IsBlockFinalized{true})
+          .value()
+          ->id,
+      second_id);
+
+  examine({20, "D"_hash256}, new_authorities2);
+  examine({25, "E"_hash256}, new_authorities2);
+}
+
+/**
+ * @given initialized manager has some state
+ * @when apply two ScheduledChanges (with interaction delay)
+ * @then second change is ignored
+ */
+TEST_F(AuthorityManagerTest, ScheduledChangeTwiceIneraction) {
+  prepareAuthorityManager();
+
+  auto old_auth_opt =
+      authority_manager->authorities({20, "D"_hash256}, IsBlockFinalized{true});
+  ASSERT_TRUE(old_auth_opt.has_value());
+  auto &old_authorities = *old_auth_opt.value();
+
+  primitives::BlockInfo target_block{5, "A"_hash256};
+  primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
+  uint32_t subchain_length = 10;
+
+  primitives::BlockInfo target_block2{15, "C"_hash256};
+  primitives::AuthorityList new_authorities2{makeAuthority("Auth2", 456)};
+  uint32_t subchain_length2 = 5;
+
+  EXPECT_OUTCOME_SUCCESS(
+      r1,
+      authority_manager->onDigest(
+          {.block = target_block},
+          primitives::ScheduledChange(new_authorities, subchain_length)));
+  EXPECT_OUTCOME_SUCCESS(
+      r2,
+      authority_manager->onDigest(
+          {.block = target_block2},
+          primitives::ScheduledChange(new_authorities2, subchain_length2)));
+
+  examine({5, "A"_hash256}, old_authorities.authorities);
+  examine({10, "B"_hash256}, old_authorities.authorities);
+  examine({15, "C"_hash256}, old_authorities.authorities);
+  examine({20, "D"_hash256}, old_authorities.authorities);
+  examine({25, "E"_hash256}, old_authorities.authorities);
+
+  finalize_block({15, "C"_hash256});
+
+  examine({15, "C"_hash256}, new_authorities);
+  examine({20, "D"_hash256}, new_authorities);
+  examine({25, "E"_hash256}, new_authorities);
+
+  finalize_block({20, "D"_hash256});  // no action
 
   examine({20, "D"_hash256}, new_authorities);
   examine({25, "E"_hash256}, new_authorities);
@@ -309,8 +441,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
 
   EXPECT_OUTCOME_SUCCESS(
       r1,
-      authority_manager->onConsensus(
-          target_block,
+      authority_manager->onDigest(
+          {.block = target_block},
           primitives::ForcedChange(
               new_authorities, subchain_length, target_block.number)));
 
@@ -346,8 +478,8 @@ TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
 
   EXPECT_OUTCOME_SUCCESS(
       r1,
-      authority_manager->onConsensus(
-          target_block, primitives::OnDisabled({authority_index})));
+      authority_manager->onDigest({.block = target_block},
+                                  primitives::OnDisabled({authority_index})));
 
   examine({5, "A"_hash256}, old_authorities.authorities);
   examine({10, "B"_hash256}, new_authorities.authorities);
@@ -372,9 +504,9 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   primitives::BlockInfo target_block{5, "A"_hash256};
   uint32_t delay = 10;
 
-  EXPECT_OUTCOME_SUCCESS(
-      r1,
-      authority_manager->onConsensus(target_block, primitives::Pause(delay)));
+  EXPECT_OUTCOME_SUCCESS(r1,
+                         authority_manager->onDigest({.block = target_block},
+                                                     primitives::Pause(delay)));
 
   primitives::AuthoritySet new_authorities = old_authorities;
   for (auto &authority : new_authorities) {
@@ -387,7 +519,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   examine({20, "D"_hash256}, old_authorities.authorities);
   examine({25, "E"_hash256}, old_authorities.authorities);
 
-  authority_manager->prune({20, "D"_hash256});
+  finalize_block({20, "D"_hash256});
 
   examine({20, "D"_hash256}, new_authorities.authorities);
   examine({25, "E"_hash256}, new_authorities.authorities);
@@ -421,9 +553,10 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
 
     EXPECT_OUTCOME_SUCCESS(
         r1,
-        authority_manager->onConsensus(target_block, primitives::Pause(delay)));
+        authority_manager->onDigest({.block = target_block},
+                                    primitives::Pause(delay)));
 
-    authority_manager->prune({10, "B"_hash256});
+    finalize_block({10, "B"_hash256});
   }
 
   examine({10, "B"_hash256}, disabled_authorities.authorities);
@@ -435,9 +568,10 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
     primitives::BlockInfo target_block{15, "C"_hash256};
     uint32_t delay = 10;
 
-    EXPECT_OUTCOME_SUCCESS(r1,
-                           authority_manager->onConsensus(
-                               target_block, primitives::Resume(delay)));
+    EXPECT_OUTCOME_SUCCESS(
+        r1,
+        authority_manager->onDigest({.block = target_block},
+                                    primitives::Resume(delay)));
   }
 
   examine({10, "B"_hash256}, disabled_authorities.authorities);

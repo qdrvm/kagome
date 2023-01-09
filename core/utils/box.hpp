@@ -14,7 +14,7 @@ struct Box {
   using Type = T;
 
   template <typename... A>
-  explicit Box(A &&... args) : t_{std::forward<A>(args)...} {}
+  explicit Box(A &&...args) : t_{std::forward<A>(args)...} {}
   Box(Box &box) : Box{std::move(box)} {}
 
   Box(Box &&box) : t_{std::move(*box.t_)} {

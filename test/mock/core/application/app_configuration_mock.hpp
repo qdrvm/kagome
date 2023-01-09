@@ -114,7 +114,10 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(AppConfiguration::SyncMethod, syncMethod, (), (const, override));
+    MOCK_METHOD(AppConfiguration::SyncMethod,
+                syncMethod,
+                (),
+                (const, override));
 
     MOCK_METHOD(AppConfiguration::RuntimeExecutionMethod,
                 runtimeExecMethod,
@@ -145,11 +148,16 @@ namespace kagome::application {
 
     MOCK_METHOD(uint32_t, inPeersLight, (), (const, override));
 
-    MOCK_METHOD(int32_t, luckyPeers, (), (const, override));
+    MOCK_METHOD(uint32_t, luckyPeers, (), (const, override));
 
     MOCK_METHOD(bool, isTelemetryEnabled, (), (const, override));
 
     MOCK_METHOD(StorageBackend, storageBackend, (), (const, override));
+
+    MOCK_METHOD(std::optional<std::string_view>,
+                devMnemonicPhrase,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::application

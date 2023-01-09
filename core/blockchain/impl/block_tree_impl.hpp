@@ -20,7 +20,6 @@
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
-#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/epoch_digest.hpp"
 #include "crypto/hasher.hpp"
@@ -29,14 +28,9 @@
 #include "network/extrinsic_observer.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
-#include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "telemetry/service.hpp"
-
-namespace kagome::application {
-  class AppStateManager;
-}
 
 namespace kagome::storage::changes_trie {
   class ChangesTracker;
@@ -47,7 +41,8 @@ namespace kagome::blockchain {
   class TreeNode;
   class CachedTree;
 
-  class BlockTreeImpl : public BlockTree {
+  class BlockTreeImpl : public BlockTree,
+                        public std::enable_shared_from_this<BlockTreeImpl> {
    public:
     /// Create an instance of block tree
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
@@ -60,10 +55,7 @@ namespace kagome::blockchain {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
-        std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
-        std::shared_ptr<consensus::BabeUtil> babe_util,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy);
 
@@ -72,7 +64,8 @@ namespace kagome::blockchain {
         primitives::BlockId target_block,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<BlockHeaderRepository> header_repo,
-        std::shared_ptr<const storage::trie::TrieStorage> trie_storage);
+        std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
+        std::shared_ptr<blockchain::BlockTree> block_tree);
 
     ~BlockTreeImpl() override = default;
 
@@ -111,13 +104,6 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash,
         const primitives::Justification &justification) override;
 
-    BlockHashVecRes getChainByBlock(
-        const primitives::BlockHash &block) const override;
-
-    BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
-                                     const primitives::BlockHash &bottom_block,
-                                     uint32_t max_count) const override;
-
     BlockHashVecRes getBestChainFromBlock(const primitives::BlockHash &block,
                                           uint64_t maximum) const override;
 
@@ -125,19 +111,13 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block, uint64_t maximum) const override;
 
     BlockHashVecRes getChainByBlocks(
-        const primitives::BlockHash &top_block,
-        const primitives::BlockHash &bottom_block) const override;
-
-    std::optional<primitives::Version> runtimeVersion() const override {
-      return actual_runtime_version_;
-    }
+        const primitives::BlockHash &ancestor,
+        const primitives::BlockHash &descendant) const override;
 
     bool hasDirectChain(const primitives::BlockHash &ancestor,
                         const primitives::BlockHash &descendant) const override;
 
-    BlockHashVecRes longestPath() const override;
-
-    primitives::BlockInfo deepestLeaf() const override;
+    primitives::BlockInfo bestLeaf() const override;
 
     outcome::result<primitives::BlockInfo> getBestContaining(
         const primitives::BlockHash &target_hash,
@@ -150,10 +130,6 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block) const override;
 
     primitives::BlockInfo getLastFinalized() const override;
-
-    outcome::result<consensus::EpochDigest> getEpochDigest(
-        consensus::EpochNumber epoch_number,
-        primitives::BlockHash block_hash) const override;
 
    private:
     /**
@@ -171,9 +147,7 @@ namespace kagome::blockchain {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
-        std::shared_ptr<runtime::Core> runtime_core,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<consensus::BabeUtil> babe_util,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy);
 
@@ -184,15 +158,6 @@ namespace kagome::blockchain {
     outcome::result<primitives::BlockHash> walkBackUntilLess(
         const primitives::BlockHash &start,
         const primitives::BlockNumber &limit) const;
-
-    std::optional<std::vector<primitives::BlockHash>>
-    tryGetChainByBlocksFromCache(const primitives::BlockInfo &top_block,
-                                 const primitives::BlockInfo &bottom_block,
-                                 std::optional<uint32_t> max_count) const;
-
-    BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
-                                     const primitives::BlockHash &bottom_block,
-                                     std::optional<uint32_t> max_count) const;
 
     /**
      * @returns the tree leaves sorted by their depth
@@ -216,18 +181,14 @@ namespace kagome::blockchain {
     primitives::events::ExtrinsicSubscriptionEnginePtr extrinsic_events_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         extrinsic_event_key_repo_;
-    std::shared_ptr<runtime::Core> runtime_core_;
     std::shared_ptr<storage::changes_trie::ChangesTracker>
         trie_changes_tracker_;
-    std::shared_ptr<const consensus::BabeUtil> babe_util_;
     std::shared_ptr<const class JustificationStoragePolicy>
         justification_storage_policy_;
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
 
     std::optional<primitives::BlockHash> genesis_block_hash_;
-    std::optional<primitives::Version> actual_runtime_version_;
 
-    log::Logger log_ = log::createLogger("BlockTree", "blockchain");
+    log::Logger log_ = log::createLogger("BlockTree", "block_tree");
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

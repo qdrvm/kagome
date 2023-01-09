@@ -12,7 +12,7 @@
 #include "crypto/sr25519_types.hpp"
 #include "primitives/babe_configuration.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   /**
    * Interface for acquiring leadership information for the current Babe epoch.
    * It is expected to be used as follows:
@@ -27,7 +27,8 @@ namespace kagome::consensus {
    *    - that value is then is used in slotsLeadership(..)
    *
    */
-  struct BabeLottery {
+  class BabeLottery {
+   public:
     virtual ~BabeLottery() = default;
 
     /**
@@ -66,27 +67,6 @@ namespace kagome::consensus {
         primitives::BabeSlotNumber slot) const = 0;
 
     /**
-     * Compute randomness for the next epoch
-     * @param last_epoch_randomness - randomness of the last epoch
-     * @param new_epoch_number - index of the new epoch
-     * @return computed randomness
-     *
-     * @note must be called exactly ONCE per epoch, when it gets changed
-     */
-    virtual Randomness computeRandomness(
-        const Randomness &last_epoch_randomness,
-        EpochNumber new_epoch_number) = 0;
-
-    /**
-     * Submit a VRF value for this epoch
-     * @param value to be submitted
-     *
-     * @note concatenation of those values is participating in computation of
-     * the randomness for the next epoch
-     */
-    virtual void submitVRFValue(const crypto::VRFPreOutput &value) = 0;
-
-    /**
      * Compute the expected author for secondary slot
      * @param slot - slot to have secondary block produced
      * @param authorities_count - quantity of authorities in current epoch
@@ -99,6 +79,6 @@ namespace kagome::consensus {
         primitives::AuthorityListSize authorities_count,
         const Randomness &randomness) const = 0;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_BABE_LOTTERY_HPP

@@ -6,8 +6,12 @@
 #ifndef KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP
 #define KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP
 
+#include <scale/bitvec.hpp>
+
 #include "common/blob.hpp"
 #include "common/unused.hpp"
+#include "network/types/collator_messages.hpp"
+#include "primitives/authority_discovery_id.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 #include "primitives/parachain_host.hpp"
@@ -24,7 +28,6 @@ namespace kagome::runtime {
   using CollatorSignature = common::Hash256;
   using ValidationCodeHash = common::Hash256;
   using BlockNumber = primitives::BlockNumber;
-  using Bitvec = std::vector<bool>;
   using CandidateHash = common::Hash256;
   using HeadData = Buffer;
   using GroupRotatePeriod = uint32_t;
@@ -32,6 +35,7 @@ namespace kagome::runtime {
   using ValidationCode = Buffer;
   using SessionIndex = uint32_t;
   using CoreIndex = uint32_t;
+  using network::ValidatorIndex;
 
   /// Information about a core which is currently occupied.
   struct ScheduledCore {
@@ -86,7 +90,7 @@ namespace kagome::runtime {
     /// A bitfield with 1 bit for each validator in the set. `1` bits mean that
     /// the corresponding validators has attested to availability on-chain. A
     /// 2/3+ majority of `1` bits means that this will be available.
-    Bitvec availability;
+    scale::BitVec availability;
     /// The group assigned to distribute availability pieces of this candidate.
     GroupIndex group_responsible;
     /// The hash of the candidate occupying the core.
@@ -97,16 +101,19 @@ namespace kagome::runtime {
 
   using GroupDescriptor =
       std::tuple<BlockNumber, GroupRotatePeriod, BlockNumber>;
-  using ValidatorGroup = std::tuple<std::vector<ValidatorId>, GroupDescriptor>;
+  using ValidatorGroupsAndDescriptor =
+      std::tuple<std::vector<std::vector<ValidatorIndex>>, GroupDescriptor>;
   using CoreState = boost::variant<OccupiedCore,   // 0
                                    ScheduledCore,  // 1
                                    Unused<2>>;     // 2
-  enum class OccupiedCoreAssumption {
+  enum class OccupiedCoreAssumption : uint8_t {
     Included,  // 0
     TimedOut,  // 1
     Unused     // 2
   };
   struct PersistedValidationData {
+    SCALE_TIE(4);
+
     /// The parent head-data.
     HeadData parent_head;
     /// The relay-chain block number this is in the context of.
@@ -124,21 +131,7 @@ namespace kagome::runtime {
     Buffer data;
   };
 
-  struct CandidateCommitments {
-    /// Messages destined to be interpreted by the Relay chain itself.
-    std::vector<UpwardMessage> upward_messages;
-    /// Horizontal messages sent by the parachain.
-    std::vector<OutboundHrmpMessage> horizontal_messages;
-    /// New validation code.
-    std::optional<ValidationCode> new_validation_code;
-    /// The head-data produced as a result of execution.
-    HeadData head_data;
-    /// The number of messages processed from the DMQ.
-    uint32_t processed_downward_messages;
-    /// The mark which specifies the block number up to which all inbound HRMP
-    /// messages are processed.
-    BlockNumber hrmp_watermark;
-  };
+  using network::CandidateCommitments;
 
   struct CommittedCandidateReceipt {
     /// The descriptor of the candidate.
@@ -185,8 +178,6 @@ namespace kagome::runtime {
       CandidateTimedOut  // 2
       >;
 
-  using ValidatorIndex = uint32_t;
-  using AuthorityDiscoveryId = common::Hash256;
   using AssignmentId = common::Blob<32>;
   struct SessionInfo {
     /****** New in v2 *******/
@@ -216,7 +207,7 @@ namespace kagome::runtime {
     /// found. This is any authorities not participating in parachain consensus
     /// - see
     /// [`max_validators`](https://github.com/paritytech/polkadot/blob/a52dca2be7840b23c19c153cf7e110b1e3e475f8/runtime/parachains/src/configuration.rs#L148)
-    std::vector<AuthorityDiscoveryId> discovery_keys;
+    std::vector<primitives::AuthorityDiscoveryId> discovery_keys;
     /// The assignment keys for validators.
     ///
     /// NOTE: There might be more authorities in the current session, than

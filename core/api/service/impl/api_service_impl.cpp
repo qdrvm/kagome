@@ -16,6 +16,7 @@
 #include "common/hexutil.hpp"
 #include "primitives/common.hpp"
 #include "primitives/transaction.hpp"
+#include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
@@ -83,8 +84,7 @@ namespace {
       if (response.has_value())
         std::forward<F>(f)(response.value());
       else
-        logger->error("process Json data failed => {}",
-                      response.error().message());
+        logger->error("process Json data failed => {}", response.error());
     });
   }
   inline void sendEvent(std::shared_ptr<JRpcServer> server,
@@ -127,13 +127,15 @@ namespace kagome::api {
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<storage::trie::TrieStorage> trie_storage)
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+      std::shared_ptr<runtime::Core> core)
       : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners.listeners)),
         server_(std::move(server)),
         logger_{log::createLogger("ApiService", "api")},
         block_tree_{std::move(block_tree)},
         trie_storage_{std::move(trie_storage)},
+        core_(std::move(core)),
         subscription_engines_{.storage = std::move(storage_sub_engine),
                               .chain = std::move(chain_sub_engine),
                               .ext = std::move(ext_sub_engine)},
@@ -141,6 +143,7 @@ namespace kagome::api {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
+    BOOST_ASSERT(core_);
     BOOST_ASSERT(
         std::all_of(listeners_.cbegin(), listeners_.cend(), [](auto &listener) {
           return listener != nullptr;
@@ -263,49 +266,60 @@ namespace kagome::api {
   outcome::result<ApiServiceImpl::PubsubSubscriptionId>
   ApiServiceImpl::subscribeSessionToKeys(
       const std::vector<common::Buffer> &keys) {
-    return withThisSession([&](kagome::api::Session::SessionId tid) {
-      return withSession(tid, [&](SessionSubscriptions &session_context) {
-        auto &session = session_context.storage_sub;
-        const auto id = session->generateSubscriptionSetId();
-        const auto &best_block_hash = block_tree_->deepestLeaf().hash;
-        const auto &header = block_tree_->getBlockHeader(best_block_hash);
-        BOOST_ASSERT(header.has_value());
-        auto persistent_batch =
-            trie_storage_->getPersistentBatchAt(header.value().state_root);
-        BOOST_ASSERT(persistent_batch.has_value());
+    return withThisSession(
+        [&](kagome::api::Session::SessionId tid)
+            -> outcome::result<ApiServiceImpl::PubsubSubscriptionId> {
+          return withSession(
+              tid,
+              [&](SessionSubscriptions &session_context)
+                  -> outcome::result<ApiServiceImpl::PubsubSubscriptionId> {
+                auto &session = session_context.storage_sub;
+                const auto id = session->generateSubscriptionSetId();
+                const auto &best_block_hash = block_tree_->bestLeaf().hash;
+                const auto &header =
+                    block_tree_->getBlockHeader(best_block_hash);
+                BOOST_ASSERT(header.has_value());
+                auto persistent_batch = trie_storage_->getPersistentBatchAt(
+                    header.value().state_root);
+                if (!persistent_batch.has_value()) {
+                  SL_ERROR(logger_,
+                           "Failed to get storage state for block {}, required "
+                           "to subscribe an RPC session to some storage keys.",
+                           best_block_hash);
+                  return persistent_batch.as_failure();
+                }
 
-        auto &pb = persistent_batch.value();
-        BOOST_ASSERT(pb);
+                auto &batch = persistent_batch.value();
 
-        session_context.messages = uploadMessagesListFromCache();
+                session_context.messages = uploadMessagesListFromCache();
 
-        std::vector<std::pair<common::Buffer, std::optional<common::Buffer>>>
-            pairs;
-        pairs.reserve(keys.size());
+                std::vector<
+                    std::pair<common::Buffer, std::optional<common::Buffer>>>
+                    pairs;
+                pairs.reserve(keys.size());
 
-        for (auto &key : keys) {
-          session->subscribe(id, key);
+                for (auto &key : keys) {
+                  session->subscribe(id, key);
 
-          auto value_opt_res = pb->tryGet(key);
-          if (value_opt_res.has_value()) {
-            pairs.emplace_back(std::move(key),
-                               std::move(value_opt_res.value()));
-          }
-        }
+                  auto value_opt_res = batch->tryGet(key);
+                  if (value_opt_res.has_value()) {
+                    pairs.emplace_back(key, value_opt_res.value());
+                  }
+                }
 
-        forJsonData(server_,
-                    logger_,
-                    id,
-                    kRpcEventSubscribeStorage,
-                    createStateStorageEvent(std::move(pairs), best_block_hash),
-                    [&](const auto &result) {
-                      session_context.messages->emplace_back(
-                          uploadFromCache(result.data()));
-                    });
+                forJsonData(server_,
+                            logger_,
+                            id,
+                            kRpcEventSubscribeStorage,
+                            createStateStorageEvent(pairs, best_block_hash),
+                            [&](const auto &result) {
+                              session_context.messages->emplace_back(
+                                  uploadFromCache(result.data()));
+                            });
 
-        return static_cast<PubsubSubscriptionId>(id);
-      });
-    });
+                return static_cast<PubsubSubscriptionId>(id);
+              });
+        });
   }
 
   outcome::result<ApiServiceImpl::PubsubSubscriptionId>
@@ -335,7 +349,7 @@ namespace kagome::api {
               "Request block header of the last finalized "
               "failed with error: "
               "{}",
-              header.error().message());
+              header.error());
         }
         return static_cast<PubsubSubscriptionId>(id);
       });
@@ -360,8 +374,7 @@ namespace kagome::api {
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id, primitives::events::ChainEventType::kNewHeads);
 
-        auto header =
-            block_tree_->getBlockHeader(block_tree_->deepestLeaf().hash);
+        auto header = block_tree_->getBlockHeader(block_tree_->bestLeaf().hash);
         if (!header.has_error()) {
           session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,
@@ -376,7 +389,7 @@ namespace kagome::api {
         } else {
           logger_->error(
               "Request block header of the deepest leaf failed with error: {}",
-              header.error().message());
+              header.error());
         }
         return static_cast<PubsubSubscriptionId>(id);
       });
@@ -402,14 +415,15 @@ namespace kagome::api {
         session->subscribe(
             id, primitives::events::ChainEventType::kFinalizedRuntimeVersion);
 
-        auto ver = block_tree_->runtimeVersion();
-        if (ver) {
+        auto version_res = core_->version(block_tree_->getLastFinalized().hash);
+        if (version_res.has_value()) {
+          const auto &version = version_res.value();
           session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,
                       logger_,
                       id,
                       kRpcEventRuntimeVersion,
-                      makeValue(*ver),
+                      makeValue(version),
                       [&](const auto &result) {
                         session_context.messages->emplace_back(
                             uploadFromCache(result.data()));
@@ -504,7 +518,8 @@ namespace kagome::api {
 
         session_context.messages.reset();
       });
-    } catch (jsonrpc::InternalErrorFault &) {
+    } catch (jsonrpc::InternalErrorFault &e) {
+      SL_DEBUG(logger_, "Internal jsonrpc error: {}", e.what());
     }
   }
 

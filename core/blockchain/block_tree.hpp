@@ -73,12 +73,6 @@ namespace kagome::blockchain {
         const primitives::BlockId &block) const = 0;
 
     /**
-     * Method to get actual runtime version.
-     * @return runtime version.
-     */
-    virtual std::optional<primitives::Version> runtimeVersion() const = 0;
-
-    /**
      * Adds header to the storage
      * @param header that we are adding
      * @return result with success if header's parent exists on storage and new
@@ -143,16 +137,6 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block,
         const primitives::Justification &justification) = 0;
 
-    /**
-     * Get a chain of blocks from the specified as a (\param block) up to the
-     * closest finalized one
-     * @param block to get a chain from
-     * @return chain of blocks in top-to-bottom order (from the last finalized
-     * block to the provided one) or error
-     */
-    virtual BlockHashVecRes getChainByBlock(
-        const primitives::BlockHash &block) const = 0;
-
     enum class GetChainDirection { ASCEND, DESCEND };
 
     /**
@@ -174,26 +158,15 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block, uint64_t maximum) const = 0;
 
     /**
-     * Get a chain of blocks
-     * @param top_block - block, which is at the top of the chain
-     * @param bottom_block - block, which is the bottom of the chain
-     * @return chain of blocks in top-to-bottom order or error
+     * Get a chain of blocks.
+     * Implies `hasDirectChain(ancestor, descendant)`.
+     * @param ancestor - block, which is closest to the genesis
+     * @param descendant - block, which is farthest from the genesis
+     * @return chain of blocks in ascending order or error
      */
     virtual BlockHashVecRes getChainByBlocks(
-        const primitives::BlockHash &top_block,
-        const primitives::BlockHash &bottom_block) const = 0;
-
-    /**
-     * Get a chain of blocks
-     * @param top_block - block, which is at the top of the chain
-     * @param bottom_block - block, which is the bottom of the chain
-     * @param max_count - maximum blocks in the chain
-     * @return chain of blocks in top-to-bottom order or error
-     */
-    virtual BlockHashVecRes getChainByBlocks(
-        const primitives::BlockHash &top_block,
-        const primitives::BlockHash &bottom_block,
-        uint32_t max_count) const = 0;
+        const primitives::BlockHash &ancestor,
+        const primitives::BlockHash &descendant) const = 0;
 
     /**
      * Check if one block is ancestor of second one (direct chain exists)
@@ -206,22 +179,13 @@ namespace kagome::blockchain {
         const primitives::BlockHash &descendant) const = 0;
 
     /**
-     * Get a longest path (chain of blocks) from the last finalized block down
-     * to the deepest leaf
-     * @return chain of blocks or error
+     * Get a best leaf of the tree
+     * @return best leaf
      *
-     * @note this function is equivalent to "getChainByBlock(deepestLeaf())"
+     * @note best leaf is also a result of "SelectBestChain": if we are the
+     * leader, we connect a block, which we constructed, to that best leaf
      */
-    virtual BlockHashVecRes longestPath() const = 0;
-
-    /**
-     * Get a deepest leaf of the tree
-     * @return deepest leaf
-     *
-     * @note deepest leaf is also a result of "SelectBestChain": if we are the
-     * leader, we connect a block, which we constructed, to that deepest leaf
-     */
-    virtual primitives::BlockInfo deepestLeaf() const = 0;
+    virtual primitives::BlockInfo bestLeaf() const = 0;
 
     /**
      * @brief Get the most recent block of the best (longest) chain among
@@ -254,15 +218,6 @@ namespace kagome::blockchain {
      * @return hash of the block
      */
     virtual primitives::BlockInfo getLastFinalized() const = 0;
-
-    /**
-     * Finds epoch descriptor for epoch with index {@param epoch_number}.
-     * Search starts of block with hash {@param block_hash}.
-     * @returns epoch descriptor, or error if it impossible.
-     */
-    virtual outcome::result<consensus::EpochDigest> getEpochDigest(
-        consensus::EpochNumber epoch_number,
-        primitives::BlockHash block_hash) const = 0;
   };
 
 }  // namespace kagome::blockchain

@@ -317,7 +317,7 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   EXPECT_CALL(*memory_, loadN(key.ptr, key.size)).WillOnce(Return(key_data));
   EXPECT_CALL(*storage_provider_, getCurrentBatch())
       .WillOnce(Return(trie_batch_));
-  EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
+  EXPECT_CALL(*trie_batch_, tryGetMock(key_data.view()))
       .WillOnce(Return(value_data));
   EXPECT_CALL(
       *memory_,
@@ -367,7 +367,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
   Buffer vals_encoded;
   {
     // @when there is no value by given key in trie
-    EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
+    EXPECT_CALL(*trie_batch_, tryGetMock(key_data.view()))
         .WillOnce(Return(std::nullopt));
 
     // @then storage is inserted by scale encoded vector containing
@@ -383,7 +383,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
 
   {
     // @when there is a value by given key (inserted above)
-    EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
+    EXPECT_CALL(*trie_batch_, tryGetMock(key_data.view()))
         .WillOnce(Return(vals_encoded));
 
     // @then storage is inserted by scale encoded vector containing two
@@ -426,7 +426,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 
   {
     // @when encoded vals is stored by given key
-    EXPECT_CALL(*trie_batch_, tryGet(key_data.view()))
+    EXPECT_CALL(*trie_batch_, tryGetMock(key_data.view()))
         .WillOnce(Return(vals_encoded));
 
     // @when storage is inserted by one more value by the same key
@@ -535,7 +535,7 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
       .WillOnce(Return(value_span));
 
   // expect key-value pair was put to db
-  EXPECT_CALL(*trie_batch_, tryGet(key.view())).WillOnce(Return(value));
+  EXPECT_CALL(*trie_batch_, tryGetMock(key.view())).WillOnce(Return(value));
 
   ASSERT_EQ(value_span,
             storage_extension_->ext_storage_get_version_1(key_span));
@@ -632,7 +632,7 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
 TEST_F(StorageExtensionTest, RootTest) {
   // removeEmptyChildStorages
   Buffer prefix = kagome::storage::kChildStorageDefaultPrefix;
-  Buffer current_key = Buffer{prefix}.putBuffer("QWERTY"_buf);
+  Buffer current_key = Buffer{prefix}.put("QWERTY"_buf);
 
   static const auto empty_hash = Buffer(codec_.hash256(Buffer{0}));
 
@@ -651,7 +651,7 @@ TEST_F(StorageExtensionTest, RootTest) {
         return cursor;
       }));
 
-  EXPECT_CALL(*trie_batch_, tryGet(current_key.view()))
+  EXPECT_CALL(*trie_batch_, tryGetMock(current_key.view()))
       .WillOnce(
           Return(outcome::success(std::make_optional(std::cref(empty_hash)))));
   EXPECT_CALL(*trie_batch_, remove(current_key.view()))

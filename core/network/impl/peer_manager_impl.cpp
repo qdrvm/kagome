@@ -5,6 +5,8 @@
 
 #include "network/impl/peer_manager_impl.hpp"
 
+#include <execinfo.h>
+#include <limits>
 #include <memory>
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
@@ -15,7 +17,9 @@
 
 namespace {
   constexpr const char *syncPeerMetricName = "kagome_sync_peers";
-}
+  /// Reputation change for a node when we get disconnected from it.
+  static constexpr int32_t kDisconnectReputation = -256;
+}  // namespace
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
   using E = kagome::network::PeerManagerImpl::Error;
@@ -24,11 +28,42 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
       return "Process handling from undeclared collator";
     case E::OUT_OF_VIEW:
       return "Processing para hash, which is out of view";
-    case E::DOUPLICATE:
-      return "Processing doublicated hash";
+    case E::DUPLICATE:
+      return "Processing duplicated hash";
   }
   return "Unknown error in ChainSpecImpl";
 }
+
+namespace {
+
+  template <typename P, typename F>
+  bool openOutgoing(std::shared_ptr<kagome::network::StreamEngine> &se,
+                    std::shared_ptr<P> const &protocol,
+                    kagome::network::PeerManager::PeerInfo const &pi,
+                    F &&func) {
+    BOOST_ASSERT(se);
+    BOOST_ASSERT(protocol);
+
+    if (se->reserveOutgoing(pi.id, protocol)) {
+      protocol->newOutgoingStream(
+          pi,
+          [pid{pi.id},
+           wptr_proto{std::weak_ptr<P>{protocol}},
+           wptr_se{std::weak_ptr<kagome::network::StreamEngine>{se}},
+           func{std::forward<F>(func)}](auto &&stream) mutable {
+            auto se = wptr_se.lock();
+            auto proto = wptr_proto.lock();
+            if (se && proto) {
+              se->dropReserveOutgoing(pid, proto);
+            }
+            std::forward<F>(func)(std::forward<decltype(stream)>(stream));
+          });
+      return true;
+    }
+    return false;
+  }
+
+}  // namespace
 
 namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
@@ -45,7 +80,8 @@ namespace kagome::network {
       std::shared_ptr<network::Router> router,
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<PeerRatingRepository> peer_rating_repository)
+      std::shared_ptr<ReputationRepository> reputation_repository,
+      std::shared_ptr<PeerView> peer_view)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -59,7 +95,8 @@ namespace kagome::network {
         router_{std::move(router)},
         storage_{std::move(storage)},
         hasher_{std::move(hasher)},
-        peer_rating_repository_{std::move(peer_rating_repository)},
+        reputation_repository_{std::move(reputation_repository)},
+        peer_view_{std::move(peer_view)},
         log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -69,7 +106,9 @@ namespace kagome::network {
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(peer_rating_repository_ != nullptr);
+    BOOST_ASSERT(peer_view_);
+    BOOST_ASSERT(reputation_repository_ != nullptr);
+    BOOST_ASSERT(peer_view_ != nullptr);
 
     // Register metrics
     registry_->registerGaugeFamily(syncPeerMetricName,
@@ -110,11 +149,11 @@ namespace kagome::network {
             .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
               if (auto self = wp.lock()) {
                 if (auto rating =
-                        self->peer_rating_repository_->rating(peer_id);
+                        self->reputation_repository_->reputation(peer_id);
                     rating < 0) {
                   SL_DEBUG(self->log_,
                            "Disconnecting from peer {} due to its negative "
-                           "rating {}",
+                           "reputation {}",
                            peer_id,
                            rating);
                   self->disconnectFromPeer(peer_id);
@@ -124,16 +163,37 @@ namespace kagome::network {
               }
             });
 
+    peer_disconnected_handler_ =
+        host_.getBus()
+            .getChannel<libp2p::event::network::OnPeerDisconnectedChannel>()
+            .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
+              if (auto self = wp.lock()) {
+                SL_DEBUG(self->log_,
+                         "OnPeerDisconnectedChannel handler from peer {}",
+                         peer_id);
+                self->stream_engine_->del(peer_id);
+                self->peer_states_.erase(peer_id);
+                self->active_peers_.erase(peer_id);
+                self->connecting_peers_.erase(peer_id);
+                self->peer_view_->removePeer(peer_id);
+                self->sync_peer_num_->set(self->active_peers_.size());
+                SL_DEBUG(self->log_,
+                         "Remained {} active peers",
+                         self->active_peers_.size());
+              }
+            });
+
     identify_->onIdentifyReceived([wp = weak_from_this()](
                                       const PeerId &peer_id) {
       if (auto self = wp.lock()) {
         SL_DEBUG(self->log_, "Identify received from peer {}", peer_id);
-        if (auto rating = self->peer_rating_repository_->rating(peer_id);
+        if (auto rating = self->reputation_repository_->reputation(peer_id);
             rating < 0) {
-          SL_DEBUG(self->log_,
-                   "Disconnecting from peer {} due to its negative rating {}",
-                   peer_id,
-                   rating);
+          SL_DEBUG(
+              self->log_,
+              "Disconnecting from peer {} due to its negative reputation {}",
+              peer_id,
+              rating);
           self->disconnectFromPeer(peer_id);
           return;
         }
@@ -170,6 +230,7 @@ namespace kagome::network {
   void PeerManagerImpl::stop() {
     storeActivePeers();
     add_peer_handle_.unsubscribe();
+    peer_disconnected_handler_.unsubscribe();
   }
 
   void PeerManagerImpl::connectToPeer(const PeerInfo &peer_info) {
@@ -182,6 +243,11 @@ namespace kagome::network {
 
   size_t PeerManagerImpl::activePeersNumber() const {
     return active_peers_.size();
+  }
+
+  std::shared_ptr<StreamEngine> PeerManagerImpl::getStreamEngine() {
+    BOOST_ASSERT(stream_engine_);
+    return stream_engine_;
   }
 
   void PeerManagerImpl::forEachPeer(
@@ -199,7 +265,8 @@ namespace kagome::network {
       BOOST_ASSERT(!it->second.collator_state
                    && !!"Collator state should be empty at the time.");
       it->second.collator_state = CollatorState{.parachain_id = para_id,
-                                                .collator_id = collator_id};
+                                                .collator_id = collator_id,
+                                                .advertisements = {}};
       it->second.time = clock_->now();
     }
   }
@@ -211,31 +278,21 @@ namespace kagome::network {
     }
   }
 
-  std::optional<PendingCollation> PeerManagerImpl::pop_pending_collation() {
-    if (parachain_state_.pending_collations.empty()) return std::nullopt;
-
-    std::optional<PendingCollation> collation =
-        std::move(parachain_state_.pending_collations.front());
-    parachain_state_.pending_collations.pop_front();
-    return collation;
-  }
-
-  void PeerManagerImpl::push_pending_collation(PendingCollation &&collation) {
-    parachain_state_.pending_collations.emplace_back(std::move(collation));
-  }
-
   outcome::result<
       std::pair<network::CollatorPublicKey const &, network::ParachainId>>
-  PeerManagerImpl::insert_advertisement(PeerState &peer_state,
-                                        ParachainState &parachain_state,
-                                        primitives::BlockHash para_hash) {
+  PeerManagerImpl::insertAdvertisement(PeerState &peer_state,
+                                       primitives::BlockHash para_hash) {
     if (!peer_state.collator_state) return Error::UNDECLARED_COLLATOR;
 
-    if (parachain_state.our_view.count(para_hash) == 0)
+    auto my_view = peer_view_->getMyView();
+    BOOST_ASSERT(my_view);
+
+    if (!my_view->get().contains(para_hash)) {
       return Error::OUT_OF_VIEW;
+    }
 
     if (peer_state.collator_state.value().advertisements.count(para_hash) != 0)
-      return Error::DOUPLICATE;
+      return Error::DUPLICATE;
 
     peer_state.collator_state.value().advertisements.insert(
         std::move(para_hash));
@@ -247,54 +304,62 @@ namespace kagome::network {
     SL_TRACE(log_, "Try to align peers number");
 
     const auto target_count = app_config_.peeringConfig().targetPeerAmount;
-    const auto soft_limit = app_config_.peeringConfig().softLimit;
     const auto hard_limit = app_config_.peeringConfig().hardLimit;
     const auto peer_ttl = app_config_.peeringConfig().peerTtl;
 
     align_timer_.cancel();
 
-    // disconnect from peers with negative rating
-    std::vector<PeerId> peers_to_disconnect;
-    for (const auto &[peer_id, _] : active_peers_) {
-      if (peer_rating_repository_->rating(peer_id) < 0) {
-        peers_to_disconnect.emplace_back(peer_id);
+    clearClosedPingingConnections();
+
+    // disconnect from peers with negative reputation
+    using PriorityType = int32_t;
+    using ItemType = std::pair<PriorityType, PeerId>;
+
+    std::vector<ItemType> peers_list;
+    peers_list.reserve(active_peers_.size());
+
+    uint64_t const now_ms =
+        std::chrono::time_point_cast<std::chrono::milliseconds>(clock_->now())
+            .time_since_epoch()
+            .count();
+    uint64_t const idle_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(peer_ttl).count();
+
+    for (const auto &[peer_id, desc] : active_peers_) {
+      uint64_t const last_activity_ms =
+          std::chrono::time_point_cast<std::chrono::milliseconds>(
+              desc.time_point)
+              .time_since_epoch()
+              .count();
+
+      // TODO(turuslan): #1419 disconnect peers when all relevant components
+      // update peer activity time with `keepAlive`.
+      [[maybe_unused]] bool activity_timeout =
+          last_activity_ms + idle_ms < now_ms;
+
+      const auto peer_reputation = reputation_repository_->reputation(peer_id);
+      if (peer_reputation < kDisconnectReputation) {
+        peers_list.push_back(
+            std::make_pair(std::numeric_limits<PriorityType>::min(), peer_id));
         // we have to store peers somewhere first due to inability to iterate
         // over active_peers_ and do disconnectFromPeers (which modifies
         // active_peers_) at the same time
-      }
-    }
-    for (const auto &peer_id : peers_to_disconnect) {
-      SL_DEBUG(log_,
-               "Disconnecting from peer {} due to its negative rating",
-               peer_id);
-      disconnectFromPeer(peer_id);
-    }
-
-    // Soft limit is exceeded
-    if (active_peers_.size() > soft_limit) {
-      // Get oldest peer
-      auto it = std::min_element(active_peers_.begin(),
-                                 active_peers_.end(),
-                                 [](const auto &item1, const auto &item2) {
-                                   return item1.second.time_point
-                                          < item2.second.time_point;
-                                 });
-      auto &[oldest_peer_id, oldest_descr] = *it;
-
-      if (active_peers_.size() > hard_limit) {
-        // Hard limit is exceeded
-        SL_DEBUG(log_, "Hard limit of of active peers is exceeded");
-        disconnectFromPeer(oldest_peer_id);
-
-      } else if (oldest_descr.time_point + peer_ttl < clock_->now()) {
-        // Peer is inactive long time
-        auto &oldest_peer_id_ref = oldest_peer_id;
-        SL_DEBUG(log_, "Found inactive peer: {}", oldest_peer_id_ref);
-        disconnectFromPeer(oldest_peer_id);
-
       } else {
-        SL_TRACE(log_, "No peer to disconnect at soft limit");
+        peers_list.push_back(std::make_pair(peer_reputation, peer_id));
       }
+    }
+
+    std::sort(peers_list.begin(),
+              peers_list.end(),
+              [](auto const &l, auto const &r) { return r.first < l.first; });
+
+    for (; !peers_list.empty()
+           && (peers_list.size() > hard_limit
+               || peers_list.back().first
+                      == std::numeric_limits<PriorityType>::min());
+         peers_list.pop_back()) {
+      const auto &peer_id = peers_list.back().second;
+      disconnectFromPeer(peer_id);
     }
 
     // Not enough active peers
@@ -382,7 +447,7 @@ namespace kagome::network {
             SL_DEBUG(self->log_,
                      "Connecting to peer {} is failed: {}",
                      peer_id,
-                     res.error().message());
+                     res.error());
             self->connecting_peers_.erase(peer_id);
             return;
           }
@@ -409,18 +474,12 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
-    auto it = active_peers_.find(peer_id);
-    if (it != active_peers_.end()) {
-      SL_DEBUG(log_, "Disconnect from peer {}", peer_id);
-      stream_engine_->del(peer_id);
-      active_peers_.erase(it);
-      sync_peer_num_->set(active_peers_.size());
-      SL_DEBUG(log_, "Remained {} active peers", active_peers_.size());
+    if (peer_id == own_peer_info_.id) {
+      return;
     }
-    if (peer_id != own_peer_info_.id) {
-      peer_states_.erase(peer_id);
-      host_.disconnect(peer_id);
-    }
+
+    SL_DEBUG(log_, "Disconnect from peer {}", peer_id);
+    host_.disconnect(peer_id);
   }
 
   void PeerManagerImpl::keepAlive(const PeerId &peer_id) {
@@ -443,6 +502,7 @@ namespace kagome::network {
                peer_id);
       return;
     }
+    clearClosedPingingConnections();
     auto [_, is_emplaced] = pinging_connections_.emplace(conn);
     if (not is_emplaced) {
       // Pinging is already going
@@ -465,7 +525,7 @@ namespace kagome::network {
                        "Stop pinging of {} (conn={}): {}",
                        peer_id,
                        static_cast<void *>(conn.get()),
-                       session_res.error().message());
+                       session_res.error());
               self->pinging_connections_.erase(conn);
               self->disconnectFromPeer(peer_id);
             } else {
@@ -485,10 +545,6 @@ namespace kagome::network {
     it->second.time = clock_->now();
     it->second.roles = status.roles;
     it->second.best_block = status.best_block;
-  }
-
-  ParachainState &PeerManagerImpl::parachainState() {
-    return parachain_state_;
   }
 
   void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
@@ -543,6 +599,106 @@ namespace kagome::network {
              "New peer_id enqueued: {:l}. In queue: {}",
              peer_id,
              queue_to_connect_.size());
+  }
+
+  template <typename F>
+  void PeerManagerImpl::openBlockAnnounceProtocol(
+      PeerInfo const &peer_info,
+      libp2p::network::ConnectionManager::ConnectionSPtr const &connection,
+      F &&opened_callback) {
+    auto block_announce_protocol = router_->getBlockAnnounceProtocol();
+    BOOST_ASSERT_MSG(block_announce_protocol,
+                     "Router did not provide block announce protocol");
+
+    if (!openOutgoing(
+            stream_engine_,
+            block_announce_protocol,
+            peer_info,
+            [wp = weak_from_this(),
+             peer_info,
+             protocol = block_announce_protocol,
+             connection,
+             opened_callback{std::forward<F>(opened_callback)}](
+                auto &&stream_res) mutable {
+              auto self = wp.lock();
+              if (not self) {
+                return;
+              }
+
+              auto &peer_id = peer_info.id;
+
+              if (not stream_res.has_value()) {
+                self->log_->warn("Unable to create stream {} with {}: {}",
+                                 protocol->protocolName(),
+                                 peer_id,
+                                 stream_res.error());
+                self->connecting_peers_.erase(peer_id);
+                self->disconnectFromPeer(peer_id);
+                return;
+              }
+              PeerType peer_type = connection->isInitiator()
+                                       ? PeerType::PEER_TYPE_OUT
+                                       : PeerType::PEER_TYPE_IN;
+
+              // Add to active peer list
+              if (auto [ap_it, added] = self->active_peers_.emplace(
+                      peer_id, PeerDescriptor{peer_type, self->clock_->now()});
+                  added) {
+                self->recently_active_peers_.insert(peer_id);
+
+                // And remove from queue
+                if (auto piq_it = self->peers_in_queue_.find(peer_id);
+                    piq_it != self->peers_in_queue_.end()) {
+                  auto qtc_it =
+                      std::find_if(self->queue_to_connect_.cbegin(),
+                                   self->queue_to_connect_.cend(),
+                                   [&peer_id = peer_id](const auto &item) {
+                                     return peer_id == item.get();
+                                   });
+                  self->queue_to_connect_.erase(qtc_it);
+                  self->peers_in_queue_.erase(piq_it);
+                  BOOST_ASSERT(self->queue_to_connect_.size()
+                               == self->peers_in_queue_.size());
+
+                  SL_DEBUG(self->log_,
+                           "Remained peers in queue for connect: {}",
+                           self->peers_in_queue_.size());
+                }
+                self->sync_peer_num_->set(self->active_peers_.size());
+              }
+
+              self->connecting_peers_.erase(peer_id);
+
+              self->reserveStreams(peer_id);
+              self->startPingingPeer(peer_id);
+
+              /// Process callback when opened successfully
+              std::forward<F>(opened_callback)(
+                  self, peer_info, self->getPeerState(peer_id));
+            })) {
+      SL_DEBUG(log_,
+               "Stream {} with {} is alive or connecting",
+               block_announce_protocol->protocolName(),
+               peer_info.id);
+    }
+  }
+
+  void PeerManagerImpl::tryOpenGrandpaProtocol(PeerInfo const &peer_info,
+                                               PeerState &r_info) {
+    if (auto o_info_opt = getPeerState(own_peer_info_.id);
+        o_info_opt.has_value()) {
+      auto &o_info = o_info_opt.value();
+
+      // Establish outgoing grandpa stream if node synced
+      if (r_info.best_block.number <= o_info.get().best_block.number) {
+        auto grandpa_protocol = router_->getGrandpaProtocol();
+        BOOST_ASSERT_MSG(grandpa_protocol,
+                         "Router did not provide grandpa protocol");
+        openOutgoing(
+            stream_engine_, grandpa_protocol, peer_info, [](const auto &...) {
+            });
+      }
+    }
   }
 
   void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
@@ -600,95 +756,16 @@ namespace kagome::network {
     }
 
     PeerInfo peer_info{.id = peer_id, .addresses = {}};
-
-    auto block_announce_protocol = router_->getBlockAnnounceProtocol();
-    BOOST_ASSERT_MSG(block_announce_protocol,
-                     "Router did not provide block announce protocol");
-
-    if (stream_engine_->reserveOutgoing(peer_info.id,
-                                        block_announce_protocol)) {
-      block_announce_protocol->newOutgoingStream(
-          peer_info,
-          [wp = weak_from_this(),
-           peer_info,
-           protocol = block_announce_protocol,
-           connection](auto &&stream_res) {
-            auto self = wp.lock();
-            if (not self) {
-              return;
-            }
-
-            auto &peer_id = peer_info.id;
-
-            self->stream_engine_->dropReserveOutgoing(peer_id, protocol);
-            if (not stream_res.has_value()) {
-              self->log_->warn("Unable to create stream {} with {}: {}",
-                               protocol->protocolName(),
-                               peer_id,
-                               stream_res.error().message());
-              self->connecting_peers_.erase(peer_id);
-              self->disconnectFromPeer(peer_id);
-              return;
-            }
-            PeerType peer_type = connection->isInitiator()
-                                     ? PeerType::PEER_TYPE_OUT
-                                     : PeerType::PEER_TYPE_IN;
-
-            // Add to active peer list
-            if (auto [ap_it, added] = self->active_peers_.emplace(
-                    peer_id, PeerDescriptor{peer_type, self->clock_->now()});
-                added) {
-              self->recently_active_peers_.insert(peer_id);
-
-              // And remove from queue
-              if (auto piq_it = self->peers_in_queue_.find(peer_id);
-                  piq_it != self->peers_in_queue_.end()) {
-                auto qtc_it =
-                    std::find_if(self->queue_to_connect_.cbegin(),
-                                 self->queue_to_connect_.cend(),
-                                 [&peer_id = peer_id](const auto &item) {
-                                   return peer_id == item.get();
-                                 });
-                self->queue_to_connect_.erase(qtc_it);
-                self->peers_in_queue_.erase(piq_it);
-                BOOST_ASSERT(self->queue_to_connect_.size()
-                             == self->peers_in_queue_.size());
-
-                SL_DEBUG(self->log_,
-                         "Remained peers in queue for connect: {}",
-                         self->peers_in_queue_.size());
-              }
-              self->sync_peer_num_->set(self->active_peers_.size());
-            }
-
-            self->connecting_peers_.erase(peer_id);
-
-            self->reserveStreams(peer_id);
-            self->startPingingPeer(peer_id);
-
-            // Establish outgoing grandpa stream if node synced
-            auto r_info_opt = self->getPeerState(peer_id);
-            auto o_info_opt = self->getPeerState(self->own_peer_info_.id);
-            if (r_info_opt.has_value() and o_info_opt.has_value()) {
-              auto &r_info = r_info_opt.value();
-              auto &o_info = o_info_opt.value();
-
-              if (r_info.get().best_block.number <= o_info.get().best_block.number) {
-                auto grandpa_protocol = self->router_->getGrandpaProtocol();
-                BOOST_ASSERT_MSG(grandpa_protocol,
-                                 "Router did not provide grandpa protocol");
-                grandpa_protocol->newOutgoingStream(peer_info,
-                                                    [](const auto &...) {});
-              }
-            }
-          });
-    } else {
-      SL_DEBUG(log_,
-               "Stream {} with {} is alive",
-               block_announce_protocol->protocolName(),
-               peer_id);
-      connecting_peers_.erase(peer_id);
-    }
+    openBlockAnnounceProtocol(
+        peer_info,
+        connection,
+        [](std::shared_ptr<PeerManagerImpl> &self,
+           PeerInfo const &peer_info,
+           std::optional<std::reference_wrapper<PeerState>> peer_state) {
+          if (peer_state.has_value()) {
+            self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
+          }
+        });
 
     auto addresses_res =
         host_.getPeerRepository().getAddressRepository().getAddresses(peer_id);
@@ -719,12 +796,12 @@ namespace kagome::network {
 
   std::vector<scale::PeerInfoSerializable>
   PeerManagerImpl::loadLastActivePeers() {
-    auto get_res = storage_->load(storage::kActivePeersKey);
+    auto get_res = storage_->get(storage::kActivePeersKey);
     if (not get_res) {
       SL_ERROR(log_,
                "List of last active peers cannot be obtained from storage. "
                "Error={}",
-               get_res.error().message());
+               get_res.error());
       return {};
     }
 
@@ -764,9 +841,7 @@ namespace kagome::network {
     auto save_res = storage_->put(storage::kActivePeersKey,
                                   common::Buffer{out.to_vector()});
     if (not save_res) {
-      SL_ERROR(log_,
-               "Cannot store active peers. Error={}",
-               save_res.error().message());
+      SL_ERROR(log_, "Cannot store active peers. Error={}", save_res.error());
       return;
     }
     SL_DEBUG(log_,
@@ -774,4 +849,14 @@ namespace kagome::network {
              last_active_peers.size());
   }
 
+  void PeerManagerImpl::clearClosedPingingConnections() {
+    for (auto it = pinging_connections_.begin();
+         it != pinging_connections_.end();) {
+      if ((**it).isClosed()) {
+        it = pinging_connections_.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
 }  // namespace kagome::network

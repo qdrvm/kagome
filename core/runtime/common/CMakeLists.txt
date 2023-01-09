@@ -25,7 +25,6 @@ add_library(uncompress_if_needed
     uncompress_code_if_needed.cpp
     )
 target_link_libraries(uncompress_if_needed
-    buffer
     zstd::libzstd_static
     )
 kagome_install(uncompress_if_needed)
@@ -43,15 +42,14 @@ add_library(trie_storage_provider
     )
 target_link_libraries(trie_storage_provider
     runtime_transaction_error
-    trie_storage
-    trie_serializer
+    storage
     blob
     )
 kagome_install(trie_storage_provider)
 
 add_library(runtime_upgrade_tracker runtime_upgrade_tracker_impl.cpp)
 target_link_libraries(runtime_upgrade_tracker
-    block_storage
+    blockchain
     logger
     )
 kagome_install(runtime_upgrade_tracker)
@@ -65,7 +63,7 @@ kagome_install(module_repository)
 add_library(runtime_environment_factory runtime_environment_factory.cpp)
 target_link_libraries(runtime_environment_factory
     logger
-    trie_error
+    storage
     mp_utils
     )
 kagome_install(runtime_environment_factory)

@@ -8,24 +8,25 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
-#include "blockchain/block_tree.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "injector/application_injector.hpp"
 #include "log/configurator.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "storage/trie/trie_storage.hpp"
 
-using kagome::authority::AuthorityManagerImpl;
 using kagome::blockchain::BlockStorage;
+using kagome::consensus::grandpa::AuthorityManager;
+using kagome::consensus::grandpa::AuthorityManagerImpl;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::GrandpaDigest;
+using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::runtime::GrandpaApi;
 using kagome::storage::trie::TrieStorage;
 
@@ -38,8 +39,8 @@ class CommandExecutionError : public std::runtime_error {
 
   friend std::ostream &operator<<(std::ostream &out,
                                   CommandExecutionError const &err) {
-    return out << "Error in command '" << err.command_name << ": " << err.what()
-               << "\n";
+    return out << "Error in command '" << err.command_name
+               << "': " << err.what() << "\n";
   }
 
  private:
@@ -82,10 +83,9 @@ class Command {
   }
 
   template <typename T>
-  const T &unwrapResult(std::string_view context,
-                        outcome::result<T> const &res) const {
-    if (res.has_value()) return res.value();
-    throwError("{}: {}", context, res.error().message());
+  T unwrapResult(std::string_view context, outcome::result<T> &&res) const {
+    if (res.has_value()) return std::move(res).value();
+    throwError("{}: {}", context, res.error());
   }
 
  private:
@@ -112,9 +112,9 @@ class CommandParser {
       try {
         command->second->execute(std::cout, cmd_args);
       } catch (CommandExecutionError &e) {
-        std::cerr << e;
+        std::cerr << "Command execution error: " << e;
       } catch (std::exception &e) {
-        std::cerr << e.what();
+        std::cerr << "Exception occurred: " << e.what();
       }
     } else {
       std::cerr << "Unknown command '" << args[1]
@@ -203,11 +203,11 @@ class InspectBlockCommand : public Command {
         std::cout << "# of extrinsics: " << body_res.value()->size() << "\n";
 
       } else {
-        throwError("Internal error: {}}", body_res.error().message());
+        throwError("Internal error: {}}", body_res.error());
       }
 
     } else {
-      throwError("Internal error: {}}", res.error().message());
+      throwError("Internal error: {}}", res.error());
     }
   }
 
@@ -230,7 +230,7 @@ class RemoveBlockCommand : public Command {
     }
     auto data = block_storage->getBlockData(opt_id.value());
     if (!data) {
-      throwError("Failed getting block data: {}", data.error().message());
+      throwError("Failed getting block data: {}", data.error());
     }
     if (!data.value().has_value()) {
       throwError("Block data not found");
@@ -238,7 +238,7 @@ class RemoveBlockCommand : public Command {
     if (auto res = block_storage->removeBlock(
             {data.value().value().header->number, data.value().value().hash});
         !res) {
-      throwError("{}", res.error().message());
+      throwError("{}", res.error());
     }
   }
 
@@ -266,7 +266,7 @@ class QueryStateCommand : public Command {
     }
     auto batch = trie_storage->getEphemeralBatchAt(state_root);
     if (!batch) {
-      throwError("Failed getting trie batch: {}", batch.error().message());
+      throwError("Failed getting trie batch: {}", batch.error());
     }
     kagome::common::Buffer key{};
     if (auto key_bytes = kagome::common::unhex(args[2]); key_bytes) {
@@ -276,12 +276,11 @@ class QueryStateCommand : public Command {
     }
     auto value_res = batch.value()->tryGet(key);
     if (value_res.has_error()) {
-      throwError("Error retrieving value from Trie: {}",
-                 value_res.error().message());
+      throwError("Error retrieving value from Trie: {}", value_res.error());
     }
     auto &value_opt = value_res.value();
     if (value_opt.has_value()) {
-      std::cout << "Value is " << value_opt->get().toHex() << "\n";
+      std::cout << "Value is " << value_opt->view().toHex() << "\n";
     } else {
       std::cout << "No value by given key\n";
     }
@@ -296,7 +295,7 @@ class SearchChainCommand : public Command {
   explicit SearchChainCommand(
       std::shared_ptr<BlockStorage> block_storage,
       std::shared_ptr<TrieStorage> trie_storage,
-      std::shared_ptr<kagome::authority::AuthorityManager> authority_manager,
+      std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<Hasher> hasher)
       : Command{"search-chain",
                 "target [start block/0] [end block/deepest finalized] - search "
@@ -317,9 +316,8 @@ class SearchChainCommand : public Command {
     assertArgumentCount(args, 2, 4);
     Target target = parseTarget(args[1]);
     if (target == Target::LastBlock) {
-      std::cout << "#" << block_storage->getLastFinalized().value().number
-                << " " << block_storage->getLastFinalized().value().hash.toHex()
-                << "\n";
+      std::cout << fmt::format("{}\n",
+                               block_storage->getLastFinalized().value());
       return;
     }
 
@@ -349,14 +347,14 @@ class SearchChainCommand : public Command {
     auto start_header_opt = unwrapResult("Getting 'start' block header",
                                          block_storage->getBlockHeader(start));
     if (!start_header_opt) {
-      throwError("'Start' block header not found");
+      throwError("Start block header {} not found", start);
     }
     auto &start_header = start_header_opt.value();
 
     auto end_header_opt = unwrapResult("Getting 'end' block header",
                                        block_storage->getBlockHeader(end));
     if (!end_header_opt) {
-      throwError("'End' block header not found");
+      throwError("'End block header {} not found", end);
     }
     auto &end_header = end_header_opt.value();
 
@@ -415,36 +413,18 @@ class SearchChainCommand : public Command {
                                     consensus_digest->decode());
         if (decoded.consensus_engine_id
             == kagome::primitives::kGrandpaEngineId) {
-          auto info = reportAuthorityUpdate(
-              out, header.number, decoded.asGrandpaDigest());
-          if (info.id_changed) {
-            auto res = kagome::authority::fetchSetIdFromTrieStorage(
-                *trie_storage, *hasher, header.state_root);
-            if (res.has_error()) {
-              std::cerr << "Error fetching authority set id from storage: "
-                        << res.error().message() << "\n";
-              continue;
-            }
-            std::cout << "Set id fetched from storage: "
-                      << res.value().value_or(-1) << "\n";
-          }
+          reportAuthorityUpdate(out, header.number, decoded.asGrandpaDigest());
         }
       }
     }
   }
 
-  struct AuthorityUpdateInfo {
-    bool id_changed = false;
-  };
-
-  AuthorityUpdateInfo reportAuthorityUpdate(std::ostream &out,
-                                            BlockNumber digest_origin,
-                                            GrandpaDigest const &digest) const {
+  void reportAuthorityUpdate(std::ostream &out,
+                             BlockNumber digest_origin,
+                             GrandpaDigest const &digest) const {
     using namespace kagome::primitives;
-    bool has_id_change = false;
     if (auto *scheduled_change = boost::get<ScheduledChange>(&digest);
         scheduled_change) {
-      has_id_change = true;
       out << "ScheduledChange at #" << digest_origin << " for ";
       if (scheduled_change->subchain_length > 0) {
         out << "#" << digest_origin + scheduled_change->subchain_length;
@@ -455,7 +435,6 @@ class SearchChainCommand : public Command {
 
     } else if (auto *forced_change = boost::get<ForcedChange>(&digest);
                forced_change) {
-      has_id_change = true;
       out << "ForcedChange at " << digest_origin << ", delay starts at #"
           << forced_change->delay_start << " for "
           << forced_change->subchain_length << " blocks (so activates at #"
@@ -474,7 +453,6 @@ class SearchChainCommand : public Command {
       out << "Disabled at " << digest_origin << " for authority "
           << disabled->authority_index << "\n";
     }
-    return {.id_changed = has_id_change};
   }
 
   std::shared_ptr<BlockStorage> block_storage;
@@ -482,7 +460,7 @@ class SearchChainCommand : public Command {
   std::shared_ptr<Hasher> hasher;
 };
 
-int main(int argc, const char **argv) {
+int storage_explorer_main(int argc, const char **argv) {
   ArgumentList args{argv, argc};
 
   CommandParser parser;
@@ -538,16 +516,18 @@ int main(int argc, const char **argv) {
   auto grandpa_api =
       std::make_shared<kagome::runtime::GrandpaApiImpl>(header_repo, executor);
 
+  auto chain_events_engine = std::make_shared<ChainSubscriptionEngine>();
+
   auto authority_manager =
-      std::make_shared<kagome::authority::AuthorityManagerImpl>(
-          kagome::authority::AuthorityManagerImpl::Config{},
-          app_state_manager,
-          block_tree,
-          trie_storage,
-          grandpa_api,
-          hasher,
-          persistent_storage,
-          header_repo);
+      std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
+                                             app_state_manager,
+                                             block_tree,
+                                             trie_storage,
+                                             grandpa_api,
+                                             hasher,
+                                             persistent_storage,
+                                             header_repo,
+                                             chain_events_engine);
 
   parser.addCommand(std::make_unique<InspectBlockCommand>(block_storage));
   parser.addCommand(std::make_unique<RemoveBlockCommand>(block_storage));

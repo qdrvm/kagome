@@ -4,9 +4,12 @@
  */
 
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
-#include "consensus/grandpa/vote_graph/vote_graph_error.hpp"
 
 #include <stack>
+
+#include "consensus/grandpa/chain.hpp"
+#include "consensus/grandpa/vote_graph/vote_graph_error.hpp"
+#include "consensus/grandpa/voting_round_error.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -91,8 +94,8 @@ namespace kagome::consensus::grandpa {
                                               const BlockInfo &block,
                                               const Id &voter) {
     auto inw_res = voter_set_->indexAndWeight(voter);
-    if (inw_res.has_error()) {
-      return inw_res.as_failure();
+    if (!inw_res.has_value()) {
+      return VotingRoundError::UNKNOWN_VOTER;
     }
     const auto [index, weight] = inw_res.value();
 

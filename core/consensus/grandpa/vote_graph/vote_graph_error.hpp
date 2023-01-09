@@ -1,7 +1,7 @@
 /**
-* Copyright Soramitsu Co., Ltd. All Rights Reserved.
-* SPDX-License-Identifier: Apache-2.0
-*/
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #ifndef KAGOME_VOTE_GRAPH_ERROR_HPP
 #define KAGOME_VOTE_GRAPH_ERROR_HPP
@@ -10,9 +10,7 @@
 
 namespace kagome::consensus::grandpa {
 
-  enum VoteGraphError {
-    RECEIVED_BLOCK_LESS_THAN_BASE = 1
-  };
+  enum VoteGraphError { RECEIVED_BLOCK_LESS_THAN_BASE = 1 };
 
 }
 

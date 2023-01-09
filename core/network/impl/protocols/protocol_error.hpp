@@ -16,6 +16,7 @@ namespace kagome::network {
     CAN_NOT_CREATE_STATUS,
     NODE_NOT_SYNCHRONIZED_YET,
     GENESIS_NO_MATCH,
+    HANDSHAKE_ERROR
   };
 
 }

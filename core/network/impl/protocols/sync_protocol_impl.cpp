@@ -127,17 +127,19 @@ namespace kagome::network {
   SyncProtocolImpl::SyncProtocolImpl(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
+      const primitives::BlockHash &genesis_hash,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
-      std::shared_ptr<PeerRatingRepository> rating_repository)
-      : base_(host,
-              {fmt::format(kSyncProtocol.data(), chain_spec.protocolId())},
-              "SyncProtocol"),
+      std::shared_ptr<ReputationRepository> reputation_repository)
+      : base_(kSyncProtocolName,
+              host,
+              make_protocols(kSyncProtocol, genesis_hash, chain_spec),
+              log::createLogger(kSyncProtocolName, "sync_protocol")),
         sync_observer_(std::move(sync_observer)),
-        rating_repository_(std::move(rating_repository)),
+        reputation_repository_(std::move(reputation_repository)),
         response_cache_(kResponsesCacheCapacity,
                         kResponsesCacheExpirationTimeout) {
     BOOST_ASSERT(sync_observer_ != nullptr);
-    BOOST_ASSERT(rating_repository_ != nullptr);
+    BOOST_ASSERT(reputation_repository_ != nullptr);
   }
 
   bool SyncProtocolImpl::start() {
@@ -167,6 +169,7 @@ namespace kagome::network {
         base_.protocolIds(),
         [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
             auto &&stream_res) mutable {
+          network::streamReadBuffer(stream_res);
           auto self = wp.lock();
           if (not self) {
             cb(ProtocolError::GONE);
@@ -179,7 +182,7 @@ namespace kagome::network {
                 "Error happened while connection over {} stream with {}: {}",
                 self->protocolName(),
                 peer_id,
-                stream_res.error().message());
+                stream_res.error());
             cb(stream_res.as_failure());
             return;
           }
@@ -215,7 +218,7 @@ namespace kagome::network {
                    "Error at read request from incoming {} stream with {}: {}",
                    self->protocolName(),
                    stream->remotePeerId().value(),
-                   block_request_res.error().message());
+                   block_request_res.error());
 
         stream->reset();
         return;
@@ -239,10 +242,6 @@ namespace kagome::network {
           logmsg += fmt::format(", from {}", from);
         });
 
-        if (block_request.to.has_value()) {
-          logmsg += fmt::format(" to {}", block_request.to.value());
-        }
-
         logmsg +=
             block_request.direction == Direction::ASCENDING ? " anc" : " desc";
 
@@ -262,7 +261,7 @@ namespace kagome::network {
             "Error at execute request from incoming {} stream with {}: {}",
             self->protocolName(),
             stream->remotePeerId().value(),
-            block_response_res.error().message());
+            block_response_res.error());
 
         stream->reset();
         return;
@@ -279,8 +278,10 @@ namespace kagome::network {
                  self->protocolName(),
                  peer_id,
                  block_request.fingerprint());
-        self->rating_repository_->downvoteForATime(
-            peer_id, kResponsesCacheExpirationTimeout);
+        self->reputation_repository_->changeForATime(
+            peer_id,
+            reputation::cost::DUPLICATE_BLOCK_REQUEST,
+            kResponsesCacheExpirationTimeout);
         stream->reset();
         return;
       }
@@ -309,7 +310,7 @@ namespace kagome::network {
                 "Error at writing response to incoming {} stream with {}: {}",
                 self->protocolName(),
                 stream->remotePeerId().value(),
-                write_res.error().message());
+                write_res.error());
             stream->reset();
             return;
           }
@@ -346,7 +347,7 @@ namespace kagome::network {
                 "Error at write request into outgoing {} stream with {}: {}",
                 self->protocolName(),
                 stream->remotePeerId().value(),
-                write_res.error().message());
+                write_res.error());
 
             stream->reset();
             cb(write_res.as_failure());
@@ -389,7 +390,7 @@ namespace kagome::network {
                    "Error at read response from outgoing {} stream with {}: {}",
                    self->protocolName(),
                    stream->remotePeerId().value(),
-                   block_response_res.error().message());
+                   block_response_res.error());
 
         stream->reset();
         response_handler(block_response_res.as_failure());
@@ -431,10 +432,6 @@ namespace kagome::network {
       visit_in_place(block_request.from, [&](const auto &from) {
         logmsg += fmt::format(" from {}", from);
       });
-
-      if (block_request.to.has_value()) {
-        logmsg += fmt::format(" to {}", block_request.to.value());
-      }
 
       logmsg +=
           block_request.direction == Direction::ASCENDING ? " anc" : " desc";

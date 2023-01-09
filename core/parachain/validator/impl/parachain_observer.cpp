@@ -12,51 +12,28 @@
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 
 namespace kagome::observers {
 
   struct CollationObserverImpl : network::CollationObserver {
     CollationObserverImpl(
         std::shared_ptr<network::PeerManager> pm,
-        std::shared_ptr<crypto::Sr25519Provider> crypto_provider)
-        : pm_{std::move(pm)}, crypto_provider_{std::move(crypto_provider)} {
+        std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
+        std::shared_ptr<parachain::ParachainProcessorImpl> processor)
+        : pm_{std::move(pm)},
+          crypto_provider_{std::move(crypto_provider)},
+          processor_{std::move(processor)} {
       BOOST_ASSERT_MSG(crypto_provider_,
                        "Crypto provider must be initialised!");
       BOOST_ASSERT_MSG(pm_, "Peer manager must be initialised!");
+      BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialised!");
     }
     ~CollationObserverImpl() override = default;
 
     void onAdvertise(libp2p::peer::PeerId const &peer_id,
                      primitives::BlockHash relay_parent) override {
-      auto &parachain_state = pm_->parachainState();
-      bool const contains_para_hash =
-          (parachain_state.our_view.count(relay_parent) != 0);
-
-      if (!contains_para_hash) {
-        logger_->warn("Advertise collation out of view from peer {}", peer_id);
-        return;
-      }
-
-      auto const peer_state = pm_->getPeerState(peer_id);
-      if (!peer_state) {
-        logger_->warn("Received collation advertise from unknown peer {}",
-                      peer_id);
-        return;
-      }
-
-      auto result = pm_->insert_advertisement(
-          peer_state->get(), parachain_state, std::move(relay_parent));
-      if (!result) {
-        logger_->warn("Insert advertisement from {} failed: {}",
-                      peer_id,
-                      result.error().message());
-        return;
-      }
-
-      pm_->push_pending_collation(
-          network::PendingCollation{.para_id = result.value().second,
-                                    .relay_parent = relay_parent,
-                                    .peer_id = peer_id});
+      /// TODO(iceseer): removed because of merge
     }
 
     void onDeclare(libp2p::peer::PeerId const &peer_id,
@@ -96,6 +73,7 @@ namespace kagome::observers {
    private:
     std::shared_ptr<network::PeerManager> pm_;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
+    std::shared_ptr<parachain::ParachainProcessorImpl> processor_;
     log::Logger logger_ = log::createLogger("CollationObserver", "parachain");
   };
 
@@ -122,15 +100,19 @@ namespace kagome::parachain {
 
   ParachainObserverImpl::ParachainObserverImpl(
       std::shared_ptr<network::PeerManager> pm,
-      std::shared_ptr<crypto::Sr25519Provider> crypto_provider)
+      std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
+      std::shared_ptr<parachain::ParachainProcessorImpl> processor)
       : collation_observer_impl_{std::make_shared<
-          observers::CollationObserverImpl>(pm, std::move(crypto_provider))},
+          observers::CollationObserverImpl>(
+          pm, std::move(crypto_provider), processor)},
         req_collation_observer_impl_{
-            std::make_shared<observers::ReqCollationObserverImpl>(pm)} {
+            std::make_shared<observers::ReqCollationObserverImpl>(pm)},
+        processor_{processor} {
     BOOST_ASSERT_MSG(collation_observer_impl_,
                      "Collation observer must be initialised!");
     BOOST_ASSERT_MSG(req_collation_observer_impl_,
                      "Fetch collation observer must be initialised!");
+    BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialised!");
   }
 
   void ParachainObserverImpl::onAdvertise(libp2p::peer::PeerId const &peer_id,

@@ -7,7 +7,16 @@ addtest(buffer_test
     buffer_test.cpp
     )
 target_link_libraries(buffer_test
-    buffer
+    fmt::fmt
+    hexutil
+    )
+
+addtest(buffer_view_test
+    buffer_view_test.cpp
+    )
+target_link_libraries(buffer_view_test
+#    fmt::fmt
+    hexutil
     )
 
 addtest(hexutil_test
@@ -30,7 +39,6 @@ addtest(mp_utils_test
 target_link_libraries(mp_utils_test
     mp_utils
     blob
-    buffer
     fmt::fmt
     )
 
@@ -39,4 +47,11 @@ addtest(variant_builder_test
     )
 target_link_libraries(variant_builder_test
     Boost::boost
+    )
+
+addtest(size_limited_containers_test
+    size_limited_containers_test.cpp
+    )
+target_link_libraries(size_limited_containers_test
+    fmt::fmt
     )

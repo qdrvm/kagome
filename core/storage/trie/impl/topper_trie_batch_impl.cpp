@@ -5,6 +5,8 @@
 
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include "common/buffer.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -26,20 +28,20 @@ namespace kagome::storage::trie {
       const std::shared_ptr<TrieBatch> &parent)
       : parent_(parent) {}
 
-  outcome::result<common::BufferConstRef> TopperTrieBatchImpl::get(
+  outcome::result<BufferOrView> TopperTrieBatchImpl::get(
       const BufferView &key) const {
     OUTCOME_TRY(opt_value, tryGet(key));
     if (opt_value) {
-      return opt_value.value();
+      return std::move(*opt_value);
     }
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<std::optional<common::BufferConstRef>>
-  TopperTrieBatchImpl::tryGet(const BufferView &key) const {
+  outcome::result<std::optional<BufferOrView>> TopperTrieBatchImpl::tryGet(
+      const BufferView &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
       if (it->second.has_value()) {
-        return it->second.value();
+        return BufferView{it->second.value()};
       }
       return std::nullopt;
     }
@@ -89,13 +91,8 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
-                                                 const Buffer &value) {
-    return put(key, Buffer(value));
-  }
-
-  outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
-                                                 Buffer &&value) {
-    cache_.insert_or_assign(Buffer{key}, std::move(value));
+                                                 BufferOrView &&value) {
+    cache_.insert_or_assign(Buffer{key}, value.into());
     return outcome::success();
   }
 
@@ -108,7 +105,7 @@ namespace kagome::storage::trie {
   outcome::result<std::tuple<bool, uint32_t>> TopperTrieBatchImpl::clearPrefix(
       const BufferView &prefix, std::optional<uint64_t>) {
     for (auto it = cache_.lower_bound(prefix);
-         it != cache_.end() && it->first.subbuffer(0, prefix.size()) == prefix;
+         it != cache_.end() && boost::starts_with(it->first, prefix);
          ++it)
       it->second = std::nullopt;
 
@@ -126,7 +123,7 @@ namespace kagome::storage::trie {
       }
       for (auto it = cache_.begin(); it != cache_.end(); it++) {
         if (it->second.has_value()) {
-          OUTCOME_TRY(p->put(it->first, it->second.value()));
+          OUTCOME_TRY(p->put(it->first, BufferView{it->second.value()}));
         } else {
           OUTCOME_TRY(p->remove(it->first));
         }
@@ -138,10 +135,9 @@ namespace kagome::storage::trie {
 
   bool TopperTrieBatchImpl::wasClearedByPrefix(const BufferView &key) const {
     for (const auto &prefix : cleared_prefixes_) {
-      auto key_end = key.begin();
-      std::advance(key_end, std::min<size_t>(key.size(), prefix.size()) - 1);
-      auto is_cleared = std::equal(key.begin(), key_end, prefix.begin());
-      if (is_cleared) return true;
+      if (boost::starts_with(key, prefix)) {
+        return true;
+      }
     }
     return false;
   }

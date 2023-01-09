@@ -9,7 +9,6 @@ add_library(hasher
 target_link_libraries(hasher
     blake2
     twox
-    buffer
     sha
     keccak
     )
@@ -41,10 +40,10 @@ add_library(vrf_provider
 target_link_libraries(vrf_provider
     mp_utils
     sr25519_types
-    buffer
     blob
     p2p::p2p_random_generator # generator from libp2p
     )
+kagome_install(vrf_provider)
 
 add_library(sr25519_provider
     sr25519/sr25519_provider_impl.cpp
@@ -82,7 +81,6 @@ target_link_libraries(secp256k1_provider PUBLIC
     OpenSSL::Crypto
     PUBLIC OpenSSL::SSL
     blob
-    buffer
     secp256k1::secp256k1
     scale::scale
     )
@@ -96,7 +94,6 @@ add_library(pbkdf2_provider
 target_link_libraries(pbkdf2_provider
     PUBLIC OpenSSL::SSL
     OpenSSL::Crypto
-    buffer
     blob
     )
 kagome_install(pbkdf2_provider)

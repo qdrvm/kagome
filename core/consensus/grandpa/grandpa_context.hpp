@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPACONTEXT
-#define KAGOME_CONSENSUS_GRANDPACONTEXT
+#ifndef KAGOME_CONSENSUS_GRANDPA_GRANDPACONTEXT
+#define KAGOME_CONSENSUS_GRANDPA_GRANDPACONTEXT
 
 #include "consensus/grandpa/structs.hpp"
 #include "network/types/grandpa_message.hpp"
@@ -42,6 +42,9 @@ namespace kagome::consensus::grandpa {
     std::optional<const network::FullCommitMessage> commit{};
     std::set<primitives::BlockInfo, std::greater<primitives::BlockInfo>>
         missing_blocks{};
+    size_t checked_signature_counter = 0;
+    size_t invalid_signature_counter = 0;
+    size_t unknown_voter_counter = 0;
 
     static void set(std::shared_ptr<GrandpaContext> context) {
       auto &opt = instance();
@@ -81,4 +84,4 @@ namespace kagome::consensus::grandpa {
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CONSENSUS_GRANDPACONTEXT
+#endif  // KAGOME_CONSENSUS_GRANDPA_GRANDPACONTEXT

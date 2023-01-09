@@ -26,6 +26,7 @@
 #include <kagome/runtime/common/runtime_upgrade_tracker_impl.hpp>
 #include <kagome/runtime/common/storage_code_provider.hpp>
 #include <kagome/runtime/module.hpp>
+#include <kagome/runtime/runtime_api/impl/runtime_properties_cache_impl.hpp>
 #include <kagome/runtime/wavm/compartment_wrapper.hpp>
 #include <kagome/runtime/wavm/instance_environment_factory.hpp>
 #include <kagome/runtime/wavm/intrinsics/intrinsic_module.hpp>
@@ -48,7 +49,7 @@ kagome::storage::trie::RootHash trieRoot(
   auto codec = kagome::storage::trie::PolkadotCodec();
 
   for (const auto &[key, val] : key_vals) {
-    [[maybe_unused]] auto res = trie.put(key, val);
+    [[maybe_unused]] auto res = trie.put(key, val.view());
     BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie failed");
   }
   auto root = trie.getRoot();
@@ -132,7 +133,7 @@ int main() {
       trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
           .value();
   for (auto &kv : chain_spec->getGenesisTopSection()) {
-    storage_batch->put(kv.first, kv.second).value();
+    storage_batch->put(kv.first, kv.second.view()).value();
   }
   storage_batch->commit().value();
 
@@ -192,7 +193,10 @@ int main() {
           offchain_persistent_storage,
           offchain_worker_pool);
 
+  auto cache = std::make_shared<kagome::runtime::RuntimePropertiesCacheImpl>();
+
   auto smc = std::make_shared<kagome::runtime::SingleModuleCache>();
+
   auto instance_env_factory =
       std::make_shared<const kagome::runtime::wavm::InstanceEnvironmentFactory>(
           trie_storage,
@@ -203,14 +207,16 @@ int main() {
           host_api_factory,
           header_repo,
           changes_tracker,
-          smc);
+          smc,
+          cache);
   auto module_factory =
       std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
           compartment,
           module_params,
           instance_env_factory,
           intrinsic_module,
-          std::nullopt);
+          std::nullopt,
+          hasher);
   auto runtime_instances_pool =
       std::make_shared<kagome::runtime::RuntimeInstancesPool>();
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
@@ -219,7 +225,8 @@ int main() {
       std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
           code_provider, module_repo, header_repo);
 
-  [[maybe_unused]] auto executor = kagome::runtime::Executor(env_factory);
+  [[maybe_unused]] auto executor =
+      kagome::runtime::Executor(env_factory, cache);
 
   // TODO(Harrm): Currently, the test only checks if kagome builds as
   // a dependency in some project. However, we can use the test to run

@@ -9,7 +9,7 @@
 #include "consensus/babe/common.hpp"
 #include "primitives/transcript.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   inline primitives::Transcript &prepareTranscript(
       primitives::Transcript &transcript,
@@ -42,6 +42,6 @@ namespace kagome::consensus {
     return transcript;
   }
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_CONSENSUS_PREPARETRANSACRIPT

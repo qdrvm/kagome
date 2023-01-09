@@ -8,6 +8,8 @@
 
 #include "common/buffer.hpp"
 
+#include <fmt/format.h>
+
 namespace kagome::storage {
   using namespace common::literals;
 
@@ -31,11 +33,20 @@ namespace kagome::storage {
   inline const common::Buffer kApplyingBlockInfoLookupKey =
       ":kagome:applying_block"_buf;
 
-  inline const common::Buffer kAuthorityManagerStateLookupKey =
-      ":kagome:authority_manager_state"_buf;
-
   inline const common::Buffer kBlockOfIncompleteSyncStateLookupKey =
       ":kagome:block_of_incomplete_sync_state"_buf;
+
+  template <typename Tag>
+  inline common::Buffer kBabeConfigRepoStateLookupKey(Tag tag) {
+    return common::Buffer::fromString(
+        fmt::format(":kagome:babe_config_repo_state:{}", tag));
+  }
+
+  template <typename Tag>
+  inline common::Buffer kAuthorityManagerStateLookupKey(Tag tag) {
+    return common::Buffer::fromString(
+        fmt::format(":kagome:auth_mngr_state:{}", tag));
+  }
 
 }  // namespace kagome::storage
 

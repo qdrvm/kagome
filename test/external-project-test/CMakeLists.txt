@@ -36,11 +36,9 @@ target_link_libraries(main
     kagome::executor
     kagome::runtime_wavm
     kagome::core_api
-    kagome::trie_storage
-    kagome::trie_storage_backend
+    kagome::storage
     kagome::trie_storage_provider
     kagome::log_configurator
-    kagome::rocksdb_wrapper
     kagome::host_api_factory
     kagome::chain_spec
     kagome::crypto_store
@@ -49,13 +47,12 @@ target_link_libraries(main
     kagome::ed25519_provider
     kagome::pbkdf2_provider
     kagome::hasher
-    kagome::polkadot_trie_factory
-    kagome::trie_serializer
+    kagome::storage
     kagome::module_repository
-    kagome::changes_tracker
     kagome::storage_code_provider
     kagome::offchain_persistent_storage
     kagome::offchain_worker_pool
-    kagome::block_header_repository
+    kagome::blockchain
     kagome::runtime_upgrade_tracker
+    kagome::runtime_properties_cache
     )

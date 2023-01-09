@@ -38,7 +38,7 @@ namespace kagome::storage::trie {
     scale::CompactInteger key = 0;
     while (it != end) {
       OUTCOME_TRY(enc, scale::encode(key++));
-      OUTCOME_TRY(trie.put(common::Buffer{enc}, *it));
+      OUTCOME_TRY(trie.put(enc, BufferView{*it}));
       it++;
     }
     OUTCOME_TRY(enc, codec.encodeNode(*trie.getRoot()));

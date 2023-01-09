@@ -51,7 +51,7 @@ namespace kagome::storage {
     if (not fs::create_directory(absolute_path.native(), ec) and ec.value()) {
       log->error("Can't create directory {} for database: {}",
                  absolute_path.native(),
-                 ec.message());
+                 ec);
       return DatabaseError::IO_ERROR;
     }
     if (not fs::is_directory(absolute_path.native())) {
@@ -123,7 +123,7 @@ namespace kagome::storage {
     return it->Valid();
   }
 
-  outcome::result<Buffer> RocksDB::load(const BufferView &key) const {
+  outcome::result<BufferOrView> RocksDB::get(const BufferView &key) const {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);
     if (status.ok()) {
@@ -135,7 +135,7 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
-  outcome::result<std::optional<Buffer>> RocksDB::tryLoad(
+  outcome::result<std::optional<BufferOrView>> RocksDB::tryGet(
       const BufferView &key) const {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);
@@ -153,18 +153,13 @@ namespace kagome::storage {
   }
 
   outcome::result<void> RocksDB::put(const BufferView &key,
-                                     const Buffer &value) {
+                                     BufferOrView &&value) {
     auto status = db_->Put(wo_, make_slice(key), make_slice(value));
     if (status.ok()) {
       return outcome::success();
     }
 
     return status_as_error(status);
-  }
-
-  outcome::result<void> RocksDB::put(const BufferView &key, Buffer &&value) {
-    Buffer copy(std::move(value));
-    return put(key, copy);
   }
 
   outcome::result<void> RocksDB::remove(const BufferView &key) {

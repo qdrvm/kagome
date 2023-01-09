@@ -15,4 +15,3 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY kagome /usr/local/bin/
-COPY kagome-db-editor /usr/local/bin/

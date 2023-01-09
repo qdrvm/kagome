@@ -15,7 +15,6 @@
 #include "primitives/justification.hpp"
 
 namespace kagome::blockchain {
-
   /**
    * In-memory light representation of the tree, used for efficiency and usage
    * convenience - we would only ask the database for some info, when directly
@@ -27,25 +26,15 @@ namespace kagome::blockchain {
 
     TreeNode(const primitives::BlockHash &hash,
              primitives::BlockNumber depth,
-             consensus::EpochDigest &&curr_epoch_digest,
-             consensus::EpochNumber epoch_number,
-             consensus::EpochDigest &&next_epoch_digest,
-             bool finalized = false);
-
-    TreeNode(const primitives::BlockHash &hash,
-             primitives::BlockNumber depth,
              const std::shared_ptr<TreeNode> &parent,
-             consensus::EpochNumber epoch_number,
-             std::optional<consensus::EpochDigest> next_epoch_digest,
-             bool finalized = false);
+             bool finalized,
+             bool babe_primary);
 
     primitives::BlockHash block_hash;
     primitives::BlockNumber depth;
     std::weak_ptr<TreeNode> parent;
-    consensus::EpochNumber epoch_number;
-    std::shared_ptr<consensus::EpochDigest> epoch_digest;
-    std::shared_ptr<consensus::EpochDigest> next_epoch_digest;
     bool finalized;
+    bool babe_primary;
 
     std::vector<std::shared_ptr<TreeNode>> children{};
 
@@ -95,17 +84,22 @@ namespace kagome::blockchain {
    * the operations faster
    */
   struct TreeMeta {
+    using Weight = std::pair<size_t, primitives::BlockNumber>;
+
     explicit TreeMeta(
         const std::shared_ptr<TreeNode> &subtree_root_node,
         std::optional<primitives::Justification> last_finalized_justification);
 
-    TreeMeta(std::unordered_set<primitives::BlockHash> leaves,
-             const std::shared_ptr<TreeNode> &deepest_leaf,
-             const std::shared_ptr<TreeNode> &last_finalized,
-             primitives::Justification last_finalized_justification);
+    Weight getWeight(std::shared_ptr<TreeNode> node) const;
+
+    /**
+     * Compare node weight with best and replace if heavier.
+     * @return true if heavier and replaced.
+     */
+    bool chooseBest(std::shared_ptr<TreeNode> node);
 
     std::unordered_set<primitives::BlockHash> leaves;
-    std::weak_ptr<TreeNode> deepest_leaf;
+    std::weak_ptr<TreeNode> best_leaf;
 
     std::weak_ptr<TreeNode> last_finalized;
     std::optional<primitives::Justification> last_finalized_justification;

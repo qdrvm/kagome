@@ -4,6 +4,7 @@
  */
 
 #include "network/impl/state_protocol_observer_impl.hpp"
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/bind/storage.hpp>
 #include <libp2p/outcome/outcome.hpp>
 
@@ -61,7 +62,7 @@ namespace kagome::network {
           const auto &value_opt = value_res.value();
           if (value_opt.has_value()) {
             entry.entries.emplace_back(
-                StateEntry{cursor->key().value(), value_opt.value()});
+                StateEntry{cursor->key().value(), {*value_opt}});
             size += entry.entries.back().key.size()
                     + entry.entries.back().value.size();
           }
@@ -100,15 +101,13 @@ namespace kagome::network {
     if (request.start.size() == 2) {
       const auto &parent_key = request.start[0];
       const auto &child_prefix = storage::kChildStorageDefaultPrefix;
-      if (parent_key.size() < child_prefix.size()
-          || parent_key.subbuffer(0, child_prefix.size()) != child_prefix) {
+      if (!boost::starts_with(parent_key, child_prefix)) {
         return Error::INVALID_CHILD_ROOTHASH;
       }
       if (auto value_res = batch->tryGet(parent_key);
           value_res.has_value() && value_res.value().has_value()) {
-        OUTCOME_TRY(
-            hash,
-            storage::trie::RootHash::fromSpan(value_res.value().value().get()));
+        OUTCOME_TRY(hash,
+                    storage::trie::RootHash::fromSpan(*value_res.value()));
         OUTCOME_TRY(
             entry_res,
             this->getEntry(hash, request.start[1], MAX_RESPONSE_BYTES - size));
@@ -129,17 +128,13 @@ namespace kagome::network {
           value_res.has_value()) {
         const auto &value = value_res.value();
         auto &entry = response.entries.front();
-        entry.entries.emplace_back(
-            StateEntry{cursor->key().value(), value.value()});
+        entry.entries.emplace_back(StateEntry{cursor->key().value(), {*value}});
         size +=
             entry.entries.back().key.size() + entry.entries.back().value.size();
         // if key is child state storage hash iterate child storage keys
-        if (cursor->key().value().size() > child_prefix.size()
-            && cursor->key().value().subbuffer(0, child_prefix.size())
-                   == child_prefix) {
+        if (boost::starts_with(cursor->key().value(), child_prefix)) {
           OUTCOME_TRY(hash,
-                      storage::trie::RootHash::fromSpan(
-                          value_res.value().value().get()));
+                      storage::trie::RootHash::fromSpan(*value_res.value()));
           OUTCOME_TRY(entry_res,
                       this->getEntry(
                           hash, common::Buffer(), MAX_RESPONSE_BYTES - size));

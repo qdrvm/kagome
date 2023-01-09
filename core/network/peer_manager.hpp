@@ -30,17 +30,11 @@ namespace kagome::network {
 
   struct PendingCollation {
     network::ParachainId para_id;
-    BlockHash relay_parent;
-    libp2p::peer::PeerId peer_id;
+    BlockHash const &relay_parent;
+    libp2p::peer::PeerId const &peer_id;
   };
 
-  /*
-   * Parachain state view.
-   */
-  struct ParachainState {
-    std::unordered_map<BlockHash, bool> our_view;
-    std::deque<PendingCollation> pending_collations;
-  };
+  using OurView = network::View;
 
   struct PeerState {
     clock::SteadyClock::TimePoint time;
@@ -50,7 +44,10 @@ namespace kagome::network {
     std::optional<VoterSetId> set_id = std::nullopt;
     BlockNumber last_finalized = 0;
     std::optional<CollatorState> collator_state = std::nullopt;
+    std::optional<View> view;
   };
+
+  struct StreamEngine;
 
   /**
    * Manage active peers:
@@ -80,6 +77,11 @@ namespace kagome::network {
     virtual void reserveStreams(const PeerId &peer_id) const = 0;
 
     /**
+     * Return stream engine object.
+     */
+    virtual std::shared_ptr<StreamEngine> getStreamEngine() = 0;
+
+    /**
      * Keeps peer with {@param peer_id} alive
      */
     virtual void keepAlive(const PeerId &peer_id) = 0;
@@ -106,24 +108,8 @@ namespace kagome::network {
      */
     virtual outcome::result<
         std::pair<network::CollatorPublicKey const &, network::ParachainId>>
-    insert_advertisement(PeerState &peer_state,
-                         ParachainState &parachain_state,
-                         primitives::BlockHash para_hash) = 0;
-
-    /**
-     * Retrieves pending collation from queue.
-     */
-    virtual std::optional<PendingCollation> pop_pending_collation() = 0;
-
-    /**
-     * Pushes pending collation from queue.
-     */
-    virtual void push_pending_collation(PendingCollation &&collation) = 0;
-
-    /**
-     * Allows to update parachains states.
-     */
-    virtual ParachainState &parachainState() = 0;
+    insertAdvertisement(PeerState &peer_state,
+                        primitives::BlockHash para_hash) = 0;
 
     /**
      * Updates collation state and stores parachain id. Should be called once

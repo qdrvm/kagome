@@ -4,9 +4,14 @@
 #include <string_view>
 #include <thread>
 
+#if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
+#endif
+
 #undef TRUE
 #undef FALSE
+
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/di.hpp>
 #include <soralog/impl/configurator_from_yaml.hpp>
 
@@ -139,14 +144,12 @@ void child_storage_root_hashes(
   auto res = cursor->seekUpperBound(child_prefix);
   if (res.has_value()) {
     auto key = cursor->key();
-    while (key.has_value() && key.value().size() >= child_prefix.size()
-           && key.value().subbuffer(0, child_prefix.size()) == child_prefix) {
+    while (key.has_value() && boost::starts_with(key.value(), child_prefix)) {
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
         auto &value_opt = value_res.value();
-        log->trace("Found child root hash {}", value_opt.value().get().toHex());
-        hashes.insert(
-            common::Hash256::fromSpan(value_opt.value().get()).value());
+        log->trace("Found child root hash {}", *value_opt);
+        hashes.insert(common::Hash256::fromSpan(*value_opt).value());
       }
       res = cursor->next();
       key = cursor->key();
@@ -159,8 +162,10 @@ auto is_hash(const char *s) {
          && std::equal(s, s + 2, "0x");
 };
 
-int main(int argc, char *argv[]) {
+int db_editor_main(int argc, const char **argv) {
+#if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
+#endif
 
   Command cmd;
   if (argc == 2 or (argc == 3 && is_hash(argv[2]))
@@ -332,8 +337,7 @@ int main(int argc, char *argv[]) {
     if (COMPACT == cmd) {
       auto batch = check(persistent_batch(trie, target_state)).value();
       auto finalized_batch =
-          check(persistent_batch(trie, target_state))
-              .value();
+          check(persistent_batch(trie, target_state)).value();
 
       std::vector<std::unique_ptr<PersistentTrieBatch>> child_batches;
       {
@@ -345,8 +349,8 @@ int main(int argc, char *argv[]) {
           if (child_batch_res.has_value()) {
             child_batches.emplace_back(std::move(child_batch_res.value()));
           } else {
-            log->error("Child batch 0x{} not found in the storage",
-                       child_root_hash.toHex());
+            log->error("Child batch {} not found in the storage",
+                       child_root_hash);
           }
         }
       }
@@ -358,7 +362,7 @@ int main(int argc, char *argv[]) {
       {
         TicToc t2("Process DB.", log);
         while (db_cursor->isValid() && db_cursor->key().has_value()
-               && db_cursor->key().value()[0] == prefix[0]) {
+               && boost::starts_with(db_cursor->key().value(), prefix)) {
           auto res2 = check(db_batch->remove(db_cursor->key().value()));
           count++;
           if (not(count % 10000000)) {
@@ -410,13 +414,14 @@ int main(int argc, char *argv[]) {
           }
           res = cursor->next();
         }
-        auto cursor = batch->trieCursor();
-        auto res = check(cursor->next());
+
+        cursor = batch->trieCursor();
+        res = check(cursor->next());
         ofs << "values:\n";
         count = 0;
         while (cursor->key().has_value()) {
           ofs << "  - "
-              << check(batch->get(check(cursor->key()).value())).value()
+              << check(batch->get(check(cursor->key()).value())).value().view()
               << "\n";
           if (not(++count % 50000)) {
             log->trace("{} values were dumped.", count);
@@ -435,4 +440,6 @@ int main(int argc, char *argv[]) {
     dynamic_cast<storage::RocksDB *>(storage.get())
         ->compact(common::Buffer(), common::Buffer());
   }
+
+  return 0;
 }

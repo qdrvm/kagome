@@ -5,6 +5,7 @@
 
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <unordered_map>
 #include <utility>
 
@@ -50,8 +51,7 @@ namespace kagome::api {
     OUTCOME_TRY(initial_trie_reader,
                 storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, initial_trie_reader->get(child_storage_key));
-    OUTCOME_TRY(child_root_hash,
-                common::Hash256::fromSpan(gsl::make_span(child_root.get())));
+    OUTCOME_TRY(child_root_hash, common::Hash256::fromSpan(child_root));
     OUTCOME_TRY(child_storage_trie_reader,
                 storage_->getEphemeralBatchAt(child_root_hash));
     auto cursor = child_storage_trie_reader->trieCursor();
@@ -64,9 +64,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      auto min_size = std::min(prefix.size(), key->size());
-      if (not std::equal(
-              prefix.begin(), prefix.begin() + min_size, key.value().begin())) {
+      if (!boost::starts_with(key.value(), prefix)) {
         break;
       }
       result.push_back(cursor->key().value());
@@ -91,8 +89,7 @@ namespace kagome::api {
     OUTCOME_TRY(initial_trie_reader,
                 storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, initial_trie_reader->get(child_storage_key));
-    OUTCOME_TRY(child_root_hash,
-                common::Hash256::fromSpan(gsl::make_span(child_root.get())));
+    OUTCOME_TRY(child_root_hash, common::Hash256::fromSpan(child_root));
     OUTCOME_TRY(child_storage_trie_reader,
                 storage_->getEphemeralBatchAt(child_root_hash));
     auto cursor = child_storage_trie_reader->trieCursor();
@@ -114,9 +111,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      auto min_size = std::min(prefix.size(), key->size());
-      if (not std::equal(
-              prefix.begin(), prefix.begin() + min_size, key.value().begin())) {
+      if (!boost::starts_with(key.value(), prefix)) {
         break;
       }
       result.push_back(cursor->key().value());
@@ -135,13 +130,12 @@ namespace kagome::api {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, trie_reader->get(child_storage_key));
-    OUTCOME_TRY(child_root_hash,
-                common::Hash256::fromSpan(gsl::make_span(child_root.get())));
+    OUTCOME_TRY(child_root_hash, common::Hash256::fromSpan(child_root));
     OUTCOME_TRY(child_storage_trie_reader,
                 storage_->getEphemeralBatchAt(child_root_hash));
     auto res = child_storage_trie_reader->tryGet(key);
-    return common::map_result_optional(res,
-                                       [](const auto &r) { return r.get(); });
+    return common::map_result_optional(
+        std::move(res), [](common::BufferOrView &&r) { return r.into(); });
   }
 
   outcome::result<std::optional<primitives::BlockHash>>
@@ -152,8 +146,7 @@ namespace kagome::api {
     OUTCOME_TRY(value_opt, getStorage(child_storage_key, key, block_hash_opt));
     if (value_opt.has_value()) {
       storage::trie::PolkadotCodec codec;
-      auto hash =
-          codec.hash256(common::Buffer(gsl::make_span(value_opt.value())));
+      auto hash = codec.hash256(value_opt.value());
       return hash;
     }
     return std::nullopt;
@@ -168,11 +161,10 @@ namespace kagome::api {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     OUTCOME_TRY(child_root, trie_reader->get(child_storage_key));
-    OUTCOME_TRY(child_root_hash,
-                common::Hash256::fromSpan(gsl::make_span(child_root.get())));
+    OUTCOME_TRY(child_root_hash, common::Hash256::fromSpan(child_root));
     OUTCOME_TRY(child_storage_trie_reader,
                 storage_->getEphemeralBatchAt(child_root_hash));
     OUTCOME_TRY(value, child_storage_trie_reader->get(key));
-    return value.get().size();
+    return value.size();
   }
 }  // namespace kagome::api

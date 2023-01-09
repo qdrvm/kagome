@@ -5,8 +5,8 @@ BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 
 
 BUILD_TYPE="${BUILD_TYPE:?BUILD_TYPE variable is not defined}"
 
-if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ]; then
-  echo "Invalid build type $BUILD_TYPE, should be either Debug or Release"
+if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ] && [ "$BUILD_TYPE" != "RelWithDebInfo" ]; then
+  echo "Invalid build type $BUILD_TYPE, should be either Debug, Release or RelWithDebInfo"
 fi
 
 git submodule update --init
@@ -14,4 +14,4 @@ git submodule update --init
 cd "$(dirname $0)/../../.."
 
 cmake . -B"${BUILD_DIR}" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
-cmake --build "${BUILD_DIR}" --target kagome kagome-db-editor -- -j${BUILD_THREADS}
+cmake --build "${BUILD_DIR}" --target kagome -- -j${BUILD_THREADS}

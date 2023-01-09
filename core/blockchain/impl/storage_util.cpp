@@ -30,23 +30,21 @@ namespace kagome::blockchain {
     auto num_to_idx_key =
         prependPrefix(numberToIndexKey(block.number), Prefix::ID_TO_LOOKUP_KEY);
     auto block_lookup_key = numberAndHashToLookupKey(block.number, block.hash);
-    return map.put(num_to_idx_key, block_lookup_key);
+    return map.put(num_to_idx_key, std::move(block_lookup_key));
   }
 
   outcome::result<void> putWithPrefix(storage::BufferStorage &map,
                                       prefix::Prefix prefix,
                                       BlockNumber num,
                                       Hash256 block_hash,
-                                      const common::Buffer &value) {
+                                      common::BufferOrView &&value) {
     auto block_lookup_key = numberAndHashToLookupKey(num, block_hash);
 
-    auto hash_to_idx_key =
-        prependPrefix(Buffer{block_hash}, Prefix::ID_TO_LOOKUP_KEY);
-    OUTCOME_TRY(map.put(hash_to_idx_key, block_lookup_key));
-
+    auto hash_to_idx_key = prependPrefix(block_hash, Prefix::ID_TO_LOOKUP_KEY);
     auto value_lookup_key = prependPrefix(block_lookup_key, prefix);
+    OUTCOME_TRY(map.put(hash_to_idx_key, std::move(block_lookup_key)));
 
-    return map.put(value_lookup_key, value);
+    return map.put(value_lookup_key, std::move(value));
   }
 
   outcome::result<bool> hasWithPrefix(const storage::BufferStorage &map,
@@ -57,13 +55,13 @@ namespace kagome::blockchain {
     return map.contains(prependPrefix(key.value(), prefix));
   }
 
-  outcome::result<std::optional<common::Buffer>> getWithPrefix(
+  outcome::result<std::optional<common::BufferOrView>> getWithPrefix(
       const storage::BufferStorage &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id) {
     OUTCOME_TRY(key, idToLookupKey(map, block_id));
     if (!key.has_value()) return std::nullopt;
-    return map.tryLoad(prependPrefix(key.value(), prefix));
+    return map.tryGet(prependPrefix(key.value(), prefix));
   }
 
   common::Buffer numberToIndexKey(primitives::BlockNumber n) {

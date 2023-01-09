@@ -32,8 +32,7 @@ namespace kagome::storage::changes_trie {
       } else {
         SL_TRACE(logger_, "Key: {:l}; Removed;", pair.first);
       }
-      storage_subscription_engine_->notify(
-          pair.first, pair.second, parent_hash_);
+      storage_subscription_engine_->notify(pair.first, pair.second, hash);
     }
   }
 

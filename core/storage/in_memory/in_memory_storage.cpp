@@ -12,26 +12,26 @@ using kagome::common::Buffer;
 
 namespace kagome::storage {
 
-  outcome::result<common::Buffer> InMemoryStorage::load(
+  outcome::result<BufferOrView> InMemoryStorage::get(
       const BufferView &key) const {
     if (storage.find(key.toHex()) != storage.end()) {
-      return storage.at(key.toHex());
+      return BufferView{storage.at(key.toHex())};
     }
 
     return DatabaseError::NOT_FOUND;
   }
 
-  outcome::result<std::optional<Buffer>> InMemoryStorage::tryLoad(
+  outcome::result<std::optional<BufferOrView>> InMemoryStorage::tryGet(
       const common::BufferView &key) const {
     if (storage.find(key.toHex()) != storage.end()) {
-      return storage.at(key.toHex());
+      return BufferView{storage.at(key.toHex())};
     }
 
     return std::nullopt;
   }
 
   outcome::result<void> InMemoryStorage::put(const BufferView &key,
-                                             const Buffer &value) {
+                                             BufferOrView &&value) {
     auto it = storage.find(key.toHex());
     if (it != storage.end()) {
       size_t old_value_size = it->second.size();
@@ -39,20 +39,7 @@ namespace kagome::storage {
       size_ -= old_value_size;
     }
     size_ += value.size();
-    storage[key.toHex()] = value;
-    return outcome::success();
-  }
-
-  outcome::result<void> InMemoryStorage::put(const BufferView &key,
-                                             Buffer &&value) {
-    auto it = storage.find(key.toHex());
-    if (it != storage.end()) {
-      size_t old_value_size = it->second.size();
-      BOOST_ASSERT(size_ >= old_value_size);
-      size_ -= old_value_size;
-    }
-    size_ += value.size();
-    storage[key.toHex()] = std::move(value);
+    storage[key.toHex()] = value.into();
     return outcome::success();
   }
 
@@ -73,8 +60,7 @@ namespace kagome::storage {
     return outcome::success();
   }
 
-  std::unique_ptr<kagome::storage::face::WriteBatch<BufferView, Buffer>>
-  InMemoryStorage::batch() {
+  std::unique_ptr<BufferBatch> InMemoryStorage::batch() {
     return std::make_unique<InMemoryBatch>(*this);
   }
 

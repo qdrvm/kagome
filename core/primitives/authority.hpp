@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <functional>
 
+#include "consensus/constants.hpp"
 #include "primitives/common.hpp"
 #include "primitives/session_key.hpp"
 #include "scale/tie.hpp"
@@ -47,7 +48,8 @@ namespace kagome::primitives {
   /**
    * List of authorities
    */
-  using AuthorityList = std::vector<Authority>;
+  using AuthorityList =
+      common::SLVector<Authority, consensus::kMaxValidatorsNumber>;
 
   /*
    * List of authorities with an identifier

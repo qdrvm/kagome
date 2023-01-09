@@ -49,7 +49,7 @@ namespace kagome::authorship {
           "Extrinsic {} was not pushed to block. Error during xt application: "
           "{}",
           extrinsic.data.toHex().substr(0, 8),
-          apply_res.error().message());
+          apply_res.error());
       return apply_res.error();
     }
     storage_state_ = apply_res.value().new_storage_root;

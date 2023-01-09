@@ -114,7 +114,7 @@ namespace kagome::application {
     uint32_t inPeersLight() const override {
       return in_peers_light_;
     }
-    int32_t luckyPeers() const override {
+    uint32_t luckyPeers() const override {
       return lucky_peers_;
     }
     const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const override {
@@ -184,6 +184,12 @@ namespace kagome::application {
     }
     StorageBackend storageBackend() const override {
       return storage_backend_;
+    }
+    std::optional<std::string_view> devMnemonicPhrase() const override {
+      if (dev_mnemonic_phrase_) {
+        return *dev_mnemonic_phrase_;
+      }
+      return std::nullopt;
     }
 
    private:
@@ -306,7 +312,7 @@ namespace kagome::application {
     uint32_t out_peers_;
     uint32_t in_peers_;
     uint32_t in_peers_light_;
-    int32_t lucky_peers_;
+    uint32_t lucky_peers_;
     network::PeeringConfig peering_config_;
     bool dev_mode_;
     std::string node_name_;
@@ -322,6 +328,7 @@ namespace kagome::application {
     bool subcommand_chain_info_;
     std::optional<primitives::BlockId> recovery_state_;
     StorageBackend storage_backend_ = StorageBackend::RocksDB;
+    std::optional<std::string> dev_mnemonic_phrase_;
   };
 
 }  // namespace kagome::application

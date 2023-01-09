@@ -25,8 +25,10 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
+#include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
 #include "mock/core/offchain/offchain_worker_pool_mock.hpp"
+#include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
@@ -50,6 +52,7 @@
 #include "testutil/runtime/common/basic_code_provider.hpp"
 
 using testing::_;
+using testing::Invoke;
 using testing::Return;
 
 using namespace kagome;
@@ -64,11 +67,9 @@ class RuntimeTestBase : public ::testing::Test {
   using Digest = primitives::Digest;
   using PersistentTrieBatchMock = storage::trie::PersistentTrieBatchMock;
   using EphemeralTrieBatchMock = storage::trie::EphemeralTrieBatchMock;
-  using TopperTrieBatchMock = storage::trie::TopperTrieBatchMock;
 
   void initStorage() {
     using storage::trie::PersistentTrieBatch;
-    using storage::trie::TopperTrieBatchMock;
 
     auto random_generator = std::make_shared<crypto::BoostRandomGenerator>();
     auto sr25519_provider =
@@ -132,6 +133,15 @@ class RuntimeTestBase : public ::testing::Test {
     initStorage();
     trie_storage_ = std::make_shared<storage::trie::TrieStorageMock>();
     serializer_ = std::make_shared<storage::trie::TrieSerializerMock>();
+    hasher_ = std::make_shared<crypto::HasherMock>();
+
+    cache_ = std::make_shared<runtime::RuntimePropertiesCacheMock>();
+    ON_CALL(*cache_, getVersion(_, _))
+        .WillByDefault(
+            Invoke([](const auto &hash, auto func) { return func(); }));
+    ON_CALL(*cache_, getMetadata(_, _))
+        .WillByDefault(
+            Invoke([](const auto &hash, auto func) { return func(); }));
 
     auto module_factory = createModuleFactory();
 
@@ -156,7 +166,8 @@ class RuntimeTestBase : public ::testing::Test {
     runtime_env_factory_ = std::make_shared<runtime::RuntimeEnvironmentFactory>(
         std::move(wasm_provider_), std::move(module_repo), header_repo_);
 
-    executor_ = std::make_shared<runtime::Executor>(runtime_env_factory_);
+    executor_ =
+        std::make_shared<runtime::Executor>(runtime_env_factory_, cache_);
   }
 
   void preparePersistentStorageExpects() {
@@ -179,7 +190,7 @@ class RuntimeTestBase : public ::testing::Test {
 
   template <typename BatchMock>
   void prepareStorageBatchExpectations(BatchMock &batch) {
-    ON_CALL(batch, get(_)).WillByDefault(testing::Invoke([](auto &key) {
+    ON_CALL(batch, getMock(_)).WillByDefault(testing::Invoke([](auto &key) {
       static common::Buffer buf;
       return std::cref(buf);
     }));
@@ -196,7 +207,7 @@ class RuntimeTestBase : public ::testing::Test {
       return cursor;
     }));
     static auto heappages_key = ":heappages"_buf;
-    EXPECT_CALL(batch, get(heappages_key.view()));
+    EXPECT_CALL(batch, getMock(heappages_key.view()));
   }
 
   primitives::BlockHeader createBlockHeader(primitives::BlockHash const &hash,
@@ -237,6 +248,7 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<storage::trie::TrieSerializerMock> serializer_;
   std::shared_ptr<runtime::RuntimeEnvironmentFactory> runtime_env_factory_;
+  std::shared_ptr<runtime::RuntimePropertiesCacheMock> cache_;
   std::shared_ptr<runtime::Executor> executor_;
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_;
   std::shared_ptr<offchain::OffchainPersistentStorageMock> offchain_storage_;

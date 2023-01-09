@@ -5,20 +5,18 @@
 
 #include <gtest/gtest.h>
 
-#include <chrono>
-#include <memory>
-
 #include <boost/asio/io_context.hpp>
 
-#include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
+#include "consensus/babe/types/seal.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/blockchain/digest_tracker_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/clock/timer_mock.hpp"
-#include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
+#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
@@ -31,8 +29,8 @@
 #include "mock/core/network/synchronizer_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
-#include "primitives/block.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -40,7 +38,8 @@
 
 using namespace kagome;
 using namespace consensus;
-using namespace authority;
+using namespace babe;
+using namespace grandpa;
 using namespace application;
 using namespace blockchain;
 using namespace authorship;
@@ -49,7 +48,6 @@ using namespace primitives;
 using namespace clock;
 using namespace common;
 using namespace network;
-using babe::ConsistencyKeeperMock;
 
 using testing::_;
 using testing::A;
@@ -71,14 +69,14 @@ static Digest make_digest(BabeSlotNumber slot) {
 
   BabeBlockHeader babe_header{
       .slot_assignment_type = SlotType::SecondaryPlain,
-      .slot_number = slot,
       .authority_index = 0,
+      .slot_number = slot,
   };
   common::Buffer encoded_header{scale::encode(babe_header).value()};
   digest.emplace_back(
       primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
-  consensus::Seal seal{};
+  consensus::babe::Seal seal{};
   common::Buffer encoded_seal{scale::encode(seal).value()};
   digest.emplace_back(
       primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
@@ -108,36 +106,41 @@ class BabeTest : public testing::Test {
     hasher_ = std::make_shared<HasherMock>();
     timer_mock_ = std::make_unique<testutil::TimerMock>();
     timer_ = timer_mock_.get();
-    grandpa_authority_update_observer_ =
-        std::make_shared<AuthorityUpdateObserverMock>();
+    digest_tracker_ = std::make_shared<DigestTrackerMock>();
+    ON_CALL(*digest_tracker_, onDigest(_, _))
+        .WillByDefault(Return(outcome::success()));
+
     io_context_ = std::make_shared<boost::asio::io_context>();
 
     // add initialization logic
     babe_config_ = std::make_shared<primitives::BabeConfiguration>();
     babe_config_->slot_duration = 60ms;
     babe_config_->randomness.fill(0);
-    babe_config_->genesis_authorities = {
+    babe_config_->authorities = {
         primitives::Authority{{keypair_->public_key}, 1}};
     babe_config_->leadership_rate = {1, 4};
     babe_config_->epoch_length = 2;
 
+    babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
+    ON_CALL(*babe_config_repo_, config(_, _))
+        .WillByDefault(Return(babe_config_));
+    ON_CALL(*babe_config_repo_, epochLength())
+        .WillByDefault(Return(babe_config_->epoch_length));
+
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
+
+    chain_events_engine_ =
+        std::make_shared<primitives::events::ChainSubscriptionEngine>();
 
     offchain_worker_api_ = std::make_shared<runtime::OffchainWorkerApiMock>();
     EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
         .WillRepeatedly(Return(outcome::success()));
 
+    core_ = std::make_shared<runtime::CoreMock>();
     consistency_keeper_ = std::make_shared<babe::ConsistencyKeeperMock>();
 
-    expected_epoch_digest = {
-        .authorities = babe_config_->genesis_authorities,
-        .randomness = babe_config_->randomness,
-    };
-
-    EXPECT_CALL(*block_tree_, getEpochDigest(_, _)).WillRepeatedly([this] {
-      return expected_epoch_digest;
-    });
+    trie_storage_ = std::make_shared<storage::trie::TrieStorageMock>();
 
     auto block_executor = std::make_shared<BlockExecutorMock>();
 
@@ -152,7 +155,7 @@ class BabeTest : public testing::Test {
     babe_ = std::make_shared<babe::BabeImpl>(app_config_,
                                              app_state_manager_,
                                              lottery_,
-                                             babe_config_,
+                                             babe_config_repo_,
                                              proposer_,
                                              block_tree_,
                                              block_announce_transmitter_,
@@ -161,11 +164,14 @@ class BabeTest : public testing::Test {
                                              clock_,
                                              hasher_,
                                              std::move(timer_mock_),
-                                             grandpa_authority_update_observer_,
+                                             digest_tracker_,
                                              synchronizer_,
                                              babe_util_,
+                                             chain_events_engine_,
                                              offchain_worker_api_,
-                                             consistency_keeper_);
+                                             core_,
+                                             consistency_keeper_,
+                                             trie_storage_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -198,12 +204,14 @@ class BabeTest : public testing::Test {
   std::shared_ptr<HasherMock> hasher_;
   std::unique_ptr<testutil::TimerMock> timer_mock_;
   testutil::TimerMock *timer_;
-  std::shared_ptr<AuthorityUpdateObserverMock>
-      grandpa_authority_update_observer_;
+  std::shared_ptr<DigestTrackerMock> digest_tracker_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
+  std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;
+  primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
   std::shared_ptr<runtime::OffchainWorkerApiMock> offchain_worker_api_;
   std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
+  std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<boost::asio::io_context> io_context_;
 
   std::shared_ptr<babe::BabeImpl> babe_;
@@ -234,7 +242,7 @@ class BabeTest : public testing::Test {
 
   Hash256 created_block_hash_{"block#1"_hash256};
 
-  consensus::EpochDigest expected_epoch_digest;
+  consensus::babe::EpochDigest expected_epoch_digest;
 };
 
 ACTION_P(CheckBlockHeader, expected_block_header) {
@@ -266,7 +274,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*clock_, now())
       .WillRepeatedly(Return(clock::SystemClockMock::zero()));
 
-  EXPECT_CALL(*babe_util_, slotDuration()).WillRepeatedly(Return(1ms));
+  EXPECT_CALL(*babe_config_repo_, slotDuration()).WillRepeatedly(Return(1ms));
   EXPECT_CALL(*babe_util_, slotStartTime(_))
       .WillRepeatedly(Return(clock::SystemClockMock::zero()));
   EXPECT_CALL(*babe_util_, slotFinishTime(_))
@@ -293,7 +301,7 @@ TEST_F(BabeTest, Success) {
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
-  EXPECT_CALL(*block_tree_, deepestLeaf()).WillRepeatedly(Return(best_leaf));
+  EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
 
   // call for check condition of offchain worker run
   EXPECT_CALL(*block_tree_, getLastFinalized())
@@ -331,7 +339,7 @@ TEST_F(BabeTest, Success) {
  */
 TEST_F(BabeTest, NotAuthority) {
   EXPECT_CALL(*clock_, now());
-  EXPECT_CALL(*babe_util_, slotDuration());
+  EXPECT_CALL(*babe_config_repo_, slotDuration());
   EXPECT_CALL(*babe_util_, slotFinishTime(_)).Times(testing::AnyNumber());
   EXPECT_CALL(*babe_util_, syncEpoch(_));
   EXPECT_CALL(*timer_, expiresAt(_));
@@ -340,7 +348,7 @@ TEST_F(BabeTest, NotAuthority) {
       .WillOnce(testing::SaveArg<0>(&process_slot));
   babe_->runEpoch(epoch_);
 
-  EXPECT_CALL(*block_tree_, deepestLeaf()).WillRepeatedly(Return(best_leaf));
+  EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
   EXPECT_CALL(*block_tree_, getBlockHeader(BlockId(best_block_hash_)))
       .WillOnce(Return(best_block_header_));
   EXPECT_CALL(*babe_util_, syncEpoch(_));

@@ -19,6 +19,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/justification_storage_policy.hpp"
+#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
@@ -37,6 +38,7 @@ using namespace storage;
 using namespace common;
 using namespace clock;
 using namespace consensus;
+using namespace babe;
 using namespace primitives;
 using namespace blockchain;
 using namespace transaction_pool;
@@ -48,6 +50,7 @@ using prefix::Prefix;
 using testing::_;
 using testing::Invoke;
 using testing::Return;
+using testing::ReturnRef;
 using testing::StrictMock;
 
 namespace kagome::primitives {
@@ -66,7 +69,6 @@ struct BlockTreeTest : public testing::Test {
   }
 
   void SetUp() override {
-    // for LevelDbBlockTree::create(..)
     EXPECT_CALL(*storage_, getBlockTreeLeaves())
         .WillOnce(Return(
             std::vector<primitives::BlockHash>{kFinalizedBlockInfo.hash}));
@@ -137,17 +139,6 @@ struct BlockTreeTest : public testing::Test {
 
     EXPECT_CALL(*changes_tracker_, onBlockAdded(_)).WillRepeatedly(Return());
 
-    babe_config_ = std::make_shared<primitives::BabeConfiguration>();
-    babe_config_->slot_duration = 60ms;
-    babe_config_->randomness.fill(0);
-    babe_config_->genesis_authorities = {primitives::Authority{{}, 1}};
-    babe_config_->leadership_rate = {1, 4};
-    babe_config_->epoch_length = 2;
-
-    babe_util_ = std::make_shared<BabeUtilMock>();
-    EXPECT_CALL(*babe_util_, syncEpoch(_)).WillRepeatedly(Return(1));
-    EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
-
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         extrinsic_observer_,
@@ -155,10 +146,7 @@ struct BlockTreeTest : public testing::Test {
                                         chain_events_engine,
                                         ext_events_engine,
                                         extrinsic_event_key_repo,
-                                        runtime_core_,
                                         changes_tracker_,
-                                        babe_config_,
-                                        babe_util_,
                                         justification_storage_policy_)
                       .value();
   }
@@ -247,14 +235,8 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
 
-  std::shared_ptr<runtime::CoreMock> runtime_core_ =
-      std::make_shared<runtime::CoreMock>();
-
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
       std::make_shared<storage::changes_trie::ChangesTrackerMock>();
-
-  std::shared_ptr<primitives::BabeConfiguration> babe_config_;
-  std::shared_ptr<BabeUtilMock> babe_util_;
 
   std::shared_ptr<JustificationStoragePolicyMock>
       justification_storage_policy_ =
@@ -272,14 +254,14 @@ struct BlockTreeTest : public testing::Test {
 
     BabeBlockHeader babe_header{
         .slot_assignment_type = SlotType::SecondaryPlain,
-        .slot_number = slot,
         .authority_index = 0,
+        .slot_number = slot,
     };
     common::Buffer encoded_header{scale::encode(babe_header).value()};
     digest.emplace_back(
         primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
-    consensus::Seal seal{};
+    kagome::consensus::babe::Seal seal{};
     common::Buffer encoded_seal{scale::encode(seal).value()};
     digest.emplace_back(
         primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
@@ -330,8 +312,7 @@ TEST_F(BlockTreeTest, GetBody) {
  */
 TEST_F(BlockTreeTest, AddBlock) {
   // GIVEN
-  auto &&[deepest_block_number, deepest_block_hash] =
-      block_tree_->deepestLeaf();
+  auto &&[deepest_block_number, deepest_block_hash] = block_tree_->bestLeaf();
   ASSERT_EQ(deepest_block_hash, kFinalizedBlockInfo.hash);
 
   auto leaves = block_tree_->getLeaves();
@@ -351,7 +332,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   auto hash = addBlock(new_block);
 
   // THEN
-  auto new_deepest_block = block_tree_->deepestLeaf();
+  auto new_deepest_block = block_tree_->bestLeaf();
   ASSERT_EQ(new_deepest_block.hash, hash);
 
   leaves = block_tree_->getLeaves();
@@ -415,8 +396,6 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success(header)));
   EXPECT_CALL(*storage_, getBlockBody(bid))
       .WillRepeatedly(Return(outcome::success(body)));
-  EXPECT_CALL(*runtime_core_, version(hash))
-      .WillRepeatedly(Return(primitives::Version{}));
   EXPECT_CALL(*justification_storage_policy_,
               shouldStoreFor(finalized_block_header_))
       .WillOnce(Return(outcome::success(false)));
@@ -477,8 +456,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
       .WillRepeatedly(Return(outcome::success(B1_header)));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B1_hash}))
       .WillRepeatedly(Return(outcome::success(B1_body)));
-  EXPECT_CALL(*runtime_core_, version(B1_hash))
-      .WillRepeatedly(Return(primitives::Version{}));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
       .WillRepeatedly(Return(outcome::success(B1_body)));
   EXPECT_CALL(*pool_, submitExtrinsic(_, _))
@@ -498,7 +475,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, B1_hash);
   ASSERT_EQ(block_tree_->getLeaves().size(), 1);
-  ASSERT_EQ(block_tree_->deepestLeaf().hash, C1_hash);
+  ASSERT_EQ(block_tree_->bestLeaf().hash, C1_hash);
 }
 
 /**
@@ -548,8 +525,6 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
       .WillRepeatedly(Return(outcome::success(B_header)));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
       .WillRepeatedly(Return(outcome::success(B_body)));
-  EXPECT_CALL(*runtime_core_, version(B_hash))
-      .WillRepeatedly(Return(primitives::Version{}));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B1_hash}))
       .WillRepeatedly(Return(outcome::success(B1_body)));
   EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{C1_hash}))
@@ -571,7 +546,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, B_hash);
   ASSERT_EQ(block_tree_->getLeaves().size(), 1);
-  ASSERT_EQ(block_tree_->deepestLeaf().hash, B_hash);
+  ASSERT_EQ(block_tree_->bestLeaf().hash, B_hash);
 }
 
 std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
@@ -582,8 +557,8 @@ std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
                                          auto &make_subtree) {
     primitives::BlockHash hash{};
     std::copy_n(name.begin(), name.size(), hash.begin());
-    auto node = std::make_shared<TreeNode>(
-        hash, current_depth, parent, 33, EpochDigest{});
+    auto node =
+        std::make_shared<TreeNode>(hash, current_depth, parent, false, false);
     if (current_depth + 1 == max_depth) {
       return node;
     }
@@ -683,36 +658,6 @@ TEST_F(BlockTreeTest, TreeNode_applyToChain_exitTokenWorks) {
 
 /**
  * @given block tree with at least three blocks inside
- * @when asking for chain from the lowest block to the closest finalized one
- * @then chain from that block to the last finalized one is returned
- */
-TEST_F(BlockTreeTest, GetChainByBlockOnly) {
-  // GIVEN
-  BlockHeader header1{.parent_hash = kFinalizedBlockInfo.hash,
-                      .number = kFinalizedBlockInfo.number + 1,
-                      .digest = {PreRuntime{}}};
-  BlockBody body1{{Buffer{0x55, 0x55}}};
-  Block block1{header1, body1};
-  auto hash1 = addBlock(block1);
-
-  BlockHeader header2{.parent_hash = hash1,
-                      .number = header1.number + 1,
-                      .digest = {Consensus{}}};
-  BlockBody body2{{Buffer{0x55, 0x55}}};
-  Block block2{header2, body2};
-  auto hash2 = addBlock(block2);
-
-  std::vector<BlockHash> expected_chain{kFinalizedBlockInfo.hash, hash1, hash2};
-
-  // WHEN
-  ASSERT_OUTCOME_SUCCESS(chain, block_tree_->getChainByBlock(hash2))
-
-  // THEN
-  ASSERT_EQ(chain, expected_chain);
-}
-
-/**
- * @given block tree with at least three blocks inside
  * @when asking for chain from the given block to top
  * @then expected chain is returned
  */
@@ -750,14 +695,17 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
 TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
-                     .number = 1,
+                     .number = kFinalizedBlockInfo.number + 1,
                      .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
-  header =
-      BlockHeader{.parent_hash = hash1, .number = 2, .digest = {Consensus{}}};
+  header = BlockHeader{
+      .parent_hash = hash1,
+      .number = header.number + 1,
+      .digest = {Consensus{}},
+  };
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
@@ -768,7 +716,7 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   EXPECT_CALL(*header_repo_, getBlockHeader({kFinalizedBlockInfo.hash}))
       .WillOnce(Return(BlockTreeError::HEADER_NOT_FOUND));
 
-  std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockInfo.hash};
+  std::vector<BlockHash> expected_chain{hash2, hash1};
 
   // WHEN
   ASSERT_OUTCOME_SUCCESS(chain,
@@ -865,7 +813,7 @@ TEST_F(BlockTreeTest, Reorganize) {
   //   LF - A - B - C1 - D1 - E1
 
   // THEN.2
-  ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E1_hash));
+  ASSERT_TRUE(block_tree_->bestLeaf() == BlockInfo(47, E1_hash));
 
   // WHEN.2
   auto C2_hash = addHeaderToRepository(B_hash, 45, "2"_hash256);
@@ -879,7 +827,7 @@ TEST_F(BlockTreeTest, Reorganize) {
   //   LF - A - B - C1 - D1 - E1
 
   // THEN.2
-  ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E1_hash));
+  ASSERT_TRUE(block_tree_->bestLeaf() == BlockInfo(47, E1_hash));
 
   // WHEN.3
   EXPECT_CALL(*storage_, putJustification(_, _, _))
@@ -887,9 +835,6 @@ TEST_F(BlockTreeTest, Reorganize) {
 
   EXPECT_CALL(*storage_, getBlockBody(_))
       .WillRepeatedly(Return(outcome::success(BlockBody{})));
-
-  EXPECT_CALL(*runtime_core_, version(C2_hash))
-      .WillRepeatedly(Return(primitives::Version{}));
 
   EXPECT_CALL(
       *storage_,
@@ -906,7 +851,7 @@ TEST_F(BlockTreeTest, Reorganize) {
   //   LF - A - B - C2 - D2 - E2
 
   // THEN.3
-  ASSERT_TRUE(block_tree_->deepestLeaf() == BlockInfo(47, E2_hash));
+  ASSERT_TRUE(block_tree_->bestLeaf() == BlockInfo(47, E2_hash));
 }
 
 /**
@@ -932,9 +877,6 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
 
   Justification new_justification{"justification_56"_buf};
 
-  EXPECT_CALL(*runtime_core_, version(b56))
-      .WillOnce(Return(primitives::Version{}));
-
   // shouldn't keep old justification
   EXPECT_CALL(*justification_storage_policy_,
               shouldStoreFor(finalized_block_header_))
@@ -958,9 +900,6 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
       .WillOnce(Return(primitives::BlockBody{}));
 
   Justification new_justification{"justification_56"_buf};
-
-  EXPECT_CALL(*runtime_core_, version(b56))
-      .WillOnce(Return(primitives::Version{}));
 
   // shouldn't keep old justification
   EXPECT_CALL(*justification_storage_policy_,

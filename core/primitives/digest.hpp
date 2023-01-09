@@ -11,6 +11,9 @@
 #include "common/buffer.hpp"
 #include "common/tagged.hpp"
 #include "common/unused.hpp"
+#include "consensus/babe/types/babe_block_header.hpp"
+#include "consensus/constants.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "primitives/scheduled_change.hpp"
 #include "scale/scale.hpp"
 #include "scale/tie.hpp"
@@ -38,7 +41,8 @@ namespace kagome::primitives {
       SCALE_TIE(2);
 
       ConsensusEngineId consensus_engine_id;
-      common::Buffer data;
+
+      common::SLBuffer<consensus::kMaxValidatorsNumber * 1024> data;
     };
   }  // namespace detail
 
@@ -73,7 +77,7 @@ namespace kagome::primitives {
 
   struct DecodedConsensusMessage {
     static outcome::result<DecodedConsensusMessage> create(
-        ConsensusEngineId engine_id, common::Buffer const &data) {
+        ConsensusEngineId engine_id, const common::Buffer &data) {
       if (engine_id == primitives::kBabeEngineId) {
         OUTCOME_TRY(payload, scale::decode<BabeDigest>(data));
         return DecodedConsensusMessage{engine_id, std::move(payload)};
@@ -177,11 +181,18 @@ namespace kagome::primitives {
                                     Unused<7>,                   // 7
                                     RuntimeEnvironmentUpdated>;  // 8
 
+  namespace {
+    // This value is enough to disable each of validators in each of two
+    // consensus engines
+    constexpr auto kMaxItemsInDigest = consensus::kMaxValidatorsNumber * 4;
+  }  // namespace
+
   /**
    * Digest is an implementation- and usage-defined entity, for example,
    * information, needed to verify the block
    */
-  using Digest = std::vector<DigestItem>;
+  using Digest = common::SLVector<DigestItem, kMaxItemsInDigest>;
+
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_DIGEST

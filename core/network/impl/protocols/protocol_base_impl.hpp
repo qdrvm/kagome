@@ -15,6 +15,7 @@
 #include <libp2p/host/host.hpp>
 #include <libp2p/peer/stream_protocols.hpp>
 
+#include "network/helpers/stream_read_buffer.hpp"
 #include "utils/box.hpp"
 #include "utils/non_copyable.hpp"
 
@@ -32,43 +33,33 @@ namespace kagome::network {
     ProtocolBaseImpl() = delete;
     ~ProtocolBaseImpl() = default;
 
-    ProtocolBaseImpl(libp2p::Host &host,
-                     Protocols const &protocols,
-                     std::string const &log_section)
-        : context_{std::make_shared<Context>(
-            Context{.host_ = host,
-                    .protocols_ = std::move(protocols),
-                    .log_ = log::createLogger(log_section, "kagome_protocols"),
-                    .active_proto_ = std::nullopt})} {
-      BOOST_ASSERT_MSG(context_, "Context must be created!");
-    }
+    ProtocolBaseImpl(ProtocolName name,
+                     libp2p::Host &host,
+                     Protocols protocols,
+                     log::Logger logger)
+        : name_(std::move(name)),
+          host_{host},
+          protocols_{std::move(protocols)},
+          log_{std::move(logger)} {}
 
     template <typename T>
     bool start(std::weak_ptr<T> wptr) {
-      context_->host_.setProtocolHandler(
-          context_->protocols_,
-          [wcontext{std::weak_ptr<Context>(context_)},
-           wp(std::move(wptr))](auto &&stream_and_proto) {
-            if (auto context = wcontext.lock()) {
-              context->active_proto_ = std::move(stream_and_proto.protocol);
-              auto peer_id = stream_and_proto.stream->remotePeerId();
-
-              if (peer_id) {
-                SL_TRACE(context->log_,
-                         "Handled {} protocol stream from: {}",
-                         stream_and_proto.protocol,
-                         peer_id.value().toBase58());
-                if (auto self = wp.lock()) {
-                  self->onIncomingStream(
-                      std::forward<decltype(stream_and_proto.stream)>(
-                          stream_and_proto.stream));
-                  return;
-                }
-              } else {
-                context->log_->warn(
-                    "Handled {} protocol stream from unknown peer",
-                    stream_and_proto.protocol);
+      host_.setProtocolHandler(
+          protocols_,
+          [log{logger()}, wp(std::move(wptr))](auto &&stream_and_proto) {
+            network::streamReadBuffer(stream_and_proto);
+            if (auto peer_id = stream_and_proto.stream->remotePeerId()) {
+              SL_TRACE(log,
+                       "Handled {} protocol stream from: {}",
+                       stream_and_proto.protocol,
+                       peer_id.value().toBase58());
+              if (auto self = wp.lock()) {
+                self->onIncomingStream(std::move(stream_and_proto.stream));
+                return;
               }
+            } else {
+              log->warn("Handled {} protocol stream from unknown peer",
+                        stream_and_proto.protocol);
             }
             stream_and_proto.stream->close(
                 [stream{stream_and_proto.stream}](auto &&) {});
@@ -80,26 +71,26 @@ namespace kagome::network {
       return true;
     }
 
-    Protocols const &protocolIds() const {
-      return context_->protocols_;
+    const ProtocolName &protocolName() const {
+      return name_;
     }
 
-    std::optional<Protocol> const &protocol() const {
-      return context_->active_proto_;
+    Protocols const &protocolIds() const {
+      return protocols_;
     }
 
     Host &host() {
-      return context_->host_;
+      return host_;
     }
 
     log::Logger const &logger() const {
-      return context_->log_;
+      return log_;
     }
 
     template <typename T>
     void closeStream(std::weak_ptr<T> wptr, std::shared_ptr<Stream> stream) {
       BOOST_ASSERT(stream);
-      stream->close([log(context_->log_), wptr, stream](auto &&result) {
+      stream->close([log{logger()}, wptr, stream](auto &&result) {
         if (auto self = wptr.lock()) {
           if (!result) {
             SL_WARN(log,
@@ -118,15 +109,12 @@ namespace kagome::network {
     }
 
    private:
-    struct Context {
-      Host &host_;
-      Protocols const protocols_;
-      log::Logger log_;
-      std::optional<Protocol> active_proto_;
-    };
-
-    std::shared_ptr<Context> context_;
+    const ProtocolName name_;
+    Host &host_;
+    const Protocols protocols_;
+    log::Logger log_;
   };
+
 }  // namespace kagome::network
 
 #endif  // KAGOME_NETWORK_PROTOCOLBASEIMPL

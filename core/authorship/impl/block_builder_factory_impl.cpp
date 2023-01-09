@@ -37,7 +37,7 @@ namespace kagome::authorship {
     header.digest = std::move(inherent_digest);
 
     if (auto res = r_core_->initialize_block(header); not res) {
-      logger_->error("Core_initialize_block failed: {}", res.error().message());
+      logger_->error("Core_initialize_block failed: {}", res.error());
       return res.error();
     } else {
       return std::make_unique<BlockBuilderImpl>(
