@@ -35,6 +35,8 @@ namespace kagome::runtime {
     primitives::BlockInfo blockchain_state_;
   };
 
+  outcome::result<void> resetMemory(const ModuleInstance &module);
+
   class RuntimeEnvironmentFactory
       : public std::enable_shared_from_this<RuntimeEnvironmentFactory> {
    public:

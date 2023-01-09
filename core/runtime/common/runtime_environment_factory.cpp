@@ -44,6 +44,50 @@ namespace kagome::runtime {
     BOOST_ASSERT(this->storage_provider);
   }
 
+  outcome::result<void> resetMemory(const ModuleInstance &instance) {
+    static auto log = log::createLogger("RuntimeEnvironmentFactory", "runtime");
+
+    OUTCOME_TRY(opt_heap_base, instance.getGlobal("__heap_base"));
+    if (not opt_heap_base) {
+      log->error(
+          "__heap_base global variable is not found in a runtime module");
+      return RuntimeEnvironmentFactory::Error::ABSENT_HEAP_BASE;
+    }
+    int32_t heap_base = boost::get<int32_t>(*opt_heap_base);
+
+    auto &memory_provider = instance.getEnvironment().memory_provider;
+    OUTCOME_TRY(
+        const_cast<MemoryProvider &>(*memory_provider).resetMemory(heap_base));
+    auto &memory = memory_provider->getCurrentMemory()->get();
+
+    static auto heappages_key = ":heappages"_buf;
+    OUTCOME_TRY(
+        heappages,
+        instance.getEnvironment().storage_provider->getCurrentBatch()->tryGet(
+            heappages_key));
+    if (heappages) {
+      if (sizeof(uint64_t) != heappages->size()) {
+        log->error(
+            "Unable to read :heappages value. Type size mismatch. "
+            "Required {} bytes, but {} available",
+            sizeof(uint64_t),
+            heappages->size());
+      } else {
+        uint64_t pages = common::le_bytes_to_uint64(heappages->view());
+        memory.resize(pages * kMemoryPageSize);
+        log->trace(
+            "Creating wasm module with non-default :heappages value set to {}",
+            pages);
+      }
+    }
+
+    instance.forDataSegment([&](auto offset, auto segment) {
+      memory.storeBuffer(offset, segment);
+    });
+
+    return outcome::success();
+  }
+
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::
       RuntimeEnvironmentTemplate(
           std::weak_ptr<const RuntimeEnvironmentFactory> parent_factory,
@@ -110,44 +154,7 @@ namespace kagome::runtime {
       }
     }
 
-    OUTCOME_TRY(opt_heap_base, instance->getGlobal("__heap_base"));
-    if (!opt_heap_base.has_value()) {
-      parent_factory->logger_->error(
-          "__heap_base global variable is not found in a runtime module");
-      return Error::ABSENT_HEAP_BASE;
-    }
-    int32_t heap_base = boost::get<int32_t>(opt_heap_base.value());
-
-    OUTCOME_TRY(env.memory_provider->resetMemory(heap_base));
-
-    auto heappages_key = ":heappages"_buf;
-    auto heappages_res =
-        env.storage_provider->getCurrentBatch()->get(heappages_key);
-    if (heappages_res.has_value()) {
-      const auto &heappages = heappages_res.value();
-      if (sizeof(uint64_t) != heappages.size()) {
-        parent_factory->logger_->error(
-            "Unable to read :heappages value. Type size mismatch. "
-            "Required {} bytes, but {} available",
-            sizeof(uint64_t),
-            heappages.size());
-      } else {
-        uint64_t pages = common::le_bytes_to_uint64(heappages.view());
-        env.memory_provider->getCurrentMemory()->get().resize(
-            pages * kMemoryPageSize);
-        parent_factory->logger_->trace(
-            "Creating wasm module with non-default :heappages value set to {}",
-            pages);
-      }
-    } else if (kagome::storage::trie::TrieError::NO_VALUE
-               != heappages_res.error()) {
-      return heappages_res.error();
-    }
-
-    auto &memory = env.memory_provider->getCurrentMemory()->get();
-    instance->forDataSegment([&memory](auto offset, auto segment) {
-      memory.storeBuffer(offset, segment);
-    });
+    OUTCOME_TRY(resetMemory(*instance));
 
     SL_DEBUG(parent_factory->logger_,
              "Runtime environment at {}, state: {:l}",
