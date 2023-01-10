@@ -21,7 +21,7 @@ namespace kagome::network {
   struct KeyValueStateEntry {
     /// Root of for this level, empty length bytes
     /// if top level.
-    storage::trie::RootHash state_root;
+    std::optional<storage::trie::RootHash> state_root;
     /// A collection of keys-values.
     std::vector<StateEntry> entries;
     /// Set to true when there are no more keys to return.

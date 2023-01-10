@@ -27,14 +27,13 @@ namespace kagome::storage {
 
   inline const common::Buffer kOffchainWorkerStoragePrefix = ":kagome:ocw"_buf;
 
+  inline const common::Buffer kChildStoragePrefix = ":child_storage:"_buf;
+
   inline const common::Buffer kChildStorageDefaultPrefix =
       ":child_storage:default:"_buf;
 
   inline const common::Buffer kApplyingBlockInfoLookupKey =
       ":kagome:applying_block"_buf;
-
-  inline const common::Buffer kBlockOfIncompleteSyncStateLookupKey =
-      ":kagome:block_of_incomplete_sync_state"_buf;
 
   template <typename Tag>
   inline common::Buffer kBabeConfigRepoStateLookupKey(Tag tag) {
