@@ -229,16 +229,7 @@ namespace kagome::host_api {
   runtime::WasmSpan StorageExtension::ext_storage_root_version_2(
       runtime::WasmI32 version) {
     auto state_version = toStateVersion(version);
-
-    outcome::result<storage::trie::RootHash> res{{}};
-    removeEmptyChildStorages();
-    if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
-        opt_batch.has_value() and opt_batch.value() != nullptr) {
-      res = opt_batch.value()->commit(state_version);
-    } else {
-      logger_->warn("ext_storage_root called in an ephemeral extension");
-      res = storage_provider_->forceCommit(state_version);
-    }
+    auto res = storage_provider_->forceCommit(state_version);
     if (res.has_error()) {
       logger_->error("ext_storage_root resulted with an error: {}",
                      res.error());
@@ -455,38 +446,4 @@ namespace kagome::host_api {
     }
     return memory.storeBuffer(enc_res.value());
   }
-
-  void StorageExtension::removeEmptyChildStorages() {
-    static const auto &prefix = storage::kChildStorageDefaultPrefix;
-    auto current_key = prefix;
-    auto key_res = getStorageNextKey(current_key);
-    while (key_res.has_value() and key_res.value().has_value()) {
-      auto &key_opt = key_res.value();
-      current_key = key_opt.value();
-
-      bool contains_prefix =
-          std::equal(prefix.begin(), prefix.end(), current_key.begin());
-      if (not contains_prefix) {
-        break;
-      }
-      // SAFETY: key obtained by getStorageNextKey method, thus must exist in
-      // the storage
-      auto value_opt = get(current_key).value();
-      if (value_opt == storage::trie::kEmptyRootHash) {
-        auto batch = storage_provider_->getCurrentBatch();
-        auto remove_res = batch->remove(current_key);
-        if (not remove_res) {
-          logger_->error(
-              "Unable to remove empty child storage under key {}, error is {}",
-              current_key,
-              remove_res.error());
-        } else {
-          SL_TRACE(
-              logger_, "Removed empty child trie under key {}", current_key);
-        }
-      }
-      key_res = getStorageNextKey(current_key);
-    }
-  }
-
 }  // namespace kagome::host_api

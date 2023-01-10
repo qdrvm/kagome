@@ -38,9 +38,6 @@ namespace kagome::runtime {
         const common::Hash256 &state_root) override;
 
     std::shared_ptr<Batch> getCurrentBatch() const override;
-    std::optional<std::shared_ptr<PersistentBatch>> tryGetPersistentBatch()
-        const override;
-    bool isCurrentlyPersistent() const override;
 
     outcome::result<std::shared_ptr<PersistentBatch>> getChildBatchAt(
         const common::Buffer &root_path) override;
@@ -51,8 +48,6 @@ namespace kagome::runtime {
     outcome::result<void> startTransaction() override;
     outcome::result<void> rollbackTransaction() override;
     outcome::result<void> commitTransaction() override;
-
-    void clearChildBatches() noexcept override;
 
    private:
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;

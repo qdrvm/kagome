@@ -58,18 +58,10 @@ class ChildStorageExtensionTest : public ::testing::Test {
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     EXPECT_CALL(*storage_provider_, getCurrentBatch())
         .WillRepeatedly(Return(trie_batch_));
-    EXPECT_CALL(*storage_provider_, isCurrentlyPersistent())
-        .WillRepeatedly(Return(true));
     EXPECT_CALL(*storage_provider_, getChildBatchAt(_))
         .WillRepeatedly(Return(std::static_pointer_cast<
                                kagome::storage::trie::PersistentTrieBatch>(
             trie_child_storage_batch_)));
-    EXPECT_CALL(*storage_provider_, clearChildBatches())
-        .WillRepeatedly(Return());
-    EXPECT_CALL(*storage_provider_, tryGetPersistentBatch())
-        .WillRepeatedly(Return(std::make_optional(
-            std::static_pointer_cast<
-                kagome::storage::trie::PersistentTrieBatch>(trie_batch_))));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
@@ -122,21 +114,6 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
               loadN(child_storage_key_pointer, child_storage_key_size))
       .WillOnce(Return(child_storage_key));
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-
-  Buffer prefixed_child_storage_key;
-  if (GetParam()) {
-    RootHash new_child_root = "123456"_hash256;
-    Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
-    EXPECT_CALL(*trie_child_storage_batch_, commit(_))
-        .WillOnce(Return(new_child_root));
-
-    prefixed_child_storage_key =
-        Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
-            child_storage_key);
-    EXPECT_CALL(*trie_batch_,
-                put(prefixed_child_storage_key.view(), new_child_root_buffer))
-        .WillOnce(Return(outcome::success()));
-  }
 
   // logic
 
@@ -198,21 +175,6 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
               loadN(child_storage_key_pointer, child_storage_key_size))
       .WillOnce(Return(child_storage_key));
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-
-  Buffer prefixed_child_storage_key;
-  if (GetParam()) {
-    RootHash new_child_root = "123456"_hash256;
-    Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
-    EXPECT_CALL(*trie_child_storage_batch_, commit(_))
-        .WillOnce(Return(new_child_root));
-
-    prefixed_child_storage_key =
-        Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
-            child_storage_key);
-    EXPECT_CALL(*trie_batch_,
-                put(prefixed_child_storage_key.view(), new_child_root_buffer))
-        .WillOnce(Return(outcome::success()));
-  }
 
   // logic
 
@@ -284,22 +246,13 @@ TEST_P(VoidOutcomeParameterizedTest, SetTest) {
   Buffer key(8, 'k');
   EXPECT_CALL(*memory_,
               loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillOnce(Return(child_storage_key));
+      .WillRepeatedly(Return(child_storage_key));
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
-  Buffer prefixed_child_storage_key;
   if (GetParam()) {
     RootHash new_child_root = "123456"_hash256;
-    Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
     EXPECT_CALL(*trie_child_storage_batch_, commit(_))
         .WillOnce(Return(new_child_root));
-
-    prefixed_child_storage_key =
-        Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
-            child_storage_key);
-    EXPECT_CALL(*trie_batch_,
-                put(prefixed_child_storage_key.view(), new_child_root_buffer))
-        .WillOnce(Return(outcome::success()));
   }
 
   // logic
@@ -314,6 +267,10 @@ TEST_P(VoidOutcomeParameterizedTest, SetTest) {
 
   child_storage_extension_->ext_default_child_storage_set_version_1(
       child_storage_key_span, key_span, value_span);
+  if (GetParam()) {
+    child_storage_extension_->ext_default_child_storage_root_version_1(
+        child_storage_key_span);
+  }
 }
 
 /**
@@ -335,21 +292,13 @@ TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
   Buffer key(8, 'k');
   EXPECT_CALL(*memory_,
               loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillOnce(Return(child_storage_key));
+      .WillRepeatedly(Return(child_storage_key));
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
-  Buffer prefixed_child_storage_key;
   if (GetParam()) {
     RootHash new_child_root = "123456"_hash256;
-    Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
     EXPECT_CALL(*trie_child_storage_batch_, commit(_))
         .WillOnce(Return(new_child_root));
-    prefixed_child_storage_key =
-        Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
-            child_storage_key);
-    EXPECT_CALL(*trie_batch_,
-                put(prefixed_child_storage_key.view(), new_child_root_buffer))
-        .WillOnce(Return(outcome::success()));
   }
 
   // logic
@@ -358,6 +307,10 @@ TEST_P(VoidOutcomeParameterizedTest, ClearTest) {
 
   child_storage_extension_->ext_default_child_storage_clear_version_1(
       child_storage_key_span, key_span);
+  if (GetParam()) {
+    child_storage_extension_->ext_default_child_storage_root_version_1(
+        child_storage_key_span);
+  }
 }
 
 /**
@@ -381,21 +334,13 @@ TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
   Buffer prefix(8, 'p');
   EXPECT_CALL(*memory_,
               loadN(child_storage_key_pointer, child_storage_key_size))
-      .WillOnce(Return(child_storage_key));
+      .WillRepeatedly(Return(child_storage_key));
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
       .WillOnce(Return(prefix));
 
   RootHash new_child_root = "123456"_hash256;
-  Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
   EXPECT_CALL(*trie_child_storage_batch_, commit(_))
       .WillOnce(Return(new_child_root));
-
-  Buffer prefixed_child_storage_key =
-      Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
-          child_storage_key);
-  EXPECT_CALL(*trie_batch_,
-              put(prefixed_child_storage_key.view(), new_child_root_buffer))
-      .WillOnce(Return(outcome::success()));
 
   // logic
   std::optional<uint64_t> limit = std::nullopt;
@@ -404,6 +349,8 @@ TEST_F(ChildStorageExtensionTest, ClearPrefixKillTest) {
 
   child_storage_extension_->ext_default_child_storage_clear_prefix_version_1(
       child_storage_key_span, prefix_span);
+  child_storage_extension_->ext_default_child_storage_root_version_1(
+      child_storage_key_span);
 }
 
 /**
@@ -502,21 +449,6 @@ TEST_P(BoolOutcomeParameterizedTest, ExistsTest) {
               loadN(child_storage_key_pointer, child_storage_key_size))
       .WillOnce(Return(child_storage_key));
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-
-  Buffer prefixed_child_storage_key;
-  if (GetParam()) {
-    RootHash new_child_root = "123456"_hash256;
-    Buffer new_child_root_buffer{scale::encode(new_child_root).value()};
-    EXPECT_CALL(*trie_child_storage_batch_, commit(_))
-        .WillOnce(Return(new_child_root));
-
-    prefixed_child_storage_key =
-        Buffer{kagome::storage::kChildStorageDefaultPrefix}.put(
-            child_storage_key);
-    EXPECT_CALL(*trie_batch_,
-                put(prefixed_child_storage_key.view(), new_child_root_buffer))
-        .WillOnce(Return(outcome::success()));
-  }
 
   // logic
   EXPECT_CALL(*trie_child_storage_batch_, contains(key.view()))
