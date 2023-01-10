@@ -57,10 +57,10 @@ TEST_F(PaymentApiTest, QueryInfo) {
   Extrinsic extrinsic;
   auto len = 22u;
   auto deepest_hash = "12345"_hash256;
-  BlockInfo deepest_leaf{10, deepest_hash};
+  BlockInfo best_leaf{10, deepest_hash};
   RuntimeDispatchInfo expected_result;
 
-  EXPECT_CALL(*block_tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
+  EXPECT_CALL(*block_tree_, bestLeaf()).WillOnce(Return(best_leaf));
   EXPECT_CALL(*transaction_payment_api_,
               query_info(deepest_hash, extrinsic, len))
       .WillOnce(Return(expected_result));

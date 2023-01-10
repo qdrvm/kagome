@@ -25,11 +25,9 @@ namespace kagome::network {
     MOCK_METHOD(std::shared_ptr<StreamEngine>, getStreamEngine, (), (override));
 
     MOCK_METHOD(AdvResult,
-                insert_advertisement,
-                (PeerState &, ParachainState &, primitives::BlockHash),
+                insertAdvertisement,
+                (PeerState &, primitives::BlockHash),
                 (override));
-
-    MOCK_METHOD(ParachainState &, parachainState, (), (override));
 
     MOCK_METHOD(void,
                 setCollating,

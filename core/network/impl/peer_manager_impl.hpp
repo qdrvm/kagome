@@ -100,14 +100,10 @@ namespace kagome::network {
                       network::CollatorPublicKey const &collator_id,
                       network::ParachainId para_id) override;
 
-    /** @see PeerManager::parachainState */
-    ParachainState &parachainState() override;
-
     outcome::result<
         std::pair<network::CollatorPublicKey const &, network::ParachainId>>
-    insert_advertisement(PeerState &peer_state,
-                         ParachainState &parachain_state,
-                         primitives::BlockHash para_hash) override;
+    insertAdvertisement(PeerState &peer_state,
+                        primitives::BlockHash para_hash) override;
 
     /** @see PeerManager::forEachPeer */
     void forEachPeer(std::function<void(const PeerId &)> func) const override;
@@ -148,6 +144,14 @@ namespace kagome::network {
     void processDiscoveredPeer(const PeerId &peer_id);
 
     void processFullyConnectedPeer(const PeerId &peer_id);
+
+    template <typename F>
+    void openBlockAnnounceProtocol(
+        PeerInfo const &peer_info,
+        libp2p::network::ConnectionManager::ConnectionSPtr const &connection,
+        F &&opened_callback);
+    void tryOpenGrandpaProtocol(PeerInfo const &peer_info,
+                                PeerState &peer_state);
 
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);
@@ -196,8 +200,7 @@ namespace kagome::network {
     metrics::Gauge *sync_peer_num_;
 
     // parachain
-    ParachainState parachain_state_;
-    std::shared_ptr<PeerView> peer_view_;
+    std::shared_ptr<network::PeerView> peer_view_;
 
     log::Logger log_;
   };
