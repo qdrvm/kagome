@@ -370,9 +370,7 @@ namespace kagome::host_api {
     auto &&pv = pairs.value();
     storage::trie::PolkadotCodec codec;
     if (pv.empty()) {
-      static const auto empty_root =
-          common::Buffer(codec.hash256(common::Buffer{0}));
-      auto res = memory.storeBuffer(empty_root);
+      auto res = memory.storeBuffer(storage::trie::kEmptyRootHash);
       return runtime::PtrSize(res).ptr;
     }
     storage::trie::PolkadotTrieImpl trie;
@@ -461,7 +459,6 @@ namespace kagome::host_api {
 
   void StorageExtension::removeEmptyChildStorages() {
     static const auto &prefix = storage::kChildStorageDefaultPrefix;
-    static const auto empty_hash = codec_.hash256(common::Buffer{0});
     auto current_key = prefix;
     auto key_res = getStorageNextKey(current_key);
     while (key_res.has_value() and key_res.value().has_value()) {
@@ -476,7 +473,7 @@ namespace kagome::host_api {
       // SAFETY: key obtained by getStorageNextKey method, thus must exist in
       // the storage
       auto value_opt = get(current_key).value();
-      if (value_opt == empty_hash) {
+      if (value_opt == storage::trie::kEmptyRootHash) {
         auto batch = storage_provider_->getCurrentBatch();
         auto remove_res = batch->remove(current_key);
         if (not remove_res) {
