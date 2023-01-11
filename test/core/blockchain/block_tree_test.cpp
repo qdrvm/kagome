@@ -778,7 +778,6 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
   auto T_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto A_hash = addHeaderToRepository(T_hash, 44);
   auto B_hash = addHeaderToRepository(A_hash, 45);
-  auto C1_hash = addHeaderToRepository(B_hash, 46);
   auto C2_hash = addHeaderToRepository(B_hash, 46);
   auto D2_hash = addHeaderToRepository(C2_hash, 47);
 

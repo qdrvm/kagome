@@ -30,10 +30,10 @@ int main(int argc, const char **argv) {
   if (argc > 1) {
     std::string_view name{argv[1]};
     if (name == "storage-explorer") {
-      return storage_explorer_main(argc, argv + 1);
+      return storage_explorer_main(argc - 1, argv + 1);
     }
     if (name == "db-editor") {
-      return db_editor_main(argc, argv + 1);
+      return db_editor_main(argc - 1, argv + 1);
     }
   }
 

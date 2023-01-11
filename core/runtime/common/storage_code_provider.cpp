@@ -32,9 +32,8 @@ namespace kagome::runtime {
 
   outcome::result<gsl::span<const uint8_t>> StorageCodeProvider::getCodeAt(
       const storage::trie::RootHash &state) const {
+    std::unique_lock lock{mutex_};
     if (last_state_root_ != state) {
-      last_state_root_ = state;
-
       auto block_info =
           runtime_upgrade_tracker_->getLastCodeUpdateBlockInfo(state);
       if (block_info.has_value()) {
@@ -47,15 +46,18 @@ namespace kagome::runtime {
         }
       }
       OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state));
-      OUTCOME_TRY(setCodeFromBatch(*batch.get()));
+      OUTCOME_TRY(code, setCodeFromBatch(*batch.get()));
+      cached_code_ = std::move(code);
+      last_state_root_ = state;
     }
     return cached_code_;
   }
 
-  outcome::result<void> StorageCodeProvider::setCodeFromBatch(
+  outcome::result<common::Buffer> StorageCodeProvider::setCodeFromBatch(
       const storage::trie::EphemeralTrieBatch &batch) const {
     OUTCOME_TRY(code, batch.get(storage::kRuntimeCodeKey));
-    OUTCOME_TRY(uncompressCodeIfNeeded(code, cached_code_));
-    return outcome::success();
+    common::Buffer uncompressed;
+    OUTCOME_TRY(uncompressCodeIfNeeded(code, uncompressed));
+    return std::move(uncompressed);
   }
 }  // namespace kagome::runtime
