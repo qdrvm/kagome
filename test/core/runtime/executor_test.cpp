@@ -83,8 +83,7 @@ class ExecutorTest : public testing::Test {
       kagome::storage::trie::RootHash const &storage_state,
       int arg1,
       int arg2,
-      int res,
-      kagome::storage::trie::RootHash const &next_storage_state) {
+      int res) {
     static Buffer enc_args;
     enc_args = Buffer{scale::encode(arg1, arg2).value()};
     const PtrSize RESULT_LOCATION{3, 4};
@@ -99,7 +98,6 @@ class ExecutorTest : public testing::Test {
                      env_factory_},
              blockchain_state,
              storage_state,
-             next_storage_state = std::move(next_storage_state),
              this,
              RESULT_LOCATION](auto &) {
               auto env_template =
@@ -108,11 +106,7 @@ class ExecutorTest : public testing::Test {
               EXPECT_CALL(*env_template, persistent())
                   .WillOnce(ReturnRef(*env_template));
               EXPECT_CALL(*env_template, make())
-                  .WillOnce(Invoke([this,
-                                    RESULT_LOCATION,
-                                    blockchain_state,
-                                    next_storage_state =
-                                        std::move(next_storage_state)] {
+                  .WillOnce(Invoke([this, RESULT_LOCATION, blockchain_state] {
                     auto module_instance =
                         std::make_shared<ModuleInstanceMock>();
                     EXPECT_CALL(*module_instance, resetEnvironment())
@@ -214,8 +208,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
 
-  preparePersistentCall(
-      block_info1, "state_hash1"_hash256, 2, 3, 5, "state_hash2"_hash256);
+  preparePersistentCall(block_info1, "state_hash1"_hash256, 2, 3, 5);
   auto env = executor.persistentAt(block_info1.hash).value();
   EXPECT_EQ(executor.call<int>(*env, "addTwo", 2, 3).value(), 5);
 
@@ -225,8 +218,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
                           block_info1, "state_hash2"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res2, 17);
 
-  preparePersistentCall(
-      block_info1, "state_hash2"_hash256, 0, 0, 0, "state_hash3"_hash256);
+  preparePersistentCall(block_info1, "state_hash2"_hash256, 0, 0, 0);
   auto env3 = executor.persistentAt(block_info1.hash).value();
   EXPECT_EQ(executor.call<int>(*env3, "addTwo", 0, 0).value(), 0);
 
@@ -236,8 +228,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
                           block_info1, "state_hash3"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res4, 17);
 
-  preparePersistentCall(
-      block_info2, "state_hash4"_hash256, -5, 5, 0, "state_hash5"_hash256);
+  preparePersistentCall(block_info2, "state_hash4"_hash256, -5, 5, 0);
   auto env5 = executor.persistentAt(block_info2.hash).value();
   EXPECT_EQ(executor.call<int>(*env5, "addTwo", -5, 5).value(), 0);
 
