@@ -26,7 +26,9 @@ namespace kagome::network {
       ::api::v1::StateResponse msg;
       for (const auto &entries : t.entries) {
         auto *dst_entries = msg.add_entries();
-        dst_entries->set_state_root(entries.state_root.toString());
+        if (entries.state_root) {
+          dst_entries->set_state_root(entries.state_root->toString());
+        }
         for (const auto &entry : entries.entries) {
           auto *dst_entry = dst_entries->add_entries();
           dst_entry->set_key(entry.key.toString());

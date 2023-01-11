@@ -18,7 +18,9 @@
 #include "consensus/babe/block_appender.hpp"
 #include "consensus/babe/block_executor.hpp"
 #include "metrics/metrics.hpp"
+#include "network/impl/state_sync_request_flow.hpp"
 #include "network/router.hpp"
+#include "primitives/event_types.hpp"
 #include "storage/buffer_map_types.hpp"
 #include "telemetry/service.hpp"
 
@@ -96,6 +98,7 @@ namespace kagome::network {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<storage::BufferStorage> buffer_storage);
 
     /** @see AppStateManager::takeControl */
@@ -170,7 +173,8 @@ namespace kagome::network {
 
     /// Check if incomplete requests of state sync exists
     bool hasIncompleteRequestOfStateSync() const override {
-      return state_sync_request_.has_value();
+      std::unique_lock lock{state_sync_mutex_};
+      return state_sync_.has_value();
     }
 
    private:
@@ -207,6 +211,10 @@ namespace kagome::network {
         const libp2p::peer::PeerId &peer_id,
         const BlocksRequest::Fingerprint &fingerprint);
 
+    void syncState();
+    outcome::result<void> syncState(std::unique_lock<std::mutex> &lock,
+                                    outcome::result<StateResponse> &&_res);
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::changes_trie::ChangesTracker>
@@ -218,6 +226,7 @@ namespace kagome::network {
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<storage::BufferStorage> buffer_storage_;
 
     application::AppConfiguration::SyncMethod sync_method_;
@@ -229,9 +238,14 @@ namespace kagome::network {
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
-    std::atomic_bool state_sync_request_in_progress_ = false;
-    std::optional<network::StateRequest> state_sync_request_;
-    std::optional<primitives::BlockInfo> state_sync_on_block_;
+    struct StateSync {
+      StateSyncRequestFlow flow;
+      libp2p::peer::PeerId peer;
+      SyncResultHandler cb;
+    };
+
+    mutable std::mutex state_sync_mutex_;
+    std::optional<StateSync> state_sync_;
 
     bool node_is_shutting_down_ = false;
 
@@ -244,8 +258,6 @@ namespace kagome::network {
 
     // Already known (enqueued) but is not applied yet
     std::unordered_map<primitives::BlockHash, KnownBlock> known_blocks_;
-
-    std::optional<primitives::BlockInfo> sync_block_;
 
     // Blocks grouped by number
     std::multimap<primitives::BlockNumber, primitives::BlockHash> generations_;
@@ -276,12 +288,6 @@ namespace kagome::network {
     std::set<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>>
         recent_requests_;
 
-    std::unordered_map<
-        storage::trie::RootHash,
-        std::tuple<common::Buffer,
-                   unsigned,
-                   std::shared_ptr<storage::trie::PersistentTrieBatch>>>
-        batches_store_;
     size_t entries_{0};
   };
 
