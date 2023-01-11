@@ -39,6 +39,7 @@ namespace kagome::network {
                   kPropagateTransactionsProtocol, genesis_hash, chain_spec),
               log::createLogger(kPropagateTransactionsProtocolName,
                                 "propagate_transactions_protocol")),
+        app_config_{app_config},
         babe_(std::move(babe)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)),
@@ -232,7 +233,7 @@ namespace kagome::network {
       std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    read_writer->write(NoData{},
+    read_writer->write(app_config_.roles(),
                        [stream = std::move(stream),
                         direction,
                         wp = weak_from_this(),
@@ -350,9 +351,8 @@ namespace kagome::network {
                    txs.end(),
                    propagated_exts->extrinsics.begin(),
                    [](auto &tx) { return tx.ext; });
-    stream_engine_->broadcast<PropagatedExtrinsics>(
-        shared_from_this(),
-        propagated_exts);
+    stream_engine_->broadcast<PropagatedExtrinsics>(shared_from_this(),
+                                                    propagated_exts);
   }
 
 }  // namespace kagome::network

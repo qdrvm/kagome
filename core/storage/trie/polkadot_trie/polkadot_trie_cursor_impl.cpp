@@ -357,7 +357,10 @@ namespace kagome::storage::trie {
       if (value_opt) {
         if (auto r = trie_->getValue(const_cast<ValueAndHash &>(value_opt));
             !r) {
-          fmt::print("PolkadotTrieCursorImpl::value {}\n", r.error());
+          SL_WARN(log_,
+                  "PolkadotTrieCursorImpl::value {}: {}",
+                  common::hex_lower_0x(collectKey()),
+                  r.error());
           return std::nullopt;
         }
         return BufferView{*value_opt.value};

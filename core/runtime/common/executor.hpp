@@ -56,21 +56,6 @@ namespace kagome::runtime {
     /**
      * Call a runtime method in a persistent environment, e. g. the storage
      * changes, made by this call, will persist in the node's Trie storage
-     * The call will be done with the runtime code from \param block_info state
-     * on \param storage_state storage state
-     */
-    outcome::result<std::unique_ptr<RuntimeEnvironment>> persistentAt(
-        primitives::BlockInfo const &block_info,
-        storage::trie::RootHash const &storage_state) {
-      OUTCOME_TRY(
-          env,
-          env_factory_->start(block_info, storage_state)->persistent().make());
-      return std::move(env);
-    }
-
-    /**
-     * Call a runtime method in a persistent environment, e. g. the storage
-     * changes, made by this call, will persist in the node's Trie storage
      * The call will be done on the \param block_info state
      */
     outcome::result<std::unique_ptr<RuntimeEnvironment>> persistentAt(

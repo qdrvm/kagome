@@ -62,14 +62,14 @@ namespace kagome::runtime {
     };
     env.storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
         .value();
-    OUTCOME_TRY(env.resetMemory());
+    OUTCOME_TRY(resetMemory(*instance));
     return env;
   }
 
-  outcome::result<void> RuntimeEnvironment::resetMemory() {
+  outcome::result<void> resetMemory(const ModuleInstance &instance) {
     static auto log = log::createLogger("RuntimeEnvironmentFactory", "runtime");
 
-    OUTCOME_TRY(opt_heap_base, module_instance->getGlobal("__heap_base"));
+    OUTCOME_TRY(opt_heap_base, instance.getGlobal("__heap_base"));
     if (not opt_heap_base) {
       log->error(
           "__heap_base global variable is not found in a runtime module");
@@ -77,13 +77,16 @@ namespace kagome::runtime {
     }
     int32_t heap_base = boost::get<int32_t>(*opt_heap_base);
 
+    auto &memory_provider = instance.getEnvironment().memory_provider;
     OUTCOME_TRY(
         const_cast<MemoryProvider &>(*memory_provider).resetMemory(heap_base));
     auto &memory = memory_provider->getCurrentMemory()->get();
 
     static auto heappages_key = ":heappages"_buf;
-    OUTCOME_TRY(heappages,
-                storage_provider->getCurrentBatch()->tryGet(heappages_key));
+    OUTCOME_TRY(
+        heappages,
+        instance.getEnvironment().storage_provider->getCurrentBatch()->tryGet(
+            heappages_key));
     if (heappages) {
       if (sizeof(uint64_t) != heappages->size()) {
         log->error(
@@ -100,7 +103,7 @@ namespace kagome::runtime {
       }
     }
 
-    module_instance->forDataSegment([&](auto offset, auto segment) {
+    instance.forDataSegment([&](auto offset, auto segment) {
       memory.storeBuffer(offset, segment);
     });
 
@@ -173,6 +176,8 @@ namespace kagome::runtime {
       }
     }
 
+    OUTCOME_TRY(resetMemory(*instance));
+
     SL_DEBUG(parent_factory->logger_,
              "Runtime environment at {}, state: {:l}",
              blockchain_state_,
@@ -180,9 +185,6 @@ namespace kagome::runtime {
 
     auto runtime_env = std::make_unique<RuntimeEnvironment>(
         instance, env.memory_provider, env.storage_provider, blockchain_state_);
-
-    OUTCOME_TRY(runtime_env->resetMemory());
-
     KAGOME_PROFILE_END(runtime_env_making);
     return runtime_env;
   }

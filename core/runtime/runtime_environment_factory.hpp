@@ -34,13 +34,13 @@ namespace kagome::runtime {
         const runtime::ModuleFactory &module_factory,
         common::BufferView code_zstd);
 
-    outcome::result<void> resetMemory();
-
     const std::shared_ptr<ModuleInstance> module_instance;
     const std::shared_ptr<const MemoryProvider> memory_provider;
     const std::shared_ptr<TrieStorageProvider> storage_provider;
     primitives::BlockInfo blockchain_state_;
   };
+
+  outcome::result<void> resetMemory(const ModuleInstance &module);
 
   class RuntimeEnvironmentFactory
       : public std::enable_shared_from_this<RuntimeEnvironmentFactory> {

@@ -6,9 +6,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "network/impl/state_sync_request_flow.hpp"
-#include "runtime/common/uncompress_code_if_needed.hpp"
-#include "runtime/module.hpp"
-#include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"

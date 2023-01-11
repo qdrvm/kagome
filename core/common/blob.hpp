@@ -114,7 +114,7 @@ namespace kagome::common {
    */
   template <size_t size_>
   class Blob : public std::array<byte_t, size_> {
-    using Base = std::array<byte_t, size_>;
+    using Array = std::array<byte_t, size_>;
 
    public:
     // Next line is required at least for the scale-codec
@@ -125,7 +125,7 @@ namespace kagome::common {
     /**
      * Initialize blob value
      */
-    constexpr Blob() : Base{} {}
+    constexpr Blob() : Array{} {}
 
     const_narref internal_array_reference() const {
       return *const_narptr(this->data());
@@ -135,7 +135,7 @@ namespace kagome::common {
      * @brief constructor enabling initializer list
      * @param l initializer list
      */
-    constexpr explicit Blob(const Base &l) : Base{l} {}
+    constexpr explicit Blob(const Array &l) : Array{l} {}
 
     /**
      * In compile-time returns size of current blob.

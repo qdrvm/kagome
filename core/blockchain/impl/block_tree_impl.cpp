@@ -131,7 +131,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
                      "Must be known or calculated at least one leaf");
 
-    // Find best leaf
+    // Find the least and best leaf
     auto best_leaf = *block_tree_leaves.rbegin();
 
     OUTCOME_TRY(last_finalized_block_info, storage->getLastFinalized());

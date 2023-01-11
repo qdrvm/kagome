@@ -11,6 +11,7 @@
 #include "scale/scale.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
 
