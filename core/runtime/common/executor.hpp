@@ -19,7 +19,6 @@
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/module_repository.hpp"
-#include "runtime/persistent_result.hpp"
 #include "runtime/runtime_api/metadata.hpp"
 #include "runtime/runtime_environment_factory.hpp"
 #include "runtime/runtime_properties_cache.hpp"
@@ -52,84 +51,18 @@ namespace kagome::runtime {
              std::shared_ptr<RuntimePropertiesCache> cache)
         : env_factory_(std::move(env_factory)),
           cache_(std::move(cache)),
-          logger_{log::createLogger("Executor", "runtime")} {
-      BOOST_ASSERT(env_factory_ != nullptr);
-    }
-
-    /**
-     * Call a runtime method in a persistent environment, e. g. the storage
-     * changes, made by this call, will persist in the node's Trie storage
-     * The call will be done with the runtime code from \param block_info state
-     * on \param storage_state storage state
-     */
-    template <typename Result, typename... Args>
-    outcome::result<PersistentResult<Result>> persistentCallAt(
-        primitives::BlockInfo const &block_info,
-        storage::trie::RootHash const &storage_state,
-        std::string_view name,
-        Args &&...args) {
-      OUTCOME_TRY(
-          env,
-          env_factory_->start(block_info, storage_state)->persistent().make());
-      auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
-      if (res) {
-        OUTCOME_TRY(new_state_root, commitState(*env));
-        if constexpr (std::is_void_v<Result>) {
-          return PersistentResult<Result>{new_state_root};
-        } else {
-          return PersistentResult<Result>{std::move(res.value()),
-                                          new_state_root};
-        }
-      }
-      return res.error();
-    }
-
-    /**
-     * Call a runtime method in a persistent environment, e. g. the storage
-     * changes, made by this call, will persist in the node's Trie storage
-     * The call will be done on the genesis block state
-     */
-    template <typename Result, typename... Args>
-    outcome::result<PersistentResult<Result>> persistentCallAtGenesis(
-        std::string_view name, Args &&...args) {
-      OUTCOME_TRY(env_template, env_factory_->start());
-      OUTCOME_TRY(env, env_template->persistent().make());
-      auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
-      if (res) {
-        OUTCOME_TRY(new_state_root, commitState(*env));
-        if constexpr (std::is_void_v<Result>) {
-          return PersistentResult<Result>{new_state_root};
-        } else {
-          return PersistentResult<Result>{std::move(res.value()),
-                                          new_state_root};
-        }
-      }
-      return res.error();
-    }
+          logger_{log::createLogger("Executor", "runtime")} {}
 
     /**
      * Call a runtime method in a persistent environment, e. g. the storage
      * changes, made by this call, will persist in the node's Trie storage
      * The call will be done on the \param block_info state
      */
-    template <typename Result, typename... Args>
-    outcome::result<PersistentResult<Result>> persistentCallAt(
-        primitives::BlockHash const &block_hash,
-        std::string_view name,
-        Args &&...args) {
+    outcome::result<std::unique_ptr<RuntimeEnvironment>> persistentAt(
+        primitives::BlockHash const &block_hash) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->persistent().make());
-      auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
-      if (res) {
-        OUTCOME_TRY(new_state_root, commitState(*env));
-        if constexpr (std::is_void_v<Result>) {
-          return PersistentResult<Result>{new_state_root};
-        } else {
-          return PersistentResult<Result>{std::move(res.value()),
-                                          new_state_root};
-        }
-      }
-      return res.error();
+      return std::move(env);
     }
 
     /**
@@ -200,7 +133,6 @@ namespace kagome::runtime {
       return result;
     }
 
-   private:
     /**
      * Internal method for calling a Runtime API method
      * Resets the runtime memory with the module's heap base,
@@ -215,7 +147,7 @@ namespace kagome::runtime {
       if constexpr (std::is_same_v<Result, primitives::Version>) {
         if (likely(name == "Core_version")) {
           return cache_->getVersion(env.module_instance->getCodeHash(), [&] {
-            return callInternal<Result>(env, name, std::forward<Args>(args)...);
+            return call<Result>(env, name, std::forward<Args>(args)...);
           });
         }
       }
@@ -223,12 +155,12 @@ namespace kagome::runtime {
       if constexpr (std::is_same_v<Result, primitives::OpaqueMetadata>) {
         if (likely(name == "Metadata_metadata")) {
           return cache_->getMetadata(env.module_instance->getCodeHash(), [&] {
-            return callInternal<Result>(env, name, std::forward<Args>(args)...);
+            return call<Result>(env, name, std::forward<Args>(args)...);
           });
         }
       }
 
-      return callInternal<Result>(env, name, std::forward<Args>(args)...);
+      return call<Result>(env, name, std::forward<Args>(args)...);
     }
 
     /**
@@ -239,9 +171,9 @@ namespace kagome::runtime {
      * Changes, made to the Host API state, are reset after the call.
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> callInternal(RuntimeEnvironment &env,
-                                         std::string_view name,
-                                         Args &&...args) {
+    outcome::result<Result> call(RuntimeEnvironment &env,
+                                 std::string_view name,
+                                 Args &&...args) {
       auto &memory = env.memory_provider->getCurrentMemory()->get();
 
       Buffer encoded_args{};
@@ -283,22 +215,7 @@ namespace kagome::runtime {
       }
     }
 
-    outcome::result<storage::trie::RootHash> commitState(
-        const RuntimeEnvironment &env) {
-      KAGOME_PROFILE_START(state_commit)
-      BOOST_ASSERT_MSG(
-          env.storage_provider->tryGetPersistentBatch(),
-          "Current batch should always be persistent for a persistent call");
-      auto persistent_batch =
-          env.storage_provider->tryGetPersistentBatch().value();
-      OUTCOME_TRY(new_state_root, persistent_batch->commit());
-      SL_DEBUG(logger_,
-               "Runtime call committed new state with hash {}",
-               new_state_root.toHex());
-      KAGOME_PROFILE_END(state_commit)
-      return std::move(new_state_root);
-    }
-
+   private:
     std::shared_ptr<RuntimeEnvironmentFactory> env_factory_;
     std::shared_ptr<RuntimePropertiesCache> cache_;
     log::Logger logger_;
