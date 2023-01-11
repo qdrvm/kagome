@@ -44,6 +44,7 @@ namespace kagome::runtime {
       PARENT_FACTORY_EXPIRED = 1,
       ABSENT_BLOCK,
       ABSENT_HEAP_BASE,
+      HEAP_BASE_TOO_LOW,
       FAILED_TO_SET_STORAGE_STATE
     };
     struct RuntimeEnvironmentTemplate;

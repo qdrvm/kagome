@@ -15,12 +15,9 @@ namespace kagome::runtime {
   static_assert(kDefaultHeapBase < kInitialMemorySize,
                 "Heap base must be in memory");
 
-  MemoryAllocator::MemoryAllocator(MemoryHandle memory,
-                                   size_t size,
-                                   WasmPointer heap_base)
+  MemoryAllocator::MemoryAllocator(MemoryHandle memory, WasmPointer heap_base)
       : memory_{std::move(memory)},
         offset_{heap_base},
-        size_{size},
         logger_{log::createLogger("Allocator", "runtime")} {
     // Heap base (and offset in according) must be non-zero to prohibit
     // allocating memory at 0 in the future, as returning 0 from allocate method
@@ -28,9 +25,6 @@ namespace kagome::runtime {
     BOOST_ASSERT(offset_ > 0);
     BOOST_ASSERT(memory_.getSize);
     BOOST_ASSERT(memory_.resize);
-
-    size_ = std::max(size_, offset_);
-    BOOST_ASSERT(offset_ <= Memory::kMaxMemorySize - size_);
   }
 
   WasmPointer MemoryAllocator::allocate(WasmSize size) {
@@ -52,7 +46,7 @@ namespace kagome::runtime {
           offset_);
       return 0;
     }
-    if (new_offset <= size_) {
+    if (new_offset <= memory_.getSize()) {
       offset_ = new_offset;
       allocated_[ptr] = size;
       SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
@@ -173,14 +167,7 @@ namespace kagome::runtime {
   }
 
   void MemoryAllocator::resize(WasmSize new_size) {
-    /**
-     * We use this condition to avoid deallocated_ pointers fixup
-     */
-    BOOST_ASSERT(offset_ <= Memory::kMaxMemorySize - new_size);
-    if (new_size >= size_) {
-      size_ = new_size;
-      memory_.resize(new_size);
-    }
+    memory_.resize(new_size);
   }
 
   std::optional<WasmSize> MemoryAllocator::getDeallocatedChunkSize(

@@ -21,6 +21,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
       return "Failed to obtain the required block from storage";
     case E::ABSENT_HEAP_BASE:
       return "Failed to extract heap base from a module";
+    case E::HEAP_BASE_TOO_LOW:
+      return "Heap base too low";
     case E::FAILED_TO_SET_STORAGE_STATE:
       return "Failed to set the storage state to the desired value";
   }
@@ -81,9 +83,22 @@ namespace kagome::runtime {
       }
     }
 
+    memory.resize(heap_base);
+
+    bool heap_base_too_low = false;
     instance.forDataSegment([&](auto offset, auto segment) {
+      if (heap_base_too_low) {
+        return;
+      }
+      heap_base_too_low = (size_t)heap_base < offset + segment.size();
+      if (heap_base_too_low) {
+        return;
+      }
       memory.storeBuffer(offset, segment);
     });
+    if (heap_base_too_low) {
+      return RuntimeEnvironmentFactory::Error::HEAP_BASE_TOO_LOW;
+    }
 
     return outcome::success();
   }

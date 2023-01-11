@@ -50,7 +50,6 @@ class WavmMemoryHeapTest : public ::testing::Test {
         MemoryAllocator::MemoryHandle{
             [this](auto size) { return memory_->resize(size); },
             [this] { return memory_->size(); }},
-        kInitialMemorySize,
         kDefaultHeapBase);
     allocator_ = allocator.get();
     memory_ = std::make_unique<MemoryImpl>(instance_->getExportedMemory(),

@@ -23,6 +23,7 @@ namespace kagome::runtime {
 }
 
 namespace kagome::runtime::wavm {
+  static_assert(kMemoryPageSize == WAVM::IR::numBytesPerPage);
 
   class MemoryImpl final : public kagome::runtime::Memory {
    public:
@@ -94,7 +95,7 @@ namespace kagome::runtime::wavm {
     WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
 
     WasmSize size() const override {
-      return WAVM::Runtime::getMemoryNumPages(memory_) * kPageSize;
+      return WAVM::Runtime::getMemoryNumPages(memory_) * kMemoryPageSize;
     }
 
     void resize(WasmSize new_size) override {
@@ -102,7 +103,7 @@ namespace kagome::runtime::wavm {
        * We use this condition to avoid deallocated_ pointers fixup
        */
       if (new_size >= size()) {
-        auto new_page_number = (new_size / kPageSize) + 1;
+        auto new_page_number = (new_size - 1) / kMemoryPageSize + 1;
         WAVM::Runtime::growMemory(
             memory_,
             new_page_number - WAVM::Runtime::getMemoryNumPages(memory_));
@@ -116,7 +117,6 @@ namespace kagome::runtime::wavm {
       memset(native_ptr, value, span.size);
     }
 
-    constexpr static uint32_t kPageSize = 4096;
     std::unique_ptr<MemoryAllocator> allocator_;
     WAVM::Runtime::Memory *memory_;
     log::Logger logger_;
