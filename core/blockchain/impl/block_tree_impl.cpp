@@ -132,7 +132,6 @@ namespace kagome::blockchain {
                      "Must be known or calculated at least one leaf");
 
     // Find the least and best leaf
-    auto least_leaf = *block_tree_leaves.begin();
     auto best_leaf = *block_tree_leaves.rbegin();
 
     OUTCOME_TRY(last_finalized_block_info, storage->getLastFinalized());
@@ -154,8 +153,6 @@ namespace kagome::blockchain {
             "Best block: {}, Last finalized: {}",
             best_leaf,
             last_finalized_block_info);
-
-    auto hash_tmp = last_finalized_block_info.hash;
 
     // Load non-finalized block from block storage
     std::multimap<primitives::BlockInfo, primitives::BlockHeader> collected;

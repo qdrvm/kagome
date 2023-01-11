@@ -80,7 +80,7 @@ namespace kagome::parachain {
       return outcome::success();
     }
     scheduler_->schedule(
-        [weak = weak_from_this(), relay_parent, signer{std::move(*signer)}]() {
+        [weak = weak_from_this(), signer{std::move(*signer)}]() {
           if (auto self = weak.lock()) {
             auto r = self->sign(signer);
             if (r.has_error()) {

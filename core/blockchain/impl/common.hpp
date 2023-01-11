@@ -23,13 +23,6 @@ namespace kagome::blockchain {
    */
   outcome::result<std::optional<common::BufferOrView>> idToLookupKey(
       const ReadableBufferStorage &map, const primitives::BlockId &id);
-
-  /**
-   * Instantiate empty merkle trie, insert \param key_vals pairs and \return
-   * Buffer containing merkle root of resulting trie
-   */
-  storage::trie::RootHash trieRoot(
-      const std::vector<std::pair<common::Buffer, common::Buffer>> &key_vals);
 }  // namespace kagome::blockchain
 
 #endif  // KAGOME_BLOCKCHAIN_COMMON_HPP

@@ -11,6 +11,7 @@
 #include "scale/scale.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
 
@@ -28,9 +29,7 @@ namespace kagome::storage::trie {
     PolkadotCodec codec;
     // empty root
     if (begin == end) {
-      static const auto empty_root =
-          common::Buffer{}.put(codec.hash256(common::Buffer{0}));
-      return empty_root;
+      return kEmptyRootHash;
     }
     static_assert(
         std::is_same_v<std::decay_t<decltype(*begin)>, common::Buffer>);

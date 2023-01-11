@@ -164,8 +164,6 @@ inline void AssertGraphCorrect(VoteGraphImpl &graph, std::string json) {
   rapidjson::Document document;
   document.Parse(json.c_str(), json.size());
 
-  auto gb = graph.getBase();
-  auto jb = jsonToBlockInfo(document);
   ASSERT_EQ(graph.getBase(), jsonToBlockInfo(document)) << "base is incorrect";
 
   auto gh_ = graph.getHeads();
