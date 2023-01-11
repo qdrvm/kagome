@@ -8,6 +8,7 @@ add_subdirectory(protobuf)
 
 add_library(network
     impl/state_protocol_observer_impl.cpp
+    impl/state_sync_request_flow.cpp
     impl/synchronizer_impl.cpp
     impl/router_libp2p.cpp
     impl/grandpa_transmitter_impl.cpp

@@ -87,6 +87,7 @@ class SynchronizerTest
                                                     router,
                                                     scheduler,
                                                     hasher,
+                                                    nullptr,
                                                     buffer_storage);
   }
 
