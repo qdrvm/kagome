@@ -26,7 +26,7 @@ namespace kagome::api {
     if (at.has_value()) {
       return api_->query_info(at.value(), extrinsic, len);
     }
-    return api_->query_info(block_tree_->deepestLeaf().hash, extrinsic, len);
+    return api_->query_info(block_tree_->bestLeaf().hash, extrinsic, len);
   }
 
 }  // namespace kagome::api

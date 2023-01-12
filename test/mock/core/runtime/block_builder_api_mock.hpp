@@ -13,25 +13,19 @@ namespace kagome::runtime {
 
   class BlockBuilderApiMock : public BlockBuilder {
    public:
-    MOCK_METHOD(
-        outcome::result<PersistentResult<primitives::ApplyExtrinsicResult>>,
-        apply_extrinsic,
-        (const primitives::BlockInfo &block,
-         storage::trie::RootHash const &storage_hash,
-         const primitives::Extrinsic &),
-        (override));
+    MOCK_METHOD(outcome::result<primitives::ApplyExtrinsicResult>,
+                apply_extrinsic,
+                (RuntimeEnvironment &, const primitives::Extrinsic &),
+                (override));
 
     MOCK_METHOD(outcome::result<primitives::BlockHeader>,
                 finalize_block,
-                (const primitives::BlockInfo &block,
-                 storage::trie::RootHash const &storage_hash),
+                (RuntimeEnvironment &),
                 (override));
 
     MOCK_METHOD(outcome::result<std::vector<primitives::Extrinsic>>,
                 inherent_extrinsics,
-                (const primitives::BlockInfo &block,
-                 storage::trie::RootHash const &storage_hash,
-                 const primitives::InherentData &),
+                (RuntimeEnvironment &, const primitives::InherentData &),
                 (override));
 
     MOCK_METHOD(outcome::result<primitives::CheckInherentsResult>,

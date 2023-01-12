@@ -56,8 +56,8 @@ namespace kagome::api {
       std::string_view account_address) const {
     OUTCOME_TRY(account_id, primitives::decodeSs58(account_address, *hasher_));
     OUTCOME_TRY(nonce,
-                account_nonce_api_->account_nonce(
-                    block_tree_->deepestLeaf().hash, account_id));
+                account_nonce_api_->account_nonce(block_tree_->bestLeaf().hash,
+                                                  account_id));
 
     return adjustNonce(account_id, nonce);
   }

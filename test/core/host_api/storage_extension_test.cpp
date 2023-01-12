@@ -634,7 +634,7 @@ TEST_F(StorageExtensionTest, RootTest) {
   Buffer prefix = kagome::storage::kChildStorageDefaultPrefix;
   Buffer current_key = Buffer{prefix}.put("QWERTY"_buf);
 
-  static const auto empty_hash = Buffer(codec_.hash256(Buffer{0}));
+  static const Buffer empty_hash = kagome::storage::trie::kEmptyRootHash;
 
   EXPECT_CALL(*trie_batch_, trieCursor())
       .WillOnce(Invoke([&prefix, &current_key]() {

@@ -25,6 +25,7 @@ namespace kagome::network {
       libp2p::Host &host,
       const application::AppConfiguration &app_config,
       const application::ChainSpec &chain_spec,
+      const primitives::BlockHash &genesis_hash,
       std::shared_ptr<consensus::babe::Babe> babe,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<StreamEngine> stream_engine,
@@ -32,11 +33,13 @@ namespace kagome::network {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           ext_event_key_repo)
-      : base_(host,
-              {fmt::format(kPropagateTransactionsProtocol.data(),
-                           chain_spec.protocolId())},
-              log::createLogger("PropagateTransactionsProtocol",
+      : base_(kPropagateTransactionsProtocolName,
+              host,
+              make_protocols(
+                  kPropagateTransactionsProtocol, genesis_hash, chain_spec),
+              log::createLogger(kPropagateTransactionsProtocolName,
                                 "propagate_transactions_protocol")),
+        app_config_{app_config},
         babe_(std::move(babe)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)),
@@ -61,6 +64,10 @@ namespace kagome::network {
 
   bool PropagateTransactionsProtocol::stop() {
     return base_.stop();
+  }
+
+  const ProtocolName &PropagateTransactionsProtocol::protocolName() const {
+    return base_.protocolName();
   }
 
   void PropagateTransactionsProtocol::onIncomingStream(
@@ -226,7 +233,7 @@ namespace kagome::network {
       std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    read_writer->write(NoData{},
+    read_writer->write(app_config_.roles(),
                        [stream = std::move(stream),
                         direction,
                         wp = weak_from_this(),

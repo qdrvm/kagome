@@ -127,11 +127,13 @@ namespace kagome::network {
   SyncProtocolImpl::SyncProtocolImpl(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
+      const primitives::BlockHash &genesis_hash,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
       std::shared_ptr<ReputationRepository> reputation_repository)
-      : base_(host,
-              {fmt::format(kSyncProtocol.data(), chain_spec.protocolId())},
-              log::createLogger("SyncProtocol", "sync_protocol")),
+      : base_(kSyncProtocolName,
+              host,
+              make_protocols(kSyncProtocol, genesis_hash, chain_spec),
+              log::createLogger(kSyncProtocolName, "sync_protocol")),
         sync_observer_(std::move(sync_observer)),
         reputation_repository_(std::move(reputation_repository)),
         response_cache_(kResponsesCacheCapacity,

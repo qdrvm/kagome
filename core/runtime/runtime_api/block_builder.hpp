@@ -15,9 +15,10 @@
 #include "primitives/check_inherents_result.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/inherent_data.hpp"
-#include "runtime/persistent_result.hpp"
 
 namespace kagome::runtime {
+  class RuntimeEnvironment;
+
   /**
    * Part of runtime API responsible for building a block for a runtime.
    */
@@ -28,25 +29,21 @@ namespace kagome::runtime {
     /**
      * Apply the given extrinsic.
      */
-    virtual outcome::result<PersistentResult<primitives::ApplyExtrinsicResult>>
-    apply_extrinsic(const primitives::BlockInfo &block,
-                    storage::trie::RootHash const &storage_hash,
-                    const primitives::Extrinsic &extrinsic) = 0;
+    virtual outcome::result<primitives::ApplyExtrinsicResult> apply_extrinsic(
+        RuntimeEnvironment &env, const primitives::Extrinsic &extrinsic) = 0;
 
     /**
      * Finish the current block.
      */
     virtual outcome::result<primitives::BlockHeader> finalize_block(
-        const primitives::BlockInfo &block,
-        storage::trie::RootHash const &storage_hash) = 0;
+        RuntimeEnvironment &env) = 0;
 
     /**
      * Generate inherent extrinsics. The inherent data will vary from chain to
      * chain.
      */
     virtual outcome::result<std::vector<primitives::Extrinsic>>
-    inherent_extrinsics(const primitives::BlockInfo &block,
-                        storage::trie::RootHash const &storage_hash,
+    inherent_extrinsics(RuntimeEnvironment &env,
                         const primitives::InherentData &data) = 0;
 
     /**

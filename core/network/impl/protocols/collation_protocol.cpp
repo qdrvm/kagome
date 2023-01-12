@@ -17,11 +17,13 @@ namespace kagome::network {
   CollationProtocol::CollationProtocol(
       libp2p::Host &host,
       application::AppConfiguration const &app_config,
-      application::ChainSpec const & /*chain_spec*/,
+      const application::ChainSpec &chain_spec,
+      const primitives::BlockHash &genesis_hash,
       std::shared_ptr<CollationObserver> observer)
-      : base_(host,
-              {kCollationProtocol},
-              log::createLogger("CollationProtocol", "collation_protocol")),
+      : base_(kCollationProtocolName,
+              host,
+              make_protocols(kCollationProtocol, genesis_hash, chain_spec),
+              log::createLogger(kCollationProtocolName, "collation_protocol")),
         observer_(std::move(observer)),
         app_config_{app_config} {}
 

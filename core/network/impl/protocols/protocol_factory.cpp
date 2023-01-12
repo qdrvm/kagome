@@ -44,11 +44,16 @@ namespace kagome::network {
 
   std::shared_ptr<BlockAnnounceProtocol>
   ProtocolFactory::makeBlockAnnounceProtocol() const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     return std::make_shared<BlockAnnounceProtocol>(host_,
                                                    app_config_,
                                                    chain_spec_,
+                                                   genesisBlockHash,
                                                    stream_engine_,
-                                                   block_tree_.lock(),
+                                                   std::move(block_tree),
                                                    babe_.lock(),
                                                    peer_manager_.lock());
   }
@@ -72,22 +77,42 @@ namespace kagome::network {
 
   std::shared_ptr<CollationProtocol> ProtocolFactory::makeCollationProtocol()
       const {
-    return std::make_shared<CollationProtocol>(
-        host_, app_config_, chain_spec_, collation_observer_.lock());
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
+    return std::make_shared<CollationProtocol>(host_,
+                                               app_config_,
+                                               chain_spec_,
+                                               genesisBlockHash,
+                                               collation_observer_.lock());
   }
 
   std::shared_ptr<ReqCollationProtocol>
   ProtocolFactory::makeReqCollationProtocol() const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     return std::make_shared<ReqCollationProtocol>(
-        host_, app_config_, chain_spec_, req_collation_observer_.lock());
+        host_,
+        app_config_,
+        chain_spec_,
+        genesisBlockHash,
+        req_collation_observer_.lock());
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>
   ProtocolFactory::makePropagateTransactionsProtocol() const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     return std::make_shared<PropagateTransactionsProtocol>(
         host_,
         app_config_,
         chain_spec_,
+        genesisBlockHash,
         babe_.lock(),
         extrinsic_observer_.lock(),
         stream_engine_,
@@ -96,13 +121,24 @@ namespace kagome::network {
   }
 
   std::shared_ptr<StateProtocol> ProtocolFactory::makeStateProtocol() const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     return std::make_shared<StateProtocolImpl>(
-        host_, chain_spec_, state_observer_.lock());
+        host_, chain_spec_, genesisBlockHash, state_observer_.lock());
   }
 
   std::shared_ptr<SyncProtocol> ProtocolFactory::makeSyncProtocol() const {
-    return std::make_shared<SyncProtocolImpl>(
-        host_, chain_spec_, sync_observer_.lock(), reputation_repository_);
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
+    return std::make_shared<SyncProtocolImpl>(host_,
+                                              chain_spec_,
+                                              genesisBlockHash,
+                                              sync_observer_.lock(),
+                                              reputation_repository_);
   }
 
 }  // namespace kagome::network

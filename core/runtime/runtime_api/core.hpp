@@ -16,6 +16,7 @@
 #include "primitives/common.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
+#include "runtime/runtime_environment_factory.hpp"
 
 namespace kagome::runtime {
   class RuntimeCodeProvider;
@@ -26,6 +27,13 @@ namespace kagome::runtime {
   class Core {
    public:
     virtual ~Core() = default;
+
+    /**
+     * @brief Returns the version of the runtime
+     * @return runtime version
+     */
+    virtual outcome::result<primitives::Version> version(
+        RuntimeEnvironment &env) = 0;
 
     /**
      * @brief Returns the version of the runtime
@@ -52,8 +60,8 @@ namespace kagome::runtime {
      * @brief Initialize a block with the given header.
      * @param header header used for block initialization
      */
-    virtual outcome::result<storage::trie::RootHash> initialize_block(
-        const primitives::BlockHeader &header) = 0;
+    virtual outcome::result<std::unique_ptr<RuntimeEnvironment>>
+    initialize_block(const primitives::BlockHeader &header) = 0;
   };
 
 }  // namespace kagome::runtime

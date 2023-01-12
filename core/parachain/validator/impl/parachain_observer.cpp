@@ -33,34 +33,7 @@ namespace kagome::observers {
 
     void onAdvertise(libp2p::peer::PeerId const &peer_id,
                      primitives::BlockHash relay_parent) override {
-      auto &parachain_state = pm_->parachainState();
-      bool const contains_para_hash =
-          (parachain_state.our_view.count(relay_parent) != 0);
-
-      if (!contains_para_hash) {
-        logger_->warn("Advertise collation out of view from peer {}", peer_id);
-        return;
-      }
-
-      auto const peer_state = pm_->getPeerState(peer_id);
-      if (!peer_state) {
-        logger_->warn("Received collation advertise from unknown peer {}",
-                      peer_id);
-        return;
-      }
-
-      auto result = pm_->insert_advertisement(
-          peer_state->get(), parachain_state, std::move(relay_parent));
-      if (!result) {
-        logger_->warn(
-            "Insert advertisement from {} failed: {}", peer_id, result.error());
-        return;
-      }
-
-      processor_->requestCollations(
-          network::PendingCollation{.para_id = result.value().second,
-                                    .relay_parent = relay_parent,
-                                    .peer_id = peer_id});
+      /// TODO(iceseer): removed because of merge
     }
 
     void onDeclare(libp2p::peer::PeerId const &peer_id,

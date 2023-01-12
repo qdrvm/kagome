@@ -13,6 +13,7 @@
 #include "primitives/event_types.hpp"
 #include "runtime/runtime_api/block_builder.hpp"
 #include "runtime/runtime_api/core.hpp"
+#include "runtime/runtime_environment_factory.hpp"
 
 namespace kagome::authorship {
 
@@ -21,7 +22,7 @@ namespace kagome::authorship {
     ~BlockBuilderImpl() override = default;
 
     BlockBuilderImpl(primitives::BlockHeader block_header,
-                     const storage::trie::RootHash &storage_state,
+                     std::unique_ptr<runtime::RuntimeEnvironment> env,
                      std::shared_ptr<runtime::BlockBuilder> block_builder_api);
 
     outcome::result<std::vector<primitives::Extrinsic>> getInherentExtrinsics(
@@ -39,7 +40,7 @@ namespace kagome::authorship {
 
     primitives::BlockHeader block_header_;
     std::shared_ptr<runtime::BlockBuilder> block_builder_api_;
-    storage::trie::RootHash storage_state_;
+    std::unique_ptr<runtime::RuntimeEnvironment> env_;
     log::Logger logger_;
 
     std::vector<primitives::Extrinsic> extrinsics_{};

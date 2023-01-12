@@ -106,7 +106,7 @@ TEST_F(AddressPublisherTest, Success) {
       .WillOnce(Return(std::vector{audi_key_}));
   EXPECT_CALL(*crypto_store_, findSr25519Keypair(_, _))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*block_tree_, deepestLeaf());
+  EXPECT_CALL(*block_tree_, bestLeaf());
   EXPECT_CALL(*authority_discovery_api_, authorities(_))
       .WillOnce(Return(std::vector{audi_key_}));
   EXPECT_CALL(*ed25519_provider_, sign(_, _))

@@ -25,6 +25,9 @@ namespace kagome::runtime {
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo);
 
     outcome::result<primitives::Version> version(
+        RuntimeEnvironment &env) override;
+
+    outcome::result<primitives::Version> version(
         primitives::BlockHash const &block) override;
 
     outcome::result<primitives::Version> version() override;
@@ -32,7 +35,7 @@ namespace kagome::runtime {
     outcome::result<void> execute_block(
         const primitives::Block &block) override;
 
-    outcome::result<storage::trie::RootHash> initialize_block(
+    outcome::result<std::unique_ptr<RuntimeEnvironment>> initialize_block(
         const primitives::BlockHeader &header) override;
 
    private:

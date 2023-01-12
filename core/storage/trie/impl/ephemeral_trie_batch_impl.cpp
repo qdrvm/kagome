@@ -57,13 +57,12 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<RootHash> EphemeralTrieBatchImpl::hash() {
-    static const auto empty_hash = codec_->hash256(common::Buffer{0});
     if (auto root = trie_->getRoot()) {
       OUTCOME_TRY(encoded, codec_->encodeNode(*root));
       auto hash = codec_->hash256(encoded);
       return hash;
     }
-    return empty_hash;
+    return kEmptyRootHash;
   }
 
 }  // namespace kagome::storage::trie

@@ -41,7 +41,7 @@ namespace kagome::authorship {
       return res.error();
     } else {
       return std::make_unique<BlockBuilderImpl>(
-          header, res.value(), r_block_builder_);
+          header, std::move(res.value()), r_block_builder_);
     }
   }
 
