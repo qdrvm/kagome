@@ -83,22 +83,21 @@ namespace kagome::runtime {
       }
     }
 
-    memory.resize(heap_base);
-
-    bool heap_base_too_low = false;
-    instance.forDataSegment([&](auto offset, auto segment) {
-      if (heap_base_too_low) {
-        return;
-      }
-      heap_base_too_low = (size_t)heap_base < offset + segment.size();
-      if (heap_base_too_low) {
-        return;
-      }
-      memory.storeBuffer(offset, segment);
+    size_t max_data_segment_end = 0;
+    instance.forDataSegment([&](ModuleInstance::SegmentOffset offset,
+                                ModuleInstance::SegmentData segment) {
+      max_data_segment_end =
+          std::max(max_data_segment_end, offset + segment.size());
     });
-    if (heap_base_too_low) {
+    if (gsl::narrow<size_t>(heap_base) < max_data_segment_end) {
       return RuntimeEnvironmentFactory::Error::HEAP_BASE_TOO_LOW;
     }
+
+    memory.resize(heap_base);
+
+    instance.forDataSegment([&](auto offset, auto segment) {
+      memory.storeBuffer(offset, segment);
+    });
 
     return outcome::success();
   }
