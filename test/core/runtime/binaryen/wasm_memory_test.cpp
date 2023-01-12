@@ -34,7 +34,6 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
         MemoryAllocator::MemoryHandle{
             [this](auto size) { return memory_->resize(size); },
             [this] { return memory_->size(); }},
-        kInitialMemorySize,
         kDefaultHeapBase);
     allocator_ = allocator.get();
     memory_ =

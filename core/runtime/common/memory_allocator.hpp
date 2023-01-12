@@ -48,7 +48,7 @@ namespace kagome::runtime {
       std::function<void(size_t)> resize;
       std::function<size_t()> getSize;
     };
-    MemoryAllocator(MemoryHandle memory, size_t size, WasmPointer heap_base);
+    MemoryAllocator(MemoryHandle memory, WasmPointer heap_base);
 
     WasmPointer allocate(WasmSize size);
     std::optional<WasmSize> deallocate(WasmPointer ptr);
@@ -99,8 +99,6 @@ namespace kagome::runtime {
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     size_t offset_;
-
-    size_t size_;
 
     log::Logger logger_;
   };

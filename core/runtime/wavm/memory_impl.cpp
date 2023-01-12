@@ -25,7 +25,6 @@ namespace kagome::runtime::wavm {
                        MemoryAllocator::MemoryHandle{
                            [this](auto size) { return resize(size); },
                            [this]() { return size(); }},
-                       kInitialMemorySize,
                        heap_base)} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
