@@ -19,14 +19,16 @@ using kagome::common::Buffer;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::RuntimeDispatchInfo;
+using kagome::primitives::OldWeight;
 using kagome::runtime::TransactionPaymentApiMock;
 
 using testing::_;
 using testing::Return;
 
 namespace kagome::primitives {
-  bool operator==(const RuntimeDispatchInfo &lhs,
-                  const RuntimeDispatchInfo &rhs) {
+  template<typename Weight>
+  bool operator==(const RuntimeDispatchInfo<Weight> &lhs,
+                  const RuntimeDispatchInfo<Weight> &rhs) {
     return lhs.weight == rhs.weight && lhs.partial_fee == rhs.partial_fee;
   }
 }  // namespace kagome::primitives
@@ -58,7 +60,7 @@ TEST_F(PaymentApiTest, QueryInfo) {
   auto len = 22u;
   auto deepest_hash = "12345"_hash256;
   BlockInfo deepest_leaf{10, deepest_hash};
-  RuntimeDispatchInfo expected_result;
+  RuntimeDispatchInfo<OldWeight> expected_result;
 
   EXPECT_CALL(*block_tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
   EXPECT_CALL(*transaction_payment_api_,

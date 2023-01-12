@@ -22,10 +22,11 @@ namespace kagome::api {
 
     virtual ~PaymentApi() = default;
 
-    virtual outcome::result<primitives::RuntimeDispatchInfo> queryInfo(
-        const primitives::Extrinsic &extrinsic,
-        uint32_t len,
-        OptionalHashRef at) const = 0;
+    virtual outcome::result<
+        primitives::RuntimeDispatchInfo<primitives::OldWeight>>
+    queryInfo(const primitives::Extrinsic &extrinsic,
+              uint32_t len,
+              OptionalHashRef at) const = 0;
   };
 
 }  // namespace kagome::api

@@ -19,10 +19,10 @@ namespace kagome::api {
     BOOST_ASSERT(block_tree_);
   }
 
-  outcome::result<primitives::RuntimeDispatchInfo> PaymentApiImpl::queryInfo(
-      const primitives::Extrinsic &extrinsic,
-      uint32_t len,
-      OptionalHashRef at) const {
+  outcome::result<primitives::RuntimeDispatchInfo<primitives::OldWeight>>
+  PaymentApiImpl::queryInfo(const primitives::Extrinsic &extrinsic,
+                            uint32_t len,
+                            OptionalHashRef at) const {
     if (at.has_value()) {
       return api_->query_info(at.value(), extrinsic, len);
     }

@@ -16,15 +16,17 @@
 namespace kagome::api::payment::request {
 
   class QueryInfo final
-      : public details::RequestType<primitives::RuntimeDispatchInfo,
-                                    std::string,
-                                    std::string> {
+      : public details::RequestType<
+            primitives::RuntimeDispatchInfo<primitives::OldWeight>,
+            std::string,
+            std::string> {
    public:
     explicit QueryInfo(std::shared_ptr<PaymentApi> api) : api_(std::move(api)) {
       BOOST_ASSERT(api_);
     };
 
-    outcome::result<primitives::RuntimeDispatchInfo> execute() override {
+    outcome::result<primitives::RuntimeDispatchInfo<primitives::OldWeight>>
+    execute() override {
       auto ext_hex = getParam<0>();
       OUTCOME_TRY(ext_bytes, common::unhexWith0x(ext_hex));
       auto len = ext_bytes.size();
