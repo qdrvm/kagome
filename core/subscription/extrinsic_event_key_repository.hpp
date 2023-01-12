@@ -6,8 +6,10 @@
 #ifndef KAGOME_EXTRINSIC_EVENT_KEY_REPOSITORY_HPP
 #define KAGOME_EXTRINSIC_EVENT_KEY_REPOSITORY_HPP
 
-#include <primitives/transaction.hpp>
+#include <mutex>
+
 #include "primitives/event_types.hpp"
+#include "primitives/transaction.hpp"
 
 namespace kagome::subscription {
 
@@ -19,6 +21,7 @@ namespace kagome::subscription {
         : logger_{log::createLogger("ExtrinsicEventKeyRepo", "transactions")} {}
 
     ExtrinsicKey add(const primitives::Transaction::Hash &hash) noexcept {
+      std::unique_lock lock{mutex_};
       if (auto it = keys_.find(hash); it != keys_.end()) {
         return it->second;
       }
@@ -29,11 +32,13 @@ namespace kagome::subscription {
     }
 
     bool remove(const primitives::Transaction::Hash &hash) noexcept {
+      std::unique_lock lock{mutex_};
       return keys_.erase(hash) > 0;
     }
 
     std::optional<ExtrinsicKey> get(
         const primitives::Transaction::Hash &hash) const noexcept {
+      std::unique_lock lock{mutex_};
       if (auto it = keys_.find(hash); it != keys_.end()) {
         return it->second;
       }
@@ -41,6 +46,7 @@ namespace kagome::subscription {
     }
 
    private:
+    mutable std::mutex mutex_;
     std::atomic<ExtrinsicKey> last_key_{};
     std::unordered_map<primitives::Transaction::Hash, ExtrinsicKey> keys_;
     log::Logger logger_;

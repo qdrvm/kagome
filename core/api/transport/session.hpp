@@ -106,6 +106,8 @@ namespace kagome::api {
      */
     virtual SessionType type() const = 0;
 
+    virtual void post(std::function<void()> cb) = 0;
+
    private:
     std::function<OnRequestSignature> on_request_;  ///< `on request` callback
     OnCloseHandler on_close_;

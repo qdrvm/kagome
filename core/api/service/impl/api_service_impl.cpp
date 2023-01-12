@@ -100,7 +100,9 @@ namespace {
                 name,
                 std::move(value),
                 [session{std::move(session)}](const auto &response) {
-                  session->respond(response);
+                  session->post([session, response{std::string{response}}] {
+                    session->respond(response);
+                  });
                 });
   }
 }  // namespace

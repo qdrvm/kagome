@@ -85,6 +85,8 @@ namespace kagome::api {
       return SessionType::kHttp;
     }
 
+    void post(std::function<void()> cb) override;
+
    private:
     /**
      * @brief stops session
