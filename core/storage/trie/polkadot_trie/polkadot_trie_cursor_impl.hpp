@@ -17,8 +17,6 @@ namespace kagome::storage::trie {
 
   class PolkadotTrieCursorImpl : public PolkadotTrieCursor {
    public:
-    using NodeType = TrieNode::Type;
-
     enum class Error {
       // cursor stumbled upon a node with a type invalid in the given context
       // (e.g. a leaf node where a branch node should've been)

@@ -98,6 +98,8 @@ namespace kagome::network {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<runtime::ModuleFactory> module_factory,
+        std::shared_ptr<runtime::Core> core_api,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<storage::BufferStorage> buffer_storage);
 
@@ -226,6 +228,8 @@ namespace kagome::network {
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<runtime::ModuleFactory> module_factory_;
+    std::shared_ptr<runtime::Core> core_api_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<storage::BufferStorage> buffer_storage_;
 

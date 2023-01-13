@@ -6,7 +6,10 @@
 #include "runtime/runtime_environment_factory.hpp"
 
 #include "log/profiling_logger.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
+#include "runtime/module.hpp"
+#include "runtime/module_factory.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
@@ -44,6 +47,25 @@ namespace kagome::runtime {
     BOOST_ASSERT(this->module_instance);
     BOOST_ASSERT(this->memory_provider);
     BOOST_ASSERT(this->storage_provider);
+  }
+
+  outcome::result<RuntimeEnvironment> RuntimeEnvironment::fromCode(
+      const runtime::ModuleFactory &module_factory,
+      common::BufferView code_zstd) {
+    common::Buffer code;
+    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
+    OUTCOME_TRY(module, module_factory.make(code));
+    OUTCOME_TRY(instance, module->instantiate());
+    runtime::RuntimeEnvironment env{
+        instance,
+        instance->getEnvironment().memory_provider,
+        instance->getEnvironment().storage_provider,
+        {},
+    };
+    env.storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
+        .value();
+    OUTCOME_TRY(resetMemory(*instance));
+    return env;
   }
 
   outcome::result<void> resetMemory(const ModuleInstance &instance) {

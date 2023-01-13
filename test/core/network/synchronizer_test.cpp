@@ -88,6 +88,8 @@ class SynchronizerTest
                                                     scheduler,
                                                     hasher,
                                                     nullptr,
+                                                    nullptr,
+                                                    nullptr,
                                                     buffer_storage);
   }
 

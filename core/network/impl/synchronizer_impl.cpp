@@ -79,6 +79,8 @@ namespace kagome::network {
       std::shared_ptr<network::Router> router,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<runtime::ModuleFactory> module_factory,
+      std::shared_ptr<runtime::Core> core_api,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<storage::BufferStorage> buffer_storage)
       : app_state_manager_(std::move(app_state_manager)),
@@ -91,6 +93,8 @@ namespace kagome::network {
         router_(std::move(router)),
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)),
+        module_factory_(std::move(module_factory)),
+        core_api_(std::move(core_api)),
         chain_sub_engine_(std::move(chain_sub_engine)),
         buffer_storage_(std::move(buffer_storage)) {
     BOOST_ASSERT(app_state_manager_);
@@ -962,7 +966,8 @@ namespace kagome::network {
       syncState();
       return outcome::success();
     }
-    OUTCOME_TRY(state_sync_->flow.commit(*serializer_));
+    OUTCOME_TRY(
+        state_sync_->flow.commit(*module_factory_, *core_api_, *serializer_));
     auto block = state_sync_->flow.blockInfo();
     SL_INFO(log_, "State syncing block {} has finished.", block);
     chain_sub_engine_->notify(primitives::events::ChainEventType::kNewRuntime,

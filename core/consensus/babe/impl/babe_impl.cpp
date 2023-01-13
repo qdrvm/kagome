@@ -935,6 +935,7 @@ namespace kagome::consensus::babe {
         [&block]() {
           using boost::adaptors::transformed;
           const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
+              storage::trie::StateVersion::V0,
               block.body | transformed([](const auto &ext) {
                 return common::Buffer{scale::encode(ext).value()};
               }));

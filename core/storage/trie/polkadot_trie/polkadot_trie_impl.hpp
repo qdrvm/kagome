@@ -22,6 +22,8 @@ namespace kagome::storage::trie {
    public:
     enum class Error { INVALID_NODE_TYPE = 1 };
 
+    PolkadotTrieImpl(PolkadotTrieImpl &&);
+
     /**
      * Creates an empty Trie
      * @param f a functor that will be used to obtain a child of a branch node
@@ -80,6 +82,8 @@ namespace kagome::storage::trie {
                                                 uint8_t idx) const override;
     outcome::result<NodePtr> retrieveChild(const BranchNode &parent,
                                            uint8_t idx) override;
+
+    outcome::result<void> retrieveValue(ValueAndHash &value) const override;
 
    private:
     outcome::result<NodePtr> insert(const NodePtr &parent,

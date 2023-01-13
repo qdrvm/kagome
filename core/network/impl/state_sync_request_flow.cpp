@@ -6,6 +6,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "network/impl/state_sync_request_flow.hpp"
+#include "runtime/runtime_api/core.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 
@@ -81,15 +82,21 @@ namespace kagome::network {
   }
 
   outcome::result<void> StateSyncRequestFlow::commit(
+      const runtime::ModuleFactory &module_factory,
+      runtime::Core &core_api,
       storage::trie::TrieSerializer &trie_serializer) {
     assert(complete());
     auto &top = roots_[std::nullopt];
-    // TODO(turuslan): #1416, state version from runtime
+    OUTCOME_TRY(code, top.trie.get(storage::kRuntimeCodeKey));
+    OUTCOME_TRY(env,
+                runtime::RuntimeEnvironment::fromCode(module_factory, code));
+    OUTCOME_TRY(runtime_version, core_api.version(env));
+    auto version = storage::trie::StateVersion{runtime_version.state_version};
     for (auto &[expected, root] : roots_) {
       if (not expected) {
         continue;
       }
-      OUTCOME_TRY(actual, trie_serializer.storeTrie(root.trie));
+      OUTCOME_TRY(actual, trie_serializer.storeTrie(root.trie, version));
       if (actual != expected) {
         return Error::HASH_MISMATCH;
       }
@@ -97,7 +104,7 @@ namespace kagome::network {
         top.trie.put(child, common::BufferView{actual}).value();
       }
     }
-    OUTCOME_TRY(actual, trie_serializer.storeTrie(top.trie));
+    OUTCOME_TRY(actual, trie_serializer.storeTrie(top.trie, version));
     if (actual != block_.state_root) {
       return Error::HASH_MISMATCH;
     }
