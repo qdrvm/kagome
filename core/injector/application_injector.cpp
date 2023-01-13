@@ -83,7 +83,7 @@
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "host_api/impl/host_api_impl.hpp"
-#include "injector/get_genesis_state.hpp"
+#include "injector/calculate_genesis_state.hpp"
 #include "injector/get_peer_keypair.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
@@ -1036,7 +1036,7 @@ namespace {
         }),
         bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
           auto root =
-              injector::get_genesis_state(
+              injector::calculate_genesis_state(
                   injector.template create<const application::ChainSpec &>(),
                   injector.template create<const runtime::ModuleFactory &>(),
                   injector.template create<storage::trie::TrieSerializer &>())

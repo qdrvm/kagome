@@ -13,7 +13,7 @@
 #include "storage/trie/serialization/trie_serializer.hpp"
 
 namespace kagome::injector {
-  inline outcome::result<storage::trie::RootHash> get_genesis_state(
+  inline outcome::result<storage::trie::RootHash> calculate_genesis_state(
       const application::ChainSpec &chain_spec,
       const runtime::ModuleFactory &module_factory,
       storage::trie::TrieSerializer &trie_serializer) {
