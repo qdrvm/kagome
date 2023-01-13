@@ -80,18 +80,31 @@ namespace kagome::storage::trie {
     }
   };
 
-  struct ValueAndHash {
+  class ValueAndHash {
+   public:
+    ValueAndHash() = default;
+    ValueAndHash(std::optional<common::Hash256> hash,
+                 std::optional<common::Buffer> value,
+                 bool dirty = true)
+        : hash{hash}, value{std::move(value)}, dirty_{dirty} {}
     operator bool() const {
       return hash || value;
     }
 
-    void reset() {
-      *this = {};
+    bool dirty() const {
+      return dirty_;
     }
 
     std::optional<common::Hash256> hash;
     std::optional<common::Buffer> value;
-    bool dirty = true;
+
+   private:
+    /**
+     * Value was inserted or overwritten.
+     *
+     * Used to convert full value to hash during encoding.
+     */
+    bool dirty_ = true;
   };
 
   /**
@@ -131,7 +144,7 @@ namespace kagome::storage::trie {
     BranchNode() = default;
     explicit BranchNode(KeyNibbles key_nibbles,
                         std::optional<common::Buffer> value = std::nullopt)
-        : TrieNode{std::move(key_nibbles), {.value = std::move(value)}} {}
+        : TrieNode{std::move(key_nibbles), {std::nullopt, std::move(value)}} {}
 
     ~BranchNode() override = default;
 
@@ -151,7 +164,7 @@ namespace kagome::storage::trie {
   struct LeafNode : public TrieNode {
     LeafNode() = default;
     LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
-        : TrieNode{std::move(key_nibbles), {.value = std::move(value)}} {}
+        : TrieNode{std::move(key_nibbles), {std::nullopt, std::move(value)}} {}
     LeafNode(KeyNibbles key_nibbles, ValueAndHash value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
@@ -173,8 +186,16 @@ namespace kagome::storage::trie {
     common::Buffer db_key;
   };
 
+  // TODO(turuslan): #1470, refactor retrieve
+  /**
+   * Workaround to retrieve value from hash if value is not present.
+   * @see PolkadotTrieImpl::retrieveValue
+   * @see TrieSerializerImpl::retrieveNode
+   */
   struct DummyValue : OpaqueTrieNode {
-    ValueAndHash *value;
+    DummyValue(ValueAndHash &value) : value{value} {}
+
+    ValueAndHash &value;
   };
 }  // namespace kagome::storage::trie
 

@@ -62,7 +62,10 @@ namespace kagome::storage::trie {
     virtual outcome::result<NodePtr> retrieveChild(const BranchNode &parent,
                                                    uint8_t idx) = 0;
 
-    virtual outcome::result<void> getValue(ValueAndHash &value) const = 0;
+    /**
+     * Retrieve value from hash if value is not present.
+     */
+    virtual outcome::result<void> retrieveValue(ValueAndHash &value) const = 0;
 
     /**
      * @returns a node which is a descendant of \arg parent found by following

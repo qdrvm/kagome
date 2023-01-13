@@ -29,7 +29,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
 }
 
 namespace kagome::storage::trie {
-  constexpr size_t kMaxInlineValueVersion1 = 33;
+  constexpr size_t kMaxInlineValueSizeVersion1 = 33;
 
   inline common::Buffer ushortToBytes(uint16_t b) {
     common::Buffer out(2, 0);
@@ -47,10 +47,10 @@ namespace kagome::storage::trie {
         return false;
       }
       case StateVersion::V1: {
-        if (!node.value.dirty) {
+        if (!node.value.dirty()) {
           return false;
         }
-        return node.value.value->size() >= kMaxInlineValueVersion1;
+        return node.value.value->size() >= kMaxInlineValueSizeVersion1;
       }
     }
     BOOST_UNREACHABLE_RETURN();
@@ -283,9 +283,8 @@ namespace kagome::storage::trie {
     switch (type) {
       case TrieNode::Type::Leaf: {
         OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
-        auto node = std::make_shared<LeafNode>(partial_key, std::move(value));
-        node->value.dirty = false;
-        return node;
+        return std::make_shared<LeafNode>(
+            partial_key, ValueAndHash{std::nullopt, std::move(value), false});
       }
 
       case TrieNode::Type::BranchEmptyValue:
@@ -293,11 +292,9 @@ namespace kagome::storage::trie {
         return decodeBranch(type, partial_key, stream);
 
       case TrieNode::Type::LeafContainingHashes: {
-        auto node = std::make_shared<LeafNode>(partial_key, std::nullopt);
-        node->value.dirty = false;
         OUTCOME_TRY(hash, scale::decode<common::Hash256>(stream.leftBytes()));
-        node->value.hash = hash;
-        return node;
+        return std::make_shared<LeafNode>(
+            partial_key, ValueAndHash{hash, std::nullopt, false});
       }
 
       case TrieNode::Type::BranchContainingHashes:
@@ -398,7 +395,6 @@ namespace kagome::storage::trie {
       return Error::INPUT_TOO_SMALL;
     }
     auto node = std::make_shared<BranchNode>(partial_key);
-    node->value.dirty = false;
 
     uint16_t children_bitmap = stream.next();
     children_bitmap += stream.next() << 8u;
@@ -413,7 +409,7 @@ namespace kagome::storage::trie {
       } catch (std::system_error &e) {
         return outcome::failure(e.code());
       }
-      node->value.value = std::move(value);
+      node->value = {std::nullopt, std::move(value), false};
     } else if (type == TrieNode::Type::BranchContainingHashes) {
       common::Hash256 hash;
       try {
@@ -421,7 +417,7 @@ namespace kagome::storage::trie {
       } catch (std::system_error &e) {
         return outcome::failure(e.code());
       }
-      node->value.hash = hash;
+      node->value = {hash, std::nullopt, false};
     } else if (type != TrieNode::Type::BranchEmptyValue) {
       return Error::UNKNOWN_NODE_TYPE;
     }

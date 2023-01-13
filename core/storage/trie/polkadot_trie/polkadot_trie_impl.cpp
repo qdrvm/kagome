@@ -154,7 +154,7 @@ namespace {
       auto &branch = dynamic_cast<BranchNode &>(*node);
       if (node->key_nibbles == sought_key) {
         SL_TRACE(logger, "deleteNode: deleting value in branch; stop");
-        node->value.reset();
+        node->value = ValueAndHash{};
       } else {
         auto length = getCommonPrefixLength(node->key_nibbles, sought_key);
         OUTCOME_TRY(child, node_storage.getChild(branch, sought_key[length]));
@@ -232,7 +232,7 @@ namespace {
         }
         if (not limit or count < limit.value()) {
           if (parent->value) {
-            OUTCOME_TRY(trie.getValue(parent->value));
+            OUTCOME_TRY(trie.retrieveValue(parent->value));
             OUTCOME_TRY(notifyOnDetached(parent, callback));
             ++count;
           }
@@ -453,7 +453,7 @@ namespace kagome::storage::trie {
     auto nibbles = KeyNibbles::fromByteBuffer(key);
     OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
     if (node && node->value) {
-      OUTCOME_TRY(getValue(const_cast<ValueAndHash &>(node->value)));
+      OUTCOME_TRY(retrieveValue(const_cast<ValueAndHash &>(node->value)));
       return BufferView{*node->value.value};
     }
     return std::nullopt;
@@ -574,11 +574,10 @@ namespace kagome::storage::trie {
     return nodes_->getChild(parent, idx);
   }
 
-  outcome::result<void> PolkadotTrieImpl::getValue(ValueAndHash &value) const {
+  outcome::result<void> PolkadotTrieImpl::retrieveValue(
+      ValueAndHash &value) const {
     if (value.hash && !value.value) {
-      auto p = std::make_shared<DummyValue>();
-      p->value = &value;
-      OUTCOME_TRY(nodes_->retrieve_node_(p));
+      OUTCOME_TRY(nodes_->retrieve_node_(std::make_shared<DummyValue>(value)));
     }
     return outcome::success();
   }
