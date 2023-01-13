@@ -61,7 +61,7 @@ namespace kagome::network {
           last_key_.emplace_back(entry.entries.back().key);
         }
       }
-      auto is_top = not entry.state_root;
+      const auto is_top = not entry.state_root;
       if (complete_roots_.count(entry.state_root)) {
         continue;
       }

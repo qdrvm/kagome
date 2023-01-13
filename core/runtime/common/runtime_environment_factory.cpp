@@ -24,6 +24,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
       return "Failed to obtain the required block from storage";
     case E::ABSENT_HEAP_BASE:
       return "Failed to extract heap base from a module";
+    case E::HEAP_BASE_TOO_LOW:
+      return "Heap base too low";
     case E::FAILED_TO_SET_STORAGE_STATE:
       return "Failed to set the storage state to the desired value";
   }
@@ -102,6 +104,18 @@ namespace kagome::runtime {
             pages);
       }
     }
+
+    size_t max_data_segment_end = 0;
+    instance.forDataSegment([&](ModuleInstance::SegmentOffset offset,
+                                ModuleInstance::SegmentData segment) {
+      max_data_segment_end =
+          std::max(max_data_segment_end, offset + segment.size());
+    });
+    if (gsl::narrow<size_t>(heap_base) < max_data_segment_end) {
+      return RuntimeEnvironmentFactory::Error::HEAP_BASE_TOO_LOW;
+    }
+
+    memory.resize(heap_base);
 
     instance.forDataSegment([&](auto offset, auto segment) {
       memory.storeBuffer(offset, segment);

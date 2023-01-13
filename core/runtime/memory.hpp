@@ -23,6 +23,7 @@ namespace kagome::runtime {
   }();
 
   // according to $3.1.2.1 in the Polkadot Host Spec
+  // https://webassembly.github.io/spec/core/exec/runtime.html#memory-instances
   constexpr inline size_t kMemoryPageSize = []() {
     using kagome::common::literals::operator""_kB;
     return 64_kB;
