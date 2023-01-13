@@ -106,6 +106,11 @@ namespace kagome::api {
      */
     virtual SessionType type() const = 0;
 
+    /**
+     * `boost::asio::post(io_context, cb)` to `io_context` of this session.
+     *
+     * Defers sending JSON-RPC event until it's subscription id is sent.
+     */
     virtual void post(std::function<void()> cb) = 0;
 
    private:
