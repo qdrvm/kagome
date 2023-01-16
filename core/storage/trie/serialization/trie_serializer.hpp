@@ -17,6 +17,8 @@ namespace kagome::storage::trie {
    */
   class TrieSerializer {
    public:
+    using OnDbRead = std::function<void(common::BufferView)>;
+
     virtual ~TrieSerializer() = default;
 
     /**
@@ -36,7 +38,7 @@ namespace kagome::storage::trie {
      * is no entry for provided key.
      */
     virtual outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        const common::Buffer &db_key) const = 0;
+        const common::Buffer &db_key, OnDbRead on_db_read) const = 0;
   };
 
 }  // namespace kagome::storage::trie

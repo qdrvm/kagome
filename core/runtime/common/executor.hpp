@@ -61,7 +61,7 @@ namespace kagome::runtime {
     outcome::result<std::unique_ptr<RuntimeEnvironment>> persistentAt(
         primitives::BlockHash const &block_hash) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
-      OUTCOME_TRY(env, env_template->persistent().make());
+      OUTCOME_TRY(env, env_template->persistent().make({}));
       return std::move(env);
     }
 
@@ -76,7 +76,8 @@ namespace kagome::runtime {
                                    storage::trie::RootHash const &storage_state,
                                    std::string_view name,
                                    Args &&...args) {
-      OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
+      OUTCOME_TRY(env,
+                  env_factory_->start(block_info, storage_state)->make({}));
       return callMediateInternal<Result>(
           *env, name, std::forward<Args>(args)...);
     }
@@ -91,7 +92,7 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
-      OUTCOME_TRY(env, env_template->make());
+      OUTCOME_TRY(env, env_template->make({}));
       return callMediateInternal<Result>(
           *env, name, std::forward<Args>(args)...);
     }
@@ -105,7 +106,7 @@ namespace kagome::runtime {
     outcome::result<Result> callAtGenesis(std::string_view name,
                                           Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
-      OUTCOME_TRY(env, env_template->make());
+      OUTCOME_TRY(env, env_template->make({}));
       return callMediateInternal<Result>(
           *env, name, std::forward<Args>(args)...);
     }
@@ -113,9 +114,10 @@ namespace kagome::runtime {
     outcome::result<common::Buffer> callAtRaw(
         const primitives::BlockHash &block_hash,
         std::string_view name,
-        const common::Buffer &encoded_args) override {
+        const common::Buffer &encoded_args,
+        OnDbRead on_db_read) override {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
-      OUTCOME_TRY(env, env_template->make());
+      OUTCOME_TRY(env, env_template->make(std::move(on_db_read)));
 
       auto &memory = env->memory_provider->getCurrentMemory()->get();
 

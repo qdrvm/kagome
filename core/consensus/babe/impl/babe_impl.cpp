@@ -143,7 +143,7 @@ namespace kagome::consensus::babe {
       const auto &state_root = best_block_header.state_root;
 
       // Check if target block has state
-      if (auto res = trie_storage_->getEphemeralBatchAt(state_root);
+      if (auto res = trie_storage_->getEphemeralBatchAt(state_root, {});
           res.has_error()) {
         SL_WARN(log_, "Can't get state of best block: {}", res.error());
         SL_CRITICAL(log_,

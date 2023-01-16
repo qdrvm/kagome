@@ -18,7 +18,8 @@ namespace kagome::runtime {
                 callAtRaw,
                 (const primitives::BlockHash &,
                  std::string_view,
-                 const common::Buffer &),
+                 const common::Buffer &,
+                 OnDbRead),
                 (override));
   };
 

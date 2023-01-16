@@ -21,7 +21,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<std::unique_ptr<EphemeralTrieBatch>>,
                 getEphemeralBatchAt,
-                (const storage::trie::RootHash &root),
+                (const storage::trie::RootHash &, OnDbRead),
                 (const, override));
   };
 

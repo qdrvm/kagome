@@ -35,7 +35,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeEnvironment>>,
                 make,
-                (),
+                (OnDbRead),
                 (override));
   };
 

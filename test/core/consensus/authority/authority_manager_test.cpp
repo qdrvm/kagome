@@ -66,7 +66,7 @@ class AuthorityManagerTest : public testing::Test {
     persistent_storage = std::make_shared<storage::InMemoryStorage>();
 
     trie_storage = std::make_shared<storage::trie::TrieStorageMock>();
-    EXPECT_CALL(*trie_storage, getEphemeralBatchAt(_))
+    EXPECT_CALL(*trie_storage, getEphemeralBatchAt(_, _))
         .WillRepeatedly(testing::Invoke([] {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
           EXPECT_CALL(*batch, tryGetMock(_))

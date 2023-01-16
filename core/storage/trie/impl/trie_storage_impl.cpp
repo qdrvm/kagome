@@ -56,15 +56,17 @@ namespace kagome::storage::trie {
     SL_DEBUG(logger_,
              "Initialize persistent trie batch with root: {}",
              root.toHex());
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}, {}));
     return PersistentTrieBatchImpl::create(
         codec_, serializer_, changes_, std::move(trie));
   }
 
   outcome::result<std::unique_ptr<EphemeralTrieBatch>>
-  TrieStorageImpl::getEphemeralBatchAt(const RootHash &root) const {
+  TrieStorageImpl::getEphemeralBatchAt(const RootHash &root,
+                                       OnDbRead on_db_read) const {
     SL_DEBUG(logger_, "Initialize ephemeral trie batch with root: {}", root);
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
+    OUTCOME_TRY(trie,
+                serializer_->retrieveTrie(Buffer{root}, std::move(on_db_read)));
     return std::make_unique<EphemeralTrieBatchImpl>(codec_, std::move(trie));
   }
 }  // namespace kagome::storage::trie

@@ -40,7 +40,7 @@ namespace kagome::storage::trie {
     outcome::result<std::unique_ptr<PersistentTrieBatch>> getPersistentBatchAt(
         const RootHash &root) override;
     outcome::result<std::unique_ptr<EphemeralTrieBatch>> getEphemeralBatchAt(
-        const RootHash &root) const override;
+        const RootHash &root, OnDbRead on_db_read) const override;
 
    protected:
     TrieStorageImpl(

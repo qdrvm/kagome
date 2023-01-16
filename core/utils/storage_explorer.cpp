@@ -264,7 +264,7 @@ class QueryStateCommand : public Command {
     } else {
       throwError("Invalid block hash!");
     }
-    auto batch = trie_storage->getEphemeralBatchAt(state_root);
+    auto batch = trie_storage->getEphemeralBatchAt(state_root, {});
     if (!batch) {
       throwError("Failed getting trie batch: {}", batch.error());
     }

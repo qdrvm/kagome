@@ -31,8 +31,8 @@ namespace kagome::runtime {
 
     ~TrieStorageProviderImpl() override = default;
 
-    outcome::result<void> setToEphemeralAt(
-        const common::Hash256 &state_root) override;
+    outcome::result<void> setToEphemeralAt(const common::Hash256 &state_root,
+                                           OnDbRead on_db_read) override;
 
     outcome::result<void> setToPersistentAt(
         const common::Hash256 &state_root) override;

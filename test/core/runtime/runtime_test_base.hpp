@@ -180,8 +180,8 @@ class RuntimeTestBase : public ::testing::Test {
   }
 
   void prepareEphemeralStorageExpects() {
-    EXPECT_CALL(*trie_storage_, getEphemeralBatchAt(_))
-        .WillOnce(testing::Invoke([this](auto &root) {
+    EXPECT_CALL(*trie_storage_, getEphemeralBatchAt(_, _))
+        .WillOnce(testing::Invoke([this]() {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
           prepareStorageBatchExpectations(*batch);
           return batch;

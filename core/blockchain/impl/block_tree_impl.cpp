@@ -271,7 +271,7 @@ namespace kagome::blockchain {
     const auto &state_root = target_block_header.state_root;
 
     // Check if target block has state
-    if (auto res = trie_storage->getEphemeralBatchAt(state_root);
+    if (auto res = trie_storage->getEphemeralBatchAt(state_root, {});
         res.has_error()) {
       SL_WARN(log, "Can't get state of target block: {}", res.error());
       SL_CRITICAL(

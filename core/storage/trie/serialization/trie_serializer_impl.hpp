@@ -33,7 +33,7 @@ namespace kagome::storage::trie {
                                         StateVersion version) override;
 
     outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        const common::Buffer &db_key) const override;
+        const common::Buffer &db_key, OnDbRead on_db_read) const override;
 
    private:
     /**
@@ -49,13 +49,14 @@ namespace kagome::storage::trie {
      * nodes as its children
      */
     outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const common::Buffer &db_key) const;
+        const common::Buffer &db_key, const OnDbRead &on_db_read) const;
     /**
      * Retrieves a node, replacing a dummy node to an actual node if
      * needed
      */
     outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const std::shared_ptr<OpaqueTrieNode> &node) const;
+        const std::shared_ptr<OpaqueTrieNode> &node,
+        const OnDbRead &on_db_read) const;
 
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;

@@ -16,7 +16,7 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD(outcome::result<void>,
                 setToEphemeralAt,
-                (const storage::trie::RootHash &),
+                (const storage::trie::RootHash &, OnDbRead),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,

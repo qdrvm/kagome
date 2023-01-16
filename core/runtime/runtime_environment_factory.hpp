@@ -105,6 +105,8 @@ namespace kagome::runtime {
 
   struct RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate {
    public:
+    using OnDbRead = std::function<void(common::BufferView)>;
+
     RuntimeEnvironmentTemplate(
         std::weak_ptr<const RuntimeEnvironmentFactory> parent_factory_,
         const primitives::BlockInfo &blockchain_state,
@@ -115,7 +117,7 @@ namespace kagome::runtime {
     [[nodiscard]] virtual RuntimeEnvironmentTemplate &persistent();
 
     [[nodiscard]] virtual outcome::result<std::unique_ptr<RuntimeEnvironment>>
-    make();
+    make(OnDbRead on_db_read);
 
    private:
     primitives::BlockInfo blockchain_state_;

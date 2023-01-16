@@ -62,7 +62,7 @@ namespace kagome::runtime {
         instance->getEnvironment().storage_provider,
         {},
     };
-    env.storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
+    env.storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash, {})
         .value();
     OUTCOME_TRY(resetMemory(*instance));
     return env;
@@ -142,7 +142,8 @@ namespace kagome::runtime {
   }
 
   outcome::result<std::unique_ptr<RuntimeEnvironment>>
-  RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::make() {
+  RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::make(
+      OnDbRead on_db_read) {
     KAGOME_PROFILE_START(runtime_env_making);
     auto parent_factory = parent_factory_.lock();
     if (parent_factory == nullptr) {
@@ -178,7 +179,8 @@ namespace kagome::runtime {
         return Error::FAILED_TO_SET_STORAGE_STATE;
       }
     } else {
-      if (auto res = env.storage_provider->setToEphemeralAt(storage_state_);
+      if (auto res = env.storage_provider->setToEphemeralAt(
+              storage_state_, std::move(on_db_read));
           !res) {
         SL_DEBUG(
             parent_factory->logger_,

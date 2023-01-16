@@ -439,7 +439,8 @@ int db_editor_main(int argc, const char **argv) {
       need_additional_compaction = true;
     } else if (DUMP == cmd) {
       auto batch =
-          check(trie->getEphemeralBatchAt(last_finalized_block.hash)).value();
+          check(trie->getEphemeralBatchAt(last_finalized_block.hash, {}))
+              .value();
       auto cursor = batch->trieCursor();
       auto res = check(cursor->next());
       {

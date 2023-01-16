@@ -46,7 +46,7 @@ namespace kagome::network {
   StateProtocolObserverImpl::getEntry(const storage::trie::RootHash &hash,
                                       const common::Buffer &key,
                                       size_t limit) const {
-    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(hash));
+    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(hash, {}));
 
     auto cursor = batch->trieCursor();
 
@@ -80,7 +80,7 @@ namespace kagome::network {
   outcome::result<network::StateResponse>
   StateProtocolObserverImpl::onStateRequest(const StateRequest &request) const {
     OUTCOME_TRY(header, blocks_headers_->getBlockHeader(request.hash));
-    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root));
+    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root, {}));
 
     auto cursor = batch->trieCursor();
     // if key is not empty continue iteration from place where left

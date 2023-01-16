@@ -45,7 +45,7 @@ namespace kagome::runtime {
           return cached_code_;
         }
       }
-      OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state));
+      OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state, {}));
       OUTCOME_TRY(code, setCodeFromBatch(*batch.get()));
       cached_code_ = std::move(code);
       last_state_root_ = state;

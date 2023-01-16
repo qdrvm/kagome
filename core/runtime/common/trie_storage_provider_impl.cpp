@@ -36,11 +36,13 @@ namespace kagome::runtime {
   }
 
   outcome::result<void> TrieStorageProviderImpl::setToEphemeralAt(
-      const common::Hash256 &state_root) {
+      const common::Hash256 &state_root, OnDbRead on_db_read) {
     SL_DEBUG(logger_,
              "Setting storage provider to ephemeral batch with root {}",
              state_root);
-    OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(state_root));
+    OUTCOME_TRY(
+        batch,
+        trie_storage_->getEphemeralBatchAt(state_root, std::move(on_db_read)));
     child_batches_.clear();
     persistent_batch_.reset();
     current_batch_ = std::move(batch);

@@ -113,14 +113,14 @@ TEST_F(TrieBatchTest, Put) {
   auto batch = trie->getPersistentBatchAt(empty_hash).value();
   FillSmallTrieWithBatch(*batch);
   // changes are not yet commited
-  auto new_batch = trie->getEphemeralBatchAt(empty_hash).value();
+  auto new_batch = trie->getEphemeralBatchAt(empty_hash, {}).value();
   for (auto &entry : data) {
     ASSERT_OUTCOME_ERROR(new_batch->get(entry.first),
                          kagome::storage::trie::TrieError::NO_VALUE);
   }
   ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit(StateVersion::V0));
   // changes are commited
-  new_batch = trie->getEphemeralBatchAt(root_hash).value();
+  new_batch = trie->getEphemeralBatchAt(root_hash, {}).value();
   for (auto &entry : data) {
     ASSERT_OUTCOME_SUCCESS(res, new_batch->get(entry.first));
     ASSERT_EQ(res, entry.second);
@@ -151,7 +151,7 @@ TEST_F(TrieBatchTest, Remove) {
 
   ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit(StateVersion::V0));
 
-  auto read_batch = trie->getEphemeralBatchAt(root_hash).value();
+  auto read_batch = trie->getEphemeralBatchAt(root_hash, {}).value();
   for (auto i : {2, 3, 4}) {
     ASSERT_OUTCOME_IS_FALSE(read_batch->contains(data[i].first));
   }
@@ -170,7 +170,7 @@ TEST_F(TrieBatchTest, Replace) {
   ASSERT_OUTCOME_SUCCESS_TRY(
       batch->put(data[1].first, BufferView{data[3].second}));
   ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit(StateVersion::V0));
-  auto read_batch = trie->getEphemeralBatchAt(root_hash).value();
+  auto read_batch = trie->getEphemeralBatchAt(root_hash, {}).value();
   ASSERT_OUTCOME_SUCCESS(res, read_batch->get(data[1].first));
   ASSERT_EQ(res, data[3].second);
 }

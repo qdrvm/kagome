@@ -16,6 +16,8 @@ namespace kagome::runtime {
    public:
     using Buffer = common::Buffer;
     using BlockHash = primitives::BlockHash;
+    using OnDbRead = std::function<void(common::BufferView)>;
+
     virtual ~RawExecutor() = default;
 
     /**
@@ -28,7 +30,8 @@ namespace kagome::runtime {
      */
     virtual outcome::result<Buffer> callAtRaw(const BlockHash &block_hash,
                                               std::string_view name,
-                                              const Buffer &encoded_args) = 0;
+                                              const Buffer &encoded_args,
+                                              OnDbRead on_db_read) = 0;
   };
 
 }  // namespace kagome::runtime

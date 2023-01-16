@@ -21,6 +21,8 @@ namespace kagome::storage::trie {
    */
   class TrieStorage {
    public:
+    using OnDbRead = std::function<void(common::BufferView)>;
+
     virtual ~TrieStorage() = default;
 
     /**
@@ -31,7 +33,7 @@ namespace kagome::storage::trie {
     virtual outcome::result<std::unique_ptr<PersistentTrieBatch>>
     getPersistentBatchAt(const RootHash &root) = 0;
     virtual outcome::result<std::unique_ptr<EphemeralTrieBatch>>
-    getEphemeralBatchAt(const RootHash &root) const = 0;
+    getEphemeralBatchAt(const RootHash &root, OnDbRead on_db_read) const = 0;
   };
 
 }  // namespace kagome::storage::trie

@@ -82,8 +82,8 @@ namespace kagome::api {
         .WillOnce(testing::Return(BlockHeader{.state_root = "CDE"_hash256}));
     auto in_buf = "a"_buf;
     auto out_buf = "1"_buf;
-    EXPECT_CALL(*storage_, getEphemeralBatchAt(_))
-        .WillRepeatedly(testing::Invoke([&in_buf, &out_buf](auto &root) {
+    EXPECT_CALL(*storage_, getEphemeralBatchAt(_, _))
+        .WillRepeatedly(testing::Invoke([&in_buf, &out_buf](auto &&, auto &&) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
           EXPECT_CALL(*batch, tryGetMock(in_buf.view()))
               .WillRepeatedly(testing::Return(std::cref(out_buf)));
@@ -126,8 +126,8 @@ namespace kagome::api {
       EXPECT_CALL(*block_header_repo_, getBlockHeader(did))
           .WillOnce(testing::Return(BlockHeader{.state_root = "CDE"_hash256}));
 
-      EXPECT_CALL(*storage, getEphemeralBatchAt(_))
-          .WillRepeatedly(testing::Invoke([this](auto &root) {
+      EXPECT_CALL(*storage, getEphemeralBatchAt(_, _))
+          .WillRepeatedly(testing::Invoke([this](auto &&, auto &&) {
             auto batch = std::make_unique<EphemeralTrieBatchMock>();
             EXPECT_CALL(*batch, trieCursor())
                 .WillRepeatedly(testing::Invoke([this]() {
@@ -379,8 +379,8 @@ namespace kagome::api {
                   getBlockHeader(primitives::BlockId{block_hash}))
           .WillOnce(testing::Return(
               primitives::BlockHeader{.state_root = state_root}));
-      EXPECT_CALL(*storage_, getEphemeralBatchAt(state_root))
-          .WillOnce(testing::Invoke([&keys](auto &root) {
+      EXPECT_CALL(*storage_, getEphemeralBatchAt(state_root, _))
+          .WillOnce(testing::Invoke([&keys](auto &root, auto &&) {
             auto batch =
                 std::make_unique<storage::trie::EphemeralTrieBatchMock>();
             for (auto &key : keys) {
@@ -451,8 +451,8 @@ namespace kagome::api {
     EXPECT_CALL(*block_header_repo_, getBlockHeader(primitives::BlockId{at}))
         .WillOnce(
             testing::Return(primitives::BlockHeader{.state_root = state_root}));
-    EXPECT_CALL(*storage_, getEphemeralBatchAt(state_root))
-        .WillOnce(testing::Invoke([&keys](auto &root) {
+    EXPECT_CALL(*storage_, getEphemeralBatchAt(state_root, _))
+        .WillOnce(testing::Invoke([&keys](auto &root, auto &&) {
           auto batch =
               std::make_unique<storage::trie::EphemeralTrieBatchMock>();
           for (auto &key : keys) {

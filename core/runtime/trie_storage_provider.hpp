@@ -28,6 +28,7 @@ namespace kagome::runtime {
     using Batch = storage::trie::TrieBatch;
     using PersistentBatch = storage::trie::PersistentTrieBatch;
     using StateVersion = storage::trie::StateVersion;
+    using OnDbRead = std::function<void(common::BufferView)>;
 
     virtual ~TrieStorageProvider() = default;
 
@@ -35,7 +36,7 @@ namespace kagome::runtime {
      * Sets the current batch to a new ephemeral batch
      */
     virtual outcome::result<void> setToEphemeralAt(
-        const common::Hash256 &state_root) = 0;
+        const common::Hash256 &state_root, OnDbRead on_db_read) = 0;
 
     /**
      * Sets the current batch to a new persistent batch at specified storage
