@@ -14,6 +14,11 @@
 #include "primitives/block_header.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 
+namespace kagome::runtime {
+  class Core;
+  class ModuleFactory;
+}  // namespace kagome::runtime
+
 namespace kagome::storage::trie {
   class TrieSerializer;
 }  // namespace kagome::storage::trie
@@ -53,6 +58,8 @@ namespace kagome::network {
     outcome::result<void> onResponse(const StateResponse &res);
 
     outcome::result<void> commit(
+        const runtime::ModuleFactory &module_factory,
+        runtime::Core &core_api,
         storage::trie::TrieSerializer &trie_serializer);
 
    private:

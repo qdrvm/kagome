@@ -73,8 +73,8 @@ namespace kagome::primitives {
       ss58_bytes.putUint8(account_type).put(id);
     } else {
       // https://docs.substrate.io/fundamentals/accounts-addresses-keys/
-       uint8_t _0 = (account_type & 0b0000000011111100) >> 2 | 0b01000000;
-       uint8_t _1 = account_type >> 8 | (account_type & 0b0000000000000011) << 6;
+      uint8_t _0 = (account_type & 0b0000000011111100) >> 2 | 0b01000000;
+      uint8_t _1 = account_type >> 8 | (account_type & 0b0000000000000011) << 6;
       ss58_bytes.putUint8(_0).putUint8(_1).put(id);
     }
     auto checksum = calculateChecksum(ss58_bytes, hasher);

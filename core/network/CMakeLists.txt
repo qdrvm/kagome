@@ -34,6 +34,7 @@ add_library(network
     )
 target_link_libraries(network
     p2p::p2p_basic_scheduler
+    runtime_environment_factory
     scale_libp2p_types
     blockchain
     logger

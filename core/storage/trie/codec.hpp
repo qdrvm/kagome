@@ -9,6 +9,7 @@
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "storage/trie/node.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
   /**
@@ -28,20 +29,10 @@ namespace kagome::storage::trie {
      * @param store_children chidren storer
      * @return encoded representation of a {@param node}
      */
-    virtual outcome::result<common::Buffer> encodeNodeAndStoreChildren(
-        const Node &node, const StoreChildren &store_children) const = 0;
-
-    /**
-     * @brief Encode node to byte representation
-     * @param node node in the trie
-     * @return encoded representation of a {@param node}
-     */
-    outcome::result<common::Buffer> encodeNode(const Node &node) const {
-      return encodeNodeAndStoreChildren(
-          node, [](common::BufferView, common::Buffer &&) {
-            return outcome::success();
-          });
-    }
+    virtual outcome::result<common::Buffer> encodeNode(
+        const Node &node,
+        StateVersion version,
+        const StoreChildren &store_children) const = 0;
 
     /**
      * @brief Decode node from bytes

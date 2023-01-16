@@ -52,8 +52,9 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(trie_ != nullptr);
   }
 
-  outcome::result<RootHash> PersistentTrieBatchImpl::commit() {
-    OUTCOME_TRY(root, serializer_->storeTrie(*trie_));
+  outcome::result<RootHash> PersistentTrieBatchImpl::commit(
+      StateVersion version) {
+    OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
     return std::move(root);
   }

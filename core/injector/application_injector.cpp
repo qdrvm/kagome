@@ -83,6 +83,7 @@
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "host_api/impl/host_api_impl.hpp"
+#include "injector/calculate_genesis_state.hpp"
 #include "injector/get_peer_keypair.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
@@ -256,29 +257,6 @@ namespace {
     return initialized.value();
   }
 
-  sptr<blockchain::BlockStorage> get_block_storage(
-      storage::trie::RootHash state_root,
-      sptr<crypto::Hasher> hasher,
-      sptr<storage::BufferStorage> storage) {
-    static auto initialized =
-        std::optional<sptr<blockchain::BlockStorage>>(std::nullopt);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto block_storage_res =
-        blockchain::BlockStorageImpl::create(state_root, storage, hasher);
-
-    if (block_storage_res.has_error()) {
-      common::raise(block_storage_res.error());
-    }
-    auto &block_storage = block_storage_res.value();
-
-    initialized.emplace(std::move(block_storage));
-    return initialized.value();
-  }
-
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
       sptr<storage::BufferStorage> storage) {
     static auto initialized =
@@ -293,96 +271,6 @@ namespace {
         storage, common::Buffer{blockchain::prefix::TRIE_NODE});
 
     initialized.emplace(std::move(backend));
-    return initialized.value();
-  }
-
-  template <typename Injector>
-  std::pair<sptr<storage::trie::TrieStorage>, kagome::storage::trie::RootHash>
-  get_trie_storage_and_root_hash(const Injector &injector) {
-    static auto initialized =
-        std::optional<std::pair<sptr<storage::trie::TrieStorage>,
-                                kagome::storage::trie::RootHash>>(std::nullopt);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto factory =
-        injector.template create<sptr<storage::trie::PolkadotTrieFactory>>();
-    auto codec = injector.template create<sptr<storage::trie::Codec>>();
-    auto configuration_storage =
-        injector.template create<sptr<application::ChainSpec>>();
-    auto serializer =
-        injector.template create<sptr<storage::trie::TrieSerializer>>();
-    auto tracker =
-        injector.template create<sptr<storage::changes_trie::ChangesTracker>>();
-
-    auto trie_storage_res = storage::trie::TrieStorageImpl::createEmpty(
-        factory, codec, serializer, tracker);
-
-    if (!trie_storage_res) {
-      common::raise(trie_storage_res.error());
-    }
-
-    const auto &genesis_raw_configs =
-        configuration_storage->getGenesisTopSection();
-    auto &trie_storage = trie_storage_res.value();
-
-    auto log = log::createLogger("Injector", "injector");
-    auto batch_with_raw_data = [&log, &serializer, &trie_storage](
-                                   const auto &raw_configs) {
-      auto batch_res =
-          trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash());
-      if (not batch_res) {
-        common::raise(batch_res.error());
-      }
-      auto batch = std::move(batch_res.value());
-
-      for (const auto &[key_, val_] : raw_configs) {
-        auto &key = key_;
-        common::BufferView val = val_;
-        SL_TRACE(
-            log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
-        if (auto res = batch->put(key, val); not res) {
-          common::raise(res.error());
-        }
-      }
-
-      return batch;
-    };
-
-    auto batch = batch_with_raw_data(genesis_raw_configs);
-
-    const auto &children_default_raw_configs =
-        configuration_storage->getGenesisChildrenDefaultSection();
-    for (const auto &[key_, val_] : children_default_raw_configs) {
-      auto child_batch = batch_with_raw_data(val_);
-
-      auto root_hash_res = child_batch->commit();
-      if (root_hash_res.has_error()) {
-        common::raise(root_hash_res.error());
-      }
-
-      auto &root_hash = root_hash_res.value();
-
-      common::Buffer child_key;
-      child_key.put(storage::kChildStorageDefaultPrefix).put(root_hash);
-      auto res = batch->put(child_key, common::BufferView{root_hash});
-      if (res.has_error()) {
-        common::raise(res.error());
-      }
-    }
-
-    auto res = batch->commit();
-    if (res.has_error()) {
-      common::raise(res.error());
-    }
-
-    auto &root_hash = res.value();
-
-    SL_TRACE(log, "root hash is {}", root_hash);
-
-    initialized.emplace(std::move(trie_storage), root_hash);
     return initialized.value();
   }
 
@@ -1146,12 +1034,18 @@ namespace {
               == application::AppConfiguration::StorageBackend::RocksDB);
           return get_rocks_db(config, chain_spec);
         }),
-        di::bind<blockchain::BlockStorage>.to([](const auto &injector) {
-          auto root_hash = get_trie_storage_and_root_hash(injector).second;
+        bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
+          auto root =
+              injector::calculate_genesis_state(
+                  injector.template create<const application::ChainSpec &>(),
+                  injector.template create<const runtime::ModuleFactory &>(),
+                  injector.template create<storage::trie::TrieSerializer &>())
+                  .value();
           const auto &hasher = injector.template create<sptr<crypto::Hasher>>();
           const auto &storage =
               injector.template create<sptr<storage::BufferStorage>>();
-          return get_block_storage(root_hash, hasher, storage);
+          return blockchain::BlockStorageImpl::create(root, storage, hasher)
+              .value();
         }),
         di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
         di::bind<blockchain::BlockTree>.to(
@@ -1205,8 +1099,16 @@ namespace {
                   injector.template create<sptr<storage::BufferStorage>>();
               return get_trie_storage_backend(storage);
             }),
-        di::bind<storage::trie::TrieStorage>.to([](auto const &injector) {
-          return get_trie_storage_and_root_hash(injector).first;
+        bind_by_lambda<storage::trie::TrieStorage>([](auto const &injector) {
+          return storage::trie::TrieStorageImpl::createEmpty(
+                     injector.template create<
+                         sptr<storage::trie::PolkadotTrieFactory>>(),
+                     injector.template create<sptr<storage::trie::Codec>>(),
+                     injector.template create<
+                         sptr<storage::trie::TrieSerializer>>(),
+                     injector.template create<
+                         sptr<storage::changes_trie::ChangesTracker>>())
+              .value();
         }),
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),

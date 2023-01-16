@@ -80,6 +80,33 @@ namespace kagome::storage::trie {
     }
   };
 
+  class ValueAndHash {
+   public:
+    ValueAndHash() = default;
+    ValueAndHash(std::optional<common::Hash256> hash,
+                 std::optional<common::Buffer> value,
+                 bool dirty = true)
+        : hash{hash}, value{std::move(value)}, dirty_{dirty} {}
+    operator bool() const {
+      return hash || value;
+    }
+
+    bool dirty() const {
+      return dirty_;
+    }
+
+    std::optional<common::Hash256> hash;
+    std::optional<common::Buffer> value;
+
+   private:
+    /**
+     * Value was inserted or overwritten.
+     *
+     * Used to convert full value to hash during encoding.
+     */
+    bool dirty_ = true;
+  };
+
   /**
    * For specification see
    * 5.3 The Trie structure in the Polkadot Host specification
@@ -89,7 +116,7 @@ namespace kagome::storage::trie {
 
   struct TrieNode : public OpaqueTrieNode {
     TrieNode() = default;
-    TrieNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
+    TrieNode(KeyNibbles key_nibbles, ValueAndHash value)
         : key_nibbles{std::move(key_nibbles)}, value{std::move(value)} {}
 
     ~TrieNode() override = default;
@@ -105,19 +132,10 @@ namespace kagome::storage::trie {
       ReservedForCompactEncoding  // 0001 0000
     };
 
-    // just to avoid static_casts every time you need a switch on a node type
-    Type getTrieType() const noexcept {
-      return static_cast<Type>(getType());
-    }
-
-    bool isBranch() const noexcept {
-      auto type = getTrieType();
-      return type == Type::BranchWithValue or type == Type::BranchEmptyValue
-             or type == Type::BranchContainingHashes;
-    }
+    inline bool isBranch() const noexcept;
 
     KeyNibbles key_nibbles;
-    std::optional<common::Buffer> value;
+    ValueAndHash value;
   };
 
   struct BranchNode : public TrieNode {
@@ -126,11 +144,9 @@ namespace kagome::storage::trie {
     BranchNode() = default;
     explicit BranchNode(KeyNibbles key_nibbles,
                         std::optional<common::Buffer> value = std::nullopt)
-        : TrieNode{std::move(key_nibbles), std::move(value)} {}
+        : TrieNode{std::move(key_nibbles), {std::nullopt, std::move(value)}} {}
 
     ~BranchNode() override = default;
-
-    int getType() const override;
 
     uint16_t childrenBitmap() const;
     uint8_t childrenNum() const;
@@ -140,48 +156,19 @@ namespace kagome::storage::trie {
     // easily. @see DummyNode
     std::array<std::shared_ptr<OpaqueTrieNode>, kMaxChildren> children;
   };
+
+  bool TrieNode::isBranch() const noexcept {
+    return dynamic_cast<const BranchNode *>(this) != nullptr;
+  }
 
   struct LeafNode : public TrieNode {
     LeafNode() = default;
     LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
+        : TrieNode{std::move(key_nibbles), {std::nullopt, std::move(value)}} {}
+    LeafNode(KeyNibbles key_nibbles, ValueAndHash value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 
     ~LeafNode() override = default;
-
-    int getType() const override;
-  };
-
-  struct BranchContainingHashesNode : public TrieNode {
-    static constexpr uint8_t kMaxChildren = 16;
-
-    BranchContainingHashesNode() = default;
-    explicit BranchContainingHashesNode(
-        KeyNibbles key_nibbles,
-        std::optional<common::Buffer> value = std::nullopt)
-        : TrieNode{std::move(key_nibbles), std::move(value)} {}
-
-    ~BranchContainingHashesNode() override = default;
-
-    int getType() const override;
-
-    uint16_t childrenBitmap() const;
-    uint8_t childrenNum() const;
-
-    // Has 1..16 children.
-    // Stores their hashes to search for them in a storage and encode them more
-    // easily. @see DummyNode
-    std::array<std::shared_ptr<OpaqueTrieNode>, kMaxChildren> children;
-  };
-
-  struct LeafContainingHashesNode : public TrieNode {
-    LeafContainingHashesNode() = default;
-    LeafContainingHashesNode(KeyNibbles key_nibbles,
-                             std::optional<common::Buffer> value)
-        : TrieNode{std::move(key_nibbles), std::move(value)} {}
-
-    ~LeafContainingHashesNode() override = default;
-
-    int getType() const override;
   };
 
   /**
@@ -196,16 +183,20 @@ namespace kagome::storage::trie {
      */
     explicit DummyNode(common::Buffer key) : db_key{std::move(key)} {}
 
-    int getType() const override {
-      // Special only because a node has to have a type. Actually this is not
-      // the real node and the type of the underlying node is inaccessible
-      // before reading from the storage
-      return static_cast<int>(TrieNode::Type::Special);
-    }
-
     common::Buffer db_key;
   };
 
+  // TODO(turuslan): #1470, refactor retrieve
+  /**
+   * Workaround to retrieve value from hash if value is not present.
+   * @see PolkadotTrieImpl::retrieveValue
+   * @see TrieSerializerImpl::retrieveNode
+   */
+  struct DummyValue : OpaqueTrieNode {
+    DummyValue(ValueAndHash &value) : value{value} {}
+
+    ValueAndHash &value;
+  };
 }  // namespace kagome::storage::trie
 
 template <>

@@ -23,7 +23,8 @@ namespace kagome::storage::trie {
    * @return the Merkle tree root hash of the tree containing provided values
    */
   template <typename It>
-  outcome::result<common::Buffer> calculateOrderedTrieHash(const It &begin,
+  outcome::result<common::Buffer> calculateOrderedTrieHash(StateVersion version,
+                                                           const It &begin,
                                                            const It &end) {
     PolkadotTrieImpl trie;
     PolkadotCodec codec;
@@ -40,14 +41,15 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(trie.put(enc, BufferView{*it}));
       it++;
     }
-    OUTCOME_TRY(enc, codec.encodeNode(*trie.getRoot()));
+    OUTCOME_TRY(enc, codec.encodeNode(*trie.getRoot(), version, {}));
     return common::Buffer{codec.hash256(enc)};
   }
 
   template <typename ContainerType>
   inline outcome::result<common::Buffer> calculateOrderedTrieHash(
-      const ContainerType &container) {
-    return calculateOrderedTrieHash(container.begin(), container.end());
+      StateVersion version, const ContainerType &container) {
+    return calculateOrderedTrieHash(
+        version, container.begin(), container.end());
   }
 
 }  // namespace kagome::storage::trie

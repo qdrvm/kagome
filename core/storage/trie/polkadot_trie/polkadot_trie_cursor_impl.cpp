@@ -86,7 +86,7 @@ namespace kagome::storage::trie {
     auto &current = std::get<SearchState>(state_).getCurrent();
     // while there is a node in a trie with the given key, it contains no value,
     // thus cannot be pointed at by the cursor
-    if (not current.value.has_value()) {
+    if (not current.value) {
       state_ = InvalidState{Error::KEY_NOT_FOUND};
       return false;
     }
@@ -104,24 +104,16 @@ namespace kagome::storage::trie {
     auto &search_state = std::get<SearchState>(state_);
 
     // find the rightmost leaf
-    while (current->getTrieType() != NodeType::Leaf) {
-      auto type = current->getTrieType();
-      if (type == NodeType::BranchEmptyValue
-          or type == NodeType::BranchWithValue) {
-        auto &branch = dynamic_cast<const BranchNode &>(*current);
-        // find the rightmost child
-        for (int8_t i = BranchNode::kMaxChildren - 1; i >= 0; i--) {
-          if (branch.children.at(i) != nullptr) {
-            SAFE_CALL(child, trie_->retrieveChild(branch, i))
-            SAFE_VOID_CALL(search_state.visitChild(i, *child))
-            current = &search_state.getCurrent();
-            break;
-          }
+    while (current->isBranch()) {
+      auto &branch = dynamic_cast<const BranchNode &>(*current);
+      // find the rightmost child
+      for (int8_t i = BranchNode::kMaxChildren - 1; i >= 0; i--) {
+        if (branch.children.at(i) != nullptr) {
+          SAFE_CALL(child, trie_->retrieveChild(branch, i))
+          SAFE_VOID_CALL(search_state.visitChild(i, *child))
+          current = &search_state.getCurrent();
+          break;
         }
-
-      } else {
-        // supposed to be unreachable
-        return Error::INVALID_NODE_TYPE;
       }
     }
     return true;
@@ -151,19 +143,13 @@ namespace kagome::storage::trie {
              sought_less_or_eq ? "less or eq" : "greater",
              common::hex_lower(current.key_nibbles));
     if (sought_less_or_eq) {
-      switch (current.getTrieType()) {
-        case NodeType::BranchEmptyValue:
-        case NodeType::BranchWithValue: {
-          SL_TRACE(log_, "We're in a branch and search next node in subtree");
-          SAFE_VOID_CALL(nextNodeWithValueInSubTree(current))
-          return outcome::success();
-        }
-        case NodeType::Leaf:
-          SL_TRACE(log_, "We're in a leaf {} and done", key().value());
-          return outcome::success();
-        default:
-          return Error::INVALID_NODE_TYPE;
+      if (current.isBranch()) {
+        SL_TRACE(log_, "We're in a branch and search next node in subtree");
+        SAFE_VOID_CALL(nextNodeWithValueInSubTree(current))
+      } else {
+        SL_TRACE(log_, "We're in a leaf {} and done", key().value());
       }
+      return outcome::success();
     }
     // if the left part of the sought key exceeds the current node's key,
     // but its prefix is equal to the key, then we proceed to a child node
@@ -172,33 +158,24 @@ namespace kagome::storage::trie {
     // next case)
     bool sought_is_longer = current_is_prefix and not sought_is_prefix;
     if (sought_is_longer) {
-      switch (current.getTrieType()) {
-        case NodeType::BranchEmptyValue:
-        case NodeType::BranchWithValue: {
-          auto mismatch_pos = sought_nibbles_mismatch - sought_nibbles.begin();
-          auto &branch = dynamic_cast<const BranchNode &>(current);
-          SAFE_CALL(child,
-                    visitChildWithMinIdx(branch, sought_nibbles[mismatch_pos]))
-          if (child) {
-            uint8_t child_idx =
-                std::get<SearchState>(state_).getPath().back().child_idx;
-            SL_TRACE(log_,
-                     "We're in a branch and proceed to child {:x}",
-                     (int)child_idx);
-            if (child_idx > sought_nibbles[mismatch_pos]) {
-              return nextNodeWithValueInSubTree(*child);
-            } else {
-              return seekLowerBoundInternal(
-                  *child, sought_nibbles.subspan(mismatch_pos + 1));
-            }
+      if (current.isBranch()) {
+        auto mismatch_pos = sought_nibbles_mismatch - sought_nibbles.begin();
+        auto &branch = dynamic_cast<const BranchNode &>(current);
+        SAFE_CALL(child,
+                  visitChildWithMinIdx(branch, sought_nibbles[mismatch_pos]))
+        if (child) {
+          uint8_t child_idx =
+              std::get<SearchState>(state_).getPath().back().child_idx;
+          SL_TRACE(log_,
+                   "We're in a branch and proceed to child {:x}",
+                   (int)child_idx);
+          if (child_idx > sought_nibbles[mismatch_pos]) {
+            return nextNodeWithValueInSubTree(*child);
+          } else {
+            return seekLowerBoundInternal(
+                *child, sought_nibbles.subspan(mismatch_pos + 1));
           }
-          break;  // go to case3
         }
-        case NodeType::Leaf: {
-          break;  // go to case3
-        }
-        default:
-          return Error::INVALID_NODE_TYPE;
       }
     }
     // if the left part of the key is longer than the current or
@@ -257,7 +234,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieCursorImpl::nextNodeWithValueInSubTree(
       const TrieNode &parent) {
     auto *current = &parent;
-    while (not current->value.has_value()) {
+    while (not current->value) {
       if (not current->isBranch()) {
         return Error::INVALID_NODE_TYPE;
       }
@@ -378,7 +355,17 @@ namespace kagome::storage::trie {
         search_state != nullptr) {
       const auto &value_opt = search_state->getCurrent().value;
       if (value_opt) {
-        return BufferView{*value_opt};
+        // TODO(turuslan): #1470, return error
+        if (auto r =
+                trie_->retrieveValue(const_cast<ValueAndHash &>(value_opt));
+            !r) {
+          SL_WARN(log_,
+                  "PolkadotTrieCursorImpl::value {}: {}",
+                  common::hex_lower_0x(collectKey()),
+                  r.error());
+          return std::nullopt;
+        }
+        return BufferView{*value_opt.value};
       }
       return std::nullopt;
     }

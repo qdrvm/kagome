@@ -351,9 +351,8 @@ namespace kagome::network {
                    txs.end(),
                    propagated_exts->extrinsics.begin(),
                    [](auto &tx) { return tx.ext; });
-    stream_engine_->broadcast<PropagatedExtrinsics>(
-        shared_from_this(),
-        propagated_exts);
+    stream_engine_->broadcast<PropagatedExtrinsics>(shared_from_this(),
+                                                    propagated_exts);
   }
 
 }  // namespace kagome::network

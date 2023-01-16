@@ -7,8 +7,6 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "common/visitor.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
-#include "storage/trie/serialization/trie_serializer_impl.hpp"
 
 namespace kagome::blockchain {
 

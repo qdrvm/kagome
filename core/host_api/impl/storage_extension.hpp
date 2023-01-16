@@ -165,12 +165,6 @@ namespace kagome::host_api {
     runtime::WasmSpan clearPrefix(common::BufferView prefix,
                                   std::optional<uint32_t> limit);
 
-    /**
-     * Removes all empty child storages from the primary storage.
-     * Such cleanup is required for the correct storage root calculation.
-     */
-    void removeEmptyChildStorages();
-
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     storage::trie::PolkadotCodec codec_;

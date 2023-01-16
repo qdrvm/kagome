@@ -56,9 +56,9 @@ namespace kagome::storage::trie {
     return trie_->remove(key);
   }
 
-  outcome::result<RootHash> EphemeralTrieBatchImpl::hash() {
+  outcome::result<RootHash> EphemeralTrieBatchImpl::hash(StateVersion version) {
     if (auto root = trie_->getRoot()) {
-      OUTCOME_TRY(encoded, codec_->encodeNode(*root));
+      OUTCOME_TRY(encoded, codec_->encodeNode(*root, version, {}));
       auto hash = codec_->hash256(encoded);
       return hash;
     }
