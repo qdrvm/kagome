@@ -106,10 +106,12 @@ namespace kagome::api {
      */
     virtual SessionType type() const = 0;
 
+    // TODO(turuslan): #1474, refactor jrpc notifications
     /**
      * `boost::asio::post(io_context, cb)` to `io_context` of this session.
      *
-     * Defers sending JSON-RPC event until it's subscription id is sent.
+     * Callback is pushed to write queue and will be called after all currently
+     * queued writes will complete.
      */
     virtual void post(std::function<void()> cb) = 0;
 

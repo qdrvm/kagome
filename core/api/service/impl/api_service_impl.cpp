@@ -100,6 +100,8 @@ namespace {
                 name,
                 std::move(value),
                 [session{std::move(session)}](const auto &response) {
+                  // Defer sending JSON-RPC event until subscription id is sent.
+                  // TODO(turuslan): #1474, refactor jrpc notifications
                   session->post([session, response{std::string{response}}] {
                     session->respond(response);
                   });
