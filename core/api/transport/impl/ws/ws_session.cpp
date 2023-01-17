@@ -78,31 +78,24 @@ namespace kagome::api {
 
   void WsSession::respond(std::string_view response) {
     SL_DEBUG(logger_, "Session#{} OUT: {}", id_, response);
-    {
-      std::lock_guard lg{cs_};
-      pending_responses_.emplace(response);
-    }
-    asyncWrite();
+    post([self{shared_from_this()}, response{std::string{response}}] {
+      self->pending_responses_.emplace(std::move(response));
+      self->asyncWrite();
+    });
   }
 
   void WsSession::asyncWrite() {
-    bool val = false;
-    if (writing_in_progress_.compare_exchange_strong(val, true)) {
-      std::lock_guard lg{cs_};
-      if (wbuffer_.size() == 0 and not pending_responses_.empty()) {
-        boost::asio::buffer_copy(
-            wbuffer_.prepare(pending_responses_.front().size()),
-            boost::asio::const_buffer(pending_responses_.front().data(),
-                                      pending_responses_.front().size()));
-        wbuffer_.commit(pending_responses_.front().size());
-        stream_.text(true);
-        pending_responses_.pop();
-
-        stream_.async_write(wbuffer_.data(),
-                            boost::beast::bind_front_handler(
-                                &WsSession::onWrite, shared_from_this()));
-      }
+    if (writing_in_progress_) {
+      return;
     }
+    if (pending_responses_.empty()) {
+      return;
+    }
+    writing_in_progress_ = true;
+    stream_.text(true);
+    stream_.async_write(boost::asio::buffer(pending_responses_.front()),
+                        boost::beast::bind_front_handler(&WsSession::onWrite,
+                                                         shared_from_this()));
   }
 
   void WsSession::onRun() {
@@ -158,31 +151,10 @@ namespace kagome::api {
       reportError(ec, "failed to write message");
       return stop();
     }
-
-    wbuffer_.consume(bytes_transferred);
-
-    if (wbuffer_.size() > 0) {
-      stream_.async_write(wbuffer_.data(),
-                          boost::beast::bind_front_handler(&WsSession::onWrite,
-                                                           shared_from_this()));
-    } else {
-      std::lock_guard lg{cs_};
-      if (not pending_responses_.empty()) {
-        boost::asio::buffer_copy(
-            wbuffer_.prepare(pending_responses_.front().size()),
-            boost::asio::const_buffer(pending_responses_.front().data(),
-                                      pending_responses_.front().size()));
-        wbuffer_.commit(pending_responses_.front().size());
-        stream_.text(true);
-        pending_responses_.pop();
-
-        stream_.async_write(wbuffer_.data(),
-                            boost::beast::bind_front_handler(
-                                &WsSession::onWrite, shared_from_this()));
-      } else {
-        writing_in_progress_ = false;
-      }
-    }
+    writing_in_progress_ = false;
+    assert(bytes_transferred == pending_responses_.front().size());
+    pending_responses_.pop();
+    asyncWrite();
   }
 
   void WsSession::reportError(boost::system::error_code ec,
@@ -190,4 +162,7 @@ namespace kagome::api {
     SL_ERROR(logger_, "error occurred: {}, message: {}", message, ec);
   }
 
+  void WsSession::post(std::function<void()> cb) {
+    boost::asio::post(strand_, std::move(cb));
+  }
 }  // namespace kagome::api
