@@ -6,7 +6,10 @@
 #include "runtime/runtime_environment_factory.hpp"
 
 #include "log/profiling_logger.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
+#include "runtime/module.hpp"
+#include "runtime/module_factory.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
@@ -21,6 +24,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
       return "Failed to obtain the required block from storage";
     case E::ABSENT_HEAP_BASE:
       return "Failed to extract heap base from a module";
+    case E::HEAP_BASE_TOO_LOW:
+      return "Heap base too low";
     case E::FAILED_TO_SET_STORAGE_STATE:
       return "Failed to set the storage state to the desired value";
   }
@@ -42,6 +47,25 @@ namespace kagome::runtime {
     BOOST_ASSERT(this->module_instance);
     BOOST_ASSERT(this->memory_provider);
     BOOST_ASSERT(this->storage_provider);
+  }
+
+  outcome::result<RuntimeEnvironment> RuntimeEnvironment::fromCode(
+      const runtime::ModuleFactory &module_factory,
+      common::BufferView code_zstd) {
+    common::Buffer code;
+    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
+    OUTCOME_TRY(module, module_factory.make(code));
+    OUTCOME_TRY(instance, module->instantiate());
+    runtime::RuntimeEnvironment env{
+        instance,
+        instance->getEnvironment().memory_provider,
+        instance->getEnvironment().storage_provider,
+        {},
+    };
+    env.storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
+        .value();
+    OUTCOME_TRY(resetMemory(*instance));
+    return env;
   }
 
   outcome::result<void> resetMemory(const ModuleInstance &instance) {
@@ -80,6 +104,18 @@ namespace kagome::runtime {
             pages);
       }
     }
+
+    size_t max_data_segment_end = 0;
+    instance.forDataSegment([&](ModuleInstance::SegmentOffset offset,
+                                ModuleInstance::SegmentData segment) {
+      max_data_segment_end =
+          std::max(max_data_segment_end, offset + segment.size());
+    });
+    if (gsl::narrow<size_t>(heap_base) < max_data_segment_end) {
+      return RuntimeEnvironmentFactory::Error::HEAP_BASE_TOO_LOW;
+    }
+
+    memory.resize(heap_base);
 
     instance.forDataSegment([&](auto offset, auto segment) {
       memory.storeBuffer(offset, segment);

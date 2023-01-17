@@ -38,6 +38,53 @@ namespace di = boost::di;
 using namespace std::chrono_literals;
 using namespace kagome;
 using namespace storage::trie;
+using common::BufferOrView;
+using common::BufferView;
+
+struct TrieTracker : TrieStorageBackend {
+  TrieTracker(std::shared_ptr<TrieStorageBackend> inner)
+      : inner{std::move(inner)} {}
+
+  std::unique_ptr<Cursor> cursor() override {
+    abort();
+  }
+  std::unique_ptr<storage::BufferBatch> batch() override {
+    abort();
+  }
+
+  outcome::result<BufferOrView> get(const BufferView &key) const override {
+    track(key);
+    return inner->get(key);
+  }
+  outcome::result<std::optional<BufferOrView>> tryGet(
+      const BufferView &key) const override {
+    abort();
+  }
+  outcome::result<bool> contains(const BufferView &key) const override {
+    abort();
+  }
+  bool empty() const override {
+    abort();
+  }
+
+  outcome::result<void> put(const BufferView &key,
+                            BufferOrView &&value) override {
+    abort();
+  }
+  outcome::result<void> remove(const common::BufferView &key) override {
+    abort();
+  }
+
+  void track(BufferView key) const {
+    keys.emplace(common::Hash256::fromSpan(key).value());
+  }
+  bool tracked(BufferView key) const {
+    return keys.count(common::Hash256::fromSpan(key).value());
+  }
+
+  std::shared_ptr<TrieStorageBackend> inner;
+  mutable std::set<common::Hash256> keys;
+};
 
 template <class T>
 using sptr = std::shared_ptr<T>;
@@ -209,6 +256,9 @@ int db_editor_main(int argc, const char **argv) {
       return 0;
     }
 
+    auto trie_tracker = std::make_shared<TrieTracker>(
+        std::make_shared<TrieStorageBackendImpl>(storage, prefix));
+
     auto injector = di::make_injector(
         di::bind<TrieSerializer>.template to([](const auto &injector) {
           return std::make_shared<TrieSerializerImpl>(
@@ -216,12 +266,7 @@ int db_editor_main(int argc, const char **argv) {
               injector.template create<sptr<Codec>>(),
               injector.template create<sptr<TrieStorageBackend>>());
         }),
-        di::bind<TrieStorageBackend>.template to(
-            [&storage, &prefix](const auto &) {
-              auto backend =
-                  std::make_shared<TrieStorageBackendImpl>(storage, prefix);
-              return backend;
-            }),
+        di::bind<TrieStorageBackend>.template to(trie_tracker),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory),
@@ -363,7 +408,12 @@ int db_editor_main(int argc, const char **argv) {
         TicToc t2("Process DB.", log);
         while (db_cursor->isValid() && db_cursor->key().has_value()
                && boost::starts_with(db_cursor->key().value(), prefix)) {
-          auto res2 = check(db_batch->remove(db_cursor->key().value()));
+          auto key = db_cursor->key().value();
+          if (trie_tracker->tracked(key.view(prefix.size()))) {
+            db_cursor->next().value();
+            continue;
+          }
+          auto res2 = check(db_batch->remove(key));
           count++;
           if (not(count % 10000000)) {
             log->trace("{} keys were processed at the db.", count);
@@ -372,22 +422,13 @@ int db_editor_main(int argc, const char **argv) {
                 ->compact(prefix, check(db_cursor->key()).value());
             db_cursor = storage->cursor();
             db_batch = storage->batch();
-            res = check(db_cursor->seek(prefix));
+            res = check(db_cursor->seek(key));
           }
           res2 = check(db_cursor->next());
         }
         std::ignore = check(db_batch->commit());
       }
       log->trace("{} keys were processed at the db.", ++count);
-
-      {
-        TicToc t3("Commit state.", log);
-        check(finalized_batch->commit()).value();
-        check(batch->commit()).value();
-        for (const auto &child_batch : child_batches) {
-          check(child_batch->commit()).value();
-        }
-      }
 
       {
         TicToc t4("Compaction 1.", log);

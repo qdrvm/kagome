@@ -27,6 +27,7 @@ namespace kagome::runtime {
    public:
     using Batch = storage::trie::TrieBatch;
     using PersistentBatch = storage::trie::PersistentTrieBatch;
+    using StateVersion = storage::trie::StateVersion;
 
     virtual ~TrieStorageProvider() = default;
 
@@ -52,19 +53,6 @@ namespace kagome::runtime {
     virtual std::shared_ptr<Batch> getCurrentBatch() const = 0;
 
     /**
-     * @returns current persistent batch, if the current batch is persistent,
-     * none otherwise
-     */
-    virtual std::optional<std::shared_ptr<PersistentBatch>>
-    tryGetPersistentBatch() const = 0;
-
-    /**
-     * @returns true, if the current batch is persistent,
-     * false otherwise
-     */
-    virtual bool isCurrentlyPersistent() const = 0;
-
-    /**
      * @brief Get (or create new) Child Batch with given root hash
      *
      * @param root root hash value of a new (or cached) batch
@@ -74,14 +62,10 @@ namespace kagome::runtime {
         const common::Buffer &root_path) = 0;
 
     /**
-     * Clear internal map of child storages batches
-     */
-    virtual void clearChildBatches() noexcept = 0;
-
-    /**
      * Commits persistent changes even if the current batch is not persistent
      */
-    virtual outcome::result<storage::trie::RootHash> forceCommit() = 0;
+    virtual outcome::result<storage::trie::RootHash> forceCommit(
+        StateVersion version) = 0;
 
     // ------ Transaction methods ------
 

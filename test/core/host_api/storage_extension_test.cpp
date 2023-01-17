@@ -58,12 +58,6 @@ class StorageExtensionTest : public ::testing::Test {
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     EXPECT_CALL(*storage_provider_, getCurrentBatch())
         .WillRepeatedly(Return(trie_batch_));
-    EXPECT_CALL(*storage_provider_, isCurrentlyPersistent())
-        .WillRepeatedly(Return(true));
-    EXPECT_CALL(*storage_provider_, tryGetPersistentBatch())
-        .WillRepeatedly(Return(std::make_optional(
-            std::static_pointer_cast<
-                kagome::storage::trie::PersistentTrieBatch>(trie_batch_))));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
@@ -630,39 +624,12 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
  * @then returns new root value
  */
 TEST_F(StorageExtensionTest, RootTest) {
-  // removeEmptyChildStorages
-  Buffer prefix = kagome::storage::kChildStorageDefaultPrefix;
-  Buffer current_key = Buffer{prefix}.put("QWERTY"_buf);
-
-  static const Buffer empty_hash = kagome::storage::trie::kEmptyRootHash;
-
-  EXPECT_CALL(*trie_batch_, trieCursor())
-      .WillOnce(Invoke([&prefix, &current_key]() {
-        auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-        EXPECT_CALL(*cursor, seekUpperBound(prefix.view()))
-            .WillOnce(Return(outcome::success()));
-        EXPECT_CALL(*cursor, key()).WillOnce(Return(current_key));
-        return cursor;
-      }))
-      .WillOnce(Invoke([]() {
-        auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-        EXPECT_CALL(*cursor, seekUpperBound(_))
-            .WillOnce(Return(outcome::failure(testutil::DummyError::ERROR)));
-        return cursor;
-      }));
-
-  EXPECT_CALL(*trie_batch_, tryGetMock(current_key.view()))
-      .WillOnce(
-          Return(outcome::success(std::make_optional(std::cref(empty_hash)))));
-  EXPECT_CALL(*trie_batch_, remove(current_key.view()))
-      .WillOnce(Return(outcome::success()));
-
   // rest of ext_storage_root_version_1
   WasmPointer root_pointer = 43;
   WasmSize root_size = Hash256::size();
   RootHash root_val = "123456"_hash256;
   WasmSpan root_span = PtrSize(root_pointer, root_size).combine();
-  EXPECT_CALL(*trie_batch_, commit())
+  EXPECT_CALL(*storage_provider_, forceCommit(_))
       .WillOnce(Return(outcome::success(root_val)));
   EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(root_val)))
       .WillOnce(Return(root_span));

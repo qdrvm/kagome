@@ -603,5 +603,5 @@ TEST_F(TrieTest, GetNodeReturnsNullptrWhenNotFound) {
   ASSERT_OUTCOME_SUCCESS(
       res,
       trie->getNode(trie->getRoot(), KeyNibbles{"01020304050607"_hex2buf}));
-  ASSERT_EQ(res, nullptr) << res->value->toHex();
+  ASSERT_EQ(res, nullptr) << res->value.value->toHex();
 }

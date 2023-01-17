@@ -44,7 +44,7 @@ namespace kagome::storage::trie {
      * Commits changes to a persistent storage
      * @returns the root of the committed trie
      */
-    virtual outcome::result<RootHash> commit() = 0;
+    virtual outcome::result<RootHash> commit(StateVersion version) = 0;
 
     /**
      * Creates a batch on top of this batch
@@ -61,7 +61,7 @@ namespace kagome::storage::trie {
     /**
      * Calculates the hash of the state represented by a batch
      */
-    virtual outcome::result<RootHash> hash() = 0;
+    virtual outcome::result<RootHash> hash(StateVersion version) = 0;
   };
 
   /**

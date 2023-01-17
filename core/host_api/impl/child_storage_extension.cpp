@@ -45,25 +45,7 @@ namespace kagome::host_api {
     OUTCOME_TRY(child_batch,
                 storage_provider_->getChildBatchAt(prefixed_child_key));
 
-    auto result = func(child_batch, std::forward<Args>(args)...);
-    if (not result) {
-      storage_provider_->clearChildBatches();
-      return result;
-    }
-
-    OUTCOME_TRY(new_child_root, child_batch->commit());
-    OUTCOME_TRY(storage_provider_->getCurrentBatch()->put(
-        prefixed_child_key, Buffer{scale::encode(new_child_root).value()}));
-    SL_TRACE(logger_,
-             "Update child trie root: prefix is {}, new root is",
-             child_storage_key,
-             new_child_root);
-    storage_provider_->clearChildBatches();
-    if constexpr (!std::is_void_v<R>) {
-      return result;
-    } else {
-      return outcome::success();
-    }
+    return func(child_batch, std::forward<Args>(args)...);
   }
 
   template <typename Arg>
@@ -181,12 +163,10 @@ namespace kagome::host_api {
           "ext_default_child_storage_next_key_version_1 resulted with error: "
           "{}",
           child_batch_outcome.error());
-      storage_provider_->clearChildBatches();
       return kErrorSpan;
     }
     auto child_batch = child_batch_outcome.value();
     auto cursor = child_batch->trieCursor();
-    storage_provider_->clearChildBatches();
 
     auto seek_result = cursor->seekUpperBound(key_buffer);
     if (seek_result.has_error()) {
@@ -216,21 +196,12 @@ namespace kagome::host_api {
   runtime::WasmSpan
   ChildStorageExtension::ext_default_child_storage_root_version_1(
       runtime::WasmSpan child_storage_key) const {
-    outcome::result<storage::trie::RootHash> res{{}};
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto child_key_buffer = loadBuffer(memory, child_storage_key);
     auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
-
-    if (auto child_batch =
-            storage_provider_->getChildBatchAt(prefixed_child_key.value());
-        child_batch.has_value() and child_batch.value() != nullptr) {
-      res = child_batch.value()->commit();
-    } else {
-      logger_->warn(
-          "ext_default_child_storage_root called in an ephemeral extension");
-      res = storage_provider_->forceCommit();
-      storage_provider_->clearChildBatches();
-    }
+    auto child_batch =
+        storage_provider_->getChildBatchAt(prefixed_child_key.value()).value();
+    auto res = child_batch->commit(storage::trie::StateVersion::V0);
     if (res.has_error()) {
       logger_->error(
           "ext_default_child_storage_root resulted with an error: {}",

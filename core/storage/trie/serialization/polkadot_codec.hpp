@@ -31,8 +31,10 @@ namespace kagome::storage::trie {
 
     ~PolkadotCodec() override = default;
 
-    outcome::result<Buffer> encodeNodeAndStoreChildren(
-        const Node &node, const StoreChildren &store_children) const override;
+    outcome::result<Buffer> encodeNode(
+        const Node &node,
+        StateVersion version,
+        const StoreChildren &store_children) const override;
 
     outcome::result<std::shared_ptr<Node>> decodeNode(
         gsl::span<const uint8_t> encoded_data) const override;
@@ -47,12 +49,23 @@ namespace kagome::storage::trie {
      * Encodes a node header according to the specification
      * @see Algorithm 3: partial key length encoding
      */
-    outcome::result<Buffer> encodeHeader(const TrieNode &node) const;
+    outcome::result<Buffer> encodeHeader(const TrieNode &node,
+                                         StateVersion version) const;
 
    private:
+    outcome::result<void> encodeValue(
+        common::Buffer &out,
+        const TrieNode &node,
+        StateVersion version,
+        const StoreChildren &store_children) const;
     outcome::result<Buffer> encodeBranch(
-        const BranchNode &node, const StoreChildren &store_children) const;
-    outcome::result<Buffer> encodeLeaf(const LeafNode &node) const;
+        const BranchNode &node,
+        StateVersion version,
+        const StoreChildren &store_children) const;
+    outcome::result<Buffer> encodeLeaf(
+        const LeafNode &node,
+        StateVersion version,
+        const StoreChildren &store_children) const;
 
     outcome::result<std::pair<TrieNode::Type, size_t>> decodeHeader(
         BufferStream &stream) const;

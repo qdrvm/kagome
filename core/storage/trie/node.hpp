@@ -10,9 +10,6 @@ namespace kagome::storage::trie {
 
   struct Node {
     virtual ~Node() = default;
-
-    // returns type of node
-    virtual int getType() const = 0;
   };
 
 }  // namespace kagome::storage::trie

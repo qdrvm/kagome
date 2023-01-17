@@ -26,6 +26,7 @@ namespace kagome::runtime {
 }
 
 namespace kagome::runtime::binaryen {
+  static_assert(kMemoryPageSize == wasm::Memory::kPageSize);
 
   /**
    * Memory implementation for wasm environment
@@ -80,6 +81,9 @@ namespace kagome::runtime::binaryen {
        * deallocated_ pointers fixup
        */
       if (new_size >= size_) {
+        if (auto mod = new_size % kMemoryPageSize) {
+          new_size += kMemoryPageSize - mod;
+        }
         size_ = new_size;
         memory_->resize(new_size);
       }

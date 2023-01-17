@@ -28,7 +28,8 @@ namespace kagome::storage::trie {
      * Writes a trie to a storage, recursively storing its
      * nodes.
      */
-    virtual outcome::result<RootHash> storeTrie(PolkadotTrie &trie) = 0;
+    virtual outcome::result<RootHash> storeTrie(PolkadotTrie &trie,
+                                                StateVersion version) = 0;
 
     /**
      * Fetches a trie from the storage. A nullptr is returned in case that there

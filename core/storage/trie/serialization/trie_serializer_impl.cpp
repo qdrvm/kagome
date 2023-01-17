@@ -28,11 +28,12 @@ namespace kagome::storage::trie {
     return kEmptyRootHash;
   }
 
-  outcome::result<RootHash> TrieSerializerImpl::storeTrie(PolkadotTrie &trie) {
+  outcome::result<RootHash> TrieSerializerImpl::storeTrie(
+      PolkadotTrie &trie, StateVersion version) {
     if (trie.getRoot() == nullptr) {
       return getEmptyRootHash();
     }
-    return storeRootNode(*trie.getRoot());
+    return storeRootNode(*trie.getRoot(), version);
   }
 
   outcome::result<std::shared_ptr<PolkadotTrie>>
@@ -50,15 +51,17 @@ namespace kagome::storage::trie {
     return trie_factory_->createFromRoot(std::move(root), std::move(f));
   }
 
-  outcome::result<RootHash> TrieSerializerImpl::storeRootNode(TrieNode &node) {
+  outcome::result<RootHash> TrieSerializerImpl::storeRootNode(
+      TrieNode &node, StateVersion version) {
     auto batch = backend_->batch();
 
-    OUTCOME_TRY(
-        enc,
-        codec_->encodeNodeAndStoreChildren(
-            node, [&](common::BufferView hash, common::Buffer &&encoded) {
-              return batch->put(hash, std::move(encoded));
-            }));
+    OUTCOME_TRY(enc,
+                codec_->encodeNode(
+                    node,
+                    version,
+                    [&](common::BufferView hash, common::Buffer &&encoded) {
+                      return batch->put(hash, std::move(encoded));
+                    }));
     auto key = codec_->hash256(enc);
     OUTCOME_TRY(batch->put(key, std::move(enc)));
     OUTCOME_TRY(batch->commit());
@@ -68,6 +71,11 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
       const std::shared_ptr<OpaqueTrieNode> &parent) const {
+    if (auto p = std::dynamic_pointer_cast<DummyValue>(parent); p != nullptr) {
+      OUTCOME_TRY(value, backend_->get(*p->value.hash));
+      p->value.value = value.into();
+      return nullptr;
+    }
     if (auto p = std::dynamic_pointer_cast<DummyNode>(parent); p != nullptr) {
       OUTCOME_TRY(n, retrieveNode(p->db_key));
       return std::move(n);
