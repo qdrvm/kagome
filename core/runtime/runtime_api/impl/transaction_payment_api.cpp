@@ -51,16 +51,16 @@ namespace kagome::runtime {
     if (api_version < 2) {
       return executor_
           ->callAt<primitives::RuntimeDispatchInfo<primitives::OldWeight>>(
-              block, "TransactionPaymentApi_query_info", ext, len);
+              block, "TransactionPaymentApi_query_info", ext.data, len);
     }
     OUTCOME_TRY(
         result,
         executor_->callAt<primitives::RuntimeDispatchInfo<primitives::Weight>>(
-            block, "TransactionPaymentApi_query_info", ext, len));
+            block, "TransactionPaymentApi_query_info", ext.data, len));
     primitives::RuntimeDispatchInfo<primitives::OldWeight> old_format_result;
     old_format_result.dispatch_class = result.dispatch_class;
     old_format_result.partial_fee = result.partial_fee;
-    old_format_result.weight = {result.weight.ref_time};
+    old_format_result.weight = result.weight.ref_time;
     return old_format_result;
   }
 

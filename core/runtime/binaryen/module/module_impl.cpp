@@ -10,7 +10,7 @@
 #include <binaryen/wasm-binary.h>
 #include <binaryen/wasm-interpreter.h>
 
-#include "common/mp_utils.hpp"
+#include "common/int_serialization.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_instance_impl.hpp"

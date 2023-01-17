@@ -92,6 +92,17 @@ namespace kagome::api {
     return ret;
   }
 
+  // TODO(Harrm): refactor to work specifically with Balance type
+  inline jsonrpc::Value makeValue(const primitives::Balance &val) {
+    jsonrpc::Value ret((*val).str());
+    return ret;
+  }
+
+  inline jsonrpc::Value makeValue(const primitives::OldWeight &val) {
+    jsonrpc::Value ret(static_cast<int64_t>(*val));
+    return ret;
+  }
+
   template <typename T>
   inline jsonrpc::Value makeValue(std::remove_reference_t<T> &&val) {
     return makeValue(val);

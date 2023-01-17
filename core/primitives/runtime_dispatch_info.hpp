@@ -6,9 +6,13 @@
 #ifndef KAGOME_RUNTIME_DISPATCH_INFO_HPP
 #define KAGOME_RUNTIME_DISPATCH_INFO_HPP
 
+#include <scale/scale.hpp>
+#include "common/unused.hpp"
+#include "scale/big_fixed_integers.hpp"
+
 namespace kagome::primitives {
 
-  using OldWeight = uint64_t;
+  using OldWeight = scale::Compact<uint64_t>;
 
   struct Weight {
     SCALE_TIE(2);
@@ -20,12 +24,12 @@ namespace kagome::primitives {
         : ref_time{ref_time}, proof_size{proof_size} {}
 
     // The weight of computational time used based on some reference hardware.
-    scale::CompactInteger ref_time;
+    scale::Compact<uint64_t> ref_time;
     // The weight of storage space used by proof of validity.
-    scale::CompactInteger proof_size;
+    scale::Compact<uint64_t> proof_size;
   };
 
-  enum class DispatchClass {
+  enum class DispatchClass: uint8_t {
     Normal,
     Operational,
     /* A mandatory dispatch. These kinds of dispatch are always included
@@ -48,12 +52,31 @@ namespace kagome::primitives {
     Mandatory
   };
 
+
+  template <typename Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &stream, DispatchClass& dispatch_class) {
+    (void)stream.nextByte();
+    uint8_t dispatch_class_byte;
+    stream >> dispatch_class_byte;
+    dispatch_class = static_cast<DispatchClass>(dispatch_class_byte);
+    return stream;
+  }
+
+  template <typename Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator<<(Stream &stream, DispatchClass dispatch_class) {
+    return stream << dispatch_class << uint8_t{0};
+  }
+
+  struct Balance: public scale::Fixed<scale::uint128_t> {};
+
   /** Information related to a dispatchable class, weight, and fee that can be
    * queried from the runtime.
    */
   template <typename Weight>
   struct RuntimeDispatchInfo {
-    using Balance = uint32_t;
+    SCALE_TIE(3)
 
     Weight weight;
     DispatchClass dispatch_class;
@@ -64,23 +87,6 @@ namespace kagome::primitives {
      */
     Balance partial_fee;
   };
-
-  template <class Stream,
-            typename Weight,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const RuntimeDispatchInfo<Weight> &v) {
-    return s << v.weight << v.dispatch_class << v.partial_fee;
-  }
-
-  template <class Stream,
-            typename Weight,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, RuntimeDispatchInfo<Weight> &v) {
-    uint8_t dispatch_class;
-    s >> v.weight >> dispatch_class >> v.partial_fee;
-    v.dispatch_class = static_cast<DispatchClass>(dispatch_class);
-    return s;
-  }
 
 }  // namespace kagome::primitives
 

@@ -29,18 +29,19 @@ namespace kagome::api::payment::request {
     execute() override {
       auto ext_hex = getParam<0>();
       OUTCOME_TRY(ext_bytes, common::unhexWith0x(ext_hex));
-      auto len = ext_bytes.size();
-      OUTCOME_TRY(extrinsic, scale::decode<primitives::Extrinsic>(ext_bytes));
+
+      primitives::Extrinsic extrinsic =
+          scale::decode<primitives::Extrinsic>(ext_bytes).value();
 
       auto at_hex = getParam<1>();
       if (at_hex.empty()) {
-        return api_->queryInfo(extrinsic, len, std::nullopt);
+        return api_->queryInfo(extrinsic, ext_bytes.size(), std::nullopt);
       }
       common::Hash256 at_hash;
       OUTCOME_TRY(at, common::unhexWith0x(at_hex));
       BOOST_ASSERT(at.size() == common::Hash256::size());
       std::copy_n(at.cbegin(), common::Hash256::size(), at_hash.begin());
-      return api_->queryInfo(extrinsic, len, std::cref(at_hash));
+      return api_->queryInfo(extrinsic, ext_bytes.size(), std::cref(at_hash));
     }
 
    private:

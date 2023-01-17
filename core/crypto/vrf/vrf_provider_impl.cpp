@@ -7,7 +7,7 @@
 
 #include <gsl/span>
 
-#include "common/mp_utils.hpp"
+#include "common/int_serialization.hpp"
 
 namespace kagome::crypto {
   namespace vrf_constants = constants::sr25519::vrf;
