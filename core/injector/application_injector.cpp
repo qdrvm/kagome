@@ -1035,14 +1035,6 @@ namespace {
               == application::AppConfiguration::StorageBackend::RocksDB);
           return get_rocks_db(config, chain_spec);
         }),
-        di::bind<storage::BufferStorage>.to([](const auto &injector) {
-          auto spaced_storage =
-              injector.template create<sptr<storage::SpacedStorage>>();
-          auto default_space =
-              spaced_storage->getSpace(storage::Space::kDefault);
-          BOOST_ASSERT(default_space);
-          return default_space;
-        }),
         bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
           auto root =
               injector::calculate_genesis_state(
@@ -1337,8 +1329,8 @@ namespace {
 
     const auto &app_config =
         injector.template create<const application::AppConfiguration &>();
-    auto buffer_storage =
-        injector.template create<sptr<storage::BufferStorage>>();
+    auto spaced_storage =
+        injector.template create<sptr<storage::SpacedStorage>>();
     auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
     auto header_repo =
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
@@ -1350,7 +1342,7 @@ namespace {
 
     initialized.emplace(new application::mode::RecoveryMode(
         [&app_config,
-         buffer_storage = std::move(buffer_storage),
+         spaced_storage = std::move(spaced_storage),
          authority_manager,
          storage = std::move(storage),
          header_repo = std::move(header_repo),
@@ -1366,7 +1358,7 @@ namespace {
 
           auto log = log::createLogger("RecoveryMode", "main");
 
-          buffer_storage
+          spaced_storage->getSpace(storage::Space::kDefault)
               ->remove(storage::kAuthorityManagerStateLookupKey("last"))
               .value();
           if (res.has_error()) {
