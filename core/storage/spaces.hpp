@@ -12,10 +12,10 @@ namespace kagome::storage {
 
   enum Space : uint8_t {
     kDefault = 0,
-    //    kLookupKey,
-    //    kHeader,
-    //    kBlockData,
-    //    kTrieNode,
+    kLookupKey,
+    kHeader,
+    kBlockData,
+    kTrieNode,
     //
     kTotal
   };

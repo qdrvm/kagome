@@ -71,6 +71,7 @@ namespace kagome::storage {
           rocksdb::ColumnFamilyDescriptor{name, {}});
     }
     std::vector<rocksdb::ColumnFamilyHandle *> handles;
+    options.create_missing_column_families = true;
     auto status = rocksdb::DB::Open(
         options, path.native(), column_family_descriptors, &handles, &db);
     if (status.ok()) {
