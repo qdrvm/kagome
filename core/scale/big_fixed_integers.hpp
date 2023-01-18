@@ -14,6 +14,11 @@
 
 namespace scale {
 
+  /**
+   * Wrapper for an integer to make distinct integer aliases
+   * @tparam Tag
+   * @tparam T
+   */
   template <typename Tag, typename T>
   struct IntWrapper {
     using Self = IntWrapper<Tag, T>;
@@ -26,7 +31,7 @@ namespace scale {
       return number;
     }
 
-    bool operator==(Self const& other) const {
+    bool operator==(Self const &other) const {
       return **this == *other;
     }
 
@@ -35,14 +40,18 @@ namespace scale {
 
   struct FixedTag {};
 
-  template<typename T>
+  // an integer intended to be encoded with fixed length
+  template <typename T>
   using Fixed = IntWrapper<FixedTag, T>;
 
   struct CompactTag {};
 
-  template<typename T>
+  // an integer intended to be encoded with compact encoding
+  template <typename T>
   using Compact = IntWrapper<CompactTag, T>;
 
+  // intended to wrap unwrapped integer arguments to encoding functions to
+  // indicated they should be encoded as fixed-length integers
   template <typename T>
   struct EncodeAsFixed {
     explicit EncodeAsFixed(T &number) : number{number} {}
@@ -53,7 +62,7 @@ namespace scale {
             typename N,
             typename = std::enable_if_t<Stream::is_decoder_stream>,
             typename = std::enable_if_t<std::numeric_limits<N>::is_integer>>
-  Stream &operator>>(Stream &stream, Fixed<N>& fixed) {
+  Stream &operator>>(Stream &stream, Fixed<N> &fixed) {
     return stream >> EncodeAsFixed{*fixed};
   }
 
@@ -78,12 +87,15 @@ namespace scale {
     return stream;
   }
 
+  // intended to wrap unwrapped integer arguments to encoding functions to
+  // indicated they should be encoded with compact encoding
   template <typename T>
   struct EncodeAsCompact {
     explicit EncodeAsCompact(T &number) : number{number} {}
     T &number;
   };
 
+  // marker for big integer types
   template <typename T>
   struct BigIntegerTraits {
     static constexpr bool value = false;
@@ -106,6 +118,8 @@ namespace scale {
     static constexpr bool value = true;
   };
 
+  // big integers should only be encoded wrapped in Fixed, EncodeAsFixed,
+  // Compact, or EncodeAsCompact
   template <typename Stream,
             typename N,
             typename = std::enable_if_t<Stream::is_decoder_stream>,
@@ -121,8 +135,8 @@ namespace scale {
             typename = std::enable_if_t<Stream::is_decoder_stream>,
             typename = std::enable_if_t<BigIntegerTraits<N>::value>>
   Stream &operator>>(Stream &stream, EncodeAsFixed<N> fixed) {
-    for (size_t i = 0; i < BigIntegerTraits<N>::BIT_SIZE; i+=8) {
-      fixed.number |= N(stream.nextByte()) << (i);
+    for (size_t i = 0; i < BigIntegerTraits<N>::BIT_SIZE; i += 8) {
+      fixed.number |= N(stream.nextByte()) << i;
     }
     return stream;
   }

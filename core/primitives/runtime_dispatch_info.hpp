@@ -12,6 +12,7 @@
 
 namespace kagome::primitives {
 
+  // obsolete weight format used in TransactionPayment API versions less than 2
   using OldWeight = scale::Compact<uint64_t>;
 
   struct Weight {
@@ -29,7 +30,9 @@ namespace kagome::primitives {
     scale::Compact<uint64_t> proof_size;
   };
 
-  enum class DispatchClass: uint8_t {
+  // for some reason encoded as variant in substrate, thus custom encode/decode
+  // operators
+  enum class DispatchClass : uint8_t {
     Normal,
     Operational,
     /* A mandatory dispatch. These kinds of dispatch are always included
@@ -52,10 +55,9 @@ namespace kagome::primitives {
     Mandatory
   };
 
-
   template <typename Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &stream, DispatchClass& dispatch_class) {
+  Stream &operator>>(Stream &stream, DispatchClass &dispatch_class) {
     (void)stream.nextByte();
     uint8_t dispatch_class_byte;
     stream >> dispatch_class_byte;
@@ -69,7 +71,7 @@ namespace kagome::primitives {
     return stream << dispatch_class << uint8_t{0};
   }
 
-  struct Balance: public scale::Fixed<scale::uint128_t> {};
+  struct Balance : public scale::Fixed<scale::uint128_t> {};
 
   /** Information related to a dispatchable class, weight, and fee that can be
    * queried from the runtime.

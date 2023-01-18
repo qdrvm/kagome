@@ -9,10 +9,6 @@
 #include <cstdint>
 #include <vector>
 
-#include <scale/detail/fixed_width_integer.hpp>
-
-#include "scale/tie.hpp"
-
 namespace kagome::primitives {
 
   /**
