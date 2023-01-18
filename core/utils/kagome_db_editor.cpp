@@ -259,7 +259,7 @@ int db_editor_main(int argc, const char **argv) {
     }
 
     auto trie_tracker = std::make_shared<TrieTracker>(
-        std::make_shared<TrieStorageBackendImpl>(buffer_storage, prefix));
+        std::make_shared<TrieStorageBackendImpl>(storage, prefix));
 
     auto injector = di::make_injector(
         di::bind<TrieSerializer>.template to([](const auto &injector) {
@@ -279,7 +279,7 @@ int db_editor_main(int argc, const char **argv) {
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
 
     auto block_storage =
-        check(blockchain::BlockStorageImpl::create({}, buffer_storage, hasher))
+        check(blockchain::BlockStorageImpl::create({}, storage, hasher))
             .value();
 
     auto block_tree_leaf_hashes =

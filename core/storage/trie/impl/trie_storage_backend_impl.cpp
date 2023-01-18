@@ -12,8 +12,9 @@
 namespace kagome::storage::trie {
 
   TrieStorageBackendImpl::TrieStorageBackendImpl(
-      std::shared_ptr<BufferStorage> storage, common::Buffer node_prefix)
-      : storage_{std::move(storage)}, node_prefix_{std::move(node_prefix)} {
+      std::shared_ptr<SpacedStorage> storage, common::Buffer node_prefix)
+      : storage_{storage->getSpace(storage::Space::kDefault)},
+        node_prefix_{std::move(node_prefix)} {
     BOOST_ASSERT(storage_ != nullptr);
   }
 

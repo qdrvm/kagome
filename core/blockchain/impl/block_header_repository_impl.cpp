@@ -19,9 +19,10 @@ using kagome::primitives::BlockNumber;
 namespace kagome::blockchain {
 
   BlockHeaderRepositoryImpl::BlockHeaderRepositoryImpl(
-      std::shared_ptr<storage::BufferStorage> map,
+      std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher)
-      : map_{std::move(map)}, hasher_{std::move(hasher)} {
+      : map_{storage->getSpace(storage::Space::kDefault)},
+        hasher_{std::move(hasher)} {
     BOOST_ASSERT(hasher_);
   }
 

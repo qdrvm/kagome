@@ -15,7 +15,7 @@
 #include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
 #include "scale/tie.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "storage/spaced_storage.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::blockchain {
@@ -34,7 +34,7 @@ namespace kagome::runtime {
      */
     static outcome::result<std::unique_ptr<RuntimeUpgradeTrackerImpl>> create(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
-        std::shared_ptr<storage::BufferStorage> storage,
+        std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<const primitives::CodeSubstituteBlockIds>
             code_substitutes,
         std::shared_ptr<blockchain::BlockStorage> block_storage);
@@ -67,7 +67,7 @@ namespace kagome::runtime {
    private:
     RuntimeUpgradeTrackerImpl(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
-        std::shared_ptr<storage::BufferStorage> storage,
+        std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<const primitives::CodeSubstituteBlockIds>
             code_substitutes,
         std::vector<RuntimeUpgradeData> &&saved_data,

@@ -42,14 +42,14 @@ namespace kagome::telemetry {
       const application::ChainSpec &chain_spec,
       const libp2p::Host &host,
       std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
-      std::shared_ptr<const storage::BufferStorage> buffer_storage,
+      std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<const network::PeerManager> peer_manager)
       : app_state_manager_{std::move(app_state_manager)},
         app_configuration_{app_configuration},
         chain_spec_{chain_spec},
         host_{host},
         tx_pool_{std::move(tx_pool)},
-        buffer_storage_{std::move(buffer_storage)},
+        buffer_storage_{storage->getSpace(storage::Space::kDefault)},
         peer_manager_{std::move(peer_manager)},
         enabled_{app_configuration_.isTelemetryEnabled()},
         log_{log::createLogger("TelemetryService", "telemetry")} {

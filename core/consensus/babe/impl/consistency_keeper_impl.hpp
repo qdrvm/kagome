@@ -11,7 +11,7 @@
 #include <memory>
 
 #include "log/logger.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -28,7 +28,7 @@ namespace kagome::consensus::babe {
    public:
     ConsistencyKeeperImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<storage::BufferStorage> storage,
+        std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::DigestTracker> digest_tracker);
 

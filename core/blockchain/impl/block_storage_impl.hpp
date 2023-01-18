@@ -12,6 +12,7 @@
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace kagome::blockchain {
 
@@ -28,7 +29,7 @@ namespace kagome::blockchain {
      */
     static outcome::result<std::shared_ptr<BlockStorageImpl>> create(
         storage::trie::RootHash state_root,
-        const std::shared_ptr<storage::BufferStorage> &storage,
+        const std::shared_ptr<storage::SpacedStorage> &storage,
         const std::shared_ptr<crypto::Hasher> &hasher);
 
     outcome::result<std::vector<primitives::BlockHash>> getBlockTreeLeaves()

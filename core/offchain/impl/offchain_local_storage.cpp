@@ -21,8 +21,8 @@ namespace kagome::offchain {
   }  // namespace
 
   OffchainLocalStorageImpl::OffchainLocalStorageImpl(
-      std::shared_ptr<storage::BufferStorage> storage)
-      : storage_(std::move(storage)),
+      std::shared_ptr<storage::SpacedStorage> storage)
+      : storage_(storage->getSpace(storage::Space::kDefault)),
         log_(log::createLogger("OffchainLocalStorage", "offchain")) {
     BOOST_ASSERT(storage_);
   }

@@ -9,12 +9,13 @@
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace kagome::storage::trie {
 
   class TrieStorageBackendImpl : public TrieStorageBackend {
    public:
-    TrieStorageBackendImpl(std::shared_ptr<BufferStorage> storage,
+    TrieStorageBackendImpl(std::shared_ptr<SpacedStorage> storage,
                            common::Buffer node_prefix);
 
     ~TrieStorageBackendImpl() override = default;

@@ -27,10 +27,11 @@ namespace kagome::blockchain {
 
   outcome::result<std::shared_ptr<BlockStorageImpl>> BlockStorageImpl::create(
       storage::trie::RootHash state_root,
-      const std::shared_ptr<storage::BufferStorage> &storage,
+      const std::shared_ptr<storage::SpacedStorage> &storage,
       const std::shared_ptr<crypto::Hasher> &hasher) {
+    auto default_space = storage->getSpace(storage::Space::kDefault);
     auto block_storage = std::shared_ptr<BlockStorageImpl>(
-        new BlockStorageImpl(storage, hasher));
+        new BlockStorageImpl(default_space, hasher));
 
     auto res = block_storage->hasBlockHeader(primitives::BlockNumber{0});
     if (res.has_error()) {

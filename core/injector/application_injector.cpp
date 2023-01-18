@@ -259,7 +259,7 @@ namespace {
   }
 
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
-      sptr<storage::BufferStorage> storage) {
+      sptr<storage::SpacedStorage> storage) {
     static auto initialized =
         std::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
             std::nullopt);
@@ -541,7 +541,7 @@ namespace {
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::Router>>(),
-        injector.template create<sptr<storage::BufferStorage>>(),
+        injector.template create<sptr<storage::SpacedStorage>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<network::ReputationRepository>>(),
         injector.template create<sptr<network::PeerView>>());
@@ -726,7 +726,7 @@ namespace {
           auto header_repo = injector.template create<
               sptr<const blockchain::BlockHeaderRepository>>();
           auto storage =
-              injector.template create<sptr<storage::BufferStorage>>();
+              injector.template create<sptr<storage::SpacedStorage>>();
           auto substitutes = injector.template create<
               sptr<const primitives::CodeSubstituteBlockIds>>();
           auto block_storage =
@@ -1052,7 +1052,7 @@ namespace {
                   .value();
           const auto &hasher = injector.template create<sptr<crypto::Hasher>>();
           const auto &storage =
-              injector.template create<sptr<storage::BufferStorage>>();
+              injector.template create<sptr<storage::SpacedStorage>>();
           return blockchain::BlockStorageImpl::create(root, storage, hasher)
               .value();
         }),
@@ -1105,7 +1105,7 @@ namespace {
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =
-                  injector.template create<sptr<storage::BufferStorage>>();
+                  injector.template create<sptr<storage::SpacedStorage>>();
               return get_trie_storage_backend(storage);
             }),
         bind_by_lambda<storage::trie::TrieStorage>([](auto const &injector) {
@@ -1535,8 +1535,8 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<runtime::Executor>>();
   }
 
-  std::shared_ptr<storage::BufferStorage> KagomeNodeInjector::injectStorage() {
-    return pimpl_->injector_.create<sptr<storage::BufferStorage>>();
+  std::shared_ptr<storage::SpacedStorage> KagomeNodeInjector::injectStorage() {
+    return pimpl_->injector_.create<sptr<storage::SpacedStorage>>();
   }
 
 }  // namespace kagome::injector
