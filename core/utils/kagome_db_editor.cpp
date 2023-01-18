@@ -258,8 +258,9 @@ int db_editor_main(int argc, const char **argv) {
       return 0;
     }
 
+    auto trie_buffer_storage = storage->getSpace(storage::Space::kTrieNode);
     auto trie_tracker = std::make_shared<TrieTracker>(
-        std::make_shared<TrieStorageBackendImpl>(storage, prefix));
+        std::make_shared<TrieStorageBackendImpl>(trie_buffer_storage));
 
     auto injector = di::make_injector(
         di::bind<TrieSerializer>.template to([](const auto &injector) {

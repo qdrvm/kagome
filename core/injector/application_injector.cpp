@@ -259,7 +259,7 @@ namespace {
   }
 
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
-      sptr<storage::SpacedStorage> storage) {
+      sptr<storage::SpacedStorage> spaced_storage) {
     static auto initialized =
         std::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
             std::nullopt);
@@ -268,8 +268,9 @@ namespace {
       return initialized.value();
     }
 
-    auto backend = std::make_shared<storage::trie::TrieStorageBackendImpl>(
-        storage, common::Buffer{blockchain::prefix::TRIE_NODE});
+    auto storage = spaced_storage->getSpace(storage::Space::kTrieNode);
+    auto backend =
+        std::make_shared<storage::trie::TrieStorageBackendImpl>(storage);
 
     initialized.emplace(std::move(backend));
     return initialized.value();
