@@ -47,6 +47,7 @@
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "authority_discovery/publisher/address_publisher.hpp"
+#include "authority_discovery/query/query_impl.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
@@ -1162,6 +1163,7 @@ namespace {
         di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
         di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
         di::bind<consensus::babe::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+        di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
