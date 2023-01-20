@@ -14,6 +14,7 @@ namespace kagome::storage {
     kDefault = 0,
     kLookupKey,
     kHeader,
+    kJustification,
     kBlockData,
     kTrieNode,
     //

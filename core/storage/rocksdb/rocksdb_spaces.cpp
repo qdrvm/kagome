@@ -13,15 +13,16 @@
 namespace kagome::storage {
 
   std::string spaceName(Space space) {
-    static const std::array<std::string, Space::kTotal> names = {
+    static const std::vector<std::string> names = {
         rocksdb::kDefaultColumnFamilyName,
         "lookup_key",
         "header",
+        "justification",
         "block_data",
         "trie_node",
     };
+    assert(Space::kTotal == names.size());
     assert(space < Space::kTotal);
-    static_assert(Space::kTotal == names.size());
     return names.at(space);
   }
 
