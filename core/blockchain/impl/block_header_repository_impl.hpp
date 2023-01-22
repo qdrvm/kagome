@@ -34,7 +34,7 @@ namespace kagome::blockchain {
         const primitives::BlockId &id) const override;
 
    private:
-    std::shared_ptr<storage::BufferStorage> map_;
+    std::shared_ptr<storage::SpacedStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
   };
 

@@ -12,11 +12,11 @@
 namespace kagome::blockchain {
   using primitives::Block;
   using primitives::BlockId;
+  using storage::Space;
   using Buffer = common::Buffer;
-  using Prefix = prefix::Prefix;
 
   BlockStorageImpl::BlockStorageImpl(
-      std::shared_ptr<storage::BufferStorage> storage,
+      std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher)
       : storage_{std::move(storage)},
         hasher_{std::move(hasher)},
@@ -29,9 +29,8 @@ namespace kagome::blockchain {
       storage::trie::RootHash state_root,
       const std::shared_ptr<storage::SpacedStorage> &storage,
       const std::shared_ptr<crypto::Hasher> &hasher) {
-    auto default_space = storage->getSpace(storage::Space::kDefault);
     auto block_storage = std::shared_ptr<BlockStorageImpl>(
-        new BlockStorageImpl(default_space, hasher));
+        new BlockStorageImpl(storage, hasher));
 
     auto res = block_storage->hasBlockHeader(primitives::BlockNumber{0});
     if (res.has_error()) {
@@ -60,13 +59,13 @@ namespace kagome::blockchain {
 
   outcome::result<bool> BlockStorageImpl::hasBlockHeader(
       const primitives::BlockId &id) const {
-    return hasWithPrefix(*storage_, Prefix::HEADER, id);
+    return hasInSpace(*storage_, Space::kHeader, id);
   }
 
   outcome::result<std::optional<primitives::BlockHeader>>
   BlockStorageImpl::getBlockHeader(const primitives::BlockId &id) const {
     OUTCOME_TRY(encoded_header_opt,
-                getWithPrefix(*storage_, Prefix::HEADER, id));
+                getFromSpace(*storage_, Space::kHeader, id));
     if (encoded_header_opt.has_value()) {
       OUTCOME_TRY(
           header,
@@ -88,7 +87,7 @@ namespace kagome::blockchain {
   outcome::result<std::optional<primitives::BlockData>>
   BlockStorageImpl::getBlockData(const primitives::BlockId &id) const {
     OUTCOME_TRY(encoded_block_data_opt,
-                getWithPrefix(*storage_, Prefix::BLOCK_DATA, id));
+                getFromSpace(*storage_, Space::kBlockData, id));
     if (encoded_block_data_opt.has_value()) {
       OUTCOME_TRY(
           block_data,
@@ -118,11 +117,11 @@ namespace kagome::blockchain {
       const primitives::BlockHeader &header) {
     OUTCOME_TRY(encoded_header, scale::encode(header));
     auto block_hash = hasher_->blake2b_256(encoded_header);
-    OUTCOME_TRY(putWithPrefix(*storage_,
-                              Prefix::HEADER,
-                              header.number,
-                              block_hash,
-                              Buffer{std::move(encoded_header)}));
+    OUTCOME_TRY(putToSpace(*storage_,
+                           Space::kHeader,
+                           header.number,
+                           block_hash,
+                           Buffer{std::move(encoded_header)}));
     return block_hash;
   }
 
@@ -155,11 +154,11 @@ namespace kagome::blockchain {
     }
 
     OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));
-    OUTCOME_TRY(putWithPrefix(*storage_,
-                              Prefix::BLOCK_DATA,
-                              block_number,
-                              block_data.hash,
-                              Buffer{encoded_block_data}));
+    OUTCOME_TRY(putToSpace(*storage_,
+                           Space::kBlockData,
+                           block_number,
+                           block_data.hash,
+                           Buffer{encoded_block_data}));
     return outcome::success();
   }
 
@@ -195,11 +194,11 @@ namespace kagome::blockchain {
         move_if_flag(!remove_flags.receipt, std::move(existing_data.receipt));
 
     OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));
-    OUTCOME_TRY(putWithPrefix(*storage_,
-                              Prefix::BLOCK_DATA,
-                              block_number,
-                              remove_flags.hash,
-                              Buffer{encoded_block_data}));
+    OUTCOME_TRY(putToSpace(*storage_,
+                           Space::kBlockData,
+                           block_number,
+                           remove_flags.hash,
+                           Buffer{encoded_block_data}));
     return outcome::success();
   }
 
@@ -246,19 +245,18 @@ namespace kagome::blockchain {
     auto block_lookup_key = numberAndHashToLookupKey(block.number, block.hash);
 
     SL_TRACE(logger_, "Removing block {}...", block);
+    auto key_space = storage_->getSpace(Space::kLookupKey);
 
-    auto hash_to_idx_key = prependPrefix(block.hash, Prefix::ID_TO_LOOKUP_KEY);
-    if (auto res = storage_->remove(hash_to_idx_key); res.has_error()) {
+    if (auto res = key_space->remove(block.hash); res.has_error()) {
       logger_->error("could not remove hash-to-idx from the storage: {}",
                      res.error());
       return res;
     }
 
-    auto num_to_idx_key =
-        prependPrefix(numberToIndexKey(block.number), Prefix::ID_TO_LOOKUP_KEY);
-    OUTCOME_TRY(num_to_idx_val_opt, storage_->tryGet(num_to_idx_key.view()));
+    auto num_to_idx_key = numberToIndexKey(block.number);
+    OUTCOME_TRY(num_to_idx_val_opt, key_space->tryGet(num_to_idx_key.view()));
     if (num_to_idx_val_opt == block_lookup_key) {
-      if (auto res = storage_->remove(num_to_idx_key); res.has_error()) {
+      if (auto res = key_space->remove(num_to_idx_key); res.has_error()) {
         SL_ERROR(logger_,
                  "could not remove num-to-idx from the storage: {}",
                  block,
@@ -271,8 +269,9 @@ namespace kagome::blockchain {
     // TODO(xDimon): needed to clean up trie storage if block deleted
     //  issue: https://github.com/soramitsu/kagome/issues/1128
 
-    auto body_key = prependPrefix(block_lookup_key, Prefix::BLOCK_DATA);
-    if (auto res = storage_->remove(body_key); res.has_error()) {
+    auto block_data_space = storage_->getSpace(Space::kBlockData);
+    if (auto res = block_data_space->remove(block_lookup_key);
+        res.has_error()) {
       SL_ERROR(logger_,
                "could not remove body of block {} from the storage: {}",
                block,
@@ -280,8 +279,8 @@ namespace kagome::blockchain {
       return res;
     }
 
-    auto header_key = prependPrefix(block_lookup_key, Prefix::HEADER);
-    if (auto res = storage_->remove(header_key); res.has_error()) {
+    auto header_space = storage_->getSpace(Space::kHeader);
+    if (auto res = header_space->remove(block_lookup_key); res.has_error()) {
       SL_ERROR(logger_,
                "could not remove header of block {} from the storage: {}",
                block,
@@ -300,8 +299,9 @@ namespace kagome::blockchain {
       return block_tree_leaves_.value();
     }
 
+    auto default_space = storage_->getSpace(Space::kDefault);
     OUTCOME_TRY(leaves_opt,
-                storage_->tryGet(storage::kBlockTreeLeavesLookupKey));
+                default_space->tryGet(storage::kBlockTreeLeavesLookupKey));
     if (not leaves_opt.has_value()) {
       return BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND;
     }
@@ -322,9 +322,10 @@ namespace kagome::blockchain {
       return outcome::success();
     }
 
+    auto default_space = storage_->getSpace(Space::kDefault);
     OUTCOME_TRY(encoded_leaves, scale::encode(leaves));
-    OUTCOME_TRY(storage_->put(storage::kBlockTreeLeavesLookupKey,
-                              Buffer{std::move(encoded_leaves)}));
+    OUTCOME_TRY(default_space->put(storage::kBlockTreeLeavesLookupKey,
+                                   Buffer{std::move(encoded_leaves)}));
 
     block_tree_leaves_.emplace(std::move(leaves));
 

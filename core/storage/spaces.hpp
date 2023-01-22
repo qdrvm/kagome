@@ -11,12 +11,16 @@
 namespace kagome::storage {
 
   enum Space : uint8_t {
+    // must have spaces
     kDefault = 0,
     kLookupKey,
+
+    // application-defined spaces
     kHeader,
     kJustification,
     kBlockData,
     kTrieNode,
+
     //
     kTotal
   };

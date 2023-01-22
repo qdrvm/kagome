@@ -21,7 +21,7 @@ namespace kagome::storage {
         "block_data",
         "trie_node",
     };
-    assert(Space::kTotal == names.size());
+    assert(names.size() == Space::kTotal);
     assert(space < Space::kTotal);
     return names.at(space);
   }

@@ -77,10 +77,11 @@ namespace kagome::blockchain {
     outcome::result<primitives::BlockInfo> getLastFinalized() const override;
 
    private:
-    BlockStorageImpl(std::shared_ptr<storage::BufferStorage> storage,
+    BlockStorageImpl(std::shared_ptr<storage::SpacedStorage> storage,
                      std::shared_ptr<crypto::Hasher> hasher);
 
-    std::shared_ptr<storage::BufferStorage> storage_;
+    std::shared_ptr<storage::SpacedStorage> storage_;
+
     std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger_;
 
