@@ -186,8 +186,10 @@ namespace kagome::application {
       : logger_(std::move(logger)),
         roles_(def_roles),
         save_node_key_(false),
+        listen_addresses_defined_(false),
         is_telemetry_enabled_(true),
         p2p_port_(def_p2p_port),
+        p2p_port_explicitly_defined_(false),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
@@ -1001,7 +1003,10 @@ namespace kagome::application {
     find_argument<bool>(
         vm, "save-node-key", [&](bool val) { save_node_key_ = val; });
 
-    find_argument<uint16_t>(vm, "port", [&](uint16_t val) { p2p_port_ = val; });
+    find_argument<uint16_t>(vm, "port", [&](uint16_t val) {
+      p2p_port_ = val;
+      p2p_port_explicitly_defined_ = true;
+    });
 
     auto parse_multiaddrs =
         [&](const std::string &param_name,
@@ -1031,6 +1036,14 @@ namespace kagome::application {
     if (not parse_multiaddrs("listen-addr", listen_addresses_)) {
       return false;  // just proxy erroneous case to the top level
     }
+
+    if (p2p_port_explicitly_defined_ and not listen_addresses_.empty()) {
+      SL_ERROR(logger_,
+               "Port and listen address must not be defined simultaneously; "
+               "Leave only one of them");
+      return false;
+    }
+
     if (not parse_multiaddrs("public-addr", public_addresses_)) {
       return false;  // just proxy erroneous case to the top level
     }
@@ -1046,7 +1059,7 @@ namespace kagome::application {
       public_addresses_ = listen_addresses_;
     }
 
-    if (0 != p2p_port_ and listen_addresses_.empty()) {
+    if (p2p_port_explicitly_defined_ and listen_addresses_.empty()) {
       // IPv6
       {
         auto ma_res = libp2p::multi::Multiaddress::create(

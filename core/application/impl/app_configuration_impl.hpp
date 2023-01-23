@@ -290,11 +290,13 @@ namespace kagome::application {
     std::optional<std::string> node_key_file_;
     bool save_node_key_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
+    bool listen_addresses_defined_ = false;
     std::vector<libp2p::multi::Multiaddress> public_addresses_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;
     std::vector<telemetry::TelemetryEndpoint> telemetry_endpoints_;
     bool is_telemetry_enabled_;
     uint16_t p2p_port_;
+    bool p2p_port_explicitly_defined_ = false;
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
     boost::asio::ip::tcp::endpoint openmetrics_http_endpoint_;
