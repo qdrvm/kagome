@@ -99,10 +99,15 @@ namespace kagome::blockchain {
 
   outcome::result<std::optional<primitives::Justification>>
   BlockStorageImpl::getJustification(const primitives::BlockId &block) const {
-    OUTCOME_TRY(block_data, getBlockData(block));
-    if (block_data.has_value()
-        && block_data.value().justification.has_value()) {
-      return block_data.value().justification.value();
+    OUTCOME_TRY(header, getBlockHeader(block));
+    BOOST_ASSERT(header.has_value());
+    OUTCOME_TRY(encoded_justification_opt,
+                getFromSpace(*storage_, Space::kJustification, block));
+    if (encoded_justification_opt.has_value()) {
+      OUTCOME_TRY(justification,
+                  scale::decode<primitives::Justification>(
+                      encoded_justification_opt.value()));
+      return std::move(justification);
     }
     return std::nullopt;
   }
@@ -225,18 +230,29 @@ namespace kagome::blockchain {
       const primitives::BlockHash &hash,
       primitives::BlockNumber block_number) {
     BOOST_ASSERT(not j.data.empty());
-    // insert justification into the database as a part of BlockData
-    primitives::BlockData block_data{.hash = hash, .justification = j};
+
+    OUTCOME_TRY(justification, scale::encode(j));
+    OUTCOME_TRY(putToSpace(*storage_,
+                           Space::kJustification,
+                           block_number,
+                           hash,
+                           Buffer{justification}));
+
+    // the following is still required
+    primitives::BlockData block_data{.hash = hash};
     OUTCOME_TRY(putBlockData(block_number, block_data));
     return outcome::success();
   }
 
   outcome::result<void> BlockStorageImpl::removeJustification(
       const primitives::BlockHash &hash, primitives::BlockNumber number) {
-    primitives::BlockDataFlags flags =
-        primitives::BlockDataFlags::allUnset(hash);
-    flags.justification = true;
-    OUTCOME_TRY(removeBlockData(number, flags));
+    auto key = numberAndHashToLookupKey(number, hash);
+    auto space = storage_->getSpace(Space::kJustification);
+
+    OUTCOME_TRY(found, space->contains(key));
+    if (found) {
+      OUTCOME_TRY(space->remove(key));
+    }
     return outcome::success();
   }
 
@@ -285,6 +301,16 @@ namespace kagome::blockchain {
                "could not remove header of block {} from the storage: {}",
                block,
                res.error());
+      return res;
+    }
+
+    if (auto res = removeJustification(block.hash, block.number);
+        res.has_error()) {
+      SL_ERROR(
+          logger_,
+          "could not remove justification for block {} from the storage: {}",
+          block,
+          res.error());
       return res;
     }
 
