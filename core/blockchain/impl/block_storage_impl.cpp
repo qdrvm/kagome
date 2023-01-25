@@ -249,10 +249,7 @@ namespace kagome::blockchain {
     auto key = numberAndHashToLookupKey(number, hash);
     auto space = storage_->getSpace(Space::kJustification);
 
-    OUTCOME_TRY(found, space->contains(key));
-    if (found) {
-      OUTCOME_TRY(space->remove(key));
-    }
+    OUTCOME_TRY(space->remove(key));
     return outcome::success();
   }
 
