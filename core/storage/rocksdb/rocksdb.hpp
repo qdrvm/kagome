@@ -88,6 +88,9 @@ namespace kagome::storage {
     friend class RocksDbBatch;
 
    private:
+    // gather storage instance from weak ptr
+    outcome::result<std::shared_ptr<RocksDb>> use() const;
+
     std::weak_ptr<RocksDb> storage_;
     RocksDb::ColumnFamilyHandle column_;
     log::Logger logger_;

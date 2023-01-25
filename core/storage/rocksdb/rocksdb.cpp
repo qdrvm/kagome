@@ -160,10 +160,7 @@ namespace kagome::storage {
   }
 
   outcome::result<bool> RocksDbSpace::contains(const BufferView &key) const {
-    auto rocks = storage_.lock();
-    if (!rocks) {
-      return DatabaseError::STORAGE_GONE;
-    }
+    OUTCOME_TRY(rocks, use());
     std::string value;
     auto status =
         rocks->db_->Get(rocks->ro_, column_.handle, make_slice(key), &value);
@@ -190,10 +187,7 @@ namespace kagome::storage {
   }
 
   outcome::result<BufferOrView> RocksDbSpace::get(const BufferView &key) const {
-    auto rocks = storage_.lock();
-    if (!rocks) {
-      return DatabaseError::STORAGE_GONE;
-    }
+    OUTCOME_TRY(rocks, use());
     std::string value;
     auto status =
         rocks->db_->Get(rocks->ro_, column_.handle, make_slice(key), &value);
@@ -208,10 +202,7 @@ namespace kagome::storage {
 
   outcome::result<std::optional<BufferOrView>> RocksDbSpace::tryGet(
       const BufferView &key) const {
-    auto rocks = storage_.lock();
-    if (!rocks) {
-      return DatabaseError::STORAGE_GONE;
-    }
+    OUTCOME_TRY(rocks, use());
     std::string value;
     auto status =
         rocks->db_->Get(rocks->ro_, column_.handle, make_slice(key), &value);
@@ -230,10 +221,7 @@ namespace kagome::storage {
 
   outcome::result<void> RocksDbSpace::put(const BufferView &key,
                                           BufferOrView &&value) {
-    auto rocks = storage_.lock();
-    if (!rocks) {
-      return DatabaseError::STORAGE_GONE;
-    }
+    OUTCOME_TRY(rocks, use());
     auto status = rocks->db_->Put(
         rocks->wo_, column_.handle, make_slice(key), make_slice(value));
     if (status.ok()) {
@@ -244,10 +232,7 @@ namespace kagome::storage {
   }
 
   outcome::result<void> RocksDbSpace::remove(const BufferView &key) {
-    auto rocks = storage_.lock();
-    if (!rocks) {
-      return DatabaseError::STORAGE_GONE;
-    }
+    OUTCOME_TRY(rocks, use());
     auto status =
         rocks->db_->Delete(rocks->wo_, column_.handle, make_slice(key));
     if (status.ok()) {
@@ -274,5 +259,13 @@ namespace kagome::storage {
       rocksdb::CompactRangeOptions options;
       rocks->db_->CompactRange(options, column_.handle, &bk, &ek);
     }
+  }
+
+  outcome::result<std::shared_ptr<RocksDb>> RocksDbSpace::use() const {
+    auto rocks = storage_.lock();
+    if (!rocks) {
+      return DatabaseError::STORAGE_GONE;
+    }
+    return rocks;
   }
 }  // namespace kagome::storage
