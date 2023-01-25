@@ -208,8 +208,6 @@ TEST_F(BlockStorageTest, PutWithStorageError) {
       .WillOnce(Return(outcome::success()));
   EXPECT_CALL(*(spaces[Space::kHeader]), remove(_))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*(spaces[Space::kJustification]), contains(_))
-      .WillOnce(Return(true));
   EXPECT_CALL(*(spaces[Space::kJustification]), remove(_))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(block_storage->removeBlock({0, genesis_block_hash}));
