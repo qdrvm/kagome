@@ -18,8 +18,8 @@
  * Different parts containing a block are stored in multiple storage spaces but
  * have to be addressed with the same key.
  *
- * A key is the combination of block's number concatenated with its hash
- * resulting in a 512-bit byte buffer. Let's name it as NumHashKey.
+ * A key is the combination of block's number concatenated with its hash. Let's
+ * name it as NumHashKey.
  *
  * There is also an auxilary space named Space::kLookupKey where
  * BlockId->NumHashKey mappings are stored. Effectively there are could be two
@@ -34,25 +34,6 @@
  */
 
 namespace kagome::blockchain {
-
-  /**
-   * Storage has only one key space, prefixes are used to divide it
-   */
-  namespace prefix {
-    enum Prefix : uint8_t {
-      // mapping of block id to a storage lookup key
-      ID_TO_LOOKUP_KEY = 3,
-
-      // block headers
-      HEADER = 4,
-
-      // body of the block (extrinsics)
-      BLOCK_DATA = 5,
-
-      // node of a trie db
-      TRIE_NODE = 7
-    };
-  }
 
   /**
    * Errors that might occur during work with storage

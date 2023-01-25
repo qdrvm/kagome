@@ -241,7 +241,7 @@ int db_editor_main(int argc, const char **argv) {
 
   auto log = log::createLogger("main", "kagome-db-editor");
 
-  auto prefix = common::Buffer{blockchain::prefix::TRIE_NODE};
+  common::Buffer prefix{};
   bool need_additional_compaction = false;
   {
     auto factory = std::make_shared<PolkadotTrieFactoryImpl>();

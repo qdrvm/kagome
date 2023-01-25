@@ -46,7 +46,6 @@ using namespace testutil;
 
 using namespace std::chrono_literals;
 
-using prefix::Prefix;
 using testing::_;
 using testing::Invoke;
 using testing::Return;
