@@ -152,7 +152,7 @@ namespace kagome::storage {
   std::unique_ptr<RocksDbSpace::Cursor> RocksDbSpace::cursor() {
     auto rocks = storage_.lock();
     if (!rocks) {
-      throw DatabaseError::IO_ERROR;
+      throw DatabaseError::STORAGE_GONE;
     }
     auto it = std::unique_ptr<rocksdb::Iterator>(
         rocks->db_->NewIterator(rocks->ro_, column_.handle));
@@ -162,7 +162,7 @@ namespace kagome::storage {
   outcome::result<bool> RocksDbSpace::contains(const BufferView &key) const {
     auto rocks = storage_.lock();
     if (!rocks) {
-      return DatabaseError::IO_ERROR;
+      return DatabaseError::STORAGE_GONE;
     }
     std::string value;
     auto status =
@@ -192,7 +192,7 @@ namespace kagome::storage {
   outcome::result<BufferOrView> RocksDbSpace::get(const BufferView &key) const {
     auto rocks = storage_.lock();
     if (!rocks) {
-      return DatabaseError::IO_ERROR;
+      return DatabaseError::STORAGE_GONE;
     }
     std::string value;
     auto status =
@@ -210,7 +210,7 @@ namespace kagome::storage {
       const BufferView &key) const {
     auto rocks = storage_.lock();
     if (!rocks) {
-      return DatabaseError::IO_ERROR;
+      return DatabaseError::STORAGE_GONE;
     }
     std::string value;
     auto status =
@@ -232,7 +232,7 @@ namespace kagome::storage {
                                           BufferOrView &&value) {
     auto rocks = storage_.lock();
     if (!rocks) {
-      return DatabaseError::IO_ERROR;
+      return DatabaseError::STORAGE_GONE;
     }
     auto status = rocks->db_->Put(
         rocks->wo_, column_.handle, make_slice(key), make_slice(value));
@@ -246,7 +246,7 @@ namespace kagome::storage {
   outcome::result<void> RocksDbSpace::remove(const BufferView &key) {
     auto rocks = storage_.lock();
     if (!rocks) {
-      return DatabaseError::IO_ERROR;
+      return DatabaseError::STORAGE_GONE;
     }
     auto status =
         rocks->db_->Delete(rocks->wo_, column_.handle, make_slice(key));

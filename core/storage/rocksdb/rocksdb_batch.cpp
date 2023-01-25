@@ -26,7 +26,7 @@ namespace kagome::storage {
   outcome::result<void> RocksDbBatch::commit() {
     auto rocks = db_.storage_.lock();
     if (!rocks) {
-      return DatabaseError::IO_ERROR;
+      return DatabaseError::STORAGE_GONE;
     }
     auto status = rocks->db_->Write(rocks->wo_, &batch_);
     if (status.ok()) {
