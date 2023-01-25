@@ -38,7 +38,7 @@ class TrieStorageProviderTest : public ::testing::Test {
 
     auto backend =
         std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-            storage_, kagome::common::Buffer{});
+            storage_);
 
     auto serializer =
         std::make_shared<kagome::storage::trie::TrieSerializerImpl>(

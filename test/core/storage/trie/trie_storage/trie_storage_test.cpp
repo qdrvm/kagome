@@ -32,8 +32,6 @@ using kagome::storage::trie::TrieStorageBackendImpl;
 using kagome::storage::trie::TrieStorageImpl;
 using kagome::subscription::SubscriptionEngine;
 
-static Buffer kNodePrefix = "\1"_buf;
-
 /**
  * @given an empty persistent trie with RocksDb backend
  * @when putting a value into it @and its intance is destroyed @and a new
@@ -57,7 +55,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
         factory,
         codec,
         std::make_shared<TrieStorageBackendImpl>(
-            rocks_db->getSpace(Space::kDefault), kNodePrefix));
+            rocks_db->getSpace(Space::kDefault)));
 
     auto storage =
         TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
@@ -77,7 +75,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
       factory,
       codec,
       std::make_shared<TrieStorageBackendImpl>(
-          new_rocks_db->getSpace(Space::kDefault), kNodePrefix));
+          new_rocks_db->getSpace(Space::kDefault)));
   auto storage =
       TrieStorageImpl::createFromStorage(codec, serializer, std::nullopt)
           .value();
