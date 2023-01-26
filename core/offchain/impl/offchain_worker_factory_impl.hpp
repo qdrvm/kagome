@@ -13,6 +13,7 @@
 #include "crypto/random_generator.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "offchain/offchain_persistent_storage.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace kagome::api {
   class AuthorApi;
@@ -35,7 +36,7 @@ namespace kagome::offchain {
         const application::AppConfiguration &app_config,
         std::shared_ptr<clock::SystemClock> clock,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<storage::BufferStorage> storage,
+        std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<crypto::CSPRNG> random_generator,
         std::shared_ptr<api::AuthorApi> author_api,
         const network::OwnPeerInfo &current_peer_info,
@@ -50,7 +51,7 @@ namespace kagome::offchain {
     const application::AppConfiguration &app_config_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<storage::BufferStorage> storage_;
+    std::shared_ptr<storage::SpacedStorage> storage_;
     std::shared_ptr<crypto::CSPRNG> random_generator_;
     std::shared_ptr<api::AuthorApi> author_api_;
     const network::OwnPeerInfo &current_peer_info_;

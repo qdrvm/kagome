@@ -27,7 +27,6 @@ namespace {
 
 namespace kagome::blockchain {
   using Buffer = common::Buffer;
-  using Prefix = prefix::Prefix;
   using DatabaseError = kagome::storage::DatabaseError;
   using consensus::babe::isPrimary;
 

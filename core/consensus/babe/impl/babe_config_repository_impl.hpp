@@ -14,7 +14,7 @@
 #include "log/logger.hpp"
 #include "primitives/block_data.hpp"
 #include "primitives/event_types.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -42,7 +42,7 @@ namespace kagome::consensus::babe {
    public:
     BabeConfigRepositoryImpl(
         const std::shared_ptr<application::AppStateManager> &app_state_manager,
-        std::shared_ptr<storage::BufferStorage> persistent_storage,
+        std::shared_ptr<storage::SpacedStorage> persistent_storage,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<runtime::BabeApi> babe_api,

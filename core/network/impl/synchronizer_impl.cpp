@@ -82,7 +82,7 @@ namespace kagome::network {
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::Core> core_api,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      std::shared_ptr<storage::BufferStorage> buffer_storage)
+      std::shared_ptr<storage::SpacedStorage> spaced_storage)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
         trie_changes_tracker_(std::move(changes_tracker)),
@@ -96,7 +96,7 @@ namespace kagome::network {
         module_factory_(std::move(module_factory)),
         core_api_(std::move(core_api)),
         chain_sub_engine_(std::move(chain_sub_engine)),
-        buffer_storage_(std::move(buffer_storage)) {
+        buffer_storage_(spaced_storage->getSpace(storage::Space::kDefault)) {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_changes_tracker_);

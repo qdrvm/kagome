@@ -23,14 +23,13 @@ using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryImpl;
 using kagome::blockchain::numberAndHashToLookupKey;
 using kagome::blockchain::numberToIndexKey;
-using kagome::blockchain::prependPrefix;
-using kagome::blockchain::putWithPrefix;
-using kagome::blockchain::prefix::Prefix;
+using kagome::blockchain::putToSpace;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
+using kagome::storage::Space;
 
 class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
  public:
@@ -45,7 +44,7 @@ class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
     open();
 
     hasher_ = std::make_shared<kagome::crypto::HasherImpl>();
-    header_repo_ = std::make_shared<BlockHeaderRepositoryImpl>(db_, hasher_);
+    header_repo_ = std::make_shared<BlockHeaderRepositoryImpl>(rocks_, hasher_);
   }
 
   outcome::result<Hash256> storeHeader(BlockNumber num, BlockHeader h) {
@@ -53,9 +52,9 @@ class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
     header.number = num;
     OUTCOME_TRY(enc_header, scale::encode(header));
     auto hash = hasher_->blake2b_256(enc_header);
-    OUTCOME_TRY(putWithPrefix(
-        *db_, Prefix::HEADER, header.number, hash, Buffer{enc_header}));
-    OUTCOME_TRY(kagome::blockchain::putNumberToIndexKey(*db_, {num, hash}));
+    OUTCOME_TRY(putToSpace(
+        *rocks_, Space::kHeader, header.number, hash, Buffer{enc_header}));
+    OUTCOME_TRY(kagome::blockchain::putNumberToIndexKey(*rocks_, {num, hash}));
 
     return hash;
   }

@@ -16,8 +16,7 @@ namespace kagome::storage::trie {
    */
   class TrieStorageBackendBatch : public BufferBatch {
    public:
-    TrieStorageBackendBatch(std::unique_ptr<BufferBatch> storage_batch,
-                            common::Buffer node_prefix);
+    TrieStorageBackendBatch(std::unique_ptr<BufferBatch> storage_batch);
     ~TrieStorageBackendBatch() override = default;
 
     outcome::result<void> commit() override;
@@ -29,10 +28,7 @@ namespace kagome::storage::trie {
     void clear() override;
 
    private:
-    common::Buffer prefixKey(const common::BufferView &key) const;
-
     std::unique_ptr<BufferBatch> storage_batch_;
-    common::Buffer node_prefix_;
   };
 
 }  // namespace kagome::storage::trie

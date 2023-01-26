@@ -39,7 +39,7 @@
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "scale/libp2p_types.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace kagome::network {
 
@@ -69,7 +69,7 @@ namespace kagome::network {
         const BootstrapNodes &bootstrap_nodes,
         const OwnPeerInfo &own_peer_info,
         std::shared_ptr<network::Router> router,
-        std::shared_ptr<storage::BufferStorage> storage,
+        std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<ReputationRepository> reputation_repository,
         std::shared_ptr<PeerView> peer_view);

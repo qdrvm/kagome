@@ -22,6 +22,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage, DatabaseError, e) {
       return "entry not found in database";
     case E::DB_PATH_NOT_CREATED:
       return "database path was not created";
+    case E::STORAGE_GONE:
+      return "database instance has been uninitialized";
     case E::UNKNOWN:
       break;
   }

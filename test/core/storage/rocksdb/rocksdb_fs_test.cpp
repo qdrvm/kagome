@@ -32,7 +32,7 @@ TEST_F(RocksDb_Open, OpenNonExistingDB) {
   rocksdb::Options options;
   options.create_if_missing = false;  // intentionally
 
-  auto r = RocksDB::create(getPathString(), options);
+  auto r = RocksDb::create(getPathString(), options);
   EXPECT_FALSE(r);
   EXPECT_EQ(r.error(), DatabaseError::INVALID_ARGUMENT);
 }
@@ -46,7 +46,7 @@ TEST_F(RocksDb_Open, OpenExistingDB) {
   rocksdb::Options options;
   options.create_if_missing = true;  // intentionally
 
-  EXPECT_OUTCOME_TRUE_2(db, RocksDB::create(getPathString(), options));
+  EXPECT_OUTCOME_TRUE_2(db, RocksDb::create(getPathString(), options));
   EXPECT_TRUE(db) << "db is nullptr";
 
   boost::filesystem::path p(getPathString());

@@ -35,7 +35,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<storage::BufferStorage> persistent_storage,
+      std::shared_ptr<storage::SpacedStorage> persistent_storage,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine)
       : config_{std::move(config)},
@@ -43,7 +43,7 @@ namespace kagome::consensus::grandpa {
         trie_storage_(std::move(trie_storage)),
         grandpa_api_(std::move(grandpa_api)),
         hasher_(std::move(hasher)),
-        persistent_storage_{std::move(persistent_storage)},
+        persistent_storage_{persistent_storage->getSpace(storage::Space::kDefault)},
         header_repo_{std::move(header_repo)},
         chain_sub_([&] {
           BOOST_ASSERT(chain_events_engine != nullptr);

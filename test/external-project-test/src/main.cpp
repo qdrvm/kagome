@@ -77,8 +77,8 @@ int main() {
 
   rocksdb::Options db_options{};
   db_options.create_if_missing = true;
-  std::shared_ptr<kagome::storage::RocksDB> database =
-      kagome::storage::RocksDB::create("/tmp/kagome_tmp_db", db_options)
+  std::shared_ptr<kagome::storage::RocksDb> database =
+      kagome::storage::RocksDb::create("/tmp/kagome_tmp_db", db_options)
           .value();
   auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
   auto header_repo =
@@ -99,8 +99,7 @@ int main() {
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<kagome::storage::trie::PolkadotCodec>();
   auto storage_backend =
-      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-          database, kagome::common::Buffer::fromHex("DEADBEEF").value());
+      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(storage);
   auto serializer = std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
       trie_factory, codec, storage_backend);
   auto storage_subscription_engine =
@@ -123,7 +122,7 @@ int main() {
   auto root_hash =
       batch->commit(kagome::storage::trie::StateVersion::V0).value();
   auto block_storage =
-      kagome::blockchain::BlockStorageImpl::create(root_hash, storage, hasher)
+      kagome::blockchain::BlockStorageImpl::create(root_hash, database, hasher)
           .value();
   std::shared_ptr<kagome::runtime::RuntimeUpgradeTracker>
       runtime_upgrade_tracker =

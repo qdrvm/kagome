@@ -21,7 +21,7 @@
 #include "network/impl/state_sync_request_flow.hpp"
 #include "network/router.hpp"
 #include "primitives/event_types.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "storage/spaced_storage.hpp"
 #include "telemetry/service.hpp"
 
 namespace kagome::application {
@@ -101,7 +101,7 @@ namespace kagome::network {
         std::shared_ptr<runtime::ModuleFactory> module_factory,
         std::shared_ptr<runtime::Core> core_api,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-        std::shared_ptr<storage::BufferStorage> buffer_storage);
+        std::shared_ptr<storage::SpacedStorage> spaced_storage);
 
     /** @see AppStateManager::takeControl */
     bool prepare();

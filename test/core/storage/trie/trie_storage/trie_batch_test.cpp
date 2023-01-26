@@ -26,6 +26,7 @@ using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHash;
 using kagome::storage::trie::StateVersion;
+using kagome::storage::Space;
 using kagome::subscription::SubscriptionEngine;
 using testing::_;
 using testing::Invoke;
@@ -46,7 +47,7 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
     auto serializer = std::make_shared<TrieSerializerImpl>(
         factory,
         codec,
-        std::make_shared<TrieStorageBackendImpl>(std::move(db_), kNodePrefix));
+        std::make_shared<TrieStorageBackendImpl>(std::move(db_)));
 
     empty_hash = serializer->getEmptyRootHash();
 
@@ -60,7 +61,6 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
   std::unique_ptr<TrieStorage> trie;
   RootHash empty_hash;
 
-  static const Buffer kNodePrefix;
 };
 
 #define ASSERT_OUTCOME_IS_TRUE(Expression)        \
@@ -73,8 +73,6 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
     ASSERT_OUTCOME_SUCCESS(result, (Expression)); \
     ASSERT_FALSE(result);                         \
   }
-
-const Buffer TrieBatchTest::kNodePrefix{1};
 
 const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
     {"123456"_hex2buf, "42"_hex2buf},
@@ -112,7 +110,7 @@ class MockDb : public kagome::storage::InMemoryStorage {
 TEST_F(TrieBatchTest, Put) {
   auto batch = trie->getPersistentBatchAt(empty_hash).value();
   FillSmallTrieWithBatch(*batch);
-  // changes are not yet commited
+  // changes are not yet committed
   auto new_batch = trie->getEphemeralBatchAt(empty_hash).value();
   for (auto &entry : data) {
     ASSERT_OUTCOME_ERROR(new_batch->get(entry.first),
@@ -200,7 +198,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   auto serializer = std::make_shared<TrieSerializerImpl>(
       factory,
       codec,
-      std::make_shared<TrieStorageBackendImpl>(std::move(db), kNodePrefix));
+      std::make_shared<TrieStorageBackendImpl>(std::move(db)));
   auto trie =
       TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
           .value();
