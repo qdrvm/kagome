@@ -32,8 +32,8 @@ target_link_libraries(fd_limit
     )
 
 add_library(mp_utils
-        int_serialization.cpp
-        int_serialization.hpp
+    int_serialization.cpp
+    int_serialization.hpp
     )
 target_link_libraries(mp_utils
     Boost::boost

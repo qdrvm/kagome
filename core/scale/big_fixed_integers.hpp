@@ -9,10 +9,14 @@
 #include <type_traits>
 
 #include <boost/multiprecision/cpp_int.hpp>
+#include <scale/types.hpp>
 
 #include "common/int_serialization.hpp"
 
 namespace scale {
+
+  template <typename T>
+  struct IntegerTraits;
 
   /**
    * Wrapper for an integer to make distinct integer aliases
@@ -21,7 +25,14 @@ namespace scale {
    */
   template <typename Tag, typename T>
   struct IntWrapper {
+    static_assert(!std::is_reference_v<T>);
+    static_assert(!std::is_pointer_v<T>);
+    static_assert(!std::is_const_v<T>);
+
     using Self = IntWrapper<Tag, T>;
+    using ValueType = T;
+
+    static constexpr size_t BYTE_SIZE = IntegerTraits<T>::BIT_SIZE / 8;
 
     T &operator*() {
       return number;
@@ -38,6 +49,28 @@ namespace scale {
     T number;
   };
 
+  template <typename U,
+            typename T,
+            typename = std::enable_if_t<std::is_trivial_v<T>>>
+  U convert_to(T t) {
+    return static_cast<U>(t);
+  }
+
+  template <
+      typename U,
+      typename T,
+      typename = std::enable_if_t<boost::multiprecision::is_number<T>::value>>
+  U convert_to(T const &t) {
+    try {
+      return t.template convert_to<U>();
+    } catch (std::runtime_error const &e) {
+      // scale::decode catches std::system_errors
+      throw std::system_error{
+          make_error_code(std::errc::value_too_large),
+          "This integer conversion would lead to information loss"};
+    }
+  }
+
   struct FixedTag {};
 
   // an integer intended to be encoded with fixed length
@@ -50,36 +83,30 @@ namespace scale {
   template <typename T>
   using Compact = IntWrapper<CompactTag, T>;
 
-  // intended to wrap unwrapped integer arguments to encoding functions to
-  // indicated they should be encoded as fixed-length integers
-  template <typename T>
-  struct EncodeAsFixed {
-    explicit EncodeAsFixed(T &number) : number{number} {}
-    T &number;
-  };
-
   template <typename Stream,
             typename N,
-            typename = std::enable_if_t<Stream::is_decoder_stream>,
-            typename = std::enable_if_t<std::numeric_limits<N>::is_integer>>
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &stream, Fixed<N> &fixed) {
-    return stream >> EncodeAsFixed{*fixed};
-  }
-
-  template <typename Stream,
-            typename N,
-            typename = std::enable_if_t<Stream::is_encoder_stream>,
-            typename = std::enable_if_t<std::numeric_limits<N>::is_integer>>
-  Stream &operator<<(Stream &stream, Compact<N> compact) {
-    scale::CompactInteger n = compact;
-    stream << n;
+    for (size_t i = 0; i < Fixed<N>::BYTE_SIZE * 8; i += 8) {
+      *fixed |= N(stream.nextByte()) << i;
+    }
     return stream;
   }
 
   template <typename Stream,
             typename N,
-            typename = std::enable_if_t<Stream::is_decoder_stream>,
-            typename = std::enable_if_t<std::numeric_limits<N>::is_integer>>
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &stream, Fixed<N> const &fixed) {
+    constexpr size_t bits = Fixed<N>::BYTE_SIZE * 8;
+    for (size_t i = 0; i < bits; i += 8) {
+      stream << convert_to<uint8_t>((*fixed >> i) & 0xFFu);
+    }
+    return stream;
+  }
+
+  template <typename Stream,
+            typename N,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &stream, Compact<N> &compact) {
     scale::CompactInteger n;
     stream >> n;
@@ -87,93 +114,33 @@ namespace scale {
     return stream;
   }
 
-  // intended to wrap unwrapped integer arguments to encoding functions to
-  // indicated they should be encoded with compact encoding
-  template <typename T>
-  struct EncodeAsCompact {
-    explicit EncodeAsCompact(T &number) : number{number} {}
-    T &number;
-  };
-
-  // marker for big integer types
-  template <typename T>
-  struct BigIntegerTraits {
-    static constexpr bool value = false;
-
-    static constexpr size_t BIT_SIZE = sizeof(T) * 8;
-  };
-
-  using uint128_t = boost::multiprecision::uint128_t;
-  using uint256_t = boost::multiprecision::uint256_t;
-
-  template <>
-  struct BigIntegerTraits<uint128_t> {
-    static constexpr size_t BIT_SIZE = 128;
-    static constexpr bool value = true;
-  };
-
-  template <>
-  struct BigIntegerTraits<uint256_t> {
-    static constexpr size_t BIT_SIZE = 256;
-    static constexpr bool value = true;
-  };
-
-  // big integers should only be encoded wrapped in Fixed, EncodeAsFixed,
-  // Compact, or EncodeAsCompact
   template <typename Stream,
             typename N,
-            typename = std::enable_if_t<Stream::is_decoder_stream>,
-            typename = std::enable_if_t<BigIntegerTraits<N>::value>>
-  Stream &operator>>(Stream &, N &) {
-    static_assert(!BigIntegerTraits<N>::value,  // just for dependent context
-                  "You need to wrap your number in EncodeAsFixed or "
-                  "EncodeAsCompact to clarify the encoding");
-  }
-
-  template <typename Stream,
-            typename N,
-            typename = std::enable_if_t<Stream::is_decoder_stream>,
-            typename = std::enable_if_t<BigIntegerTraits<N>::value>>
-  Stream &operator>>(Stream &stream, EncodeAsFixed<N> fixed) {
-    for (size_t i = 0; i < BigIntegerTraits<N>::BIT_SIZE; i += 8) {
-      fixed.number |= N(stream.nextByte()) << i;
-    }
-    return stream;
-  }
-
-  template <typename Stream,
-            typename N,
-            typename = std::enable_if_t<Stream::is_encoder_stream>,
-            typename = std::enable_if_t<BigIntegerTraits<N>::value>>
-  Stream &operator<<(Stream &stream, EncodeAsFixed<N> fixed) {
-    constexpr size_t bits = BigIntegerTraits<N>::BIT_SIZE;
-    for (N i = 0; i < bits; i += 8) {
-      stream << fixed & 0xFF;
-      fixed >>= 8;
-    }
-    return stream;
-  }
-
-  template <typename Stream,
-            typename N,
-            typename = std::enable_if_t<Stream::is_decoder_stream>,
-            typename = std::enable_if_t<BigIntegerTraits<N>::value>>
-  Stream &operator>>(Stream &stream, EncodeAsCompact<N> compact) {
-    scale::CompactInteger n;
-    stream >> n;
-    compact.number = n;
-    return stream;
-  }
-
-  template <typename Stream,
-            typename N,
-            typename = std::enable_if_t<Stream::is_encoder_stream>,
-            typename = std::enable_if_t<BigIntegerTraits<N>::value>>
-  Stream &operator<<(Stream &stream, EncodeAsCompact<N> compact) {
-    scale::CompactInteger n = compact;
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &stream, Compact<N> const &compact) {
+    scale::CompactInteger n = *compact;
     stream << n;
     return stream;
   }
+
+#define SPECIALIZE_INTEGER_TRAITS(type, bit_size) \
+  template <>                                     \
+  struct IntegerTraits<type> {                    \
+    static constexpr size_t BIT_SIZE = bit_size;  \
+  };
+
+  using uint128_t = boost::multiprecision::checked_uint128_t;
+  using uint256_t = boost::multiprecision::checked_uint256_t;
+
+  SPECIALIZE_INTEGER_TRAITS(uint8_t, 8);
+  SPECIALIZE_INTEGER_TRAITS(uint16_t, 16);
+  SPECIALIZE_INTEGER_TRAITS(uint32_t, 32);
+  SPECIALIZE_INTEGER_TRAITS(uint64_t, 64);
+
+  SPECIALIZE_INTEGER_TRAITS(uint128_t, 128);
+  SPECIALIZE_INTEGER_TRAITS(uint256_t, 256);
+
+#undef SPECIALIZE_INTEGER_TRAITS
 
 }  // namespace scale
 

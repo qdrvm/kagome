@@ -30,8 +30,7 @@ namespace kagome::api::payment::request {
       auto ext_hex = getParam<0>();
       OUTCOME_TRY(ext_bytes, common::unhexWith0x(ext_hex));
 
-      primitives::Extrinsic extrinsic =
-          scale::decode<primitives::Extrinsic>(ext_bytes).value();
+      OUTCOME_TRY(extrinsic, scale::decode<primitives::Extrinsic>(ext_bytes));
 
       auto at_hex = getParam<1>();
       if (at_hex.empty()) {
