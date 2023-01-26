@@ -99,8 +99,6 @@ namespace kagome::blockchain {
 
   outcome::result<std::optional<primitives::Justification>>
   BlockStorageImpl::getJustification(const primitives::BlockId &block) const {
-    OUTCOME_TRY(header, getBlockHeader(block));
-    BOOST_ASSERT(header.has_value());
     OUTCOME_TRY(encoded_justification_opt,
                 getFromSpace(*storage_, Space::kJustification, block));
     if (encoded_justification_opt.has_value()) {
