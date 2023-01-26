@@ -150,6 +150,7 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
+#include "storage/spaces.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -258,7 +259,7 @@ namespace {
   }
 
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
-      sptr<storage::BufferStorage> storage) {
+      sptr<storage::SpacedStorage> spaced_storage) {
     static auto initialized =
         std::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
             std::nullopt);
@@ -267,18 +268,19 @@ namespace {
       return initialized.value();
     }
 
-    auto backend = std::make_shared<storage::trie::TrieStorageBackendImpl>(
-        storage, common::Buffer{blockchain::prefix::TRIE_NODE});
+    auto storage = spaced_storage->getSpace(storage::Space::kTrieNode);
+    auto backend =
+        std::make_shared<storage::trie::TrieStorageBackendImpl>(storage);
 
     initialized.emplace(std::move(backend));
     return initialized.value();
   }
 
-  sptr<storage::BufferStorage> get_rocks_db(
+  sptr<storage::SpacedStorage> get_rocks_db(
       application::AppConfiguration const &app_config,
       sptr<application::ChainSpec> chain_spec) {
     static auto initialized =
-        std::optional<sptr<storage::BufferStorage>>(std::nullopt);
+        std::optional<sptr<storage::SpacedStorage>>(std::nullopt);
     if (initialized) {
       return initialized.value();
     }
@@ -306,7 +308,7 @@ namespace {
     options.max_open_files = soft_limit.value() / 2;
 
     auto db_res =
-        storage::RocksDB::create(app_config.databasePath(chain_spec->id()),
+        storage::RocksDb::create(app_config.databasePath(chain_spec->id()),
                                  options,
                                  prevent_destruction);
     if (!db_res) {
@@ -540,7 +542,7 @@ namespace {
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::Router>>(),
-        injector.template create<sptr<storage::BufferStorage>>(),
+        injector.template create<sptr<storage::SpacedStorage>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<network::ReputationRepository>>(),
         injector.template create<sptr<network::PeerView>>());
@@ -725,7 +727,7 @@ namespace {
           auto header_repo = injector.template create<
               sptr<const blockchain::BlockHeaderRepository>>();
           auto storage =
-              injector.template create<sptr<storage::BufferStorage>>();
+              injector.template create<sptr<storage::SpacedStorage>>();
           auto substitutes = injector.template create<
               sptr<const primitives::CodeSubstituteBlockIds>>();
           auto block_storage =
@@ -1024,7 +1026,7 @@ namespace {
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
-        di::bind<storage::BufferStorage>.to([](const auto &injector) {
+        di::bind<storage::SpacedStorage>.to([](const auto &injector) {
           const application::AppConfiguration &config =
               injector.template create<application::AppConfiguration const &>();
           auto chain_spec =
@@ -1043,7 +1045,7 @@ namespace {
                   .value();
           const auto &hasher = injector.template create<sptr<crypto::Hasher>>();
           const auto &storage =
-              injector.template create<sptr<storage::BufferStorage>>();
+              injector.template create<sptr<storage::SpacedStorage>>();
           return blockchain::BlockStorageImpl::create(root, storage, hasher)
               .value();
         }),
@@ -1096,7 +1098,7 @@ namespace {
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =
-                  injector.template create<sptr<storage::BufferStorage>>();
+                  injector.template create<sptr<storage::SpacedStorage>>();
               return get_trie_storage_backend(storage);
             }),
         bind_by_lambda<storage::trie::TrieStorage>([](auto const &injector) {
@@ -1328,8 +1330,8 @@ namespace {
 
     const auto &app_config =
         injector.template create<const application::AppConfiguration &>();
-    auto buffer_storage =
-        injector.template create<sptr<storage::BufferStorage>>();
+    auto spaced_storage =
+        injector.template create<sptr<storage::SpacedStorage>>();
     auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
     auto header_repo =
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
@@ -1341,7 +1343,7 @@ namespace {
 
     initialized.emplace(new application::mode::RecoveryMode(
         [&app_config,
-         buffer_storage = std::move(buffer_storage),
+         spaced_storage = std::move(spaced_storage),
          authority_manager,
          storage = std::move(storage),
          header_repo = std::move(header_repo),
@@ -1357,7 +1359,7 @@ namespace {
 
           auto log = log::createLogger("RecoveryMode", "main");
 
-          buffer_storage
+          spaced_storage->getSpace(storage::Space::kDefault)
               ->remove(storage::kAuthorityManagerStateLookupKey("last"))
               .value();
           if (res.has_error()) {
@@ -1526,8 +1528,8 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<runtime::Executor>>();
   }
 
-  std::shared_ptr<storage::BufferStorage> KagomeNodeInjector::injectStorage() {
-    return pimpl_->injector_.create<sptr<storage::BufferStorage>>();
+  std::shared_ptr<storage::SpacedStorage> KagomeNodeInjector::injectStorage() {
+    return pimpl_->injector_.create<sptr<storage::SpacedStorage>>();
   }
 
 }  // namespace kagome::injector

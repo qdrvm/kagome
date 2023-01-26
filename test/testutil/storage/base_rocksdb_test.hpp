@@ -13,7 +13,7 @@
 namespace test {
 
   struct BaseRocksDB_Test : public BaseFS_Test {
-    using RocksDB = kagome::storage::RocksDB;
+    using RocksDB = kagome::storage::RocksDb;
 
     BaseRocksDB_Test(fs::path path);
 
@@ -23,7 +23,8 @@ namespace test {
 
     void TearDown() override;
 
-    std::shared_ptr<RocksDB> db_;
+    std::shared_ptr<RocksDB> rocks_;
+    std::shared_ptr<kagome::storage::BufferStorage> db_;
   };
 
 }  // namespace test

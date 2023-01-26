@@ -16,8 +16,9 @@ namespace test {
       throw std::invalid_argument(r.error().message());
     }
 
-    db_ = std::move(r.value());
-    ASSERT_TRUE(db_) << "BaseRocksDB_Test: db is nullptr";
+    rocks_ = std::move(r.value());
+    db_ = rocks_->getSpace(kagome::storage::Space::kDefault);
+    ASSERT_TRUE(rocks_) << "BaseRocksDB_Test: db is nullptr";
   }
 
   BaseRocksDB_Test::BaseRocksDB_Test(fs::path path)

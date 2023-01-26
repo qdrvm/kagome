@@ -28,7 +28,7 @@ namespace rapidjson {
 #include "common/spin_lock.hpp"
 #include "log/logger.hpp"
 #include "network/peer_manager.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "storage/spaced_storage.hpp"
 #include "telemetry/connection.hpp"
 #include "telemetry/impl/message_pool.hpp"
 #include "transaction_pool/transaction_pool.hpp"
@@ -53,7 +53,7 @@ namespace kagome::telemetry {
         const application::ChainSpec &chain_spec,
         const libp2p::Host &host,
         std::shared_ptr<const transaction_pool::TransactionPool> tx_pool,
-        std::shared_ptr<const storage::BufferStorage> buffer_storage,
+        std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<const network::PeerManager> peer_manager);
     TelemetryServiceImpl(const TelemetryServiceImpl &) = delete;
     TelemetryServiceImpl(TelemetryServiceImpl &&) = delete;

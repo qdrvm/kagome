@@ -9,14 +9,14 @@
 #include "offchain/offchain_persistent_storage.hpp"
 
 #include "log/logger.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace kagome::offchain {
 
   class OffchainPersistentStorageImpl final : public OffchainPersistentStorage {
    public:
     explicit OffchainPersistentStorageImpl(
-        std::shared_ptr<storage::BufferStorage> storage);
+        std::shared_ptr<storage::SpacedStorage> storage);
 
     outcome::result<void> set(const common::BufferView &key,
                               common::Buffer value) override;

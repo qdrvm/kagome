@@ -14,7 +14,7 @@ namespace kagome::offchain {
       const application::AppConfiguration &app_config,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<storage::BufferStorage> storage,
+      std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<crypto::CSPRNG> random_generator,
       std::shared_ptr<api::AuthorApi> author_api,
       const network::OwnPeerInfo &current_peer_info,

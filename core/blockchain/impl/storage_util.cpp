@@ -8,11 +8,11 @@
 #include "blockchain/impl/common.hpp"
 #include "storage/database_error.hpp"
 
-using kagome::blockchain::prefix::Prefix;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
+using kagome::storage::Space;
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, KeyValueRepositoryError, e) {
   using E = kagome::blockchain::KeyValueRepositoryError;
@@ -26,42 +26,44 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, KeyValueRepositoryError, e) {
 namespace kagome::blockchain {
 
   outcome::result<void> putNumberToIndexKey(
-      storage::BufferStorage &map, const primitives::BlockInfo &block) {
-    auto num_to_idx_key =
-        prependPrefix(numberToIndexKey(block.number), Prefix::ID_TO_LOOKUP_KEY);
+      storage::SpacedStorage &storage, const primitives::BlockInfo &block) {
+    auto num_to_idx_key = numberToIndexKey(block.number);
     auto block_lookup_key = numberAndHashToLookupKey(block.number, block.hash);
-    return map.put(num_to_idx_key, std::move(block_lookup_key));
+    auto key_space = storage.getSpace(Space::kLookupKey);
+    return key_space->put(num_to_idx_key, std::move(block_lookup_key));
   }
 
-  outcome::result<void> putWithPrefix(storage::BufferStorage &map,
-                                      prefix::Prefix prefix,
-                                      BlockNumber num,
-                                      Hash256 block_hash,
-                                      common::BufferOrView &&value) {
+  outcome::result<void> putToSpace(storage::SpacedStorage &storage,
+                                   storage::Space space,
+                                   primitives::BlockNumber num,
+                                   common::Hash256 block_hash,
+                                   common::BufferOrView &&value) {
     auto block_lookup_key = numberAndHashToLookupKey(num, block_hash);
+    auto key_space = storage.getSpace(Space::kLookupKey);
+    OUTCOME_TRY(key_space->put(block_hash, block_lookup_key.view()));
+    OUTCOME_TRY(key_space->put(numberToIndexKey(num), block_lookup_key.view()));
 
-    auto hash_to_idx_key = prependPrefix(block_hash, Prefix::ID_TO_LOOKUP_KEY);
-    auto value_lookup_key = prependPrefix(block_lookup_key, prefix);
-    OUTCOME_TRY(map.put(hash_to_idx_key, std::move(block_lookup_key)));
-
-    return map.put(value_lookup_key, std::move(value));
+    auto target_space = storage.getSpace(space);
+    return target_space->put(block_lookup_key, std::move(value));
   }
 
-  outcome::result<bool> hasWithPrefix(const storage::BufferStorage &map,
-                                      prefix::Prefix prefix,
-                                      const primitives::BlockId &block_id) {
-    OUTCOME_TRY(key, idToLookupKey(map, block_id));
+  outcome::result<bool> hasInSpace(storage::SpacedStorage &storage,
+                                   storage::Space space,
+                                   const primitives::BlockId &block_id) {
+    OUTCOME_TRY(key, idToLookupKey(storage, block_id));
     if (!key.has_value()) return false;
-    return map.contains(prependPrefix(key.value(), prefix));
+    auto target_space = storage.getSpace(space);
+    return target_space->contains(key.value());
   }
 
-  outcome::result<std::optional<common::BufferOrView>> getWithPrefix(
-      const storage::BufferStorage &map,
-      prefix::Prefix prefix,
+  outcome::result<std::optional<common::BufferOrView>> getFromSpace(
+      storage::SpacedStorage &storage,
+      storage::Space space,
       const primitives::BlockId &block_id) {
-    OUTCOME_TRY(key, idToLookupKey(map, block_id));
+    OUTCOME_TRY(key, idToLookupKey(storage, block_id));
     if (!key.has_value()) return std::nullopt;
-    return map.tryGet(prependPrefix(key.value(), prefix));
+    auto target_space = storage.getSpace(space);
+    return target_space->tryGet(key.value());
   }
 
   common::Buffer numberToIndexKey(primitives::BlockNumber n) {
@@ -88,14 +90,6 @@ namespace kagome::blockchain {
     }
     return (uint64_t(key[0]) << 24u) | (uint64_t(key[1]) << 16u)
            | (uint64_t(key[2]) << 8u) | uint64_t(key[3]);
-  }
-
-  common::Buffer prependPrefix(common::BufferView key,
-                               prefix::Prefix key_column) {
-    return common::Buffer{}
-        .reserve(key.size() + 1)
-        .putUint8(key_column)
-        .put(key);
   }
 
 }  // namespace kagome::blockchain

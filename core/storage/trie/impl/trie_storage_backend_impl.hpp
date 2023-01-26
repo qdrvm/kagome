@@ -14,8 +14,7 @@ namespace kagome::storage::trie {
 
   class TrieStorageBackendImpl : public TrieStorageBackend {
    public:
-    TrieStorageBackendImpl(std::shared_ptr<BufferStorage> storage,
-                           common::Buffer node_prefix);
+    TrieStorageBackendImpl(std::shared_ptr<BufferStorage> storage);
 
     ~TrieStorageBackendImpl() override = default;
 
@@ -33,10 +32,7 @@ namespace kagome::storage::trie {
     outcome::result<void> remove(const common::BufferView &key) override;
 
    private:
-    common::Buffer prefixKey(const common::BufferView &key) const;
-
     std::shared_ptr<BufferStorage> storage_;
-    common::Buffer node_prefix_;
   };
 
 }  // namespace kagome::storage::trie

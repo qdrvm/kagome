@@ -21,7 +21,8 @@
 
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
-using kagome::storage::RocksDB;
+using kagome::storage::RocksDb;
+using kagome::storage::Space;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::RootHash;
@@ -30,8 +31,6 @@ using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
 using kagome::storage::trie::TrieStorageImpl;
 using kagome::subscription::SubscriptionEngine;
-
-static Buffer kNodePrefix = "\1"_buf;
 
 /**
  * @given an empty persistent trie with RocksDb backend
@@ -49,13 +48,14 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
     rocksdb::Options options;
     options.create_if_missing = true;  // intentionally
     EXPECT_OUTCOME_TRUE(
-        level_db,
-        RocksDB::create("/tmp/kagome_rocksdb_persistency_test", options));
+        rocks_db,
+        RocksDb::create("/tmp/kagome_rocksdb_persistency_test", options));
+
     auto serializer = std::make_shared<TrieSerializerImpl>(
         factory,
         codec,
-        std::make_shared<TrieStorageBackendImpl>(std::move(level_db),
-                                                 kNodePrefix));
+        std::make_shared<TrieStorageBackendImpl>(
+            rocks_db->getSpace(Space::kDefault)));
 
     auto storage =
         TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
@@ -69,13 +69,13 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
     EXPECT_OUTCOME_TRUE(root_, batch->commit(StateVersion::V0));
     root = root_;
   }
-  EXPECT_OUTCOME_TRUE(new_level_db,
-                      RocksDB::create("/tmp/kagome_rocksdb_persistency_test"));
+  EXPECT_OUTCOME_TRUE(new_rocks_db,
+                      RocksDb::create("/tmp/kagome_rocksdb_persistency_test"));
   auto serializer = std::make_shared<TrieSerializerImpl>(
       factory,
       codec,
-      std::make_shared<TrieStorageBackendImpl>(std::move(new_level_db),
-                                               kNodePrefix));
+      std::make_shared<TrieStorageBackendImpl>(
+          new_rocks_db->getSpace(Space::kDefault)));
   auto storage =
       TrieStorageImpl::createFromStorage(codec, serializer, std::nullopt)
           .value();

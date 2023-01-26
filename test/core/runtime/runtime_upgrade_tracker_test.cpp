@@ -10,6 +10,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/storage/spaced_storage_mock.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -58,7 +59,12 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
     header_repo_ =
         std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
     block_tree_ = std::make_shared<kagome::blockchain::BlockTreeMock>();
-    storage_ = std::make_shared<kagome::storage::InMemoryStorage>();
+    buffer_storage_ = std::make_shared<kagome::storage::InMemoryStorage>();
+    storage_ = std::make_shared<kagome::storage::SpacedStorageMock>();
+
+    EXPECT_CALL(*storage_, getSpace(::testing::_))
+        .WillRepeatedly(::testing::Return(buffer_storage_));
+
     known_code_substitutes_ =
         std::make_shared<kagome::primitives::CodeSubstituteBlockIds>();
     sub_engine_ =
@@ -76,7 +82,8 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
   std::shared_ptr<kagome::blockchain::BlockTreeMock> block_tree_;
   std::shared_ptr<kagome::primitives::events::ChainSubscriptionEngine>
       sub_engine_;
-  std::shared_ptr<kagome::storage::BufferStorage> storage_;
+  std::shared_ptr<kagome::storage::BufferStorage> buffer_storage_;
+  std::shared_ptr<kagome::storage::SpacedStorageMock> storage_;
 
   std::shared_ptr<kagome::primitives::CodeSubstituteBlockIds>
       known_code_substitutes_{};

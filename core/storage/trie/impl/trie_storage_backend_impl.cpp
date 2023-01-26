@@ -12,8 +12,8 @@
 namespace kagome::storage::trie {
 
   TrieStorageBackendImpl::TrieStorageBackendImpl(
-      std::shared_ptr<BufferStorage> storage, common::Buffer node_prefix)
-      : storage_{std::move(storage)}, node_prefix_{std::move(node_prefix)} {
+      std::shared_ptr<BufferStorage> storage)
+      : storage_{std::move(storage)} {
     BOOST_ASSERT(storage_ != nullptr);
   }
 
@@ -24,23 +24,22 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<BufferBatch> TrieStorageBackendImpl::batch() {
-    return std::make_unique<TrieStorageBackendBatch>(storage_->batch(),
-                                                     node_prefix_);
+    return std::make_unique<TrieStorageBackendBatch>(storage_->batch());
   }
 
   outcome::result<BufferOrView> TrieStorageBackendImpl::get(
       const BufferView &key) const {
-    return storage_->get(prefixKey(key));
+    return storage_->get(key);
   }
 
   outcome::result<std::optional<BufferOrView>> TrieStorageBackendImpl::tryGet(
       const BufferView &key) const {
-    return storage_->tryGet(prefixKey(key));
+    return storage_->tryGet(key);
   }
 
   outcome::result<bool> TrieStorageBackendImpl::contains(
       const BufferView &key) const {
-    return storage_->contains(prefixKey(key));
+    return storage_->contains(key);
   }
 
   bool TrieStorageBackendImpl::empty() const {
@@ -49,15 +48,10 @@ namespace kagome::storage::trie {
 
   outcome::result<void> TrieStorageBackendImpl::put(const BufferView &key,
                                                     BufferOrView &&value) {
-    return storage_->put(prefixKey(key), std::move(value));
+    return storage_->put(key, std::move(value));
   }
 
   outcome::result<void> TrieStorageBackendImpl::remove(const BufferView &key) {
-    return storage_->remove(prefixKey(key));
-  }
-
-  common::Buffer TrieStorageBackendImpl::prefixKey(
-      const common::BufferView &key) const {
-    return common::Buffer{node_prefix_}.put(key);
+    return storage_->remove(key);
   }
 }  // namespace kagome::storage::trie

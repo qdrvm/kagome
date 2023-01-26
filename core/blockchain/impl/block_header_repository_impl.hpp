@@ -10,12 +10,13 @@
 
 #include "blockchain/impl/common.hpp"
 #include "crypto/hasher.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace kagome::blockchain {
 
   class BlockHeaderRepositoryImpl : public BlockHeaderRepository {
    public:
-    BlockHeaderRepositoryImpl(std::shared_ptr<storage::BufferStorage> map,
+    BlockHeaderRepositoryImpl(std::shared_ptr<storage::SpacedStorage> storage,
                               std::shared_ptr<crypto::Hasher> hasher);
 
     ~BlockHeaderRepositoryImpl() override = default;
@@ -33,7 +34,7 @@ namespace kagome::blockchain {
         const primitives::BlockId &id) const override;
 
    private:
-    std::shared_ptr<storage::BufferStorage> map_;
+    std::shared_ptr<storage::SpacedStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
   };
 

@@ -11,7 +11,7 @@
 #include <boost/asio/io_context.hpp>
 
 #include "clock/clock.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace soralog {
   class LoggingSystem;
@@ -109,7 +109,7 @@ namespace kagome::injector {
     std::shared_ptr<telemetry::TelemetryService> injectTelemetryService();
     std::shared_ptr<blockchain::BlockTree> injectBlockTree();
     std::shared_ptr<runtime::Executor> injectExecutor();
-    std::shared_ptr<storage::BufferStorage> injectStorage();
+    std::shared_ptr<storage::SpacedStorage> injectStorage();
 
     std::shared_ptr<application::mode::PrintChainInfoMode>
     injectPrintChainInfoMode();

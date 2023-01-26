@@ -78,7 +78,7 @@ namespace kagome::network {
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
       std::shared_ptr<network::Router> router,
-      std::shared_ptr<storage::BufferStorage> storage,
+      std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<ReputationRepository> reputation_repository,
       std::shared_ptr<PeerView> peer_view)
@@ -93,7 +93,7 @@ namespace kagome::network {
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
         router_{std::move(router)},
-        storage_{std::move(storage)},
+        storage_{storage->getSpace(storage::Space::kDefault)},
         hasher_{std::move(hasher)},
         reputation_repository_{std::move(reputation_repository)},
         peer_view_{std::move(peer_view)},

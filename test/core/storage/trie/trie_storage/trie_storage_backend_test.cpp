@@ -21,13 +21,11 @@ using kagome::storage::trie::TrieStorageBackendImpl;
 using testing::Invoke;
 using testing::Return;
 
-static const Buffer kNodePrefix{1};
-
 class TrieDbBackendTest : public testing::Test {
  public:
   std::shared_ptr<BufferStorageMock> storage =
       std::make_shared<BufferStorageMock>();
-  TrieStorageBackendImpl backend{storage, kNodePrefix};
+  TrieStorageBackendImpl backend{storage};
 };
 
 /**
@@ -36,9 +34,8 @@ class TrieDbBackendTest : public testing::Test {
  * @then it puts a prefixed value to the storage
  */
 TEST_F(TrieDbBackendTest, Put) {
-  Buffer prefixed{kNodePrefix};
-  prefixed.put("abc"_buf);
-  ((*storage).gmock_put(BufferView{prefixed}, "123"_buf))(
+  auto key = "abc"_buf;
+  ((*storage).gmock_put(BufferView{key}, "123"_buf))(
       ::testing::internal::GetWithoutMatchers(), nullptr)
       .InternalExpectedAt(
           "_file_name_", 40, "*storage", "put(prefixed, \"123\"_buf)")
@@ -52,10 +49,8 @@ TEST_F(TrieDbBackendTest, Put) {
  * @then it takes a prefixed value from the storage
  */
 TEST_F(TrieDbBackendTest, Get) {
-  Buffer prefixed{kNodePrefix};
-  prefixed.put("abc"_buf);
-  EXPECT_CALL(*storage, getMock(BufferView{prefixed}))
-      .WillOnce(Return("123"_buf));
+  auto key = "abc"_buf;
+  EXPECT_CALL(*storage, getMock(BufferView{key})).WillOnce(Return("123"_buf));
   EXPECT_OUTCOME_TRUE_1(backend.get("abc"_buf));
 }
 
@@ -66,10 +61,10 @@ TEST_F(TrieDbBackendTest, Get) {
  */
 TEST_F(TrieDbBackendTest, Batch) {
   auto batch_mock = std::make_unique<WriteBatchMock<Buffer, Buffer>>();
-  auto buf_abc = Buffer{kNodePrefix}.put("abc"_buf);
+  auto buf_abc = "abc"_buf;
   EXPECT_CALL(*batch_mock, put(buf_abc.view(), "123"_buf))
       .WillOnce(Return(outcome::success()));
-  auto buf_def = Buffer{kNodePrefix}.put("def"_buf);
+  auto buf_def = "def"_buf;
   EXPECT_CALL(*batch_mock, put(buf_def.view(), "123"_buf))
       .WillOnce(Return(outcome::success()));
   EXPECT_CALL(*batch_mock, remove(buf_abc.view()))

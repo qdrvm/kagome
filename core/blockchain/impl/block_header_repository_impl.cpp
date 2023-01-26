@@ -11,23 +11,23 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "scale/scale.hpp"
 
-using kagome::blockchain::prefix::Prefix;
 using kagome::common::Hash256;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
+using kagome::storage::Space;
 
 namespace kagome::blockchain {
 
   BlockHeaderRepositoryImpl::BlockHeaderRepositoryImpl(
-      std::shared_ptr<storage::BufferStorage> map,
+      std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher)
-      : map_{std::move(map)}, hasher_{std::move(hasher)} {
+      : storage_{std::move(storage)}, hasher_{std::move(hasher)} {
     BOOST_ASSERT(hasher_);
   }
 
   outcome::result<BlockNumber> BlockHeaderRepositoryImpl::getNumberByHash(
       const Hash256 &hash) const {
-    OUTCOME_TRY(key, idToLookupKey(*map_, hash));
+    OUTCOME_TRY(key, idToLookupKey(*storage_, hash));
     if (!key.has_value()) return BlockTreeError::HEADER_NOT_FOUND;
     auto maybe_number = lookupKeyToNumber(key.value());
 
@@ -43,7 +43,7 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHeader>
   BlockHeaderRepositoryImpl::getBlockHeader(const BlockId &id) const {
-    OUTCOME_TRY(header_opt, getWithPrefix(*map_, Prefix::HEADER, id));
+    OUTCOME_TRY(header_opt, getFromSpace(*storage_, Space::kHeader, id));
     if (header_opt.has_value()) {
       return scale::decode<primitives::BlockHeader>(header_opt.value());
     }

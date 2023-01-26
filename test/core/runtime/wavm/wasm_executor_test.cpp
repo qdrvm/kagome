@@ -101,8 +101,7 @@ class WasmExecutorTest : public ::testing::Test {
 
     auto backend =
         std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-            std::make_shared<kagome::storage::InMemoryStorage>(),
-            kagome::common::Buffer{});
+            std::make_shared<kagome::storage::InMemoryStorage>());
 
     auto trie_factory = std::make_shared<PolkadotTrieFactoryImpl>();
     auto codec = std::make_shared<PolkadotCodec>();

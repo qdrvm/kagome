@@ -5,6 +5,7 @@ add_library(storage
     rocksdb/rocksdb_cursor.cpp
     rocksdb/rocksdb.cpp
     rocksdb/rocksdb_batch.cpp
+    rocksdb/rocksdb_spaces.cpp
     database_error.cpp
     changes_trie/impl/storage_changes_tracker_impl.cpp
     in_memory/in_memory_storage.cpp
