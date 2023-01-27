@@ -49,6 +49,7 @@ namespace scale {
     T number;
   };
 
+  // TODO(Harrm) #1480 add check for narrowing conversion
   template <typename U,
             typename T,
             typename = std::enable_if_t<std::is_trivial_v<T>>>
