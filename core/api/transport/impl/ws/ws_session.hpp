@@ -74,6 +74,8 @@ namespace kagome::api {
      */
     void respond(std::string_view response) override;
 
+    void post(std::function<void()> cb) override;
+
     /**
      * @brief Closes the incoming connection with "try again later" response
      */
@@ -151,12 +153,10 @@ namespace kagome::api {
     Configuration config_;  ///< session configuration
     boost::beast::websocket::stream<boost::asio::ip::tcp::socket &> stream_;
     boost::beast::flat_buffer rbuffer_;  ///< read buffer
-    boost::beast::flat_buffer wbuffer_;  ///< write buffer
 
-    std::mutex cs_;
     std::queue<std::string> pending_responses_;
 
-    std::atomic_bool writing_in_progress_ = false;
+    bool writing_in_progress_ = false;
     std::atomic_bool stopped_ = false;
 
     SessionId const id_;

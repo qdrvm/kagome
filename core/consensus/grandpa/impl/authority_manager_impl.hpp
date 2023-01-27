@@ -13,7 +13,7 @@
 #include "primitives/authority.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/event_types.hpp"
-#include "storage/buffer_map_types.hpp"
+#include "storage/spaced_storage.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -72,7 +72,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
         std::shared_ptr<crypto::Hasher> hash,
-        std::shared_ptr<storage::BufferStorage> persistent_storage,
+        std::shared_ptr<storage::SpacedStorage> persistent_storage,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine);
 

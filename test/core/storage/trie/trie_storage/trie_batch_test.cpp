@@ -25,6 +25,7 @@ using kagome::common::BufferOrView;
 using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHash;
+using kagome::storage::Space;
 using kagome::storage::trie::StateVersion;
 using kagome::subscription::SubscriptionEngine;
 using testing::_;
@@ -46,7 +47,7 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
     auto serializer = std::make_shared<TrieSerializerImpl>(
         factory,
         codec,
-        std::make_shared<TrieStorageBackendImpl>(std::move(db_), kNodePrefix));
+        std::make_shared<TrieStorageBackendImpl>(std::move(db_)));
 
     empty_hash = serializer->getEmptyRootHash();
 
@@ -59,8 +60,6 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
 
   std::unique_ptr<TrieStorage> trie;
   RootHash empty_hash;
-
-  static const Buffer kNodePrefix;
 };
 
 #define ASSERT_OUTCOME_IS_TRUE(Expression)        \
@@ -73,8 +72,6 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
     ASSERT_OUTCOME_SUCCESS(result, (Expression)); \
     ASSERT_FALSE(result);                         \
   }
-
-const Buffer TrieBatchTest::kNodePrefix{1};
 
 const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
     {"123456"_hex2buf, "42"_hex2buf},
@@ -198,9 +195,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
   auto serializer = std::make_shared<TrieSerializerImpl>(
-      factory,
-      codec,
-      std::make_shared<TrieStorageBackendImpl>(std::move(db), kNodePrefix));
+      factory, codec, std::make_shared<TrieStorageBackendImpl>(std::move(db)));
   auto trie =
       TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
           .value();

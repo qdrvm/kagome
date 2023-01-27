@@ -21,6 +21,7 @@ namespace kagome::storage {
     INVALID_ARGUMENT = 4,
     IO_ERROR = 5,
     DB_PATH_NOT_CREATED = 6,
+    STORAGE_GONE = 7,
 
     UNKNOWN = 1000
   };

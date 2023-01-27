@@ -31,6 +31,7 @@
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
@@ -135,6 +136,11 @@ class RuntimeTestBase : public ::testing::Test {
     serializer_ = std::make_shared<storage::trie::TrieSerializerMock>();
     hasher_ = std::make_shared<crypto::HasherMock>();
 
+    auto buffer_storage = std::make_shared<storage::InMemoryStorage>();
+    auto spaced_storage = std::make_shared<storage::SpacedStorageMock>();
+    EXPECT_CALL(*spaced_storage, getSpace(_))
+        .WillRepeatedly(Return(buffer_storage));
+
     cache_ = std::make_shared<runtime::RuntimePropertiesCacheMock>();
     ON_CALL(*cache_, getVersion(_, _))
         .WillByDefault(
@@ -152,7 +158,7 @@ class RuntimeTestBase : public ::testing::Test {
     std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl> upgrade_tracker =
         runtime::RuntimeUpgradeTrackerImpl::create(
             header_repo_,
-            std::make_shared<storage::InMemoryStorage>(),
+            spaced_storage,
             std::make_shared<primitives::CodeSubstituteBlockIds>(),
             std::make_shared<blockchain::BlockStorageMock>())
             .value();

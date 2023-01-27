@@ -42,6 +42,11 @@ option(PROFILING    "Enable internal profiling instruments"       OFF)
 option(BACKWARD     "Enable stacktrace logging instruments"       ON )
 option(CLEAR_OBJS   "Clear object files"                          OFF)
 
+if(NOT($ENV{CI}) OR NOT($ENV{GITHUB_ACTIONS}))
+  set(_EXTERNAL_PROJECT_DEFAULT ON)
+endif()
+option(EXTERNAL_PROJECT "Build external project" ${_EXTERNAL_PROJECT_DEFAULT})
+
 # sanitizers will be enabled only for Kagome, and will be disabled for dependencies
 option(ASAN         "Enable address sanitizer"                    OFF)
 option(LSAN         "Enable leak sanitizer"                       OFF)

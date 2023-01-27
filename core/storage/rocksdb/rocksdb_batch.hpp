@@ -11,11 +11,11 @@
 
 namespace kagome::storage {
 
-  class RocksDB::Batch : public BufferBatch {
+  class RocksDbBatch : public BufferBatch {
    public:
-    ~Batch() override = default;
+    ~RocksDbBatch() override = default;
 
-    explicit Batch(RocksDB &db);
+    explicit RocksDbBatch(RocksDbSpace &db);
 
     outcome::result<void> commit() override;
 
@@ -27,7 +27,7 @@ namespace kagome::storage {
     outcome::result<void> remove(const BufferView &key) override;
 
    private:
-    RocksDB &db_;
+    RocksDbSpace &db_;
     rocksdb::WriteBatch batch_;
   };
 }  // namespace kagome::storage

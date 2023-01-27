@@ -11,18 +11,14 @@
 namespace kagome::blockchain {
 
   outcome::result<std::optional<common::BufferOrView>> idToLookupKey(
-      const ReadableBufferStorage &map, const primitives::BlockId &id) {
+      storage::SpacedStorage &storage, const primitives::BlockId &id) {
     auto key = visit_in_place(
         id,
-        [](const primitives::BlockNumber &n) {
-          return prependPrefix(numberToIndexKey(n),
-                               prefix::Prefix::ID_TO_LOOKUP_KEY);
-        },
-        [](const common::Hash256 &hash) {
-          return prependPrefix(hash, prefix::Prefix::ID_TO_LOOKUP_KEY);
-        });
+        [](const primitives::BlockNumber &n) { return numberToIndexKey(n); },
+        [](const common::Hash256 &hash) { return hash; });
 
-    OUTCOME_TRY(key_opt, map.tryGet(key));
+    auto key_space = storage.getSpace(storage::Space::kLookupKey);
+    OUTCOME_TRY(key_opt, key_space->tryGet(key));
 
     return std::move(key_opt);
   }

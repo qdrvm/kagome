@@ -14,6 +14,7 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
+#include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/digest.hpp"
@@ -64,6 +65,10 @@ class AuthorityManagerTest : public testing::Test {
     block_tree = std::make_shared<blockchain::BlockTreeMock>();
 
     persistent_storage = std::make_shared<storage::InMemoryStorage>();
+    spaced_storage = std::make_shared<storage::SpacedStorageMock>();
+
+    EXPECT_CALL(*spaced_storage, getSpace(kagome::storage::Space::kDefault))
+        .WillRepeatedly(Return(persistent_storage));
 
     trie_storage = std::make_shared<storage::trie::TrieStorageMock>();
     EXPECT_CALL(*trie_storage, getEphemeralBatchAt(_, _))
@@ -95,7 +100,7 @@ class AuthorityManagerTest : public testing::Test {
                                                trie_storage,
                                                grandpa_api,
                                                hasher,
-                                               persistent_storage,
+                                               spaced_storage,
                                                header_repo,
                                                chain_events_engine);
 
@@ -172,7 +177,8 @@ class AuthorityManagerTest : public testing::Test {
   std::shared_ptr<blockchain::BlockHeaderRepositoryMock> header_repo;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage;
-  std::shared_ptr<storage::InMemoryStorage> persistent_storage;
+  std::shared_ptr<storage::SpacedStorageMock> spaced_storage;
+  std::shared_ptr<storage::BufferStorage> persistent_storage;
   std::shared_ptr<runtime::GrandpaApiMock> grandpa_api;
   std::shared_ptr<crypto::HasherMock> hasher;
   std::shared_ptr<ChainSubscriptionEngine> chain_events_engine;

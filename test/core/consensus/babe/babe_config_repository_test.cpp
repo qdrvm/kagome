@@ -15,6 +15,7 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
+#include "mock/core/storage/spaced_storage_mock.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -35,6 +36,7 @@ using primitives::BlockInfo;
 using primitives::events::ChainSubscriptionEngine;
 using runtime::BabeApiMock;
 using storage::BufferStorageMock;
+using storage::SpacedStorageMock;
 
 using std::chrono_literals::operator""ms;
 
@@ -60,6 +62,10 @@ class BabeConfigRepositoryTest : public testing::Test {
     EXPECT_CALL(*persistent_storage, tryGetMock(_))
         .WillRepeatedly(Return(std::nullopt));
 
+    spaced_storage = std::make_shared<SpacedStorageMock>();
+    EXPECT_CALL(*spaced_storage, getSpace(_))
+        .WillRepeatedly(Return(persistent_storage));
+
     block_tree = std::make_shared<BlockTreeMock>();
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillOnce(Return(BlockInfo{0, "genesis"_hash256}));
@@ -78,7 +84,7 @@ class BabeConfigRepositoryTest : public testing::Test {
 
     babe_config_repo_ =
         std::make_shared<BabeConfigRepositoryImpl>(app_state_manager,
-                                                   persistent_storage,
+                                                   spaced_storage,
                                                    block_tree,
                                                    header_repo,
                                                    babe_api,
@@ -90,6 +96,7 @@ class BabeConfigRepositoryTest : public testing::Test {
   primitives::BabeConfiguration babe_config;
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
+  std::shared_ptr<SpacedStorageMock> spaced_storage;
   std::shared_ptr<BufferStorageMock> persistent_storage;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<blockchain::BlockHeaderRepository> header_repo;

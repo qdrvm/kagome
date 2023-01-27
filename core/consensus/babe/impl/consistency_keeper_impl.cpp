@@ -14,11 +14,11 @@ namespace kagome::consensus::babe {
 
   ConsistencyKeeperImpl::ConsistencyKeeperImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<storage::BufferStorage> storage,
+      std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::DigestTracker> digest_tracker)
       : app_state_manager_(std::move(app_state_manager)),
-        storage_(std::move(storage)),
+        storage_(storage->getSpace(storage::Space::kDefault)),
         block_tree_(std::move(block_tree)),
         digest_tracker_(std::move(digest_tracker)),
         logger_{log::createLogger("ConsistencyKeeper", "block_executor")} {

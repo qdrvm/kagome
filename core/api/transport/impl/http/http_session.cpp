@@ -129,4 +129,8 @@ namespace kagome::api {
                                 std::string_view message) {
     logger_->error("error occurred: {}, message: {}", ec, message);
   }
+
+  void HttpSession::post(std::function<void()> cb) {
+    boost::asio::post(strand_, std::move(cb));
+  }
 }  // namespace kagome::api

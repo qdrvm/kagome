@@ -241,23 +241,26 @@ int db_editor_main(int argc, const char **argv) {
 
   auto log = log::createLogger("main", "kagome-db-editor");
 
-  auto prefix = common::Buffer{blockchain::prefix::TRIE_NODE};
+  common::Buffer prefix{};
   bool need_additional_compaction = false;
   {
     auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
 
-    std::shared_ptr<storage::RocksDB> storage;
+    std::shared_ptr<storage::RocksDb> storage;
+    std::shared_ptr<storage::BufferStorage> buffer_storage;
     try {
       storage =
-          storage::RocksDB::create(argv[DB_PATH], rocksdb::Options()).value();
+          storage::RocksDb::create(argv[DB_PATH], rocksdb::Options()).value();
+      buffer_storage = storage->getSpace(storage::Space::kDefault);
     } catch (std::system_error &e) {
       log->error("{}", e.what());
       usage();
       return 0;
     }
 
+    auto trie_buffer_storage = storage->getSpace(storage::Space::kTrieNode);
     auto trie_tracker = std::make_shared<TrieTracker>(
-        std::make_shared<TrieStorageBackendImpl>(storage, prefix));
+        std::make_shared<TrieStorageBackendImpl>(trie_buffer_storage));
 
     auto injector = di::make_injector(
         di::bind<TrieSerializer>.template to([](const auto &injector) {
@@ -366,8 +369,8 @@ int db_editor_main(int argc, const char **argv) {
       runtime_upgrade_data.emplace_back(last_finalized_block,
                                         last_finalized_block_header.state_root);
       auto encoded_res = check(scale::encode(runtime_upgrade_data));
-      check(storage->put(storage::kRuntimeHashesLookupKey,
-                         common::Buffer(encoded_res.value())))
+      check(buffer_storage->put(storage::kRuntimeHashesLookupKey,
+                                common::Buffer(encoded_res.value())))
           .value();
     }
 
@@ -400,8 +403,8 @@ int db_editor_main(int argc, const char **argv) {
         }
       }
 
-      auto db_cursor = storage->cursor();
-      auto db_batch = storage->batch();
+      auto db_cursor = buffer_storage->cursor();
+      auto db_batch = buffer_storage->batch();
       auto res = check(db_cursor->seek(prefix));
       int count = 0;
       {
@@ -418,10 +421,10 @@ int db_editor_main(int argc, const char **argv) {
           if (not(count % 10000000)) {
             log->trace("{} keys were processed at the db.", count);
             res2 = check(db_batch->commit());
-            dynamic_cast<storage::RocksDB *>(storage.get())
+            dynamic_cast<storage::RocksDbSpace *>(buffer_storage.get())
                 ->compact(prefix, check(db_cursor->key()).value());
-            db_cursor = storage->cursor();
-            db_batch = storage->batch();
+            db_cursor = buffer_storage->cursor();
+            db_batch = buffer_storage->batch();
             res = check(db_cursor->seek(key));
           }
           res2 = check(db_cursor->next());
@@ -432,7 +435,7 @@ int db_editor_main(int argc, const char **argv) {
 
       {
         TicToc t4("Compaction 1.", log);
-        dynamic_cast<storage::RocksDB *>(storage.get())
+        dynamic_cast<storage::RocksDbSpace *>(buffer_storage.get())
             ->compact(common::Buffer(), common::Buffer());
       }
 
@@ -478,8 +481,9 @@ int db_editor_main(int argc, const char **argv) {
   if (need_additional_compaction) {
     TicToc t5("Compaction 2.", log);
     auto storage =
-        check(storage::RocksDB::create(argv[1], rocksdb::Options())).value();
-    dynamic_cast<storage::RocksDB *>(storage.get())
+        check(storage::RocksDb::create(argv[1], rocksdb::Options())).value();
+    auto buffer_storage = storage->getSpace(storage::Space::kDefault);
+    dynamic_cast<storage::RocksDbSpace *>(buffer_storage.get())
         ->compact(common::Buffer(), common::Buffer());
   }
 

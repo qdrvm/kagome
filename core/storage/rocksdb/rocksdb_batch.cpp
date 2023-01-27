@@ -10,21 +10,25 @@
 
 namespace kagome::storage {
 
-  RocksDB::Batch::Batch(RocksDB &db) : db_(db) {}
+  RocksDbBatch::RocksDbBatch(RocksDbSpace &db) : db_(db) {}
 
-  outcome::result<void> RocksDB::Batch::put(const BufferView &key,
-                                            BufferOrView &&value) {
-    batch_.Put(make_slice(key), make_slice(value));
+  outcome::result<void> RocksDbBatch::put(const BufferView &key,
+                                          BufferOrView &&value) {
+    batch_.Put(db_.column_.handle, make_slice(key), make_slice(value));
     return outcome::success();
   }
 
-  outcome::result<void> RocksDB::Batch::remove(const BufferView &key) {
-    batch_.Delete(make_slice(key));
+  outcome::result<void> RocksDbBatch::remove(const BufferView &key) {
+    batch_.Delete(db_.column_.handle, make_slice(key));
     return outcome::success();
   }
 
-  outcome::result<void> RocksDB::Batch::commit() {
-    auto status = db_.db_->Write(db_.wo_, &batch_);
+  outcome::result<void> RocksDbBatch::commit() {
+    auto rocks = db_.storage_.lock();
+    if (!rocks) {
+      return DatabaseError::STORAGE_GONE;
+    }
+    auto status = rocks->db_->Write(rocks->wo_, &batch_);
     if (status.ok()) {
       return outcome::success();
     }
@@ -32,7 +36,7 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
-  void RocksDB::Batch::clear() {
+  void RocksDbBatch::clear() {
     batch_.Clear();
   }
 }  // namespace kagome::storage

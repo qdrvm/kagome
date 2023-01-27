@@ -16,7 +16,7 @@ namespace kagome::runtime {
   outcome::result<std::unique_ptr<RuntimeUpgradeTrackerImpl>>
   RuntimeUpgradeTrackerImpl::create(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
-      std::shared_ptr<storage::BufferStorage> storage,
+      std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<const primitives::CodeSubstituteBlockIds>
           code_substitutes,
       std::shared_ptr<blockchain::BlockStorage> block_storage) {
@@ -25,7 +25,9 @@ namespace kagome::runtime {
     BOOST_ASSERT(code_substitutes);
     BOOST_ASSERT(block_storage);
 
-    OUTCOME_TRY(encoded_opt, storage->tryGet(storage::kRuntimeHashesLookupKey));
+    OUTCOME_TRY(encoded_opt,
+                storage->getSpace(storage::Space::kDefault)
+                    ->tryGet(storage::kRuntimeHashesLookupKey));
 
     std::vector<RuntimeUpgradeData> saved_data{};
     if (encoded_opt.has_value()) {
@@ -44,14 +46,14 @@ namespace kagome::runtime {
 
   RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
-      std::shared_ptr<storage::BufferStorage> storage,
+      std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<const primitives::CodeSubstituteBlockIds>
           code_substitutes,
       std::vector<RuntimeUpgradeData> &&saved_data,
       std::shared_ptr<blockchain::BlockStorage> block_storage)
       : runtime_upgrades_{std::move(saved_data)},
         header_repo_{std::move(header_repo)},
-        storage_{std::move(storage)},
+        storage_{storage->getSpace(storage::Space::kDefault)},
         known_code_substitutes_{std::move(code_substitutes)},
         block_storage_{std::move(block_storage)},
         logger_{log::createLogger("StorageCodeProvider", "runtime")} {}
