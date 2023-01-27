@@ -12,7 +12,7 @@
 
 #include "common/blob.hpp"
 #include "outcome/outcome.hpp"
-#include "primitives/opaque_metadata.hpp"
+#include "primitives/metadata.hpp"
 #include "primitives/version.hpp"
 
 namespace kagome::runtime {

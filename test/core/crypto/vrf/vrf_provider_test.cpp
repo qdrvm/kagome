@@ -6,7 +6,7 @@
 #include "crypto/vrf/vrf_provider_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "common/mp_utils.hpp"
+#include "common/int_serialization.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 
 using kagome::common::Buffer;

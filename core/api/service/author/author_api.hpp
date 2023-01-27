@@ -26,7 +26,6 @@ namespace kagome::api {
     using Hash256 = common::Hash256;
     using Buffer = common::Buffer;
     using Extrinsic = primitives::Extrinsic;
-    using Metadata = primitives::Metadata;
     using SubscriptionId = primitives::SubscriptionId;
     using ExtrinsicKey = primitives::ExtrinsicKey;
     using TransactionSource = primitives::TransactionSource;

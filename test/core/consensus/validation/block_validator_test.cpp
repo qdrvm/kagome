@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/mp_utils.hpp"
+#include "common/int_serialization.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"

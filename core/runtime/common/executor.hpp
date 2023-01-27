@@ -206,8 +206,10 @@ namespace kagome::runtime {
           if (s.hasMore(1)) {
             SL_ERROR(logger_,
                      "Runtime API call result size exceeds the size of the "
-                     "type to initialize {}",
-                     typeid(Result).name());
+                     "type to initialize {} (read {}, total size {})",
+                     typeid(Result).name(),
+                     s.currentIndex(),
+                     s.span().size_bytes());
             return outcome::failure(std::errc::illegal_byte_sequence);
           }
           return outcome::success(std::move(t));
