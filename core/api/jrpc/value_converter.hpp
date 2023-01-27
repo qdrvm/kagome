@@ -60,7 +60,9 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const common::Buffer &);
   inline jsonrpc::Value makeValue(common::BufferView);
   inline jsonrpc::Value makeValue(const primitives::Extrinsic &);
-  inline jsonrpc::Value makeValue(const primitives::RuntimeDispatchInfo &v);
+  template <typename Weight>
+  inline jsonrpc::Value makeValue(
+      const primitives::RuntimeDispatchInfo<Weight> &v);
   inline jsonrpc::Value makeValue(const primitives::DigestItem &);
   inline jsonrpc::Value makeValue(const primitives::BlockData &);
   inline jsonrpc::Value makeValue(const primitives::BlockHeader &);
@@ -87,6 +89,17 @@ namespace kagome::api {
   template <typename T>
   inline jsonrpc::Value makeValue(const T &val) {
     jsonrpc::Value ret(val);
+    return ret;
+  }
+
+  // TODO(Harrm): refactor to work specifically with Balance type
+  inline jsonrpc::Value makeValue(const primitives::Balance &val) {
+    jsonrpc::Value ret((*val).str());
+    return ret;
+  }
+
+  inline jsonrpc::Value makeValue(const primitives::OldWeight &val) {
+    jsonrpc::Value ret(static_cast<int64_t>(*val));
     return ret;
   }
 
@@ -233,11 +246,13 @@ namespace kagome::api {
     return data;
   }
 
-  inline jsonrpc::Value makeValue(const primitives::RuntimeDispatchInfo &v) {
+  template <typename Weight>
+  inline jsonrpc::Value makeValue(
+      const primitives::RuntimeDispatchInfo<Weight> &v) {
     jStruct res;
     res["weight"] = makeValue(v.weight);
     res["partialFee"] = makeValue(v.partial_fee);
-    using Class = primitives::RuntimeDispatchInfo::DispatchClass;
+    using Class = primitives::DispatchClass;
     switch (v.dispatch_class) {
       case Class::Normal:
         res["class"] = "normal";

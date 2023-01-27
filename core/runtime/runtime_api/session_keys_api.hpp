@@ -12,7 +12,7 @@
 
 #include "crypto/crypto_store/key_type.hpp"
 #include "primitives/common.hpp"
-#include "primitives/opaque_metadata.hpp"
+#include "primitives/metadata.hpp"
 
 namespace kagome::runtime {
 
