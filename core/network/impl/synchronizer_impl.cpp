@@ -58,6 +58,7 @@ namespace {
       case SM::Full:
         return kagome::network::BlocksRequest::kBasicAttributes;
       case SM::Fast:
+      case SM::FastWithoutState:
         return kagome::network::BlockAttribute::HEADER
                | kagome::network::BlockAttribute::JUSTIFICATION;
     }
