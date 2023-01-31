@@ -405,14 +405,16 @@ namespace kagome::network {
 
     auto request_fingerprint = request.fingerprint();
 
-    if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
+    if (auto r = recent_requests_.emplace(
+            std::make_tuple(peer_id, request_fingerprint), "find common block");
+        not r.second) {
       SL_VERBOSE(log_,
                  "Can't check if block #{} in #{}..#{} is common with {}: {}",
                  hint,
                  lower,
                  upper - 1,
                  peer_id,
-                 make_error_code(Error::DUPLICATE_REQUEST));
+                 r.first->second);
       handler(Error::DUPLICATE_REQUEST);
       return;
     }
@@ -577,12 +579,14 @@ namespace kagome::network {
 
     auto request_fingerprint = request.fingerprint();
 
-    if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
+    if (auto r = recent_requests_.emplace(
+            std::make_tuple(peer_id, request_fingerprint), "load blocks");
+        not r.second) {
       SL_ERROR(log_,
                "Can't load blocks from {} beginning block {}: {}",
                peer_id,
                from,
-               make_error_code(Error::DUPLICATE_REQUEST));
+               r.first->second);
       if (handler) handler(Error::DUPLICATE_REQUEST);
       return;
     }
@@ -807,12 +811,15 @@ namespace kagome::network {
         limit};
 
     auto request_fingerprint = request.fingerprint();
-    if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
+    if (auto r = recent_requests_.emplace(
+            std::make_tuple(peer_id, request_fingerprint),
+            "load justifications");
+        not r.second) {
       SL_ERROR(log_,
                "Can't load justification from {} for block {}: {}",
                peer_id,
                target_block,
-               make_error_code(Error::DUPLICATE_REQUEST));
+               r.first->second);
       if (handler) {
         handler(Error::DUPLICATE_REQUEST);
       }
