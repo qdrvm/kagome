@@ -6,14 +6,9 @@ if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
-
-set(
-    CMAKE_TOOLCHAIN_FILE
+set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx17.cmake"
-    CACHE
-    FILEPATH
-    "Default toolchain"
-)
+    CACHE FILEPATH "Default toolchain")
 
 include("cmake/Hunter/init.cmake")
 
@@ -33,6 +28,7 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# cmake-format: off
 option(TESTING      "Build and run test suite"                    ON )
 option(CLANG_FORMAT "Enable clang-format target"                  ON )
 option(CLANG_TIDY   "Enable clang-tidy checks during compilation" OFF)
@@ -53,6 +49,7 @@ option(LSAN         "Enable leak sanitizer"                       OFF)
 option(MSAN         "Enable memory sanitizer"                     OFF)
 option(TSAN         "Enable thread sanitizer"                     OFF)
 option(UBSAN        "Enable UB sanitizer"                         OFF)
+# cmake-format: on
 
 set(RECOMMENDED_CLANG_FORMAT_VERSION 15)
 
@@ -62,8 +59,10 @@ include(cmake/functions.cmake)
 
 include(cmake/san.cmake)
 
-## setup compilation flags
-if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
+# setup compilation flags
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
+  # cmake-format: off
+
   # enable those flags
   add_flag(-Wall)
   add_flag(-Wextra)
@@ -83,29 +82,35 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   add_flag(-Wno-format-nonliteral)   # prints way too many warnings from spdlog
   add_flag(-Wno-gnu-zero-variadic-macro-arguments)   # https://stackoverflow.com/questions/21266380/is-the-gnu-zero-variadic-macro-arguments-safe-to-ignore
 
-  if (
-      (("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang)$") AND (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "12.0"))
-      OR
-      (("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(GNU)$") AND (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "9.0"))
-  )
+  # cmake-format: on
+
+  if((("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang)$")
+      AND (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "12.0"))
+     OR (("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(GNU)$")
+         AND (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "9.0")))
     # use new options format for clang >= 12 and gnu >= 9
+    # cmake-format: off
     add_flag(-Werror=unused-lambda-capture)  # error if lambda capture is unused
     add_flag(-Werror=return-type)      # warning: control reaches end of non-void function [-Wreturn-type]
     add_flag(-Werror=non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
     add_flag(-Werror=sign-compare)     # warn the user if they compare a signed and unsigned numbers
     add_flag(-Werror=reorder)          # field '$1' will be initialized after field '$2'
     add_flag(-Werror=mismatched-tags)  # warning: class '$1' was previously declared as struct
+    # cmake-format: on
   else()
     # promote to errors
+    # cmake-format: off
     add_flag(-Werror-unused-lambda-capture)  # error if lambda capture is unused
     add_flag(-Werror-return-type)      # warning: control reaches end of non-void function [-Wreturn-type]
     add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
     add_flag(-Werror-sign-compare)     # warn the user if they compare a signed and unsigned numbers
     add_flag(-Werror-reorder)          # field '$1' will be initialized after field '$2'
+    # cmake-format: on
   endif()
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
-  # TODO(warchant): add flags https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
+  # TODO(warchant): add flags
+  # https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
 endif()
 
 if(COVERAGE)
@@ -120,10 +125,10 @@ endif()
 if(EMBEDDINGS)
   add_compile_definitions(PRIVATE USE_KAGOME_EMBEDDINGS)
 endif()
-if (NOT DEFINED PROFILING)
-   if(${CMAKE_BUILD_TYPE} EQUALS "Debug")
-     set(PROFILING ON)
-   endif()
+if(NOT DEFINED PROFILING)
+  if(${CMAKE_BUILD_TYPE} EQUALS "Debug")
+    set(PROFILING ON)
+  endif()
 endif()
 if(PROFILING)
   add_compile_definitions(PRIVATE KAGOME_PROFILING)
@@ -132,50 +137,46 @@ endif()
 include(GNUInstallDirs)
 include(cmake/install.cmake)
 
-include_directories(
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome>
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/core>
-)
+include_directories($<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome>
+                    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/core>)
 
 add_subdirectory(core)
 
 # TODO(Harrm): refactor to avoid manually adding each new directory
 kagome_install_setup(
-    HEADER_DIRS
-    core/application
-    core/assets
-    core/blockchain
-    core/clock
-    core/common
-    core/consensus
-    core/crypto
-    core/filesystem
-    core/host_api
-    core/log
-    core/macro
-    core/network
-    core/offchain
-    core/outcome
-    core/primitives
-    core/runtime
-    core/scale
-    core/storage
-    core/subscription
-    core/utils
-)
+  HEADER_DIRS
+  # cmake-format: sortable
+  core/application
+  core/assets
+  core/blockchain
+  core/clock
+  core/common
+  core/consensus
+  core/crypto
+  core/filesystem
+  core/host_api
+  core/log
+  core/macro
+  core/network
+  core/offchain
+  core/outcome
+  core/primitives
+  core/runtime
+  core/scale
+  core/storage
+  core/subscription
+  core/utils)
 
 include(CMakePackageConfigHelpers)
 
 set(CONFIG_INCLUDE_DIRS ${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome)
-configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/kagomeConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/kagomeConfig.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/kagome
-    )
+configure_package_config_file(
+  ${CMAKE_CURRENT_LIST_DIR}/cmake/kagomeConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/kagomeConfig.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/kagome)
 
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/kagomeConfig.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/kagome
-    )
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kagomeConfig.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/kagome)
 
 export(PACKAGE kagome)
 
