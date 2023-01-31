@@ -54,7 +54,7 @@ option(MSAN         "Enable memory sanitizer"                     OFF)
 option(TSAN         "Enable thread sanitizer"                     OFF)
 option(UBSAN        "Enable UB sanitizer"                         OFF)
 
-set(RECOMMENDED_CLANG_FORMAT_VERSION 12)
+set(RECOMMENDED_CLANG_FORMAT_VERSION 15)
 
 include(CheckCXXCompilerFlag)
 include(cmake/dependencies.cmake)
