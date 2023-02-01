@@ -9,11 +9,11 @@ To activate presented (_and all future_) hooks just execute **once** shell-scrip
 This hook check existing `clang-format` and `cmake-format` and their versions.
 If they have recommended version, specific checkup is enabled.
 
-Each changed C++ file (`.hpp` and `.cpp` extensions) processing by `clang-format`.
+Each changed C++ file (`.hpp` and `.cpp` extensions) gets processed by `clang-format`.
 
-Each changed Cmake file (`CMakeText.txt` and `.cmake` extension) processing by `cmake-format`, and commit blocked if original and formatted file differ.
+Each changed CMake file (`CMakeLists.txt` and `.cmake` extension) gets processed by `cmake-format`
 
-Commit will be blocked until original and formatted file is differ.
+Commit will be blocked while there are any differences between original files and `clang-format/cmake-format` output files.
 
 ## etc.
 
