@@ -177,6 +177,7 @@ namespace kagome::consensus::babe {
         const primitives::Block &block) const;
 
     const application::AppConfiguration &app_config_;
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<authorship::Proposer> proposer_;
