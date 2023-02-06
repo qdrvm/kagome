@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <cstdint>
 
+#include "common/no_cb.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "network/types/state_request.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -69,7 +70,7 @@ class StateProtocolObserverTest : public testing::Test {
   outcome::result<std::unique_ptr<PersistentTrieBatch>>
   persistent_empty_batch() {
     auto codec = std::make_shared<PolkadotCodec>();
-    OUTCOME_TRY(batch, trie_->getPersistentBatchAt(kEmptyRootHash, {}));
+    OUTCOME_TRY(batch, trie_->getPersistentBatchAt(kEmptyRootHash, kNoCb));
     return std::move(batch);
   }
 

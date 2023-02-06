@@ -13,6 +13,7 @@
 
 #include "common/hexutil.hpp"
 #include "common/monadic_utils.hpp"
+#include "common/no_cb.hpp"
 #include "runtime/common/executor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
@@ -68,7 +69,7 @@ namespace kagome::api {
       const std::optional<primitives::BlockHash> &opt_at) const {
     auto at =
         opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
-    return executor_->callAtRaw(at, method, data, {});
+    return executor_->callAtRaw(at, method, data, kNoCb);
   }
 
   outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(
@@ -83,7 +84,7 @@ namespace kagome::api {
 
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(initial_trie_reader,
-                storage_->getEphemeralBatchAt(header.state_root, {}));
+                storage_->getEphemeralBatchAt(header.state_root, kNoCb));
     auto cursor = initial_trie_reader->trieCursor();
 
     // if prev_key is bigger than prefix, then set cursor to the next key after
@@ -123,7 +124,7 @@ namespace kagome::api {
       const common::BufferView &key, const primitives::BlockHash &at) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader,
-                storage_->getEphemeralBatchAt(header.state_root, {}));
+                storage_->getEphemeralBatchAt(header.state_root, kNoCb));
     auto res = trie_reader->tryGet(key);
     return common::map_result_optional(
         std::move(res), [](common::BufferOrView &&r) { return r.into(); });
@@ -162,7 +163,8 @@ namespace kagome::api {
     OUTCOME_TRY(range, block_tree_->getChainByBlocks(from, to));
     for (auto &block : range) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block));
-      OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root, {}));
+      OUTCOME_TRY(batch,
+                  storage_->getEphemeralBatchAt(header.state_root, kNoCb));
       StorageChangeSet change{block, {}};
       for (auto &key : keys) {
         OUTCOME_TRY(opt_get, batch->tryGet(key));

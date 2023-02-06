@@ -20,6 +20,7 @@
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
+#include "common/no_cb.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
@@ -165,7 +166,7 @@ Example:
 
 outcome::result<std::unique_ptr<PersistentTrieBatch>> persistent_batch(
     const std::unique_ptr<TrieStorageImpl> &trie, const RootHash &hash) {
-  OUTCOME_TRY(batch, trie->getPersistentBatchAt(hash, {}));
+  OUTCOME_TRY(batch, trie->getPersistentBatchAt(hash, kNoCb));
   auto cursor = batch->trieCursor();
   auto res = check(cursor->next());
   int count = 0;
@@ -442,7 +443,7 @@ int db_editor_main(int argc, const char **argv) {
       need_additional_compaction = true;
     } else if (DUMP == cmd) {
       auto batch =
-          check(trie->getEphemeralBatchAt(last_finalized_block.hash, {}))
+          check(trie->getEphemeralBatchAt(last_finalized_block.hash, kNoCb))
               .value();
       auto cursor = batch->trieCursor();
       auto res = check(cursor->next());

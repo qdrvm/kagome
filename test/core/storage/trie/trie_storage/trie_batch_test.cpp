@@ -6,6 +6,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "common/no_cb.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -19,6 +20,7 @@
 #include "testutil/storage/base_rocksdb_test.hpp"
 
 using namespace kagome::storage::trie;
+using kagome::kNoCb;
 using kagome::api::Session;
 using kagome::common::Buffer;
 using kagome::common::BufferOrView;
@@ -107,17 +109,17 @@ class MockDb : public kagome::storage::InMemoryStorage {
  * @then all inserted entries are accessible from the trie
  */
 TEST_F(TrieBatchTest, Put) {
-  auto batch = trie->getPersistentBatchAt(empty_hash, {}).value();
+  auto batch = trie->getPersistentBatchAt(empty_hash, kNoCb).value();
   FillSmallTrieWithBatch(*batch);
   // changes are not yet commited
-  auto new_batch = trie->getEphemeralBatchAt(empty_hash, {}).value();
+  auto new_batch = trie->getEphemeralBatchAt(empty_hash, kNoCb).value();
   for (auto &entry : data) {
     ASSERT_OUTCOME_ERROR(new_batch->get(entry.first),
                          kagome::storage::trie::TrieError::NO_VALUE);
   }
   ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit(StateVersion::V0));
   // changes are commited
-  new_batch = trie->getEphemeralBatchAt(root_hash, {}).value();
+  new_batch = trie->getEphemeralBatchAt(root_hash, kNoCb).value();
   for (auto &entry : data) {
     ASSERT_OUTCOME_SUCCESS(res, new_batch->get(entry.first));
     ASSERT_EQ(res, entry.second);
@@ -139,7 +141,7 @@ TEST_F(TrieBatchTest, Put) {
  * @then removed entries are no longer in the trie, while the rest of them stays
  */
 TEST_F(TrieBatchTest, Remove) {
-  auto batch = trie->getPersistentBatchAt(empty_hash, {}).value();
+  auto batch = trie->getPersistentBatchAt(empty_hash, kNoCb).value();
   FillSmallTrieWithBatch(*batch);
 
   ASSERT_OUTCOME_SUCCESS_TRY(batch->remove(data[2].first));
@@ -148,7 +150,7 @@ TEST_F(TrieBatchTest, Remove) {
 
   ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit(StateVersion::V0));
 
-  auto read_batch = trie->getEphemeralBatchAt(root_hash, {}).value();
+  auto read_batch = trie->getEphemeralBatchAt(root_hash, kNoCb).value();
   for (auto i : {2, 3, 4}) {
     ASSERT_OUTCOME_IS_FALSE(read_batch->contains(data[i].first));
   }
@@ -163,11 +165,11 @@ TEST_F(TrieBatchTest, Remove) {
  * @then the value on the key is updated
  */
 TEST_F(TrieBatchTest, Replace) {
-  auto batch = trie->getPersistentBatchAt(empty_hash, {}).value();
+  auto batch = trie->getPersistentBatchAt(empty_hash, kNoCb).value();
   ASSERT_OUTCOME_SUCCESS_TRY(
       batch->put(data[1].first, BufferView{data[3].second}));
   ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit(StateVersion::V0));
-  auto read_batch = trie->getEphemeralBatchAt(root_hash, {}).value();
+  auto read_batch = trie->getEphemeralBatchAt(root_hash, kNoCb).value();
   ASSERT_OUTCOME_SUCCESS(res, read_batch->get(data[1].first));
   ASSERT_EQ(res, data[3].second);
 }
@@ -199,7 +201,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   auto trie =
       TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
           .value();
-  auto batch = trie->getPersistentBatchAt(empty_hash, {}).value();
+  auto batch = trie->getPersistentBatchAt(empty_hash, kNoCb).value();
 
   ASSERT_OUTCOME_SUCCESS_TRY(batch->put("123"_buf, "111"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(batch->commit(StateVersion::V0));
@@ -212,7 +214,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 
 TEST_F(TrieBatchTest, TopperBatchAtomic) {
   std::shared_ptr<PersistentTrieBatch> p_batch =
-      trie->getPersistentBatchAt(empty_hash, {}).value();
+      trie->getPersistentBatchAt(empty_hash, kNoCb).value();
   ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("123"_buf, "abc"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("678"_buf, "abc"_buf));
 
@@ -245,7 +247,7 @@ TEST_F(TrieBatchTest, TopperBatchAtomic) {
  */
 TEST_F(TrieBatchTest, TopperBatchRemove) {
   std::shared_ptr<PersistentTrieBatch> p_batch =
-      trie->getPersistentBatchAt(empty_hash, {}).value();
+      trie->getPersistentBatchAt(empty_hash, kNoCb).value();
 
   ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("102030"_hex2buf, "010203"_hex2buf));
 

@@ -14,6 +14,7 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/hexutil.hpp"
+#include "common/no_cb.hpp"
 #include "primitives/common.hpp"
 #include "primitives/transaction.hpp"
 #include "runtime/runtime_api/core.hpp"
@@ -284,7 +285,7 @@ namespace kagome::api {
                     block_tree_->getBlockHeader(best_block_hash);
                 BOOST_ASSERT(header.has_value());
                 auto persistent_batch = trie_storage_->getPersistentBatchAt(
-                    header.value().state_root, {});
+                    header.value().state_root, kNoCb);
                 if (!persistent_batch.has_value()) {
                   SL_ERROR(logger_,
                            "Failed to get storage state for block {}, required "

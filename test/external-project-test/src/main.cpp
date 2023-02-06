@@ -8,6 +8,7 @@
 #include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
+#include <kagome/common/no_cb.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
 #include <kagome/crypto/crypto_store/crypto_store_impl.hpp>
 #include <kagome/crypto/ecdsa/ecdsa_provider_impl.hpp>
@@ -117,7 +118,8 @@ int main() {
           .value();
 
   auto batch =
-      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash(), {})
+      trie_storage
+          ->getPersistentBatchAt(serializer->getEmptyRootHash(), kagome::kNoCb)
           .value();
   auto root_hash =
       batch->commit(kagome::storage::trie::StateVersion::V0).value();
@@ -131,7 +133,8 @@ int main() {
                         .value());
 
   auto storage_batch =
-      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash(), {})
+      trie_storage
+          ->getPersistentBatchAt(serializer->getEmptyRootHash(), kagome::kNoCb)
           .value();
   for (auto &kv : chain_spec->getGenesisTopSection()) {
     storage_batch->put(kv.first, kv.second.view()).value();

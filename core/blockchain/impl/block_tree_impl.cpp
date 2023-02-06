@@ -13,6 +13,7 @@
 #include "blockchain/impl/common.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "blockchain/impl/storage_util.hpp"
+#include "common/no_cb.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/is_primary.hpp"
 #include "crypto/blake2/blake2b.h"
@@ -270,7 +271,7 @@ namespace kagome::blockchain {
     const auto &state_root = target_block_header.state_root;
 
     // Check if target block has state
-    if (auto res = trie_storage->getEphemeralBatchAt(state_root, {});
+    if (auto res = trie_storage->getEphemeralBatchAt(state_root, kNoCb);
         res.has_error()) {
       SL_WARN(log, "Can't get state of target block: {}", res.error());
       SL_CRITICAL(

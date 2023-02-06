@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
+#include "common/no_cb.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -19,6 +20,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::kNoCb;
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::storage::RocksDb;
@@ -62,7 +64,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
             .value();
 
     auto batch =
-        storage->getPersistentBatchAt(serializer->getEmptyRootHash(), {})
+        storage->getPersistentBatchAt(serializer->getEmptyRootHash(), kNoCb)
             .value();
     EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "abc"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("345"_buf, "def"_buf));
@@ -80,7 +82,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
   auto storage =
       TrieStorageImpl::createFromStorage(codec, serializer, std::nullopt)
           .value();
-  auto batch = storage->getPersistentBatchAt(root, {}).value();
+  auto batch = storage->getPersistentBatchAt(root, kNoCb).value();
   EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));
   ASSERT_EQ(v1, "abc"_buf);
   EXPECT_OUTCOME_TRUE(v2, batch->get("345"_buf));

@@ -11,6 +11,7 @@
 #include <optional>
 
 #include "common/buffer.hpp"
+#include "common/no_cb.hpp"
 #include "host_api/host_api.hpp"
 #include "log/logger.hpp"
 #include "log/profiling_logger.hpp"
@@ -61,7 +62,7 @@ namespace kagome::runtime {
     outcome::result<std::unique_ptr<RuntimeEnvironment>> persistentAt(
         primitives::BlockHash const &block_hash) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
-      OUTCOME_TRY(env, env_template->persistent().make({}));
+      OUTCOME_TRY(env, env_template->persistent().make(kNoCb));
       return std::move(env);
     }
 
@@ -77,7 +78,7 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env,
-                  env_factory_->start(block_info, storage_state)->make({}));
+                  env_factory_->start(block_info, storage_state)->make(kNoCb));
       return callMediateInternal<Result>(
           *env, name, std::forward<Args>(args)...);
     }
@@ -92,7 +93,7 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
-      OUTCOME_TRY(env, env_template->make({}));
+      OUTCOME_TRY(env, env_template->make(kNoCb));
       return callMediateInternal<Result>(
           *env, name, std::forward<Args>(args)...);
     }
@@ -106,7 +107,7 @@ namespace kagome::runtime {
     outcome::result<Result> callAtGenesis(std::string_view name,
                                           Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
-      OUTCOME_TRY(env, env_template->make({}));
+      OUTCOME_TRY(env, env_template->make(kNoCb));
       return callMediateInternal<Result>(
           *env, name, std::forward<Args>(args)...);
     }

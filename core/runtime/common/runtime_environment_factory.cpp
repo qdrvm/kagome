@@ -5,6 +5,7 @@
 
 #include "runtime/runtime_environment_factory.hpp"
 
+#include "common/no_cb.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
@@ -62,7 +63,7 @@ namespace kagome::runtime {
         instance->getEnvironment().storage_provider,
         {},
     };
-    env.storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash, {})
+    env.storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash, kNoCb)
         .value();
     OUTCOME_TRY(resetMemory(*instance));
     return env;
