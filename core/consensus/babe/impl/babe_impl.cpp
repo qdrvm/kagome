@@ -568,9 +568,13 @@ namespace kagome::consensus::babe {
     } while (affected);
 
     if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
-      SL_INFO(log_, "Stateless fast sync is finished; Application is stopping");
-      log_->flush();
-      app_state_manager_->shutdown();
+      if (app_state_manager_->state()
+          != application::AppStateManager::State::ShuttingDown) {
+        SL_INFO(log_,
+                "Stateless fast sync is finished; Application is stopping");
+        log_->flush();
+        app_state_manager_->shutdown();
+      }
       return;
     }
 
