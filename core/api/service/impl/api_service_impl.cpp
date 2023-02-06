@@ -284,7 +284,7 @@ namespace kagome::api {
                     block_tree_->getBlockHeader(best_block_hash);
                 BOOST_ASSERT(header.has_value());
                 auto persistent_batch = trie_storage_->getPersistentBatchAt(
-                    header.value().state_root);
+                    header.value().state_root, {});
                 if (!persistent_batch.has_value()) {
                   SL_ERROR(logger_,
                            "Failed to get storage state for block {}, required "

@@ -177,8 +177,8 @@ class RuntimeTestBase : public ::testing::Test {
   }
 
   void preparePersistentStorageExpects() {
-    EXPECT_CALL(*trie_storage_, getPersistentBatchAt(_))
-        .WillOnce(testing::Invoke([this](auto &root) {
+    EXPECT_CALL(*trie_storage_, getPersistentBatchAt(_, _))
+        .WillOnce(testing::Invoke([this](auto &root, auto) {
           auto batch = std::make_unique<PersistentTrieBatchMock>();
           prepareStorageBatchExpectations(*batch);
           return batch;

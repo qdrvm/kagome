@@ -31,7 +31,7 @@ namespace kagome::storage::trie {
      * state, creating a 'fork'
      */
     virtual outcome::result<std::unique_ptr<PersistentTrieBatch>>
-    getPersistentBatchAt(const RootHash &root) = 0;
+    getPersistentBatchAt(const RootHash &root, OnDbRead on_db_read) = 0;
     virtual outcome::result<std::unique_ptr<EphemeralTrieBatch>>
     getEphemeralBatchAt(const RootHash &root, OnDbRead on_db_read) const = 0;
   };

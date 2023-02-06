@@ -117,7 +117,7 @@ int main() {
           .value();
 
   auto batch =
-      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
+      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash(), {})
           .value();
   auto root_hash =
       batch->commit(kagome::storage::trie::StateVersion::V0).value();
@@ -131,7 +131,7 @@ int main() {
                         .value());
 
   auto storage_batch =
-      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
+      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash(), {})
           .value();
   for (auto &kv : chain_spec->getGenesisTopSection()) {
     storage_batch->put(kv.first, kv.second.view()).value();

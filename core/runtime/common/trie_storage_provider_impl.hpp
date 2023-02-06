@@ -55,6 +55,7 @@ namespace kagome::runtime {
 
     std::stack<std::shared_ptr<Batch>> stack_of_batches_;
 
+    OnDbRead on_db_read_;
     std::shared_ptr<Batch> current_batch_;
 
     // need to store it because it has to be the same in different runtime calls

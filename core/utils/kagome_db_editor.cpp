@@ -165,7 +165,7 @@ Example:
 
 outcome::result<std::unique_ptr<PersistentTrieBatch>> persistent_batch(
     const std::unique_ptr<TrieStorageImpl> &trie, const RootHash &hash) {
-  OUTCOME_TRY(batch, trie->getPersistentBatchAt(hash));
+  OUTCOME_TRY(batch, trie->getPersistentBatchAt(hash, {}));
   auto cursor = batch->trieCursor();
   auto res = check(cursor->next());
   int count = 0;

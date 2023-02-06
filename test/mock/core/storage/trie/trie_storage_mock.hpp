@@ -16,7 +16,7 @@ namespace kagome::storage::trie {
    public:
     MOCK_METHOD(outcome::result<std::unique_ptr<PersistentTrieBatch>>,
                 getPersistentBatchAt,
-                (const storage::trie::RootHash &root),
+                (const storage::trie::RootHash &, OnDbRead),
                 (override));
 
     MOCK_METHOD(outcome::result<std::unique_ptr<EphemeralTrieBatch>>,
