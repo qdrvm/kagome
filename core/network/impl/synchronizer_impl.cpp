@@ -831,6 +831,7 @@ namespace kagome::network {
     auto response_handler = [wp = weak_from_this(),
                              peer_id,
                              target_block,
+                             limit,
                              handler = std::move(handler)](
                                 auto &&response_res) mutable {
       auto self = wp.lock();
@@ -862,8 +863,19 @@ namespace kagome::network {
         return;
       }
 
+      // Use decreasing limit,
+      // to avoid race between block and justification requests
+      if (limit.has_value()) {
+        if (blocks.size() >= limit.value()) {
+          limit = 0;
+        } else {
+          limit.value() -= (blocks.size() - 1);
+        }
+      }
+
       bool justification_received = false;
       BlockInfo last_justified_block;
+      BlockInfo last_observed_block;
       for (auto &block : blocks) {
         if (not block.header) {
           SL_ERROR(self->log_,
@@ -874,10 +886,11 @@ namespace kagome::network {
           if (handler) handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
           return;
         }
+        last_observed_block =
+            primitives::BlockInfo{block.header->number, block.hash};
         if (block.justification) {
           justification_received = true;
-          last_justified_block =
-              primitives::BlockInfo{block.header->number, block.hash};
+          last_justified_block = last_observed_block;
           {
             std::lock_guard lock(self->justifications_mutex_);
             self->justifications_.emplace(last_justified_block,
@@ -894,6 +907,25 @@ namespace kagome::network {
           }
         });
       }
+
+      // Continue justifications requesting till limit is non-zero and last
+      // observed block is not target (no block anymore)
+      if ((not limit.has_value() or limit.value() > 0)
+          and last_observed_block != target_block) {
+        SL_TRACE(self->log_, "Request next block pack");
+        self->scheduler_->schedule([wp,
+                                    peer_id,
+                                    target_block = last_observed_block,
+                                    limit,
+                                    handler = std::move(handler)]() mutable {
+          if (auto self = wp.lock()) {
+            self->loadJustifications(
+                peer_id, target_block, limit, std::move(handler));
+          }
+        });
+        return;
+      }
+
       if (handler) {
         handler(last_justified_block);
       }
@@ -1115,7 +1147,7 @@ namespace kagome::network {
               syncMissingJustifications(
                   peer_id,
                   last_finalized,
-                  std::nullopt,
+                  kJustificationInterval * 2,
                   [wp = weak_from_this(), last_finalized, block_info](
                       auto res) {
                     if (auto self = wp.lock()) {
