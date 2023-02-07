@@ -573,7 +573,8 @@ namespace {
         injector.template create<sptr<runtime::Core>>(),
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<runtime::OffchainWorkerApi>>());
+        injector.template create<sptr<runtime::OffchainWorkerApi>>(),
+        injector.template create<uptr<consensus::babe::BlockAppenderBase>>());
 
     initialized.emplace(std::move(block_executor));
     return initialized.value();

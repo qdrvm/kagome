@@ -33,12 +33,14 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api)
+      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+      std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
         offchain_worker_api_(std::move(offchain_worker_api)),
+        appender_{std::move(appender)},
         logger_{log::createLogger("BlockExecutor", "block_executor")},
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -48,6 +50,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(offchain_worker_api_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
     BOOST_ASSERT(telemetry_ != nullptr);
+    BOOST_ASSERT(appender_ != nullptr);
 
     // Register metrics
     metrics_registry_->registerHistogramFamily(

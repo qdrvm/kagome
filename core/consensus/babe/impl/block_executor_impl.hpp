@@ -35,6 +35,8 @@ namespace kagome::transaction_pool {
 
 namespace kagome::consensus::babe {
 
+  class BlockAppenderBase;
+
   class BlockExecutorImpl
       : public BlockExecutor,
         public std::enable_shared_from_this<BlockExecutorImpl> {
@@ -44,7 +46,8 @@ namespace kagome::consensus::babe {
         std::shared_ptr<runtime::Core> core,
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api);
+        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+        std::unique_ptr<BlockAppenderBase> appender);
 
     ~BlockExecutorImpl();
 
@@ -59,7 +62,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
 
-    std::unique_ptr<class BlockAppenderBase> appender_;
+    std::unique_ptr<BlockAppenderBase> appender_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

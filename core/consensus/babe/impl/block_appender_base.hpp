@@ -57,9 +57,9 @@ namespace kagome::consensus::babe {
         primitives::BlockContext const &context);
 
    private:
-    log::Logger logger_;
+    log::Logger logger_ = log::createLogger("BlockAppender", "babe");
 
-    // TODO(Harrm): describe why
+    //TODO(Harrm): describe why
     //  Justifications stored for future application (why?)
     std::map<primitives::BlockInfo, primitives::Justification>
         postponed_justifications_;

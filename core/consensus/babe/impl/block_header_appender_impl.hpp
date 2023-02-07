@@ -24,12 +24,15 @@ namespace kagome::crypto {
 
 namespace kagome::consensus::babe {
 
+  class BlockAppenderBase;
+
   class BlockHeaderAppenderImpl
       : public BlockHeaderAppender,
         public std::enable_shared_from_this<BlockHeaderAppenderImpl> {
    public:
     BlockHeaderAppenderImpl(std::shared_ptr<blockchain::BlockTree> block_tree,
-                            std::shared_ptr<crypto::Hasher> hasher);
+                            std::shared_ptr<crypto::Hasher> hasher,
+                            std::unique_ptr<BlockAppenderBase> appender);
 
     outcome::result<void> appendHeader(
         primitives::BlockHeader &&block_header,
@@ -41,7 +44,7 @@ namespace kagome::consensus::babe {
 
     std::optional<primitives::BlockInfo> last_appended_;
 
-    std::unique_ptr<class BlockAppenderBase> appender_;
+    std::unique_ptr<BlockAppenderBase> appender_;
 
     struct {
       std::chrono::high_resolution_clock::time_point time;

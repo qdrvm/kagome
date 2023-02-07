@@ -20,13 +20,16 @@ namespace kagome::consensus::babe {
 
   BlockHeaderAppenderImpl::BlockHeaderAppenderImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
         hasher_{std::move(hasher)},
+        appender_{std::move(appender)},
         logger_{log::createLogger("BlockHeaderAppender", "block_appender")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
+    BOOST_ASSERT(appender_ != nullptr);
   }
 
   outcome::result<void> BlockHeaderAppenderImpl::appendHeader(

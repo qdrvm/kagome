@@ -12,20 +12,12 @@
 
 namespace kagome::consensus::babe {
 
-  class BlockAppenderMock : public BlockHeaderAppender {
+  class BlockHeaderAppenderMock : public BlockHeaderAppender {
    public:
     MOCK_METHOD(outcome::result<void>,
-                appendBlock,
-                (const primitives::BlockData &block),
-                ());
-    outcome::result<void> appendBlock(primitives::BlockData &&block) override {
-      return appendBlock(block);
-    }
-
-    MOCK_METHOD(outcome::result<void>,
-                applyJustification,
-                (const primitives::BlockInfo &block_info,
-                 const primitives::Justification &justification),
+                appendHeader,
+                (primitives::BlockHeader && block_header,
+                 std::optional<primitives::Justification> const &justification),
                 (override));
   };
 

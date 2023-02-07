@@ -105,8 +105,8 @@ class SynchronizerTest
       std::make_shared<blockchain::BlockTreeMock>();
   std::shared_ptr<changes_trie::ChangesTracker> changes_tracker =
       std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
-  std::shared_ptr<BlockAppenderMock> block_appender =
-      std::make_shared<BlockAppenderMock>();
+  std::shared_ptr<BlockHeaderAppenderMock> block_appender =
+      std::make_shared<BlockHeaderAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
       std::make_shared<BlockExecutorMock>();
   std::shared_ptr<trie::TrieStorageMock> storage =

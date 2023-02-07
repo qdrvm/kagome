@@ -9,6 +9,7 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
+#include "consensus/babe/impl/block_appender_base.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -36,9 +37,11 @@ using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
 using kagome::consensus::babe::BabeUtil;
 using kagome::consensus::babe::BabeUtilMock;
+using kagome::consensus::babe::BlockAppenderBase;
 using kagome::consensus::babe::BlockExecutorImpl;
 using kagome::consensus::babe::BlockValidator;
 using kagome::consensus::babe::BlockValidatorMock;
+using kagome::consensus::babe::ConsistencyGuard;
 using kagome::consensus::babe::ConsistencyKeeperMock;
 using kagome::consensus::babe::EpochDigest;
 using kagome::consensus::grandpa::Environment;
@@ -51,6 +54,7 @@ using kagome::primitives::Authority;
 using kagome::primitives::AuthorityId;
 using kagome::primitives::AuthorityList;
 using kagome::primitives::BabeConfiguration;
+using kagome::primitives::Block;
 using kagome::primitives::BlockContext;
 using kagome::primitives::BlockData;
 using kagome::primitives::BlockId;
@@ -97,7 +101,7 @@ class BlockExecutorTest : public testing::Test {
 
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
     ON_CALL(*babe_config_repo_, config(_, _))
-        .WillByDefault(Return(babe_config_));
+        .WillByDefault(Return(*babe_config_));
 
     block_validator_ = std::make_shared<BlockValidatorMock>();
     grandpa_environment_ = std::make_shared<EnvironmentMock>();
@@ -112,17 +116,21 @@ class BlockExecutorTest : public testing::Test {
     offchain_worker_api_ = std::make_shared<OffchainWorkerApiMock>();
     consistency_keeper_ = std::make_shared<ConsistencyKeeperMock>();
 
+    auto appender = std::make_unique<BlockAppenderBase>(consistency_keeper_,
+                                                    block_tree_,
+                                                    digest_tracker_,
+                                                    babe_config_repo_,
+                                                    block_validator_,
+                                                    grandpa_environment_,
+                                                    babe_util_,
+                                                    hasher_);
+
     block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
                                                           core_,
-                                                          babe_config_repo_,
-                                                          block_validator_,
-                                                          grandpa_environment_,
                                                           tx_pool_,
                                                           hasher_,
-                                                          digest_tracker_,
-                                                          babe_util_,
                                                           offchain_worker_api_,
-                                                          consistency_keeper_);
+                                                          std::move(appender));
   }
 
  protected:
@@ -209,8 +217,9 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   {
     testing::InSequence s;
 
-    EXPECT_CALL(*digest_tracker_,
-                onDigest(BlockContext{.block = {42, "some_hash"_hash256}}, _))
+    EXPECT_CALL(
+        *digest_tracker_,
+        onDigest(BlockContext{.block_info = {42, "some_hash"_hash256}}, _))
         .WillOnce(testing::Return(outcome::success()));
 
     EXPECT_CALL(
@@ -226,12 +235,12 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       .WillOnce(testing::Return(outcome::success()));
 
   EXPECT_CALL(*consistency_keeper_, start(block_info))
-      .WillOnce(testing::Invoke([&] {
-        return ConsistencyKeeperMock::Guard(*consistency_keeper_, block_info);
-      }));
+      .WillOnce(testing::Invoke(
+          [&] { return ConsistencyGuard(*consistency_keeper_, block_info); }));
   EXPECT_CALL(*consistency_keeper_, commit(block_info)).WillOnce(Return());
   EXPECT_CALL(*consistency_keeper_, rollback(block_info))
       .WillRepeatedly(Return());
 
-  EXPECT_OUTCOME_TRUE_1(block_executor_->applyBlock(std::move(block_data)))
+  EXPECT_OUTCOME_TRUE_1(block_executor_->applyBlock(
+      Block{block_data.header.value(), block_data.body.value()}, std::nullopt))
 }
