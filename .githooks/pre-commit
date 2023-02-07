@@ -36,7 +36,7 @@ CXX_RES=0
 if [ $CLANG_FORMAT_ENABLED ]; then
   for FILE in $(git diff-index --name-only ${BASE} | grep -e "\\.[ch]pp$"); do
     TMPFILE=$(mktemp /tmp/kagome_precommit_hook.XXXXXX)
-    clang-format "$FILE" >"$TMPFILE"
+    ${CLANG_FORMAT} --style=file "$FILE" >"$TMPFILE"
     diff -q "$FILE" "$TMPFILE" >/dev/null
     if [ $? = 1 ]; then
       echo "File looks nonformatted: $FILE"
