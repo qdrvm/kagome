@@ -8,6 +8,8 @@ jobs:
   autotests:
     runs-on: ubuntu-latest
     container: soramitsu/kagome-autotests:1.0
+    steps:
+      - uses: actions/checkout@v2
     env:
       KAGOME_S1: ${{ secrets.KAGOME_S1 }}
       SUBSTRATE_S2: ${{ secrets.SUBSTRATE_S2 }}
