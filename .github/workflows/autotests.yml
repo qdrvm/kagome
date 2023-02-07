@@ -12,8 +12,9 @@ jobs:
       - name: df du
         if: ${{ always() }}
         run: |
-          du -h --max-depth=3 /
+          du -h --max-depth=2 /kagome-autotests
       - name: Run autotests
+        working-directory: /kagome-autotests
         run: python3 -m pytest --alluredir=./allure_reports
         shell: sh
     env:
