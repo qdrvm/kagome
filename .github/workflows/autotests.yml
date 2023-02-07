@@ -9,9 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     container: soramitsu/kagome-autotests:1.0
     steps:
-      - name: ls
-        run: ls
-        shell: sh
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          du -h --max-depth=3 /__w/kagome/kagome
       - name: Run autotests
         run: python3 -m pytest --alluredir=./allure_reports
         shell: sh
