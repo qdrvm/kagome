@@ -63,6 +63,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<ConsistencyKeeper> consistency_keeper,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage)
       : app_config_(app_config),
+        app_state_manager_(app_state_manager),
         lottery_{std::move(lottery)},
         babe_config_repo_{std::move(babe_config_repo)},
         proposer_{std::move(proposer)},
@@ -88,6 +89,7 @@ namespace kagome::consensus::babe {
         trie_storage_(std::move(trie_storage)),
         log_{log::createLogger("Babe", "babe")},
         telemetry_{telemetry::createTelemetryService()} {
+    BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(babe_config_repo_);
     BOOST_ASSERT(proposer_);
@@ -115,7 +117,7 @@ namespace kagome::consensus::babe {
         kBlockProposalTime,
         {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
 
-    app_state_manager->takeControl(*this);
+    app_state_manager_->takeControl(*this);
   }
 
   bool BabeImpl::prepare() {
@@ -128,7 +130,7 @@ namespace kagome::consensus::babe {
     best_block_ = block_tree_->bestLeaf();
 
     // Check if best block has state for usual sync method
-    if (app_config_.syncMethod() != SyncMethod::Fast) {
+    if (app_config_.syncMethod() == SyncMethod::Full) {
       auto best_block_header_res =
           block_tree_->getBlockHeader(best_block_.hash);
       if (best_block_header_res.has_error()) {
@@ -235,6 +237,10 @@ namespace kagome::consensus::babe {
           // No incomplete downloading state; load headers first
           current_state_ = State::HEADERS_LOADING;
         }
+        break;
+
+      case SyncMethod::FastWithoutState:
+        current_state_ = State::HEADERS_LOADING;
         break;
     }
 
@@ -564,6 +570,13 @@ namespace kagome::consensus::babe {
         affected = true;
       }
     } while (affected);
+
+    if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
+      SL_INFO(log_, "Stateless fast sync is finished; Application is stopping");
+      log_->flush();
+      app_state_manager_->shutdown();
+      return;
+    }
 
     SL_TRACE(log_,
              "Trying to sync state on block {} from {}",

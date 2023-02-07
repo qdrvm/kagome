@@ -17,10 +17,11 @@ namespace kagome::runtime {
    public:
     virtual ~TransactionPaymentApi() = default;
 
-    virtual outcome::result<primitives::RuntimeDispatchInfo> query_info(
-        const primitives::BlockHash &block,
-        const primitives::Extrinsic &ext,
-        uint32_t len) = 0;
+    virtual outcome::result<
+        primitives::RuntimeDispatchInfo<primitives::OldWeight>>
+    query_info(const primitives::BlockHash &block,
+               const primitives::Extrinsic &ext,
+               uint32_t len) = 0;
   };
 
 }  // namespace kagome::runtime

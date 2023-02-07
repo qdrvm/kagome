@@ -9,7 +9,7 @@
 #include <optional>
 #include <outcome/outcome.hpp>
 #include "primitives/common.hpp"
-#include "primitives/opaque_metadata.hpp"
+#include "primitives/metadata.hpp"
 
 namespace kagome::runtime {
 

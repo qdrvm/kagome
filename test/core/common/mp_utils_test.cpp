@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/mp_utils.hpp"
+#include "common/int_serialization.hpp"
 
 #include <gtest/gtest.h>
 

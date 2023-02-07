@@ -30,11 +30,6 @@ namespace kagome::primitives {
   // TODO(yuraz): PRE-221 investigate and implement Session primitive
 
   /**
-   * @brief Metadata primitive
-   */
-  using Metadata = std::optional<std::shared_ptr<Session>>;
-
-  /**
    * @brief ExtrinsicKey is used as a key to search extrinsic
    */
   using ExtrinsicKey = std::vector<uint8_t>;
