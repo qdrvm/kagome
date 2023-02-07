@@ -14,8 +14,13 @@ namespace kagome::consensus::babe {
     BAD_ORDER_OF_DIGEST_ITEM,
     UNKNOWN_DIGEST_TYPE,
   };
+
+  enum class BlockAdditionError {
+    ORPHAN_BLOCK = 1, BLOCK_MISSING_HEADER, PARENT_NOT_FOUND
+  };
 }
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, BabeError)
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, BlockAdditionError)
 
 #endif  // KAGOME_BABE_ERROR_HPP

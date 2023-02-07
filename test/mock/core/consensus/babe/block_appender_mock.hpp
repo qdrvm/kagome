@@ -6,13 +6,13 @@
 #ifndef KAGOME_CONSENSUS_BLOCKAPPENDERMOCK
 #define KAGOME_CONSENSUS_BLOCKAPPENDERMOCK
 
-#include "consensus/babe/block_appender.hpp"
+#include "consensus/babe/block_header_appender.hpp"
 
 #include <gmock/gmock.h>
 
 namespace kagome::consensus::babe {
 
-  class BlockAppenderMock : public BlockAppender {
+  class BlockAppenderMock : public BlockHeaderAppender {
    public:
     MOCK_METHOD(outcome::result<void>,
                 appendBlock,

@@ -34,7 +34,7 @@ namespace kagome::consensus::babe {
 
     ~ConsistencyKeeperImpl() override = default;
 
-    Guard start(primitives::BlockInfo block) override;
+    ConsistencyGuard start(primitives::BlockInfo block) override;
 
    protected:
     void commit(primitives::BlockInfo block) override;

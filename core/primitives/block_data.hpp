@@ -54,7 +54,7 @@ namespace kagome::primitives {
     using OptConstRef = std::optional<std::reference_wrapper<const T>>;
 
    public:
-    primitives::BlockInfo block;
+    primitives::BlockInfo block_info;
     OptConstRef<primitives::BlockHeader> header{};
     OptConstRef<primitives::BlockBody> body{};
     OptConstRef<common::Buffer> receipt{};
@@ -62,11 +62,11 @@ namespace kagome::primitives {
     OptConstRef<primitives::Justification> justification{};
 
     bool operator<(const BlockContext &other) const noexcept {
-      return block < other.block;
+      return block_info < other.block_info;
     }
 
     bool operator==(const BlockContext &other) const noexcept {
-      return block == other.block;
+      return block_info == other.block_info;
     }
   };
 
