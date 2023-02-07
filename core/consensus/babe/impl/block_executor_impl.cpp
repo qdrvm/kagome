@@ -333,9 +333,8 @@ namespace kagome::consensus::babe {
       }
     }
 
-    auto now = std::chrono::high_resolution_clock::now();
-
-    auto lag = now - babe_util_->slotStartTime(slot_number);
+    auto lag = std::chrono::system_clock::now()
+             - babe_util_->slotStartTime(slot_number);
     std::string lag_msg;
     if (lag > std::chrono::hours(99)) {
       lag_msg = fmt::format(
@@ -352,6 +351,8 @@ namespace kagome::consensus::babe {
     } else if (lag > babe_config_repo_->slotDuration() * 2) {
       lag_msg = " (lag <1 min.)";
     }
+
+    auto now = std::chrono::high_resolution_clock::now();
 
     logger_->info(
         "Imported block {} within {} ms.{}",
