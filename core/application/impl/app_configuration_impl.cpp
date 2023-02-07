@@ -115,6 +115,9 @@ namespace {
     if (str == "Fast") {
       return SM::Fast;
     }
+    if (str == "FastWithoutState") {
+      return SM::FastWithoutState;
+    }
     return std::nullopt;
   }
 

@@ -13,7 +13,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InherentDataError, e) {
     case E::IDENTIFIER_DOES_NOT_EXIST:
       return "This identifier does not exist";
   }
-  return "Unknow error";
+  return "Unknown error";
 }
 
 namespace kagome::primitives {

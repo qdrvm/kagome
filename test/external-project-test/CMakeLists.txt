@@ -32,27 +32,5 @@ hunter_add_package(kagome)
 find_package(kagome CONFIG REQUIRED)
 
 add_executable(main src/main.cpp)
-target_link_libraries(main
-    kagome::executor
-    kagome::runtime_wavm
-    kagome::core_api
-    kagome::storage
-    kagome::trie_storage_provider
-    kagome::log_configurator
-    kagome::host_api_factory
-    kagome::chain_spec
-    kagome::crypto_store
-    kagome::key_file_storage
-    kagome::sr25519_provider
-    kagome::ed25519_provider
-    kagome::pbkdf2_provider
-    kagome::hasher
-    kagome::storage
-    kagome::module_repository
-    kagome::storage_code_provider
-    kagome::offchain_persistent_storage
-    kagome::offchain_worker_pool
-    kagome::blockchain
-    kagome::runtime_upgrade_tracker
-    kagome::runtime_properties_cache
-    )
+include(link_libraries.cmake)
+external_project_link_libraries(main kagome::)

@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "common/buffer.hpp"
-#include "common/mp_utils.hpp"
+#include "common/int_serialization.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/validation/prepare_transcript.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
