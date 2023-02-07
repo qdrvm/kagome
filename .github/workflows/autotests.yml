@@ -12,7 +12,7 @@ jobs:
       - name: df du
         if: ${{ always() }}
         run: |
-          du -h --max-depth=3 /__w/kagome/kagome
+          du -h --max-depth=3 /
       - name: Run autotests
         run: python3 -m pytest --alluredir=./allure_reports
         shell: sh
