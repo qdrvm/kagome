@@ -1,7 +1,7 @@
 BasedOnStyle: Google
 NamespaceIndentation: All
 BreakBeforeBinaryOperators: NonAssignment
-AlignOperands: true
+AlignOperands: AlignAfterOperator
 DerivePointerAlignment: false
 PointerAlignment: Right
 BinPackArguments: false
@@ -9,3 +9,8 @@ BinPackParameters: false
 AllowShortFunctionsOnASingleLine: Empty
 IncludeBlocks: Preserve
 InsertBraces: true
+InsertTrailingCommas: Wrapped
+SortIncludes: CaseSensitive
+# uncomment in clang-format-16
+#RemoveSemicolon: true
+#InsertNewlineAtEOF: true
