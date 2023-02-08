@@ -1,7 +1,5 @@
 #!/bin/sh
 
-RESULT=0
-
 if git rev-parse --verify HEAD >/dev/null 2>&1; then
   BASE=HEAD
 else
@@ -34,15 +32,13 @@ fi
 # check c++ files' format with clang-format
 CXX_RES=0
 if [ $CLANG_FORMAT_ENABLED ]; then
-  for FILE in $(git diff-index --name-only ${BASE} | grep -e "\\.[ch]pp$"); do
-    TMPFILE=$(mktemp /tmp/kagome_precommit_hook.XXXXXX)
-    ${CLANG_FORMAT} --style=file "$FILE" >"$TMPFILE"
-    diff -q "$FILE" "$TMPFILE" >/dev/null
-    if [ $? = 1 ]; then
+  for FILE in $(git diff-index --name-only "${BASE}" --diff-filter=ACMR | grep -e "\\.[ch]pp$"); do
+    O_HASH=$(sha1sum <"${FILE}")
+    F_HASH=$(${CLANG_FORMAT} --style=file "$FILE" | shasum)
+    if [ "${O_HASH}" != "${F_HASH}" ]; then
       echo "File looks nonformatted: $FILE"
       CXX_RES=1
     fi
-    rm "$TMPFILE"
   done
 
   if [ $CXX_RES = 1 ]; then
@@ -63,15 +59,13 @@ fi
 # check cmake-files' format with cmake-format
 CMAKE_RES=0
 if [ $CMAKE_FORMAT_ENABLED ]; then
-  for FILE in $(git diff-index --name-only "${BASE}" | grep -e "\(\(CMakeLists\\.txt\)\|\(\\.cmake\)\)$"); do
-    TMPFILE=$(mktemp /tmp/kagome_precommit_hook.XXXXXX)
-    cmake-format "$FILE" >"$TMPFILE"
-    diff -q "$FILE" "$TMPFILE" >/dev/null
-    if [ $? = 1 ]; then
+  for FILE in $(git diff-index --name-only "${BASE}" --diff-filter=ACMR | grep -e "\(\(CMakeLists\\.txt\)\|\(\\.cmake\)\)$"); do
+    O_HASH=$(sha1sum <"${FILE}")
+    F_HASH=$(${CMAKE_FORMAT} --style=file "$FILE" | shasum)
+    if [ "${O_HASH}" != "${F_HASH}" ]; then
       echo "File looks nonformatted: $FILE"
       CMAKE_RES=1
     fi
-    rm "$TMPFILE"
   done
 
   if [ $CMAKE_RES = 1 ]; then
