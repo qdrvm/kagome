@@ -41,7 +41,6 @@ namespace kagome::blockchain {
     auto block_lookup_key = numberAndHashToLookupKey(num, block_hash);
     auto key_space = storage.getSpace(Space::kLookupKey);
     OUTCOME_TRY(key_space->put(block_hash, block_lookup_key.view()));
-    OUTCOME_TRY(key_space->put(numberToIndexKey(num), block_lookup_key.view()));
 
     auto target_space = storage.getSpace(space);
     return target_space->put(block_lookup_key, std::move(value));
