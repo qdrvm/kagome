@@ -64,7 +64,7 @@ namespace kagome::consensus::babe {
       primitives::BlockHeader const &header) const {
     auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
     return primitives::BlockContext{
-        .block_info{header.number, block_hash},
+        .block_info = {header.number, block_hash},
         .header = header,
     };
   }

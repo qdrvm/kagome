@@ -102,7 +102,8 @@ namespace kagome::network {
         std::shared_ptr<runtime::ModuleFactory> module_factory,
         std::shared_ptr<runtime::Core> core_api,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-        std::shared_ptr<storage::SpacedStorage> spaced_storage);
+        std::shared_ptr<storage::SpacedStorage> spaced_storage,
+        std::shared_ptr<consensus::grandpa::Environment> grandpa_environment);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
