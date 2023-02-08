@@ -9,10 +9,33 @@ jobs:
     runs-on: ubuntu-latest
     container: soramitsu/kagome-autotests:1.0
     steps:
+      - name: Set commit status as pending
+        uses: myrotvorets/set-commit-status-action@1.1.6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: pending
+          context: Autotests
+          sha: ${{ github.sha }}
       - name: Run autotests
         working-directory: /kagome-autotests
         run: python3 -m pytest --alluredir=./allure_reports
         shell: sh
+      - name: Set commit status as failure
+        if: failure()
+        uses: myrotvorets/set-commit-status-action@1.1.6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: failure
+          context: Autotests
+          sha: ${{ github.sha }}
+      - name: Set commit status as success
+        if: success()
+        uses: myrotvorets/set-commit-status-action@1.1.6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: success
+          context: Autotests
+          sha: ${{ github.sha }}
     env:
       KAGOME_S1: ${{ secrets.KAGOME_S1 }}
       SUBSTRATE_S2: ${{ secrets.SUBSTRATE_S2 }}
