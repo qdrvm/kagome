@@ -101,7 +101,7 @@ class BlockExecutorTest : public testing::Test {
 
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
     ON_CALL(*babe_config_repo_, config(_, _))
-        .WillByDefault(Return(*babe_config_));
+        .WillByDefault(Return(std::ref(*babe_config_)));
 
     block_validator_ = std::make_shared<BlockValidatorMock>();
     grandpa_environment_ = std::make_shared<EnvironmentMock>();
@@ -117,13 +117,13 @@ class BlockExecutorTest : public testing::Test {
     consistency_keeper_ = std::make_shared<ConsistencyKeeperMock>();
 
     auto appender = std::make_unique<BlockAppenderBase>(consistency_keeper_,
-                                                    block_tree_,
-                                                    digest_tracker_,
-                                                    babe_config_repo_,
-                                                    block_validator_,
-                                                    grandpa_environment_,
-                                                    babe_util_,
-                                                    hasher_);
+                                                        block_tree_,
+                                                        digest_tracker_,
+                                                        babe_config_repo_,
+                                                        block_validator_,
+                                                        grandpa_environment_,
+                                                        babe_util_,
+                                                        hasher_);
 
     block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
                                                           core_,
@@ -242,5 +242,5 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       .WillRepeatedly(Return());
 
   EXPECT_OUTCOME_TRUE_1(block_executor_->applyBlock(
-      Block{block_data.header.value(), block_data.body.value()}, std::nullopt))
+      Block{block_data.header.value(), block_data.body.value()}, justification))
 }
