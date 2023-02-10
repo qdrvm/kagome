@@ -67,6 +67,16 @@ namespace kagome::network {
     outcome::result<BlockAnnounceHandshake> createHandshake() const;
 
     enum class Direction { INCOMING, OUTGOING };
+
+    friend inline std::string_view to_string(Direction direction) {
+      switch (direction) {
+        case Direction::INCOMING:
+          return "incoming";
+        case Direction::OUTGOING:
+          return "outgoing";
+      }
+    }
+
     void readHandshake(std::shared_ptr<Stream> handshake_res,
                        Direction direction,
                        std::function<void(outcome::result<void>)> &&cb);

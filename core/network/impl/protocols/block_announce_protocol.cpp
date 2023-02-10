@@ -95,7 +95,7 @@ namespace kagome::network {
             SL_VERBOSE(self->base_.logger(),
                        "Handshake failed on incoming {} stream with {}: {}",
                        self->protocolName(),
-                       peer_id.toBase58(),
+                       peer_id,
                        res.error());
             stream->reset();
             return;
@@ -106,7 +106,7 @@ namespace kagome::network {
             SL_VERBOSE(self->base_.logger(),
                        "Can't register incoming {} stream with {}: {}",
                        self->protocolName(),
-                       peer_id.toBase58(),
+                       peer_id,
                        res.error());
             stream->reset();
             return;
@@ -215,10 +215,15 @@ namespace kagome::network {
             return;
           }
 
+          BOOST_ASSERT_MSG(stream->remotePeerId().has_value(),
+                           "peer_id must be known at this moment");
+          auto peer_id = stream->remotePeerId().value();
+
           if (not handshake_res.has_value()) {
             SL_VERBOSE(self->base_.logger(),
-                       "Can't read handshake from {}: {}",
-                       stream->remotePeerId().value(),
+                       "Can't read handshake from {} over {} stream: {}",
+                       peer_id,
+                       to_string(direction),
                        handshake_res.error());
             stream->reset();
             cb(handshake_res.as_failure());
@@ -226,25 +231,26 @@ namespace kagome::network {
           }
           auto &handshake = handshake_res.value();
 
-          SL_TRACE(self->base_.logger(),
-                   "Handshake has received from {}",
-                   stream->remotePeerId().value());
-
           auto &genesis_hash = self->block_tree_->getGenesisBlockHash();
 
           if (handshake.genesis_hash != genesis_hash) {
-            SL_VERBOSE(self->base_.logger(),
-                       "Error while processing handshake: genesis no match");
+            SL_VERBOSE(
+                self->base_.logger(),
+                "Error while processing handshake from {}: genesis no match",
+                peer_id);
             stream->reset();
             cb(ProtocolError::GENESIS_NO_MATCH);
             return;
           }
 
-          auto peer_id = stream->remotePeerId().value();
           SL_TRACE(self->base_.logger(),
-                   "Received handshake from peer_id={} (best block {})",
+                   "Handshake has received from {} over {} stream: "
+                   "roles {}, best block {}",
                    peer_id,
-                   handshake.best_block.number);
+                   to_string(direction),
+                   to_string(handshake.roles),
+                   handshake.best_block);
+
           self->peer_manager_->updatePeerState(peer_id, handshake);
 
           switch (direction) {
@@ -276,44 +282,54 @@ namespace kagome::network {
 
     const auto &handshake = handshake_res.value();
 
-    read_writer->write(handshake,
-                       [stream = std::move(stream),
-                        direction,
-                        wp = weak_from_this(),
-                        cb = std::move(cb)](auto &&write_res) mutable {
-                         auto self = wp.lock();
-                         if (not self) {
-                           stream->reset();
-                           cb(ProtocolError::GONE);
-                           return;
-                         }
+    SL_TRACE(
+        base_.logger(),
+        "Handshake will sent to {} over {} stream: roles {}, best block {}",
+        stream->remotePeerId().value(),
+        to_string(direction),
+        to_string(handshake.roles),
+        handshake.best_block);
 
-                         if (not write_res.has_value()) {
-                           SL_VERBOSE(self->base_.logger(),
-                                      "Can't send handshake to {}: {}",
-                                      stream->remotePeerId().value(),
-                                      write_res.error());
-                           stream->reset();
-                           cb(write_res.as_failure());
-                           return;
-                         }
+    read_writer->write(
+        handshake,
+        [stream = std::move(stream),
+         direction,
+         wp = weak_from_this(),
+         cb = std::move(cb)](auto &&write_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            cb(ProtocolError::GONE);
+            return;
+          }
 
-                         SL_TRACE(self->base_.logger(),
-                                  "Handshake has sent to {}",
-                                  stream->remotePeerId().value());
+          if (not write_res.has_value()) {
+            SL_VERBOSE(self->base_.logger(),
+                       "Can't send handshake to {} over {} stream: {}",
+                       stream->remotePeerId().value(),
+                       to_string(direction),
+                       write_res.error());
+            stream->reset();
+            cb(write_res.as_failure());
+            return;
+          }
 
-                         switch (direction) {
-                           case Direction::OUTGOING:
-                             self->readHandshake(std::move(stream),
-                                                 Direction::OUTGOING,
-                                                 std::move(cb));
-                             break;
-                           case Direction::INCOMING:
-                             cb(outcome::success());
-                             self->readAnnounce(std::move(stream));
-                             break;
-                         }
-                       });
+          SL_TRACE(self->base_.logger(),
+                   "Handshake has sent to {} over {} stream",
+                   stream->remotePeerId().value(),
+                   to_string(direction));
+
+          switch (direction) {
+            case Direction::OUTGOING:
+              self->readHandshake(
+                  std::move(stream), Direction::OUTGOING, std::move(cb));
+              break;
+            case Direction::INCOMING:
+              cb(outcome::success());
+              self->readAnnounce(std::move(stream));
+              break;
+          }
+        });
   }
 
   void BlockAnnounceProtocol::readAnnounce(std::shared_ptr<Stream> stream) {
@@ -337,7 +353,10 @@ namespace kagome::network {
             return;
           }
 
+          BOOST_ASSERT_MSG(stream->remotePeerId().has_value(),
+                           "peer_id must be known at this moment");
           auto peer_id = stream->remotePeerId().value();
+
           auto &block_announce = block_announce_res.value();
 
           SL_VERBOSE(self->base_.logger(),
@@ -347,8 +366,6 @@ namespace kagome::network {
 
           self->observer_->onBlockAnnounce(peer_id, block_announce);
 
-          BOOST_ASSERT_MSG(stream->remotePeerId().has_value(),
-                           "peer_id must be known at this moment");
           self->peer_manager_->updatePeerState(stream->remotePeerId().value(),
                                                block_announce);
 
