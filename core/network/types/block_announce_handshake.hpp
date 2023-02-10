@@ -19,25 +19,17 @@ namespace kagome::network {
   using kagome::primitives::BlockInfo;
 
   /**
+   * Handshake sent when we open a block announces substream.
    * Is the structure to send to a new connected peer. It contains common
    * information about current peer and used by the remote peer to detect the
    * posibility of the correct communication with it.
    */
-  struct Status {
-    /**
-     * Supported roles.
-     */
-    Roles roles;
+  struct BlockAnnounceHandshake {
+    Roles roles;  //!< Supported roles.
 
-    /**
-     * Best block
-     */
-    primitives::BlockInfo best_block;
+    primitives::BlockInfo best_block;  //!< Best block.
 
-    /**
-     * Genesis block hash.
-     */
-    BlockHash genesis_hash;
+    BlockHash genesis_hash;  //<! Genesis block hash.
   };
 
   /**
@@ -49,7 +41,7 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Status &v) {
+  Stream &operator<<(Stream &s, const BlockAnnounceHandshake &v) {
     return s << v.roles << v.best_block.number << v.best_block.hash
              << v.genesis_hash;
   }
@@ -63,9 +55,9 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, Status &v) {
+  Stream &operator>>(Stream &s, BlockAnnounceHandshake &v) {
     return s >> v.roles >> v.best_block.number >> v.best_block.hash
-           >> v.genesis_hash;
+        >> v.genesis_hash;
   }
 
 }  // namespace kagome::network

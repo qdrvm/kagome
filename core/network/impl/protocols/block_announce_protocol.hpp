@@ -25,7 +25,7 @@
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/types/block_announce.hpp"
-#include "network/types/status.hpp"
+#include "network/types/block_announce_handshake.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {
@@ -64,16 +64,16 @@ namespace kagome::network {
     void blockAnnounce(BlockAnnounce &&announce);
 
    private:
-    outcome::result<Status> createStatus() const;
+    outcome::result<BlockAnnounceHandshake> createHandshake() const;
 
     enum class Direction { INCOMING, OUTGOING };
-    void readStatus(std::shared_ptr<Stream> stream,
-                    Direction direction,
-                    std::function<void(outcome::result<void>)> &&cb);
+    void readHandshake(std::shared_ptr<Stream> handshake_res,
+                       Direction direction,
+                       std::function<void(outcome::result<void>)> &&cb);
 
-    void writeStatus(std::shared_ptr<Stream> stream,
-                     Direction direction,
-                     std::function<void(outcome::result<void>)> &&cb);
+    void writeHandshake(std::shared_ptr<Stream> stream,
+                        Direction direction,
+                        std::function<void(outcome::result<void>)> &&cb);
 
     void readAnnounce(std::shared_ptr<Stream> stream);
 

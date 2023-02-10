@@ -13,7 +13,7 @@ namespace kagome::network {
   enum class ProtocolError {
     GONE = 1,
     PROTOCOL_NOT_IMPLEMENTED,
-    CAN_NOT_CREATE_STATUS,
+    CAN_NOT_CREATE_HANDSHAKE,
     NODE_NOT_SYNCHRONIZED_YET,
     GENESIS_NO_MATCH,
     HANDSHAKE_ERROR
