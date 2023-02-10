@@ -61,6 +61,7 @@ groups:
               - name: grandpa
                 children:
                   - name: voting_round
+          - name: parachain
           - name: runtime
             children:
               - name: runtime_api
@@ -73,6 +74,7 @@ groups:
                   - name: child_storage_extension
                   - name: offchain_extension
                   - name: misc_extension
+                  - name: runtime_cache
               - name: binaryen
               - name: wavm
           - name: metrics
