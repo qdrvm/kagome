@@ -7,7 +7,7 @@
 #define KAGOME_BLOCK_ANNOUNCE_HPP
 
 #include "primitives/block_header.hpp"
-#include "scale/tie.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::network {
 
@@ -21,8 +21,6 @@ namespace kagome::network {
 
   /// Announce a new complete relay chain block on the network.
   struct BlockAnnounce {
-    SCALE_TIE(3);
-
     /// New block header.
     primitives::BlockHeader header;
 
@@ -31,6 +29,38 @@ namespace kagome::network {
 
     /// Data associated with this block announcement, e.g. a candidate message.
     std::optional<std::vector<uint8_t>> data = std::nullopt;
+
+    friend inline scale::ScaleEncoderStream &operator<<(
+        scale::ScaleEncoderStream &s, const BlockAnnounce &v) {
+      s << v.header;
+      if (v.state.has_value()) {
+        s << v.state.value();
+      }
+      if (v.data.has_value()) {
+        s << v.data.value();
+      }
+      return s;
+    }
+
+    friend inline scale::ScaleDecoderStream &operator>>(
+        scale::ScaleDecoderStream &s, BlockAnnounce &v) {
+      s >> v.header;
+      try {
+        BlockState tmp;
+        s >> tmp;
+        v.state.emplace(tmp);
+      } catch (...) {
+        v.state.reset();
+      }
+      try {
+        std::vector<uint8_t> tmp;
+        s >> tmp;
+        v.data.emplace(std::move(tmp));
+      } catch (...) {
+        v.data.reset();
+      }
+      return s;
+    }
   };
 
 }  // namespace kagome::network
