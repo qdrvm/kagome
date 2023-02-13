@@ -30,7 +30,8 @@ namespace kagome::network {
 
   template <typename Rng = std::mt19937>
   struct RandomGossipStrategy {
-    RandomGossipStrategy(const size_t candidates_num, const size_t lucky_peers_num)
+    RandomGossipStrategy(const size_t candidates_num,
+                         const size_t lucky_peers_num)
         : candidates_num_{candidates_num} {
       auto lucky_rate = lucky_peers_num > 0
                             ? static_cast<double>(lucky_peers_num)
@@ -61,7 +62,7 @@ namespace kagome::network {
   struct StreamEngine final : std::enable_shared_from_this<StreamEngine> {
     using PeerInfo = libp2p::peer::PeerInfo;
     using PeerId = libp2p::peer::PeerId;
-    using Protocol = libp2p::peer::Protocol;
+    using Protocol = libp2p::peer::ProtocolName;
     using Stream = libp2p::connection::Stream;
     using StreamEnginePtr = std::shared_ptr<StreamEngine>;
 
@@ -82,7 +83,8 @@ namespace kagome::network {
     StreamEngine &operator=(StreamEngine &&) = delete;
 
     ~StreamEngine() = default;
-    explicit StreamEngine(std::shared_ptr<ReputationRepository> reputation_repository)
+    explicit StreamEngine(
+        std::shared_ptr<ReputationRepository> reputation_repository)
         : reputation_repository_(std::move(reputation_repository)),
           logger_{log::createLogger("StreamEngine", "network")} {}
 
@@ -155,7 +157,8 @@ namespace kagome::network {
         const std::shared_ptr<ProtocolBase> &protocol,
         const std::shared_ptr<T> &msg,
         const std::function<bool(const PeerId &peer_id)> &predicate,
-        const std::function<void(libp2p::connection::Stream&)> on_send = [](auto&){}) {
+        const std::function<void(libp2p::connection::Stream &)> on_send =
+            [](auto &) {}) {
       BOOST_ASSERT(msg != nullptr);
       BOOST_ASSERT(protocol != nullptr);
 
@@ -166,7 +169,11 @@ namespace kagome::network {
               send(peer_id, protocol, descr.outgoing.stream, msg);
               on_send(*descr.outgoing.stream);
             } else {
-              descr.deferred_messages.push_back([weak_self = weak_from_this(), msg, peer_id, protocol, on_send](auto stream) {
+              descr.deferred_messages.push_back([weak_self = weak_from_this(),
+                                                 msg,
+                                                 peer_id,
+                                                 protocol,
+                                                 on_send](auto stream) {
                 if (auto self = weak_self.lock()) {
                   self->send(peer_id, protocol, stream, msg);
                   on_send(*stream);
@@ -295,7 +302,8 @@ namespace kagome::network {
       }
     };
 
-    using ProtocolMap = std::map<std::shared_ptr<ProtocolBase>, struct ProtocolDescr>;
+    using ProtocolMap =
+        std::map<std::shared_ptr<ProtocolBase>, struct ProtocolDescr>;
     using PeerMap = std::map<PeerId, ProtocolMap>;
 
     void uploadStream(std::shared_ptr<Stream> &dst,
@@ -344,9 +352,9 @@ namespace kagome::network {
 
     template <typename PM, typename F>
     static void forPeerProtocol(PeerId const &peer_id,
-                              PM &streams,
-                              std::shared_ptr<ProtocolBase> const &protocol,
-                              F &&f) {
+                                PM &streams,
+                                std::shared_ptr<ProtocolBase> const &protocol,
+                                F &&f) {
       if (auto it = streams.find(peer_id); it != streams.end()) {
         forProtocol(it->second, protocol, [&](auto &descr) {
           std::forward<F>(f)(it->second, descr);
@@ -357,8 +365,8 @@ namespace kagome::network {
     [[maybe_unused]] void dump(std::string_view msg);
 
     void openOutgoingStream(PeerId const &peer_id,
-                      std::shared_ptr<ProtocolBase> const &protocol,
-                      ProtocolDescr &descr);
+                            std::shared_ptr<ProtocolBase> const &protocol,
+                            ProtocolDescr &descr);
 
     template <typename T>
     void updateStream(const PeerId &peer_id,
