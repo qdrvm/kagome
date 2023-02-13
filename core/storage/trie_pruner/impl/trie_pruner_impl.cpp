@@ -3,5 +3,5 @@
 * SPDX-License-Identifier: Apache-2.0
 */
 
-#include "storage/trie_pruner/trie_pruner_impl.hpp"
+#include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 
