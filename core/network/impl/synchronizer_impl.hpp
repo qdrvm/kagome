@@ -289,7 +289,8 @@ namespace kagome::network {
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
 
-    std::set<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>>
+    std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
+             const char *>
         recent_requests_;
 
     size_t entries_{0};

@@ -9,7 +9,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "network/types/block_announce.hpp"
-#include "network/types/status.hpp"
+#include "network/types/block_announce_handshake.hpp"
 
 namespace kagome::network {
   /**
@@ -22,8 +22,9 @@ namespace kagome::network {
      * Triggered when a Status arrives (as handshake of block announce protocol)
      * @param status - remote status
      */
-    virtual void onRemoteStatus(const libp2p::peer::PeerId &peer_id,
-                                const Status &remote_status) = 0;
+    virtual void onBlockAnnounceHandshake(
+        const libp2p::peer::PeerId &peer_id,
+        const BlockAnnounceHandshake &block_announce_handshake) = 0;
 
     /**
      * Triggered when a BlockAnnounce message arrives

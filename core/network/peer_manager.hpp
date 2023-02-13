@@ -13,9 +13,9 @@
 #include <libp2p/peer/peer_info.hpp>
 
 #include "network/types/block_announce.hpp"
+#include "network/types/block_announce_handshake.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/types/grandpa_message.hpp"
-#include "network/types/status.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
 #include "utils/non_copyable.hpp"
@@ -92,10 +92,10 @@ namespace kagome::network {
     virtual void startPingingPeer(const PeerId &peer_id) = 0;
 
     /**
-     * Updates known data about peer with {@param peer_id} by {@param status}
+     * Updates known data about peer with {@param peer_id} by {@param handshake}
      */
     virtual void updatePeerState(const PeerId &peer_id,
-                                 const Status &status) = 0;
+                                 const BlockAnnounceHandshake &handshake) = 0;
 
     /**
      * Updates known data about peer with {@param peer_id} by {@param announce}

@@ -23,9 +23,9 @@
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/types/block_announce.hpp"
+#include "network/types/block_announce_handshake.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/types/roles.hpp"
-#include "network/types/status.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {
@@ -68,7 +68,9 @@ namespace kagome::network {
                                   func{std::forward<F>(func)},
                                   stream](auto &&result) mutable {
           auto self = wptr.lock();
-          if (!result || !self) return std::forward<F>(func)(std::move(result));
+          if (!result || !self) {
+            return std::forward<F>(func)(std::move(result));
+          }
 
           auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
           read_writer->write(
@@ -83,8 +85,9 @@ namespace kagome::network {
             [wptr{weak_from_this()}, func{std::forward<F>(func)}, stream](
                 auto &&result) mutable {
               auto self = wptr.lock();
-              if (!result || !self)
+              if (!result || !self) {
                 return std::forward<F>(func)(std::move(result));
+              }
 
               auto read_writer =
                   std::make_shared<ScaleMessageReadWriter>(stream);

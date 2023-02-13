@@ -21,7 +21,6 @@
 #include "network/protocols/req_collation_protocol.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/types/roles.hpp"
-#include "network/types/status.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {
