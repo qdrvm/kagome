@@ -290,7 +290,6 @@ namespace kagome::application {
     std::optional<std::string> node_key_file_;
     bool save_node_key_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
-    bool listen_addresses_defined_ = false;
     std::vector<libp2p::multi::Multiaddress> public_addresses_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;
     std::vector<telemetry::TelemetryEndpoint> telemetry_endpoints_;

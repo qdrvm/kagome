@@ -186,7 +186,6 @@ namespace kagome::application {
       : logger_(std::move(logger)),
         roles_(def_roles),
         save_node_key_(false),
-        listen_addresses_defined_(false),
         is_telemetry_enabled_(true),
         p2p_port_(def_p2p_port),
         p2p_port_explicitly_defined_(false),
