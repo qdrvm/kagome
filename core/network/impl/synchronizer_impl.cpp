@@ -60,7 +60,7 @@ namespace {
       case SM::Fast:
       case SM::FastWithoutState:
         return kagome::network::BlockAttribute::HEADER
-               | kagome::network::BlockAttribute::JUSTIFICATION;
+             | kagome::network::BlockAttribute::JUSTIFICATION;
     }
     return kagome::network::BlocksRequest::kBasicAttributes;
   }
@@ -203,7 +203,9 @@ namespace kagome::network {
         it != known_blocks_.end()) {
       auto &block_in_queue = it->second;
       block_in_queue.peers.emplace(peer_id);
-      if (handler) handler(block_info);
+      if (handler) {
+        handler(block_info);
+      }
       return false;
     }
 
@@ -229,7 +231,9 @@ namespace kagome::network {
 
     // Provided block is equal our best one. Nothing needs to do.
     if (block_info == best_block) {
-      if (handler) handler(block_info);
+      if (handler) {
+        handler(block_info);
+      }
       return false;
     }
 
@@ -264,7 +268,9 @@ namespace kagome::network {
 
             // Finding the best common block was failed
             if (not res.has_value()) {
-              if (handler) handler(res.as_failure());
+              if (handler) {
+                handler(res.as_failure());
+              }
               return;
             }
 
@@ -274,7 +280,9 @@ namespace kagome::network {
                 it != self->known_blocks_.end()) {
               auto &block_in_queue = it->second;
               block_in_queue.peers.emplace(peer_id);
-              if (handler) handler(std::move(block_info));
+              if (handler) {
+                handler(std::move(block_info));
+              }
               return;
             }
 
@@ -568,7 +576,9 @@ namespace kagome::network {
                                     SyncResultHandler &&handler) {
     // Interrupts process if node is shutting down
     if (node_is_shutting_down_) {
-      if (handler) handler(Error::SHUTTING_DOWN);
+      if (handler) {
+        handler(Error::SHUTTING_DOWN);
+      }
       return;
     }
 
@@ -587,7 +597,9 @@ namespace kagome::network {
                peer_id,
                from,
                r.first->second);
-      if (handler) handler(Error::DUPLICATE_REQUEST);
+      if (handler) {
+        handler(Error::DUPLICATE_REQUEST);
+      }
       return;
     }
 
@@ -611,7 +623,9 @@ namespace kagome::network {
                  peer_id,
                  from,
                  response_res.error());
-        if (handler) handler(response_res.as_failure());
+        if (handler) {
+          handler(response_res.as_failure());
+        }
         return;
       }
       auto &blocks = response_res.value().blocks;
@@ -624,7 +638,9 @@ namespace kagome::network {
                  "Response does not have any blocks",
                  peer_id,
                  from);
-        if (handler) handler(Error::EMPTY_RESPONSE);
+        if (handler) {
+          handler(Error::EMPTY_RESPONSE);
+        }
         return;
       }
 
@@ -645,7 +661,9 @@ namespace kagome::network {
                    "Received block without header",
                    peer_id,
                    from);
-          if (handler) handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+          if (handler) {
+            handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+          }
           return;
         }
         // Check if body is provided
@@ -655,7 +673,9 @@ namespace kagome::network {
                    "Received block without body",
                    peer_id,
                    from);
-          if (handler) handler(Error::RESPONSE_WITHOUT_BLOCK_BODY);
+          if (handler) {
+            handler(Error::RESPONSE_WITHOUT_BLOCK_BODY);
+          }
           return;
         }
         auto &header = block.header.value();
@@ -673,7 +693,9 @@ namespace kagome::network {
                        peer_id,
                        from,
                        BlockInfo(header.number, block.hash));
-              if (handler) handler(Error::DISCARDED_BLOCK);
+              if (handler) {
+                handler(Error::DISCARDED_BLOCK);
+              }
               return;
             }
 
@@ -704,7 +726,9 @@ namespace kagome::network {
                      peer_id,
                      from,
                      BlockInfo(header.number, header.parent_hash));
-            if (handler) handler(Error::DISCARDED_BLOCK);
+            if (handler) {
+              handler(Error::DISCARDED_BLOCK);
+            }
             return;
           }
 
@@ -720,7 +744,9 @@ namespace kagome::network {
                    "block {}: Received block is not descendant of previous",
                    peer_id,
                    from);
-          if (handler) handler(Error::WRONG_ORDER);
+          if (handler) {
+            handler(Error::WRONG_ORDER);
+          }
           return;
         }
 
@@ -734,7 +760,9 @@ namespace kagome::network {
                    "Received block whose hash does not match the header",
                    peer_id,
                    from);
-          if (handler) handler(Error::INVALID_HASH);
+          if (handler) {
+            handler(Error::INVALID_HASH);
+          }
           return;
         }
 
@@ -792,7 +820,9 @@ namespace kagome::network {
                                             std::optional<uint32_t> limit,
                                             SyncResultHandler &&handler) {
     if (node_is_shutting_down_) {
-      if (handler) handler(Error::SHUTTING_DOWN);
+      if (handler) {
+        handler(Error::SHUTTING_DOWN);
+      }
       return;
     }
 
@@ -859,7 +889,9 @@ namespace kagome::network {
                  "Response does not have any contents",
                  peer_id,
                  target_block);
-        if (handler) handler(Error::EMPTY_RESPONSE);
+        if (handler) {
+          handler(Error::EMPTY_RESPONSE);
+        }
         return;
       }
 
@@ -883,7 +915,9 @@ namespace kagome::network {
                    "requesting justifications",
                    peer_id,
                    target_block);
-          if (handler) handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+          if (handler) {
+            handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+          }
           return;
         }
         last_observed_block =
@@ -1082,7 +1116,9 @@ namespace kagome::network {
               "Block {} {} not applied as discarded",
               block_info,
               n ? fmt::format("and {} others have", n) : fmt::format("has"));
-          if (handler) handler(Error::DISCARDED_BLOCK);
+          if (handler) {
+            handler(Error::DISCARDED_BLOCK);
+          }
         }
 
       } else {
@@ -1107,7 +1143,9 @@ namespace kagome::network {
                 "state syncing on block in progress",
                 block_info,
                 n ? fmt::format("and {} others have", n) : fmt::format("has"));
-            if (handler) handler(Error::DISCARDED_BLOCK);
+            if (handler) {
+              handler(Error::DISCARDED_BLOCK);
+            }
             return;
           }
         }
@@ -1125,15 +1163,21 @@ namespace kagome::network {
                 block_info,
                 n ? fmt::format("and {} others have", n) : fmt::format("has"),
                 applying_res.error());
-            if (handler) handler(Error::DISCARDED_BLOCK);
+            if (handler) {
+              handler(Error::DISCARDED_BLOCK);
+            }
           } else {
             SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
-            if (handler) handler(block_info);
+            if (handler) {
+              handler(block_info);
+            }
           }
         } else {
           telemetry_->notifyBlockImported(
               block_info, telemetry::BlockOrigin::kNetworkInitialSync);
-          if (handler) handler(block_info);
+          if (handler) {
+            handler(block_info);
+          }
 
           // Check if finality lag greater than justification saving interval
           static const BlockNumber kJustificationInterval = 512;

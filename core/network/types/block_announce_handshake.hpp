@@ -30,7 +30,7 @@ namespace kagome::network {
 
     primitives::BlockInfo best_block;  //!< Best block.
 
-    BlockHash genesis_hash;  //<! Genesis block hash.
+    BlockHash genesis_hash;  //!< Genesis block hash.
 
     friend inline scale::ScaleEncoderStream &operator<<(
         scale::ScaleEncoderStream &s, const BlockAnnounceHandshake &v) {
