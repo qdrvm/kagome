@@ -74,7 +74,7 @@ namespace kagome::consensus::babe {
 
     struct {
       std::chrono::high_resolution_clock::time_point time;
-      primitives::BlockNumber block_number;
+      primitives::BlockNumber block_number = 0;
     } speed_data_ = {};
 
     log::Logger logger_;

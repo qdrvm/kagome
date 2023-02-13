@@ -12,8 +12,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, ProtocolError, e) {
       return "Protocol was switched off";
     case E::PROTOCOL_NOT_IMPLEMENTED:
       return "Protocol is not implemented";
-    case E::CAN_NOT_CREATE_STATUS:
-      return "Can not create status";
+    case E::CAN_NOT_CREATE_HANDSHAKE:
+      return "Can not create handshake";
     case E::NODE_NOT_SYNCHRONIZED_YET:
       return "Node is not synchronized yet";
     case E::GENESIS_NO_MATCH:

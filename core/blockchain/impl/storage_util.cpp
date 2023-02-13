@@ -41,7 +41,6 @@ namespace kagome::blockchain {
     auto block_lookup_key = numberAndHashToLookupKey(num, block_hash);
     auto key_space = storage.getSpace(Space::kLookupKey);
     OUTCOME_TRY(key_space->put(block_hash, block_lookup_key.view()));
-    OUTCOME_TRY(key_space->put(numberToIndexKey(num), block_lookup_key.view()));
 
     auto target_space = storage.getSpace(space);
     return target_space->put(block_lookup_key, std::move(value));
@@ -51,7 +50,9 @@ namespace kagome::blockchain {
                                    storage::Space space,
                                    const primitives::BlockId &block_id) {
     OUTCOME_TRY(key, idToLookupKey(storage, block_id));
-    if (!key.has_value()) return false;
+    if (!key.has_value()) {
+      return false;
+    }
     auto target_space = storage.getSpace(space);
     return target_space->contains(key.value());
   }
@@ -61,7 +62,9 @@ namespace kagome::blockchain {
       storage::Space space,
       const primitives::BlockId &block_id) {
     OUTCOME_TRY(key, idToLookupKey(storage, block_id));
-    if (!key.has_value()) return std::nullopt;
+    if (!key.has_value()) {
+      return std::nullopt;
+    }
     auto target_space = storage.getSpace(space);
     return target_space->tryGet(key.value());
   }
@@ -89,7 +92,7 @@ namespace kagome::blockchain {
       return outcome::failure(KeyValueRepositoryError::INVALID_KEY);
     }
     return (uint64_t(key[0]) << 24u) | (uint64_t(key[1]) << 16u)
-           | (uint64_t(key[2]) << 8u) | uint64_t(key[3]);
+         | (uint64_t(key[2]) << 8u) | uint64_t(key[3]);
   }
 
 }  // namespace kagome::blockchain

@@ -159,9 +159,9 @@ namespace kagome::consensus::babe {
         }
 
         root_ = std::move(saved_state_res.value());
-        SL_DEBUG(logger_,
-                 "State was initialized by savepoint on block {}",
-                 root_->block);
+        SL_VERBOSE(logger_,
+                   "State was initialized by savepoint on block {}",
+                   root_->block);
         break;
       }
     }
@@ -182,7 +182,7 @@ namespace kagome::consensus::babe {
           {0, genesis_hash},
           std::make_shared<primitives::BabeConfiguration>(
               std::move(babe_config)));
-      SL_DEBUG(logger_, "State was initialized by genesis block");
+      SL_VERBOSE(logger_, "State was initialized by genesis block");
     }
 
     BOOST_ASSERT_MSG(root_ != nullptr, "The root must be initialized by now");
