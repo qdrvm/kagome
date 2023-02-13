@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "block_appender_base.hpp"
+#include "consensus/babe/impl/block_appender_base.hpp"
 
 #include "blockchain/block_tree.hpp"
 #include "blockchain/digest_tracker.hpp"
