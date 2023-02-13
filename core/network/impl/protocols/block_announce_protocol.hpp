@@ -75,6 +75,7 @@ namespace kagome::network {
         case Direction::OUTGOING:
           return "outgoing";
       }
+      return "unknown";
     }
 
     void readHandshake(std::shared_ptr<Stream> handshake_res,
