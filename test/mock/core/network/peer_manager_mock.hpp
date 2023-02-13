@@ -38,7 +38,7 @@ namespace kagome::network {
 
     MOCK_METHOD(void,
                 updatePeerState,
-                (const PeerId, &const BlockAnnounceHandshake &),
+                (const PeerId &, const BlockAnnounceHandshake &),
                 (override));
 
     MOCK_METHOD(void,

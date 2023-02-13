@@ -30,6 +30,12 @@ namespace kagome::network {
     /// Data associated with this block announcement, e.g. a candidate message.
     std::optional<std::vector<uint8_t>> data = std::nullopt;
 
+    // operator== is needed only for tests
+    inline bool operator==(const BlockAnnounce &other) const {
+      return this->header == other.header and this->state == other.state
+         and this->data == other.data;
+    }
+
     friend inline scale::ScaleEncoderStream &operator<<(
         scale::ScaleEncoderStream &s, const BlockAnnounce &v) {
       s << v.header;
