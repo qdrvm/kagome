@@ -35,9 +35,9 @@ namespace kagome::network {
       s << v.header;
       if (v.state.has_value()) {
         s << v.state.value();
-      }
-      if (v.data.has_value()) {
-        s << v.data.value();
+        if (v.data.has_value()) {
+          s << v.data.value();
+        }
       }
       return s;
     }
@@ -45,18 +45,18 @@ namespace kagome::network {
     friend inline scale::ScaleDecoderStream &operator>>(
         scale::ScaleDecoderStream &s, BlockAnnounce &v) {
       s >> v.header;
-      try {
+      if (s.hasMore(1)) {
         BlockState tmp;
         s >> tmp;
         v.state.emplace(tmp);
-      } catch (...) {
+      } else {
         v.state.reset();
       }
-      try {
+      if (s.hasMore(1)) {
         std::vector<uint8_t> tmp;
         s >> tmp;
         v.data.emplace(std::move(tmp));
-      } catch (...) {
+      } else {
         v.data.reset();
       }
       return s;
