@@ -21,11 +21,7 @@ hunter_config(
 hunter_config(soralog VERSION 0.1.5 KEEP_PACKAGE_SOURCES)
 hunter_config(
   libp2p
-  # VERSION 0.1.8
-  URL
-  https://github.com/libp2p/cpp-libp2p/archive/baed94dc622ad6625a5dc03057ff1efde450b2b9.tar.gz
-  SHA1
-  7762dd1038a55fcf0b47cab82fec6f9a010243ed
+  VERSION 0.1.10
   KEEP_PACKAGE_SOURCES)
 
 hunter_config(rocksdb VERSION 7.2.2 CMAKE_ARGS WITH_GFLAGS=OFF)
