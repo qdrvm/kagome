@@ -17,6 +17,7 @@ namespace kagome::storage::trie_pruner {
   struct TrieStateUpdate {
     // block that introduced this update
     primitives::BlockNumber finalized_block;
+    storage::trie::RootHash old_storage_root;
 
     std::vector<common::Buffer> inserted_keys;
     std::vector<common::Buffer> removed_keys;
@@ -26,10 +27,11 @@ namespace kagome::storage::trie_pruner {
    public:
     virtual ~TriePruner() = default;
 
-    virtual void addNewState(TrieStateUpdate const& update) = 0;
+    virtual outcome::result<void> addNewState(
+        TrieStateUpdate const &update) = 0;
     virtual void prune(primitives::BlockNumber last_finalized) = 0;
   };
 
-}
+}  // namespace kagome::storage::trie_pruner
 
 #endif  // KAGOME_TRIEPRUNER_HPP
