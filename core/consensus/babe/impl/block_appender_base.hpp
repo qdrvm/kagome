@@ -56,6 +56,13 @@ namespace kagome::consensus::babe {
         primitives::Block const &block,
         primitives::BlockContext const &context);
 
+    struct SlotInfo {
+      BabeTimePoint start;
+      BabeDuration duration;
+    };
+
+    outcome::result<SlotInfo> getSlotInfo(primitives::BlockHeader const &header) const;
+
    private:
     log::Logger logger_ = log::createLogger("BlockAppender", "babe");
 

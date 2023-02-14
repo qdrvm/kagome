@@ -219,4 +219,17 @@ namespace kagome::consensus::babe {
     return consistency_guard;
   }
 
+  outcome::result<BlockAppenderBase::SlotInfo> BlockAppenderBase::getSlotInfo(
+      primitives::BlockHeader const &header) const {
+    OUTCOME_TRY(babe_digests, getBabeDigests(header));
+
+    const auto &babe_header = babe_digests.second;
+
+    auto slot_number = babe_header.slot_number;
+
+    auto start_time = babe_util_->slotStartTime(slot_number);
+    auto slot_duration = babe_config_repo_->slotDuration();
+    return outcome::success(SlotInfo{start_time, slot_duration});
+  }
+
 }  // namespace kagome::consensus::babe

@@ -153,8 +153,10 @@ namespace kagome::consensus::babe {
       }
     }
 
+    OUTCOME_TRY(slot_info, appender_->getSlotInfo(block.header));
+    auto& [slot_start, slot_duration] = slot_info;
     auto lag = std::chrono::system_clock::now()
-             - babe_util_->slotStartTime(slot_number);
+             - slot_start;
     std::string lag_msg;
     if (lag > std::chrono::hours(99)) {
       lag_msg = fmt::format(
@@ -168,7 +170,7 @@ namespace kagome::consensus::babe {
       lag_msg = fmt::format(
           " (lag {} min.)",
           std::chrono::duration_cast<std::chrono::minutes>(lag).count());
-    } else if (lag > babe_config_repo_->slotDuration() * 2) {
+    } else if (lag > slot_duration * 2) {
       lag_msg = " (lag <1 min.)";
     }
 
