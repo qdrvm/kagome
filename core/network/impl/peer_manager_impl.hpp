@@ -119,7 +119,8 @@ namespace kagome::network {
     void startPingingPeer(const PeerId &peer_id) override;
 
     /** @see PeerManager::updatePeerState */
-    void updatePeerState(const PeerId &peer_id, const Status &status) override;
+    void updatePeerState(const PeerId &peer_id,
+                         const BlockAnnounceHandshake &handshake) override;
 
     /** @see PeerManager::updatePeerState */
     void updatePeerState(const PeerId &peer_id,

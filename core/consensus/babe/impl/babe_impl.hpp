@@ -121,8 +121,9 @@ namespace kagome::consensus::babe {
 
     State getCurrentState() const override;
 
-    void onRemoteStatus(const libp2p::peer::PeerId &peer_id,
-                        const network::Status &status) override;
+    void onBlockAnnounceHandshake(
+        const libp2p::peer::PeerId &peer_id,
+        const network::BlockAnnounceHandshake &handshake) override;
 
     void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                          const network::BlockAnnounce &announce) override;

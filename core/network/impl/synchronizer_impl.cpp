@@ -61,7 +61,7 @@ namespace {
       case SM::Fast:
       case SM::FastWithoutState:
         return kagome::network::BlockAttribute::HEADER
-               | kagome::network::BlockAttribute::JUSTIFICATION;
+             | kagome::network::BlockAttribute::JUSTIFICATION;
     }
     return kagome::network::BlocksRequest::kBasicAttributes;
   }
@@ -417,14 +417,16 @@ namespace kagome::network {
 
     auto request_fingerprint = request.fingerprint();
 
-    if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
+    if (auto r = recent_requests_.emplace(
+            std::make_tuple(peer_id, request_fingerprint), "find common block");
+        not r.second) {
       SL_VERBOSE(log_,
                  "Can't check if block #{} in #{}..#{} is common with {}: {}",
                  hint,
                  lower,
                  upper - 1,
                  peer_id,
-                 make_error_code(Error::DUPLICATE_REQUEST));
+                 r.first->second);
       handler(Error::DUPLICATE_REQUEST);
       return;
     }
@@ -591,12 +593,14 @@ namespace kagome::network {
 
     auto request_fingerprint = request.fingerprint();
 
-    if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
+    if (auto r = recent_requests_.emplace(
+            std::make_tuple(peer_id, request_fingerprint), "load blocks");
+        not r.second) {
       SL_ERROR(log_,
                "Can't load blocks from {} beginning block {}: {}",
                peer_id,
                from,
-               make_error_code(Error::DUPLICATE_REQUEST));
+               r.first->second);
       if (handler) {
         handler(Error::DUPLICATE_REQUEST);
       }
@@ -841,12 +845,15 @@ namespace kagome::network {
         limit};
 
     auto request_fingerprint = request.fingerprint();
-    if (not recent_requests_.emplace(peer_id, request_fingerprint).second) {
+    if (auto r = recent_requests_.emplace(
+            std::make_tuple(peer_id, request_fingerprint),
+            "load justifications");
+        not r.second) {
       SL_ERROR(log_,
                "Can't load justification from {} for block {}: {}",
                peer_id,
                target_block,
-               make_error_code(Error::DUPLICATE_REQUEST));
+               r.first->second);
       if (handler) {
         handler(Error::DUPLICATE_REQUEST);
       }
@@ -858,6 +865,7 @@ namespace kagome::network {
     auto response_handler = [wp = weak_from_this(),
                              peer_id,
                              target_block,
+                             limit,
                              handler = std::move(handler)](
                                 auto &&response_res) mutable {
       auto self = wp.lock();
@@ -891,8 +899,19 @@ namespace kagome::network {
         return;
       }
 
+      // Use decreasing limit,
+      // to avoid race between block and justification requests
+      if (limit.has_value()) {
+        if (blocks.size() >= limit.value()) {
+          limit = 0;
+        } else {
+          limit.value() -= (blocks.size() - 1);
+        }
+      }
+
       bool justification_received = false;
       BlockInfo last_justified_block;
+      BlockInfo last_observed_block;
       for (auto &block : blocks) {
         if (not block.header) {
           SL_ERROR(self->log_,
@@ -905,10 +924,11 @@ namespace kagome::network {
           }
           return;
         }
+        last_observed_block =
+            primitives::BlockInfo{block.header->number, block.hash};
         if (block.justification) {
           justification_received = true;
-          last_justified_block =
-              primitives::BlockInfo{block.header->number, block.hash};
+          last_justified_block = last_observed_block;
           {
             std::lock_guard lock(self->justifications_mutex_);
             self->justifications_.emplace(last_justified_block,
@@ -925,6 +945,25 @@ namespace kagome::network {
           }
         });
       }
+
+      // Continue justifications requesting till limit is non-zero and last
+      // observed block is not target (no block anymore)
+      if ((not limit.has_value() or limit.value() > 0)
+          and last_observed_block != target_block) {
+        SL_TRACE(self->log_, "Request next block pack");
+        self->scheduler_->schedule([wp,
+                                    peer_id,
+                                    target_block = last_observed_block,
+                                    limit,
+                                    handler = std::move(handler)]() mutable {
+          if (auto self = wp.lock()) {
+            self->loadJustifications(
+                peer_id, target_block, limit, std::move(handler));
+          }
+        });
+        return;
+      }
+
       if (handler) {
         handler(last_justified_block);
       }
@@ -1162,7 +1201,7 @@ namespace kagome::network {
               syncMissingJustifications(
                   peer_id,
                   last_finalized,
-                  std::nullopt,
+                  kJustificationInterval * 2,
                   [wp = weak_from_this(), last_finalized, block_info](
                       auto res) {
                     if (auto self = wp.lock()) {

@@ -370,8 +370,9 @@ namespace kagome::consensus::babe {
     return current_state_;
   }
 
-  void BabeImpl::onRemoteStatus(const libp2p::peer::PeerId &peer_id,
-                                const network::Status &status) {
+  void BabeImpl::onBlockAnnounceHandshake(
+      const libp2p::peer::PeerId &peer_id,
+      const network::BlockAnnounceHandshake &handshake) {
     // If state is loading, just to ping of loading
     if (current_state_ == Babe::State::STATE_LOADING) {
       startStateSyncing(peer_id);
@@ -385,7 +386,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(current_best_block_res.has_value());
     const auto &current_best_block = current_best_block_res.value();
 
-    if (current_best_block == status.best_block) {
+    if (current_best_block == handshake.best_block) {
       if (current_state_ == Babe::State::HEADERS_LOADING) {
         current_state_ = Babe::State::HEADERS_LOADED;
         startStateSyncing(peer_id);
@@ -397,11 +398,11 @@ namespace kagome::consensus::babe {
     }
 
     // Remote peer is lagged
-    if (status.best_block.number <= last_finalized_block.number) {
+    if (handshake.best_block.number <= last_finalized_block.number) {
       return;
     }
 
-    startCatchUp(peer_id, status.best_block);
+    startCatchUp(peer_id, handshake.best_block);
   }
 
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
@@ -572,9 +573,13 @@ namespace kagome::consensus::babe {
     } while (affected);
 
     if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
-      SL_INFO(log_, "Stateless fast sync is finished; Application is stopping");
-      log_->flush();
-      app_state_manager_->shutdown();
+      if (app_state_manager_->state()
+          != application::AppStateManager::State::ShuttingDown) {
+        SL_INFO(log_,
+                "Stateless fast sync is finished; Application is stopping");
+        log_->flush();
+        app_state_manager_->shutdown();
+      }
       return;
     }
 
@@ -643,9 +648,8 @@ namespace kagome::consensus::babe {
 
       auto finish_time = babe_util_->slotFinishTime(current_slot_);
 
-      rewind_slots =
-          now > finish_time
-          and (now - finish_time) > babe_config_repo_->slotDuration();
+      rewind_slots = now > finish_time
+                 and (now - finish_time) > babe_config_repo_->slotDuration();
 
       if (rewind_slots) {
         // we are too far behind; after skipping some slots (but not epochs)
@@ -666,7 +670,7 @@ namespace kagome::consensus::babe {
 
     // Slot processing begins in 1/3 slot time before end
     auto finish_time = babe_util_->slotFinishTime(current_slot_)
-                       - babe_config_repo_->slotDuration() / 3;
+                     - babe_config_repo_->slotDuration() / 3;
 
     SL_VERBOSE(log_,
                "Starting a slot {} in epoch {} (remains {:.2f} sec.)",
@@ -958,8 +962,8 @@ namespace kagome::consensus::babe {
                 return common::Buffer{scale::encode(ext).value()};
               }));
           return ext_root_res.has_value()
-                 and (ext_root_res.value()
-                      == common::Buffer(block.header.extrinsics_root));
+             and (ext_root_res.value()
+                  == common::Buffer(block.header.extrinsics_root));
         }(),
         "Extrinsics root does not match extrinsics in the block");
 

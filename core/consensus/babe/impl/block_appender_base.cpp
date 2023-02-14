@@ -181,9 +181,6 @@ namespace kagome::consensus::babe {
 
     auto consistency_guard = consistency_keeper_->start(context.block_info);
 
-    // observe digest of block
-    // (must be done strictly after block is added)
-    // TODO(Harrm): Why are we doing it before?
     auto digest_tracking_res =
         digest_tracker_->onDigest(context, block.header.digest);
     if (digest_tracking_res.has_error()) {

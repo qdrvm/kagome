@@ -102,12 +102,14 @@ namespace kagome::consensus::babe {
     auto block_delta = block_info.number - speed_data_.block_number;
     auto time_delta = now - speed_data_.time;
     if (block_delta >= 10000 or time_delta >= std::chrono::minutes(1)) {
-      SL_INFO(logger_,
-              "Imported {} more headers of blocks. Average speed is {} bps",
-              block_delta,
-              block_delta
-                  / std::chrono::duration_cast<std::chrono::seconds>(time_delta)
-                        .count());
+      SL_LOG(logger_,
+             speed_data_.block_number ? log::Level::INFO
+                                      : static_cast<log::Level>(-1),
+             "Imported {} more headers of blocks. Average speed is {} bps",
+             block_delta,
+             block_delta
+                 / std::chrono::duration_cast<std::chrono::seconds>(time_delta)
+                       .count());
       speed_data_.block_number = block_info.number;
       speed_data_.time = now;
     }

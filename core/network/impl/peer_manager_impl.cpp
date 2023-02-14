@@ -282,7 +282,9 @@ namespace kagome::network {
       std::pair<network::CollatorPublicKey const &, network::ParachainId>>
   PeerManagerImpl::insertAdvertisement(PeerState &peer_state,
                                        primitives::BlockHash para_hash) {
-    if (!peer_state.collator_state) return Error::UNDECLARED_COLLATOR;
+    if (!peer_state.collator_state) {
+      return Error::UNDECLARED_COLLATOR;
+    }
 
     auto my_view = peer_view_->getMyView();
     BOOST_ASSERT(my_view);
@@ -291,8 +293,10 @@ namespace kagome::network {
       return Error::OUT_OF_VIEW;
     }
 
-    if (peer_state.collator_state.value().advertisements.count(para_hash) != 0)
+    if (peer_state.collator_state.value().advertisements.count(para_hash)
+        != 0) {
       return Error::DUPLICATE;
+    }
 
     peer_state.collator_state.value().advertisements.insert(
         std::move(para_hash));
@@ -539,12 +543,12 @@ namespace kagome::network {
         });
   }
 
-  void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
-                                        const Status &status) {
+  void PeerManagerImpl::updatePeerState(
+      const PeerId &peer_id, const BlockAnnounceHandshake &handshake) {
     auto [it, is_new] = peer_states_.emplace(peer_id, PeerState{});
     it->second.time = clock_->now();
-    it->second.roles = status.roles;
-    it->second.best_block = status.best_block;
+    it->second.roles = handshake.roles;
+    it->second.best_block = handshake.best_block;
   }
 
   void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
@@ -637,8 +641,8 @@ namespace kagome::network {
                 return;
               }
               PeerType peer_type = connection->isInitiator()
-                                       ? PeerType::PEER_TYPE_OUT
-                                       : PeerType::PEER_TYPE_IN;
+                                     ? PeerType::PEER_TYPE_OUT
+                                     : PeerType::PEER_TYPE_IN;
 
               // Add to active peer list
               if (auto [ap_it, added] = self->active_peers_.emplace(
