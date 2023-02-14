@@ -75,6 +75,9 @@ namespace kagome::storage::trie {
       const OnDbRead &on_db_read) const {
     if (auto p = std::dynamic_pointer_cast<DummyValue>(parent); p != nullptr) {
       OUTCOME_TRY(value, backend_->get(*p->value.hash));
+      if (on_db_read) {
+        on_db_read(value);
+      }
       p->value.value = value.into();
       return nullptr;
     }
