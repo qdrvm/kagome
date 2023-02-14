@@ -5,6 +5,7 @@
 
 #include "runtime/common/trie_storage_provider_impl.hpp"
 
+#include "common/no_cb.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/trie_batches.hpp"
@@ -54,7 +55,7 @@ namespace kagome::runtime {
     SL_DEBUG(logger_,
              "Setting storage provider to new persistent batch with root {}",
              state_root);
-    on_db_read_ = {};
+    on_db_read_ = kNoCb;
     OUTCOME_TRY(batch,
                 trie_storage_->getPersistentBatchAt(state_root, on_db_read_));
     child_batches_.clear();
