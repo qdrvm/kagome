@@ -13,7 +13,7 @@
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/digest_tracker.hpp"
-#include "common/no_cb.hpp"
+#include "common/no_fn.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/babe_lottery.hpp"
@@ -146,7 +146,7 @@ namespace kagome::consensus::babe {
       const auto &state_root = best_block_header.state_root;
 
       // Check if target block has state
-      if (auto res = trie_storage_->getEphemeralBatchAt(state_root, kNoCb);
+      if (auto res = trie_storage_->getEphemeralBatchAt(state_root, kNoFn);
           res.has_error()) {
         SL_WARN(log_, "Can't get state of best block: {}", res.error());
         SL_CRITICAL(log_,

@@ -13,7 +13,7 @@
 
 #include "common/hexutil.hpp"
 #include "common/monadic_utils.hpp"
-#include "common/no_cb.hpp"
+#include "common/no_fn.hpp"
 #include "runtime/common/executor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
@@ -21,12 +21,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
   switch (e) {
     case E::MAX_BLOCK_RANGE_EXCEEDED:
       return "Maximum block range size ("
-             + std::to_string(kagome::api::StateApiImpl::kMaxBlockRange)
-             + " blocks) exceeded";
+           + std::to_string(kagome::api::StateApiImpl::kMaxBlockRange)
+           + " blocks) exceeded";
     case E::MAX_KEY_SET_SIZE_EXCEEDED:
       return "Maximum key set size ("
-             + std::to_string(kagome::api::StateApiImpl::kMaxKeySetSize)
-             + " keys) exceeded";
+           + std::to_string(kagome::api::StateApiImpl::kMaxKeySetSize)
+           + " keys) exceeded";
     case E::END_BLOCK_LOWER_THAN_BEGIN_BLOCK:
       return "End block is lower (is an ancestor of) the begin block "
              "(should be the other way)";
@@ -69,7 +69,7 @@ namespace kagome::api {
       const std::optional<primitives::BlockHash> &opt_at) const {
     auto at =
         opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
-    return executor_->callAtRaw(at, method, data, kNoCb);
+    return executor_->callAtRaw(at, method, data, kNoFn);
   }
 
   outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(
@@ -84,7 +84,7 @@ namespace kagome::api {
 
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(initial_trie_reader,
-                storage_->getEphemeralBatchAt(header.state_root, kNoCb));
+                storage_->getEphemeralBatchAt(header.state_root, kNoFn));
     auto cursor = initial_trie_reader->trieCursor();
 
     // if prev_key is bigger than prefix, then set cursor to the next key after
@@ -124,7 +124,7 @@ namespace kagome::api {
       const common::BufferView &key, const primitives::BlockHash &at) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader,
-                storage_->getEphemeralBatchAt(header.state_root, kNoCb));
+                storage_->getEphemeralBatchAt(header.state_root, kNoFn));
     auto res = trie_reader->tryGet(key);
     return common::map_result_optional(
         std::move(res), [](common::BufferOrView &&r) { return r.into(); });
@@ -164,7 +164,7 @@ namespace kagome::api {
     for (auto &block : range) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block));
       OUTCOME_TRY(batch,
-                  storage_->getEphemeralBatchAt(header.state_root, kNoCb));
+                  storage_->getEphemeralBatchAt(header.state_root, kNoFn));
       StorageChangeSet change{block, {}};
       for (auto &key : keys) {
         OUTCOME_TRY(opt_get, batch->tryGet(key));

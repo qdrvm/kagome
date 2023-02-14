@@ -20,7 +20,7 @@
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
-#include "common/no_cb.hpp"
+#include "common/no_fn.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
@@ -166,7 +166,7 @@ Example:
 
 outcome::result<std::unique_ptr<PersistentTrieBatch>> persistent_batch(
     const std::unique_ptr<TrieStorageImpl> &trie, const RootHash &hash) {
-  OUTCOME_TRY(batch, trie->getPersistentBatchAt(hash, kNoCb));
+  OUTCOME_TRY(batch, trie->getPersistentBatchAt(hash, kNoFn));
   auto cursor = batch->trieCursor();
   auto res = check(cursor->next());
   int count = 0;
@@ -207,7 +207,7 @@ void child_storage_root_hashes(
 
 auto is_hash(const char *s) {
   return std::strlen(s) == common::Hash256::size() * 2 + 2
-         && std::equal(s, s + 2, "0x");
+      && std::equal(s, s + 2, "0x");
 };
 
 int db_editor_main(int argc, const char **argv) {
@@ -443,7 +443,7 @@ int db_editor_main(int argc, const char **argv) {
       need_additional_compaction = true;
     } else if (DUMP == cmd) {
       auto batch =
-          check(trie->getEphemeralBatchAt(last_finalized_block.hash, kNoCb))
+          check(trie->getEphemeralBatchAt(last_finalized_block.hash, kNoFn))
               .value();
       auto cursor = batch->trieCursor();
       auto res = check(cursor->next());

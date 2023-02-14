@@ -7,7 +7,7 @@
 
 #include <boost/assert.hpp>
 
-#include "common/no_cb.hpp"
+#include "common/no_fn.hpp"
 #include "log/logger.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
@@ -46,7 +46,7 @@ namespace kagome::runtime {
           return cached_code_;
         }
       }
-      OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state, kNoCb));
+      OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state, kNoFn));
       OUTCOME_TRY(code, setCodeFromBatch(*batch.get()));
       cached_code_ = std::move(code);
       last_state_root_ = state;

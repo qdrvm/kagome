@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include <cstdint>
 
-#include "common/no_cb.hpp"
+#include "common/no_fn.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "network/types/state_request.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -70,7 +70,7 @@ class StateProtocolObserverTest : public testing::Test {
   outcome::result<std::unique_ptr<PersistentTrieBatch>>
   persistent_empty_batch() {
     auto codec = std::make_shared<PolkadotCodec>();
-    OUTCOME_TRY(batch, trie_->getPersistentBatchAt(kEmptyRootHash, kNoCb));
+    OUTCOME_TRY(batch, trie_->getPersistentBatchAt(kEmptyRootHash, kNoFn));
     return std::move(batch);
   }
 
@@ -99,7 +99,7 @@ namespace kagome::network {
   bool operator==(const KeyValueStateEntry &lhs,
                   const KeyValueStateEntry &rhs) {
     return lhs.state_root == rhs.state_root && lhs.entries == rhs.entries
-           && lhs.complete == rhs.complete;
+        && lhs.complete == rhs.complete;
   }
 
   bool operator==(const StateResponse &lhs, const StateResponse &rhs) {

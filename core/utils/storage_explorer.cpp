@@ -10,7 +10,7 @@
 #include "blockchain/block_storage.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "common/no_cb.hpp"
+#include "common/no_fn.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "injector/application_injector.hpp"
@@ -18,7 +18,7 @@
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "storage/trie/trie_storage.hpp"
 
-using kagome::kNoCb;
+using kagome::kNoFn;
 using kagome::blockchain::BlockStorage;
 using kagome::consensus::grandpa::AuthorityManager;
 using kagome::consensus::grandpa::AuthorityManagerImpl;
@@ -266,7 +266,7 @@ class QueryStateCommand : public Command {
     } else {
       throwError("Invalid block hash!");
     }
-    auto batch = trie_storage->getEphemeralBatchAt(state_root, kNoCb);
+    auto batch = trie_storage->getEphemeralBatchAt(state_root, kNoFn);
     if (!batch) {
       throwError("Failed getting trie batch: {}", batch.error());
     }

@@ -10,7 +10,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
-#include "common/no_cb.hpp"
+#include "common/no_fn.hpp"
 #include "network/types/state_response.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -47,7 +47,7 @@ namespace kagome::network {
   StateProtocolObserverImpl::getEntry(const storage::trie::RootHash &hash,
                                       const common::Buffer &key,
                                       size_t limit) const {
-    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(hash, kNoCb));
+    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(hash, kNoFn));
 
     auto cursor = batch->trieCursor();
 
@@ -65,7 +65,7 @@ namespace kagome::network {
             entry.entries.emplace_back(
                 StateEntry{cursor->key().value(), {*value_opt}});
             size += entry.entries.back().key.size()
-                    + entry.entries.back().value.size();
+                  + entry.entries.back().value.size();
           }
         }
         res = cursor->next();
@@ -81,7 +81,7 @@ namespace kagome::network {
   outcome::result<network::StateResponse>
   StateProtocolObserverImpl::onStateRequest(const StateRequest &request) const {
     OUTCOME_TRY(header, blocks_headers_->getBlockHeader(request.hash));
-    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root, kNoCb));
+    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root, kNoFn));
 
     auto cursor = batch->trieCursor();
     // if key is not empty continue iteration from place where left

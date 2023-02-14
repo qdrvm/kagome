@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_NO_CB_HPP
-#define KAGOME_COMMON_NO_CB_HPP
+#ifndef KAGOME_COMMON_NO_FN_HPP
+#define KAGOME_COMMON_NO_FN_HPP
 
 #include <cstddef>
 
@@ -16,9 +16,9 @@ namespace kagome {
    * Example:
    *   void foo(std::function<void()> optional_cb);
    *   foo(useful_cb);
-   *   foo(kNoCb);
+   *   foo(kNoFn);
    */
-  constexpr auto kNoCb = nullptr;
+  constexpr auto kNoFn = nullptr;
 }  // namespace kagome
 
-#endif  // KAGOME_COMMON_NO_CB_HPP
+#endif  // KAGOME_COMMON_NO_FN_HPP
