@@ -117,7 +117,7 @@ namespace kagome::consensus::babe {
     }
 
     // get current time to measure performance if block execution
-    auto t_start = std::chrono::high_resolution_clock::now();
+    auto start_time = std::chrono::high_resolution_clock::now();
 
     bool block_was_applied_earlier = false;
 
@@ -333,13 +333,33 @@ namespace kagome::consensus::babe {
       }
     }
 
-    auto t_end = std::chrono::high_resolution_clock::now();
+    auto lag = std::chrono::system_clock::now()
+             - babe_util_->slotStartTime(slot_number);
+    std::string lag_msg;
+    if (lag > std::chrono::hours(99)) {
+      lag_msg = fmt::format(
+          " (lag {} days)",
+          std::chrono::duration_cast<std::chrono::hours>(lag).count() / 24);
+    } else if (lag > std::chrono::minutes(99)) {
+      lag_msg = fmt::format(
+          " (lag {} hr.)",
+          std::chrono::duration_cast<std::chrono::hours>(lag).count());
+    } else if (lag >= std::chrono::minutes(1)) {
+      lag_msg = fmt::format(
+          " (lag {} min.)",
+          std::chrono::duration_cast<std::chrono::minutes>(lag).count());
+    } else if (lag > babe_config_repo_->slotDuration() * 2) {
+      lag_msg = " (lag <1 min.)";
+    }
+
+    auto now = std::chrono::high_resolution_clock::now();
 
     logger_->info(
-        "Imported block {} within {} ms",
+        "Imported block {} within {} ms.{}",
         block_info,
-        std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
-            .count());
+        std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time)
+            .count(),
+        lag_msg);
 
     last_finalized_block = block_tree_->getLastFinalized();
     telemetry_->notifyBlockFinalized(last_finalized_block);

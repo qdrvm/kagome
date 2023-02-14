@@ -163,9 +163,9 @@ namespace kagome::consensus::grandpa {
         }
 
         root_ = std::move(saved_state_res.value());
-        SL_DEBUG(logger_,
-                 "State was initialized by savepoint on block {}",
-                 root_->block);
+        SL_VERBOSE(logger_,
+                   "State was initialized by savepoint on block {}",
+                   root_->block);
         break;
       }
     }
@@ -188,7 +188,7 @@ namespace kagome::consensus::grandpa {
           ScheduleNode::createAsRoot(std::make_shared<primitives::AuthoritySet>(
                                          0, std::move(initial_authorities)),
                                      {0, genesis_hash});
-      SL_DEBUG(logger_, "State was initialized by genesis block");
+      SL_VERBOSE(logger_, "State was initialized by genesis block");
     }
 
     BOOST_ASSERT_MSG(root_ != nullptr, "The root must be initialized by now");
