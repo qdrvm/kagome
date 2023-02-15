@@ -112,7 +112,9 @@ namespace kagome::storage::trie {
    * 5.3 The Trie structure in the Polkadot Host specification
    */
 
-  struct OpaqueTrieNode : public Node {};
+  struct OpaqueTrieNode : public Node {
+    uint16_t ref_count {};
+  };
 
   struct TrieNode : public OpaqueTrieNode {
     TrieNode() = default;

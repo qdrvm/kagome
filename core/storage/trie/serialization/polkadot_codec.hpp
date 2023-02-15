@@ -34,7 +34,7 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeNode(
         const Node &node,
         StateVersion version,
-        const StoreChildren &store_children) const override;
+        const ChildVisitor& child_visitor) const override;
 
     outcome::result<std::shared_ptr<Node>> decodeNode(
         gsl::span<const uint8_t> encoded_data) const override;
@@ -57,15 +57,15 @@ namespace kagome::storage::trie {
         common::Buffer &out,
         const TrieNode &node,
         StateVersion version,
-        const StoreChildren &store_children) const;
+        const ChildVisitor& child_visitor) const;
     outcome::result<Buffer> encodeBranch(
         const BranchNode &node,
         StateVersion version,
-        const StoreChildren &store_children) const;
+        const ChildVisitor& child_visitor) const;
     outcome::result<Buffer> encodeLeaf(
         const LeafNode &node,
         StateVersion version,
-        const StoreChildren &store_children) const;
+        const ChildVisitor& child_visitor) const;
 
     outcome::result<std::pair<TrieNode::Type, size_t>> decodeHeader(
         BufferStream &stream) const;

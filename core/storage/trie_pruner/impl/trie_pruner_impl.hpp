@@ -53,6 +53,7 @@ namespace kagome::storage::trie_pruner {
         removed_nodes.insert(node_hash);
       }
       for (auto &entry : update.inserted_keys) {
+
       }
 
       if (updates_.empty()) {

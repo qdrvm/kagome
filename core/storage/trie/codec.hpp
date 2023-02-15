@@ -8,7 +8,7 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "storage/trie/node.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
@@ -18,21 +18,21 @@ namespace kagome::storage::trie {
    */
   class Codec {
    public:
-    using StoreChildren = std::function<outcome::result<void>(
-        common::BufferView, common::Buffer &&)>;
+    using ChildVisitor = std::function<outcome::result<void>(
+        TrieNode const&, common::BufferView, common::Buffer &&)>;
 
     virtual ~Codec() = default;
 
     /**
      * @brief Encode node to byte representation and store children
      * @param node node in the trie
-     * @param store_children chidren storer
+     * @param child_visitor function invoked for every child in a branch node recursively
      * @return encoded representation of a {@param node}
      */
     virtual outcome::result<common::Buffer> encodeNode(
         const Node &node,
         StateVersion version,
-        const StoreChildren &store_children) const = 0;
+        const ChildVisitor &child_visitor) const = 0;
 
     /**
      * @brief Decode node from bytes

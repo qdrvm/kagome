@@ -56,17 +56,22 @@ namespace kagome::storage::trie {
     auto batch = backend_->batch();
 
     OUTCOME_TRY(enc,
-                codec_->encodeNode(
-                    node,
-                    version,
-                    [&](common::BufferView hash, common::Buffer &&encoded) {
-                      return batch->put(hash, std::move(encoded));
-                    }));
-    auto key = codec_->hash256(enc);
-    OUTCOME_TRY(batch->put(key, std::move(enc)));
+                codec_->encodeNode(node,
+                                   version,
+                                   [&](TrieNode const &node,
+                                       common::BufferView hash,
+                                       common::Buffer &&encoded) {
+                                     return batch->put(hash,
+                                                       std::move(encoded));
+                                     return batch->put("ref_count:"_buf + hash,
+                                                       node.ref_count);
+                                   }));
+    auto hash = codec_->hash256(enc);
+    OUTCOME_TRY(batch->put(hash, std::move(enc)));
+    return batch->put("ref_count:"_buf + hash, node.ref_count);
     OUTCOME_TRY(batch->commit());
 
-    return key;
+    return hash;
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
