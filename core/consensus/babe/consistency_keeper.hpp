@@ -13,7 +13,6 @@ namespace kagome::consensus::babe {
   /// Class to provide transactional applying of block and rollback that on
   /// start if last applied block was applied partially
   class ConsistencyKeeper {
-
     friend class ConsistencyGuard;
 
    public:
@@ -30,6 +29,15 @@ namespace kagome::consensus::babe {
    public:
     ConsistencyGuard(ConsistencyKeeper &keeper, primitives::BlockInfo block)
         : keeper_(keeper), block_(block){};
+
+    ConsistencyGuard(const ConsistencyGuard &) = delete;
+    ConsistencyGuard &operator=(const ConsistencyGuard &) = delete;
+
+    ConsistencyGuard(ConsistencyGuard &&other) : keeper_{other.keeper_} {
+      block_ = other.block_;
+      other.block_.reset();
+    }
+    ConsistencyGuard &operator=(ConsistencyGuard &&other) = delete;
 
     ~ConsistencyGuard() {
       rollback();

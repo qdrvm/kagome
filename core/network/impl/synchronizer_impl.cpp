@@ -850,7 +850,7 @@ namespace kagome::network {
             "load justifications");
         not r.second) {
       SL_ERROR(log_,
-               "Can't load justification from {} for block {}: {}",
+               "Can't load justification from {} for block {}: Duplicate '{}' request",
                peer_id,
                target_block,
                r.first->second);
@@ -1126,7 +1126,7 @@ namespace kagome::network {
         }
 
       } else {
-        outcome::result<void> applying_res = outcome::success();
+        outcome::result<void> block_addition_result = outcome::success();
 
         if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
           // Regular syncing
@@ -1134,14 +1134,14 @@ namespace kagome::network {
               .header = std::move(block_data.header.value()),
               .body = std::move(block_data.body.value()),
           };
-          applying_res = block_executor_->applyBlock(std::move(block),
+          block_addition_result = block_executor_->applyBlock(std::move(block),
                                                      block_data.justification);
 
         } else {
           // Fast syncing
           if (not state_sync_) {
             // Headers loading
-            applying_res = block_appender_->appendHeader(
+            block_addition_result = block_appender_->appendHeader(
                 std::move(block_data.header.value()), block_data.justification);
 
           } else {
@@ -1160,19 +1160,19 @@ namespace kagome::network {
           }
         }
 
-        notifySubscribers(block_info, applying_res);
+        notifySubscribers(block_info, block_addition_result);
 
-        if (not applying_res.has_value()) {
-          if (applying_res
+        if (not block_addition_result.has_value()) {
+          if (block_addition_result
               != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
-            notifySubscribers(block_info, applying_res.as_failure());
+            notifySubscribers(block_info, block_addition_result.as_failure());
             auto n = discardBlock(block_data.hash);
             SL_WARN(
                 log_,
                 "Block {} {} been discarded: {}",
                 block_info,
                 n ? fmt::format("and {} others have", n) : fmt::format("has"),
-                applying_res.error());
+                block_addition_result.error());
             if (handler) {
               handler(Error::DISCARDED_BLOCK);
             }
