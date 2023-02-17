@@ -11,6 +11,7 @@
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
+#include "consensus/grandpa/has_change.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "network/grandpa_transmitter.hpp"
@@ -65,6 +66,17 @@ namespace kagome::consensus::grandpa {
       const BlockHash &base, std::optional<VoterSetId> voter_set_id) const {
     SL_DEBUG(logger_, "Finding best chain containing block {}", base);
     OUTCOME_TRY(best_block, block_tree_->getBestContaining(base, std::nullopt));
+
+    // Must finalize block with scheduled/forced change digest first
+    auto finalized = block_tree_->getLastFinalized();
+    auto block = best_block;
+    while (block.number > finalized.number) {
+      OUTCOME_TRY(header, header_repository_->getBlockHeader(block.hash));
+      if (HasChange{header}) {
+        best_block = block;
+      }
+      block = {header.number - 1, header.parent_hash};
+    }
 
     // Select best block with actual set_id
     if (voter_set_id.has_value()) {
