@@ -8,6 +8,7 @@
 #include <boost/assert.hpp>
 
 #include "application/app_configuration.hpp"
+#include "consensus/grandpa/structs.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
@@ -111,8 +112,8 @@ namespace kagome::network {
       const BlocksRequest &request,
       const primitives::BlockHash &from_hash) const {
     auto direction = request.direction == network::Direction::ASCENDING
-                         ? blockchain::BlockTree::GetChainDirection::ASCEND
-                         : blockchain::BlockTree::GetChainDirection::DESCEND;
+                       ? blockchain::BlockTree::GetChainDirection::ASCEND
+                       : blockchain::BlockTree::GetChainDirection::DESCEND;
     blockchain::BlockTree::BlockHashVecRes chain_hash_res{{}};
 
     uint32_t request_count =
@@ -180,6 +181,14 @@ namespace kagome::network {
         auto justification_res = block_tree_->getBlockJustification(hash);
         if (justification_res) {
           new_block.justification = std::move(justification_res.value());
+          // kagome didn't store `GrandpaJustification::votes_ancestries`,
+          // so justification must be re-encoded.
+          if (auto grandpa =
+                  scale::decode<consensus::grandpa::GrandpaJustification>(
+                      new_block.justification->data)) {
+            new_block.justification->data =
+                scale::encode(grandpa.value()).value();
+          }
         }
       }
     }

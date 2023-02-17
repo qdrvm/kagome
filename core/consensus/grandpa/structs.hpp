@@ -8,6 +8,7 @@
 
 #include "common/visitor.hpp"
 #include "consensus/grandpa/common.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -50,7 +51,7 @@ namespace kagome::consensus::grandpa {
 
     bool operator==(const SignedMessage &rhs) const {
       return message == rhs.message && signature == rhs.signature
-             && id == rhs.id;
+          && id == rhs.id;
     }
 
     bool operator!=(const SignedMessage &rhs) const {
@@ -108,7 +109,7 @@ namespace kagome::consensus::grandpa {
   Stream &operator>>(Stream &s, SignedPrevote &signed_msg) {
     signed_msg.message = Prevote{};
     return s >> boost::strict_get<Prevote>(signed_msg.message)
-           >> signed_msg.signature >> signed_msg.id;
+        >> signed_msg.signature >> signed_msg.id;
   }
 
   class SignedPrecommit : public SignedMessage {
@@ -128,18 +129,36 @@ namespace kagome::consensus::grandpa {
   Stream &operator>>(Stream &s, SignedPrecommit &signed_msg) {
     signed_msg.message = Precommit{};
     return s >> boost::strict_get<Precommit>(signed_msg.message)
-           >> signed_msg.signature >> signed_msg.id;
+        >> signed_msg.signature >> signed_msg.id;
   }
 
   // justification that contains a list of signed precommits justifying the
   // validity of the block
   struct GrandpaJustification {
-    SCALE_TIE(3);
-
     RoundNumber round_number;
     primitives::BlockInfo block_info;
     std::vector<SignedPrecommit> items{};
+    std::vector<primitives::BlockHeader> votes_ancestries;
   };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const GrandpaJustification &v) {
+    return s << v.round_number << v.block_info << v.items << v.votes_ancestries;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, GrandpaJustification &v) {
+    s >> v.round_number >> v.block_info >> v.items;
+    // kagome didn't store `votes_ancestries`
+    if (s.hasMore(1)) {
+      s >> v.votes_ancestries;
+    } else {
+      v.votes_ancestries.resize(0);
+    }
+    return s;
+  }
 
   /// A commit message which is an aggregate of precommits.
   struct Commit {
