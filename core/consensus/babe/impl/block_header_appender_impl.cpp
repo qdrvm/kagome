@@ -88,7 +88,7 @@ namespace kagome::consensus::babe {
         appender_->observeDigestsAndValidateHeader(block, block_context));
 
     OUTCOME_TRY(appender_->applyJustifications(block_info,
-                                               block_context.justification));
+                                               justification));
 
     auto now = std::chrono::high_resolution_clock::now();
 

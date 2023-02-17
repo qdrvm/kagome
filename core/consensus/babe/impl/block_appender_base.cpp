@@ -57,7 +57,7 @@ namespace kagome::consensus::babe {
 
   outcome::result<void> BlockAppenderBase::applyJustifications(
       const primitives::BlockInfo &block_info,
-      std::optional<primitives::Justification> const &justification) {
+      std::optional<primitives::Justification> const &opt_justification) {
     // try to apply postponed justifications first if any
     if (not postponed_justifications_.empty()) {
       std::vector<primitives::BlockInfo> to_remove;
@@ -79,12 +79,12 @@ namespace kagome::consensus::babe {
 
     // apply justification if any (must be done strictly after block is
     // added and its consensus digests are handled)
-    if (justification.has_value()) {
+    if (opt_justification.has_value()) {
       SL_VERBOSE(
           logger_, "Apply justification received for block {}", block_info);
 
       auto res = grandpa_environment_->applyJustification(
-          block_info, justification.value());
+          block_info, opt_justification.value());
       if (res.has_error()) {
         // If the total weight is not enough, this justification is deferred to
         // try to apply it after the next block is added. One of the reasons for
@@ -92,7 +92,8 @@ namespace kagome::consensus::babe {
         // that have not yet been applied.
         if (res
             == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
-          postponed_justifications_.emplace(block_info, justification.value());
+          postponed_justifications_.emplace(block_info,
+                                            opt_justification.value());
           SL_VERBOSE(logger_,
                      "Postpone justification received for block {}: {}",
                      block_info,
@@ -105,7 +106,7 @@ namespace kagome::consensus::babe {
           return res.as_failure();
         }
       } else {
-        // safely could be remove if current justification applied successfully
+        // safely could be cleared if current justification applied successfully
         postponed_justifications_.clear();
       }
     }
