@@ -30,6 +30,9 @@ namespace kagome::runtime {
   outcome::result<std::vector<primitives::Extrinsic>>
   BlockBuilderImpl::inherent_extrinsics(RuntimeEnvironment &env,
                                         const primitives::InherentData &data) {
+    // Ignore changes.
+    // `rollbackTransaction` is called from `Executor::call`.
+    OUTCOME_TRY(env.storage_provider->startTransaction());
     return executor_->call<std::vector<primitives::Extrinsic>>(
         env, "BlockBuilder_inherent_extrinsics", data);
   }
