@@ -8,6 +8,7 @@
 
 #include "common/visitor.hpp"
 #include "consensus/grandpa/common.hpp"
+#include "log/logger.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 
@@ -135,13 +136,33 @@ namespace kagome::consensus::grandpa {
   // justification that contains a list of signed precommits justifying the
   // validity of the block
   struct GrandpaJustification {
-    SCALE_TIE(4);
-
     RoundNumber round_number;
     primitives::BlockInfo block_info;
     std::vector<SignedPrecommit> items{};
     std::vector<primitives::BlockHeader> votes_ancestries;
   };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const GrandpaJustification &v) {
+    return s << v.round_number << v.block_info << v.items << v.votes_ancestries;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, GrandpaJustification &v) {
+    s >> v.round_number >> v.block_info >> v.items;
+    // TODO(turuslan): remove after merging
+    // https://github.com/soramitsu/kagome/pull/1491
+    if (not s.hasMore(1)) {
+      log::createLogger("GrandpaJustification")
+          ->error(
+              "decode error, missing `votes_ancestries`. Remove database files "
+              "and re-sync your node.");
+    }
+    s >> v.votes_ancestries;
+    return s;
+  }
 
   /// A commit message which is an aggregate of precommits.
   struct Commit {
