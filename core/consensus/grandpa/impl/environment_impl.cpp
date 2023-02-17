@@ -11,7 +11,7 @@
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
-#include "consensus/grandpa/has_change.hpp"
+#include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "network/grandpa_transmitter.hpp"
@@ -72,7 +72,7 @@ namespace kagome::consensus::grandpa {
     auto block = best_block;
     while (block.number > finalized.number) {
       OUTCOME_TRY(header, header_repository_->getBlockHeader(block.hash));
-      if (HasChange{header}) {
+      if (HasAuthoritySetChange{header}) {
         best_block = block;
       }
       block = {header.number - 1, header.parent_hash};

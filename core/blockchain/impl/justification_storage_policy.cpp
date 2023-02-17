@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "blockchain/block_tree.hpp"
-#include "consensus/grandpa/has_change.hpp"
+#include "consensus/grandpa/has_authority_set_change.hpp"
 
 namespace kagome::blockchain {
 
@@ -24,7 +24,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(last_finalized.number >= block_header.number,
                      "Target block must be finalized");
 
-    if (consensus::grandpa::HasChange{block_header}) {
+    if (consensus::grandpa::HasAuthoritySetChange{block_header}) {
       return true;
     }
     if (block_header.number % 512 == 0) {
