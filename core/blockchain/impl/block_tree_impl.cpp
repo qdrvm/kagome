@@ -10,15 +10,14 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
-#include "blockchain/impl/common.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
-#include "blockchain/impl/storage_util.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/is_primary.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/database_error.hpp"
+#include "storage/trie_pruner/trie_pruner.hpp"
 
 namespace {
   constexpr auto blockHeightMetricName = "kagome_block_height";
@@ -119,7 +118,8 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<const class JustificationStoragePolicy>
-          justification_storage_policy) {
+          justification_storage_policy,
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
@@ -215,7 +215,8 @@ namespace kagome::blockchain {
                           std::move(extrinsic_events_engine),
                           std::move(extrinsic_event_key_repo),
                           std::move(changes_tracker),
-                          std::move(justification_storage_policy)));
+                          std::move(justification_storage_policy),
+                          std::move(state_pruner)));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -334,9 +335,11 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<const JustificationStoragePolicy>
-          justification_storage_policy)
+          justification_storage_policy,
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
+        state_pruner_{std::move(state_pruner)},
         tree_{std::move(cached_tree)},
         extrinsic_observer_{std::move(extrinsic_observer)},
         hasher_{std::move(hasher)},
@@ -355,6 +358,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT(extrinsic_event_key_repo_ != nullptr);
     BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(justification_storage_policy_ != nullptr);
+    BOOST_ASSERT(state_pruner_ != nullptr);
     BOOST_ASSERT(telemetry_ != nullptr);
 
     // Register metrics
@@ -727,6 +731,13 @@ namespace kagome::blockchain {
 
     KAGOME_PROFILE_END(justification_store)
 
+    OUTCOME_TRY(state_pruner_->addNewState(header.state_root));
+
+    OUTCOME_TRY(old_header, storage_->getBlockHeader(header.number - 64));
+    if (old_header) {
+      OUTCOME_TRY(state_pruner_->prune(old_header.value().state_root));
+    }
+
     return outcome::success();
   }
 
@@ -738,21 +749,27 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHeader> BlockTreeImpl::getBlockHeader(
       const primitives::BlockId &block) const {
     OUTCOME_TRY(header, storage_->getBlockHeader(block));
-    if (header.has_value()) return header.value();
+    if (header.has_value()) {
+      return header.value();
+    }
     return BlockTreeError::HEADER_NOT_FOUND;
   }
 
   outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(
       const primitives::BlockId &block) const {
     OUTCOME_TRY(body, storage_->getBlockBody(block));
-    if (body.has_value()) return body.value();
+    if (body.has_value()) {
+      return body.value();
+    }
     return BlockTreeError::BODY_NOT_FOUND;
   }
 
   outcome::result<primitives::Justification>
   BlockTreeImpl::getBlockJustification(const primitives::BlockId &block) const {
     OUTCOME_TRY(justification, storage_->getJustification(block));
-    if (justification.has_value()) return justification.value();
+    if (justification.has_value()) {
+      return justification.value();
+    }
     return BlockTreeError::JUSTIFICATION_NOT_FOUND;
   }
 
@@ -1045,7 +1062,9 @@ namespace kagome::blockchain {
       return result;
     }
     OUTCOME_TRY(header, storage_->getBlockHeader(block));
-    if (!header.has_value()) return BlockTreeError::HEADER_NOT_FOUND;
+    if (!header.has_value()) {
+      return BlockTreeError::HEADER_NOT_FOUND;
+    }
     // if node is not in tree_ it must be finalized and thus have only one child
     OUTCOME_TRY(child_hash,
                 header_repo_->getHashByNumber(header.value().number + 1));
@@ -1178,7 +1197,9 @@ namespace kagome::blockchain {
     size_t count = 0;
     for (;;) {
       OUTCOME_TRY(storage_->putNumberToIndexKey(block));
-      if (block.number == 0) break;
+      if (block.number == 0) {
+        break;
+      }
       OUTCOME_TRY(header, getBlockHeader(block.hash));
       auto parent_hash_res = header_repo_->getHashByNumber(block.number - 1);
       if (parent_hash_res.has_error()) {

@@ -112,9 +112,7 @@ namespace kagome::storage::trie {
    * 5.3 The Trie structure in the Polkadot Host specification
    */
 
-  struct OpaqueTrieNode : public Node {
-    uint16_t ref_count {};
-  };
+  struct OpaqueTrieNode : public Node {};
 
   struct TrieNode : public OpaqueTrieNode {
     TrieNode() = default;
@@ -149,6 +147,15 @@ namespace kagome::storage::trie {
         : TrieNode{std::move(key_nibbles), {std::nullopt, std::move(value)}} {}
 
     ~BranchNode() override = default;
+
+    uint8_t getNextChildIdxFrom(uint8_t child_idx) const {
+      while (child_idx < kMaxChildren) {
+        if (children[child_idx]) {
+          return child_idx;
+        }
+      }
+      return {};
+    }
 
     uint16_t childrenBitmap() const;
     uint8_t childrenNum() const;

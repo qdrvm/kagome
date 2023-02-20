@@ -99,7 +99,9 @@ namespace {
       const kagome::log::Logger &logger,
       PolkadotTrie::NodePtr &parent,
       OpaqueNodeStorage &node_storage) {
-    if (!parent->isBranch()) return outcome::success();
+    if (!parent->isBranch()) {
+      return outcome::success();
+    }
     auto &branch = dynamic_cast<BranchNode &>(*parent);
     auto bitmap = branch.childrenBitmap();
     if (bitmap == 0) {
@@ -114,7 +116,9 @@ namespace {
       }
     } else if (branch.childrenNum() == 1 && !branch.value) {
       size_t idx = 0;
-      while (bitmap >>= 1u) ++idx;
+      while (bitmap >>= 1u) {
+        ++idx;
+      }
       OUTCOME_TRY(child, node_storage.getChild(branch, idx));
 
       if (!child->isBranch()) {
@@ -499,8 +503,9 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieImpl::forNodeInPath(
       ConstNodePtr parent,
       const NibblesView &path,
-      const std::function<outcome::result<void>(BranchNode const &,
-                                                uint8_t idx)> &callback) const {
+      const std::function<outcome::result<void>(
+          BranchNode const &, uint8_t idx, TrieNode const &node)> &callback)
+      const {
     if (parent == nullptr) {
       return TrieError::NO_VALUE;
     }
@@ -522,7 +527,7 @@ namespace kagome::storage::trie {
       auto parent_as_branch =
           std::dynamic_pointer_cast<const BranchNode>(parent);
       OUTCOME_TRY(child, retrieveChild(*parent_as_branch, path[common_length]));
-      OUTCOME_TRY(callback(*parent_as_branch, path[common_length]));
+      OUTCOME_TRY(callback(*parent_as_branch, path[common_length], *child));
       return forNodeInPath(child, path.subspan(common_length + 1), callback);
     }
     if (parent->key_nibbles == path) {
@@ -531,7 +536,7 @@ namespace kagome::storage::trie {
     return TrieError::NO_VALUE;
   }
 
-  std::unique_ptr<PolkadotTrieCursor> PolkadotTrieImpl::trieCursor() {
+  std::unique_ptr<PolkadotTrieCursor> PolkadotTrieImpl::trieCursor() const {
     return std::make_unique<PolkadotTrieCursorImpl>(shared_from_this());
   }
 

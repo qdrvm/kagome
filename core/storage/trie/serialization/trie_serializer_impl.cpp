@@ -63,12 +63,9 @@ namespace kagome::storage::trie {
                                        common::Buffer &&encoded) {
                                      return batch->put(hash,
                                                        std::move(encoded));
-                                     return batch->put("ref_count:"_buf + hash,
-                                                       node.ref_count);
                                    }));
     auto hash = codec_->hash256(enc);
     OUTCOME_TRY(batch->put(hash, std::move(enc)));
-    return batch->put("ref_count:"_buf + hash, node.ref_count);
     OUTCOME_TRY(batch->commit());
 
     return hash;

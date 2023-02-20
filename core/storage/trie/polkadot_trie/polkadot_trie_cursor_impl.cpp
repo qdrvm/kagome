@@ -35,7 +35,9 @@ namespace kagome::storage::trie {
   PolkadotTrieCursorImpl::SearchState::visitChild(uint8_t index,
                                                   const TrieNode &child) {
     auto *current_as_branch = dynamic_cast<const BranchNode *>(current_);
-    if (current_as_branch == nullptr) return Error::INVALID_NODE_TYPE;
+    if (current_as_branch == nullptr) {
+      return Error::INVALID_NODE_TYPE;
+    }
     path_.emplace_back(*current_as_branch, index);
     current_ = &child;
     return outcome::success();
@@ -379,12 +381,12 @@ namespace kagome::storage::trie {
     }
     SearchState search_state{*trie_->getRoot()};
 
-    auto add_visited_child = [&search_state, this](
+    auto add_visited_child = [&search_state](
                                  auto &branch,
-                                 auto idx) mutable -> outcome::result<void> {
-      OUTCOME_TRY(child, trie_->retrieveChild(branch, idx));
+                                 auto idx,
+                                 auto &child) mutable -> outcome::result<void> {
       BOOST_VERIFY(  // NOLINT(bugprone-lambda-function-name)
-          search_state.visitChild(idx, *child));
+          search_state.visitChild(idx, child));
       return outcome::success();
     };
     auto res = trie_->forNodeInPath(

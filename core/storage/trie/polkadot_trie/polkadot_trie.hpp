@@ -85,9 +85,10 @@ namespace kagome::storage::trie {
         ConstNodePtr parent,
         const NibblesView &path,
         const std::function<outcome::result<void>(
-            BranchNode const &, uint8_t idx)> &callback) const = 0;
+            BranchNode const &, uint8_t idx, TrieNode const &node)> &callback)
+        const = 0;
 
-    virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() = 0;
+    virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() const = 0;
 
     std::unique_ptr<Cursor> cursor() final {
       return trieCursor();

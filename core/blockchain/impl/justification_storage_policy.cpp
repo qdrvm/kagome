@@ -14,15 +14,17 @@ namespace kagome::blockchain {
 
   outcome::result<bool> JustificationStoragePolicyImpl::shouldStoreFor(
       primitives::BlockHeader const &block_header) const {
-    if (block_header.number == 0) return true;
+    if (block_header.number == 0) {
+      return true;
+    }
 
     BOOST_ASSERT_MSG(block_tree_ != nullptr,
                      "Block tree must have been initialized with "
                      "JustificationStoragePolicyImpl::initBlockchainInfo()");
 
-    auto last_finalized = block_tree_->getLastFinalized();
-    BOOST_ASSERT_MSG(last_finalized.number >= block_header.number,
-                     "Target block must be finalized");
+    BOOST_ASSERT_MSG(
+        block_tree_->getLastFinalized().number >= block_header.number,
+        "Target block must be finalized");
 
     for (auto &digest : block_header.digest) {
       if (auto *consensus_digest_enc =
@@ -32,7 +34,9 @@ namespace kagome::blockchain {
         bool authority_change =
             consensus_digest.isGrandpaDigestOf<primitives::ScheduledChange>()
             || consensus_digest.isGrandpaDigestOf<primitives::ForcedChange>();
-        if (authority_change) return true;
+        if (authority_change) {
+          return true;
+        }
       }
     }
     if (block_header.number % 512 == 0) {

@@ -28,8 +28,8 @@ namespace kagome::storage::trie_pruner {
     virtual ~TriePruner() = default;
 
     virtual outcome::result<void> addNewState(
-        TrieStateUpdate const &update) = 0;
-    virtual void prune(primitives::BlockNumber last_finalized) = 0;
+        trie::RootHash const& state) = 0;
+    virtual outcome::result<void> prune(trie::RootHash const& state) = 0;
   };
 
 }  // namespace kagome::storage::trie_pruner

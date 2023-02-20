@@ -32,6 +32,10 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "telemetry/service.hpp"
 
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}
+
 namespace kagome::storage::changes_trie {
   class ChangesTracker;
 }
@@ -57,7 +61,8 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<const class JustificationStoragePolicy>
-            justification_storage_policy);
+            justification_storage_policy,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
@@ -149,7 +154,8 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<const class JustificationStoragePolicy>
-            justification_storage_policy);
+            justification_storage_policy,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
 
     /**
      * Walks the chain backwards starting from \param start until the current
@@ -171,6 +177,7 @@ namespace kagome::blockchain {
 
     std::shared_ptr<BlockHeaderRepository> header_repo_;
     std::shared_ptr<BlockStorage> storage_;
+    std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
 
     std::unique_ptr<CachedTree> tree_;
 

@@ -35,6 +35,12 @@ namespace kagome::storage::trie {
     outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
         const common::Buffer &db_key) const override;
 
+    outcome::result<PolkadotTrie::NodePtr> retrieveNode(
+        const common::Buffer &db_key) const override;
+
+    outcome::result<PolkadotTrie::NodePtr> retrieveNode(
+        const std::shared_ptr<OpaqueTrieNode> &node) const override;
+
    private:
     /**
      * Writes a node to a persistent storage, recursively storing its
@@ -43,19 +49,6 @@ namespace kagome::storage::trie {
      */
     outcome::result<RootHash> storeRootNode(TrieNode &node,
                                             StateVersion version);
-    /**
-     * Fetches a node from the storage. A nullptr is returned in case that there
-     * is no entry for provided key. Mind that a branch node will have dummy
-     * nodes as its children
-     */
-    outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const common::Buffer &db_key) const;
-    /**
-     * Retrieves a node, replacing a dummy node to an actual node if
-     * needed
-     */
-    outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const std::shared_ptr<OpaqueTrieNode> &node) const;
 
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;

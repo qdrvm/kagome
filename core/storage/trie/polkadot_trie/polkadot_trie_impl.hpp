@@ -50,7 +50,8 @@ namespace kagome::storage::trie {
         ConstNodePtr parent,
         const NibblesView &path,
         const std::function<outcome::result<void>(
-            BranchNode const &, uint8_t idx)> &callback) const override;
+            BranchNode const &, uint8_t idx, TrieNode const &node)> &callback)
+        const override;
 
     /**
      * Remove all entries, which key starts with the prefix
@@ -71,7 +72,7 @@ namespace kagome::storage::trie {
     outcome::result<std::optional<BufferOrView>> tryGet(
         const common::BufferView &key) const override;
 
-    std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
+    std::unique_ptr<PolkadotTrieCursor> trieCursor() const override;
 
     outcome::result<bool> contains(
         const common::BufferView &key) const override;
