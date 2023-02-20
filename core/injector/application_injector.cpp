@@ -55,7 +55,6 @@
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/digest_tracker_impl.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
-#include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
 #include "common/fd_limit.hpp"
@@ -63,8 +62,9 @@
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
-#include "consensus/babe/impl/block_appender_impl.hpp"
+#include "consensus/babe/impl/block_appender_base.hpp"
 #include "consensus/babe/impl/block_executor_impl.hpp"
+#include "consensus/babe/impl/block_header_appender_impl.hpp"
 #include "consensus/babe/impl/consistency_keeper_impl.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -571,15 +571,10 @@ namespace {
     auto block_executor = std::make_shared<consensus::babe::BlockExecutorImpl>(
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<runtime::Core>>(),
-        injector.template create<sptr<consensus::babe::BabeConfigRepository>>(),
-        injector.template create<sptr<consensus::babe::BlockValidator>>(),
-        injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<blockchain::DigestTracker>>(),
-        injector.template create<sptr<consensus::babe::BabeUtil>>(),
         injector.template create<sptr<runtime::OffchainWorkerApi>>(),
-        injector.template create<sptr<consensus::babe::ConsistencyKeeper>>());
+        injector.template create<uptr<consensus::babe::BlockAppenderBase>>());
 
     initialized.emplace(std::move(block_executor));
     return initialized.value();
@@ -1139,7 +1134,7 @@ namespace {
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
-        di::bind<consensus::babe::BlockAppender>.template to<consensus::babe::BlockAppenderImpl>(),
+        di::bind<consensus::babe::BlockHeaderAppender>.template to<consensus::babe::BlockHeaderAppenderImpl>(),
         di::bind<consensus::babe::BlockExecutor>.to(
             [](auto const &injector) { return get_block_executor(injector); }),
         di::bind<consensus::grandpa::Grandpa>.to(

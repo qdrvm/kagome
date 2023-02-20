@@ -16,17 +16,16 @@ namespace kagome::consensus::babe {
    public:
     MOCK_METHOD(outcome::result<void>,
                 applyBlock,
-                (const primitives::BlockData &block),
+                (const primitives::Block &block,
+                 std::optional<primitives::Justification> const &justification),
                 ());
-    outcome::result<void> applyBlock(primitives::BlockData &&block) override {
-      return applyBlock(block);
-    }
 
-    MOCK_METHOD(outcome::result<void>,
-                applyJustification,
-                (const primitives::BlockInfo &block_info,
-                 const primitives::Justification &justification),
-                (override));
+    outcome::result<void> applyBlock(
+        primitives::Block &&block,
+        std::optional<primitives::Justification> const &justification)
+        override {
+      return applyBlock(block, justification);
+    }
   };
 
 }  // namespace kagome::consensus::babe

@@ -9,6 +9,7 @@
 
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "consensus/grandpa/environment.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
@@ -73,7 +74,7 @@ namespace kagome::network {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-      std::shared_ptr<consensus::babe::BlockAppender> block_appender,
+      std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<storage::trie::TrieStorage> storage,
@@ -83,7 +84,8 @@ namespace kagome::network {
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::Core> core_api,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      std::shared_ptr<storage::SpacedStorage> spaced_storage)
+      std::shared_ptr<storage::SpacedStorage> spaced_storage,
+      std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
         trie_changes_tracker_(std::move(changes_tracker)),
@@ -96,6 +98,7 @@ namespace kagome::network {
         hasher_(std::move(hasher)),
         module_factory_(std::move(module_factory)),
         core_api_(std::move(core_api)),
+        grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
         buffer_storage_(spaced_storage->getSpace(storage::Space::kDefault)) {
     BOOST_ASSERT(app_state_manager_);
@@ -108,6 +111,7 @@ namespace kagome::network {
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(buffer_storage_);
+    BOOST_ASSERT(grandpa_environment_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -846,7 +850,7 @@ namespace kagome::network {
             "load justifications");
         not r.second) {
       SL_ERROR(log_,
-               "Can't load justification from {} for block {}: {}",
+               "Can't load justification from {} for block {}: Duplicate '{}' request",
                peer_id,
                target_block,
                r.first->second);
@@ -1090,16 +1094,16 @@ namespace kagome::network {
 
     auto node = known_blocks_.extract(hash);
     if (node) {
-      auto &block = node.mapped().data;
+      auto &block_data = node.mapped().data;
       auto &peers = node.mapped().peers;
-      BOOST_ASSERT(block.header.has_value());
-      const BlockInfo block_info(block.header->number, block.hash);
+      BOOST_ASSERT(block_data.header.has_value());
+      const BlockInfo block_info(block_data.header->number, block_data.hash);
 
       const auto &last_finalized_block = block_tree_->getLastFinalized();
 
       SyncResultHandler handler;
 
-      if (watched_blocks_number_ == block.header->number) {
+      if (watched_blocks_number_ == block_data.header->number) {
         if (auto wbn_node = watched_blocks_.extract(hash)) {
           handler = std::move(wbn_node.mapped());
         }
@@ -1107,10 +1111,10 @@ namespace kagome::network {
 
       // Skip applied and finalized blocks and
       //  discard side-chain below last finalized
-      if (block.header->number <= last_finalized_block.number) {
+      if (block_data.header->number <= last_finalized_block.number) {
         auto header_res = block_tree_->getBlockHeader(hash);
         if (not header_res.has_value()) {
-          auto n = discardBlock(block.hash);
+          auto n = discardBlock(block_data.hash);
           SL_WARN(
               log_,
               "Block {} {} not applied as discarded",
@@ -1122,21 +1126,27 @@ namespace kagome::network {
         }
 
       } else {
-        outcome::result<void> applying_res = outcome::success();
+        outcome::result<void> block_addition_result = outcome::success();
 
         if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
           // Regular syncing
-          applying_res = block_executor_->applyBlock(std::move(block));
+          primitives::Block block{
+              .header = std::move(block_data.header.value()),
+              .body = std::move(block_data.body.value()),
+          };
+          block_addition_result = block_executor_->applyBlock(std::move(block),
+                                                     block_data.justification);
 
         } else {
           // Fast syncing
           if (not state_sync_) {
             // Headers loading
-            applying_res = block_appender_->appendBlock(std::move(block));
+            block_addition_result = block_appender_->appendHeader(
+                std::move(block_data.header.value()), block_data.justification);
 
           } else {
             // State syncing in progress; Temporary discard all new blocks
-            auto n = discardBlock(block.hash);
+            auto n = discardBlock(block_data.hash);
             SL_WARN(
                 log_,
                 "Block {} {} not applied as discarded: "
@@ -1150,19 +1160,19 @@ namespace kagome::network {
           }
         }
 
-        notifySubscribers(block_info, applying_res);
+        notifySubscribers(block_info, block_addition_result);
 
-        if (not applying_res.has_value()) {
-          if (applying_res
+        if (not block_addition_result.has_value()) {
+          if (block_addition_result
               != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
-            notifySubscribers(block_info, applying_res.as_failure());
-            auto n = discardBlock(block.hash);
+            notifySubscribers(block_info, block_addition_result.as_failure());
+            auto n = discardBlock(block_data.hash);
             SL_WARN(
                 log_,
                 "Block {} {} been discarded: {}",
                 block_info,
                 n ? fmt::format("and {} others have", n) : fmt::format("has"),
-                applying_res.error());
+                block_addition_result.error());
             if (handler) {
               handler(Error::DISCARDED_BLOCK);
             }
@@ -1263,7 +1273,8 @@ namespace kagome::network {
       auto [block_info, justification] = std::move(justifications.front());
       const auto &block = block_info;  // SL_WARN compilation WA
       justifications.pop();
-      auto res = block_executor_->applyJustification(block_info, justification);
+      auto res =
+          grandpa_environment_->applyJustification(block_info, justification);
       if (res.has_error()) {
         SL_WARN(log_,
                 "Justification for block {} was not applied: {}",
