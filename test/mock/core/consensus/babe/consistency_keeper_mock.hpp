@@ -14,7 +14,10 @@ namespace kagome::consensus::babe {
 
   class ConsistencyKeeperMock : public ConsistencyKeeper {
    public:
-    MOCK_METHOD(Guard, start, (primitives::BlockInfo block), (override));
+    MOCK_METHOD(ConsistencyGuard,
+                start,
+                (primitives::BlockInfo block),
+                (override));
     MOCK_METHOD(void, commit, (primitives::BlockInfo block), (override));
     MOCK_METHOD(void, rollback, (primitives::BlockInfo block), (override));
   };

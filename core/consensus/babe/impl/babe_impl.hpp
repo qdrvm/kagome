@@ -167,7 +167,7 @@ namespace kagome::consensus::babe {
 
     void changeLotteryEpoch(
         const EpochDescriptor &epoch,
-        std::shared_ptr<const primitives::BabeConfiguration> babe_config) const;
+        const primitives::BabeConfiguration& babe_config) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(
         SlotType slot_type,
