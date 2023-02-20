@@ -18,10 +18,12 @@ namespace kagome::consensus::babe {
 
     MOCK_METHOD(EpochLength, epochLength, (), (const, override));
 
-    MOCK_METHOD(std::shared_ptr<const primitives::BabeConfiguration>,
-                config,
-                (const primitives::BlockContext &, EpochNumber),
-                (override));
+    MOCK_METHOD(
+        std::optional<
+            std::reference_wrapper<const primitives::BabeConfiguration>>,
+        config,
+        (const primitives::BlockContext &, EpochNumber),
+        (const, override));
   };
 
 }  // namespace kagome::consensus::babe

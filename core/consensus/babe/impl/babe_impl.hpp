@@ -121,8 +121,9 @@ namespace kagome::consensus::babe {
 
     State getCurrentState() const override;
 
-    void onRemoteStatus(const libp2p::peer::PeerId &peer_id,
-                        const network::Status &status) override;
+    void onBlockAnnounceHandshake(
+        const libp2p::peer::PeerId &peer_id,
+        const network::BlockAnnounceHandshake &handshake) override;
 
     void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                          const network::BlockAnnounce &announce) override;
@@ -166,7 +167,7 @@ namespace kagome::consensus::babe {
 
     void changeLotteryEpoch(
         const EpochDescriptor &epoch,
-        std::shared_ptr<const primitives::BabeConfiguration> babe_config) const;
+        const primitives::BabeConfiguration& babe_config) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(
         SlotType slot_type,

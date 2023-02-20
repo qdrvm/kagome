@@ -15,8 +15,8 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "consensus/babe/block_appender.hpp"
 #include "consensus/babe/block_executor.hpp"
+#include "consensus/babe/block_header_appender.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/state_sync_request_flow.hpp"
 #include "network/router.hpp"
@@ -33,12 +33,13 @@ namespace kagome::storage::changes_trie {
 }
 
 namespace kagome::consensus::babe {
-  class BlockAppender;
+  class BlockHeaderAppender;
   class BlockExecutor;
 }  // namespace kagome::consensus::babe
 
 namespace kagome::consensus::grandpa {
   class ChangesTracker;
+  class Environment;
 }
 
 namespace kagome::storage::trie {
@@ -91,7 +92,7 @@ namespace kagome::network {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<consensus::babe::BlockAppender> block_appender,
+        std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
         std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<storage::trie::TrieStorage> storage,
@@ -101,7 +102,8 @@ namespace kagome::network {
         std::shared_ptr<runtime::ModuleFactory> module_factory,
         std::shared_ptr<runtime::Core> core_api,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-        std::shared_ptr<storage::SpacedStorage> spaced_storage);
+        std::shared_ptr<storage::SpacedStorage> spaced_storage,
+        std::shared_ptr<consensus::grandpa::Environment> grandpa_environment);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -221,7 +223,7 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::changes_trie::ChangesTracker>
         trie_changes_tracker_;
-    std::shared_ptr<consensus::babe::BlockAppender> block_appender_;
+    std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender_;
     std::shared_ptr<consensus::babe::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
@@ -230,6 +232,7 @@ namespace kagome::network {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::ModuleFactory> module_factory_;
     std::shared_ptr<runtime::Core> core_api_;
+    std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<storage::BufferStorage> buffer_storage_;
 
@@ -289,7 +292,8 @@ namespace kagome::network {
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
 
-    std::set<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>>
+    std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
+             const char *>
         recent_requests_;
 
     size_t entries_{0};

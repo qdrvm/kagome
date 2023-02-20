@@ -17,3 +17,17 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, BabeError, e) {
   }
   return "unknown error";
 }
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, BlockAdditionError, e) {
+  using E = kagome::consensus::babe::BlockAdditionError;
+  switch (e) {
+    case E::ORPHAN_BLOCK:
+      return "Attempt to append a block which is either already finalized or "
+             "not a descendant of any known block";
+    case E::BLOCK_MISSING_HEADER:
+      return "Block without a header cannot be appended";
+    case E::PARENT_NOT_FOUND:
+      return "Parent not found";
+  }
+  return "Unknown error";
+}
