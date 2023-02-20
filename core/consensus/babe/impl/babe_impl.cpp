@@ -529,6 +529,19 @@ namespace kagome::consensus::babe {
 
     current_state_ = Babe::State::STATE_LOADING;
 
+    if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
+      if (app_state_manager_->state()
+          != application::AppStateManager::State::ShuttingDown) {
+        SL_INFO(log_,
+                "Stateless fast sync is finished on block {}; "
+                "Application is stopping",
+                block_tree_->bestLeaf());
+        log_->flush();
+        app_state_manager_->shutdown();
+      }
+      return;
+    }
+
     // Switch to last finalized to have a state on it
     auto block_at_state = block_tree_->getLastFinalized();
 
@@ -569,17 +582,6 @@ namespace kagome::consensus::babe {
         affected = true;
       }
     } while (affected);
-
-    if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
-      if (app_state_manager_->state()
-          != application::AppStateManager::State::ShuttingDown) {
-        SL_INFO(log_,
-                "Stateless fast sync is finished; Application is stopping");
-        log_->flush();
-        app_state_manager_->shutdown();
-      }
-      return;
-    }
 
     SL_TRACE(log_,
              "Trying to sync state on block {} from {}",
