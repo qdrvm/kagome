@@ -65,7 +65,7 @@ namespace kagome::consensus::babe {
     return false;
   }
 
-  ConsistencyKeeper::Guard ConsistencyKeeperImpl::start(
+  ConsistencyGuard ConsistencyKeeperImpl::start(
       primitives::BlockInfo block) {
     bool val = false;
     BOOST_VERIFY_MSG(in_progress_.compare_exchange_strong(val, true),
@@ -82,7 +82,7 @@ namespace kagome::consensus::babe {
     }
 
     SL_DEBUG(logger_, "Start applying of block {}", block);
-    return ConsistencyKeeper::Guard(*this, block);
+    return ConsistencyGuard(*this, block);
   }
 
   void ConsistencyKeeperImpl::commit(primitives::BlockInfo block) {

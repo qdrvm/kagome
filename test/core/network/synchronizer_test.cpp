@@ -14,6 +14,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/babe/block_appender_mock.hpp"
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
+#include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
@@ -31,6 +32,7 @@
 using namespace kagome;
 using namespace clock;
 using namespace consensus::babe;
+using namespace consensus::grandpa;
 using namespace storage;
 
 using std::chrono_literals::operator""ms;
@@ -95,7 +97,8 @@ class SynchronizerTest
                                                     nullptr,
                                                     nullptr,
                                                     nullptr,
-                                                    spaced_storage);
+                                                    spaced_storage,
+                                                    grandpa_environment);
   }
 
   application::AppConfigurationMock app_config;
@@ -105,8 +108,8 @@ class SynchronizerTest
       std::make_shared<blockchain::BlockTreeMock>();
   std::shared_ptr<changes_trie::ChangesTracker> changes_tracker =
       std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
-  std::shared_ptr<BlockAppenderMock> block_appender =
-      std::make_shared<BlockAppenderMock>();
+  std::shared_ptr<BlockHeaderAppenderMock> block_appender =
+      std::make_shared<BlockHeaderAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
       std::make_shared<BlockExecutorMock>();
   std::shared_ptr<trie::TrieStorageMock> storage =
@@ -125,6 +128,8 @@ class SynchronizerTest
       std::make_shared<SpacedStorageMock>();
   std::shared_ptr<BufferStorageMock> buffer_storage =
       std::make_shared<BufferStorageMock>();
+  std::shared_ptr<EnvironmentMock> grandpa_environment =
+      std::make_shared<EnvironmentMock>();
 
   std::shared_ptr<network::SynchronizerImpl> synchronizer;
 

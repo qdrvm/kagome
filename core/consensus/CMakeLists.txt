@@ -11,7 +11,8 @@ add_library(consensus
     babe/impl/threshold_util.cpp
     babe/impl/babe_lottery_impl.cpp
     babe/impl/babe_config_repository_impl.cpp
-    babe/impl/block_appender_impl.cpp
+    babe/impl/block_header_appender_impl.cpp
+    babe/impl/block_appender_base.cpp
     babe/impl/consistency_keeper_impl.cpp
     babe/babe_error.cpp
     validation/babe_block_validator.cpp

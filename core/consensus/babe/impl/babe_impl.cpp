@@ -204,9 +204,9 @@ namespace kagome::consensus::babe {
              current_epoch_.start_slot);
 
     if (keypair_) {
-      auto babe_config = babe_config_repo_->config({.block = best_block_},
+      auto babe_config = babe_config_repo_->config({.block_info = best_block_},
                                                    current_epoch_.epoch_number);
-      if (babe_config == nullptr) {
+      if (not babe_config.has_value()) {
         SL_CRITICAL(
             log_,
             "Can't obtain digest of epoch {} from block tree for block {}",
@@ -215,7 +215,7 @@ namespace kagome::consensus::babe {
         return false;
       }
 
-      const auto &authorities = babe_config->authorities;
+      const auto &authorities = babe_config->get().authorities;
       if (authorities.size() == 1
           and authorities[0].id.id == keypair_->public_key) {
         SL_INFO(log_, "Starting single validating node.");
@@ -356,8 +356,10 @@ namespace kagome::consensus::babe {
         "Starting an epoch {}. Session key: {:l}. Secondary slots allowed={}",
         epoch.epoch_number,
         keypair_->public_key,
-        babe_config_repo_->config({.block = best_block_}, epoch.epoch_number)
-            ->isSecondarySlotsAllowed());
+        babe_config_repo_
+            ->config({.block_info = best_block_}, epoch.epoch_number)
+            ->get()
+            .isSecondarySlotsAllowed());
     current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
 
@@ -529,6 +531,19 @@ namespace kagome::consensus::babe {
 
     current_state_ = Babe::State::STATE_LOADING;
 
+    if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
+      if (app_state_manager_->state()
+          != application::AppStateManager::State::ShuttingDown) {
+        SL_INFO(log_,
+                "Stateless fast sync is finished on block {}; "
+                "Application is stopping",
+                block_tree_->bestLeaf());
+        log_->flush();
+        app_state_manager_->shutdown();
+      }
+      return;
+    }
+
     // Switch to last finalized to have a state on it
     auto block_at_state = block_tree_->getLastFinalized();
 
@@ -569,17 +584,6 @@ namespace kagome::consensus::babe {
         affected = true;
       }
     } while (affected);
-
-    if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
-      if (app_state_manager_->state()
-          != application::AppStateManager::State::ShuttingDown) {
-        SL_INFO(log_,
-                "Stateless fast sync is finished; Application is stopping");
-        log_->flush();
-        app_state_manager_->shutdown();
-      }
-      return;
-    }
 
     SL_TRACE(log_,
              "Trying to sync state on block {} from {}",
@@ -722,11 +726,12 @@ namespace kagome::consensus::babe {
       BOOST_ASSERT(babe_digests_res.has_value());
     }
 
-    auto babe_config = babe_config_repo_->config({.block = best_block_},
-                                                 current_epoch_.epoch_number);
-    if (babe_config) {
+    auto babe_config_opt = babe_config_repo_->config(
+        {.block_info = best_block_}, current_epoch_.epoch_number);
+    if (babe_config_opt) {
+      auto &babe_config = babe_config_opt.value().get();
       auto authority_index_res =
-          getAuthorityIndex(babe_config->authorities, keypair_->public_key);
+          getAuthorityIndex(babe_config.authorities, keypair_->public_key);
       if (not authority_index_res) {
         SL_ERROR(log_,
                  "Authority not known, skipping slot processing. "
@@ -750,18 +755,18 @@ namespace kagome::consensus::babe {
 
           processSlotLeadership(
               SlotType::Primary, std::cref(vrf_result), authority_index);
-        } else if (babe_config->allowed_slots
+        } else if (babe_config.allowed_slots
                        == primitives::AllowedSlots::PrimaryAndSecondaryPlain
-                   or babe_config->allowed_slots
+                   or babe_config.allowed_slots
                           == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
           auto expected_author =
               lottery_->secondarySlotAuthor(current_slot_,
-                                            babe_config->authorities.size(),
-                                            babe_config->randomness);
+                                            babe_config.authorities.size(),
+                                            babe_config.randomness);
 
           if (expected_author.has_value()
               and authority_index == expected_author.value()) {
-            if (babe_config->allowed_slots
+            if (babe_config.allowed_slots
                 == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
               auto vrf = lottery_->slotVrfSignature(current_slot_);
               processSlotLeadership(
@@ -1016,7 +1021,8 @@ namespace kagome::consensus::babe {
     // observe digest of block
     // (must be done strictly after block will be added)
     auto digest_tracking_res = digest_tracker_->onDigest(
-        {.block = block_info, .header = block.header}, block.header.digest);
+        {.block_info = block_info, .header = block.header},
+        block.header.digest);
 
     if (digest_tracking_res.has_error()) {
       SL_WARN(log_,
@@ -1057,11 +1063,11 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::changeLotteryEpoch(
       const EpochDescriptor &epoch,
-      std::shared_ptr<const primitives::BabeConfiguration> babe_config) const {
+      const primitives::BabeConfiguration &babe_config) const {
     BOOST_ASSERT(keypair_ != nullptr);
 
     auto authority_index_res =
-        getAuthorityIndex(babe_config->authorities, keypair_->public_key);
+        getAuthorityIndex(babe_config.authorities, keypair_->public_key);
     if (not authority_index_res) {
       SL_CRITICAL(log_,
                   "Block production failed: This node is not in the list of "
@@ -1070,11 +1076,11 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    auto threshold = calculateThreshold(babe_config->leadership_rate,
-                                        babe_config->authorities,
+    auto threshold = calculateThreshold(babe_config.leadership_rate,
+                                        babe_config.authorities,
                                         authority_index_res.value());
 
-    lottery_->changeEpoch(epoch, babe_config->randomness, threshold, *keypair_);
+    lottery_->changeEpoch(epoch, babe_config.randomness, threshold, *keypair_);
   }
 
   void BabeImpl::startNextEpoch() {
