@@ -149,7 +149,6 @@ jobs:
           - name: "Minideb: Build Release"
             build-type: "Release"
     name: "${{ matrix.options.name }}"
-    runs-on: ubuntu-latest
     container: soramitsu/kagome-dev:4-minideb
     steps:
       - uses: actions/checkout@v2
