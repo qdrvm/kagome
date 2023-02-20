@@ -25,47 +25,47 @@ namespace kagome::blockchain {
   outcome::result<void> DigestTrackerImpl::onDigest(
       const primitives::BlockContext &context,
       const primitives::Digest &digest) {
-    SL_TRACE(logger_, "Start process digest on block {}", context.block);
+    SL_TRACE(logger_, "Start process digest on block {}", context.block_info);
     for (auto &item : digest) {
       auto res = visit_in_place(
           item,
           [&](const primitives::Consensus &item) {
             SL_TRACE(logger_,
                      "Consensus-digest on block {}, engine '{}'",
-                     context.block,
+                     context.block_info,
                      item.consensus_engine_id.toString());
             return onConsensus(context, item);
           },
           [&](const primitives::Seal &item) {
             SL_TRACE(logger_,
                      "Seal-digest on block {}, engine '{}'",
-                     context.block,
+                     context.block_info,
                      item.consensus_engine_id.toString());
             return outcome::success();  // It does not processed by tracker
           },
           [&](const primitives::PreRuntime &item) {
             SL_TRACE(logger_,
                      "PreRuntime-digest on block {}, engine '{}'",
-                     context.block,
+                     context.block_info,
                      item.consensus_engine_id.toString());
             return onPreRuntime(context, item);
           },
           [&](const primitives::RuntimeEnvironmentUpdated &item) {
             SL_TRACE(logger_,
                      "RuntimeEnvironmentUpdated-digest on block {}",
-                     context.block);
+                     context.block_info);
             return outcome::success();  // It does not processed by tracker
           },
           [&](const auto &) {
             SL_WARN(logger_,
                     "Unsupported digest on block {}: variant #{}",
-                    context.block,
+                    context.block_info,
                     item.which());
             return outcome::success();
           });
       OUTCOME_TRY(res);
     }
-    SL_TRACE(logger_, "End process digest on block {}", context.block);
+    SL_TRACE(logger_, "End process digest on block {}", context.block_info);
     return outcome::success();
   }
 
@@ -97,14 +97,14 @@ namespace kagome::blockchain {
                       == primitives::kUnsupportedEngineId_POL1) {
       SL_TRACE(logger_,
                "Unsupported consensus engine id in block {}: {}",
-               context.block,
+               context.block_info,
                message.consensus_engine_id.toString());
       return outcome::success();
 
     } else {
       SL_WARN(logger_,
               "Unknown consensus engine id in block {}: {}",
-              context.block,
+              context.block_info,
               message.consensus_engine_id.toString());
       return outcome::success();
     }
@@ -122,7 +122,7 @@ namespace kagome::blockchain {
     } else {
       SL_WARN(logger_,
               "Unknown consensus engine id in block {}: {}",
-              context.block,
+              context.block_info,
               message.consensus_engine_id.toString());
       return outcome::success();
     }

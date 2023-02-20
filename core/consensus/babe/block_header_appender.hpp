@@ -11,15 +11,16 @@
 
 namespace kagome::consensus::babe {
 
-  class BlockAppender {
+  /**
+   * Adds a new block header to the block storage
+   */
+  class BlockHeaderAppender {
    public:
-    virtual ~BlockAppender() = default;
+    virtual ~BlockHeaderAppender() = default;
 
-    virtual outcome::result<void> appendBlock(primitives::BlockData &&b) = 0;
-
-    virtual outcome::result<void> applyJustification(
-        const primitives::BlockInfo &block_info,
-        const primitives::Justification &justification) = 0;
+    virtual outcome::result<void> appendHeader(
+        primitives::BlockHeader &&block_header,
+        std::optional<primitives::Justification> const &justification) = 0;
   };
 
 }  // namespace kagome::consensus::babe

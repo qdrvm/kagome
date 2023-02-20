@@ -69,9 +69,9 @@ namespace kagome::consensus::babe {
 
     EpochLength epochLength() const override;
 
-    std::shared_ptr<const primitives::BabeConfiguration> config(
-        const primitives::BlockContext &context,
-        EpochNumber epoch_number) override;
+    std::optional<std::reference_wrapper<const primitives::BabeConfiguration>>
+    config(const primitives::BlockContext &context,
+           EpochNumber epoch_number) const override;
 
     // BabeUtil
 
