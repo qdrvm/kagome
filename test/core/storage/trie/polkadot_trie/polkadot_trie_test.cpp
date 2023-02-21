@@ -543,13 +543,13 @@ TEST_F(TrieTest, GetPath) {
   }
 
   std::vector<std::pair<const BranchNode *, uint8_t>> path;
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      trie->forNodeInPath(trie->getRoot(),
-                          KeyNibbles{"010203040506"_hex2buf},
-                          [&path](const auto &node, auto idx) mutable {
-                            path.emplace_back(&node, idx);
-                            return outcome::success();
-                          }))
+  ASSERT_OUTCOME_SUCCESS_TRY(trie->forNodeInPath(
+      trie->getRoot(),
+      KeyNibbles{"010203040506"_hex2buf},
+      [&path](const auto &node, auto idx, auto &child) mutable {
+        path.emplace_back(&node, idx);
+        return outcome::success();
+      }))
   auto root = trie->getRoot();
   auto node1 = trie->getNode(root, KeyNibbles{1, 2, 3, 4}).value();
   auto it = path.begin();
@@ -577,10 +577,11 @@ TEST_F(TrieTest, GetPathToInvalid) {
   }
   EXPECT_OUTCOME_SOME_ERROR(
       _,
-      trie->forNodeInPath(
-          trie->getRoot(),
-          KeyNibbles{"0a0b0c0d0e0f"_hex2buf},
-          [](auto &node, auto idx) mutable { return outcome::success(); }))
+      trie->forNodeInPath(trie->getRoot(),
+                          KeyNibbles{"0a0b0c0d0e0f"_hex2buf},
+                          [](auto &node, auto idx, auto &child) mutable {
+                            return outcome::success();
+                          }))
 }
 
 /**

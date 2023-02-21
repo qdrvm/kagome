@@ -222,8 +222,9 @@ namespace kagome::consensus::grandpa {
              justification.round_number,
              justification.block_info);
 
-    OUTCOME_TRY(
-        justification_observer->applyJustification(block_info, justification));
+    auto r = justification_observer->applyJustification(block_info, justification);
+
+    OUTCOME_TRY(r);
 
     return outcome::success();
   }

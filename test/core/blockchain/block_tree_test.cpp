@@ -23,6 +23,7 @@
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
@@ -146,7 +147,8 @@ struct BlockTreeTest : public testing::Test {
                                         ext_events_engine,
                                         extrinsic_event_key_repo,
                                         changes_tracker_,
-                                        justification_storage_policy_)
+                                        justification_storage_policy_,
+                                        state_pruner_)
                       .value();
   }
 
@@ -240,6 +242,10 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<JustificationStoragePolicyMock>
       justification_storage_policy_ =
           std::make_shared<StrictMock<JustificationStoragePolicyMock>>();
+
+  std::shared_ptr<storage::trie_pruner::TriePruner>
+      state_pruner_ =
+          std::make_shared<StrictMock<storage::trie_pruner::TriePrunerMock>>();
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager_ =
       std::make_shared<application::AppStateManagerMock>();

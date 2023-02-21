@@ -30,6 +30,7 @@ namespace kagome::storage::trie {
 
   outcome::result<RootHash> TrieSerializerImpl::storeTrie(
       PolkadotTrie &trie, StateVersion version) {
+    current_stats_ = {};
     if (trie.getRoot() == nullptr) {
       return getEmptyRootHash();
     }
@@ -55,15 +56,20 @@ namespace kagome::storage::trie {
       TrieNode &node, StateVersion version) {
     auto batch = backend_->batch();
 
-    OUTCOME_TRY(enc,
-                codec_->encodeNode(node,
-                                   version,
-                                   [&](TrieNode const &node,
-                                       common::BufferView hash,
-                                       common::Buffer &&encoded) {
-                                     return batch->put(hash,
-                                                       std::move(encoded));
-                                   }));
+    OUTCOME_TRY(
+        enc,
+        codec_->encodeNode(node,
+                           version,
+                           [&](TrieNode const &node,
+                               common::BufferView hash,
+                               common::Buffer &&encoded) {
+                             current_stats_.new_nodes_written++;
+                             if (node.getValue()) {
+                               current_stats_.values_written++;
+                             }
+                             node.setCachedHash(hash);
+                             return batch->put(hash, std::move(encoded));
+                           }));
     auto hash = codec_->hash256(enc);
     OUTCOME_TRY(batch->put(hash, std::move(enc)));
     OUTCOME_TRY(batch->commit());
@@ -99,7 +105,9 @@ namespace kagome::storage::trie {
       enc = db_key;
     }
     OUTCOME_TRY(n, codec_->decodeNode(enc));
-    return std::dynamic_pointer_cast<TrieNode>(n);
+    auto node = std::dynamic_pointer_cast<TrieNode>(n);
+    node->setCachedHash(db_key);
+    return node;
   }
 
 }  // namespace kagome::storage::trie

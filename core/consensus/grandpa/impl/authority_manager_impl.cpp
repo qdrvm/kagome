@@ -978,7 +978,6 @@ namespace kagome::consensus::grandpa {
              "Looking if direct chain exists between {} and {}",
              ancestor,
              descendant);
-    KAGOME_PROFILE_START(direct_chain_exists)
     // Check if it's one-block chain
     if (ancestor == descendant) {
       return true;
@@ -992,7 +991,6 @@ namespace kagome::consensus::grandpa {
       return false;
     }
     auto result = block_tree_->hasDirectChain(ancestor.hash, descendant.hash);
-    KAGOME_PROFILE_END(direct_chain_exists)
     return result;
   }
 

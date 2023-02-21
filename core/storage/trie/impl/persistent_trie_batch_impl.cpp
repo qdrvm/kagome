@@ -56,6 +56,11 @@ namespace kagome::storage::trie {
       StateVersion version) {
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
+    auto &stats = serializer_->getLatestStats();
+    SL_INFO(logger_,
+            "Written {} new nodes and {} values",
+            stats.new_nodes_written,
+            stats.values_written);
     return std::move(root);
   }
 

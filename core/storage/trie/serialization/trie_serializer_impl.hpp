@@ -32,6 +32,10 @@ namespace kagome::storage::trie {
     outcome::result<RootHash> storeTrie(PolkadotTrie &trie,
                                         StateVersion version) override;
 
+    TrieStoreStats const& getLatestStats() const override  {
+      return current_stats_;
+    }
+
     outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
         const common::Buffer &db_key) const override;
 
@@ -53,6 +57,8 @@ namespace kagome::storage::trie {
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieStorageBackend> backend_;
+
+    TrieStoreStats current_stats_;
   };
 }  // namespace kagome::storage::trie
 

@@ -12,6 +12,11 @@
 
 namespace kagome::storage::trie {
 
+  struct TrieStoreStats {
+    size_t new_nodes_written{};
+    size_t values_written{};
+  };
+
   /**
    * Serializes PolkadotTrie and stores it in an external storage
    */
@@ -53,6 +58,7 @@ namespace kagome::storage::trie {
     virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
         const std::shared_ptr<OpaqueTrieNode> &node) const = 0;
 
+    virtual TrieStoreStats const& getLatestStats() const = 0;
   };
 
 }  // namespace kagome::storage::trie

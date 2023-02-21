@@ -475,6 +475,8 @@ namespace kagome::blockchain {
       }
     }
 
+    OUTCOME_TRY(state_pruner_->addNewState(block.header.state_root));
+
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
         tree_->getMetadata().best_leaf.lock()->depth);
@@ -731,11 +733,12 @@ namespace kagome::blockchain {
 
     KAGOME_PROFILE_END(justification_store)
 
-    OUTCOME_TRY(state_pruner_->addNewState(header.state_root));
-
-    OUTCOME_TRY(old_header, storage_->getBlockHeader(header.number - 64));
-    if (old_header) {
-      OUTCOME_TRY(state_pruner_->prune(old_header.value().state_root));
+    // if we're doing a full sync
+    if (body.has_value()) {
+      OUTCOME_TRY(old_header, storage_->getBlockHeader(header.number - 64));
+      if (old_header) {
+        OUTCOME_TRY(state_pruner_->prune(old_header.value().state_root));
+      }
     }
 
     return outcome::success();
@@ -1147,10 +1150,12 @@ namespace kagome::blockchain {
 
     // remove from storage
     for (const auto &node : to_remove) {
-      OUTCOME_TRY(block_body_res, storage_->getBlockBody(node->block_hash));
-      if (block_body_res.has_value()) {
-        extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
-        for (auto &ext : block_body_res.value()) {
+      OUTCOME_TRY(block_header_opt, storage_->getBlockHeader(node->block_hash));
+      BOOST_ASSERT(block_header_opt.has_value());
+      OUTCOME_TRY(block_body_opt, storage_->getBlockBody(node->block_hash));
+      if (block_body_opt.has_value()) {
+        extrinsics.reserve(extrinsics.size() + block_body_opt.value().size());
+        for (auto &ext : block_body_opt.value()) {
           if (auto key = extrinsic_event_key_repo_->get(
                   hasher_->blake2b_256(ext.data))) {
             extrinsic_events_engine_->notify(
@@ -1160,6 +1165,7 @@ namespace kagome::blockchain {
           }
           extrinsics.emplace_back(std::move(ext));
         }
+        OUTCOME_TRY(state_pruner_->prune(block_header_opt.value().state_root));
       }
 
       tree_->removeFromMeta(node);

@@ -39,7 +39,7 @@ namespace kagome::storage::trie {
   }
 
   inline bool shouldBeHashed(const TrieNode &node, StateVersion version) {
-    if (node.value.hash || !node.value.value) {
+    if (node.getValue().hash || !node.getValue().value) {
       return false;
     }
     switch (version) {
@@ -47,10 +47,10 @@ namespace kagome::storage::trie {
         return false;
       }
       case StateVersion::V1: {
-        if (!node.value.dirty()) {
+        if (!node.getValue().dirty()) {
           return false;
         }
-        return node.value.value->size() >= kMaxInlineValueSizeVersion1;
+        return node.getValue().value->size() >= kMaxInlineValueSizeVersion1;
       }
     }
     BOOST_UNREACHABLE_RETURN();
@@ -58,18 +58,18 @@ namespace kagome::storage::trie {
 
   inline TrieNode::Type getType(const TrieNode &node) {
     if (node.isBranch()) {
-      if (node.value.hash) {
+      if (node.getValue().hash) {
         return TrieNode::Type::BranchContainingHashes;
       }
-      if (node.value.value) {
+      if (node.getValue().value) {
         return TrieNode::Type::BranchWithValue;
       }
       return TrieNode::Type::BranchEmptyValue;
     }
-    if (node.value.hash) {
+    if (node.getValue().hash) {
       return TrieNode::Type::LeafContainingHashes;
     }
-    if (node.value.value) {
+    if (node.getValue().value) {
       return TrieNode::Type::Leaf;
     }
     return TrieNode::Type::Empty;
@@ -120,7 +120,7 @@ namespace kagome::storage::trie {
 
   outcome::result<common::Buffer> PolkadotCodec::encodeHeader(
       const TrieNode &node, StateVersion version) const {
-    if (node.key_nibbles.size() > 0xffffu) {
+    if (node.getKeyNibbles().size() > 0xffffu) {
       return Error::TOO_MANY_NIBBLES;
     }
 
@@ -171,15 +171,15 @@ namespace kagome::storage::trie {
     }
 
     // set bits of partial key length
-    if (node.key_nibbles.size() < partial_length_mask) {
-      head |= uint8_t(node.key_nibbles.size());
+    if (node.getKeyNibbles().size() < partial_length_mask) {
+      head |= uint8_t(node.getKeyNibbles().size());
       return Buffer{head};  // header contains 1 byte
     }
     // if partial key length is greater than max partial key length, then the
     // rest of the length is stored in consequent bytes
     head += partial_length_mask;
 
-    size_t l = node.key_nibbles.size() - partial_length_mask;
+    size_t l = node.getKeyNibbles().size() - partial_length_mask;
     Buffer out(1u +             // 1 byte head
                    l / 0xffu +  // number of 255 in l
                    1u,          // for last byte
@@ -199,18 +199,18 @@ namespace kagome::storage::trie {
       const TrieNode &node,
       StateVersion version,
       const ChildVisitor &child_visitor) const {
-    auto hash = node.value.hash;
+    auto hash = node.getValue().hash;
     if (shouldBeHashed(node, version)) {
-      hash = hash256(*node.value.value);
+      hash = hash256(*node.getValue().value);
       if (child_visitor) {
-        OUTCOME_TRY(child_visitor(node, *hash, Buffer{*node.value.value}));
+        OUTCOME_TRY(child_visitor(node, *hash, Buffer{*node.getValue().value}));
       }
     }
     if (hash) {
       out += *hash;
-    } else if (node.value.value) {
+    } else if (node.getValue().value) {
       // TODO(turuslan): soramitsu/scale-codec-cpp non-allocating methods
-      OUTCOME_TRY(value, scale::encode(*node.value.value));
+      OUTCOME_TRY(value, scale::encode(*node.getValue().value));
       out += value;
     }
     return outcome::success();
@@ -224,7 +224,7 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(encoding, encodeHeader(node, version));
 
     // key
-    encoding += node.key_nibbles.toByteBuffer();
+    encoding += node.getKeyNibbles().toByteBuffer();
 
     // children bitmap
     encoding += ushortToBytes(node.childrenBitmap());
@@ -263,9 +263,9 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(encoding, encodeHeader(node, version));
 
     // key
-    encoding += node.key_nibbles.toByteBuffer();
+    encoding += node.getKeyNibbles().toByteBuffer();
 
-    if (!node.value) {
+    if (!node.getValue()) {
       return Error::NO_NODE_VALUE;
     }
 
@@ -356,7 +356,7 @@ namespace kagome::storage::trie {
     size_t pk_length = first & partial_key_length_mask;
 
     if (pk_length == partial_key_length_mask) {
-      uint8_t read_length = 0;
+      uint8_t read_length{};
       do {
         if (not stream.hasMore(1)) {
           return Error::INPUT_TOO_SMALL;
@@ -413,7 +413,7 @@ namespace kagome::storage::trie {
       } catch (std::system_error &e) {
         return outcome::failure(e.code());
       }
-      node->value = {std::nullopt, std::move(value), false};
+      node->setValue({std::nullopt, std::move(value), false});
     } else if (type == TrieNode::Type::BranchContainingHashes) {
       common::Hash256 hash;
       try {
@@ -421,7 +421,7 @@ namespace kagome::storage::trie {
       } catch (std::system_error &e) {
         return outcome::failure(e.code());
       }
-      node->value = {hash, std::nullopt, false};
+      node->setValue({hash, std::nullopt, false});
     } else if (type != TrieNode::Type::BranchEmptyValue) {
       return Error::UNKNOWN_NODE_TYPE;
     }

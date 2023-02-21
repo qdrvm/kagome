@@ -25,6 +25,16 @@ namespace kagome::storage::trie {
                 retrieveTrie,
                 (const common::Buffer &),
                 (const, override));
+
+    MOCK_METHOD(outcome::result<PolkadotTrie::NodePtr>,
+                retrieveNode,
+                (const common::Buffer &db_key),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<PolkadotTrie::NodePtr>,
+                retrieveNode,
+                (const std::shared_ptr<OpaqueTrieNode> &node),
+                (const, override));
   };
 
 }  // namespace kagome::storage::trie

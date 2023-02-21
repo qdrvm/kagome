@@ -117,9 +117,9 @@ namespace kagome::storage::trie {
   struct TrieNode : public OpaqueTrieNode {
     TrieNode() = default;
     TrieNode(KeyNibbles key_nibbles, ValueAndHash value)
-        : key_nibbles{std::move(key_nibbles)}, value{std::move(value)} {}
+        : key_nibbles_{std::move(key_nibbles)}, value_{std::move(value)} {}
 
-    ~TrieNode() override = default;
+    inline ~TrieNode() override = default;
 
     enum class Type {
       Special,                    // -
@@ -132,10 +132,55 @@ namespace kagome::storage::trie {
       ReservedForCompactEncoding  // 0001 0000
     };
 
-    inline bool isBranch() const noexcept;
+    virtual bool isBranch() const noexcept = 0;
 
-    KeyNibbles key_nibbles;
-    ValueAndHash value;
+    std::optional<common::Buffer> getCachedHash() const {
+      return merkle_value_;
+    }
+
+    void setCachedHash(common::Buffer const &merkle_value) const {
+      merkle_value_.emplace(merkle_value);
+    }
+
+    KeyNibbles const &getKeyNibbles() const {
+      return key_nibbles_;
+    }
+
+    KeyNibbles &modifyKeyNibbles() {
+      merkle_value_ = {};
+      return key_nibbles_;
+    }
+
+    void setKeyNibbles(KeyNibbles &&key_nibbles) {
+      key_nibbles_ = std::move(key_nibbles);
+      merkle_value_ = {};
+    }
+
+    ValueAndHash const &getValue() const {
+      return value_;
+    }
+
+    ValueAndHash &getMutableValue() {
+      merkle_value_ = {};
+      return value_;
+    }
+
+    void setValue(ValueAndHash const &new_value) {
+      value_ = new_value;
+      merkle_value_ = {};
+    }
+
+    void setValue(ValueAndHash &&new_value) {
+      value_ = std::move(new_value);
+      merkle_value_ = {};
+    }
+
+   private:
+    KeyNibbles key_nibbles_;
+    ValueAndHash value_;
+
+    // cached node hash
+    mutable std::optional<common::Buffer> merkle_value_{};
   };
 
   struct BranchNode : public TrieNode {
@@ -153,8 +198,13 @@ namespace kagome::storage::trie {
         if (children[child_idx]) {
           return child_idx;
         }
+        child_idx++;
       }
-      return {};
+      return kMaxChildren;
+    }
+
+    virtual bool isBranch() const noexcept override {
+      return true;
     }
 
     uint16_t childrenBitmap() const;
@@ -166,16 +216,16 @@ namespace kagome::storage::trie {
     std::array<std::shared_ptr<OpaqueTrieNode>, kMaxChildren> children;
   };
 
-  bool TrieNode::isBranch() const noexcept {
-    return dynamic_cast<const BranchNode *>(this) != nullptr;
-  }
-
   struct LeafNode : public TrieNode {
     LeafNode() = default;
     LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
         : TrieNode{std::move(key_nibbles), {std::nullopt, std::move(value)}} {}
     LeafNode(KeyNibbles key_nibbles, ValueAndHash value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
+
+    virtual bool isBranch() const noexcept override {
+      return false;
+    }
 
     ~LeafNode() override = default;
   };

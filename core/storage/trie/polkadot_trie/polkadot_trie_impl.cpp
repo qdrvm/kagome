@@ -105,16 +105,17 @@ namespace {
     auto &branch = dynamic_cast<BranchNode &>(*parent);
     auto bitmap = branch.childrenBitmap();
     if (bitmap == 0) {
-      if (parent->value) {
+      if (parent->getValue()) {
         // turn branch node left with no children to a leaf node
-        parent = std::make_shared<LeafNode>(parent->key_nibbles, parent->value);
+        parent = std::make_shared<LeafNode>(parent->getKeyNibbles(),
+                                            parent->getValue());
         SL_TRACE(logger, "handleDeletion: turn childless branch into a leaf");
       } else {
         // this case actual only for clearPrefix, unreal situation in deletion
         parent = nullptr;
         SL_TRACE(logger, "handleDeletion: nullify valueless branch parent");
       }
-    } else if (branch.childrenNum() == 1 && !branch.value) {
+    } else if (branch.childrenNum() == 1 && !branch.getValue()) {
       size_t idx = 0;
       while (bitmap >>= 1u) {
         ++idx;
@@ -122,18 +123,19 @@ namespace {
       OUTCOME_TRY(child, node_storage.getChild(branch, idx));
 
       if (!child->isBranch()) {
-        parent = std::make_shared<LeafNode>(parent->key_nibbles, child->value);
+        parent = std::make_shared<LeafNode>(parent->getKeyNibbles(),
+                                            child->getValue());
         SL_TRACE(logger,
                  "handleDeletion: turn a branch with single leaf child into "
                  "its child");
       } else {
         branch.children = dynamic_cast<BranchNode &>(*child).children;
-        parent->value = child->value;
+        parent->setValue(child->getValue());
         SL_TRACE(logger,
                  "handleDeletion: turn a branch with single branch child into "
                  "its child");
       }
-      parent->key_nibbles.putUint8(idx).put(child->key_nibbles);
+      parent->modifyKeyNibbles().putUint8(idx).put(child->getKeyNibbles());
     }
     return outcome::success();
   }
@@ -151,16 +153,16 @@ namespace {
     }
     SL_TRACE(logger,
              "deleteNode: currently in {}, sought key is {}",
-             node->key_nibbles.toHex(),
+             node->getKeyNibbles().toHex(),
              sought_key);
 
     if (node->isBranch()) {
       auto &branch = dynamic_cast<BranchNode &>(*node);
-      if (node->key_nibbles == sought_key) {
+      if (node->getKeyNibbles() == sought_key) {
         SL_TRACE(logger, "deleteNode: deleting value in branch; stop");
-        node->value = ValueAndHash{};
+        node->setValue(ValueAndHash{});
       } else {
-        auto length = getCommonPrefixLength(node->key_nibbles, sought_key);
+        auto length = getCommonPrefixLength(node->getKeyNibbles(), sought_key);
         OUTCOME_TRY(child, node_storage.getChild(branch, sought_key[length]));
         SL_TRACE(
             logger, "deleteNode: go to child {:x}", (int)sought_key[length]);
@@ -169,7 +171,7 @@ namespace {
         branch.children[sought_key[length]] = child;
       }
       OUTCOME_TRY(handleDeletion(logger, node, node_storage));
-    } else if (node->key_nibbles == sought_key) {
+    } else if (node->getKeyNibbles() == sought_key) {
       SL_TRACE(logger, "deleteNode: nullifying leaf node; stop");
       node = nullptr;
     }
@@ -179,8 +181,8 @@ namespace {
   outcome::result<void> notifyOnDetached(
       PolkadotTrie::NodePtr &node,
       const PolkadotTrie::OnDetachCallback &callback) {
-    auto key = node->key_nibbles.toByteBuffer();
-    OUTCOME_TRY(callback(key, std::move(node->value.value)));
+    auto key = node->getKeyNibbles().toByteBuffer();
+    OUTCOME_TRY(callback(key, std::move(node->getMutableValue().value)));
     return outcome::success();
   }
 
@@ -209,11 +211,11 @@ namespace {
       return outcome::success();
     }
 
-    if (std::greater_equal<size_t>()(parent->key_nibbles.size(),
+    if (std::greater_equal<size_t>()(parent->getKeyNibbles().size(),
                                      prefix.size())) {
       // if this is the node to be detached -- detach it
       if (std::equal(
-              prefix.begin(), prefix.end(), parent->key_nibbles.begin())) {
+              prefix.begin(), prefix.end(), parent->getKeyNibbles().begin())) {
         // remove all children one by one according to limit
         if (parent->isBranch()) {
           auto &branch = dynamic_cast<BranchNode &>(*parent);
@@ -235,14 +237,14 @@ namespace {
           }
         }
         if (not limit or count < limit.value()) {
-          if (parent->value) {
-            OUTCOME_TRY(trie.retrieveValue(parent->value));
+          if (parent->getValue()) {
+            OUTCOME_TRY(trie.retrieveValue(parent->getMutableValue()));
             OUTCOME_TRY(notifyOnDetached(parent, callback));
             ++count;
           }
           parent = nullptr;
         } else {
-          if (parent->value) {
+          if (parent->getValue()) {
             // we saw a value after limit, so not finished
             finished = false;
           }
@@ -257,14 +259,14 @@ namespace {
 
     // if parent's key is smaller, and it is not a prefix of the prefix, don't
     // change anything
-    if (not std::equal(parent->key_nibbles.begin(),
-                       parent->key_nibbles.end(),
+    if (not std::equal(parent->getKeyNibbles().begin(),
+                       parent->getKeyNibbles().end(),
                        prefix.begin())) {
       return outcome::success();
     }
 
     if (parent->isBranch()) {
-      const auto length = parent->key_nibbles.size();
+      const auto length = parent->getKeyNibbles().size();
       auto &branch = dynamic_cast<BranchNode &>(*parent);
       auto &child = branch.children.at(prefix[length]);
       if (child != nullptr) {
@@ -350,7 +352,7 @@ namespace kagome::storage::trie {
       const NodePtr &parent, const NibblesView &key_nibbles, NodePtr node) {
     // just update the node key and return it as the new root
     if (parent == nullptr) {
-      node->key_nibbles = key_nibbles;
+      node->setKeyNibbles(key_nibbles);
       return node;
     }
 
@@ -360,42 +362,43 @@ namespace kagome::storage::trie {
     }
     // need to convert this leaf into a branch
     auto br = std::make_shared<BranchNode>();
-    auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
+    auto length = getCommonPrefixLength(key_nibbles, parent->getKeyNibbles());
 
-    if (parent->key_nibbles == key_nibbles && key_nibbles.size() == length) {
-      node->key_nibbles = key_nibbles;
+    if (parent->getKeyNibbles() == key_nibbles
+        && key_nibbles.size() == length) {
+      node->setKeyNibbles(key_nibbles);
       return node;
     }
 
-    br->key_nibbles = KeyNibbles{key_nibbles.subspan(0, length)};
-    auto parentKey = parent->key_nibbles;
+    br->setKeyNibbles(KeyNibbles{key_nibbles.subspan(0, length)});
+    auto parentKey = parent->getKeyNibbles();
 
     // value goes at this branch
     if (key_nibbles.size() == length) {
-      br->value = node->value;
+      br->setValue(node->getValue());
 
       // if we are not replacing previous leaf, then add it as a
       // child to the new branch
-      if (static_cast<std::ptrdiff_t>(parent->key_nibbles.size())
+      if (static_cast<std::ptrdiff_t>(parent->getKeyNibbles().size())
           > key_nibbles.size()) {
-        parent->key_nibbles = parent->key_nibbles.subbuffer(length + 1);
+        parent->setKeyNibbles(parent->getKeyNibbles().subbuffer(length + 1));
         br->children.at(parentKey[length]) = parent;
       }
 
       return br;
     }
 
-    node->key_nibbles = KeyNibbles{key_nibbles.subspan(length + 1)};
+    node->setKeyNibbles(KeyNibbles{key_nibbles.subspan(length + 1)});
 
-    if (length == parent->key_nibbles.size()) {
+    if (length == parent->getKeyNibbles().size()) {
       // if leaf's key is covered by this branch, then make the leaf's
       // value the value at this branch
-      br->value = parent->value;
+      br->setValue(parent->getValue());
       br->children.at(key_nibbles[length]) = node;
     } else {
       // otherwise, make the leaf a child of the branch and update its
       // partial key
-      parent->key_nibbles = parent->key_nibbles.subbuffer(length + 1);
+      parent->setKeyNibbles(parent->getKeyNibbles().subbuffer(length + 1));
       br->children.at(parentKey[length]) = parent;
       br->children.at(key_nibbles[length]) = node;
     }
@@ -405,12 +408,12 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::updateBranch(
       BranchPtr parent, const NibblesView &key_nibbles, const NodePtr &node) {
-    auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
+    auto length = getCommonPrefixLength(key_nibbles, parent->getKeyNibbles());
 
-    if (length == parent->key_nibbles.size()) {
+    if (length == parent->getKeyNibbles().size()) {
       // just set the value in the parent to the node value
-      if (key_nibbles == parent->key_nibbles) {
-        parent->value = node->value;
+      if (key_nibbles == parent->getKeyNibbles()) {
+        parent->setValue(node->getValue());
         return parent;
       }
       OUTCOME_TRY(child, retrieveChild(*parent, key_nibbles[length]));
@@ -419,19 +422,19 @@ namespace kagome::storage::trie {
         parent->children.at(key_nibbles[length]) = n;
         return parent;
       }
-      node->key_nibbles = KeyNibbles{key_nibbles.subspan(length + 1)};
+      node->setKeyNibbles(KeyNibbles{key_nibbles.subspan(length + 1)});
       parent->children.at(key_nibbles[length]) = node;
       return parent;
     }
     auto br = std::make_shared<BranchNode>(
         KeyNibbles{key_nibbles.subspan(0, length)});
-    auto parentIdx = parent->key_nibbles[length];
+    auto parentIdx = parent->getKeyNibbles()[length];
     OUTCOME_TRY(
         new_branch,
-        insert(nullptr, parent->key_nibbles.subspan(length + 1), parent));
+        insert(nullptr, parent->getKeyNibbles().subspan(length + 1), parent));
     br->children.at(parentIdx) = new_branch;
     if (key_nibbles.size() <= length) {
-      br->value = node->value;
+      br->setValue(node->getValue());
     } else {
       OUTCOME_TRY(new_child,
                   insert(nullptr, key_nibbles.subspan(length + 1), node));
@@ -456,9 +459,9 @@ namespace kagome::storage::trie {
     }
     auto nibbles = KeyNibbles::fromByteBuffer(key);
     OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
-    if (node && node->value) {
-      OUTCOME_TRY(retrieveValue(const_cast<ValueAndHash &>(node->value)));
-      return BufferView{*node->value.value};
+    if (node && node->getValue()) {
+      OUTCOME_TRY(retrieveValue(const_cast<ValueAndHash &>(node->getValue())));
+      return BufferView{*node->getValue().value};
     }
     return std::nullopt;
   }
@@ -482,19 +485,19 @@ namespace kagome::storage::trie {
     }
 
     if (current->isBranch()) {
-      if (current->key_nibbles == nibbles or nibbles.empty()) {
+      if (current->getKeyNibbles() == nibbles or nibbles.empty()) {
         return current;
       }
-      if (nibbles.size() < static_cast<long>(current->key_nibbles.size())) {
+      if (nibbles.size() < static_cast<long>(current->getKeyNibbles().size())) {
         return nullptr;
       }
       auto parent_as_branch =
           std::dynamic_pointer_cast<const BranchNode>(current);
-      auto length = getCommonPrefixLength(current->key_nibbles, nibbles);
+      auto length = getCommonPrefixLength(current->getKeyNibbles(), nibbles);
       OUTCOME_TRY(n, retrieveChild(*parent_as_branch, nibbles[length]));
       return getNode(n, nibbles.subspan(length + 1));
     }
-    if (current->key_nibbles == nibbles) {
+    if (current->getKeyNibbles() == nibbles) {
       return current;
     }
     return nullptr;
@@ -512,16 +515,17 @@ namespace kagome::storage::trie {
 
     if (parent->isBranch()) {
       // path is completely covered by the parent key
-      if (parent->key_nibbles == path or path.empty()) {
+      if (parent->getKeyNibbles() == path or path.empty()) {
         return outcome::success();
       }
-      auto common_length = getCommonPrefixLength(parent->key_nibbles, path);
+      auto common_length = getCommonPrefixLength(parent->getKeyNibbles(), path);
       auto common_nibbles =
-          gsl::make_span(parent->key_nibbles.data(), common_length);
+          gsl::make_span(parent->getKeyNibbles().data(), common_length);
       // path is even less than the parent key (path is the prefix of the
       // parent key)
       if (path == common_nibbles
-          and path.size() < static_cast<ssize_t>(parent->key_nibbles.size())) {
+          and path.size()
+                  < static_cast<ssize_t>(parent->getKeyNibbles().size())) {
         return outcome::success();
       }
       auto parent_as_branch =
@@ -530,7 +534,7 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(callback(*parent_as_branch, path[common_length], *child));
       return forNodeInPath(child, path.subspan(common_length + 1), callback);
     }
-    if (parent->key_nibbles == path) {
+    if (parent->getKeyNibbles() == path) {
       return outcome::success();
     }
     return TrieError::NO_VALUE;
@@ -548,7 +552,7 @@ namespace kagome::storage::trie {
 
     OUTCOME_TRY(node,
                 getNode(nodes_->getRoot(), KeyNibbles::fromByteBuffer(key)));
-    return node != nullptr && node->value;
+    return node != nullptr && node->getValue();
   }
 
   bool PolkadotTrieImpl::empty() const {
