@@ -139,7 +139,7 @@ jobs:
         run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
   Minideb:
-    runs-on: [ ubuntu-latest, kagome, self-hosted ]
+    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     strategy:
       fail-fast: false
       matrix:
