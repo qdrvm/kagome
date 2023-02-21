@@ -139,7 +139,6 @@ jobs:
         run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
   Minideb:
-    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     strategy:
       fail-fast: false
       matrix:
@@ -149,6 +148,7 @@ jobs:
           - name: "Minideb: Build Release"
             build-type: "Release"
     name: "${{ matrix.options.name }}"
+    runs-on: ubuntu-latest
     container: soramitsu/kagome-dev:4-minideb
     steps:
       - uses: actions/checkout@v2
@@ -172,8 +172,6 @@ jobs:
             build-type: "Debug"
           - name: "Push Release Docker image"
             build-type: "Release"
-          - name: "Push RelWithDebInfo Docker image"
-            build-type: "RelWithDebInfo"
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev:4-minideb
     steps:
@@ -198,9 +196,43 @@ jobs:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome/build_and_push.sh
 
+  Push-self-hosted:
+    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    needs: [clang-tidy, MacOS, Minideb]
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "Push RelWithDebInfo Docker image"
+            build-type: "RelWithDebInfo"
+    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+    container: soramitsu/kagome-dev:4-minideb
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - run: git fetch --prune --unshallow
+      - name: build
+        env:
+          BUILD_TYPE: "${{ matrix.options.build-type }}"
+        run: ./housekeeping/docker/kagome-dev/make.sh
+      - uses: azure/docker-login@v1
+        with:
+          login-server: https://index.docker.io/v1/
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: docker pack and push
+        env:
+          VERSION: ${{ github.ref }}
+          BUILD_TYPE: "${{ matrix.options.build-type }}"
+        run: ./housekeeping/docker/kagome/build_and_push.sh
+
+
   Trigger_CD:
     if: ${{ github.ref == 'refs/heads/master' }}
-    needs: [Push]
+    needs: [Push, Push-self-hosted]
     runs-on: ubuntu-latest
     steps:
       - name: trigger cd job
