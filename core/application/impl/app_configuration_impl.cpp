@@ -239,7 +239,9 @@ namespace kagome::application {
   }
 
   fs::path AppConfigurationImpl::keystorePath(std::string chain_id) const {
-    if (keystore_path_) return *keystore_path_ / chain_id / "keystore";
+    if (keystore_path_) {
+      return *keystore_path_ / chain_id / "keystore";
+    }
     return chainPath(chain_id) / "keystore";
   }
 
@@ -1036,6 +1038,7 @@ namespace kagome::application {
       return false;  // just proxy erroneous case to the top level
     }
 
+    // Check of possible address ambiguity
     if (p2p_port_explicitly_defined_ and not listen_addresses_.empty()) {
       SL_ERROR(logger_,
                "Port and listen address must not be defined simultaneously; "
@@ -1058,7 +1061,9 @@ namespace kagome::application {
       public_addresses_ = listen_addresses_;
     }
 
-    if (p2p_port_explicitly_defined_ and listen_addresses_.empty()) {
+    // If listen address has not defined, listen P2P TCP-port on all
+    // accessible interfaces
+    if (listen_addresses_.empty()) {
       // IPv6
       {
         auto ma_res = libp2p::multi::Multiaddress::create(
