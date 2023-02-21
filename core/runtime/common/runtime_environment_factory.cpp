@@ -141,6 +141,13 @@ namespace kagome::runtime {
     return *this;
   }
 
+  [[nodiscard]] RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate &
+  RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::withStorageBatch(
+      std::shared_ptr<storage::trie::TrieBatch> batch) {
+    batch_ = batch;
+    return *this;
+  }
+
   outcome::result<std::unique_ptr<RuntimeEnvironment>>
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::make() {
     KAGOME_PROFILE_START(runtime_env_making);
@@ -166,7 +173,17 @@ namespace kagome::runtime {
                     header_res.value()));
 
     const auto &env = instance->getEnvironment();
-    if (persistent_) {
+    if (batch_) {
+      if (auto res = env.storage_provider->setTo(batch_); !res) {
+        SL_DEBUG(parent_factory->logger_,
+                 "Failed to set the storage state to a custom batch when "
+                 "initializing a "
+                 "runtime environment; Reason: {}",
+                 res.error());
+        return Error::FAILED_TO_SET_STORAGE_STATE;
+      }
+
+    } else if (persistent_) {
       if (auto res = env.storage_provider->setToPersistentAt(storage_state_);
           !res) {
         SL_DEBUG(

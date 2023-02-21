@@ -37,12 +37,15 @@ namespace kagome::runtime {
     outcome::result<void> setToPersistentAt(
         const common::Hash256 &state_root) override;
 
+    outcome::result<void> setTo(
+        std::shared_ptr<storage::trie::TrieBatch> batch) override;
+
     std::shared_ptr<Batch> getCurrentBatch() const override;
 
-    outcome::result<std::shared_ptr<PersistentBatch>> getChildBatchAt(
+    outcome::result<std::shared_ptr<storage::trie::TrieBatch>> getChildBatchAt(
         const common::Buffer &root_path) override;
 
-    outcome::result<storage::trie::RootHash> forceCommit(
+    outcome::result<storage::trie::RootHash> commit(
         StateVersion version) override;
 
     outcome::result<void> startTransaction() override;
@@ -61,7 +64,8 @@ namespace kagome::runtime {
     // to keep accumulated changes for commit to the main storage
     std::shared_ptr<PersistentBatch> persistent_batch_;
 
-    std::unordered_map<common::Buffer, std::shared_ptr<PersistentBatch>>
+    std::unordered_map<common::Buffer,
+                       std::shared_ptr<storage::trie::TrieBatch>>
         child_batches_;
 
     log::Logger logger_;

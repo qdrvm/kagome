@@ -41,10 +41,7 @@ namespace kagome::runtime {
              "Setting storage provider to ephemeral batch with root {}",
              state_root);
     OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(state_root));
-    child_batches_.clear();
-    persistent_batch_.reset();
-    current_batch_ = std::move(batch);
-    return outcome::success();
+    return setTo(std::shared_ptr(std::move(batch)));
   }
 
   outcome::result<void> TrieStorageProviderImpl::setToPersistentAt(
@@ -53,9 +50,16 @@ namespace kagome::runtime {
              "Setting storage provider to new persistent batch with root {}",
              state_root);
     OUTCOME_TRY(batch, trie_storage_->getPersistentBatchAt(state_root));
+    return setTo(std::shared_ptr(std::move(batch)));
+  }
+
+  outcome::result<void> TrieStorageProviderImpl::setTo(
+      std::shared_ptr<storage::trie::TrieBatch> batch) {
+    SL_DEBUG(logger_, "Setting storage provider to new batch");
     child_batches_.clear();
-    persistent_batch_ = std::move(batch);
-    current_batch_ = persistent_batch_;
+    persistent_batch_ =
+        std::dynamic_pointer_cast<storage::trie::PersistentTrieBatch>(batch);
+    current_batch_ = batch;
     return outcome::success();
   }
 
@@ -64,32 +68,22 @@ namespace kagome::runtime {
     return current_batch_;
   }
 
-  outcome::result<std::shared_ptr<TrieStorageProvider::PersistentBatch>>
+  outcome::result<std::shared_ptr<storage::trie::TrieBatch>>
   TrieStorageProviderImpl::getChildBatchAt(const common::Buffer &root_path) {
     if (!child_batches_.count(root_path)) {
       SL_DEBUG(logger_,
                "Creating new persistent batch for child storage {}",
                root_path.toHex());
-      OUTCOME_TRY(child_root_value, getCurrentBatch()->tryGet(root_path));
-      auto child_root_hash =
-          child_root_value
-              ? common::Hash256::fromSpan(*child_root_value).value()
-              : trie_serializer_->getEmptyRootHash();
-      OUTCOME_TRY(child_batch,
-                  trie_storage_->getPersistentBatchAt(child_root_hash));
-      child_batches_.emplace(root_path, std::move(child_batch));
+      OUTCOME_TRY(child_batch, current_batch_->createChildBatch(root_path));
+      child_batches_.emplace(root_path, child_batch);
     }
     SL_DEBUG(
         logger_, "Fetching persistent batch for child storage {}", root_path);
     return child_batches_.at(root_path);
   }
 
-  outcome::result<storage::trie::RootHash> TrieStorageProviderImpl::forceCommit(
+  outcome::result<storage::trie::RootHash> TrieStorageProviderImpl::commit(
       StateVersion version) {
-    for (auto &[child, kv] : child_batches_) {
-      OUTCOME_TRY(root, kv->commit(version));
-      OUTCOME_TRY(current_batch_->put(child, common::BufferView{root}));
-    }
     if (persistent_batch_) {
       return persistent_batch_->commit(version);
     }
@@ -99,7 +93,6 @@ namespace kagome::runtime {
       // won't actually write any data to the storage but will calculate the
       // root hash for the state represented by the batch
       OUTCOME_TRY(root, ephemeral->hash(version));
-      SL_TRACE(logger_, "Force commit ephemeral batch, root: {}", root);
       return std::move(root);
     }
     return Error::NO_BATCH;

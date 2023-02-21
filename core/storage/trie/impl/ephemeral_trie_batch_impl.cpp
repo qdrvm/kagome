@@ -10,10 +10,18 @@
 namespace kagome::storage::trie {
 
   EphemeralTrieBatchImpl::EphemeralTrieBatchImpl(
-      std::shared_ptr<Codec> codec, std::shared_ptr<PolkadotTrie> trie)
-      : codec_{std::move(codec)}, trie_{std::move(trie)} {
+      std::shared_ptr<Codec> codec,
+      std::shared_ptr<PolkadotTrie> trie,
+      std::shared_ptr<TrieSerializer> serializer,
+      TrieSerializer::OnNodeLoaded const &on_child_node_loaded)
+      : codec_{std::move(codec)},
+        trie_{std::move(trie)},
+        serializer_{std::move(serializer)},
+        on_child_node_loaded_{on_child_node_loaded} {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(trie_ != nullptr);
+    BOOST_ASSERT(serializer_ != nullptr);
+    // on_child_node_loaded_ can be zero
   }
 
   outcome::result<BufferOrView> EphemeralTrieBatchImpl::get(

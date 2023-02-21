@@ -46,6 +46,26 @@ namespace kagome::storage::trie {
                               BufferOrView &&value) override;
     outcome::result<void> remove(const BufferView &key) override;
 
+    virtual outcome::result<std::shared_ptr<TrieBatch>> createChildBatch(
+        common::Buffer path) override {
+      // TODO(Harrm) code duplication here and in ephemeral batch
+      OUTCOME_TRY(child_root_value, tryGet(path));
+      auto child_root_hash =
+          child_root_value
+              ? common::Hash256::fromSpan(*child_root_value).value()
+              : serializer_->getEmptyRootHash();
+      // can't read trie proofs from persistent batches, because don't need to
+      OUTCOME_TRY(child_trie,
+                  serializer_->retrieveTrie(child_root_hash, nullptr));
+
+      auto [it, success] = child_batches_.insert(
+          {path,
+           std::shared_ptr<PersistentTrieBatchImpl>(new PersistentTrieBatchImpl{
+               codec_, serializer_, changes_, child_trie})});
+      BOOST_ASSERT(success);
+      return it->second;
+    }
+
    private:
     PersistentTrieBatchImpl(
         std::shared_ptr<Codec> codec,
@@ -57,6 +77,9 @@ namespace kagome::storage::trie {
     std::shared_ptr<TrieSerializer> serializer_;
     std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
     std::shared_ptr<PolkadotTrie> trie_;
+
+    std::unordered_map<common::Buffer, std::shared_ptr<PersistentTrieBatch>>
+        child_batches_;
 
     log::Logger logger_ = log::createLogger("PersistentTrieBatch", "storage");
   };

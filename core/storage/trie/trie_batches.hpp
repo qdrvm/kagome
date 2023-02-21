@@ -28,6 +28,9 @@ namespace kagome::storage::trie {
     virtual outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
         const BufferView &prefix,
         std::optional<uint64_t> limit = std::nullopt) = 0;
+
+    virtual outcome::result<std::shared_ptr<TrieBatch>> createChildBatch(
+        common::Buffer path) = 0;
   };
 
   class TopperTrieBatch;

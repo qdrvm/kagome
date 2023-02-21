@@ -10,6 +10,7 @@
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/serialization/trie_serializer.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             PersistentTrieBatchImpl::Error,
@@ -54,6 +55,11 @@ namespace kagome::storage::trie {
 
   outcome::result<RootHash> PersistentTrieBatchImpl::commit(
       StateVersion version) {
+    for (auto &[child_path, child_batch] : child_batches_) {
+      OUTCOME_TRY(root, child_batch->commit(version));
+      OUTCOME_TRY(put(child_path, common::BufferView{root}));
+    }
+    child_batches_.clear();
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
     return std::move(root);

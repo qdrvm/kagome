@@ -52,6 +52,16 @@ namespace kagome::runtime {
       HEAP_BASE_TOO_LOW,
       FAILED_TO_SET_STORAGE_STATE
     };
+
+    enum class StateAccessType {
+      // Changes made to the storage will be saved persistently
+      PERSISTENT,
+      // Trie nodes accessed during the call will be reported
+      PROOF_READER,
+      // Changes made by this call shall be discarded when it finishes
+      EPHEMERAL
+    };
+
     struct RuntimeEnvironmentTemplate;
 
     RuntimeEnvironmentFactory(
@@ -113,6 +123,8 @@ namespace kagome::runtime {
     virtual ~RuntimeEnvironmentTemplate() = default;
 
     [[nodiscard]] virtual RuntimeEnvironmentTemplate &persistent();
+    [[nodiscard]] virtual RuntimeEnvironmentTemplate &withStorageBatch(
+        std::shared_ptr<storage::trie::TrieBatch> batch);
 
     [[nodiscard]] virtual outcome::result<std::unique_ptr<RuntimeEnvironment>>
     make();
@@ -128,6 +140,7 @@ namespace kagome::runtime {
 
     std::weak_ptr<const RuntimeEnvironmentFactory> parent_factory_;
     bool persistent_{false};
+    std::shared_ptr<storage::trie::TrieBatch> batch_;
   };
 
 }  // namespace kagome::runtime
