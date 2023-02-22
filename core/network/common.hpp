@@ -25,6 +25,7 @@ namespace kagome::network {
   const libp2p::peer::ProtocolName kBlockAnnouncesProtocol =
       "/{}/block-announces/1";
   const libp2p::peer::ProtocolName kGrandpaProtocol = "/{}/grandpa/1";
+  const libp2p::peer::ProtocolName kWarpProtocol = "/{}/sync/warp";
   const libp2p::peer::ProtocolName kCollationProtocol{"/{}/collation/1"};
   const libp2p::peer::ProtocolName kValidationProtocol{"/{}/validation/1"};
   const libp2p::peer::ProtocolName kReqCollationProtocol{"/{}/req_collation/1"};

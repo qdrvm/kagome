@@ -57,6 +57,11 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
 
+    outcome::result<void> prev() override {
+      current_--;
+      return outcome::success();
+    }
+
     std::optional<common::Buffer> key() const override {
       return current_->first;
     }
