@@ -19,6 +19,8 @@ namespace kagome::network {
       : ProtocolBase,
         std::enable_shared_from_this<
             RequestResponseProtocol<Request, Response, ReadWriter>> {
+    using RequestResponseProtocolType =
+        RequestResponseProtocol<Request, Response, ReadWriter>;
     using RequestType = Request;
     using ResponseType = Response;
     using ReadWriterType = ReadWriter;

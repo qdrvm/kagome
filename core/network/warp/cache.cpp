@@ -23,6 +23,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, WarpSyncCache::Error, e) {
 namespace kagome::network {
   using consensus::grandpa::HasAuthoritySetChange;
 
+  /**
+   * The maximum size in bytes of the `WarpSyncProof`.
+   * https://github.com/paritytech/substrate/blob/86c6bb9614c437b63f3dbd2afddef52f32af7866/client/finality-grandpa/src/warp_proof.rs#L57
+   */
   constexpr size_t kMaxFragmentsSize = (8 << 20) + 50;
 
   inline common::Buffer toKey(primitives::BlockNumber i) {
