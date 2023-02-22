@@ -20,8 +20,6 @@ namespace kagome::primitives {
   enum class Ss58Error { INVALID_LENGTH = 1, INVALID_CHECKSUM };
 
   constexpr size_t kSs58ChecksumLength = 2;
-  constexpr size_t kSs58Length = AccountId::size() + kSs58ChecksumLength
-                                 + 1;  // 1 byte address type, 2 bytes checksum
 
   /**
    * Return the account id part of the provided ss58 address. The checksum is

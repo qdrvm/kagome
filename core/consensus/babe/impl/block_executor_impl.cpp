@@ -9,32 +9,17 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
-#include "consensus/babe/babe_util.hpp"
+#include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/babe/impl/block_appender_base.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
-#include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "consensus/validation/block_validator.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
-                            BlockExecutorImpl::Error,
-                            e) {
-  using E = kagome::consensus::babe::BlockExecutorImpl::Error;
-  switch (e) {
-    case E::INVALID_BLOCK:
-      return "Invalid block";
-    case E::PARENT_NOT_FOUND:
-      return "Parent not found";
-    case E::INTERNAL_ERROR:
-      return "Internal error";
-  }
-  return "Unknown error";
-}
 
 namespace {
   constexpr const char *kBlockExecutionTime =
@@ -46,41 +31,26 @@ namespace kagome::consensus::babe {
   BlockExecutorImpl::BlockExecutorImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> core,
-      std::shared_ptr<BabeConfigRepository> babe_config_repo,
-      std::shared_ptr<BlockValidator> block_validator,
-      std::shared_ptr<grandpa::Environment> grandpa_environment,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<blockchain::DigestTracker> digest_tracker,
-      std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      std::shared_ptr<ConsistencyKeeper> consistency_keeper)
+      std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
-        babe_config_repo_{std::move(babe_config_repo)},
-        block_validator_{std::move(block_validator)},
-        grandpa_environment_{std::move(grandpa_environment)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
-        digest_tracker_(std::move(digest_tracker)),
-        babe_util_(std::move(babe_util)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        consistency_keeper_(std::move(consistency_keeper)),
+        appender_{std::move(appender)},
         logger_{log::createLogger("BlockExecutor", "block_executor")},
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
-    BOOST_ASSERT(babe_config_repo_ != nullptr);
-    BOOST_ASSERT(block_validator_ != nullptr);
-    BOOST_ASSERT(grandpa_environment_ != nullptr);
     BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(digest_tracker_ != nullptr);
-    BOOST_ASSERT(babe_util_ != nullptr);
     BOOST_ASSERT(offchain_worker_api_ != nullptr);
-    BOOST_ASSERT(consistency_keeper_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
     BOOST_ASSERT(telemetry_ != nullptr);
+    BOOST_ASSERT(appender_ != nullptr);
 
     // Register metrics
     metrics_registry_->registerHistogramFamily(
@@ -90,28 +60,18 @@ namespace kagome::consensus::babe {
         {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
   }
 
+  BlockExecutorImpl::~BlockExecutorImpl() = default;
+
   outcome::result<void> BlockExecutorImpl::applyBlock(
-      primitives::BlockData &&b) {
-    if (not b.header.has_value()) {
-      logger_->warn("Skipping a block without header");
-      return Error::INVALID_BLOCK;
-    }
-    auto &header = b.header.value();
-
-    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
-
-    primitives::BlockInfo block_info(header.number, block_hash);
-
-    primitives::BlockContext context{
-        .block = {header.number, block_hash},
-        .header = header,
-    };
-
-    if (auto header_res = block_tree_->getBlockHeader(header.parent_hash);
+      primitives::Block &&block,
+      std::optional<primitives::Justification> const &justification) {
+    auto block_context = appender_->makeBlockContext(block.header);
+    auto &block_info = block_context.block_info;
+    if (auto header_res = block_tree_->getBlockHeader(block.header.parent_hash);
         header_res.has_error()
         && header_res.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
       logger_->warn("Skipping a block {} with unknown parent", block_info);
-      return Error::PARENT_NOT_FOUND;
+      return BlockAdditionError::PARENT_NOT_FOUND;
     } else if (header_res.has_error()) {
       return header_res.as_failure();
     }
@@ -122,112 +82,21 @@ namespace kagome::consensus::babe {
     bool block_was_applied_earlier = false;
 
     // check if block body already exists. If so, do not apply
-    if (auto body_res = block_tree_->getBlockBody(block_hash);
+    if (auto body_res =
+            block_tree_->getBlockBody(block_context.block_info.hash);
         body_res.has_value()) {
       SL_DEBUG(logger_, "Skip existing block: {}", block_info);
 
-      OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
+      OUTCOME_TRY(block_tree_->addExistingBlock(block_context.block_info.hash,
+                                                block.header));
       block_was_applied_earlier = true;
     } else if (body_res.error() != blockchain::BlockTreeError::BODY_NOT_FOUND) {
       return body_res.as_failure();
     }
 
-    if (not b.body.has_value()) {
-      logger_->warn("Skipping a block without body.");
-      return Error::INVALID_BLOCK;
-    }
-    auto &body = b.body.value();
-
-    primitives::Block block{.header = std::move(header),
-                            .body = std::move(body)};
-
-    OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
-
-    const auto &babe_header = babe_digests.second;
-
-    auto slot_number = babe_header.slot_number;
-
-    babe_util_->syncEpoch([&] {
-      auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
-      if (res.has_error()) {
-        if (block.header.number == 1) {
-          SL_TRACE(logger_,
-                   "First block slot is {}: it is first block (at executing)",
-                   slot_number);
-          return std::tuple(slot_number, false);
-        } else {
-          SL_TRACE(logger_,
-                   "First block slot is {}: no first block (at executing)",
-                   babe_util_->getCurrentSlot());
-          return std::tuple(babe_util_->getCurrentSlot(), false);
-        }
-      }
-
-      const auto &first_block_header = res.value();
-      auto babe_digest_res = getBabeDigests(first_block_header);
-      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
-                       "Any non genesis block must contain babe digest");
-      auto first_slot_number = babe_digest_res.value().second.slot_number;
-
-      auto is_first_block_finalized =
-          block_tree_->getLastFinalized().number > 0;
-
-      SL_TRACE(
-          logger_,
-          "First block slot is {}: by {}finalized first block (at executing)",
-          first_slot_number,
-          is_first_block_finalized ? "" : "non-");
-      return std::tuple(first_slot_number, is_first_block_finalized);
-    });
-
-    auto epoch_number = babe_util_->slotToEpoch(slot_number);
-
-    SL_INFO(
-        logger_,
-        "Applying block {} ({} in slot {}, epoch {}, authority #{})",  //   .
-        block_info,
-        to_string(babe_header.slotType()),
-        slot_number,
-        epoch_number,
-        babe_header.authority_index);
-
-    auto consistency_guard = consistency_keeper_->start(block_info);
-
-    // observe digest of block
-    // (must be done strictly after block will be added)
-    auto digest_tracking_res =
-        digest_tracker_->onDigest(context, block.header.digest);
-    if (digest_tracking_res.has_error()) {
-      SL_ERROR(logger_,
-               "Error while tracking digest of block {}: {}",
-               block_info,
-               digest_tracking_res.error());
-      return digest_tracking_res.as_failure();
-    }
-
-    auto babe_config = babe_config_repo_->config(context, epoch_number);
-    if (babe_config == nullptr) {
-      return Error::INVALID_BLOCK;  // TODO Change to more appropriate error
-    }
-
-    SL_TRACE(logger_,
-             "Actual epoch digest to apply block {} (slot {}, epoch {}). "
-             "Randomness: {}",
-             block_info,
-             slot_number,
-             epoch_number,
-             babe_config->randomness);
-
-    auto threshold = calculateThreshold(babe_config->leadership_rate,
-                                        babe_config->authorities,
-                                        babe_header.authority_index);
-
-    OUTCOME_TRY(block_validator_->validateHeader(
-        block.header,
-        epoch_number,
-        babe_config->authorities[babe_header.authority_index].id,
-        threshold,
-        *babe_config));
+    OUTCOME_TRY(
+        consistency_guard,
+        appender_->observeDigestsAndValidateHeader(block, block_context));
 
     // Calculate best block before new one will be applied
     auto last_finalized_block = block_tree_->getLastFinalized();
@@ -269,56 +138,7 @@ namespace kagome::consensus::babe {
       OUTCOME_TRY(block_tree_->addBlock(block));
     }
 
-    // try to apply postponed justifications first if any
-    if (not postponed_justifications_.empty()) {
-      std::vector<primitives::BlockInfo> to_remove;
-      for (const auto &[block_justified_for, justification] :
-           postponed_justifications_) {
-        SL_DEBUG(logger_,
-                 "Try to apply postponed justification received for block {}",
-                 block_justified_for);
-        auto res = applyJustification(block_justified_for, justification);
-        if (res.has_value()) {
-          to_remove.push_back(block_justified_for);
-        }
-      }
-      for (const auto &item : to_remove) {
-        postponed_justifications_.erase(item);
-      }
-    }
-
-    // apply justification if any (must be done strictly after block will be
-    // added and his consensus-digests will be handled)
-    if (b.justification.has_value()) {
-      SL_VERBOSE(
-          logger_, "Apply justification received for block {}", block_info);
-
-      auto res = applyJustification(block_info, b.justification.value());
-      if (res.has_error()) {
-        // If the total weight is not enough, this justification is deferred to
-        // try to apply it after the next block is added. One of the reasons for
-        // this error is the presence of preliminary votes for future blocks
-        // that have not yet been applied.
-        if (res
-            == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
-          postponed_justifications_.emplace(block_info,
-                                            b.justification.value());
-          SL_VERBOSE(logger_,
-                     "Postpone justification received for block {}: {}",
-                     block_info,
-                     res);
-        } else {
-          SL_ERROR(logger_,
-                   "Error while applying justification of block {}: {}",
-                   block_info,
-                   res.error());
-          return res.as_failure();
-        }
-      } else {
-        // safely could be remove if current justification applied successfully
-        postponed_justifications_.clear();
-      }
-    }
+    OUTCOME_TRY(appender_->applyJustifications(block_info, justification));
 
     // remove block's extrinsics from tx pool
     for (const auto &extrinsic : block.body) {
@@ -333,8 +153,10 @@ namespace kagome::consensus::babe {
       }
     }
 
+    OUTCOME_TRY(slot_info, appender_->getSlotInfo(block.header));
+    auto& [slot_start, slot_duration] = slot_info;
     auto lag = std::chrono::system_clock::now()
-             - babe_util_->slotStartTime(slot_number);
+             - slot_start;
     std::string lag_msg;
     if (lag > std::chrono::hours(99)) {
       lag_msg = fmt::format(
@@ -348,7 +170,7 @@ namespace kagome::consensus::babe {
       lag_msg = fmt::format(
           " (lag {} min.)",
           std::chrono::duration_cast<std::chrono::minutes>(lag).count());
-    } else if (lag > babe_config_repo_->slotDuration() * 2) {
+    } else if (lag > slot_duration * 2) {
       lag_msg = " (lag <1 min.)";
     }
 
@@ -384,12 +206,6 @@ namespace kagome::consensus::babe {
     consistency_guard.commit();
 
     return outcome::success();
-  }
-
-  outcome::result<void> BlockExecutorImpl::applyJustification(
-      const primitives::BlockInfo &block_info,
-      const primitives::Justification &justification) {
-    return grandpa_environment_->applyJustification(block_info, justification);
   }
 
 }  // namespace kagome::consensus::babe
