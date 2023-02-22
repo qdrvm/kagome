@@ -26,8 +26,8 @@ jobs:
   MacOS:
     runs-on: macos-11
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
+    - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+    - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -60,8 +60,8 @@ jobs:
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -84,10 +84,10 @@ jobs:
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
         with:
           fetch-depth: 0
-      - uses: actions/cache@v2
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -104,8 +104,8 @@ jobs:
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -151,8 +151,8 @@ jobs:
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -175,8 +175,8 @@ jobs:
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -208,8 +208,8 @@ jobs:
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
