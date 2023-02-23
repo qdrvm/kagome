@@ -175,6 +175,7 @@ TEST_F(ChainTest, BestChainContaining) {
   auto h = mockTree();
   EXPECT_CALL(*tree, getBestContaining(_, _))
       .WillOnce(Return(BlockInfo{42, h[3]}));
+  EXPECT_CALL(*tree, getLastFinalized()).WillOnce(Return(BlockInfo{42, h[3]}));
   ASSERT_OUTCOME_SUCCESS(r, chain->bestChainContaining(h[2], std::nullopt));
 
   ASSERT_EQ(h[3], r.hash);
