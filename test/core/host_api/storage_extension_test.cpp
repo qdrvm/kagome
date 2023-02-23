@@ -37,8 +37,7 @@ using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::storage::trie::EphemeralTrieBatchMock;
-using kagome::storage::trie::PersistentTrieBatchMock;
+using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieCursorMock;
 using kagome::storage::trie::RootHash;
@@ -54,7 +53,7 @@ class StorageExtensionTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    trie_batch_ = std::make_shared<PersistentTrieBatchMock>();
+    trie_batch_ = std::make_shared<TrieBatchMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     EXPECT_CALL(*storage_provider_, getCurrentBatch())
         .WillRepeatedly(Return(trie_batch_));
@@ -68,7 +67,7 @@ class StorageExtensionTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<PersistentTrieBatchMock> trie_batch_;
+  std::shared_ptr<TrieBatchMock> trie_batch_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
   std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;

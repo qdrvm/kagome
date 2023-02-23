@@ -28,7 +28,7 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::runtime::CoreMock;
 using kagome::runtime::MetadataMock;
-using kagome::storage::trie::EphemeralTrieBatchMock;
+using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::PolkadotTrieCursorMock;
 using kagome::storage::trie::TrieStorageMock;
 using testing::_;
@@ -71,7 +71,7 @@ namespace kagome::api {
         .WillOnce(testing::Return(BlockHeader{.state_root = "CDE"_hash256}));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("CDE"_hash256))
         .WillOnce(testing::Invoke([](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           static const auto key = "a"_buf;
           static const common::Buffer value{"1"_hash256};
           EXPECT_CALL(*batch, getMock(key.view()))
@@ -80,7 +80,7 @@ namespace kagome::api {
         }));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("1"_hash256))
         .WillOnce(testing::Invoke([](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           static const auto key = "b"_buf;
           static const common::Buffer value = "2"_buf;
           EXPECT_CALL(*batch, tryGetMock(key.view()))
@@ -99,7 +99,7 @@ namespace kagome::api {
         .WillOnce(testing::Return(BlockHeader{.state_root = "ABC"_hash256}));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("ABC"_hash256))
         .WillOnce(testing::Invoke([](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           static const auto key = "c"_buf;
           static const common::Buffer value{"3"_hash256};
           EXPECT_CALL(*batch, getMock(key.view()))
@@ -108,7 +108,7 @@ namespace kagome::api {
         }));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("3"_hash256))
         .WillOnce(testing::Invoke([](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           static const auto key = "d"_buf;
           static const auto value = "4"_buf;
           EXPECT_CALL(*batch, tryGetMock(key.view()))
@@ -144,14 +144,14 @@ namespace kagome::api {
         .WillOnce(Return(BlockHeader{.state_root = "6789"_hash256}));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           EXPECT_CALL(*batch, getMock(child_storage_key.view()))
               .WillOnce(testing::Return(common::Buffer("2020"_hash256)));
           return batch;
         }));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("2020"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           EXPECT_CALL(*batch, trieCursor())
               .WillOnce(testing::Invoke([&prefix]() {
                 auto cursor = std::make_unique<PolkadotTrieCursorMock>();
@@ -200,14 +200,14 @@ namespace kagome::api {
         .WillOnce(Return(BlockHeader{.state_root = "6789"_hash256}));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           EXPECT_CALL(*batch, getMock(child_storage_key.view()))
               .WillOnce(testing::Return(common::Buffer("2020"_hash256)));
           return batch;
         }));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("2020"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           EXPECT_CALL(*batch, trieCursor())
               .WillOnce(testing::Invoke([&prev_key]() {
                 auto cursor = std::make_unique<PolkadotTrieCursorMock>();
@@ -250,10 +250,10 @@ namespace kagome::api {
     EXPECT_CALL(*block_header_repo_,
                 getBlockHeader(primitives::BlockId{block_hash}))
         .WillOnce(Return(BlockHeader{.state_root = "6789"_hash256}));
-    auto batch = std::make_unique<EphemeralTrieBatchMock>();
+    auto batch = std::make_unique<TrieBatchMock>();
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           static auto v = common::Buffer("2020"_hash256);
           EXPECT_CALL(*batch, getMock(child_storage_key.view()))
               .WillOnce(testing::Return(v));
@@ -261,7 +261,7 @@ namespace kagome::api {
         }));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("2020"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           EXPECT_CALL(*batch, getMock(key.view()))
               .WillOnce(testing::Return(expected_result));
           return batch;

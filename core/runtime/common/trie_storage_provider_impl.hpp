@@ -60,10 +60,6 @@ namespace kagome::runtime {
 
     std::shared_ptr<Batch> current_batch_;
 
-    // need to store it because it has to be the same in different runtime calls
-    // to keep accumulated changes for commit to the main storage
-    std::shared_ptr<PersistentBatch> persistent_batch_;
-
     std::unordered_map<common::Buffer,
                        std::shared_ptr<storage::trie::TrieBatch>>
         child_batches_;

@@ -20,6 +20,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
       return "Pointer to the parent batch expired";
     case E::CHILD_BATCH_NOT_SUPPORTED:
       return "Topper trie batches do not support child trie batch creation";
+    case E::COMMIT_NOT_SUPPORTED:
+      return "Topper trie batches do not support committing changes, use "
+             "writeBack instead";
   }
   return "Unknown error";
 }
@@ -136,9 +139,12 @@ namespace kagome::storage::trie {
     return Error::PARENT_EXPIRED;
   }
 
-  outcome::result<std::shared_ptr<TrieBatch>>
-  TopperTrieBatchImpl::createChildBatch(common::Buffer path) {
-    // TODO(Harrm) not very pretty, should refactor it somehow
+  outcome::result<RootHash> TopperTrieBatchImpl::commit(StateVersion version) {
+    return Error::COMMIT_NOT_SUPPORTED;
+  }
+
+  outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
+  TopperTrieBatchImpl::createChildBatch(common::BufferView path) {
     return Error::CHILD_BATCH_NOT_SUPPORTED;
   }
 

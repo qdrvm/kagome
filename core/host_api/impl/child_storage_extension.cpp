@@ -202,18 +202,8 @@ namespace kagome::host_api {
     auto child_batch =
         storage_provider_->getChildBatchAt(prefixed_child_key.value()).value();
 
-    auto res = [&child_batch]() {
-      if (auto persistent_batch =
-              std::dynamic_pointer_cast<storage::trie::PersistentTrieBatch>(
-                  child_batch)) {
-        return persistent_batch->commit(storage::trie::StateVersion::V0);
+    auto res = child_batch->commit(storage::trie::StateVersion::V0);
 
-      } else if (auto ephemeral_batch = std::dynamic_pointer_cast<
-                     storage::trie::EphemeralTrieBatch>(child_batch)) {
-        return ephemeral_batch->hash(storage::trie::StateVersion::V0);
-      }
-      BOOST_UNREACHABLE_RETURN({});
-    }();
     if (res.has_error()) {
       logger_->error(
           "ext_default_child_storage_root resulted with an error: {}",

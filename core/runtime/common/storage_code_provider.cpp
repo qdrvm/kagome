@@ -54,7 +54,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<common::Buffer> StorageCodeProvider::setCodeFromBatch(
-      const storage::trie::EphemeralTrieBatch &batch) const {
+      const storage::trie::TrieBatch &batch) const {
     OUTCOME_TRY(code, batch.get(storage::kRuntimeCodeKey));
     common::Buffer uncompressed;
     OUTCOME_TRY(uncompressCodeIfNeeded(code, uncompressed));

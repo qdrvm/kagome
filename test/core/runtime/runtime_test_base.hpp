@@ -66,11 +66,10 @@ class RuntimeTestBase : public ::testing::Test {
   using BlockHeader = primitives::BlockHeader;
   using Extrinsic = primitives::Extrinsic;
   using Digest = primitives::Digest;
-  using PersistentTrieBatchMock = storage::trie::PersistentTrieBatchMock;
-  using EphemeralTrieBatchMock = storage::trie::EphemeralTrieBatchMock;
+  using TrieBatchMock = storage::trie::TrieBatchMock;
 
   void initStorage() {
-    using storage::trie::PersistentTrieBatch;
+    using storage::trie::TrieBatch;
 
     auto random_generator = std::make_shared<crypto::BoostRandomGenerator>();
     auto sr25519_provider =
@@ -179,7 +178,7 @@ class RuntimeTestBase : public ::testing::Test {
   void preparePersistentStorageExpects() {
     EXPECT_CALL(*trie_storage_, getPersistentBatchAt(_))
         .WillOnce(testing::Invoke([this](auto &root) {
-          auto batch = std::make_unique<PersistentTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           prepareStorageBatchExpectations(*batch);
           return batch;
         }));
@@ -188,7 +187,7 @@ class RuntimeTestBase : public ::testing::Test {
   void prepareEphemeralStorageExpects() {
     EXPECT_CALL(*trie_storage_, getEphemeralBatchAt(_))
         .WillOnce(testing::Invoke([this](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           prepareStorageBatchExpectations(*batch);
           return batch;
         }));

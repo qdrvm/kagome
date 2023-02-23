@@ -26,7 +26,6 @@ namespace kagome::runtime {
   class TrieStorageProvider {
    public:
     using Batch = storage::trie::TrieBatch;
-    using PersistentBatch = storage::trie::PersistentTrieBatch;
     using StateVersion = storage::trie::StateVersion;
 
     virtual ~TrieStorageProvider() = default;

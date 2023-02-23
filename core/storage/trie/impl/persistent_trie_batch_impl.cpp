@@ -24,72 +24,24 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
 }
 
 namespace kagome::storage::trie {
-  std::unique_ptr<PersistentTrieBatchImpl> PersistentTrieBatchImpl::create(
-      std::shared_ptr<Codec> codec,
-      std::shared_ptr<TrieSerializer> serializer,
-      std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-      std::shared_ptr<PolkadotTrie> trie) {
-    std::unique_ptr<PersistentTrieBatchImpl> ptr(
-        new PersistentTrieBatchImpl(std::move(codec),
-                                    std::move(serializer),
-                                    std::move(changes),
-                                    std::move(trie)));
-    return ptr;
-  }
 
   PersistentTrieBatchImpl::PersistentTrieBatchImpl(
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
       std::shared_ptr<PolkadotTrie> trie)
-      : codec_{std::move(codec)},
-        serializer_{std::move(serializer)},
-        changes_{std::move(changes)},
-        trie_{std::move(trie)} {
-    BOOST_ASSERT(codec_ != nullptr);
-    BOOST_ASSERT(serializer_ != nullptr);
+      : TrieBatchBase{std::move(codec), std::move(serializer), std::move(trie)},
+        changes_{std::move(changes)} {
     BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
                  or not changes_.has_value());
-    BOOST_ASSERT(trie_ != nullptr);
   }
 
   outcome::result<RootHash> PersistentTrieBatchImpl::commit(
       StateVersion version) {
-    for (auto &[child_path, child_batch] : child_batches_) {
-      OUTCOME_TRY(root, child_batch->commit(version));
-      OUTCOME_TRY(put(child_path, common::BufferView{root}));
-    }
-    child_batches_.clear();
+    OUTCOME_TRY(commitChildren(version));
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
     return std::move(root);
-  }
-
-  std::unique_ptr<TopperTrieBatch> PersistentTrieBatchImpl::batchOnTop() {
-    return std::make_unique<TopperTrieBatchImpl>(shared_from_this());
-  }
-
-  outcome::result<BufferOrView> PersistentTrieBatchImpl::get(
-      const BufferView &key) const {
-    return trie_->get(key);
-  }
-
-  outcome::result<std::optional<BufferOrView>> PersistentTrieBatchImpl::tryGet(
-      const BufferView &key) const {
-    return trie_->tryGet(key);
-  }
-
-  std::unique_ptr<PolkadotTrieCursor> PersistentTrieBatchImpl::trieCursor() {
-    return std::make_unique<PolkadotTrieCursorImpl>(trie_);
-  }
-
-  outcome::result<bool> PersistentTrieBatchImpl::contains(
-      const BufferView &key) const {
-    return trie_->contains(key);
-  }
-
-  bool PersistentTrieBatchImpl::empty() const {
-    return trie_->empty();
   }
 
   outcome::result<std::tuple<bool, uint32_t>>
@@ -126,6 +78,13 @@ namespace kagome::storage::trie {
       changes_.value()->onRemove(key);
     }
     return outcome::success();
+  }
+
+  outcome::result<std::unique_ptr<TrieBatch>>
+  PersistentTrieBatchImpl::createFromTrieHash(const RootHash &trie_hash) {
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(trie_hash, nullptr));
+    return std::make_unique<PersistentTrieBatchImpl>(
+        codec_, serializer_, changes_, trie);
   }
 
 }  // namespace kagome::storage::trie
