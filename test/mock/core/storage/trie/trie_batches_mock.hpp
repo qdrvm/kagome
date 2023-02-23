@@ -74,6 +74,11 @@ namespace kagome::storage::trie {
                 (override));
 
     MOCK_METHOD(std::unique_ptr<TopperTrieBatch>, batchOnTop, (), (override));
+
+    MOCK_METHOD(outcome::result<std::shared_ptr<TrieBatch>>,
+                createChildBatch,
+                (common::Buffer path),
+                (override));
   };
 
   class EphemeralTrieBatchMock : public EphemeralTrieBatch {
@@ -133,6 +138,11 @@ namespace kagome::storage::trie {
     MOCK_METHOD(bool, empty, (), (const, override));
 
     MOCK_METHOD(outcome::result<RootHash>, hash, (StateVersion), (override));
+
+    MOCK_METHOD(outcome::result<std::shared_ptr<TrieBatch>>,
+                createChildBatch,
+                (common::Buffer path),
+                (override));
   };
 }  // namespace kagome::storage::trie
 

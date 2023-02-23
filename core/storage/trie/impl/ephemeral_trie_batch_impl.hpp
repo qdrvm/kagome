@@ -19,7 +19,7 @@ namespace kagome::storage::trie {
         std::shared_ptr<Codec> codec,
         std::shared_ptr<PolkadotTrie> trie,
         std::shared_ptr<TrieSerializer> serializer,
-        TrieSerializer::OnNodeLoaded const &on_child_node_loaded);
+        TrieSerializer::OnNodeLoaded on_child_node_loaded);
     ~EphemeralTrieBatchImpl() override = default;
 
     outcome::result<BufferOrView> get(const BufferView &key) const override;
@@ -56,7 +56,7 @@ namespace kagome::storage::trie {
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<PolkadotTrie> trie_;
     std::shared_ptr<TrieSerializer> serializer_;
-    TrieSerializer::OnNodeLoaded const &on_child_node_loaded_;
+    TrieSerializer::OnNodeLoaded on_child_node_loaded_;
   };
 
 }  // namespace kagome::storage::trie

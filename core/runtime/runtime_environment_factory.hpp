@@ -53,15 +53,6 @@ namespace kagome::runtime {
       FAILED_TO_SET_STORAGE_STATE
     };
 
-    enum class StateAccessType {
-      // Changes made to the storage will be saved persistently
-      PERSISTENT,
-      // Trie nodes accessed during the call will be reported
-      PROOF_READER,
-      // Changes made by this call shall be discarded when it finishes
-      EPHEMERAL
-    };
-
     struct RuntimeEnvironmentTemplate;
 
     RuntimeEnvironmentFactory(

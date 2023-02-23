@@ -75,7 +75,9 @@ namespace kagome::storage::trie {
       const OnNodeLoaded &on_node_loaded) const {
     if (auto p = std::dynamic_pointer_cast<DummyValue>(parent); p != nullptr) {
       OUTCOME_TRY(value, backend_->get(*p->value.hash));
-      if (on_node_loaded) on_node_loaded(value);
+      if (on_node_loaded) {
+        on_node_loaded(value);
+      }
       p->value.value = value.into();
       return nullptr;
     }
@@ -94,7 +96,9 @@ namespace kagome::storage::trie {
     Buffer enc;
     if (codec_->isMerkleHash(db_key)) {
       OUTCOME_TRY(db, backend_->get(db_key));
-      if (on_node_loaded) on_node_loaded(db);
+      if (on_node_loaded) {
+        on_node_loaded(db);
+      }
       enc = db.into();
     } else {
       // `isMerkleHash(db_key) == false` means `db_key` is value itself

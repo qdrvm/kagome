@@ -629,7 +629,7 @@ TEST_F(StorageExtensionTest, RootTest) {
   WasmSize root_size = Hash256::size();
   RootHash root_val = "123456"_hash256;
   WasmSpan root_span = PtrSize(root_pointer, root_size).combine();
-  EXPECT_CALL(*storage_provider_, forceCommit(_))
+  EXPECT_CALL(*storage_provider_, commit(_))
       .WillOnce(Return(outcome::success(root_val)));
   EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(root_val)))
       .WillOnce(Return(root_span));
