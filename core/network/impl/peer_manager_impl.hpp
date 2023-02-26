@@ -55,7 +55,7 @@ namespace kagome::network {
    public:
     static constexpr std::chrono::seconds kTimeoutForConnecting{15};
 
-    enum class Error { UNDECLARED_COLLATOR = 1, OUT_OF_VIEW, DUPLICATE };
+    enum class Error { UNDECLARED_COLLATOR = 1 };
 
     PeerManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -102,8 +102,8 @@ namespace kagome::network {
 
     outcome::result<
         std::pair<network::CollatorPublicKey const &, network::ParachainId>>
-    insertAdvertisement(PeerState &peer_state,
-                        primitives::BlockHash para_hash) override;
+    retrieveCollatorData(PeerState &peer_state,
+                         const primitives::BlockHash &relay_parent) override;
 
     /** @see PeerManager::forEachPeer */
     void forEachPeer(std::function<void(const PeerId &)> func) const override;
@@ -153,6 +153,8 @@ namespace kagome::network {
         F &&opened_callback);
     void tryOpenGrandpaProtocol(PeerInfo const &peer_info,
                                 PeerState &peer_state);
+    void tryOpenValidationProtocol(PeerInfo const &peer_info,
+                                   PeerState &peer_state);
 
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);

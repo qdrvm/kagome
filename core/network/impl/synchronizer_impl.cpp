@@ -601,9 +601,7 @@ namespace kagome::network {
                peer_id,
                from,
                r.first->second);
-      if (handler) {
-        handler(Error::DUPLICATE_REQUEST);
-      }
+      if (handler) handler(Error::DUPLICATE_REQUEST);
       return;
     }
 

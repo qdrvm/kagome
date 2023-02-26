@@ -98,7 +98,7 @@ namespace kagome::network {
     template <typename Request, typename Response>
     static void write(libp2p::Host &host,
                       const libp2p::peer::PeerInfo &peer_info,
-                      const libp2p::peer::ProtocolName &protocol,
+                      const libp2p::peer::Protocol &protocol,
                       Request request,
                       std::function<void(outcome::result<Response>)> cb) {
       host.newStream(
@@ -160,7 +160,7 @@ namespace kagome::network {
     template <typename Request>
     static void write(libp2p::Host &host,
                       const libp2p::peer::PeerInfo &peer_info,
-                      const libp2p::peer::ProtocolName &protocol,
+                      const libp2p::peer::Protocol &protocol,
                       Request request,
                       std::function<void(outcome::result<void>)> cb) {
       host.newStream(peer_info.id,

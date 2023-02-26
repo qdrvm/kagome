@@ -57,6 +57,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<blockchain::DigestTracker> digest_tracker,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
+      std::shared_ptr<parachain::BitfieldStore> bitfield_store,
+      std::shared_ptr<parachain::BackingStore> backing_store,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<runtime::Core> core,
@@ -77,6 +79,8 @@ namespace kagome::consensus::babe {
         digest_tracker_(std::move(digest_tracker)),
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
+        bitfield_store_{std::move(bitfield_store)},
+        backing_store_{std::move(backing_store)},
         chain_events_engine_(std::move(chain_events_engine)),
         chain_sub_([&] {
           BOOST_ASSERT(chain_events_engine_ != nullptr);
@@ -911,6 +915,16 @@ namespace kagome::consensus::babe {
     //  issue https://github.com/soramitsu/kagome/issues/1209
 
     {
+      auto &relay_parent = best_block_.hash;
+      // TODO: select bitfields
+      paras_inherent_data.bitfields =
+          bitfield_store_->getBitfields(relay_parent);
+
+      // TODO: select candidates
+      paras_inherent_data.backed_candidates = backing_store_->get(relay_parent);
+      log_->info("Get backed candidates from store.(count={})",
+                 paras_inherent_data.backed_candidates.size());
+
       auto best_block_header_res =
           block_tree_->getBlockHeader(best_block_.hash);
       BOOST_ASSERT_MSG(best_block_header_res.has_value(),

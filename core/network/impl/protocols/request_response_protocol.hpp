@@ -73,10 +73,10 @@ namespace kagome::network {
               return;
             }
 
-            SL_DEBUG(self->base_.logger(),
-                     "Established outgoing {} stream with {}",
-                     self->protocolName(),
-                     stream->remotePeerId().value());
+            SL_INFO(self->base_.logger(),
+                    "Established outgoing {} stream with {}",
+                    self->protocolName(),
+                    stream->remotePeerId().value());
 
             self->writeRequest(std::move(stream),
                                std::move(request),
@@ -98,6 +98,10 @@ namespace kagome::network {
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override {
       BOOST_ASSERT(stream->remotePeerId().has_value());
+      SL_INFO(base_.logger(),
+              "New incoming {} stream with {}",
+              protocolName(),
+              stream->remotePeerId().value());
       readRequest(std::move(stream));
     }
 
@@ -105,10 +109,10 @@ namespace kagome::network {
         const PeerInfo &peer_info,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override {
-      SL_DEBUG(base_.logger(),
-               "Connect for {} stream with {}",
-               protocolName(),
-               peer_info.id);
+      SL_INFO(base_.logger(),
+              "Connect for {} stream with {}",
+              protocolName(),
+              peer_info.id);
 
       base_.host().newStream(
           peer_info.id,
@@ -142,8 +146,8 @@ namespace kagome::network {
                M msg,
                std::function<void(outcome::result<void>,
                                   std::shared_ptr<Stream>)> &&cb) {
-      static_assert(
-          std::is_same_v<M, RequestType> || std::is_same_v<M, ResponseType>);
+      static_assert(std::is_same_v<M, RequestType>
+                    || std::is_same_v<M, ResponseType>);
       SL_DEBUG(base_.logger(),
                "Write msg into {} stream with {}",
                protocolName(),

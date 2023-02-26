@@ -26,10 +26,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, PeerManagerImpl::Error, e) {
   switch (e) {
     case E::UNDECLARED_COLLATOR:
       return "Process handling from undeclared collator";
-    case E::OUT_OF_VIEW:
-      return "Processing para hash, which is out of view";
-    case E::DUPLICATE:
-      return "Processing duplicated hash";
   }
   return "Unknown error in ChainSpecImpl";
 }
@@ -262,11 +258,10 @@ namespace kagome::network {
       network::CollatorPublicKey const &collator_id,
       network::ParachainId para_id) {
     if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
-      BOOST_ASSERT(!it->second.collator_state
-                   && !!"Collator state should be empty at the time.");
-      it->second.collator_state = CollatorState{.parachain_id = para_id,
-                                                .collator_id = collator_id,
-                                                .advertisements = {}};
+      /*BOOST_ASSERT(!it->second.collator_state
+                   && !!"Collator state should be empty at the time.");*/
+      it->second.collator_state =
+          CollatorState{.parachain_id = para_id, .collator_id = collator_id};
       it->second.time = clock_->now();
     }
   }
@@ -280,26 +275,11 @@ namespace kagome::network {
 
   outcome::result<
       std::pair<network::CollatorPublicKey const &, network::ParachainId>>
-  PeerManagerImpl::insertAdvertisement(PeerState &peer_state,
-                                       primitives::BlockHash para_hash) {
+  PeerManagerImpl::retrieveCollatorData(
+      PeerState &peer_state, const primitives::BlockHash &relay_parent) {
     if (!peer_state.collator_state) {
       return Error::UNDECLARED_COLLATOR;
     }
-
-    auto my_view = peer_view_->getMyView();
-    BOOST_ASSERT(my_view);
-
-    if (!my_view->get().contains(para_hash)) {
-      return Error::OUT_OF_VIEW;
-    }
-
-    if (peer_state.collator_state.value().advertisements.count(para_hash)
-        != 0) {
-      return Error::DUPLICATE;
-    }
-
-    peer_state.collator_state.value().advertisements.insert(
-        std::move(para_hash));
     return std::make_pair(peer_state.collator_state.value().collator_id,
                           peer_state.collator_state.value().parachain_id);
   }
@@ -705,6 +685,50 @@ namespace kagome::network {
     }
   }
 
+  void PeerManagerImpl::tryOpenValidationProtocol(PeerInfo const &peer_info,
+                                                  PeerState &peer_state) {
+    /// If validator start validation protocol
+    if (peer_state.roles.flags.authority) {
+      auto validation_protocol = router_->getValidationProtocol();
+      BOOST_ASSERT_MSG(validation_protocol,
+                       "Router did not provide validation protocol");
+
+      log_->trace("Try to open outgoing validation protocol.(peer={})",
+                  peer_info.id.toBase58());
+      openOutgoing(
+          stream_engine_,
+          validation_protocol,
+          peer_info,
+          [validation_protocol, peer_info, wptr{weak_from_this()}](
+              auto &&stream_result) {
+            auto self = wptr.lock();
+            if (not self) {
+              return;
+            }
+
+            auto &peer_id = peer_info.id;
+            if (!stream_result.has_value()) {
+              self->log_->warn("Unable to create stream {} with {}: {}",
+                               validation_protocol->protocolName(),
+                               peer_id,
+                               stream_result.error().message());
+              return;
+            }
+
+            if (auto res = self->stream_engine_->addOutgoing(
+                    stream_result.value(), validation_protocol);
+                !res) {
+              SL_VERBOSE(self->log_,
+                         "Can't register outgoing {} stream with {}: {}",
+                         validation_protocol->protocolName(),
+                         stream_result.value()->remotePeerId().value(),
+                         res.error().message());
+              stream_result.value()->reset();
+            }
+          });
+    }
+  }
+
   void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
     // Skip connection to itself
     if (isSelfPeer(peer_id)) {
@@ -768,6 +792,8 @@ namespace kagome::network {
            std::optional<std::reference_wrapper<PeerState>> peer_state) {
           if (peer_state.has_value()) {
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
+            self->tryOpenValidationProtocol(peer_info,
+                                            peer_state.value().get());
           }
         });
 

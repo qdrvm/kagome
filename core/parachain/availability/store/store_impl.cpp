@@ -54,9 +54,40 @@ namespace kagome::parachain {
     return it->second.pov;
   }
 
+  std::optional<AvailabilityStore::AvailableData>
+  AvailabilityStoreImpl::getPovAndData(const CandidateHash &candidate_hash) {
+    auto it = per_candidate_.find(candidate_hash);
+    if (it == per_candidate_.end()) {
+      return std::nullopt;
+    }
+    if (not it->second.pov or not it->second.data) {
+      return std::nullopt;
+    }
+    return AvailableData{*it->second.pov, *it->second.data};
+  }
+
+  std::vector<AvailabilityStore::ErasureChunk> AvailabilityStoreImpl::getChunks(
+      const CandidateHash &candidate_hash) {
+    std::vector<AvailabilityStore::ErasureChunk> chunks;
+    auto it = per_candidate_.find(candidate_hash);
+    if (it != per_candidate_.end()) {
+      for (auto &p : it->second.chunks) {
+        chunks.emplace_back(p.second);
+      }
+    }
+    return chunks;
+  }
+
   void AvailabilityStoreImpl::putChunk(const CandidateHash &candidate_hash,
                                        const ErasureChunk &chunk) {
     per_candidate_[candidate_hash].chunks[chunk.index] = chunk;
+  }
+
+  void AvailabilityStoreImpl::putChunkSet(const CandidateHash &candidate_hash,
+                                          std::vector<ErasureChunk> &&chunks) {
+    for (auto &&chunk : std::move(chunks)) {
+      per_candidate_[candidate_hash].chunks[chunk.index] = std::move(chunk);
+    }
   }
 
   void AvailabilityStoreImpl::putPov(const CandidateHash &candidate_hash,

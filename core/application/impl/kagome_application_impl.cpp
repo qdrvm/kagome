@@ -55,6 +55,8 @@ namespace kagome::application {
     parachain_observer_ = injector_->injectParachainObserver();
     metrics_watcher_ = injector_->injectMetricsWatcher();
     telemetry_service_ = injector_->injectTelemetryService();
+    approval_distribution_ = injector_->injectApprovalDistribution();
+    parachain_processor_ = injector_->injectParachainProcessor();
     kagome::telemetry::setTelemetryService(telemetry_service_);
 
     logger_->info("Start as node version '{}' named as '{}' with PID {}",

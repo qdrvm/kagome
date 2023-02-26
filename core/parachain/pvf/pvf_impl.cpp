@@ -100,14 +100,8 @@ namespace kagome::parachain {
         parachain_api_{std::move(parachain_api)},
         log_{log::createLogger("Pvf")} {}
 
-  outcome::result<Pvf::Result> PvfImpl::pvfSync(
-      const CandidateReceipt &receipt, const ParachainBlock &pov) const {
-    SL_DEBUG(log_,
-             "pvfSync relay_parent={} para_id={}",
-             receipt.descriptor.relay_parent,
-             receipt.descriptor.para_id);
-    OUTCOME_TRY(data_code, findData(receipt.descriptor));
-    auto &[data, code] = data_code;
+  outcome::result<Pvf::Result> PvfImpl::pvfValidate(
+      const PersistedValidationData &data, const ParachainBlock &pov, const CandidateReceipt &receipt, const ParachainRuntime &code) const {
     OUTCOME_TRY(pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
       return PvfError::POV_SIZE;
@@ -117,7 +111,7 @@ namespace kagome::parachain {
       return PvfError::POV_HASH;
     }
     auto code_hash = hasher_->blake2b_256(code);
-    if (code_hash != receipt.descriptor.para_runtime_hash) {
+    if (code_hash != receipt.descriptor.validation_code_hash) {
       return PvfError::CODE_HASH;
     }
     OUTCOME_TRY(signature_valid,
@@ -138,6 +132,17 @@ namespace kagome::parachain {
 
     OUTCOME_TRY(commitments, fromOutputs(receipt, std::move(result)));
     return std::make_pair(std::move(commitments), std::move(data));
+  }
+
+  outcome::result<Pvf::Result> PvfImpl::pvfSync(
+      const CandidateReceipt &receipt, const ParachainBlock &pov) const {
+    SL_DEBUG(log_,
+             "pvfSync relay_parent={} para_id={}",
+             receipt.descriptor.relay_parent,
+             receipt.descriptor.para_id);
+    OUTCOME_TRY(data_code, findData(receipt.descriptor));
+    auto &[data, code] = data_code;
+    return pvfValidate(data, pov, receipt, code);
   }
 
   outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>

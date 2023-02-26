@@ -21,7 +21,7 @@
 
 namespace kagome::network {
   using Stream = libp2p::connection::Stream;
-  using Protocol = libp2p::peer::ProtocolName;
+  using Protocol = libp2p::peer::Protocol;
   using Protocols = libp2p::StreamProtocols;
   using PeerId = libp2p::peer::PeerId;
   using PeerInfo = libp2p::peer::PeerInfo;
@@ -40,7 +40,9 @@ namespace kagome::network {
         : name_(std::move(name)),
           host_{host},
           protocols_{std::move(protocols)},
-          log_{std::move(logger)} {}
+          log_{std::move(logger)} {
+      BOOST_ASSERT(!protocols_.empty());
+    }
 
     template <typename T>
     bool start(std::weak_ptr<T> wptr) {

@@ -35,6 +35,7 @@ namespace kagome::blockchain {
     std::weak_ptr<TreeNode> parent;
     bool finalized;
     bool babe_primary;
+    bool contains_approved_para_block;
 
     std::vector<std::shared_ptr<TreeNode>> children{};
 
@@ -84,7 +85,31 @@ namespace kagome::blockchain {
    * the operations faster
    */
   struct TreeMeta {
-    using Weight = std::pair<size_t, primitives::BlockNumber>;
+    union WeightInfo {
+      static_assert(
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+          false
+#else   //__BYTE_ORDER__
+          true
+#endif  //__BYTE_ORDER__
+          ,
+          "Fix structure layout for BE");
+
+      struct {
+        uint64_t parachain_payload : 48;
+        uint64_t babe_primary : 16;
+      } data;
+      uint64_t value;
+
+      WeightInfo(uint64_t v) : value(v) {}
+      bool operator==(WeightInfo const &r) const {
+        return value == r.value;
+      }
+      bool operator<(WeightInfo const &r) const {
+        return value < r.value;
+      }
+    };
+    using Weight = std::pair<WeightInfo, primitives::BlockNumber>;
 
     explicit TreeMeta(
         const std::shared_ptr<TreeNode> &subtree_root_node,

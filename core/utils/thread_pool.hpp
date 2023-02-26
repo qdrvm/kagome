@@ -21,7 +21,7 @@ namespace kagome {
    */
   class ThreadPool final : NonCopyable, NonMovable {
    public:
-    explicit ThreadPool(size_t thread_count)
+    explicit ThreadPool(size_t thread_count = 5ull)
         : io_context_{std::make_shared<boost::asio::io_context>()},
           work_guard_{io_context_->get_executor()} {
       BOOST_ASSERT(thread_count > 0);

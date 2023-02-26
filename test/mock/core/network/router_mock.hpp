@@ -34,6 +34,15 @@ namespace kagome::network {
                 (),
                 (const, override));
 
+    MOCK_METHOD(std::shared_ptr<ReqPovProtocol>,
+                getReqPovProtocol,
+                (),
+                (const, override));
+    MOCK_METHOD(std::shared_ptr<FetchChunkProtocol>,
+                getFetchChunkProtocol,
+                (),
+                (const, override));
+
     MOCK_METHOD(std::shared_ptr<PropagateTransactionsProtocol>,
                 getPropagateTransactionsProtocol,
                 (),

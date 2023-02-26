@@ -28,7 +28,8 @@ namespace kagome::blockchain {
         depth{depth},
         parent{parent},
         finalized{finalized},
-        babe_primary{babe_primary} {}
+        babe_primary{babe_primary},
+        contains_approved_para_block{false} {}
 
   outcome::result<void> TreeNode::applyToChain(
       const primitives::BlockInfo &chain_end,
@@ -148,11 +149,14 @@ namespace kagome::blockchain {
       std::shared_ptr<TreeNode> node) const {
     auto finalized = last_finalized.lock();
     BOOST_ASSERT(finalized);
-    Weight weight{0, node->depth};
+    Weight weight{WeightInfo(0ull), node->depth};
     while (node != finalized) {
       BOOST_ASSERT(node->depth > finalized->depth);
       if (node->babe_primary) {
-        ++weight.first;
+        ++weight.first.data.babe_primary;
+      }
+      if (node->contains_approved_para_block) {
+        ++weight.first.data.parachain_payload;
       }
       auto parent = node->parent.lock();
       BOOST_ASSERT(parent);

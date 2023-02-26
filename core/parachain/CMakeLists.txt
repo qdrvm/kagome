@@ -6,14 +6,20 @@
 add_library(validator_parachain
     availability/bitfield/signer.cpp
     availability/bitfield/store_impl.cpp
+    availability/erasure_coding_error.cpp
+    availability/recovery/recovery_impl.cpp
     availability/store/store_impl.cpp
+    backing/store_impl.cpp
     pvf/pvf_impl.cpp
     validator/impl/parachain_observer.cpp
     validator/impl/parachain_processor.cpp
     validator/signer.cpp
+    approval/approval-distribution.cpp approval/approval.cpp
+    backing/store_impl.cpp
     )
 
 target_link_libraries(validator_parachain
     crypto_store
     network
+    erasure_coding_crust::erasure_coding_crust
     )

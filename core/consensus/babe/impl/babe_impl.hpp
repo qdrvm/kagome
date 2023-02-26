@@ -11,6 +11,8 @@
 #include "clock/timer.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
+#include "parachain/availability/bitfield/store.hpp"
+#include "parachain/backing/store.hpp"
 #include "primitives/block.hpp"
 #include "primitives/event_types.hpp"
 #include "primitives/inherent_data.hpp"
@@ -100,6 +102,8 @@ namespace kagome::consensus::babe {
              std::shared_ptr<blockchain::DigestTracker> digest_tracker,
              std::shared_ptr<network::Synchronizer> synchronizer,
              std::shared_ptr<BabeUtil> babe_util,
+             std::shared_ptr<parachain::BitfieldStore> bitfield_store,
+             std::shared_ptr<parachain::BackingStore> backing_store,
              primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
              std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
              std::shared_ptr<runtime::Core> core,
@@ -193,6 +197,8 @@ namespace kagome::consensus::babe {
     std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
+    std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
+    std::shared_ptr<parachain::BackingStore> backing_store_;
     primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::optional<primitives::Version> actual_runtime_version_;

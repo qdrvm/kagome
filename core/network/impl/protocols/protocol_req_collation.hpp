@@ -35,9 +35,6 @@ namespace kagome::network {
     ~ReqCollationProtocol() override = default;
 
     ReqCollationProtocol(libp2p::Host &host,
-                         application::AppConfiguration const &app_config,
-                         application::ChainSpec const &chain_spec,
-                         const primitives::BlockHash &genesis_hash,
                          std::shared_ptr<ReqCollationObserver> observer);
 
     const Protocol &protocolName() const override;

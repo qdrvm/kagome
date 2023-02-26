@@ -30,6 +30,10 @@ namespace kagome::parachain {
     return validator_index_;
   }
 
+  SessionIndex ValidatorSigner::getSessionIndex() const {
+    return context_.session_index;
+  }
+
   const primitives::BlockHash &ValidatorSigner::relayParent() const {
     return context_.relay_parent;
   }
