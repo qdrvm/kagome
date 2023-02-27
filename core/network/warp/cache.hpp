@@ -16,6 +16,10 @@
 #include "storage/spaced_storage.hpp"
 
 namespace kagome::network {
+  /**
+   * Caches number/hash of blocks with grandpa scheduled/forced change digest.
+   * Generates warp sync proof.
+   */
   class WarpSyncCache : public std::enable_shared_from_this<WarpSyncCache> {
    public:
     enum Error {

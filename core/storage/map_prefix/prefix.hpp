@@ -8,6 +8,10 @@
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::storage {
+  /**
+   * Map wrapper to use keys under prefix.
+   * Cursor removes key prefix and can seeks first/last.
+   */
   struct MapPrefix : BufferStorage {
     struct Cursor : BufferStorageCursor {
       Cursor(MapPrefix &map, std::unique_ptr<BufferStorageCursor> cursor);
