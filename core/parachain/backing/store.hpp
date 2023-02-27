@@ -29,13 +29,15 @@ namespace kagome::parachain {
 
     virtual ~BackingStore() = default;
 
-    virtual std::optional<ImportResult> put(std::unordered_map<ParachainId, std::vector<ValidatorIndex>> const &groups, Statement statement) = 0;
+    virtual std::optional<ImportResult> put(
+        std::unordered_map<ParachainId, std::vector<ValidatorIndex>> const
+            &groups,
+        Statement statement) = 0;
 
     virtual std::vector<BackedCandidate> get(
         const BlockHash &relay_parent) const = 0;
 
-    virtual void remove(
-        const BlockHash &relay_parent) = 0;
+    virtual void remove(const BlockHash &relay_parent) = 0;
 
     virtual void add(const BlockHash &relay_parent,
                      BackedCandidate &&candidate) = 0;

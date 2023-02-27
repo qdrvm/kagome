@@ -90,23 +90,25 @@ namespace kagome::parachain::approval {
 
   inline size_t count_ones(scale::BitVec const &src) {
     size_t count_ones = 0ull;
-    for (auto const v : src.bits) count_ones += (v ? 1ull : 0ull);
+    for (auto const v : src.bits) {
+      count_ones += (v ? 1ull : 0ull);
+    }
     return count_ones;
   }
 
   inline auto min_or_some(std::optional<Tick> const &l,
                           std::optional<Tick> const &r) {
     return (l && r) ? std::min(*l, *r)
-           : l      ? *l
-           : r      ? *r
+         : l        ? *l
+         : r        ? *r
                     : std::optional<Tick>{};
   };
 
   inline auto max_or_some(std::optional<Tick> const &l,
                           std::optional<Tick> const &r) {
     return (l && r) ? std::max(*l, *r)
-           : l      ? *l
-           : r      ? *r
+         : l        ? *l
+         : r        ? *r
                     : std::optional<Tick>{};
   };
 
@@ -203,8 +205,8 @@ namespace kagome::parachain::approval {
                   std::optional<Tick> const &next_no_show_,
                   std::optional<Tick> const &last_assignment_tick_) {
       auto const new_covered = (depth == 0)
-                                   ? new_assignments
-                                   : std::min(new_assignments, size_t{1ull});
+                                 ? new_assignments
+                                 : std::min(new_assignments, size_t{1ull});
       auto const a = assignments + new_assignments;
       auto const c = math::sat_sub_unsigned(covering, new_covered);
       auto const cd = (depth == 0) ? 0ull : covered + new_covered;

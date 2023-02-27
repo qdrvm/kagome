@@ -18,9 +18,9 @@ namespace kagome::runtime {
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           OccupiedCore &val) {
     return s >> val.next_up_on_available >> val.occupied_since
-           >> val.time_out_at >> val.next_up_on_time_out >> val.availability
-           >> val.group_responsible >> val.candidate_hash
-           >> val.candidate_descriptor;
+        >> val.time_out_at >> val.next_up_on_time_out >> val.availability
+        >> val.group_responsible >> val.candidate_hash
+        >> val.candidate_descriptor;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -33,7 +33,7 @@ namespace kagome::runtime {
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           PersistedValidationData &val) {
     return s >> val.parent_head >> val.relay_parent_number
-           >> val.relay_parent_storage_root >> val.max_pov_size;
+        >> val.relay_parent_storage_root >> val.max_pov_size;
   }
 
   ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
@@ -83,10 +83,10 @@ namespace kagome::runtime {
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           SessionInfo &val) {
     return s >> val.active_validator_indices >> val.random_seed
-           >> val.dispute_period >> val.validators >> val.discovery_keys
-           >> val.assignment_keys >> val.validator_groups >> val.n_cores
-           >> val.zeroth_delay_tranche_width >> val.relay_vrf_modulo_samples
-           >> val.n_delay_tranches >> val.no_show_slots >> val.needed_approvals;
+        >> val.dispute_period >> val.validators >> val.discovery_keys
+        >> val.assignment_keys >> val.validator_groups >> val.n_cores
+        >> val.zeroth_delay_tranche_width >> val.relay_vrf_modulo_samples
+        >> val.n_delay_tranches >> val.no_show_slots >> val.needed_approvals;
   }
 
 }  // namespace kagome::runtime

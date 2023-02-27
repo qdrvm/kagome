@@ -27,6 +27,8 @@
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
 #include "mock/core/network/synchronizer_mock.hpp"
+#include "mock/core/parachain/backing_store_mock.hpp"
+#include "mock/core/parachain/bitfield_store_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
@@ -152,6 +154,9 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*sr25519_provider, sign(_, _))
         .WillRepeatedly(Return(Sr25519Signature{}));
 
+    bitfield_store_ = std::make_shared<parachain::BitfieldStoreMock>();
+    backing_store_ = std::make_shared<parachain::BackingStoreMock>();
+
     babe_ = std::make_shared<babe::BabeImpl>(app_config_,
                                              app_state_manager_,
                                              lottery_,
@@ -167,6 +172,8 @@ class BabeTest : public testing::Test {
                                              digest_tracker_,
                                              synchronizer_,
                                              babe_util_,
+                                             bitfield_store_,
+                                             backing_store_,
                                              chain_events_engine_,
                                              offchain_worker_api_,
                                              core_,
@@ -215,6 +222,8 @@ class BabeTest : public testing::Test {
   std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<boost::asio::io_context> io_context_;
+  std::shared_ptr<parachain::BitfieldStoreMock> bitfield_store_;
+  std::shared_ptr<parachain::BackingStoreMock> backing_store_;
 
   std::shared_ptr<babe::BabeImpl> babe_;
 

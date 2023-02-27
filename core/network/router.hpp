@@ -41,8 +41,8 @@ namespace kagome::network {
         const = 0;
     virtual std::shared_ptr<FetchAvailableDataProtocol>
     getFetchAvailableDataProtocol() const = 0;
-    virtual std::shared_ptr<StatmentFetchingProtocol> getFetchStatementProtocol()
-        const = 0;
+    virtual std::shared_ptr<StatmentFetchingProtocol>
+    getFetchStatementProtocol() const = 0;
     virtual std::shared_ptr<PropagateTransactionsProtocol>
     getPropagateTransactionsProtocol() const = 0;
     virtual std::shared_ptr<StateProtocol> getStateProtocol() const = 0;

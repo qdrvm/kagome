@@ -174,24 +174,28 @@ namespace kagome::network {
                            protocol->protocolName(),
                            peer_id);
             if (descr.hasActiveOutgoing()) {
-              logger_->trace("Has active outgoing. Direct send.(protocol={}, peer={})",
-                             protocol->protocolName(),
-                             peer_id);
+              logger_->trace(
+                  "Has active outgoing. Direct send.(protocol={}, peer={})",
+                  protocol->protocolName(),
+                  peer_id);
               send(peer_id, protocol, descr.outgoing.stream, msg);
               on_send(*descr.outgoing.stream);
             } else {
-              logger_->trace("No active outgoing. Reopen outgoing stream.(protocol={}, peer={})",
-                             protocol->protocolName(),
-                             peer_id);
+              logger_->trace(
+                  "No active outgoing. Reopen outgoing stream.(protocol={}, "
+                  "peer={})",
+                  protocol->protocolName(),
+                  peer_id);
               descr.deferred_messages.push_back([weak_self = weak_from_this(),
                                                  msg,
                                                  peer_id,
                                                  protocol,
                                                  on_send](auto stream) {
                 if (auto self = weak_self.lock()) {
-                  self->logger_->trace("Send deffered messages.(protocol={}, peer={})",
-                                 protocol->protocolName(),
-                                 peer_id);
+                  self->logger_->trace(
+                      "Send deffered messages.(protocol={}, peer={})",
+                      protocol->protocolName(),
+                      peer_id);
                   self->send(peer_id, protocol, stream, msg);
                   on_send(*stream);
                 }

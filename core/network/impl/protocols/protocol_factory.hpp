@@ -12,11 +12,11 @@
 #include "network/impl/protocols/collation_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "network/impl/protocols/protocol_req_collation.hpp"
 #include "network/impl/protocols/protocol_req_pov.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
-#include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/state_protocol_impl.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
@@ -118,8 +118,10 @@ namespace kagome::network {
     std::shared_ptr<ReqCollationProtocol> makeReqCollationProtocol() const;
     std::shared_ptr<ReqPovProtocol> makeReqPovProtocol() const;
     std::shared_ptr<FetchChunkProtocol> makeFetchChunkProtocol() const;
-    std::shared_ptr<FetchAvailableDataProtocol> makeFetchAvailableDataProtocol() const;
-    std::shared_ptr<StatmentFetchingProtocol> makeFetchStatementProtocol() const;
+    std::shared_ptr<FetchAvailableDataProtocol> makeFetchAvailableDataProtocol()
+        const;
+    std::shared_ptr<StatmentFetchingProtocol> makeFetchStatementProtocol()
+        const;
 
    private:
     libp2p::Host &host_;

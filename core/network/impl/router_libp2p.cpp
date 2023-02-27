@@ -88,7 +88,8 @@ namespace kagome::network {
       return false;
     }
 
-    fetch_available_data_protocol_ = protocol_factory_->makeFetchAvailableDataProtocol();
+    fetch_available_data_protocol_ =
+        protocol_factory_->makeFetchAvailableDataProtocol();
     if (!fetch_available_data_protocol_) {
       return false;
     }
@@ -220,7 +221,7 @@ namespace kagome::network {
   }
 
   std::shared_ptr<StatmentFetchingProtocol>
-      RouterLibp2p::getFetchStatementProtocol() const {
+  RouterLibp2p::getFetchStatementProtocol() const {
     return fetch_statement_protocol_;
   }
 

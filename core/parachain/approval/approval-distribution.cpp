@@ -991,7 +991,10 @@ namespace kagome::parachain {
           visit_in_place(
               i->second,
               [&](network::Assignment const &assignment) {
-                import_and_circulate_assignment(i->first, assignment.indirect_assignment_cert, assignment.candidate_ix);
+                import_and_circulate_assignment(
+                    i->first,
+                    assignment.indirect_assignment_cert,
+                    assignment.candidate_ix);
               },
               [&](network::IndirectSignedApprovalVote const &approval) {
                 import_and_circulate_approval(i->first, approval);
@@ -1082,7 +1085,8 @@ namespace kagome::parachain {
         if (updated.view.contains(it->first)) {
           ++it;
         } else {
-          logger_->trace("Cleaning up stale pending messages.(block hash={})", it->first);
+          logger_->trace("Cleaning up stale pending messages.(block hash={})",
+                         it->first);
           it = pending_known_.erase(it);
         }
       }
@@ -1539,10 +1543,18 @@ namespace kagome::parachain {
                           peer_id.toBase58(),
                           assignments.assignments.size());
             for (auto const &assignment : assignments.assignments) {
-              if (auto it = pending_known_.find(assignment.indirect_assignment_cert.block_hash); it != pending_known_.end()) {
-                logger_->trace("Pending assignment.(block hash={}, claimed index={}, validator={}, peer={})",
-                               assignment.indirect_assignment_cert.block_hash, assignment.candidate_ix, assignment.indirect_assignment_cert.validator, peer_id.toBase58());
-                it->second.emplace_back(std::make_pair(peer_id, PendingMessage{assignment}));
+              if (auto it = pending_known_.find(
+                      assignment.indirect_assignment_cert.block_hash);
+                  it != pending_known_.end()) {
+                logger_->trace(
+                    "Pending assignment.(block hash={}, claimed index={}, "
+                    "validator={}, peer={})",
+                    assignment.indirect_assignment_cert.block_hash,
+                    assignment.candidate_ix,
+                    assignment.indirect_assignment_cert.validator,
+                    peer_id.toBase58());
+                it->second.emplace_back(
+                    std::make_pair(peer_id, PendingMessage{assignment}));
                 continue;
               }
 
@@ -1557,10 +1569,18 @@ namespace kagome::parachain {
                           peer_id.toBase58(),
                           approvals.approvals.size());
             for (auto const &approval_vote : approvals.approvals) {
-              if (auto it = pending_known_.find(approval_vote.payload.payload.block_hash); it != pending_known_.end()) {
-                logger_->trace("Pending approval.(block hash={}, candidate index={}, validator={}, peer={})",
-                               approval_vote.payload.payload.block_hash, approval_vote.payload.payload.candidate_index, approval_vote.payload.ix, peer_id.toBase58());
-                it->second.emplace_back(std::make_pair(peer_id, PendingMessage{approval_vote}));
+              if (auto it = pending_known_.find(
+                      approval_vote.payload.payload.block_hash);
+                  it != pending_known_.end()) {
+                logger_->trace(
+                    "Pending approval.(block hash={}, candidate index={}, "
+                    "validator={}, peer={})",
+                    approval_vote.payload.payload.block_hash,
+                    approval_vote.payload.payload.candidate_index,
+                    approval_vote.payload.ix,
+                    peer_id.toBase58());
+                it->second.emplace_back(
+                    std::make_pair(peer_id, PendingMessage{approval_vote}));
                 continue;
               }
 

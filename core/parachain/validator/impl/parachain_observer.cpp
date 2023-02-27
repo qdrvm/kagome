@@ -104,8 +104,6 @@ namespace kagome::observers {
 
     void onAdvertise(libp2p::peer::PeerId const &peer_id,
                      primitives::BlockHash relay_parent) {
-      logger_->info("1111111111111111111111111111111111");
-
       auto const peer_state = pm_->getPeerState(peer_id);
       if (!peer_state) {
         logger_->warn("Received collation advertisement from unknown peer {}",
@@ -145,8 +143,6 @@ namespace kagome::observers {
                    network::CollatorPublicKey pubkey,
                    network::ParachainId para_id,
                    network::Signature signature) {
-      logger_->info("2222222222222222222222222222222");
-
       auto const peer_state = pm_->getPeerState(peer_id);
       if (!peer_state) {
         logger_->warn("Received collation declaration from unknown peer {}:{}",
@@ -157,7 +153,7 @@ namespace kagome::observers {
 
       if (peer_state->get().collator_state) {
         logger_->warn("Peer is in collating state {}:{}", peer_id, para_id);
-        //return;
+        // return;
       }
 
       auto payload{peer_id.toVector()};  /// Copy because verify works with

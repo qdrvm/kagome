@@ -102,7 +102,6 @@ namespace kagome::network {
   ProtocolFactory::makeReqCollationProtocol() const {
     auto block_tree = block_tree_.lock();
     BOOST_ASSERT(block_tree != nullptr);
-    auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
     return std::make_shared<ReqCollationProtocol>(
         host_, req_collation_observer_.lock());
@@ -116,22 +115,23 @@ namespace kagome::network {
       const {
     auto pp = parachain_processor_.lock();
     BOOST_ASSERT(pp);
-    return std::make_shared<FetchChunkProtocol>(host_,
-                                                pp);
+    return std::make_shared<FetchChunkProtocol>(host_, pp);
   }
 
-  std::shared_ptr<FetchAvailableDataProtocol> ProtocolFactory::makeFetchAvailableDataProtocol() const {
+  std::shared_ptr<FetchAvailableDataProtocol>
+  ProtocolFactory::makeFetchAvailableDataProtocol() const {
     auto pp = parachain_processor_.lock();
     BOOST_ASSERT(pp);
     return std::make_shared<FetchAvailableDataProtocol>(host_,
-                                                pp->getAvStore());
+                                                        pp->getAvStore());
   }
 
-  std::shared_ptr<StatmentFetchingProtocol> ProtocolFactory::makeFetchStatementProtocol() const {
+  std::shared_ptr<StatmentFetchingProtocol>
+  ProtocolFactory::makeFetchStatementProtocol() const {
     auto pp = parachain_processor_.lock();
     BOOST_ASSERT(pp);
     return std::make_shared<StatmentFetchingProtocol>(host_,
-                                                pp->getBackingStore());
+                                                      pp->getBackingStore());
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>

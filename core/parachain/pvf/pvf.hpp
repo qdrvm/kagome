@@ -26,7 +26,10 @@ namespace kagome::parachain {
         const CandidateReceipt &receipt, const ParachainBlock &pov) const = 0;
 
     virtual outcome::result<Result> pvfValidate(
-        const PersistedValidationData &data, const ParachainBlock &pov, const CandidateReceipt &receipt, const ParachainRuntime &code) const = 0;
+        const PersistedValidationData &data,
+        const ParachainBlock &pov,
+        const CandidateReceipt &receipt,
+        const ParachainRuntime &code) const = 0;
   };
 }  // namespace kagome::parachain
 

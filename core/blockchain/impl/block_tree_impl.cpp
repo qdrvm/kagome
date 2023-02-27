@@ -755,21 +755,27 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHeader> BlockTreeImpl::getBlockHeader(
       const primitives::BlockId &block) const {
     OUTCOME_TRY(header, storage_->getBlockHeader(block));
-    if (header.has_value()) return header.value();
+    if (header.has_value()) {
+      return header.value();
+    }
     return BlockTreeError::HEADER_NOT_FOUND;
   }
 
   outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(
       const primitives::BlockId &block) const {
     OUTCOME_TRY(body, storage_->getBlockBody(block));
-    if (body.has_value()) return body.value();
+    if (body.has_value()) {
+      return body.value();
+    }
     return BlockTreeError::BODY_NOT_FOUND;
   }
 
   outcome::result<primitives::Justification>
   BlockTreeImpl::getBlockJustification(const primitives::BlockId &block) const {
     OUTCOME_TRY(justification, storage_->getJustification(block));
-    if (justification.has_value()) return justification.value();
+    if (justification.has_value()) {
+      return justification.value();
+    }
     return BlockTreeError::JUSTIFICATION_NOT_FOUND;
   }
 
@@ -1062,7 +1068,9 @@ namespace kagome::blockchain {
       return result;
     }
     OUTCOME_TRY(header, storage_->getBlockHeader(block));
-    if (!header.has_value()) return BlockTreeError::HEADER_NOT_FOUND;
+    if (!header.has_value()) {
+      return BlockTreeError::HEADER_NOT_FOUND;
+    }
     // if node is not in tree_ it must be finalized and thus have only one child
     OUTCOME_TRY(child_hash,
                 header_repo_->getHashByNumber(header.value().number + 1));
@@ -1195,7 +1203,9 @@ namespace kagome::blockchain {
     size_t count = 0;
     for (;;) {
       OUTCOME_TRY(storage_->putNumberToIndexKey(block));
-      if (block.number == 0) break;
+      if (block.number == 0) {
+        break;
+      }
       OUTCOME_TRY(header, getBlockHeader(block.hash));
       auto parent_hash_res = header_repo_->getHashByNumber(block.number - 1);
       if (parent_hash_res.has_error()) {

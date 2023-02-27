@@ -30,20 +30,26 @@ namespace kagome::parachain {
 
     std::optional<std::reference_wrapper<V>> get(const K &k) {
       assert(store_.size() < kDebugHardLimit);
-      if (auto it = store_.find(k); it != store_.end()) return it->second;
+      if (auto it = store_.find(k); it != store_.end()) {
+        return it->second;
+      }
       return std::nullopt;
     }
 
     template <typename... A>
     std::reference_wrapper<V> get_or_create(const K &k, A &&...args) {
       assert(store_.size() < kDebugHardLimit);
-      if (auto it = store_.find(k); it != store_.end()) return it->second;
+      if (auto it = store_.find(k); it != store_.end()) {
+        return it->second;
+      }
       return set(k, V{std::forward<A>(args)...});
     }
 
     std::optional<std::reference_wrapper<const V>> get(const K &k) const {
       assert(store_.size() < kDebugHardLimit);
-      if (auto it = store_.find(k); it != store_.end()) return it->second;
+      if (auto it = store_.find(k); it != store_.end()) {
+        return it->second;
+      }
       return std::nullopt;
     }
 

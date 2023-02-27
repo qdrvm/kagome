@@ -89,7 +89,7 @@ namespace kagome::authority_discovery {
                        [&](const primitives::AuthorityDiscoveryId &id) {
                          return std::find(
                                     local_keys.begin(), local_keys.end(), id)
-                                != local_keys.end();
+                             != local_keys.end();
                        }),
         authorities.end());
     for (auto it = cache_.begin(); it != cache_.end();) {

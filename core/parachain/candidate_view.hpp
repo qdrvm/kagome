@@ -29,11 +29,12 @@ namespace kagome::parachain {
     /// given candidate (by hash) based on a message that we have sent it from
     /// our local pool.
     void note_local(network::CandidateHash const &h) {
-      if (!note_hash(local_observed, h))
+      if (!note_hash(local_observed, h)) {
         logger_->warn(
             "Statement distribution is erroneously attempting to distribute "
             "more than {} candidate(s) per validator index. Ignoring.",
             kTrackerThreshold);
+      }
     }
 
     /// Note that the remote should now be aware that a validator has seconded a
@@ -55,8 +56,11 @@ namespace kagome::parachain {
     using CandidateHashPool = std::vector<network::CandidateHash>;
 
     bool contains(CandidateHashPool &pool, network::CandidateHash const &hash) {
-      for (auto const &h : pool)
-        if (h == hash) return true;
+      for (auto const &h : pool) {
+        if (h == hash) {
+          return true;
+        }
+      }
       return false;
     }
 
@@ -72,7 +76,9 @@ namespace kagome::parachain {
             BOOST_ASSERT(pool->capacity() == kTrackerThreshold);
           });
 
-      if (contains(pool, hash)) return true;
+      if (contains(pool, hash)) {
+        return true;
+      }
 
       if (!is_full(pool)) {
         pool.push_back(hash);

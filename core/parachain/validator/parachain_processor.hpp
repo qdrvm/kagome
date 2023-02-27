@@ -20,6 +20,7 @@
 
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
+#include "network/peer_manager.hpp"
 #include "network/peer_view.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
 #include "network/types/collator_messages.hpp"
@@ -36,9 +37,7 @@
 #include "utils/thread_pool.hpp"
 
 namespace kagome::network {
-  class PeerManager;
   class Router;
-  struct CollationEvent;
   struct PendingCollation;
 }  // namespace kagome::network
 
@@ -388,7 +387,8 @@ namespace kagome::parachain {
     template <typename T>
     outcome::result<network::Signature> sign(T const &t) const;
 
-    std::optional<ImportStatementSummary> importStatementToTable(ParachainProcessorImpl::RelayParentState &relayParentState,
+    std::optional<ImportStatementSummary> importStatementToTable(
+        ParachainProcessorImpl::RelayParentState &relayParentState,
         primitives::BlockHash const &candidate_hash,
         network::SignedStatement const &statement);
 

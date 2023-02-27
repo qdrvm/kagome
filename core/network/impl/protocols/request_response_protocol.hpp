@@ -286,7 +286,9 @@ namespace kagome::network {
           std::move(stream),
           [wptr{this->weak_from_this()}](outcome::result<RequestType> result,
                                          std::shared_ptr<Stream> stream) {
-            if (!result) return;
+            if (!result) {
+              return;
+            }
 
             auto self = wptr.lock();
             assert(self

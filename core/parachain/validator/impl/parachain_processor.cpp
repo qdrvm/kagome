@@ -22,7 +22,6 @@
 #include "parachain/candidate_view.hpp"
 #include "parachain/peer_relay_parent_knowledge.hpp"
 #include "scale/scale.hpp"
-#include "utils/async_sequence.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
                             ParachainProcessorImpl::Error,
@@ -78,18 +77,21 @@ namespace {
       chunks.data = nullptr;
       chunks.count = 0ull;
     }
-    ExChunksList(ExChunksList &&c) {
+    ExChunksList(ExChunksList &&c) noexcept {
       initFrom(std::move(c));
     }
-    ExChunksList &operator=(ExChunksList &&c) {
+    ExChunksList &operator=(ExChunksList &&c) noexcept {
       initFrom(std::move(c));
       return *this;
     }
     ~ExChunksList() {
-      if (chunks.data) {
+      if (nullptr != chunks.data) {
         ECCR_deallocate_chunk_list(&chunks);
       }
     }
+
+    ExChunksList(ExChunksList const &) = delete;
+    ExChunksList &operator=(ExChunksList const &) = delete;
 
    private:
     void initFrom(ExChunksList &&c) {
@@ -193,14 +195,19 @@ namespace kagome::parachain {
           self->backing_store_->remove(lost);
         }
 
-        auto const &relay_parent = primitives::calculateBlockHash(event.new_head, *self->hasher_)
-            .value();
+        auto const &relay_parent =
+            primitives::calculateBlockHash(event.new_head, *self->hasher_)
+                .value();
         self->createBackingTask(relay_parent);
         auto msg = std::make_shared<
             network::WireMessage<network::ValidatorProtocolMessage>>(
             network::ViewUpdate{.view = event.view});
 
-        self->logger_->info("Update my view.(new head={}, finalized={}, leaves={})", relay_parent, event.view.finalized_number_, event.view.heads_.size());
+        self->logger_->info(
+            "Update my view.(new head={}, finalized={}, leaves={})",
+            relay_parent,
+            event.view.finalized_number_,
+            event.view.heads_.size());
         self->pm_->getStreamEngine()->broadcast(
             self->router_->getValidationProtocol(), msg);
         self->pm_->getStreamEngine()->broadcast(
@@ -241,10 +248,11 @@ namespace kagome::parachain {
     std::optional<CollatorId> required_collator;
 
     std::unordered_map<ParachainId, std::vector<ValidatorIndex>> out_groups;
-    for (CoreIndex core_index = 0; core_index < (CoreIndex)cores.size();
+    for (CoreIndex core_index = 0;
+         core_index < static_cast<CoreIndex>(cores.size());
          ++core_index) {
-      if (auto scheduled{
-              boost::get<const network::ScheduledCore>(&cores[core_index])}) {
+      if (auto const *scheduled =
+              boost::get<const network::ScheduledCore>(&cores[core_index])) {
         auto const group_index =
             group_rotation_info.groupForCore(core_index, n_cores);
         if (group_index < validator_groups.size()) {
@@ -269,7 +277,7 @@ namespace kagome::parachain {
         .assignment = assignment,
         .seconded = {},
         .our_index = validator->validatorIndex(),
-        .required_collator = std::move(required_collator),
+        .required_collator = required_collator,
         .table_context =
             TableContext{
                 .validator = std::move(validator),
@@ -332,9 +340,9 @@ namespace kagome::parachain {
       return;
     }
 
-    auto collation_response{
-        boost::get<network::CollationResponse>(&response.response_data)};
-    if (!collation_response) {
+    auto *collation_response =
+        boost::get<network::CollationResponse>(&response.response_data);
+    if (nullptr == collation_response) {
       logger_->warn("Not a CollationResponse message from {}.",
                     pending_collation.pending_collation.peer_id.toBase58());
       return;
@@ -686,12 +694,14 @@ namespace kagome::parachain {
   }
 
   std::optional<ParachainProcessorImpl::ImportStatementSummary>
-  ParachainProcessorImpl::importStatementToTable(ParachainProcessorImpl::RelayParentState &relayParentState,
+  ParachainProcessorImpl::importStatementToTable(
+      ParachainProcessorImpl::RelayParentState &relayParentState,
       primitives::BlockHash const &candidate_hash,
       network::SignedStatement const &statement) {
     logger_->info("Import statement into table.(candidate={})", candidate_hash);
 
-    if (auto r = backing_store_->put(relayParentState.table_context.groups, statement)) {
+    if (auto r = backing_store_->put(relayParentState.table_context.groups,
+                                     statement)) {
       return ImportStatementSummary{
           .imported = *r,
           .attested = false,
@@ -827,8 +837,10 @@ namespace kagome::parachain {
       network::RelayHash const &relay_parent,
       network::SignedStatement const &statement,
       ParachainProcessorImpl::RelayParentState &relayParentState) {
-    auto import_result = importStatementToTable(relayParentState,
-        candidateHashFrom(parachain::getPayload(statement)), statement);
+    auto import_result = importStatementToTable(
+        relayParentState,
+        candidateHashFrom(parachain::getPayload(statement)),
+        statement);
 
     if (import_result) {
       logger_->info(
@@ -839,8 +851,6 @@ namespace kagome::parachain {
 
       if (auto attested = attested_candidate(import_result->imported.candidate,
                                              relayParentState.table_context)) {
-        auto const candidate_hash =
-            candidateHash(*hasher_, attested.value().candidate);
         if (auto backed = table_attested_to_backed(
                 std::move(*attested), relayParentState.table_context)) {
           logger_->trace("Candidate backed.(candidate={}, para id={})",
@@ -1010,8 +1020,8 @@ namespace kagome::parachain {
 
     BOOST_ASSERT(protocol);
     logger_->info("Send my view.(peer={}, protocol={})",
-                   peer_id.toBase58(),
-                   protocol->protocolName());
+                  peer_id.toBase58(),
+                  protocol->protocolName());
     pm_->getStreamEngine()->template send(
         peer_id,
         protocol,
@@ -1092,10 +1102,10 @@ namespace kagome::parachain {
       auto p{std::move(statements_queue.front())};
       statements_queue.pop_front();
       network::SignedStatement &statement = p.second;
-      RelayHash &relay_parent = p.first;
+      RelayHash &rp = p.first;
 
       pending_candidates.exclusiveAccess(
-          [&](auto &container) { container.erase(relay_parent); });
+          [&](auto &container) { container.erase(rp); });
 
       stream_engine->send(
           peer_id,
@@ -1104,7 +1114,7 @@ namespace kagome::parachain {
               network::WireMessage<network::CollationProtocolMessage>>(
               network::CollationProtocolMessage(
                   network::CollationMessage(network::Seconded{
-                      .relay_parent = relay_parent, .statement = statement}))));
+                      .relay_parent = rp, .statement = statement}))));
     }
   }
 
@@ -1258,11 +1268,8 @@ namespace kagome::parachain {
           av_store_->getChunk(candidate_hash, ValidatorIndex(chunk.index)));
     }
 
-    logger_->error("555555555555555555555");
     av_store_->putPov(candidate_hash, pov);
     av_store_->putData(candidate_hash, data);  /// TODO(iceseer): remove copy
-
-    logger_->error("666666666666666666666666");
   }
 
   outcome::result<ParachainProcessorImpl::ValidateAndSecondResult>
@@ -1272,7 +1279,6 @@ namespace kagome::parachain {
       libp2p::peer::PeerId const &peer_id,
       primitives::BlockHash const &relay_parent,
       size_t n_validators) {
-    logger_->error("3333333333333");
     auto const candidate_hash{candidateHashFrom(candidate)};
 
     auto validation_result = validateCandidate(candidate, pov);

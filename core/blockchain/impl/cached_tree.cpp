@@ -57,7 +57,7 @@ namespace kagome::blockchain {
                                             [current_node](auto &sptr) {
                                               return sptr.get() == current_node;
                                             })
-                               - curren_parent->children.begin();
+                             - curren_parent->children.begin();
         fork_choice[curren_parent->block_hash] = child_idx;
       }
       current_node = curren_parent.get();
@@ -106,11 +106,11 @@ namespace kagome::blockchain {
   bool TreeNode::operator==(const TreeNode &other) const {
     const auto &other_parent = other.parent;
     auto parents_equal = (parent.expired() && other_parent.expired())
-                         || (!parent.expired() && !other_parent.expired()
-                             && parent.lock() == other_parent.lock());
+                      || (!parent.expired() && !other_parent.expired()
+                          && parent.lock() == other_parent.lock());
 
     return parents_equal && block_hash == other.block_hash
-           && depth == other.depth;
+        && depth == other.depth;
   }
 
   bool TreeNode::operator!=(const TreeNode &other) const {

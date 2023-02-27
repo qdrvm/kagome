@@ -36,26 +36,6 @@
 
 namespace kagome::parachain {
   using DistributeAssignment = network::Assignment;
-  using ApprovalDistributionSubsystemMsg = boost::variant<
-      std::vector<approval::BlockApprovalMeta>,  /// Notify the
-                                                 /// `ApprovalDistribution`
-                                                 /// subsystem about new blocks
-                                                 /// and the candidates
-                                                 /// contained within them.
-      DistributeAssignment,  /// Distribute an assignment cert from the local
-                             /// validator. The cert is assumed to be valid,
-                             /// relevant, and for the given relay-parent and
-                             /// validator index.
-      network::IndirectSignedApprovalVote,  /// Distribute an approval vote for
-                                            /// the local validator. The
-                                            /// approval vote is assumed to be
-                                            /// valid, relevant, and the
-                                            /// corresponding approval already
-                                            /// issued. If not, the subsystem is
-                                            /// free to drop the message.
-      network::ApprovalDistributionMessage  /// An update from the network
-                                            /// bridge.
-      >;
 
   /// The approval voting subsystem.
   struct ApprovalVotingSubsystem {
@@ -431,7 +411,9 @@ namespace kagome::parachain {
       std::vector<std::pair<CandidateHash, CandidateEntry>> imported_candidates;
     };
 
-    using AssignmentOrApproval = boost::variant<network::Assignment, network::IndirectSignedApprovalVote>;
+    using AssignmentOrApproval =
+        boost::variant<network::Assignment,
+                       network::IndirectSignedApprovalVote>;
     using PendingMessage = AssignmentOrApproval;
 
     using MessageSource =
@@ -651,7 +633,10 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
-    std::unordered_map<Hash, std::vector<std::pair<libp2p::peer::PeerId, PendingMessage>>> pending_known_;
+    std::unordered_map<
+        Hash,
+        std::vector<std::pair<libp2p::peer::PeerId, PendingMessage>>>
+        pending_known_;
 
     /// thread_pool_ context access
     std::unordered_map<uintptr_t, std::unique_ptr<clock::Timer>>

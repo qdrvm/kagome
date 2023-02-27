@@ -264,7 +264,9 @@ namespace kagome::storage::trie {
     // key
     encoding += node.key_nibbles.toByteBuffer();
 
-    if (!node.value) return Error::NO_NODE_VALUE;
+    if (!node.value) {
+      return Error::NO_NODE_VALUE;
+    }
 
     OUTCOME_TRY(encodeValue(encoding, node, version, store_children));
 

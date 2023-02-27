@@ -57,7 +57,7 @@ class RpcLibp2pTest : public testing::Test {
 
   HostMock host_;
   PeerInfo peer_info_{"my_peer"_peerid, {}};
-  ProtocolName protocol_{"/test/2.2.8"};
+  Protocol protocol_{"/test/2.2.8"};
 
   // we are not interested in the exact semantics, so let BlocksResponse be both
   // request and response

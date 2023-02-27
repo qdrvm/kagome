@@ -13,8 +13,8 @@ extern "C" {
 #include <gsl/span>
 
 #include "common/blob.hpp"
-#include "primitives/math.hpp"
 #include "common/int_serialization.hpp"
+#include "primitives/math.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::crypto {

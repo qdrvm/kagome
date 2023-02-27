@@ -115,8 +115,8 @@ namespace kagome::network {
             BOOST_ASSERT(stream->remotePeerId().has_value());
             self->template doCollatorHandshake<false>(
                 stream,
-                [wptr{wp},
-                 cb{std::move(cb)}](std::shared_ptr<Stream> const &stream) mutable {
+                [wptr{wp}, cb{std::move(cb)}](
+                    std::shared_ptr<Stream> const &stream) mutable {
                   if (!stream) {
                     cb(ProtocolError::HANDSHAKE_ERROR);
                   } else {

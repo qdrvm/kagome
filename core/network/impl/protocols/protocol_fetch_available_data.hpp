@@ -62,8 +62,11 @@ namespace kagome::network {
    private:
     outcome::result<ResponseType> onRxRequest(
         RequestType req, std::shared_ptr<Stream>) override {
-      base().logger()->trace("Statement fetch request received.(relay parent={}, candidate hash={})",
-                             req.relay_parent, req.candidate_hash);
+      base().logger()->trace(
+          "Statement fetch request received.(relay parent={}, candidate "
+          "hash={})",
+          req.relay_parent,
+          req.candidate_hash);
       if (auto res = backing_store_->get_candidate(req.candidate_hash)) {
         return std::move(*res);
       }

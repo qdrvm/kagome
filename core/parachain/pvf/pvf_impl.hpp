@@ -49,7 +49,10 @@ namespace kagome::parachain {
     outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
                                     const ParachainBlock &pov) const override;
     outcome::result<Result> pvfValidate(
-        const PersistedValidationData &data, const ParachainBlock &pov, const CandidateReceipt &receipt, const ParachainRuntime &code) const override;
+        const PersistedValidationData &data,
+        const ParachainBlock &pov,
+        const CandidateReceipt &receipt,
+        const ParachainRuntime &code) const override;
 
    private:
     using CandidateDescriptor = network::CandidateDescriptor;

@@ -240,8 +240,7 @@ namespace kagome::network {
     RelayHash relay_parent;
     CandidateHash candidate_hash;
   };
-  using FetchStatementResponse =
-      boost::variant<CommittedCandidateReceipt>;
+  using FetchStatementResponse = boost::variant<CommittedCandidateReceipt>;
 
   struct ValidityAttestation {
     SCALE_TIE(2);
@@ -558,8 +557,8 @@ struct fmt::formatter<kagome::network::SignedBitfield> {
   }
 
   template <typename FormatContext>
-  auto format(const kagome::network::SignedBitfield &val, FormatContext &ctx) const
-      -> decltype(ctx.out()) {
+  auto format(const kagome::network::SignedBitfield &val,
+              FormatContext &ctx) const -> decltype(ctx.out()) {
     char buf[8] = {0};
     auto const &bits = val.payload.payload.bits;
 

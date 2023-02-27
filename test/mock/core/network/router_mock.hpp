@@ -19,6 +19,21 @@ namespace kagome::network {
    public:
     virtual ~RouterMock() = default;
 
+    MOCK_METHOD(std::shared_ptr<StatmentFetchingProtocol>,
+                getFetchStatementProtocol,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::shared_ptr<FetchAvailableDataProtocol>,
+                getFetchAvailableDataProtocol,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::shared_ptr<ValidationProtocol>,
+                getValidationProtocol,
+                (),
+                (const, override));
+
     MOCK_METHOD(std::shared_ptr<BlockAnnounceProtocol>,
                 getBlockAnnounceProtocol,
                 (),

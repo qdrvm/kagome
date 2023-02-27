@@ -101,7 +101,10 @@ namespace kagome::parachain {
         log_{log::createLogger("Pvf")} {}
 
   outcome::result<Pvf::Result> PvfImpl::pvfValidate(
-      const PersistedValidationData &data, const ParachainBlock &pov, const CandidateReceipt &receipt, const ParachainRuntime &code) const {
+      const PersistedValidationData &data,
+      const ParachainBlock &pov,
+      const CandidateReceipt &receipt,
+      const ParachainRuntime &code) const {
     OUTCOME_TRY(pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
       return PvfError::POV_SIZE;
