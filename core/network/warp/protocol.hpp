@@ -20,12 +20,12 @@ namespace kagome::network {
    public:
     WarpProtocol(libp2p::Host &host,
                  const application::ChainSpec &chain_spec,
-                 const primitives::BlockHash &genesis_hash,
+                 const primitives::GenesisBlockHeader &genesis,
                  std::shared_ptr<WarpSyncCache> cache)
         : RequestResponseProtocolType{
             kName,
             host,
-            make_protocols(kWarpProtocol, chain_spec, genesis_hash),
+            make_protocols(kWarpProtocol, chain_spec, genesis),
             log::createLogger(kName),
         },
         cache_{std::move(cache)} {}

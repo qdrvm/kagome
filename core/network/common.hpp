@@ -40,6 +40,10 @@ namespace kagome::network {
         protocols.emplace_back(fmt::format(format, hex_lower(arg)));
       } else if constexpr (std::is_same_v<
                                std::decay_t<decltype(arg)>,
+                               std::decay_t<primitives::GenesisBlockHeader>>) {
+        protocols.emplace_back(fmt::format(format, hex_lower(arg.hash)));
+      } else if constexpr (std::is_same_v<
+                               std::decay_t<decltype(arg)>,
                                std::decay_t<application::ChainSpec>>) {
         protocols.emplace_back(fmt::format(format, arg.protocolId()));
       } else {
