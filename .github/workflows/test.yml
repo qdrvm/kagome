@@ -13,7 +13,7 @@ env:
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
-  INDOCKER_IMAGE: soramitsu/kagome-dev:4-minideb
+  INDOCKER_IMAGE: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
   CACHE_VERSION: v07
   CACHE_PATHS: |
     ~/Library/Caches/pip
@@ -26,8 +26,8 @@ jobs:
   MacOS:
     runs-on: macos-11
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
+    - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+    - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -58,10 +58,10 @@ jobs:
           
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:4-minideb
+    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -82,12 +82,12 @@ jobs:
   clang-tidy:
     name: "Linux: clang-tidy"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:4-minideb
+    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
         with:
           fetch-depth: 0
-      - uses: actions/cache@v2
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -102,10 +102,10 @@ jobs:
   coverage:
     name: "Linux: gcc-10 coverage/sonar"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:4-minideb
+    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -149,10 +149,10 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:4-minideb
+    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
@@ -172,13 +172,11 @@ jobs:
             build-type: "Debug"
           - name: "Push Release Docker image"
             build-type: "Release"
-          - name: "Push RelWithDebInfo Docker image"
-            build-type: "RelWithDebInfo"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:4-minideb
+    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
@@ -187,7 +185,7 @@ jobs:
         env:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome-dev/make.sh
-      - uses: azure/docker-login@v1
+      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
         with:
           login-server: https://index.docker.io/v1/
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -198,9 +196,43 @@ jobs:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome/build_and_push.sh
 
+  Push-self-hosted:
+    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    needs: [clang-tidy, MacOS, Minideb]
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "Push RelWithDebInfo Docker image"
+            build-type: "RelWithDebInfo"
+    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - run: git fetch --prune --unshallow
+      - name: build
+        env:
+          BUILD_TYPE: "${{ matrix.options.build-type }}"
+        run: ./housekeeping/docker/kagome-dev/make.sh
+      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+        with:
+          login-server: https://index.docker.io/v1/
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: docker pack and push
+        env:
+          VERSION: ${{ github.ref }}
+          BUILD_TYPE: "${{ matrix.options.build-type }}"
+        run: ./housekeeping/docker/kagome/build_and_push.sh
+
+
   Trigger_CD:
     if: ${{ github.ref == 'refs/heads/master' }}
-    needs: [Push]
+    needs: [Push, Push-self-hosted]
     runs-on: ubuntu-latest
     steps:
       - name: trigger cd job
