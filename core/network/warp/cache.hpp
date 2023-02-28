@@ -49,6 +49,8 @@ namespace kagome::network {
     mutable storage::MapPrefix db_prefix_;
     log::Logger log_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    std::atomic_bool started_;
+    std::atomic_bool caching_;
     primitives::BlockNumber cache_next_ = 0;
   };
 }  // namespace kagome::network

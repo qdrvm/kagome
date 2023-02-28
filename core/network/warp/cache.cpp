@@ -117,6 +117,13 @@ namespace kagome::network {
 
   outcome::result<void> WarpSyncCache::cacheMore(
       primitives::BlockNumber finalized) {
+    if (not started_.load()) {
+      return outcome::success();
+    }
+    if (bool old = false; not caching_.compare_exchange_strong(old, true)) {
+      return outcome::success();
+    }
+    auto unlock = gsl::finally([&] { caching_.store(false); });
     for (; cache_next_ <= finalized; ++cache_next_) {
       OUTCOME_TRY(hash, block_repository_->getHashByNumber(cache_next_));
       OUTCOME_TRY(header, block_repository_->getBlockHeader(hash));
@@ -152,6 +159,7 @@ namespace kagome::network {
       OUTCOME_TRY(cursor->prev());
       OUTCOME_TRY(db_prefix_.remove(key));
     }
+    started_.store(true);
     OUTCOME_TRY(cacheMore(block_tree_->getLastFinalized().number));
 
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
