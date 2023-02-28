@@ -27,6 +27,8 @@ namespace kagome::storage {
 
     outcome::result<void> next() override;
 
+    outcome::result<void> prev() override;
+
     std::optional<Buffer> key() const override;
 
     std::optional<BufferOrView> value() const override;

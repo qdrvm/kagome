@@ -36,6 +36,11 @@ namespace kagome::storage {
     return outcome::success();
   }
 
+  outcome::result<void> RocksDBCursor::prev() {
+    i_->Prev();
+    return outcome::success();
+  }
+
   std::optional<Buffer> RocksDBCursor::key() const {
     return isValid() ? std::make_optional(make_buffer(i_->key()))
                      : std::nullopt;
