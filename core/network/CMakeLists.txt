@@ -31,6 +31,7 @@ add_library(network
     impl/reputation_repository_impl.cpp
     helpers/scale_message_read_writer.cpp
     adapters/adapter_errors.cpp
+    warp/cache.cpp
     )
 target_link_libraries(network
     p2p::p2p_basic_scheduler

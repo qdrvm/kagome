@@ -133,10 +133,9 @@ namespace kagome::storage::trie {
 
     // if sought nibbles are lexicographically less or equal to the current
     // nibbles, we just take the closest node with value
-    bool sought_less_or_eq =
-        sought_is_prefix
-        or (not current_is_prefix
-            and *sought_nibbles_mismatch < *current_mismatch);
+    bool sought_less_or_eq = sought_is_prefix
+                          or (not current_is_prefix
+                              and *sought_nibbles_mismatch < *current_mismatch);
     SL_TRACE(log_,
              "The sought key '{}' is {} than current '{}'",
              common::hex_lower(sought_nibbles),
@@ -181,10 +180,9 @@ namespace kagome::storage::trie {
     // if the left part of the key is longer than the current or
     // lexicographically greater than the current, we must return to its
     // parent and find a child greater than the current one
-    bool longer_or_greater =
-        sought_is_longer
-        or (not(sought_is_prefix or current_is_prefix)
-            and *sought_nibbles_mismatch > *current_mismatch);
+    bool longer_or_greater = sought_is_longer
+                          or (not(sought_is_prefix or current_is_prefix)
+                              and *sought_nibbles_mismatch > *current_mismatch);
     if (longer_or_greater) {
       SL_TRACE(log_, "We're looking for next node with value in outer tree");
       SAFE_CALL(found, nextNodeWithValueInOuterTree())
@@ -324,6 +322,10 @@ namespace kagome::storage::trie {
       SL_TRACE(log_, "Found {}", key().value());
     }
     return outcome::success();
+  }
+
+  outcome::result<void> PolkadotTrieCursorImpl::prev() {
+    throw std::logic_error{"PolkadotTrieCursorImpl::prev not implemented"};
   }
 
   common::Buffer PolkadotTrieCursorImpl::collectKey() const {
