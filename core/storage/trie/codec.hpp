@@ -19,14 +19,17 @@ namespace kagome::storage::trie {
   class Codec {
    public:
     using ChildVisitor = std::function<outcome::result<void>(
-        TrieNode const&, common::BufferView, common::Buffer &&)>;
+        TrieNode const & /* a child node */,
+        common::BufferView /* its merkle value */,
+        common::Buffer && /* the encoded node */)>;
 
     virtual ~Codec() = default;
 
     /**
      * @brief Encode node to byte representation and store children
      * @param node node in the trie
-     * @param child_visitor function invoked for every child in a branch node recursively
+     * @param child_visitor function invoked for every child in a branch node
+     * recursively
      * @return encoded representation of a {@param node}
      */
     virtual outcome::result<common::Buffer> encodeNode(

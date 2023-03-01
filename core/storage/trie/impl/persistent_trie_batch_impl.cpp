@@ -10,6 +10,7 @@
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie_pruner/trie_pruner.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             PersistentTrieBatchImpl::Error,
@@ -27,12 +28,14 @@ namespace kagome::storage::trie {
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-      std::shared_ptr<PolkadotTrie> trie) {
+      std::shared_ptr<PolkadotTrie> trie,
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner) {
     std::unique_ptr<PersistentTrieBatchImpl> ptr(
         new PersistentTrieBatchImpl(std::move(codec),
                                     std::move(serializer),
                                     std::move(changes),
-                                    std::move(trie)));
+                                    std::move(trie),
+                                    std::move(state_pruner)));
     return ptr;
   }
 
@@ -40,20 +43,24 @@ namespace kagome::storage::trie {
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-      std::shared_ptr<PolkadotTrie> trie)
+      std::shared_ptr<PolkadotTrie> trie,
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner)
       : codec_{std::move(codec)},
         serializer_{std::move(serializer)},
         changes_{std::move(changes)},
-        trie_{std::move(trie)} {
+        trie_{std::move(trie)},
+        state_pruner_{std::move(state_pruner)} {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
                  or not changes_.has_value());
     BOOST_ASSERT(trie_ != nullptr);
+    BOOST_ASSERT(state_pruner_ != nullptr);
   }
 
   outcome::result<RootHash> PersistentTrieBatchImpl::commit(
       StateVersion version) {
+    OUTCOME_TRY(state_pruner_->addNewState(*trie_));
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
     auto &stats = serializer_->getLatestStats();

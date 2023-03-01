@@ -26,11 +26,11 @@ namespace kagome::storage::trie {
 
 namespace kagome::storage::trie_pruner {
 
-  outcome::result<void> forSubtree(
+  inline outcome::result<void> forSubtree(
       trie::TrieNode &root,
       const trie::TrieSerializer &serializer,
-      std::function<outcome::result<void>(trie::TrieNode const &)> const
-          &callback) {
+      std::function<outcome::result<void>(
+          trie::TrieNode const *, trie::TrieNode const &)> const &callback) {
     struct QueueEntry {
       trie::TrieNode *node;
       uint8_t next_child_idx = 0;
@@ -40,6 +40,9 @@ namespace kagome::storage::trie_pruner {
     queued_nodes.push_back({&root, 0});
     while (!queued_nodes.empty()) {
       auto &entry = queued_nodes.back();
+      auto parent =
+          queued_nodes.size() > 1 ? (queued_nodes.end() - 2)->node : nullptr;
+
       if (entry.node->isBranch()) {
         auto branch = dynamic_cast<trie::BranchNode *>(entry.node);
         auto next_child_idx = branch->getNextChildIdxFrom(entry.next_child_idx);
@@ -53,11 +56,11 @@ namespace kagome::storage::trie_pruner {
           queued_nodes.push_back({child.get(), 0});
 
         } else {
-          OUTCOME_TRY(callback(*entry.node));
+          OUTCOME_TRY(callback(parent, *entry.node));
           queued_nodes.pop_back();
         }
       } else {
-        OUTCOME_TRY(callback(*entry.node));
+        OUTCOME_TRY(callback(parent, *entry.node));
         queued_nodes.pop_back();
       }
     }
@@ -76,36 +79,76 @@ namespace kagome::storage::trie_pruner {
     }
 
     virtual outcome::result<void> addNewState(
-        trie::RootHash const &state) override {
+        trie::PolkadotTrie const &new_trie) override {
       logger_->info("ref count map size is {}", ref_count_.size());
-      OUTCOME_TRY(trie, serializer_->retrieveTrie(state));
       KAGOME_PROFILE_START_L(logger_, register_state);
-      return forSubtree(*trie->getRoot(),
-                 *serializer_,
-                 [this](auto &node) -> outcome::result<void> {
-                   auto hash = node.getCachedHash();
-                   BOOST_ASSERT(hash.has_value());
-                   ref_count_[hash.value()]++;
-                   return outcome::success();
-                 });
+      std::vector<const trie::OpaqueTrieNode *> queued_nodes;
+      queued_nodes.push_back(new_trie.getRoot().get());
+
+      size_t referenced_nodes_num = 0;
+
+      while (!queued_nodes.empty()) {
+        auto opaque_node = queued_nodes.back();
+        queued_nodes.pop_back();
+        Buffer hash;
+        if (auto hash_opt = opaque_node->getCachedHash();
+            hash_opt.has_value()) {
+          hash = hash_opt.value();
+        } else {
+          // we encode nodes twice: here and during serialization to DB. Should
+          // avoid it somehow
+          // mind that encode node's callback doesn't report dummy nodes
+          OUTCOME_TRY(enc,
+                      codec_->encodeNode(
+                          *opaque_node,
+                          trie::StateVersion::V1,
+                          [](auto &, auto, auto &&) -> outcome::result<void> {
+                            return outcome::success();
+                          }));
+          hash = codec_->merkleValue(enc);
+        }
+        ref_count_[hash]++;
+        referenced_nodes_num++;
+        if (auto node = dynamic_cast<trie::TrieNode const *>(opaque_node);
+            node != nullptr && node->isBranch()) {
+          auto branch = dynamic_cast<const trie::BranchNode *>(opaque_node);
+          for (auto opaque_child : branch->children) {
+            if (opaque_child != nullptr) {
+              queued_nodes.push_back(opaque_child.get());
+            }
+          }
+        }
+      }
+      SL_INFO(logger_, "Referenced {} nodes", referenced_nodes_num);
+      return outcome::success();
     }
 
     virtual outcome::result<void> prune(trie::RootHash const &state) override {
       OUTCOME_TRY(trie, serializer_->retrieveTrie(state));
       size_t removed = 0;
-      OUTCOME_TRY(forSubtree(
-          *trie->getRoot(),
-          *serializer_,
-          [this, &removed](auto &node) -> outcome::result<void> {
-            auto hash = node.getCachedHash();
-            BOOST_ASSERT(hash.has_value());
-            auto& ref_count = ref_count_[hash.value()];
-            ref_count--;
-            if (ref_count == 0) {
-              removed++;
+
+      std::vector<const trie::TrieNode *> queued_nodes;
+      queued_nodes.push_back(trie->getRoot().get());
+
+      // iterate all nodes with ref count now 0 and delete them from DB
+      while (!queued_nodes.empty()) {
+        auto node = queued_nodes.back();
+        queued_nodes.pop_back();
+        auto ref_count = ref_count_[node->getCachedHash().value()]--;
+        if (ref_count == 0) {
+          removed++;
+          if (node->isBranch()) {
+            auto branch = dynamic_cast<const trie::BranchNode *>(node);
+            for (auto opaque_child : branch->children) {
+              if (opaque_child != nullptr) {
+                OUTCOME_TRY(child, serializer_->retrieveNode(opaque_child));
+                queued_nodes.push_back(child.get());
+              }
             }
-            return outcome::success();
-          }));
+          }
+        }
+      }
+
       SL_INFO(logger_, "Removed {} nodes", removed);
       return outcome::success();
     }
@@ -121,6 +164,7 @@ namespace kagome::storage::trie_pruner {
     }
 
     std::unordered_map<common::Buffer, size_t> ref_count_;
+
     std::shared_ptr<storage::trie::TrieStorageBackend> storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<storage::trie::PolkadotCodec> codec_;

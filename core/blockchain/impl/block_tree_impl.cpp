@@ -475,8 +475,6 @@ namespace kagome::blockchain {
       }
     }
 
-    OUTCOME_TRY(state_pruner_->addNewState(block.header.state_root));
-
     metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
         tree_->getMetadata().best_leaf.lock()->depth);

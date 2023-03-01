@@ -1107,7 +1107,9 @@ namespace {
                      injector.template create<
                          sptr<storage::trie::TrieSerializer>>(),
                      injector.template create<
-                         sptr<storage::changes_trie::ChangesTracker>>())
+                         sptr<storage::changes_trie::ChangesTracker>>(),
+                     injector.template create<
+                         sptr<storage::trie_pruner::TriePruner>>())
               .value();
         }),
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),

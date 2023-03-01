@@ -15,6 +15,10 @@
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}
+
 namespace kagome::storage::trie {
 
   class PersistentTrieBatchImpl final : public PersistentTrieBatch {
@@ -27,7 +31,8 @@ namespace kagome::storage::trie {
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-        std::shared_ptr<PolkadotTrie> trie);
+        std::shared_ptr<PolkadotTrie> trie,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
     ~PersistentTrieBatchImpl() override = default;
 
     outcome::result<RootHash> commit(StateVersion version) override;
@@ -51,12 +56,14 @@ namespace kagome::storage::trie {
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-        std::shared_ptr<PolkadotTrie> trie);
+        std::shared_ptr<PolkadotTrie> trie,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
 
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
     std::shared_ptr<PolkadotTrie> trie_;
+    std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
 
     log::Logger logger_ = log::createLogger("PersistentTrieBatch", "storage");
   };

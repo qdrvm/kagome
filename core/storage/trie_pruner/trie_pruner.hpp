@@ -12,6 +12,10 @@
 #include "primitives/block_id.hpp"
 #include "storage/trie/types.hpp"
 
+namespace kagome::storage::trie {
+  class PolkadotTrie;
+}
+
 namespace kagome::storage::trie_pruner {
 
   struct TrieStateUpdate {
@@ -28,8 +32,8 @@ namespace kagome::storage::trie_pruner {
     virtual ~TriePruner() = default;
 
     virtual outcome::result<void> addNewState(
-        trie::RootHash const& state) = 0;
-    virtual outcome::result<void> prune(trie::RootHash const& state) = 0;
+        trie::PolkadotTrie const &new_trie) = 0;
+    virtual outcome::result<void> prune(trie::RootHash const &state) = 0;
   };
 
 }  // namespace kagome::storage::trie_pruner

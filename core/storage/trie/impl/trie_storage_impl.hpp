@@ -15,6 +15,10 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}
+
 namespace kagome::storage::trie {
 
   class TrieStorageImpl : public TrieStorage {
@@ -23,12 +27,14 @@ namespace kagome::storage::trie {
         const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
+        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
 
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createFromStorage(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
+        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
 
     TrieStorageImpl(TrieStorageImpl const &) = delete;
     void operator=(const TrieStorageImpl &) = delete;
@@ -46,12 +52,14 @@ namespace kagome::storage::trie {
     TrieStorageImpl(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
+        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
 
    private:
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
+    std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
     log::Logger logger_;
   };
 

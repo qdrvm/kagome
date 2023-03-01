@@ -112,7 +112,11 @@ namespace kagome::storage::trie {
    * 5.3 The Trie structure in the Polkadot Host specification
    */
 
-  struct OpaqueTrieNode : public Node {};
+  struct OpaqueTrieNode : public Node {
+    virtual std::optional<common::Buffer> getCachedHash() const = 0;
+
+    virtual void setCachedHash(common::Buffer const &merkle_value) const = 0;
+  };
 
   struct TrieNode : public OpaqueTrieNode {
     TrieNode() = default;
@@ -134,11 +138,11 @@ namespace kagome::storage::trie {
 
     virtual bool isBranch() const noexcept = 0;
 
-    std::optional<common::Buffer> getCachedHash() const {
+    std::optional<common::Buffer> getCachedHash() const override {
       return merkle_value_;
     }
 
-    void setCachedHash(common::Buffer const &merkle_value) const {
+    void setCachedHash(common::Buffer const &merkle_value) const override {
       merkle_value_.emplace(merkle_value);
     }
 
@@ -242,6 +246,12 @@ namespace kagome::storage::trie {
      */
     explicit DummyNode(common::Buffer key) : db_key{std::move(key)} {}
 
+    std::optional<common::Buffer> getCachedHash() const {
+      return db_key;
+    }
+
+    void setCachedHash(common::Buffer const &) const {}
+
     common::Buffer db_key;
   };
 
@@ -253,6 +263,12 @@ namespace kagome::storage::trie {
    */
   struct DummyValue : OpaqueTrieNode {
     DummyValue(ValueAndHash &value) : value{value} {}
+
+    std::optional<common::Buffer> getCachedHash() const {
+      return std::nullopt;
+    }
+
+    void setCachedHash(common::Buffer const &) const {}
 
     ValueAndHash &value;
   };

@@ -32,6 +32,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 #include "utils/profiler.hpp"
 
 namespace di = boost::di;
@@ -206,7 +207,7 @@ void child_storage_root_hashes(
 
 auto is_hash(const char *s) {
   return std::strlen(s) == common::Hash256::size() * 2 + 2
-         && std::equal(s, s + 2, "0x");
+      && std::equal(s, s + 2, "0x");
 };
 
 int db_editor_main(int argc, const char **argv) {
@@ -270,6 +271,7 @@ int db_editor_main(int argc, const char **argv) {
               injector.template create<sptr<TrieStorageBackend>>());
         }),
         di::bind<TrieStorageBackend>.template to(trie_tracker),
+        di::bind<storage::trie_pruner::TriePruner>.template to<storage::trie_pruner::TriePrunerImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory),
@@ -379,7 +381,8 @@ int db_editor_main(int argc, const char **argv) {
             injector.template create<sptr<Codec>>(),
             injector.template create<sptr<TrieSerializer>>(),
             injector
-                .template create<sptr<storage::changes_trie::ChangesTracker>>())
+                .template create<sptr<storage::changes_trie::ChangesTracker>>(),
+            injector.template create<sptr<storage::trie_pruner::TriePruner>>())
             .value();
 
     if (COMPACT == cmd) {
