@@ -16,6 +16,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
   switch (e) {
     case E::NO_BATCH:
       return "Batch was not created or already was destructed.";
+    case E::UNFINISHED_TRANSACTIONS_LEFT:
+      return "Attempt to commit state with unfinished transactions";
   }
   return "Unknown error";
 }
@@ -57,78 +59,130 @@ namespace kagome::runtime {
       std::shared_ptr<storage::trie::TrieBatch> batch) {
     SL_DEBUG(logger_, "Setting storage provider to new batch");
     child_batches_.clear();
-    current_batch_ = batch;
+    base_batch_ = batch;
+    transaction_stack_.empty();
     return outcome::success();
   }
 
   std::shared_ptr<TrieStorageProviderImpl::Batch>
   TrieStorageProviderImpl::getCurrentBatch() const {
-    return current_batch_;
+    return transaction_stack_.empty() ? base_batch_
+                                      : transaction_stack_.back().main_batch;
   }
 
   outcome::result<std::shared_ptr<storage::trie::TrieBatch>>
-  TrieStorageProviderImpl::getChildBatchAt(const common::Buffer &root_path) {
-    if (!child_batches_.count(root_path)) {
+  TrieStorageProviderImpl::getOrCreateChildBatchAt(
+      const common::Buffer &root_path) {
+    if (!transaction_stack_.empty()) {
+      if (auto it = transaction_stack_.back().child_batches.find(root_path);
+          it != transaction_stack_.back().child_batches.end()) {
+        return it->second;
+      }
+    }
+    for (auto transaction_it = transaction_stack_.rbegin();
+         transaction_it != transaction_stack_.rend();
+         transaction_it++) {
+      if (auto it = transaction_it->child_batches.find(root_path);
+          it != transaction_it->child_batches.end()) {
+        return it->second;
+      }
+    }
+    auto child_it = child_batches_.find(root_path);
+    if (child_it == child_batches_.end()) {
       SL_DEBUG(logger_,
-               "Creating new persistent batch for child storage {}",
+               "Creating new base batch for child storage {}",
                root_path.toHex());
-      OUTCOME_TRY(child_batch, current_batch_->createChildBatch(root_path));
+      OUTCOME_TRY(child_batch, base_batch_->createChildBatch(root_path));
       // we check for duplicate batches in the if above
       BOOST_ASSERT(child_batch.has_value());
       child_batches_.emplace(root_path, child_batch.value());
+      return child_batch.value();
     }
-    SL_DEBUG(
-        logger_, "Fetching persistent batch for child storage {}", root_path);
-    return child_batches_.at(root_path);
+    SL_DEBUG(logger_, "Fetching batch for child storage {}", root_path);
+    return child_it->second;
+  }
+
+  outcome::result<std::reference_wrapper<const storage::trie::TrieBatch>>
+  TrieStorageProviderImpl::getChildBatchAt(const common::Buffer &root_path) {
+    OUTCOME_TRY(batch_ptr, getOrCreateChildBatchAt(root_path));
+    return *batch_ptr;
+  }
+
+  outcome::result<std::reference_wrapper<storage::trie::TrieBatch>>
+  TrieStorageProviderImpl::getMutableChildBatchAt(
+      const common::Buffer &root_path) {
+    // if the batch for this child trie can be found in the current transaction,
+    // just return it
+    if (!transaction_stack_.empty()) {
+      if (auto it = transaction_stack_.back().child_batches.find(root_path);
+          it != transaction_stack_.back().child_batches.end()) {
+        return *it->second;
+      }
+      // if there are no open transactions, just a base batch is sufficient
+    } else {
+      OUTCOME_TRY(batch_ptr, getOrCreateChildBatchAt(root_path));
+      return *batch_ptr;
+    }
+    // otherwise we need to create a new overlay batch in the current
+    // transaction
+    OUTCOME_TRY(batch_ptr, getOrCreateChildBatchAt(root_path));
+
+    SL_DEBUG(logger_,
+             "Creating new overlay batch for child storage {}",
+             root_path.toHex());
+    auto child_batch =
+        std::make_shared<storage::trie::TopperTrieBatchImpl>(batch_ptr);
+    transaction_stack_.back().child_batches.emplace(root_path, child_batch);
+    return *child_batch;
   }
 
   outcome::result<storage::trie::RootHash> TrieStorageProviderImpl::commit(
       StateVersion version) {
-    if (current_batch_) {
-      OUTCOME_TRY(root, current_batch_->commit(version));
+    if (!transaction_stack_.empty()) {
+      return Error::UNFINISHED_TRANSACTIONS_LEFT;
+    }
+    if (base_batch_ != nullptr) {
+      OUTCOME_TRY(root, base_batch_->commit(version));
       return std::move(root);
     }
     return Error::NO_BATCH;
   }
 
   outcome::result<void> TrieStorageProviderImpl::startTransaction() {
-    stack_of_batches_.emplace(current_batch_);
+    transaction_stack_.emplace_back(Transaction{
+        std::make_shared<TopperTrieBatchImpl>(getCurrentBatch()), {}});
     SL_TRACE(logger_,
              "Start storage transaction, depth {}",
-             stack_of_batches_.size());
-    current_batch_ =
-        std::make_shared<TopperTrieBatchImpl>(std::move(current_batch_));
+             transaction_stack_.size());
     return outcome::success();
   }
 
   outcome::result<void> TrieStorageProviderImpl::rollbackTransaction() {
-    if (stack_of_batches_.empty()) {
+    if (transaction_stack_.empty()) {
       return RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED;
     }
 
-    current_batch_ = std::move(stack_of_batches_.top());
     SL_TRACE(logger_,
              "Rollback storage transaction, depth {}",
-             stack_of_batches_.size());
-    stack_of_batches_.pop();
+             transaction_stack_.size());
+    transaction_stack_.pop_back();
     return outcome::success();
   }
 
   outcome::result<void> TrieStorageProviderImpl::commitTransaction() {
-    if (stack_of_batches_.empty()) {
+    if (transaction_stack_.empty()) {
       return RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED;
     }
 
-    auto commitee_batch =
-        std::dynamic_pointer_cast<TopperTrieBatch>(current_batch_);
-    BOOST_ASSERT(commitee_batch != nullptr);
-    OUTCOME_TRY(commitee_batch->writeBack());
+    OUTCOME_TRY(transaction_stack_.back().main_batch->writeBack());
+    for (auto &[root, child_batch] : transaction_stack_.back().child_batches) {
+      OUTCOME_TRY(child_batch->writeBack());
+    }
 
-    current_batch_ = std::move(stack_of_batches_.top());
     SL_TRACE(logger_,
              "Commit storage transaction, depth {}",
-             stack_of_batches_.size());
-    stack_of_batches_.pop();
+             transaction_stack_.size());
+    transaction_stack_.pop_back();
     return outcome::success();
   }
 

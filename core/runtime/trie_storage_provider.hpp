@@ -50,7 +50,7 @@ namespace kagome::runtime {
      * @warning this will reset storage state to the specified root and discard
      * all changes accumulated in the current batch
      */
-     virtual outcome::result<void> setTo(
+    virtual outcome::result<void> setTo(
         std::shared_ptr<storage::trie::TrieBatch> batch) = 0;
 
     /**
@@ -65,8 +65,12 @@ namespace kagome::runtime {
      * @param root root hash value of a new (or cached) batch
      * @return Child storage tree batch
      */
-    virtual outcome::result<std::shared_ptr<storage::trie::TrieBatch>>
+    virtual outcome::result<
+        std::reference_wrapper<const storage::trie::TrieBatch>>
     getChildBatchAt(const common::Buffer &root_path) = 0;
+
+    virtual outcome::result<std::reference_wrapper<storage::trie::TrieBatch>>
+    getMutableChildBatchAt(const common::Buffer &root_path) = 0;
 
     /**
      * Commits pending changes and returns the resulting state root

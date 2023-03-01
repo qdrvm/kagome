@@ -38,14 +38,25 @@ namespace kagome::host_api {
   }
 
   template <typename R, typename F, typename... Args>
-  outcome::result<R> ChildStorageExtension::executeOnChildStorage(
+  outcome::result<R> ChildStorageExtension::executeOnConstChildStorage(
       const Buffer &child_storage_key, F func, Args &&...args) const {
     OUTCOME_TRY(prefixed_child_key,
                 make_prefixed_child_storage_key(child_storage_key));
     OUTCOME_TRY(child_batch,
                 storage_provider_->getChildBatchAt(prefixed_child_key));
 
-    return func(child_batch, std::forward<Args>(args)...);
+    return func(child_batch.get(), std::forward<Args>(args)...);
+  }
+
+  template <typename R, typename F, typename... Args>
+  outcome::result<R> ChildStorageExtension::executeOnMutChildStorage(
+      const Buffer &child_storage_key, F func, Args &&...args) const {
+    OUTCOME_TRY(prefixed_child_key,
+                make_prefixed_child_storage_key(child_storage_key));
+    OUTCOME_TRY(child_batch,
+                storage_provider_->getMutableChildBatchAt(prefixed_child_key));
+
+    return func(child_batch.get(), std::forward<Args>(args)...);
   }
 
   template <typename Arg>
@@ -71,9 +82,9 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(
         logger_, child_key_buffer, key_buffer, value_buffer);
 
-    auto result = executeOnChildStorage<void>(
+    auto result = executeOnMutChildStorage<void>(
         child_key_buffer, [&](auto &child_batch) mutable {
-          return child_batch->put(key_buffer, std::move(value_buffer));
+          return child_batch.put(key_buffer, std::move(value_buffer));
         });
 
     if (not result) {
@@ -92,7 +103,7 @@ namespace kagome::host_api {
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    return executeOnChildStorage<runtime::WasmSpan>(
+    return executeOnConstChildStorage<runtime::WasmSpan>(
                child_key_buffer,
                [&memory, &child_key_buffer, &key_buffer, this](
                    auto &child_batch, auto &key) {
@@ -101,7 +112,7 @@ namespace kagome::host_api {
                      "value was not "
                      "obtained. Reason: {}";
 
-                 auto result = child_batch->tryGet(key);
+                 auto result = child_batch.tryGet(key);
                  if (result) {
                    SL_TRACE_FUNC_CALL(
                        logger_, result.value(), child_key_buffer, key_buffer);
@@ -130,9 +141,9 @@ namespace kagome::host_api {
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    auto result = executeOnChildStorage<void>(
+    auto result = executeOnMutChildStorage<void>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) { return child_batch->remove(key); },
+        [](auto &child_batch, auto &key) { return child_batch.remove(key); },
         key_buffer);
 
     if (not result) {
@@ -157,7 +168,7 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
     auto child_batch_outcome =
-        storage_provider_->getChildBatchAt(prefixed_child_key);
+        storage_provider_->getMutableChildBatchAt(prefixed_child_key);
     if (child_batch_outcome.has_error()) {
       logger_->error(
           "ext_default_child_storage_next_key_version_1 resulted with error: "
@@ -165,8 +176,8 @@ namespace kagome::host_api {
           child_batch_outcome.error());
       return kErrorSpan;
     }
-    auto child_batch = child_batch_outcome.value();
-    auto cursor = child_batch->trieCursor();
+    auto &child_batch = child_batch_outcome.value().get();
+    auto cursor = child_batch.trieCursor();
 
     auto seek_result = cursor->seekUpperBound(key_buffer);
     if (seek_result.has_error()) {
@@ -200,9 +211,10 @@ namespace kagome::host_api {
     auto child_key_buffer = loadBuffer(memory, child_storage_key);
     auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
     auto child_batch =
-        storage_provider_->getChildBatchAt(prefixed_child_key.value()).value();
+        storage_provider_->getMutableChildBatchAt(prefixed_child_key.value())
+            .value();
 
-    auto res = child_batch->commit(storage::trie::StateVersion::V0);
+    auto res = child_batch.get().commit(storage::trie::StateVersion::V0);
 
     if (res.has_error()) {
       logger_->error(
@@ -222,10 +234,10 @@ namespace kagome::host_api {
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, prefix);
 
-    auto result = executeOnChildStorage<std::tuple<bool, uint32_t>>(
+    auto result = executeOnMutChildStorage<std::tuple<bool, uint32_t>>(
         child_key_buffer,
         [](auto &child_batch, auto &prefix) {
-          return child_batch->clearPrefix(prefix, std::nullopt);
+          return child_batch.clearPrefix(prefix, std::nullopt);
         },
         prefix_buffer);
 
@@ -248,10 +260,13 @@ namespace kagome::host_api {
         loadBuffer(memory, child_storage_key, key);
     auto [value_ptr, value_size] = runtime::PtrSize(value_out);
 
-    auto value = executeOnChildStorage<std::optional<common::BufferOrView>>(
-        child_key_buffer,
-        [](auto &child_batch, auto &key) { return child_batch->tryGet(key); },
-        key_buffer);
+    auto value =
+        executeOnConstChildStorage<std::optional<common::BufferOrView>>(
+            child_key_buffer,
+            [](auto &child_batch, auto &key) {
+              return child_batch.tryGet(key);
+            },
+            key_buffer);
     std::optional<uint32_t> res{std::nullopt};
     if (value) {
       auto &data_opt = value.value();
@@ -292,9 +307,9 @@ namespace kagome::host_api {
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer, key_buffer);
 
-    auto res = executeOnChildStorage<bool>(
+    auto res = executeOnConstChildStorage<bool>(
         child_key_buffer,
-        [](auto &child_batch, auto &key) { return child_batch->contains(key); },
+        [](auto &child_batch, auto &key) { return child_batch.contains(key); },
         key_buffer);
 
     if (not res) {
@@ -314,9 +329,9 @@ namespace kagome::host_api {
 
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);
 
-    auto result = executeOnChildStorage<std::tuple<bool, uint32_t>>(
+    auto result = executeOnMutChildStorage<std::tuple<bool, uint32_t>>(
         child_key_buffer, [](auto &child_batch) {
-          return child_batch->clearPrefix({}, std::nullopt);
+          return child_batch.clearPrefix({}, std::nullopt);
         });
 
     if (not result) {
