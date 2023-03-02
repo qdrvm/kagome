@@ -10,7 +10,7 @@
 
 namespace kagome::runtime::binaryen {
 
-  MemoryImpl::MemoryImpl(wasm::ShellExternalInterface::Memory *memory,
+  MemoryImpl::MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
                          std::unique_ptr<MemoryAllocator> &&allocator)
       : memory_{memory},
         size_{kInitialMemorySize},
@@ -19,7 +19,7 @@ namespace kagome::runtime::binaryen {
     resize(size_);
   }
 
-  MemoryImpl::MemoryImpl(wasm::ShellExternalInterface::Memory *memory,
+  MemoryImpl::MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
                          WasmSize heap_base)
       : MemoryImpl{memory,
                    std::make_unique<MemoryAllocator>(
@@ -125,9 +125,7 @@ namespace kagome::runtime::binaryen {
                                gsl::span<const uint8_t> value) {
     const auto size = static_cast<size_t>(value.size());
     BOOST_ASSERT((allocator_->checkAddress(addr, size)));
-    for (size_t i = addr, j = 0; i < addr + size; i++, j++) {
-      memory_->set(i, value[j]);
-    }
+    memory_->set(addr, std::move(value));
   }
 
   WasmSpan MemoryImpl::storeBuffer(gsl::span<const uint8_t> value) {
