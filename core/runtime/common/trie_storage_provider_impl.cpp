@@ -60,7 +60,7 @@ namespace kagome::runtime {
     SL_DEBUG(logger_, "Setting storage provider to new batch");
     child_batches_.clear();
     base_batch_ = batch;
-    transaction_stack_.empty();
+    transaction_stack_.clear();
     return outcome::success();
   }
 

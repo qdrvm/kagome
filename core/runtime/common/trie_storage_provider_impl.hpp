@@ -21,10 +21,7 @@ namespace kagome::runtime {
 
   class TrieStorageProviderImpl : public TrieStorageProvider {
    public:
-    enum class Error {
-      NO_BATCH = 1,
-      UNFINISHED_TRANSACTIONS_LEFT
-    };
+    enum class Error { NO_BATCH = 1, UNFINISHED_TRANSACTIONS_LEFT };
 
     explicit TrieStorageProviderImpl(
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
@@ -57,6 +54,8 @@ namespace kagome::runtime {
     outcome::result<void> commitTransaction() override;
 
    private:
+    // mind that it creates only base batches and will not create additional
+    // topper batches
     outcome::result<std::shared_ptr<storage::trie::TrieBatch>>
     getOrCreateChildBatchAt(const common::Buffer &root_path);
 
