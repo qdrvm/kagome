@@ -642,58 +642,68 @@ namespace kagome::blockchain {
     if (!node) {
       return BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND;
     }
-    if (node->depth <= getLastFinalized().number
-        && hasDirectChain(block_hash, getLastFinalized().hash)) {
-      // block was already finalized, fine
-      return outcome::success();
-    }
+    auto last_finalized_block_info = getLastFinalized();
 
-    SL_DEBUG(log_,
-             "Finalizing block {}",
-             primitives::BlockInfo(node->depth, block_hash));
+    if (node->depth > last_finalized_block_info.number) {
+      SL_DEBUG(log_,
+               "Finalizing block {}",
+               primitives::BlockInfo(node->depth, block_hash));
 
-    OUTCOME_TRY(header_opt, storage_->getBlockHeader(node->block_hash));
-    if (!header_opt.has_value()) {
-      return BlockTreeError::HEADER_NOT_FOUND;
-    }
-    auto &header = header_opt.value();
+      OUTCOME_TRY(header_opt, storage_->getBlockHeader(node->block_hash));
+      if (!header_opt.has_value()) {
+        return BlockTreeError::HEADER_NOT_FOUND;
+      }
+      auto &header = header_opt.value();
 
-    auto last_finalized_block_info =
-        tree_->getMetadata().last_finalized.lock()->getBlockInfo();
+      // update our local meta
+      node->finalized = true;
+      node->has_justification = true;
 
-    // update our local meta
-    node->finalized = true;
+      OUTCOME_TRY(prune(node));
 
-    OUTCOME_TRY(prune(node));
+      tree_->updateTreeRoot(node, justification);
 
-    tree_->updateTreeRoot(node, justification);
+      OUTCOME_TRY(reorganize());
 
-    OUTCOME_TRY(reorganize());
+      OUTCOME_TRY(
+          storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
+                                        tree_->getMetadata().leaves.end()}));
 
-    OUTCOME_TRY(
-        storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
-                                      tree_->getMetadata().leaves.end()}));
+      chain_events_engine_->notify(
+          primitives::events::ChainEventType::kFinalizedHeads, header);
 
-    chain_events_engine_->notify(
-        primitives::events::ChainEventType::kFinalizedHeads, header);
-
-    OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
-    if (body.has_value()) {
-      for (auto &ext : body.value()) {
-        if (auto key = extrinsic_event_key_repo_->get(
-                hasher_->blake2b_256(ext.data))) {
-          extrinsic_events_engine_->notify(
-              key.value(),
-              primitives::events::ExtrinsicLifecycleEvent::Finalized(
-                  key.value(), block_hash));
+      OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
+      if (body.has_value()) {
+        for (auto &ext : body.value()) {
+          if (auto key = extrinsic_event_key_repo_->get(
+                  hasher_->blake2b_256(ext.data))) {
+            extrinsic_events_engine_->notify(
+                key.value(),
+                primitives::events::ExtrinsicLifecycleEvent::Finalized(
+                    key.value(), block_hash));
+          }
         }
       }
-    }
 
-    primitives::BlockInfo finalized_block(node->depth, block_hash);
-    log_->info("Finalized block {}", finalized_block);
-    telemetry_->notifyBlockFinalized(finalized_block);
-    metric_finalized_block_height_->set(node->depth);
+      primitives::BlockInfo finalized_block(node->depth, block_hash);
+      log_->info("Finalized block {}", finalized_block);
+      telemetry_->notifyBlockFinalized(finalized_block);
+      metric_finalized_block_height_->set(node->depth);
+
+    } else if (node->block_hash == last_finalized_block_info.hash) {
+      // block is current last finalized, fine
+      return outcome::success();
+    } else if (hasDirectChain(block_hash, last_finalized_block_info.hash)) {
+      if (node->has_justification) {
+        // block already has justification (in memory), fine
+        return outcome::success();
+      }
+      OUTCOME_TRY(justification_opt, storage_->getJustification(block_hash));
+      if (justification_opt.has_value()) {
+        // block already has justification (in DB), fine
+        return outcome::success();
+      }
+    }
 
     KAGOME_PROFILE_START(justification_store)
 
@@ -703,25 +713,29 @@ namespace kagome::blockchain {
              "Store justification for finalized block #{} {}",
              node->depth,
              block_hash);
-    // we store justification for last finalized block only as long as it is
-    // last finalized (if it doesn't meet other justification storage rules,
-    // e.g. its number a multiple of 512)
-    OUTCOME_TRY(last_finalized_header_opt,
-                storage_->getBlockHeader(last_finalized_block_info.number));
-    // SAFETY: header for the last finalized block must be present
-    auto &last_finalized_header = last_finalized_header_opt.value();
-    OUTCOME_TRY(
-        shouldStoreLastFinalized,
-        justification_storage_policy_->shouldStoreFor(last_finalized_header));
-    if (!shouldStoreLastFinalized) {
-      OUTCOME_TRY(justification_opt,
-                  storage_->getJustification(last_finalized_block_info.hash));
-      if (justification_opt.has_value()) {
-        SL_DEBUG(log_,
-                 "Purge redundant justification for finalized block {}",
-                 last_finalized_block_info);
-        OUTCOME_TRY(storage_->removeJustification(
-            last_finalized_block_info.hash, last_finalized_block_info.number));
+
+    if (last_finalized_block_info.number < node->depth) {
+      // we store justification for last finalized block only as long as it is
+      // last finalized (if it doesn't meet other justification storage rules,
+      // e.g. its number a multiple of 512)
+      OUTCOME_TRY(last_finalized_header_opt,
+                  storage_->getBlockHeader(last_finalized_block_info.number));
+      // SAFETY: header for the last finalized block must be present
+      auto &last_finalized_header = last_finalized_header_opt.value();
+      OUTCOME_TRY(
+          shouldStoreLastFinalized,
+          justification_storage_policy_->shouldStoreFor(last_finalized_header));
+      if (!shouldStoreLastFinalized) {
+        OUTCOME_TRY(justification_opt,
+                    storage_->getJustification(last_finalized_block_info.hash));
+        if (justification_opt.has_value()) {
+          SL_DEBUG(log_,
+                   "Purge redundant justification for finalized block {}",
+                   last_finalized_block_info);
+          OUTCOME_TRY(
+              storage_->removeJustification(last_finalized_block_info.hash,
+                                            last_finalized_block_info.number));
+        }
       }
     }
 
@@ -738,21 +752,27 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHeader> BlockTreeImpl::getBlockHeader(
       const primitives::BlockId &block) const {
     OUTCOME_TRY(header, storage_->getBlockHeader(block));
-    if (header.has_value()) return header.value();
+    if (header.has_value()) {
+      return header.value();
+    }
     return BlockTreeError::HEADER_NOT_FOUND;
   }
 
   outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(
       const primitives::BlockId &block) const {
     OUTCOME_TRY(body, storage_->getBlockBody(block));
-    if (body.has_value()) return body.value();
+    if (body.has_value()) {
+      return body.value();
+    }
     return BlockTreeError::BODY_NOT_FOUND;
   }
 
   outcome::result<primitives::Justification>
   BlockTreeImpl::getBlockJustification(const primitives::BlockId &block) const {
     OUTCOME_TRY(justification, storage_->getJustification(block));
-    if (justification.has_value()) return justification.value();
+    if (justification.has_value()) {
+      return justification.value();
+    }
     return BlockTreeError::JUSTIFICATION_NOT_FOUND;
   }
 
@@ -924,7 +944,8 @@ namespace kagome::blockchain {
 
     // else, we need to use a database
 
-    // Try to use optimal way, if ancestor and descendant in the finalized chain
+    // Try to use optimal way, if ancestor and descendant in the finalized
+    // chain
     if (descendant_depth <= getLastFinalized().number) {
       auto res = header_repo_->getHashByNumber(descendant_depth);
       BOOST_ASSERT_MSG(res.has_value(),
@@ -1045,8 +1066,11 @@ namespace kagome::blockchain {
       return result;
     }
     OUTCOME_TRY(header, storage_->getBlockHeader(block));
-    if (!header.has_value()) return BlockTreeError::HEADER_NOT_FOUND;
-    // if node is not in tree_ it must be finalized and thus have only one child
+    if (!header.has_value()) {
+      return BlockTreeError::HEADER_NOT_FOUND;
+    }
+    // if node is not in tree_ it must be finalized and thus have only one
+    // child
     OUTCOME_TRY(child_hash,
                 header_repo_->getHashByNumber(header.value().number + 1));
     return outcome::success(std::vector<primitives::BlockHash>{child_hash});
@@ -1055,7 +1079,7 @@ namespace kagome::blockchain {
   primitives::BlockInfo BlockTreeImpl::getLastFinalized() const {
     const auto &last = tree_->getMetadata().last_finalized.lock();
     BOOST_ASSERT(last != nullptr);
-    return primitives::BlockInfo{last->depth, last->block_hash};
+    return last->getBlockInfo();
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSorted() const {
@@ -1178,7 +1202,9 @@ namespace kagome::blockchain {
     size_t count = 0;
     for (;;) {
       OUTCOME_TRY(storage_->putNumberToIndexKey(block));
-      if (block.number == 0) break;
+      if (block.number == 0) {
+        break;
+      }
       OUTCOME_TRY(header, getBlockHeader(block.hash));
       auto parent_hash_res = header_repo_->getHashByNumber(block.number - 1);
       if (parent_hash_res.has_error()) {
