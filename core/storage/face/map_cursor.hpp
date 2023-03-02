@@ -54,6 +54,11 @@ namespace kagome::storage::face {
     virtual outcome::result<void> next() = 0;
 
     /**
+     * @brief Make step backward.
+     */
+    virtual outcome::result<void> prev() = 0;
+
+    /**
      * @brief Getter for the key of the element currently pointed at.
      * @return key if isValid()
      */

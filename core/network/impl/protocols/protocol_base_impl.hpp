@@ -15,6 +15,7 @@
 #include <libp2p/host/host.hpp>
 #include <libp2p/peer/stream_protocols.hpp>
 
+#include "log/logger.hpp"
 #include "network/helpers/stream_read_buffer.hpp"
 #include "utils/box.hpp"
 #include "utils/non_copyable.hpp"

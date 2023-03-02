@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_library(storage
+    map_prefix/prefix.cpp
     rocksdb/rocksdb_cursor.cpp
     rocksdb/rocksdb.cpp
     rocksdb/rocksdb_batch.cpp

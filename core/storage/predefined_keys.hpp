@@ -35,6 +35,9 @@ namespace kagome::storage {
   inline const common::Buffer kApplyingBlockInfoLookupKey =
       ":kagome:applying_block"_buf;
 
+  inline const common::Buffer kWarpSyncCacheBlocksPrefix =
+      ":kagome:WarpSyncCache:blocks:"_buf;
+
   template <typename Tag>
   inline common::Buffer kBabeConfigRepoStateLookupKey(Tag tag) {
     return common::Buffer::fromString(
