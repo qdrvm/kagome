@@ -54,10 +54,11 @@ namespace kagome::runtime {
     outcome::result<void> commitTransaction() override;
 
    private:
-    // mind that it creates only base batches and will not create additional
-    // topper batches
+    outcome::result<std::optional<std::shared_ptr<storage::trie::TrieBatch>>>
+    findChildBatchAt(const common::Buffer &root_path) const;
+
     outcome::result<std::shared_ptr<storage::trie::TrieBatch>>
-    getOrCreateChildBatchAt(const common::Buffer &root_path);
+    createBaseChildBatchAt(const common::Buffer &root_path);
 
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<storage::trie::TrieSerializer> trie_serializer_;

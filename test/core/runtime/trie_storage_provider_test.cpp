@@ -78,7 +78,7 @@ TEST_F(TrieStorageProviderTest, FinishTransactionWithoutStart) {
 auto checkBatchValues(const kagome::storage::trie::TrieBatch &batch,
                       std::string_view expected_view) {
   std::string actual_view;
-  for (std::string_view key : {"A", "B", "C"}) {
+  for (std::string_view key : {"A", "B", "C", "D", "E"}) {
     ASSERT_OUTCOME_SUCCESS(
         val, batch.get(Buffer(std::vector<uint8_t>(key.begin(), key.end()))));
     actual_view += val.mut().asString();
@@ -203,14 +203,18 @@ TEST_F(TrieStorageProviderTest, ChildTreeTransactions) {
   ASSERT_OUTCOME_SUCCESS_TRY(base_batch_1.get().put("A"_buf, "1"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(base_batch_1.get().put("B"_buf, "2"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(base_batch_1.get().put("C"_buf, "3"_buf));
-  checkBatchValues(base_batch_1, "123");
+  ASSERT_OUTCOME_SUCCESS_TRY(base_batch_1.get().put("D"_buf, "-"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(base_batch_1.get().put("E"_buf, "-"_buf));
+  checkBatchValues(base_batch_1, "123--");
 
   ASSERT_OUTCOME_SUCCESS(
       base_batch_2, storage_provider_->getMutableChildBatchAt("child_root_2"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(base_batch_2.get().put("A"_buf, "4"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(base_batch_2.get().put("B"_buf, "5"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(base_batch_2.get().put("C"_buf, "6"_buf));
-  checkBatchValues(base_batch_2, "456");
+  ASSERT_OUTCOME_SUCCESS_TRY(base_batch_2.get().put("D"_buf, "-"_buf));
+  ASSERT_OUTCOME_SUCCESS_TRY(base_batch_2.get().put("E"_buf, "-"_buf));
+  checkBatchValues(base_batch_2, "456--");
 
   // First transaction
   ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->startTransaction());
@@ -218,15 +222,15 @@ TEST_F(TrieStorageProviderTest, ChildTreeTransactions) {
       tr1_batch_1, storage_provider_->getMutableChildBatchAt("child_root_1"_buf));
   ASSERT_OUTCOME_SUCCESS(
       tr1_batch_2, storage_provider_->getMutableChildBatchAt("child_root_2"_buf));
-  checkBatchValues(tr1_batch_1, "123");
-  checkBatchValues(tr1_batch_2, "456");
+  checkBatchValues(tr1_batch_1, "123--");
+  checkBatchValues(tr1_batch_2, "456--");
 
   ASSERT_OUTCOME_SUCCESS_TRY(tr1_batch_1.get().put("A"_buf, "a"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(tr1_batch_2.get().put("A"_buf, "d"_buf));
-  checkBatchValues(tr1_batch_1, "a23");
-  checkBatchValues(tr1_batch_2, "d56");
-  checkBatchValues(base_batch_1, "123");
-  checkBatchValues(base_batch_2, "456");
+  checkBatchValues(tr1_batch_1, "a23--");
+  checkBatchValues(tr1_batch_2, "d56--");
+  checkBatchValues(base_batch_1, "123--");
+  checkBatchValues(base_batch_2, "456--");
 
   // Nested transaction
   ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->startTransaction());
@@ -234,27 +238,27 @@ TEST_F(TrieStorageProviderTest, ChildTreeTransactions) {
       tr2_batch_1, storage_provider_->getMutableChildBatchAt("child_root_1"_buf));
   ASSERT_OUTCOME_SUCCESS(
       tr2_batch_2, storage_provider_->getMutableChildBatchAt("child_root_2"_buf));
-  checkBatchValues(tr2_batch_1, "a23");
-  checkBatchValues(tr2_batch_2, "d56");
+  checkBatchValues(tr2_batch_1, "a23--");
+  checkBatchValues(tr2_batch_2, "d56--");
 
   ASSERT_OUTCOME_SUCCESS_TRY(tr2_batch_1.get().put("A"_buf, "0"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(tr2_batch_2.get().put("A"_buf, "1"_buf));
-  checkBatchValues(tr2_batch_1, "023");
-  checkBatchValues(tr2_batch_2, "156");
-  checkBatchValues(tr1_batch_1, "a23");
-  checkBatchValues(tr1_batch_2, "d56");
-  checkBatchValues(base_batch_1, "123");
-  checkBatchValues(base_batch_2, "456");
+  checkBatchValues(tr2_batch_1, "023--");
+  checkBatchValues(tr2_batch_2, "156--");
+  checkBatchValues(tr1_batch_1, "a23--");
+  checkBatchValues(tr1_batch_2, "d56--");
+  checkBatchValues(base_batch_1, "123--");
+  checkBatchValues(base_batch_2, "456--");
 
   ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->commitTransaction());
-  checkBatchValues(tr1_batch_1, "023");
-  checkBatchValues(tr1_batch_2, "156");
-  checkBatchValues(base_batch_1, "123");
-  checkBatchValues(base_batch_2, "456");
+  checkBatchValues(tr1_batch_1, "023--");
+  checkBatchValues(tr1_batch_2, "156--");
+  checkBatchValues(base_batch_1, "123--");
+  checkBatchValues(base_batch_2, "456--");
 
   ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->commitTransaction());
-  checkBatchValues(base_batch_1, "023");
-  checkBatchValues(base_batch_2, "156");
+  checkBatchValues(base_batch_1, "023--");
+  checkBatchValues(base_batch_2, "156--");
 
   // Second transaction
   ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->startTransaction());
@@ -262,17 +266,17 @@ TEST_F(TrieStorageProviderTest, ChildTreeTransactions) {
       tr3_batch_1, storage_provider_->getMutableChildBatchAt("child_root_1"_buf));
   ASSERT_OUTCOME_SUCCESS(
       tr3_batch_2, storage_provider_->getMutableChildBatchAt("child_root_2"_buf));
-  checkBatchValues(tr3_batch_1, "023");
-  checkBatchValues(tr3_batch_2, "156");
+  checkBatchValues(tr3_batch_1, "023--");
+  checkBatchValues(tr3_batch_2, "156--");
 
   ASSERT_OUTCOME_SUCCESS_TRY(tr3_batch_1.get().put("A"_buf, "a"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(tr3_batch_2.get().put("A"_buf, "d"_buf));
-  checkBatchValues(tr3_batch_1, "a23");
-  checkBatchValues(tr3_batch_2, "d56");
-  checkBatchValues(base_batch_1, "023");
-  checkBatchValues(base_batch_2, "156");
+  checkBatchValues(tr3_batch_1, "a23--");
+  checkBatchValues(tr3_batch_2, "d56--");
+  checkBatchValues(base_batch_1, "023--");
+  checkBatchValues(base_batch_2, "156--");
 
   ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->rollbackTransaction());
-  checkBatchValues(base_batch_1, "023");
-  checkBatchValues(base_batch_2, "156");
+  checkBatchValues(base_batch_1, "023--");
+  checkBatchValues(base_batch_2, "156--");
 }

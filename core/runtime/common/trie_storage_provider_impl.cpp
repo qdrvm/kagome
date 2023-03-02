@@ -70,15 +70,9 @@ namespace kagome::runtime {
                                       : transaction_stack_.back().main_batch;
   }
 
-  outcome::result<std::shared_ptr<storage::trie::TrieBatch>>
-  TrieStorageProviderImpl::getOrCreateChildBatchAt(
-      const common::Buffer &root_path) {
-    if (!transaction_stack_.empty()) {
-      if (auto it = transaction_stack_.back().child_batches.find(root_path);
-          it != transaction_stack_.back().child_batches.end()) {
-        return it->second;
-      }
-    }
+  outcome::result<std::optional<std::shared_ptr<storage::trie::TrieBatch>>>
+  TrieStorageProviderImpl::findChildBatchAt(
+      const common::Buffer &root_path) const {
     for (auto transaction_it = transaction_stack_.rbegin();
          transaction_it != transaction_stack_.rend();
          transaction_it++) {
@@ -89,51 +83,70 @@ namespace kagome::runtime {
     }
     auto child_it = child_batches_.find(root_path);
     if (child_it == child_batches_.end()) {
-      SL_DEBUG(logger_,
-               "Creating new base batch for child storage {}",
-               root_path.toHex());
-      OUTCOME_TRY(child_batch, base_batch_->createChildBatch(root_path));
-      // we check for duplicate batches in the if above
-      BOOST_ASSERT(child_batch.has_value());
-      child_batches_.emplace(root_path, child_batch.value());
-      return child_batch.value();
+      return std::nullopt;
     }
-    SL_DEBUG(logger_, "Fetching batch for child storage {}", root_path);
     return child_it->second;
+  }
+
+  outcome::result<std::shared_ptr<storage::trie::TrieBatch>>
+  TrieStorageProviderImpl::createBaseChildBatchAt(
+      const common::Buffer &root_path) {
+    SL_DEBUG(logger_,
+             "Creating new base batch for child storage {}",
+             root_path.toHex());
+    if (child_batches_.count(root_path) != 0) {
+      return child_batches_.at(root_path);
+    }
+    OUTCOME_TRY(child_batch, base_batch_->createChildBatch(root_path));
+    // we've checked for duplicates above
+    BOOST_ASSERT(child_batch.has_value());
+    child_batches_.emplace(root_path, child_batch.value());
+    return child_batch.value();
   }
 
   outcome::result<std::reference_wrapper<const storage::trie::TrieBatch>>
   TrieStorageProviderImpl::getChildBatchAt(const common::Buffer &root_path) {
-    OUTCOME_TRY(batch_ptr, getOrCreateChildBatchAt(root_path));
+    OUTCOME_TRY(batch_opt, findChildBatchAt(root_path));
+    if (batch_opt.has_value()) {
+      return **batch_opt;
+    }
+    OUTCOME_TRY(batch_ptr, createBaseChildBatchAt(root_path));
     return *batch_ptr;
   }
 
   outcome::result<std::reference_wrapper<storage::trie::TrieBatch>>
   TrieStorageProviderImpl::getMutableChildBatchAt(
       const common::Buffer &root_path) {
-    // if the batch for this child trie can be found in the current transaction,
-    // just return it
-    if (!transaction_stack_.empty()) {
-      if (auto it = transaction_stack_.back().child_batches.find(root_path);
-          it != transaction_stack_.back().child_batches.end()) {
-        return *it->second;
-      }
-      // if there are no open transactions, just a base batch is sufficient
-    } else {
-      OUTCOME_TRY(batch_ptr, getOrCreateChildBatchAt(root_path));
-      return *batch_ptr;
+    // if we already have the batch, return it
+    if (!transaction_stack_.empty()
+        && transaction_stack_.back().child_batches.count(root_path) != 0) {
+      return *transaction_stack_.back().child_batches.at(root_path);
     }
-    // otherwise we need to create a new overlay batch in the current
-    // transaction
-    OUTCOME_TRY(batch_ptr, getOrCreateChildBatchAt(root_path));
 
-    SL_DEBUG(logger_,
-             "Creating new overlay batch for child storage {}",
-             root_path.toHex());
-    auto child_batch =
-        std::make_shared<storage::trie::TopperTrieBatchImpl>(batch_ptr);
-    transaction_stack_.back().child_batches.emplace(root_path, child_batch);
-    return *child_batch;
+    // start with checking that the base batch exists, create one if it doesn't
+    std::shared_ptr<storage::trie::TrieBatch> base_batch{};
+    if (auto it = child_batches_.find(root_path); it == child_batches_.end()) {
+      OUTCOME_TRY(batch_ptr, createBaseChildBatchAt(root_path));
+      base_batch = batch_ptr;
+    } else {
+      base_batch = it->second;
+    }
+    auto highest_child_batch = base_batch;
+    for (auto &transaction : transaction_stack_) {
+      // if we have a batch at this level, just memorize it
+      if (auto it = transaction.child_batches.find(root_path);
+          it != transaction.child_batches.end()) {
+        highest_child_batch = it->second;
+      } else {
+        // if we don't have a batch at this level, create one
+        auto child_batch = std::make_shared<storage::trie::TopperTrieBatchImpl>(
+            highest_child_batch);
+        transaction.child_batches.insert({root_path, child_batch});
+        highest_child_batch = child_batch;
+      }
+    }
+
+    return *highest_child_batch;
   }
 
   outcome::result<storage::trie::RootHash> TrieStorageProviderImpl::commit(
