@@ -479,6 +479,14 @@ namespace kagome::blockchain {
     metric_best_block_height_->set(
         tree_->getMetadata().best_leaf.lock()->depth);
 
+    if (state_pruner_->getBaseBlock() >= block.header.number - 32) {
+      OUTCOME_TRY(old_header,
+                  storage_->getBlockHeader(block.header.number - 32));
+      if (old_header) {
+        OUTCOME_TRY(state_pruner_->prune(old_header.value().state_root));
+      }
+    }
+
     SL_VERBOSE(log_,
                "Block {} has been added into block tree",
                primitives::BlockInfo(block.header.number, block_hash));
@@ -730,14 +738,6 @@ namespace kagome::blockchain {
     }
 
     KAGOME_PROFILE_END(justification_store)
-
-    // if we're doing a full sync
-    if (body.has_value()) {
-      OUTCOME_TRY(old_header, storage_->getBlockHeader(header.number - 64));
-      if (old_header) {
-        OUTCOME_TRY(state_pruner_->prune(old_header.value().state_root));
-      }
-    }
 
     return outcome::success();
   }

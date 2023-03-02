@@ -4,3 +4,4 @@
 add_subdirectory(trie)
 add_subdirectory(rocksdb)
 add_subdirectory(changes_trie)
+add_subdirectory(trie_pruner)

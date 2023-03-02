@@ -83,8 +83,8 @@ namespace kagome::storage::trie {
   class ValueAndHash {
    public:
     ValueAndHash() = default;
-    ValueAndHash(std::optional<common::Hash256> hash,
-                 std::optional<common::Buffer> value,
+    ValueAndHash(std::optional<common::Buffer> value,
+                 std::optional<common::Hash256> hash,
                  bool dirty = true)
         : hash{hash}, value{std::move(value)}, dirty_{dirty} {}
     operator bool() const {
@@ -193,7 +193,7 @@ namespace kagome::storage::trie {
     BranchNode() = default;
     explicit BranchNode(KeyNibbles key_nibbles,
                         std::optional<common::Buffer> value = std::nullopt)
-        : TrieNode{std::move(key_nibbles), {std::nullopt, std::move(value)}} {}
+        : TrieNode{std::move(key_nibbles), {std::move(value), std::nullopt}} {}
 
     ~BranchNode() override = default;
 
@@ -223,7 +223,7 @@ namespace kagome::storage::trie {
   struct LeafNode : public TrieNode {
     LeafNode() = default;
     LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
-        : TrieNode{std::move(key_nibbles), {std::nullopt, std::move(value)}} {}
+        : TrieNode{std::move(key_nibbles), {std::move(value), std::nullopt}} {}
     LeafNode(KeyNibbles key_nibbles, ValueAndHash value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
 

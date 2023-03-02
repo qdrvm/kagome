@@ -12,7 +12,7 @@
 
 namespace kagome::storage::trie {
 
-  class TrieSerializerMock : public TrieSerializer {
+  class TrieSerializerMock final : public TrieSerializer {
    public:
     MOCK_METHOD(RootHash, getEmptyRootHash, (), (const, override));
 
@@ -35,6 +35,8 @@ namespace kagome::storage::trie {
                 retrieveNode,
                 (const std::shared_ptr<OpaqueTrieNode> &node),
                 (const, override));
+
+    MOCK_METHOD(TrieStoreStats const &, getLatestStats, (), (const));
   };
 
 }  // namespace kagome::storage::trie

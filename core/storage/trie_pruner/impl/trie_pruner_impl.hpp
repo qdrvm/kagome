@@ -71,7 +71,7 @@ namespace kagome::storage::trie_pruner {
    public:
     TriePrunerImpl(std::shared_ptr<storage::trie::TrieStorageBackend> storage,
                    std::shared_ptr<storage::trie::TrieSerializer> serializer,
-                   std::shared_ptr<storage::trie::PolkadotCodec> codec)
+                   std::shared_ptr<storage::trie::Codec> codec)
         : storage_{storage}, serializer_{serializer}, codec_{codec} {
       BOOST_ASSERT(storage_ != nullptr);
       BOOST_ASSERT(serializer_ != nullptr);
@@ -127,22 +127,25 @@ namespace kagome::storage::trie_pruner {
       OUTCOME_TRY(trie, serializer_->retrieveTrie(state));
       size_t removed = 0;
 
-      std::vector<const trie::TrieNode *> queued_nodes;
-      queued_nodes.push_back(trie->getRoot().get());
+      std::vector<std::shared_ptr<trie::TrieNode>> queued_nodes;
+      queued_nodes.push_back(trie->getRoot());
 
       // iterate all nodes with ref count now 0 and delete them from DB
       while (!queued_nodes.empty()) {
         auto node = queued_nodes.back();
         queued_nodes.pop_back();
-        auto ref_count = ref_count_[node->getCachedHash().value()]--;
+        auto &ref_count = ref_count_.at(node->getCachedHash().value());
+        BOOST_ASSERT(ref_count != 0);
+        ref_count--;
         if (ref_count == 0) {
           removed++;
+          ref_count_.erase(node->getCachedHash().value());
           if (node->isBranch()) {
-            auto branch = dynamic_cast<const trie::BranchNode *>(node);
-            for (auto opaque_child : branch->children) {
+            auto branch = static_cast<const trie::BranchNode &>(*node);
+            for (auto opaque_child : branch.children) {
               if (opaque_child != nullptr) {
                 OUTCOME_TRY(child, serializer_->retrieveNode(opaque_child));
-                queued_nodes.push_back(child.get());
+                queued_nodes.push_back(child);
               }
             }
           }
@@ -153,21 +156,34 @@ namespace kagome::storage::trie_pruner {
       return outcome::success();
     }
 
-   private:
-    static common::Hash256 hashFromBuf(common::Buffer const &buf) {
-      BOOST_ASSERT(buf.size() <= common::Hash256::size());
-      common::Hash256 hash{};
-      std::copy_n(buf.begin(),
-                  std::min(buf.size(), common::Hash256::size()),
-                  hash.begin());
-      return hash;
+    primitives::BlockNumber getBaseBlock() const override {
+      return base_block_;
     }
+
+    size_t getTrackedNodesNum() const {
+      return ref_count_.size();
+    }
+
+    size_t getRefCountOf(common::Buffer const &node) const {
+      auto it = ref_count_.find(node);
+      return it == ref_count_.end() ? 0 : it->second;
+    }
+
+    template <typename F>
+    void forRefCounts(F const &f) {
+      for (auto &[node, count] : ref_count_) {
+        f(node, count);
+      }
+    }
+
+   private:
+    primitives::BlockNumber base_block_;
 
     std::unordered_map<common::Buffer, size_t> ref_count_;
 
     std::shared_ptr<storage::trie::TrieStorageBackend> storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
-    std::shared_ptr<storage::trie::PolkadotCodec> codec_;
+    std::shared_ptr<storage::trie::Codec> codec_;
     log::Logger logger_ = log::createLogger("TriePruner", "trie");
   };
 
