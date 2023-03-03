@@ -35,8 +35,6 @@ namespace kagome::storage::trie_pruner {
         trie::PolkadotTrie const &new_trie) = 0;
 
     virtual outcome::result<void> prune(trie::RootHash const &state) = 0;
-
-    virtual primitives::BlockNumber getBaseBlock() const = 0;
   };
 
 }  // namespace kagome::storage::trie_pruner

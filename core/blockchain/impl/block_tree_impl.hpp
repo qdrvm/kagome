@@ -197,6 +197,8 @@ namespace kagome::blockchain {
 
     log::Logger log_ = log::createLogger("BlockTree", "block_tree");
 
+    size_t unpruned_blocks_ = 0;
+
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_best_block_height_;

@@ -1039,7 +1039,9 @@ namespace {
               injector::calculate_genesis_state(
                   injector.template create<const application::ChainSpec &>(),
                   injector.template create<const runtime::ModuleFactory &>(),
-                  injector.template create<storage::trie::TrieSerializer &>())
+                  injector.template create<storage::trie::TrieSerializer &>(),
+                  injector
+                      .template create<storage::trie_pruner::TriePruner &>())
                   .value();
           const auto &hasher = injector.template create<sptr<crypto::Hasher>>();
           const auto &storage =

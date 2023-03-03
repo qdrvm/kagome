@@ -479,9 +479,10 @@ namespace kagome::blockchain {
     metric_best_block_height_->set(
         tree_->getMetadata().best_leaf.lock()->depth);
 
-    if (state_pruner_->getBaseBlock() >= block.header.number - 32) {
+    unpruned_blocks_++;
+    if (unpruned_blocks_ > 16) {
       OUTCOME_TRY(old_header,
-                  storage_->getBlockHeader(block.header.number - 32));
+                  storage_->getBlockHeader(block.header.number - 16));
       if (old_header) {
         OUTCOME_TRY(state_pruner_->prune(old_header.value().state_root));
       }

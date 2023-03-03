@@ -11,12 +11,14 @@
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
+#include "storage/trie_pruner/trie_pruner.hpp"
 
 namespace kagome::injector {
   inline outcome::result<storage::trie::RootHash> calculate_genesis_state(
       const application::ChainSpec &chain_spec,
       const runtime::ModuleFactory &module_factory,
-      storage::trie::TrieSerializer &trie_serializer) {
+      storage::trie::TrieSerializer &trie_serializer,
+      storage::trie_pruner::TriePruner &pruner) {
     auto trie_from = [](const application::GenesisRawData &kv) {
       storage::trie::PolkadotTrieImpl trie;
       for (auto &[k, v] : kv) {
@@ -37,12 +39,14 @@ namespace kagome::injector {
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
       auto trie = trie_from(kv);
+      OUTCOME_TRY(pruner.addNewState(trie));
       OUTCOME_TRY(root, trie_serializer.storeTrie(trie, version));
       common::Buffer child2;
       child2 += storage::kChildStorageDefaultPrefix;
       child2 += child;
       top_trie.put(child2, common::BufferView{root}).value();
     }
+    OUTCOME_TRY(pruner.addNewState(top_trie));
     return trie_serializer.storeTrie(top_trie, version);
   }
 }  // namespace kagome::injector

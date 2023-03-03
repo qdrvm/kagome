@@ -39,6 +39,7 @@
 #include <kagome/storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp>
 #include <kagome/storage/trie/serialization/polkadot_codec.hpp>
 #include <kagome/storage/trie/serialization/trie_serializer_impl.hpp>
+#include <kagome/storage/trie_pruner/impl/trie_pruner_impl.hpp>
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
 #include <libp2p/log/configurator.hpp>
 
@@ -111,9 +112,13 @@ int main() {
       kagome::storage::changes_trie::StorageChangesTrackerImpl>(
       storage_subscription_engine, chain_subscription_engine);
 
+  auto state_pruner =
+      std::make_shared<kagome::storage::trie_pruner::TriePrunerImpl>(
+          storage_backend, serializer, codec);
+
   std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =
       kagome::storage::trie::TrieStorageImpl::createEmpty(
-          trie_factory, codec, serializer, changes_tracker)
+          trie_factory, codec, serializer, changes_tracker, state_pruner)
           .value();
 
   auto batch =

@@ -25,8 +25,8 @@ using kagome::common::BufferOrView;
 using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHash;
-using kagome::storage::trie::StateVersion;
 using kagome::storage::Space;
+using kagome::storage::trie::StateVersion;
 using kagome::subscription::SubscriptionEngine;
 using testing::_;
 using testing::Invoke;
@@ -60,7 +60,6 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
 
   std::unique_ptr<TrieStorage> trie;
   RootHash empty_hash;
-
 };
 
 #define ASSERT_OUTCOME_IS_TRUE(Expression)        \
@@ -196,12 +195,11 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
   auto serializer = std::make_shared<TrieSerializerImpl>(
-      factory,
-      codec,
-      std::make_shared<TrieStorageBackendImpl>(std::move(db)));
-  auto trie =
-      TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
-          .value();
+      factory, codec, std::make_shared<TrieStorageBackendImpl>(std::move(db)));
+  auto state_pruner = std::make_shared<TriePrunerMock>();
+  auto trie = TrieStorageImpl::createEmpty(
+                  factory, codec, serializer, std::nullopt, state_pruner)
+                  .value();
   auto batch = trie->getPersistentBatchAt(empty_hash).value();
 
   ASSERT_OUTCOME_SUCCESS_TRY(batch->put("123"_buf, "111"_buf));

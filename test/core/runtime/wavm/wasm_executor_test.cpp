@@ -24,6 +24,7 @@
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "runtime/common/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
@@ -80,6 +81,7 @@ using kagome::storage::trie::PolkadotTrieImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorage;
 using kagome::storage::trie::TrieStorageImpl;
+using kagome::storage::trie_pruner::TriePrunerMock;
 using testing::_;
 using testing::Invoke;
 using testing::Return;
@@ -107,10 +109,11 @@ class WasmExecutorTest : public ::testing::Test {
     auto codec = std::make_shared<PolkadotCodec>();
     auto serializer =
         std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
+    auto state_pruner = std::make_shared<TriePrunerMock>();
 
     std::shared_ptr<TrieStorageImpl> trie_db =
         kagome::storage::trie::TrieStorageImpl::createEmpty(
-            trie_factory, codec, serializer, std::nullopt)
+            trie_factory, codec, serializer, std::nullopt, state_pruner)
             .value();
 
     storage_provider_ =

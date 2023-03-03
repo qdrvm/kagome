@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/types/state_request.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -31,6 +32,7 @@ using namespace primitives;
 using namespace storage;
 
 using namespace trie;
+using namespace trie_pruner;
 
 std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
   auto backend =
@@ -41,9 +43,10 @@ std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
   auto codec = std::make_shared<PolkadotCodec>();
   auto serializer =
       std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
+  auto state_pruner = std::make_shared<TriePrunerMock>();
 
   return kagome::storage::trie::TrieStorageImpl::createEmpty(
-             trie_factory, codec, serializer, std::nullopt)
+             trie_factory, codec, serializer, std::nullopt, state_pruner)
       .value();
 }
 
@@ -98,7 +101,7 @@ namespace kagome::network {
   bool operator==(const KeyValueStateEntry &lhs,
                   const KeyValueStateEntry &rhs) {
     return lhs.state_root == rhs.state_root && lhs.entries == rhs.entries
-           && lhs.complete == rhs.complete;
+        && lhs.complete == rhs.complete;
   }
 
   bool operator==(const StateResponse &lhs, const StateResponse &rhs) {

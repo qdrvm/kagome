@@ -30,16 +30,16 @@ TEST_P(NodeDecodingTest, GetHeader) {
       encoded, codec->encodeNode(*node, storage::trie::StateVersion::V0, {}));
   EXPECT_OUTCOME_TRUE(decoded, codec->decodeNode(encoded));
   auto decoded_node = std::dynamic_pointer_cast<TrieNode>(decoded);
-  EXPECT_EQ(decoded_node->key_nibbles, node->key_nibbles);
-  EXPECT_EQ(decoded_node->value, node->value);
+  EXPECT_EQ(decoded_node->getKeyNibbles(), node->getKeyNibbles());
+  EXPECT_EQ(decoded_node->getValue(), node->getValue());
 }
 
 template <typename T>
 std::shared_ptr<TrieNode> make(const common::Buffer &key_nibbles,
                                const common::Buffer &value) {
   auto node = std::make_shared<T>();
-  node->key_nibbles = key_nibbles;
-  node->value.value = value;
+  node->setKeyNibbles(key_nibbles);
+  node->getMutableValue().value = value;
   return node;
 }
 

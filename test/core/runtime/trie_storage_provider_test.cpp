@@ -8,6 +8,7 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 
 #include "common/buffer.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -44,9 +45,13 @@ class TrieStorageProviderTest : public ::testing::Test {
         std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
             trie_factory, codec, backend);
 
-    auto trieDb = kagome::storage::trie::TrieStorageImpl::createEmpty(
-                      trie_factory, codec, serializer, std::nullopt)
-                      .value();
+    auto state_pruner =
+        std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
+
+    auto trieDb =
+        kagome::storage::trie::TrieStorageImpl::createEmpty(
+            trie_factory, codec, serializer, std::nullopt, state_pruner)
+            .value();
 
     storage_provider_ =
         std::make_shared<kagome::runtime::TrieStorageProviderImpl>(

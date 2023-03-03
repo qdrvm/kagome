@@ -12,11 +12,11 @@
 
 namespace kagome::storage::trie_pruner {
 
-  class TriePrunerMock : public TriePruner {
+  class TriePrunerMock final: public TriePruner {
    public:
     MOCK_METHOD(outcome::result<void>,
                 addNewState,
-                (trie::RootHash const &state),
+                (trie::PolkadotTrie const &new_trie),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,

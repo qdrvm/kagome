@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -30,6 +31,7 @@ using kagome::storage::trie::StateVersion;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
 using kagome::storage::trie::TrieStorageImpl;
+using kagome::storage::trie_pruner::TriePrunerMock;
 using kagome::subscription::SubscriptionEngine;
 
 /**
@@ -57,9 +59,11 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
         std::make_shared<TrieStorageBackendImpl>(
             rocks_db->getSpace(Space::kDefault)));
 
-    auto storage =
-        TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
-            .value();
+    auto state_pruner = std::make_shared<TriePrunerMock>();
+
+    auto storage = TrieStorageImpl::createEmpty(
+                       factory, codec, serializer, std::nullopt, state_pruner)
+                       .value();
 
     auto batch =
         storage->getPersistentBatchAt(serializer->getEmptyRootHash()).value();
@@ -76,9 +80,10 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
       codec,
       std::make_shared<TrieStorageBackendImpl>(
           new_rocks_db->getSpace(Space::kDefault)));
-  auto storage =
-      TrieStorageImpl::createFromStorage(codec, serializer, std::nullopt)
-          .value();
+  auto state_pruner = std::make_shared<TriePrunerMock>();
+  auto storage = TrieStorageImpl::createFromStorage(
+                     codec, serializer, std::nullopt, state_pruner)
+                     .value();
   auto batch = storage->getPersistentBatchAt(root).value();
   EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));
   ASSERT_EQ(v1, "abc"_buf);

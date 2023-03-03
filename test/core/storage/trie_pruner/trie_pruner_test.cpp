@@ -6,11 +6,15 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
+#include <random>
 
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
+#include "mock/core/storage/write_batch_mock.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
+#include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -19,21 +23,41 @@
 using namespace kagome::storage;
 using namespace kagome::storage::trie_pruner;
 using namespace kagome::common;
+using testing::_;
+using testing::Invoke;
+using testing::Return;
 
-class CodecMock final : public trie::Codec {
+class CodecMock : public trie::Codec {
  public:
-  ~CodecMock() override = default;
+  MOCK_METHOD(outcome::result<Buffer>,
+              encodeNode,
+              (const trie::Node &opaque_node,
+               trie::StateVersion version,
+               const ChildVisitor &child_visitor),
+              (const, override));
+  MOCK_METHOD(outcome::result<std::shared_ptr<trie::Node>>,
+              decodeNode,
+              (gsl::span<const uint8_t> encoded_data),
+              (const, override));
+  MOCK_METHOD(Buffer, merkleValue, (const BufferView &buf), (const, override));
+  MOCK_METHOD(bool, isMerkleHash, (const BufferView &buf), (const, override));
+  MOCK_METHOD(Hash256, hash256, (const BufferView &buf), (const, override));
+};
+
+class CodecTestImpl final : public trie::Codec {
+ public:
+  ~CodecTestImpl() override = default;
   outcome::result<Buffer> encodeNode(
-      const trie::Node &node,
+      const trie::Node &opaque_node,
       trie::StateVersion version,
       const ChildVisitor &child_visitor) const override {
-    if (auto dummy = dynamic_cast<const trie::DummyNode *>(&node);
+    if (auto dummy = dynamic_cast<const trie::DummyNode *>(&opaque_node);
         dummy != nullptr) {
       return dummy->db_key;
     }
-    if (auto dummy = dynamic_cast<const trie::TrieNode *>(&node);
-        dummy != nullptr) {
-      return dummy->getValue().value.value();
+    if (auto node = dynamic_cast<const trie::TrieNode *>(&opaque_node);
+        node != nullptr) {
+      return node->getValue().value.value();
     }
     throw std::runtime_error{"Unknown node type"};
     return outcome::success();
@@ -197,8 +221,7 @@ class TriePrunerTest : public testing::Test {
     return nullptr;
   }
 
-  std::shared_ptr<trie::TrieNode> makeTransparentNode(
-      TrieNodeDesc desc) const {
+  std::shared_ptr<trie::TrieNode> makeTransparentNode(TrieNodeDesc desc) const {
     BOOST_ASSERT(desc.type != DUMMY);
     return std::static_pointer_cast<trie::TrieNode>(makeNode(desc));
   }
@@ -261,6 +284,133 @@ TEST_F(TriePrunerTest, BasicScenario) {
   ASSERT_EQ(pruner->getTrackedNodesNum(), 0);
 }
 
-TEST_F(TriePrunerTest, DummyNodes) {
+TEST_F(TriePrunerTest, DummyNodes) {}
 
+Buffer randomBuffer(std::mt19937 &rand) {
+  Buffer buf;
+  int size = rand() % 15;
+  for (int i = 0; i < size; i++) {
+    buf.putUint32(rand());
+  }
+  return buf;
+}
+
+template <typename F>
+void forAllLoadedNodes(trie::TrieNode const &node, const F &f) {
+  f(node);
+  if (node.isBranch()) {
+    auto &branch = static_cast<trie::BranchNode const &>(node);
+    for (auto &child : branch.children) {
+      if (auto transparent_child =
+              dynamic_cast<const trie::TrieNode *>(child.get());
+          transparent_child != nullptr) {
+        forAllLoadedNodes(*transparent_child, f);
+      }
+    }
+  }
+}
+
+template <typename F>
+void forAllNodes(trie::PolkadotTrie &trie, trie::TrieNode &root, const F &f) {
+  f(root);
+  if (root.isBranch()) {
+    auto &branch = static_cast<trie::BranchNode const &>(root);
+    uint8_t idx = 0;
+    for (auto &child : branch.children) {
+      if (child != nullptr) {
+        auto child = trie.retrieveChild(branch, idx).value();
+        forAllNodes(trie, *child, f);
+      }
+      idx++;
+    }
+  }
+}
+
+auto setCodecExpectations(CodecMock &mock, trie::Codec &codec) {
+  EXPECT_CALL(mock, encodeNode(_, _, _))
+      .WillRepeatedly(Invoke([&codec](auto &node, auto ver, auto &visitor) {
+        return codec.encodeNode(node, ver, visitor);
+      }));
+  EXPECT_CALL(mock, decodeNode(_)).WillRepeatedly(Invoke([&codec](auto _) {
+    return codec.decodeNode(_);
+  }));
+  EXPECT_CALL(mock, merkleValue(_)).WillRepeatedly(Invoke([&codec](auto &_) {
+    return codec.merkleValue(_);
+  }));
+  EXPECT_CALL(mock, isMerkleHash(_)).WillRepeatedly(Invoke([&codec](auto &_) {
+    return codec.isMerkleHash(_);
+  }));
+  EXPECT_CALL(mock, hash256(_)).WillRepeatedly(Invoke([&codec](auto &_) {
+    return codec.hash256(_);
+  }));
+}
+
+std::set<Buffer> collectReferencedNodes(trie::PolkadotTrie &trie,
+                                        trie::PolkadotCodec const &codec) {
+  std::set<Buffer> res;
+  forAllNodes(trie, *trie.getRoot(), [&res, &codec](auto &node) {
+    auto enc = codec.encodeNode(node, trie::StateVersion::V1, nullptr).value();
+    res.insert(codec.merkleValue(enc));
+  });
+  return res;
+}
+
+TEST_F(TriePrunerTest, RandomTree) {
+  trie::PolkadotTrieImpl trie;
+  auto codec = std::make_shared<trie::PolkadotCodec>();
+  setCodecExpectations(*this->codec, *codec);
+  auto trie_factory = std::make_shared<trie::PolkadotTrieFactoryImpl>();
+  auto backend = std::make_shared<trie::TrieStorageBackendMock>();
+
+  std::map<Buffer, Buffer> node_storage;
+
+  EXPECT_CALL(*backend, batch()).WillRepeatedly(Invoke([&node_storage]() {
+    auto batch_mock = std::make_unique<face::WriteBatchMock<Buffer, Buffer>>();
+    EXPECT_CALL(*batch_mock, put(_, _))
+        .WillRepeatedly(Invoke([&node_storage](auto &k, auto &v) {
+          node_storage[k] = v;
+          return outcome::success();
+        }));
+    EXPECT_CALL(*batch_mock, commit())
+        .WillRepeatedly(Return(outcome::success()));
+    return batch_mock;
+  }));
+  EXPECT_CALL(*backend, get(_)).WillRepeatedly(Invoke([&node_storage](auto &k) {
+    return node_storage[k];
+  }));
+
+  trie::TrieSerializerImpl serializer{trie_factory, codec, backend};
+  std::vector<std::pair<Buffer, Buffer>> kv;
+  std::mt19937 rand;
+  rand.seed(42);
+  for (int i = 0; i < 15; i++) {
+    kv.push_back({randomBuffer(rand), randomBuffer(rand)});
+  }
+  for (auto &[k, v] : kv) {
+    ASSERT_OUTCOME_SUCCESS_TRY(trie.put(k, BufferView{v}));
+  }
+  ASSERT_OUTCOME_SUCCESS_TRY(pruner->addNewState(trie));
+
+  size_t node_count = 0;
+  forAllLoadedNodes(*trie.getRoot(),
+                    [&node_count](auto &node) { node_count++; });
+  ASSERT_EQ(pruner->getTrackedNodesNum(), node_count);
+
+  ASSERT_OUTCOME_SUCCESS_TRY(
+      serializer.storeTrie(trie, trie::StateVersion::V1));
+  auto original_set = collectReferencedNodes(trie);
+  for (int i = 0; i < 10; i++) {
+    for (int j = 0; j < 5; j++) {
+      ASSERT_OUTCOME_SUCCESS_TRY(
+          trie.put(randomBuffer(rand), randomBuffer(rand)));
+    }
+    size_t new_node_count = 0;
+    forAllLoadedNodes(*trie.getRoot(),
+                      [&new_node_count](auto &node) { new_node_count++; });
+    auto old_ref_count = pruner->getTrackedNodesNum();
+    ASSERT_OUTCOME_SUCCESS_TRY(pruner->addNewState(trie));
+    ASSERT_EQ(pruner->getTrackedNodesNum(), old_ref_count + new_node_count);
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        serializer.storeTrie(trie, trie::StateVersion::V1));
+  }
 }

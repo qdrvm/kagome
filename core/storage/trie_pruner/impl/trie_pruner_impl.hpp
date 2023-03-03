@@ -18,6 +18,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
   class TrieStorageBackend;
@@ -126,6 +127,7 @@ namespace kagome::storage::trie_pruner {
     virtual outcome::result<void> prune(trie::RootHash const &state) override {
       OUTCOME_TRY(trie, serializer_->retrieveTrie(state));
       size_t removed = 0;
+      size_t unknown = 0;
 
       std::vector<std::shared_ptr<trie::TrieNode>> queued_nodes;
       queued_nodes.push_back(trie->getRoot());
@@ -134,12 +136,18 @@ namespace kagome::storage::trie_pruner {
       while (!queued_nodes.empty()) {
         auto node = queued_nodes.back();
         queued_nodes.pop_back();
-        auto &ref_count = ref_count_.at(node->getCachedHash().value());
+        auto ref_count_it = ref_count_.find(node->getCachedHash().value());
+        if (ref_count_it == ref_count_.end()) {
+          unknown++;
+          continue;
+        }
+        auto& ref_count = ref_count_it->second;
         BOOST_ASSERT(ref_count != 0);
         ref_count--;
         if (ref_count == 0) {
           removed++;
           ref_count_.erase(node->getCachedHash().value());
+          OUTCOME_TRY(storage_->remove(node->getCachedHash().value()));
           if (node->isBranch()) {
             auto branch = static_cast<const trie::BranchNode &>(*node);
             for (auto opaque_child : branch.children) {
@@ -152,12 +160,8 @@ namespace kagome::storage::trie_pruner {
         }
       }
 
-      SL_INFO(logger_, "Removed {} nodes", removed);
+      SL_INFO(logger_, "Removed {} nodes, {} unknown", removed, unknown);
       return outcome::success();
-    }
-
-    primitives::BlockNumber getBaseBlock() const override {
-      return base_block_;
     }
 
     size_t getTrackedNodesNum() const {
@@ -177,8 +181,6 @@ namespace kagome::storage::trie_pruner {
     }
 
    private:
-    primitives::BlockNumber base_block_;
-
     std::unordered_map<common::Buffer, size_t> ref_count_;
 
     std::shared_ptr<storage::trie::TrieStorageBackend> storage_;

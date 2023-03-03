@@ -37,8 +37,8 @@ template <typename T>
 std::shared_ptr<TrieNode> make(const common::Buffer &key_nibbles,
                                std::optional<common::Buffer> value) {
   auto node = std::make_shared<T>();
-  node->key_nibbles = key_nibbles;
-  node->value.value = value;
+  node->setKeyNibbles(key_nibbles);
+  node->getMutableValue().value = value;
   return node;
 }
 

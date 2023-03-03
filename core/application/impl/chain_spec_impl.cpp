@@ -247,10 +247,10 @@ namespace kagome::application {
 
     auto read_key_block = [](const auto &tree,
                              GenesisRawData &data) -> outcome::result<void> {
-      for (const auto &[child_key, child_value] : tree) {
+      for (const auto &[key, value] : tree) {
         // get rid of leading 0x for key and value and unhex
-        OUTCOME_TRY(key_processed, common::unhexWith0x(child_key));
-        OUTCOME_TRY(value_processed, common::unhexWith0x(child_value.data()));
+        OUTCOME_TRY(key_processed, common::unhexWith0x(key));
+        OUTCOME_TRY(value_processed, common::unhexWith0x(value.data()));
         data.emplace_back(std::move(key_processed), std::move(value_processed));
       }
       return outcome::success();
