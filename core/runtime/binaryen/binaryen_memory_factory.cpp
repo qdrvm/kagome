@@ -10,7 +10,8 @@
 namespace kagome::runtime::binaryen {
 
   std::unique_ptr<MemoryImpl> BinaryenMemoryFactory::make(
-      wasm::ShellExternalInterface::Memory *memory, WasmSize heap_base) const {
+      RuntimeExternalInterface::InternalMemory *memory,
+      WasmSize heap_base) const {
     return std::make_unique<MemoryImpl>(memory, heap_base);
   }
 

@@ -252,7 +252,8 @@ namespace kagome::runtime::binaryen {
     methodsRegistration();
   }
 
-  wasm::ShellExternalInterface::Memory *RuntimeExternalInterface::getMemory() {
+  RuntimeExternalInterface::InternalMemory *
+  RuntimeExternalInterface::getMemory() {
     return &memory;
   }
 
@@ -294,6 +295,105 @@ namespace kagome::runtime::binaryen {
     this_.checkArguments(
         import->base.c_str(), hostApiFuncArgSize<mf>(), arguments.size());
     return callHostApiFunc<mf>(this_.host_api_.get(), arguments);
+  }
+
+  void RuntimeExternalInterface::init(wasm::Module &wasm,
+                                      wasm::ModuleInstance &instance) {
+    memory.resize(wasm.memory.initial * wasm::Memory::kPageSize);
+    // apply memory segments
+    for (auto &segment : wasm.memory.segments) {
+      wasm::Address offset =
+          (uint32_t)wasm::ConstantExpressionRunner<wasm::TrivialGlobalManager>(
+              instance.globals)
+              .visit(segment.offset)
+              .value.geti32();
+      if (offset + segment.data.size()
+          > wasm.memory.initial * wasm::Memory::kPageSize) {
+        trap("invalid offset when initializing memory");
+      }
+      for (size_t i = 0; i != segment.data.size(); ++i) {
+        memory.set(offset + i, segment.data[i]);
+      }
+    }
+
+    table.resize(wasm.table.initial);
+    for (auto &segment : wasm.table.segments) {
+      wasm::Address offset =
+          (uint32_t)wasm::ConstantExpressionRunner<wasm::TrivialGlobalManager>(
+              instance.globals)
+              .visit(segment.offset)
+              .value.geti32();
+      if (offset + segment.data.size() > wasm.table.initial) {
+        trap("invalid offset when initializing table");
+      }
+      for (size_t i = 0; i != segment.data.size(); ++i) {
+        table[offset + i] = segment.data[i];
+      }
+    }
+  }
+
+  void RuntimeExternalInterface::importGlobals(
+      std::map<wasm::Name, wasm::Literal> &globals, wasm::Module &wasm) {
+    // add spectest globals
+    wasm::ModuleUtils::iterImportedGlobals(wasm, [&](wasm::Global *import) {
+      if (import->module == wasm::SPECTEST && import->base == wasm::GLOBAL) {
+        switch (import->type) {
+          case wasm::i32:
+            globals[import->name] = wasm::Literal(int32_t(666));
+            break;
+          case wasm::i64:
+            globals[import->name] = wasm::Literal(int64_t(666));
+            break;
+          case wasm::f32:
+            globals[import->name] = wasm::Literal(float(666.6));
+            break;
+          case wasm::f64:
+            globals[import->name] = wasm::Literal(double(666.6));
+            break;
+          case wasm::v128:
+            assert(false && "v128 not implemented yet");
+          case wasm::none:
+          case wasm::unreachable:
+            WASM_UNREACHABLE();
+        }
+      }
+    });
+    if (wasm.memory.imported() && wasm.memory.module == wasm::SPECTEST
+        && wasm.memory.base == wasm::MEMORY) {
+      // imported memory has initial 1 and max 2
+      wasm.memory.initial = 1;
+      wasm.memory.max = 2;
+    }
+  }
+
+  wasm::Literal RuntimeExternalInterface::callTable(
+      wasm::Index index,
+      wasm::LiteralList &arguments,
+      wasm::Type result,
+      wasm::ModuleInstance &instance) {
+    if (index >= table.size()) {
+      trap("callTable overflow");
+    }
+    auto *func = instance.wasm.getFunctionOrNull(table[index]);
+    if (!func) {
+      trap("uninitialized table element");
+    }
+    if (func->params.size() != arguments.size()) {
+      trap("callIndirect: bad # of arguments");
+    }
+    for (size_t i = 0; i < func->params.size(); i++) {
+      if (func->params[i] != arguments[i].type) {
+        trap("callIndirect: bad argument type");
+      }
+    }
+    if (func->result != result) {
+      trap("callIndirect: bad result type");
+    }
+    if (func->imported()) {
+      return callImport(func, arguments);
+    } else {
+      return instance.callFunctionInternal(func->name, arguments);
+    }
   }
 
 }  // namespace kagome::runtime::binaryen
