@@ -40,8 +40,8 @@ using kagome::runtime::RuntimeEnvironment;
 using kagome::runtime::RuntimeEnvironmentTemplateMock;
 using kagome::runtime::RuntimePropertiesCacheMock;
 using kagome::runtime::TrieStorageProviderMock;
-using kagome::storage::trie::PersistentTrieBatch;
-using kagome::storage::trie::PersistentTrieBatchMock;
+using kagome::storage::trie::TrieBatch;
+using kagome::storage::trie::TrieBatchMock;
 using testing::_;
 using testing::ElementsAreArray;
 using testing::Invoke;
@@ -125,7 +125,7 @@ class ExecutorTest : public testing::Test {
                     auto storage_provider = std::make_shared<
                         kagome::runtime::TrieStorageProviderMock>();
                     auto batch = std::make_shared<
-                        kagome::storage::trie::PersistentTrieBatchMock>();
+                        kagome::storage::trie::TrieBatchMock>();
 
                     return std::make_unique<RuntimeEnvironment>(
                         module_instance,

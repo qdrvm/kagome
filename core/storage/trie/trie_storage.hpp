@@ -21,6 +21,9 @@ namespace kagome::storage::trie {
    */
   class TrieStorage {
    public:
+    using EncodedNode = common::BufferView;
+    using OnNodeLoaded = std::function<void(EncodedNode)>;
+
     virtual ~TrieStorage() = default;
 
     /**
@@ -28,10 +31,14 @@ namespace kagome::storage::trie {
      * @warning if the batch is committed, the trie will still switch to its
      * state, creating a 'fork'
      */
-    virtual outcome::result<std::unique_ptr<PersistentTrieBatch>>
-    getPersistentBatchAt(const RootHash &root) = 0;
-    virtual outcome::result<std::unique_ptr<EphemeralTrieBatch>>
-    getEphemeralBatchAt(const RootHash &root) const = 0;
+    virtual outcome::result<std::unique_ptr<TrieBatch>> getPersistentBatchAt(
+        const RootHash &root) = 0;
+
+    virtual outcome::result<std::unique_ptr<TrieBatch>> getEphemeralBatchAt(
+        const RootHash &root) const = 0;
+
+    virtual outcome::result<std::unique_ptr<TrieBatch>> getProofReaderBatchAt(
+        const RootHash &root, const OnNodeLoaded &on_node_loaded) const = 0;
   };
 
 }  // namespace kagome::storage::trie

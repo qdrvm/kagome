@@ -98,7 +98,11 @@ namespace kagome::host_api {
         "WASM Runtime [ChildStorageExtension]";
 
     template <typename R, typename F, typename... Args>
-    outcome::result<R> executeOnChildStorage(
+    outcome::result<R> executeOnConstChildStorage(
+        const common::Buffer &child_storage_key, F func, Args &&...args) const;
+
+    template <typename R, typename F, typename... Args>
+    outcome::result<R> executeOnMutChildStorage(
         const common::Buffer &child_storage_key, F func, Args &&...args) const;
   };
 

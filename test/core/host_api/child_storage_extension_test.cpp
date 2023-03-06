@@ -37,7 +37,7 @@ using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::storage::trie::PersistentTrieBatchMock;
+using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::PolkadotTrieCursorMock;
 using kagome::storage::trie::RootHash;
 using kagome::storage::trie::TrieError;
@@ -53,15 +53,17 @@ class ChildStorageExtensionTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    trie_child_storage_batch_ = std::make_shared<PersistentTrieBatchMock>();
-    trie_batch_ = std::make_shared<PersistentTrieBatchMock>();
+    trie_child_storage_batch_ = std::make_shared<TrieBatchMock>();
+    trie_batch_ = std::make_shared<TrieBatchMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     EXPECT_CALL(*storage_provider_, getCurrentBatch())
         .WillRepeatedly(Return(trie_batch_));
     EXPECT_CALL(*storage_provider_, getChildBatchAt(_))
-        .WillRepeatedly(Return(std::static_pointer_cast<
-                               kagome::storage::trie::PersistentTrieBatch>(
-            trie_child_storage_batch_)));
+        .WillRepeatedly(Return(outcome::success(std::cref(
+            *trie_child_storage_batch_))));
+    EXPECT_CALL(*storage_provider_, getMutableChildBatchAt(_))
+        .WillRepeatedly(Return(outcome::success(std::ref(
+            *trie_child_storage_batch_))));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
@@ -72,8 +74,8 @@ class ChildStorageExtensionTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<PersistentTrieBatchMock> trie_child_storage_batch_;
-  std::shared_ptr<PersistentTrieBatchMock> trie_batch_;
+  std::shared_ptr<TrieBatchMock> trie_child_storage_batch_;
+  std::shared_ptr<TrieBatchMock> trie_batch_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
   std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;

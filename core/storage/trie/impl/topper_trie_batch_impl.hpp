@@ -20,7 +20,11 @@ namespace kagome::storage::trie {
 
   class TopperTrieBatchImpl final : public TopperTrieBatch {
    public:
-    enum class Error { PARENT_EXPIRED = 1 };
+    enum class Error {
+      PARENT_EXPIRED = 1,
+      CHILD_BATCH_NOT_SUPPORTED,
+      COMMIT_NOT_SUPPORTED
+    };
 
     explicit TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent);
 
@@ -42,6 +46,11 @@ namespace kagome::storage::trie {
         const BufferView &prefix, std::optional<uint64_t> limit) override;
 
     outcome::result<void> writeBack() override;
+
+    virtual outcome::result<RootHash> commit(StateVersion version) override;
+
+    virtual outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
+    createChildBatch(common::BufferView path) override;
 
    private:
     bool wasClearedByPrefix(const BufferView &key) const;
