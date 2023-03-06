@@ -2,8 +2,8 @@
 // Created by iceseer on 11/7/22.
 //
 
-#ifndef KAGOME_STORE_HPP
-#define KAGOME_STORE_HPP
+#ifndef KAGOME_APPROVAL_STORE_HPP
+#define KAGOME_APPROVAL_STORE_HPP
 
 #include "utils/non_copyable.hpp"
 
@@ -89,4 +89,4 @@ namespace kagome::parachain {
   }
 }  // namespace kagome::parachain
 
-#endif  // KAGOME_STORE_HPP
+#endif  // KAGOME_APPROVAL_STORE_HPP

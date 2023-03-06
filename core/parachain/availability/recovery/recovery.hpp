@@ -9,6 +9,10 @@
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::parachain {
+
+  /// Used to recover PoV and validation data from remote validators inside
+  /// validator group. This operation is important in Approval step to validate
+  /// availability and correctness of the candidate.
   class Recovery {
    public:
     using AvailableData = runtime::AvailableData;

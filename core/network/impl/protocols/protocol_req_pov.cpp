@@ -17,13 +17,17 @@ namespace kagome::network {
                               NonCopyable,
                               NonMovable {
     ReqPovProtocolImpl(libp2p::Host &host,
+                       application::ChainSpec const &chain_spec,
+                       const primitives::BlockHash &genesis_hash,
                        std::shared_ptr<ReqPovObserver> observer)
         : RequestResponseProtocol<
             RequestPov,
             ResponsePov,
             ScaleMessageReadWriter>{kReqPovProtocolName,
                                     host,
-                                    {kReqPovProtocol},
+                                    make_protocols(kReqPovProtocol,
+                                                   genesis_hash,
+                                                   "polkadot"),
                                     log::createLogger(kReqPovProtocolName,
                                                       "request_pov_protocol")},
           observer_{std::move(observer)} {}
@@ -59,9 +63,11 @@ namespace kagome::network {
   };
 
   ReqPovProtocol::ReqPovProtocol(libp2p::Host &host,
+                                 application::ChainSpec const &chain_spec,
+                                 const primitives::BlockHash &genesis_hash,
                                  std::shared_ptr<ReqPovObserver> observer)
-      : impl_{std::make_shared<ReqPovProtocolImpl>(host, std::move(observer))} {
-  }
+      : impl_{std::make_shared<ReqPovProtocolImpl>(
+          host, chain_spec, genesis_hash, std::move(observer))} {}
 
   const Protocol &ReqPovProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");

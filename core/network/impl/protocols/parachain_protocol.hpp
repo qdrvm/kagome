@@ -50,13 +50,14 @@ namespace kagome::network {
 
     ParachainProtocol(libp2p::Host &host,
                       application::AppConfiguration const &app_config,
-                      application::ChainSpec const & /*chain_spec*/,
+                      application::ChainSpec const &chain_spec,
+                      const primitives::BlockHash &genesis_hash,
                       std::shared_ptr<ObserverType> observer,
                       Protocol const &protocol,
                       std::shared_ptr<network::PeerView> peer_view)
         : base_(kParachainProtocolName,
                 host,
-                {protocol},
+                make_protocols(protocol, genesis_hash, "polkadot"),
                 log::createLogger("ParachainProtocol", protocol)),
           observer_(std::move(observer)),
           app_config_{app_config},

@@ -9,7 +9,7 @@
 #include "primitives/block_header.hpp"
 
 namespace kagome::parachain {
-  constexpr std::chrono::milliseconds kDelay{2000};
+  constexpr std::chrono::milliseconds kDelay{1500};
 
   namespace {
     inline auto log() {
@@ -62,27 +62,27 @@ namespace kagome::parachain {
     broadcast_ = std::move(callback);
   }
 
-  outcome::result<void> BitfieldSigner::sign(const ValidatorSigner &signer,
-                                             BlockHash const &relay_parent) {
+  outcome::result<void> BitfieldSigner::sign(const ValidatorSigner &signer) {
+    BlockHash const &relay_parent = signer.relayParent();
     scale::BitVec bitfield;
     OUTCOME_TRY(cores, parachain_api_->availability_cores(relay_parent));
     bitfield.bits.reserve(cores.size());
     for (auto &core : cores) {
       auto occupied = boost::get<runtime::OccupiedCore>(&core);
       if (occupied) {
-        logger_->trace(
-            "Signing bitfields.(relay_parent={}, validator index={}, has "
-            "chunk={})",
-            relay_parent,
-            signer.validatorIndex(),
-            store_->hasChunk(occupied->candidate_hash,
-                             signer.validatorIndex()));
+        SL_TRACE(logger_,
+                 "Signing bitfields.(relay_parent={}, validator index={}, has "
+                 "chunk={})",
+                 relay_parent,
+                 signer.validatorIndex(),
+                 store_->hasChunk(occupied->candidate_hash,
+                                  signer.validatorIndex()));
       } else {
-        logger_->trace(
-            "Signing bitfields.(relay_parent={}, validator index={}, NOT "
-            "OCCUPIED)",
-            relay_parent,
-            signer.validatorIndex());
+        SL_TRACE(logger_,
+                 "Signing bitfields.(relay_parent={}, validator index={}, NOT "
+                 "OCCUPIED)",
+                 relay_parent,
+                 signer.validatorIndex());
       }
       bitfield.bits.push_back(occupied != nullptr
                               && store_->hasChunk(occupied->candidate_hash,
@@ -106,11 +106,9 @@ namespace kagome::parachain {
     }
     // TODO(turuslan): fetch_chunks(candidates, signer.validatorIndex());
     scheduler_->schedule(
-        [weak = weak_from_this(),
-         signer{std::move(*signer)},
-         relay_parent]() mutable {
+        [weak = weak_from_this(), signer{std::move(*signer)}]() mutable {
           if (auto self = weak.lock()) {
-            auto r = self->sign(signer, relay_parent);
+            auto r = self->sign(signer);
             if (r.has_error()) {
               SL_WARN(log(), "sign error {}", r.error());
             }

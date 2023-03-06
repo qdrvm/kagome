@@ -25,9 +25,10 @@ namespace kagome::network {
     if (auto r = stream->remotePeerId(); r.has_value()) {
       p = r.value();
     }
-    logger_->trace("Add stream for peer.(peer={}, protocol={})",
-                   p,
-                   protocol->protocolName());
+    SL_TRACE(logger_,
+             "Add stream for peer.(peer={}, protocol={})",
+             p,
+             protocol->protocolName());
 
     return streams_.exclusiveAccess([&](auto &streams) {
       bool existing = false;
@@ -77,8 +78,8 @@ namespace kagome::network {
   }
 
   void StreamEngine::del(const PeerId &peer_id) {
-    logger_->trace("Remove all streams from peer.(peer={})",
-                   peer_id.toBase58());
+    SL_TRACE(
+        logger_, "Remove all streams from peer.(peer={})", peer_id.toBase58());
     streams_.exclusiveAccess([&](auto &streams) {
       if (auto it = streams.find(peer_id); it != streams.end()) {
         for (auto &protocol_it : it->second) {

@@ -18,23 +18,22 @@ namespace kagome::network {
   /// Lowest version we support
   static constexpr uint32_t MIN_VERSION = 3;
 
-  const libp2p::peer::Protocol kStateProtocol = "/{}/state/2";
-  const libp2p::peer::Protocol kSyncProtocol = "/{}/sync/2";
-  const libp2p::peer::Protocol kPropagateTransactionsProtocol =
+  const libp2p::peer::ProtocolName kStateProtocol = "/{}/state/2";
+  const libp2p::peer::ProtocolName kSyncProtocol = "/{}/sync/2";
+  const libp2p::peer::ProtocolName kPropagateTransactionsProtocol =
       "/{}/transactions/1";
-  const libp2p::peer::Protocol kBlockAnnouncesProtocol =
+  const libp2p::peer::ProtocolName kBlockAnnouncesProtocol =
       "/{}/block-announces/1";
-  const libp2p::peer::Protocol kGrandpaProtocol = "/{}/grandpa/1";
-  const libp2p::peer::Protocol kCollationProtocol{"/polkadot/collation/1"};
-  const libp2p::peer::Protocol kValidationProtocol{"/polkadot/validation/1"};
-  const libp2p::peer::Protocol kReqCollationProtocol{
-      "/polkadot/req_collation/1"};
-  const libp2p::peer::Protocol kReqPovProtocol{"/polkadot/req_pov/1"};
-  const libp2p::peer::Protocol kFetchChunkProtocol{"/polkadot/req_chunk/1"};
-  const libp2p::peer::Protocol kFetchAvailableDataProtocol{
-      "/polkadot/req_available_data/1"};
-  const libp2p::peer::Protocol kFetchStatementProtocol{
-      "/polkadot/req_statement/1"};
+  const libp2p::peer::ProtocolName kGrandpaProtocol = "/{}/grandpa/1";
+  const libp2p::peer::ProtocolName kCollationProtocol{"/{}/collation/1"};
+  const libp2p::peer::ProtocolName kValidationProtocol{"/{}/validation/1"};
+  const libp2p::peer::ProtocolName kReqCollationProtocol{"/{}/req_collation/1"};
+  const libp2p::peer::ProtocolName kReqPovProtocol{"/{}/req_pov/1"};
+  const libp2p::peer::ProtocolName kFetchChunkProtocol{"/{}/req_chunk/1"};
+  const libp2p::peer::ProtocolName kFetchAvailableDataProtocol{
+      "/{}/req_available_data/1"};
+  const libp2p::peer::ProtocolName kFetchStatementProtocol{
+      "/{}/req_statement/1"};
 
   template <typename... Args>
   libp2p::StreamProtocols make_protocols(std::string_view format,

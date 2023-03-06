@@ -10,8 +10,8 @@
 #include <libp2p/protocol/ping.hpp>
 
 #include "network/impl/protocols/block_announce_protocol.hpp"
-#include "network/impl/protocols/collation_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
+#include "network/impl/protocols/parachain_protocols.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/impl/protocols/protocol_fetch_available_data.hpp"
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"

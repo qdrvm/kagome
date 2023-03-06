@@ -12,7 +12,7 @@
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
-#include "parachain/approval/approval-distribution.hpp"
+#include "parachain/approval/approval_distribution.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 
 namespace kagome::observers {
@@ -27,8 +27,8 @@ namespace kagome::observers {
           crypto_provider_{std::move(crypto_provider)},
           processor_{std::move(processor)},
           approval_distribution_(std::move(approval_distribution)) {
-      BOOST_ASSERT_MSG(pm_, "Peer manager must be initialised!");
-      BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialised!");
+      BOOST_ASSERT_MSG(pm_, "Peer manager must be initialized!");
+      BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialized!");
       BOOST_ASSERT(approval_distribution_);
     }
     ~ValidationObserverImpl() override = default;
@@ -64,9 +64,9 @@ namespace kagome::observers {
           processor_{std::move(processor)},
           peer_view_(std::move(peer_view)) {
       BOOST_ASSERT_MSG(crypto_provider_,
-                       "Crypto provider must be initialised!");
-      BOOST_ASSERT_MSG(pm_, "Peer manager must be initialised!");
-      BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialised!");
+                       "Crypto provider must be initialized!");
+      BOOST_ASSERT_MSG(pm_, "Peer manager must be initialized!");
+      BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialized!");
       BOOST_ASSERT(peer_view_);
     }
     ~CollationObserverImpl() override = default;
@@ -153,7 +153,8 @@ namespace kagome::observers {
 
       if (peer_state->get().collator_state) {
         logger_->warn("Peer is in collating state {}:{}", peer_id, para_id);
-        // return;
+        // TODO(iceseer): check that peer is not in collating state, or is in
+        // collating state with similar pubkey and parachain id.
       }
 
       auto payload{peer_id.toVector()};  /// Copy because verify works with
@@ -188,7 +189,7 @@ namespace kagome::observers {
   struct ReqCollationObserverImpl final : network::ReqCollationObserver {
     ReqCollationObserverImpl(std::shared_ptr<network::PeerManager> pm)
         : pm_{std::move(pm)} {
-      BOOST_ASSERT_MSG(pm_, "Peer manager must be initialised!");
+      BOOST_ASSERT_MSG(pm_, "Peer manager must be initialized!");
     }
     ~ReqCollationObserverImpl() = default;
 
@@ -206,7 +207,7 @@ namespace kagome::observers {
     ReqPovObserverImpl(
         std::shared_ptr<parachain::ParachainProcessorImpl> processor)
         : processor_{std::move(processor)} {
-      BOOST_ASSERT_MSG(processor_, "Peer manager must be initialised!");
+      BOOST_ASSERT_MSG(processor_, "Peer manager must be initialized!");
     }
     ~ReqPovObserverImpl() = default;
 
@@ -243,13 +244,13 @@ namespace kagome::parachain {
         req_pov_observer_impl_{
             std::make_shared<observers::ReqPovObserverImpl>(processor)} {
     BOOST_ASSERT_MSG(collation_observer_impl_,
-                     "Collation observer must be initialised!");
+                     "Collation observer must be initialized!");
     BOOST_ASSERT_MSG(validation_observer_impl_,
-                     "Validation observer must be initialised!");
+                     "Validation observer must be initialized!");
     BOOST_ASSERT_MSG(req_collation_observer_impl_,
-                     "Fetch collation observer must be initialised!");
+                     "Fetch collation observer must be initialized!");
     BOOST_ASSERT_MSG(req_pov_observer_impl_,
-                     "Fetch pov observer must be initialised!");
+                     "Fetch pov observer must be initialized!");
   }
 
   void ParachainObserverImpl::onIncomingMessage(

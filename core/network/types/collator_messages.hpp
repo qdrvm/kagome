@@ -573,7 +573,7 @@ struct fmt::formatter<kagome::network::SignedBitfield> {
                      val.signature,
                      val.payload.ix,
                      buf,
-                     ix == bits.size() ? "" : "...");
+                     ix == bits.size() ? "" : "…");
   }
 };
 

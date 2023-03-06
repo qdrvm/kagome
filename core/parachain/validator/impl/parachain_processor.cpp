@@ -50,24 +50,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
   return "Unknown parachain processor error";
 }
 
-#if __cplusplus < 202002L
-namespace std {
-  template <typename Container, typename Pred>
-  inline auto erase_if(Container &c, Pred &&pred) ->
-      typename Container::size_type {
-    const auto old_size = c.size();
-    for (auto it = c.begin(); it != c.end();) {
-      if (std::forward<Pred>(pred)(*it)) {
-        it = c.erase(it);
-      } else {
-        ++it;
-      }
-    }
-    return old_size - c.size();
-  }
-}  // namespace std
-#endif
-
 namespace {
 
   struct ExChunksList final : NonCopyable {
@@ -230,17 +212,11 @@ namespace kagome::parachain {
     OUTCOME_TRY(groups, parachain_host_->validator_groups(relay_parent));
     OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
     OUTCOME_TRY(validator, signer_factory_->at(relay_parent));
-    OUTCOME_TRY(session_index,
-                parachain_host_->session_index_for_child(relay_parent));
     auto &[validator_groups, group_rotation_info] = groups;
 
     if (!validator) {
       logger_->error("Not a validator, or no para keys.");
       return Error::KEY_NOT_PRESENT;
-    }
-
-    if (session_index != validator->getSessionIndex()) {
-      logger_->error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     }
 
     auto const n_cores = cores.size();
@@ -309,7 +285,7 @@ namespace kagome::parachain {
       network::CollationEvent &&pending_collation,
       network::CollationFetchingResponse &&response) {
     logger_->info("Processing collation from {}, relay parent: {}, para id: {}",
-                  pending_collation.pending_collation.peer_id.toBase58(),
+                  pending_collation.pending_collation.peer_id,
                   pending_collation.pending_collation.relay_parent,
                   pending_collation.pending_collation.para_id);
 
@@ -317,7 +293,7 @@ namespace kagome::parachain {
         pending_collation.pending_collation.relay_parent);
     if (!opt_parachain_state) {
       logger_->warn("Fetched collation from {}:{} out of view",
-                    pending_collation.pending_collation.peer_id.toBase58(),
+                    pending_collation.pending_collation.peer_id,
                     pending_collation.pending_collation.relay_parent);
       return;
     }
@@ -336,7 +312,7 @@ namespace kagome::parachain {
       logger_->warn(
           "Fetched collation from wrong collator: received {} from {}",
           descriptor.collator_id,
-          pending_collation.pending_collation.peer_id.toBase58());
+          pending_collation.pending_collation.peer_id);
       return;
     }
 
@@ -344,7 +320,7 @@ namespace kagome::parachain {
         boost::get<network::CollationResponse>(&response.response_data);
     if (nullptr == collation_response) {
       logger_->warn("Not a CollationResponse message from {}.",
-                    pending_collation.pending_collation.peer_id.toBase58());
+                    pending_collation.pending_collation.peer_id);
       return;
     }
 
@@ -433,9 +409,8 @@ namespace kagome::parachain {
     /// from some peer, than we expect this peer has valid PoV, which we can
     /// request.
 
-    logger_->info("Requesting PoV.(candidate hash={}, peer={})",
-                  candidate_hash,
-                  peer_id.toBase58());
+    logger_->info(
+        "Requesting PoV.(candidate hash={}, peer={})", candidate_hash, peer_id);
 
     auto protocol = router_->getReqPovProtocol();
     BOOST_ASSERT(protocol);
@@ -498,7 +473,7 @@ namespace kagome::parachain {
 
             self->logger_->info("PoV received.(candidate hash={}, peer={})",
                                 candidate_hash,
-                                peer_id.toBase58());
+                                peer_id);
             self->appendAsyncValidationTask<ValidationTaskType::kAttest>(
                 std::move(candidate),
                 std::move(*p),
@@ -541,7 +516,7 @@ namespace kagome::parachain {
         "relay parent={}, peer={})",
         candidate.descriptor.para_id,
         relay_parent,
-        peer_id.toBase58());
+        peer_id);
 
     std::optional<ValidateAndSecondResult> validate_and_second_result =
         std::nullopt;
@@ -614,9 +589,8 @@ namespace kagome::parachain {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
     auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!opt_parachain_state) {
-      logger_->warn("Handled statement from {}:{} out of view",
-                    peer_id.toBase58(),
-                    relay_parent);
+      logger_->warn(
+          "Handled statement from {}:{} out of view", peer_id, relay_parent);
       return;
     }
 
@@ -638,15 +612,10 @@ namespace kagome::parachain {
       logger_->trace(
           "Registered incoming statement.(relay_parent={}, peer={}).",
           relay_parent,
-          peer_id.toBase58());
+          peer_id);
       std::optional<std::reference_wrapper<AttestingData>> attesting_ref =
           visit_in_place(
               parachain::getPayload(statement).candidate_state,
-              [&](network::Dummy const &)
-                  -> std::optional<std::reference_wrapper<AttestingData>> {
-                BOOST_ASSERT(!"Not used!");
-                return std::nullopt;
-              },
               [&](network::CommittedCandidateReceipt const &seconded)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
                 auto const &candidate_hash = result->imported.candidate;
@@ -684,6 +653,11 @@ namespace kagome::parachain {
                 }
                 it->second.from_validator = statement.payload.ix;
                 return it->second;
+              },
+              [&](auto const &)
+                  -> std::optional<std::reference_wrapper<AttestingData>> {
+                BOOST_ASSERT(!"Not used!");
+                return std::nullopt;
               });
 
       if (attesting_ref) {
@@ -925,18 +899,6 @@ namespace kagome::parachain {
     }
 
     return sign_result.value();
-
-    /*return network::SignedStatement{
-        .payload =
-            {
-                .payload =
-                    network::Statement{
-                        .candidate_state = std::forward<T>(payload),
-                    },
-                .ix = validator_ix,
-            },
-        .signature = std::move(sign_result.value()),
-    };*/
   }
 
   template <typename F>
@@ -1020,7 +982,7 @@ namespace kagome::parachain {
 
     BOOST_ASSERT(protocol);
     logger_->info("Send my view.(peer={}, protocol={})",
-                  peer_id.toBase58(),
+                  peer_id,
                   protocol->protocolName());
     pm_->getStreamEngine()->template send(
         peer_id,
@@ -1039,7 +1001,7 @@ namespace kagome::parachain {
                     peer_id, stream, self->router_->getCollationProtocol());
               }
             })) {
-      logger_->info("Initiated collation protocol with {}", peer_id);
+      SL_DEBUG(logger_, "Initiated collation protocol with {}", peer_id);
     }
   }
 
@@ -1061,7 +1023,7 @@ namespace kagome::parachain {
     if (auto res = av_store_->getPov(candidate_hash)) {
       return network::ResponsePov{*res};
     }
-    return network::Dummy{};
+    return network::Empty{};
   }
 
   void ParachainProcessorImpl::onIncomingCollator(
@@ -1088,7 +1050,7 @@ namespace kagome::parachain {
     }
 
     logger_->info("Send Seconded to collator.(peer={}, relay parent={})",
-                  peer_id.toBase58(),
+                  peer_id,
                   relay_parent);
 
     auto stream_engine = pm_->getStreamEngine();
@@ -1148,14 +1110,14 @@ namespace kagome::parachain {
       libp2p::peer::PeerId const &peer_id,
       ValidateAndSecondResult &&validation_result) {
     logger_->warn("On validation complete. (peer={}, relay parent={})",
-                  peer_id.toBase58(),
+                  peer_id,
                   validation_result.relay_parent);
 
     auto opt_parachain_state =
         tryGetStateByRelayParent(validation_result.relay_parent);
     if (!opt_parachain_state) {
       logger_->warn("Validated candidate from {}:{} out of view",
-                    peer_id.toBase58(),
+                    peer_id,
                     validation_result.relay_parent);
       return;
     }
@@ -1174,7 +1136,7 @@ namespace kagome::parachain {
       logger_->trace(
           "Second candidate complete. (candidate={}, peer={}, relay parent={})",
           candidate_hash,
-          peer_id.toBase58(),
+          peer_id,
           validation_result.relay_parent);
 
       seconded = candidate_hash;
@@ -1336,8 +1298,6 @@ namespace kagome::parachain {
                 createAndSignStatement<StatementType::kValid>(result)) {
           importStatement(
               result.relay_parent, *statement, parachain_state->get());
-
-          /// TODO(iceseer): TUT VALID
           notifyStatementDistributionSystem(result.relay_parent, *statement);
         }
       }
@@ -1392,12 +1352,12 @@ namespace kagome::parachain {
 
           self->logger_->info(
               "Fetching collation from(peer={}, relay parent={})",
-              pending_collation.pending_collation.peer_id.toBase58(),
+              pending_collation.pending_collation.peer_id,
               pending_collation.pending_collation.relay_parent);
           if (!result) {
             self->logger_->warn(
                 "Fetch collation from {}:{} failed with: {}",
-                pending_collation.pending_collation.peer_id.toBase58(),
+                pending_collation.pending_collation.peer_id,
                 pending_collation.pending_collation.relay_parent,
                 result.error());
             return;

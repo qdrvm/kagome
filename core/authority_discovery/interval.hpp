@@ -23,8 +23,8 @@ namespace kagome::authority_discovery {
         : delay_{initial}, max_{max}, scheduler_{scheduler} {}
 
     void start(std::function<void()> cb) {
-      assert(not cb_);
-      assert(cb);
+      BOOST_ASSERT(not cb_);
+      BOOST_ASSERT(cb);
       cb_ = std::move(cb);
       step();
     }

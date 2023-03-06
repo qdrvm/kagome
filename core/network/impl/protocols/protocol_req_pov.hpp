@@ -31,6 +31,8 @@ namespace kagome::network {
     ~ReqPovProtocol() override = default;
 
     ReqPovProtocol(libp2p::Host &host,
+                   application::ChainSpec const &chain_spec,
+                   const primitives::BlockHash &genesis_hash,
                    std::shared_ptr<ReqPovObserver> observer);
 
     const Protocol &protocolName() const override;

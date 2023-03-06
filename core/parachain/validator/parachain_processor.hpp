@@ -110,10 +110,6 @@ namespace kagome::parachain {
         network::ValidatorProtocolMessage const &message);
     outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
         network::FetchChunkRequest const &request);
-    template <typename F>
-    void recoverCandidate(F &&complete_callback) {
-      /// TODO(iceseer): not implemented
-    }
 
     network::ResponsePov getPov(CandidateHash &&candidate_hash);
     auto getAvStore() {
@@ -323,10 +319,6 @@ namespace kagome::parachain {
         network::Statement const &statement) {
       return visit_in_place(
           statement.candidate_state,
-          [](network::Dummy const &) {
-            BOOST_ASSERT(!"Not used!");
-            return primitives::BlockHash{};
-          },
           [&](network::CommittedCandidateReceipt const &data) {
             return hasher_->blake2b_256(
                 scale::encode(candidateFromCommittedCandidateReceipt(data))
@@ -334,6 +326,10 @@ namespace kagome::parachain {
           },
           [&](primitives::BlockHash const &candidate_hash) {
             return candidate_hash;
+          },
+          [](auto const &) {
+            BOOST_ASSERT(!"Not used!");
+            return primitives::BlockHash{};
           });
     }
 

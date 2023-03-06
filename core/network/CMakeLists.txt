@@ -30,7 +30,7 @@ add_library(network
     impl/reputation_repository_impl.cpp
     helpers/scale_message_read_writer.cpp
     adapters/adapter_errors.cpp
-        impl/protocols/protocol_req_pov.cpp)
+    impl/protocols/protocol_req_pov.cpp)
 target_link_libraries(network
     p2p::p2p_basic_scheduler
     runtime_environment_factory

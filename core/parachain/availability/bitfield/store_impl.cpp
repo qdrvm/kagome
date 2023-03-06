@@ -14,9 +14,10 @@ namespace kagome::parachain {
 
   void BitfieldStoreImpl::putBitfield(const BlockHash &relay_parent,
                                       const SignedBitfield &bitfield) {
-    logger_->trace("Put bitfields.(relay_parent={}, bitfields={})",
-                   relay_parent,
-                   bitfield);
+    SL_TRACE(logger_,
+             "Put bitfields.(relay_parent={}, bitfields={})",
+             relay_parent,
+             bitfield);
     bitfields_[relay_parent].push_back(bitfield);
   }
 
@@ -58,10 +59,10 @@ namespace kagome::parachain {
           }
 
           if (bf.payload.payload.bits[ix]) {
-            logger_->debug(
-                "dropping invalid bitfield - bit is set for an unoccupied "
-                "core.(relay_parent={})",
-                relay_parent);
+            SL_DEBUG(logger_,
+                     "dropping invalid bitfield - bit is set for an unoccupied "
+                     "core.(relay_parent={})",
+                     relay_parent);
             skip = true;
             break;
           }

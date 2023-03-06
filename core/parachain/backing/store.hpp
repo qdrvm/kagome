@@ -9,6 +9,10 @@
 #include "network/types/collator_messages.hpp"
 
 namespace kagome::parachain {
+
+  /// Used to keep statements and backed candidates for active backing task.
+  /// Chains Block producer with backing, which main purpose to propose valid
+  /// candidates from parachains.
   class BackingStore {
    public:
     using BlockHash = primitives::BlockHash;

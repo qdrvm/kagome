@@ -19,23 +19,6 @@ namespace kagome::parachain::approval {
   /// serving as backup.
   using DelayTranche = uint32_t;
 
-  /// A static context used to compute the Relay VRF story based on the
-  /// VRF output included in the header-chain.
-  constexpr auto RELAY_VRF_STORY_CONTEXT = "A&V RC-VRF";
-
-  /// A static context used for all relay-vrf-modulo VRFs.
-  constexpr auto RELAY_VRF_DELAY_CONTEXT = "A&V DELAY";
-
-  /// A static context used for transcripts indicating assigned availability
-  /// core.
-  constexpr auto ASSIGNED_CORE_CONTEXT = "A&V ASSIGNED";
-
-  /// A static context associated with producing randomness for a core.
-  constexpr auto CORE_RANDOMNESS_CONTEXT = "A&V CORE";
-
-  /// A static context associated with producing randomness for a tranche.
-  constexpr auto TRANCHE_RANDOMNESS_CONTEXT = "A&V TRANCHE";
-
   /// An assignment story based on the VRF that authorized the relay-chain block
   /// where the candidate was included combined with a sample number.
   ///

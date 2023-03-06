@@ -19,12 +19,12 @@
 #include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "consensus/babe/impl/parachains_inherent_data.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
+#include "network/types/collator_messages.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -38,6 +38,7 @@ namespace {
 using namespace std::literals::chrono_literals;
 
 namespace kagome::consensus::babe {
+  using ParachainInherentData = network::ParachainInherentData;
   using SyncMethod = application::AppConfiguration::SyncMethod;
 
   BabeImpl::BabeImpl(
@@ -916,14 +917,12 @@ namespace kagome::consensus::babe {
 
     {
       auto &relay_parent = best_block_.hash;
-      // TODO: select bitfields
       paras_inherent_data.bitfields =
           bitfield_store_->getBitfields(relay_parent);
 
-      // TODO: select candidates
       paras_inherent_data.backed_candidates = backing_store_->get(relay_parent);
-      log_->info("Get backed candidates from store.(count={})",
-                 paras_inherent_data.backed_candidates.size());
+      log_->trace("Get backed candidates from store.(count={})",
+                  paras_inherent_data.backed_candidates.size());
 
       auto best_block_header_res =
           block_tree_->getBlockHeader(best_block_.hash);

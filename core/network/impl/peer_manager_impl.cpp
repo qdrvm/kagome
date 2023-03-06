@@ -258,8 +258,6 @@ namespace kagome::network {
       network::CollatorPublicKey const &collator_id,
       network::ParachainId para_id) {
     if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
-      /*BOOST_ASSERT(!it->second.collator_state
-                   && !!"Collator state should be empty at the time.");*/
       it->second.collator_state =
           CollatorState{.parachain_id = para_id, .collator_id = collator_id};
       it->second.time = clock_->now();
@@ -694,7 +692,7 @@ namespace kagome::network {
                        "Router did not provide validation protocol");
 
       log_->trace("Try to open outgoing validation protocol.(peer={})",
-                  peer_info.id.toBase58());
+                  peer_info.id);
       openOutgoing(
           stream_engine_,
           validation_protocol,

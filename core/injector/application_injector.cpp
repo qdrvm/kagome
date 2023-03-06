@@ -109,7 +109,7 @@
 #include "offchain/impl/offchain_worker_impl.hpp"
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
 #include "outcome/outcome.hpp"
-#include "parachain/approval/approval-distribution.hpp"
+#include "parachain/approval/approval_distribution.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/recovery/recovery_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
@@ -624,42 +624,6 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<parachain::ApprovalDistribution> get_approval_distribution_impl(
-      const Injector &injector) {
-    auto get_instance = [&]() {
-      parachain::ApprovalVotingSubsystem config{
-          .slot_duration_millis = 6'000,
-      };
-
-      auto ptr = std::make_shared<parachain::ApprovalDistribution>(
-          injector.template create<std::shared_ptr<ThreadPool>>(),
-          injector.template create<sptr<runtime::ParachainHost>>(),
-          injector.template create<sptr<consensus::babe::BabeUtil>>(),
-          injector.template create<crypto::CryptoStore &>(),
-          injector.template create<std::shared_ptr<crypto::Hasher>>(),
-          injector
-              .template create<std::shared_ptr<::boost::asio::io_context>>(),
-          config,
-          injector.template create<std::shared_ptr<network::PeerView>>(),
-          injector.template create<
-              std::shared_ptr<parachain::ParachainProcessorImpl>>(),
-          injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
-          injector.template create<std::shared_ptr<network::PeerManager>>(),
-          injector.template create<std::shared_ptr<network::Router>>());
-
-      auto app_state_manager =
-          injector
-              .template create<std::shared_ptr<application::AppStateManager>>();
-      app_state_manager->takeControl(*ptr);
-
-      return ptr;
-    };
-
-    static auto instance = get_instance();
-    return instance;
-  }
-
-  template <typename Injector>
   sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
       const Injector &injector) {
     auto get_instance = [&]() {
@@ -1164,10 +1128,6 @@ namespace {
             [](auto const &injector) {
               return get_parachain_processor_impl(injector);
             }),
-        /*di::bind<parachain::ApprovalDistribution>.to(
-            [](auto const &injector) {
-              return get_approval_distribution_impl(injector);
-            }),*/
         di::bind<ThreadPool>.to(
             [](auto const &injector) { return get_thread_pool(injector); }),
         di::bind<storage::trie::TrieStorageBackend>.to(

@@ -18,13 +18,17 @@ namespace kagome::network {
         NonCopyable,
         NonMovable {
     ReqCollationProtocolImpl(libp2p::Host &host,
+                             application::ChainSpec const &chain_spec,
+                             const primitives::BlockHash &genesis_hash,
                              std::shared_ptr<ReqCollationObserver> observer)
         : RequestResponseProtocol<
             CollationFetchingRequest,
             CollationFetchingResponse,
             ScaleMessageReadWriter>{kReqCollationProtocolName,
                                     host,
-                                    {kReqCollationProtocol},
+                                    make_protocols(kReqCollationProtocol,
+                                                   genesis_hash,
+                                                   "polkadot"),
                                     log::createLogger(
                                         kReqCollationProtocolName,
                                         "request_collation_protocol")},
@@ -39,9 +43,7 @@ namespace kagome::network {
     }
 
     void onTxRequest(CollationFetchingRequest const &request) override {
-      if (base().logger()->level() >= log::Level::DEBUG) {
-        base().logger()->debug("Requesting collation");
-      }
+      base().logger()->debug("Requesting collation");
     }
 
    private:
@@ -52,9 +54,12 @@ namespace kagome::network {
   };
 
   ReqCollationProtocol::ReqCollationProtocol(
-      libp2p::Host &host, std::shared_ptr<ReqCollationObserver> observer)
+      libp2p::Host &host,
+      application::ChainSpec const &chain_spec,
+      const primitives::BlockHash &genesis_hash,
+      std::shared_ptr<ReqCollationObserver> observer)
       : impl_{std::make_shared<ReqCollationProtocolImpl>(
-          host, std::move(observer))} {}
+          host, chain_spec, genesis_hash, std::move(observer))} {}
 
   const Protocol &ReqCollationProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");

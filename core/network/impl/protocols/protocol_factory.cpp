@@ -80,9 +80,14 @@ namespace kagome::network {
 
   std::shared_ptr<ValidationProtocol> ProtocolFactory::makeValidationProtocol()
       const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     return std::make_shared<ValidationProtocol>(host_,
                                                 app_config_,
                                                 chain_spec_,
+                                                genesisBlockHash,
                                                 validation_observer_.lock(),
                                                 kValidationProtocol,
                                                 peer_view_);
@@ -90,9 +95,14 @@ namespace kagome::network {
 
   std::shared_ptr<CollationProtocol> ProtocolFactory::makeCollationProtocol()
       const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     return std::make_shared<CollationProtocol>(host_,
                                                app_config_,
                                                chain_spec_,
+                                               genesisBlockHash,
                                                collation_observer_.lock(),
                                                kCollationProtocol,
                                                peer_view_);
@@ -102,36 +112,58 @@ namespace kagome::network {
   ProtocolFactory::makeReqCollationProtocol() const {
     auto block_tree = block_tree_.lock();
     BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
     return std::make_shared<ReqCollationProtocol>(
-        host_, req_collation_observer_.lock());
+        host_, chain_spec_, genesisBlockHash, req_collation_observer_.lock());
   }
 
   std::shared_ptr<ReqPovProtocol> ProtocolFactory::makeReqPovProtocol() const {
-    return std::make_shared<ReqPovProtocol>(host_, req_pov_observer_.lock());
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
+    return std::make_shared<ReqPovProtocol>(
+        host_, chain_spec_, genesisBlockHash, req_pov_observer_.lock());
   }
 
   std::shared_ptr<FetchChunkProtocol> ProtocolFactory::makeFetchChunkProtocol()
       const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     auto pp = parachain_processor_.lock();
     BOOST_ASSERT(pp);
-    return std::make_shared<FetchChunkProtocol>(host_, pp);
+
+    return std::make_shared<FetchChunkProtocol>(
+        host_, chain_spec_, genesisBlockHash, pp);
   }
 
   std::shared_ptr<FetchAvailableDataProtocol>
   ProtocolFactory::makeFetchAvailableDataProtocol() const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     auto pp = parachain_processor_.lock();
     BOOST_ASSERT(pp);
-    return std::make_shared<FetchAvailableDataProtocol>(host_,
-                                                        pp->getAvStore());
+
+    return std::make_shared<FetchAvailableDataProtocol>(
+        host_, chain_spec_, genesisBlockHash, pp->getAvStore());
   }
 
   std::shared_ptr<StatmentFetchingProtocol>
   ProtocolFactory::makeFetchStatementProtocol() const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
     auto pp = parachain_processor_.lock();
     BOOST_ASSERT(pp);
-    return std::make_shared<StatmentFetchingProtocol>(host_,
-                                                      pp->getBackingStore());
+
+    return std::make_shared<StatmentFetchingProtocol>(
+        host_, chain_spec_, genesisBlockHash, pp->getBackingStore());
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>

@@ -36,8 +36,7 @@ namespace kagome::parachain {
                    chain_sub_engine);
 
     /// Sign bitfield for given block.
-    outcome::result<void> sign(const ValidatorSigner &signer,
-                               const primitives::BlockHash &relay_parent);
+    outcome::result<void> sign(const ValidatorSigner &signer);
 
     void setBroadcastCallback(BroadcastCallback &&callback);
 

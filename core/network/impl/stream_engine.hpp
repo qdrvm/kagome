@@ -62,7 +62,7 @@ namespace kagome::network {
   struct StreamEngine final : std::enable_shared_from_this<StreamEngine> {
     using PeerInfo = libp2p::peer::PeerInfo;
     using PeerId = libp2p::peer::PeerId;
-    using Protocol = libp2p::peer::Protocol;
+    using Protocol = libp2p::peer::ProtocolName;
     using Stream = libp2p::connection::Stream;
     using StreamEnginePtr = std::shared_ptr<StreamEngine>;
 
@@ -107,9 +107,10 @@ namespace kagome::network {
         std::shared_ptr<Stream> stream,
         const std::shared_ptr<ProtocolBase> &protocol) {
       if (auto res = stream->remotePeerId(); res.has_value()) {
-        logger_->info("Add outgoing protocol.(protocol={}, peer_id={})",
-                      protocol->protocolName(),
-                      res.value().toBase58());
+        SL_TRACE(logger_,
+                 "Add outgoing protocol.(protocol={}, peer_id={})",
+                 protocol->protocolName(),
+                 res.value().toBase58());
       }
       return add(std::move(stream), protocol, Direction::OUTGOING);
     }
@@ -170,18 +171,21 @@ namespace kagome::network {
       forEachPeer([&](const auto &peer_id, auto &proto_map) {
         if (predicate(peer_id)) {
           forProtocol(proto_map, protocol, [&](ProtocolDescr &descr) {
-            logger_->trace("Sending msg to peer.(protocol={}, peer={})",
-                           protocol->protocolName(),
-                           peer_id);
+            SL_TRACE(logger_,
+                     "Sending msg to peer.(protocol={}, peer={})",
+                     protocol->protocolName(),
+                     peer_id);
             if (descr.hasActiveOutgoing()) {
-              logger_->trace(
+              SL_TRACE(
+                  logger_,
                   "Has active outgoing. Direct send.(protocol={}, peer={})",
                   protocol->protocolName(),
                   peer_id);
               send(peer_id, protocol, descr.outgoing.stream, msg);
               on_send(*descr.outgoing.stream);
             } else {
-              logger_->trace(
+              SL_TRACE(
+                  logger_,
                   "No active outgoing. Reopen outgoing stream.(protocol={}, "
                   "peer={})",
                   protocol->protocolName(),
@@ -192,10 +196,10 @@ namespace kagome::network {
                                                  protocol,
                                                  on_send](auto stream) {
                 if (auto self = weak_self.lock()) {
-                  self->logger_->trace(
-                      "Send deffered messages.(protocol={}, peer={})",
-                      protocol->protocolName(),
-                      peer_id);
+                  SL_TRACE(self->logger_,
+                           "Send deffered messages.(protocol={}, peer={})",
+                           protocol->protocolName(),
+                           peer_id);
                   self->send(peer_id, protocol, stream, msg);
                   on_send(*stream);
                 }

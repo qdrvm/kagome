@@ -73,10 +73,10 @@ namespace kagome::network {
               return;
             }
 
-            SL_INFO(self->base_.logger(),
-                    "Established outgoing {} stream with {}",
-                    self->protocolName(),
-                    stream->remotePeerId().value());
+            SL_DEBUG(self->base_.logger(),
+                     "Established outgoing {} stream with {}",
+                     self->protocolName(),
+                     stream->remotePeerId().value());
 
             self->writeRequest(std::move(stream),
                                std::move(request),

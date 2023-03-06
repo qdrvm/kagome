@@ -86,14 +86,13 @@ namespace kagome::blockchain {
    */
   struct TreeMeta {
     union WeightInfo {
-      static_assert(
+      BOOST_STATIC_ASSERT(
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
           false
 #else   //__BYTE_ORDER__
           true
 #endif  //__BYTE_ORDER__
-          ,
-          "Fix structure layout for BE");
+      );
 
       struct {
         uint64_t parachain_payload : 48;

@@ -14,7 +14,7 @@ add_library(validator_parachain
     validator/impl/parachain_observer.cpp
     validator/impl/parachain_processor.cpp
     validator/signer.cpp
-    approval/approval-distribution.cpp approval/approval.cpp
+    approval/approval_distribution.cpp approval/approval.cpp
     backing/store_impl.cpp
     )
 

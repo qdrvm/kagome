@@ -21,11 +21,14 @@ namespace kagome::network {
                                        ScaleMessageReadWriter> {
    public:
     static constexpr const char *kName = "FetchAvailableDataProtocol";
-    FetchAvailableDataProtocol(libp2p::Host &host, std::shared_ptr<parachain::AvailabilityStore> av_store)
+    FetchAvailableDataProtocol(libp2p::Host &host, 
+    application::ChainSpec const & chain_spec,
+                      const primitives::BlockHash &genesis_hash,
+    std::shared_ptr<parachain::AvailabilityStore> av_store)
         : RequestResponseProtocol<FetchAvailableDataRequest, FetchAvailableDataResponse, ScaleMessageReadWriter>{
           kName,
           host,
-          {kFetchAvailableDataProtocol},
+          make_protocols(kFetchAvailableDataProtocol, genesis_hash, "polkadot"),
           log::createLogger(kName),
         },
         av_store_{std::move(av_store)} {}
@@ -50,11 +53,12 @@ namespace kagome::network {
                                        ScaleMessageReadWriter> {
    public:
     static constexpr const char *kName = "FetchStatementProtocol";
-    StatmentFetchingProtocol(libp2p::Host &host, std::shared_ptr<parachain::BackingStore> backing_store)
+    StatmentFetchingProtocol(libp2p::Host &host, application::ChainSpec const & chain_spec,
+                      const primitives::BlockHash &genesis_hash,std::shared_ptr<parachain::BackingStore> backing_store)
         : RequestResponseProtocol<FetchStatementRequest, FetchStatementResponse, ScaleMessageReadWriter>{
             kName,
             host,
-            {kFetchStatementProtocol},
+            make_protocols(kFetchStatementProtocol, genesis_hash, "polkadot"),
             log::createLogger(kName),
         },
           backing_store_{std::move(backing_store)} {}

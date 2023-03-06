@@ -35,13 +35,17 @@ namespace kagome::network {
     ~FetchChunkProtocol() override = default;
 
     FetchChunkProtocol(libp2p::Host &host,
+                       application::ChainSpec const &chain_spec,
+                       const primitives::BlockHash &genesis_hash,
                        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
         : RequestResponseProtocol<
             FetchChunkRequest,
             FetchChunkResponse,
             ScaleMessageReadWriter>{kFetchChunkProtocolName,
                                     host,
-                                    {kFetchChunkProtocol},
+                                    make_protocols(kFetchChunkProtocol,
+                                                   genesis_hash,
+                                                   "polkadot"),
                                     log::createLogger(kFetchChunkProtocolName,
                                                       "fetch_chunk_protocol")},
           pp_{std::move(pp)} {
@@ -72,11 +76,9 @@ namespace kagome::network {
     }
 
     void onTxRequest(RequestType const &request) override {
-      if (base().logger()->level() >= log::Level::DEBUG) {
-        base().logger()->debug("Fetching chunk candidate: {}, index: {}",
-                               request.candidate,
-                               request.chunk_index);
-      }
+      base().logger()->debug("Fetching chunk candidate: {}, index: {}",
+                             request.candidate,
+                             request.chunk_index);
     }
 
     const static inline auto kFetchChunkProtocolName = "FetchChunkProtocol"s;
