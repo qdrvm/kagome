@@ -43,7 +43,8 @@ namespace kagome::runtime {
              "Setting storage provider to ephemeral batch with root {}",
              state_root);
     OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(state_root));
-    return setTo(std::move(batch));
+    setTo(std::move(batch));
+    return outcome::success();
   }
 
   outcome::result<void> TrieStorageProviderImpl::setToPersistentAt(
@@ -52,16 +53,16 @@ namespace kagome::runtime {
              "Setting storage provider to new persistent batch with root {}",
              state_root);
     OUTCOME_TRY(batch, trie_storage_->getPersistentBatchAt(state_root));
-    return setTo(std::move(batch));
+    setTo(std::move(batch));
+    return outcome::success();
   }
 
-  outcome::result<void> TrieStorageProviderImpl::setTo(
+  void TrieStorageProviderImpl::setTo(
       std::shared_ptr<storage::trie::TrieBatch> batch) {
     SL_DEBUG(logger_, "Setting storage provider to new batch");
     child_batches_.clear();
     base_batch_ = batch;
     transaction_stack_.clear();
-    return outcome::success();
   }
 
   std::shared_ptr<TrieStorageProviderImpl::Batch>

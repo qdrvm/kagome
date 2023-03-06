@@ -50,7 +50,7 @@ namespace kagome::runtime {
      * @warning this will reset storage state to the specified root and discard
      * all changes accumulated in the current batch
      */
-    virtual outcome::result<void> setTo(
+    virtual void setTo(
         std::shared_ptr<storage::trie::TrieBatch> batch) = 0;
 
     /**

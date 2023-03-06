@@ -24,7 +24,7 @@ namespace kagome::runtime {
                 (const storage::trie::RootHash &),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 setTo,
                 (std::shared_ptr<storage::trie::TrieBatch> batch),
                 (override));

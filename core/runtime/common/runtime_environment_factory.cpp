@@ -174,14 +174,7 @@ namespace kagome::runtime {
 
     const auto &env = instance->getEnvironment();
     if (batch_) {
-      if (auto res = env.storage_provider->setTo(batch_); !res) {
-        SL_DEBUG(parent_factory->logger_,
-                 "Failed to set the storage state to a custom batch when "
-                 "initializing a "
-                 "runtime environment; Reason: {}",
-                 res.error());
-        return Error::FAILED_TO_SET_STORAGE_STATE;
-      }
+      env.storage_provider->setTo(batch_);
 
     } else if (persistent_) {
       if (auto res = env.storage_provider->setToPersistentAt(storage_state_);

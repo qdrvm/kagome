@@ -59,11 +59,11 @@ class ChildStorageExtensionTest : public ::testing::Test {
     EXPECT_CALL(*storage_provider_, getCurrentBatch())
         .WillRepeatedly(Return(trie_batch_));
     EXPECT_CALL(*storage_provider_, getChildBatchAt(_))
-        .WillRepeatedly(Return(std::cref(
-            *trie_child_storage_batch_)));
+        .WillRepeatedly(Return(outcome::success(std::cref(
+            *trie_child_storage_batch_))));
     EXPECT_CALL(*storage_provider_, getMutableChildBatchAt(_))
-        .WillRepeatedly(Return(std::ref(
-            *trie_child_storage_batch_)));
+        .WillRepeatedly(Return(outcome::success(std::ref(
+            *trie_child_storage_batch_))));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())

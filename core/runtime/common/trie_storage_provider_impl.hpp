@@ -35,7 +35,7 @@ namespace kagome::runtime {
     outcome::result<void> setToPersistentAt(
         const common::Hash256 &state_root) override;
 
-    outcome::result<void> setTo(
+    void setTo(
         std::shared_ptr<storage::trie::TrieBatch> batch) override;
 
     std::shared_ptr<Batch> getCurrentBatch() const override;
