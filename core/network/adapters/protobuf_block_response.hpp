@@ -8,6 +8,7 @@
 
 #include "network/adapters/protobuf.hpp"
 
+#include "network/protobuf/api.v1.pb.h"
 #include "network/types/blocks_response.hpp"
 #include "scale/scale.hpp"
 
@@ -28,20 +29,25 @@ namespace kagome::network {
         auto *dst_block = msg.add_blocks();
         dst_block->set_hash(src_block.hash.toString());
 
-        if (src_block.header)
+        if (src_block.header) {
           dst_block->set_header(
               vector_to_string(scale::encode(*src_block.header).value()));
+        }
 
-        if (src_block.body)
-          for (const auto &ext_body : *src_block.body)
+        if (src_block.body) {
+          for (const auto &ext_body : *src_block.body) {
             dst_block->add_body(
                 vector_to_string(scale::encode(ext_body).value()));
+          }
+        }
 
-        if (src_block.receipt)
+        if (src_block.receipt) {
           dst_block->set_receipt(src_block.receipt->toString());
+        }
 
-        if (src_block.message_queue)
+        if (src_block.message_queue) {
           dst_block->set_message_queue(src_block.message_queue->toString());
+        }
 
         if (src_block.justification) {
           dst_block->set_justification(
@@ -63,8 +69,9 @@ namespace kagome::network {
       assert(remains >= size(out));
 
       ::api::v1::BlockResponse msg;
-      if (!msg.ParseFromArray(from.base(), remains))
+      if (!msg.ParseFromArray(from.base(), remains)) {
         return AdaptersError::PARSE_FAILED;
+      }
 
       auto &dst_blocks = out.blocks;
       dst_blocks.reserve(msg.blocks().size());
@@ -78,7 +85,9 @@ namespace kagome::network {
 
         std::optional<primitives::BlockBody> bodies;
         for (const auto &b : src_block_data.body()) {
-          if (!bodies) bodies = primitives::BlockBody{};
+          if (!bodies) {
+            bodies = primitives::BlockBody{};
+          }
 
           OUTCOME_TRY(
               body, extract_value<primitives::Extrinsic>([&]() { return b; }));

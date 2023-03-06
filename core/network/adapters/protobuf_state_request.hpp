@@ -13,6 +13,7 @@
 
 #include "common/visitor.hpp"
 #include "macro/endianness_utils.hpp"
+#include "network/protobuf/api.v1.pb.h"
 #include "network/types/state_request.hpp"
 #include "primitives/common.hpp"
 

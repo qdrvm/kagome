@@ -1033,8 +1033,12 @@ namespace kagome::consensus::babe {
     }
 
     // finally, broadcast the sealed block
-    block_announce_transmitter_->blockAnnounce(
-        network::BlockAnnounce{block.header});
+    block_announce_transmitter_->blockAnnounce(network::BlockAnnounce{
+        block.header,
+        block_info == block_tree_->bestLeaf() ? network::BlockState::Best
+                                              : network::BlockState::Normal,
+        common::Buffer{},
+    });
     SL_DEBUG(
         log_,
         "Announced block number {} in slot {} (epoch {}) with timestamp {}",

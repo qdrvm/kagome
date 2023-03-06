@@ -16,6 +16,7 @@
 #include "libp2p/host/host.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/protocol/ping.hpp"
+#include "network/impl/protocols/light.hpp"
 #include "network/impl/protocols/protocol_factory.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -42,6 +43,7 @@ namespace kagome::network {
         const BootstrapNodes &bootstrap_nodes,
         std::shared_ptr<libp2p::protocol::Ping> ping_proto,
         boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol,
+        std::shared_ptr<LightProtocol> light_protocol,
         std::shared_ptr<network::ProtocolFactory> protocol_factory);
 
     ~RouterLibp2p() override = default;
@@ -86,6 +88,7 @@ namespace kagome::network {
     log::Logger log_;
     std::shared_ptr<libp2p::protocol::Ping> ping_protocol_;
     boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol_;
+    std::shared_ptr<LightProtocol> light_protocol_;
     std::shared_ptr<network::ProtocolFactory> protocol_factory_;
 
     std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;

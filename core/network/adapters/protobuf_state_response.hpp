@@ -8,6 +8,7 @@
 
 #include "network/adapters/protobuf.hpp"
 
+#include "network/protobuf/api.v1.pb.h"
 #include "network/types/state_response.hpp"
 #include "scale/scale.hpp"
 
@@ -49,8 +50,9 @@ namespace kagome::network {
       assert(remains >= size(out));
 
       ::api::v1::StateResponse msg;
-      if (!msg.ParseFromArray(from.base(), remains))
+      if (!msg.ParseFromArray(from.base(), remains)) {
         return AdaptersError::PARSE_FAILED;
+      }
 
       for (const auto &kvEntry : msg.entries()) {
         KeyValueStateEntry kv;
