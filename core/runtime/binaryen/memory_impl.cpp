@@ -123,8 +123,8 @@ namespace kagome::runtime::binaryen {
 
   void MemoryImpl::storeBuffer(kagome::runtime::WasmPointer addr,
                                gsl::span<const uint8_t> value) {
-    const auto size = static_cast<size_t>(value.size());
-    BOOST_ASSERT((allocator_->checkAddress(addr, size)));
+    BOOST_ASSERT(
+        (allocator_->checkAddress(addr, static_cast<size_t>(value.size()))));
     memory_->set(addr, std::move(value));
   }
 
