@@ -30,7 +30,6 @@ using kagome::primitives::events::StorageSubscriptionEngine;
 using kagome::storage::InMemoryStorage;
 using kagome::storage::changes_trie::ChangesTracker;
 using kagome::storage::changes_trie::StorageChangesTrackerImpl;
-using kagome::storage::trie::PersistentTrieBatch;
 using kagome::storage::trie::PersistentTrieBatchImpl;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
@@ -62,7 +61,7 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       std::make_shared<StorageChangesTrackerImpl>(storage_subscription_engine,
                                                   chain_subscription_engine);
   changes_tracker->onBlockExecutionStart("aaa"_hash256);
-  auto batch = PersistentTrieBatchImpl::create(
+  auto batch = std::make_unique<PersistentTrieBatchImpl>(
       codec,
       serializer,
       std::make_optional(changes_tracker),

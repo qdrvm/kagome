@@ -66,7 +66,7 @@ BlockHeader makeBlockHeader(RootHash hash) {
 
 class StateProtocolObserverTest : public testing::Test {
  protected:
-  outcome::result<std::unique_ptr<PersistentTrieBatch>>
+  outcome::result<std::unique_ptr<TrieBatch>>
   persistent_empty_batch() {
     auto codec = std::make_shared<PolkadotCodec>();
     OUTCOME_TRY(batch, trie_->getPersistentBatchAt(kEmptyRootHash));

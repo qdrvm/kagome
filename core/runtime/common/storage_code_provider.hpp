@@ -12,7 +12,7 @@
 #include "log/logger.hpp"
 
 namespace kagome::storage::trie {
-  class EphemeralTrieBatch;
+  class TrieBatch;
   class TrieStorage;
 }  // namespace kagome::storage::trie
 
@@ -36,7 +36,7 @@ namespace kagome::runtime {
 
    private:
     outcome::result<common::Buffer> setCodeFromBatch(
-        const storage::trie::EphemeralTrieBatch &batch) const;
+        const storage::trie::TrieBatch &batch) const;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const CodeSubstituteBlockIds> known_code_substitutes_;

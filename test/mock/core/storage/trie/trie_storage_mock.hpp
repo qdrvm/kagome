@@ -14,14 +14,19 @@ namespace kagome::storage::trie {
 
   class TrieStorageMock : public TrieStorage {
    public:
-    MOCK_METHOD(outcome::result<std::unique_ptr<PersistentTrieBatch>>,
+    MOCK_METHOD(outcome::result<std::unique_ptr<TrieBatch>>,
                 getPersistentBatchAt,
                 (const storage::trie::RootHash &root),
                 (override));
 
-    MOCK_METHOD(outcome::result<std::unique_ptr<EphemeralTrieBatch>>,
+    MOCK_METHOD(outcome::result<std::unique_ptr<TrieBatch>>,
                 getEphemeralBatchAt,
                 (const storage::trie::RootHash &root),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<std::unique_ptr<TrieBatch>>,
+                getProofReaderBatchAt,
+                (const RootHash &root, const OnNodeLoaded &on_node_loaded),
                 (const, override));
   };
 

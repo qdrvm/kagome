@@ -77,7 +77,7 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
-      return callMediateInternal<Result>(
+      return callWithCache<Result>(
           *env, name, std::forward<Args>(args)...);
     }
 
@@ -92,7 +92,7 @@ namespace kagome::runtime {
                                    Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->make());
-      return callMediateInternal<Result>(
+      return callWithCache<Result>(
           *env, name, std::forward<Args>(args)...);
     }
 
@@ -106,7 +106,7 @@ namespace kagome::runtime {
                                           Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
       OUTCOME_TRY(env, env_template->make());
-      return callMediateInternal<Result>(
+      return callWithCache<Result>(
           *env, name, std::forward<Args>(args)...);
     }
 
@@ -131,36 +131,6 @@ namespace kagome::runtime {
       auto result = memory.loadN(span.ptr, span.size);
 
       return result;
-    }
-
-    /**
-     * Internal method for calling a Runtime API method
-     * Resets the runtime memory with the module's heap base,
-     * encodes the arguments with SCALE codec, calls the method from the
-     * provided module instance and  returns a result, decoded from SCALE.
-     * Changes, made to the Host API state, are reset after the call.
-     */
-    template <typename Result, typename... Args>
-    inline outcome::result<Result> callMediateInternal(RuntimeEnvironment &env,
-                                                       std::string_view name,
-                                                       Args &&...args) {
-      if constexpr (std::is_same_v<Result, primitives::Version>) {
-        if (likely(name == "Core_version")) {
-          return cache_->getVersion(env.module_instance->getCodeHash(), [&] {
-            return call<Result>(env, name, std::forward<Args>(args)...);
-          });
-        }
-      }
-
-      if constexpr (std::is_same_v<Result, primitives::OpaqueMetadata>) {
-        if (likely(name == "Metadata_metadata")) {
-          return cache_->getMetadata(env.module_instance->getCodeHash(), [&] {
-            return call<Result>(env, name, std::forward<Args>(args)...);
-          });
-        }
-      }
-
-      return call<Result>(env, name, std::forward<Args>(args)...);
     }
 
     /**
@@ -218,6 +188,30 @@ namespace kagome::runtime {
     }
 
    private:
+    // returns cached results for some common runtime calls
+    template <typename Result, typename... Args>
+    inline outcome::result<Result> callWithCache(RuntimeEnvironment &env,
+                                                       std::string_view name,
+                                                       Args &&...args) {
+      if constexpr (std::is_same_v<Result, primitives::Version>) {
+        if (likely(name == "Core_version")) {
+          return cache_->getVersion(env.module_instance->getCodeHash(), [&] {
+            return call<Result>(env, name, std::forward<Args>(args)...);
+          });
+        }
+      }
+
+      if constexpr (std::is_same_v<Result, primitives::OpaqueMetadata>) {
+        if (likely(name == "Metadata_metadata")) {
+          return cache_->getMetadata(env.module_instance->getCodeHash(), [&] {
+            return call<Result>(env, name, std::forward<Args>(args)...);
+          });
+        }
+      }
+
+      return call<Result>(env, name, std::forward<Args>(args)...);
+    }
+
     std::shared_ptr<RuntimeEnvironmentFactory> env_factory_;
     std::shared_ptr<RuntimePropertiesCache> cache_;
     log::Logger logger_;
