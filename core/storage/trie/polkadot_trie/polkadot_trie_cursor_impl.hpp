@@ -60,6 +60,8 @@ namespace kagome::storage::trie {
 
     [[nodiscard]] outcome::result<void> next() override;
 
+    [[nodiscard]] outcome::result<void> prev() override;
+
     [[nodiscard]] std::optional<common::Buffer> key() const override;
 
     [[nodiscard]] std::optional<BufferOrView> value() const override;

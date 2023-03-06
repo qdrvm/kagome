@@ -19,6 +19,9 @@ namespace kagome::storage::trie {
 
   class TrieStorageImpl : public TrieStorage {
    public:
+    using EncodedNode = common::BufferView;
+    using OnNodeLoaded = std::function<void(EncodedNode)>;
+
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createEmpty(
         const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<Codec> codec,
@@ -37,10 +40,13 @@ namespace kagome::storage::trie {
     TrieStorageImpl &operator=(TrieStorageImpl &&) = default;
     ~TrieStorageImpl() override = default;
 
-    outcome::result<std::unique_ptr<PersistentTrieBatch>> getPersistentBatchAt(
+    outcome::result<std::unique_ptr<TrieBatch>> getPersistentBatchAt(
         const RootHash &root) override;
-    outcome::result<std::unique_ptr<EphemeralTrieBatch>> getEphemeralBatchAt(
+    outcome::result<std::unique_ptr<TrieBatch>> getEphemeralBatchAt(
         const RootHash &root) const override;
+    outcome::result<std::unique_ptr<TrieBatch>> getProofReaderBatchAt(
+        const RootHash &root,
+        const OnNodeLoaded &on_node_loaded) const override;
 
    protected:
     TrieStorageImpl(

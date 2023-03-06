@@ -18,7 +18,7 @@ jobs:
           sha: ${{ github.sha }}
       - name: Run autotests
         working-directory: /kagome-autotests
-        run: python3 -m pytest --alluredir=./allure_reports
+        run: python3 -m pytest
         shell: sh
       - name: Set commit status as failure
         if: failure()
@@ -39,4 +39,4 @@ jobs:
     env:
       KAGOME_S1: ${{ secrets.KAGOME_S1 }}
       SUBSTRATE_S2: ${{ secrets.SUBSTRATE_S2 }}
-      BOB: ${{ secrets.BOB }}
+      ALICE_ED: ${{ secrets.ALICE_ED }}

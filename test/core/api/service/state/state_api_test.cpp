@@ -33,7 +33,7 @@ using kagome::primitives::BlockInfo;
 using kagome::runtime::CoreMock;
 using kagome::runtime::MetadataMock;
 using kagome::runtime::RawExecutorMock;
-using kagome::storage::trie::EphemeralTrieBatchMock;
+using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::TrieStorageMock;
 using testing::_;
 using testing::ElementsAre;
@@ -84,7 +84,7 @@ namespace kagome::api {
     auto out_buf = "1"_buf;
     EXPECT_CALL(*storage_, getEphemeralBatchAt(_))
         .WillRepeatedly(testing::Invoke([&in_buf, &out_buf](auto &root) {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           EXPECT_CALL(*batch, tryGetMock(in_buf.view()))
               .WillRepeatedly(testing::Return(std::cref(out_buf)));
           return batch;
@@ -128,7 +128,7 @@ namespace kagome::api {
 
       EXPECT_CALL(*storage, getEphemeralBatchAt(_))
           .WillRepeatedly(testing::Invoke([this](auto &root) {
-            auto batch = std::make_unique<EphemeralTrieBatchMock>();
+            auto batch = std::make_unique<TrieBatchMock>();
             EXPECT_CALL(*batch, trieCursor())
                 .WillRepeatedly(testing::Invoke([this]() {
                   return std::make_unique<
@@ -382,7 +382,7 @@ namespace kagome::api {
       EXPECT_CALL(*storage_, getEphemeralBatchAt(state_root))
           .WillOnce(testing::Invoke([&keys](auto &root) {
             auto batch =
-                std::make_unique<storage::trie::EphemeralTrieBatchMock>();
+                std::make_unique<storage::trie::TrieBatchMock>();
             for (auto &key : keys) {
               EXPECT_CALL(*batch, tryGetMock(key.view()))
                   .WillOnce(testing::Return(common::Buffer(root)));
@@ -454,7 +454,7 @@ namespace kagome::api {
     EXPECT_CALL(*storage_, getEphemeralBatchAt(state_root))
         .WillOnce(testing::Invoke([&keys](auto &root) {
           auto batch =
-              std::make_unique<storage::trie::EphemeralTrieBatchMock>();
+              std::make_unique<storage::trie::TrieBatchMock>();
           for (auto &key : keys) {
             EXPECT_CALL(*batch, tryGetMock(key.view()))
                 .WillOnce(testing::Return(common::Buffer(root)));

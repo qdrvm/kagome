@@ -13,6 +13,7 @@ namespace kagome::network {
       const OwnPeerInfo &own_info,
       const BootstrapNodes &bootstrap_nodes,
       std::shared_ptr<libp2p::protocol::Ping> ping_proto,
+      boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol,
       std::shared_ptr<network::ProtocolFactory> protocol_factory)
       : app_state_manager_{app_state_manager},
         host_{host},
@@ -20,6 +21,7 @@ namespace kagome::network {
         own_info_{own_info},
         log_{log::createLogger("RouterLibp2p", "network")},
         ping_protocol_{std::move(ping_proto)},
+        warp_protocol_{std::move(warp_protocol)},
         protocol_factory_{std::move(protocol_factory)} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(ping_protocol_ != nullptr);
@@ -57,6 +59,8 @@ namespace kagome::network {
             }
           }
         });
+
+    warp_protocol_.get()->start();
 
     block_announce_protocol_ = protocol_factory_->makeBlockAnnounceProtocol();
     if (not block_announce_protocol_) {

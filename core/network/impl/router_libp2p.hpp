@@ -8,6 +8,8 @@
 
 #include "network/router.hpp"
 
+#include <boost/di/extension/injections/lazy.hpp>
+
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "libp2p/connection/loopback_stream.hpp"
@@ -18,6 +20,7 @@
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
+#include "network/warp/protocol.hpp"
 
 namespace kagome::application {
   class ChainSpec;
@@ -38,6 +41,7 @@ namespace kagome::network {
         const OwnPeerInfo &own_info,
         const BootstrapNodes &bootstrap_nodes,
         std::shared_ptr<libp2p::protocol::Ping> ping_proto,
+        boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol,
         std::shared_ptr<network::ProtocolFactory> protocol_factory);
 
     ~RouterLibp2p() override = default;
@@ -88,6 +92,7 @@ namespace kagome::network {
     const OwnPeerInfo &own_info_;
     log::Logger log_;
     std::shared_ptr<libp2p::protocol::Ping> ping_protocol_;
+    boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol_;
     std::shared_ptr<network::ProtocolFactory> protocol_factory_;
 
     std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;

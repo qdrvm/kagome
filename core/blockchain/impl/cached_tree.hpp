@@ -11,6 +11,7 @@
 
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/epoch_digest.hpp"
+#include "consensus/grandpa/common.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 
@@ -34,6 +35,7 @@ namespace kagome::blockchain {
     primitives::BlockNumber depth;
     std::weak_ptr<TreeNode> parent;
     bool finalized;
+    bool has_justification = false;
     bool babe_primary;
     bool contains_approved_para_block;
 

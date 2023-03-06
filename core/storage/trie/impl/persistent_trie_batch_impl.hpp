@@ -8,6 +8,8 @@
 
 #include <memory>
 
+#include "storage/trie/impl/trie_batch_base.hpp"
+
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
@@ -17,28 +19,22 @@
 
 namespace kagome::storage::trie {
 
-  class PersistentTrieBatchImpl final : public PersistentTrieBatch {
+  class PersistentTrieBatchImpl final : public TrieBatchBase {
    public:
     enum class Error {
       NO_TRIE = 1,
     };
 
-    static std::unique_ptr<PersistentTrieBatchImpl> create(
+    PersistentTrieBatchImpl(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
         std::shared_ptr<PolkadotTrie> trie);
+
     ~PersistentTrieBatchImpl() override = default;
 
     outcome::result<RootHash> commit(StateVersion version) override;
-    std::unique_ptr<TopperTrieBatch> batchOnTop() override;
 
-    outcome::result<BufferOrView> get(const BufferView &key) const override;
-    outcome::result<std::optional<BufferOrView>> tryGet(
-        const BufferView &key) const override;
-    std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
-    outcome::result<bool> contains(const BufferView &key) const override;
-    bool empty() const override;
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
         const BufferView &prefix,
         std::optional<uint64_t> limit = std::nullopt) override;
@@ -46,19 +42,12 @@ namespace kagome::storage::trie {
                               BufferOrView &&value) override;
     outcome::result<void> remove(const BufferView &key) override;
 
+   protected:
+    virtual outcome::result<std::unique_ptr<TrieBatch>> createFromTrieHash(
+        const RootHash &trie_hash) override;
+
    private:
-    PersistentTrieBatchImpl(
-        std::shared_ptr<Codec> codec,
-        std::shared_ptr<TrieSerializer> serializer,
-        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-        std::shared_ptr<PolkadotTrie> trie);
-
-    std::shared_ptr<Codec> codec_;
-    std::shared_ptr<TrieSerializer> serializer_;
     std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
-    std::shared_ptr<PolkadotTrie> trie_;
-
-    log::Logger logger_ = log::createLogger("PersistentTrieBatch", "storage");
   };
 
 }  // namespace kagome::storage::trie

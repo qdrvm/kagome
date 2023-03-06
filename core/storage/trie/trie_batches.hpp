@@ -23,46 +23,25 @@ namespace kagome::storage::trie {
     virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() = 0;
 
     /**
+     * Finalize all changes to the trie. This may involve writing them
+     * to the database or just calculating the final root.
+     * @param version
+     * @return hash of the merkle value of the root trie node
+     */
+    virtual outcome::result<RootHash> commit(StateVersion version) = 0;
+
+    /**
      * Remove all trie entries which key begins with the supplied prefix
      */
     virtual outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
         const BufferView &prefix,
         std::optional<uint64_t> limit = std::nullopt) = 0;
+
+    virtual outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
+    createChildBatch(common::BufferView path) = 0;
   };
 
   class TopperTrieBatch;
-
-  /**
-   * A batch that grants access to the persistent trie storage.
-   * All changes are contained in memory until commit() is called.
-   */
-  class PersistentTrieBatch
-      : public TrieBatch,
-        public std::enable_shared_from_this<PersistentTrieBatch> {
-   public:
-    /**
-     * Commits changes to a persistent storage
-     * @returns the root of the committed trie
-     */
-    virtual outcome::result<RootHash> commit(StateVersion version) = 0;
-
-    /**
-     * Creates a batch on top of this batch
-     */
-    virtual std::unique_ptr<TopperTrieBatch> batchOnTop() = 0;
-  };
-
-  /**
-   * A temporary in-memory trie built on top of a persistent one
-   * All changes to it are simply discarded when the batch is destroyed
-   */
-  class EphemeralTrieBatch : public TrieBatch {
-   public:
-    /**
-     * Calculates the hash of the state represented by a batch
-     */
-    virtual outcome::result<RootHash> hash(StateVersion version) = 0;
-  };
 
   /**
    * A batch on top of another batch

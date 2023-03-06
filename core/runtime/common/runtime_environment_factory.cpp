@@ -141,6 +141,13 @@ namespace kagome::runtime {
     return *this;
   }
 
+  [[nodiscard]] RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate &
+  RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::withStorageBatch(
+      std::shared_ptr<storage::trie::TrieBatch> batch) {
+    batch_ = batch;
+    return *this;
+  }
+
   outcome::result<std::unique_ptr<RuntimeEnvironment>>
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::make() {
     KAGOME_PROFILE_START(runtime_env_making);
@@ -166,7 +173,10 @@ namespace kagome::runtime {
                     header_res.value()));
 
     const auto &env = instance->getEnvironment();
-    if (persistent_) {
+    if (batch_) {
+      env.storage_provider->setTo(batch_);
+
+    } else if (persistent_) {
       if (auto res = env.storage_provider->setToPersistentAt(storage_state_);
           !res) {
         SL_DEBUG(

@@ -18,6 +18,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
   switch (e) {
     case E::PARENT_EXPIRED:
       return "Pointer to the parent batch expired";
+    case E::CHILD_BATCH_NOT_SUPPORTED:
+      return "Topper trie batches do not support child trie batch creation";
+    case E::COMMIT_NOT_SUPPORTED:
+      return "Topper trie batches do not support committing changes, use "
+             "writeBack instead";
   }
   return "Unknown error";
 }
@@ -106,8 +111,9 @@ namespace kagome::storage::trie {
       const BufferView &prefix, std::optional<uint64_t>) {
     for (auto it = cache_.lower_bound(prefix);
          it != cache_.end() && boost::starts_with(it->first, prefix);
-         ++it)
+         ++it) {
       it->second = std::nullopt;
+    }
 
     cleared_prefixes_.emplace_back(prefix);
     if (parent_.lock() != nullptr) {
@@ -131,6 +137,15 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
     return Error::PARENT_EXPIRED;
+  }
+
+  outcome::result<RootHash> TopperTrieBatchImpl::commit(StateVersion version) {
+    return Error::COMMIT_NOT_SUPPORTED;
+  }
+
+  outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
+  TopperTrieBatchImpl::createChildBatch(common::BufferView path) {
+    return Error::CHILD_BATCH_NOT_SUPPORTED;
   }
 
   bool TopperTrieBatchImpl::wasClearedByPrefix(const BufferView &key) const {
