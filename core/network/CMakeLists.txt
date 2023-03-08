@@ -7,6 +7,7 @@ add_subdirectory(protobuf)
 
 
 add_library(network
+    impl/protocols/light.cpp
     impl/state_protocol_observer_impl.cpp
     impl/state_sync_request_flow.cpp
     impl/synchronizer_impl.cpp
@@ -34,6 +35,7 @@ add_library(network
     warp/cache.cpp
     )
 target_link_libraries(network
+    light_api_proto
     p2p::p2p_basic_scheduler
     runtime_environment_factory
     scale_libp2p_types
