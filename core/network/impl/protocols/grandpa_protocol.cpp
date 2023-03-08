@@ -374,10 +374,9 @@ namespace kagome::network {
                  peer_id);
         return false;
       }
-      const auto &info = info_opt.value();
+      const auto &info = info_opt.value().get();
 
-      if (not info.get().set_id.has_value()
-          or not info.get().round_number.has_value()) {
+      if (not info.set_id.has_value() or not info.round_number.has_value()) {
         SL_DEBUG(base_.logger(),
                  "Vote signed by {} with set_id={} in round={} "
                  "has not been sent to {}: set id or round number unknown",
@@ -391,7 +390,7 @@ namespace kagome::network {
       // If a peer is at a given voter set, it is impolite to send messages
       // from an earlier voter set. It is extremely impolite to send messages
       // from a future voter set.
-      if (msg.counter != info.get().set_id) {
+      if (msg.counter != info.set_id) {
         SL_DEBUG(base_.logger(),
                  "Vote signed by {} with set_id={} in round={} "
                  "has not been sent to {} as impolite: their set id is {}",
@@ -399,13 +398,13 @@ namespace kagome::network {
                  msg.counter,
                  msg.round_number,
                  peer_id,
-                 info.get().set_id.value());
+                 info.set_id.value());
         return false;
       }
 
       // If a peer is at round r, is impolite to send messages about r-2 or
       // earlier
-      if (msg.round_number + 2 < info.get().round_number.value()) {
+      if (msg.round_number + 2 < info.round_number.value()) {
         SL_DEBUG(
             base_.logger(),
             "Vote signed by {} with set_id={} in round={} "
@@ -414,13 +413,13 @@ namespace kagome::network {
             msg.counter,
             msg.round_number,
             peer_id,
-            info.get().round_number.value());
+            info.round_number.value());
         return false;
       }
 
       // If a peer is at round r, is extremely impolite to send messages about
       // r+1 or later
-      if (msg.round_number > info.get().round_number.value()) {
+      if (msg.round_number > info.round_number.value()) {
         SL_DEBUG(base_.logger(),
                  "Vote signed by {} with set_id={} in round={} "
                  "has not been sent to {} as impolite: their round is old: {}",
@@ -428,7 +427,7 @@ namespace kagome::network {
                  msg.counter,
                  msg.round_number,
                  peer_id,
-                 info.get().round_number.value());
+                 info.round_number.value());
         return false;
       }
 
@@ -455,16 +454,45 @@ namespace kagome::network {
 
     peer_manager_->updatePeerState(own_info_.id, msg);
 
+    auto filter = [this,
+                   set_id = msg.voter_set_id,
+                   round_number = msg.round_number](const PeerId &peer_id) {
+      auto info_opt = peer_manager_->getPeerState(peer_id);
+      if (not info_opt.has_value()) {
+        SL_DEBUG(base_.logger(),
+                 "Neighbor message with set_id={} in round={} "
+                 "has not been sent to {}: peer is not connected",
+                 set_id,
+                 round_number,
+                 peer_id);
+        return false;
+      }
+      const auto &info = info_opt.value().get();
+
+      if (info.roles.flags.light and info.set_id.has_value()) {
+        // Neighbor message will be sent for light clients only when they lag by
+        // voter-set
+        if (info.set_id >= set_id) {
+          SL_DEBUG(
+              base_.logger(),
+              "Neighbor message with set_id={} in round={} has not been sent "
+              "to {}: peer is light-client and his voter-set id same or bigger",
+              set_id,
+              round_number,
+              peer_id);
+          return false;
+        }
+      }
+
+      return true;
+    };
+
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
     (*shared_msg) = GrandpaMessage(msg);
 
     stream_engine_->broadcast<GrandpaMessage>(
-        shared_from_this(),
-        shared_msg,
-        RandomGossipStrategy{
-            stream_engine_->outgoingStreamsNumber(shared_from_this()),
-            app_config_.luckyPeers()});
+        shared_from_this(), shared_msg, filter);
   }
 
   void GrandpaProtocol::finalize(
@@ -489,10 +517,9 @@ namespace kagome::network {
                  peer_id);
         return false;
       }
-      const auto &info = info_opt.value();
+      const auto &info = info_opt.value().get();
 
-      if (not info.get().set_id.has_value()
-          or not info.get().round_number.has_value()) {
+      if (not info.set_id.has_value() or not info.round_number.has_value()) {
         SL_DEBUG(base_.logger(),
                  "Commit with set_id={} in round={} "
                  "has not been sent to {}: set id or round number unknown",
@@ -504,19 +531,19 @@ namespace kagome::network {
 
       // It is especially impolite to send commits which are invalid, or from
       // a different Set ID than the receiving peer has indicated.
-      if (set_id != info.get().set_id) {
+      if (set_id != info.set_id) {
         SL_DEBUG(base_.logger(),
                  "Commit with set_id={} in round={} "
                  "has not been sent to {} as impolite: their set id is {}",
                  set_id,
                  round_number,
                  peer_id,
-                 info.get().set_id.value());
+                 info.set_id.value());
         return false;
       }
 
       // Don't send commit if that has not actual for remote peer already
-      if (round_number < info.get().round_number.value()) {
+      if (round_number < info.round_number.value()) {
         SL_DEBUG(
             base_.logger(),
             "Commit with set_id={} in round={} "
@@ -524,13 +551,13 @@ namespace kagome::network {
             set_id,
             round_number,
             peer_id,
-            info.get().round_number.value());
+            info.round_number.value());
         return false;
       }
 
       // It is impolite to send commits which are earlier than the last commit
       // sent.
-      if (finalizing < info.get().last_finalized) {
+      if (finalizing < info.last_finalized) {
         SL_DEBUG(
             base_.logger(),
             "Commit with set_id={} in round={} "
@@ -538,7 +565,7 @@ namespace kagome::network {
             set_id,
             round_number,
             peer_id,
-            info.get().round_number.value());
+            info.round_number.value());
         return false;
       }
 
@@ -576,10 +603,9 @@ namespace kagome::network {
                peer_id);
       return;
     }
-    const auto &info = info_opt.value();
+    const auto &info = info_opt.value().get();
 
-    if (not info.get().set_id.has_value()
-        or not info.get().round_number.has_value()) {
+    if (not info.set_id.has_value() or not info.round_number.has_value()) {
       SL_DEBUG(base_.logger(),
                "Catch-up-request with set_id={} in round={} "
                "has not been sent to {}: set id or round number unknown",
@@ -590,7 +616,7 @@ namespace kagome::network {
     }
 
     // Impolite to send a catch up request to a peer in a new different Set ID.
-    if (catch_up_request.voter_set_id != info.get().set_id) {
+    if (catch_up_request.voter_set_id != info.set_id) {
       SL_DEBUG(base_.logger(),
                "Catch-up-request with set_id={} in round={} "
                "has not been sent to {}: different set id",
@@ -602,7 +628,7 @@ namespace kagome::network {
 
     // It is impolite to send a catch-up request for a round `R` to a peer
     // whose announced view is behind `R`.
-    if (catch_up_request.round_number < info.get().round_number.value() - 1) {
+    if (catch_up_request.round_number < info.round_number.value() - 1) {
       SL_DEBUG(base_.logger(),
                "Catch-up-request with set_id={} in round={} "
                "has not been sent to {}: too old round for requested",
@@ -612,8 +638,7 @@ namespace kagome::network {
       return;
     }
 
-    auto round_id =
-        std::tuple(info.get().round_number.value(), info.get().set_id.value());
+    auto round_id = std::tuple(info.round_number.value(), info.set_id.value());
 
     auto [iter_by_round, ok_by_round] =
         recent_catchup_requests_by_round_.emplace(round_id);
@@ -676,10 +701,9 @@ namespace kagome::network {
                peer_id);
       return;
     }
-    const auto &info = info_opt.value();
+    const auto &info = info_opt.value().get();
 
-    if (not info.get().set_id.has_value()
-        or not info.get().round_number.has_value()) {
+    if (not info.set_id.has_value() or not info.round_number.has_value()) {
       SL_DEBUG(base_.logger(),
                "Catch-up-response with set_id={} in round={} "
                "has not been sent to {}: set id or round number unknown",
@@ -690,19 +714,19 @@ namespace kagome::network {
     }
 
     /// Impolite to send a catch up request to a peer in a new different Set ID.
-    if (catch_up_response.voter_set_id != info.get().set_id) {
+    if (catch_up_response.voter_set_id != info.set_id) {
       SL_DEBUG(base_.logger(),
                "Catch-up-response with set_id={} in round={} "
                "has not been sent to {}: {} set id",
                catch_up_response.voter_set_id,
                catch_up_response.round_number,
                peer_id,
-               info.get().set_id.has_value() ? "different" : "unknown");
+               info.set_id.has_value() ? "different" : "unknown");
       return;
     }
 
     /// Avoid sending useless response (if peer is already caught up)
-    if (catch_up_response.round_number < info.get().round_number) {
+    if (catch_up_response.round_number < info.round_number) {
       SL_DEBUG(base_.logger(),
                "Catch-up-response with set_id={} in round={} "
                "has not been sent to {}: is already not actual",
