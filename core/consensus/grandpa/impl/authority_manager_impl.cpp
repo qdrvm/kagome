@@ -17,6 +17,7 @@
 #include "common/visitor.hpp"
 #include "consensus/grandpa/authority_manager_error.hpp"
 #include "consensus/grandpa/grandpa_digest_observer_error.hpp"
+#include "consensus/grandpa/impl/kusama_hard_forks.hpp"
 #include "consensus/grandpa/impl/schedule_node.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
@@ -194,6 +195,8 @@ namespace kagome::consensus::grandpa {
 
     BOOST_ASSERT_MSG(root_ != nullptr, "The root must be initialized by now");
 
+    fixKusamaHardFork(*root_);
+
     // 4. Apply digests before last finalized
     bool need_to_save = false;
     if (auto n = finalized_block.number - root_->block.number; n > 0) {
@@ -215,8 +218,10 @@ namespace kagome::consensus::grandpa {
       auto block_hash =
           hasher_->blake2b_256(scale::encode(block_header).value());
 
-      primitives::BlockContext context{.block_info = {block_number, block_hash},
-                                       .header = block_header};
+      primitives::BlockContext context{
+          .block_info = {block_number, block_hash},
+          .header = block_header,
+      };
 
       for (auto &item : block_header.digest) {
         auto res = visit_in_place(
@@ -296,7 +301,9 @@ namespace kagome::consensus::grandpa {
           break;
         }
 
-        primitives::BlockContext context{.block_info = {block_header.number, hash}};
+        primitives::BlockContext context{
+            .block_info = {block_header.number, hash},
+        };
 
         // This block was meet earlier
         if (digests.find(context) != digests.end()) {
@@ -323,7 +330,7 @@ namespace kagome::consensus::grandpa {
                 return outcome::success();
               },
               [&](const primitives::Consensus &msg) -> outcome::result<void> {
-                if (msg.consensus_engine_id == primitives::kBabeEngineId) {
+                if (msg.consensus_engine_id == primitives::kGrandpaEngineId) {
                   auto res = scale::decode<primitives::GrandpaDigest>(msg.data);
                   if (res.has_error()) {
                     return res.as_failure();
@@ -406,9 +413,9 @@ namespace kagome::consensus::grandpa {
         auto ancestor_node = getNode({.block_info = savepoint_block});
         if (ancestor_node != nullptr) {
           auto node = ancestor_node->block == savepoint_block
-                          ? ancestor_node
-                          : ancestor_node->makeDescendant(
-                              savepoint_block, IsBlockFinalized{true});
+                        ? ancestor_node
+                        : ancestor_node->makeDescendant(savepoint_block,
+                                                        IsBlockFinalized{true});
           auto res = persistent_storage_->put(
               storage::kAuthorityManagerStateLookupKey(new_savepoint),
               storage::Buffer(scale::encode(node).value()));
@@ -522,6 +529,8 @@ namespace kagome::consensus::grandpa {
 
       node->action =
           ScheduleNode::ScheduledChange{activate_at, new_authorities};
+
+      fixKusamaHardFork(*node);
 
       SL_VERBOSE(
           logger_,
@@ -801,8 +810,8 @@ namespace kagome::consensus::grandpa {
     auto descendants = std::move(node->descendants);
     for (auto &descendant : descendants) {
       auto &ancestor = context.block_info.number <= descendant->block.number
-                           ? new_node
-                           : node;
+                         ? new_node
+                         : node;
       ancestor->descendants.emplace_back(std::move(descendant));
     }
     node->descendants.emplace_back(std::move(new_node));

@@ -10,6 +10,7 @@
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/grandpa/environment.hpp"
+#include "consensus/grandpa/has_authority_set_change.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
@@ -850,7 +851,8 @@ namespace kagome::network {
             "load justifications");
         not r.second) {
       SL_ERROR(log_,
-               "Can't load justification from {} for block {}: Duplicate '{}' request",
+               "Can't load justification from {} for block {}: Duplicate '{}' "
+               "request",
                peer_id,
                target_block,
                r.first->second);
@@ -1134,8 +1136,8 @@ namespace kagome::network {
               .header = std::move(block_data.header.value()),
               .body = std::move(block_data.body.value()),
           };
-          block_addition_result = block_executor_->applyBlock(std::move(block),
-                                                     block_data.justification);
+          block_addition_result = block_executor_->applyBlock(
+              std::move(block), block_data.justification);
 
         } else {
           // Fast syncing
@@ -1189,19 +1191,15 @@ namespace kagome::network {
             handler(block_info);
           }
 
-          // Check if finality lag greater than justification saving interval
-          static const BlockNumber kJustificationInterval = 512;
-          static const BlockNumber kMaxJustificationLag = 5;
           auto last_finalized = block_tree_->getLastFinalized();
-          if ((block_info.number - kMaxJustificationLag)
-                  / kJustificationInterval
-              > last_finalized.number / kJustificationInterval) {
+          if (consensus::grandpa::HasAuthoritySetChange{*block_data.header}
+                  .scheduled) {
             //  Trying to substitute with justifications' request only
             for (const auto &peer_id : peers) {
               syncMissingJustifications(
                   peer_id,
                   last_finalized,
-                  kJustificationInterval * 2,
+                  1,
                   [wp = weak_from_this(), last_finalized, block_info](
                       auto res) {
                     if (auto self = wp.lock()) {
