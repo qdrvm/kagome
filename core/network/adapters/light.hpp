@@ -44,23 +44,23 @@ namespace kagome::network {
       ::protobuf_generated::api::v1::light::Request msg;
       if (auto call = boost::get<LightProtocolRequest::Call>(&t.op)) {
         auto &pb = *msg.mutable_remote_call_request();
-        pb.set_block(std::string{bytestr(t.block)});
+        pb.set_block(std::string{byte2str(t.block)});
         pb.set_method(call->method);
-        pb.set_data(std::string{bytestr(call->args)});
+        pb.set_data(std::string{byte2str(call->args)});
       } else {
         auto &read = boost::get<LightProtocolRequest::Read>(t.op);
         if (read.child) {
           auto &pb = *msg.mutable_remote_read_child_request();
-          pb.set_block(std::string{bytestr(t.block)});
-          pb.set_storage_key(std::string{bytestr(*read.child)});
+          pb.set_block(std::string{byte2str(t.block)});
+          pb.set_storage_key(std::string{byte2str(*read.child)});
           for (auto &key : read.keys) {
-            pb.add_keys(std::string{bytestr(key)});
+            pb.add_keys(std::string{byte2str(key)});
           }
         } else {
           auto &pb = *msg.mutable_remote_read_request();
-          pb.set_block(std::string{bytestr(t.block)});
+          pb.set_block(std::string{byte2str(t.block)});
           for (auto &key : read.keys) {
-            pb.add_keys(std::string{bytestr(key)});
+            pb.add_keys(std::string{byte2str(key)});
           }
         }
       }
@@ -80,7 +80,7 @@ namespace kagome::network {
       }
 
       auto get_block = [&](auto &pb) {
-        auto r = primitives::BlockHash::fromSpan(bytestr(pb.block()));
+        auto r = primitives::BlockHash::fromSpan(str2byte(pb.block()));
         if (r) {
           out.block = r.value();
         }
@@ -89,19 +89,19 @@ namespace kagome::network {
       if (msg.has_remote_call_request()) {
         auto &pb = msg.remote_call_request();
         OUTCOME_TRY(get_block(pb));
-        out.op = LightProtocolRequest::Call{pb.method(),
-                                            common::Buffer{bytestr(pb.data())}};
+        out.op = LightProtocolRequest::Call{
+            pb.method(), common::Buffer{str2byte(pb.data())}};
       } else {
         LightProtocolRequest::Read read;
         auto get_keys = [&](auto &pb) {
           for (auto &key : pb.keys()) {
-            read.keys.emplace_back(bytestr(key));
+            read.keys.emplace_back(str2byte(key));
           }
         };
         if (msg.has_remote_read_child_request()) {
           auto &pb = msg.remote_read_child_request();
           OUTCOME_TRY(get_block(pb));
-          read.child = common::Buffer{bytestr(pb.storage_key())};
+          read.child = common::Buffer{str2byte(pb.storage_key())};
           get_keys(pb);
         } else {
           auto &pb = msg.remote_read_request();
@@ -130,7 +130,7 @@ namespace kagome::network {
       auto &proof = t.call
                       ? *msg.mutable_remote_call_response()->mutable_proof()
                       : *msg.mutable_remote_read_response()->mutable_proof();
-      proof = bytestr(scale::encode(t.proof).value());
+      proof = byte2str(scale::encode(t.proof).value());
       return appendToVec(msg, out, loaded);
     }
 
@@ -148,9 +148,9 @@ namespace kagome::network {
 
       out.call = msg.has_remote_call_response();
       OUTCOME_TRY(proof,
-                  scale::decode<std::vector<common::Buffer>>(libp2p::bytestr(
-                      out.call ? msg.remote_call_response().proof()
-                               : msg.remote_read_response().proof())));
+                  scale::decode<std::vector<common::Buffer>>(
+                      str2byte(out.call ? msg.remote_call_response().proof()
+                                        : msg.remote_read_response().proof())));
       out.proof = std::move(proof);
 
       std::advance(from, msg.ByteSizeLong());

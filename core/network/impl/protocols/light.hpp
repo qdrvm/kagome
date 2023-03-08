@@ -32,7 +32,7 @@ namespace kagome::blockchain {
 
 namespace kagome::network {
   /**
-   * Light client protocol.
+   * https://github.com/paritytech/substrate/tree/master/client/network/light
    */
   class LightProtocol
       : public RequestResponseProtocol<LightProtocolRequest,

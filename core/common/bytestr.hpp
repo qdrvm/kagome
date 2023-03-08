@@ -11,9 +11,11 @@
 #include <string_view>
 
 namespace kagome {
-  using libp2p::bytestr;
+  inline gsl::span<const uint8_t> str2byte(const gsl::span<const char> &s) {
+    return libp2p::bytestr(s);
+  }
 
-  inline std::string_view bytestr(const gsl::span<const uint8_t> &s) {
+  inline std::string_view byte2str(const gsl::span<const uint8_t> &s) {
     // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     return {reinterpret_cast<const char *>(s.data()), libp2p::spanSize(s)};
   }
