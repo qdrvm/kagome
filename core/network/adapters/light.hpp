@@ -72,7 +72,7 @@ namespace kagome::network {
         const std::vector<uint8_t> &src,
         std::vector<uint8_t>::const_iterator from) {
       const auto remains = src.size() - std::distance(src.begin(), from);
-      assert(remains >= size(out));
+      BOOST_ASSERT(remains >= size(out));
 
       ::protobuf_generated::api::v1::light::Request msg;
       if (not msg.ParseFromArray(from.base(), remains)) {
@@ -139,7 +139,7 @@ namespace kagome::network {
         const std::vector<uint8_t> &src,
         std::vector<uint8_t>::const_iterator from) {
       const auto remains = src.size() - std::distance(src.begin(), from);
-      assert(remains >= size(out));
+      BOOST_ASSERT(remains >= size(out));
 
       ::protobuf_generated::api::v1::light::Response msg;
       if (not msg.ParseFromArray(from.base(), remains)) {

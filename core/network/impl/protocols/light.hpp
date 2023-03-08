@@ -31,6 +31,9 @@ namespace kagome::blockchain {
 }  // namespace kagome::blockchain
 
 namespace kagome::network {
+  /**
+   * Light client protocol.
+   */
   class LightProtocol
       : public RequestResponseProtocol<LightProtocolRequest,
                                        LightProtocolResponse,
