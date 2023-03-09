@@ -26,6 +26,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
 
 namespace kagome::authority_discovery {
   constexpr size_t kMaxActiveRequests = 8;
+  constexpr std::chrono::seconds kIntervalInitial{2};
+  constexpr std::chrono::minutes kIntervalMax{10};
 
   QueryImpl::QueryImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -47,8 +49,8 @@ namespace kagome::authority_discovery {
         host_{host},
         kademlia_{std::move(kademlia)},
         interval_{
-            std::chrono::seconds{2},
-            std::chrono::minutes{10},
+            kIntervalInitial,
+            kIntervalMax,
             std::move(scheduler),
         },
         log_{log::createLogger("AuthorityDiscoveryQuery")} {
