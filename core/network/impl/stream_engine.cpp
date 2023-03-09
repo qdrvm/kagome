@@ -78,8 +78,7 @@ namespace kagome::network {
   }
 
   void StreamEngine::del(const PeerId &peer_id) {
-    SL_TRACE(
-        logger_, "Remove all streams from peer.(peer={})", peer_id.toBase58());
+    SL_TRACE(logger_, "Remove all streams from peer.(peer={})", peer_id);
     streams_.exclusiveAccess([&](auto &streams) {
       if (auto it = streams.find(peer_id); it != streams.end()) {
         for (auto &protocol_it : it->second) {

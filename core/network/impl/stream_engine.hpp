@@ -110,7 +110,7 @@ namespace kagome::network {
         SL_TRACE(logger_,
                  "Add outgoing protocol.(protocol={}, peer_id={})",
                  protocol->protocolName(),
-                 res.value().toBase58());
+                 res.value());
       }
       return add(std::move(stream), protocol, Direction::OUTGOING);
     }

@@ -1411,23 +1411,24 @@ namespace kagome::parachain {
         case AssignmentCheckResult::Accepted:
           break;
         case AssignmentCheckResult::Bad:
-          logger_->warn(
-              "Got bad assignment from peer. (peer id={}, block hash={})",
-              source->get(),
-              block_hash);
+          SL_WARN(logger_,
+                  "Got bad assignment from peer. (peer id={}, block hash={})",
+                  source->get(),
+                  block_hash);
           return;
         case AssignmentCheckResult::TooFarInFuture:
-          logger_->trace(
+          SL_TRACE(
+              logger_,
               "Got an assignment too far in the future. (peer id={}, block "
               "hash={})",
               source->get(),
               block_hash);
           return;
         case AssignmentCheckResult::AcceptedDuplicate:
-          logger_->trace(
-              "Got duplicated assignment. (peer id={}, block hash={})",
-              source->get(),
-              block_hash);
+          SL_TRACE(logger_,
+                   "Got duplicated assignment. (peer id={}, block hash={})",
+                   source->get(),
+                   block_hash);
           return;
       }
     } else {

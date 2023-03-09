@@ -153,8 +153,9 @@ namespace kagome::observers {
 
       if (peer_state->get().collator_state) {
         logger_->warn("Peer is in collating state {}:{}", peer_id, para_id);
-        // TODO(iceseer): check that peer is not in collating state, or is in
-        // collating state with similar pubkey and parachain id.
+        // TODO(iceseer): https://github.com/soramitsu/kagome/issues/1513 check
+        // that peer is not in collating state, or is in collating state with
+        // similar pubkey and parachain id.
       }
 
       auto payload{peer_id.toVector()};  /// Copy because verify works with
