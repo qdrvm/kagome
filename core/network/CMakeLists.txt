@@ -18,6 +18,7 @@ add_library(network
     impl/transactions_transmitter_impl.cpp
     impl/sync_protocol_observer_impl.cpp
     impl/stream_engine.cpp
+    impl/dispute_request_observer_impl.cpp
     impl/protocols/protocol_error.cpp
     impl/protocols/state_protocol_impl.cpp
     impl/protocols/sync_protocol_impl.cpp
