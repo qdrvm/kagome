@@ -25,12 +25,14 @@ namespace kagome::network {
     using ResponseType = Response;
     using ReadWriterType = ReadWriter;
 
-    RequestResponseProtocol(Protocol name,
-                            libp2p::Host &host,
-                            Protocols protocols,
-                            log::Logger logger)
-        : base_(
-            std::move(name), host, std::move(protocols), std::move(logger)) {}
+    RequestResponseProtocol(
+        Protocol name,
+        libp2p::Host &host,
+        Protocols protocols,
+        log::Logger logger,
+        std::chrono::milliseconds timeout = std::chrono::seconds(1))
+        : base_(std::move(name), host, std::move(protocols), std::move(logger)),
+          timeout_(std::move(timeout)) {}
     virtual ~RequestResponseProtocol() {}
 
     bool start() override {
@@ -56,9 +58,18 @@ namespace kagome::network {
         return;
       }
 
+      doRequest({peer_id, std::move(addresses_res.value())},
+                std::move(request),
+                std::move(response_handler));
+    }
+
+    void doRequest(
+        const PeerInfo &peer_info,
+        RequestType request,
+        std::function<void(outcome::result<ResponseType>)> &&response_handler) {
       onTxRequest(request);
       newOutgoingStream(
-          {peer_id, std::move(addresses_res.value())},
+          peer_info,
           [wptr{this->weak_from_this()},
            response_handler{std::move(response_handler)},
            request{std::move(request)}](auto &&stream_res) mutable {
@@ -117,7 +128,7 @@ namespace kagome::network {
               peer_info.id);
 
       base_.host().newStream(
-          peer_info.id,
+          peer_info,
           base_.protocolIds(),
           [wptr{this->weak_from_this()},
            peer_id{peer_info.id},
@@ -140,7 +151,8 @@ namespace kagome::network {
                      self->protocolName(),
                      peer_id);
             cb(std::move(stream));
-          });
+          },
+          timeout_);
     }
 
     template <typename M>
@@ -314,6 +326,7 @@ namespace kagome::network {
     }
 
     ProtocolBaseImpl base_;
+    std::chrono::milliseconds timeout_;
   };
 
 }  // namespace kagome::network

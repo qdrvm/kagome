@@ -182,24 +182,14 @@ namespace kagome::parachain {
       std::unordered_map<primitives::BlockHash, AttestingData> fallbacks;
     };
 
-    struct AvailableDataRef {
-      SCALE_TIE(2);
-
-      /// The Proof-of-Validation of the candidate.
-      network::ParachainBlock const &pov;
-      /// The persisted validation data needed for secondary checks.
-      runtime::PersistedValidationData const &validation_data;
-    };
-
     /*
      * Validation.
      */
     outcome::result<Pvf::Result> validateCandidate(
         network::CandidateReceipt const &candidate,
         network::ParachainBlock const &pov);
-    template <typename T>
-    outcome::result<T> validateErasureCoding(AvailableDataRef &&validating_data,
-                                             size_t n_validators);
+    outcome::result<std::vector<network::ErasureChunk>> validateErasureCoding(
+        runtime::AvailableData const &validating_data, size_t n_validators);
     outcome::result<ValidateAndSecondResult> validateAndMakeAvailable(
         network::CandidateReceipt &&candidate,
         network::ParachainBlock &&pov,
@@ -342,8 +332,7 @@ namespace kagome::parachain {
       boost::asio::post(*context, std::forward<F>(func));
     }
     void notifyBackedCandidate(network::SignedStatement const &statement);
-    template <typename T>
-    void notifyAvailableData(T &chunk_list,
+    void notifyAvailableData(std::vector<network::ErasureChunk> &&chunk_list,
                              network::CandidateHash const &candidate_hash,
                              network::ParachainBlock const &pov,
                              runtime::PersistedValidationData const &data);

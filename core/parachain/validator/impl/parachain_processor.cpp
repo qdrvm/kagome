@@ -18,6 +18,7 @@
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
+#include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 #include "parachain/candidate_view.hpp"
 #include "parachain/peer_relay_parent_knowledge.hpp"
@@ -49,45 +50,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
   }
   return "Unknown parachain processor error";
 }
-
-namespace {
-
-  struct ExChunksList final : NonCopyable {
-    ChunksList chunks;
-
-    ExChunksList() {
-      chunks.data = nullptr;
-      chunks.count = 0ull;
-    }
-    ExChunksList(ExChunksList &&c) noexcept {
-      initFrom(std::move(c));
-    }
-    ExChunksList &operator=(ExChunksList &&c) noexcept {
-      initFrom(std::move(c));
-      return *this;
-    }
-    ~ExChunksList() {
-      if (nullptr != chunks.data) {
-        ECCR_deallocate_chunk_list(&chunks);
-      }
-    }
-
-    ExChunksList(ExChunksList const &) = delete;
-    ExChunksList &operator=(ExChunksList const &) = delete;
-
-   private:
-    void initFrom(ExChunksList &&c) {
-      if (&c != this) {
-        chunks.data = c.chunks.data;
-        c.chunks.data = nullptr;
-
-        chunks.count = c.chunks.count;
-        c.chunks.count = 0ull;
-      }
-    }
-  };
-
-}  // namespace
 
 namespace kagome::parachain {
 
@@ -1180,55 +1142,20 @@ namespace kagome::parachain {
     return pvf_->pvfSync(candidate, pov);
   }
 
-  template <typename T>
-  outcome::result<T> ParachainProcessorImpl::validateErasureCoding(
-      AvailableDataRef &&validating_data, size_t n_validators) {
-    OUTCOME_TRY(encoded, scale::encode(std::move(validating_data)));
-
-    DataBlock msg{
-        .array = encoded.data(),
-        .length = encoded.size(),
-    };
-
-    T out_data;
-    if (auto result = ECCR_obtain_chunks(n_validators, &msg, &out_data.chunks);
-        NPRSResult_Tag::NPRS_RESULT_OK != result.tag) {
-      logger_->warn("Erasure coding validation failed with {}", result.tag);
-      return Error::VALIDATION_FAILED;
-    }
-
-    /// TODO(iceseer): build trie and compare result with expected from
-    /// candidate
-    logger_->info("Erasure coding validation complete successfully");
-    return std::move(out_data);
+  outcome::result<std::vector<network::ErasureChunk>>
+  ParachainProcessorImpl::validateErasureCoding(
+      runtime::AvailableData const &validating_data, size_t n_validators) {
+    return toChunks(n_validators, validating_data);
   }
 
-  template <typename T>
   void ParachainProcessorImpl::notifyAvailableData(
-      T &chunk_list,
+      std::vector<network::ErasureChunk> &&chunks,
       network::CandidateHash const &candidate_hash,
       network::ParachainBlock const &pov,
       runtime::PersistedValidationData const &data) {
-    std::vector<network::ErasureChunk> chunks;
-    chunks.resize(chunk_list.chunks.count);
-
-    for (size_t ix = 0ull; ix < chunk_list.chunks.count; ++ix) {
-      auto const &chunk = chunk_list.chunks.data[ix];
-      chunks[ix].chunk = common::Buffer(chunk.data.array,
-                                        &chunk.data.array[chunk.data.length]);
-      chunks[ix].index = ValidatorIndex(chunk.index);
-    }
     makeTrieProof(chunks);
     av_store_->putChunkSet(candidate_hash, std::move(chunks));
     logger_->trace("Put chunks set.(candidate={})", candidate_hash);
-
-    for (size_t ix = 0ull; ix < chunk_list.chunks.count; ++ix) {
-      [[maybe_unused]] auto const &chunk = chunk_list.chunks.data[ix];
-      BOOST_ASSERT(ValidatorIndex(chunk.index) == 1
-                   || ValidatorIndex(chunk.index) == 0);
-      BOOST_ASSERT(
-          av_store_->getChunk(candidate_hash, ValidatorIndex(chunk.index)));
-    }
 
     av_store_->putPov(candidate_hash, pov);
     av_store_->putData(candidate_hash, data);  /// TODO(iceseer): remove copy
@@ -1256,22 +1183,23 @@ namespace kagome::parachain {
     }
 
     auto &[comms, data] = validation_result.value();
-    AvailableDataRef available_data{
-        .pov = pov,
-        .validation_data = data,
+    runtime::AvailableData available_data{
+        .pov = std::move(pov),
+        .validation_data = std::move(data),
     };
-    OUTCOME_TRY(chunks,
-                validateErasureCoding<ExChunksList>(std::move(available_data),
-                                                    n_validators));
+    OUTCOME_TRY(chunks, validateErasureCoding(available_data, n_validators));
 
-    notifyAvailableData(chunks, candidate_hash, pov, data);
+    notifyAvailableData(std::move(chunks),
+                        candidate_hash,
+                        available_data.pov,
+                        available_data.validation_data);
     return ValidateAndSecondResult{
         .result = outcome::success(),
         .relay_parent = relay_parent,
         .commitments =
             std::make_shared<network::CandidateCommitments>(std::move(comms)),
         .candidate = std::move(candidate),
-        .pov = std::move(pov),
+        .pov = std::move(available_data.pov),
     };
   }
 
