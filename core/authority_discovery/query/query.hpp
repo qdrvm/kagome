@@ -11,10 +11,16 @@
 #include "primitives/authority_discovery_id.hpp"
 
 namespace kagome::authority_discovery {
+  /**
+   * Query peer info from authority discovery public key.
+   */
   class Query {
    public:
     virtual ~Query() = default;
 
+    /**
+     * Get cached peer info from authority discovery public key.
+     */
     virtual std::optional<libp2p::peer::PeerInfo> get(
         const primitives::AuthorityDiscoveryId &authority) const = 0;
   };

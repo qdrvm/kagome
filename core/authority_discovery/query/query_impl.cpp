@@ -26,6 +26,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
 
 namespace kagome::authority_discovery {
   constexpr size_t kMaxActiveRequests = 8;
+  constexpr std::chrono::seconds kIntervalInitial{2};
+  constexpr std::chrono::minutes kIntervalMax{10};
 
   QueryImpl::QueryImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -47,8 +49,8 @@ namespace kagome::authority_discovery {
         host_{host},
         kademlia_{std::move(kademlia)},
         interval_{
-            std::chrono::seconds{2},
-            std::chrono::minutes{10},
+            kIntervalInitial,
+            kIntervalMax,
             std::move(scheduler),
         },
         log_{log::createLogger("AuthorityDiscoveryQuery")} {
@@ -139,7 +141,7 @@ namespace kagome::authority_discovery {
       return Error::DECODE_ERROR;
     }
     libp2p::crypto::ProtobufKey protobuf_key{
-        bytestr_copy(signed_record.peer_signature().public_key())};
+        common::Buffer{str2byte(signed_record.peer_signature().public_key())}};
     OUTCOME_TRY(peer_key, key_marshaller_->unmarshalPublicKey(protobuf_key));
     OUTCOME_TRY(peer_id, libp2p::peer::PeerId::fromPublicKey(protobuf_key));
     if (peer_id == host_.getId()) {
