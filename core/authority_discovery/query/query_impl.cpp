@@ -148,7 +148,7 @@ namespace kagome::authority_discovery {
 
     OUTCOME_TRY(auth_sig,
                 crypto::Sr25519Signature::fromSpan(
-                    bytestr(signed_record.auth_signature())));
+                    str2byte(signed_record.auth_signature())));
 
     ::authority_discovery::v2::AuthorityRecord record;
     if (not record.ParseFromString(signed_record.record())) {
@@ -160,7 +160,7 @@ namespace kagome::authority_discovery {
     libp2p::peer::PeerInfo peer{std::move(peer_id), {}};
     auto peer_id_str = peer.id.toBase58();
     for (auto &pb : record.addresses()) {
-      OUTCOME_TRY(address, libp2p::multi::Multiaddress::create(bytestr(pb)));
+      OUTCOME_TRY(address, libp2p::multi::Multiaddress::create(str2byte(pb)));
       if (address.getPeerId() != peer_id_str) {
         return Error::INCONSISTENT_PEER_ID;
       }
@@ -169,15 +169,15 @@ namespace kagome::authority_discovery {
 
     OUTCOME_TRY(auth_sig_ok,
                 sr_crypto_provider_->verify(
-                    auth_sig, bytestr(signed_record.record()), authority));
+                    auth_sig, str2byte(signed_record.record()), authority));
     if (not auth_sig_ok) {
       return Error::INVALID_SIGNATURE;
     }
 
     OUTCOME_TRY(peer_sig_ok,
                 libp2p_crypto_provider_->verify(
-                    bytestr(signed_record.record()),
-                    bytestr(signed_record.peer_signature().signature()),
+                    str2byte(signed_record.record()),
+                    str2byte(signed_record.peer_signature().signature()),
                     peer_key));
     if (not peer_sig_ok) {
       return Error::INVALID_SIGNATURE;
