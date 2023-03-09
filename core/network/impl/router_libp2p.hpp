@@ -87,6 +87,7 @@ namespace kagome::network {
         const override;
     std::shared_ptr<StatmentFetchingProtocol> getFetchStatementProtocol()
         const override;
+
     std::shared_ptr<SendDisputeProtocol> getSendDisputeProtocol()
         const override;
 
@@ -125,6 +126,7 @@ namespace kagome::network {
     LazySPtr<FetchChunkProtocol> fetch_chunk_protocol_;
     LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol_;
     LazySPtr<StatmentFetchingProtocol> statement_fetching_protocol_;
+
     LazySPtr<SendDisputeProtocol> send_dispute_protocol_;
 
     LazySPtr<libp2p::protocol::Ping> ping_protocol_;

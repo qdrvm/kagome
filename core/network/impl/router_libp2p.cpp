@@ -215,6 +215,11 @@ namespace kagome::network {
     return statement_fetching_protocol_.get();
   }
 
+  std::shared_ptr<SendDisputeProtocol> RouterLibp2p::getSendDisputeProtocol()
+      const {
+    return send_dispute_protocol_.get();
+  }
+
   std::shared_ptr<libp2p::protocol::Ping> RouterLibp2p::getPingProtocol()
       const {
     return ping_protocol_.get();
