@@ -903,6 +903,7 @@ namespace {
 
         // inherit host injector
         libp2p::injector::makeHostInjector(
+            libp2p::injector::useWssPem(config.nodeWssPem()),
             libp2p::injector::useSecurityAdaptors<
                 libp2p::security::Noise>()[di::override]),
 
