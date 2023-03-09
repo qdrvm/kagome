@@ -17,6 +17,7 @@
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "network/impl/protocols/protocol_req_collation.hpp"
 #include "network/impl/protocols/protocol_req_pov.hpp"
+#include "network/impl/protocols/send_dispute_protocol_impl.hpp"
 #include "network/protocols/state_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
 
@@ -48,7 +49,8 @@ namespace kagome::network {
     virtual std::shared_ptr<StateProtocol> getStateProtocol() const = 0;
     virtual std::shared_ptr<SyncProtocol> getSyncProtocol() const = 0;
     virtual std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const = 0;
-
+    virtual std::shared_ptr<SendDisputeProtocol> getSendDisputeProtocol()
+        const = 0;
     virtual std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const = 0;
   };
 }  // namespace kagome::network

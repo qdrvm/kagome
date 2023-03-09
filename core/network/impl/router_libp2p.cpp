@@ -26,6 +26,7 @@ namespace kagome::network {
       LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
       LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
       LazySPtr<StatmentFetchingProtocol> statement_fetching_protocol,
+      LazySPtr<SendDisputeProtocol> send_dispute_protocol,
       LazySPtr<libp2p::protocol::Ping> ping_protocol)
       : app_state_manager_{app_state_manager},
         host_{host},
@@ -47,6 +48,7 @@ namespace kagome::network {
         fetch_available_data_protocol_(
             std::move(fetch_available_data_protocol)),
         statement_fetching_protocol_(std::move(statement_fetching_protocol)),
+        send_dispute_protocol_(std::move(send_dispute_protocol)),
         ping_protocol_{std::move(ping_protocol)},
         log_{log::createLogger("RouterLibp2p", "network")} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
@@ -85,6 +87,8 @@ namespace kagome::network {
     app_state_manager_->takeControl(*fetch_chunk_protocol_.get());
     app_state_manager_->takeControl(*fetch_available_data_protocol_.get());
     app_state_manager_->takeControl(*statement_fetching_protocol_.get());
+
+    app_state_manager_->takeControl(*send_dispute_protocol_.get());
 
     host_.setProtocolHandler(
         {ping_protocol_.get()->getProtocolId()},
