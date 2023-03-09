@@ -26,6 +26,7 @@ add_library(network
     impl/protocols/grandpa_protocol.cpp
     impl/protocols/protocol_req_collation.cpp
     impl/protocols/block_announce_protocol.cpp
+    impl/protocols/send_dispute_protocol_impl.cpp
     impl/peer_view.cpp
     impl/peer_manager_impl.cpp
     impl/reputation_repository_impl.cpp
