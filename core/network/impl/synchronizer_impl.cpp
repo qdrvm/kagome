@@ -850,7 +850,8 @@ namespace kagome::network {
             "load justifications");
         not r.second) {
       SL_ERROR(log_,
-               "Can't load justification from {} for block {}: Duplicate '{}' request",
+               "Can't load justification from {} for block {}: Duplicate '{}' "
+               "request",
                peer_id,
                target_block,
                r.first->second);
@@ -1134,8 +1135,8 @@ namespace kagome::network {
               .header = std::move(block_data.header.value()),
               .body = std::move(block_data.body.value()),
           };
-          block_addition_result = block_executor_->applyBlock(std::move(block),
-                                                     block_data.justification);
+          block_addition_result = block_executor_->applyBlock(
+              std::move(block), block_data.justification);
 
         } else {
           // Fast syncing

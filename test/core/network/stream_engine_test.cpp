@@ -72,10 +72,19 @@ namespace kagome::network {
    */
   TEST_F(StreamEngineTest, RandomGossipTest) {
     // threshold = max_val * max(lucky_peers / candidates, 1.0)
-    std::shared_ptr<ProtocolBase> protocol1 =
+    std::shared_ptr<StateProtocolMock> p1 =
         std::make_shared<StateProtocolMock>();
-    std::shared_ptr<ProtocolBase> protocol2 =
-        std::make_shared<SyncProtocolMock>();
+    std::shared_ptr<SyncProtocolMock> p2 = std::make_shared<SyncProtocolMock>();
+    std::string test_protocol_1("test_protocol_1");
+    std::string test_protocol_2("test_protocol_2");
+    EXPECT_CALL(*p1, protocolName())
+        .WillRepeatedly(testing::ReturnRef(test_protocol_1));
+    EXPECT_CALL(*p2, protocolName())
+        .WillRepeatedly(testing::ReturnRef(test_protocol_2));
+
+    std::shared_ptr<ProtocolBase> protocol1 = p1;
+    std::shared_ptr<ProtocolBase> protocol2 = p2;
+
     std::vector<PeerId> peer_ids{
         "peer00"_peerid, "peer01"_peerid, "peer02"_peerid, "peer03"_peerid,
         "peer04"_peerid, "peer05"_peerid, "peer06"_peerid, "peer07"_peerid,
@@ -87,7 +96,8 @@ namespace kagome::network {
     size_t counter{0};
     for (size_t i = 0; i < peer_ids.size(); ++i) {
       auto stream = std::make_shared<StreamMock>();
-      EXPECT_CALL(*stream, remotePeerId()).WillOnce(Return(peer_ids.at(i)));
+      EXPECT_CALL(*stream, remotePeerId())
+          .WillRepeatedly(Return(peer_ids.at(i)));
       EXPECT_CALL(*stream, write(_, _, _)).WillRepeatedly([&counter]() {
         ++counter;
       });

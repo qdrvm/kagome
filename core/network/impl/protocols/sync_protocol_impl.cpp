@@ -232,11 +232,21 @@ namespace kagome::network {
             stream->remotePeerId().value());
 
         logmsg += ", fields=";
-        if (block_request.fields & BlockAttribute::HEADER) logmsg += 'H';
-        if (block_request.fields & BlockAttribute::BODY) logmsg += 'B';
-        if (block_request.fields & BlockAttribute::RECEIPT) logmsg += 'R';
-        if (block_request.fields & BlockAttribute::MESSAGE_QUEUE) logmsg += 'M';
-        if (block_request.fields & BlockAttribute::JUSTIFICATION) logmsg += 'J';
+        if (block_request.fields & BlockAttribute::HEADER) {
+          logmsg += 'H';
+        }
+        if (block_request.fields & BlockAttribute::BODY) {
+          logmsg += 'B';
+        }
+        if (block_request.fields & BlockAttribute::RECEIPT) {
+          logmsg += 'R';
+        }
+        if (block_request.fields & BlockAttribute::MESSAGE_QUEUE) {
+          logmsg += 'M';
+        }
+        if (block_request.fields & BlockAttribute::JUSTIFICATION) {
+          logmsg += 'J';
+        }
 
         visit_in_place(block_request.from, [&](const auto &from) {
           logmsg += fmt::format(", from {}", from);
@@ -268,7 +278,15 @@ namespace kagome::network {
       }
       auto &block_response = block_response_res.value();
 
-      if ((not block_response.blocks.empty()) and stream->remotePeerId()
+      auto empty = true;
+      for (auto &block : block_response.blocks) {
+        if (block.header or block.body or block.justification) {
+          empty = false;
+          break;
+        }
+      }
+
+      if ((not empty) and stream->remotePeerId()
           and self->response_cache_.isDuplicate(stream->remotePeerId().value(),
                                                 block_request.fingerprint())) {
         auto peer_id = stream->remotePeerId().value();
@@ -423,11 +441,21 @@ namespace kagome::network {
     if (base_.logger()->level() >= log::Level::DEBUG) {
       std::string logmsg = "Requesting blocks: fields=";
 
-      if (block_request.fields & BlockAttribute::HEADER) logmsg += 'H';
-      if (block_request.fields & BlockAttribute::BODY) logmsg += "B";
-      if (block_request.fields & BlockAttribute::RECEIPT) logmsg += "R";
-      if (block_request.fields & BlockAttribute::MESSAGE_QUEUE) logmsg += "M";
-      if (block_request.fields & BlockAttribute::JUSTIFICATION) logmsg += "J";
+      if (block_request.fields & BlockAttribute::HEADER) {
+        logmsg += 'H';
+      }
+      if (block_request.fields & BlockAttribute::BODY) {
+        logmsg += "B";
+      }
+      if (block_request.fields & BlockAttribute::RECEIPT) {
+        logmsg += "R";
+      }
+      if (block_request.fields & BlockAttribute::MESSAGE_QUEUE) {
+        logmsg += "M";
+      }
+      if (block_request.fields & BlockAttribute::JUSTIFICATION) {
+        logmsg += "J";
+      }
 
       visit_in_place(block_request.from, [&](const auto &from) {
         logmsg += fmt::format(" from {}", from);

@@ -26,6 +26,10 @@ namespace kagome::parachain {
       return std::make_tuple(
           kMagic, static_cast<uint8_t>(v.which()), candidateHash(hasher, v));
     }
+    static auto toSignable(const crypto::Hasher &hasher,
+                           const network::Statement &v) {
+      return toSignable(hasher, v.candidate_state);
+    }
 
    public:
     SCALE_TIE(2);
@@ -61,15 +65,17 @@ namespace kagome::parachain {
 
     /// Sign payload.
     template <typename T>
-    outcome::result<network::Signed<T>> sign(T payload) const {
+    outcome::result<parachain::IndexedAndSigned<T>> sign(T payload) const {
       auto data = context_.signable(*hasher_, payload);
       OUTCOME_TRY(signature, sr25519_provider_->sign(*keypair_, data));
-      return network::Signed<T>{
+      return parachain::IndexedAndSigned<T>{
           std::move(payload),
           validator_index_,
           signature,
       };
     }
+
+    SessionIndex getSessionIndex() const;
 
     /// Get validator index.
     ValidatorIndex validatorIndex() const;

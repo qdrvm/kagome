@@ -25,13 +25,18 @@ namespace kagome::network {
   struct CollatorState {
     network::ParachainId parachain_id;
     network::CollatorPublicKey collator_id;
-    std::unordered_set<BlockHash> advertisements;
   };
 
   struct PendingCollation {
+    RelayHash relay_parent;
     network::ParachainId para_id;
-    BlockHash const &relay_parent;
-    libp2p::peer::PeerId const &peer_id;
+    libp2p::peer::PeerId peer_id;
+    std::optional<Hash> commitments_hash;
+  };
+
+  struct CollationEvent {
+    CollatorId collator_id;
+    PendingCollation pending_collation;
   };
 
   using OurView = network::View;
@@ -108,8 +113,8 @@ namespace kagome::network {
      */
     virtual outcome::result<
         std::pair<network::CollatorPublicKey const &, network::ParachainId>>
-    insertAdvertisement(PeerState &peer_state,
-                        primitives::BlockHash para_hash) = 0;
+    retrieveCollatorData(PeerState &peer_state,
+                         const primitives::BlockHash &relay_parent) = 0;
 
     /**
      * Updates collation state and stores parachain id. Should be called once
