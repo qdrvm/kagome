@@ -70,11 +70,4 @@ namespace kagome::blockchain {
     return target_space->tryGet(key.value());
   }
 
-  inline common::Buffer blockNumberToKey(primitives::BlockNumber block_number) {
-    BOOST_STATIC_ASSERT(std::is_same_v<decltype(block_number), uint32_t>);
-    common::Buffer res;
-    res.putUint32(block_number);
-    return res;
-  }
-
 }  // namespace kagome::blockchain
