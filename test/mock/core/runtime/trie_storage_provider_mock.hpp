@@ -24,15 +24,27 @@ namespace kagome::runtime {
                 (const storage::trie::RootHash &),
                 (override));
 
-    MOCK_METHOD(std::shared_ptr<Batch>, getCurrentBatch, (), (const, override));
-
-    MOCK_METHOD(outcome::result<std::shared_ptr<PersistentBatch>>,
-                getChildBatchAt,
-                (const common::Buffer &),
+    MOCK_METHOD(void,
+                setTo,
+                (std::shared_ptr<storage::trie::TrieBatch> batch),
                 (override));
 
+    MOCK_METHOD(std::shared_ptr<Batch>, getCurrentBatch, (), (const, override));
+
+    MOCK_METHOD(
+        outcome::result<std::reference_wrapper<const storage::trie::TrieBatch>>,
+        getChildBatchAt,
+        (const common::Buffer &),
+        (override));
+
+    MOCK_METHOD(
+        outcome::result<std::reference_wrapper<storage::trie::TrieBatch>>,
+        getMutableChildBatchAt,
+        (const common::Buffer &),
+        (override));
+
     MOCK_METHOD(outcome::result<storage::trie::RootHash>,
-                forceCommit,
+                commit,
                 (StateVersion),
                 (override));
 

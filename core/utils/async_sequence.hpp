@@ -17,7 +17,8 @@ namespace kagome {
   template <typename F>
   auto asAsync(F &&f) {
     return [f{std::forward<F>(f)}](auto &&next, auto &&...a) mutable {
-      return next(f(std::forward<decltype(a)>(a)...));
+      using Next = std::remove_cv_t<std::remove_reference_t<decltype(next)>>;
+      return const_cast<Next &&>(next)(f(std::forward<decltype(a)>(a)...));
     };
   }
 

@@ -229,7 +229,7 @@ namespace kagome::host_api {
   runtime::WasmSpan StorageExtension::ext_storage_root_version_2(
       runtime::WasmI32 version) {
     auto state_version = toStateVersion(version);
-    auto res = storage_provider_->forceCommit(state_version);
+    auto res = storage_provider_->commit(state_version);
     if (res.has_error()) {
       logger_->error("ext_storage_root resulted with an error: {}",
                      res.error());

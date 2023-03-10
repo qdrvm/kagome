@@ -8,16 +8,20 @@
 
 #include "network/router.hpp"
 
+#include <boost/di/extension/injections/lazy.hpp>
+
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "libp2p/connection/loopback_stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/protocol/ping.hpp"
+#include "network/impl/protocols/light.hpp"
 #include "network/impl/protocols/protocol_factory.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
+#include "network/warp/protocol.hpp"
 
 namespace kagome::application {
   class ChainSpec;
@@ -38,6 +42,8 @@ namespace kagome::network {
         const OwnPeerInfo &own_info,
         const BootstrapNodes &bootstrap_nodes,
         std::shared_ptr<libp2p::protocol::Ping> ping_proto,
+        boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol,
+        std::shared_ptr<LightProtocol> light_protocol,
         std::shared_ptr<network::ProtocolFactory> protocol_factory);
 
     ~RouterLibp2p() override = default;
@@ -59,7 +65,14 @@ namespace kagome::network {
     std::shared_ptr<SyncProtocol> getSyncProtocol() const override;
     std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const override;
     std::shared_ptr<CollationProtocol> getCollationProtocol() const override;
+    std::shared_ptr<ValidationProtocol> getValidationProtocol() const override;
     std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
+        const override;
+    std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const override;
+    std::shared_ptr<FetchChunkProtocol> getFetchChunkProtocol() const override;
+    std::shared_ptr<FetchAvailableDataProtocol> getFetchAvailableDataProtocol()
+        const override;
+    std::shared_ptr<StatmentFetchingProtocol> getFetchStatementProtocol()
         const override;
 
     std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const override;
@@ -81,6 +94,8 @@ namespace kagome::network {
     const OwnPeerInfo &own_info_;
     log::Logger log_;
     std::shared_ptr<libp2p::protocol::Ping> ping_protocol_;
+    boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol_;
+    std::shared_ptr<LightProtocol> light_protocol_;
     std::shared_ptr<network::ProtocolFactory> protocol_factory_;
 
     std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;
@@ -90,7 +105,12 @@ namespace kagome::network {
     std::shared_ptr<StateProtocol> state_protocol_;
     std::shared_ptr<SyncProtocol> sync_protocol_;
     std::shared_ptr<CollationProtocol> collation_protocol_;
+    std::shared_ptr<ValidationProtocol> validation_protocol_;
     std::shared_ptr<ReqCollationProtocol> req_collation_protocol_;
+    std::shared_ptr<ReqPovProtocol> req_pov_protocol_;
+    std::shared_ptr<FetchChunkProtocol> fetch_chunk_protocol_;
+    std::shared_ptr<FetchAvailableDataProtocol> fetch_available_data_protocol_;
+    std::shared_ptr<StatmentFetchingProtocol> fetch_statement_protocol_;
   };
 
 }  // namespace kagome::network

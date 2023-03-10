@@ -24,9 +24,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, Ss58Error, e) {
 
 namespace kagome::primitives {
 
-  static common::Buffer calculateChecksum(
-      gsl::span<uint8_t, kSs58Length - kSs58ChecksumLength> ss58_address,
-      const crypto::Hasher &hasher) {
+  static common::Buffer calculateChecksum(gsl::span<uint8_t> ss58_address,
+                                          const crypto::Hasher &hasher) {
     constexpr auto PREFIX = "SS58PRE";
     auto preimage = common::Buffer{}.put(PREFIX).put(ss58_address);
     auto checksum = hasher.blake2b_512(preimage);
@@ -40,24 +39,27 @@ namespace kagome::primitives {
     // https://github.com/paritytech/substrate/wiki/External-Address-Format-(SS58)
     OUTCOME_TRY(ss58_account_id,
                 libp2p::multi::detail::decodeBase58(account_address));
-    primitives::AccountId account_id;
-
-    // first byte in SS58 is account type, then 32 bytes of the actual account
-    // id, then 2 bytes of checksum
-    if (ss58_account_id.size() != kSs58Length) {
-      return Ss58Error::INVALID_LENGTH;
-    }
 
     auto ss58_no_checksum = gsl::make_span(
         ss58_account_id.data(), ss58_account_id.size() - kSs58ChecksumLength);
     auto checksum = gsl::make_span<const uint8_t>(
         ss58_account_id.data() + ss58_no_checksum.size(), kSs58ChecksumLength);
+
     auto calculated_checksum = calculateChecksum(ss58_no_checksum, hasher);
+
     if (gsl::span<const uint8_t>(calculated_checksum) != checksum) {
       return Ss58Error::INVALID_CHECKSUM;
     }
 
-    std::copy_n(ss58_account_id.begin() + 1,
+    size_t type_size = (ss58_account_id[0] < 64) ? 1 : 2;
+
+    if (ss58_account_id.size() - kSs58ChecksumLength - type_size
+        != AccountId::size()) {
+      return Ss58Error::INVALID_LENGTH;
+    }
+
+    primitives::AccountId account_id;
+    std::copy_n(ss58_account_id.begin() + type_size,
                 primitives::AccountId::size(),
                 account_id.begin());
 
@@ -68,7 +70,7 @@ namespace kagome::primitives {
                          const AccountId &id,
                          const crypto::Hasher &hasher) noexcept {
     common::Buffer ss58_bytes;
-    ss58_bytes.reserve(kSs58Length);
+    ss58_bytes.reserve(2 + id.size() + kSs58ChecksumLength);
     if (account_type < 64) {
       ss58_bytes.putUint8(account_type).put(id);
     } else {

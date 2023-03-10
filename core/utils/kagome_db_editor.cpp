@@ -164,7 +164,7 @@ Example:
   std::cout << help;
 };
 
-outcome::result<std::unique_ptr<PersistentTrieBatch>> persistent_batch(
+outcome::result<std::unique_ptr<TrieBatch>> persistent_batch(
     const std::unique_ptr<TrieStorageImpl> &trie, const RootHash &hash) {
   OUTCOME_TRY(batch, trie->getPersistentBatchAt(hash));
   auto cursor = batch->trieCursor();
@@ -183,7 +183,7 @@ outcome::result<std::unique_ptr<PersistentTrieBatch>> persistent_batch(
 }
 
 void child_storage_root_hashes(
-    const std::unique_ptr<PersistentTrieBatch> &batch,
+    const std::unique_ptr<TrieBatch> &batch,
     std::set<RootHash> &hashes) {
   auto log = log::createLogger("main", "kagome-db-editor");
 
@@ -391,7 +391,7 @@ int db_editor_main(int argc, const char **argv) {
       auto finalized_batch =
           check(persistent_batch(trie, target_state)).value();
 
-      std::vector<std::unique_ptr<PersistentTrieBatch>> child_batches;
+      std::vector<std::unique_ptr<TrieBatch>> child_batches;
       {
         std::set<RootHash> child_root_hashes;
         child_storage_root_hashes(batch, child_root_hashes);

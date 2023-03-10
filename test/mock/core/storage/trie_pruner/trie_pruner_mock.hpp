@@ -21,7 +21,7 @@ namespace kagome::storage::trie_pruner {
 
     MOCK_METHOD(outcome::result<void>,
                 prune,
-                (trie::RootHash const &state),
+                (primitives::BlockHeader const&),
                 (override));
   };
 

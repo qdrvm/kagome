@@ -38,17 +38,18 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::shared_ptr<PolkadotTrie>>
-  TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key) const {
+  TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key,
+                                   OnNodeLoaded on_node_loaded) const {
     PolkadotTrie::NodeRetrieveFunctor f =
-        [this](const std::shared_ptr<OpaqueTrieNode> &parent)
+        [this, on_node_loaded](const std::shared_ptr<OpaqueTrieNode> &parent)
         -> outcome::result<PolkadotTrie::NodePtr> {
-      OUTCOME_TRY(node, retrieveNode(parent));
+      OUTCOME_TRY(node, retrieveNode(parent, on_node_loaded));
       return std::move(node);
     };
     if (db_key == getEmptyRootHash()) {
       return trie_factory_->createEmpty(std::move(f));
     }
-    OUTCOME_TRY(root, retrieveNode(db_key));
+    OUTCOME_TRY(root, retrieveNode(db_key, on_node_loaded));
     return trie_factory_->createFromRoot(std::move(root), std::move(f));
   }
 
@@ -78,27 +79,34 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
-      const std::shared_ptr<OpaqueTrieNode> &parent) const {
+      const std::shared_ptr<OpaqueTrieNode> &parent,
+      const OnNodeLoaded &on_node_loaded) const {
     if (auto p = std::dynamic_pointer_cast<DummyValue>(parent); p != nullptr) {
       OUTCOME_TRY(value, backend_->get(*p->value.hash));
+      if (on_node_loaded) {
+        on_node_loaded(value);
+      }
       p->value.value = value.into();
       return nullptr;
     }
     if (auto p = std::dynamic_pointer_cast<DummyNode>(parent); p != nullptr) {
-      OUTCOME_TRY(n, retrieveNode(p->db_key));
+      OUTCOME_TRY(n, retrieveNode(p->db_key, on_node_loaded));
       return std::move(n);
     }
     return std::dynamic_pointer_cast<TrieNode>(parent);
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
-      const common::Buffer &db_key) const {
+      const common::Buffer &db_key, const OnNodeLoaded &on_node_loaded) const {
     if (db_key.empty() or db_key == getEmptyRootHash()) {
       return nullptr;
     }
     Buffer enc;
     if (codec_->isMerkleHash(db_key)) {
       OUTCOME_TRY(db, backend_->get(db_key));
+      if (on_node_loaded) {
+        on_node_loaded(db);
+      }
       enc = db.into();
     } else {
       // `isMerkleHash(db_key) == false` means `db_key` is value itself

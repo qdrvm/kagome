@@ -34,9 +34,9 @@ namespace kagome::network {
                          const size_t lucky_peers_num)
         : candidates_num_{candidates_num} {
       auto lucky_rate = lucky_peers_num > 0
-                            ? static_cast<double>(lucky_peers_num)
-                                  / std::max(candidates_num_, lucky_peers_num)
-                            : 1.;
+                          ? static_cast<double>(lucky_peers_num)
+                                / std::max(candidates_num_, lucky_peers_num)
+                          : 1.;
       threshold_ = gen_.max() * lucky_rate;
     }
     bool operator()(const PeerId &) {
@@ -106,6 +106,12 @@ namespace kagome::network {
     outcome::result<void> addOutgoing(
         std::shared_ptr<Stream> stream,
         const std::shared_ptr<ProtocolBase> &protocol) {
+      if (auto res = stream->remotePeerId(); res.has_value()) {
+        SL_TRACE(logger_,
+                 "Add outgoing protocol.(protocol={}, peer_id={})",
+                 protocol->protocolName(),
+                 res.value());
+      }
       return add(std::move(stream), protocol, Direction::OUTGOING);
     }
 
@@ -165,16 +171,35 @@ namespace kagome::network {
       forEachPeer([&](const auto &peer_id, auto &proto_map) {
         if (predicate(peer_id)) {
           forProtocol(proto_map, protocol, [&](ProtocolDescr &descr) {
+            SL_TRACE(logger_,
+                     "Sending msg to peer.(protocol={}, peer={})",
+                     protocol->protocolName(),
+                     peer_id);
             if (descr.hasActiveOutgoing()) {
+              SL_TRACE(
+                  logger_,
+                  "Has active outgoing. Direct send.(protocol={}, peer={})",
+                  protocol->protocolName(),
+                  peer_id);
               send(peer_id, protocol, descr.outgoing.stream, msg);
               on_send(*descr.outgoing.stream);
             } else {
+              SL_TRACE(
+                  logger_,
+                  "No active outgoing. Reopen outgoing stream.(protocol={}, "
+                  "peer={})",
+                  protocol->protocolName(),
+                  peer_id);
               descr.deferred_messages.push_back([weak_self = weak_from_this(),
                                                  msg,
                                                  peer_id,
                                                  protocol,
                                                  on_send](auto stream) {
                 if (auto self = weak_self.lock()) {
+                  SL_TRACE(self->logger_,
+                           "Send deffered messages.(protocol={}, peer={})",
+                           protocol->protocolName(),
+                           peer_id);
                   self->send(peer_id, protocol, stream, msg);
                   on_send(*stream);
                 }

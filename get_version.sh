@@ -10,7 +10,7 @@ realpath() {
 
 cd $(dirname "$(realpath "$0")")
 
-if [ -x "$(which git 2>/dev/null)" ] && [ -d ".git" ]; then
+if [ -x "$(which git 2>/dev/null)" ] && [ -e ".git" ]; then
   if [ -x "$(which sed 2>/dev/null)" ]; then
     HEAD=$(git rev-parse --short HEAD)
     COMMON=$(git merge-base HEAD master)

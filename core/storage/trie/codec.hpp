@@ -12,6 +12,8 @@
 #include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
+  struct TrieNode;
+
   /**
    * @brief Internal codec for nodes in the Trie. Eth and substrate have
    * different codecs, but rest of the code should be same.

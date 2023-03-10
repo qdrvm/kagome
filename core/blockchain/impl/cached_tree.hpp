@@ -11,6 +11,7 @@
 
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/epoch_digest.hpp"
+#include "consensus/grandpa/common.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 
@@ -34,7 +35,9 @@ namespace kagome::blockchain {
     primitives::BlockNumber depth;
     std::weak_ptr<TreeNode> parent;
     bool finalized;
+    bool has_justification = false;
     bool babe_primary;
+    bool contains_approved_para_block;
 
     std::vector<std::shared_ptr<TreeNode>> children{};
 
@@ -84,7 +87,30 @@ namespace kagome::blockchain {
    * the operations faster
    */
   struct TreeMeta {
-    using Weight = std::pair<size_t, primitives::BlockNumber>;
+    union WeightInfo {
+      BOOST_STATIC_ASSERT(
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+          false
+#else   //__BYTE_ORDER__
+          true
+#endif  //__BYTE_ORDER__
+      );
+
+      struct {
+        uint64_t parachain_payload : 48;
+        uint64_t babe_primary : 16;
+      } data;
+      uint64_t value;
+
+      WeightInfo(uint64_t v) : value(v) {}
+      bool operator==(WeightInfo const &r) const {
+        return value == r.value;
+      }
+      bool operator<(WeightInfo const &r) const {
+        return value < r.value;
+      }
+    };
+    using Weight = std::pair<WeightInfo, primitives::BlockNumber>;
 
     explicit TreeMeta(
         const std::shared_ptr<TreeNode> &subtree_root_node,

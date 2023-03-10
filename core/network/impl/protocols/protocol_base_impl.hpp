@@ -15,6 +15,7 @@
 #include <libp2p/host/host.hpp>
 #include <libp2p/peer/stream_protocols.hpp>
 
+#include "log/logger.hpp"
 #include "network/helpers/stream_read_buffer.hpp"
 #include "utils/box.hpp"
 #include "utils/non_copyable.hpp"
@@ -40,7 +41,9 @@ namespace kagome::network {
         : name_(std::move(name)),
           host_{host},
           protocols_{std::move(protocols)},
-          log_{std::move(logger)} {}
+          log_{std::move(logger)} {
+      BOOST_ASSERT(!protocols_.empty());
+    }
 
     template <typename T>
     bool start(std::weak_ptr<T> wptr) {

@@ -10,9 +10,9 @@
 #include <functional>
 #include <gsl/span>
 #include <memory>
+#include <vector>
 
 #include "network/adapters/adapter_errors.hpp"
-#include "network/protobuf/api.v1.pb.h"
 #include "outcome/outcome.hpp"
 
 namespace kagome::network {

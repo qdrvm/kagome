@@ -69,7 +69,7 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::prune(
       primitives::BlockHeader const &state) {
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(state.state_root));
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(state.state_root, nullptr));
     size_t removed = 0;
     size_t unknown = 0;
 
@@ -114,7 +114,7 @@ namespace kagome::storage::trie_pruner {
           auto branch = static_cast<const trie::BranchNode &>(*node);
           for (auto opaque_child : branch.children) {
             if (opaque_child != nullptr) {
-              OUTCOME_TRY(child, serializer_->retrieveNode(opaque_child));
+              OUTCOME_TRY(child, serializer_->retrieveNode(opaque_child, nullptr));
               queued_nodes.push_back(child);
             }
           }

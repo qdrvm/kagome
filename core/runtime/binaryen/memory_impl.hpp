@@ -19,6 +19,7 @@
 #include "common/literals.hpp"
 #include "log/logger.hpp"
 #include "primitives/math.hpp"
+#include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/memory.hpp"
 
 namespace kagome::runtime {
@@ -37,9 +38,9 @@ namespace kagome::runtime::binaryen {
    */
   class MemoryImpl final : public Memory {
    public:
-    MemoryImpl(wasm::ShellExternalInterface::Memory *memory,
+    MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
                std::unique_ptr<MemoryAllocator> &&allocator);
-    MemoryImpl(wasm::ShellExternalInterface::Memory *memory,
+    MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
                WasmSize heap_base);
     MemoryImpl(const MemoryImpl &copy) = delete;
     MemoryImpl &operator=(const MemoryImpl &copy) = delete;
@@ -94,7 +95,7 @@ namespace kagome::runtime::binaryen {
     }
 
    private:
-    wasm::ShellExternalInterface::Memory *memory_;
+    RuntimeExternalInterface::InternalMemory *memory_;
     WasmSize size_;
     std::unique_ptr<MemoryAllocator> allocator_;
 

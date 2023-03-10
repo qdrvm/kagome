@@ -32,18 +32,30 @@ namespace kagome::storage::trie {
     outcome::result<RootHash> storeTrie(PolkadotTrie &trie,
                                         StateVersion version) override;
 
-    TrieStoreStats const& getLatestStats() const override  {
+    TrieStoreStats const &getLatestStats() const override {
       return current_stats_;
     }
 
     outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        const common::Buffer &db_key) const override;
+        const common::Buffer &db_key,
+        OnNodeLoaded on_node_loaded) const override;
 
+    /**
+     * Fetches a node from the storage. A nullptr is returned in case that there
+     * is no entry for provided key. Mind that a branch node will have dummy
+     * nodes as its children
+     */
     outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const common::Buffer &db_key) const override;
+        const common::Buffer &db_key,
+        const OnNodeLoaded &on_node_loaded) const override;
 
+    /**
+     * Retrieves a node, replacing a dummy node to an actual node if
+     * needed
+     */
     outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const std::shared_ptr<OpaqueTrieNode> &node) const override;
+        const std::shared_ptr<OpaqueTrieNode> &node,
+        const OnNodeLoaded &on_node_loaded) const override;
 
    private:
     /**

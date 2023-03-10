@@ -18,7 +18,7 @@ namespace kagome::runtime::binaryen {
 
     MOCK_METHOD(std::unique_ptr<MemoryImpl>,
                 make,
-                (wasm::ShellExternalInterface::Memory * memory,
+                (RuntimeExternalInterface::InternalMemory * memory,
                  WasmSize heap_base),
                 (const, override));
   };

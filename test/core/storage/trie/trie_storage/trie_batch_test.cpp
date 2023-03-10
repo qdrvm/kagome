@@ -10,6 +10,7 @@
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
+#include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
@@ -212,12 +213,12 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 }
 
 TEST_F(TrieBatchTest, TopperBatchAtomic) {
-  std::shared_ptr<PersistentTrieBatch> p_batch =
+  std::shared_ptr<TrieBatch> p_batch =
       trie->getPersistentBatchAt(empty_hash).value();
   ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("123"_buf, "abc"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("678"_buf, "abc"_buf));
 
-  auto t_batch = p_batch->batchOnTop();
+  auto t_batch = std::make_unique<TopperTrieBatchImpl>(p_batch);
 
   ASSERT_OUTCOME_SUCCESS_TRY(t_batch->put("123"_buf, "abc"_buf))
   ASSERT_OUTCOME_IS_TRUE(t_batch->contains("123"_buf))
@@ -245,12 +246,12 @@ TEST_F(TrieBatchTest, TopperBatchAtomic) {
  * batch
  */
 TEST_F(TrieBatchTest, TopperBatchRemove) {
-  std::shared_ptr<PersistentTrieBatch> p_batch =
+  std::shared_ptr<TrieBatch> p_batch =
       trie->getPersistentBatchAt(empty_hash).value();
 
   ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("102030"_hex2buf, "010203"_hex2buf));
 
-  auto t_batch = p_batch->batchOnTop();
+  auto t_batch = std::make_unique<TopperTrieBatchImpl>(p_batch);
 
   t_batch->remove("102030"_hex2buf).value();
   t_batch->writeBack().value();

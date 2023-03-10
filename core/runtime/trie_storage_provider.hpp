@@ -26,7 +26,6 @@ namespace kagome::runtime {
   class TrieStorageProvider {
    public:
     using Batch = storage::trie::TrieBatch;
-    using PersistentBatch = storage::trie::PersistentTrieBatch;
     using StateVersion = storage::trie::StateVersion;
 
     virtual ~TrieStorageProvider() = default;
@@ -40,11 +39,19 @@ namespace kagome::runtime {
     /**
      * Sets the current batch to a new persistent batch at specified storage
      * state
-     * @warning this will reset storage state to th specified root and discard
-     * all changes accumulated in the current persistent batch
+     * @warning this will reset storage state and discard
+     * all changes accumulated in the current batch
      */
     virtual outcome::result<void> setToPersistentAt(
         const common::Hash256 &state_root) = 0;
+
+    /**
+     * Sets the current batch to a new batch
+     * @warning this will reset storage state to the specified root and discard
+     * all changes accumulated in the current batch
+     */
+    virtual void setTo(
+        std::shared_ptr<storage::trie::TrieBatch> batch) = 0;
 
     /**
      * @returns current batch, if any was set (@see setToEphemeral,
@@ -58,13 +65,19 @@ namespace kagome::runtime {
      * @param root root hash value of a new (or cached) batch
      * @return Child storage tree batch
      */
-    virtual outcome::result<std::shared_ptr<PersistentBatch>> getChildBatchAt(
-        const common::Buffer &root_path) = 0;
+    virtual outcome::result<
+        std::reference_wrapper<const storage::trie::TrieBatch>>
+    getChildBatchAt(const common::Buffer &root_path) = 0;
+
+    virtual outcome::result<std::reference_wrapper<storage::trie::TrieBatch>>
+    getMutableChildBatchAt(const common::Buffer &root_path) = 0;
 
     /**
-     * Commits persistent changes even if the current batch is not persistent
+     * Commits pending changes and returns the resulting state root
+     * May or may not actually write to database depending
+     * on the current batch type (persistent or ephemeral)
      */
-    virtual outcome::result<storage::trie::RootHash> forceCommit(
+    virtual outcome::result<storage::trie::RootHash> commit(
         StateVersion version) = 0;
 
     // ------ Transaction methods ------

@@ -30,6 +30,15 @@ namespace kagome::runtime {
   outcome::result<std::vector<primitives::Extrinsic>>
   BlockBuilderImpl::inherent_extrinsics(RuntimeEnvironment &env,
                                         const primitives::InherentData &data) {
+    // https://github.com/paritytech/substrate/blob/ea4fbcb84cf3883123d1341068e1e70310ab2049/client/block-builder/src/lib.rs#L285
+    // `create_inherents` should not change any state, to ensure this we always
+    // rollback the transaction.
+    //
+    // `rollbackTransaction` is called by `Executor::call`.
+    //
+    // Can't use `EphemeralTrieBatch`, because we must `call` in context of
+    // `env.storage_provider`s `PersistentTrieBatch`.
+    OUTCOME_TRY(env.storage_provider->startTransaction());
     return executor_->call<std::vector<primitives::Extrinsic>>(
         env, "BlockBuilder_inherent_extrinsics", data);
   }

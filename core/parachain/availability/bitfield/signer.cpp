@@ -56,13 +56,34 @@ namespace kagome::parachain {
         });
   }
 
+  void BitfieldSigner::setBroadcastCallback(
+      BitfieldSigner::BroadcastCallback &&callback) {
+    BOOST_ASSERT_MSG(broadcast_ == nullptr, "Callback already stored.");
+    broadcast_ = std::move(callback);
+  }
+
   outcome::result<void> BitfieldSigner::sign(const ValidatorSigner &signer) {
-    auto &relay_parent = signer.relayParent();
+    BlockHash const &relay_parent = signer.relayParent();
     scale::BitVec bitfield;
     OUTCOME_TRY(cores, parachain_api_->availability_cores(relay_parent));
     bitfield.bits.reserve(cores.size());
     for (auto &core : cores) {
       auto occupied = boost::get<runtime::OccupiedCore>(&core);
+      if (occupied) {
+        SL_TRACE(logger_,
+                 "Signing bitfields.(relay_parent={}, validator index={}, has "
+                 "chunk={})",
+                 relay_parent,
+                 signer.validatorIndex(),
+                 store_->hasChunk(occupied->candidate_hash,
+                                  signer.validatorIndex()));
+      } else {
+        SL_TRACE(logger_,
+                 "Signing bitfields.(relay_parent={}, validator index={}, NOT "
+                 "OCCUPIED)",
+                 relay_parent,
+                 signer.validatorIndex());
+      }
       bitfield.bits.push_back(occupied != nullptr
                               && store_->hasChunk(occupied->candidate_hash,
                                                   signer.validatorIndex()));
@@ -70,7 +91,11 @@ namespace kagome::parachain {
 
     OUTCOME_TRY(signed_bitfield, signer.sign(bitfield));
     bitfield_store_->putBitfield(relay_parent, signed_bitfield);
-    // TODO(turuslan): broadcast
+
+    BOOST_ASSERT_MSG(broadcast_ != nullptr,
+                     "No broadcast callback registered.");
+    broadcast_(relay_parent, signed_bitfield);
+
     return outcome::success();
   }
 
@@ -79,8 +104,9 @@ namespace kagome::parachain {
     if (not signer.has_value()) {
       return outcome::success();
     }
+    // TODO(turuslan): fetch_chunks(candidates, signer.validatorIndex());
     scheduler_->schedule(
-        [weak = weak_from_this(), signer{std::move(*signer)}]() {
+        [weak = weak_from_this(), signer{std::move(*signer)}]() mutable {
           if (auto self = weak.lock()) {
             auto r = self->sign(signer);
             if (r.has_error()) {

@@ -62,20 +62,32 @@ namespace kagome::storage::trie {
                  or not changes_.has_value());
   }
 
-  outcome::result<std::unique_ptr<PersistentTrieBatch>>
+  outcome::result<std::unique_ptr<TrieBatch>>
   TrieStorageImpl::getPersistentBatchAt(const RootHash &root) {
     SL_DEBUG(logger_,
              "Initialize persistent trie batch with root: {}",
              root.toHex());
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
-    return PersistentTrieBatchImpl::create(
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}, nullptr));
+    return std::make_unique<PersistentTrieBatchImpl>(
         codec_, serializer_, changes_, std::move(trie), state_pruner_);
   }
 
-  outcome::result<std::unique_ptr<EphemeralTrieBatch>>
+  outcome::result<std::unique_ptr<TrieBatch>>
   TrieStorageImpl::getEphemeralBatchAt(const RootHash &root) const {
     SL_DEBUG(logger_, "Initialize ephemeral trie batch with root: {}", root);
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
-    return std::make_unique<EphemeralTrieBatchImpl>(codec_, std::move(trie));
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}, nullptr));
+    return std::make_unique<EphemeralTrieBatchImpl>(
+        codec_, std::move(trie), serializer_, nullptr);
   }
+
+  outcome::result<std::unique_ptr<TrieBatch>>
+  TrieStorageImpl::getProofReaderBatchAt(
+      const RootHash &root, const OnNodeLoaded &on_node_loaded) const {
+    SL_DEBUG(
+        logger_, "Initialize proof reading trie batch with root: {}", root);
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}, on_node_loaded));
+    return std::make_unique<EphemeralTrieBatchImpl>(
+        codec_, std::move(trie), serializer_, on_node_loaded);
+  }
+
 }  // namespace kagome::storage::trie

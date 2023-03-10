@@ -106,6 +106,13 @@ namespace kagome::blockchain {
         const primitives::BlockHeader &block_header) = 0;
 
     /**
+     * Adjusts weight for the block as contained parachain data.
+     * @param block_hash is hash of the weighted block
+     */
+    virtual outcome::result<void> markAsParachainDataBlock(
+        const primitives::BlockHash &block_hash) = 0;
+
+    /**
      * Add a new block to the tree
      * @param block to be stored and added to tree
      * @return nothing or error; if error happens, no changes in the tree are

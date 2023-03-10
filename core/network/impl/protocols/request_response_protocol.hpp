@@ -19,16 +19,20 @@ namespace kagome::network {
       : ProtocolBase,
         std::enable_shared_from_this<
             RequestResponseProtocol<Request, Response, ReadWriter>> {
+    using RequestResponseProtocolType =
+        RequestResponseProtocol<Request, Response, ReadWriter>;
     using RequestType = Request;
     using ResponseType = Response;
     using ReadWriterType = ReadWriter;
 
-    RequestResponseProtocol(Protocol name,
-                            libp2p::Host &host,
-                            Protocols protocols,
-                            log::Logger logger)
-        : base_(
-            std::move(name), host, std::move(protocols), std::move(logger)) {}
+    RequestResponseProtocol(
+        Protocol name,
+        libp2p::Host &host,
+        Protocols protocols,
+        log::Logger logger,
+        std::chrono::milliseconds timeout = std::chrono::seconds(1))
+        : base_(std::move(name), host, std::move(protocols), std::move(logger)),
+          timeout_(std::move(timeout)) {}
     virtual ~RequestResponseProtocol() {}
 
     bool start() override {
@@ -54,9 +58,18 @@ namespace kagome::network {
         return;
       }
 
+      doRequest({peer_id, std::move(addresses_res.value())},
+                std::move(request),
+                std::move(response_handler));
+    }
+
+    void doRequest(
+        const PeerInfo &peer_info,
+        RequestType request,
+        std::function<void(outcome::result<ResponseType>)> &&response_handler) {
       onTxRequest(request);
       newOutgoingStream(
-          {peer_id, std::move(addresses_res.value())},
+          peer_info,
           [wptr{this->weak_from_this()},
            response_handler{std::move(response_handler)},
            request{std::move(request)}](auto &&stream_res) mutable {
@@ -98,6 +111,10 @@ namespace kagome::network {
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override {
       BOOST_ASSERT(stream->remotePeerId().has_value());
+      SL_INFO(base_.logger(),
+              "New incoming {} stream with {}",
+              protocolName(),
+              stream->remotePeerId().value());
       readRequest(std::move(stream));
     }
 
@@ -105,13 +122,13 @@ namespace kagome::network {
         const PeerInfo &peer_info,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override {
-      SL_DEBUG(base_.logger(),
-               "Connect for {} stream with {}",
-               protocolName(),
-               peer_info.id);
+      SL_INFO(base_.logger(),
+              "Connect for {} stream with {}",
+              protocolName(),
+              peer_info.id);
 
       base_.host().newStream(
-          peer_info.id,
+          peer_info,
           base_.protocolIds(),
           [wptr{this->weak_from_this()},
            peer_id{peer_info.id},
@@ -134,7 +151,8 @@ namespace kagome::network {
                      self->protocolName(),
                      peer_id);
             cb(std::move(stream));
-          });
+          },
+          timeout_);
     }
 
     template <typename M>
@@ -142,8 +160,8 @@ namespace kagome::network {
                M msg,
                std::function<void(outcome::result<void>,
                                   std::shared_ptr<Stream>)> &&cb) {
-      static_assert(
-          std::is_same_v<M, RequestType> || std::is_same_v<M, ResponseType>);
+      static_assert(std::is_same_v<M, RequestType>
+                    || std::is_same_v<M, ResponseType>);
       SL_DEBUG(base_.logger(),
                "Write msg into {} stream with {}",
                protocolName(),
@@ -282,7 +300,9 @@ namespace kagome::network {
           std::move(stream),
           [wptr{this->weak_from_this()}](outcome::result<RequestType> result,
                                          std::shared_ptr<Stream> stream) {
-            if (!result) return;
+            if (!result) {
+              return;
+            }
 
             auto self = wptr.lock();
             assert(self
@@ -306,6 +326,7 @@ namespace kagome::network {
     }
 
     ProtocolBaseImpl base_;
+    std::chrono::milliseconds timeout_;
   };
 
 }  // namespace kagome::network

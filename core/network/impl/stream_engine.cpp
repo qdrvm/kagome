@@ -21,6 +21,15 @@ namespace kagome::network {
     const bool is_outgoing =
         (dir & static_cast<uint8_t>(Direction::OUTGOING)) != 0;
 
+    std::optional<kagome::network::StreamEngine::PeerId> p;
+    if (auto r = stream->remotePeerId(); r.has_value()) {
+      p = r.value();
+    }
+    SL_TRACE(logger_,
+             "Add stream for peer.(peer={}, protocol={})",
+             p,
+             protocol->protocolName());
+
     return streams_.exclusiveAccess([&](auto &streams) {
       bool existing = false;
       forPeerProtocol(peer_id, streams, protocol, [&](auto type, auto &descr) {
@@ -69,6 +78,7 @@ namespace kagome::network {
   }
 
   void StreamEngine::del(const PeerId &peer_id) {
+    SL_TRACE(logger_, "Remove all streams from peer.(peer={})", peer_id);
     streams_.exclusiveAccess([&](auto &streams) {
       if (auto it = streams.find(peer_id); it != streams.end()) {
         for (auto &protocol_it : it->second) {
@@ -115,7 +125,7 @@ namespace kagome::network {
       forPeerProtocol(
           peer_id, streams, protocol, [&](auto, ProtocolDescr const &descr) {
             alive = descr.hasActiveOutgoing() || descr.hasActiveIncoming()
-                    || descr.isOutgoingReserved();
+                 || descr.isOutgoingReserved();
           });
     });
     return alive;
@@ -129,7 +139,7 @@ namespace kagome::network {
           streams.begin(), streams.end(), [&protocol](const auto &entry) {
             auto &[peer_id, protocol_map] = entry;
             return protocol_map.find(protocol) != protocol_map.end()
-                   && protocol_map.at(protocol).hasActiveOutgoing();
+                && protocol_map.at(protocol).hasActiveOutgoing();
           });
     });
     return candidates_num;
@@ -152,7 +162,9 @@ namespace kagome::network {
                                   Direction direction) {
     BOOST_ASSERT(src);
     // Skip the same stream
-    if (dst.get() == src.get()) return;
+    if (dst.get() == src.get()) {
+      return;
+    }
 
     bool replaced = false;
     // Reset previous stream if any

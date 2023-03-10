@@ -29,7 +29,7 @@
 using namespace kagome;
 using consensus::grandpa::AuthorityManagerImpl;
 using consensus::grandpa::IsBlockFinalized;
-using kagome::storage::trie::EphemeralTrieBatchMock;
+using kagome::storage::trie::TrieBatchMock;
 using primitives::AuthorityList;
 using primitives::AuthoritySet;
 using primitives::events::ChainSubscriptionEngine;
@@ -73,7 +73,7 @@ class AuthorityManagerTest : public testing::Test {
     trie_storage = std::make_shared<storage::trie::TrieStorageMock>();
     EXPECT_CALL(*trie_storage, getEphemeralBatchAt(_))
         .WillRepeatedly(testing::Invoke([] {
-          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          auto batch = std::make_unique<TrieBatchMock>();
           EXPECT_CALL(*batch, tryGetMock(_))
               .WillRepeatedly(
                   Return(storage::Buffer::fromHex("0000000000000000").value()));

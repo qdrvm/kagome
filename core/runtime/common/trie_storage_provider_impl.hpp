@@ -21,9 +21,7 @@ namespace kagome::runtime {
 
   class TrieStorageProviderImpl : public TrieStorageProvider {
    public:
-    enum class Error {
-      NO_BATCH = 1,
-    };
+    enum class Error { NO_BATCH = 1, UNFINISHED_TRANSACTIONS_LEFT };
 
     explicit TrieStorageProviderImpl(
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
@@ -37,12 +35,18 @@ namespace kagome::runtime {
     outcome::result<void> setToPersistentAt(
         const common::Hash256 &state_root) override;
 
+    void setTo(
+        std::shared_ptr<storage::trie::TrieBatch> batch) override;
+
     std::shared_ptr<Batch> getCurrentBatch() const override;
 
-    outcome::result<std::shared_ptr<PersistentBatch>> getChildBatchAt(
-        const common::Buffer &root_path) override;
+    outcome::result<std::reference_wrapper<const storage::trie::TrieBatch>>
+    getChildBatchAt(const common::Buffer &root_path) override;
 
-    outcome::result<storage::trie::RootHash> forceCommit(
+    outcome::result<std::reference_wrapper<storage::trie::TrieBatch>>
+    getMutableChildBatchAt(const common::Buffer &root_path) override;
+
+    outcome::result<storage::trie::RootHash> commit(
         StateVersion version) override;
 
     outcome::result<void> startTransaction() override;
@@ -50,19 +54,30 @@ namespace kagome::runtime {
     outcome::result<void> commitTransaction() override;
 
    private:
+    outcome::result<std::optional<std::shared_ptr<storage::trie::TrieBatch>>>
+    findChildBatchAt(const common::Buffer &root_path) const;
+
+    outcome::result<std::shared_ptr<storage::trie::TrieBatch>>
+    createBaseChildBatchAt(const common::Buffer &root_path);
+
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<storage::trie::TrieSerializer> trie_serializer_;
 
-    std::stack<std::shared_ptr<Batch>> stack_of_batches_;
+    struct Transaction {
+      // batch for the main trie in this transaction
+      std::shared_ptr<storage::trie::TopperTrieBatch> main_batch;
+      // batches for child tries in this transaction
+      std::unordered_map<common::Buffer,
+                         std::shared_ptr<storage::trie::TopperTrieBatch>>
+          child_batches;
+    };
+    std::vector<Transaction> transaction_stack_;
 
-    std::shared_ptr<Batch> current_batch_;
+    // base trie batch (i.e. not an overlay used for storage transactions)
+    std::shared_ptr<Batch> base_batch_;
 
-    // need to store it because it has to be the same in different runtime calls
-    // to keep accumulated changes for commit to the main storage
-    std::shared_ptr<PersistentBatch> persistent_batch_;
-
-    std::unordered_map<common::Buffer, std::shared_ptr<PersistentBatch>>
-        child_batches_;
+    // base child batches (i.e. not overlays used for storage transactions)
+    std::unordered_map<common::Buffer, std::shared_ptr<Batch>> child_batches_;
 
     log::Logger logger_;
   };

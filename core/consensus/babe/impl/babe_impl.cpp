@@ -19,12 +19,12 @@
 #include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "consensus/babe/impl/parachains_inherent_data.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
+#include "network/types/collator_messages.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -38,6 +38,7 @@ namespace {
 using namespace std::literals::chrono_literals;
 
 namespace kagome::consensus::babe {
+  using ParachainInherentData = network::ParachainInherentData;
   using SyncMethod = application::AppConfiguration::SyncMethod;
 
   BabeImpl::BabeImpl(
@@ -57,6 +58,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<blockchain::DigestTracker> digest_tracker,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
+      std::shared_ptr<parachain::BitfieldStore> bitfield_store,
+      std::shared_ptr<parachain::BackingStore> backing_store,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<runtime::Core> core,
@@ -77,6 +80,8 @@ namespace kagome::consensus::babe {
         digest_tracker_(std::move(digest_tracker)),
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
+        bitfield_store_{std::move(bitfield_store)},
+        backing_store_{std::move(backing_store)},
         chain_events_engine_(std::move(chain_events_engine)),
         chain_sub_([&] {
           BOOST_ASSERT(chain_events_engine_ != nullptr);
@@ -531,6 +536,19 @@ namespace kagome::consensus::babe {
 
     current_state_ = Babe::State::STATE_LOADING;
 
+    if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
+      if (app_state_manager_->state()
+          != application::AppStateManager::State::ShuttingDown) {
+        SL_INFO(log_,
+                "Stateless fast sync is finished on block {}; "
+                "Application is stopping",
+                block_tree_->bestLeaf());
+        log_->flush();
+        app_state_manager_->shutdown();
+      }
+      return;
+    }
+
     // Switch to last finalized to have a state on it
     auto block_at_state = block_tree_->getLastFinalized();
 
@@ -571,17 +589,6 @@ namespace kagome::consensus::babe {
         affected = true;
       }
     } while (affected);
-
-    if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
-      if (app_state_manager_->state()
-          != application::AppStateManager::State::ShuttingDown) {
-        SL_INFO(log_,
-                "Stateless fast sync is finished; Application is stopping");
-        log_->flush();
-        app_state_manager_->shutdown();
-      }
-      return;
-    }
 
     SL_TRACE(log_,
              "Trying to sync state on block {} from {}",
@@ -909,6 +916,14 @@ namespace kagome::consensus::babe {
     //  issue https://github.com/soramitsu/kagome/issues/1209
 
     {
+      auto &relay_parent = best_block_.hash;
+      paras_inherent_data.bitfields =
+          bitfield_store_->getBitfields(relay_parent);
+
+      paras_inherent_data.backed_candidates = backing_store_->get(relay_parent);
+      log_->trace("Get backed candidates from store.(count={})",
+                  paras_inherent_data.backed_candidates.size());
+
       auto best_block_header_res =
           block_tree_->getBlockHeader(best_block_.hash);
       BOOST_ASSERT_MSG(best_block_header_res.has_value(),
@@ -1031,8 +1046,12 @@ namespace kagome::consensus::babe {
     }
 
     // finally, broadcast the sealed block
-    block_announce_transmitter_->blockAnnounce(
-        network::BlockAnnounce{block.header});
+    block_announce_transmitter_->blockAnnounce(network::BlockAnnounce{
+        block.header,
+        block_info == block_tree_->bestLeaf() ? network::BlockState::Best
+                                              : network::BlockState::Normal,
+        common::Buffer{},
+    });
     SL_DEBUG(
         log_,
         "Announced block number {} in slot {} (epoch {}) with timestamp {}",

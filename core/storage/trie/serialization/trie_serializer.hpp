@@ -22,6 +22,9 @@ namespace kagome::storage::trie {
    */
   class TrieSerializer {
    public:
+    using EncodedNode = common::BufferView;
+    using OnNodeLoaded = std::function<void(EncodedNode)>;
+
     virtual ~TrieSerializer() = default;
 
     /**
@@ -41,7 +44,8 @@ namespace kagome::storage::trie {
      * is no entry for provided key.
      */
     virtual outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        const common::Buffer &db_key) const = 0;
+        const common::Buffer &db_key,
+        OnNodeLoaded on_node_loaded) const = 0;
 
     /**
      * Fetches a node from the storage. A nullptr is returned in case that there
@@ -49,14 +53,16 @@ namespace kagome::storage::trie {
      * nodes as its children
      */
     virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const common::Buffer &db_key) const = 0;
+        const common::Buffer &db_key,
+        const OnNodeLoaded &on_node_loaded) const = 0;
 
     /**
      * Retrieves a node, replacing a dummy node to an actual node if
      * needed
      */
     virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const std::shared_ptr<OpaqueTrieNode> &node) const = 0;
+        const std::shared_ptr<OpaqueTrieNode> &node,
+        const OnNodeLoaded &on_node_loaded) const = 0;
 
     virtual TrieStoreStats const& getLatestStats() const = 0;
   };

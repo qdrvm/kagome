@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "blockchain/block_tree.hpp"
-#include "primitives/digest.hpp"
+#include "consensus/grandpa/has_authority_set_change.hpp"
 
 namespace kagome::blockchain {
 
@@ -26,18 +26,8 @@ namespace kagome::blockchain {
         block_tree_->getLastFinalized().number >= block_header.number,
         "Target block must be finalized");
 
-    for (auto &digest : block_header.digest) {
-      if (auto *consensus_digest_enc =
-              boost::get<primitives::Consensus>(&digest);
-          consensus_digest_enc != nullptr) {
-        OUTCOME_TRY(consensus_digest, consensus_digest_enc->decode());
-        bool authority_change =
-            consensus_digest.isGrandpaDigestOf<primitives::ScheduledChange>()
-            || consensus_digest.isGrandpaDigestOf<primitives::ForcedChange>();
-        if (authority_change) {
-          return true;
-        }
-      }
+    if (consensus::grandpa::HasAuthoritySetChange{block_header}) {
+      return true;
     }
     if (block_header.number % 512 == 0) {
       return true;

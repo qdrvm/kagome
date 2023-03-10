@@ -47,6 +47,7 @@
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "authority_discovery/publisher/address_publisher.hpp"
+#include "authority_discovery/query/query_impl.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
@@ -107,8 +108,11 @@
 #include "offchain/impl/offchain_worker_impl.hpp"
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
 #include "outcome/outcome.hpp"
+#include "parachain/approval/approval_distribution.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
+#include "parachain/availability/recovery/recovery_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
+#include "parachain/backing/store_impl.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/validator/parachain_observer.hpp"
 #include "parachain/validator/parachain_processor.hpp"
@@ -522,6 +526,10 @@ namespace {
                                                          block_tree);
 
     initialized.emplace(std::move(block_tree));
+
+    auto peer_view = injector.template create<sptr<network::PeerView>>();
+    peer_view->setBlockTree(initialized.value());
+
     return initialized.value();
   }
 
@@ -591,15 +599,28 @@ namespace {
           injector.template create<std::shared_ptr<network::PeerManager>>(),
           injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
           injector.template create<
-              std::shared_ptr<parachain::ParachainProcessorImpl>>());
+              std::shared_ptr<parachain::ParachainProcessorImpl>>(),
+          injector.template create<std::shared_ptr<network::PeerView>>(),
+          injector.template create<
+              std::shared_ptr<parachain::ApprovalDistribution>>());
 
       auto protocol_factory =
           injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
       protocol_factory->setCollactionObserver(instance);
+      protocol_factory->setValidationObserver(instance);
       protocol_factory->setReqCollationObserver(instance);
+      protocol_factory->setReqPovObserver(instance);
       return instance;
     };
+
+    static auto instance = get_instance();
+    return instance;
+  }
+
+  template <typename Injector>
+  sptr<ThreadPool> get_thread_pool(const Injector &injector) {
+    auto get_instance = [&]() { return std::make_shared<ThreadPool>(5ull); };
 
     static auto instance = get_instance();
     return instance;
@@ -617,12 +638,27 @@ namespace {
           injector
               .template create<std::shared_ptr<::boost::asio::io_context>>(),
           session_keys->getBabeKeyPair(),
-          injector.template create<std::shared_ptr<crypto::Hasher>>());
+          injector.template create<std::shared_ptr<crypto::Hasher>>(),
+          injector.template create<std::shared_ptr<network::PeerView>>(),
+          injector.template create<std::shared_ptr<ThreadPool>>(),
+          injector
+              .template create<std::shared_ptr<parachain::BitfieldSigner>>(),
+          injector.template create<sptr<parachain::BitfieldStore>>(),
+          injector.template create<sptr<parachain::BackingStore>>(),
+          injector.template create<sptr<parachain::Pvf>>(),
+          injector.template create<sptr<parachain::AvailabilityStore>>(),
+          injector.template create<sptr<runtime::ParachainHost>>(),
+          injector.template create<sptr<parachain::ValidatorSignerFactory>>());
 
       auto app_state_manager =
           injector
               .template create<std::shared_ptr<application::AppStateManager>>();
       app_state_manager->takeControl(*ptr);
+
+      auto protocol_factory =
+          injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+      protocol_factory->setParachainProcessor(ptr);
+
       return ptr;
     };
 
@@ -905,6 +941,7 @@ namespace {
 
         // inherit host injector
         libp2p::injector::makeHostInjector(
+            libp2p::injector::useWssPem(config.nodeWssPem()),
             libp2p::injector::useSecurityAdaptors<
                 libp2p::security::Noise>()[di::override]),
 
@@ -1095,7 +1132,9 @@ namespace {
         bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
         di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
+        di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
         di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
+        di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
         di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
         di::bind<parachain::ParachainObserverImpl>.to([](auto const &injector) {
           return get_parachain_observer_impl(injector);
@@ -1104,6 +1143,8 @@ namespace {
             [](auto const &injector) {
               return get_parachain_processor_impl(injector);
             }),
+        di::bind<ThreadPool>.to(
+            [](auto const &injector) { return get_thread_pool(injector); }),
         di::bind<storage::trie::TrieStorageBackend>.to(
             [](auto const &injector) {
               auto storage =
@@ -1193,6 +1234,7 @@ namespace {
         di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
         di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
         di::bind<consensus::babe::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+        di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1276,6 +1318,8 @@ namespace {
         injector.template create<sptr<blockchain::DigestTracker>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<consensus::babe::BabeUtil>>(),
+        injector.template create<sptr<parachain::BitfieldStore>>(),
+        injector.template create<sptr<parachain::BackingStore>>(),
         injector
             .template create<primitives::events::ChainSubscriptionEnginePtr>(),
         injector.template create<sptr<runtime::OffchainWorkerApi>>(),
@@ -1502,6 +1546,11 @@ namespace kagome::injector {
   std::shared_ptr<parachain::ParachainProcessorImpl>
   KagomeNodeInjector::injectParachainProcessor() {
     return pimpl_->injector_.create<sptr<parachain::ParachainProcessorImpl>>();
+  }
+
+  std::shared_ptr<parachain::ApprovalDistribution>
+  KagomeNodeInjector::injectApprovalDistribution() {
+    return pimpl_->injector_.create<sptr<parachain::ApprovalDistribution>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {

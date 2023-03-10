@@ -10,33 +10,13 @@
 namespace kagome::storage::trie {
 
   EphemeralTrieBatchImpl::EphemeralTrieBatchImpl(
-      std::shared_ptr<Codec> codec, std::shared_ptr<PolkadotTrie> trie)
-      : codec_{std::move(codec)}, trie_{std::move(trie)} {
-    BOOST_ASSERT(codec_ != nullptr);
-    BOOST_ASSERT(trie_ != nullptr);
-  }
-
-  outcome::result<BufferOrView> EphemeralTrieBatchImpl::get(
-      const BufferView &key) const {
-    return trie_->get(key);
-  }
-
-  outcome::result<std::optional<BufferOrView>> EphemeralTrieBatchImpl::tryGet(
-      const BufferView &key) const {
-    return trie_->tryGet(key);
-  }
-
-  std::unique_ptr<PolkadotTrieCursor> EphemeralTrieBatchImpl::trieCursor() {
-    return std::make_unique<PolkadotTrieCursorImpl>(trie_);
-  }
-
-  outcome::result<bool> EphemeralTrieBatchImpl::contains(
-      const BufferView &key) const {
-    return trie_->contains(key);
-  }
-
-  bool EphemeralTrieBatchImpl::empty() const {
-    return trie_->empty();
+      std::shared_ptr<Codec> codec,
+      std::shared_ptr<PolkadotTrie> trie,
+      std::shared_ptr<TrieSerializer> serializer,
+      TrieSerializer::OnNodeLoaded on_child_node_loaded)
+      : TrieBatchBase{std::move(codec), std::move(serializer), std::move(trie)},
+        on_child_node_loaded_{std::move(on_child_node_loaded)} {
+    // on_child_node_loaded_ can be zero
   }
 
   outcome::result<std::tuple<bool, uint32_t>>
@@ -56,13 +36,22 @@ namespace kagome::storage::trie {
     return trie_->remove(key);
   }
 
-  outcome::result<RootHash> EphemeralTrieBatchImpl::hash(StateVersion version) {
+  outcome::result<RootHash> EphemeralTrieBatchImpl::commit(
+      StateVersion version) {
+    OUTCOME_TRY(commitChildren(version));
     if (auto root = trie_->getRoot()) {
       OUTCOME_TRY(encoded, codec_->encodeNode(*root, version, {}));
       auto hash = codec_->hash256(encoded);
       return hash;
     }
     return kEmptyRootHash;
+  }
+
+  outcome::result<std::unique_ptr<TrieBatch>>
+  EphemeralTrieBatchImpl::createFromTrieHash(const RootHash &trie_hash) {
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(trie_hash, nullptr));
+    return std::make_unique<EphemeralTrieBatchImpl>(
+        codec_, trie, serializer_, on_child_node_loaded_);
   }
 
 }  // namespace kagome::storage::trie

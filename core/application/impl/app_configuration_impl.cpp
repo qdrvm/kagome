@@ -17,6 +17,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <charconv>
+#include <libp2p/layer/websocket/wss_adaptor.hpp>
 
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
@@ -239,7 +240,9 @@ namespace kagome::application {
   }
 
   fs::path AppConfigurationImpl::keystorePath(std::string chain_id) const {
-    if (keystore_path_) return *keystore_path_ / chain_id / "keystore";
+    if (keystore_path_) {
+      return *keystore_path_ / chain_id / "keystore";
+    }
     return chainPath(chain_id) / "keystore";
   }
 
@@ -582,6 +585,14 @@ namespace kagome::application {
     auto temp_context = std::make_shared<boost::asio::io_context>();
     constexpr auto kZeroPortTolerance = 0;
     for (const auto &addr : listen_addresses_) {
+      // check "/wss" string because of libp2p multiaddress bugs
+      if (boost::ends_with(addr.getStringAddress(), "/wss")
+          and node_wss_pem_.empty()) {
+        SL_ERROR(logger_,
+                 "WSS address {} requires --node-wss-pem flag",
+                 addr.getStringAddress());
+        return false;
+      }
       auto endpoint = getEndpointFrom(addr);
       if (not endpoint) {
         SL_ERROR(logger_,
@@ -759,6 +770,7 @@ namespace kagome::application {
                           "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
                           "e.g. --telemetry-url 'wss://foo/bar 0'")
         ("random-walk-interval", po::value<uint32_t>()->default_value(def_random_walk_interval), "Kademlia random walk interval")
+        ("node-wss-pem", po::value<std::string>(), "Path to pem file with SSL certificate for libp2p wss")
         ;
 
     po::options_description development_desc("Additional options");
@@ -901,6 +913,26 @@ namespace kagome::application {
       }
     }
 
+    find_argument<std::string>(
+        vm, "node-wss-pem", [&](const std::string &path) {
+          std::string pem;
+          std::ifstream file{path, std::ios::ate};
+          if (file.good()) {
+            pem.resize(file.tellg());
+            file.seekg(0);
+            file.read(pem.data(), pem.size());
+          }
+          if (not file.good()) {
+            SL_ERROR(logger_, "--node-wss-pem {}: read error", path);
+            return;
+          }
+          if (auto r = libp2p::layer::WssCertificate::make(pem)) {
+            node_wss_pem_ = pem;
+          } else {
+            SL_ERROR(logger_, "--node-wss-pem {}: {}", path, r.error());
+          }
+        });
+
     find_argument<std::string>(vm, "config-file", [&](std::string const &path) {
       if (dev_mode_) {
         std::cerr << "Warning: config file has ignored because dev mode"
@@ -1036,6 +1068,7 @@ namespace kagome::application {
       return false;  // just proxy erroneous case to the top level
     }
 
+    // Check of possible address ambiguity
     if (p2p_port_explicitly_defined_ and not listen_addresses_.empty()) {
       SL_ERROR(logger_,
                "Port and listen address must not be defined simultaneously; "
@@ -1058,7 +1091,9 @@ namespace kagome::application {
       public_addresses_ = listen_addresses_;
     }
 
-    if (p2p_port_explicitly_defined_ and listen_addresses_.empty()) {
+    // If listen address has not defined, listen P2P TCP-port on all
+    // accessible interfaces
+    if (listen_addresses_.empty()) {
       // IPv6
       {
         auto ma_res = libp2p::multi::Multiaddress::create(

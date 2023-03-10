@@ -25,9 +25,17 @@ namespace kagome::network {
   const libp2p::peer::ProtocolName kBlockAnnouncesProtocol =
       "/{}/block-announces/1";
   const libp2p::peer::ProtocolName kGrandpaProtocol = "/{}/grandpa/1";
+  const libp2p::peer::ProtocolName kWarpProtocol = "/{}/sync/warp";
+  const libp2p::peer::ProtocolName kLightProtocol = "/{}/light/2";
   const libp2p::peer::ProtocolName kCollationProtocol{"/{}/collation/1"};
   const libp2p::peer::ProtocolName kValidationProtocol{"/{}/validation/1"};
   const libp2p::peer::ProtocolName kReqCollationProtocol{"/{}/req_collation/1"};
+  const libp2p::peer::ProtocolName kReqPovProtocol{"/{}/req_pov/1"};
+  const libp2p::peer::ProtocolName kFetchChunkProtocol{"/{}/req_chunk/1"};
+  const libp2p::peer::ProtocolName kFetchAvailableDataProtocol{
+      "/{}/req_available_data/1"};
+  const libp2p::peer::ProtocolName kFetchStatementProtocol{
+      "/{}/req_statement/1"};
 
   template <typename... Args>
   libp2p::StreamProtocols make_protocols(std::string_view format,
@@ -37,6 +45,10 @@ namespace kagome::network {
       if constexpr (std::is_same_v<std::decay_t<decltype(arg)>,
                                    std::decay_t<primitives::BlockHash>>) {
         protocols.emplace_back(fmt::format(format, hex_lower(arg)));
+      } else if constexpr (std::is_same_v<
+                               std::decay_t<decltype(arg)>,
+                               std::decay_t<primitives::GenesisBlockHeader>>) {
+        protocols.emplace_back(fmt::format(format, hex_lower(arg.hash)));
       } else if constexpr (std::is_same_v<
                                std::decay_t<decltype(arg)>,
                                std::decay_t<application::ChainSpec>>) {

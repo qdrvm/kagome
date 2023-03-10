@@ -14,6 +14,7 @@ extern "C" {
 
 #include "common/blob.hpp"
 #include "common/int_serialization.hpp"
+#include "primitives/math.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::crypto {
@@ -86,6 +87,15 @@ KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            constants::sr25519::SEED_SIZE);
 
 namespace kagome::crypto {
+  template <typename D>
+  struct Sr25519Signed {
+    using Type = std::decay_t<D>;
+    SCALE_TIE(2);
+
+    Type payload;
+    Sr25519Signature signature;
+  };
+
   struct Sr25519Keypair {
     Sr25519SecretKey secret_key;
     Sr25519PublicKey public_key;
