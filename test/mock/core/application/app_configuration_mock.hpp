@@ -158,6 +158,8 @@ namespace kagome::application {
                 devMnemonicPhrase,
                 (),
                 (const, override));
+
+    MOCK_METHOD(std::string, nodeWssPem, (), (const, override));
   };
 
 }  // namespace kagome::application

@@ -191,6 +191,9 @@ namespace kagome::application {
       }
       return std::nullopt;
     }
+    std::string nodeWssPem() const override {
+      return node_wss_pem_;
+    }
 
    private:
     void parse_general_segment(const rapidjson::Value &val);
@@ -330,6 +333,7 @@ namespace kagome::application {
     std::optional<primitives::BlockId> recovery_state_;
     StorageBackend storage_backend_ = StorageBackend::RocksDB;
     std::optional<std::string> dev_mnemonic_phrase_;
+    std::string node_wss_pem_;
   };
 
 }  // namespace kagome::application
