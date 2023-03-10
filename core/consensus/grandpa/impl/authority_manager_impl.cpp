@@ -195,7 +195,7 @@ namespace kagome::consensus::grandpa {
 
     BOOST_ASSERT_MSG(root_ != nullptr, "The root must be initialized by now");
 
-    fixKusamaHardFork(*root_);
+    fixKusamaHardFork(block_tree_->getGenesisBlockHash(), *root_);
 
     // 4. Apply digests before last finalized
     bool need_to_save = false;
@@ -530,7 +530,7 @@ namespace kagome::consensus::grandpa {
       node->action =
           ScheduleNode::ScheduledChange{activate_at, new_authorities};
 
-      fixKusamaHardFork(*node);
+      fixKusamaHardFork(block_tree_->getGenesisBlockHash(), *node);
 
       SL_VERBOSE(
           logger_,

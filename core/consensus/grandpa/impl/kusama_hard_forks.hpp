@@ -83,13 +83,19 @@ namespace kagome::consensus::grandpa {
     return authorities;
   }
 
-  inline bool isKusamaHardFork(const primitives::BlockInfo &block) {
-    if (block.number < 1492283 || block.number > 1498598) {
-      return false;
-    }
+  inline bool isKusamaHardFork(const primitives::BlockHash &genesis,
+                               const primitives::BlockInfo &block) {
     auto h = [](std::string_view s) {
       return primitives::BlockHash::fromHex(s).value();
     };
+    static auto kusama_genesis =
+        h("b0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe");
+    if (genesis != kusama_genesis) {
+      return false;
+    }
+    if (block.number < 1492283 || block.number > 1498598) {
+      return false;
+    }
     static std::unordered_set<primitives::BlockHash> blocks{
         h("01e94e1e7e9cf07b3b0bf4e1717fce7448e5563901c2ef2e3b8e9ecaeba088b1"),
         h("ddc4323c5e8966844dfaa87e0c2f74ef6b43115f17bf8e4ff38845a62d02b9a9"),
@@ -104,8 +110,9 @@ namespace kagome::consensus::grandpa {
     return blocks.count(block.hash) != 0;
   }
 
-  inline void fixKusamaHardFork(ScheduleNode &node) {
-    if (not isKusamaHardFork(node.block)) {
+  inline void fixKusamaHardFork(const primitives::BlockHash &genesis,
+                                ScheduleNode &node) {
+    if (not isKusamaHardFork(genesis, node.block)) {
       return;
     }
     auto action = boost::get<ScheduleNode::ScheduledChange>(&node.action);
