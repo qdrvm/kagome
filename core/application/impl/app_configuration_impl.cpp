@@ -770,7 +770,7 @@ namespace kagome::application {
                           "the URL of the telemetry server to connect to and verbosity level (0-9),\n"
                           "e.g. --telemetry-url 'wss://foo/bar 0'")
         ("random-walk-interval", po::value<uint32_t>()->default_value(def_random_walk_interval), "Kademlia random walk interval")
-        ("node-wss-pem", po::value<std::string>(), "Path to pem file with HTTPS certificate for libp2p wss")
+        ("node-wss-pem", po::value<std::string>(), "Path to pem file with SSL certificate for libp2p wss")
         ;
 
     po::options_description development_desc("Additional options");
