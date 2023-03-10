@@ -66,9 +66,7 @@ namespace kagome::storage::trie {
           }
         }
         stream_ << "\n";
-        if (false) {
-          printEncAndHash(node, nest_level);
-        }
+        printEncAndHash(node, nest_level);
         for (size_t i = 0; i < branch->children.size(); i++) {
           auto child = branch->children.at(i);
           if (child) {
@@ -100,8 +98,8 @@ namespace kagome::storage::trie {
 
       Stream &stream_;
       PolkadotCodec codec_;
-      bool print_enc_;
-      bool print_hash_;
+      bool print_enc_ = false;
+      bool print_hash_ = true;
     };
   }  // namespace printer_internal
 

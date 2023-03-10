@@ -20,6 +20,7 @@ namespace kagome::storage {
     kJustification,
     kBlockData,
     kTrieNode,
+    kTriePruner,
 
     //
     kTotal

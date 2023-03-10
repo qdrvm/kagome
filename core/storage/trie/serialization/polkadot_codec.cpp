@@ -109,8 +109,12 @@ namespace kagome::storage::trie {
       const Node &node,
       StateVersion version,
       const ChildVisitor &child_visitor) const {
-    auto &trie = dynamic_cast<const TrieNode &>(node);
-    if (trie.isBranch()) {
+    auto *trie_node = dynamic_cast<const TrieNode *>(&node);
+    if (trie_node == nullptr) {
+      auto &dummy_node = dynamic_cast<const DummyNode &>(node);
+      return dummy_node.db_key;
+    }
+    if (trie_node->isBranch()) {
       return encodeBranch(
           dynamic_cast<const BranchNode &>(node), version, child_visitor);
     }

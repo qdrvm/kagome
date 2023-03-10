@@ -271,7 +271,8 @@ int db_editor_main(int argc, const char **argv) {
               injector.template create<sptr<TrieStorageBackend>>());
         }),
         di::bind<TrieStorageBackend>.template to(trie_tracker),
-        di::bind<storage::trie_pruner::TriePruner>.template to<storage::trie_pruner::TriePrunerImpl>(),
+        di::bind<storage::trie_pruner::TriePruner>.template to(
+            (storage::trie_pruner::TriePruner *)nullptr),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory),

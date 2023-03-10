@@ -1035,19 +1035,28 @@ namespace {
           return get_rocks_db(config, chain_spec);
         }),
         bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
+          auto pruner =
+              injector
+                  .template create<sptr<storage::trie_pruner::TriePruner>>();
           auto root =
               injector::calculate_genesis_state(
                   injector.template create<const application::ChainSpec &>(),
                   injector.template create<const runtime::ModuleFactory &>(),
                   injector.template create<storage::trie::TrieSerializer &>(),
-                  injector
-                      .template create<storage::trie_pruner::TriePruner &>())
+                  *pruner)
                   .value();
           const auto &hasher = injector.template create<sptr<crypto::Hasher>>();
           const auto &storage =
               injector.template create<sptr<storage::SpacedStorage>>();
-          return blockchain::BlockStorageImpl::create(root, storage, hasher)
+          std::shared_ptr block_storage{
+              blockchain::BlockStorageImpl::create(root, storage, hasher)
+                  .value()};
+
+          static_cast<storage::trie_pruner::TriePrunerImpl &>(*pruner)
+              .init(block_storage)
               .value();
+
+          return block_storage;
         }),
         di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
         di::bind<blockchain::BlockTree>.to(
@@ -1117,7 +1126,21 @@ namespace {
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
-        di::bind<storage::trie_pruner::TriePruner>.template to<storage::trie_pruner::TriePrunerImpl>(),
+        bind_by_lambda<storage::trie_pruner::TriePruner>([](auto const
+                                                                &injector) {
+          auto serializer =
+              injector.template create<sptr<storage::trie::TrieSerializer>>();
+          auto codec =
+              injector.template create<sptr<storage::trie::PolkadotCodec>>();
+          auto trie_storage =
+              injector
+                  .template create<sptr<storage::trie::TrieStorageBackend>>();
+          auto storage =
+              injector.template create<sptr<storage::SpacedStorage>>();
+          return std::shared_ptr<storage::trie_pruner::TriePrunerImpl>{
+              new storage::trie_pruner::TriePrunerImpl(
+                  trie_storage, serializer, codec, storage)};
+        }),
         di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
         di::bind<application::ChainSpec>.to([](const auto &injector) {
           const application::AppConfiguration &config =

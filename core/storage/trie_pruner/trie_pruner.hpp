@@ -10,6 +10,7 @@
 
 #include "common/buffer.hpp"
 #include "primitives/block_id.hpp"
+#include "primitives/block_header.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
@@ -34,7 +35,7 @@ namespace kagome::storage::trie_pruner {
     virtual outcome::result<void> addNewState(
         trie::PolkadotTrie const &new_trie) = 0;
 
-    virtual outcome::result<void> prune(trie::RootHash const &state) = 0;
+    virtual outcome::result<void> prune(primitives::BlockHeader const &state) = 0;
   };
 
 }  // namespace kagome::storage::trie_pruner

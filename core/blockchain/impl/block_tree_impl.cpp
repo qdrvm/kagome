@@ -484,9 +484,13 @@ namespace kagome::blockchain {
       OUTCOME_TRY(old_header,
                   storage_->getBlockHeader(block.header.number - 16));
       if (old_header) {
-        OUTCOME_TRY(state_pruner_->prune(old_header.value().state_root));
+        OUTCOME_TRY(state_pruner_->prune(old_header.value()));
       }
     }
+    SL_INFO(log_,
+            "Added block #{} with state root {}",
+            block.header.number,
+            block.header.state_root);
 
     SL_VERBOSE(log_,
                "Block {} has been added into block tree",
@@ -1164,7 +1168,7 @@ namespace kagome::blockchain {
           }
           extrinsics.emplace_back(std::move(ext));
         }
-        OUTCOME_TRY(state_pruner_->prune(block_header_opt.value().state_root));
+        OUTCOME_TRY(state_pruner_->prune(block_header_opt.value()));
       }
 
       tree_->removeFromMeta(node);

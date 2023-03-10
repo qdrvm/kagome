@@ -35,7 +35,7 @@ namespace kagome::log {
     void end() {
       done = true;
       auto end = ::kagome::clock::SteadyClockImpl{}.now();
-      SL_INFO(
+      SL_DEBUG(
           logger,
           "{} took {} ms",
           scope,
