@@ -9,6 +9,7 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "crypto/hasher.hpp"
+#include "log/logger.hpp"
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/availability/store/store.hpp"
 #include "parachain/validator/signer.hpp"
@@ -19,6 +20,10 @@ namespace kagome::parachain {
   /// Signs, stores and broadcasts bitfield for every new head.
   class BitfieldSigner : public std::enable_shared_from_this<BitfieldSigner> {
    public:
+    using BroadcastCallback = std::function<void(
+        primitives::BlockHash const &, network::SignedBitfield const &)>;
+    using Candidates = std::vector<std::optional<network::CandidateHash>>;
+
     BitfieldSigner(std::shared_ptr<crypto::Hasher> hasher,
                    std::shared_ptr<ValidatorSignerFactory> signer_factory,
                    std::shared_ptr<libp2p::basic::Scheduler> scheduler,
@@ -33,6 +38,8 @@ namespace kagome::parachain {
     /// Sign bitfield for given block.
     outcome::result<void> sign(const ValidatorSigner &signer);
 
+    void setBroadcastCallback(BroadcastCallback &&callback);
+
    private:
     using BlockHash = primitives::BlockHash;
 
@@ -45,6 +52,8 @@ namespace kagome::parachain {
     std::shared_ptr<AvailabilityStore> store_;
     std::shared_ptr<BitfieldStore> bitfield_store_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    BroadcastCallback broadcast_;
+    log::Logger logger_ = log::createLogger("BitfieldSigner", "parachain");
   };
 }  // namespace kagome::parachain
 

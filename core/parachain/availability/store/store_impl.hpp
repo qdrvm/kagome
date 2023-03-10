@@ -23,8 +23,14 @@ namespace kagome::parachain {
                                          ValidatorIndex index) override;
     std::optional<ParachainBlock> getPov(
         const CandidateHash &candidate_hash) override;
+    std::optional<AvailableData> getPovAndData(
+        const CandidateHash &candidate_hash) override;
+    std::vector<ErasureChunk> getChunks(
+        const CandidateHash &candidate_hash) override;
     void putChunk(const CandidateHash &candidate_hash,
                   const ErasureChunk &chunk) override;
+    void putChunkSet(const CandidateHash &candidate_hash,
+                     std::vector<ErasureChunk> &&chunks) override;
     void putPov(const CandidateHash &candidate_hash,
                 const ParachainBlock &pov) override;
     void putData(const CandidateHash &candidate_hash,

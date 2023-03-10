@@ -33,6 +33,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeError, e) {
       return "the requested block body is not found in block storage";
     case E::BLOCK_IS_NOT_LEAF:
       return "the target block is not a leaf";
+    case E::BLOCK_NOT_EXISTS:
+      return "target block doesn't exist";
   }
   return "unknown error";
 }

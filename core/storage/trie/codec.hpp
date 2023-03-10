@@ -12,6 +12,8 @@
 #include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
+  struct TrieNode;
+
   /**
    * @brief Internal codec for nodes in the Trie. Eth and substrate have
    * different codecs, but rest of the code should be same.
@@ -19,7 +21,7 @@ namespace kagome::storage::trie {
   class Codec {
    public:
     using StoreChildren = std::function<outcome::result<void>(
-        common::BufferView, common::Buffer &&)>;
+        const TrieNode *, common::BufferView, common::Buffer &&)>;
 
     virtual ~Codec() = default;
 

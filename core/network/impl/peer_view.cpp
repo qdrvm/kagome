@@ -11,17 +11,19 @@ namespace kagome::network {
 
   PeerView::PeerView(
       const primitives::events::ChainSubscriptionEnginePtr &chain_events_engine,
-      std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<blockchain::BlockTree> block_tree)
+      std::shared_ptr<application::AppStateManager> app_state_manager)
       : chain_events_engine_{chain_events_engine},
         my_view_update_observable_{
             std::make_shared<MyViewSubscriptionEngine>()},
         remote_view_update_observable_{
-            std::make_shared<PeerViewSubscriptionEngine>()},
-        block_tree_{std::move(block_tree)} {
+            std::make_shared<PeerViewSubscriptionEngine>()} {
     BOOST_ASSERT(chain_events_engine_);
-    BOOST_ASSERT(block_tree_);
     app_state_manager->takeControl(*this);
+  }
+
+  void PeerView::setBlockTree(
+      std::shared_ptr<blockchain::BlockTree> block_tree) {
+    block_tree_ = std::move(block_tree);
   }
 
   bool PeerView::start() {
@@ -35,7 +37,13 @@ namespace kagome::network {
     chain_sub_.reset();
   }
 
+  primitives::events::ChainSubscriptionEnginePtr
+  PeerView::intoChainEventsEngine() {
+    return chain_events_engine_;
+  }
+
   bool PeerView::prepare() {
+    BOOST_ASSERT(block_tree_);
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
         chain_events_engine_);
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
@@ -50,11 +58,14 @@ namespace kagome::network {
             if (auto const value =
                     if_type<const primitives::events::HeadsEventParams>(
                         event)) {
-              self->updateMyView(View{
-                  .heads_ = self->block_tree_->getLeaves(),
-                  .finalized_number_ =
-                      self->block_tree_->getLastFinalized().number,
-              });
+              self->updateMyView(ExView{
+                  .view =
+                      View{
+                          .heads_ = self->block_tree_->getLeaves(),
+                          .finalized_number_ =
+                              self->block_tree_->getLastFinalized().number,
+                      },
+                  .new_head = (*value).get()});
             }
           }
         });
@@ -71,10 +82,20 @@ namespace kagome::network {
     return remote_view_update_observable_;
   }
 
-  void PeerView::updateMyView(network::View &&view) {
+  void PeerView::updateMyView(network::ExView &&view) {
     BOOST_ASSERT(my_view_update_observable_);
-    std::sort(view.heads_.begin(), view.heads_.end());
-    if (my_view_ != view) {
+    std::sort(view.view.heads_.begin(), view.view.heads_.end());
+    if (!my_view_ || my_view_->view != view.view
+        || my_view_->new_head != view.new_head) {
+      if (my_view_) {
+        view.lost.swap(my_view_->lost);
+        view.lost.clear();
+        for (auto const &head : my_view_->view.heads_) {
+          if (!view.view.contains(head)) {
+            view.lost.emplace_back(head);
+          }
+        }
+      }
       my_view_ = std::move(view);
 
       BOOST_ASSERT(my_view_);
@@ -101,7 +122,7 @@ namespace kagome::network {
     }
   }
 
-  std::optional<std::reference_wrapper<const View>> PeerView::getMyView()
+  std::optional<std::reference_wrapper<const ExView>> PeerView::getMyView()
       const {
     return my_view_;
   }

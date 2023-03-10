@@ -44,6 +44,7 @@ namespace kagome {
   namespace parachain {
     struct ParachainObserverImpl;
     struct ParachainProcessorImpl;
+    struct ApprovalDistribution;
   }  // namespace parachain
 
   namespace runtime {
@@ -102,6 +103,8 @@ namespace kagome::injector {
     std::shared_ptr<parachain::ParachainObserverImpl> injectParachainObserver();
     std::shared_ptr<parachain::ParachainProcessorImpl>
     injectParachainProcessor();
+    std::shared_ptr<parachain::ApprovalDistribution>
+    injectApprovalDistribution();
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
     std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem();
     std::shared_ptr<storage::trie::TrieStorage> injectTrieStorage();

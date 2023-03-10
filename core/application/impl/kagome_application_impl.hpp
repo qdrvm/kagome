@@ -52,6 +52,7 @@ namespace kagome::application {
     sptr<network::SyncProtocolObserver> sync_observer_;
     sptr<parachain::ParachainObserverImpl> parachain_observer_;
     sptr<parachain::ParachainProcessorImpl> parachain_processor_;
+    sptr<parachain::ApprovalDistribution> approval_distribution_;
     sptr<metrics::MetricsWatcher> metrics_watcher_;
     sptr<telemetry::TelemetryService> telemetry_service_;
   };

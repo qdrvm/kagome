@@ -203,7 +203,7 @@ namespace kagome::storage::trie {
     if (shouldBeHashed(node, version)) {
       hash = hash256(*node.value.value);
       if (store_children) {
-        OUTCOME_TRY(store_children(*hash, Buffer{*node.value.value}));
+        OUTCOME_TRY(store_children(nullptr, *hash, Buffer{*node.value.value}));
       }
     }
     if (hash) {
@@ -243,7 +243,8 @@ namespace kagome::storage::trie {
           OUTCOME_TRY(enc, encodeNode(*child, version, store_children));
           auto merkle = merkleValue(enc);
           if (isMerkleHash(merkle) && store_children) {
-            OUTCOME_TRY(store_children(merkle, std::move(enc)));
+            auto ptr = dynamic_cast<const TrieNode *>(child.get());
+            OUTCOME_TRY(store_children(ptr, merkle, std::move(enc)));
           }
           OUTCOME_TRY(scale_enc, scale::encode(merkle));
           encoding.put(scale_enc);
@@ -263,7 +264,9 @@ namespace kagome::storage::trie {
     // key
     encoding += node.key_nibbles.toByteBuffer();
 
-    if (!node.value) return Error::NO_NODE_VALUE;
+    if (!node.value) {
+      return Error::NO_NODE_VALUE;
+    }
 
     OUTCOME_TRY(encodeValue(encoding, node, version, store_children));
 

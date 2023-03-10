@@ -20,8 +20,9 @@ namespace kagome::network {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           ext_event_key_repo,
-      std::shared_ptr<ReputationRepository> reputation_repository,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler)
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+      std::shared_ptr<network::PeerView> peer_view,
+      std::shared_ptr<ReputationRepository> reputation_repository)
       : host_(host),
         app_config_(app_config),
         chain_spec_(chain_spec),
@@ -32,7 +33,8 @@ namespace kagome::network {
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)},
         reputation_repository_{std::move(reputation_repository)},
-        scheduler_{std::move(scheduler)} {
+        scheduler_{std::move(scheduler)},
+        peer_view_(std::move(peer_view)) {
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
@@ -40,6 +42,7 @@ namespace kagome::network {
     BOOST_ASSERT(ext_event_key_repo_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
+    BOOST_ASSERT(peer_view_);
   }
 
   std::shared_ptr<BlockAnnounceProtocol>
@@ -75,6 +78,21 @@ namespace kagome::network {
                                              scheduler_);
   }
 
+  std::shared_ptr<ValidationProtocol> ProtocolFactory::makeValidationProtocol()
+      const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
+    return std::make_shared<ValidationProtocol>(host_,
+                                                app_config_,
+                                                chain_spec_,
+                                                genesisBlockHash,
+                                                validation_observer_.lock(),
+                                                kValidationProtocol,
+                                                peer_view_);
+  }
+
   std::shared_ptr<CollationProtocol> ProtocolFactory::makeCollationProtocol()
       const {
     auto block_tree = block_tree_.lock();
@@ -85,7 +103,9 @@ namespace kagome::network {
                                                app_config_,
                                                chain_spec_,
                                                genesisBlockHash,
-                                               collation_observer_.lock());
+                                               collation_observer_.lock(),
+                                               kCollationProtocol,
+                                               peer_view_);
   }
 
   std::shared_ptr<ReqCollationProtocol>
@@ -95,11 +115,55 @@ namespace kagome::network {
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
     return std::make_shared<ReqCollationProtocol>(
-        host_,
-        app_config_,
-        chain_spec_,
-        genesisBlockHash,
-        req_collation_observer_.lock());
+        host_, chain_spec_, genesisBlockHash, req_collation_observer_.lock());
+  }
+
+  std::shared_ptr<ReqPovProtocol> ProtocolFactory::makeReqPovProtocol() const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
+    return std::make_shared<ReqPovProtocol>(
+        host_, chain_spec_, genesisBlockHash, req_pov_observer_.lock());
+  }
+
+  std::shared_ptr<FetchChunkProtocol> ProtocolFactory::makeFetchChunkProtocol()
+      const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
+    auto pp = parachain_processor_.lock();
+    BOOST_ASSERT(pp);
+
+    return std::make_shared<FetchChunkProtocol>(
+        host_, chain_spec_, genesisBlockHash, pp);
+  }
+
+  std::shared_ptr<FetchAvailableDataProtocol>
+  ProtocolFactory::makeFetchAvailableDataProtocol() const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
+    auto pp = parachain_processor_.lock();
+    BOOST_ASSERT(pp);
+
+    return std::make_shared<FetchAvailableDataProtocol>(
+        host_, chain_spec_, genesisBlockHash, pp->getAvStore());
+  }
+
+  std::shared_ptr<StatmentFetchingProtocol>
+  ProtocolFactory::makeFetchStatementProtocol() const {
+    auto block_tree = block_tree_.lock();
+    BOOST_ASSERT(block_tree != nullptr);
+    auto genesisBlockHash = block_tree->getGenesisBlockHash();
+
+    auto pp = parachain_processor_.lock();
+    BOOST_ASSERT(pp);
+
+    return std::make_shared<StatmentFetchingProtocol>(
+        host_, chain_spec_, genesisBlockHash, pp->getBackingStore());
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>
