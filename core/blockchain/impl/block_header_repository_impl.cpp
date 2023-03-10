@@ -27,18 +27,19 @@ namespace kagome::blockchain {
 
   outcome::result<BlockNumber> BlockHeaderRepositoryImpl::getNumberByHash(
       const Hash256 &hash) const {
-    OUTCOME_TRY(key, idToLookupKey(*storage_, hash));
-    if (!key.has_value()) return BlockTreeError::HEADER_NOT_FOUND;
-    auto maybe_number = lookupKeyToNumber(key.value());
-
-    return maybe_number;
+    OUTCOME_TRY(header, getBlockHeader(hash));
+    return header.number;
   }
 
   outcome::result<common::Hash256> BlockHeaderRepositoryImpl::getHashByNumber(
       const primitives::BlockNumber &number) const {
-    OUTCOME_TRY(header, getBlockHeader(number));
-    OUTCOME_TRY(enc_header, scale::encode(header));
-    return hasher_->blake2b_256(enc_header);
+    auto num_to_idx_key = blockNumberToKey(number);
+    auto key_space = storage_->getSpace(Space::kLookupKey);
+    auto res = key_space->get(num_to_idx_key);
+    if (not res.has_value()) {
+      return BlockTreeError::HEADER_NOT_FOUND;
+    }
+    return common::Hash256::fromSpan(res.value());
   }
 
   outcome::result<primitives::BlockHeader>

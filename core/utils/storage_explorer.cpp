@@ -84,7 +84,9 @@ class Command {
 
   template <typename T>
   T unwrapResult(std::string_view context, outcome::result<T> &&res) const {
-    if (res.has_value()) return std::move(res).value();
+    if (res.has_value()) {
+      return std::move(res).value();
+    }
     throwError("{}: {}", context, res.error());
   }
 
@@ -235,8 +237,7 @@ class RemoveBlockCommand : public Command {
     if (!data.value().has_value()) {
       throwError("Block data not found");
     }
-    if (auto res = block_storage->removeBlock(
-            {data.value().value().header->number, data.value().value().hash});
+    if (auto res = block_storage->removeBlock(data.value().value().hash);
         !res) {
       throwError("{}", res.error());
     }
@@ -373,9 +374,15 @@ class SearchChainCommand : public Command {
 
  private:
   Target parseTarget(const char *arg) const {
-    if (strcmp(arg, "justification") == 0) return Target::Justification;
-    if (strcmp(arg, "authority-update") == 0) return Target::AuthorityUpdate;
-    if (strcmp(arg, "last-finalized") == 0) return Target::LastBlock;
+    if (strcmp(arg, "justification") == 0) {
+      return Target::Justification;
+    }
+    if (strcmp(arg, "authority-update") == 0) {
+      return Target::AuthorityUpdate;
+    }
+    if (strcmp(arg, "last-finalized") == 0) {
+      return Target::LastBlock;
+    }
     throwError("Invalid target '{}'", arg);
   }
 

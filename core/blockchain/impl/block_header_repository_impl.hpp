@@ -8,7 +8,6 @@
 
 #include "blockchain/block_header_repository.hpp"
 
-#include "blockchain/impl/common.hpp"
 #include "crypto/hasher.hpp"
 #include "storage/spaced_storage.hpp"
 

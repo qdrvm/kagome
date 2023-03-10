@@ -5,6 +5,9 @@
 
 #include "network/warp/cache.hpp"
 
+#include <boost/endian/buffers.hpp>
+#include <boost/endian/conversion.hpp>
+
 #include "blockchain/impl/storage_util.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "storage/predefined_keys.hpp"
@@ -30,11 +33,13 @@ namespace kagome::network {
   constexpr size_t kMaxFragmentsSize = (8 << 20) + 50;
 
   inline common::Buffer toKey(primitives::BlockNumber i) {
-    return blockchain::numberToIndexKey(i);
+    common::Buffer res(sizeof(i));
+    boost::endian::store_big_u32(res.data(), i);
+    return res;
   }
 
   inline primitives::BlockNumber fromKey(common::BufferView key) {
-    return blockchain::lookupKeyToNumber(key).value();
+    return boost::endian::load_big_u32(key.data());
   }
 
   WarpSyncCache::WarpSyncCache(

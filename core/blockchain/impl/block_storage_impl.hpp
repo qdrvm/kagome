@@ -8,7 +8,6 @@
 
 #include "blockchain/block_storage.hpp"
 
-#include "blockchain/impl/common.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "storage/predefined_keys.hpp"
@@ -38,41 +37,38 @@ namespace kagome::blockchain {
         std::vector<primitives::BlockHash> leaves) override;
 
     outcome::result<bool> hasBlockHeader(
-        const primitives::BlockId &id) const override;
+        const primitives::BlockId &block_id) const override;
 
     outcome::result<std::optional<primitives::BlockHeader>> getBlockHeader(
-        const primitives::BlockId &id) const override;
+        const primitives::BlockId &block_id) const override;
     outcome::result<std::optional<primitives::BlockBody>> getBlockBody(
-        const primitives::BlockId &id) const override;
+        const primitives::BlockId &block_id) const override;
     outcome::result<std::optional<primitives::BlockData>> getBlockData(
-        const primitives::BlockId &id) const override;
+        const primitives::BlockId &block_id) const override;
     outcome::result<std::optional<primitives::Justification>> getJustification(
-        const primitives::BlockId &block) const override;
+        const primitives::BlockId &block_id) const override;
 
-    outcome::result<void> putNumberToIndexKey(
+    outcome::result<void> assignNumberToHash(
         const primitives::BlockInfo &block) override;
 
     outcome::result<primitives::BlockHash> putBlockHeader(
         const primitives::BlockHeader &header) override;
     outcome::result<void> putBlockData(
-        primitives::BlockNumber block_number,
         const primitives::BlockData &block_data) override;
-    outcome::result<void> removeBlockData(
-        primitives::BlockNumber block_number,
-        const primitives::BlockDataFlags &remove_flags) override;
+    // outcome::result<void> removeBlockData(
+    //     const primitives::BlockHash &block_hash,
+    //     const primitives::BlockDataFlags &remove_flags) override;
     outcome::result<primitives::BlockHash> putBlock(
         const primitives::Block &block) override;
 
     outcome::result<void> putJustification(
-        const primitives::Justification &j,
-        const primitives::BlockHash &hash,
-        primitives::BlockNumber number) override;
+        const primitives::Justification &justification,
+        const primitives::BlockHash &block_hash) override;
     outcome::result<void> removeJustification(
-        const primitives::BlockHash &hash,
-        primitives::BlockNumber number) override;
+        const primitives::BlockHash &block_hash) override;
 
     outcome::result<void> removeBlock(
-        const primitives::BlockInfo &block) override;
+        const primitives::BlockHash &block_hash) override;
 
     outcome::result<primitives::BlockInfo> getLastFinalized() const override;
 

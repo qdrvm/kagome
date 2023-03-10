@@ -36,15 +36,10 @@
 namespace kagome::blockchain {
 
   /**
-   * Errors that might occur during work with storage
-   */
-  enum class KeyValueRepositoryError { INVALID_KEY = 1 };
-
-  /**
    * Stores the mapping of block number to its full key form - NumHashKey
    */
-  outcome::result<void> putNumberToIndexKey(storage::SpacedStorage &storage,
-                                            const primitives::BlockInfo &block);
+  outcome::result<void> assignNumberToHash(storage::SpacedStorage &storage,
+                                           const primitives::BlockInfo &block);
 
   /**
    * Put an entry to key space \param space and corresponding lookup keys to
@@ -58,7 +53,6 @@ namespace kagome::blockchain {
    */
   outcome::result<void> putToSpace(storage::SpacedStorage &storage,
                                    storage::Space space,
-                                   primitives::BlockNumber num,
                                    common::Hash256 block_hash,
                                    common::BufferOrView &&value);
 
@@ -88,27 +82,9 @@ namespace kagome::blockchain {
   /**
    * Convert block number into short lookup key (LE representation) for
    * blocks that are in the canonical chain.
-   *
-   * In the current database schema, this kind of key is only used for
-   * lookups into an index, NOT for storing header data or others.
    */
-  common::Buffer numberToIndexKey(primitives::BlockNumber n);
-
-  /**
-   * Convert number and hash into long lookup key for blocks that are
-   * not in the canonical chain.
-   */
-  common::Buffer numberAndHashToLookupKey(primitives::BlockNumber number,
-                                          const common::Hash256 &hash);
-
-  /**
-   * Convert lookup key to a block number
-   */
-  outcome::result<primitives::BlockNumber> lookupKeyToNumber(
-      const common::BufferView &key);
+  common::Buffer blockNumberToKey(primitives::BlockNumber n);
 
 }  // namespace kagome::blockchain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, KeyValueRepositoryError);
 
 #endif  // KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP

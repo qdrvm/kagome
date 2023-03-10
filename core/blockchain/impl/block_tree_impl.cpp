@@ -10,9 +10,7 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
-#include "blockchain/impl/common.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
-#include "blockchain/impl/storage_util.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/is_primary.hpp"
 #include "crypto/blake2/blake2b.h"
@@ -49,9 +47,7 @@ namespace kagome::blockchain {
         for (auto &hash : block_tree_unordered_leaves) {
           auto res = header_repo->getNumberById(hash);
           if (res.has_error()) {
-            if (res
-                == outcome::failure(
-                    blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
+            if (res == outcome::failure(BlockTreeError::HEADER_NOT_FOUND)) {
               SL_TRACE(log, "Leaf {} not found", hash);
               continue;
             }
@@ -241,7 +237,7 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
-      std::shared_ptr<blockchain::BlockTree> block_tree) {
+      std::shared_ptr<BlockTree> block_tree) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
     BOOST_ASSERT(trie_storage != nullptr);
@@ -516,7 +512,7 @@ namespace kagome::blockchain {
     }
 
     // Remove from storage
-    OUTCOME_TRY(storage_->removeBlock({node->depth, node->block_hash}));
+    OUTCOME_TRY(storage_->removeBlock({node->block_hash}));
 
     OUTCOME_TRY(
         storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
@@ -649,7 +645,7 @@ namespace kagome::blockchain {
       const primitives::BlockHash &block_hash,
       const primitives::BlockBody &body) {
     primitives::BlockData block_data{.hash = block_hash, .body = body};
-    return storage_->putBlockData(block_number, block_data);
+    return storage_->putBlockData(block_data);
   }
 
   outcome::result<void> BlockTreeImpl::finalize(
@@ -724,8 +720,7 @@ namespace kagome::blockchain {
 
     KAGOME_PROFILE_START(justification_store)
 
-    OUTCOME_TRY(
-        storage_->putJustification(justification, block_hash, node->depth));
+    OUTCOME_TRY(storage_->putJustification(justification, block_hash));
     SL_DEBUG(log_,
              "Store justification for finalized block #{} {}",
              node->depth,
@@ -750,8 +745,7 @@ namespace kagome::blockchain {
                    "Purge redundant justification for finalized block {}",
                    last_finalized_block_info);
           OUTCOME_TRY(
-              storage_->removeJustification(last_finalized_block_info.hash,
-                                            last_finalized_block_info.number));
+              storage_->removeJustification(last_finalized_block_info.hash));
         }
       }
     }
@@ -1185,7 +1179,7 @@ namespace kagome::blockchain {
       }
 
       tree_->removeFromMeta(node);
-      OUTCOME_TRY(storage_->removeBlock({node->depth, node->block_hash}));
+      OUTCOME_TRY(storage_->removeBlock(node->block_hash));
     }
 
     // trying to return extrinsics back to transaction pool
@@ -1203,13 +1197,9 @@ namespace kagome::blockchain {
 
   outcome::result<void> BlockTreeImpl::reorganize() {
     auto block = BlockTreeImpl::bestLeaf();
-    if (block.number == 0) {
-      return outcome::success();
-    }
     auto hash_res = header_repo_->getHashByNumber(block.number);
     if (hash_res.has_error()) {
-      if (hash_res
-          != outcome::failure(blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
+      if (hash_res != outcome::failure(BlockTreeError::HEADER_NOT_FOUND)) {
         return hash_res.as_failure();
       }
     } else if (block.hash == hash_res.value()) {
@@ -1218,7 +1208,7 @@ namespace kagome::blockchain {
 
     size_t count = 0;
     for (;;) {
-      OUTCOME_TRY(storage_->putNumberToIndexKey(block));
+      OUTCOME_TRY(storage_->assignNumberToHash(block));
       if (block.number == 0) {
         break;
       }
@@ -1226,7 +1216,7 @@ namespace kagome::blockchain {
       auto parent_hash_res = header_repo_->getHashByNumber(block.number - 1);
       if (parent_hash_res.has_error()) {
         if (parent_hash_res
-            != outcome::failure(blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
+            != outcome::failure(BlockTreeError::HEADER_NOT_FOUND)) {
           return parent_hash_res.as_failure();
         }
       } else if (header.parent_hash == parent_hash_res.value()) {

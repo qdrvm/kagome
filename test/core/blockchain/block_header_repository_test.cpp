@@ -22,7 +22,7 @@
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryImpl;
 using kagome::blockchain::numberAndHashToLookupKey;
-using kagome::blockchain::numberToIndexKey;
+using kagome::blockchain::numberAndHashToLookupKey;
 using kagome::blockchain::putToSpace;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
@@ -54,7 +54,7 @@ class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
     auto hash = hasher_->blake2b_256(enc_header);
     OUTCOME_TRY(putToSpace(
         *rocks_, Space::kHeader, header.number, hash, Buffer{enc_header}));
-    OUTCOME_TRY(kagome::blockchain::putNumberToIndexKey(*rocks_, {num, hash}));
+    OUTCOME_TRY(kagome::blockchain::assignNumberToHash(*rocks_, {num, hash}));
 
     return hash;
   }

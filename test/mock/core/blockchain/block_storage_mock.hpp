@@ -49,7 +49,7 @@ namespace kagome::blockchain {
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>,
-                putNumberToIndexKey,
+                assignNumberToHash,
                 (const primitives::BlockInfo &),
                 (override));
 
@@ -64,11 +64,11 @@ namespace kagome::blockchain {
                  const primitives::BlockData &block_data),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
-                removeBlockData,
-                (primitives::BlockNumber block_number,
-                 const primitives::BlockDataFlags &remove_flags),
-                (override));
+    // MOCK_METHOD(outcome::result<void>,
+    //             removeBlockData,
+    //             (primitives::BlockNumber block_number,
+    //              const primitives::BlockDataFlags &remove_flags),
+    //             (override));
 
     MOCK_METHOD(outcome::result<primitives::BlockHash>,
                 putBlock,

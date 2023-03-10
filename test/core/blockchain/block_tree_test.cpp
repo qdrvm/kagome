@@ -118,7 +118,7 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, getBlockHeader(BlockId{kFinalizedBlockInfo.number}))
         .WillRepeatedly(Return(finalized_block_header_));
 
-    EXPECT_CALL(*storage_, putNumberToIndexKey(_))
+    EXPECT_CALL(*storage_, assignNumberToHash(_))
         .WillRepeatedly(
             Invoke([&](const BlockInfo &b) -> outcome::result<void> {
               putNumToHash(b);

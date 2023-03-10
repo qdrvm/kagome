@@ -46,7 +46,7 @@ namespace kagome::blockchain {
       // the rest of the fields have default value
 
       OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
-      OUTCOME_TRY(block_storage->putNumberToIndexKey({0, genesis_block_hash}));
+      OUTCOME_TRY(block_storage->assignNumberToHash({0, genesis_block_hash}));
 
       OUTCOME_TRY(block_storage->setBlockTreeLeaves({genesis_block_hash}));
 
@@ -58,14 +58,14 @@ namespace kagome::blockchain {
   }
 
   outcome::result<bool> BlockStorageImpl::hasBlockHeader(
-      const primitives::BlockId &id) const {
-    return hasInSpace(*storage_, Space::kHeader, id);
+      const primitives::BlockId &block_id) const {
+    return hasInSpace(*storage_, Space::kHeader, block_id);
   }
 
   outcome::result<std::optional<primitives::BlockHeader>>
-  BlockStorageImpl::getBlockHeader(const primitives::BlockId &id) const {
+  BlockStorageImpl::getBlockHeader(const primitives::BlockId &block_id) const {
     OUTCOME_TRY(encoded_header_opt,
-                getFromSpace(*storage_, Space::kHeader, id));
+                getFromSpace(*storage_, Space::kHeader, block_id));
     if (encoded_header_opt.has_value()) {
       OUTCOME_TRY(
           header,
@@ -76,8 +76,8 @@ namespace kagome::blockchain {
   }
 
   outcome::result<std::optional<primitives::BlockBody>>
-  BlockStorageImpl::getBlockBody(const primitives::BlockId &id) const {
-    OUTCOME_TRY(block_data, getBlockData(id));
+  BlockStorageImpl::getBlockBody(const primitives::BlockId &block_id) const {
+    OUTCOME_TRY(block_data, getBlockData(block_id));
     if (block_data.has_value() && block_data.value().body.has_value()) {
       return block_data.value().body.value();
     }
@@ -85,9 +85,9 @@ namespace kagome::blockchain {
   }
 
   outcome::result<std::optional<primitives::BlockData>>
-  BlockStorageImpl::getBlockData(const primitives::BlockId &id) const {
+  BlockStorageImpl::getBlockData(const primitives::BlockId &block_id) const {
     OUTCOME_TRY(encoded_block_data_opt,
-                getFromSpace(*storage_, Space::kBlockData, id));
+                getFromSpace(*storage_, Space::kBlockData, block_id));
     if (encoded_block_data_opt.has_value()) {
       OUTCOME_TRY(
           block_data,
@@ -98,9 +98,10 @@ namespace kagome::blockchain {
   }
 
   outcome::result<std::optional<primitives::Justification>>
-  BlockStorageImpl::getJustification(const primitives::BlockId &block) const {
+  BlockStorageImpl::getJustification(
+      const primitives::BlockId &block_id) const {
     OUTCOME_TRY(encoded_justification_opt,
-                getFromSpace(*storage_, Space::kJustification, block));
+                getFromSpace(*storage_, Space::kJustification, block_id));
     if (encoded_justification_opt.has_value()) {
       OUTCOME_TRY(justification,
                   scale::decode<primitives::Justification>(
@@ -110,10 +111,10 @@ namespace kagome::blockchain {
     return std::nullopt;
   }
 
-  outcome::result<void> BlockStorageImpl::putNumberToIndexKey(
-      const primitives::BlockInfo &block) {
-    SL_DEBUG(logger_, "Save num-to-idx for {}", block);
-    return kagome::blockchain::putNumberToIndexKey(*storage_, block);
+  outcome::result<void> BlockStorageImpl::assignNumberToHash(
+      const primitives::BlockInfo &block_info) {
+    SL_DEBUG(logger_, "Save num-to-idx for {}", block_info);
+    return kagome::blockchain::assignNumberToHash(*storage_, block_info);
   }
 
   outcome::result<primitives::BlockHash> BlockStorageImpl::putBlockHeader(
@@ -122,14 +123,12 @@ namespace kagome::blockchain {
     auto block_hash = hasher_->blake2b_256(encoded_header);
     OUTCOME_TRY(putToSpace(*storage_,
                            Space::kHeader,
-                           header.number,
                            block_hash,
                            Buffer{std::move(encoded_header)}));
     return block_hash;
   }
 
   outcome::result<void> BlockStorageImpl::putBlockData(
-      primitives::BlockNumber block_number,
       const primitives::BlockData &block_data) {
     primitives::BlockData to_insert;
 
@@ -147,11 +146,11 @@ namespace kagome::blockchain {
           block_data.header ? block_data.header : existing_data.header;
       to_insert.body = block_data.body ? block_data.body : existing_data.body;
       to_insert.justification = block_data.justification
-                                    ? block_data.justification
-                                    : existing_data.justification;
+                                  ? block_data.justification
+                                  : existing_data.justification;
       to_insert.message_queue = block_data.message_queue
-                                    ? block_data.message_queue
-                                    : existing_data.message_queue;
+                                  ? block_data.message_queue
+                                  : existing_data.message_queue;
       to_insert.receipt =
           block_data.receipt ? block_data.receipt : existing_data.receipt;
     }
@@ -159,51 +158,51 @@ namespace kagome::blockchain {
     OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));
     OUTCOME_TRY(putToSpace(*storage_,
                            Space::kBlockData,
-                           block_number,
                            block_data.hash,
                            Buffer{encoded_block_data}));
     return outcome::success();
   }
 
-  outcome::result<void> BlockStorageImpl::removeBlockData(
-      primitives::BlockNumber block_number,
-      const primitives::BlockDataFlags &remove_flags) {
-    primitives::BlockData to_insert;
-
-    OUTCOME_TRY(existing_block_data_opt, getBlockData(remove_flags.hash));
-    if (not existing_block_data_opt.has_value()) {
-      return outcome::success();
-    }
-    auto &existing_data = existing_block_data_opt.value();
-
-    auto move_if_flag = [](bool flag, auto &&value) {
-      if (flag) {
-        return std::move(value);
-      }
-      return std::optional<typename std::decay_t<decltype(value)>::value_type>(
-          std::nullopt);
-    };
-
-    // add all the fields from the new block_data
-    to_insert.header =
-        move_if_flag(!remove_flags.header, std::move(existing_data.header));
-    to_insert.body =
-        move_if_flag(!remove_flags.body, std::move(existing_data.body));
-    to_insert.justification = move_if_flag(
-        !remove_flags.justification, std::move(existing_data.justification));
-    to_insert.message_queue = move_if_flag(
-        !remove_flags.message_queue, std::move(existing_data.message_queue));
-    to_insert.receipt =
-        move_if_flag(!remove_flags.receipt, std::move(existing_data.receipt));
-
-    OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));
-    OUTCOME_TRY(putToSpace(*storage_,
-                           Space::kBlockData,
-                           block_number,
-                           remove_flags.hash,
-                           Buffer{encoded_block_data}));
-    return outcome::success();
-  }
+  // outcome::result<void> BlockStorageImpl::removeBlockData(
+  //     primitives::BlockNumber block_number,
+  //     const primitives::BlockDataFlags &remove_flags) {
+  //   primitives::BlockData to_insert;
+  //
+  //   OUTCOME_TRY(existing_block_data_opt, getBlockData(remove_flags.hash));
+  //   if (not existing_block_data_opt.has_value()) {
+  //     return outcome::success();
+  //   }
+  //   auto &existing_data = existing_block_data_opt.value();
+  //
+  //   auto move_if_flag = [](bool flag, auto &&value) {
+  //     if (flag) {
+  //       return std::move(value);
+  //     }
+  //     return std::optional<typename std::decay_t<decltype(value)>
+  //     ::value_type>(std::nullopt);
+  //   };
+  //
+  //   // add all the fields from the new block_data
+  //   to_insert.header =
+  //       move_if_flag(!remove_flags.header, std::move(existing_data.header));
+  //   to_insert.body =
+  //       move_if_flag(!remove_flags.body, std::move(existing_data.body));
+  //   to_insert.justification = move_if_flag(
+  //       !remove_flags.justification, std::move(existing_data.justification));
+  //   to_insert.message_queue = move_if_flag(
+  //       !remove_flags.message_queue, std::move(existing_data.message_queue));
+  //   to_insert.receipt =
+  //       move_if_flag(!remove_flags.receipt,
+  //       std::move(existing_data.receipt));
+  //
+  //   OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));
+  //   OUTCOME_TRY(putToSpace(*storage_,
+  //                          Space::kBlockData,
+  //                          block_number,
+  //                          remove_flags.hash,
+  //                          Buffer{encoded_block_data}));
+  //   return outcome::success();
+  // }
 
   outcome::result<primitives::BlockHash> BlockStorageImpl::putBlock(
       const primitives::Block &block) {
@@ -215,7 +214,7 @@ namespace kagome::blockchain {
     block_data.header = block.header;
     block_data.body = block.body;
 
-    OUTCOME_TRY(putBlockData(block.header.number, block_data));
+    OUTCOME_TRY(putBlockData(block_data));
     logger_->info("Added block {} as child of {}",
                   primitives::BlockInfo(block.header.number, block_hash),
                   primitives::BlockInfo(block.header.number - 1,
@@ -224,92 +223,101 @@ namespace kagome::blockchain {
   }
 
   outcome::result<void> BlockStorageImpl::putJustification(
-      const primitives::Justification &j,
-      const primitives::BlockHash &hash,
-      primitives::BlockNumber block_number) {
-    BOOST_ASSERT(not j.data.empty());
+      const primitives::Justification &justification,
+      const primitives::BlockHash &hash) {
+    BOOST_ASSERT(not justification.data.empty());
 
-    OUTCOME_TRY(justification, scale::encode(j));
+    OUTCOME_TRY(encoded_justification, scale::encode(justification));
     OUTCOME_TRY(putToSpace(*storage_,
                            Space::kJustification,
-                           block_number,
                            hash,
-                           Buffer{justification}));
+                           std::move(encoded_justification)));
 
     // the following is still required
     primitives::BlockData block_data{.hash = hash};
-    OUTCOME_TRY(putBlockData(block_number, block_data));
+    OUTCOME_TRY(putBlockData(block_data));
+
     return outcome::success();
   }
 
   outcome::result<void> BlockStorageImpl::removeJustification(
-      const primitives::BlockHash &hash, primitives::BlockNumber number) {
-    auto key = numberAndHashToLookupKey(number, hash);
-    auto space = storage_->getSpace(Space::kJustification);
+      const primitives::BlockHash &block_hash) {
+    const auto &key = block_hash;
 
+    auto space = storage_->getSpace(Space::kJustification);
     OUTCOME_TRY(space->remove(key));
+
     return outcome::success();
   }
 
   outcome::result<void> BlockStorageImpl::removeBlock(
-      const primitives::BlockInfo &block) {
-    auto block_lookup_key = numberAndHashToLookupKey(block.number, block.hash);
-
-    SL_TRACE(logger_, "Removing block {}...", block);
-    auto key_space = storage_->getSpace(Space::kLookupKey);
-
-    if (auto res = key_space->remove(block.hash); res.has_error()) {
-      logger_->error("could not remove hash-to-idx from the storage: {}",
-                     res.error());
-      return res;
+      const primitives::BlockHash &block_hash) {
+    // Check if block still in storage
+    OUTCOME_TRY(header_opt, getBlockHeader(block_hash));
+    if (not header_opt.has_value()) {
+      return outcome::success();
     }
+    const auto &header = header_opt.value();
 
-    auto num_to_idx_key = numberToIndexKey(block.number);
-    OUTCOME_TRY(num_to_idx_val_opt, key_space->tryGet(num_to_idx_key.view()));
-    if (num_to_idx_val_opt == block_lookup_key) {
-      if (auto res = key_space->remove(num_to_idx_key); res.has_error()) {
-        SL_ERROR(logger_,
-                 "could not remove num-to-idx from the storage: {}",
-                 block,
-                 res.error());
-        return res;
+    primitives::BlockInfo block_info(header.number, block_hash);
+
+    SL_TRACE(logger_, "Removing block {}...", block_info);
+
+    {  // Remove number-to-key assigning
+      auto num_to_hash_key = blockNumberToKey(block_info.number);
+
+      auto key_space = storage_->getSpace(Space::kLookupKey);
+      OUTCOME_TRY(hash_opt, key_space->tryGet(num_to_hash_key.view()));
+      if (hash_opt == block_hash) {
+        if (auto res = key_space->remove(num_to_hash_key); res.has_error()) {
+          SL_ERROR(logger_,
+                   "could not remove num-to-hash of {} from the storage: {}",
+                   block_info,
+                   res.error());
+          return res;
+        }
+        SL_DEBUG(logger_, "Removed num-to-idx of {}", block_info);
       }
-      SL_DEBUG(logger_, "Removed num-to-idx of {}", block);
     }
 
     // TODO(xDimon): needed to clean up trie storage if block deleted
     //  issue: https://github.com/soramitsu/kagome/issues/1128
 
-    auto block_data_space = storage_->getSpace(Space::kBlockData);
-    if (auto res = block_data_space->remove(block_lookup_key);
-        res.has_error()) {
-      SL_ERROR(logger_,
-               "could not remove body of block {} from the storage: {}",
-               block,
-               res.error());
-      return res;
+    {  // Remove block data
+      auto block_data_space = storage_->getSpace(Space::kBlockData);
+      if (auto res = block_data_space->remove(block_info.hash);
+          res.has_error()) {
+        SL_ERROR(logger_,
+                 "could not remove body of block {} from the storage: {}",
+                 block_info,
+                 res.error());
+        return res;
+      }
     }
 
-    auto header_space = storage_->getSpace(Space::kHeader);
-    if (auto res = header_space->remove(block_lookup_key); res.has_error()) {
-      SL_ERROR(logger_,
-               "could not remove header of block {} from the storage: {}",
-               block,
-               res.error());
-      return res;
+    {  // Remove justification for block
+      if (auto res = removeJustification(block_info.hash); res.has_error()) {
+        SL_ERROR(
+            logger_,
+            "could not remove justification for block {} from the storage: {}",
+            block_info,
+            res.error());
+        return res;
+      }
     }
 
-    if (auto res = removeJustification(block.hash, block.number);
-        res.has_error()) {
-      SL_ERROR(
-          logger_,
-          "could not remove justification for block {} from the storage: {}",
-          block,
-          res.error());
-      return res;
+    {  // Remove block header
+      auto header_space = storage_->getSpace(Space::kHeader);
+      if (auto res = header_space->remove(block_info.hash); res.has_error()) {
+        SL_ERROR(logger_,
+                 "could not remove header of block {} from the storage: {}",
+                 block_info,
+                 res.error());
+        return res;
+      }
     }
 
-    logger_->info("Removed block {}", block);
+    logger_->info("Removed block {}", block_info);
 
     return outcome::success();
   }
