@@ -9,6 +9,7 @@
 #include "api/service/state/requests/call.hpp"
 #include "api/service/state/requests/get_keys_paged.hpp"
 #include "api/service/state/requests/get_metadata.hpp"
+#include "api/service/state/requests/get_read_proof.hpp"
 #include "api/service/state/requests/get_runtime_version.hpp"
 #include "api/service/state/requests/get_storage.hpp"
 #include "api/service/state/requests/query_storage.hpp"
@@ -47,6 +48,9 @@ namespace kagome::api::state {
                              Handler<request::QueryStorage>(api_));
     server_->registerHandler("state_queryStorageAt",
                              Handler<request::QueryStorageAt>(api_));
+
+    server_->registerHandler("state_getReadProof",
+                             Handler<request::GetReadProof>(api_));
 
     server_->registerHandler("state_getRuntimeVersion",
                              Handler<request::GetRuntimeVersion>(api_));

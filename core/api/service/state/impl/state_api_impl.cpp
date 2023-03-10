@@ -7,6 +7,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include <jsonrpc-lean/fault.h>
@@ -20,12 +21,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
   switch (e) {
     case E::MAX_BLOCK_RANGE_EXCEEDED:
       return "Maximum block range size ("
-             + std::to_string(kagome::api::StateApiImpl::kMaxBlockRange)
-             + " blocks) exceeded";
+           + std::to_string(kagome::api::StateApiImpl::kMaxBlockRange)
+           + " blocks) exceeded";
     case E::MAX_KEY_SET_SIZE_EXCEEDED:
       return "Maximum key set size ("
-             + std::to_string(kagome::api::StateApiImpl::kMaxKeySetSize)
-             + " keys) exceeded";
+           + std::to_string(kagome::api::StateApiImpl::kMaxKeySetSize)
+           + " keys) exceeded";
     case E::END_BLOCK_LOWER_THAN_BEGIN_BLOCK:
       return "End block is lower (is an ancestor of) the begin block "
              "(should be the other way)";
@@ -190,6 +191,22 @@ namespace kagome::api {
     return queryStorage(keys, at, at);
   }
 
+  outcome::result<StateApi::ReadProof> StateApiImpl::getReadProof(
+      gsl::span<const common::Buffer> keys,
+      std::optional<primitives::BlockHash> opt_at) const {
+    auto at =
+        opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
+    std::unordered_set<common::Buffer> proof;
+    auto prove = [&](common::BufferView raw) { proof.emplace(raw); };
+    OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
+    OUTCOME_TRY(trie,
+                storage_->getProofReaderBatchAt(header.state_root, prove));
+    for (auto &key : keys) {
+      OUTCOME_TRY(trie->tryGet(key));
+    }
+    return ReadProof{at, {proof.begin(), proof.end()}};
+  }
+
   outcome::result<primitives::Version> StateApiImpl::getRuntimeVersion(
       const std::optional<primitives::BlockHash> &at) const {
     if (at) {
@@ -210,8 +227,9 @@ namespace kagome::api {
 
   outcome::result<bool> StateApiImpl::unsubscribeStorage(
       const std::vector<uint32_t> &subscription_id) {
-    if (auto api_service = api_service_.lock())
+    if (auto api_service = api_service_.lock()) {
       return api_service->unsubscribeSessionFromIds(subscription_id);
+    }
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");
