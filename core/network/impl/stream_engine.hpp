@@ -13,6 +13,7 @@
 #include <random>
 #include <unordered_map>
 
+#include <execinfo.h>
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -264,6 +265,8 @@ namespace kagome::network {
    private:
     struct ProtocolDescr {
       std::shared_ptr<ProtocolBase> protocol;
+      log::Logger logger =
+          log::createLogger("ProtoDescription", "stream_engine");
 
       struct {
         std::shared_ptr<Stream> stream;
@@ -276,6 +279,26 @@ namespace kagome::network {
 
       std::deque<std::function<void(std::shared_ptr<Stream>)>>
           deferred_messages;
+
+      void bt() {
+        constexpr size_t kBtCnt = 50;
+        void *buffer[kBtCnt];
+        auto const nptrs = backtrace(buffer, kBtCnt);
+
+        char **strings = backtrace_symbols(buffer, nptrs);
+        if (nullptr != strings) {
+          auto __free = gsl::finally([&]() { free(strings); });
+
+          char buffer[10 * 1024] = {0};
+          int pos = snprintf(
+                buffer, sizeof(buffer) -  1, "[BACKTRACE]\n");
+          for (int j = 0; j < nptrs; j++) {
+            pos += snprintf(
+                &buffer[pos], sizeof(buffer) - pos - 1, "%s\n", strings[j]);
+          }
+          std::cout << buffer;
+        }
+      }
 
      public:
       explicit ProtocolDescr(std::shared_ptr<ProtocolBase> proto)
@@ -304,6 +327,8 @@ namespace kagome::network {
         }
 
         outgoing.reserved = true;
+        logger->info("Reserved is set.[proto={}]", protocol->protocolName());
+        bt();
         return true;
       }
 
@@ -317,6 +342,8 @@ namespace kagome::network {
       void dropReserved() {
         BOOST_ASSERT(outgoing.reserved);
         outgoing.reserved = false;
+        logger->info("Reserved dropped.[proto={}]", protocol->protocolName());
+        bt();
       }
 
       /**
