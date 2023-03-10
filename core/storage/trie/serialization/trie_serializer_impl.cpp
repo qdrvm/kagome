@@ -57,12 +57,14 @@ namespace kagome::storage::trie {
     auto batch = backend_->batch();
 
     OUTCOME_TRY(enc,
-                codec_->encodeNode(
-                    node,
-                    version,
-                    [&](common::BufferView hash, common::Buffer &&encoded) {
-                      return batch->put(hash, std::move(encoded));
-                    }));
+                codec_->encodeNode(node,
+                                   version,
+                                   [&](const TrieNode *,
+                                       common::BufferView hash,
+                                       common::Buffer &&encoded) {
+                                     return batch->put(hash,
+                                                       std::move(encoded));
+                                   }));
     auto key = codec_->hash256(enc);
     OUTCOME_TRY(batch->put(key, std::move(enc)));
     OUTCOME_TRY(batch->commit());

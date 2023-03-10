@@ -30,6 +30,12 @@ namespace kagome::network {
   const libp2p::peer::ProtocolName kCollationProtocol{"/{}/collation/1"};
   const libp2p::peer::ProtocolName kValidationProtocol{"/{}/validation/1"};
   const libp2p::peer::ProtocolName kReqCollationProtocol{"/{}/req_collation/1"};
+  const libp2p::peer::ProtocolName kReqPovProtocol{"/{}/req_pov/1"};
+  const libp2p::peer::ProtocolName kFetchChunkProtocol{"/{}/req_chunk/1"};
+  const libp2p::peer::ProtocolName kFetchAvailableDataProtocol{
+      "/{}/req_available_data/1"};
+  const libp2p::peer::ProtocolName kFetchStatementProtocol{
+      "/{}/req_statement/1"};
 
   template <typename... Args>
   libp2p::StreamProtocols make_protocols(std::string_view format,

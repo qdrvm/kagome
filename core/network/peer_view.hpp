@@ -32,7 +32,7 @@ namespace kagome::network {
     using PeerId = libp2p::peer::PeerId;
 
     using MyViewSubscriptionEngine =
-        subscription::SubscriptionEngine<EventType, bool, network::View>;
+        subscription::SubscriptionEngine<EventType, bool, network::ExView>;
     using MyViewSubscriptionEnginePtr =
         std::shared_ptr<MyViewSubscriptionEngine>;
     using MyViewSubscriber = MyViewSubscriptionEngine::SubscriberType;
@@ -47,9 +47,9 @@ namespace kagome::network {
 
     PeerView(const primitives::events::ChainSubscriptionEnginePtr
                  &chain_events_engine,
-             std::shared_ptr<application::AppStateManager> app_state_manager,
-             std::shared_ptr<blockchain::BlockTree> block_tree);
+             std::shared_ptr<application::AppStateManager> app_state_manager);
     ~PeerView() = default;
+    void setBlockTree(std::shared_ptr<blockchain::BlockTree> block_tree);
 
     /**
      * Object lifetime control subsystem.
@@ -63,10 +63,11 @@ namespace kagome::network {
 
     void removePeer(const PeerId &peer_id);
     void updateRemoteView(const PeerId &peer_id, network::View &&view);
-    std::optional<std::reference_wrapper<const View>> getMyView() const;
+    std::optional<std::reference_wrapper<const ExView>> getMyView() const;
+    primitives::events::ChainSubscriptionEnginePtr intoChainEventsEngine();
 
    private:
-    void updateMyView(network::View &&view);
+    void updateMyView(network::ExView &&view);
 
     primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
@@ -74,7 +75,7 @@ namespace kagome::network {
     MyViewSubscriptionEnginePtr my_view_update_observable_;
     PeerViewSubscriptionEnginePtr remote_view_update_observable_;
 
-    std::optional<View> my_view_;
+    std::optional<ExView> my_view_;
     std::unordered_map<PeerId, View> remote_view_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
   };

@@ -28,7 +28,8 @@ namespace kagome::blockchain {
         depth{depth},
         parent{parent},
         finalized{finalized},
-        babe_primary{babe_primary} {}
+        babe_primary{babe_primary},
+        contains_approved_para_block{false} {}
 
   outcome::result<void> TreeNode::applyToChain(
       const primitives::BlockInfo &chain_end,
@@ -56,7 +57,7 @@ namespace kagome::blockchain {
                                             [current_node](auto &sptr) {
                                               return sptr.get() == current_node;
                                             })
-                               - curren_parent->children.begin();
+                             - curren_parent->children.begin();
         fork_choice[curren_parent->block_hash] = child_idx;
       }
       current_node = curren_parent.get();
@@ -105,11 +106,11 @@ namespace kagome::blockchain {
   bool TreeNode::operator==(const TreeNode &other) const {
     const auto &other_parent = other.parent;
     auto parents_equal = (parent.expired() && other_parent.expired())
-                         || (!parent.expired() && !other_parent.expired()
-                             && parent.lock() == other_parent.lock());
+                      || (!parent.expired() && !other_parent.expired()
+                          && parent.lock() == other_parent.lock());
 
     return parents_equal && block_hash == other.block_hash
-           && depth == other.depth;
+        && depth == other.depth;
   }
 
   bool TreeNode::operator!=(const TreeNode &other) const {
@@ -148,11 +149,14 @@ namespace kagome::blockchain {
       std::shared_ptr<TreeNode> node) const {
     auto finalized = last_finalized.lock();
     BOOST_ASSERT(finalized);
-    Weight weight{0, node->depth};
+    Weight weight{WeightInfo(0ull), node->depth};
     while (node != finalized) {
       BOOST_ASSERT(node->depth > finalized->depth);
       if (node->babe_primary) {
-        ++weight.first;
+        ++weight.first.data.babe_primary;
+      }
+      if (node->contains_approved_para_block) {
+        ++weight.first.data.parachain_payload;
       }
       auto parent = node->parent.lock();
       BOOST_ASSERT(parent);

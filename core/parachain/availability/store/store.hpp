@@ -15,6 +15,7 @@ namespace kagome::parachain {
   /// Stores ErasureChunk, PoV and PersistedValidationData
   class AvailabilityStore {
    public:
+    using AvailableData = runtime::AvailableData;
     using CandidateHash = network::CandidateHash;
     using ValidatorIndex = network::ValidatorIndex;
     using ErasureChunk = network::ErasureChunk;
@@ -36,9 +37,17 @@ namespace kagome::parachain {
     /// Get PoV
     virtual std::optional<ParachainBlock> getPov(
         const CandidateHash &candidate_hash) = 0;
+    /// Get AvailableData (PoV and PersistedValidationData)
+    virtual std::optional<AvailableData> getPovAndData(
+        const CandidateHash &candidate_hash) = 0;
+    // Get list of ErasureChunk
+    virtual std::vector<ErasureChunk> getChunks(
+        const CandidateHash &candidate_hash) = 0;
     /// Store ErasureChunk
     virtual void putChunk(const CandidateHash &candidate_hash,
                           const ErasureChunk &chunk) = 0;
+    virtual void putChunkSet(const CandidateHash &candidate_hash,
+                             std::vector<ErasureChunk> &&chunks) = 0;
     /// Store PoV
     virtual void putPov(const CandidateHash &candidate_hash,
                         const ParachainBlock &pov) = 0;

@@ -95,6 +95,9 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash,
         const primitives::BlockHeader &block_header) override;
 
+    outcome::result<void> markAsParachainDataBlock(
+        const primitives::BlockHash &block_hash) override;
+
     outcome::result<void> addBlockBody(
         primitives::BlockNumber block_number,
         const primitives::BlockHash &block_hash,

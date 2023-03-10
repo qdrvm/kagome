@@ -525,6 +525,23 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<void> BlockTreeImpl::markAsParachainDataBlock(
+      const primitives::BlockHash &block_hash) {
+    SL_TRACE(
+        log_, "Trying to adjust weight for block. (block hash={})", block_hash);
+
+    auto node = tree_->getRoot().findByHash(block_hash);
+    if (node == nullptr) {
+      SL_WARN(log_,
+              "Block doesn't exists in block tree.(block hash={})",
+              block_hash);
+      return BlockTreeError::BLOCK_NOT_EXISTS;
+    }
+
+    node->contains_approved_para_block = true;
+    return outcome::success();
+  }
+
   outcome::result<void> BlockTreeImpl::addExistingBlock(
       const primitives::BlockHash &block_hash,
       const primitives::BlockHeader &block_header) {

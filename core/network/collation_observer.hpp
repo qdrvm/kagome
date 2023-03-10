@@ -8,8 +8,6 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
-#include <libp2p/peer/peer_id.hpp>
-#include "consensus/grandpa/common.hpp"
 #include "network/types/collator_messages.hpp"
 #include "primitives/common.hpp"
 
@@ -20,25 +18,14 @@ namespace kagome::network {
   struct CollationObserver {
     virtual ~CollationObserver() = default;
 
-    /**
-     * Triggered when a Peer makes advertisement
-     * @param peer_id id of the peer
-     * @param para_hash hash of the parachain block
-     */
-    virtual void onAdvertise(libp2p::peer::PeerId const &peer_id,
-                             primitives::BlockHash para_hash) = 0;
+    /// Handle incoming collation stream.
+    virtual void onIncomingCollationStream(
+        libp2p::peer::PeerId const &peer_id) = 0;
 
-    /**
-     * Triggered when a Peer declares as a collator
-     */
-    virtual void onDeclare(
-        libp2p::peer::PeerId const &peer_id,  /// PeerId of the peer.
-        CollatorPublicKey pubkey,             /// Public key of the collator.
-        ParachainId para_id,                  /// Parachain Id.
-        Signature signature                   /// Signature of the collator
-                                              /// using the PeerId of the
-                                              /// collators node.
-        ) = 0;
+    /// Handle incoming collation message.
+    virtual void onIncomingMessage(
+        libp2p::peer::PeerId const &peer_id,
+        CollationProtocolMessage &&collation_message) = 0;
   };
 }  // namespace kagome::network
 

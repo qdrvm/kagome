@@ -55,6 +55,8 @@ namespace kagome::application {
     parachain_observer_ = injector_->injectParachainObserver();
     metrics_watcher_ = injector_->injectMetricsWatcher();
     telemetry_service_ = injector_->injectTelemetryService();
+    approval_distribution_ = injector_->injectApprovalDistribution();
+    parachain_processor_ = injector_->injectParachainProcessor();
     kagome::telemetry::setTelemetryService(telemetry_service_);
 
     logger_->info("Start as node version '{}' named as '{}' with PID {}",
@@ -64,9 +66,9 @@ namespace kagome::application {
 
     auto chain_path = app_config_.chainPath(chain_spec_->id());
     auto storage_backend = app_config_.storageBackend()
-                                   == AppConfiguration::StorageBackend::RocksDB
-                               ? "RocksDB"
-                               : "Unknown";
+                                == AppConfiguration::StorageBackend::RocksDB
+                             ? "RocksDB"
+                             : "Unknown";
     logger_->info(
         "Chain path is {}, storage backend is {}", chain_path, storage_backend);
     auto res = util::init_directory(chain_path);

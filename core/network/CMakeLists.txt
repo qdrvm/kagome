@@ -25,13 +25,13 @@ add_library(network
     impl/protocols/propagate_transactions_protocol.cpp
     impl/protocols/grandpa_protocol.cpp
     impl/protocols/protocol_req_collation.cpp
-    impl/protocols/collation_protocol.cpp
     impl/protocols/block_announce_protocol.cpp
     impl/peer_view.cpp
     impl/peer_manager_impl.cpp
     impl/reputation_repository_impl.cpp
     helpers/scale_message_read_writer.cpp
     adapters/adapter_errors.cpp
+    impl/protocols/protocol_req_pov.cpp
     warp/cache.cpp
     )
 target_link_libraries(network

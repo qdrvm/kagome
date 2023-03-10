@@ -41,7 +41,9 @@ namespace kagome::network {
         : name_(std::move(name)),
           host_{host},
           protocols_{std::move(protocols)},
-          log_{std::move(logger)} {}
+          log_{std::move(logger)} {
+      BOOST_ASSERT(!protocols_.empty());
+    }
 
     template <typename T>
     bool start(std::weak_ptr<T> wptr) {

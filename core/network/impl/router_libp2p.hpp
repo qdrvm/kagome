@@ -65,7 +65,14 @@ namespace kagome::network {
     std::shared_ptr<SyncProtocol> getSyncProtocol() const override;
     std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const override;
     std::shared_ptr<CollationProtocol> getCollationProtocol() const override;
+    std::shared_ptr<ValidationProtocol> getValidationProtocol() const override;
     std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
+        const override;
+    std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const override;
+    std::shared_ptr<FetchChunkProtocol> getFetchChunkProtocol() const override;
+    std::shared_ptr<FetchAvailableDataProtocol> getFetchAvailableDataProtocol()
+        const override;
+    std::shared_ptr<StatmentFetchingProtocol> getFetchStatementProtocol()
         const override;
 
     std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const override;
@@ -98,7 +105,12 @@ namespace kagome::network {
     std::shared_ptr<StateProtocol> state_protocol_;
     std::shared_ptr<SyncProtocol> sync_protocol_;
     std::shared_ptr<CollationProtocol> collation_protocol_;
+    std::shared_ptr<ValidationProtocol> validation_protocol_;
     std::shared_ptr<ReqCollationProtocol> req_collation_protocol_;
+    std::shared_ptr<ReqPovProtocol> req_pov_protocol_;
+    std::shared_ptr<FetchChunkProtocol> fetch_chunk_protocol_;
+    std::shared_ptr<FetchAvailableDataProtocol> fetch_available_data_protocol_;
+    std::shared_ptr<StatmentFetchingProtocol> fetch_statement_protocol_;
   };
 
 }  // namespace kagome::network

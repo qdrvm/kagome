@@ -61,6 +61,11 @@ namespace kagome::blockchain {
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
+                markAsParachainDataBlock,
+                (const primitives::BlockHash &),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
                 removeLeaf,
                 (const primitives::BlockHash &),
                 (override));
