@@ -645,12 +645,12 @@ namespace {
           injector.template create<sptr<parachain::Pvf>>(),
           injector.template create<sptr<parachain::AvailabilityStore>>(),
           injector.template create<sptr<runtime::ParachainHost>>(),
-          injector.template create<sptr<parachain::ValidatorSignerFactory>>());
-
-      auto app_state_manager =
+          injector.template create<sptr<parachain::ValidatorSignerFactory>>(),
+          injector.template create<const application::AppConfiguration &>(),
           injector
-              .template create<std::shared_ptr<application::AppStateManager>>();
-      app_state_manager->takeControl(*ptr);
+              .template create<std::shared_ptr<application::AppStateManager>>(),
+          injector.template create<
+              primitives::events::BabeStateSubscriptionEnginePtr>());
 
       auto protocol_factory =
           injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1294,7 +1294,9 @@ namespace {
         injector.template create<sptr<runtime::OffchainWorkerApi>>(),
         injector.template create<sptr<runtime::Core>>(),
         injector.template create<sptr<consensus::babe::ConsistencyKeeper>>(),
-        injector.template create<sptr<storage::trie::TrieStorage>>());
+        injector.template create<sptr<storage::trie::TrieStorage>>(),
+        injector.template create<
+            primitives::events::BabeStateSubscriptionEnginePtr>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
