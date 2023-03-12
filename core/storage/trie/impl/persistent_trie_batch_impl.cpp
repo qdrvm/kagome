@@ -37,7 +37,6 @@ namespace kagome::storage::trie {
         state_pruner_{std::move(state_pruner)} {
     BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
                  or not changes_.has_value());
-    BOOST_ASSERT(trie_ != nullptr);
     BOOST_ASSERT(state_pruner_ != nullptr);
   }
 

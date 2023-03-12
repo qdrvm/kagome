@@ -52,7 +52,6 @@ namespace kagome::storage::trie {
 
    private:
     std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
-    std::shared_ptr<PolkadotTrie> trie_;
     std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
 
     log::Logger logger_ = log::createLogger("PersistentTrieBatch", "storage");

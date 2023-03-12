@@ -13,7 +13,8 @@
 #include <random>
 #include <unordered_map>
 
-#include <execinfo.h>
+#include <backward.hpp>
+
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -281,22 +282,18 @@ namespace kagome::network {
           deferred_messages;
 
       void bt() {
-        constexpr size_t kBtCnt = 50;
-        void *buffer[kBtCnt];
-        auto const nptrs = backtrace(buffer, kBtCnt);
+        backward::StackTrace trace;
+        trace.load_here(128);
 
-        char **strings = backtrace_symbols(buffer, nptrs);
-        if (nullptr != strings) {
-          auto __free = gsl::finally([&]() { free(strings); });
-
-          char buffer[10 * 1024] = {0};
-          int pos = snprintf(
-                buffer, sizeof(buffer) -  1, "[BACKTRACE]\n");
-          for (int j = 0; j < nptrs; j++) {
-            pos += snprintf(
-                &buffer[pos], sizeof(buffer) - pos - 1, "%s\n", strings[j]);
-          }
-          std::cout << buffer;
+        backward::TraceResolver tr; tr.load_stacktrace(trace);
+        for (size_t i = 0; i < trace.size(); ++i) {
+          backward::ResolvedTrace resolved_trace = tr.resolve(trace[i]);
+          std::cout << "#" << i
+                    << " " << resolved_trace.object_filename
+                    << " " << resolved_trace.object_function
+                    << ":" << resolved_trace.source.line
+                    << " [" << resolved_trace.addr << "]"
+                    << std::endl;
         }
       }
 
@@ -328,7 +325,7 @@ namespace kagome::network {
 
         outgoing.reserved = true;
         logger->info("Reserved is set.[proto={}]", protocol->protocolName());
-        bt();
+        //bt();
         return true;
       }
 
@@ -343,7 +340,7 @@ namespace kagome::network {
         BOOST_ASSERT(outgoing.reserved);
         outgoing.reserved = false;
         logger->info("Reserved dropped.[proto={}]", protocol->protocolName());
-        bt();
+        //bt();
       }
 
       /**

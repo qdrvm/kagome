@@ -6,11 +6,12 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
-#include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
@@ -28,6 +29,7 @@ using kagome::common::Hash256;
 using kagome::primitives::BlockHash;
 using kagome::storage::Space;
 using kagome::storage::trie::StateVersion;
+using kagome::storage::trie_pruner::TriePrunerMock;
 using kagome::subscription::SubscriptionEngine;
 using testing::_;
 using testing::Invoke;
@@ -52,9 +54,9 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
 
     empty_hash = serializer->getEmptyRootHash();
 
-    trie =
-        TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
-            .value();
+    trie = TrieStorageImpl::createEmpty(
+               factory, codec, serializer, std::nullopt, nullptr)
+               .value();
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;

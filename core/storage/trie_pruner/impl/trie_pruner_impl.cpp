@@ -90,12 +90,14 @@ namespace kagome::storage::trie_pruner {
     while (!queued_nodes.empty()) {
       auto node = queued_nodes.back();
       queued_nodes.pop_back();
-      auto ref_count_it = ref_count_.find(node->getCachedHash().value());
+      auto hash = node->getCachedHash().value();
+      auto ref_count_it = ref_count_.find(hash);
       if (ref_count_it == ref_count_.end()) {
         // FIXME: crutch because root nodes are always hashed, so encoding
         // doesn't match here and in addState (which always just takes merkle
         // value)
-        OUTCOME_TRY(hash, calcMerkleValue(*codec_, *node));
+        OUTCOME_TRY(merkle_value, calcMerkleValue(*codec_, *node));
+        hash = merkle_value;
         if (ref_count_it = ref_count_.find(hash);
             ref_count_it == ref_count_.end()) {
           unknown++;
@@ -108,8 +110,8 @@ namespace kagome::storage::trie_pruner {
 
       if (ref_count == 0) {
         removed++;
-        ref_count_.erase(node->getCachedHash().value());
-        OUTCOME_TRY(batch->remove(node->getCachedHash().value()));
+        ref_count_.erase(hash);
+        OUTCOME_TRY(batch->remove(hash));
         if (node->isBranch()) {
           auto branch = static_cast<const trie::BranchNode &>(*node);
           for (auto opaque_child : branch.children) {

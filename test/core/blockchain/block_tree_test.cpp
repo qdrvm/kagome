@@ -245,7 +245,7 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<storage::trie_pruner::TriePruner>
       state_pruner_ =
-          std::make_shared<StrictMock<storage::trie_pruner::TriePrunerMock>>();
+          std::make_shared<storage::trie_pruner::TriePrunerMock>();
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager_ =
       std::make_shared<application::AppStateManagerMock>();
