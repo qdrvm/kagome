@@ -41,6 +41,8 @@ namespace kagome::primitives::events {
     kNewRuntime = 5
   };
 
+  enum struct BabeStateEventType : uint32_t { kSynchronized = 1 };
+
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
   using NewRuntimeEventParams = ref_t<const primitives::BlockHash>;
@@ -49,6 +51,10 @@ namespace kagome::primitives::events {
                                           HeadsEventParams,
                                           RuntimeVersionEventParams,
                                           NewRuntimeEventParams>;
+
+  struct BabeStateEventParams {
+    primitives::BlockInfo best_block;
+  };
 
   /**
    * - "future" - Transaction is part of the future queue.
@@ -232,6 +238,16 @@ namespace kagome::primitives::events {
 
   using ChainEventSubscriber = ChainSubscriptionEngine::SubscriberType;
   using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
+
+  using BabeStateSubscriptionEngine = subscription::SubscriptionEngine<
+      primitives::events::BabeStateEventType,
+      bool,
+      primitives::events::BabeStateEventParams>;
+  using BabeStateSubscriptionEnginePtr =
+      std::shared_ptr<BabeStateSubscriptionEngine>;
+
+  using BabeStateEventSubscriber = BabeStateSubscriptionEngine::SubscriberType;
+  using BabeStateEventSubscriberPtr = std::shared_ptr<BabeStateEventSubscriber>;
 
   using ExtrinsicSubscriptionEngine = subscription::SubscriptionEngine<
       SubscribedExtrinsicId,
