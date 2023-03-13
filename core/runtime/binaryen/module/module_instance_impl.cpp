@@ -67,6 +67,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
       return "An error occurred during an export call execution";
     case ModuleInstanceImpl::Error::CAN_NOT_OBTAIN_GLOBAL:
       return "Failed to obtain a global value";
+    case ModuleInstanceImpl::Error::NO_EXPORT_FUNCTION:
+      return "No export function";
   }
   return "Unknown ModuleInstance error";
 }
@@ -98,6 +100,14 @@ namespace kagome::runtime::binaryen {
 
     const auto args_list =
         wasm::LiteralList{wasm::Literal{args.ptr}, wasm::Literal{args.size}};
+
+    if (auto res =
+            module_instance_->wasm.getExportOrNull(wasm::Name{name.data()});
+        nullptr == res) {
+      SL_DEBUG(logger_, "The requested function {} not found", name);
+      return Error::NO_EXPORT_FUNCTION;
+    }
+
     try {
       const auto res = static_cast<uint64_t>(
           module_instance_->callExport(wasm::Name{name.data()}, args_list)

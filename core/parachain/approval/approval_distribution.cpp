@@ -747,8 +747,9 @@ namespace kagome::parachain {
       return outcome::success();
     };
     if (auto res = call(); res.has_error()) {
-      logger_->warn("Error while retrieve session index and info.(error={})",
-                    res.error().message());
+      SL_DEBUG(logger_,
+               "Error while retrieve session index and info.(error={})",
+               res.error().message());
     }
   }
 
@@ -774,9 +775,9 @@ namespace kagome::parachain {
       return outcome::success();
     };
     if (auto res = call(); res.has_error()) {
-      logger_->warn(
-          "Error while retrieve babe epoch and block header.(error={})",
-          res.error().message());
+      SL_DEBUG(logger_,
+               "Error while retrieve babe epoch and block header.(error={})",
+               res.error().message());
     }
   }
 
@@ -805,8 +806,9 @@ namespace kagome::parachain {
       return outcome::success();
     };
     if (auto res = call(); res.has_error()) {
-      logger_->warn("Error while retrieve included candidates.(error={})",
-                    res.error().message());
+      SL_DEBUG(logger_,
+               "Error while retrieve included candidates.(error={})",
+               res.error().message());
     }
   }
 
