@@ -83,6 +83,7 @@ groups:
             children:
               - name: reputation
               - name: synchronizer
+              - name: authority_discovery
               - name: kagome_protocols
                 children:
                   - name: block_announce_protocol

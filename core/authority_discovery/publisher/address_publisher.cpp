@@ -43,7 +43,7 @@ namespace kagome::authority_discovery {
         host_(host),
         kademlia_(std::move(kademlia)),
         scheduler_(std::move(scheduler)),
-        log_{log::createLogger("AddressPublisher")} {
+        log_{log::createLogger("AddressPublisher", "authority_discovery")} {
     BOOST_ASSERT(authority_discovery_api_ != nullptr);
     BOOST_ASSERT(app_state_manager != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
