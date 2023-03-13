@@ -156,6 +156,8 @@ class BabeTest : public testing::Test {
 
     bitfield_store_ = std::make_shared<parachain::BitfieldStoreMock>();
     backing_store_ = std::make_shared<parachain::BackingStoreMock>();
+    babe_status_observable_ =
+        std::make_shared<primitives::events::BabeStateSubscriptionEngine>();
 
     babe_ = std::make_shared<babe::BabeImpl>(app_config_,
                                              app_state_manager_,
@@ -178,7 +180,8 @@ class BabeTest : public testing::Test {
                                              offchain_worker_api_,
                                              core_,
                                              consistency_keeper_,
-                                             trie_storage_);
+                                             trie_storage_,
+                                             babe_status_observable_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -224,6 +227,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<boost::asio::io_context> io_context_;
   std::shared_ptr<parachain::BitfieldStoreMock> bitfield_store_;
   std::shared_ptr<parachain::BackingStoreMock> backing_store_;
+  primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
 
   std::shared_ptr<babe::BabeImpl> babe_;
 

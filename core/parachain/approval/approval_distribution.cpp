@@ -747,8 +747,9 @@ namespace kagome::parachain {
       return outcome::success();
     };
     if (auto res = call(); res.has_error()) {
-      logger_->warn("Error while retrieve session index and info.(error={})",
-                    res.error().message());
+      SL_DEBUG(logger_,
+               "Error while retrieve session index and info.(error={})",
+               res.error().message());
     }
   }
 
@@ -774,9 +775,9 @@ namespace kagome::parachain {
       return outcome::success();
     };
     if (auto res = call(); res.has_error()) {
-      logger_->warn(
-          "Error while retrieve babe epoch and block header.(error={})",
-          res.error().message());
+      SL_DEBUG(logger_,
+               "Error while retrieve babe epoch and block header.(error={})",
+               res.error().message());
     }
   }
 
@@ -805,8 +806,9 @@ namespace kagome::parachain {
       return outcome::success();
     };
     if (auto res = call(); res.has_error()) {
-      logger_->warn("Error while retrieve included candidates.(error={})",
-                    res.error().message());
+      SL_DEBUG(logger_,
+               "Error while retrieve included candidates.(error={})",
+               res.error().message());
     }
   }
 
@@ -1005,15 +1007,6 @@ namespace kagome::parachain {
   void ApprovalDistribution::handle_new_head(const primitives::BlockHash &head,
                                              const network::ExView &updated,
                                              Func &&func) {
-    /*sequenceIgnore(this_context_->template wrap(asAsync(
-        [head,
-         updated,
-         wself{weak_from_this()},
-         func(std::forward<Func>(func))]() mutable -> outcome::result<void> {
-          auto self = wself.lock();
-          if (!self) {
-            return Error::NO_INSTANCE;
-          }*/
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
 
     /// clear unuseful heads
@@ -1065,12 +1058,13 @@ namespace kagome::parachain {
                 }});
 
     imported_block_info(head, std::move(updated.new_head), this_context_);
-    // return outcome::success();
-    //})));
   }
 
   void ApprovalDistribution::on_active_leaves_update(
       const network::ExView &updated) {
+    if (!parachain_processor_->canProcessParachains()) {
+      return;
+    }
     if (auto result =
             primitives::calculateBlockHash(updated.new_head, *hasher_)) {
       if (!storedDistribBlockEntries().get(result.value())) {
