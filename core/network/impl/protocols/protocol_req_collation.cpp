@@ -28,10 +28,10 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kReqCollationProtocol,
                                                    genesis_hash,
-                                                   "polkadot"),
+                                                   chain_spec),
                                     log::createLogger(
                                         kReqCollationProtocolName,
-                                        "request_collation_protocol")},
+                                        "req_collation_protocol")},
           observer_{std::move(observer)} {}
 
    protected:

@@ -90,8 +90,15 @@ groups:
                   - name: propagate_transactions_protocol
                   - name: sync_protocol
                   - name: state_protocol
-                  - name: collation_protocol
-                  - name: request_collation_protocol
+                  - name: parachain_protocols
+                    children:
+                      - name: collation_protocol
+                      - name: validation_protocol
+                      - name: req_collation_protocol
+                      - name: req_chunk_protocol
+                      - name: req_available_data_protocol
+                      - name: req_statement_protocol
+                      - name: req_pov_protocol
           - name: changes_trie
           - name: storage
             children:

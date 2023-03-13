@@ -84,13 +84,15 @@ namespace kagome::network {
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
-    return std::make_shared<ValidationProtocol>(host_,
-                                                app_config_,
-                                                chain_spec_,
-                                                genesisBlockHash,
-                                                validation_observer_.lock(),
-                                                kValidationProtocol,
-                                                peer_view_);
+    return std::make_shared<ValidationProtocol>(
+        host_,
+        app_config_,
+        chain_spec_,
+        genesisBlockHash,
+        validation_observer_.lock(),
+        kValidationProtocol,
+        peer_view_,
+        log::createLogger("ValidationProtocol", "validation_protocol"));
   }
 
   std::shared_ptr<CollationProtocol> ProtocolFactory::makeCollationProtocol()
@@ -99,13 +101,15 @@ namespace kagome::network {
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
-    return std::make_shared<CollationProtocol>(host_,
-                                               app_config_,
-                                               chain_spec_,
-                                               genesisBlockHash,
-                                               collation_observer_.lock(),
-                                               kCollationProtocol,
-                                               peer_view_);
+    return std::make_shared<CollationProtocol>(
+        host_,
+        app_config_,
+        chain_spec_,
+        genesisBlockHash,
+        collation_observer_.lock(),
+        kCollationProtocol,
+        peer_view_,
+        log::createLogger("CollationProtocol", "collation_protocol"));
   }
 
   std::shared_ptr<ReqCollationProtocol>
