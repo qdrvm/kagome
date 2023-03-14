@@ -54,11 +54,12 @@ namespace kagome::network {
                       const primitives::BlockHash &genesis_hash,
                       std::shared_ptr<ObserverType> observer,
                       Protocol const &protocol,
-                      std::shared_ptr<network::PeerView> peer_view)
+                      std::shared_ptr<network::PeerView> peer_view,
+                      log::Logger logger)
         : base_(kParachainProtocolName,
                 host,
                 make_protocols(protocol, genesis_hash, "polkadot"),
-                log::createLogger("ParachainProtocol", protocol)),
+                std::move(logger)),
           observer_(std::move(observer)),
           app_config_{app_config},
           protocol_{protocol},

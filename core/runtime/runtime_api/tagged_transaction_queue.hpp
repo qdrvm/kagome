@@ -19,15 +19,18 @@ namespace kagome::runtime {
    public:
     virtual ~TaggedTransactionQueue() = default;
 
+    using TransactionValidityAt =
+        std::pair<primitives::BlockInfo, primitives::TransactionValidity>;
+
     /**
      * Calls the TaggedTransactionQueue_validate_transaction function from wasm
      * code
      * @param ext extrinsic containing transaction to be validated
      * @return structure with information about transaction validity
      */
-    virtual outcome::result<primitives::TransactionValidity>
-    validate_transaction(primitives::TransactionSource source,
-                         const primitives::Extrinsic &ext) = 0;
+    virtual outcome::result<TransactionValidityAt> validate_transaction(
+        primitives::TransactionSource source,
+        const primitives::Extrinsic &ext) = 0;
   };
 
 }  // namespace kagome::runtime

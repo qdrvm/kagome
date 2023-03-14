@@ -24,7 +24,7 @@ namespace kagome::network {
 
     FetchAvailableDataProtocol(
         libp2p::Host &host,
-        application::ChainSpec const & /*chain_spec*/,
+        application::ChainSpec const &chain_spec,
         const primitives::BlockHash &genesis_hash,
         std::shared_ptr<parachain::AvailabilityStore> av_store)
         : RequestResponseProtocol<
@@ -35,7 +35,8 @@ namespace kagome::network {
                                     make_protocols(kFetchAvailableDataProtocol,
                                                    genesis_hash,
                                                    "polkadot"),
-                                    log::createLogger(kName)},
+                                    log::createLogger(
+                                        kName, "req_available_data_protocol")},
           av_store_{std::move(av_store)} {}
 
    private:
@@ -61,7 +62,7 @@ namespace kagome::network {
 
     StatmentFetchingProtocol(
         libp2p::Host &host,
-        application::ChainSpec const & /*chain_spec*/,
+        application::ChainSpec const & chain_spec,
         const primitives::BlockHash &genesis_hash,
         std::shared_ptr<parachain::BackingStore> backing_store)
         : RequestResponseProtocol<
@@ -72,7 +73,7 @@ namespace kagome::network {
                                     make_protocols(kFetchStatementProtocol,
                                                    genesis_hash,
                                                    "polkadot"),
-                                    log::createLogger(kName)},
+                                    log::createLogger(kName, "req_statement_protocol")},
           backing_store_{std::move(backing_store)} {}
 
    private:

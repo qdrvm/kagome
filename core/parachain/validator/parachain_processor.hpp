@@ -18,6 +18,7 @@
 #include <boost/asio/signal_set.hpp>
 #include <libp2p/peer/peer_id.hpp>
 
+#include "application/app_configuration.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
 #include "network/peer_manager.hpp"
@@ -59,7 +60,8 @@ namespace kagome::parachain {
       OUT_OF_VIEW,
       DUPLICATE,
       NO_INSTANCE,
-      NOT_A_VALIDATOR
+      NOT_A_VALIDATOR,
+      NOT_SYNCHRONIZED
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
@@ -86,13 +88,18 @@ namespace kagome::parachain {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::AvailabilityStore> av_store,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
-        std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory);
+        std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
+        const application::AppConfiguration &app_config,
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        primitives::events::BabeStateSubscriptionEnginePtr
+            babe_status_observable);
     ~ParachainProcessorImpl() = default;
 
     bool start();
     void stop();
     bool prepare();
     void requestCollations(network::CollationEvent const &pending_collation);
+    outcome::result<void> canProcessParachains() const;
     outcome::result<void> advCanBeProcessed(
         primitives::BlockHash const &relay_parent,
         libp2p::peer::PeerId const &peer_id);
@@ -326,6 +333,7 @@ namespace kagome::parachain {
     /*
      * Notification
      */
+    void broadcastView(network::View const &view) const;
     template <typename F>
     void notify_internal(std::shared_ptr<WorkersContext> &context, F &&func) {
       BOOST_ASSERT(context);
@@ -369,6 +377,8 @@ namespace kagome::parachain {
                     const std::shared_ptr<network::Stream> &stream,
                     const std::shared_ptr<network::ProtocolBase> &protocol);
 
+    bool isValidatingNode() const;
+
     template <typename T>
     outcome::result<network::Signature> sign(T const &t) const;
 
@@ -408,6 +418,9 @@ namespace kagome::parachain {
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<parachain::AvailabilityStore> av_store_;
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
+    const application::AppConfiguration &app_config_;
+    primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+    primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
   };
 
 }  // namespace kagome::parachain

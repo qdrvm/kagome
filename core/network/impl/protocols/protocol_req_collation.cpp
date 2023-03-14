@@ -31,7 +31,7 @@ namespace kagome::network {
                                                    "polkadot"),
                                     log::createLogger(
                                         kReqCollationProtocolName,
-                                        "request_collation_protocol")},
+                                        "req_collation_protocol")},
           observer_{std::move(observer)} {}
 
    protected:

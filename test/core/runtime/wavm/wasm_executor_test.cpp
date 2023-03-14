@@ -95,7 +95,7 @@ class WasmExecutorTest : public ::testing::Test {
   void SetUp() override {
     // path to a file with wasm code in wasm/ subfolder
     auto wasm_path = fs::path(__FILE__).parent_path().parent_path().string()
-                     + "/wasm/sumtwo.wasm";
+                   + "/wasm/sumtwo.wasm";
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicCodeProvider>(wasm_path);
 
@@ -245,7 +245,7 @@ class WasmExecutorTest : public ::testing::Test {
 TEST_F(WasmExecutorTest, DISABLED_ExecuteCode) {
   EXPECT_CALL(*header_repo_, getHashByNumber(0))
       .WillOnce(Return("blockhash0"_hash256));
-  EXPECT_CALL(*header_repo_, getBlockHeader(kagome::primitives::BlockId{0}))
+  EXPECT_CALL(*header_repo_, getBlockHeader("blockhash0"_hash256))
       .WillOnce(Return(
           kagome::primitives::BlockHeader{.parent_hash = {},
                                           .number = 0,

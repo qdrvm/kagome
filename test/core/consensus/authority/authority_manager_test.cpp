@@ -166,7 +166,7 @@ class AuthorityManagerTest : public testing::Test {
         }));
     EXPECT_CALL(*block_tree, hasDirectChain(_, _)).Times(testing::AnyNumber());
 
-    EXPECT_CALL(*block_tree, getBlockHeader(primitives::BlockId("GEN"_hash256)))
+    EXPECT_CALL(*block_tree, getBlockHeader("GEN"_hash256))
         .WillRepeatedly(Return(primitives::BlockHeader{}));
   }
 

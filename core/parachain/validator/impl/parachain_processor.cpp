@@ -47,6 +47,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "No self instance";
     case E::NOT_A_VALIDATOR:
       return "Node is not a validator";
+    case E::NOT_SYNCHRONIZED:
+      return "Node not synchronized";
   }
   return "Unknown parachain processor error";
 }
@@ -68,7 +70,10 @@ namespace kagome::parachain {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::AvailabilityStore> av_store,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
-      std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory)
+      std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
+      const application::AppConfiguration &app_config,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
+      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable)
       : pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
@@ -83,7 +88,9 @@ namespace kagome::parachain {
         bitfield_store_(std::move(bitfield_store)),
         backing_store_(std::move(backing_store)),
         av_store_(std::move(av_store)),
-        parachain_host_(std::move(parachain_host)) {
+        parachain_host_(std::move(parachain_host)),
+        app_config_(app_config),
+        babe_status_observable_(std::move(babe_status_observable)) {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
@@ -98,6 +105,8 @@ namespace kagome::parachain {
     BOOST_ASSERT(av_store_);
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(signer_factory_);
+    BOOST_ASSERT(babe_status_observable_);
+    app_state_manager->takeControl(*this);
   }
 
   bool ParachainProcessorImpl::prepare() {
@@ -117,6 +126,36 @@ namespace kagome::parachain {
         });
     bitfield_signer_->start(peer_view_->intoChainEventsEngine());
 
+    babe_status_observer_ =
+        std::make_shared<primitives::events::BabeStateEventSubscriber>(
+            babe_status_observable_, false);
+    babe_status_observer_->subscribe(
+        babe_status_observer_->generateSubscriptionSetId(),
+        primitives::events::BabeStateEventType::kSynchronized);
+    babe_status_observer_->setCallback([wself{weak_from_this()}](
+                                           auto /*set_id*/,
+                                           bool &synchronized,
+                                           auto /*event_type*/,
+                                           const primitives::events::
+                                               BabeStateEventParams
+                                                   & /*event*/) {
+      if (auto self = wself.lock()) {
+        if (!synchronized) {
+          synchronized = true;
+          auto my_view = self->peer_view_->getMyView();
+          if (!my_view) {
+            SL_WARN(
+                self->logger_,
+                "Broadcast my view failed, because my view still not exists.");
+            return;
+          }
+
+          SL_TRACE(self->logger_, "Broadcast my view because synchronized.");
+          self->broadcastView(my_view->get().view);
+        }
+      }
+    });
+
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
@@ -131,7 +170,8 @@ namespace kagome::parachain {
         BOOST_ASSERT(
             self->this_context_->get_executor().running_in_this_thread());
         for (auto const &lost : event.lost) {
-          self->logger_->info("Removed backing task.(relay parent={})", lost);
+          SL_TRACE(
+              self->logger_, "Removed backing task.(relay parent={})", lost);
 
           self->our_current_state_.state_by_relay_parent.erase(lost);
           self->pending_candidates.exclusiveAccess(
@@ -139,26 +179,42 @@ namespace kagome::parachain {
           self->backing_store_->remove(lost);
         }
 
+        if (auto r = self->canProcessParachains(); r.has_error()) {
+          return;
+        }
+
         auto const &relay_parent =
             primitives::calculateBlockHash(event.new_head, *self->hasher_)
                 .value();
         self->createBackingTask(relay_parent);
-        auto msg = std::make_shared<
-            network::WireMessage<network::ValidatorProtocolMessage>>(
-            network::ViewUpdate{.view = event.view});
-
-        self->logger_->info(
-            "Update my view.(new head={}, finalized={}, leaves={})",
-            relay_parent,
-            event.view.finalized_number_,
-            event.view.heads_.size());
-        self->pm_->getStreamEngine()->broadcast(
-            self->router_->getValidationProtocol(), msg);
-        self->pm_->getStreamEngine()->broadcast(
-            self->router_->getCollationProtocol(), msg);
+        SL_TRACE(self->logger_,
+                 "Update my view.(new head={}, finalized={}, leaves={})",
+                 relay_parent,
+                 event.view.finalized_number_,
+                 event.view.heads_.size());
+        self->broadcastView(event.view);
       }
     });
     return true;
+  }
+
+  void ParachainProcessorImpl::broadcastView(network::View const &view) const {
+    auto msg = std::make_shared<
+        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::ViewUpdate{.view = view});
+
+    pm_->getStreamEngine()->broadcast(router_->getValidationProtocol(), msg);
+    pm_->getStreamEngine()->broadcast(router_->getCollationProtocol(), msg);
+  }
+
+  outcome::result<void> ParachainProcessorImpl::canProcessParachains() const {
+    if (!isValidatingNode()) {
+      return Error::NOT_A_VALIDATOR;
+    }
+    if (!babe_status_observer_->get()) {
+      return Error::NOT_SYNCHRONIZED;
+    }
+    return outcome::success();
   }
 
   bool ParachainProcessorImpl::start() {
@@ -1051,10 +1107,17 @@ namespace kagome::parachain {
     handleNotify(peer_id, relay_parent);
   }
 
+  bool ParachainProcessorImpl::isValidatingNode() const {
+    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    return (app_config_.roles().flags.authority == 1);
+  }
+
   outcome::result<void> ParachainProcessorImpl::advCanBeProcessed(
       primitives::BlockHash const &relay_parent,
       libp2p::peer::PeerId const &peer_id) {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    OUTCOME_TRY(canProcessParachains());
+
     auto rps = our_current_state_.state_by_relay_parent.find(relay_parent);
     if (rps == our_current_state_.state_by_relay_parent.end()) {
       return Error::OUT_OF_VIEW;

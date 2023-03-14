@@ -156,6 +156,8 @@ class BabeTest : public testing::Test {
 
     bitfield_store_ = std::make_shared<parachain::BitfieldStoreMock>();
     backing_store_ = std::make_shared<parachain::BackingStoreMock>();
+    babe_status_observable_ =
+        std::make_shared<primitives::events::BabeStateSubscriptionEngine>();
 
     babe_ = std::make_shared<babe::BabeImpl>(app_config_,
                                              app_state_manager_,
@@ -178,7 +180,8 @@ class BabeTest : public testing::Test {
                                              offchain_worker_api_,
                                              core_,
                                              consistency_keeper_,
-                                             trie_storage_);
+                                             trie_storage_,
+                                             babe_status_observable_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -224,6 +227,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<boost::asio::io_context> io_context_;
   std::shared_ptr<parachain::BitfieldStoreMock> bitfield_store_;
   std::shared_ptr<parachain::BackingStoreMock> backing_store_;
+  primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
 
   std::shared_ptr<babe::BabeImpl> babe_;
 
@@ -322,9 +326,9 @@ TEST_F(BabeTest, Success) {
       .WillOnce(
           Return(BlockInfo(created_block_.header.number, created_block_hash_)));
 
-  EXPECT_CALL(*block_tree_, getBlockHeader(BlockId(best_block_hash_)))
+  EXPECT_CALL(*block_tree_, getBlockHeader(best_block_hash_))
       .WillRepeatedly(Return(outcome::success(best_block_header_)));
-  EXPECT_CALL(*block_tree_, getBlockHeader(BlockId(BlockNumber(1))))
+  EXPECT_CALL(*block_tree_, getBlockHeader(created_block_hash_))
       .WillRepeatedly(Return(outcome::success(block_header_)));
 
   EXPECT_CALL(*proposer_, propose(best_leaf, _, _))
@@ -360,7 +364,7 @@ TEST_F(BabeTest, NotAuthority) {
   babe_->runEpoch(epoch_);
 
   EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
-  EXPECT_CALL(*block_tree_, getBlockHeader(BlockId(best_block_hash_)))
+  EXPECT_CALL(*block_tree_, getBlockHeader(best_block_hash_))
       .WillOnce(Return(best_block_header_));
   EXPECT_CALL(*babe_util_, syncEpoch(_));
   EXPECT_CALL(*babe_util_, slotStartTime(_));

@@ -144,38 +144,18 @@ class SynchronizerTest
 
 // Imitates call getBlockHeader based on generated local blockchain
 ACTION_P(blockTree_getBlockHeader, local_blocks) {
-  auto &block_id = arg0;
-
-  auto block_info = visit_in_place(
-      block_id,
-      [&](const BlockNumber &n) -> std::optional<BlockInfo> {
-        std::cout << "GetHeader: #" << n << ", ";
-        if (local_blocks.size() > n) {
-          auto &bi = local_blocks[n];
-          std::cout << "Result: " << bi.hash.data() << std::endl;
-          return bi;
-        }
-        std::cout << "Result: not found" << std::endl;
-        return std::nullopt;
-      },
-      [&](const BlockHash &h) -> std::optional<BlockInfo> {
-        std::cout << "GetHeader: " << h.data() << ", ";
-        for (BlockNumber n = 0; n < local_blocks.size(); ++n) {
-          if (local_blocks[n].hash == h) {
-            auto &bi = local_blocks[n];
-            std::cout << "Result: " << bi.hash.data() << std::endl;
-            return bi;
-          }
-        }
-        std::cout << "Result: not found" << std::endl;
-        return std::nullopt;
-      });
-
-  if (not block_info.has_value()) {
-    return boost::system::error_code{};
+  auto &hash = arg0;
+  std::cout << "GetHeader: " << hash.data() << ", ";
+  for (BlockNumber block_number = 0; block_number < local_blocks.size();
+       ++block_number) {
+    if (local_blocks[block_number].hash == hash) {
+      const auto &block_info = local_blocks[block_number];
+      std::cout << "Result: " << block_info.hash.data() << std::endl;
+      return BlockHeader{.number = block_info.number};
+    }
   }
-
-  return BlockHeader{.number = block_info->number};
+  std::cout << "Result: not found" << std::endl;
+  return boost::system::error_code{};
 }
 
 // Imitates response for block request based on generated local blockchain
@@ -253,7 +233,7 @@ SynchronizerTest::generateChains(BlockNumber finalized,
   std::cout << "Local blocks:  ";
   for (BlockNumber i = 0; i <= local_best; ++i) {
     std::string s = std::to_string(i) + (i <= finalized ? 'F' : 'N')
-                    + (i <= common ? 'C' : 'L');
+                  + (i <= common ? 'C' : 'L');
     std::cout << s << "  ";
 
     BlockHash hash{};
@@ -279,7 +259,7 @@ SynchronizerTest::generateChains(BlockNumber finalized,
   std::cout << "Remote blocks: ";
   for (BlockNumber i = 0; i <= remote_best; ++i) {
     std::string s = std::to_string(i) + (i <= finalized ? 'F' : 'N')
-                    + (i <= common ? 'C' : 'R');
+                  + (i <= common ? 'C' : 'R');
     std::cout << s << "  ";
     BlockHash hash{};
     std::copy_n(s.data(), std::min(s.size(), 32ul), hash.begin());

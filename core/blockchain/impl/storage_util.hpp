@@ -36,34 +36,24 @@
 namespace kagome::blockchain {
 
   /**
-   * Errors that might occur during work with storage
+   * Convert block number into short lookup key (LE representation) for
+   * blocks that are in the canonical chain.
    */
-  enum class KeyValueRepositoryError { INVALID_KEY = 1 };
+  inline common::Buffer blockNumberToKey(primitives::BlockNumber block_number) {
+    BOOST_STATIC_ASSERT(std::is_same_v<decltype(block_number), uint32_t>);
+    common::Buffer res;
+    res.putUint32(block_number);
+    return res;
+  }
 
   /**
-   * Stores the mapping of block number to its full key form - NumHashKey
+   * Returns block hash by number if any
    */
-  outcome::result<void> putNumberToIndexKey(storage::SpacedStorage &storage,
-                                            const primitives::BlockInfo &block);
+  outcome::result<std::optional<primitives::BlockHash>> blockHashByNumber(
+      storage::SpacedStorage &storage, primitives::BlockNumber block_number);
 
   /**
-   * Put an entry to key space \param space and corresponding lookup keys to
-   * kLookupKey space
-   * @param storage to put the entry to
-   * @param space keyspace for the entry value
-   * @param num block number that could be used to retrieve the value
-   * @param block_hash block hash that could be used to retrieve the value
-   * @param value data to be put to the storage
-   * @return storage error if any
-   */
-  outcome::result<void> putToSpace(storage::SpacedStorage &storage,
-                                   storage::Space space,
-                                   primitives::BlockNumber num,
-                                   common::Hash256 block_hash,
-                                   common::BufferOrView &&value);
-
-  /**
-   * Chech if an entry from the database
+   * Check if an entry is contained in the database
    * @param storage - to get the entry from
    * @param space - key space in the storage  to which the entry belongs
    * @param block_id - id of the block to get entry for
@@ -74,41 +64,42 @@ namespace kagome::blockchain {
                                    const primitives::BlockId &block_id);
 
   /**
+   * Put an entry to key space \param space
+   * @param storage to put the entry to
+   * @param space keyspace for the entry value
+   * @param block_hash block hash that could be used to retrieve the value
+   * @param value data to be put to the storage
+   * @return storage error if any
+   */
+  outcome::result<void> putToSpace(storage::SpacedStorage &storage,
+                                   storage::Space space,
+                                   const primitives::BlockHash &block_hash,
+                                   common::BufferOrView &&value);
+
+  /**
    * Get an entry from the database
    * @param storage - to get the entry from
    * @param space - key space in the storage  to which the entry belongs
-   * @param block_id - id of the block to get entry for
+   * @param block_hash - hash of the block to get entry for
    * @return error, or an encoded entry, if any, or std::nullopt, if none
    */
   outcome::result<std::optional<common::BufferOrView>> getFromSpace(
       storage::SpacedStorage &storage,
       storage::Space space,
-      const primitives::BlockId &block_id);
+      const primitives::BlockHash &block_hash);
 
   /**
-   * Convert block number into short lookup key (LE representation) for
-   * blocks that are in the canonical chain.
-   *
-   * In the current database schema, this kind of key is only used for
-   * lookups into an index, NOT for storing header data or others.
+   * Remove an entry from key space \param space and corresponding lookup keys
+   * @param storage to put the entry to
+   * @param space keyspace for the entry value
+   * @param block_hash block hash that could be used to retrieve the value
+   * @return storage error if any
    */
-  common::Buffer numberToIndexKey(primitives::BlockNumber n);
-
-  /**
-   * Convert number and hash into long lookup key for blocks that are
-   * not in the canonical chain.
-   */
-  common::Buffer numberAndHashToLookupKey(primitives::BlockNumber number,
-                                          const common::Hash256 &hash);
-
-  /**
-   * Convert lookup key to a block number
-   */
-  outcome::result<primitives::BlockNumber> lookupKeyToNumber(
-      const common::BufferView &key);
+  outcome::result<void> removeFromSpace(
+      storage::SpacedStorage &storage,
+      storage::Space space,
+      const primitives::BlockHash &block_hash);
 
 }  // namespace kagome::blockchain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, KeyValueRepositoryError);
 
 #endif  // KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
