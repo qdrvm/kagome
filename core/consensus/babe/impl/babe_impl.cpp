@@ -64,7 +64,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<ConsistencyKeeper> consistency_keeper,
-      std::shared_ptr<storage::trie::TrieStorage> trie_storage)
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable)
       : app_config_(app_config),
         app_state_manager_(app_state_manager),
         lottery_{std::move(lottery)},
@@ -92,6 +93,7 @@ namespace kagome::consensus::babe {
         runtime_core_(std::move(core)),
         consistency_keeper_(std::move(consistency_keeper)),
         trie_storage_(std::move(trie_storage)),
+        babe_status_observable_(std::move(babe_status_observable)),
         log_{log::createLogger("Babe", "babe")},
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(app_state_manager_);
@@ -112,6 +114,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(runtime_core_);
     BOOST_ASSERT(consistency_keeper_);
     BOOST_ASSERT(trie_storage_);
+    BOOST_ASSERT(babe_status_observable_);
 
     BOOST_ASSERT(app_state_manager);
 
@@ -634,6 +637,11 @@ namespace kagome::consensus::babe {
       SL_DEBUG(log_, "Babe is synchronized on block {}", best_block_);
 
       runEpoch(current_epoch_);
+      babe_status_observable_->notify(
+          primitives::events::BabeStateEventType::kSynchronized,
+          primitives::events::BabeStateEventParams{
+              .best_block = best_block_,
+          });
     }
   }
 

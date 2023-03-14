@@ -108,7 +108,9 @@ namespace kagome::consensus::babe {
              std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
              std::shared_ptr<runtime::Core> core,
              std::shared_ptr<ConsistencyKeeper> consistency_keeper,
-             std::shared_ptr<storage::trie::TrieStorage> trie_storage);
+             std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+             primitives::events::BabeStateSubscriptionEnginePtr
+                 babe_status_observable);
 
     ~BabeImpl() override = default;
 
@@ -206,6 +208,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<runtime::Core> runtime_core_;
     std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
+    primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
 
     State current_state_{State::WAIT_REMOTE_STATUS};
 
