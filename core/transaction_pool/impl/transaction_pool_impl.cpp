@@ -67,7 +67,7 @@ namespace kagome::transaction_pool {
     OUTCOME_TRY(res, ttq_->validate_transaction(source, extrinsic));
 
     return visit_in_place(
-        res,
+        std::move(res.second),
         [&](const primitives::TransactionValidityError &e) {
           return visit_in_place(
               e,
@@ -77,7 +77,7 @@ namespace kagome::transaction_pool {
                 return validity_error;
               });
         },
-        [&](const primitives::ValidTransaction &v)
+        [&](primitives::ValidTransaction &&v)
             -> outcome::result<primitives::Transaction> {
           common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
           size_t length = extrinsic.data.size();
@@ -86,9 +86,9 @@ namespace kagome::transaction_pool {
                                          length,
                                          hash,
                                          v.priority,
-                                         v.longevity,
-                                         v.requires,
-                                         v.provides,
+                                         res.first.number + v.longevity,
+                                         std::move(v.requires),
+                                         std::move(v.provides),
                                          v.propagate};
         });
   }

@@ -24,7 +24,7 @@ namespace kagome::runtime {
 
     void setBlockTree(std::shared_ptr<blockchain::BlockTree> block_tree);
 
-    outcome::result<primitives::TransactionValidity> validate_transaction(
+    outcome::result<TransactionValidityAt> validate_transaction(
         primitives::TransactionSource source,
         const primitives::Extrinsic &ext) override;
 
