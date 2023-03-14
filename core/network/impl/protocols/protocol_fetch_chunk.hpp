@@ -47,7 +47,7 @@ namespace kagome::network {
                                                    genesis_hash,
                                                    "polkadot"),
                                     log::createLogger(kFetchChunkProtocolName,
-                                                      "fetch_chunk_protocol")},
+                                                      "req_chunk_protocol")},
           pp_{std::move(pp)} {
       BOOST_ASSERT(pp_);
     }

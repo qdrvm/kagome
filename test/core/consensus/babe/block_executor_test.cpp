@@ -8,7 +8,6 @@
 #include <gtest/gtest.h>
 
 #include "blockchain/block_tree_error.hpp"
-#include "blockchain/impl/common.hpp"
 #include "consensus/babe/impl/block_appender_base.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/seal.hpp"
@@ -182,7 +181,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       .header = header,
       .body = kagome::primitives::BlockBody{},
       .justification = justification};
-  EXPECT_CALL(*block_tree_, getBlockBody(BlockId{"some_hash"_hash256}))
+  EXPECT_CALL(*block_tree_, getBlockBody("some_hash"_hash256))
       .WillOnce(
           testing::Return(kagome::blockchain::BlockTreeError::BODY_NOT_FOUND));
   EXPECT_CALL(*hasher_, blake2b_256(_))
@@ -197,7 +196,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
                                  babe_config_->leadership_rate, authorities, 0),
                              testing::Ref(*babe_config_)))
       .WillOnce(testing::Return(outcome::success()));
-  EXPECT_CALL(*block_tree_, getBlockHeader(BlockId{"parent_hash"_hash256}))
+  EXPECT_CALL(*block_tree_, getBlockHeader("parent_hash"_hash256))
       .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
           .parent_hash = "grandparent_hash"_hash256, .number = 40}));
   EXPECT_CALL(*block_tree_, getLastFinalized())

@@ -35,44 +35,52 @@ namespace kagome::blockchain {
     virtual outcome::result<void> setBlockTreeLeaves(
         std::vector<primitives::BlockHash> leaves) = 0;
 
-    /// Check if header existing by provided block {@param id}
+    /**
+     * Get the last finalized block
+     * @return BlockInfo of the block
+     */
+    virtual outcome::result<primitives::BlockInfo> getLastFinalized() const = 0;
+
+    // -- hash --
+
+    /**
+     * Saves number-to-hash record for provided {@param block_info} to block
+     * storage
+     * @returns success or failure
+     */
+    virtual outcome::result<void> assignNumberToHash(
+        const primitives::BlockInfo &block_info) = 0;
+
+    /**
+     * Removes number-to-hash record for provided {@param block_number} from
+     * block storage
+     * @returns success or failure
+     */
+    virtual outcome::result<void> deassignNumberToHash(
+        primitives::BlockNumber block_number) = 0;
+
+    /**
+     * Tries to get block hash by number {@param block_number}
+     * @returns hash or error
+     */
+    virtual outcome::result<std::optional<primitives::BlockHash>> getBlockHash(
+        primitives::BlockNumber block_number) const = 0;
+
+    /**
+     * Tries to get block hash by id {@param block_id}
+     * @returns hash or error
+     */
+    virtual outcome::result<std::optional<primitives::BlockHash>> getBlockHash(
+        const primitives::BlockId &block_id) const = 0;
+
+    // -- headers --
+
+    /**
+     * Check if header existing by provided block {@param block_hash}
+     * @returns result or error
+     */
     virtual outcome::result<bool> hasBlockHeader(
-        const primitives::BlockId &id) const = 0;
-
-    /**
-     * Tries to get block header by {@param id}
-     * @returns block header or error
-     */
-    virtual outcome::result<std::optional<primitives::BlockHeader>>
-    getBlockHeader(const primitives::BlockId &id) const = 0;
-
-    /**
-     * Tries to get block body by {@param id}
-     * @returns block body or error
-     */
-    virtual outcome::result<std::optional<primitives::BlockBody>> getBlockBody(
-        const primitives::BlockId &id) const = 0;
-
-    /**
-     * Tries to get block data by {@param id}
-     * @returns block data or error
-     */
-    virtual outcome::result<std::optional<primitives::BlockData>> getBlockData(
-        const primitives::BlockId &id) const = 0;
-
-    /**
-     * Tries to get justification of block finality by {@param id}
-     * @returns justification or error
-     */
-    virtual outcome::result<std::optional<primitives::Justification>>
-    getJustification(const primitives::BlockId &block) const = 0;
-
-    /**
-     * Saves number-to-block_lookup_key for {@param block} to block storage
-     * @returns hash of saved header or error
-     */
-    virtual outcome::result<void> putNumberToIndexKey(
-        const primitives::BlockInfo &block) = 0;
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * Saves block header {@param header} to block storage
@@ -82,58 +90,86 @@ namespace kagome::blockchain {
         const primitives::BlockHeader &header) = 0;
 
     /**
-     * Saves {@param data} of block with {@param number} to block storage
-     * @returns result of saving
+     * Tries to get block header by {@param block_hash}
+     * @returns block header or error
      */
-    virtual outcome::result<void> putBlockData(
-        primitives::BlockNumber, const primitives::BlockData &block_data) = 0;
+    virtual outcome::result<std::optional<primitives::BlockHeader>>
+    getBlockHeader(const primitives::BlockHash &block_hash) const = 0;
+
+    // -- body --
 
     /**
-     * Removes data parts from storage
-     * @arg remove_flags - parts to remove
-     * @arg number - block number
-     * @returns result of removal
+     * Saves provided body {@param block_body} of block {@param block_hash} to
+     * block storage
+     * @returns result of saving
      */
-    virtual outcome::result<void> removeBlockData(
-        primitives::BlockNumber block_number,
-        const primitives::BlockDataFlags &remove_flags) = 0;
+    virtual outcome::result<void> putBlockBody(
+        const primitives::BlockHash &block_hash,
+        const primitives::BlockBody &block_body) = 0;
+
     /**
-     * Saves {@param block} to block storage
+     * Tries to get block body by {@param block_hash}
+     * @returns block body or error
+     */
+    virtual outcome::result<std::optional<primitives::BlockBody>> getBlockBody(
+        const primitives::BlockHash &block_hash) const = 0;
+
+    /**
+     * Removes body of block with hash {@param block_hash} from block storage
+     * @returns result of saving
+     */
+    virtual outcome::result<void> removeBlockBody(
+        const primitives::BlockHash &block_hash) = 0;
+
+    // -- justification --
+
+    /**
+     * Saves {@param justification} of block with hash {@param block_hash} to
+     * block storage
+     * @returns result of saving
+     */
+    virtual outcome::result<void> putJustification(
+        const primitives::Justification &justification,
+        const primitives::BlockHash &block_hash) = 0;
+
+    /**
+     * Tries to get justification of block finality by {@param block_hash}
+     * @returns justification or error
+     */
+    virtual outcome::result<std::optional<primitives::Justification>>
+    getJustification(const primitives::BlockHash &block_hash) const = 0;
+
+    /**
+     * Removes justification of block with hash {@param block_hash} from block
+     * storage
+     * @returns result of saving
+     */
+    virtual outcome::result<void> removeJustification(
+        const primitives::BlockHash &block_hash) = 0;
+
+    // -- combined
+
+    /**
+     * Saves block {@param block} to block storage
      * @returns hash of saved header or error
      */
     virtual outcome::result<primitives::BlockHash> putBlock(
         const primitives::Block &block) = 0;
 
     /**
-     * Saves {@param justification} of block with {@param number} and {@param
-     * hash} to block storage
-     * @returns result of saving
+     * Tries to get block data by {@param block_hash}
+     * @returns block data or error
      */
-    virtual outcome::result<void> putJustification(
-        const primitives::Justification &justification,
-        const primitives::BlockHash &hash,
-        primitives::BlockNumber number) = 0;
+    virtual outcome::result<std::optional<primitives::BlockData>> getBlockData(
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
-     * Removes {@param justification} of block with {@param number} and {@param
-     * hash} from block storage
-     * @returns result of saving
-     */
-    virtual outcome::result<void> removeJustification(
-        const primitives::BlockHash &hash, primitives::BlockNumber number) = 0;
-
-    /**
-     * Get the last finalized block
-     * @return BlockInfo of the block
-     */
-    virtual outcome::result<primitives::BlockInfo> getLastFinalized() const = 0;
-
-    /**
-     * Removes all data of block {@param block} from block storage
+     * Removes all data of block with hash {@param block_hash} from block
+     * storage
      * @returns result of removing
      */
     virtual outcome::result<void> removeBlock(
-        const primitives::BlockInfo &block) = 0;
+        const primitives::BlockHash &block_hash) = 0;
   };
 
 }  // namespace kagome::blockchain

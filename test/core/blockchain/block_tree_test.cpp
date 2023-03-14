@@ -75,24 +75,27 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, setBlockTreeLeaves(_))
         .WillRepeatedly(Return(outcome::success()));
 
-    EXPECT_CALL(*storage_, hasBlockHeader(BlockId(1)))
+    EXPECT_CALL(*storage_, getBlockHash(kFirstBlockInfo.number))
+        .WillRepeatedly(Return(kFirstBlockInfo.hash));
+
+    EXPECT_CALL(*storage_, hasBlockHeader(kFirstBlockInfo.hash))
         .WillRepeatedly(Return(true));
 
-    EXPECT_CALL(*storage_, getBlockHeader(BlockId(1)))
+    EXPECT_CALL(*storage_, getBlockHeader(kFirstBlockInfo.hash))
         .WillRepeatedly(Return(first_block_header_));
 
-    EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
+    EXPECT_CALL(*storage_, getBlockHeader(kFinalizedBlockInfo.hash))
         .WillRepeatedly(Return(finalized_block_header_));
 
-    EXPECT_CALL(*storage_, getJustification(kLastFinalizedBlockId))
+    EXPECT_CALL(*storage_, getJustification(kFinalizedBlockInfo.hash))
         .WillRepeatedly(Return(outcome::success(primitives::Justification{})));
 
     EXPECT_CALL(*storage_, getLastFinalized())
         .WillOnce(Return(outcome::success(kFinalizedBlockInfo)));
 
     EXPECT_CALL(*storage_, removeBlock(_))
-        .WillRepeatedly(Invoke([&](const auto &b) {
-          delNumToHash(b.number, b.hash);
+        .WillRepeatedly(Invoke([&](const auto &hash) {
+          delNumToHash(hash);
           return outcome::success();
         }));
 
@@ -113,17 +116,23 @@ struct BlockTreeTest : public testing::Test {
                 getBlockHeader({finalized_block_header_.parent_hash}))
         .WillRepeatedly(Return(BlockTreeError::HEADER_NOT_FOUND));
 
-    EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
+    EXPECT_CALL(*header_repo_, getBlockHeader(kFinalizedBlockInfo.hash))
         .WillRepeatedly(Return(finalized_block_header_));
-    EXPECT_CALL(*storage_, getBlockHeader(BlockId{kFinalizedBlockInfo.number}))
+    EXPECT_CALL(*storage_, getBlockHeader(kFinalizedBlockInfo.hash))
         .WillRepeatedly(Return(finalized_block_header_));
 
-    EXPECT_CALL(*storage_, putNumberToIndexKey(_))
+    EXPECT_CALL(*storage_, assignNumberToHash(_))
         .WillRepeatedly(
             Invoke([&](const BlockInfo &b) -> outcome::result<void> {
               putNumToHash(b);
               return outcome::success();
             }));
+
+    EXPECT_CALL(*storage_, deassignNumberToHash(_))
+        .WillRepeatedly(Invoke([&](const auto &number) {
+          delNumToHash(number);
+          return outcome::success();
+        }));
 
     putNumToHash(kGenesisBlockInfo);
     putNumToHash(kFinalizedBlockInfo);
@@ -159,9 +168,6 @@ struct BlockTreeTest : public testing::Test {
     auto hash = hasher_->blake2b_256(encoded_block);
     primitives::BlockInfo block_info(block.header.number, hash);
 
-    EXPECT_CALL(*header_repo_, getNumberByHash(hash))
-        .WillRepeatedly(Return(block.header.number));
-
     EXPECT_CALL(*storage_, putBlock(block))
         .WillRepeatedly(Invoke([&](const auto &block) {
           putNumToHash(block_info);
@@ -169,7 +175,7 @@ struct BlockTreeTest : public testing::Test {
         }));
 
     // for reorganizing
-    EXPECT_CALL(*storage_, getBlockHeader(BlockId(hash)))
+    EXPECT_CALL(*storage_, getBlockHeader(hash))
         .WillRepeatedly(Return(block.header));
 
     EXPECT_TRUE(block_tree_->addBlock(block));
@@ -199,10 +205,9 @@ struct BlockTreeTest : public testing::Test {
 
     // hash for header repo and number for block storage just because tests
     // currently require so
-    EXPECT_CALL(*header_repo_, getBlockHeader({hash}))
+    EXPECT_CALL(*header_repo_, getBlockHeader(hash))
         .WillRepeatedly(Return(header));
-    EXPECT_CALL(*storage_, getBlockHeader(BlockId{number}))
-        .WillRepeatedly(Return(header));
+    EXPECT_CALL(*storage_, getBlockHeader(hash)).WillRepeatedly(Return(header));
 
     return {hash, header};
   }
@@ -215,6 +220,9 @@ struct BlockTreeTest : public testing::Test {
 
   const BlockInfo kGenesisBlockInfo{
       0ul, BlockHash::fromString("66dj4kdn4odnfkslfn3k4jdnbmeod555").value()};
+
+  const BlockInfo kFirstBlockInfo{
+      1ul, BlockHash::fromString("first_block_____________________").value()};
 
   const BlockInfo kFinalizedBlockInfo{
       42ul, BlockHash::fromString("andj4kdn4odnfkslfn3k4jdnbmeodkv4").value()};
@@ -280,11 +288,14 @@ struct BlockTreeTest : public testing::Test {
   void putNumToHash(const BlockInfo &b) {
     num_to_hash_.emplace(b.number, b.hash);
   }
-  void delNumToHash(BlockNumber n, BlockHash h) {
-    if (auto it = num_to_hash_.find(n);
-        it != num_to_hash_.end() && it->second == h) {
-      num_to_hash_.erase(it);
-    }
+  void delNumToHash(BlockHash hash) {
+    auto it = std::find_if(num_to_hash_.begin(),
+                           num_to_hash_.end(),
+                           [&](const auto &it) { return it.second == hash; });
+    num_to_hash_.erase(it);
+  }
+  void delNumToHash(BlockNumber number) {
+    num_to_hash_.erase(number);
   }
 };
 
@@ -296,11 +307,12 @@ struct BlockTreeTest : public testing::Test {
 TEST_F(BlockTreeTest, GetBody) {
   // GIVEN
   // WHEN
-  EXPECT_CALL(*storage_, getBlockBody(kLastFinalizedBlockId))
+  EXPECT_CALL(*storage_, getBlockBody(kFinalizedBlockInfo.hash))
       .WillOnce(Return(finalized_block_body_));
 
   // THEN
-  ASSERT_OUTCOME_SUCCESS(body, block_tree_->getBlockBody(kLastFinalizedBlockId))
+  ASSERT_OUTCOME_SUCCESS(body,
+                         block_tree_->getBlockBody(kFinalizedBlockInfo.hash))
   ASSERT_EQ(body, finalized_block_body_);
 }
 
@@ -376,24 +388,19 @@ TEST_F(BlockTreeTest, Finalize) {
   Block new_block{header, body};
   auto hash = addBlock(new_block);
 
-  primitives::BlockId bid = hash;
-
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
-  EXPECT_CALL(*storage_,
-              getJustification(primitives::BlockId(kFinalizedBlockInfo.hash)))
+  EXPECT_CALL(*storage_, getJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success(justification)));
-  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(hash)))
+  EXPECT_CALL(*storage_, getJustification(hash))
       .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
-  EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
+  EXPECT_CALL(*storage_, putJustification(justification, hash))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(
-      *storage_,
-      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, getBlockHeader(bid))
+  EXPECT_CALL(*storage_, getBlockHeader(hash))
       .WillRepeatedly(Return(outcome::success(header)));
-  EXPECT_CALL(*storage_, getBlockBody(bid))
+  EXPECT_CALL(*storage_, getBlockBody(hash))
       .WillRepeatedly(Return(outcome::success(body)));
   EXPECT_CALL(*justification_storage_policy_,
               shouldStoreFor(finalized_block_header_))
@@ -446,23 +453,20 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
 
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
-  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(B1_hash)))
+  EXPECT_CALL(*storage_, getJustification(B1_hash))
       .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
-  EXPECT_CALL(*storage_,
-              putJustification(justification, B1_hash, B1_header.number))
+  EXPECT_CALL(*storage_, putJustification(justification, B1_hash))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, getBlockHeader(primitives::BlockId{B1_hash}))
+  EXPECT_CALL(*storage_, getBlockHeader(B1_hash))
       .WillRepeatedly(Return(outcome::success(B1_header)));
-  EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B1_hash}))
+  EXPECT_CALL(*storage_, getBlockBody(B1_hash))
       .WillRepeatedly(Return(outcome::success(B1_body)));
-  EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
+  EXPECT_CALL(*storage_, getBlockBody(B_hash))
       .WillRepeatedly(Return(outcome::success(B1_body)));
   EXPECT_CALL(*pool_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
-  EXPECT_CALL(
-      *storage_,
-      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*justification_storage_policy_,
               shouldStoreFor(finalized_block_header_))
@@ -517,23 +521,20 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
 
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
-  EXPECT_CALL(*storage_,
-              putJustification(justification, B_hash, B_header.number))
+  EXPECT_CALL(*storage_, putJustification(justification, B_hash))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage_, getBlockHeader(primitives::BlockId{B_hash}))
+  EXPECT_CALL(*storage_, getBlockHeader(B_hash))
       .WillRepeatedly(Return(outcome::success(B_header)));
-  EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B_hash}))
+  EXPECT_CALL(*storage_, getBlockBody(B_hash))
       .WillRepeatedly(Return(outcome::success(B_body)));
-  EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{B1_hash}))
+  EXPECT_CALL(*storage_, getBlockBody(B1_hash))
       .WillRepeatedly(Return(outcome::success(B1_body)));
-  EXPECT_CALL(*storage_, getBlockBody(primitives::BlockId{C1_hash}))
+  EXPECT_CALL(*storage_, getBlockBody(C1_hash))
       .WillRepeatedly(Return(outcome::success(C1_body)));
   EXPECT_CALL(*pool_, submitExtrinsic(_, _))
       .WillRepeatedly(
           Return(outcome::success(hasher_->blake2b_256(Buffer{0xaa, 0xbb}))));
-  EXPECT_CALL(
-      *storage_,
-      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*justification_storage_policy_,
               shouldStoreFor(finalized_block_header_))
@@ -735,7 +736,7 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
   BlockHash target_hash({1, 1, 1});
   BlockHeader target_header;
   target_header.number = 1337;
-  EXPECT_CALL(*header_repo_, getBlockHeader(primitives::BlockId(target_hash)))
+  EXPECT_CALL(*header_repo_, getBlockHeader(target_hash))
       .WillRepeatedly(Return(target_header));
   EXPECT_CALL(*header_repo_, getHashByNumber(target_header.number))
       .WillRepeatedly(Return(target_hash));
@@ -828,15 +829,13 @@ TEST_F(BlockTreeTest, Reorganize) {
   ASSERT_TRUE(block_tree_->bestLeaf() == BlockInfo(47, E1_hash));
 
   // WHEN.3
-  EXPECT_CALL(*storage_, putJustification(_, _, _))
+  EXPECT_CALL(*storage_, putJustification(_, _))
       .WillOnce(Return(outcome::success()));
 
   EXPECT_CALL(*storage_, getBlockBody(_))
       .WillRepeatedly(Return(outcome::success(BlockBody{})));
 
-  EXPECT_CALL(
-      *storage_,
-      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*justification_storage_policy_,
               shouldStoreFor(finalized_block_header_))
@@ -870,7 +869,7 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   auto [b43, h43] = addHeaderToRepositoryAndGet(kFinalizedBlockInfo.hash, 43);
   auto [b55, h55] = addHeaderToRepositoryAndGet(b43, 55);
   auto [b56, h56] = addHeaderToRepositoryAndGet(b55, 56);
-  EXPECT_CALL(*storage_, getBlockBody(BlockId{b56}))
+  EXPECT_CALL(*storage_, getBlockBody(b56))
       .WillOnce(Return(primitives::BlockBody{}));
 
   Justification new_justification{"justification_56"_buf};
@@ -880,12 +879,10 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
               shouldStoreFor(finalized_block_header_))
       .WillOnce(Return(false));
   // store new justification
-  EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
+  EXPECT_CALL(*storage_, putJustification(new_justification, b56))
       .WillOnce(Return(outcome::success()));
   // remove old justification
-  EXPECT_CALL(
-      *storage_,
-      removeJustification(kFinalizedBlockInfo.hash, kFinalizedBlockInfo.number))
+  EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
 }
@@ -894,7 +891,7 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
   auto [b43, h43] = addHeaderToRepositoryAndGet(kFinalizedBlockInfo.hash, 43);
   auto [b55, h55] = addHeaderToRepositoryAndGet(b43, 55);
   auto [b56, h56] = addHeaderToRepositoryAndGet(b55, 56);
-  EXPECT_CALL(*storage_, getBlockBody(BlockId{b56}))
+  EXPECT_CALL(*storage_, getBlockBody(b56))
       .WillOnce(Return(primitives::BlockBody{}));
 
   Justification new_justification{"justification_56"_buf};
@@ -904,7 +901,7 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
               shouldStoreFor(finalized_block_header_))
       .WillOnce(Return(true));
   // store new justification
-  EXPECT_CALL(*storage_, putJustification(new_justification, b56, 56))
+  EXPECT_CALL(*storage_, putJustification(new_justification, b56))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
 }

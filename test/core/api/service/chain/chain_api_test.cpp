@@ -138,7 +138,7 @@ TEST_F(ChainApiTest, GetBlockHashArray) {
  * @then the correct header will return
  */
 TEST_F(ChainApiTest, GetHeader) {
-  BlockId a = hash1;
+  BlockHash a = hash1;
   EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(*data.header));
 
   EXPECT_OUTCOME_TRUE(r, api->getHeader(std::string("0x") + hash1.toHex()));
@@ -151,7 +151,7 @@ TEST_F(ChainApiTest, GetHeader) {
  * @then last block header will be returned
  */
 TEST_F(ChainApiTest, GetHeaderLats) {
-  BlockId a = hash1;
+  BlockHash a = hash1;
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(Return(BlockInfo(42, hash1)));
 
@@ -167,7 +167,7 @@ TEST_F(ChainApiTest, GetHeaderLats) {
  * @then the correct block data will return
  */
 TEST_F(ChainApiTest, GetBlock) {
-  BlockId a = hash1;
+  BlockHash a = hash1;
   EXPECT_CALL(*block_storage, getBlockData(a)).WillOnce(Return(data));
 
   EXPECT_OUTCOME_TRUE(r, api->getBlock(std::string("0x") + hash1.toHex()));
@@ -180,7 +180,7 @@ TEST_F(ChainApiTest, GetBlock) {
  * @then last block data will be returned
  */
 TEST_F(ChainApiTest, GetLastBlock) {
-  BlockId a = hash1;
+  BlockHash a = hash1;
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(Return(BlockInfo(42, hash1)));
 
