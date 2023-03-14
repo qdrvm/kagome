@@ -55,7 +55,7 @@ namespace kagome::network {
             storage::kWarpSyncCacheBlocksPrefix,
             db->getSpace(storage::Space::kDefault),
         },
-        log_{log::createLogger("WarpSyncCache")} {
+        log_{log::createLogger("WarpSyncCache", "warp_sync_protocol")} {
     app_state_manager.atLaunch([=]() mutable {
       auto r = start(std::move(chain_sub_engine));
       if (not r) {

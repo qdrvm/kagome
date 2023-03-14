@@ -91,6 +91,7 @@ groups:
                   - name: propagate_transactions_protocol
                   - name: sync_protocol
                   - name: state_protocol
+                  - name: warp_sync_protocol
                   - name: parachain_protocols
                     children:
                       - name: collation_protocol
