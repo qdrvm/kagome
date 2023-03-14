@@ -67,6 +67,12 @@ namespace kagome::api {
                  std::optional<primitives::BlockHash> at),
                 (const, override));
 
+    MOCK_METHOD(outcome::result<ReadProof>,
+                getReadProof,
+                (gsl::span<const common::Buffer> keys,
+                 std::optional<primitives::BlockHash> at),
+                (const, override));
+
     MOCK_METHOD(outcome::result<uint32_t>,
                 subscribeStorage,
                 (std::vector<common::Buffer> const &keys),

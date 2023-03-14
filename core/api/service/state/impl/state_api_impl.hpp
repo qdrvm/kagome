@@ -68,6 +68,10 @@ namespace kagome::api {
         gsl::span<const common::Buffer> keys,
         std::optional<primitives::BlockHash> at) const override;
 
+    outcome::result<ReadProof> getReadProof(
+        gsl::span<const common::Buffer> keys,
+        std::optional<primitives::BlockHash> at) const override;
+
     outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) override;
 
