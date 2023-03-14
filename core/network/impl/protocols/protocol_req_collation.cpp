@@ -28,7 +28,7 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kReqCollationProtocol,
                                                    genesis_hash,
-                                                   chain_spec),
+                                                   "polkadot"),
                                     log::createLogger(
                                         kReqCollationProtocolName,
                                         "req_collation_protocol")},

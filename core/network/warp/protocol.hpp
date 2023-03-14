@@ -25,7 +25,7 @@ namespace kagome::network {
         : RequestResponseProtocolType{
             kName,
             host,
-            make_protocols(kWarpProtocol, chain_spec, genesis),
+            make_protocols(kWarpProtocol, genesis, chain_spec),
             log::createLogger(kName, "warp_sync_protocol"),
         },
         cache_{std::move(cache)} {}
