@@ -17,24 +17,29 @@ namespace kagome::blockchain {
                 (),
                 (const, override));
 
+    MOCK_METHOD(outcome::result<primitives::BlockHash>,
+                getBlockHash,
+                (primitives::BlockNumber),
+                (const, override));
+
     MOCK_METHOD(outcome::result<bool>,
                 hasBlockHeader,
-                (const primitives::BlockId &),
+                (const primitives::BlockHash &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<primitives::BlockBody>,
                 getBlockBody,
-                (const primitives::BlockId &),
+                (const primitives::BlockHash &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<primitives::BlockHeader>,
                 getBlockHeader,
-                (const primitives::BlockId &),
+                (const primitives::BlockHash &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<primitives::Justification>,
                 getBlockJustification,
-                (const primitives::BlockId &),
+                (const primitives::BlockHash &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>,
@@ -44,9 +49,7 @@ namespace kagome::blockchain {
 
     MOCK_METHOD(outcome::result<void>,
                 addBlockBody,
-                (primitives::BlockNumber block_number,
-                 const primitives::BlockHash &block_hash,
-                 const primitives::BlockBody &block_body),
+                (const primitives::BlockHash &, const primitives::BlockBody &),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,

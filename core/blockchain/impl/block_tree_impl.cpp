@@ -70,13 +70,15 @@ namespace kagome::blockchain {
         for (;;) {
           number = lower + (upper - lower) / 2 + 1;
 
-          auto res = storage->hasBlockHeader(number);
-          if (res.has_failure()) {
-            SL_CRITICAL(log, "Search best block has failed: {}", res.error());
+          auto hash_opt_res = storage->getBlockHash(number);
+          if (hash_opt_res.has_failure()) {
+            SL_CRITICAL(
+                log, "Search best block has failed: {}", hash_opt_res.error());
             return BlockTreeError::HEADER_NOT_FOUND;
           }
+          const auto &hash_opt = hash_opt_res.value();
 
-          if (res.value()) {
+          if (hash_opt.has_value()) {
             SL_TRACE(log, "bisect {} -> found", number);
             lower = number;
           } else {
@@ -233,7 +235,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<void> BlockTreeImpl::recover(
-      primitives::BlockId target_block,
+      primitives::BlockId target_block_id,
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
@@ -249,8 +251,21 @@ namespace kagome::blockchain {
     BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
                      "Must be known or calculated at least one leaf");
 
+    auto target_block_hash_opt_res = storage->getBlockHash(target_block_id);
+    if (target_block_hash_opt_res.has_failure()) {
+      SL_CRITICAL(log,
+                  "Can't get header of target block: {}",
+                  target_block_hash_opt_res.error());
+      return BlockTreeError::HEADER_NOT_FOUND;
+    } else if (not target_block_hash_opt_res.value().has_value()) {
+      SL_CRITICAL(log, "Can't get header of target block: header not found");
+      return BlockTreeError::HEADER_NOT_FOUND;
+    }
+    const auto &target_block_hash = target_block_hash_opt_res.value().value();
+
     // Check if target block exists
-    auto target_block_header_opt_res = storage->getBlockHeader(target_block);
+    auto target_block_header_opt_res =
+        storage->getBlockHeader(target_block_hash);
     if (target_block_header_opt_res.has_error()) {
       SL_CRITICAL(log,
                   "Can't get header of target block: {}",
@@ -497,14 +512,17 @@ namespace kagome::blockchain {
 
     } else {
       // ... or repair tree by parent of root
-      auto _header = header_repo_->getBlockHeader(node->depth - 1);
-      BOOST_ASSERT_MSG(_header.has_value(),
+      OUTCOME_TRY(hash_opt, storage_->getBlockHash(node->depth - 1));
+      BOOST_ASSERT_MSG(hash_opt.has_value(),
                        "Non genesis block must have parent");
-      auto &header = _header.value();
-      primitives::BlockInfo block{
-          node->depth - 1,
-          hasher_->blake2b_256(scale::encode(header).value()),
-      };
+
+      primitives::BlockInfo block{node->depth - 1, hash_opt.value()};
+
+      OUTCOME_TRY(header_opt, storage_->getBlockHeader(block.hash));
+      BOOST_ASSERT_MSG(header_opt.has_value(),
+                       "Non genesis block must have parent");
+
+      auto &header = header_opt.value();
       auto tree = std::make_shared<TreeNode>(
           block.hash, block.number, nullptr, true, isPrimary(header));
       auto meta = std::make_shared<TreeMeta>(tree, std::nullopt);
@@ -512,7 +530,7 @@ namespace kagome::blockchain {
     }
 
     // Remove from storage
-    OUTCOME_TRY(storage_->removeBlock({node->block_hash}));
+    OUTCOME_TRY(storage_->removeBlock(node->block_hash));
 
     OUTCOME_TRY(
         storage_->setBlockTreeLeaves({tree_->getMetadata().leaves.begin(),
@@ -641,11 +659,9 @@ namespace kagome::blockchain {
   }
 
   outcome::result<void> BlockTreeImpl::addBlockBody(
-      primitives::BlockNumber block_number,
       const primitives::BlockHash &block_hash,
       const primitives::BlockBody &body) {
-    primitives::BlockData block_data{.hash = block_hash, .body = body};
-    return storage_->putBlockData(block_data);
+    return storage_->putBlockBody(block_hash, body);
   }
 
   outcome::result<void> BlockTreeImpl::finalize(
@@ -731,7 +747,7 @@ namespace kagome::blockchain {
       // last finalized (if it doesn't meet other justification storage rules,
       // e.g. its number a multiple of 512)
       OUTCOME_TRY(last_finalized_header_opt,
-                  storage_->getBlockHeader(last_finalized_block_info.number));
+                  storage_->getBlockHeader(last_finalized_block_info.hash));
       // SAFETY: header for the last finalized block must be present
       auto &last_finalized_header = last_finalized_header_opt.value();
       OUTCOME_TRY(
@@ -755,14 +771,23 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<primitives::BlockHash> BlockTreeImpl::getBlockHash(
+      primitives::BlockNumber block_number) const {
+    OUTCOME_TRY(hash_opt, storage_->getBlockHash(block_number));
+    if (hash_opt.has_value()) {
+      return hash_opt.value();
+    }
+    return BlockTreeError::HEADER_NOT_FOUND;
+  }
+
   outcome::result<bool> BlockTreeImpl::hasBlockHeader(
-      const primitives::BlockId &block) const {
-    return storage_->hasBlockHeader(block);
+      const primitives::BlockHash &block_hash) const {
+    return storage_->hasBlockHeader(block_hash);
   }
 
   outcome::result<primitives::BlockHeader> BlockTreeImpl::getBlockHeader(
-      const primitives::BlockId &block) const {
-    OUTCOME_TRY(header, storage_->getBlockHeader(block));
+      const primitives::BlockHash &block_hash) const {
+    OUTCOME_TRY(header, storage_->getBlockHeader(block_hash));
     if (header.has_value()) {
       return header.value();
     }
@@ -770,8 +795,8 @@ namespace kagome::blockchain {
   }
 
   outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(
-      const primitives::BlockId &block) const {
-    OUTCOME_TRY(body, storage_->getBlockBody(block));
+      const primitives::BlockHash &block_hash) const {
+    OUTCOME_TRY(body, storage_->getBlockBody(block_hash));
     if (body.has_value()) {
       return body.value();
     }
@@ -779,8 +804,9 @@ namespace kagome::blockchain {
   }
 
   outcome::result<primitives::Justification>
-  BlockTreeImpl::getBlockJustification(const primitives::BlockId &block) const {
-    OUTCOME_TRY(justification, storage_->getJustification(block));
+  BlockTreeImpl::getBlockJustification(
+      const primitives::BlockHash &block_hash) const {
+    OUTCOME_TRY(justification, storage_->getJustification(block_hash));
     if (justification.has_value()) {
       return justification.value();
     }
@@ -1014,11 +1040,9 @@ namespace kagome::blockchain {
     // provided, we continue to search from all leaves below.
     if (canon_hash == target_hash) {
       if (max_number.has_value()) {
-        auto header = header_repo_->getBlockHeader(max_number.value());
-        if (header) {
-          OUTCOME_TRY(hash,
-                      header_repo_->getHashByNumber(header.value().number));
-          return primitives::BlockInfo{header.value().number, hash};
+        OUTCOME_TRY(hash_opt, storage_->getBlockHash(max_number.value()));
+        if (hash_opt.has_value()) {
+          return primitives::BlockInfo{max_number.value(), hash_opt.value()};
         }
       }
     } else {

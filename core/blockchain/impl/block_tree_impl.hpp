@@ -60,7 +60,7 @@ namespace kagome::blockchain {
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
-        primitives::BlockId target_block,
+        primitives::BlockId target_block_id,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
@@ -70,17 +70,20 @@ namespace kagome::blockchain {
 
     const primitives::BlockHash &getGenesisBlockHash() const override;
 
+    outcome::result<primitives::BlockHash> getBlockHash(
+        primitives::BlockNumber block_number) const override;
+
     outcome::result<bool> hasBlockHeader(
-        const primitives::BlockId &block) const override;
+        const primitives::BlockHash &block_hash) const override;
 
     outcome::result<primitives::BlockHeader> getBlockHeader(
-        const primitives::BlockId &block) const override;
+        const primitives::BlockHash &block_hash) const override;
 
     outcome::result<primitives::BlockBody> getBlockBody(
-        const primitives::BlockId &block) const override;
+        const primitives::BlockHash &block_hash) const override;
 
     outcome::result<primitives::Justification> getBlockJustification(
-        const primitives::BlockId &block) const override;
+        const primitives::BlockHash &block_hash) const override;
 
     outcome::result<void> addBlockHeader(
         const primitives::BlockHeader &header) override;
@@ -98,7 +101,6 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash) override;
 
     outcome::result<void> addBlockBody(
-        primitives::BlockNumber block_number,
         const primitives::BlockHash &block_hash,
         const primitives::BlockBody &body) override;
 

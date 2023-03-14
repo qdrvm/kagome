@@ -58,8 +58,7 @@ class ChainTest : public testing::Test {
       BlockHeader hh;
       hh.number = number;
       hh.parent_hash = parent;
-      EXPECT_CALL(*header_repo,
-                  getBlockHeader(kagome::primitives::BlockId(hash)))
+      EXPECT_CALL(*header_repo, getBlockHeader(hash))
           .WillRepeatedly(Return(hh));
     };
 

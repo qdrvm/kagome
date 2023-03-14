@@ -10,6 +10,7 @@
 #include "blockchain/block_storage.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
+#include "blockchain/impl/storage_util.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "injector/application_injector.hpp"
@@ -187,30 +188,39 @@ class InspectBlockCommand : public Command {
     if (!opt_id) {
       throwError("Failed to parse block id '{}'", args[1]);
     }
-    if (auto res = block_storage->getBlockHeader(opt_id.value()); res) {
-      if (!res.value().has_value()) {
-        throwError("Block header not found for '{}'", args[1]);
-      }
-      std::cout << "#: " << res.value()->number << "\n";
-      std::cout << "Parent hash: " << res.value()->parent_hash.toHex() << "\n";
-      std::cout << "State root: " << res.value()->state_root.toHex() << "\n";
-      std::cout << "Extrinsics root: " << res.value()->extrinsics_root.toHex()
-                << "\n";
-
-      if (auto body_res = block_storage->getBlockBody(opt_id.value());
-          body_res) {
-        if (!body_res.value().has_value()) {
-          throwError("Block body not found for '{}'", args[1]);
-        }
-        std::cout << "# of extrinsics: " << body_res.value()->size() << "\n";
-
-      } else {
-        throwError("Internal error: {}}", body_res.error());
-      }
-
-    } else {
-      throwError("Internal error: {}}", res.error());
+    auto hash_opt_res = block_storage->getBlockHash(opt_id.value());
+    if (hash_opt_res.has_error()) {
+      throwError("Internal error: {}}", hash_opt_res.error());
     }
+    if (hash_opt_res.value().has_value()) {
+      throwError("Block header not found for '{}'", args[1]);
+    }
+    const auto &hash = hash_opt_res.value().value();
+
+    auto header_opt_res = block_storage->getBlockHeader(hash);
+    if (header_opt_res.has_error()) {
+      throwError("Internal error: {}}", header_opt_res.error());
+    }
+    if (header_opt_res.value().has_value()) {
+      throwError("Block header not found for '{}'", args[1]);
+    }
+    const auto &header = header_opt_res.value().value();
+
+    std::cout << "#: " << header.number << "\n";
+    std::cout << "Parent hash: " << header.parent_hash.toHex() << "\n";
+    std::cout << "State root: " << header.state_root.toHex() << "\n";
+    std::cout << "Extrinsics root: " << header.extrinsics_root.toHex() << "\n";
+
+    auto body_opt_res = block_storage->getBlockBody(hash);
+    if (body_opt_res.has_error()) {
+      throwError("Internal error: {}}", body_opt_res.error());
+    }
+    if (body_opt_res.value().has_value()) {
+      throwError("Block body not found for '{}'", args[1]);
+    }
+    const auto &body = body_opt_res.value().value();
+
+    std::cout << "# of extrinsics: " << body.size() << "\n";
   }
 
  private:
@@ -230,15 +240,17 @@ class RemoveBlockCommand : public Command {
     if (!opt_id) {
       throwError("Failed to parse block id '{}'", args[1]);
     }
-    auto data = block_storage->getBlockData(opt_id.value());
-    if (!data) {
-      throwError("Failed getting block data: {}", data.error());
+
+    auto hash_opt_res = block_storage->getBlockHash(opt_id.value());
+    if (hash_opt_res.has_error()) {
+      throwError("Internal error: {}}", hash_opt_res.error());
     }
-    if (!data.value().has_value()) {
-      throwError("Block data not found");
+    if (hash_opt_res.value().has_value()) {
+      throwError("Block not found for '{}'", args[1]);
     }
-    if (auto res = block_storage->removeBlock(data.value().value().hash);
-        !res) {
+    const auto &hash = hash_opt_res.value().value();
+
+    if (auto res = block_storage->removeBlock(hash); !res) {
       throwError("{}", res.error());
     }
   }
@@ -345,15 +357,31 @@ class SearchChainCommand : public Command {
       end = last_finalized.number;
     }
 
+    auto hash_opt_res = block_storage->getBlockHash(start);
+    if (hash_opt_res.has_error()) {
+      throwError("Internal error: {}}", hash_opt_res.error());
+    }
+    if (hash_opt_res.value().has_value()) {
+      throwError("Start block header {} not found", start);
+    }
+    const auto &hash = hash_opt_res.value().value();
+
     auto start_header_opt = unwrapResult("Getting 'start' block header",
-                                         block_storage->getBlockHeader(start));
+                                         block_storage->getBlockHeader(hash));
     if (!start_header_opt) {
       throwError("Start block header {} not found", start);
     }
     auto &start_header = start_header_opt.value();
 
+    auto end_hash_opt = unwrapResult("Getting 'end' block header",
+                                     block_storage->getBlockHash(end));
+    if (!end_hash_opt) {
+      throwError("'End block header {} not found", end);
+    }
+    const auto &end_hash = end_hash_opt.value();
+
     auto end_header_opt = unwrapResult("Getting 'end' block header",
-                                       block_storage->getBlockHeader(end));
+                                       block_storage->getBlockHeader(end_hash));
     if (!end_header_opt) {
       throwError("'End block header {} not found", end);
     }
@@ -362,9 +390,17 @@ class SearchChainCommand : public Command {
     for (int64_t current = start_header.number, stop = end_header.number;
          current <= stop;
          current++) {
+      auto current_hash_opt =
+          unwrapResult(fmt::format("Getting header of block #{}", current),
+                       block_storage->getBlockHash(current));
+      if (!current_hash_opt) {
+        throwError("Block header #{} not found", current);
+      }
+      const auto &current_hash = current_hash_opt.value();
+
       auto current_header_opt =
           unwrapResult(fmt::format("Getting header of block #{}", current),
-                       block_storage->getBlockHeader(current));
+                       block_storage->getBlockHeader(current_hash));
       if (!current_header_opt) {
         throwError("Block header #{} not found", current);
       }
@@ -401,12 +437,19 @@ class SearchChainCommand : public Command {
   }
 
   void searchForJustification(std::ostream &out,
-                              BlockHeader const &header) const {
-    auto just_opt = unwrapResult(
+                              const BlockHeader &header) const {
+    auto hash_opt_res = unwrapResult(
         fmt::format("Getting justification for block #{}", header.number),
-        block_storage->getJustification(header.number));
-    if (just_opt) {
-      out << header.number << ", ";
+        block_storage->getBlockHash(header.number));
+    if (hash_opt_res.has_value()) {
+      const auto &hash = hash_opt_res.value();
+
+      auto just_opt = unwrapResult(
+          fmt::format("Getting justification for block #{}", header.number),
+          block_storage->getJustification(hash));
+      if (just_opt) {
+        out << header.number << ", ";
+      }
     }
   }
 

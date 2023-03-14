@@ -21,8 +21,6 @@
 
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryImpl;
-using kagome::blockchain::numberAndHashToLookupKey;
-using kagome::blockchain::numberAndHashToLookupKey;
 using kagome::blockchain::putToSpace;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
@@ -52,8 +50,7 @@ class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
     header.number = num;
     OUTCOME_TRY(enc_header, scale::encode(header));
     auto hash = hasher_->blake2b_256(enc_header);
-    OUTCOME_TRY(putToSpace(
-        *rocks_, Space::kHeader, header.number, hash, Buffer{enc_header}));
+    OUTCOME_TRY(putToSpace(*rocks_, Space::kHeader, hash, Buffer{enc_header}));
     OUTCOME_TRY(kagome::blockchain::assignNumberToHash(*rocks_, {num, hash}));
 
     return hash;
@@ -94,7 +91,6 @@ TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
   not_in_storage.number = chosen_number;
   EXPECT_OUTCOME_TRUE(enc_header, scale::encode(not_in_storage))
   auto hash = hasher_->blake2b_256(enc_header);
-  EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(chosen_number))
   EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(hash))
   EXPECT_OUTCOME_FALSE_1(header_repo_->getHashById(chosen_number))
   EXPECT_OUTCOME_FALSE_1(header_repo_->getNumberById(hash))
@@ -141,12 +137,10 @@ TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetNumberByHash) {
  */
 TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetHeader) {
   EXPECT_OUTCOME_TRUE(hash, storeHeader(GetParam(), getDefaultHeader()))
-  EXPECT_OUTCOME_TRUE(header_by_num, header_repo_->getBlockHeader(GetParam()))
   EXPECT_OUTCOME_TRUE(header_by_hash, header_repo_->getBlockHeader(hash))
   auto header_should_be = getDefaultHeader();
   header_should_be.number = GetParam();
   ASSERT_EQ(header_by_hash, header_should_be);
-  ASSERT_EQ(header_by_num, header_should_be);
 }
 
 INSTANTIATE_TEST_SUITE_P(Numbers,

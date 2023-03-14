@@ -17,8 +17,8 @@ namespace kagome::storage {
 
     // application-defined spaces
     kHeader,
+    kBlockBody,
     kJustification,
-    kBlockData,
     kTrieNode,
 
     //

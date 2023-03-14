@@ -36,28 +36,30 @@
 namespace kagome::blockchain {
 
   /**
-   * Stores the mapping of block number to its full key form - NumHashKey
+   * Convert block number into short lookup key (LE representation) for
+   * blocks that are in the canonical chain.
    */
-  outcome::result<void> assignNumberToHash(storage::SpacedStorage &storage,
-                                           const primitives::BlockInfo &block);
+  inline common::Buffer blockNumberToKey(primitives::BlockNumber block_number) {
+    BOOST_STATIC_ASSERT(std::is_same_v<decltype(block_number), uint32_t>);
+    common::Buffer res;
+    res.putUint32(block_number);
+    return res;
+  }
 
   /**
-   * Put an entry to key space \param space and corresponding lookup keys to
-   * kLookupKey space
-   * @param storage to put the entry to
-   * @param space keyspace for the entry value
-   * @param num block number that could be used to retrieve the value
-   * @param block_hash block hash that could be used to retrieve the value
-   * @param value data to be put to the storage
-   * @return storage error if any
+   * Stores the mapping of block number to its hash
    */
-  outcome::result<void> putToSpace(storage::SpacedStorage &storage,
-                                   storage::Space space,
-                                   common::Hash256 block_hash,
-                                   common::BufferOrView &&value);
+  outcome::result<void> assignNumberToHash(
+      storage::SpacedStorage &storage, const primitives::BlockInfo &block_info);
 
   /**
-   * Chech if an entry from the database
+   * Returns block hash by number if any
+   */
+  outcome::result<std::optional<primitives::BlockHash>> blockHashByNumber(
+      storage::SpacedStorage &storage, primitives::BlockNumber block_number);
+
+  /**
+   * Check if an entry is contained in the database
    * @param storage - to get the entry from
    * @param space - key space in the storage  to which the entry belongs
    * @param block_id - id of the block to get entry for
@@ -68,27 +70,41 @@ namespace kagome::blockchain {
                                    const primitives::BlockId &block_id);
 
   /**
+   * Put an entry to key space \param space
+   * @param storage to put the entry to
+   * @param space keyspace for the entry value
+   * @param block_hash block hash that could be used to retrieve the value
+   * @param value data to be put to the storage
+   * @return storage error if any
+   */
+  outcome::result<void> putToSpace(storage::SpacedStorage &storage,
+                                   storage::Space space,
+                                   const primitives::BlockHash &block_hash,
+                                   common::BufferOrView &&value);
+
+  /**
    * Get an entry from the database
    * @param storage - to get the entry from
    * @param space - key space in the storage  to which the entry belongs
-   * @param block_id - id of the block to get entry for
+   * @param block_hash - hash of the block to get entry for
    * @return error, or an encoded entry, if any, or std::nullopt, if none
    */
   outcome::result<std::optional<common::BufferOrView>> getFromSpace(
       storage::SpacedStorage &storage,
       storage::Space space,
-      const primitives::BlockId &block_id);
+      const primitives::BlockHash &block_hash);
 
   /**
-   * Convert block number into short lookup key (LE representation) for
-   * blocks that are in the canonical chain.
+   * Remove an entry from key space \param space and corresponding lookup keys
+   * @param storage to put the entry to
+   * @param space keyspace for the entry value
+   * @param block_hash block hash that could be used to retrieve the value
+   * @return storage error if any
    */
-  inline common::Buffer blockNumberToKey(primitives::BlockNumber block_number) {
-    BOOST_STATIC_ASSERT(std::is_same_v<decltype(block_number), uint32_t>);
-    common::Buffer res;
-    res.putUint32(block_number);
-    return res;
-  }
+  outcome::result<void> removeFromSpace(
+      storage::SpacedStorage &storage,
+      storage::Space space,
+      const primitives::BlockHash &block_hash);
 
 }  // namespace kagome::blockchain
 

@@ -36,7 +36,7 @@ namespace kagome::blockchain {
      * the storage or an error
      */
     virtual outcome::result<primitives::BlockNumber> getNumberByHash(
-        const common::Hash256 &hash) const = 0;
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * @param number - the number of a block, contained in a block header
@@ -44,20 +44,20 @@ namespace kagome::blockchain {
      * the storage or an error
      */
     virtual outcome::result<common::Hash256> getHashByNumber(
-        const primitives::BlockNumber &number) const = 0;
+        primitives::BlockNumber block_number) const = 0;
 
     /**
      * @return block header with corresponding id or an error
      */
     virtual outcome::result<primitives::BlockHeader> getBlockHeader(
-        const primitives::BlockId &id) const = 0;
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * @param id of a block which status is returned
      * @return status of a block or a storage error
      */
     virtual outcome::result<kagome::blockchain::BlockStatus> getBlockStatus(
-        const primitives::BlockId &id) const = 0;
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * @param id of a block which number is returned
@@ -65,12 +65,14 @@ namespace kagome::blockchain {
      * is not in storage or a storage error
      */
     outcome::result<primitives::BlockNumber> getNumberById(
-        const primitives::BlockId &id) const {
+        const primitives::BlockId &block_id) const {
       return visit_in_place(
-          id,
-          [](const primitives::BlockNumber &n) { return n; },
-          [this](const common::Hash256 &hash) {
-            return getNumberByHash(hash);
+          block_id,
+          [](const primitives::BlockNumber &block_number) {
+            return block_number;
+          },
+          [this](const common::Hash256 &block_hash) {
+            return getNumberByHash(block_hash);
           });
     }
 
