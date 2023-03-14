@@ -38,6 +38,7 @@ class StateJrpcProcessorTest : public testing::Test {
     kCallType_GetStorage,
     kCallType_QueryStorage,
     kCallType_QueryStorageAt,
+    kCallType_GetReadProof,
     kCallType_StorageSubscribe,
     kCallType_StorageUnsubscribe,
     kCallType_GetMetadata,
@@ -108,6 +109,11 @@ class StateJrpcProcessorTest : public testing::Test {
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_QueryStorageAt, CallContext{.handler = f}));
+        }));
+    EXPECT_CALL(*server, registerHandler("state_getReadProof", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(std::make_pair(
+              CallType::kCallType_GetReadProof, CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_subscribeStorage", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
@@ -221,9 +227,9 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorage) {
       return std::pair(tuple[0].AsString(), tuple[1].AsString());
     };
     auto e = expected->AsStruct().at("changes").AsArray()
-             | boost::adaptors::transformed(json_tuple_to_pair);
+           | boost::adaptors::transformed(json_tuple_to_pair);
     auto r = received->AsStruct().at("changes").AsArray()
-             | boost::adaptors::transformed(json_tuple_to_pair);
+           | boost::adaptors::transformed(json_tuple_to_pair);
     ASSERT_EQ(e, r);
   }
 }
@@ -261,9 +267,9 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorageAt) {
     return std::pair(tuple[0].AsString(), tuple[1].AsString());
   };
   auto e = expected_json[0].AsStruct().at("changes").AsArray()
-           | boost::adaptors::transformed(json_tuple_to_pair);
+         | boost::adaptors::transformed(json_tuple_to_pair);
   auto r = result.AsArray()[0].AsStruct().at("changes").AsArray()
-           | boost::adaptors::transformed(json_tuple_to_pair);
+         | boost::adaptors::transformed(json_tuple_to_pair);
   ASSERT_EQ(e, r);
 }
 
