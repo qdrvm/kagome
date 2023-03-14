@@ -51,7 +51,10 @@ class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
     OUTCOME_TRY(enc_header, scale::encode(header));
     auto hash = hasher_->blake2b_256(enc_header);
     OUTCOME_TRY(putToSpace(*rocks_, Space::kHeader, hash, Buffer{enc_header}));
-    OUTCOME_TRY(kagome::blockchain::assignNumberToHash(*rocks_, {num, hash}));
+
+    auto num_to_hash_key = kagome::blockchain::blockNumberToKey(num);
+    auto key_space = rocks_->getSpace(Space::kLookupKey);
+    OUTCOME_TRY(key_space->put(num_to_hash_key, hash));
 
     return hash;
   }
