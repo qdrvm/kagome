@@ -326,9 +326,9 @@ TEST_F(BabeTest, Success) {
       .WillOnce(
           Return(BlockInfo(created_block_.header.number, created_block_hash_)));
 
-  EXPECT_CALL(*block_tree_, getBlockHeader(BlockId(best_block_hash_)))
+  EXPECT_CALL(*block_tree_, getBlockHeader(best_block_hash_))
       .WillRepeatedly(Return(outcome::success(best_block_header_)));
-  EXPECT_CALL(*block_tree_, getBlockHeader(BlockId(BlockNumber(1))))
+  EXPECT_CALL(*block_tree_, getBlockHeader(created_block_hash_))
       .WillRepeatedly(Return(outcome::success(block_header_)));
 
   EXPECT_CALL(*proposer_, propose(best_leaf, _, _))
@@ -364,7 +364,7 @@ TEST_F(BabeTest, NotAuthority) {
   babe_->runEpoch(epoch_);
 
   EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
-  EXPECT_CALL(*block_tree_, getBlockHeader(BlockId(best_block_hash_)))
+  EXPECT_CALL(*block_tree_, getBlockHeader(best_block_hash_))
       .WillOnce(Return(best_block_header_));
   EXPECT_CALL(*babe_util_, syncEpoch(_));
   EXPECT_CALL(*babe_util_, slotStartTime(_));

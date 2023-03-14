@@ -7,6 +7,7 @@
 
 #include "blockchain/block_storage_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
+#include "common/visitor.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::blockchain {
@@ -32,12 +33,8 @@ namespace kagome::blockchain {
     auto block_storage = std::shared_ptr<BlockStorageImpl>(
         new BlockStorageImpl(storage, hasher));
 
-    auto res = block_storage->hasBlockHeader(primitives::BlockNumber{0});
-    if (res.has_error()) {
-      return res.as_failure();
-    }
-
-    if (not res.value()) {
+    OUTCOME_TRY(hash_opt, blockchain::blockHashByNumber(*storage, 0));
+    if (not hash_opt.has_value()) {
       // genesis block initialization
       primitives::Block genesis_block;
       genesis_block.header.number = 0;
@@ -46,272 +43,26 @@ namespace kagome::blockchain {
       // the rest of the fields have default value
 
       OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
-      OUTCOME_TRY(block_storage->putNumberToIndexKey({0, genesis_block_hash}));
+      OUTCOME_TRY(block_storage->assignNumberToHash({0, genesis_block_hash}));
 
       OUTCOME_TRY(block_storage->setBlockTreeLeaves({genesis_block_hash}));
 
       block_storage->logger_->info(
           "Genesis block {}, state {}", genesis_block_hash, state_root);
+    } else {
+      auto res = block_storage->hasBlockHeader(hash_opt.value());
+      if (res.has_error()) {
+        return res.as_failure();
+      }
+      if (not res.value()) {
+        block_storage->logger_->critical(
+            "Database is not consistent: Genesis block header not found, "
+            "but exists num-to-hash record for block #0");
+        return BlockStorageError::HEADER_NOT_FOUND;
+      }
     }
 
     return block_storage;
-  }
-
-  outcome::result<bool> BlockStorageImpl::hasBlockHeader(
-      const primitives::BlockId &id) const {
-    return hasInSpace(*storage_, Space::kHeader, id);
-  }
-
-  outcome::result<std::optional<primitives::BlockHeader>>
-  BlockStorageImpl::getBlockHeader(const primitives::BlockId &id) const {
-    OUTCOME_TRY(encoded_header_opt,
-                getFromSpace(*storage_, Space::kHeader, id));
-    if (encoded_header_opt.has_value()) {
-      OUTCOME_TRY(
-          header,
-          scale::decode<primitives::BlockHeader>(encoded_header_opt.value()));
-      return std::move(header);
-    }
-    return std::nullopt;
-  }
-
-  outcome::result<std::optional<primitives::BlockBody>>
-  BlockStorageImpl::getBlockBody(const primitives::BlockId &id) const {
-    OUTCOME_TRY(block_data, getBlockData(id));
-    if (block_data.has_value() && block_data.value().body.has_value()) {
-      return block_data.value().body.value();
-    }
-    return std::nullopt;
-  }
-
-  outcome::result<std::optional<primitives::BlockData>>
-  BlockStorageImpl::getBlockData(const primitives::BlockId &id) const {
-    OUTCOME_TRY(encoded_block_data_opt,
-                getFromSpace(*storage_, Space::kBlockData, id));
-    if (encoded_block_data_opt.has_value()) {
-      OUTCOME_TRY(
-          block_data,
-          scale::decode<primitives::BlockData>(encoded_block_data_opt.value()));
-      return std::move(block_data);
-    }
-    return std::nullopt;
-  }
-
-  outcome::result<std::optional<primitives::Justification>>
-  BlockStorageImpl::getJustification(const primitives::BlockId &block) const {
-    OUTCOME_TRY(encoded_justification_opt,
-                getFromSpace(*storage_, Space::kJustification, block));
-    if (encoded_justification_opt.has_value()) {
-      OUTCOME_TRY(justification,
-                  scale::decode<primitives::Justification>(
-                      encoded_justification_opt.value()));
-      return std::move(justification);
-    }
-    return std::nullopt;
-  }
-
-  outcome::result<void> BlockStorageImpl::putNumberToIndexKey(
-      const primitives::BlockInfo &block) {
-    SL_DEBUG(logger_, "Save num-to-idx for {}", block);
-    return kagome::blockchain::putNumberToIndexKey(*storage_, block);
-  }
-
-  outcome::result<primitives::BlockHash> BlockStorageImpl::putBlockHeader(
-      const primitives::BlockHeader &header) {
-    OUTCOME_TRY(encoded_header, scale::encode(header));
-    auto block_hash = hasher_->blake2b_256(encoded_header);
-    OUTCOME_TRY(putToSpace(*storage_,
-                           Space::kHeader,
-                           header.number,
-                           block_hash,
-                           Buffer{std::move(encoded_header)}));
-    return block_hash;
-  }
-
-  outcome::result<void> BlockStorageImpl::putBlockData(
-      primitives::BlockNumber block_number,
-      const primitives::BlockData &block_data) {
-    primitives::BlockData to_insert;
-
-    // if block data does not exist, put a new one. Otherwise, get the old one
-    // and merge with the new one. During the merge new block data fields have
-    // higher priority over the old ones (old ones should be rewritten)
-    OUTCOME_TRY(existing_block_data_opt, getBlockData(block_data.hash));
-    if (not existing_block_data_opt.has_value()) {
-      to_insert = block_data;
-    } else {
-      auto &existing_data = existing_block_data_opt.value();
-
-      // add all the fields from the new block_data
-      to_insert.header =
-          block_data.header ? block_data.header : existing_data.header;
-      to_insert.body = block_data.body ? block_data.body : existing_data.body;
-      to_insert.justification = block_data.justification
-                                    ? block_data.justification
-                                    : existing_data.justification;
-      to_insert.message_queue = block_data.message_queue
-                                    ? block_data.message_queue
-                                    : existing_data.message_queue;
-      to_insert.receipt =
-          block_data.receipt ? block_data.receipt : existing_data.receipt;
-    }
-
-    OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));
-    OUTCOME_TRY(putToSpace(*storage_,
-                           Space::kBlockData,
-                           block_number,
-                           block_data.hash,
-                           Buffer{encoded_block_data}));
-    return outcome::success();
-  }
-
-  outcome::result<void> BlockStorageImpl::removeBlockData(
-      primitives::BlockNumber block_number,
-      const primitives::BlockDataFlags &remove_flags) {
-    primitives::BlockData to_insert;
-
-    OUTCOME_TRY(existing_block_data_opt, getBlockData(remove_flags.hash));
-    if (not existing_block_data_opt.has_value()) {
-      return outcome::success();
-    }
-    auto &existing_data = existing_block_data_opt.value();
-
-    auto move_if_flag = [](bool flag, auto &&value) {
-      if (flag) {
-        return std::move(value);
-      }
-      return std::optional<typename std::decay_t<decltype(value)>::value_type>(
-          std::nullopt);
-    };
-
-    // add all the fields from the new block_data
-    to_insert.header =
-        move_if_flag(!remove_flags.header, std::move(existing_data.header));
-    to_insert.body =
-        move_if_flag(!remove_flags.body, std::move(existing_data.body));
-    to_insert.justification = move_if_flag(
-        !remove_flags.justification, std::move(existing_data.justification));
-    to_insert.message_queue = move_if_flag(
-        !remove_flags.message_queue, std::move(existing_data.message_queue));
-    to_insert.receipt =
-        move_if_flag(!remove_flags.receipt, std::move(existing_data.receipt));
-
-    OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));
-    OUTCOME_TRY(putToSpace(*storage_,
-                           Space::kBlockData,
-                           block_number,
-                           remove_flags.hash,
-                           Buffer{encoded_block_data}));
-    return outcome::success();
-  }
-
-  outcome::result<primitives::BlockHash> BlockStorageImpl::putBlock(
-      const primitives::Block &block) {
-    // insert our block's parts into the database-
-    OUTCOME_TRY(block_hash, putBlockHeader(block.header));
-
-    primitives::BlockData block_data;
-    block_data.hash = block_hash;
-    block_data.header = block.header;
-    block_data.body = block.body;
-
-    OUTCOME_TRY(putBlockData(block.header.number, block_data));
-    logger_->info("Added block {} as child of {}",
-                  primitives::BlockInfo(block.header.number, block_hash),
-                  primitives::BlockInfo(block.header.number - 1,
-                                        block.header.parent_hash));
-    return std::move(block_hash);
-  }
-
-  outcome::result<void> BlockStorageImpl::putJustification(
-      const primitives::Justification &j,
-      const primitives::BlockHash &hash,
-      primitives::BlockNumber block_number) {
-    BOOST_ASSERT(not j.data.empty());
-
-    OUTCOME_TRY(justification, scale::encode(j));
-    OUTCOME_TRY(putToSpace(*storage_,
-                           Space::kJustification,
-                           block_number,
-                           hash,
-                           Buffer{justification}));
-
-    // the following is still required
-    primitives::BlockData block_data{.hash = hash};
-    OUTCOME_TRY(putBlockData(block_number, block_data));
-    return outcome::success();
-  }
-
-  outcome::result<void> BlockStorageImpl::removeJustification(
-      const primitives::BlockHash &hash, primitives::BlockNumber number) {
-    auto key = numberAndHashToLookupKey(number, hash);
-    auto space = storage_->getSpace(Space::kJustification);
-
-    OUTCOME_TRY(space->remove(key));
-    return outcome::success();
-  }
-
-  outcome::result<void> BlockStorageImpl::removeBlock(
-      const primitives::BlockInfo &block) {
-    auto block_lookup_key = numberAndHashToLookupKey(block.number, block.hash);
-
-    SL_TRACE(logger_, "Removing block {}...", block);
-    auto key_space = storage_->getSpace(Space::kLookupKey);
-
-    if (auto res = key_space->remove(block.hash); res.has_error()) {
-      logger_->error("could not remove hash-to-idx from the storage: {}",
-                     res.error());
-      return res;
-    }
-
-    auto num_to_idx_key = numberToIndexKey(block.number);
-    OUTCOME_TRY(num_to_idx_val_opt, key_space->tryGet(num_to_idx_key.view()));
-    if (num_to_idx_val_opt == block_lookup_key) {
-      if (auto res = key_space->remove(num_to_idx_key); res.has_error()) {
-        SL_ERROR(logger_,
-                 "could not remove num-to-idx from the storage: {}",
-                 block,
-                 res.error());
-        return res;
-      }
-      SL_DEBUG(logger_, "Removed num-to-idx of {}", block);
-    }
-
-    // TODO(xDimon): needed to clean up trie storage if block deleted
-    //  issue: https://github.com/soramitsu/kagome/issues/1128
-
-    auto block_data_space = storage_->getSpace(Space::kBlockData);
-    if (auto res = block_data_space->remove(block_lookup_key);
-        res.has_error()) {
-      SL_ERROR(logger_,
-               "could not remove body of block {} from the storage: {}",
-               block,
-               res.error());
-      return res;
-    }
-
-    auto header_space = storage_->getSpace(Space::kHeader);
-    if (auto res = header_space->remove(block_lookup_key); res.has_error()) {
-      SL_ERROR(logger_,
-               "could not remove header of block {} from the storage: {}",
-               block,
-               res.error());
-      return res;
-    }
-
-    if (auto res = removeJustification(block.hash, block.number);
-        res.has_error()) {
-      SL_ERROR(
-          logger_,
-          "could not remove justification for block {} from the storage: {}",
-          block,
-          res.error());
-      return res;
-    }
-
-    logger_->info("Removed block {}", block);
-
-    return outcome::success();
   }
 
   outcome::result<std::vector<primitives::BlockHash>>
@@ -387,6 +138,261 @@ namespace kagome::blockchain {
              "This block will be used as last finalized",
              found_block);
     return found_block;
+  }
+
+  outcome::result<void> BlockStorageImpl::assignNumberToHash(
+      const primitives::BlockInfo &block_info) {
+    SL_DEBUG(logger_, "Save num-to-idx for {}", block_info);
+    auto num_to_hash_key = blockNumberToKey(block_info.number);
+    auto key_space = storage_->getSpace(Space::kLookupKey);
+    return key_space->put(num_to_hash_key, block_info.hash);
+  }
+
+  outcome::result<void> BlockStorageImpl::deassignNumberToHash(
+      primitives::BlockNumber block_number) {
+    SL_DEBUG(logger_, "Remove num-to-idx for #{}", block_number);
+    auto num_to_hash_key = blockNumberToKey(block_number);
+    auto key_space = storage_->getSpace(Space::kLookupKey);
+    return key_space->remove(num_to_hash_key);
+  }
+
+  outcome::result<std::optional<primitives::BlockHash>>
+  BlockStorageImpl::getBlockHash(primitives::BlockNumber block_number) const {
+    auto key_space = storage_->getSpace(storage::Space::kLookupKey);
+    OUTCOME_TRY(data_opt, key_space->tryGet(blockNumberToKey(block_number)));
+    if (data_opt.has_value()) {
+      OUTCOME_TRY(hash, primitives::BlockHash::fromSpan(data_opt.value()));
+      return hash;
+    }
+    return std::nullopt;
+  }
+
+  outcome::result<std::optional<primitives::BlockHash>>
+  BlockStorageImpl::getBlockHash(const primitives::BlockId &block_id) const {
+    return visit_in_place(
+        block_id,
+        [&](const primitives::BlockNumber &block_number)
+            -> outcome::result<std::optional<primitives::BlockHash>> {
+          auto key_space = storage_->getSpace(storage::Space::kLookupKey);
+          OUTCOME_TRY(data_opt,
+                      key_space->tryGet(blockNumberToKey(block_number)));
+          if (data_opt.has_value()) {
+            OUTCOME_TRY(block_hash,
+                        primitives::BlockHash::fromSpan(data_opt.value()));
+            return block_hash;
+          }
+          return std::nullopt;
+        },
+        [](const common::Hash256 &block_hash) { return block_hash; });
+  }
+
+  outcome::result<bool> BlockStorageImpl::hasBlockHeader(
+      const primitives::BlockHash &block_hash) const {
+    return hasInSpace(*storage_, Space::kHeader, block_hash);
+  }
+
+  outcome::result<primitives::BlockHash> BlockStorageImpl::putBlockHeader(
+      const primitives::BlockHeader &header) {
+    OUTCOME_TRY(encoded_header, scale::encode(header));
+    auto block_hash = hasher_->blake2b_256(encoded_header);
+    OUTCOME_TRY(putToSpace(
+        *storage_, Space::kHeader, block_hash, std::move(encoded_header)));
+    return block_hash;
+  }
+
+  outcome::result<std::optional<primitives::BlockHeader>>
+  BlockStorageImpl::getBlockHeader(
+      const primitives::BlockHash &block_hash) const {
+    OUTCOME_TRY(encoded_header_opt,
+                getFromSpace(*storage_, Space::kHeader, block_hash));
+    if (encoded_header_opt.has_value()) {
+      OUTCOME_TRY(
+          header,
+          scale::decode<primitives::BlockHeader>(encoded_header_opt.value()));
+      return std::move(header);
+    }
+    return std::nullopt;
+  }
+
+  outcome::result<void> BlockStorageImpl::putBlockBody(
+      const primitives::BlockHash &block_hash,
+      const primitives::BlockBody &block_body) {
+    OUTCOME_TRY(encoded_body, scale::encode(block_body));
+    return putToSpace(
+        *storage_, Space::kBlockBody, block_hash, std::move(encoded_body));
+  }
+
+  outcome::result<std::optional<primitives::BlockBody>>
+  BlockStorageImpl::getBlockBody(
+      const primitives::BlockHash &block_hash) const {
+    OUTCOME_TRY(encoded_block_body_opt,
+                getFromSpace(*storage_, Space::kBlockBody, block_hash));
+    if (encoded_block_body_opt.has_value()) {
+      OUTCOME_TRY(
+          block_body,
+          scale::decode<primitives::BlockBody>(encoded_block_body_opt.value()));
+      return std::make_optional(std::move(block_body));
+    }
+    return std::nullopt;
+  }
+
+  outcome::result<void> BlockStorageImpl::removeBlockBody(
+      const primitives::BlockHash &block_hash) {
+    auto space = storage_->getSpace(Space::kBlockBody);
+    return space->remove(block_hash);
+  }
+
+  outcome::result<void> BlockStorageImpl::putJustification(
+      const primitives::Justification &justification,
+      const primitives::BlockHash &hash) {
+    BOOST_ASSERT(not justification.data.empty());
+
+    OUTCOME_TRY(encoded_justification, scale::encode(justification));
+    OUTCOME_TRY(putToSpace(*storage_,
+                           Space::kJustification,
+                           hash,
+                           std::move(encoded_justification)));
+
+    return outcome::success();
+  }
+
+  outcome::result<std::optional<primitives::Justification>>
+  BlockStorageImpl::getJustification(
+      const primitives::BlockHash &block_hash) const {
+    OUTCOME_TRY(encoded_justification_opt,
+                getFromSpace(*storage_, Space::kJustification, block_hash));
+    if (encoded_justification_opt.has_value()) {
+      OUTCOME_TRY(justification,
+                  scale::decode<primitives::Justification>(
+                      encoded_justification_opt.value()));
+      return std::move(justification);
+    }
+    return std::nullopt;
+  }
+
+  outcome::result<void> BlockStorageImpl::removeJustification(
+      const primitives::BlockHash &block_hash) {
+    auto space = storage_->getSpace(Space::kJustification);
+    return space->remove(block_hash);
+  }
+
+  outcome::result<primitives::BlockHash> BlockStorageImpl::putBlock(
+      const primitives::Block &block) {
+    // insert provided block's parts into the database
+    OUTCOME_TRY(block_hash, putBlockHeader(block.header));
+
+    primitives::BlockData block_data;
+    block_data.hash = block_hash;
+    block_data.header = block.header;
+    block_data.body = block.body;
+
+    OUTCOME_TRY(encoded_header, scale::encode(block.header));
+    OUTCOME_TRY(putToSpace(
+        *storage_, Space::kHeader, block_hash, std::move(encoded_header)));
+
+    OUTCOME_TRY(encoded_body, scale::encode(block.body));
+    OUTCOME_TRY(putToSpace(
+        *storage_, Space::kBlockBody, block_hash, std::move(encoded_body)));
+
+    logger_->info("Added block {} as child of {}",
+                  primitives::BlockInfo(block.header.number, block_hash),
+                  primitives::BlockInfo(block.header.number - 1,
+                                        block.header.parent_hash));
+    return std::move(block_hash);
+  }
+
+  outcome::result<std::optional<primitives::BlockData>>
+  BlockStorageImpl::getBlockData(
+      const primitives::BlockHash &block_hash) const {
+    primitives::BlockData block_data{.hash = block_hash};
+
+    // Block header
+    OUTCOME_TRY(header_opt, getBlockHeader(block_hash));
+    block_data.header = std::move(header_opt);
+
+    if (not block_data.header.has_value()) {
+      return std::nullopt;
+    }
+
+    // Block body
+    OUTCOME_TRY(body_opt, getBlockBody(block_hash));
+    block_data.body = std::move(body_opt);
+
+    // NOTE: Receipt and MessageQueue should be processed here (not implemented)
+
+    // Justification
+    OUTCOME_TRY(justification_opt, getJustification(block_hash));
+    block_data.justification = std::move(justification_opt);
+
+    return std::move(block_data);
+  }
+
+  outcome::result<void> BlockStorageImpl::removeBlock(
+      const primitives::BlockHash &block_hash) {
+    // Check if block still in storage
+    OUTCOME_TRY(header_opt, getBlockHeader(block_hash));
+    if (not header_opt.has_value()) {
+      return outcome::success();
+    }
+    const auto &header = header_opt.value();
+
+    primitives::BlockInfo block_info(header.number, block_hash);
+
+    SL_TRACE(logger_, "Removing block {}...", block_info);
+
+    {  // Remove number-to-key assigning
+      auto num_to_hash_key = blockNumberToKey(block_info.number);
+
+      auto key_space = storage_->getSpace(Space::kLookupKey);
+      OUTCOME_TRY(hash_opt, key_space->tryGet(num_to_hash_key.view()));
+      if (hash_opt == block_hash) {
+        if (auto res = key_space->remove(num_to_hash_key); res.has_error()) {
+          SL_ERROR(logger_,
+                   "could not remove num-to-hash of {} from the storage: {}",
+                   block_info,
+                   res.error());
+          return res;
+        }
+        SL_DEBUG(logger_, "Removed num-to-idx of {}", block_info);
+      }
+    }
+
+    // TODO(xDimon): needed to clean up trie storage if block deleted
+    //  issue: https://github.com/soramitsu/kagome/issues/1128
+
+    // Remove block body
+    if (auto res = removeBlockBody(block_info.hash); res.has_error()) {
+      SL_ERROR(logger_,
+               "could not remove body of block {} from the storage: {}",
+               block_info,
+               res.error());
+      return res;
+    }
+
+    // Remove justification for block
+    if (auto res = removeJustification(block_info.hash); res.has_error()) {
+      SL_ERROR(
+          logger_,
+          "could not remove justification for block {} from the storage: {}",
+          block_info,
+          res.error());
+      return res;
+    }
+
+    {  // Remove block header
+      auto header_space = storage_->getSpace(Space::kHeader);
+      if (auto res = header_space->remove(block_info.hash); res.has_error()) {
+        SL_ERROR(logger_,
+                 "could not remove header of block {} from the storage: {}",
+                 block_info,
+                 res.error());
+        return res;
+      }
+    }
+
+    logger_->info("Removed block {}", block_info);
+
+    return outcome::success();
   }
 
 }  // namespace kagome::blockchain

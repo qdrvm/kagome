@@ -79,19 +79,19 @@ TEST_F(SynchronizerTest, ProcessRequest) {
                   block3_hash_, AppConfiguration::kAbsolutMaxBlocksInResponse))
       .WillOnce(Return(std::vector<BlockHash>{block3_hash_, block4_hash_}));
 
-  EXPECT_CALL(*headers_, getBlockHeader(BlockId{block3_hash_}))
+  EXPECT_CALL(*headers_, getBlockHeader(block3_hash_))
       .WillOnce(Return(block3_.header));
-  EXPECT_CALL(*headers_, getBlockHeader(BlockId{block4_hash_}))
+  EXPECT_CALL(*headers_, getBlockHeader(block4_hash_))
       .WillOnce(Return(block4_.header));
 
-  EXPECT_CALL(*tree_, getBlockBody(BlockId{block3_hash_}))
+  EXPECT_CALL(*tree_, getBlockBody(block3_hash_))
       .WillOnce(Return(block3_.body));
-  EXPECT_CALL(*tree_, getBlockBody(BlockId{block4_hash_}))
+  EXPECT_CALL(*tree_, getBlockBody(block4_hash_))
       .WillOnce(Return(block4_.body));
 
-  EXPECT_CALL(*tree_, getBlockJustification(BlockId{block3_hash_}))
+  EXPECT_CALL(*tree_, getBlockJustification(block3_hash_))
       .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
-  EXPECT_CALL(*tree_, getBlockJustification(BlockId{block4_hash_}))
+  EXPECT_CALL(*tree_, getBlockJustification(block4_hash_))
       .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
 
   // WHEN
