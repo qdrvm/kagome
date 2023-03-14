@@ -22,18 +22,20 @@ namespace kagome::runtime {
     block_tree_ = std::move(block_tree);
   }
 
-  outcome::result<primitives::TransactionValidity>
+  outcome::result<TaggedTransactionQueue::TransactionValidityAt>
   TaggedTransactionQueueImpl::validate_transaction(
       primitives::TransactionSource source, const primitives::Extrinsic &ext) {
     BOOST_ASSERT(block_tree_);
     auto block = block_tree_->bestLeaf();
     SL_TRACE(logger_, "Validate transaction called at block {}", block);
-    return executor_->callAt<primitives::TransactionValidity>(
-        block.hash,
-        "TaggedTransactionQueue_validate_transaction",
-        source,
-        ext,
-        block.hash);
+    OUTCOME_TRY(result,
+                executor_->callAt<primitives::TransactionValidity>(
+                    block.hash,
+                    "TaggedTransactionQueue_validate_transaction",
+                    source,
+                    ext,
+                    block.hash));
+    return TransactionValidityAt{block, std::move(result)};
   }
 
 }  // namespace kagome::runtime

@@ -67,7 +67,7 @@ namespace kagome::transaction_pool {
     OUTCOME_TRY(res, ttq_->validate_transaction(source, extrinsic));
 
     return visit_in_place(
-        res,
+        res.second,
         [&](const primitives::TransactionValidityError &e) {
           return visit_in_place(
               e,
@@ -86,7 +86,7 @@ namespace kagome::transaction_pool {
                                          length,
                                          hash,
                                          v.priority,
-                                         v.longevity,
+                                         res.first.number + v.longevity,
                                          v.requires,
                                          v.provides,
                                          v.propagate};
