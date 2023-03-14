@@ -23,7 +23,7 @@ namespace kagome::blockchain {
     outcome::result<primitives::BlockNumber> getNumberByHash(
         const primitives::BlockHash &block_hash) const override;
 
-    outcome::result<common::Hash256> getHashByNumber(
+    outcome::result<primitives::BlockHash> getHashByNumber(
         primitives::BlockNumber block_number) const override;
 
     outcome::result<primitives::BlockHeader> getBlockHeader(

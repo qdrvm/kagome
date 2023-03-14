@@ -44,6 +44,9 @@ namespace kagome::blockchain {
     outcome::result<void> assignNumberToHash(
         const primitives::BlockInfo &block) override;
 
+    outcome::result<void> deassignNumberToHash(
+        primitives::BlockNumber block_number) override;
+
     outcome::result<std::optional<primitives::BlockHash>> getBlockHash(
         primitives::BlockNumber block_number) const override;
     outcome::result<std::optional<primitives::BlockHash>> getBlockHash(

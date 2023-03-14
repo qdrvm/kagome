@@ -143,7 +143,17 @@ namespace kagome::blockchain {
   outcome::result<void> BlockStorageImpl::assignNumberToHash(
       const primitives::BlockInfo &block_info) {
     SL_DEBUG(logger_, "Save num-to-idx for {}", block_info);
-    return kagome::blockchain::assignNumberToHash(*storage_, block_info);
+    auto num_to_hash_key = blockNumberToKey(block_info.number);
+    auto key_space = storage_->getSpace(Space::kLookupKey);
+    return key_space->put(num_to_hash_key, block_info.hash);
+  }
+
+  outcome::result<void> BlockStorageImpl::deassignNumberToHash(
+      primitives::BlockNumber block_number) {
+    SL_DEBUG(logger_, "Remove num-to-idx for #{}", block_number);
+    auto num_to_hash_key = blockNumberToKey(block_number);
+    auto key_space = storage_->getSpace(Space::kLookupKey);
+    return key_space->remove(num_to_hash_key);
   }
 
   outcome::result<std::optional<primitives::BlockHash>>

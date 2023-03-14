@@ -52,6 +52,14 @@ namespace kagome::blockchain {
         const primitives::BlockInfo &block_info) = 0;
 
     /**
+     * Removes number-to-hash record for provided {@param block_number} from
+     * block storage
+     * @returns success or failure
+     */
+    virtual outcome::result<void> deassignNumberToHash(
+        primitives::BlockNumber block_number) = 0;
+
+    /**
      * Tries to get block hash by number {@param block_number}
      * @returns hash or error
      */

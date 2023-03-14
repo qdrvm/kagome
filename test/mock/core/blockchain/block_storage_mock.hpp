@@ -33,6 +33,11 @@ namespace kagome::blockchain {
                 (const primitives::BlockInfo &),
                 (override));
 
+    MOCK_METHOD(outcome::result<void>,
+                deassignNumberToHash,
+                (primitives::BlockNumber),
+                (override));
+
     MOCK_METHOD(outcome::result<std::optional<primitives::BlockHash>>,
                 getBlockHash,
                 (primitives::BlockNumber),

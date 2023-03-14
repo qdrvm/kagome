@@ -30,7 +30,8 @@ namespace kagome::blockchain {
     return header.number;
   }
 
-  outcome::result<common::Hash256> BlockHeaderRepositoryImpl::getHashByNumber(
+  outcome::result<primitives::BlockHash>
+  BlockHeaderRepositoryImpl::getHashByNumber(
       primitives::BlockNumber number) const {
     auto num_to_idx_key = blockNumberToKey(number);
     auto key_space = storage_->getSpace(Space::kLookupKey);
@@ -38,17 +39,18 @@ namespace kagome::blockchain {
     if (not res.has_value()) {
       return BlockTreeError::HEADER_NOT_FOUND;
     }
-    return common::Hash256::fromSpan(res.value());
+    return primitives::BlockHash::fromSpan(res.value());
   }
 
   outcome::result<primitives::BlockHeader>
-  BlockHeaderRepositoryImpl::getBlockHeader(const primitives::BlockHash &block_hash) const {
-          OUTCOME_TRY(header_opt,
-                      getFromSpace(*storage_, Space::kHeader, block_hash));
-          if (header_opt.has_value()) {
-            return scale::decode<primitives::BlockHeader>(header_opt.value());
-          }
-          return BlockTreeError::HEADER_NOT_FOUND;
+  BlockHeaderRepositoryImpl::getBlockHeader(
+      const primitives::BlockHash &block_hash) const {
+    OUTCOME_TRY(header_opt,
+                getFromSpace(*storage_, Space::kHeader, block_hash));
+    if (header_opt.has_value()) {
+      return scale::decode<primitives::BlockHeader>(header_opt.value());
+    }
+    return BlockTreeError::HEADER_NOT_FOUND;
   }
 
   outcome::result<BlockStatus> BlockHeaderRepositoryImpl::getBlockStatus(

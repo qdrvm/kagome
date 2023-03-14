@@ -47,12 +47,6 @@ namespace kagome::blockchain {
   }
 
   /**
-   * Stores the mapping of block number to its hash
-   */
-  outcome::result<void> assignNumberToHash(
-      storage::SpacedStorage &storage, const primitives::BlockInfo &block_info);
-
-  /**
    * Returns block hash by number if any
    */
   outcome::result<std::optional<primitives::BlockHash>> blockHashByNumber(

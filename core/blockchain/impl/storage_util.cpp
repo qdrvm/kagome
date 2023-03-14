@@ -16,14 +16,6 @@ using kagome::storage::Space;
 
 namespace kagome::blockchain {
 
-  outcome::result<void> assignNumberToHash(
-      storage::SpacedStorage &storage,
-      const primitives::BlockInfo &block_info) {
-    auto num_to_hash_key = blockNumberToKey(block_info.number);
-    auto key_space = storage.getSpace(Space::kLookupKey);
-    return key_space->put(num_to_hash_key, block_info.hash);
-  }
-
   outcome::result<std::optional<common::BufferOrView>> blockIdToBlockHash(
       storage::SpacedStorage &storage, const primitives::BlockId &block_id) {
     return visit_in_place(

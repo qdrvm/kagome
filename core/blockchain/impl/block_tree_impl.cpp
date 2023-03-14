@@ -1221,6 +1221,24 @@ namespace kagome::blockchain {
 
   outcome::result<void> BlockTreeImpl::reorganize() {
     auto block = BlockTreeImpl::bestLeaf();
+
+    // Remove assigning of obsoleted best upper blocks chain
+    auto prev_max_best_block_number = block.number + 1;
+    for (;; ++prev_max_best_block_number) {
+      auto hash_res =
+          header_repo_->getHashByNumber(prev_max_best_block_number + 1);
+      if (hash_res.has_error()) {
+        if (hash_res == outcome::failure(BlockTreeError::HEADER_NOT_FOUND)) {
+          break;
+        }
+        return hash_res.as_failure();
+      }
+    }
+    for (auto number = prev_max_best_block_number; number > block.number;
+         --number) {
+      OUTCOME_TRY(storage_->deassignNumberToHash(number));
+    }
+
     auto hash_res = header_repo_->getHashByNumber(block.number);
     if (hash_res.has_error()) {
       if (hash_res != outcome::failure(BlockTreeError::HEADER_NOT_FOUND)) {
@@ -1230,6 +1248,7 @@ namespace kagome::blockchain {
       return outcome::success();
     }
 
+    // Rewrite earlier blocks sequence
     size_t count = 0;
     for (;;) {
       OUTCOME_TRY(storage_->assignNumberToHash(block));
