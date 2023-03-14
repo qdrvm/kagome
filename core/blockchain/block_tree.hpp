@@ -48,7 +48,7 @@ namespace kagome::blockchain {
 
     /**
      * Checks containing of block header by provided block id
-     * @param block id of the block header we are checking
+     * @param block_hash hash of the block header we are checking
      * @return containing block header or does not, or error
      */
     virtual outcome::result<bool> hasBlockHeader(
@@ -56,7 +56,7 @@ namespace kagome::blockchain {
 
     /**
      * Get block header by provided block id
-     * @param block id of the block header we are looking for
+     * @param block_hash hash of the block header we are looking for
      * @return result containing block header if it exists, error otherwise
      */
     virtual outcome::result<primitives::BlockHeader> getBlockHeader(
@@ -64,7 +64,7 @@ namespace kagome::blockchain {
 
     /**
      * Get a body (extrinsics) of the block (if present)
-     * @param block - id of the block to get body for
+     * @param block_hash hash of the block to get body for
      * @return body, if the block exists in our storage, error in case it does
      * not exist in our storage, or actual error happens
      */
@@ -73,7 +73,7 @@ namespace kagome::blockchain {
 
     /**
      * Get a justification of the block (if present)
-     * @param block - id of the block to get justification for
+     * @param block_hash hash of the block to get justification for
      * @return body, if the block exists in our storage, error in case it does
      * not exist in our storage, or actual error happens
      */

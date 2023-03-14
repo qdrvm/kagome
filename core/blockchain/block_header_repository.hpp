@@ -31,15 +31,14 @@ namespace kagome::blockchain {
     virtual ~BlockHeaderRepository() = default;
 
     /**
-     * @param hash - a blake2_256 hash of an SCALE encoded block header
-     * @return the number of the block with the provided hash in case one is in
-     * the storage or an error
+     * @return the number of the block with the provided {@param block_hash} in
+     * case one is in the storage or an error
      */
     virtual outcome::result<primitives::BlockNumber> getNumberByHash(
         const primitives::BlockHash &block_hash) const = 0;
 
     /**
-     * @param number - the number of a block, contained in a block header
+     * @param block_number - the number of a block, contained in a block header
      * @return the hash of the block with the provided number in case one is in
      * the storage or an error
      */
@@ -47,14 +46,14 @@ namespace kagome::blockchain {
         primitives::BlockNumber block_number) const = 0;
 
     /**
-     * @return block header with corresponding id or an error
+     * @return block header with corresponding {@param block_hash} or an error
      */
     virtual outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockHash &block_hash) const = 0;
 
     /**
-     * @param id of a block which status is returned
-     * @return status of a block or a storage error
+     * @return status of a block with corresponding {@param block_hash} or a
+     * storage error
      */
     virtual outcome::result<BlockStatus> getBlockStatus(
         const primitives::BlockHash &block_hash) const = 0;

@@ -76,7 +76,7 @@ namespace kagome::blockchain {
     // -- headers --
 
     /**
-     * Check if header existing by provided block {@param block_id}
+     * Check if header existing by provided block {@param block_hash}
      * @returns result or error
      */
     virtual outcome::result<bool> hasBlockHeader(
@@ -90,7 +90,7 @@ namespace kagome::blockchain {
         const primitives::BlockHeader &header) = 0;
 
     /**
-     * Tries to get block header by {@param block_id}
+     * Tries to get block header by {@param block_hash}
      * @returns block header or error
      */
     virtual outcome::result<std::optional<primitives::BlockHeader>>
@@ -108,7 +108,7 @@ namespace kagome::blockchain {
         const primitives::BlockBody &block_body) = 0;
 
     /**
-     * Tries to get block body by {@param block_id}
+     * Tries to get block body by {@param block_hash}
      * @returns block body or error
      */
     virtual outcome::result<std::optional<primitives::BlockBody>> getBlockBody(
@@ -133,7 +133,7 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash) = 0;
 
     /**
-     * Tries to get justification of block finality by {@param block_id}
+     * Tries to get justification of block finality by {@param block_hash}
      * @returns justification or error
      */
     virtual outcome::result<std::optional<primitives::Justification>>
@@ -157,7 +157,7 @@ namespace kagome::blockchain {
         const primitives::Block &block) = 0;
 
     /**
-     * Tries to get block data by {@param block_id}
+     * Tries to get block data by {@param block_hash}
      * @returns block data or error
      */
     virtual outcome::result<std::optional<primitives::BlockData>> getBlockData(
