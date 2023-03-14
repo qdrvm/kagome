@@ -1223,8 +1223,8 @@ namespace kagome::blockchain {
     auto block = BlockTreeImpl::bestLeaf();
 
     // Remove assigning of obsoleted best upper blocks chain
-    auto prev_max_best_block_number = block.number + 1;
-    for (;; ++prev_max_best_block_number) {
+    auto prev_max_best_block_number = block.number;
+    for (;;) {
       auto hash_res =
           header_repo_->getHashByNumber(prev_max_best_block_number + 1);
       if (hash_res.has_error()) {
@@ -1233,6 +1233,7 @@ namespace kagome::blockchain {
         }
         return hash_res.as_failure();
       }
+      ++prev_max_best_block_number;
     }
     for (auto number = prev_max_best_block_number; number > block.number;
          --number) {

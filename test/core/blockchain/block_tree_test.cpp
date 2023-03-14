@@ -128,6 +128,12 @@ struct BlockTreeTest : public testing::Test {
               return outcome::success();
             }));
 
+    EXPECT_CALL(*storage_, deassignNumberToHash(_))
+        .WillRepeatedly(Invoke([&](const auto &number) {
+          delNumToHash(number);
+          return outcome::success();
+        }));
+
     putNumToHash(kGenesisBlockInfo);
     putNumToHash(kFinalizedBlockInfo);
 
@@ -161,9 +167,6 @@ struct BlockTreeTest : public testing::Test {
     auto encoded_block = scale::encode(block).value();
     auto hash = hasher_->blake2b_256(encoded_block);
     primitives::BlockInfo block_info(block.header.number, hash);
-
-    EXPECT_CALL(*header_repo_, getNumberByHash(hash))
-        .WillRepeatedly(Return(block.header.number));
 
     EXPECT_CALL(*storage_, putBlock(block))
         .WillRepeatedly(Invoke([&](const auto &block) {
@@ -290,6 +293,9 @@ struct BlockTreeTest : public testing::Test {
                            num_to_hash_.end(),
                            [&](const auto &it) { return it.second == hash; });
     num_to_hash_.erase(it);
+  }
+  void delNumToHash(BlockNumber number) {
+    num_to_hash_.erase(number);
   }
 };
 
