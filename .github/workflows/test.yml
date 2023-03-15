@@ -145,8 +145,10 @@ jobs:
         options:
           - name: "Minideb: Build Debug"
             build-type: "Debug"
+            unity-build: "BATCH"
           - name: "Minideb: Build Release"
             build-type: "Release"
+            unity-build: "BATCH"
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
@@ -159,6 +161,7 @@ jobs:
       - name: "${{ matrix.options.name }}"
         env:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
+          UNITY_BUILD: "${{ matrix.options.unity-build }}"
         run: ./housekeeping/docker/kagome-dev/make.sh
 
   Push-self-hosted:
