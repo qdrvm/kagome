@@ -202,7 +202,17 @@ namespace kagome::consensus::grandpa {
     for (auto block_number = root_->block.number + 1;
          block_number <= finalized_block.number;
          ++block_number) {
-      auto block_header_res = block_tree_->getBlockHeader(block_number);
+      auto block_hash_res = block_tree_->getBlockHash(block_number);
+      if (block_hash_res.has_error()) {
+        SL_WARN(logger_,
+                "Can't get hash of an already finalized block #{}: {}",
+                block_number,
+                block_hash_res.error());
+        return block_hash_res.as_failure();
+      }
+      const auto &block_hash = block_hash_res.value();
+
+      auto block_header_res = block_tree_->getBlockHeader(block_hash);
       if (block_header_res.has_error()) {
         SL_WARN(logger_,
                 "Can't get header of an already finalized block #{}: {}",
@@ -211,9 +221,6 @@ namespace kagome::consensus::grandpa {
         return block_header_res.as_failure();
       }
       const auto &block_header = block_header_res.value();
-      // TODO(xDimon): Would be more efficient to take parent hash of next block
-      auto block_hash =
-          hasher_->blake2b_256(scale::encode(block_header).value());
 
       primitives::BlockContext context{.block_info = {block_number, block_hash},
                                        .header = block_header};
@@ -296,7 +303,8 @@ namespace kagome::consensus::grandpa {
           break;
         }
 
-        primitives::BlockContext context{.block_info = {block_header.number, hash}};
+        primitives::BlockContext context{
+            .block_info = {block_header.number, hash}};
 
         // This block was meet earlier
         if (digests.find(context) != digests.end()) {
@@ -406,9 +414,9 @@ namespace kagome::consensus::grandpa {
         auto ancestor_node = getNode({.block_info = savepoint_block});
         if (ancestor_node != nullptr) {
           auto node = ancestor_node->block == savepoint_block
-                          ? ancestor_node
-                          : ancestor_node->makeDescendant(
-                              savepoint_block, IsBlockFinalized{true});
+                        ? ancestor_node
+                        : ancestor_node->makeDescendant(savepoint_block,
+                                                        IsBlockFinalized{true});
           auto res = persistent_storage_->put(
               storage::kAuthorityManagerStateLookupKey(new_savepoint),
               storage::Buffer(scale::encode(node).value()));
@@ -801,8 +809,8 @@ namespace kagome::consensus::grandpa {
     auto descendants = std::move(node->descendants);
     for (auto &descendant : descendants) {
       auto &ancestor = context.block_info.number <= descendant->block.number
-                           ? new_node
-                           : node;
+                         ? new_node
+                         : node;
       ancestor->descendants.emplace_back(std::move(descendant));
     }
     node->descendants.emplace_back(std::move(new_node));

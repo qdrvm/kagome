@@ -16,32 +16,32 @@ namespace kagome::blockchain {
    public:
     MOCK_METHOD(outcome::result<primitives::BlockNumber>,
                 getNumberByHash,
-                (const common::Hash256 &hash),
+                (const primitives::BlockHash &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<common::Hash256>,
                 getHashByNumber,
-                (const primitives::BlockNumber &number),
+                (primitives::BlockNumber),
                 (const, override));
 
     MOCK_METHOD(outcome::result<primitives::BlockHeader>,
                 getBlockHeader,
-                (const primitives::BlockId &id),
+                (const primitives::BlockHash &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<kagome::blockchain::BlockStatus>,
                 getBlockStatus,
-                (const primitives::BlockId &id),
+                (const primitives::BlockHash &),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<common::Hash256>,
+    MOCK_METHOD(outcome::result<primitives::BlockHash>,
                 getHashById,
-                (const primitives::BlockId &id),
+                (const primitives::BlockId &),
                 (const));
 
     MOCK_METHOD(outcome::result<primitives::BlockNumber>,
                 getNumberById,
-                (const primitives::BlockId &id),
+                (const primitives::BlockId &),
                 (const));
   };
 }  // namespace kagome::blockchain

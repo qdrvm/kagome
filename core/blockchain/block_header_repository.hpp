@@ -31,33 +31,32 @@ namespace kagome::blockchain {
     virtual ~BlockHeaderRepository() = default;
 
     /**
-     * @param hash - a blake2_256 hash of an SCALE encoded block header
-     * @return the number of the block with the provided hash in case one is in
-     * the storage or an error
+     * @return the number of the block with the provided {@param block_hash} in
+     * case one is in the storage or an error
      */
     virtual outcome::result<primitives::BlockNumber> getNumberByHash(
-        const common::Hash256 &hash) const = 0;
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
-     * @param number - the number of a block, contained in a block header
+     * @param block_number - the number of a block, contained in a block header
      * @return the hash of the block with the provided number in case one is in
      * the storage or an error
      */
-    virtual outcome::result<common::Hash256> getHashByNumber(
-        const primitives::BlockNumber &number) const = 0;
+    virtual outcome::result<primitives::BlockHash> getHashByNumber(
+        primitives::BlockNumber block_number) const = 0;
 
     /**
-     * @return block header with corresponding id or an error
+     * @return block header with corresponding {@param block_hash} or an error
      */
     virtual outcome::result<primitives::BlockHeader> getBlockHeader(
-        const primitives::BlockId &id) const = 0;
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
-     * @param id of a block which status is returned
-     * @return status of a block or a storage error
+     * @return status of a block with corresponding {@param block_hash} or a
+     * storage error
      */
-    virtual outcome::result<kagome::blockchain::BlockStatus> getBlockStatus(
-        const primitives::BlockId &id) const = 0;
+    virtual outcome::result<BlockStatus> getBlockStatus(
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * @param id of a block which number is returned
@@ -65,12 +64,14 @@ namespace kagome::blockchain {
      * is not in storage or a storage error
      */
     outcome::result<primitives::BlockNumber> getNumberById(
-        const primitives::BlockId &id) const {
+        const primitives::BlockId &block_id) const {
       return visit_in_place(
-          id,
-          [](const primitives::BlockNumber &n) { return n; },
-          [this](const common::Hash256 &hash) {
-            return getNumberByHash(hash);
+          block_id,
+          [](const primitives::BlockNumber &block_number) {
+            return block_number;
+          },
+          [this](const primitives::BlockHash &block_hash) {
+            return getNumberByHash(block_hash);
           });
     }
 
@@ -79,14 +80,14 @@ namespace kagome::blockchain {
      * @return block hash or a none optional if the corresponding block header
      * is not in storage or a storage error
      */
-    outcome::result<common::Hash256> getHashById(
+    outcome::result<primitives::BlockHash> getHashById(
         const primitives::BlockId &id) const {
       return visit_in_place(
           id,
           [this](const primitives::BlockNumber &n) {
             return getHashByNumber(n);
           },
-          [](const common::Hash256 &hash) { return hash; });
+          [](const primitives::BlockHash &hash) { return hash; });
     }
   };
 
