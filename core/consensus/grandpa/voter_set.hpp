@@ -77,7 +77,7 @@ namespace kagome::consensus::grandpa {
    private:
     VoterSetId id_{};
     std::unordered_map<Id, Index> map_;
-    std::vector<std::tuple<const Id &, Weight>> list_;
+    std::vector<std::tuple<Id, Weight>> list_;
     size_t total_weight_{0};
 
     template <class Stream>

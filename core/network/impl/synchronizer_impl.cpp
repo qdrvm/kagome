@@ -10,6 +10,7 @@
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/grandpa/environment.hpp"
+#include "consensus/grandpa/has_authority_set_change.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
@@ -1194,9 +1195,11 @@ namespace kagome::network {
           static const BlockNumber kJustificationInterval = 512;
           static const BlockNumber kMaxJustificationLag = 5;
           auto last_finalized = block_tree_->getLastFinalized();
-          if ((block_info.number - kMaxJustificationLag)
-                  / kJustificationInterval
-              > last_finalized.number / kJustificationInterval) {
+          if (consensus::grandpa::HasAuthoritySetChange{*block_data.header}
+                  .scheduled
+              or (block_info.number - kMaxJustificationLag)
+                         / kJustificationInterval
+                     > last_finalized.number / kJustificationInterval) {
             //  Trying to substitute with justifications' request only
             for (const auto &peer_id : peers) {
               syncMissingJustifications(

@@ -673,6 +673,8 @@ namespace kagome::blockchain {
     }
     auto last_finalized_block_info = getLastFinalized();
 
+    auto justification_stored = false;
+
     if (node->depth > last_finalized_block_info.number) {
       SL_DEBUG(log_,
                "Finalizing block {}",
@@ -683,6 +685,9 @@ namespace kagome::blockchain {
         return BlockTreeError::HEADER_NOT_FOUND;
       }
       auto &header = header_opt.value();
+
+      OUTCOME_TRY(storage_->putJustification(justification, block_hash));
+      justification_stored = true;
 
       // update our local meta
       node->finalized = true;
@@ -736,7 +741,9 @@ namespace kagome::blockchain {
 
     KAGOME_PROFILE_START(justification_store)
 
-    OUTCOME_TRY(storage_->putJustification(justification, block_hash));
+    if (not justification_stored) {
+      OUTCOME_TRY(storage_->putJustification(justification, block_hash));
+    }
     SL_DEBUG(log_,
              "Store justification for finalized block #{} {}",
              node->depth,
