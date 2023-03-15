@@ -13,8 +13,8 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
-#include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
+#include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/digest.hpp"
@@ -510,9 +510,10 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   primitives::BlockInfo target_block{5, "A"_hash256};
   uint32_t delay = 10;
 
-  EXPECT_OUTCOME_SUCCESS(r1,
-                         authority_manager->onDigest({.block_info = target_block},
-                                                     primitives::Pause(delay)));
+  EXPECT_OUTCOME_SUCCESS(
+      r1,
+      authority_manager->onDigest({.block_info = target_block},
+                                  primitives::Pause(delay)));
 
   primitives::AuthoritySet new_authorities = old_authorities;
   for (auto &authority : new_authorities) {

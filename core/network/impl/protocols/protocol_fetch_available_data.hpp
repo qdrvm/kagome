@@ -62,7 +62,7 @@ namespace kagome::network {
 
     StatmentFetchingProtocol(
         libp2p::Host &host,
-        application::ChainSpec const & chain_spec,
+        application::ChainSpec const &chain_spec,
         const primitives::BlockHash &genesis_hash,
         std::shared_ptr<parachain::BackingStore> backing_store)
         : RequestResponseProtocol<
@@ -73,7 +73,8 @@ namespace kagome::network {
                                     make_protocols(kFetchStatementProtocol,
                                                    genesis_hash,
                                                    "polkadot"),
-                                    log::createLogger(kName, "req_statement_protocol")},
+                                    log::createLogger(
+                                        kName, "req_statement_protocol")},
           backing_store_{std::move(backing_store)} {}
 
    private:
