@@ -78,7 +78,7 @@ struct ListenerTest : public ::testing::Test {
     payload = 0xABCDEF;
 
     request = R"({"jsonrpc":"2.0","method":"echo","id":0,"params":[)"
-              + std::to_string(payload) + "]}";
+            + std::to_string(payload) + "]}";
     response =
         R"({"jsonrpc":"2.0","id":0,"result":)" + std::to_string(payload) + "}";
   }
@@ -116,7 +116,7 @@ struct ListenerTest : public ::testing::Test {
       std::make_shared<JrpcProcessorStub>(server, api)};
 
   std::shared_ptr<Listener> listener = std::make_shared<ListenerImpl>(
-      app_state_manager, main_context, listener_config, session_config);
+      *app_state_manager, main_context, listener_config, session_config);
 
   StorageSubscriptionEnginePtr storage_events_engine =
       std::make_shared<StorageSubscriptionEngine>();
@@ -134,7 +134,7 @@ struct ListenerTest : public ::testing::Test {
   std::shared_ptr<CoreMock> core = std::make_shared<CoreMock>();
 
   sptr<ApiService> service = std::make_shared<ApiServiceImpl>(
-      app_state_manager,
+      *app_state_manager,
       thread_pool,
       ApiServiceImpl::ListenerList{{listener}},
       server,

@@ -11,16 +11,14 @@
 #include "metrics/impl/session_impl.hpp"
 
 namespace kagome::metrics {
-  ExposerImpl::ExposerImpl(
-      const std::shared_ptr<application::AppStateManager> &app_state_manager,
-      Exposer::Configuration exposer_config,
-      Session::Configuration session_config)
+  ExposerImpl::ExposerImpl(application::AppStateManager &app_state_manager,
+                           Exposer::Configuration exposer_config,
+                           Session::Configuration session_config)
       : logger_{log::createLogger("OpenMetrics", "metrics")},
         context_{std::make_shared<Context>()},
         config_{std::move(exposer_config)},
         session_config_{session_config} {
-    BOOST_ASSERT(app_state_manager);
-    app_state_manager->takeControl(*this);
+    app_state_manager.takeControl(*this);
   }
 
   bool ExposerImpl::prepare() {

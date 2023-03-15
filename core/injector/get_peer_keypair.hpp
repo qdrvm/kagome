@@ -12,17 +12,10 @@
 #include "crypto/ed25519_provider.hpp"
 
 namespace kagome::injector {
-  inline const std::shared_ptr<libp2p::crypto::KeyPair> &get_peer_keypair(
+  inline std::shared_ptr<libp2p::crypto::KeyPair> get_peer_keypair(
       const application::AppConfiguration &app_config,
       const crypto::Ed25519Provider &crypto_provider,
       crypto::CryptoStore &crypto_store) {
-    static auto initialized =
-        std::optional<std::shared_ptr<libp2p::crypto::KeyPair>>(std::nullopt);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
     auto log = log::createLogger("Injector", "injector");
 
     if (app_config.nodeKey()) {
@@ -35,8 +28,7 @@ namespace kagome::injector {
       auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(
           crypto::ed25519KeyToLibp2pKeypair(provided_keypair));
 
-      initialized.emplace(std::move(key_pair));
-      return initialized.value();
+      return key_pair;
     }
 
     if (app_config.nodeKeyFile()) {
@@ -52,8 +44,7 @@ namespace kagome::injector {
       } else {
         auto key_pair =
             std::make_shared<libp2p::crypto::KeyPair>(std::move(key.value()));
-        initialized.emplace(std::move(key_pair));
-        return initialized.value();
+        return key_pair;
       }
     }
 
@@ -67,8 +58,7 @@ namespace kagome::injector {
       auto key_pair =
           std::make_shared<libp2p::crypto::KeyPair>(std::move(stored_keypair));
 
-      initialized.emplace(std::move(key_pair));
-      return initialized.value();
+      return key_pair;
     }
 
     log->warn(
@@ -94,8 +84,7 @@ namespace kagome::injector {
     auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(
         crypto::ed25519KeyToLibp2pKeypair(generated_keypair));
 
-    initialized.emplace(std::move(key_pair));
-    return initialized.value();
+    return key_pair;
   }
 }  // namespace kagome::injector
 

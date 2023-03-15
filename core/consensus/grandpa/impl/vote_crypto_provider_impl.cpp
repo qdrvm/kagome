@@ -12,7 +12,7 @@
 namespace kagome::consensus::grandpa {
 
   VoteCryptoProviderImpl::VoteCryptoProviderImpl(
-      const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
+      std::shared_ptr<crypto::Ed25519Keypair> keypair,
       std::shared_ptr<kagome::crypto::Ed25519Provider> ed_provider,
       RoundNumber round_number,
       std::shared_ptr<VoterSet> voter_set)

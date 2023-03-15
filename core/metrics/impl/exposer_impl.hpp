@@ -19,10 +19,9 @@ namespace kagome::metrics {
     log::Logger logger_;
 
    public:
-    ExposerImpl(
-        const std::shared_ptr<application::AppStateManager> &app_state_manager,
-        Exposer::Configuration exposer_config,
-        Session::Configuration session_config);
+    ExposerImpl(application::AppStateManager &app_state_manager,
+                Exposer::Configuration exposer_config,
+                Session::Configuration session_config);
 
     ~ExposerImpl() override = default;
 

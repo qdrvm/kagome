@@ -10,6 +10,10 @@
 #include "crypto/crypto_store/key_type.hpp"
 #include "network/types/roles.hpp"
 
+namespace kagome::application {
+  class AppConfiguration;
+}  // namespace kagome::application
+
 namespace kagome::crypto {
 
   class CryptoStore;
@@ -37,7 +41,7 @@ namespace kagome::crypto {
 
    public:
     SessionKeys(std::shared_ptr<CryptoStore> store,
-                const network::Roles &roles);
+                const application::AppConfiguration &config);
 
     /**
      * @return current BABE session key pair

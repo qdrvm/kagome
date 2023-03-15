@@ -16,7 +16,7 @@ namespace {
 
 namespace kagome::api {
   WsListenerImpl::WsListenerImpl(
-      const std::shared_ptr<application::AppStateManager> &app_state_manager,
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<Context> context,
       Configuration listener_config,
       SessionImpl::Configuration session_config)
@@ -27,8 +27,6 @@ namespace kagome::api {
         next_session_id_{1ull},
         active_connections_{0},
         log_{log::createLogger("RpcWsListener", "rpc_transport")} {
-    BOOST_ASSERT(app_state_manager);
-
     // Register metrics
     registry_->registerCounterFamily(
         openedRpcSessionMetricName, "Number of persistent RPC sessions opened");
@@ -39,7 +37,7 @@ namespace kagome::api {
     closed_session_ =
         registry_->registerCounterMetric(closedRpcSessionMetricName);
 
-    app_state_manager->takeControl(*this);
+    app_state_manager.takeControl(*this);
   }
 
   bool WsListenerImpl::prepare() {

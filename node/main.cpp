@@ -60,22 +60,22 @@ int main(int argc, const char **argv) {
 
   auto logger = kagome::log::createLogger("AppConfiguration",
                                           kagome::log::defaultGroupName);
-  AppConfigurationImpl configuration{logger};
+  auto configuration = std::make_shared<AppConfigurationImpl>(logger);
 
   kagome::common::setFdLimit(SIZE_MAX);
 
-  if (configuration.initializeFromArgs(argc, argv)) {
-    kagome::log::tuneLoggingSystem(configuration.log());
+  if (configuration->initializeFromArgs(argc, argv)) {
+    kagome::log::tuneLoggingSystem(configuration->log());
 
     auto app = std::make_shared<kagome::application::KagomeApplicationImpl>(
         configuration);
 
-    if (configuration.subcommandChainInfo()) {
+    if (configuration->subcommandChainInfo()) {
       return app->chainInfo();
     }
 
     // Recovery mode
-    if (configuration.recoverState().has_value()) {
+    if (configuration->recoverState().has_value()) {
       return app->recovery();
     }
 

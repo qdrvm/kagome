@@ -5,13 +5,23 @@
 
 #include "crypto/crypto_store/session_keys.hpp"
 
+#include "application/app_configuration.hpp"
 #include "crypto/crypto_store.hpp"
 
 namespace kagome::crypto {
 
   SessionKeys::SessionKeys(std::shared_ptr<CryptoStore> store,
-                           const network::Roles &roles)
-      : roles_(roles), store_(store) {}
+                           const application::AppConfiguration &config)
+      : roles_(config.roles()), store_(store) {
+    if (auto dev = config.devMnemonicPhrase()) {
+      store_->generateEd25519Keypair(KEY_TYPE_GRAN, *dev).value();
+      store_->generateSr25519Keypair(KEY_TYPE_BABE, *dev).value();
+      store_->generateSr25519Keypair(KEY_TYPE_IMON, *dev).value();
+      store_->generateSr25519Keypair(KEY_TYPE_AUDI, *dev).value();
+      store_->generateSr25519Keypair(KEY_TYPE_ASGN, *dev).value();
+      store_->generateSr25519Keypair(KEY_TYPE_PARA, *dev).value();
+    }
+  }
 
   const std::shared_ptr<Sr25519Keypair> &SessionKeys::getBabeKeyPair() {
     if (!babe_key_pair_ && roles_.flags.authority) {

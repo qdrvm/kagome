@@ -25,7 +25,7 @@ namespace kagome::application {
    public:
     ~KagomeApplicationImpl() override = default;
 
-    explicit KagomeApplicationImpl(const AppConfiguration &config);
+    explicit KagomeApplicationImpl(std::shared_ptr<AppConfiguration> config);
 
     int chainInfo() override;
 
@@ -34,7 +34,7 @@ namespace kagome::application {
     void run() override;
 
    private:
-    const AppConfiguration &app_config_;
+    std::shared_ptr<AppConfiguration> app_config_;
     uptr<injector::KagomeNodeInjector> injector_;
     log::Logger logger_;
 

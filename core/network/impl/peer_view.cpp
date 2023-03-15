@@ -10,7 +10,7 @@
 namespace kagome::network {
 
   PeerView::PeerView(
-      const primitives::events::ChainSubscriptionEnginePtr &chain_events_engine,
+      primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<application::AppStateManager> app_state_manager)
       : chain_events_engine_{chain_events_engine},
         my_view_update_observable_{

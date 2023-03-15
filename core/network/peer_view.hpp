@@ -45,8 +45,7 @@ namespace kagome::network {
     using PeerViewSubscriber = PeerViewSubscriptionEngine::SubscriberType;
     using PeerViewSubscriberPtr = std::shared_ptr<PeerViewSubscriber>;
 
-    PeerView(const primitives::events::ChainSubscriptionEnginePtr
-                 &chain_events_engine,
+    PeerView(primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
              std::shared_ptr<application::AppStateManager> app_state_manager);
     ~PeerView() = default;
     void setBlockTree(std::shared_ptr<blockchain::BlockTree> block_tree);

@@ -83,7 +83,7 @@ class BabeConfigRepositoryTest : public testing::Test {
     clock = std::make_shared<SystemClockMock>();
 
     babe_config_repo_ =
-        std::make_shared<BabeConfigRepositoryImpl>(app_state_manager,
+        std::make_shared<BabeConfigRepositoryImpl>(*app_state_manager,
                                                    spaced_storage,
                                                    block_tree,
                                                    header_repo,
