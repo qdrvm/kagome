@@ -39,38 +39,46 @@ namespace kagome::blockchain {
     virtual const primitives::BlockHash &getGenesisBlockHash() const = 0;
 
     /**
+     * Get block hash by provided block number
+     * @param block_number of the block header we are looking for
+     * @return result containing block hash if it exists, error otherwise
+     */
+    virtual outcome::result<primitives::BlockHash> getBlockHash(
+        primitives::BlockNumber block_number) const = 0;
+
+    /**
      * Checks containing of block header by provided block id
-     * @param block id of the block header we are checking
+     * @param block_hash hash of the block header we are checking
      * @return containing block header or does not, or error
      */
     virtual outcome::result<bool> hasBlockHeader(
-        const primitives::BlockId &block) const = 0;
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * Get block header by provided block id
-     * @param block id of the block header we are looking for
+     * @param block_hash hash of the block header we are looking for
      * @return result containing block header if it exists, error otherwise
      */
     virtual outcome::result<primitives::BlockHeader> getBlockHeader(
-        const primitives::BlockId &block) const = 0;
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * Get a body (extrinsics) of the block (if present)
-     * @param block - id of the block to get body for
+     * @param block_hash hash of the block to get body for
      * @return body, if the block exists in our storage, error in case it does
      * not exist in our storage, or actual error happens
      */
     virtual outcome::result<primitives::BlockBody> getBlockBody(
-        const primitives::BlockId &block) const = 0;
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * Get a justification of the block (if present)
-     * @param block - id of the block to get justification for
+     * @param block_hash hash of the block to get justification for
      * @return body, if the block exists in our storage, error in case it does
      * not exist in our storage, or actual error happens
      */
     virtual outcome::result<primitives::Justification> getBlockJustification(
-        const primitives::BlockId &block) const = 0;
+        const primitives::BlockHash &block_hash) const = 0;
 
     /**
      * Adds header to the storage
@@ -90,7 +98,6 @@ namespace kagome::blockchain {
      * @return result with success if block body was inserted. Error otherwise
      */
     virtual outcome::result<void> addBlockBody(
-        primitives::BlockNumber block_number,
         const primitives::BlockHash &block_hash,
         const primitives::BlockBody &block_body) = 0;
 

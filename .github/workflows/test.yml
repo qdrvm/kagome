@@ -161,7 +161,7 @@ jobs:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome-dev/make.sh
 
-  Push:
+  Push-self-hosted:
     if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
     needs: [clang-tidy, MacOS]
     strategy:
@@ -172,37 +172,6 @@ jobs:
             build-type: "Debug"
           - name: "Push Release Docker image"
             build-type: "Release"
-    runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
-    steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - run: git fetch --prune --unshallow
-      - name: build
-        env:
-          BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome-dev/make.sh
-      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
-        with:
-          login-server: https://index.docker.io/v1/
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-      - name: docker pack and push
-        env:
-          VERSION: ${{ github.ref }}
-          BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome/build_and_push.sh
-
-  Push-self-hosted:
-    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-    needs: [clang-tidy, MacOS]
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
           - name: "Push RelWithDebInfo Docker image"
             build-type: "RelWithDebInfo"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
@@ -232,7 +201,7 @@ jobs:
 
   Trigger_CD:
     if: ${{ github.ref == 'refs/heads/master' }}
-    needs: [Push, Push-self-hosted]
+    needs: [Push-self-hosted]
     runs-on: ubuntu-latest
     steps:
       - name: trigger cd job

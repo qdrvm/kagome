@@ -17,8 +17,8 @@ namespace kagome::storage {
         rocksdb::kDefaultColumnFamilyName,
         "lookup_key",
         "header",
+        "block_body",
         "justification",
-        "block_data",
         "trie_node",
     };
     assert(names.size() == Space::kTotal);

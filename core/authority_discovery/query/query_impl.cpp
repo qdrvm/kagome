@@ -53,7 +53,8 @@ namespace kagome::authority_discovery {
             kIntervalMax,
             std::move(scheduler),
         },
-        log_{log::createLogger("AuthorityDiscoveryQuery")} {
+        log_{log::createLogger("AuthorityDiscoveryQuery",
+                               "authority_discovery")} {
     app_state_manager->atLaunch([=] { return start(); });
   }
 

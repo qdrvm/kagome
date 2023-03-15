@@ -205,7 +205,17 @@ namespace kagome::consensus::grandpa {
     for (auto block_number = root_->block.number + 1;
          block_number <= finalized_block.number;
          ++block_number) {
-      auto block_header_res = block_tree_->getBlockHeader(block_number);
+      auto block_hash_res = block_tree_->getBlockHash(block_number);
+      if (block_hash_res.has_error()) {
+        SL_WARN(logger_,
+                "Can't get hash of an already finalized block #{}: {}",
+                block_number,
+                block_hash_res.error());
+        return block_hash_res.as_failure();
+      }
+      const auto &block_hash = block_hash_res.value();
+
+      auto block_header_res = block_tree_->getBlockHeader(block_hash);
       if (block_header_res.has_error()) {
         SL_WARN(logger_,
                 "Can't get header of an already finalized block #{}: {}",
@@ -214,9 +224,6 @@ namespace kagome::consensus::grandpa {
         return block_header_res.as_failure();
       }
       const auto &block_header = block_header_res.value();
-      // TODO(xDimon): Would be more efficient to take parent hash of next block
-      auto block_hash =
-          hasher_->blake2b_256(scale::encode(block_header).value());
 
       primitives::BlockContext context{
           .block_info = {block_number, block_hash},

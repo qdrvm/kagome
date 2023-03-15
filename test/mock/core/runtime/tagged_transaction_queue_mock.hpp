@@ -12,7 +12,7 @@
 
 namespace kagome::runtime {
   struct TaggedTransactionQueueMock : public TaggedTransactionQueue {
-    MOCK_METHOD(outcome::result<primitives::TransactionValidity>,
+    MOCK_METHOD(outcome::result<TransactionValidityAt>,
                 validate_transaction,
                 (primitives::TransactionSource, const primitives::Extrinsic &),
                 (override));

@@ -69,8 +69,7 @@ namespace kagome::parachain {
       auto data = context_.signable(*hasher_, payload);
       OUTCOME_TRY(signature, sr25519_provider_->sign(*keypair_, data));
       return parachain::IndexedAndSigned<T>{
-          std::move(payload),
-          validator_index_,
+          {std::move(payload), validator_index_},
           signature,
       };
     }

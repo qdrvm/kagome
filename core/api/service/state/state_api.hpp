@@ -51,12 +51,21 @@ namespace kagome::api {
       std::vector<Change> changes;
     };
 
+    struct ReadProof {
+      primitives::BlockHash at;
+      std::vector<common::Buffer> proof;
+    };
+
     virtual outcome::result<std::vector<StorageChangeSet>> queryStorage(
         gsl::span<const common::Buffer> keys,
         const primitives::BlockHash &from,
         std::optional<primitives::BlockHash> to) const = 0;
 
     virtual outcome::result<std::vector<StorageChangeSet>> queryStorageAt(
+        gsl::span<const common::Buffer> keys,
+        std::optional<primitives::BlockHash> at) const = 0;
+
+    virtual outcome::result<ReadProof> getReadProof(
         gsl::span<const common::Buffer> keys,
         std::optional<primitives::BlockHash> at) const = 0;
 
