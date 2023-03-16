@@ -998,17 +998,17 @@ namespace {
             [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::babe::BlockHeaderAppender>.template to<consensus::babe::BlockHeaderAppenderImpl>(),
-        di::bind<consensus::babe::BlockExecutor>.to<consensus::babe::BlockExecutorImpl>(),
+        di::bind<consensus::babe::BlockExecutor>.template to<consensus::babe::BlockExecutorImpl>(),
         bind_by_lambda<consensus::grandpa::GrandpaImpl>(
             [](auto &&injector) { return get_grandpa_impl(injector); }),
         bind_by_lambda<consensus::grandpa::Grandpa>([](auto const &injector) {
           return injector
               .template create<sptr<consensus::grandpa::GrandpaImpl>>();
         }),
-        di::bind<consensus::grandpa::RoundObserver>.to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::CatchUpObserver>.to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::NeighborObserver>.to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::GrandpaObserver>.to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::NeighborObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::babe::BabeUtil>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
         di::bind<network::BlockAnnounceTransmitter>.template to<network::BlockAnnounceTransmitterImpl>(),
         di::bind<network::GrandpaTransmitter>.template to<network::GrandpaTransmitterImpl>(),
@@ -1215,7 +1215,7 @@ namespace {
           return injector.template create<sptr<consensus::babe::BabeImpl>>();
         }),
         di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
-        di::bind<network::BlockAnnounceObserver>.to<consensus::babe::BabeImpl>(),
+        di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1241,104 +1241,114 @@ namespace kagome::injector {
           makeKagomeNodeInjector(app_config))} {}
 
   sptr<application::ChainSpec> KagomeNodeInjector::injectChainSpec() {
-    return pimpl_->injector_.create<sptr<application::ChainSpec>>();
+    return pimpl_->injector_.template create<sptr<application::ChainSpec>>();
   }
 
   std::shared_ptr<blockchain::BlockStorage>
   KagomeNodeInjector::injectBlockStorage() {
-    return pimpl_->injector_.create<sptr<blockchain::BlockStorage>>();
+    return pimpl_->injector_.template create<sptr<blockchain::BlockStorage>>();
   }
 
   sptr<application::AppStateManager>
   KagomeNodeInjector::injectAppStateManager() {
-    return pimpl_->injector_.create<sptr<application::AppStateManager>>();
+    return pimpl_->injector_
+        .template create<sptr<application::AppStateManager>>();
   }
 
   sptr<boost::asio::io_context> KagomeNodeInjector::injectIoContext() {
-    return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
+    return pimpl_->injector_.template create<sptr<boost::asio::io_context>>();
   }
 
   sptr<metrics::Exposer> KagomeNodeInjector::injectOpenMetricsService() {
     // registry here is temporary, it initiates static global registry
     // and registers handler in there
     auto registry = metrics::createRegistry();
-    auto handler = pimpl_->injector_.create<sptr<metrics::Handler>>();
+    auto handler = pimpl_->injector_.template create<sptr<metrics::Handler>>();
     registry->setHandler(*handler.get());
-    auto exposer = pimpl_->injector_.create<sptr<metrics::Exposer>>();
+    auto exposer = pimpl_->injector_.template create<sptr<metrics::Exposer>>();
     exposer->setHandler(handler);
     return exposer;
   }
 
   sptr<network::Router> KagomeNodeInjector::injectRouter() {
-    return pimpl_->injector_.create<sptr<network::Router>>();
+    return pimpl_->injector_.template create<sptr<network::Router>>();
   }
 
   sptr<network::PeerManager> KagomeNodeInjector::injectPeerManager() {
-    return pimpl_->injector_.create<sptr<network::PeerManager>>();
+    return pimpl_->injector_.template create<sptr<network::PeerManager>>();
   }
 
   sptr<api::ApiService> KagomeNodeInjector::injectRpcApiService() {
-    return pimpl_->injector_.create<sptr<api::ApiService>>();
+    return pimpl_->injector_.template create<sptr<api::ApiService>>();
   }
 
   std::shared_ptr<clock::SystemClock> KagomeNodeInjector::injectSystemClock() {
-    return pimpl_->injector_.create<sptr<clock::SystemClock>>();
+    return pimpl_->injector_.template create<sptr<clock::SystemClock>>();
   }
 
   std::shared_ptr<network::StateProtocolObserver>
   KagomeNodeInjector::injectStateObserver() {
-    return pimpl_->injector_.create<sptr<network::StateProtocolObserver>>();
+    return pimpl_->injector_
+        .template create<sptr<network::StateProtocolObserver>>();
   }
 
   std::shared_ptr<network::SyncProtocolObserver>
   KagomeNodeInjector::injectSyncObserver() {
-    return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
+    return pimpl_->injector_
+        .template create<sptr<network::SyncProtocolObserver>>();
   }
 
   std::shared_ptr<parachain::ParachainObserverImpl>
   KagomeNodeInjector::injectParachainObserver() {
-    return pimpl_->injector_.create<sptr<parachain::ParachainObserverImpl>>();
+    return pimpl_->injector_
+        .template create<sptr<parachain::ParachainObserverImpl>>();
   }
 
   std::shared_ptr<parachain::ParachainProcessorImpl>
   KagomeNodeInjector::injectParachainProcessor() {
-    return pimpl_->injector_.create<sptr<parachain::ParachainProcessorImpl>>();
+    return pimpl_->injector_
+        .template create<sptr<parachain::ParachainProcessorImpl>>();
   }
 
   std::shared_ptr<parachain::ApprovalDistribution>
   KagomeNodeInjector::injectApprovalDistribution() {
-    return pimpl_->injector_.create<sptr<parachain::ApprovalDistribution>>();
+    return pimpl_->injector_
+        .template create<sptr<parachain::ApprovalDistribution>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {
-    return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
+    return pimpl_->injector_.template create<sptr<consensus::babe::Babe>>();
   }
 
   std::shared_ptr<consensus::grandpa::Grandpa>
   KagomeNodeInjector::injectGrandpa() {
-    return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
+    return pimpl_->injector_
+        .template create<sptr<consensus::grandpa::Grandpa>>();
   }
 
   std::shared_ptr<soralog::LoggingSystem>
   KagomeNodeInjector::injectLoggingSystem() {
     return std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
-            pimpl_->injector_.create<sptr<libp2p::log::Configurator>>()));
+            pimpl_->injector_
+                .template create<sptr<libp2p::log::Configurator>>()));
   }
 
   std::shared_ptr<storage::trie::TrieStorage>
   KagomeNodeInjector::injectTrieStorage() {
-    return pimpl_->injector_.create<sptr<storage::trie::TrieStorage>>();
+    return pimpl_->injector_
+        .template create<sptr<storage::trie::TrieStorage>>();
   }
 
   std::shared_ptr<metrics::MetricsWatcher>
   KagomeNodeInjector::injectMetricsWatcher() {
-    return pimpl_->injector_.create<sptr<metrics::MetricsWatcher>>();
+    return pimpl_->injector_.template create<sptr<metrics::MetricsWatcher>>();
   }
 
   std::shared_ptr<telemetry::TelemetryService>
   KagomeNodeInjector::injectTelemetryService() {
-    return pimpl_->injector_.create<sptr<telemetry::TelemetryService>>();
+    return pimpl_->injector_
+        .template create<sptr<telemetry::TelemetryService>>();
   }
 
   std::shared_ptr<application::mode::PrintChainInfoMode>
@@ -1349,19 +1359,20 @@ namespace kagome::injector {
 
   std::shared_ptr<application::mode::RecoveryMode>
   KagomeNodeInjector::injectRecoveryMode() {
-    return pimpl_->injector_.create<sptr<application::mode::RecoveryMode>>();
+    return pimpl_->injector_
+        .template create<sptr<application::mode::RecoveryMode>>();
   }
 
   std::shared_ptr<blockchain::BlockTree> KagomeNodeInjector::injectBlockTree() {
-    return pimpl_->injector_.create<sptr<blockchain::BlockTree>>();
+    return pimpl_->injector_.template create<sptr<blockchain::BlockTree>>();
   }
 
   std::shared_ptr<runtime::Executor> KagomeNodeInjector::injectExecutor() {
-    return pimpl_->injector_.create<sptr<runtime::Executor>>();
+    return pimpl_->injector_.template create<sptr<runtime::Executor>>();
   }
 
   std::shared_ptr<storage::SpacedStorage> KagomeNodeInjector::injectStorage() {
-    return pimpl_->injector_.create<sptr<storage::SpacedStorage>>();
+    return pimpl_->injector_.template create<sptr<storage::SpacedStorage>>();
   }
 
 }  // namespace kagome::injector
