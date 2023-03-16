@@ -143,8 +143,49 @@ jobs:
           ./housekeeping/clang-tidy-diff.sh
 
   coverage:
+    if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
     name: "Linux: gcc-10 coverage/sonar"
     runs-on: ubuntu-latest
+    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - name: df du
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - name: Install mold
+        run: ./housekeeping/ci_install_mold.sh --make-default
+      - name: makeBuild
+        env:
+          BUILD_FINAL_TARGET: ctest_coverage
+        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        name: Submit Coverage
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
+      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        name: Sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ github.ref }}
+        run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
+
+  coverage-self-hosted:
+    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    name: "Linux: gcc-10 coverage/sonar"
+    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
