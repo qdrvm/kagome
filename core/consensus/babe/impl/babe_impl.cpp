@@ -487,6 +487,10 @@ namespace kagome::consensus::babe {
             // Synced
             if (self->current_state_ == Babe::State::SYNCHRONIZED) {
               self->onSynchronized();
+              // Set actual block status
+              announce.state = block == self->block_tree_->bestLeaf()
+                                 ? network::BlockState::Best
+                                 : network::BlockState::Normal;
               // Propagate announce
               self->block_announce_transmitter_->blockAnnounce(
                   std::move(announce));
