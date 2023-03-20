@@ -24,6 +24,9 @@ namespace kagome::parachain {
     /// Get bitfields for given block.
     virtual std::vector<SignedBitfield> getBitfields(
         const BlockHash &relay_parent) const = 0;
+
+    /// Clears all data relative relay_parent
+    virtual void remove(const BlockHash &relay_parent) = 0;
   };
 }  // namespace kagome::parachain
 

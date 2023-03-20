@@ -21,6 +21,10 @@ namespace kagome::parachain {
     bitfields_[relay_parent].push_back(bitfield);
   }
 
+  void BitfieldStoreImpl::remove(const BlockHash &relay_parent) {
+    bitfields_.erase(relay_parent);
+  }
+
   std::vector<BitfieldStore::SignedBitfield> BitfieldStoreImpl::getBitfields(
       const BlockHash &relay_parent) const {
     auto it = bitfields_.find(relay_parent);
