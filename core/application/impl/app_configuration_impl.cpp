@@ -82,8 +82,8 @@ namespace {
   const std::optional<kagome::primitives::BlockId> def_block_to_recover =
       std::nullopt;
   const auto def_offchain_worker = "WhenValidating";
-  const uint32_t def_out_peers = 25;
-  const uint32_t def_in_peers = 25;
+  const uint32_t def_out_peers = 75;
+  const uint32_t def_in_peers = 75;
   const uint32_t def_in_peers_light = 100;
   const auto def_lucky_peers = 4;
   const uint32_t def_random_walk_interval = 15;
