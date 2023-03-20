@@ -177,6 +177,8 @@ namespace kagome::parachain {
           self->pending_candidates.exclusiveAccess(
               [&](auto &container) { container.erase(lost); });
           self->backing_store_->remove(lost);
+          self->av_store_->remove(lost);
+          self->bitfield_store_->remove(lost);
         }
 
         if (auto r = self->canProcessParachains(); r.has_error()) {
@@ -401,6 +403,14 @@ namespace kagome::parachain {
       auto bd{boost::get<network::BitfieldDistribution>(m)};
       BOOST_ASSERT_MSG(
           bd, "BitfieldDistribution is not present. Check message format.");
+
+      auto opt_parachain_state = tryGetStateByRelayParent(bd->relay_parent);
+      if (!opt_parachain_state) {
+        logger_->debug("Handled bitfield from {}:{} out of view",
+                       peer_id,
+                       bd->relay_parent);
+        return;
+      }
 
       logger_->info(
           "Imported bitfield {} {}", bd->data.payload.ix, bd->relay_parent);
@@ -1213,10 +1223,12 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::notifyAvailableData(
       std::vector<network::ErasureChunk> &&chunks,
+      primitives::BlockHash const &relay_parent,
       network::CandidateHash const &candidate_hash,
       network::ParachainBlock const &pov,
       runtime::PersistedValidationData const &data) {
     makeTrieProof(chunks);
+    av_store_->registerCandidate(relay_parent, candidate_hash);
     av_store_->putChunkSet(candidate_hash, std::move(chunks));
     logger_->trace("Put chunks set.(candidate={})", candidate_hash);
 
@@ -1253,6 +1265,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(chunks, validateErasureCoding(available_data, n_validators));
 
     notifyAvailableData(std::move(chunks),
+                        relay_parent,
                         candidate_hash,
                         available_data.pov,
                         available_data.validation_data);

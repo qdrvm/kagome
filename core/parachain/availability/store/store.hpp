@@ -54,6 +54,11 @@ namespace kagome::parachain {
     /// Store PersistedValidationData
     virtual void putData(const CandidateHash &candidate_hash,
                          const PersistedValidationData &data) = 0;
+    /// Registers relay_parent -> candidate_hash
+    virtual void registerCandidate(network::RelayHash const &relay_parent,
+                                   CandidateHash const &candidate_hash) = 0;
+    /// Clears all data according to this relay_parent
+    virtual void remove(network::RelayHash const &relay_parent) = 0;
   };
 }  // namespace kagome::parachain
 
