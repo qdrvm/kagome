@@ -23,6 +23,8 @@ namespace kagome::parachain {
                 getBitfields,
                 (const primitives::BlockHash &),
                 (const, override));
+
+    MOCK_METHOD(void, remove, (const BlockHash &), (override));
   };
 
 }  // namespace kagome::parachain
