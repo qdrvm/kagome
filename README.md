@@ -2,7 +2,6 @@
 
 [![CodeFactor](https://www.codefactor.io/repository/github/soramitsu/kagome/badge)](https://www.codefactor.io/repository/github/soramitsu/kagome)
 [![codecov](https://codecov.io/gh/soramitsu/kagome/branch/master/graph/badge.svg)](https://codecov.io/gh/soramitsu/kagome)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/ad6fa504-99d6-48fb-9a05-869ba1d9a7c3/deploy-status)](https://app.netlify.com/sites/kagome/deploys)
 [![](https://img.shields.io/twitter/follow/Soramitsu_co?label=Follow&style=social)](https://twitter.com/Soramitsu_co)
 
 ## Intro
@@ -61,7 +60,7 @@ make debug_docker
 make clear
 ```
 
-### Executing KAGOME node
+### Using KAGOME
 
 #### Obtaining database snapshot (optional)
 
@@ -120,6 +119,9 @@ kagome --validator --chain localchain.json --base-path base_path
 
 This command executes a KAGOME full node with an authority role.
 
+#### Run KAGOME with collator
+
+Read [this](./examples/adder-collator) tutorial
 
 ### Configuration Details
 To run a KAGOME node, you need to provide it with a genesis config, cryptographic keys, and a place to store db files.

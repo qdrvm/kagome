@@ -341,6 +341,7 @@ namespace kagome::parachain {
     }
     void notifyBackedCandidate(network::SignedStatement const &statement);
     void notifyAvailableData(std::vector<network::ErasureChunk> &&chunk_list,
+                             primitives::BlockHash const &relay_parent,
                              network::CandidateHash const &candidate_hash,
                              network::ParachainBlock const &pov,
                              runtime::PersistedValidationData const &data);
