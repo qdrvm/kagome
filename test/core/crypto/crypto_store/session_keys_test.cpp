@@ -6,9 +6,11 @@
 #include <gtest/gtest.h>
 
 #include "crypto/crypto_store/session_keys.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/crypto/crypto_store_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::application::AppConfigurationMock;
 using namespace kagome;
 using namespace crypto;
 
@@ -25,9 +27,12 @@ struct SessionKeysTest : public ::testing::Test {
   void SetUp() override {
     store = std::make_shared<CryptoStoreMock>();
     role.flags.authority = 1;
-    session_keys = std::make_shared<SessionKeys>(store, role);
+    EXPECT_CALL(*config, roles()).WillOnce(Return(role));
+    session_keys = std::make_shared<SessionKeys>(store, *config);
   }
 
+  std::shared_ptr<AppConfigurationMock> config =
+      std::make_shared<AppConfigurationMock>();
   network::Roles role;
   std::shared_ptr<CryptoStoreMock> store;
   std::shared_ptr<SessionKeys> session_keys;

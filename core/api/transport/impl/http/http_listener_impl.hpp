@@ -26,11 +26,10 @@ namespace kagome::api {
    public:
     using SessionImpl = HttpSession;
 
-    HttpListenerImpl(
-        const std::shared_ptr<application::AppStateManager> &app_state_manager,
-        std::shared_ptr<Context> context,
-        Configuration listener_config,
-        SessionImpl::Configuration session_config);
+    HttpListenerImpl(application::AppStateManager &app_state_manager,
+                     std::shared_ptr<Context> context,
+                     Configuration listener_config,
+                     SessionImpl::Configuration session_config);
 
     ~HttpListenerImpl() override = default;
 

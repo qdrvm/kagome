@@ -10,6 +10,7 @@
 #include <mock/libp2p/crypto/key_marshaller_mock.hpp>
 #include <mock/libp2p/host/host_mock.hpp>
 
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/crypto_store_mock.hpp"
@@ -19,6 +20,7 @@
 #include "mock/libp2p/protocol/kademlia/kademlia_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::application::AppConfigurationMock;
 using kagome::application::AppStateManagerMock;
 using kagome::authority_discovery::AddressPublisher;
 using kagome::blockchain::BlockTreeMock;
@@ -46,7 +48,8 @@ struct AddressPublisherTest : public testing::Test {
 
   void SetUp() override {
     roles_.flags.authority = 1;
-    session_keys_ = std::make_shared<SessionKeys>(crypto_store_, roles_);
+    EXPECT_CALL(*config_, roles()).WillOnce(Return(roles_));
+    session_keys_ = std::make_shared<SessionKeys>(crypto_store_, *config_);
     libp2p_key_.privateKey.type = libp2p::crypto::Key::Type::Ed25519;
     libp2p_key_.privateKey.data.resize(Ed25519PrivateKey::size());
     libp2p_key_.publicKey.data.resize(Ed25519PublicKey::size());
@@ -70,6 +73,8 @@ struct AddressPublisherTest : public testing::Test {
                                                     scheduler_);
   }
 
+  std::shared_ptr<AppConfigurationMock> config_ =
+      std::make_shared<AppConfigurationMock>();
   std::shared_ptr<AuthorityDiscoveryApiMock> authority_discovery_api_ =
       std::make_shared<AuthorityDiscoveryApiMock>();
   Roles roles_;

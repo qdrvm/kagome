@@ -13,7 +13,7 @@
 
 namespace kagome::api {
   HttpListenerImpl::HttpListenerImpl(
-      const std::shared_ptr<application::AppStateManager> &app_state_manager,
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<Context> context,
       Configuration listener_config,
       SessionImpl::Configuration session_config)
@@ -21,8 +21,7 @@ namespace kagome::api {
         config_{std::move(listener_config)},
         session_config_{session_config},
         logger_{log::createLogger("RpcHttpListener", "rpc_transport")} {
-    BOOST_ASSERT(app_state_manager);
-    app_state_manager->takeControl(*this);
+    app_state_manager.takeControl(*this);
   }
 
   bool HttpListenerImpl::prepare() {

@@ -92,7 +92,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-        const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
+        std::shared_ptr<crypto::Ed25519Keypair> keypair,
         const application::ChainSpec &chain_spec,
         std::shared_ptr<Clock> clock,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
@@ -280,7 +280,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
-    const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
+    std::shared_ptr<crypto::Ed25519Keypair> keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<AuthorityManager> authority_manager_;

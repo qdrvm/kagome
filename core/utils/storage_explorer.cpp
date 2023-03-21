@@ -531,7 +531,8 @@ int storage_explorer_main(int argc, const char **argv) {
   kagome::log::setLevelOfGroup("*", kagome::log::Level::WARN);
 
   auto logger = kagome::log::createLogger("AppConfiguration", "main");
-  kagome::application::AppConfigurationImpl configuration{logger};
+  auto configuration =
+      std::make_shared<kagome::application::AppConfigurationImpl>(logger);
 
   int kagome_args_start = -1;
   for (int i = 1; i < args.size(); i++) {
@@ -545,7 +546,7 @@ int storage_explorer_main(int argc, const char **argv) {
     return -1;
   }
 
-  if (!configuration.initializeFromArgs(
+  if (!configuration->initializeFromArgs(
           argc - kagome_args_start, args.subspan(kagome_args_start).data())) {
     std::cerr << "Failed to initialize kagome!\n";
     return -1;

@@ -20,7 +20,7 @@
 namespace kagome::consensus::babe {
 
   BabeConfigRepositoryImpl::BabeConfigRepositoryImpl(
-      const std::shared_ptr<application::AppStateManager> &app_state_manager,
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<storage::SpacedStorage> persistent_storage,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
@@ -47,8 +47,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(babe_api_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
 
-    BOOST_ASSERT(app_state_manager != nullptr);
-    app_state_manager->atPrepare([this] { return prepare(); });
+    app_state_manager.atPrepare([this] { return prepare(); });
   }
 
   bool BabeConfigRepositoryImpl::prepare() {

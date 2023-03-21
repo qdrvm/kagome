@@ -41,7 +41,7 @@ namespace kagome::consensus::grandpa {
     Clock::Duration getGossipDuration(const application::ChainSpec &chain) {
       // https://github.com/paritytech/polkadot/pull/5448
       auto slow = chain.isVersi() || chain.isWococo() || chain.isRococo()
-                  || chain.isKusama();
+               || chain.isKusama();
       return std::chrono::duration_cast<Clock::Duration>(
           std::chrono::milliseconds{slow ? 2000 : 1000});
     }
@@ -52,7 +52,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-      const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
+      std::shared_ptr<crypto::Ed25519Keypair> keypair,
       const application::ChainSpec &chain_spec,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
@@ -65,7 +65,7 @@ namespace kagome::consensus::grandpa {
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
-        keypair_{keypair},
+        keypair_{std::move(keypair)},
         clock_{std::move(clock)},
         scheduler_{std::move(scheduler)},
         authority_manager_(std::move(authority_manager)),
@@ -189,8 +189,8 @@ namespace kagome::consensus::grandpa {
                          .round_number = round_state.round_number,
                          .duration = round_time_factor_,
                          .id = keypair_
-                                   ? std::make_optional(keypair_->public_key)
-                                   : std::nullopt};
+                                 ? std::make_optional(keypair_->public_key)
+                                 : std::nullopt};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_, crypto_provider_, round_state.round_number, config.voters);
@@ -250,8 +250,8 @@ namespace kagome::consensus::grandpa {
                          .round_number = new_round_number,
                          .duration = round_time_factor_,
                          .id = keypair_
-                                   ? std::make_optional(keypair_->public_key)
-                                   : std::nullopt};
+                                 ? std::make_optional(keypair_->public_key)
+                                 : std::nullopt};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_, crypto_provider_, new_round_number, config.voters);
