@@ -65,7 +65,7 @@ namespace kagome::consensus::grandpa {
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
-        keypair_{keypair},
+        keypair_{std::move(keypair)},
         clock_{std::move(clock)},
         scheduler_{std::move(scheduler)},
         authority_manager_(std::move(authority_manager)),

@@ -16,7 +16,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<kagome::crypto::Ed25519Provider> ed_provider,
       RoundNumber round_number,
       std::shared_ptr<VoterSet> voter_set)
-      : keypair_{keypair},
+      : keypair_{std::move(keypair)},
         ed_provider_{std::move(ed_provider)},
         round_number_{round_number},
         voter_set_{std::move(voter_set)} {}
