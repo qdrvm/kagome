@@ -15,8 +15,6 @@
 #include "mock/core/runtime/grandpa_api_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
-#include "mock/core/storage/trie/trie_batches_mock.hpp"
-#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/digest.hpp"
 #include "runtime/common/executor.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -29,7 +27,6 @@
 using namespace kagome;
 using consensus::grandpa::AuthorityManagerImpl;
 using consensus::grandpa::IsBlockFinalized;
-using kagome::storage::trie::TrieBatchMock;
 using primitives::AuthorityList;
 using primitives::AuthoritySet;
 using primitives::events::ChainSubscriptionEngine;
@@ -70,16 +67,6 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*spaced_storage, getSpace(kagome::storage::Space::kDefault))
         .WillRepeatedly(Return(persistent_storage));
 
-    trie_storage = std::make_shared<storage::trie::TrieStorageMock>();
-    EXPECT_CALL(*trie_storage, getEphemeralBatchAt(_))
-        .WillRepeatedly(testing::Invoke([] {
-          auto batch = std::make_unique<TrieBatchMock>();
-          EXPECT_CALL(*batch, tryGetMock(_))
-              .WillRepeatedly(
-                  Return(storage::Buffer::fromHex("0000000000000000").value()));
-          return batch;
-        }));
-
     grandpa_api = std::make_shared<runtime::GrandpaApiMock>();
     EXPECT_CALL(*grandpa_api, authorities(_))
         .WillRepeatedly(Return(authorities->authorities));
@@ -97,7 +84,6 @@ class AuthorityManagerTest : public testing::Test {
         std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
                                                app_state_manager,
                                                block_tree,
-                                               trie_storage,
                                                grandpa_api,
                                                hasher,
                                                spaced_storage,
@@ -176,7 +162,6 @@ class AuthorityManagerTest : public testing::Test {
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
   std::shared_ptr<blockchain::BlockHeaderRepositoryMock> header_repo;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
-  std::shared_ptr<storage::trie::TrieStorageMock> trie_storage;
   std::shared_ptr<storage::SpacedStorageMock> spaced_storage;
   std::shared_ptr<storage::BufferStorage> persistent_storage;
   std::shared_ptr<runtime::GrandpaApiMock> grandpa_api;
