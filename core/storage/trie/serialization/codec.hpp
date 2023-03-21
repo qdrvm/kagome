@@ -6,17 +6,16 @@
 #ifndef KAGOME_TRIE_CODEC_HPP
 #define KAGOME_TRIE_CODEC_HPP
 
-#include "common/blob.hpp"
-#include "common/buffer.hpp"
-#include "storage/trie/polkadot_trie/trie_node.hpp"
-#include "storage/trie/types.hpp"
+#include "../../../common/blob.hpp"
+#include "../../../common/buffer.hpp"
+#include "../polkadot_trie/trie_node.hpp"
+#include "../types.hpp"
 
 namespace kagome::storage::trie {
   struct TrieNode;
 
   /**
-   * @brief Internal codec for nodes in the Trie. Eth and substrate have
-   * different codecs, but rest of the code should be same.
+   * @brief Internal codec for nodes in the Trie.
    */
   class Codec {
    public:
@@ -24,6 +23,11 @@ namespace kagome::storage::trie {
         TrieNode const & /* a child node */,
         common::BufferView /* its merkle value */,
         common::Buffer && /* the encoded node */)>;
+
+    static constexpr auto NoopChildVisitor =
+        [](auto const &, auto, auto &&) -> outcome::result<void> {
+      return outcome::success();
+    };
 
     virtual ~Codec() = default;
 
@@ -35,16 +39,16 @@ namespace kagome::storage::trie {
      * @return encoded representation of a {@param node}
      */
     virtual outcome::result<common::Buffer> encodeNode(
-        const Node &node,
+        const TrieNode &node,
         StateVersion version,
-        const ChildVisitor &child_visitor) const = 0;
+        const ChildVisitor &child_visitor = NoopChildVisitor) const = 0;
 
     /**
      * @brief Decode node from bytes
      * @param encoded_data a buffer containing encoded representation of a node
      * @return a node in the trie
      */
-    virtual outcome::result<std::shared_ptr<Node>> decodeNode(
+    virtual outcome::result<std::shared_ptr<TrieNode>> decodeNode(
         gsl::span<const uint8_t> encoded_data) const = 0;
 
     /**
@@ -53,6 +57,8 @@ namespace kagome::storage::trie {
      * @return hash of \param buf or \param buf if it is shorter than the hash
      */
     virtual common::Buffer merkleValue(const common::BufferView &buf) const = 0;
+    virtual outcome::result<common::Buffer> merkleValue(
+        const OpaqueTrieNode &node, StateVersion version) const = 0;
 
     /**
      * @brief is this a hash of value, or value itself

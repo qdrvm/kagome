@@ -57,10 +57,10 @@ std::shared_ptr<TrieNode> branch_with_2_children = []() {
 
 using T = TrieNode::Type;
 
-static const std::vector<std::shared_ptr<TrieNode>> CASES = {
+static const std::vector<std::shared_ptr<TrieNode>> DECODING_CASES = {
     make<LeafNode>("010203"_hex2buf, "abcdef"_hex2buf),
     make<LeafNode>("0a0b0c"_hex2buf, "abcdef"_hex2buf),
     make<BranchNode>("010203"_hex2buf, "abcdef"_hex2buf),
     branch_with_2_children};
 
-INSTANTIATE_TEST_SUITE_P(PolkadotCodec, NodeDecodingTest, ValuesIn(CASES));
+INSTANTIATE_TEST_SUITE_P(PolkadotCodec, NodeDecodingTest, ValuesIn(DECODING_CASES));

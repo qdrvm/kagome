@@ -163,6 +163,9 @@ namespace {
         node->setValue(ValueAndHash{});
       } else {
         auto length = getCommonPrefixLength(node->getKeyNibbles(), sought_key);
+        if (length >= sought_key.size()) {
+          return outcome::success();
+        }
         OUTCOME_TRY(child, node_storage.getChild(branch, sought_key[length]));
         SL_TRACE(
             logger, "deleteNode: go to child {:x}", (int)sought_key[length]);

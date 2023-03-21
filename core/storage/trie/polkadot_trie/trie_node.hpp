@@ -12,7 +12,6 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "storage/trie/node.hpp"
 
 namespace kagome::storage::trie {
 
@@ -112,10 +111,8 @@ namespace kagome::storage::trie {
    * 5.3 The Trie structure in the Polkadot Host specification
    */
 
-  struct OpaqueTrieNode : public Node {
-    virtual std::optional<common::Buffer> getCachedHash() const = 0;
-
-    virtual void setCachedHash(common::Buffer const &merkle_value) const = 0;
+  struct OpaqueTrieNode {
+    virtual ~OpaqueTrieNode() = default;
   };
 
   struct TrieNode : public OpaqueTrieNode {
@@ -138,26 +135,16 @@ namespace kagome::storage::trie {
 
     virtual bool isBranch() const noexcept = 0;
 
-    std::optional<common::Buffer> getCachedHash() const override {
-      return merkle_value_;
-    }
-
-    void setCachedHash(common::Buffer const &merkle_value) const override {
-      merkle_value_.emplace(merkle_value);
-    }
-
     KeyNibbles const &getKeyNibbles() const {
       return key_nibbles_;
     }
 
     KeyNibbles &modifyKeyNibbles() {
-      merkle_value_ = {};
       return key_nibbles_;
     }
 
     void setKeyNibbles(KeyNibbles &&key_nibbles) {
       key_nibbles_ = std::move(key_nibbles);
-      merkle_value_ = {};
     }
 
     ValueAndHash const &getValue() const {
@@ -165,26 +152,20 @@ namespace kagome::storage::trie {
     }
 
     ValueAndHash &getMutableValue() {
-      merkle_value_ = {};
       return value_;
     }
 
     void setValue(ValueAndHash const &new_value) {
       value_ = new_value;
-      merkle_value_ = {};
     }
 
     void setValue(ValueAndHash &&new_value) {
       value_ = std::move(new_value);
-      merkle_value_ = {};
     }
 
    private:
     KeyNibbles key_nibbles_;
     ValueAndHash value_;
-
-    // cached node hash
-    mutable std::optional<common::Buffer> merkle_value_{};
   };
 
   struct BranchNode : public TrieNode {

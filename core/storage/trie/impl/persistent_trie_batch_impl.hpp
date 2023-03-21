@@ -13,7 +13,7 @@
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
-#include "storage/trie/codec.hpp"
+#include "storage/trie/serialization/codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 

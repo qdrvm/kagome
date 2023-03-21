@@ -69,10 +69,11 @@ namespace kagome::storage::trie_pruner {
     }
 
     virtual outcome::result<void> addNewState(
-        trie::PolkadotTrie const &new_trie) override;
+        trie::PolkadotTrie const &new_trie,
+        trie::StateVersion version) override;
 
-    virtual outcome::result<void> prune(
-        primitives::BlockHeader const &state) override;
+    virtual outcome::result<void> prune(primitives::BlockHeader const &state,
+                                        trie::StateVersion version) override;
 
     size_t getTrackedNodesNum() const {
       return ref_count_.size();
@@ -99,13 +100,22 @@ namespace kagome::storage::trie_pruner {
     }
 
    private:
+    outcome::result<void> addNewStateCompletely(
+        trie::PolkadotTrie const &new_trie, trie::StateVersion version);
+
+    outcome::result<void> pruneCompletely(primitives::BlockHeader const &state,
+                                          trie::StateVersion version);
+
+    outcome::result<void> printTree(const trie::PolkadotTrie &trie,
+                                    trie::StateVersion version) const;
+
     std::unordered_map<common::Buffer, size_t> ref_count_;
 
     std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<storage::trie::Codec> codec_;
     std::shared_ptr<storage::SpacedStorage> storage_;
-    log::Logger logger_ = log::createLogger("TriePruner", "trie");
+    log::Logger logger_ = log::createLogger("TriePruner", "trie_pruner");
   };
 
 }  // namespace kagome::storage::trie_pruner

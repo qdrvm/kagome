@@ -6,6 +6,7 @@
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 #include "crypto/blake2/blake2b.h"
+#include "log/logger.hpp"
 #include "scale/scale.hpp"
 #include "scale/scale_decoder_stream.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
@@ -86,6 +87,18 @@ namespace kagome::storage::trie {
     return Buffer{hash256(buf)};
   }
 
+  outcome::result<common::Buffer> PolkadotCodec::merkleValue(
+      const OpaqueTrieNode &node, StateVersion version) const {
+    if (auto dummy = dynamic_cast<DummyNode const *>(&node); dummy != nullptr) {
+      return dummy->db_key;
+    }
+    auto &trie_node = static_cast<TrieNode const &>(node);
+    OUTCOME_TRY(
+        enc,
+        encodeNode(trie_node, version));
+    return merkleValue(enc);
+  }
+
   bool PolkadotCodec::isMerkleHash(const common::BufferView &buf) const {
     const auto size = static_cast<size_t>(buf.size());
     BOOST_ASSERT(size <= common::Hash256::size());
@@ -106,7 +119,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeNode(
-      const Node &node,
+      const TrieNode &node,
       StateVersion version,
       const ChildVisitor &child_visitor) const {
     auto *trie_node = dynamic_cast<const TrieNode *>(&node);
@@ -246,7 +259,7 @@ namespace kagome::storage::trie {
         } else {
           auto child_node = std::dynamic_pointer_cast<TrieNode>(child);
           BOOST_ASSERT(child_node != nullptr);
-          OUTCOME_TRY(enc, encodeNode(*child, version, child_visitor));
+          OUTCOME_TRY(enc, encodeNode(*child_node, version, child_visitor));
           auto merkle = merkleValue(enc);
           if (isMerkleHash(merkle) && child_visitor) {
             OUTCOME_TRY(child_visitor(*child_node, merkle, std::move(enc)));
@@ -278,7 +291,7 @@ namespace kagome::storage::trie {
     return outcome::success(std::move(encoding));
   }
 
-  outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeNode(
+  outcome::result<std::shared_ptr<TrieNode>> PolkadotCodec::decodeNode(
       gsl::span<const uint8_t> encoded_data) const {
     BufferStream stream{encoded_data};
     // decode the header with the node type and the partial key length
@@ -393,7 +406,7 @@ namespace kagome::storage::trie {
     return partial_key_nibbles;
   }
 
-  outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeBranch(
+  outcome::result<std::shared_ptr<TrieNode>> PolkadotCodec::decodeBranch(
       TrieNode::Type type,
       const KeyNibbles &partial_key,
       BufferStream &stream) const {

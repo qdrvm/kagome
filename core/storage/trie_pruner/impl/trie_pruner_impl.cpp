@@ -22,27 +22,28 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie_pruner,
 namespace kagome::storage::trie_pruner {
 
   static outcome::result<common::Buffer> calcMerkleValue(
-      const trie::Codec &codec, const trie::OpaqueTrieNode &node) {
+      const trie::Codec &codec,
+      const trie::OpaqueTrieNode &node,
+      trie::StateVersion version) {
+    static log::Logger logger;
+    if (logger == nullptr) {
+      logger = log::createLogger("PRUNER");
+    }
     OUTCOME_TRY(
-        enc,
-        codec.encodeNode(node,
-                         trie::StateVersion::V1,
-                         [](auto &, auto, auto &&) -> outcome::result<void> {
-                           return outcome::success();
-                         }));
-    auto hash = codec.merkleValue(enc);
+        hash,
+        codec.merkleValue(node, version));
     return hash;
   }
 
   static outcome::result<common::Buffer> calcHash(const trie::Codec &codec,
-                                                  const trie::TrieNode &node) {
+                                                  const trie::TrieNode &node,
+                                                  trie::StateVersion version) {
     OUTCOME_TRY(
         enc,
-        codec.encodeNode(node,
-                         trie::StateVersion::V1,
-                         [](auto &, auto, auto &&) -> outcome::result<void> {
-                           return outcome::success();
-                         }));
+        codec.encodeNode(
+            node, version, [](auto &, auto, auto &&) -> outcome::result<void> {
+              return outcome::success();
+            }));
     auto hash = codec.hash256(enc);
     return hash;
   }
@@ -68,16 +69,21 @@ namespace kagome::storage::trie_pruner {
   }
 
   outcome::result<void> TriePrunerImpl::prune(
-      primitives::BlockHeader const &state) {
+      primitives::BlockHeader const &state, trie::StateVersion version) {
     OUTCOME_TRY(trie, serializer_->retrieveTrie(state.state_root, nullptr));
     size_t removed = 0;
     size_t unknown = 0;
 
-    std::vector<std::shared_ptr<trie::TrieNode>> queued_nodes;
-    queued_nodes.push_back(trie->getRoot());
+    struct Entry {
+      std::shared_ptr<trie::TrieNode> node;
+      size_t depth;
+    };
+    std::vector<Entry> queued_nodes;
+    queued_nodes.push_back({trie->getRoot(), 0});
 
-    OUTCOME_TRY(root_value, calcMerkleValue(*codec_, *trie->getRoot()));
-    OUTCOME_TRY(root_hash, calcHash(*codec_, *trie->getRoot()));
+    OUTCOME_TRY(root_value,
+                calcMerkleValue(*codec_, *trie->getRoot(), version));
+    OUTCOME_TRY(root_hash, calcHash(*codec_, *trie->getRoot(), version));
 
     logger_->info("Prune: Merkle value of state {} (#{} - state_root {}) is {}",
                   root_hash,
@@ -86,27 +92,30 @@ namespace kagome::storage::trie_pruner {
                   root_value);
 
     auto batch = trie_storage_->batch();
-    // iterate all nodes with ref count now 0 and delete them from DB
+    // iterate nodes, decrement their ref count and delete if ref count becomes
+    // zero
     while (!queued_nodes.empty()) {
-      auto node = queued_nodes.back();
+      auto [node, depth] = queued_nodes.back();
       queued_nodes.pop_back();
-      auto hash = node->getCachedHash().value();
+      // FIXME: crutch because root nodes are always hashed, so encoding
+      // doesn't match here and in addState (which always just takes merkle
+      // value)
+      OUTCOME_TRY(merkle_value, calcMerkleValue(*codec_, *node, version));
+      auto hash = merkle_value;
       auto ref_count_it = ref_count_.find(hash);
       if (ref_count_it == ref_count_.end()) {
-        // FIXME: crutch because root nodes are always hashed, so encoding
-        // doesn't match here and in addState (which always just takes merkle
-        // value)
-        OUTCOME_TRY(merkle_value, calcMerkleValue(*codec_, *node));
-        hash = merkle_value;
-        if (ref_count_it = ref_count_.find(hash);
-            ref_count_it == ref_count_.end()) {
-          unknown++;
-          continue;
-        }
+        unknown++;
+        continue;
       }
+
       auto &ref_count = ref_count_it->second;
       BOOST_ASSERT(ref_count != 0);
       ref_count--;
+      SL_TRACE(logger_,
+               "Prune - {} - Node {}, ref count {}",
+               depth,
+               hash,
+               ref_count);
 
       if (ref_count == 0) {
         removed++;
@@ -116,8 +125,12 @@ namespace kagome::storage::trie_pruner {
           auto branch = static_cast<const trie::BranchNode &>(*node);
           for (auto opaque_child : branch.children) {
             if (opaque_child != nullptr) {
-              OUTCOME_TRY(child, serializer_->retrieveNode(opaque_child, nullptr));
-              queued_nodes.push_back(child);
+              OUTCOME_TRY(hash,
+                          calcMerkleValue(*codec_, *opaque_child, version));
+              SL_TRACE(logger_, "Prune - Child {}", hash);
+              OUTCOME_TRY(child,
+                          serializer_->retrieveNode(opaque_child, nullptr));
+              queued_nodes.push_back({child, depth + 1});
             }
           }
         }
@@ -130,52 +143,56 @@ namespace kagome::storage::trie_pruner {
         storage_->getSpace(kTriePruner)
             ->put(TRIE_PRUNER_INFO_KEY, common::Buffer{std::move(enc_info)}));
 
-    SL_INFO(logger_, "Removed {} nodes, {} unknown", removed, unknown);
+    SL_DEBUG(logger_, "Removed {} nodes, {} unknown", removed, unknown);
     return outcome::success();
   }
 
   outcome::result<void> TriePrunerImpl::addNewState(
-      trie::PolkadotTrie const &new_trie) {
-    logger_->info("ref count map size is {}", ref_count_.size());
+      trie::PolkadotTrie const &new_trie, trie::StateVersion version) {
+    SL_DEBUG(logger_, "Ref count map size is {}", ref_count_.size());
     KAGOME_PROFILE_START_L(logger_, register_state);
-    std::vector<const trie::OpaqueTrieNode *> queued_nodes;
-    queued_nodes.push_back(new_trie.getRoot().get());
 
-    OUTCOME_TRY(root_value, calcMerkleValue(*codec_, *new_trie.getRoot()));
-    OUTCOME_TRY(root_hash, calcHash(*codec_, *new_trie.getRoot()));
+    std::vector<std::shared_ptr<const trie::OpaqueTrieNode>> queued_nodes;
+    queued_nodes.push_back(new_trie.getRoot());
 
+    OUTCOME_TRY(root_value,
+                calcMerkleValue(*codec_, *new_trie.getRoot(), version));
+    OUTCOME_TRY(root_hash, calcHash(*codec_, *new_trie.getRoot(), version));
+    ref_count_[root_value] += 1;
     logger_->info("Add: Merkle value of state {} is {}", root_hash, root_value);
 
     size_t referenced_nodes_num = 0;
-    size_t multireferenced_nodes_num = 0;
 
     while (!queued_nodes.empty()) {
       auto opaque_node = queued_nodes.back();
       queued_nodes.pop_back();
-      // we encode nodes twice: here and during serialization to DB. Should
-      // avoid it somehow
-      // mind that encode node's callback doesn't report dummy nodes
-      OUTCOME_TRY(hash, calcMerkleValue(*codec_, *opaque_node));
-      if ((++ref_count_[hash]) > 1) {
-        multireferenced_nodes_num++;
-      }
+      // we encode nodes thrice: here, when visiting it in the for loop below,
+      // and during serialization to DB. Should avoid it somehow. Mind that
+      // encode node's callback doesn't report dummy nodes
+      OUTCOME_TRY(hash, calcMerkleValue(*codec_, *opaque_node, version));
+      auto ref_count = ref_count_[hash];
+      SL_TRACE(logger_, "Add - Node {}, ref count {}", hash.toHex(), ref_count);
+
       referenced_nodes_num++;
-      if (auto node = dynamic_cast<trie::TrieNode const *>(opaque_node);
+      if (auto node = dynamic_cast<trie::TrieNode const *>(opaque_node.get());
           node != nullptr && node->isBranch() && ref_count_[hash] == 1) {
-        auto branch = static_cast<const trie::BranchNode *>(opaque_node);
+        auto branch = static_cast<const trie::BranchNode *>(opaque_node.get());
         for (auto opaque_child : branch->children) {
           if (opaque_child != nullptr) {
-            queued_nodes.push_back(opaque_child.get());
+            OUTCOME_TRY(child_hash,
+                        calcMerkleValue(*codec_, *opaque_child, version));
+            ref_count_[child_hash] += 1;
+            SL_TRACE(logger_, "Add - Child {}", child_hash.toHex());
+            queued_nodes.push_back(opaque_child);
           }
         }
       }
     }
-    SL_INFO(logger_,
-            "Referenced {} nodes\nRef count map size: {}\nMulti-referenced "
-            "nodes: {}",
+    //OUTCOME_TRY(printTree(new_trie, version));
+    SL_DEBUG(logger_,
+            "Referenced {} nodes\nRef count map size: {}",
             referenced_nodes_num,
-            ref_count_.size(),
-            multireferenced_nodes_num);
+            ref_count_.size());
     return outcome::success();
   }
 

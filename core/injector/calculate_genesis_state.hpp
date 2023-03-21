@@ -39,14 +39,14 @@ namespace kagome::injector {
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
       auto trie = trie_from(kv);
-      OUTCOME_TRY(pruner.addNewState(trie));
+      OUTCOME_TRY(pruner.addNewState(trie, storage::trie::StateVersion::V0));
       OUTCOME_TRY(root, trie_serializer.storeTrie(trie, version));
       common::Buffer child2;
       child2 += storage::kChildStorageDefaultPrefix;
       child2 += child;
       top_trie.put(child2, common::BufferView{root}).value();
     }
-    OUTCOME_TRY(pruner.addNewState(top_trie));
+    OUTCOME_TRY(pruner.addNewState(top_trie, storage::trie::StateVersion::V0));
     return trie_serializer.storeTrie(top_trie, version);
   }
 }  // namespace kagome::injector

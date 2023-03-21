@@ -43,7 +43,7 @@ namespace kagome::storage::trie {
   outcome::result<RootHash> PersistentTrieBatchImpl::commit(
       StateVersion version) {
     OUTCOME_TRY(commitChildren(version));
-    OUTCOME_TRY(state_pruner_->addNewState(*trie_));
+    OUTCOME_TRY(state_pruner_->addNewState(*trie_, version));
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
     auto &stats = serializer_->getLatestStats();

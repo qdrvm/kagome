@@ -5,8 +5,8 @@
 
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 
+#include "codec.hpp"
 #include "outcome/outcome.hpp"
-#include "storage/trie/codec.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
@@ -56,6 +56,7 @@ namespace kagome::storage::trie {
   outcome::result<RootHash> TrieSerializerImpl::storeRootNode(
       TrieNode &node, StateVersion version) {
     auto batch = backend_->batch();
+    BOOST_ASSERT(batch != nullptr);
 
     OUTCOME_TRY(
         enc,
@@ -68,7 +69,6 @@ namespace kagome::storage::trie {
                              if (node.getValue()) {
                                current_stats_.values_written++;
                              }
-                             node.setCachedHash(hash);
                              return batch->put(hash, std::move(encoded));
                            }));
     auto hash = codec_->hash256(enc);
@@ -79,9 +79,9 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
-      const std::shared_ptr<OpaqueTrieNode> &parent,
+      const std::shared_ptr<OpaqueTrieNode> &node,
       const OnNodeLoaded &on_node_loaded) const {
-    if (auto p = std::dynamic_pointer_cast<DummyValue>(parent); p != nullptr) {
+    if (auto p = std::dynamic_pointer_cast<DummyValue>(node); p != nullptr) {
       OUTCOME_TRY(value, backend_->get(*p->value.hash));
       if (on_node_loaded) {
         on_node_loaded(value);
@@ -89,11 +89,11 @@ namespace kagome::storage::trie {
       p->value.value = value.into();
       return nullptr;
     }
-    if (auto p = std::dynamic_pointer_cast<DummyNode>(parent); p != nullptr) {
+    if (auto p = std::dynamic_pointer_cast<DummyNode>(node); p != nullptr) {
       OUTCOME_TRY(n, retrieveNode(p->db_key, on_node_loaded));
       return std::move(n);
     }
-    return std::dynamic_pointer_cast<TrieNode>(parent);
+    return std::dynamic_pointer_cast<TrieNode>(node);
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
@@ -114,7 +114,6 @@ namespace kagome::storage::trie {
     }
     OUTCOME_TRY(n, codec_->decodeNode(enc));
     auto node = std::dynamic_pointer_cast<TrieNode>(n);
-    node->setCachedHash(db_key);
     return node;
   }
 

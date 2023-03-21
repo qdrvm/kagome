@@ -484,7 +484,8 @@ namespace kagome::blockchain {
       OUTCOME_TRY(old_header,
                   storage_->getBlockHeader(block.header.number - 16));
       if (old_header) {
-        OUTCOME_TRY(state_pruner_->prune(old_header.value()));
+        OUTCOME_TRY(state_pruner_->prune(old_header.value(),
+                                         storage::trie::StateVersion::V0));
       }
     }
     SL_INFO(log_,
@@ -1201,7 +1202,8 @@ namespace kagome::blockchain {
           }
           extrinsics.emplace_back(std::move(ext));
         }
-        OUTCOME_TRY(state_pruner_->prune(block_header_opt.value()));
+        OUTCOME_TRY(state_pruner_->prune(block_header_opt.value(),
+                                         storage::trie::StateVersion::V0));
       }
 
       tree_->removeFromMeta(node);

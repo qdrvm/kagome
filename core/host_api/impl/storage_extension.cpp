@@ -150,7 +150,9 @@ namespace kagome::host_api {
     if (result) {
       SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
     } else {
-      logger_->error(error_message, key_buffer.toHex(), result.error());
+      auto msg = fmt::format(error_message, key_buffer.toHex(), result.error());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
 
     auto &option = result.value();
