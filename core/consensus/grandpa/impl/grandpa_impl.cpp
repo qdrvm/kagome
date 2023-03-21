@@ -1222,8 +1222,15 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
       }
 
+      auto authorities_opt =
+          authority_manager_->authorities(block_info, IsBlockFinalized{false});
+      if (!authorities_opt) {
+        return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
+      }
+      auto &authority_set = authorities_opt.value();
+
       auto prev_round_opt =
-          selectRound(justification.round_number - 1, std::nullopt);
+          selectRound(justification.round_number - 1, authority_set->id);
 
       if (prev_round_opt.has_value()) {
         const auto &prev_round = prev_round_opt.value();
@@ -1247,13 +1254,6 @@ namespace kagome::consensus::grandpa {
             .last_finalized_block = current_round_->lastFinalizedBlock(),
             .votes = {},
             .finalized = block_info};
-
-        auto authorities_opt = authority_manager_->authorities(
-            block_info, IsBlockFinalized{false});
-        if (!authorities_opt) {
-          return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
-        }
-        auto &authority_set = authorities_opt.value();
 
         // This is justification for non-actual round
         if (authority_set->id < current_round_->voterSetId()) {
