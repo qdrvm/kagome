@@ -424,9 +424,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   ASSERT_TRUE(old_auth_opt.has_value());
   auto &old_authorities = *old_auth_opt.value();
 
-  primitives::BlockInfo target_block{10, "B"_hash256};
-  EXPECT_CALL(*header_repo, getHashByNumber(target_block.number))
-      .WillOnce(Return(target_block.hash));
+  primitives::BlockInfo target_block{5, "A"_hash256};
+  EXPECT_CALL(*header_repo, getHashByNumber(10)).WillOnce(Return("B"_hash256));
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
   uint32_t subchain_length = 5;
 
@@ -438,7 +437,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
               new_authorities, subchain_length, target_block.number)));
 
   examine({5, "A"_hash256}, old_authorities.authorities);
-  examine({10, "B"_hash256}, old_authorities.authorities);
+  examine({10, "B"_hash256}, new_authorities);
   examine({15, "C"_hash256}, new_authorities);
   examine({20, "D"_hash256}, new_authorities);
   examine({25, "E"_hash256}, new_authorities);
