@@ -30,6 +30,7 @@ namespace kagome::consensus::grandpa {
       if (scheduled_change->applied_block <= block.number) {
         authorities = std::move(scheduled_change->new_authorities);
         action = NoAction{};
+        forced_digests = {};
       }
     } else if (auto pause = boost::get<Pause>(&action);
                finalized && pause != nullptr) {
@@ -60,6 +61,7 @@ namespace kagome::consensus::grandpa {
     node->authorities = authorities;
     node->enabled = enabled;
     node->action = action;
+    node->forced_digests = forced_digests;
     node->adjust(finalized);
     return node;
   }

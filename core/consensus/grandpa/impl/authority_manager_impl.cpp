@@ -526,6 +526,15 @@ namespace kagome::consensus::grandpa {
              ancestor_node->block,
              ancestor_node->authorities->id);
 
+    for (auto &block : ancestor_node->forced_digests) {
+      if (directChainExists(context.block_info, block)) {
+        SL_DEBUG(logger_,
+                 "Scheduled change digest {} ignored by forced change",
+                 context.block_info.number);
+        return outcome::success();
+      }
+    }
+
     auto schedule_change = [&](const std::shared_ptr<ScheduleNode> &node)
         -> outcome::result<void> {
       auto new_authorities = std::make_shared<primitives::AuthoritySet>(
@@ -670,10 +679,21 @@ namespace kagome::consensus::grandpa {
              ancestor_node->block,
              ancestor_node->authorities->id);
 
+    for (auto &block : ancestor_node->forced_digests) {
+      if (context.block_info == block) {
+        SL_DEBUG(logger_,
+                 "Forced change digest {} already included",
+                 context.block_info.number);
+        return outcome::success();
+      }
+    }
+
     auto force_change = [&](const std::shared_ptr<ScheduleNode> &node)
         -> outcome::result<void> {
       auto new_authorities = std::make_shared<primitives::AuthoritySet>(
           node->authorities->id + 1, authorities);
+
+      node->forced_digests.emplace_back(context.block_info);
 
       // Force changes
       if (node->block.number >= delay_start + delay) {
