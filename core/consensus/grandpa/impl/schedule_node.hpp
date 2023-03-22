@@ -52,14 +52,6 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<const primitives::AuthoritySet> new_authorities{};
     };
 
-    struct ForcedChange {
-      SCALE_TIE(3);
-
-      primitives::BlockNumber delay_start{};
-      size_t delay_length{};
-      std::shared_ptr<const primitives::AuthoritySet> new_authorities{};
-    };
-
     struct Pause {
       SCALE_TIE(1);
 
@@ -89,8 +81,7 @@ namespace kagome::consensus::grandpa {
     std::weak_ptr<const ScheduleNode> parent;
     std::vector<std::shared_ptr<ScheduleNode>> descendants{};
 
-    boost::variant<NoAction, ScheduledChange, ForcedChange, Pause, Resume>
-        action;
+    boost::variant<NoAction, ScheduledChange, Pause, Resume> action;
     std::vector<primitives::BlockInfo> forced_digests;
     std::shared_ptr<const primitives::AuthoritySet> authorities;
     bool enabled = true;

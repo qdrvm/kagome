@@ -636,39 +636,33 @@ namespace kagome::consensus::grandpa {
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber delay_start,
       size_t delay) {
+    auto forced_number = delay_start + delay;
     SL_DEBUG(logger_,
              "Applying forced change (delay start: {}, delay: {}) on block {} "
              "to activate at block {}",
              delay_start,
              delay,
              context.block_info,
-             delay_start + delay);
-    if (delay_start < root_->block.number) {
-      auto lag = root_->block.number - delay_start;
-      if (delay > lag) {
-        delay_start = root_->block.number;
-        delay -= lag;
-      } else {
-        delay_start = context.block_info.number;
-        delay = 0;
-      }
+             forced_number);
+    if (forced_number < root_->block.number) {
       SL_DEBUG(
           logger_,
           "Applying forced change on block {} is delayed {} blocks. "
           "Normalized to (delay start: {}, delay: {}) to activate at block {}",
           context.block_info,
-          lag,
+          root_->block.number - forced_number,
           delay_start,
           delay,
-          delay_start + delay);
+          root_->block.number);
+      forced_number = root_->block.number;
     }
-    auto delay_start_hash_res = header_repo_->getHashByNumber(delay_start);
+    auto delay_start_hash_res = header_repo_->getHashByNumber(forced_number);
     if (delay_start_hash_res.has_error()) {
-      SL_ERROR(logger_, "Failed to obtain hash by number {}", delay_start);
+      SL_ERROR(logger_, "Failed to obtain hash by number {}", forced_number);
     }
     OUTCOME_TRY(delay_start_hash, delay_start_hash_res);
     auto ancestor_node =
-        getNode({.block_info = {delay_start, delay_start_hash}});
+        getNode({.block_info = {forced_number, delay_start_hash}});
 
     if (not ancestor_node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -695,21 +689,11 @@ namespace kagome::consensus::grandpa {
 
       node->forced_digests.emplace_back(context.block_info);
 
-      // Force changes
-      if (node->block.number >= delay_start + delay) {
-        node->authorities = new_authorities;
-        SL_VERBOSE(logger_,
-                   "Change has been forced on block #{} (set id={})",
-                   delay_start + delay,
-                   node->authorities->id);
-      } else {
-        node->action =
-            ScheduleNode::ForcedChange{delay_start, delay, new_authorities};
-        SL_VERBOSE(logger_,
-                   "Change will be forced on block #{} (set id={})",
-                   delay_start + delay,
-                   new_authorities->id);
-      }
+      node->authorities = new_authorities;
+      SL_VERBOSE(logger_,
+                 "Change has been forced on block #{} (set id={})",
+                 forced_number,
+                 node->authorities->id);
 
       size_t index = 0;
       for (auto &authority : *new_authorities) {
@@ -725,7 +709,7 @@ namespace kagome::consensus::grandpa {
     };
 
     auto new_node =
-        ancestor_node->makeDescendant({delay_start, delay_start_hash}, true);
+        ancestor_node->makeDescendant({forced_number, delay_start_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 
@@ -1038,14 +1022,6 @@ namespace kagome::consensus::grandpa {
           new_node->block.number < descendant->block.number ? new_node : node;
 
       // Apply if delay will be passed for descendant
-      if (auto *forced_change =
-              boost::get<ScheduleNode::ForcedChange>(&ancestor->action)) {
-        if (descendant->block.number
-            >= forced_change->delay_start + forced_change->delay_length) {
-          descendant->authorities = forced_change->new_authorities;
-          descendant->action = ScheduleNode::NoAction{};
-        }
-      }
       if (auto *resume = boost::get<ScheduleNode::Resume>(&ancestor->action)) {
         if (descendant->block.number >= resume->applied_block) {
           descendant->enabled = true;

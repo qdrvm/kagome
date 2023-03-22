@@ -38,13 +38,6 @@ namespace kagome::consensus::grandpa {
         enabled = false;
         action = NoAction{};
       }
-    } else if (auto forced_change = boost::get<ForcedChange>(&action);
-               forced_change != nullptr) {
-      if (forced_change->delay_start + forced_change->delay_length
-          <= block.number) {
-        authorities = std::move(forced_change->new_authorities);
-        action = NoAction{};
-      }
     } else if (auto resume = boost::get<Resume>(&action); resume != nullptr) {
       if (resume->applied_block <= block.number) {
         enabled = true;
