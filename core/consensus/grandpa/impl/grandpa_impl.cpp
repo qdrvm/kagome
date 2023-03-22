@@ -36,6 +36,15 @@ namespace {
 }  // namespace
 
 namespace kagome::consensus::grandpa {
+  inline auto &westendPastRound() {
+    static primitives::BlockInfo block{
+        198785,
+        primitives::BlockHash::fromHex(
+            "62caf6a8c99d63744f7093bceead8fdf4c7d8ef74f16163ed58b1c1aec67bf18")
+            .value(),
+    };
+    return block;
+  }
 
   namespace {
     Clock::Duration getGossipDuration(const application::ChainSpec &chain) {
@@ -1252,7 +1261,9 @@ namespace kagome::consensus::grandpa {
         }
         if (authority_set->id == current_round_->voterSetId()
             && justification.round_number < current_round_->roundNumber()) {
-          return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+          if (justification.block_info != westendPastRound()) {
+            return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+          }
         }
 
         if (authority_set->id > current_round_->voterSetId() + 1) {
