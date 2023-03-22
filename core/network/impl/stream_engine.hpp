@@ -324,7 +324,6 @@ namespace kagome::network {
         }
 
         outgoing.reserved = true;
-        logger->info("Reserved is set.[proto={}]", protocol->protocolName());
         //bt();
         return true;
       }
@@ -339,7 +338,6 @@ namespace kagome::network {
       void dropReserved() {
         BOOST_ASSERT(outgoing.reserved);
         outgoing.reserved = false;
-        logger->info("Reserved dropped.[proto={}]", protocol->protocolName());
         //bt();
       }
 
