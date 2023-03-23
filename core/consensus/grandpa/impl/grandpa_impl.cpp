@@ -36,14 +36,19 @@ namespace {
 }  // namespace
 
 namespace kagome::consensus::grandpa {
-  inline auto &westendPastRound() {
-    static primitives::BlockInfo block{
+  inline bool isWestendPastRound(const primitives::BlockHash &genesis,
+                                 const primitives::BlockInfo &block) {
+    static auto westend_genesis =
+        primitives::BlockHash::fromHex(
+            "e143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e")
+            .value();
+    static primitives::BlockInfo past_round{
         198785,
         primitives::BlockHash::fromHex(
             "62caf6a8c99d63744f7093bceead8fdf4c7d8ef74f16163ed58b1c1aec67bf18")
             .value(),
     };
-    return block;
+    return genesis == westend_genesis && block == past_round;
   }
 
   namespace {
@@ -1261,7 +1266,8 @@ namespace kagome::consensus::grandpa {
         }
         if (authority_set->id == current_round_->voterSetId()
             && justification.round_number < current_round_->roundNumber()) {
-          if (justification.block_info != westendPastRound()) {
+          if (not isWestendPastRound(block_tree_->getGenesisBlockHash(),
+                                     justification.block_info)) {
             return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
           }
         }
