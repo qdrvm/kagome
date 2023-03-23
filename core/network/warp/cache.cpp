@@ -60,7 +60,8 @@ namespace kagome::network {
       auto r = start(std::move(chain_sub_engine));
       if (not r) {
         SL_WARN(log_, "start error {}", r.error());
-        return false;
+        // TODO(turuslan): #1536 warp sync forced change
+        return true;
       }
       return true;
     });

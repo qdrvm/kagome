@@ -573,7 +573,6 @@ int storage_explorer_main(int argc, const char **argv) {
       std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
                                              app_state_manager,
                                              block_tree,
-                                             trie_storage,
                                              grandpa_api,
                                              hasher,
                                              persistent_storage,

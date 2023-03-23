@@ -36,6 +36,20 @@ namespace {
 }  // namespace
 
 namespace kagome::consensus::grandpa {
+  inline bool isWestendPastRound(const primitives::BlockHash &genesis,
+                                 const primitives::BlockInfo &block) {
+    static auto westend_genesis =
+        primitives::BlockHash::fromHex(
+            "e143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e")
+            .value();
+    static primitives::BlockInfo past_round{
+        198785,
+        primitives::BlockHash::fromHex(
+            "62caf6a8c99d63744f7093bceead8fdf4c7d8ef74f16163ed58b1c1aec67bf18")
+            .value(),
+    };
+    return genesis == westend_genesis && block == past_round;
+  }
 
   namespace {
     Clock::Duration getGossipDuration(const application::ChainSpec &chain) {
@@ -1213,8 +1227,15 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
       }
 
+      auto authorities_opt =
+          authority_manager_->authorities(block_info, IsBlockFinalized{false});
+      if (!authorities_opt) {
+        return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
+      }
+      auto &authority_set = authorities_opt.value();
+
       auto prev_round_opt =
-          selectRound(justification.round_number - 1, std::nullopt);
+          selectRound(justification.round_number - 1, authority_set->id);
 
       if (prev_round_opt.has_value()) {
         const auto &prev_round = prev_round_opt.value();
@@ -1239,20 +1260,16 @@ namespace kagome::consensus::grandpa {
             .votes = {},
             .finalized = block_info};
 
-        auto authorities_opt = authority_manager_->authorities(
-            block_info, IsBlockFinalized{false});
-        if (!authorities_opt) {
-          return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
-        }
-        auto &authority_set = authorities_opt.value();
-
         // This is justification for non-actual round
         if (authority_set->id < current_round_->voterSetId()) {
           return VotingRoundError::JUSTIFICATION_FOR_AUTHORITY_SET_IN_PAST;
         }
         if (authority_set->id == current_round_->voterSetId()
             && justification.round_number < current_round_->roundNumber()) {
-          return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+          if (not isWestendPastRound(block_tree_->getGenesisBlockHash(),
+                                     justification.block_info)) {
+            return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+          }
         }
 
         if (authority_set->id > current_round_->voterSetId() + 1) {

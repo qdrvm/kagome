@@ -30,18 +30,12 @@ namespace kagome::consensus::grandpa {
       if (scheduled_change->applied_block <= block.number) {
         authorities = std::move(scheduled_change->new_authorities);
         action = NoAction{};
+        forced_digests = {};
       }
     } else if (auto pause = boost::get<Pause>(&action);
                finalized && pause != nullptr) {
       if (pause->applied_block <= block.number) {
         enabled = false;
-        action = NoAction{};
-      }
-    } else if (auto forced_change = boost::get<ForcedChange>(&action);
-               forced_change != nullptr) {
-      if (forced_change->delay_start + forced_change->delay_length
-          <= block.number) {
-        authorities = std::move(forced_change->new_authorities);
         action = NoAction{};
       }
     } else if (auto resume = boost::get<Resume>(&action); resume != nullptr) {
@@ -60,6 +54,7 @@ namespace kagome::consensus::grandpa {
     node->authorities = authorities;
     node->enabled = enabled;
     node->action = action;
+    node->forced_digests = forced_digests;
     node->adjust(finalized);
     return node;
   }
