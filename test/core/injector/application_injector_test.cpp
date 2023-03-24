@@ -111,8 +111,6 @@ namespace {
     EXPECT_CALL(config_mock, runtimeExecMethod())
         .WillRepeatedly(testing::Return(kagome::application::AppConfiguration::
                                             RuntimeExecutionMethod::Interpret));
-    EXPECT_CALL(config_mock, recoverState())
-        .WillRepeatedly(testing::Return(kagome::primitives::BlockNumber{1}));
   }
 }  // namespace
 
