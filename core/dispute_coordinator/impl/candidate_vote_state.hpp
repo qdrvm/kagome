@@ -1,0 +1,31 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef KAGOME_DISPUTE_CANDIDATEVOTESTATE
+#define KAGOME_DISPUTE_CANDIDATEVOTESTATE
+
+namespace kagome::dispute {
+
+  class CandidateVoteState final {
+   public:
+    static CandidateVoteState create(CandidateVotes votes,
+                                     CandidateEnvironment &env,
+                                     Timestamp now);
+
+    /// Votes already existing for the candidate + receipt.
+    CandidateVotes votes;
+
+    /// Information about own votes:
+    OwnVoteState own_vote;
+
+    /// Current dispute status, if there is any.
+    std::optional<DisputeStatus> dispute_status;
+
+    CandidateVoteState();
+  };
+
+}  // namespace kagome::dispute
+
+#endif  // KAGOME_DISPUTE_CANDIDATEVOTESTATE

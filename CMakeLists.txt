@@ -152,6 +152,7 @@ kagome_install_setup(
   core/common
   core/consensus
   core/crypto
+  core/dispute_coordinator
   core/filesystem
   core/host_api
   core/log

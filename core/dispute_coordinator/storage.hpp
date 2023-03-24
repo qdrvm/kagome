@@ -1,0 +1,37 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef KAGOME_DISPUTE_STORAGE
+#define KAGOME_DISPUTE_STORAGE
+
+#include "dispute_coordinator/types.hpp"
+#include "network/types/collator_messages.hpp"
+#include "parachain/types.hpp"
+
+namespace kagome::dispute {
+
+  using network::CandidateHash;
+  using network::SessionIndex;
+  using network::ValidatorIndex;
+
+  class Storage {
+   public:
+    virtual ~Storage() = default;
+
+    /// Load the candidate votes for the specific session-candidate pair, if
+    /// any.
+    virtual std::optional<CandidateVotes> load_candidate_votes(
+        SessionIndex session, const CandidateHash &candidate_hash) = 0;
+
+    /// Load the earliest session, if any.
+    virtual std::optional<SessionIndex> load_earliest_session() = 0;
+
+    /// Load the recent disputes, if any.
+    virtual std::optional<RecentDisputes> load_recent_disputes() = 0;
+  };
+
+}  // namespace kagome::dispute
+
+#endif  // KAGOME_DISPUTE_STORAGE

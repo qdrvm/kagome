@@ -82,5 +82,6 @@ target_link_libraries(application_injector
     validator_parachain
     fd_limit
     recovery_mode
+    dispute_coordinator
     )
 kagome_clear_objects(application_injector)
