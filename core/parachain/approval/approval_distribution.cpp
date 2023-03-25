@@ -1493,7 +1493,7 @@ namespace kagome::parachain {
       if (auto state{boost::get<DistribApprovalStateApproved>(
               &it->second.approval_state)}) {
         logger_->warn(
-            "Douplicate message. (candidate index={}, "
+            "Duplicate message. (candidate index={}, "
             "block hash={}, validator index={})",
             candidate_index,
             block_hash,
