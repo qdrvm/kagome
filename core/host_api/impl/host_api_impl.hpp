@@ -337,6 +337,9 @@ namespace kagome::host_api {
     virtual void ext_default_child_storage_storage_kill_version_1(
         runtime::WasmSpan child_storage_key) override;
 
+    virtual runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) override;
+
    private:
     static constexpr uint64_t DEFAULT_CHAIN_ID = 42;
 

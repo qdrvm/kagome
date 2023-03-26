@@ -692,6 +692,9 @@ namespace kagome::host_api {
      */
     virtual void ext_default_child_storage_storage_kill_version_1(
         runtime::WasmSpan child_storage_key) = 0;
+
+    virtual runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) = 0;
   };
 }  // namespace kagome::host_api
 

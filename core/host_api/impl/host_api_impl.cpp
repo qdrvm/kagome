@@ -540,4 +540,11 @@ namespace kagome::host_api {
         child_storage_key);
   }
 
+  runtime::WasmSpan
+  HostApiImpl::ext_default_child_storage_storage_kill_version_3(
+      runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) {
+    return child_storage_ext_.ext_default_child_storage_storage_kill_version_3(
+        child_storage_key, limit);
+  }
+
 }  // namespace kagome::host_api

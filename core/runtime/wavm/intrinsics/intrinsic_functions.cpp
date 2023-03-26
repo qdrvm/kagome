@@ -345,6 +345,14 @@ namespace kagome::runtime::wavm {
         child_storage_key);
   }
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
+      WAVM::I32,
+      ext_default_child_storage_storage_kill_version_3,
+      WAVM::I64 child_storage_key, WAVM::I64 limit) {
+    return peekHostApi()->ext_default_child_storage_storage_kill_version_3(
+        child_storage_key, limit);
+  }
+
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
                                  ext_hashing_blake2_128_version_1,
                                  WAVM::I64 data) {
@@ -697,6 +705,7 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(, ext_default_child_storage_clear_prefix_version_1, I64, I64)
     REGISTER_HOST_INTRINSIC(, ext_default_child_storage_set_version_1, I64, I64, I64)
     REGISTER_HOST_INTRINSIC(, ext_default_child_storage_storage_kill_version_1, I64)
+    REGISTER_HOST_INTRINSIC(I32, ext_default_child_storage_storage_kill_version_3, I64, I64)
     REGISTER_HOST_INTRINSIC(, ext_logging_log_version_1, I32, I64, I64)
     REGISTER_HOST_INTRINSIC(, ext_misc_print_hex_version_1, I64)
     REGISTER_HOST_INTRINSIC(, ext_misc_print_num_version_1, I64)
