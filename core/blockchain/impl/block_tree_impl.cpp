@@ -699,9 +699,9 @@ namespace kagome::blockchain {
       for (primitives::BlockNumber n = last_finalized_block_info.number + 1ull;
            n < node->getBlockInfo().number;
            ++n) {
-        OUTCOME_TRY(hash_opt, storage_->getBlockHash(n));
-        if (hash_opt) {
-          retired_hashes.emplace_back(std::move(*hash_opt));
+        if (auto result = storage_->getBlockHash(n);
+            result.has_value() && result.value()) {
+          retired_hashes.emplace_back(std::move(*result.value()));
         }
       }
 

@@ -24,6 +24,7 @@
 #include "parachain/peer_relay_parent_knowledge.hpp"
 #include "scale/scale.hpp"
 #include "utils/async_sequence.hpp"
+#include "utils/profiler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
                             ParachainProcessorImpl::Error,
@@ -1289,8 +1290,9 @@ namespace kagome::parachain {
       libp2p::peer::PeerId const &peer_id,
       primitives::BlockHash const &relay_parent,
       size_t n_validators) {
-    auto const candidate_hash{candidateHashFrom(candidate)};
+    TicToc _measure{"Parachain validation", logger_};
 
+    auto const candidate_hash{candidateHashFrom(candidate)};
     auto validation_result = validateCandidate(candidate, pov);
     if (!validation_result) {
       logger_->warn(
@@ -1315,6 +1317,7 @@ namespace kagome::parachain {
                         candidate_hash,
                         available_data.pov,
                         available_data.validation_data);
+
     return ValidateAndSecondResult{
         .result = outcome::success(),
         .relay_parent = relay_parent,

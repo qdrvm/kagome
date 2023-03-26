@@ -698,8 +698,7 @@ namespace kagome::consensus::babe {
     } while (rewind_slots);
 
     // Slot processing begins in 1/3 slot time before end
-    auto finish_time = babe_util_->slotFinishTime(current_slot_)
-                     - babe_config_repo_->slotDuration() / 10;
+    auto finish_time = babe_util_->slotFinishTime(current_slot_);
 
     SL_VERBOSE(log_,
                "Starting a slot {} in epoch {} (remains {:.2f} sec.)",
