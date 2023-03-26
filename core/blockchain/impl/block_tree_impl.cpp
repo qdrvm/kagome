@@ -11,6 +11,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
+#include "blockchain/impl/storage_util.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/is_primary.hpp"
 #include "crypto/blake2/blake2b.h"
@@ -693,7 +694,20 @@ namespace kagome::blockchain {
       node->finalized = true;
       node->has_justification = true;
 
-      OUTCOME_TRY(prune(node));
+      OUTCOME_TRY(retired_hashes, prune(node));
+      retired_hashes.emplace_back(node->getBlockInfo().hash);
+      for (primitives::BlockNumber n = last_finalized_block_info.number + 1ull;
+           n < node->getBlockInfo().number;
+           ++n) {
+        OUTCOME_TRY(hash_opt, storage_->getBlockHash(n));
+        if (hash_opt) {
+          retired_hashes.emplace_back(std::move(*hash_opt));
+        }
+      }
+
+      chain_events_engine_->notify(
+          primitives::events::ChainEventType::kDeactivateAfterFinalization,
+          retired_hashes);
 
       tree_->updateTreeRoot(node, justification);
 
@@ -1159,7 +1173,7 @@ namespace kagome::blockchain {
     }
   }
 
-  outcome::result<void> BlockTreeImpl::prune(
+  outcome::result<std::vector<primitives::BlockHash>> BlockTreeImpl::prune(
       const std::shared_ptr<TreeNode> &lastFinalizedNode) {
     std::deque<std::shared_ptr<TreeNode>> to_remove;
 
@@ -1191,9 +1205,12 @@ namespace kagome::blockchain {
     }
 
     std::vector<primitives::Extrinsic> extrinsics;
+    std::vector<primitives::BlockHash> retired_hashes;
 
     // remove from storage
+    retired_hashes.reserve(to_remove.size());
     for (const auto &node : to_remove) {
+      retired_hashes.emplace_back(node->block_hash);
       OUTCOME_TRY(block_body_res, storage_->getBlockBody(node->block_hash));
       if (block_body_res.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
@@ -1223,7 +1240,7 @@ namespace kagome::blockchain {
       }
     }
 
-    return outcome::success();
+    return retired_hashes;
   }
 
   outcome::result<void> BlockTreeImpl::reorganize() {

@@ -422,6 +422,8 @@ namespace kagome::parachain {
     const application::AppConfiguration &app_config_;
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
     primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
+
+    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
   };
 
 }  // namespace kagome::parachain

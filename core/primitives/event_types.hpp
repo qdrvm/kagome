@@ -38,7 +38,8 @@ namespace kagome::primitives::events {
     kFinalizedHeads = 2,
     kAllHeads = 3,
     kFinalizedRuntimeVersion = 4,
-    kNewRuntime = 5
+    kNewRuntime = 5,
+    kDeactivateAfterFinalization = 6,
   };
 
   enum struct BabeStateEventType : uint32_t { kSynchronized = 1 };
@@ -46,11 +47,13 @@ namespace kagome::primitives::events {
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
   using NewRuntimeEventParams = ref_t<const primitives::BlockHash>;
+  using RemoveAfterFinalizationParams = std::vector<primitives::BlockHash>;
 
   using ChainEventParams = boost::variant<std::nullopt_t,
                                           HeadsEventParams,
                                           RuntimeVersionEventParams,
-                                          NewRuntimeEventParams>;
+                                          NewRuntimeEventParams,
+                                          RemoveAfterFinalizationParams>;
 
   struct BabeStateEventParams {
     primitives::BlockInfo best_block;

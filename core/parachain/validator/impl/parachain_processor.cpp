@@ -23,6 +23,7 @@
 #include "parachain/candidate_view.hpp"
 #include "parachain/peer_relay_parent_knowledge.hpp"
 #include "scale/scale.hpp"
+#include "utils/async_sequence.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
                             ParachainProcessorImpl::Error,
@@ -156,6 +157,34 @@ namespace kagome::parachain {
       }
     });
 
+    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
+        peer_view_->intoChainEventsEngine());
+    chain_sub_->subscribe(
+        chain_sub_->generateSubscriptionSetId(),
+        primitives::events::ChainEventType::kDeactivateAfterFinalization);
+    chain_sub_->setCallback(
+        [wptr{weak_from_this()}](
+            auto /*set_id*/,
+            auto && /*internal_obj*/,
+            auto /*event_type*/,
+            const primitives::events::ChainEventParams &event) {
+          if (auto self = wptr.lock()) {
+            if (auto const value = if_type<
+                    const primitives::events::RemoveAfterFinalizationParams>(
+                    event)) {
+              for (auto const &lost : value->get()) {
+                SL_TRACE(self->logger_,
+                         "Remove from storages.(relay parent={})",
+                         lost);
+
+                self->backing_store_->remove(lost);
+                self->av_store_->remove(lost);
+                self->bitfield_store_->remove(lost);
+              }
+            }
+          }
+        });
+
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
@@ -176,9 +205,6 @@ namespace kagome::parachain {
           self->our_current_state_.state_by_relay_parent.erase(lost);
           self->pending_candidates.exclusiveAccess(
               [&](auto &container) { container.erase(lost); });
-          self->backing_store_->remove(lost);
-          self->av_store_->remove(lost);
-          self->bitfield_store_->remove(lost);
         }
 
         if (auto r = self->canProcessParachains(); r.has_error()) {
@@ -404,14 +430,6 @@ namespace kagome::parachain {
       BOOST_ASSERT_MSG(
           bd, "BitfieldDistribution is not present. Check message format.");
 
-      auto opt_parachain_state = tryGetStateByRelayParent(bd->relay_parent);
-      if (!opt_parachain_state) {
-        logger_->debug("Handled bitfield from {}:{} out of view",
-                       peer_id,
-                       bd->relay_parent);
-        return;
-      }
-
       logger_->info(
           "Imported bitfield {} {}", bd->data.payload.ix, bd->relay_parent);
       bitfield_store_->putBitfield(bd->relay_parent, bd->data);
@@ -546,34 +564,64 @@ namespace kagome::parachain {
         relay_parent,
         peer_id);
 
-    std::optional<ValidateAndSecondResult> validate_and_second_result =
-        std::nullopt;
-    if (auto result = validateAndMakeAvailable(std::move(candidate),
-                                               std::move(pov),
-                                               peer_id,
-                                               relay_parent,
-                                               n_validators);
-        result.has_error()) {
-      logger_->warn("Validation task failed.(error={})",
-                    result.error().message());
-      return;
-    } else {
-      validate_and_second_result = std::move(result.value());
-    }
-    BOOST_ASSERT(validate_and_second_result);
+    sequenceIgnore(
+        thread_pool_->io_context()->wrap(
+            asAsync([wself{weak_from_this()},
+                     candidate{std::move(candidate)},
+                     pov{std::move(pov)},
+                     peer_id,
+                     relay_parent,
+                     n_validators]() mutable
+                    -> outcome::result<
+                        ParachainProcessorImpl::ValidateAndSecondResult> {
+              if (auto self = wself.lock()) {
+                if (auto result =
+                        self->validateAndMakeAvailable(std::move(candidate),
+                                                       std::move(pov),
+                                                       peer_id,
+                                                       relay_parent,
+                                                       n_validators);
+                    result.has_error()) {
+                  self->logger_->warn("Validation task failed.(error={})",
+                                      result.error().message());
+                  return result.as_failure();
+                } else {
+                  return result;
+                }
+              }
+              return Error::NO_INSTANCE;
+            })),
+        this_context_->wrap(
+            asAsync([wself{weak_from_this()}, peer_id, candidate_hash](
+                        auto &&validate_and_second_result) mutable
+                    -> outcome::result<void> {
+              if (auto self = wself.lock()) {
+                auto parachain_state = self->tryGetStateByRelayParent(
+                    validate_and_second_result.relay_parent);
+                if (!parachain_state) {
+                  self->logger_->warn(
+                      "After validation no parachain state on relay_parent {}",
+                      validate_and_second_result.relay_parent);
+                  return Error::OUT_OF_VIEW;
+                }
 
-    logger_->info("Async validation complete.(relay parent={}, para_id={})",
-                  validate_and_second_result->relay_parent,
-                  validate_and_second_result->candidate.descriptor.para_id);
+                self->logger_->info(
+                    "Async validation complete.(relay parent={}, para_id={})",
+                    validate_and_second_result.relay_parent,
+                    validate_and_second_result.candidate.descriptor.para_id);
 
-    parachain_state.awaiting_validation.erase(
-        candidateHashFrom(validate_and_second_result->candidate));
-
-    if constexpr (kMode == ValidationTaskType::kSecond) {
-      onValidationComplete(peer_id, std::move(*validate_and_second_result));
-    } else {
-      onAttestComplete(peer_id, std::move(*validate_and_second_result));
-    }
+                parachain_state->get().awaiting_validation.erase(
+                    candidate_hash);
+                auto q{std::move(validate_and_second_result)};
+                if constexpr (kMode == ValidationTaskType::kSecond) {
+                  self->onValidationComplete(peer_id, std::move(q));
+                } else {
+                  self->onAttestComplete(peer_id, std::move(q));
+                }
+                return outcome::success();
+              }
+              return Error::NO_INSTANCE;
+            })));
   }
 
   template <typename T>
@@ -1228,12 +1276,10 @@ namespace kagome::parachain {
       network::ParachainBlock const &pov,
       runtime::PersistedValidationData const &data) {
     makeTrieProof(chunks);
-    av_store_->registerCandidate(relay_parent, candidate_hash);
-    av_store_->putChunkSet(candidate_hash, std::move(chunks));
+    /// TODO(iceseer): remove copy
+    av_store_->storeData(
+        relay_parent, candidate_hash, std::move(chunks), pov, data);
     logger_->trace("Put chunks set.(candidate={})", candidate_hash);
-
-    av_store_->putPov(candidate_hash, pov);
-    av_store_->putData(candidate_hash, data);  /// TODO(iceseer): remove copy
   }
 
   outcome::result<ParachainProcessorImpl::ValidateAndSecondResult>
