@@ -324,6 +324,11 @@ namespace kagome::host_api {
     void ext_default_child_storage_clear_prefix_version_1(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix) override;
 
+    runtime::WasmSpan ext_default_child_storage_clear_prefix_version_2(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan prefix,
+        runtime::WasmSpan limit) override;
+
     virtual runtime::WasmSpan ext_default_child_storage_read_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key,

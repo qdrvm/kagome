@@ -76,6 +76,14 @@ namespace kagome::host_api {
         runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix);
 
     /**
+     * @see HostApi::ext_default_child_storage_clear_prefix_version_2
+     */
+    runtime::WasmSpan ext_default_child_storage_clear_prefix_version_2(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan prefix,
+        runtime::WasmSpan limit);
+
+    /**
      * @see HostApi::ext_default_child_storage_read_version_1
      */
     runtime::WasmSpan ext_default_child_storage_read_version_1(

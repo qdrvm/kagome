@@ -260,6 +260,51 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan
+  ChildStorageExtension::ext_default_child_storage_clear_prefix_version_2(
+      runtime::WasmSpan child_storage_key,
+      runtime::WasmSpan prefix,
+      runtime::WasmSpan limit) {
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    auto [child_key_buffer, prefix_buffer] =
+        loadBuffer(memory, child_storage_key, prefix);
+
+    auto [limit_ptr, limit_size] = runtime::PtrSize(limit);
+    auto enc_limit = memory.loadN(limit_ptr, limit_size);
+    auto limit_res = scale::decode<std::optional<uint32_t>>(enc_limit);
+
+    if (!limit_res) {
+      auto msg = fmt::format(
+          "ext_default_child_storage_clear_prefix_version_2 failed at decoding "
+          "second argument: {}",
+          limit_res.error());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
+    }
+    auto limit_opt = std::move(limit_res.value());
+    auto result = executeOnMutChildStorage<std::tuple<bool, uint32_t>>(
+        child_key_buffer,
+        [limit_opt](auto &child_batch, auto &prefix) {
+          return child_batch.clearPrefix(prefix, limit_opt);
+        },
+        prefix_buffer);
+
+    if (!result) {
+      logger_->error(
+          "ext_default_child_storage_clear_prefix_version_2 failed with "
+          "reason: {}",
+          result.error());
+    }
+    uint32_t removed = std::get<1>(result.value());
+    if (limit_opt) {
+      SL_TRACE_FUNC_CALL(logger_, removed, child_key_buffer, limit_opt.value());
+    } else {
+      SL_TRACE_FUNC_CALL(
+          logger_, removed, child_key_buffer, std::string_view{"none"});
+    }
+    return memory.storeBuffer(scale::encode(removed).value());
+  }
+
+  runtime::WasmSpan
   ChildStorageExtension::ext_default_child_storage_read_version_1(
       runtime::WasmSpan child_storage_key,
       runtime::WasmSpan key,
@@ -384,7 +429,8 @@ namespace kagome::host_api {
     if (limit_opt) {
       SL_TRACE_FUNC_CALL(logger_, removed, child_key_buffer, limit_opt.value());
     } else {
-      SL_TRACE_FUNC_CALL(logger_, removed, child_key_buffer, std::string_view{"none"});
+      SL_TRACE_FUNC_CALL(
+          logger_, removed, child_key_buffer, std::string_view{"none"});
     }
     return memory.storeBuffer(scale::encode(removed).value());
   }

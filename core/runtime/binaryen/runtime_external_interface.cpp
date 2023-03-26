@@ -136,6 +136,7 @@ namespace kagome::runtime::binaryen {
     REGISTER_HOST_API_FUNC(ext_default_child_storage_get_version_1);
     REGISTER_HOST_API_FUNC(ext_default_child_storage_clear_version_1);
     REGISTER_HOST_API_FUNC(ext_default_child_storage_clear_prefix_version_1);
+    REGISTER_HOST_API_FUNC(ext_default_child_storage_clear_prefix_version_2);
     REGISTER_HOST_API_FUNC(ext_default_child_storage_next_key_version_1);
     REGISTER_HOST_API_FUNC(ext_default_child_storage_storage_kill_version_1);
     REGISTER_HOST_API_FUNC(ext_default_child_storage_storage_kill_version_3);

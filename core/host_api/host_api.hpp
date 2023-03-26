@@ -654,6 +654,19 @@ namespace kagome::host_api {
         runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix) = 0;
 
     /**
+     * @brief Clears the child storage of each key/value pair where the key
+     * starts with the given prefix.
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param limit is an optional number of records to remove
+     * @param prefix a pointer-size indicating the prefix
+     * @return pointer to number of records removed
+     */
+    virtual runtime::WasmSpan ext_default_child_storage_clear_prefix_version_2(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan prefix,
+        runtime::WasmSpan limit) = 0;
+
+    /**
      * @brief Gets the given key from storage, placing the value into a buffer
      * and returning the number of bytes that the entry in storage has beyond
      * the offset.
@@ -693,6 +706,12 @@ namespace kagome::host_api {
     virtual void ext_default_child_storage_storage_kill_version_1(
         runtime::WasmSpan child_storage_key) = 0;
 
+    /**
+     * @brief Clears child storage
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param limit is an optional number of records allowed to remove
+     * @return pointer to int32 with a number of records removed
+     */
     virtual runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) = 0;
   };
