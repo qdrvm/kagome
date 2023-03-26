@@ -9,6 +9,7 @@
 
 #include "clock/impl/clock_impl.hpp"
 #include "common/monadic_utils.hpp"
+#include "host_api/impl/storage_util.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
@@ -21,20 +22,6 @@
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
-
-namespace {
-  [[nodiscard]] kagome::storage::trie::StateVersion toStateVersion(
-      kagome::runtime::WasmI32 state_version_int) {
-    if (state_version_int == 0) {
-      return kagome::storage::trie::StateVersion::V0;
-    } else if (state_version_int == 1) {
-      return kagome::storage::trie::StateVersion::V1;
-    } else {
-      throw std::runtime_error(fmt::format(
-          "Invalid state version: {}. Expected 0 or 1", state_version_int));
-    }
-  }
-}  // namespace
 
 namespace kagome::host_api {
   StorageExtension::StorageExtension(
@@ -228,7 +215,7 @@ namespace kagome::host_api {
 
   runtime::WasmSpan StorageExtension::ext_storage_root_version_2(
       runtime::WasmI32 version) {
-    auto state_version = toStateVersion(version);
+    auto state_version = detail::toStateVersion(version);
     auto res = storage_provider_->commit(state_version);
     if (res.has_error()) {
       logger_->error("ext_storage_root resulted with an error: {}",
@@ -409,7 +396,7 @@ namespace kagome::host_api {
     }
     const auto &collection = values.value();
 
-    auto state_version = toStateVersion(version);
+    auto state_version = detail::toStateVersion(version);
 
     auto ordered_hash = storage::trie::calculateOrderedTrieHash(
         state_version, collection.begin(), collection.end());

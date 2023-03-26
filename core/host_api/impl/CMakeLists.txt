@@ -59,6 +59,7 @@ kagome_install(misc_extension)
 
 add_library(storage_extension
     storage_extension.cpp
+    storage_util.cpp
     )
 target_link_libraries(storage_extension
     blob
@@ -71,6 +72,7 @@ kagome_install(storage_extension)
 
 add_library(child_storage_extension
     child_storage_extension.cpp
+    storage_util.cpp
     )
 target_link_libraries(child_storage_extension
     blob

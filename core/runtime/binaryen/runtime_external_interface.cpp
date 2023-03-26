@@ -131,6 +131,7 @@ namespace kagome::runtime::binaryen {
   void RuntimeExternalInterface::methodsRegistration() {
     /// memory externals
     REGISTER_HOST_API_FUNC(ext_default_child_storage_root_version_1);
+    REGISTER_HOST_API_FUNC(ext_default_child_storage_root_version_2);
     REGISTER_HOST_API_FUNC(ext_default_child_storage_set_version_1);
     REGISTER_HOST_API_FUNC(ext_default_child_storage_get_version_1);
     REGISTER_HOST_API_FUNC(ext_default_child_storage_clear_version_1);

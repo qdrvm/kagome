@@ -6,6 +6,7 @@
 #include "host_api/impl/child_storage_extension.hpp"
 
 #include "common/monadic_utils.hpp"
+#include "host_api/impl/storage_util.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
@@ -207,6 +208,14 @@ namespace kagome::host_api {
   runtime::WasmSpan
   ChildStorageExtension::ext_default_child_storage_root_version_1(
       runtime::WasmSpan child_storage_key) const {
+    return ext_default_child_storage_root_version_2(child_storage_key,
+                                                    runtime::WasmI32(0));
+  }
+
+  runtime::WasmSpan
+  ChildStorageExtension::ext_default_child_storage_root_version_2(
+      runtime::WasmSpan child_storage_key,
+      runtime::WasmI32 state_version) const {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto child_key_buffer = loadBuffer(memory, child_storage_key);
     auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
@@ -214,7 +223,8 @@ namespace kagome::host_api {
         storage_provider_->getMutableChildBatchAt(prefixed_child_key.value())
             .value();
 
-    auto res = child_batch.get().commit(storage::trie::StateVersion::V0);
+    auto version = detail::toStateVersion(state_version);
+    auto res = child_batch.get().commit(version);
 
     if (res.has_error()) {
       logger_->error(

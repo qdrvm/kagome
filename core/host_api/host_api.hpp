@@ -596,8 +596,9 @@ namespace kagome::host_api {
      * @return a pointer-size indicating the SCALE encoded Option containing the
      * value.
      */
-    virtual runtime::WasmSpan ext_default_child_storage_get_version_1(
-        runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_default_child_storage_get_version_1(runtime::WasmSpan child_storage_key,
+                                            runtime::WasmSpan key) const = 0;
 
     /**
      * @brief Clears the storage of the given key and its value from the child
@@ -617,7 +618,8 @@ namespace kagome::host_api {
      * the next key in lexicographic order.
      * Returns None if the entry cannot be found.
      */
-    virtual runtime::WasmSpan ext_default_child_storage_next_key_version_1(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_default_child_storage_next_key_version_1(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
 
     /**
@@ -626,8 +628,21 @@ namespace kagome::host_api {
      * @param child_storage_key a pointer-size indicating the child storage key
      * @return a pointer-size indicating the SCALE encoded storage root.
      */
-    virtual runtime::WasmSpan ext_default_child_storage_root_version_1(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_default_child_storage_root_version_1(
         runtime::WasmSpan child_storage_key) const = 0;
+
+    /**
+     * @brief Commits all existing operations and computes the resulting child
+     * storage root.
+     * @param child_storage_key a pointer-size indicating the child storage key
+     * @param state_version a way to calculate the root
+     * @return a pointer-size indicating the SCALE encoded storage root.
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_default_child_storage_root_version_2(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmI32 state_version) const = 0;
 
     /**
      * @brief Clears the child storage of each key/value pair where the key
