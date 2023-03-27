@@ -412,10 +412,6 @@ namespace {
         std::shared_ptr<runtime::TaggedTransactionQueueImpl>>();
     tagged_transaction_queue->setBlockTree(block_tree);
 
-    auto protocol_factory =
-        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-    protocol_factory->setBlockTree(block_tree);
-
     auto runtime_upgrade_tracker =
         injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
 

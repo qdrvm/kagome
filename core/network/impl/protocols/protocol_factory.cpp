@@ -22,7 +22,23 @@ namespace kagome::network {
           ext_event_key_repo,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<network::PeerView> peer_view,
-      std::shared_ptr<ReputationRepository> reputation_repository)
+      std::shared_ptr<ReputationRepository> reputation_repository,
+      lazy<std::shared_ptr<blockchain::BlockTree>> block_tree
+      // ,
+      // lazy<std::shared_ptr<consensus::babe::Babe>> babe,
+      // lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
+      //     grandpa_observer,
+      // lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
+      //     parachain_processor,
+      // lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer,
+      // lazy<std::shared_ptr<CollationObserver>> collation_observer,
+      // lazy<std::shared_ptr<ValidationObserver>> validation_observer,
+      // lazy<std::shared_ptr<StateProtocolObserver>> state_observer,
+      // lazy<std::shared_ptr<ReqCollationObserver>> req_collation_observer,
+      // lazy<std::shared_ptr<ReqPovObserver>> req_pov_observer,
+      // lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer,
+      // lazy<std::shared_ptr<PeerManager>> peer_manager
+      )
       : host_(host),
         app_config_(app_config),
         chain_spec_(chain_spec),
@@ -34,7 +50,21 @@ namespace kagome::network {
         ext_event_key_repo_{std::move(ext_event_key_repo)},
         reputation_repository_{std::move(reputation_repository)},
         scheduler_{std::move(scheduler)},
-        peer_view_(std::move(peer_view)) {
+        peer_view_(std::move(peer_view)),
+        block_tree_(std::move(block_tree))
+  // ,
+  // babe_(std::move(babe)),
+  // grandpa_observer_(std::move(grandpa_observer)),
+  // parachain_processor_(std::move(parachain_processor)),
+  // extrinsic_observer_(std::move(extrinsic_observer)),
+  // state_observer_(std::move(state_observer)),
+  // sync_observer_(std::move(sync_observer)),
+  // peer_manager_(std::move(peer_manager)),
+  // collation_observer_(std::move(collation_observer)),
+  // validation_observer_(std::move(validation_observer)),
+  // req_collation_observer_(std::move(req_collation_observer)),
+  // req_pov_observer_(std::move(req_pov_observer))
+  {
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
@@ -47,7 +77,7 @@ namespace kagome::network {
 
   std::shared_ptr<BlockAnnounceProtocol>
   ProtocolFactory::makeBlockAnnounceProtocol() const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -63,7 +93,7 @@ namespace kagome::network {
 
   std::shared_ptr<GrandpaProtocol> ProtocolFactory::makeGrandpaProtocol()
       const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -80,7 +110,7 @@ namespace kagome::network {
 
   std::shared_ptr<ValidationProtocol> ProtocolFactory::makeValidationProtocol()
       const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -97,7 +127,7 @@ namespace kagome::network {
 
   std::shared_ptr<CollationProtocol> ProtocolFactory::makeCollationProtocol()
       const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -114,7 +144,7 @@ namespace kagome::network {
 
   std::shared_ptr<ReqCollationProtocol>
   ProtocolFactory::makeReqCollationProtocol() const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -123,7 +153,7 @@ namespace kagome::network {
   }
 
   std::shared_ptr<ReqPovProtocol> ProtocolFactory::makeReqPovProtocol() const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -133,7 +163,7 @@ namespace kagome::network {
 
   std::shared_ptr<FetchChunkProtocol> ProtocolFactory::makeFetchChunkProtocol()
       const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -146,7 +176,7 @@ namespace kagome::network {
 
   std::shared_ptr<FetchAvailableDataProtocol>
   ProtocolFactory::makeFetchAvailableDataProtocol() const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -159,7 +189,7 @@ namespace kagome::network {
 
   std::shared_ptr<StatmentFetchingProtocol>
   ProtocolFactory::makeFetchStatementProtocol() const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -172,7 +202,7 @@ namespace kagome::network {
 
   std::shared_ptr<PropagateTransactionsProtocol>
   ProtocolFactory::makePropagateTransactionsProtocol() const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -189,7 +219,7 @@ namespace kagome::network {
   }
 
   std::shared_ptr<StateProtocol> ProtocolFactory::makeStateProtocol() const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
@@ -198,7 +228,7 @@ namespace kagome::network {
   }
 
   std::shared_ptr<SyncProtocol> ProtocolFactory::makeSyncProtocol() const {
-    auto block_tree = block_tree_.lock();
+    auto block_tree = block_tree_.get();
     BOOST_ASSERT(block_tree != nullptr);
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
