@@ -31,17 +31,20 @@ namespace kagome::api {
       crypto::KEY_TYPE_AUDI,
   };
 
-  AuthorApiImpl::AuthorApiImpl(sptr<runtime::SessionKeysApi> key_api,
-                               sptr<transaction_pool::TransactionPool> pool,
-                               sptr<crypto::CryptoStore> store,
-                               sptr<crypto::SessionKeys> keys,
-                               sptr<crypto::KeyFileStorage> key_store,
-                               sptr<blockchain::BlockTree> block_tree)
+  AuthorApiImpl::AuthorApiImpl(
+      sptr<runtime::SessionKeysApi> key_api,
+      sptr<transaction_pool::TransactionPool> pool,
+      sptr<crypto::CryptoStore> store,
+      sptr<crypto::SessionKeys> keys,
+      sptr<crypto::KeyFileStorage> key_store,
+      sptr<blockchain::BlockTree> block_tree,
+      lazy<std::shared_ptr<api::ApiService>> api_service)
       : keys_api_(std::move(key_api)),
         pool_{std::move(pool)},
         store_{std::move(store)},
         keys_{std::move(keys)},
         key_store_{std::move(key_store)},
+        api_service_{std::move(api_service)},
         block_tree_{std::move(block_tree)},
         logger_{log::createLogger("AuthorApi", "author_api")} {
     BOOST_ASSERT_MSG(keys_api_ != nullptr, "session keys api is nullptr");
@@ -51,12 +54,6 @@ namespace kagome::api {
     BOOST_ASSERT_MSG(key_store_ != nullptr, "key store is nullptr");
     BOOST_ASSERT_MSG(block_tree_ != nullptr, "block tree is nullptr");
     BOOST_ASSERT_MSG(logger_ != nullptr, "logger is nullptr");
-  }
-
-  void AuthorApiImpl::setApiService(
-      std::shared_ptr<api::ApiService> const &api_service) {
-    BOOST_ASSERT(api_service != nullptr);
-    api_service_ = api_service;
   }
 
   outcome::result<common::Hash256> AuthorApiImpl::submitExtrinsic(
@@ -165,10 +162,11 @@ namespace kagome::api {
   outcome::result<bool> AuthorApiImpl::hasKey(
       const gsl::span<const uint8_t> &public_key, crypto::KeyTypeId key_type) {
     auto res = key_store_->searchForSeed(key_type, public_key);
-    if (not res)
+    if (not res) {
       return res.error();
-    else
+    } else {
       return res.value() ? true : false;
+    }
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>
@@ -195,7 +193,7 @@ namespace kagome::api {
 
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
-    if (auto service = api_service_.lock()) {
+    if (auto service = api_service_.get()) {
       OUTCOME_TRY(
           tx,
           pool_->constructTransaction(TransactionSource::External, extrinsic));
@@ -218,7 +216,7 @@ namespace kagome::api {
   }
 
   outcome::result<bool> AuthorApiImpl::unwatchExtrinsic(SubscriptionId sub_id) {
-    if (auto service = api_service_.lock()) {
+    if (auto service = api_service_.get()) {
       return service->unsubscribeFromExtrinsicLifecycle(sub_id);
     }
     throw jsonrpc::InternalErrorFault(

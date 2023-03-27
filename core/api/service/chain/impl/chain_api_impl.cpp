@@ -29,9 +29,11 @@ namespace kagome::api {
   ChainApiImpl::ChainApiImpl(
       std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<blockchain::BlockStorage> block_storage)
+      std::shared_ptr<blockchain::BlockStorage> block_storage,
+      lazy<std::shared_ptr<api::ApiService>> api_service)
       : header_repo_{std::move(block_repo)},
         block_tree_{std::move(block_tree)},
+        api_service_{std::move(api_service)},
         block_storage_{std::move(block_storage)} {
     BOOST_ASSERT_MSG(header_repo_ != nullptr,
                      "block repo parameter is nullptr");
@@ -46,12 +48,6 @@ namespace kagome::api {
   outcome::result<common::Hash256> ChainApiImpl::getBlockHash(
       BlockNumber value) const {
     return header_repo_->getHashByNumber(value);
-  }
-
-  void ChainApiImpl::setApiService(
-      std::shared_ptr<api::ApiService> const &api_service) {
-    BOOST_ASSERT(api_service != nullptr);
-    api_service_ = api_service;
   }
 
   outcome::result<BlockHash> ChainApiImpl::getBlockHash(
@@ -87,14 +83,18 @@ namespace kagome::api {
       std::string_view hash) {
     OUTCOME_TRY(h, primitives::BlockHash::fromHexWithPrefix(hash));
     OUTCOME_TRY(block, block_storage_->getBlockData(h));
-    if (block) return block.value();
+    if (block) {
+      return block.value();
+    }
     return Error::BLOCK_NOT_FOUND;
   }
 
   outcome::result<primitives::BlockData> ChainApiImpl::getBlock() {
     auto last_finalized_info = block_tree_->getLastFinalized();
     OUTCOME_TRY(block, block_storage_->getBlockData(last_finalized_info.hash));
-    if (block) return block.value();
+    if (block) {
+      return block.value();
+    }
     return Error::BLOCK_NOT_FOUND;
   }
 
@@ -104,8 +104,9 @@ namespace kagome::api {
   }
 
   outcome::result<uint32_t> ChainApiImpl::subscribeFinalizedHeads() {
-    if (auto api_service = api_service_.lock())
+    if (auto api_service = api_service_.get()) {
       return api_service->subscribeFinalizedHeads();
+    }
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");
@@ -113,7 +114,7 @@ namespace kagome::api {
 
   outcome::result<void> ChainApiImpl::unsubscribeFinalizedHeads(
       uint32_t subscription_id) {
-    if (auto api_service = api_service_.lock()) {
+    if (auto api_service = api_service_.get()) {
       OUTCOME_TRY(api_service->unsubscribeFinalizedHeads(subscription_id));
       // any non-error result is considered as success
       return outcome::success();
@@ -124,8 +125,9 @@ namespace kagome::api {
   }
 
   outcome::result<uint32_t> ChainApiImpl::subscribeNewHeads() {
-    if (auto api_service = api_service_.lock())
+    if (auto api_service = api_service_.get()) {
       return api_service->subscribeNewHeads();
+    }
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");
@@ -133,7 +135,7 @@ namespace kagome::api {
 
   outcome::result<void> ChainApiImpl::unsubscribeNewHeads(
       uint32_t subscription_id) {
-    if (auto api_service = api_service_.lock()) {
+    if (auto api_service = api_service_.get()) {
       OUTCOME_TRY(api_service->unsubscribeNewHeads(subscription_id));
       return outcome::success();
     }

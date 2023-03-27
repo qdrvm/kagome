@@ -7,6 +7,9 @@
 #define KAGOME_STATE_API_IMPL_HPP
 
 #include "api/service/state/state_api.hpp"
+
+#include <boost/di/extension/injections/lazy.hpp>
+
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "runtime/runtime_api/core.hpp"
@@ -18,6 +21,9 @@ namespace kagome::runtime {
 }
 
 namespace kagome::api {
+
+  template <typename T>
+  using lazy = boost::di::extension::lazy<T>;
 
   class StateApiImpl final : public StateApi {
    public:
@@ -35,10 +41,8 @@ namespace kagome::api {
                  std::shared_ptr<blockchain::BlockTree> block_tree,
                  std::shared_ptr<runtime::Core> runtime_core,
                  std::shared_ptr<runtime::Metadata> metadata,
-                 std::shared_ptr<runtime::RawExecutor> executor);
-
-    void setApiService(
-        std::shared_ptr<api::ApiService> const &api_service) override;
+                 std::shared_ptr<runtime::RawExecutor> executor,
+                 lazy<std::shared_ptr<api::ApiService>> api_service);
 
     outcome::result<common::Buffer> call(
         std::string_view method,
@@ -95,7 +99,7 @@ namespace kagome::api {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> runtime_core_;
 
-    std::weak_ptr<api::ApiService> api_service_;
+    lazy<std::shared_ptr<api::ApiService>> api_service_;
     std::shared_ptr<runtime::Metadata> metadata_;
     std::shared_ptr<runtime::RawExecutor> executor_;
   };

@@ -314,63 +314,6 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<api::ApiServiceImpl> get_jrpc_api_service(const Injector &injector) {
-    auto app_state_manager =
-        injector
-            .template create<std::shared_ptr<application::AppStateManager>>();
-    auto thread_pool = injector.template create<sptr<api::RpcThreadPool>>();
-    auto server = injector.template create<sptr<api::JRpcServer>>();
-    auto listeners =
-        injector.template create<api::ApiServiceImpl::ListenerList>();
-    auto processors =
-        injector.template create<api::ApiServiceImpl::ProcessorSpan>();
-    auto storage_sub_engine = injector.template create<
-        primitives::events::StorageSubscriptionEnginePtr>();
-    auto chain_sub_engine =
-        injector
-            .template create<primitives::events::ChainSubscriptionEnginePtr>();
-    auto ext_sub_engine = injector.template create<
-        primitives::events::ExtrinsicSubscriptionEnginePtr>();
-    auto extrinsic_event_key_repo =
-        injector
-            .template create<sptr<subscription::ExtrinsicEventKeyRepository>>();
-    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
-    auto trie_storage =
-        injector.template create<sptr<storage::trie::TrieStorage>>();
-    auto core = injector.template create<sptr<runtime::Core>>();
-
-    auto api_service =
-        std::make_shared<api::ApiServiceImpl>(*app_state_manager,
-                                              thread_pool,
-                                              listeners,
-                                              server,
-                                              processors,
-                                              storage_sub_engine,
-                                              chain_sub_engine,
-                                              ext_sub_engine,
-                                              extrinsic_event_key_repo,
-                                              block_tree,
-                                              trie_storage,
-                                              core);
-
-    auto child_state_api =
-        injector.template create<std::shared_ptr<api::ChildStateApi>>();
-    child_state_api->setApiService(api_service);
-
-    auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
-    state_api->setApiService(api_service);
-
-    auto chain_api = injector.template create<std::shared_ptr<api::ChainApi>>();
-    chain_api->setApiService(api_service);
-
-    auto author_api =
-        injector.template create<std::shared_ptr<api::AuthorApi>>();
-    author_api->setApiService(api_service);
-
-    return api_service;
-  }
-
-  template <typename Injector>
   sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
     auto header_repo =
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
@@ -831,9 +774,7 @@ namespace {
         di::bind<api::SystemApi>.template to<api::SystemApiImpl>(),
         di::bind<api::RpcApi>.template to<api::RpcApiImpl>(),
         di::bind<api::PaymentApi>.template to<api::PaymentApiImpl>(),
-        bind_by_lambda<api::ApiService>([](const auto &injector) {
-          return get_jrpc_api_service(injector);
-        }),
+        di::bind<api::ApiService>.template to<api::ApiServiceImpl>(),
         di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
