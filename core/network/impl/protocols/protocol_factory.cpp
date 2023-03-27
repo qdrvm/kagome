@@ -23,9 +23,9 @@ namespace kagome::network {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ReputationRepository> reputation_repository,
-      lazy<std::shared_ptr<blockchain::BlockTree>> block_tree
+      lazy<std::shared_ptr<blockchain::BlockTree>> block_tree,
+      lazy<std::shared_ptr<consensus::babe::Babe>> babe
       // ,
-      // lazy<std::shared_ptr<consensus::babe::Babe>> babe,
       // lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
       //     grandpa_observer,
       // lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
@@ -51,9 +51,9 @@ namespace kagome::network {
         reputation_repository_{std::move(reputation_repository)},
         scheduler_{std::move(scheduler)},
         peer_view_(std::move(peer_view)),
-        block_tree_(std::move(block_tree))
+        block_tree_(std::move(block_tree)),
+        babe_(std::move(babe))
   // ,
-  // babe_(std::move(babe)),
   // grandpa_observer_(std::move(grandpa_observer)),
   // parachain_processor_(std::move(parachain_processor)),
   // extrinsic_observer_(std::move(extrinsic_observer)),
@@ -87,7 +87,7 @@ namespace kagome::network {
                                                    genesisBlockHash,
                                                    stream_engine_,
                                                    std::move(block_tree),
-                                                   babe_.lock(),
+                                                   babe_.get(),
                                                    peer_manager_.lock());
   }
 
@@ -211,7 +211,7 @@ namespace kagome::network {
         app_config_,
         chain_spec_,
         genesisBlockHash,
-        babe_.lock(),
+        babe_.get(),
         extrinsic_observer_.lock(),
         stream_engine_,
         extrinsic_events_engine_,

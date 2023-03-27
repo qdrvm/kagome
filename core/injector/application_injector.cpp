@@ -1094,11 +1094,6 @@ namespace {
         injector.template create<
             primitives::events::BabeStateSubscriptionEnginePtr>());
 
-    auto protocol_factory =
-        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
-    protocol_factory->setBabe(ptr);
-
     return ptr;
   }
 

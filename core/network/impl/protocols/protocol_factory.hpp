@@ -49,9 +49,9 @@ namespace kagome::network {
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ReputationRepository> reputation_repository,
-        lazy<std::shared_ptr<blockchain::BlockTree>> block_tree
+        lazy<std::shared_ptr<blockchain::BlockTree>> block_tree,
+        lazy<std::shared_ptr<consensus::babe::Babe>> babe
         // ,
-        // lazy<std::shared_ptr<consensus::babe::Babe>> babe,
         // lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
         //     grandpa_observer,
         // lazy<std::shared_ptr<parachain::ParachainProcessorImpl>> pp,
@@ -64,10 +64,6 @@ namespace kagome::network {
         // lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer,
         // lazy<std::shared_ptr<PeerManager>> peer_manager
     );
-
-    void setBabe(const std::shared_ptr<consensus::babe::Babe> &babe) {
-      babe_ = babe;
-    }
 
     void setGrandpaObserver(
         const std::shared_ptr<consensus::grandpa::GrandpaObserver>
@@ -155,7 +151,7 @@ namespace kagome::network {
     std::shared_ptr<network::PeerView> peer_view_;
 
     lazy<std::shared_ptr<blockchain::BlockTree>> block_tree_;
-    // lazy<std::shared_ptr<consensus::babe::Babe>> babe_;
+    lazy<std::shared_ptr<consensus::babe::Babe>> babe_;
     // lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
     //     grandpa_observer_;
     // lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
@@ -170,7 +166,7 @@ namespace kagome::network {
     // lazy<std::shared_ptr<ReqPovObserver>> req_pov_observer_;
 
     // std::weak_ptr<blockchain::BlockTree> block_tree_;
-    std::weak_ptr<consensus::babe::Babe> babe_;
+    // std::weak_ptr<consensus::babe::Babe> babe_;
     std::weak_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::weak_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::weak_ptr<StateProtocolObserver> state_observer_;
