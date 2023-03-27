@@ -1896,12 +1896,12 @@ namespace kagome::parachain {
     auto const block_number = block_entry.block_number;
     auto const tick_now = ::tickNow();
 
-    logger_->info(
-        "Advance approval state.(candidate {}, block {}, "
-        "validator {})",
-        candidate_hash,
-        block_hash,
-        validator_index);
+    SL_TRACE(logger_,
+             "Advance approval state.(candidate {}, block {}, "
+             "validator {})",
+             candidate_hash,
+             block_hash,
+             validator_index);
 
     auto result = approval_status(block_entry, candidate_entry);
     if (!result) {
@@ -2007,7 +2007,8 @@ namespace kagome::parachain {
       primitives::BlockNumber block_number,
       CandidateHash const &candidate_hash,
       Tick tick) {
-    logger_->info(
+    SL_TRACE(
+        logger_,
         "Scheduling wakeup. Block hash {}, candidate hash {}, block number {}, "
         "tick {}",
         block_hash,
