@@ -8,6 +8,8 @@
 
 #include "runtime/runtime_api/tagged_transaction_queue.hpp"
 
+#include <boost/di/extension/injections/lazy.hpp>
+
 #include "log/logger.hpp"
 
 namespace kagome::blockchain {
@@ -16,13 +18,16 @@ namespace kagome::blockchain {
 
 namespace kagome::runtime {
 
+  template <typename T>
+  using lazy = boost::di::extension::lazy<T>;
+
   class Executor;
 
   class TaggedTransactionQueueImpl final : public TaggedTransactionQueue {
    public:
-    explicit TaggedTransactionQueueImpl(std::shared_ptr<Executor> executor);
-
-    void setBlockTree(std::shared_ptr<blockchain::BlockTree> block_tree);
+    TaggedTransactionQueueImpl(
+        std::shared_ptr<Executor> executor,
+        lazy<std::shared_ptr<blockchain::BlockTree>> block_tree);
 
     outcome::result<TransactionValidityAt> validate_transaction(
         primitives::TransactionSource source,
@@ -30,7 +35,7 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<Executor> executor_;
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    lazy<std::shared_ptr<blockchain::BlockTree>> block_tree_;
     log::Logger logger_;
   };
 
