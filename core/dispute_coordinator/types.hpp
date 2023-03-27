@@ -119,19 +119,20 @@ namespace kagome::dispute {
     SessionIndex session_index;
   };
 
+  using Voted = std::vector<
+      std::tuple<ValidatorIndex, DisputeStatement, ValidatorSignature>>;
+
   struct CannotVote : public Empty {};
 
   /// Whether or not we already issued some statement about a candidate.
   using OwnVoteState = boost::variant<
       /// Our votes, if any.
-      std::vector<std::tuple<ValidatorIndex,
-                             DisputeStatement,
-                             ValidatorSignature>>,  // Voted
+      Voted,
 
       /// We are not a parachain validator in the session.
       ///
       /// Hence we cannot vote.
-      CannotVote>;  // CannotVote
+      CannotVote>;
 
 }  // namespace kagome::dispute
 

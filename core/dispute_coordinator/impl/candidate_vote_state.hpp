@@ -8,6 +8,10 @@
 
 namespace kagome::dispute {
 
+  /// Complete state of votes for a candidate.
+  ///
+  /// All votes + information whether a dispute is ongoing, confirmed,
+  /// concluded, whether we already voted, ...
   class CandidateVoteState final {
    public:
     static CandidateVoteState create(CandidateVotes votes,

@@ -10,7 +10,6 @@
 
 #include "../../../test/testutil/outcome/dummy_error.hpp"
 #include "common/visitor.hpp"
-#include "dispute_coordinator/impl/candidate_vote_state.hpp"
 
 namespace kagome::dispute {
 
@@ -27,7 +26,6 @@ namespace kagome::dispute {
       MaybeCandidateReceipt candidate_receipt,
       SessionIndex session,
       std::vector<Indexed<SignedDisputeStatement>> statements) {
-
     auto now = clock_->now();
 
     if (not rolling_session_window_->contains(session)) {
@@ -36,7 +34,11 @@ namespace kagome::dispute {
       return outcome::success(false);
     }
 
-    const auto &candidate_hash = candidate_receipt.commitments_hash;
+    const auto &candidate_hash_ =
+        is_type<CandidateReceipt>(candidate_receipt)
+            ? boost::relaxed_get<CandidateReceipt>(candidate_receipt)
+                  .commitments_hash
+            : boost::relaxed_get<CandidateHash>(candidate_receipt);
 
     auto session_info_opt = rolling_session_window_->session_info(session));
     if (not session_info_opt.has_value()) {
@@ -246,15 +248,14 @@ namespace kagome::dispute {
           import_result = intermediate_result;
         } else {
           // LOG "Successfully received approval votes."
-              auto& votes = res.value();
+          auto &votes = res.value();
 
-              intermediate_result.import_approval_votes(&env, votes, now);
+          intermediate_result.import_approval_votes(  // TODO unstub
+              &env,
+              votes,
+              now);
 
-
-
-
-
-              import_result = intermediate_result;
+          import_result = intermediate_result;
         }
 
       } else {
@@ -264,77 +265,53 @@ namespace kagome::dispute {
 
       // LOG "Import result ready"
 
-      auto& new_state = import_result.new_state;
+      auto &new_state = import_result.new_state;
+
+      auto is_included = scraper_->is_candidate_included(candidate_hash);
+      auto is_backed = scraper_->is_candidate_backed(candidate_hash);
+      auto own_vote_missing =
+          is_type<CannotVote>(new_state.own_vote)
+          or boost::relaxed_get<Voted>(new_state.own_vote).empty();
+      auto is_disputed = new_state.dispute_status.has_value();
+      auto is_confirmed = is_disputed
+                            ? is_type<Tagged<Empty, struct Confirmed>>(
+                                new_state.dispute_status.value())
+                            : false;
+      auto potential_spam = is_potential_spam(new_state, candidate_hash);
+
+      // We participate only in disputes which are not potential spam.
+      auto allow_participation = not potential_spam;
+
+      // This check is responsible for all clearing of spam slots. It runs
+      // whenever a vote is imported from on or off chain, and decrements
+      // slots whenever a candidate is newly backed, confirmed, or has our
+      // own vote.
+      if (not potential_spam) {
+        spam_slots_->clear(session, candidate_hash);
+
+        // Potential spam:
+      } else if (not import_result.new_invalid_voters.empty()) {
+        auto free_spam_slots_available = false;
+
+        // Only allow import if at least one validator voting invalid, has not
+        // exceeded its spam slots:
+        for (auto validator : import_result.new_invalid_voters) {
+          // Disputes can only be triggered via an invalidity stating vote, thus
+          // we only need to increase spam slots on invalid votes. (If we did
+          // not, we would also increase spam slots for backing validators for
+          // example - as validators have to provide some opposing vote for
+          // dispute-distribution).
+          free_spam_slots_available |=
+              spam_slots_->add_unconfirmed(session, candidate_hash, validator);
+        }
+        if (not free_spam_slots_available) {
+          // LOG "Rejecting import because of full spam slots."
+          return outcome::success(false);
+        }
+      }
 
       // clang-format off
 
-		let is_included = self.scraper.is_candidate_included(&candidate_hash);
-		let is_backed = self.scraper.is_candidate_backed(&candidate_hash);
-		let own_vote_missing = new_state.own_vote_missing();
-		let is_disputed = new_state.is_disputed();
-		let is_confirmed = new_state.is_confirmed();
-		let potential_spam = is_potential_spam(&self.scraper, &new_state, &candidate_hash);
-		// We participate only in disputes which are not potential spam.
-		let allow_participation = !potential_spam;
-
-
-
-
-
-
-		let new_state = import_result.new_state();
-
-		let is_included = self.scraper.is_candidate_included(&candidate_hash);
-		let is_backed = self.scraper.is_candidate_backed(&candidate_hash);
-		let own_vote_missing = new_state.own_vote_missing();
-		let is_disputed = new_state.is_disputed();
-		let is_confirmed = new_state.is_confirmed();
-		let potential_spam = is_potential_spam(&self.scraper, &new_state, &candidate_hash);
-		// We participate only in disputes which are not potential spam.
-		let allow_participation = !potential_spam;
-
-		gum::trace!(
-			target: LOG_TARGET,
-			?own_vote_missing,
-			?potential_spam,
-			?is_included,
-			?candidate_hash,
-			confirmed = ?new_state.is_confirmed(),
-			has_invalid_voters = ?!import_result.new_invalid_voters().is_empty(),
-			"Is spam?"
-		);
-
-		// This check is responsible for all clearing of spam slots. It runs
-		// whenever a vote is imported from on or off chain, and decrements
-		// slots whenever a candidate is newly backed, confirmed, or has our
-		// own vote.
-		if !potential_spam {
-			self.spam_slots.clear(&(session, candidate_hash));
-
-		// Potential spam:
-		} else if !import_result.new_invalid_voters().is_empty() {
-			let mut free_spam_slots_available = false;
-			// Only allow import if at least one validator voting invalid, has not exceeded
-			// its spam slots:
-			for index in import_result.new_invalid_voters() {
-				// Disputes can only be triggered via an invalidity stating vote, thus we only
-				// need to increase spam slots on invalid votes. (If we did not, we would also
-				// increase spam slots for backing validators for example - as validators have to
-				// provide some opposing vote for dispute-distribution).
-				free_spam_slots_available |=
-					self.spam_slots.add_unconfirmed(session, candidate_hash, *index);
-			}
-			if !free_spam_slots_available {
-				gum::debug!(
-					target: LOG_TARGET,
-					?candidate_hash,
-					?session,
-					invalid_voters = ?import_result.new_invalid_voters(),
-					"Rejecting import because of full spam slots."
-				);
-				return Ok(ImportStatementsResult::InvalidImport)
-			}
-		}
 
 		// Participate in dispute if we did not cast a vote before and actually have keys to cast a
 		// local vote. Disputes should fall in one of the categories below, otherwise we will refrain
@@ -544,5 +521,9 @@ namespace kagome::dispute {
 
 
       return outcome::success(true);
+    }
   }
+}
+
+}
 }

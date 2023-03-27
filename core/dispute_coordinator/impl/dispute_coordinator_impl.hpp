@@ -8,10 +8,13 @@
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
 
+#include "dispute_coordinator/chain_scrapper.hpp"
+#include "dispute_coordinator/impl/candidate_vote_state.hpp"
 #include "dispute_coordinator/rolling_session_window.hpp"
+#include "dispute_coordinator/spam_slots.hpp"
 #include "dispute_coordinator/storage.hpp"
-#include "parachain/types.hpp"
 #include "log/logger.hpp"
+#include "parachain/types.hpp"
 
 namespace kagome::dispute {
 
@@ -116,11 +119,15 @@ namespace kagome::dispute {
     void find_controlled_validator_indices(
         Indexed<std::vector<ValidatorId>> validators);
 
+    bool is_potential_spam(const CandidateVoteState &vote_state,
+                           const CandidateHash &candidate_hash);
+
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<LocalKeystore> keystore_;
     std::shared_ptr<Storage> storage_;
 
-    ChainScraper scraper_;
+    std::shared_ptr<ChainScraper> scraper_;
+    std::shared_ptr<SpamSlots> spam_slots_;
 
     std::shared_ptr<RollingSessionWindow> rolling_session_window_;
 
