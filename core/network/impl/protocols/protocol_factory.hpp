@@ -51,18 +51,17 @@ namespace kagome::network {
         std::shared_ptr<ReputationRepository> reputation_repository,
         lazy<std::shared_ptr<blockchain::BlockTree>> block_tree,
         lazy<std::shared_ptr<consensus::babe::Babe>> babe
-        // ,
-        // lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
+        // ,lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
         //     grandpa_observer,
-        // lazy<std::shared_ptr<parachain::ParachainProcessorImpl>> pp,
-        // lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer,
-        // lazy<std::shared_ptr<CollationObserver>> collation_observer,
-        // lazy<std::shared_ptr<ValidationObserver>> validation_observer,
-        // lazy<std::shared_ptr<StateProtocolObserver>> state_observer,
-        // lazy<std::shared_ptr<ReqCollationObserver>> req_collation_observer,
-        // lazy<std::shared_ptr<ReqPovObserver>> observer,
-        // lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer,
-        // lazy<std::shared_ptr<PeerManager>> peer_manager
+        ,lazy<std::shared_ptr<PeerManager>> peer_manage
+        // ,lazy<std::shared_ptr<parachain::ParachainProcessorImpl>> pp
+        // ,lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer
+        // ,lazy<std::shared_ptr<CollationObserver>> collation_observer
+        // ,lazy<std::shared_ptr<ValidationObserver>> validation_observer
+        // ,lazy<std::shared_ptr<StateProtocolObserver>> state_observer
+        // ,lazy<std::shared_ptr<ReqCollationObserver>> req_collation_observer
+        // ,lazy<std::shared_ptr<ReqPovObserver>> observer
+        // ,lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer
     );
 
     void setGrandpaObserver(
@@ -110,10 +109,6 @@ namespace kagome::network {
       sync_observer_ = sync_observer;
     }
 
-    void setPeerManager(const std::shared_ptr<PeerManager> &peer_manager) {
-      peer_manager_ = peer_manager;
-    }
-
     std::shared_ptr<BlockAnnounceProtocol> makeBlockAnnounceProtocol() const;
 
     std::shared_ptr<GrandpaProtocol> makeGrandpaProtocol() const;
@@ -154,24 +149,21 @@ namespace kagome::network {
     lazy<std::shared_ptr<consensus::babe::Babe>> babe_;
     // lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
     //     grandpa_observer_;
+    lazy<std::shared_ptr<PeerManager>> peer_manager_;
     // lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
     //     parachain_processor_;
     // lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer_;
     // lazy<std::shared_ptr<StateProtocolObserver>> state_observer_;
     // lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer_;
-    // lazy<std::shared_ptr<PeerManager>> peer_manager_;
     // lazy<std::shared_ptr<CollationObserver>> collation_observer_;
     // lazy<std::shared_ptr<ValidationObserver>> validation_observer_;
     // lazy<std::shared_ptr<ReqCollationObserver>> req_collation_observer_;
     // lazy<std::shared_ptr<ReqPovObserver>> req_pov_observer_;
 
-    // std::weak_ptr<blockchain::BlockTree> block_tree_;
-    // std::weak_ptr<consensus::babe::Babe> babe_;
     std::weak_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::weak_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::weak_ptr<StateProtocolObserver> state_observer_;
     std::weak_ptr<SyncProtocolObserver> sync_observer_;
-    std::weak_ptr<PeerManager> peer_manager_;
     std::weak_ptr<CollationObserver> collation_observer_;
     std::weak_ptr<ValidationObserver> validation_observer_;
     std::weak_ptr<ReqCollationObserver> req_collation_observer_;

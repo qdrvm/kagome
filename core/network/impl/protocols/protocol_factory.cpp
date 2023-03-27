@@ -24,20 +24,19 @@ namespace kagome::network {
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ReputationRepository> reputation_repository,
       lazy<std::shared_ptr<blockchain::BlockTree>> block_tree,
-      lazy<std::shared_ptr<consensus::babe::Babe>> babe
-      // ,
+      lazy<std::shared_ptr<consensus::babe::Babe>> babe,
       // lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
-      //     grandpa_observer,
-      // lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
-      //     parachain_processor,
-      // lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer,
-      // lazy<std::shared_ptr<CollationObserver>> collation_observer,
-      // lazy<std::shared_ptr<ValidationObserver>> validation_observer,
-      // lazy<std::shared_ptr<StateProtocolObserver>> state_observer,
-      // lazy<std::shared_ptr<ReqCollationObserver>> req_collation_observer,
-      // lazy<std::shared_ptr<ReqPovObserver>> req_pov_observer,
-      // lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer,
-      // lazy<std::shared_ptr<PeerManager>> peer_manager
+      //    grandpa_observer,
+      lazy<std::shared_ptr<PeerManager>> peer_manager
+      // ,lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
+      //     parachain_processor
+      // ,lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer
+      // ,lazy<std::shared_ptr<CollationObserver>> collation_observer
+      // ,lazy<std::shared_ptr<ValidationObserver>> validation_observer
+      // ,lazy<std::shared_ptr<StateProtocolObserver>> state_observer
+      // ,lazy<std::shared_ptr<ReqCollationObserver>> req_collation_observer
+      // ,lazy<std::shared_ptr<ReqPovObserver>> req_pov_observer
+      // ,lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer
       )
       : host_(host),
         app_config_(app_config),
@@ -53,17 +52,16 @@ namespace kagome::network {
         peer_view_(std::move(peer_view)),
         block_tree_(std::move(block_tree)),
         babe_(std::move(babe))
-  // ,
-  // grandpa_observer_(std::move(grandpa_observer)),
-  // parachain_processor_(std::move(parachain_processor)),
-  // extrinsic_observer_(std::move(extrinsic_observer)),
-  // state_observer_(std::move(state_observer)),
-  // sync_observer_(std::move(sync_observer)),
-  // peer_manager_(std::move(peer_manager)),
-  // collation_observer_(std::move(collation_observer)),
-  // validation_observer_(std::move(validation_observer)),
-  // req_collation_observer_(std::move(req_collation_observer)),
-  // req_pov_observer_(std::move(req_pov_observer))
+  // ,grandpa_observer_(std::move(grandpa_observer))
+        ,peer_manager_(std::move(peer_manager))
+  // ,parachain_processor_(std::move(parachain_processor))
+  // ,extrinsic_observer_(std::move(extrinsic_observer))
+  // ,state_observer_(std::move(state_observer))
+  // ,sync_observer_(std::move(sync_observer))
+  // ,collation_observer_(std::move(collation_observer))
+  // ,validation_observer_(std::move(validation_observer))
+  // ,req_collation_observer_(std::move(req_collation_observer))
+  // ,req_pov_observer_(std::move(req_pov_observer))
   {
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
@@ -88,7 +86,7 @@ namespace kagome::network {
                                                    stream_engine_,
                                                    std::move(block_tree),
                                                    babe_.get(),
-                                                   peer_manager_.lock());
+                                                   peer_manager_.get());
   }
 
   std::shared_ptr<GrandpaProtocol> ProtocolFactory::makeGrandpaProtocol()
@@ -103,7 +101,7 @@ namespace kagome::network {
                                              grandpa_observer_.lock(),
                                              own_info_,
                                              stream_engine_,
-                                             peer_manager_.lock(),
+                                             peer_manager_.get(),
                                              genesisBlockHash,
                                              scheduler_);
   }

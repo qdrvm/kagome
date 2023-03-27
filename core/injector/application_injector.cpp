@@ -421,33 +421,6 @@ namespace {
     return block_tree;
   }
 
-  template <class Injector>
-  sptr<network::PeerManager> get_peer_manager(const Injector &injector) {
-    auto peer_manager = std::make_shared<network::PeerManagerImpl>(
-        injector.template create<sptr<application::AppStateManager>>(),
-        injector.template create<libp2p::Host &>(),
-        injector.template create<sptr<libp2p::protocol::Identify>>(),
-        injector.template create<sptr<libp2p::protocol::kademlia::Kademlia>>(),
-        injector.template create<sptr<libp2p::basic::Scheduler>>(),
-        injector.template create<sptr<network::StreamEngine>>(),
-        injector.template create<const application::AppConfiguration &>(),
-        injector.template create<sptr<clock::SteadyClock>>(),
-        injector.template create<const network::BootstrapNodes &>(),
-        injector.template create<const network::OwnPeerInfo &>(),
-        injector.template create<sptr<network::Router>>(),
-        injector.template create<sptr<storage::SpacedStorage>>(),
-        injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<network::ReputationRepository>>(),
-        injector.template create<sptr<network::PeerView>>());
-
-    auto protocol_factory =
-        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
-    protocol_factory->setPeerManager(peer_manager);
-
-    return peer_manager;
-  }
-
   template <typename Injector>
   sptr<parachain::ParachainObserverImpl> get_parachain_observer_impl(
       const Injector &injector) {
@@ -982,8 +955,7 @@ namespace {
               justification_storage_policy->initBlockchainInfo(block_tree_impl);
               return auth_manager_impl;
             }),
-        bind_by_lambda<network::PeerManager>(
-            [](auto const &injector) { return get_peer_manager(injector); }),
+        di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::babe::BlockHeaderAppender>.template to<consensus::babe::BlockHeaderAppenderImpl>(),
         di::bind<consensus::babe::BlockExecutor>.template to<consensus::babe::BlockExecutorImpl>(),
