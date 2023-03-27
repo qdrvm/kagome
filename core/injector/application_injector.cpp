@@ -394,7 +394,7 @@ namespace {
         std::shared_ptr<blockchain::JustificationStoragePolicy>>();
 
     auto block_tree_res = blockchain::BlockTreeImpl::create(
-        header_repo,
+        std::move(header_repo),
         std::move(storage),
         std::move(extrinsic_observer),
         std::move(hasher),
@@ -421,9 +421,6 @@ namespace {
 
     runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
                                                          block_tree);
-
-    auto peer_view = injector.template create<sptr<network::PeerView>>();
-    peer_view->setBlockTree(block_tree);
 
     return block_tree;
   }

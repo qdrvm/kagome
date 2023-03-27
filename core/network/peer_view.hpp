@@ -5,9 +5,11 @@
 #ifndef KAGOME_PEER_VIEW
 #define KAGOME_PEER_VIEW
 
-#include <libp2p/peer/peer_id.hpp>
 #include <memory>
 #include <unordered_map>
+
+#include <boost/di/extension/injections/lazy.hpp>
+#include <libp2p/peer/peer_id.hpp>
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
@@ -19,6 +21,9 @@
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {
+
+  template <typename T>
+  using lazy = boost::di::extension::lazy<T>;
 
   /**
    * Observable class for current heads and finalized block number tracking.
@@ -46,9 +51,9 @@ namespace kagome::network {
     using PeerViewSubscriberPtr = std::shared_ptr<PeerViewSubscriber>;
 
     PeerView(primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-             std::shared_ptr<application::AppStateManager> app_state_manager);
+             std::shared_ptr<application::AppStateManager> app_state_manager,
+             lazy<std::shared_ptr<blockchain::BlockTree>> block_tree);
     ~PeerView() = default;
-    void setBlockTree(std::shared_ptr<blockchain::BlockTree> block_tree);
 
     /**
      * Object lifetime control subsystem.
@@ -75,7 +80,7 @@ namespace kagome::network {
 
     std::optional<ExView> my_view_;
     std::unordered_map<PeerId, View> remote_view_;
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    lazy<std::shared_ptr<blockchain::BlockTree>> block_tree_;
   };
 
 }  // namespace kagome::network

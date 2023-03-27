@@ -11,19 +11,16 @@ namespace kagome::network {
 
   PeerView::PeerView(
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-      std::shared_ptr<application::AppStateManager> app_state_manager)
+      std::shared_ptr<application::AppStateManager> app_state_manager,
+      lazy<std::shared_ptr<blockchain::BlockTree>> block_tree)
       : chain_events_engine_{chain_events_engine},
         my_view_update_observable_{
             std::make_shared<MyViewSubscriptionEngine>()},
         remote_view_update_observable_{
-            std::make_shared<PeerViewSubscriptionEngine>()} {
+            std::make_shared<PeerViewSubscriptionEngine>()},
+        block_tree_(std::move(block_tree)) {
     BOOST_ASSERT(chain_events_engine_);
     app_state_manager->takeControl(*this);
-  }
-
-  void PeerView::setBlockTree(
-      std::shared_ptr<blockchain::BlockTree> block_tree) {
-    block_tree_ = std::move(block_tree);
   }
 
   void PeerView::stop() {
@@ -39,32 +36,30 @@ namespace kagome::network {
   }
 
   bool PeerView::prepare() {
-    BOOST_ASSERT(block_tree_);
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
         chain_events_engine_);
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
                           primitives::events::ChainEventType::kNewHeads);
-    chain_sub_->setCallback(
-        [wptr{weak_from_this()}](
-            auto /*set_id*/,
-            auto && /*internal_obj*/,
-            auto /*event_type*/,
-            const primitives::events::ChainEventParams &event) {
-          if (auto self = wptr.lock()) {
-            if (auto const value =
-                    if_type<const primitives::events::HeadsEventParams>(
-                        event)) {
-              self->updateMyView(ExView{
-                  .view =
-                      View{
-                          .heads_ = self->block_tree_->getLeaves(),
-                          .finalized_number_ =
-                              self->block_tree_->getLastFinalized().number,
-                      },
-                  .new_head = (*value).get()});
-            }
-          }
-        });
+    chain_sub_->setCallback([wptr{weak_from_this()}](
+                                auto /*set_id*/,
+                                auto && /*internal_obj*/,
+                                auto /*event_type*/,
+                                const primitives::events::ChainEventParams
+                                    &event) {
+      if (auto self = wptr.lock()) {
+        if (auto const value =
+                if_type<const primitives::events::HeadsEventParams>(event)) {
+          self->updateMyView(ExView{
+              .view =
+                  View{
+                      .heads_ = self->block_tree_.get()->getLeaves(),
+                      .finalized_number_ =
+                          self->block_tree_.get()->getLastFinalized().number,
+                  },
+              .new_head = (*value).get()});
+        }
+      }
+    });
     return true;
   }
 
