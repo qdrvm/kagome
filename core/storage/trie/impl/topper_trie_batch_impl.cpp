@@ -23,6 +23,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
     case E::COMMIT_NOT_SUPPORTED:
       return "Topper trie batches do not support committing changes, use "
              "writeBack instead";
+    case E::CURSOR_NEXT_INVALID:
+      return "TopperTrieCursor::next() called on invalid cursor";
+    case E::CURSOR_SEEK_LAST_NOT_IMPLEMENTED:
+      return "TopperTrieCursor::seekLast() not implemented";
+    case E::CURSOR_PREV_NOT_IMPLEMENTED:
+      return "TopperTrieCursor::prev() not implemented";
   }
   return "Unknown error";
 }
@@ -61,7 +67,8 @@ namespace kagome::storage::trie {
 
   std::unique_ptr<PolkadotTrieCursor> TopperTrieBatchImpl::trieCursor() {
     if (auto p = parent_.lock(); p != nullptr) {
-      return p->trieCursor();
+      return std::make_unique<TopperTrieCursor>(shared_from_this(),
+                                                p->trieCursor());
     }
     return nullptr;
   }
@@ -157,4 +164,114 @@ namespace kagome::storage::trie {
     return false;
   }
 
+  TopperTrieCursor::TopperTrieCursor(std::shared_ptr<TopperTrieBatchImpl> batch,
+                                     std::unique_ptr<PolkadotTrieCursor> cursor)
+      : batch_{std::move(batch)},
+        cursor_{std::move(cursor)},
+        it_{batch_->cache_.end()} {}
+
+  outcome::result<bool> TopperTrieCursor::seekFirst() {
+    OUTCOME_TRY(cursor_->seekFirst());
+    cursor_key_ = cursor_->key();
+    it_ = batch_->cache_.begin();
+    choose();
+    OUTCOME_TRY(skipRemoved());
+    return outcome::success();
+  }
+
+  outcome::result<bool> TopperTrieCursor::seek(const BufferView &key) {
+    OUTCOME_TRY(seekLowerBound(key));
+    return isValid();
+  }
+
+  outcome::result<bool> TopperTrieCursor::seekLast() {
+    return TopperTrieBatchImpl::Error::CURSOR_SEEK_LAST_NOT_IMPLEMENTED;
+  }
+
+  bool TopperTrieCursor::isValid() const {
+    return is_it_eq_.has_value();
+  }
+
+  outcome::result<void> TopperTrieCursor::next() {
+    OUTCOME_TRY(step());
+    OUTCOME_TRY(skipRemoved());
+    return outcome::success();
+  }
+
+  outcome::result<void> TopperTrieCursor::prev() {
+    return TopperTrieBatchImpl::Error::CURSOR_PREV_NOT_IMPLEMENTED;
+  }
+
+  std::optional<Buffer> TopperTrieCursor::key() const {
+    return is_it_eq_ and *is_it_eq_ ? it_->first : cursor_key_;
+  }
+
+  std::optional<BufferOrView> TopperTrieCursor::value() const {
+    return is_it_eq_ and *is_it_eq_ ? Buffer{*it_->second} : cursor_->value();
+  }
+
+  outcome::result<void> TopperTrieCursor::seekLowerBound(
+      const BufferView &key) {
+    OUTCOME_TRY(cursor_->seekLowerBound(key));
+    cursor_key_ = cursor_->key();
+    it_ = batch_->cache_.lower_bound(key);
+    choose();
+    OUTCOME_TRY(skipRemoved());
+    return outcome::success();
+  }
+
+  outcome::result<void> TopperTrieCursor::seekUpperBound(
+      const BufferView &key) {
+    OUTCOME_TRY(cursor_->seekUpperBound(key));
+    cursor_key_ = cursor_->key();
+    it_ = batch_->cache_.upper_bound(key);
+    choose();
+    OUTCOME_TRY(skipRemoved());
+    return outcome::success();
+  }
+
+  void TopperTrieCursor::choose() {
+    if (it_ != batch_->cache_.end()
+        and (not cursor_key_ or *cursor_key_ >= it_->first)) {
+      is_it_eq_ = cursor_key_ == it_->first;
+      return;
+    }
+    if (cursor_key_) {
+      is_it_eq_ = std::optional<bool>{};
+    } else {
+      is_it_eq_.reset();
+    }
+  }
+
+  bool TopperTrieCursor::isRemoved() const {
+    if (not is_it_eq_) {
+      return false;
+    }
+    if (*is_it_eq_) {
+      return not it_->second;
+    }
+    return batch_->wasClearedByPrefix(*cursor_key_);
+  }
+
+  outcome::result<void> TopperTrieCursor::skipRemoved() {
+    while (isRemoved()) {
+      OUTCOME_TRY(step());
+    }
+    return outcome::success();
+  }
+
+  outcome::result<void> TopperTrieCursor::step() {
+    if (not is_it_eq_) {
+      return TopperTrieBatchImpl::Error::CURSOR_NEXT_INVALID;
+    }
+    if (not *is_it_eq_ or **is_it_eq_) {
+      OUTCOME_TRY(cursor_->next());
+      cursor_key_ = cursor_->key();
+    }
+    if (*is_it_eq_) {
+      ++it_;
+    }
+    choose();
+    return outcome::success();
+  }
 }  // namespace kagome::storage::trie
