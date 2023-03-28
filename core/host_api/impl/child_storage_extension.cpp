@@ -6,6 +6,7 @@
 #include "host_api/impl/child_storage_extension.hpp"
 
 #include "common/monadic_utils.hpp"
+#include "common/tagged.hpp"
 #include "host_api/impl/storage_util.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
@@ -281,27 +282,39 @@ namespace kagome::host_api {
       throw std::runtime_error(msg);
     }
     auto limit_opt = std::move(limit_res.value());
-    auto result = executeOnMutChildStorage<std::tuple<bool, uint32_t>>(
+    auto exec_result = executeOnMutChildStorage<std::tuple<bool, uint32_t>>(
         child_key_buffer,
         [limit_opt](auto &child_batch, auto &prefix) {
           return child_batch.clearPrefix(prefix, limit_opt);
         },
         prefix_buffer);
-
-    if (!result) {
-      logger_->error(
+    if (!exec_result) {
+      auto msg = fmt::format(
           "ext_default_child_storage_clear_prefix_version_2 failed with "
           "reason: {}",
-          result.error());
+          exec_result.error());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
-    uint32_t removed = std::get<1>(result.value());
+
+    using AllRemoved = Tagged<uint32_t, struct AllRemovedTag>;
+    using SomeRemaining = Tagged<uint32_t, struct SomeRemainingTag>;
+    boost::variant<AllRemoved, SomeRemaining> result;
+    uint32_t rows = std::get<1>(exec_result.value());
+    if (std::get<0>(exec_result.value())) {
+      result = AllRemoved(rows);
+    } else {
+      result = SomeRemaining(rows);
+    }
+
     if (limit_opt) {
-      SL_TRACE_FUNC_CALL(logger_, removed, child_key_buffer, limit_opt.value());
+      SL_TRACE_FUNC_CALL(logger_, rows, child_key_buffer, limit_opt.value());
     } else {
       SL_TRACE_FUNC_CALL(
-          logger_, removed, child_key_buffer, std::string_view{"none"});
+          logger_, rows, child_key_buffer, std::string_view{"none"});
     }
-    return memory.storeBuffer(scale::encode(removed).value());
+
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
   runtime::WasmSpan
@@ -415,24 +428,32 @@ namespace kagome::host_api {
       throw std::runtime_error(msg);
     }
     auto limit_opt = std::move(limit_res.value());
-    auto result = executeOnMutChildStorage<std::tuple<bool, uint32_t>>(
+    auto exec_result = executeOnMutChildStorage<std::tuple<bool, uint32_t>>(
         child_key_buffer, [limit_opt](auto &child_batch) {
           return child_batch.clearPrefix({}, limit_opt);
         });
-    if (!result) {
+    if (!exec_result) {
       logger_->error(
           "ext_default_child_storage_storage_kill_version_3 failed with "
           "reason: {}",
-          result.error());
+          exec_result.error());
     }
-    uint32_t removed = std::get<1>(result.value());
+    using AllRemoved = Tagged<uint32_t, struct AllRemovedTag>;
+    using SomeRemaining = Tagged<uint32_t, struct SomeRemainingTag>;
+    boost::variant<AllRemoved, SomeRemaining> result;
+    uint32_t rows = std::get<1>(exec_result.value());
+    if (std::get<0>(exec_result.value())) {
+      result = AllRemoved(rows);
+    } else {
+      result = SomeRemaining(rows);
+    }
     if (limit_opt) {
-      SL_TRACE_FUNC_CALL(logger_, removed, child_key_buffer, limit_opt.value());
+      SL_TRACE_FUNC_CALL(logger_, rows, child_key_buffer, limit_opt.value());
     } else {
       SL_TRACE_FUNC_CALL(
-          logger_, removed, child_key_buffer, std::string_view{"none"});
+          logger_, rows, child_key_buffer, std::string_view{"none"});
     }
-    return memory.storeBuffer(scale::encode(removed).value());
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
 }  // namespace kagome::host_api
