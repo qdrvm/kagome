@@ -506,10 +506,26 @@ namespace kagome::host_api {
         child_storage_key);
   }
 
+  runtime::WasmSpan HostApiImpl::ext_default_child_storage_root_version_2(
+      runtime::WasmSpan child_storage_key,
+      runtime::WasmI32 state_version) const {
+    return child_storage_ext_.ext_default_child_storage_root_version_2(
+        child_storage_key, state_version);
+  }
+
   void HostApiImpl::ext_default_child_storage_clear_prefix_version_1(
       runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix) {
     return child_storage_ext_.ext_default_child_storage_clear_prefix_version_1(
         child_storage_key, prefix);
+  }
+
+  runtime::WasmSpan
+  HostApiImpl::ext_default_child_storage_clear_prefix_version_2(
+      runtime::WasmSpan child_storage_key,
+      runtime::WasmSpan prefix,
+      runtime::WasmSpan limit) {
+    return child_storage_ext_.ext_default_child_storage_clear_prefix_version_2(
+        child_storage_key, prefix, limit);
   }
 
   runtime::WasmSpan HostApiImpl::ext_default_child_storage_read_version_1(
@@ -531,6 +547,13 @@ namespace kagome::host_api {
       runtime::WasmSpan child_storage_key) {
     return child_storage_ext_.ext_default_child_storage_storage_kill_version_1(
         child_storage_key);
+  }
+
+  runtime::WasmSpan
+  HostApiImpl::ext_default_child_storage_storage_kill_version_3(
+      runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) {
+    return child_storage_ext_.ext_default_child_storage_storage_kill_version_3(
+        child_storage_key, limit);
   }
 
 }  // namespace kagome::host_api
