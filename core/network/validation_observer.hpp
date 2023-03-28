@@ -15,7 +15,8 @@ namespace kagome::network {
   /**
    * Reacts to messages, related to collation protocol
    */
-  struct ValidationObserver {
+  class ValidationObserver {
+   public:
     virtual ~ValidationObserver() = default;
 
     /// Handle incoming validation stream.

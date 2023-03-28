@@ -50,7 +50,7 @@ namespace kagome::application {
     sptr<api::ApiService> jrpc_api_service_;
     sptr<network::StateProtocolObserver> state_observer_;
     sptr<network::SyncProtocolObserver> sync_observer_;
-    sptr<parachain::ParachainObserverImpl> parachain_observer_;
+    sptr<parachain::ParachainObserver> parachain_observer_;
     sptr<parachain::ParachainProcessorImpl> parachain_processor_;
     sptr<parachain::ApprovalDistribution> approval_distribution_;
     sptr<metrics::MetricsWatcher> metrics_watcher_;

@@ -117,7 +117,7 @@
 #include "parachain/availability/store/store_impl.hpp"
 #include "parachain/backing/store_impl.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
-#include "parachain/validator/parachain_observer.hpp"
+#include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
@@ -358,28 +358,6 @@ namespace {
                                                          block_tree);
 
     return block_tree;
-  }
-
-  template <typename Injector>
-  sptr<parachain::ParachainObserverImpl> get_parachain_observer_impl(
-      const Injector &injector) {
-    auto instance = std::make_shared<parachain::ParachainObserverImpl>(
-        injector.template create<std::shared_ptr<network::PeerManager>>(),
-        injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
-        injector.template create<
-            std::shared_ptr<parachain::ParachainProcessorImpl>>(),
-        injector.template create<std::shared_ptr<network::PeerView>>(),
-        injector.template create<
-            std::shared_ptr<parachain::ApprovalDistribution>>());
-
-    auto protocol_factory =
-        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
-    protocol_factory->setCollactionObserver(instance);
-    protocol_factory->setValidationObserver(instance);
-    protocol_factory->setReqCollationObserver(instance);
-    protocol_factory->setReqPovObserver(instance);
-    return instance;
   }
 
   template <typename Injector>
@@ -843,10 +821,11 @@ namespace {
         di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
         di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
         di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
-        bind_by_lambda<parachain::ParachainObserverImpl>(
-            [](auto const &injector) {
-              return get_parachain_observer_impl(injector);
-            }),
+        di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
+        di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
+        di::bind<network::ReqCollationObserver>.template to<parachain::ParachainObserverImpl>(),
+        di::bind<network::ReqPovObserver>.template to<parachain::ParachainObserverImpl>(),
+        di::bind<parachain::ParachainObserver>.template to<parachain::ParachainObserverImpl>(),
         bind_by_lambda<parachain::ParachainProcessorImpl>(
             [](auto const &injector) {
               return get_parachain_processor_impl(injector);
@@ -1192,10 +1171,10 @@ namespace kagome::injector {
         .template create<sptr<network::SyncProtocolObserver>>();
   }
 
-  std::shared_ptr<parachain::ParachainObserverImpl>
+  std::shared_ptr<parachain::ParachainObserver>
   KagomeNodeInjector::injectParachainObserver() {
     return pimpl_->injector_
-        .template create<sptr<parachain::ParachainObserverImpl>>();
+        .template create<sptr<parachain::ParachainObserver>>();
   }
 
   std::shared_ptr<parachain::ParachainProcessorImpl>

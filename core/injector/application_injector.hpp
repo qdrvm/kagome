@@ -46,7 +46,7 @@ namespace kagome {
   }  // namespace network
 
   namespace parachain {
-    struct ParachainObserverImpl;
+    class ParachainObserver;
     struct ParachainProcessorImpl;
     struct ApprovalDistribution;
   }  // namespace parachain
@@ -105,7 +105,7 @@ namespace kagome::injector {
     std::shared_ptr<consensus::babe::Babe> injectBabe();
     std::shared_ptr<network::StateProtocolObserver> injectStateObserver();
     std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
-    std::shared_ptr<parachain::ParachainObserverImpl> injectParachainObserver();
+    std::shared_ptr<parachain::ParachainObserver> injectParachainObserver();
     std::shared_ptr<parachain::ParachainProcessorImpl>
     injectParachainProcessor();
     std::shared_ptr<parachain::ApprovalDistribution>
