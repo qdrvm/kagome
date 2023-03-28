@@ -51,7 +51,6 @@ namespace kagome::network {
                           std::shared_ptr<PeerManager> peer_manager);
 
     bool start() override;
-    bool stop() override;
 
     const std::string &protocolName() const override;
 

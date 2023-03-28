@@ -52,10 +52,6 @@ namespace kagome::network {
     return base_.start(weak_from_this());
   }
 
-  bool GrandpaProtocol::stop() {
-    return base_.stop();
-  }
-
   const ProtocolName &GrandpaProtocol::protocolName() const {
     return base_.protocolName();
   }

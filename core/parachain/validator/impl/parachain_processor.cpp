@@ -246,12 +246,6 @@ namespace kagome::parachain {
     return outcome::success();
   }
 
-  bool ParachainProcessorImpl::start() {
-    return true;
-  }
-
-  void ParachainProcessorImpl::stop() {}
-
   outcome::result<kagome::parachain::ParachainProcessorImpl::RelayParentState>
   ParachainProcessorImpl::initNewBackingTask(
       const primitives::BlockHash &relay_parent) {

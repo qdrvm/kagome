@@ -62,10 +62,6 @@ namespace kagome::network {
     return base_.start(weak_from_this());
   }
 
-  bool PropagateTransactionsProtocol::stop() {
-    return base_.stop();
-  }
-
   const ProtocolName &PropagateTransactionsProtocol::protocolName() const {
     return base_.protocolName();
   }

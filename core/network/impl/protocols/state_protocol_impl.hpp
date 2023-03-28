@@ -38,7 +38,6 @@ namespace kagome::network {
                       std::shared_ptr<StateProtocolObserver> state_observer);
 
     bool start() override;
-    bool stop() override;
 
     const std::string &protocolName() const override {
       return kStateProtocolName;

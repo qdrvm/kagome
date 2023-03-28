@@ -79,11 +79,6 @@ namespace kagome::network {
     return impl_->start();
   }
 
-  bool ReqPovProtocol::stop() {
-    BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");
-    return impl_->stop();
-  }
-
   void ReqPovProtocol::onIncomingStream(std::shared_ptr<Stream>) {
     BOOST_ASSERT(!"Must not be called!");
   }

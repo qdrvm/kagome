@@ -553,12 +553,6 @@ namespace kagome::parachain {
     return true;
   }
 
-  bool ApprovalDistribution::start() {
-    return true;
-  }
-
-  void ApprovalDistribution::stop() {}
-
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
   ApprovalDistribution::findAssignmentKey(
       std::shared_ptr<crypto::CryptoStore> const &keystore,

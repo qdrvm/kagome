@@ -100,12 +100,6 @@ namespace kagome::network {
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment);
 
     /** @see AppStateManager::takeControl */
-    bool prepare();
-
-    /** @see AppStateManager::takeControl */
-    bool start();
-
-    /** @see AppStateManager::takeControl */
     void stop();
 
     /// Enqueues loading (and applying) blocks from peer {@param peer_id}

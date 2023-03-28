@@ -249,8 +249,6 @@ namespace kagome::consensus::babe {
     return true;
   }
 
-  void BabeImpl::stop() {}
-
   /**
    * @brief Get index of authority
    * @param authorities list of authorities

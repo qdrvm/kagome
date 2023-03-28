@@ -146,10 +146,6 @@ namespace kagome::network {
     return base_.start(weak_from_this());
   }
 
-  bool SyncProtocolImpl::stop() {
-    return base_.stop();
-  }
-
   void SyncProtocolImpl::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 

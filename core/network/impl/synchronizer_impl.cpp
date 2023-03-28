@@ -123,16 +123,6 @@ namespace kagome::network {
   }
 
   /** @see AppStateManager::takeControl */
-  bool SynchronizerImpl::prepare() {
-    return true;
-  }
-
-  /** @see AppStateManager::takeControl */
-  bool SynchronizerImpl::start() {
-    return true;
-  }
-
-  /** @see AppStateManager::takeControl */
   void SynchronizerImpl::stop() {
     node_is_shutting_down_ = true;
   }

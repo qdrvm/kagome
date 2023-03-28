@@ -53,9 +53,8 @@ namespace kagome::network {
     /**
      * Object lifetime control subsystem.
      */
-    bool start();
-    void stop();
     bool prepare();
+    void stop();
 
     MyViewSubscriptionEnginePtr getMyViewObservable();
     PeerViewSubscriptionEnginePtr getRemoteViewObservable();

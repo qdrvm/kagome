@@ -122,9 +122,6 @@ namespace kagome::consensus::babe {
     /** @see AppStateManager::takeControl */
     bool start();
 
-    /** @see AppStateManager::takeControl */
-    void stop();
-
     void runEpoch(EpochDescriptor epoch) override;
 
     State getCurrentState() const override;

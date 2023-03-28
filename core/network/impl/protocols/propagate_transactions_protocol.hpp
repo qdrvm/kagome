@@ -57,7 +57,6 @@ namespace kagome::network {
             ext_event_key_repo);
 
     bool start() override;
-    bool stop() override;
 
     const std::string &protocolName() const override;
 

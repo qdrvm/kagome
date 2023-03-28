@@ -71,11 +71,6 @@ namespace kagome::network {
     return impl_->start();
   }
 
-  bool ReqCollationProtocol::stop() {
-    BOOST_ASSERT(impl_ && !!"ReqCollationProtocolImpl must be initialized!");
-    return impl_->stop();
-  }
-
   void ReqCollationProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(!"Must not be called!");
   }

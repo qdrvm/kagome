@@ -95,8 +95,6 @@ namespace kagome::parachain {
             babe_status_observable);
     ~ParachainProcessorImpl() = default;
 
-    bool start();
-    void stop();
     bool prepare();
     void requestCollations(network::CollationEvent const &pending_collation);
     outcome::result<void> canProcessParachains() const;

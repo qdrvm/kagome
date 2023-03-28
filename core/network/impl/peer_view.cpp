@@ -26,10 +26,6 @@ namespace kagome::network {
     block_tree_ = std::move(block_tree);
   }
 
-  bool PeerView::start() {
-    return true;
-  }
-
   void PeerView::stop() {
     if (chain_sub_) {
       chain_sub_->unsubscribe();

@@ -44,10 +44,6 @@ namespace kagome::network {
     return base_.start(weak_from_this());
   }
 
-  bool BlockAnnounceProtocol::stop() {
-    return base_.stop();
-  }
-
   const ProtocolName &BlockAnnounceProtocol::protocolName() const {
     return base_.protocolName();
   }

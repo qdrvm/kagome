@@ -57,7 +57,6 @@ namespace kagome::network {
      * @return true if handler set successfully
      */
     bool start() override;
-    bool stop() override;
 
     const std::string &protocolName() const override;
 

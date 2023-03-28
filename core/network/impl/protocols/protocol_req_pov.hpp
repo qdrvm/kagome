@@ -38,7 +38,6 @@ namespace kagome::network {
     const Protocol &protocolName() const override;
 
     bool start() override;
-    bool stop() override;
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
