@@ -433,10 +433,12 @@ namespace kagome::host_api {
           return child_batch.clearPrefix({}, limit_opt);
         });
     if (!exec_result) {
-      logger_->error(
+      auto msg = fmt::format(
           "ext_default_child_storage_storage_kill_version_3 failed with "
           "reason: {}",
           exec_result.error());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
     using AllRemoved = Tagged<uint32_t, struct AllRemovedTag>;
     using SomeRemaining = Tagged<uint32_t, struct SomeRemainingTag>;
