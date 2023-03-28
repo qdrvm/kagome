@@ -12,12 +12,15 @@ namespace kagome::application {
 
   class AppStateManager : public std::enable_shared_from_this<AppStateManager> {
    public:
+    using OnInject = std::function<bool()>;
     using OnPrepare = std::function<bool()>;
     using OnLaunch = std::function<bool()>;
     using OnShutdown = std::function<void()>;
 
     enum class State {
       Init,
+      Injecting,
+      Injected,
       Prepare,
       ReadyToStart,
       Starting,
@@ -29,7 +32,13 @@ namespace kagome::application {
     virtual ~AppStateManager() = default;
 
     /**
-     * @brief Execute \param cb at stage of prepare application
+     * @brief Execute \param cb at stage 'injections' of application
+     * @param cb
+     */
+    virtual void atInject(OnInject &&cb) = 0;
+
+    /**
+     * @brief Execute \param cb at stage 'preparations' of application
      * @param cb
      */
     virtual void atPrepare(OnPrepare &&cb) = 0;
@@ -46,30 +55,53 @@ namespace kagome::application {
      */
     virtual void atShutdown(OnShutdown &&cb) = 0;
 
-    /**
-     * @brief Registration of all stages' handlers at the same time
-     * @param prepare_cb - handler for stage of prepare
-     * @param launch_cb - handler for doing immediately before start application
-     * @param shutdown_cb - handler for stage of shutting down application
-     */
-    void registerHandlers(OnPrepare &&prepare_cb,
-                          OnLaunch &&launch_cb,
-                          OnShutdown &&shutdown_cb) {
-      atPrepare(std::move(prepare_cb));
-      atLaunch(std::move(launch_cb));
-      atShutdown(std::move(shutdown_cb));
-    }
+   private:
+    template <typename T>
+    class _Helper {
+      // clang-format off
+      struct Y { char _; };
+      struct N { char _[2]; };
 
+      template <typename C> static Y test_inject(decltype(&C::inject));
+      template <typename C> static N test_inject(...);
+
+      template <typename C> static Y test_prepare(decltype(&C::prepare));
+      template <typename C> static N test_prepare(...);
+
+      template <typename C> static Y test_start(decltype(&C::start));
+      template <typename C> static N test_start(...);
+
+      template <typename C> static Y test_stop(decltype(&C::stop));
+      template <typename C> static N test_stop(...);
+
+     public:
+      enum { has_inject = sizeof(test_inject<T>(nullptr)) == sizeof(Y) };
+      enum { has_prepare = sizeof(test_prepare<T>(nullptr)) == sizeof(Y) };
+      enum { has_start = sizeof(test_start<T>(nullptr)) == sizeof(Y) };
+      enum { has_stop = sizeof(test_stop<T>(nullptr)) == sizeof(Y) };
+      // clang-format on
+    };
+
+   public:
     /**
-     * @brief Registration special methods of object as handlers
+     * @brief Registration special methods (if any) of object as handlers
      * for stages of application life-cycle
      * @param entity is registered entity
      */
     template <typename Controlled>
     void takeControl(Controlled &entity) {
-      registerHandlers([&entity]() -> bool { return entity.prepare(); },
-                       [&entity]() -> bool { return entity.start(); },
-                       [&entity]() -> void { return entity.stop(); });
+      if constexpr (_Helper<Controlled>::has_inject) {
+        atInject([&entity]() -> bool { return entity.inject(); });
+      }
+      if constexpr (_Helper<Controlled>::has_prepare) {
+        atPrepare([&entity]() -> bool { return entity.prepare(); });
+      }
+      if constexpr (_Helper<Controlled>::has_start) {
+        atLaunch([&entity]() -> bool { return entity.start(); });
+      }
+      if constexpr (_Helper<Controlled>::has_stop) {
+        atShutdown([&entity]() -> void { return entity.stop(); });
+      }
     }
 
     /// Start application life cycle
@@ -82,6 +114,7 @@ namespace kagome::application {
     virtual State state() const = 0;
 
    protected:
+    virtual void doInject() = 0;
     virtual void doPrepare() = 0;
     virtual void doLaunch() = 0;
     virtual void doShutdown() = 0;

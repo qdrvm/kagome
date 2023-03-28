@@ -52,6 +52,9 @@ namespace kagome::application {
 
   void AppStateManagerImpl::reset() {
     std::lock_guard lg(mutex_);
+    while (!inject_.empty()) {
+      inject_.pop();
+    }
     while (!prepare_.empty()) {
       prepare_.pop();
     }
@@ -65,9 +68,17 @@ namespace kagome::application {
     shutdown_requested_ = false;
   }
 
+  void AppStateManagerImpl::atInject(OnInject &&cb) {
+    std::lock_guard lg(mutex_);
+    if (state_ != State::Init and state_ != State::Injecting) {
+      throw AppStateException("adding callback for stage 'inject'");
+    }
+    inject_.emplace(std::move(cb));
+  }
+
   void AppStateManagerImpl::atPrepare(OnPrepare &&cb) {
     std::lock_guard lg(mutex_);
-    if (state_ > State::Init) {
+    if (state_ > State::Injected) {
       throw AppStateException("adding callback for stage 'prepare'");
     }
     prepare_.emplace(std::move(cb));
@@ -89,9 +100,34 @@ namespace kagome::application {
     shutdown_.emplace(std::move(cb));
   }
 
+  void AppStateManagerImpl::doInject() {
+    std::lock_guard lg(mutex_);
+    if (state_ != State::Init and state_ != State::Injecting) {
+      throw AppStateException("running stage 'injecting'");
+    }
+    state_ = State::Injecting;
+
+    while (!inject_.empty()) {
+      auto &cb = inject_.front();
+      if (state_ == State::Injecting) {
+        auto success = cb();
+        if (not success) {
+          state_ = State::ShuttingDown;
+        }
+      }
+      inject_.pop();
+    }
+
+    if (state_ == State::Injecting) {
+      state_ = State::Injected;
+    } else {
+      shutdown();
+    }
+  }
+
   void AppStateManagerImpl::doPrepare() {
     std::lock_guard lg(mutex_);
-    if (state_ != State::Init) {
+    if (state_ != State::Injected) {
       throw AppStateException("running stage 'prepare'");
     }
     state_ = State::Prepare;
@@ -145,6 +181,10 @@ namespace kagome::application {
       return;
     }
 
+    while (!inject_.empty()) {
+      inject_.pop();
+    }
+
     while (!prepare_.empty()) {
       prepare_.pop();
     }
@@ -171,7 +211,11 @@ namespace kagome::application {
           "AppStateManager must be instantiated on shared pointer before run");
     }
 
-    doPrepare();
+    doInject();
+
+    if (state_ == State::Injected) {
+      doPrepare();
+    }
 
     if (state_ == State::ReadyToStart) {
       doLaunch();

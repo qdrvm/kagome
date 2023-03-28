@@ -14,6 +14,11 @@ namespace kagome::application {
 
   class AppStateManagerMock : public AppStateManager {
    public:
+    MOCK_METHOD(void, atInject, (OnInject), ());
+    void atInject(OnPrepare &&cb) override {
+      atInject(cb);
+    }
+
     MOCK_METHOD(void, atPrepare, (OnPrepare), ());
     void atPrepare(OnPrepare &&cb) override {
       atPrepare(cb);
@@ -32,6 +37,8 @@ namespace kagome::application {
     MOCK_METHOD(void, run, (), (override));
 
     MOCK_METHOD(void, shutdown, (), (override));
+
+    MOCK_METHOD(void, doInject, (), (override));
 
     MOCK_METHOD(void, doPrepare, (), (override));
 
