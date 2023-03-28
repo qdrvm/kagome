@@ -530,6 +530,13 @@ namespace {
     auto peer_view = injector.template create<sptr<network::PeerView>>();
     peer_view->setBlockTree(initialized.value());
 
+    auto pruner =
+        injector.template create<sptr<storage::trie_pruner::TriePruner>>();
+
+    static_cast<storage::trie_pruner::TriePrunerImpl &>(*pruner)
+        .init(*initialized.value())
+        .value();
+
     return initialized.value();
   }
 
@@ -1089,10 +1096,6 @@ namespace {
               blockchain::BlockStorageImpl::create(root, storage, hasher)
                   .value()};
 
-          static_cast<storage::trie_pruner::TriePrunerImpl &>(*pruner)
-              .init(block_storage)
-              .value();
-
           return block_storage;
         }),
         di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
@@ -1169,6 +1172,7 @@ namespace {
         di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
         bind_by_lambda<storage::trie_pruner::TriePruner>([](auto const
                                                                 &injector) {
+          auto hasher = injector.template create<sptr<crypto::Hasher>>();
           auto serializer =
               injector.template create<sptr<storage::trie::TrieSerializer>>();
           auto codec =
@@ -1179,8 +1183,9 @@ namespace {
           auto storage =
               injector.template create<sptr<storage::SpacedStorage>>();
           return std::shared_ptr<storage::trie_pruner::TriePrunerImpl>{
-              new storage::trie_pruner::TriePrunerImpl(
-                  trie_storage, serializer, codec, storage)};
+              storage::trie_pruner::TriePrunerImpl::create(
+                  trie_storage, serializer, codec, storage, hasher)
+                  .value()};
         }),
         di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
         di::bind<application::ChainSpec>.to([](const auto &injector) {

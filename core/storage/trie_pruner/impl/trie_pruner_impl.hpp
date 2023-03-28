@@ -15,19 +15,27 @@
 
 #include "scale/tie.hpp"
 
-#include "blockchain/block_storage.hpp"
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
 #include "log/profiling_logger.hpp"
-#include "storage/spaced_storage.hpp"
-#include "storage/trie/polkadot_trie/polkadot_trie.hpp"
-#include "storage/trie/serialization/polkadot_codec.hpp"
-#include "storage/trie/serialization/trie_serializer.hpp"
-#include "storage/trie/trie_storage_backend.hpp"
+
+namespace kagome::crypto {
+  class Hasher;
+}
+
+namespace kagome::blockchain {
+  class BlockTree;
+  class BlockStorage;
+}  // namespace kagome::blockchain
+
+namespace kagome::storage {
+  class SpacedStorage;
+}
 
 namespace kagome::storage::trie {
   class TrieStorageBackend;
   class TrieSerializer;
+  class Codec;
 }  // namespace kagome::storage::trie
 
 namespace kagome::storage::trie_pruner {
@@ -42,38 +50,38 @@ namespace kagome::storage::trie_pruner {
     };
 
     static inline const common::Buffer TRIE_PRUNER_INFO_KEY =
-        ":trie_pruner_info"_buf;
+        ":trie_pruner:info"_buf;
 
     struct TriePrunerInfo {
-      SCALE_TIE(1);
+      SCALE_TIE(2);
 
       primitives::BlockNumber prune_base;
+      std::vector<std::pair<primitives::BlockHash,
+                            std::vector<storage::trie::RootHash>>>
+          child_states;
     };
 
-    outcome::result<void> init(
-        std::shared_ptr<blockchain::BlockStorage> block_storage);
+    outcome::result<void> init(const blockchain::BlockTree &block_tree);
 
-    TriePrunerImpl(
+    static outcome::result<std::unique_ptr<TriePrunerImpl>> create(
         std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<storage::trie::Codec> codec,
-        std::shared_ptr<storage::SpacedStorage> storage)
-        : trie_storage_{trie_storage},
-          serializer_{serializer},
-          codec_{codec},
-          storage_{storage} {
-      BOOST_ASSERT(trie_storage_ != nullptr);
-      BOOST_ASSERT(serializer_ != nullptr);
-      BOOST_ASSERT(codec_ != nullptr);
-      BOOST_ASSERT(storage_ != nullptr);
-    }
+        std::shared_ptr<storage::SpacedStorage> storage,
+        std::shared_ptr<crypto::Hasher> hasher);
 
     virtual outcome::result<void> addNewState(
         trie::PolkadotTrie const &new_trie,
+        std::vector<std::reference_wrapper<const trie::PolkadotTrie>> const
+            &child_states,
         trie::StateVersion version) override;
 
     virtual outcome::result<void> prune(primitives::BlockHeader const &state,
                                         trie::StateVersion version) override;
+
+    primitives::BlockNumber getBaseBlock() const {
+      return base_block_;
+    }
 
     size_t getTrackedNodesNum() const {
       return ref_count_.size();
@@ -100,21 +108,76 @@ namespace kagome::storage::trie_pruner {
     }
 
    private:
-    outcome::result<void> addNewStateCompletely(
-        trie::PolkadotTrie const &new_trie, trie::StateVersion version);
+    TriePrunerImpl(
+        std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,
+        std::shared_ptr<storage::trie::TrieSerializer> serializer,
+        std::shared_ptr<storage::trie::Codec> codec,
+        std::shared_ptr<storage::SpacedStorage> storage,
+        std::shared_ptr<crypto::Hasher> hasher)
+        : trie_storage_{trie_storage},
+          serializer_{serializer},
+          codec_{codec},
+          storage_{storage},
+          hasher_{hasher} {
+      BOOST_ASSERT(trie_storage_ != nullptr);
+      BOOST_ASSERT(serializer_ != nullptr);
+      BOOST_ASSERT(codec_ != nullptr);
+      BOOST_ASSERT(storage_ != nullptr);
+      BOOST_ASSERT(hasher_ != nullptr);
+    }
 
-    outcome::result<void> pruneCompletely(primitives::BlockHeader const &state,
-                                          trie::StateVersion version);
+    struct AddConfig {
+      enum AddType {
+        AddLoadedOnly,
+        AddNewLoadDummies,
+        AddWholeState,
+      } type;
 
-    outcome::result<void> printTree(const trie::PolkadotTrie &trie,
-                                    trie::StateVersion version) const;
+      bool shouldLoadDummies() const {
+        switch (type) {
+          case AddLoadedOnly:
+            return false;
+          case AddNewLoadDummies:
+            return true;
+          case AddWholeState:
+            return true;
+        }
+      }
+
+      bool shouldAddAllNodes() const {
+        switch (type) {
+          case AddLoadedOnly:
+            return false;
+          case AddNewLoadDummies:
+            return false;
+          case AddWholeState:
+            return true;
+        }
+      }
+    };
+
+    outcome::result<storage::trie::RootHash> addNewStateWith(
+        trie::PolkadotTrie const &new_trie,
+        trie::StateVersion version,
+        AddConfig config);
+
+    outcome::result<void> restoreState(
+        primitives::BlockHeader const &base_block,
+        blockchain::BlockTree const &block_tree);
+
+    outcome::result<void> storeInfo() const;
 
     std::unordered_map<common::Buffer, size_t> ref_count_;
 
+    primitives::BlockNumber base_block_ = 0;
     std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<storage::trie::Codec> codec_;
     std::shared_ptr<storage::SpacedStorage> storage_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+    std::unordered_map<storage::trie::RootHash,
+                       std::vector<storage::trie::RootHash>>
+        child_states_;
     log::Logger logger_ = log::createLogger("TriePruner", "trie_pruner");
   };
 

@@ -47,7 +47,7 @@ namespace kagome::storage::trie {
     outcome::result<void> remove(const BufferView &key) override;
 
    protected:
-    virtual outcome::result<std::unique_ptr<TrieBatch>> createFromTrieHash(
+    virtual outcome::result<std::unique_ptr<TrieBatchBase>> createFromTrieHash(
         const RootHash &trie_hash) override;
 
    private:

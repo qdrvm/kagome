@@ -33,9 +33,12 @@ namespace kagome::storage::trie_pruner {
     virtual ~TriePruner() = default;
 
     virtual outcome::result<void> addNewState(
-        trie::PolkadotTrie const &new_trie, trie::StateVersion version) = 0;
+        trie::PolkadotTrie const &new_trie,
+        std::vector<std::reference_wrapper<const trie::PolkadotTrie>> const
+            &child_states,
+        trie::StateVersion version) = 0;
 
-    virtual outcome::result<void> prune(primitives::BlockHeader const &state,
+    virtual outcome::result<void> prune(primitives::BlockHeader const &block,
                                         trie::StateVersion version) = 0;
   };
 

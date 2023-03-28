@@ -32,7 +32,7 @@ namespace kagome::storage::trie {
     outcome::result<RootHash> commit(StateVersion version) override;
 
    protected:
-    virtual outcome::result<std::unique_ptr<TrieBatch>> createFromTrieHash(
+    virtual outcome::result<std::unique_ptr<TrieBatchBase>> createFromTrieHash(
         const RootHash &trie_hash) override;
 
    private:

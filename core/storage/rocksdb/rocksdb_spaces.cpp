@@ -6,9 +6,9 @@
 #include "storage/rocksdb/rocksdb_spaces.hpp"
 
 #include <array>
-#include <cassert>
 
 #include <rocksdb/db.h>
+#include <boost/assert.hpp>
 
 namespace kagome::storage {
 
@@ -29,7 +29,7 @@ namespace kagome::storage {
       names.insert(names.end(), kNames.begin(), kNames.end());
       return names;
     }();
-    assert(space < Space::kTotal);
+    BOOST_ASSERT(space < Space::kTotal);
     return names.at(space);
   }
 

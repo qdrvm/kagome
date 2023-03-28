@@ -37,16 +37,21 @@ namespace kagome::injector {
     };
     OUTCOME_TRY(runtime_version, core_api.version(env));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
+    std::vector<storage::trie::PolkadotTrieImpl> child_tries;
+    std::vector<std::reference_wrapper<const storage::trie::PolkadotTrie>>
+        child_trie_refs;
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
-      auto trie = trie_from(kv);
-      OUTCOME_TRY(pruner.addNewState(trie, storage::trie::StateVersion::V0));
-      OUTCOME_TRY(root, trie_serializer.storeTrie(trie, version));
+      child_tries.emplace_back(trie_from(kv));
+      child_trie_refs.push_back(std::cref(child_tries.back()));
+      OUTCOME_TRY(root, trie_serializer.storeTrie(child_tries.back(), version));
       common::Buffer child2;
       child2 += storage::kChildStorageDefaultPrefix;
       child2 += child;
       top_trie.put(child2, common::BufferView{root}).value();
     }
-    OUTCOME_TRY(pruner.addNewState(top_trie, storage::trie::StateVersion::V0));
+
+    OUTCOME_TRY(pruner.addNewState(
+        top_trie, child_trie_refs, storage::trie::StateVersion::V0));
     return trie_serializer.storeTrie(top_trie, version);
   }
 }  // namespace kagome::injector

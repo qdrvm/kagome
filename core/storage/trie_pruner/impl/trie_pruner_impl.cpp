@@ -1,199 +1,1 @@
-/**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
- * SPDX-License-Identifier: Apache-2.0
- */
-
-#include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie_pruner,
-                            TriePrunerImpl::Error,
-                            e) {
-  using E = kagome::storage::trie_pruner::TriePrunerImpl::Error;
-  switch (e) {
-    case E::OUTDATED_PRUNE_BASE:
-      return "Attempt to create trie pruner on a database with outdated pruner "
-             "info record (most likely a corrupted database)";
-    case E::CREATE_PRUNER_ON_NON_PRUNED_NON_EMPTY_STORAGE:
-      return "Attempt to create trie pruner on a non-pruned non-empty database";
-  }
-  return "Unknown TriePruner error";
-}
-
-namespace kagome::storage::trie_pruner {
-
-  static outcome::result<common::Buffer> calcMerkleValue(
-      const trie::Codec &codec,
-      const trie::OpaqueTrieNode &node,
-      trie::StateVersion version) {
-    static log::Logger logger;
-    if (logger == nullptr) {
-      logger = log::createLogger("PRUNER");
-    }
-    OUTCOME_TRY(
-        hash,
-        codec.merkleValue(node, version));
-    return hash;
-  }
-
-  static outcome::result<common::Buffer> calcHash(const trie::Codec &codec,
-                                                  const trie::TrieNode &node,
-                                                  trie::StateVersion version) {
-    OUTCOME_TRY(
-        enc,
-        codec.encodeNode(
-            node, version, [](auto &, auto, auto &&) -> outcome::result<void> {
-              return outcome::success();
-            }));
-    auto hash = codec.hash256(enc);
-    return hash;
-  }
-
-  outcome::result<void> TriePrunerImpl::init(
-      std::shared_ptr<blockchain::BlockStorage> block_storage) {
-    OUTCOME_TRY(encoded_info,
-                storage_->getSpace(kTriePruner)->tryGet(TRIE_PRUNER_INFO_KEY));
-
-    if (!encoded_info) {
-      OUTCOME_TRY(header, block_storage->getBlockHeader(1));
-      if (header.has_value()) {
-        return Error::CREATE_PRUNER_ON_NON_PRUNED_NON_EMPTY_STORAGE;
-      }
-    } else {
-      OUTCOME_TRY(info, scale::decode<TriePrunerInfo>(encoded_info.value()));
-      OUTCOME_TRY(finalized, block_storage->getLastFinalized());
-      if (finalized.number != info.prune_base) {
-        return Error::OUTDATED_PRUNE_BASE;
-      }
-    }
-    return outcome::success();
-  }
-
-  outcome::result<void> TriePrunerImpl::prune(
-      primitives::BlockHeader const &state, trie::StateVersion version) {
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(state.state_root, nullptr));
-    size_t removed = 0;
-    size_t unknown = 0;
-
-    struct Entry {
-      std::shared_ptr<trie::TrieNode> node;
-      size_t depth;
-    };
-    std::vector<Entry> queued_nodes;
-    queued_nodes.push_back({trie->getRoot(), 0});
-
-    OUTCOME_TRY(root_value,
-                calcMerkleValue(*codec_, *trie->getRoot(), version));
-    OUTCOME_TRY(root_hash, calcHash(*codec_, *trie->getRoot(), version));
-
-    logger_->info("Prune: Merkle value of state {} (#{} - state_root {}) is {}",
-                  root_hash,
-                  state.number,
-                  state.state_root,
-                  root_value);
-
-    auto batch = trie_storage_->batch();
-    // iterate nodes, decrement their ref count and delete if ref count becomes
-    // zero
-    while (!queued_nodes.empty()) {
-      auto [node, depth] = queued_nodes.back();
-      queued_nodes.pop_back();
-      // FIXME: crutch because root nodes are always hashed, so encoding
-      // doesn't match here and in addState (which always just takes merkle
-      // value)
-      OUTCOME_TRY(merkle_value, calcMerkleValue(*codec_, *node, version));
-      auto hash = merkle_value;
-      auto ref_count_it = ref_count_.find(hash);
-      if (ref_count_it == ref_count_.end()) {
-        unknown++;
-        continue;
-      }
-
-      auto &ref_count = ref_count_it->second;
-      BOOST_ASSERT(ref_count != 0);
-      ref_count--;
-      SL_TRACE(logger_,
-               "Prune - {} - Node {}, ref count {}",
-               depth,
-               hash,
-               ref_count);
-
-      if (ref_count == 0) {
-        removed++;
-        ref_count_.erase(hash);
-        OUTCOME_TRY(batch->remove(hash));
-        if (node->isBranch()) {
-          auto branch = static_cast<const trie::BranchNode &>(*node);
-          for (auto opaque_child : branch.children) {
-            if (opaque_child != nullptr) {
-              OUTCOME_TRY(hash,
-                          calcMerkleValue(*codec_, *opaque_child, version));
-              SL_TRACE(logger_, "Prune - Child {}", hash);
-              OUTCOME_TRY(child,
-                          serializer_->retrieveNode(opaque_child, nullptr));
-              queued_nodes.push_back({child, depth + 1});
-            }
-          }
-        }
-      }
-    }
-
-    OUTCOME_TRY(batch->commit());
-    OUTCOME_TRY(enc_info, scale::encode(TriePrunerInfo{state.number}));
-    OUTCOME_TRY(
-        storage_->getSpace(kTriePruner)
-            ->put(TRIE_PRUNER_INFO_KEY, common::Buffer{std::move(enc_info)}));
-
-    SL_DEBUG(logger_, "Removed {} nodes, {} unknown", removed, unknown);
-    return outcome::success();
-  }
-
-  outcome::result<void> TriePrunerImpl::addNewState(
-      trie::PolkadotTrie const &new_trie, trie::StateVersion version) {
-    SL_DEBUG(logger_, "Ref count map size is {}", ref_count_.size());
-    KAGOME_PROFILE_START_L(logger_, register_state);
-
-    std::vector<std::shared_ptr<const trie::OpaqueTrieNode>> queued_nodes;
-    queued_nodes.push_back(new_trie.getRoot());
-
-    OUTCOME_TRY(root_value,
-                calcMerkleValue(*codec_, *new_trie.getRoot(), version));
-    OUTCOME_TRY(root_hash, calcHash(*codec_, *new_trie.getRoot(), version));
-    ref_count_[root_value] += 1;
-    logger_->info("Add: Merkle value of state {} is {}", root_hash, root_value);
-
-    size_t referenced_nodes_num = 0;
-
-    while (!queued_nodes.empty()) {
-      auto opaque_node = queued_nodes.back();
-      queued_nodes.pop_back();
-      // we encode nodes thrice: here, when visiting it in the for loop below,
-      // and during serialization to DB. Should avoid it somehow. Mind that
-      // encode node's callback doesn't report dummy nodes
-      OUTCOME_TRY(hash, calcMerkleValue(*codec_, *opaque_node, version));
-      auto ref_count = ref_count_[hash];
-      SL_TRACE(logger_, "Add - Node {}, ref count {}", hash.toHex(), ref_count);
-
-      referenced_nodes_num++;
-      if (auto node = dynamic_cast<trie::TrieNode const *>(opaque_node.get());
-          node != nullptr && node->isBranch() && ref_count_[hash] == 1) {
-        auto branch = static_cast<const trie::BranchNode *>(opaque_node.get());
-        for (auto opaque_child : branch->children) {
-          if (opaque_child != nullptr) {
-            OUTCOME_TRY(child_hash,
-                        calcMerkleValue(*codec_, *opaque_child, version));
-            ref_count_[child_hash] += 1;
-            SL_TRACE(logger_, "Add - Child {}", child_hash.toHex());
-            queued_nodes.push_back(opaque_child);
-          }
-        }
-      }
-    }
-    //OUTCOME_TRY(printTree(new_trie, version));
-    SL_DEBUG(logger_,
-            "Referenced {} nodes\nRef count map size: {}",
-            referenced_nodes_num,
-            ref_count_.size());
-    return outcome::success();
-  }
-
-}  // namespace kagome::storage::trie_pruner
+/** * Copyright Soramitsu Co., Ltd. All Rights Reserved. * SPDX-License-Identifier: Apache-2.0 */#include "storage/trie_pruner/impl/trie_pruner_impl.hpp"#include <boost/assert.hpp>#include <queue>#include "blockchain/block_storage.hpp"#include "blockchain/block_tree.hpp"#include "crypto/hasher/hasher_impl.hpp"#include "storage/spaced_storage.hpp"#include "storage/spaces.hpp"#include "storage/trie/polkadot_trie/polkadot_trie.hpp"#include "storage/trie/serialization/polkadot_codec.hpp"#include "storage/trie/serialization/trie_serializer.hpp"#include "storage/trie/trie_storage_backend.hpp"OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie_pruner,                            TriePrunerImpl::Error,                            e) {  using E = kagome::storage::trie_pruner::TriePrunerImpl::Error;  switch (e) {    case E::OUTDATED_PRUNE_BASE:      return "Attempt to create trie pruner on a database with outdated pruner "             "info record (most likely a corrupted database)";    case E::CREATE_PRUNER_ON_NON_PRUNED_NON_EMPTY_STORAGE:      return "Attempt to create trie pruner on a non-pruned non-empty database";  }  return "Unknown TriePruner error";}namespace kagome::storage::trie_pruner {  outcome::result<std::unique_ptr<TriePrunerImpl>> TriePrunerImpl::create(      std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,      std::shared_ptr<storage::trie::TrieSerializer> serializer,      std::shared_ptr<storage::trie::Codec> codec,      std::shared_ptr<storage::SpacedStorage> storage,      std::shared_ptr<crypto::Hasher> hasher) {    auto pruner = std::unique_ptr<TriePrunerImpl>(        new TriePrunerImpl{trie_storage, serializer, codec, storage, hasher});    BOOST_ASSERT(storage->getSpace(kTriePruner));    OUTCOME_TRY(encoded_info,                storage->getSpace(kTriePruner)->tryGet(TRIE_PRUNER_INFO_KEY));    if (encoded_info.has_value()) {      OUTCOME_TRY(info, scale::decode<TriePrunerInfo>(*encoded_info));      pruner->base_block_ = info.prune_base;      pruner->child_states_.insert(info.child_states.begin(),                                   info.child_states.end());    }    return pruner;  }  static outcome::result<common::Buffer> calcMerkleValue(      const trie::Codec &codec,      const trie::OpaqueTrieNode &node,      trie::StateVersion version) {    OUTCOME_TRY(hash, codec.merkleValue(node, version));    return hash;  }  static outcome::result<common::Buffer> calcHash(const trie::Codec &codec,                                                  const trie::TrieNode &node,                                                  trie::StateVersion version) {    OUTCOME_TRY(        enc,        codec.encodeNode(            node, version, [](auto &, auto, auto &&) -> outcome::result<void> {              return outcome::success();            }));    auto hash = codec.hash256(enc);    return hash;  }  outcome::result<void> TriePrunerImpl::init(      const blockchain::BlockTree &block_tree) {    if (base_block_ == 0) {      OUTCOME_TRY(has_header, block_tree.hasBlockHeader(1));      if (has_header) {        SL_WARN(logger_,                "Running pruner on a non-empty non-pruned storage may lead to "                "performance degradation for the next prune.");        OUTCOME_TRY(genesis, block_tree.getBlockHeader(0));        if (auto res = restoreState(genesis, block_tree); res.has_error()) {          SL_ERROR(logger_,                   "Failed to restore trie pruner state starting from genesis "                   "block: {}",                   res.error().message());          return res;        }      }    } else {      auto finalized = block_tree.getLastFinalized();      OUTCOME_TRY(base_block_header, block_tree.getBlockHeader(base_block_));      BOOST_ASSERT(finalized.number >= base_block_);      if (auto res = restoreState(base_block_header, block_tree);          res.has_error()) {        SL_ERROR(logger_,                 "Failed to restore trie pruner state starting from base "                 "block #{}: {}",                 base_block_,                 res.error().message());        return res;      }    }    return outcome::success();  }  outcome::result<void> TriePrunerImpl::prune(      primitives::BlockHeader const &state, trie::StateVersion version) {    KAGOME_PROFILE_START_L(logger_, prune_state);    OUTCOME_TRY(trie, serializer_->retrieveTrie(state.state_root, nullptr));    if (trie->getRoot() == nullptr) {      SL_DEBUG(logger_, "Attempt to prune a trie with a null root");      return outcome::success();    }    size_t removed = 0;    size_t unknown = 0;    struct Entry {      std::shared_ptr<trie::TrieNode> node;      size_t depth;    };    std::vector<Entry> queued_nodes;    queued_nodes.push_back({trie->getRoot(), 0});    OUTCOME_TRY(root_value,                calcMerkleValue(*codec_, *trie->getRoot(), version));    OUTCOME_TRY(root_hash, calcHash(*codec_, *trie->getRoot(), version));    logger_->info("Prune: Merkle value of state {} (#{} - state_root {}) is {}",                  root_hash,                  state.number,                  state.state_root,                  root_value);    auto batch = trie_storage_->batch();    // iterate nodes, decrement their ref count and delete if ref count becomes    // zero    while (!queued_nodes.empty()) {      auto [node, depth] = queued_nodes.back();      queued_nodes.pop_back();      // FIXME: crutch because root nodes are always hashed, so encoding      // doesn't match here and in addState (which always just takes merkle      // value)      OUTCOME_TRY(merkle_value, calcMerkleValue(*codec_, *node, version));      auto ref_count_it = ref_count_.find(merkle_value);      if (ref_count_it == ref_count_.end()) {        unknown++;        continue;      }      auto &ref_count = ref_count_it->second;      BOOST_ASSERT(ref_count != 0);      ref_count--;      SL_TRACE(logger_,               "Prune - {} - Node {}, ref count {}",               depth,               merkle_value,               ref_count);      if (ref_count == 0) {        removed++;        ref_count_.erase(merkle_value);        OUTCOME_TRY(batch->remove(merkle_value));        if (node->isBranch()) {          auto branch = static_cast<const trie::BranchNode &>(*node);          for (auto opaque_child : branch.children) {            if (opaque_child != nullptr) {              OUTCOME_TRY(child_merkle_value,                          calcMerkleValue(*codec_, *opaque_child, version));              SL_TRACE(logger_, "Prune - Child {}", child_merkle_value);              OUTCOME_TRY(child,                          serializer_->retrieveNode(opaque_child, nullptr));              queued_nodes.push_back({child, depth + 1});            }          }        }      }    }    OUTCOME_TRY(batch->commit());    base_block_ = state.number + 1;    OUTCOME_TRY(storeInfo());    SL_DEBUG(logger_, "Removed {} nodes, {} unknown", removed, unknown);    return outcome::success();  }  outcome::result<void> TriePrunerImpl::addNewState(      trie::PolkadotTrie const &new_trie,      std::vector<std::reference_wrapper<const trie::PolkadotTrie>> const          &child_states,      trie::StateVersion version) {    OUTCOME_TRY(root_hash,                addNewStateWith(new_trie,                                version,                                AddConfig{                                    .type = AddConfig::AddLoadedOnly,                                }));    for (auto &child_state : child_states) {      OUTCOME_TRY(child_root_hash,                  addNewStateWith(child_state,                                  version,                                  AddConfig{                                      .type = AddConfig::AddLoadedOnly,                                  }));      child_states_[root_hash].emplace_back(std::move(child_root_hash));    }    OUTCOME_TRY(storeInfo());    return outcome::success();  }  outcome::result<storage::trie::RootHash> TriePrunerImpl::addNewStateWith(      trie::PolkadotTrie const &new_trie,      trie::StateVersion version,      AddConfig config) {    if (new_trie.getRoot() == nullptr) {      SL_DEBUG(logger_, "Attempt to add a trie with a null root");      return outcome::success();    }    SL_DEBUG(logger_, "Ref count map size is {}", ref_count_.size());    KAGOME_PROFILE_START_L(logger_, register_state);    std::vector<std::shared_ptr<const trie::OpaqueTrieNode>> queued_nodes;    queued_nodes.push_back(new_trie.getRoot());    OUTCOME_TRY(root_value,                calcMerkleValue(*codec_, *new_trie.getRoot(), version));    OUTCOME_TRY(root_hash, calcHash(*codec_, *new_trie.getRoot(), version));    ref_count_[root_value] += 1;    logger_->info("Add: Merkle value of state {} is {}", root_hash, root_value);    size_t referenced_nodes_num = 0;    while (!queued_nodes.empty()) {      auto opaque_node = queued_nodes.back();      queued_nodes.pop_back();      // we encode nodes thrice: here, when visiting it in the for loop below,      // and during serialization to DB. Should avoid it somehow. Mind that      // encode node's callback doesn't report dummy nodes      OUTCOME_TRY(hash, calcMerkleValue(*codec_, *opaque_node, version));      SL_TRACE(logger_,               "Add - Node {}, ref count {}",               hash.toHex(),               ref_count_[hash]);      referenced_nodes_num++;      if (auto node = dynamic_cast<trie::TrieNode const *>(opaque_node.get());          node != nullptr && node->isBranch()          && (config.shouldAddAllNodes() || ref_count_[hash] == 1)) {        auto branch = static_cast<const trie::BranchNode *>(opaque_node.get());        for (auto opaque_child : branch->children) {          if (opaque_child != nullptr) {            OUTCOME_TRY(child_hash,                        calcMerkleValue(*codec_, *opaque_child, version));            ref_count_[child_hash] += 1;            SL_TRACE(logger_, "Add - Child {}", child_hash.toHex());            if (config.shouldLoadDummies()) {              OUTCOME_TRY(child, serializer_->retrieveNode(opaque_child));              queued_nodes.push_back(child);            } else {              queued_nodes.push_back(opaque_child);            }          }        }      }    }    SL_DEBUG(logger_,             "Referenced {} nodes\nRef count map size: {}",             referenced_nodes_num,             ref_count_.size());    return common::Hash256::fromSpan(root_hash);  }  outcome::result<void> TriePrunerImpl::restoreState(      primitives::BlockHeader const &base_block,      blockchain::BlockTree const &block_tree) {    KAGOME_PROFILE_START_L(logger_, restore_state);    SL_DEBUG(logger_, "Restore state - base block #{}", base_block.number);    ref_count_.clear();    crypto::HasherImpl hasher;    OUTCOME_TRY(base_tree, serializer_->retrieveTrie(base_block.state_root));    OUTCOME_TRY(addNewStateWith(*base_tree,                                trie::StateVersion::V0,                                AddConfig{.type = AddConfig::AddWholeState}));    std::queue<primitives::BlockHash> block_queue;    {      OUTCOME_TRY(base_enc, scale::encode(base_block));      auto hash = hasher_->blake2b_256(base_enc);      OUTCOME_TRY(children, block_tree.getChildren(hash));      for (auto child : children) {        block_queue.push(child);      }    }    while (!block_queue.empty()) {      auto block_hash = block_queue.front();      OUTCOME_TRY(header, block_tree.getBlockHeader(block_hash));      SL_DEBUG(logger_,               "Restore state - register #{} ()",               header.number,               block_hash);      OUTCOME_TRY(tree, serializer_->retrieveTrie(header.state_root));      OUTCOME_TRY(          addNewStateWith(*tree,                          trie::StateVersion::V0,                          AddConfig{.type = AddConfig::AddNewLoadDummies}));      block_queue.pop();      OUTCOME_TRY(children, block_tree.getChildren(block_hash));      for (auto child : children) {        block_queue.push(child);      }    }    base_block_ = base_block.number;    OUTCOME_TRY(storeInfo());    return outcome::success();  }  outcome::result<void> TriePrunerImpl::storeInfo() const {    std::vector<        std::pair<primitives::BlockHash, std::vector<storage::trie::RootHash>>>        child_states;    std::copy(child_states_.begin(),              child_states_.end(),              std::back_inserter(child_states));    OUTCOME_TRY(enc_info,                scale::encode(TriePrunerInfo{                    base_block_,                    child_states,                }));    BOOST_ASSERT(storage_->getSpace(kTriePruner));    OUTCOME_TRY(        storage_->getSpace(kTriePruner)            ->put(TRIE_PRUNER_INFO_KEY, common::Buffer{std::move(enc_info)}));    return outcome::success();  }}  // namespace kagome::storage::trie_pruner

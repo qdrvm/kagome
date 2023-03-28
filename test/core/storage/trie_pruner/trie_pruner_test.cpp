@@ -8,6 +8,8 @@
 #include <iostream>
 #include <random>
 
+#include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
@@ -26,68 +28,48 @@
 using namespace kagome::storage;
 using namespace kagome::storage::trie_pruner;
 using namespace kagome::common;
+namespace primitives = kagome::primitives;
+namespace crypto = kagome::crypto;
+using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
+using kagome::primitives::BlockNumber;
 using testing::_;
 using testing::A;
 using testing::An;
 using testing::Invoke;
 using testing::Return;
 
+auto hash_from_str(std::string_view str) {
+  Hash256 hash;
+  std::copy_n(str.begin(), str.size(), hash.begin());
+  return hash;
+}
+
+auto hash_from_header(const BlockHeader &header) {
+  static crypto::HasherImpl hasher;
+  return hasher.blake2b_256(scale::encode(header).value());
+}
+
 class CodecMock : public trie::Codec {
  public:
   MOCK_METHOD(outcome::result<Buffer>,
               encodeNode,
-              (const trie::Node &opaque_node,
+              (const trie::TrieNode &opaque_node,
                trie::StateVersion version,
                const ChildVisitor &child_visitor),
               (const, override));
-  MOCK_METHOD(outcome::result<std::shared_ptr<trie::Node>>,
+  MOCK_METHOD(outcome::result<std::shared_ptr<trie::TrieNode>>,
               decodeNode,
               (gsl::span<const uint8_t> encoded_data),
               (const, override));
   MOCK_METHOD(Buffer, merkleValue, (const BufferView &buf), (const, override));
+  MOCK_METHOD(outcome::result<Buffer>,
+              merkleValue,
+              (const trie::OpaqueTrieNode &opaque_node,
+               trie::StateVersion version),
+              (const, override));
   MOCK_METHOD(bool, isMerkleHash, (const BufferView &buf), (const, override));
   MOCK_METHOD(Hash256, hash256, (const BufferView &buf), (const, override));
-};
-
-class CodecTestImpl final : public trie::Codec {
- public:
-  ~CodecTestImpl() override = default;
-  outcome::result<Buffer> encodeNode(
-      const trie::Node &opaque_node,
-      trie::StateVersion version,
-      const ChildVisitor &child_visitor) const override {
-    if (auto dummy = dynamic_cast<const trie::DummyNode *>(&opaque_node);
-        dummy != nullptr) {
-      return dummy->db_key;
-    }
-    if (auto node = dynamic_cast<const trie::TrieNode *>(&opaque_node);
-        node != nullptr) {
-      return node->getValue().value.value();
-    }
-    throw std::runtime_error{"Unknown node type"};
-    return outcome::success();
-  }
-
-  outcome::result<std::shared_ptr<trie::Node>> decodeNode(
-      gsl::span<const uint8_t> encoded_data) const override {
-    throw std::runtime_error{"Not implemented"};
-  }
-
-  Buffer merkleValue(const BufferView &buf) const override {
-    return buf;
-  }
-
-  bool isMerkleHash(const BufferView &buf) const override {
-    return true;
-  }
-
-  Hash256 hash256(const BufferView &buf) const override {
-    Hash256 hash;
-    std::copy_n(
-        buf.begin(), std::min(buf.size(), (long)Hash256::size()), hash.begin());
-    return hash;
-  }
 };
 
 class PolkadotTrieMock final : public trie::PolkadotTrie {
@@ -196,10 +178,12 @@ class TriePrunerTest : public testing::Test {
     persistent_storage_mock.reset(new kagome::storage::SpacedStorageMock);
     serializer_mock.reset(new trie::TrieSerializerMock);
     codec_mock.reset(new CodecMock);
+    hasher = std::make_shared<crypto::HasherImpl>();
     pruner.reset(new TriePrunerImpl{trie_storage_mock,
                                     serializer_mock,
                                     codec_mock,
-                                    persistent_storage_mock});
+                                    persistent_storage_mock,
+                                    hasher});
   }
 
   auto makeTrie(TrieNodeDesc desc) const {
@@ -214,12 +198,10 @@ class TriePrunerTest : public testing::Test {
       if (desc.children.empty()) {
         auto node = std::make_shared<trie::LeafNode>(
             trie::KeyNibbles{}, trie::ValueAndHash{desc.merkleValue, {}});
-        node->setCachedHash(desc.merkleValue);
         return node;
       }
       auto node = std::make_shared<trie::BranchNode>(trie::KeyNibbles{},
                                                      desc.merkleValue);
-      node->setCachedHash(desc.merkleValue);
       for (auto [idx, child] : desc.children) {
         node->children[idx] = makeNode(child);
       }
@@ -241,6 +223,7 @@ class TriePrunerTest : public testing::Test {
   std::shared_ptr<trie::TrieStorageBackendMock> trie_storage_mock;
   std::shared_ptr<SpacedStorageMock> persistent_storage_mock;
   std::shared_ptr<CodecMock> codec_mock;
+  std::shared_ptr<crypto::Hasher> hasher;
 };
 
 struct NodeRetriever {
@@ -250,7 +233,6 @@ struct NodeRetriever {
     if (auto dummy = std::dynamic_pointer_cast<const trie::DummyNode>(node);
         dummy != nullptr) {
       auto decoded = decoded_nodes.at(dummy->db_key);
-      decoded->setCachedHash(dummy->db_key);
       return decoded;
     }
     if (auto trie_node = std::dynamic_pointer_cast<trie::TrieNode>(node);
@@ -263,22 +245,31 @@ struct NodeRetriever {
   std::map<Buffer, std::shared_ptr<trie::TrieNode>> decoded_nodes;
 };
 
-TEST_F(TriePrunerTest, BasicScenario) {
-  EXPECT_CALL(*codec_mock, encodeNode(_, _, _))
-      .WillRepeatedly(Invoke([](auto &node, auto, auto const &) {
-        return static_cast<trie::OpaqueTrieNode const &>(node)
-            .getCachedHash()
-            .value();
+auto setCodecExpectations(CodecMock &mock, trie::Codec &codec) {
+  EXPECT_CALL(mock, encodeNode(_, _, _))
+      .WillRepeatedly(Invoke([&codec](auto &node, auto ver, auto &visitor) {
+        return codec.encodeNode(node, ver, visitor);
       }));
-  EXPECT_CALL(*codec_mock, merkleValue(_)).WillRepeatedly(Invoke([](auto &enc) {
-    return enc;
+  EXPECT_CALL(mock, decodeNode(_)).WillRepeatedly(Invoke([&codec](auto n) {
+    return codec.decodeNode(n);
   }));
-  EXPECT_CALL(*codec_mock, hash256(_)).WillRepeatedly(Invoke([](auto &bytes) {
-    Hash256 hash;
-    std::copy_n(
-        bytes.begin(), std::min(bytes.size(), (long)hash.size()), hash.begin());
-    return hash;
+  EXPECT_CALL(mock, merkleValue(_)).WillRepeatedly(Invoke([&codec](auto &v) {
+    return codec.merkleValue(v);
   }));
+  EXPECT_CALL(mock, merkleValue(_, _))
+      .WillRepeatedly(Invoke(
+          [&codec](auto &v, auto vv) { return codec.merkleValue(v, vv); }));
+  EXPECT_CALL(mock, isMerkleHash(_)).WillRepeatedly(Invoke([&codec](auto &v) {
+    return codec.isMerkleHash(v);
+  }));
+  EXPECT_CALL(mock, hash256(_)).WillRepeatedly(Invoke([&codec](auto &v) {
+    return codec.hash256(v);
+  }));
+}
+
+TEST_F(TriePrunerTest, BasicScenario) {
+  auto codec = std::make_shared<trie::PolkadotCodec>();
+  setCodecExpectations(*codec_mock, *codec);
 
   auto trie =
       makeTrie({NODE,
@@ -362,37 +353,20 @@ void forAllNodes(trie::PolkadotTrie &trie, trie::TrieNode &root, const F &f) {
     uint8_t idx = 0;
     for (auto &child : branch.children) {
       if (child != nullptr) {
-        auto child = trie.retrieveChild(branch, idx).value();
-        forAllNodes(trie, *child, f);
+        auto loaded_child = trie.retrieveChild(branch, idx).value();
+        forAllNodes(trie, *loaded_child, f);
       }
       idx++;
     }
   }
 }
 
-auto setCodecExpectations(CodecMock &mock, trie::Codec &codec) {
-  EXPECT_CALL(mock, encodeNode(_, _, _))
-      .WillRepeatedly(Invoke([&codec](auto &node, auto ver, auto &visitor) {
-        return codec.encodeNode(node, ver, visitor);
-      }));
-  EXPECT_CALL(mock, decodeNode(_)).WillRepeatedly(Invoke([&codec](auto _) {
-    return codec.decodeNode(_);
-  }));
-  EXPECT_CALL(mock, merkleValue(_)).WillRepeatedly(Invoke([&codec](auto &_) {
-    return codec.merkleValue(_);
-  }));
-  EXPECT_CALL(mock, isMerkleHash(_)).WillRepeatedly(Invoke([&codec](auto &_) {
-    return codec.isMerkleHash(_);
-  }));
-  EXPECT_CALL(mock, hash256(_)).WillRepeatedly(Invoke([&codec](auto &_) {
-    return codec.hash256(_);
-  }));
-}
-
 std::set<Buffer> collectReferencedNodes(trie::PolkadotTrie &trie,
                                         trie::PolkadotCodec const &codec) {
   std::set<Buffer> res;
-  if (trie.getRoot() == nullptr) return {};
+  if (trie.getRoot() == nullptr) {
+    return {};
+  }
   forAllNodes(trie, *trie.getRoot(), [&res, &codec](auto &node) {
     auto enc = codec.encodeNode(node, trie::StateVersion::V1, nullptr).value();
     res.insert(codec.merkleValue(enc));
@@ -480,7 +454,7 @@ TEST_F(TriePrunerTest, RandomTree) {
                                   tracked_set.begin(),
                                   tracked_set.end(),
                                   std::inserter(diff, diff.begin()));
-    //ASSERT_EQ(diff.size(), 0);
+    // ASSERT_EQ(diff.size(), 0);
     ASSERT_OUTCOME_SUCCESS(root,
                            serializer.storeTrie(trie, trie::StateVersion::V0));
     roots.push_back(root);
@@ -510,18 +484,16 @@ TEST_F(TriePrunerTest, RandomTree) {
     }
   }
   for (unsigned i = STATES_NUM - 16; i < STATES_NUM; i++) {
-    EXPECT_CALL(*trie_storage_mock, batch())
-        .WillOnce(Invoke([&node_storage]() {
-          auto batch =
-              std::make_unique<face::WriteBatchMock<Buffer, Buffer>>();
-          EXPECT_CALL(*batch, remove(_))
-              .WillRepeatedly(Invoke([&node_storage](auto &k) {
-                node_storage.erase(k);
-                return outcome::success();
-              }));
-          EXPECT_CALL(*batch, commit()).WillOnce(Return(outcome::success()));
-          return batch;
-        }));
+    EXPECT_CALL(*trie_storage_mock, batch()).WillOnce(Invoke([&node_storage]() {
+      auto batch = std::make_unique<face::WriteBatchMock<Buffer, Buffer>>();
+      EXPECT_CALL(*batch, remove(_))
+          .WillRepeatedly(Invoke([&node_storage](auto &k) {
+            node_storage.erase(k);
+            return outcome::success();
+          }));
+      EXPECT_CALL(*batch, commit()).WillOnce(Return(outcome::success()));
+      return batch;
+    }));
 
     auto &root = roots[i];
     auto space_mock = std::make_shared<BufferStorageMock>();
@@ -529,12 +501,92 @@ TEST_F(TriePrunerTest, RandomTree) {
     EXPECT_CALL(*persistent_storage_mock, getSpace(_))
         .WillOnce(Return(space_mock));
 
-    ASSERT_OUTCOME_SUCCESS_TRY(pruner->prune(BlockHeader{.state_root = root},
-                                             trie::StateVersion::V0));
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        pruner->prune(BlockHeader{.state_root = root}, trie::StateVersion::V0));
   }
   for (auto &[hash, node] : node_storage) {
     std::cout << hash << "\n";
   }
 
   ASSERT_EQ(node_storage.size(), 0);
+}
+
+TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
+  TriePrunerImpl::TriePrunerInfo info{.prune_base = 4};
+
+  auto info_key = ":trie_pruner:info"_buf;
+
+  auto space_mock = std::make_shared<BufferStorageMock>();
+  EXPECT_CALL(*persistent_storage_mock, getSpace(kTriePruner))
+      .WillRepeatedly(Return(space_mock));
+
+  EXPECT_CALL(*space_mock, tryGetMock(info_key.view()))
+      .WillOnce(Return(std::optional{Buffer{scale::encode(info).value()}}));
+  EXPECT_CALL(*space_mock, put(info_key.view(), _))
+      .WillOnce(Invoke([&](auto, auto value) -> outcome::result<void> {
+        info = scale::decode<TriePrunerImpl::TriePrunerInfo>(value).value();
+        return outcome::success();
+      }));
+
+  auto block_tree = std::make_shared<kagome::blockchain::BlockTreeMock>();
+  EXPECT_CALL(*block_tree, getLastFinalized())
+      .WillOnce(Return(primitives::BlockInfo{6, hash_from_str("block42")}));
+
+  std::map<BlockNumber, BlockHeader> headers;
+  std::map<BlockHash, BlockNumber> hash_to_number;
+  for (BlockNumber n = 4; n <= 6; n++) {
+    auto parent_hash =
+        headers.count(n - 1) ? hash_from_header(headers.at(n - 1)) : Hash256{};
+    headers[n] = BlockHeader{
+        .parent_hash = parent_hash,
+        .number = n,
+        .state_root = hash_from_str("root_hash" + std::to_string(n)),
+    };
+    hash_to_number[hash_from_header(headers[n])] = n;
+  }
+
+  EXPECT_CALL(*block_tree, getBlockHeader(_))
+      .WillRepeatedly(Invoke([&](auto block_id) {
+        if (auto hash = boost::get<BlockHash>(&block_id)) {
+          return headers.at(hash_to_number.at(*hash));
+        }
+        return headers.at(boost::get<BlockNumber>(block_id));
+      }));
+
+  ON_CALL(*block_tree, getChildren(_))
+      .WillByDefault(Return(std::vector<kagome::primitives::BlockHash>{}));
+
+  auto mock_block = [&](unsigned int number) {
+    auto str_number = std::to_string(number);
+
+    primitives::BlockHeader header = headers.at(number);
+    auto root_hash = header.state_root;
+    auto hash = hash_from_header(header);
+    ON_CALL(*block_tree, getChildren(header.parent_hash))
+        .WillByDefault(Return(std::vector{hash}));
+
+    auto trie = std::make_shared<trie::PolkadotTrieImpl>();
+    trie->put(Buffer::fromString("key" + str_number),
+              Buffer::fromString("val" + str_number))
+        .value();
+    EXPECT_CALL(*serializer_mock, retrieveTrie(Buffer{root_hash}, _))
+        .WillOnce(Return(trie));
+    EXPECT_CALL(*codec_mock, merkleValue(testing::Ref(*trie->getRoot()), _))
+        .WillRepeatedly(Return(Buffer::fromString("merkle_val" + str_number)));
+    auto enc = Buffer::fromString("encoded_node" + str_number);
+    EXPECT_CALL(*codec_mock, encodeNode(testing::Ref(*trie->getRoot()), _, _))
+        .WillOnce(Return(enc));
+    EXPECT_CALL(*codec_mock, hash256(testing::ElementsAreArray(enc)))
+        .WillOnce(Return(root_hash));
+    //    EXPECT_CALL(*trie_storage_mock, batch()).WillOnce(Invoke([]() {
+    //      auto batch = std::make_unique<face::WriteBatchMock<Buffer,
+    //      Buffer>>(); EXPECT_CALL(*batch,
+    //      commit()).WillOnce(Return(outcome::success())); return batch;
+    //    }));
+  };
+  mock_block(4);
+  mock_block(5);
+  mock_block(6);
+  ASSERT_OUTCOME_SUCCESS_TRY(pruner->init(*block_tree));
+  ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 }

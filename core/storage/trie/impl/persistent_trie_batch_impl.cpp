@@ -43,7 +43,12 @@ namespace kagome::storage::trie {
   outcome::result<RootHash> PersistentTrieBatchImpl::commit(
       StateVersion version) {
     OUTCOME_TRY(commitChildren(version));
-    OUTCOME_TRY(state_pruner_->addNewState(*trie_, version));
+    std::vector<std::reference_wrapper<const storage::trie::PolkadotTrie>>
+        child_tries;
+    for (auto child_trie : getChildTries()) {
+      child_tries.emplace_back(std::cref(*child_trie));
+    }
+    OUTCOME_TRY(state_pruner_->addNewState(*trie_, child_tries, version));
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
     auto &stats = serializer_->getLatestStats();
@@ -90,7 +95,7 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<std::unique_ptr<TrieBatch>>
+  outcome::result<std::unique_ptr<TrieBatchBase>>
   PersistentTrieBatchImpl::createFromTrieHash(const RootHash &trie_hash) {
     OUTCOME_TRY(trie, serializer_->retrieveTrie(trie_hash, nullptr));
     return std::make_unique<PersistentTrieBatchImpl>(

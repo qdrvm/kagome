@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "clock/impl/basic_waitable_timer.hpp"
@@ -20,8 +19,6 @@
 #include "primitives/authority.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/async_sequence.hpp"
-
-#define _STRINGIZE(s) #s
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ApprovalDistribution::Error, e) {
   using E = kagome::parachain::ApprovalDistribution::Error;

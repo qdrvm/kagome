@@ -114,7 +114,7 @@ int main() {
 
   auto state_pruner =
       std::make_shared<kagome::storage::trie_pruner::TriePrunerImpl>(
-          storage_backend, serializer, codec, database);
+          storage_backend, serializer, codec, database, hasher);
 
   std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =
       kagome::storage::trie::TrieStorageImpl::createEmpty(
