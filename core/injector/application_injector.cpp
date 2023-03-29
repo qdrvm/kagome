@@ -183,40 +183,6 @@ namespace {
 
   using injector::bind_by_lambda;
 
-  sptr<api::HttpListenerImpl> get_jrpc_api_http_listener(
-      application::AppConfiguration const &config,
-      sptr<application::AppStateManager> app_state_manager,
-      sptr<api::RpcContext> context,
-      api::HttpSession::Configuration http_session_config) {
-    auto &endpoint = config.rpcHttpEndpoint();
-
-    api::HttpListenerImpl::Configuration listener_config;
-    listener_config.endpoint = endpoint;
-
-    auto listener = std::make_shared<api::HttpListenerImpl>(
-        *app_state_manager, context, listener_config, http_session_config);
-
-    return listener;
-  }
-
-  sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
-      application::AppConfiguration const &app_config,
-      api::WsSession::Configuration ws_session_config,
-      sptr<api::RpcContext> context,
-      sptr<application::AppStateManager> app_state_manager) {
-    api::WsListenerImpl::Configuration listener_config;
-    listener_config.endpoint = app_config.rpcWsEndpoint();
-    listener_config.ws_max_connections = app_config.maxWsConnections();
-
-    auto listener =
-        std::make_shared<api::WsListenerImpl>(*app_state_manager,
-                                              context,
-                                              listener_config,
-                                              std::move(ws_session_config));
-
-    return listener;
-  }
-
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
       sptr<storage::SpacedStorage> spaced_storage) {
     auto storage = spaced_storage->getSpace(storage::Space::kTrieNode);
@@ -687,30 +653,6 @@ namespace {
                          api::payment::PaymentJRpcProcessor,
                          api::internal::InternalJrpcProcessor>(),
 
-        // bind interfaces
-        bind_by_lambda<api::HttpListenerImpl>([](const auto &injector) {
-          const application::AppConfiguration &config =
-              injector.template create<application::AppConfiguration const &>();
-          auto app_state_manager =
-              injector.template create<sptr<application::AppStateManager>>();
-          auto context = injector.template create<sptr<api::RpcContext>>();
-          auto &&http_session_config =
-              injector.template create<api::HttpSession::Configuration>();
-
-          return get_jrpc_api_http_listener(
-              config, app_state_manager, context, http_session_config);
-        }),
-        bind_by_lambda<api::WsListenerImpl>([](const auto &injector) {
-          auto config =
-              injector.template create<api::WsSession::Configuration>();
-          auto context = injector.template create<sptr<api::RpcContext>>();
-          auto app_state_manager =
-              injector.template create<sptr<application::AppStateManager>>();
-          const application::AppConfiguration &app_config =
-              injector.template create<application::AppConfiguration const &>();
-          return get_jrpc_api_ws_listener(
-              app_config, config, context, app_state_manager);
-        }),
         // starting metrics interfaces
         di::bind<metrics::Handler>.template to<metrics::PrometheusHandler>(),
         di::bind<metrics::Exposer>.template to<metrics::ExposerImpl>(),
