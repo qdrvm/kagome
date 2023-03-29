@@ -29,6 +29,10 @@ namespace kagome {
     class RecoveryMode;
   }  // namespace application::mode
 
+  namespace authority_discovery {
+    class AddressPublisher;
+  }  // namespace authority_discovery
+
   namespace metrics {
     class Exposer;
     class MetricsWatcher;
@@ -114,6 +118,8 @@ namespace kagome::injector {
     std::shared_ptr<blockchain::BlockTree> injectBlockTree();
     std::shared_ptr<runtime::Executor> injectExecutor();
     std::shared_ptr<storage::SpacedStorage> injectStorage();
+    std::shared_ptr<authority_discovery::AddressPublisher>
+    injectAddressPublisher();
 
     std::shared_ptr<application::mode::PrintChainInfoMode>
     injectPrintChainInfoMode();
