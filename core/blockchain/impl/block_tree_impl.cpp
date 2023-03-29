@@ -695,8 +695,7 @@ namespace kagome::blockchain {
       node->has_justification = true;
 
       OUTCOME_TRY(retired_hashes, prune(node));
-      retired_hashes.emplace_back(node->getBlockInfo().hash);
-      for (primitives::BlockNumber n = last_finalized_block_info.number + 1ull;
+      for (primitives::BlockNumber n = last_finalized_block_info.number;
            n < node->getBlockInfo().number;
            ++n) {
         if (auto result = storage_->getBlockHash(n);
