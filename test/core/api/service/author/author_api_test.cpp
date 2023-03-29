@@ -28,6 +28,7 @@
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction.hpp"
 #include "subscription/subscription_engine.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -151,8 +152,13 @@ struct AuthorApiTest : public ::testing::Test {
     block_tree = std::make_shared<BlockTreeMock>();
     api_service_mock = std::make_shared<ApiServiceMock>();
     author_api = std::make_shared<AuthorApiImpl>(
-        key_api, transaction_pool, store, keys, key_store, block_tree);
-    author_api->setApiService(api_service_mock);
+        key_api,
+        transaction_pool,
+        store,
+        keys,
+        key_store,
+        block_tree,
+        testutil::sptr_to_lazy<ApiService>(api_service_mock));
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
   }

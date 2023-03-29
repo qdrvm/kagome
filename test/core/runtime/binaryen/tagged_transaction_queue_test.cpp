@@ -9,6 +9,7 @@
 
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
 
@@ -27,15 +28,14 @@ class TTQTest : public BinaryenRuntimeTest {
   void SetUp() override {
     BinaryenRuntimeTest::SetUp();
 
-    const auto injector = boost::di::make_injector(
-        boost::di::bind<BlockTree>.template to<BlockTreeMock>());
+    block_tree_ = std::make_shared<BlockTreeMock>();
 
-    boost::di::extension::lazy<std::shared_ptr<BlockTree>> block_tree(injector);
-
-    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(executor_, block_tree);
+    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(
+        executor_, testutil::sptr_to_lazy<BlockTree>(block_tree_));
   }
 
  protected:
+  std::shared_ptr<BlockTreeMock> block_tree_;
   std::unique_ptr<TaggedTransactionQueue> ttq_;
 };
 
