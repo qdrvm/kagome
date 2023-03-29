@@ -1375,4 +1375,9 @@ namespace kagome::injector {
     return pimpl_->injector_.template create<sptr<storage::SpacedStorage>>();
   }
 
+  std::shared_ptr<authority_discovery::AddressPublisher>
+  KagomeNodeInjector::injectAddressPublisher() {
+    return pimpl_->injector_
+        .template create<sptr<authority_discovery::AddressPublisher>>();
+  }
 }  // namespace kagome::injector
