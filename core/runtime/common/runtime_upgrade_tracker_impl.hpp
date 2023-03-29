@@ -103,7 +103,7 @@ namespace kagome::runtime {
 
     std::shared_ptr<primitives::events::ChainEventSubscriber>
         chain_subscription_;
-    std::shared_ptr<const blockchain::BlockTree> block_tree_;
+    std::weak_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<const primitives::CodeSubstituteBlockIds>
