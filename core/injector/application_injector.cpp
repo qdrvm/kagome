@@ -83,7 +83,6 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
-#include "host_api/impl/host_api_impl.hpp"
 #include "injector/bind_by_lambda.hpp"
 #include "injector/calculate_genesis_state.hpp"
 #include "injector/get_peer_keypair.hpp"
@@ -676,37 +675,18 @@ namespace {
               app_config, crypto_provider, crypto_store);
         })[boost::di::override],
 
-        di::bind<api::ApiServiceImpl::ListenerList>.to([](auto const
-                                                              &injector) {
-          std::vector<std::shared_ptr<api::Listener>> listeners{
-              injector
-                  .template create<std::shared_ptr<api::HttpListenerImpl>>(),
-              injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
-          };
-          return api::ApiServiceImpl::ListenerList{std::move(listeners)};
-        }),
-        bind_by_lambda<api::ApiServiceImpl::ProcessorSpan>([](auto const
-                                                                  &injector) {
-          api::ApiServiceImpl::ProcessorSpan processors{{
-              injector.template create<
-                  std::shared_ptr<api::child_state::ChildStateJrpcProcessor>>(),
-              injector.template create<
-                  std::shared_ptr<api::state::StateJrpcProcessor>>(),
-              injector.template create<
-                  std::shared_ptr<api::author::AuthorJRpcProcessor>>(),
-              injector.template create<
-                  std::shared_ptr<api::chain::ChainJrpcProcessor>>(),
-              injector.template create<
-                  std::shared_ptr<api::system::SystemJrpcProcessor>>(),
-              injector.template create<
-                  std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
-              injector.template create<
-                  std::shared_ptr<api::payment::PaymentJRpcProcessor>>(),
-              injector.template create<
-                  std::shared_ptr<api::internal::InternalJrpcProcessor>>(),
-          }};
-          return std::make_shared<decltype(processors)>(std::move(processors));
-        }),
+        di::bind<api::Listener *[]>()  // NOLINT
+            .template to<api::HttpListenerImpl, api::WsListenerImpl>(),
+        di::bind<api::JRpcProcessor *[]>()  // NOLINT
+            .template to<api::child_state::ChildStateJrpcProcessor,
+                         api::state::StateJrpcProcessor,
+                         api::author::AuthorJRpcProcessor,
+                         api::chain::ChainJrpcProcessor,
+                         api::system::SystemJrpcProcessor,
+                         api::rpc::RpcJRpcProcessor,
+                         api::payment::PaymentJRpcProcessor,
+                         api::internal::InternalJrpcProcessor>(),
+
         // bind interfaces
         bind_by_lambda<api::HttpListenerImpl>([](const auto &injector) {
           const application::AppConfiguration &config =
