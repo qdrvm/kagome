@@ -32,9 +32,7 @@ namespace kagome::network {
   class ProtocolBaseImpl final : NonCopyable, NonMovable {
    public:
     ProtocolBaseImpl() = delete;
-    ~ProtocolBaseImpl() {
-      SL_INFO(log_, "Destroyed base protocol");
-    }
+    ~ProtocolBaseImpl() = default;
 
     ProtocolBaseImpl(ProtocolName name,
                      libp2p::Host &host,
@@ -45,15 +43,10 @@ namespace kagome::network {
           protocols_{std::move(protocols)},
           log_{std::move(logger)} {
       BOOST_ASSERT(!protocols_.empty());
-      SL_INFO(log_, "Created parachain protocol");
     }
 
     template <typename T>
     bool start(std::weak_ptr<T> wptr) {
-      SL_INFO(logger(), "Start base protocol");
-      for (auto const &p : protocols_) {
-        SL_INFO(logger(), "{}", p);
-      }
       host_.setProtocolHandler(
           protocols_,
           [log{logger()}, wp(std::move(wptr))](auto &&stream_and_proto) {
