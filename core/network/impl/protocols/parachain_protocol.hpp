@@ -69,7 +69,9 @@ namespace kagome::network {
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override {
       SL_INFO(base_.logger(),
-      "Incoming parachain protocol {} from {}", base_.protocolName(), stream->remotePeerId());
+              "Incoming parachain protocol {} from {}",
+              base_.protocolName(),
+              stream->remotePeerId());
       BOOST_ASSERT(stream->remotePeerId().has_value());
       doCollatorHandshake<true>(
           stream,
