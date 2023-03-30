@@ -17,7 +17,11 @@ namespace kagome::parachain {
                        std::shared_ptr<network::Router> router)
       : av_store_{std::move(av_store)},
         query_audi_{std::move(query_audi)},
-        router_{std::move(router)} {}
+        router_{std::move(router)} {
+    BOOST_ASSERT(av_store_ != nullptr);
+    BOOST_ASSERT(query_audi_ != nullptr);
+    BOOST_ASSERT(router_ != nullptr);
+  }
 
   void FetchImpl::fetch(ValidatorIndex chunk_index,
                         const runtime::OccupiedCore &core,
@@ -58,11 +62,9 @@ namespace kagome::parachain {
             {candidate_hash, active.chunk_index},
             [=, weak{weak_from_this()}](
                 outcome::result<network::FetchChunkResponse> r) {
-              auto self = weak.lock();
-              if (not self) {
-                return;
+              if (auto self = weak.lock()) {
+                self->fetch(candidate_hash, std::move(r));
               }
-              self->fetch(candidate_hash, std::move(r));
             });
         return;
       }
