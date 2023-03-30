@@ -142,17 +142,25 @@ class KagomeInjectorTest : public testing::Test {
 };
 
 #define TEST_KAGOME_INJECT(module) \
-  ASSERT_NE(injector_->inject##module(), nullptr);
+  ASSERT_NE(injector_->inject##module(), nullptr)
 TEST_F(KagomeInjectorTest, Inject) {
-  TEST_KAGOME_INJECT(ChainSpec)
-  TEST_KAGOME_INJECT(AppStateManager)
-  TEST_KAGOME_INJECT(IoContext)
-  TEST_KAGOME_INJECT(OpenMetricsService)
-  TEST_KAGOME_INJECT(Router)
-  TEST_KAGOME_INJECT(PeerManager)
-  TEST_KAGOME_INJECT(RpcApiService)
-  TEST_KAGOME_INJECT(SystemClock)
-  TEST_KAGOME_INJECT(SyncObserver)
-  TEST_KAGOME_INJECT(Babe)
-  TEST_KAGOME_INJECT(Grandpa)
+  // Order as in KagomeApplicationImpl::run()
+  TEST_KAGOME_INJECT(ChainSpec);
+  TEST_KAGOME_INJECT(AppStateManager);
+  TEST_KAGOME_INJECT(IoContext);
+  TEST_KAGOME_INJECT(SystemClock);
+  TEST_KAGOME_INJECT(Babe);
+  TEST_KAGOME_INJECT(OpenMetricsService);
+  TEST_KAGOME_INJECT(Grandpa);
+  TEST_KAGOME_INJECT(Router);
+  TEST_KAGOME_INJECT(PeerManager);
+  TEST_KAGOME_INJECT(RpcApiService);
+  TEST_KAGOME_INJECT(StateObserver);
+  TEST_KAGOME_INJECT(SyncObserver);
+  TEST_KAGOME_INJECT(ParachainObserver);
+  TEST_KAGOME_INJECT(MetricsWatcher);
+  TEST_KAGOME_INJECT(TelemetryService);
+  TEST_KAGOME_INJECT(ApprovalDistribution);
+  TEST_KAGOME_INJECT(ParachainProcessor);
+  TEST_KAGOME_INJECT(AddressPublisher);
 }
