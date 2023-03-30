@@ -904,9 +904,12 @@ namespace kagome::parachain {
                                              relayParentState.table_context)) {
         if (auto backed = table_attested_to_backed(
                 std::move(*attested), relayParentState.table_context)) {
-          logger_->trace("Candidate backed.(candidate={}, para id={}, relay_parent={})",
-                         import_result->imported.candidate,
-                         import_result->imported.group_id, relay_parent);
+          SL_TRACE(
+              logger_,
+              "Candidate backed.(candidate={}, para id={}, relay_parent={})",
+              import_result->imported.candidate,
+              import_result->imported.group_id,
+              relay_parent);
           backing_store_->add(relay_parent, std::move(*backed));
         }
       }

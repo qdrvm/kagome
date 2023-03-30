@@ -49,9 +49,10 @@ namespace kagome::parachain {
                            std::vector<ErasureChunk> &&chunks,
                            ParachainBlock const &pov,
                            PersistedValidationData const &data) = 0;
-    virtual void putChunk(network::RelayHash const &relay_parent, const CandidateHash &candidate_hash,
-                                       ErasureChunk &&chunk) = 0;
- 
+    virtual void putChunk(network::RelayHash const &relay_parent,
+                          const CandidateHash &candidate_hash,
+                          ErasureChunk &&chunk) = 0;
+
     /// Clears all data according to this relay_parent
     virtual void remove(network::RelayHash const &relay_parent) = 0;
   };

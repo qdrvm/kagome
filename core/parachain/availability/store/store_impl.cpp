@@ -117,11 +117,13 @@ namespace kagome::parachain {
     });
   }
 
-  void AvailabilityStoreImpl::putChunk(network::RelayHash const &relay_parent, const CandidateHash &candidate_hash,
+  void AvailabilityStoreImpl::putChunk(network::RelayHash const &relay_parent,
+                                       const CandidateHash &candidate_hash,
                                        ErasureChunk &&chunk) {
     state_.exclusiveAccess([&](auto &state) {
       state.candidates_[relay_parent].insert(candidate_hash);
-      state.per_candidate_[candidate_hash].chunks[chunk.index] = std::move(chunk);
+      state.per_candidate_[candidate_hash].chunks[chunk.index] =
+          std::move(chunk);
     });
   }
 

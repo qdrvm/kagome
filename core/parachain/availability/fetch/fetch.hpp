@@ -16,7 +16,8 @@ namespace kagome::parachain {
    public:
     virtual ~Fetch() = default;
 
-    virtual void fetch(network::RelayHash const &relay_parent, ValidatorIndex chunk_index,
+    virtual void fetch(network::RelayHash const &relay_parent,
+                       ValidatorIndex chunk_index,
                        const runtime::OccupiedCore &core,
                        const runtime::SessionInfo &session) = 0;
   };

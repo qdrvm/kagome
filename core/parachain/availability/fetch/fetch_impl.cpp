@@ -19,7 +19,8 @@ namespace kagome::parachain {
         query_audi_{std::move(query_audi)},
         router_{std::move(router)} {}
 
-  void FetchImpl::fetch(network::RelayHash const &relay_parent, ValidatorIndex chunk_index,
+  void FetchImpl::fetch(network::RelayHash const &relay_parent,
+                        ValidatorIndex chunk_index,
                         const runtime::OccupiedCore &core,
                         const runtime::SessionInfo &session) {
     std::unique_lock lock{mutex_};
@@ -42,7 +43,8 @@ namespace kagome::parachain {
     fetch(relay_parent, core.candidate_hash);
   }
 
-  void FetchImpl::fetch(network::RelayHash const &relay_parent, const CandidateHash &candidate_hash) {
+  void FetchImpl::fetch(network::RelayHash const &relay_parent,
+                        const CandidateHash &candidate_hash) {
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
     if (it == active_.end()) {
@@ -74,7 +76,8 @@ namespace kagome::parachain {
     active_.erase(it);
   }
 
-  void FetchImpl::fetch(network::RelayHash const &relay_parent, const CandidateHash &candidate_hash,
+  void FetchImpl::fetch(network::RelayHash const &relay_parent,
+                        const CandidateHash &candidate_hash,
                         outcome::result<network::FetchChunkResponse> _chunk) {
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
