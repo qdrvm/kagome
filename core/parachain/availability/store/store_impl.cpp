@@ -117,6 +117,14 @@ namespace kagome::parachain {
     });
   }
 
+  void AvailabilityStoreImpl::putChunk(network::RelayHash const &relay_parent, const CandidateHash &candidate_hash,
+                                       ErasureChunk &&chunk) {
+    state_.exclusiveAccess([&](auto &state) {
+      state.candidates_[relay_parent].insert(candidate_hash);
+      state.per_candidate_[candidate_hash].chunks[chunk.index] = std::move(chunk);
+    });
+  }
+
   void AvailabilityStoreImpl::remove(network::RelayHash const &relay_parent) {
     state_.exclusiveAccess([&](auto &state) {
       if (auto it = state.candidates_.find(relay_parent);
