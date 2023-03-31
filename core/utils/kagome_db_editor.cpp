@@ -143,21 +143,14 @@ enum Command : uint8_t { COMPACT, DUMP };
 
 void usage() {
   std::string help(R"(
-Kagome DB Editor
+Kagome DB Editor - a storage pruner. Allows to reduce occupied disk space.
 Usage:
-    kagome-db-editor <db-path> <root-state> <command>
+    kagome db-editor <db-path>
 
     <db-path>     full or relative path to kagome database. It is usually path
                     polkadot/db inside base path set in kagome options.
-    <root-state>  root state hash in 0x prefixed hex format. [Optional]
-    <command>
-         dump:    dumps the state from the DB to file hex_full_state.yaml in
-                    format ready for use in polkadot-test.
-         compact: compacts the kagome DB. Leaves only keys of the state passed
-                    as an arguments. Removes all other keys. [Default]
 
 Example:
-    kagome-db-editor base-path/polkadot/db 0x1e22e dump
     kagome-db-editor base-path/polkadot/db
 )");
   std::cout << help;
