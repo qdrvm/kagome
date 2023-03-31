@@ -402,16 +402,15 @@ int db_editor_main(int argc, const char **argv) {
         }
       }
 
-      auto db_cursor = buffer_storage->cursor();
-      auto db_batch = buffer_storage->batch();
-      auto res = check(db_cursor->seek(prefix));
+      auto db_cursor = trie_buffer_storage->cursor();
+      auto db_batch = trie_buffer_storage->batch();
+      auto res = check(db_cursor->seekFirst());
       int count = 0;
       {
         TicToc t2("Process DB.", log);
-        while (db_cursor->isValid() && db_cursor->key().has_value()
-               && boost::starts_with(db_cursor->key().value(), prefix)) {
+        while (db_cursor->isValid() && db_cursor->key().has_value()) {
           auto key = db_cursor->key().value();
-          if (trie_tracker->tracked(key.view(prefix.size()))) {
+          if (trie_tracker->tracked(key)) {
             db_cursor->next().value();
             continue;
           }
