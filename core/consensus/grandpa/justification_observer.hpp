@@ -19,6 +19,9 @@ namespace kagome::consensus::grandpa {
   struct JustificationObserver {
     virtual ~JustificationObserver() = default;
 
+    /**
+     * Validate {@param justification} with {@param authorities}.
+     */
     virtual outcome::result<void> verifyJustification(
         const GrandpaJustification &justification,
         const primitives::AuthoritySet &authorities) = 0;

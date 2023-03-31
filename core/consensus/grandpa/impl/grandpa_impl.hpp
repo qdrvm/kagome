@@ -198,6 +198,9 @@ namespace kagome::consensus::grandpa {
     void onCommitMessage(const libp2p::peer::PeerId &peer_id,
                          const network::FullCommitMessage &msg) override;
 
+    /**
+     * Check justification votes signatures, ancestry and threshold.
+     */
     outcome::result<void> verifyJustification(
         const GrandpaJustification &justification,
         const primitives::AuthoritySet &authorities) override;

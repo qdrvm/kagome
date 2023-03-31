@@ -22,12 +22,12 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<std::shared_ptr<VoterSet>> VoterSet::make(
       const primitives::AuthoritySet &voters) {
-    auto self = std::make_shared<VoterSet>(voters.id);
+    auto set = std::make_shared<VoterSet>(voters.id);
     for (auto &voter : voters) {
-      OUTCOME_TRY(self->insert(primitives::GrandpaSessionKey{voter.id.id},
-                               voter.weight));
+      OUTCOME_TRY(set->insert(primitives::GrandpaSessionKey{voter.id.id},
+                              voter.weight));
     }
-    return self;
+    return set;
   }
 
   outcome::result<void> VoterSet::insert(Id voter, size_t weight) {

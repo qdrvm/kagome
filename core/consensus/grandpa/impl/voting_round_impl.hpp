@@ -234,7 +234,6 @@ namespace kagome::consensus::grandpa {
 
     /**
      * Checks if received vote has valid justification precommit
-     * @param vote - block for which justification is provided
      * @param justification - justification provided for checking
      * @return success of error
      */
