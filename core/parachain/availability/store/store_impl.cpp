@@ -78,8 +78,9 @@ namespace kagome::parachain {
     return chunks;
   }
 
-  void AvailabilityStoreImpl::putChunk(const CandidateHash &candidate_hash,
-                                       const ErasureChunk &chunk) {
+  void AvailabilityStoreImpl::putChunk(const RelayHash &relay_parent,
+                                       const CandidateHash &candidate_hash,
+                                       ErasureChunk &&chunk) {
     per_candidate_[candidate_hash].chunks[chunk.index] = chunk;
   }
 

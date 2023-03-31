@@ -23,12 +23,14 @@ namespace kagome::parachain {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<AvailabilityStore> store,
+      std::shared_ptr<Fetch> fetch,
       std::shared_ptr<BitfieldStore> bitfield_store)
       : hasher_{std::move(hasher)},
         signer_factory_{std::move(signer_factory)},
         scheduler_{std::move(scheduler)},
         parachain_api_{std::move(parachain_api)},
         store_{std::move(store)},
+        fetch_{std::move(fetch)},
         bitfield_store_{std::move(bitfield_store)} {}
 
   void BitfieldSigner::start(
@@ -62,21 +64,21 @@ namespace kagome::parachain {
     broadcast_ = std::move(callback);
   }
 
-  outcome::result<void> BitfieldSigner::sign(const ValidatorSigner &signer) {
+  outcome::result<void> BitfieldSigner::sign(const ValidatorSigner &signer,
+                                             const Candidates &candidates) {
     BlockHash const &relay_parent = signer.relayParent();
     scale::BitVec bitfield;
-    OUTCOME_TRY(cores, parachain_api_->availability_cores(relay_parent));
-    bitfield.bits.reserve(cores.size());
-    for (auto &core : cores) {
-      auto occupied = boost::get<runtime::OccupiedCore>(&core);
-      if (occupied) {
+    bitfield.bits.reserve(candidates.size());
+    for (auto &candidate : candidates) {
+      bitfield.bits.push_back(
+          candidate && store_->hasChunk(*candidate, signer.validatorIndex()));
+      if (candidate) {
         SL_TRACE(logger_,
                  "Signing bitfields.(relay_parent={}, validator index={}, has "
                  "chunk={})",
                  relay_parent,
                  signer.validatorIndex(),
-                 store_->hasChunk(occupied->candidate_hash,
-                                  signer.validatorIndex()));
+                 bitfield.bits.back());
       } else {
         SL_TRACE(logger_,
                  "Signing bitfields.(relay_parent={}, validator index={}, NOT "
@@ -84,9 +86,6 @@ namespace kagome::parachain {
                  relay_parent,
                  signer.validatorIndex());
       }
-      bitfield.bits.push_back(occupied != nullptr
-                              && store_->hasChunk(occupied->candidate_hash,
-                                                  signer.validatorIndex()));
     }
 
     OUTCOME_TRY(signed_bitfield, signer.sign(bitfield));
@@ -104,11 +103,27 @@ namespace kagome::parachain {
     if (not signer.has_value()) {
       return outcome::success();
     }
-    // TODO(turuslan): fetch_chunks(candidates, signer.validatorIndex());
+    Candidates candidates;
+    OUTCOME_TRY(cores, parachain_api_->availability_cores(relay_parent));
+    OUTCOME_TRY(
+        session,
+        parachain_api_->session_info(relay_parent, signer->getSessionIndex()));
+    candidates.reserve(cores.size());
+    for (auto &core : cores) {
+      if (auto occupied = boost::get<runtime::OccupiedCore>(&core)) {
+        candidates.emplace_back(occupied->candidate_hash);
+        fetch_->fetch(signer->validatorIndex(), *occupied, *session);
+      } else {
+        candidates.emplace_back(std::nullopt);
+      }
+    }
+
     scheduler_->schedule(
-        [weak = weak_from_this(), signer{std::move(*signer)}]() mutable {
+        [weak = weak_from_this(),
+         signer{std::move(*signer)},
+         candidates{std::move(candidates)}]() mutable {
           if (auto self = weak.lock()) {
-            auto r = self->sign(signer);
+            auto r = self->sign(signer, candidates);
             if (r.has_error()) {
               SL_WARN(log(), "sign error {}", r.error());
             }

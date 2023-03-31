@@ -44,8 +44,9 @@ namespace kagome::parachain {
     virtual std::vector<ErasureChunk> getChunks(
         const CandidateHash &candidate_hash) = 0;
     /// Store ErasureChunk
-    virtual void putChunk(const CandidateHash &candidate_hash,
-                          const ErasureChunk &chunk) = 0;
+    virtual void putChunk(const RelayHash &relay_parent,
+                          const CandidateHash &candidate_hash,
+                          ErasureChunk &&chunk) = 0;
     virtual void putChunkSet(const CandidateHash &candidate_hash,
                              std::vector<ErasureChunk> &&chunks) = 0;
     /// Store PoV
