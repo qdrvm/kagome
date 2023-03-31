@@ -11,6 +11,7 @@
 
 #include "common/blob.hpp"
 #include "outcome/outcome.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/types.hpp"
 
@@ -43,15 +44,15 @@ namespace kagome::runtime {
      * all changes accumulated in the current batch
      */
     virtual outcome::result<void> setToPersistentAt(
-        const common::Hash256 &state_root) = 0;
+        const common::Hash256 &state_root,
+        TrieChangesTrackerOpt changes_tracker) = 0;
 
     /**
      * Sets the current batch to a new batch
      * @warning this will reset storage state to the specified root and discard
      * all changes accumulated in the current batch
      */
-    virtual void setTo(
-        std::shared_ptr<storage::trie::TrieBatch> batch) = 0;
+    virtual void setTo(std::shared_ptr<storage::trie::TrieBatch> batch) = 0;
 
     /**
      * @returns current batch, if any was set (@see setToEphemeral,

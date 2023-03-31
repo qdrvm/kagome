@@ -113,6 +113,10 @@ class BlockExecutorTest : public testing::Test {
     ON_CALL(*babe_util_, slotToEpoch(_)).WillByDefault(Return(1));
 
     offchain_worker_api_ = std::make_shared<OffchainWorkerApiMock>();
+    storage_sub_engine_ = std::make_shared<
+        kagome::primitives::events::StorageSubscriptionEngine>();
+    chain_sub_engine_ =
+        std::make_shared<kagome::primitives::events::ChainSubscriptionEngine>();
     consistency_keeper_ = std::make_shared<ConsistencyKeeperMock>();
 
     auto appender = std::make_unique<BlockAppenderBase>(consistency_keeper_,
@@ -129,6 +133,8 @@ class BlockExecutorTest : public testing::Test {
                                                           tx_pool_,
                                                           hasher_,
                                                           offchain_worker_api_,
+                                                          storage_sub_engine_,
+                                                          chain_sub_engine_,
                                                           std::move(appender));
   }
 
@@ -144,6 +150,8 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<DigestTrackerMock> digest_tracker_;
   std::shared_ptr<BabeUtilMock> babe_util_;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api_;
+  kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
+  kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
   std::shared_ptr<ConsistencyKeeperMock> consistency_keeper_;
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
@@ -206,7 +214,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
               getBestContaining("grandparent_hash"_hash256,
                                 std::optional<BlockNumber>{}))
       .WillOnce(testing::Return(BlockInfo{41, "parent_hash"_hash256}));
-  EXPECT_CALL(*core_, execute_block(_))
+  EXPECT_CALL(*core_, execute_block(_, _))
       .WillOnce(testing::Return(outcome::success()));
   EXPECT_CALL(*block_tree_, addBlock(_))
       .WillOnce(testing::Return(outcome::success()));

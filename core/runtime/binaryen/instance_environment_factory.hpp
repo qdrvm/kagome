@@ -13,10 +13,6 @@ namespace kagome::storage::trie {
   class TrieSerializer;
 }  // namespace kagome::storage::trie
 
-namespace kagome::storage::changes_trie {
-  class ChangesTracker;
-}
-
 namespace kagome::host_api {
   class HostApiFactory;
 }
@@ -46,7 +42,6 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<RuntimePropertiesCache> cache);
 
     [[nodiscard]] BinaryenInstanceEnvironment make() const;
@@ -56,7 +51,6 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
-    std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<RuntimePropertiesCache> cache_;
   };
 

@@ -284,17 +284,17 @@ namespace kagome::api {
                 const auto &header =
                     block_tree_->getBlockHeader(best_block_hash);
                 BOOST_ASSERT(header.has_value());
-                auto persistent_batch = trie_storage_->getPersistentBatchAt(
+                auto batch_res = trie_storage_->getEphemeralBatchAt(
                     header.value().state_root);
-                if (!persistent_batch.has_value()) {
+                if (!batch_res.has_value()) {
                   SL_ERROR(logger_,
                            "Failed to get storage state for block {}, required "
                            "to subscribe an RPC session to some storage keys.",
                            best_block_hash);
-                  return persistent_batch.as_failure();
+                  return batch_res.as_failure();
                 }
 
-                auto &batch = persistent_batch.value();
+                auto &batch = batch_res.value();
 
                 session_context.messages = uploadMessagesListFromCache();
 

@@ -16,7 +16,9 @@ namespace kagome::authorship {
    public:
     MOCK_METHOD(outcome::result<std::unique_ptr<BlockBuilder>>,
                 make,
-                (const primitives::BlockInfo &, primitives::Digest),
+                (const primitives::BlockInfo &,
+                 primitives::Digest,
+                 TrieChangesTrackerOpt),
                 (const override));
   };
 

@@ -25,11 +25,10 @@ namespace kagome::storage::trie {
       NO_TRIE = 1,
     };
 
-    PersistentTrieBatchImpl(
-        std::shared_ptr<Codec> codec,
-        std::shared_ptr<TrieSerializer> serializer,
-        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-        std::shared_ptr<PolkadotTrie> trie);
+    PersistentTrieBatchImpl(std::shared_ptr<Codec> codec,
+                            std::shared_ptr<TrieSerializer> serializer,
+                            TrieChangesTrackerOpt changes,
+                            std::shared_ptr<PolkadotTrie> trie);
 
     ~PersistentTrieBatchImpl() override = default;
 
@@ -47,7 +46,7 @@ namespace kagome::storage::trie {
         const RootHash &trie_hash) override;
 
    private:
-    std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
+    TrieChangesTrackerOpt changes_;
   };
 
 }  // namespace kagome::storage::trie

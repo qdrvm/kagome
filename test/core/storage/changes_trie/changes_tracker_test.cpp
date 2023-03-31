@@ -58,9 +58,7 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       std::make_shared<StorageSubscriptionEngine>();
   auto chain_subscription_engine = std::make_shared<ChainSubscriptionEngine>();
   std::shared_ptr<ChangesTracker> changes_tracker =
-      std::make_shared<StorageChangesTrackerImpl>(storage_subscription_engine,
-                                                  chain_subscription_engine);
-  changes_tracker->onBlockExecutionStart("aaa"_hash256);
+      std::make_shared<StorageChangesTrackerImpl>();
   auto batch = std::make_unique<PersistentTrieBatchImpl>(
       codec,
       serializer,
