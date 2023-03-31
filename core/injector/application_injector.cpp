@@ -152,7 +152,6 @@
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
-#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/spaces.hpp"
@@ -390,8 +389,6 @@ namespace {
     auto ext_events_key_repo = injector.template create<
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>();
 
-    auto changes_tracker = injector.template create<
-        std::shared_ptr<storage::changes_trie::ChangesTracker>>();
     auto justification_storage_policy = injector.template create<
         std::shared_ptr<blockchain::JustificationStoragePolicy>>();
 
@@ -403,7 +400,6 @@ namespace {
         chain_events_engine,
         std::move(ext_events_engine),
         std::move(ext_events_key_repo),
-        std::move(changes_tracker),
         std::move(justification_storage_policy));
 
     if (not block_tree_res.has_value()) {
@@ -764,7 +760,8 @@ namespace {
         libp2p::injector::makeHostInjector(
             libp2p::injector::useWssPem(config->nodeWssPem()),
             libp2p::injector::useSecurityAdaptors<
-                libp2p::security::Noise>()[di::override]),
+                libp2p::security::Noise,
+                libp2p::security::Plaintext>()[di::override]),
 
         // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(),
@@ -935,7 +932,6 @@ namespace {
         makeRuntimeInjector(config->runtimeExecMethod()),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-        di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
         di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
@@ -965,9 +961,7 @@ namespace {
                          sptr<storage::trie::PolkadotTrieFactory>>(),
                      injector.template create<sptr<storage::trie::Codec>>(),
                      injector.template create<
-                         sptr<storage::trie::TrieSerializer>>(),
-                     injector.template create<
-                         sptr<storage::changes_trie::ChangesTracker>>())
+                         sptr<storage::trie::TrieSerializer>>())
               .value();
         }),
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
@@ -1095,6 +1089,8 @@ namespace {
         injector.template create<sptr<consensus::babe::BabeUtil>>(),
         injector.template create<sptr<parachain::BitfieldStore>>(),
         injector.template create<sptr<parachain::BackingStore>>(),
+        injector.template create<
+            primitives::events::StorageSubscriptionEnginePtr>(),
         injector
             .template create<primitives::events::ChainSubscriptionEnginePtr>(),
         injector.template create<sptr<runtime::OffchainWorkerApi>>(),

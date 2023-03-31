@@ -10,19 +10,15 @@ namespace kagome::storage::changes_trie {
 
   class StorageChangesTrackerImpl : public ChangesTracker {
    public:
-    StorageChangesTrackerImpl(primitives::events::StorageSubscriptionEnginePtr
-                                  storage_subscription_engine,
-                              primitives::events::ChainSubscriptionEnginePtr
-                                  chain_subscription_engine);
-
-    ~StorageChangesTrackerImpl() override = default;
-
-    void onBlockExecutionStart(primitives::BlockHash new_parent_hash) override;
+    void onBlockAdded(
+        const primitives::BlockHash &hash,
+        const primitives::events::StorageSubscriptionEnginePtr
+            &storage_sub_engine,
+        const primitives::events::ChainSubscriptionEnginePtr &chain_sub_engine);
 
     void onPut(const common::BufferView &key,
                const common::BufferView &value,
                bool new_entry) override;
-    void onBlockAdded(const primitives::BlockHash &hash) override;
     void onRemove(const common::BufferView &key) override;
 
    private:
@@ -32,11 +28,8 @@ namespace kagome::storage::changes_trie {
     std::map<common::Buffer, std::optional<common::Buffer>, std::less<>>
         actual_val_;
 
-    primitives::BlockHash parent_hash_;
-    primitives::events::StorageSubscriptionEnginePtr
-        storage_subscription_engine_;
-    primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine_;
-    log::Logger logger_;
+    log::Logger logger_ =
+        log::createLogger("Storage Changes Tracker", "changes_trie");
   };
 
 }  // namespace kagome::storage::changes_trie

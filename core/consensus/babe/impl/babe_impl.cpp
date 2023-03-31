@@ -27,6 +27,7 @@
 #include "network/types/collator_messages.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
+#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "storage/trie/trie_storage.hpp"
 
@@ -60,6 +61,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
       std::shared_ptr<parachain::BackingStore> backing_store,
+      primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<runtime::Core> core,
@@ -83,6 +85,7 @@ namespace kagome::consensus::babe {
         babe_util_(std::move(babe_util)),
         bitfield_store_{std::move(bitfield_store)},
         backing_store_{std::move(backing_store)},
+        storage_sub_engine_{std::move(storage_sub_engine)},
         chain_events_engine_(std::move(chain_events_engine)),
         chain_sub_([&] {
           BOOST_ASSERT(chain_events_engine_ != nullptr);
@@ -970,9 +973,12 @@ namespace kagome::consensus::babe {
     }
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
+    auto changes_tracker =
+        std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
+
     // create new block
-    auto pre_seal_block_res =
-        proposer_->propose(best_block_, inherent_data, {babe_pre_digest});
+    auto pre_seal_block_res = proposer_->propose(
+        best_block_, inherent_data, {babe_pre_digest}, changes_tracker);
     if (!pre_seal_block_res) {
       SL_ERROR(log_, "Cannot propose a block: {}", pre_seal_block_res.error());
       return;
@@ -1051,6 +1057,10 @@ namespace kagome::consensus::babe {
       }
       return;
     }
+
+    changes_tracker->onBlockAdded(
+        block_hash, storage_sub_engine_, chain_events_engine_);
+
     telemetry_->notifyBlockImported(block_info, telemetry::BlockOrigin::kOwn);
 
     // observe digest of block

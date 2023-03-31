@@ -3,28 +3,14 @@
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::storage::changes_trie {
-
-  StorageChangesTrackerImpl::StorageChangesTrackerImpl(
-      primitives::events::StorageSubscriptionEnginePtr
-          storage_subscription_engine,
-      primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine)
-      : storage_subscription_engine_(std::move(storage_subscription_engine)),
-        chain_subscription_engine_(std::move(chain_subscription_engine)),
-        logger_{log::createLogger("Storage Changes Tracker", "changes_trie")} {}
-
-  void StorageChangesTrackerImpl::onBlockExecutionStart(
-      primitives::BlockHash new_parent_hash) {
-    parent_hash_ = new_parent_hash;
-    // new block -- new extrinsics
-    actual_val_.clear();
-    new_entries_.clear();
-  }
-
   void StorageChangesTrackerImpl::onBlockAdded(
-      const primitives::BlockHash &hash) {
+      const primitives::BlockHash &hash,
+      const primitives::events::StorageSubscriptionEnginePtr
+          &storage_sub_engine,
+      const primitives::events::ChainSubscriptionEnginePtr &chain_sub_engine) {
     if (actual_val_.find(storage::kRuntimeCodeKey) != actual_val_.cend()) {
-      chain_subscription_engine_->notify(
-          primitives::events::ChainEventType::kNewRuntime, hash);
+      chain_sub_engine->notify(primitives::events::ChainEventType::kNewRuntime,
+                               hash);
     }
     for (auto &pair : actual_val_) {
       if (pair.second) {
@@ -32,7 +18,7 @@ namespace kagome::storage::changes_trie {
       } else {
         SL_TRACE(logger_, "Key: {:l}; Removed;", pair.first);
       }
-      storage_subscription_engine_->notify(pair.first, pair.second, hash);
+      storage_sub_engine->notify(pair.first, pair.second, hash);
     }
   }
 
