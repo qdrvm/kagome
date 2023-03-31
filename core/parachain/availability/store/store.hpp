@@ -26,38 +26,33 @@ namespace kagome::parachain {
 
     /// Has ErasureChunk
     virtual bool hasChunk(const CandidateHash &candidate_hash,
-                          ValidatorIndex index) = 0;
+                          ValidatorIndex index) const = 0;
     /// Has PoV
-    virtual bool hasPov(const CandidateHash &candidate_hash) = 0;
+    virtual bool hasPov(const CandidateHash &candidate_hash) const = 0;
     /// Has PersistedValidationData
-    virtual bool hasData(const CandidateHash &candidate_hash) = 0;
+    virtual bool hasData(const CandidateHash &candidate_hash) const = 0;
     /// Get ErasureChunk
     virtual std::optional<ErasureChunk> getChunk(
-        const CandidateHash &candidate_hash, ValidatorIndex index) = 0;
+        const CandidateHash &candidate_hash, ValidatorIndex index) const = 0;
     /// Get PoV
     virtual std::optional<ParachainBlock> getPov(
-        const CandidateHash &candidate_hash) = 0;
+        const CandidateHash &candidate_hash) const = 0;
     /// Get AvailableData (PoV and PersistedValidationData)
     virtual std::optional<AvailableData> getPovAndData(
-        const CandidateHash &candidate_hash) = 0;
+        const CandidateHash &candidate_hash) const = 0;
     // Get list of ErasureChunk
     virtual std::vector<ErasureChunk> getChunks(
-        const CandidateHash &candidate_hash) = 0;
+        const CandidateHash &candidate_hash) const = 0;
     /// Store ErasureChunk
-    virtual void putChunk(const RelayHash &relay_parent,
+    virtual void storeData(network::RelayHash const &relay_parent,
+                           CandidateHash const &candidate_hash,
+                           std::vector<ErasureChunk> &&chunks,
+                           ParachainBlock const &pov,
+                           PersistedValidationData const &data) = 0;
+    virtual void putChunk(network::RelayHash const &relay_parent,
                           const CandidateHash &candidate_hash,
                           ErasureChunk &&chunk) = 0;
-    virtual void putChunkSet(const CandidateHash &candidate_hash,
-                             std::vector<ErasureChunk> &&chunks) = 0;
-    /// Store PoV
-    virtual void putPov(const CandidateHash &candidate_hash,
-                        const ParachainBlock &pov) = 0;
-    /// Store PersistedValidationData
-    virtual void putData(const CandidateHash &candidate_hash,
-                         const PersistedValidationData &data) = 0;
-    /// Registers relay_parent -> candidate_hash
-    virtual void registerCandidate(network::RelayHash const &relay_parent,
-                                   CandidateHash const &candidate_hash) = 0;
+
     /// Clears all data according to this relay_parent
     virtual void remove(network::RelayHash const &relay_parent) = 0;
   };
