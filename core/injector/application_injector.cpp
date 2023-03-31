@@ -762,8 +762,7 @@ namespace {
         libp2p::injector::makeHostInjector(
             libp2p::injector::useWssPem(config->nodeWssPem()),
             libp2p::injector::useSecurityAdaptors<
-                libp2p::security::Noise,
-                libp2p::security::Plaintext>()[di::override]),
+                libp2p::security::Noise>()[di::override]),
 
         // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(),
