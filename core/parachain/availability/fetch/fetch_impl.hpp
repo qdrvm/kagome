@@ -30,6 +30,7 @@ namespace kagome::parachain {
    private:
     struct Active {
       ValidatorIndex chunk_index;
+      RelayHash relay_parent;
       std::vector<primitives::AuthorityDiscoveryId> validators;
       storage::trie::RootHash erasure_encoding_root;
     };

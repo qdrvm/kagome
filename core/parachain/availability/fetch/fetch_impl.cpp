@@ -35,6 +35,7 @@ namespace kagome::parachain {
     }
     Active active;
     active.chunk_index = chunk_index;
+    active.relay_parent = core.candidate_descriptor.relay_parent;
     active.erasure_encoding_root =
         core.candidate_descriptor.erasure_encoding_root;
     for (auto &validator_index :
@@ -90,7 +91,8 @@ namespace kagome::parachain {
                                     active.chunk_index,
                                     std::move(chunk2->proof)};
         if (checkTrieProof(chunk, active.erasure_encoding_root)) {
-          av_store_->putChunk(candidate_hash, chunk);
+          av_store_->putChunk(
+              active.relay_parent, candidate_hash, std::move(chunk));
           SL_VERBOSE(log(),
                      "candidate={} chunk={} fetched",
                      candidate_hash,
