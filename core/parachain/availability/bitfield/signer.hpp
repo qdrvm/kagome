@@ -11,6 +11,7 @@
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "parachain/availability/bitfield/store.hpp"
+#include "parachain/availability/fetch/fetch.hpp"
 #include "parachain/availability/store/store.hpp"
 #include "parachain/validator/signer.hpp"
 #include "primitives/event_types.hpp"
@@ -29,6 +30,7 @@ namespace kagome::parachain {
                    std::shared_ptr<libp2p::basic::Scheduler> scheduler,
                    std::shared_ptr<runtime::ParachainHost> parachain_api,
                    std::shared_ptr<AvailabilityStore> store,
+                   std::shared_ptr<Fetch> fetch,
                    std::shared_ptr<BitfieldStore> bitfield_store);
 
     /// Subscribes to new heads.
@@ -36,7 +38,8 @@ namespace kagome::parachain {
                    chain_sub_engine);
 
     /// Sign bitfield for given block.
-    outcome::result<void> sign(const ValidatorSigner &signer);
+    outcome::result<void> sign(const ValidatorSigner &signer,
+                               const Candidates &candidates);
 
     void setBroadcastCallback(BroadcastCallback &&callback);
 
@@ -50,6 +53,7 @@ namespace kagome::parachain {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<AvailabilityStore> store_;
+    std::shared_ptr<Fetch> fetch_;
     std::shared_ptr<BitfieldStore> bitfield_store_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     BroadcastCallback broadcast_;
