@@ -10,7 +10,6 @@
 
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
-#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/codec.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
@@ -25,13 +24,11 @@ namespace kagome::storage::trie {
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createEmpty(
         const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<Codec> codec,
-        std::shared_ptr<TrieSerializer> serializer,
-        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
+        std::shared_ptr<TrieSerializer> serializer);
 
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createFromStorage(
         std::shared_ptr<Codec> codec,
-        std::shared_ptr<TrieSerializer> serializer,
-        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
+        std::shared_ptr<TrieSerializer> serializer);
 
     TrieStorageImpl(TrieStorageImpl const &) = delete;
     void operator=(const TrieStorageImpl &) = delete;
@@ -41,7 +38,7 @@ namespace kagome::storage::trie {
     ~TrieStorageImpl() override = default;
 
     outcome::result<std::unique_ptr<TrieBatch>> getPersistentBatchAt(
-        const RootHash &root) override;
+        const RootHash &root, TrieChangesTrackerOpt changes_tracker) override;
     outcome::result<std::unique_ptr<TrieBatch>> getEphemeralBatchAt(
         const RootHash &root) const override;
     outcome::result<std::unique_ptr<TrieBatch>> getProofReaderBatchAt(
@@ -49,15 +46,12 @@ namespace kagome::storage::trie {
         const OnNodeLoaded &on_node_loaded) const override;
 
    protected:
-    TrieStorageImpl(
-        std::shared_ptr<Codec> codec,
-        std::shared_ptr<TrieSerializer> serializer,
-        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
+    TrieStorageImpl(std::shared_ptr<Codec> codec,
+                    std::shared_ptr<TrieSerializer> serializer);
 
    private:
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
-    std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
     log::Logger logger_;
   };
 

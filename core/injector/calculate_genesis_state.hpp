@@ -31,7 +31,6 @@ namespace kagome::injector {
     runtime::CoreImpl core_api{
         std::make_shared<runtime::Executor>(nullptr, nullptr),
         nullptr,
-        nullptr,
     };
     OUTCOME_TRY(runtime_version, core_api.version(env));
     auto version = storage::trie::StateVersion{runtime_version.state_version};

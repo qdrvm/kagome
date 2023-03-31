@@ -24,7 +24,8 @@ namespace kagome::authorship {
 
   outcome::result<std::unique_ptr<BlockBuilder>> BlockBuilderFactoryImpl::make(
       const kagome::primitives::BlockInfo &parent,
-      primitives::Digest inherent_digest) const {
+      primitives::Digest inherent_digest,
+      TrieChangesTrackerOpt changes_tracker) const {
 #ifndef BOOST_ASSERT_IS_VOID
     OUTCOME_TRY(parent_number, header_backend_->getNumberById(parent.hash));
 #endif
@@ -36,7 +37,9 @@ namespace kagome::authorship {
     header.parent_hash = parent.hash;
     header.digest = std::move(inherent_digest);
 
-    if (auto res = r_core_->initialize_block(header); not res) {
+    if (auto res =
+            r_core_->initialize_block(header, std::move(changes_tracker));
+        not res) {
       logger_->error("Core_initialize_block failed: {}", res.error());
       return res.error();
     } else {

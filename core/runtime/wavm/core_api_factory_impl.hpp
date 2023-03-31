@@ -14,10 +14,6 @@ namespace kagome::storage::trie {
   class TrieStorage;
 }
 
-namespace kagome::storage::changes_trie {
-  class ChangesTracker;
-}
-
 namespace kagome::blockchain {
   class BlockHeaderRepository;
 }
@@ -47,7 +43,6 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<SingleModuleCache> last_compiled_module,
         std::shared_ptr<runtime::RuntimePropertiesCache> cache);
 
@@ -62,7 +57,6 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<IntrinsicModule> intrinsic_module_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
-    std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
     std::shared_ptr<runtime::RuntimePropertiesCache> cache_;
   };

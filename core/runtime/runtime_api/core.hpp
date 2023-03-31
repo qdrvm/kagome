@@ -52,16 +52,20 @@ namespace kagome::runtime {
     /**
      * @brief Executes the given block
      * @param block block to execute
+     * @param changes_tracker storage writes and deletes tracker
      */
     virtual outcome::result<void> execute_block(
-        const primitives::Block &block) = 0;
+        const primitives::Block &block,
+        TrieChangesTrackerOpt changes_tracker) = 0;
 
     /**
      * @brief Initialize a block with the given header.
      * @param header header used for block initialization
+     * @param changes_tracker storage writes and deletes tracker
      */
     virtual outcome::result<std::unique_ptr<RuntimeEnvironment>>
-    initialize_block(const primitives::BlockHeader &header) = 0;
+    initialize_block(const primitives::BlockHeader &header,
+                     TrieChangesTrackerOpt changes_tracker) = 0;
   };
 
 }  // namespace kagome::runtime

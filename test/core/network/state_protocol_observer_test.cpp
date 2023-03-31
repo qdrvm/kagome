@@ -43,7 +43,7 @@ std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
       std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
 
   return kagome::storage::trie::TrieStorageImpl::createEmpty(
-             trie_factory, codec, serializer, std::nullopt)
+             trie_factory, codec, serializer)
       .value();
 }
 
@@ -66,10 +66,10 @@ BlockHeader makeBlockHeader(RootHash hash) {
 
 class StateProtocolObserverTest : public testing::Test {
  protected:
-  outcome::result<std::unique_ptr<TrieBatch>>
-  persistent_empty_batch() {
+  outcome::result<std::unique_ptr<TrieBatch>> persistent_empty_batch() {
     auto codec = std::make_shared<PolkadotCodec>();
-    OUTCOME_TRY(batch, trie_->getPersistentBatchAt(kEmptyRootHash));
+    OUTCOME_TRY(batch,
+                trie_->getPersistentBatchAt(kEmptyRootHash, std::nullopt));
     return std::move(batch);
   }
 
@@ -98,7 +98,7 @@ namespace kagome::network {
   bool operator==(const KeyValueStateEntry &lhs,
                   const KeyValueStateEntry &rhs) {
     return lhs.state_root == rhs.state_root && lhs.entries == rhs.entries
-           && lhs.complete == rhs.complete;
+        && lhs.complete == rhs.complete;
   }
 
   bool operator==(const StateResponse &lhs, const StateResponse &rhs) {

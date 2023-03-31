@@ -22,7 +22,6 @@
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
-#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
@@ -147,8 +146,6 @@ struct BlockTreeTest : public testing::Test {
     auto extrinsic_event_key_repo =
         std::make_shared<subscription::ExtrinsicEventKeyRepository>();
 
-    EXPECT_CALL(*changes_tracker_, onBlockAdded(_)).WillRepeatedly(Return());
-
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         extrinsic_observer_,
@@ -156,7 +153,6 @@ struct BlockTreeTest : public testing::Test {
                                         chain_events_engine,
                                         ext_events_engine,
                                         extrinsic_event_key_repo,
-                                        changes_tracker_,
                                         justification_storage_policy_)
                       .value();
   }
@@ -243,9 +239,6 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
-
-  std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
-      std::make_shared<storage::changes_trie::ChangesTrackerMock>();
 
   std::shared_ptr<JustificationStoragePolicyMock>
       justification_storage_policy_ =

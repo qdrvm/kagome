@@ -132,6 +132,8 @@ class BabeTest : public testing::Test {
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
+    storage_sub_engine_ =
+        std::make_shared<primitives::events::StorageSubscriptionEngine>();
     chain_events_engine_ =
         std::make_shared<primitives::events::ChainSubscriptionEngine>();
 
@@ -176,6 +178,7 @@ class BabeTest : public testing::Test {
                                              babe_util_,
                                              bitfield_store_,
                                              backing_store_,
+                                             storage_sub_engine_,
                                              chain_events_engine_,
                                              offchain_worker_api_,
                                              core_,
@@ -220,6 +223,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;
+  primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
   std::shared_ptr<runtime::OffchainWorkerApiMock> offchain_worker_api_;
   std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
@@ -331,7 +335,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*block_tree_, getBlockHeader(created_block_hash_))
       .WillRepeatedly(Return(outcome::success(block_header_)));
 
-  EXPECT_CALL(*proposer_, propose(best_leaf, _, _))
+  EXPECT_CALL(*proposer_, propose(best_leaf, _, _, _))
       .WillOnce(Return(created_block_));
 
   EXPECT_CALL(*hasher_, blake2b_256(_))

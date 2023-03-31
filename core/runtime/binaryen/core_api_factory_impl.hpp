@@ -9,10 +9,6 @@
 #include "runtime/core_api_factory.hpp"
 #include "runtime/runtime_api/core.hpp"
 
-namespace kagome::storage::changes_trie {
-  class ChangesTracker;
-}
-
 namespace kagome::storage::trie {
   class TrieStorage;
 }
@@ -40,7 +36,6 @@ namespace kagome::runtime::binaryen {
     CoreApiFactoryImpl(
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<runtime::RuntimePropertiesCache> cache);
 
     std::unique_ptr<Core> make(
@@ -50,7 +45,6 @@ namespace kagome::runtime::binaryen {
    private:
     std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
-    std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<runtime::RuntimePropertiesCache> cache_;
   };
 

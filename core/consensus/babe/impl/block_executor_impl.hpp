@@ -14,6 +14,7 @@
 #include "metrics/metrics.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
+#include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
 
 namespace kagome::runtime {
@@ -47,6 +48,8 @@ namespace kagome::consensus::babe {
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+        primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::unique_ptr<BlockAppenderBase> appender);
 
     ~BlockExecutorImpl();
@@ -61,6 +64,8 @@ namespace kagome::consensus::babe {
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
+    primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
+    primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine_;
 
     std::unique_ptr<BlockAppenderBase> appender_;
 

@@ -12,10 +12,6 @@ namespace kagome::host_api {
   class HostApiFactory;
 }
 
-namespace kagome::storage::changes_trie {
-  class ChangesTracker;
-}
-
 namespace kagome::storage::trie {
   class TrieStorage;
   class TrieSerializer;
@@ -52,7 +48,6 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<IntrinsicModule> intrinsic_module,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<SingleModuleCache> last_compiled_module,
         std::shared_ptr<RuntimePropertiesCache> cache);
 
@@ -70,7 +65,6 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<IntrinsicModule> intrinsic_module_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
-    std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
     std::shared_ptr<RuntimePropertiesCache> cache_;
   };

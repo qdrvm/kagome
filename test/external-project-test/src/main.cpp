@@ -31,7 +31,6 @@
 #include <kagome/runtime/wavm/instance_environment_factory.hpp>
 #include <kagome/runtime/wavm/intrinsics/intrinsic_module.hpp>
 #include <kagome/runtime/wavm/module_factory_impl.hpp>
-#include <kagome/storage/changes_trie/impl/storage_changes_tracker_impl.hpp>
 #include <kagome/storage/in_memory/in_memory_storage.hpp>
 #include <kagome/storage/rocksdb/rocksdb.hpp>
 #include <kagome/storage/trie/impl/trie_storage_backend_impl.hpp>
@@ -102,22 +101,15 @@ int main() {
       std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(storage);
   auto serializer = std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
       trie_factory, codec, storage_backend);
-  auto storage_subscription_engine =
-      std::make_shared<kagome::primitives::events::StorageSubscriptionEngine>();
-  auto chain_subscription_engine =
-      std::make_shared<kagome::primitives::events::ChainSubscriptionEngine>();
-
-  auto changes_tracker = std::make_shared<
-      kagome::storage::changes_trie::StorageChangesTrackerImpl>(
-      storage_subscription_engine, chain_subscription_engine);
 
   std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =
       kagome::storage::trie::TrieStorageImpl::createEmpty(
-          trie_factory, codec, serializer, changes_tracker)
+          trie_factory, codec, serializer)
           .value();
 
   auto batch =
-      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
+      trie_storage
+          ->getPersistentBatchAt(serializer->getEmptyRootHash(), std::nullopt)
           .value();
   auto root_hash =
       batch->commit(kagome::storage::trie::StateVersion::V0).value();
@@ -131,7 +123,8 @@ int main() {
                         .value());
 
   auto storage_batch =
-      trie_storage->getPersistentBatchAt(serializer->getEmptyRootHash())
+      trie_storage
+          ->getPersistentBatchAt(serializer->getEmptyRootHash(), std::nullopt)
           .value();
   for (auto &kv : chain_spec->getGenesisTopSection()) {
     storage_batch->put(kv.first, kv.second.view()).value();
@@ -207,7 +200,6 @@ int main() {
           intrinsic_module,
           host_api_factory,
           header_repo,
-          changes_tracker,
           smc,
           cache);
   auto module_factory =

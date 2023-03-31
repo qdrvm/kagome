@@ -7,6 +7,7 @@
 #define KAGOME_STORAGE_TRIE_TRIE_STORAGE
 
 #include "common/blob.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/types.hpp"
 
@@ -32,7 +33,7 @@ namespace kagome::storage::trie {
      * state, creating a 'fork'
      */
     virtual outcome::result<std::unique_ptr<TrieBatch>> getPersistentBatchAt(
-        const RootHash &root) = 0;
+        const RootHash &root, TrieChangesTrackerOpt changes_tracker) = 0;
 
     virtual outcome::result<std::unique_ptr<TrieBatch>> getEphemeralBatchAt(
         const RootHash &root) const = 0;

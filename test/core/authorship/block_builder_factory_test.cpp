@@ -12,6 +12,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using ::testing::_;
 using ::testing::Return;
 
 using kagome::authorship::BlockBuilderFactoryImpl;
@@ -65,13 +66,14 @@ class BlockBuilderFactoryTest : public ::testing::Test {
  */
 TEST_F(BlockBuilderFactoryTest, CreateSuccessful) {
   // given
-  EXPECT_CALL(*core_, initialize_block(expected_header_)).WillOnce([] {
+  EXPECT_CALL(*core_, initialize_block(expected_header_, _)).WillOnce([] {
     return outcome::success();
   });
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
-  auto block_builder_res = factory.make(parent_, inherent_digests_);
+  auto block_builder_res =
+      factory.make(parent_, inherent_digests_, std::nullopt);
 
   // then
   ASSERT_TRUE(block_builder_res);
@@ -86,13 +88,14 @@ TEST_F(BlockBuilderFactoryTest, CreateSuccessful) {
  */
 TEST_F(BlockBuilderFactoryTest, CreateFailed) {
   // given
-  EXPECT_CALL(*core_, initialize_block(expected_header_)).WillOnce([] {
+  EXPECT_CALL(*core_, initialize_block(expected_header_, _)).WillOnce([] {
     return boost::system::error_code{};
   });
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
-  auto block_builder_res = factory.make(parent_, inherent_digests_);
+  auto block_builder_res =
+      factory.make(parent_, inherent_digests_, std::nullopt);
 
   // then
   ASSERT_FALSE(block_builder_res);

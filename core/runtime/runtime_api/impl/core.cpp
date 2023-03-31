@@ -13,11 +13,8 @@ namespace kagome::runtime {
 
   CoreImpl::CoreImpl(
       std::shared_ptr<Executor> executor,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
-      : executor_{std::move(executor)},
-        changes_tracker_{std::move(changes_tracker)},
-        header_repo_{std::move(header_repo)} {
+      : executor_{std::move(executor)}, header_repo_{std::move(header_repo)} {
     BOOST_ASSERT(executor_ != nullptr);
   }
 
@@ -36,22 +33,25 @@ namespace kagome::runtime {
   }
 
   outcome::result<void> CoreImpl::execute_block(
-      const primitives::Block &block) {
+      const primitives::Block &block, TrieChangesTrackerOpt changes_tracker) {
     BOOST_ASSERT([&] {
       auto parent_res = header_repo_->getBlockHeader(block.header.parent_hash);
       return parent_res.has_value()
-             and parent_res.value().number == block.header.number - 1;
+         and parent_res.value().number == block.header.number - 1;
     }());
-    changes_tracker_->onBlockExecutionStart(block.header.parent_hash);
-    OUTCOME_TRY(env, executor_->persistentAt(block.header.parent_hash));
+    OUTCOME_TRY(env,
+                executor_->persistentAt(block.header.parent_hash,
+                                        std::move(changes_tracker)));
     OUTCOME_TRY(executor_->call<void>(*env, "Core_execute_block", block));
     return outcome::success();
   }
 
   outcome::result<std::unique_ptr<RuntimeEnvironment>>
-  CoreImpl::initialize_block(const primitives::BlockHeader &header) {
-    changes_tracker_->onBlockExecutionStart(header.parent_hash);
-    OUTCOME_TRY(env, executor_->persistentAt(header.parent_hash));
+  CoreImpl::initialize_block(const primitives::BlockHeader &header,
+                             TrieChangesTrackerOpt changes_tracker) {
+    OUTCOME_TRY(env,
+                executor_->persistentAt(header.parent_hash,
+                                        std::move(changes_tracker)));
     OUTCOME_TRY(executor_->call<void>(*env, "Core_initialize_block", header));
     return std::move(env);
   }
