@@ -89,6 +89,7 @@ namespace kagome::consensus::grandpa {
 
     GrandpaImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
@@ -281,6 +282,7 @@ namespace kagome::consensus::grandpa {
 
     const Clock::Duration round_time_factor_;
 
+    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;

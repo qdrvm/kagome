@@ -63,6 +63,7 @@ namespace kagome::consensus::grandpa {
 
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
@@ -75,6 +76,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::ReputationRepository> reputation_repository)
       : round_time_factor_{getGossipDuration(chain_spec)},
+        hasher_{std::move(hasher)},
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
@@ -205,6 +207,7 @@ namespace kagome::consensus::grandpa {
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
+        hasher_,
         environment_,
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
@@ -261,6 +264,7 @@ namespace kagome::consensus::grandpa {
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
+        hasher_,
         environment_,
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
@@ -1206,6 +1210,7 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl round{
         shared_from_this(),
         GrandpaConfig{voters, justification.round_number, {}, {}},
+        hasher_,
         environment_,
         std::make_shared<VoteCryptoProviderImpl>(
             nullptr, crypto_provider_, justification.round_number, voters),

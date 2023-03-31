@@ -166,6 +166,7 @@ class VotingRoundTest : public testing::Test,
 
     round_ = std::make_shared<VotingRoundImpl>(grandpa_,
                                                config,
+                                               hasher_,
                                                env_,
                                                vote_crypto_provider_,
                                                prevotes_,

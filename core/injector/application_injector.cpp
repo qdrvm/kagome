@@ -1131,6 +1131,7 @@ namespace {
 
     auto ptr = std::make_shared<consensus::grandpa::GrandpaImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
+        injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<crypto::Ed25519Provider>>(),
         injector.template create<sptr<runtime::GrandpaApi>>(),

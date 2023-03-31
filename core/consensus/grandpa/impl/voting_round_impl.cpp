@@ -8,6 +8,7 @@
 #include <unordered_set>
 
 #include "blockchain/block_tree_error.hpp"
+#include "consensus/grandpa/ancestry_verifier.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
@@ -51,6 +52,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
+      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> env,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker> prevotes,
@@ -62,6 +64,7 @@ namespace kagome::consensus::grandpa {
         duration_{config.duration},
         id_{config.id},
         grandpa_(grandpa),
+        hasher_{std::move(hasher)},
         env_{std::move(env)},
         vote_crypto_provider_{std::move(vote_crypto_provider)},
         graph_{std::move(vote_graph)},
@@ -96,6 +99,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
+      std::shared_ptr<crypto::Hasher> hasher,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
@@ -105,6 +109,7 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VotingRound> &previous_round)
       : VotingRoundImpl(grandpa,
                         config,
+                        std::move(hasher),
                         env,
                         vote_crypto_provider,
                         prevotes,
@@ -121,6 +126,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
+      std::shared_ptr<crypto::Hasher> hasher,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
@@ -130,6 +136,7 @@ namespace kagome::consensus::grandpa {
       const MovableRoundState &round_state)
       : VotingRoundImpl(grandpa,
                         config,
+                        std::move(hasher),
                         env,
                         vote_crypto_provider,
                         prevotes,
@@ -739,10 +746,20 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> VotingRoundImpl::validatePrecommitJustification(
       const GrandpaJustification &justification) const {
+    AncestryVerifier ancestry_verifier{
+        justification.votes_ancestries,
+        *hasher_,
+    };
+    auto has_ancestry = [&](const BlockInfo &ancestor,
+                            const BlockInfo &descendant) {
+      return ancestry_verifier.hasAncestry(ancestor, descendant)
+          or env_->hasAncestry(ancestor.hash, descendant.hash);
+    };
+
     size_t total_weight = 0;
 
     auto threshold = threshold_;
-    std::unordered_map<Id, BlockHash> validators;
+    std::unordered_map<Id, BlockInfo> validators;
     std::unordered_set<Id> equivocators;
 
     for (const auto &signed_precommit : justification.items) {
@@ -769,7 +786,7 @@ namespace kagome::consensus::grandpa {
       // that voter to the total weight
 
       if (auto [it, success] = validators.emplace(
-              signed_precommit.id, signed_precommit.getBlockHash());
+              signed_precommit.id, signed_precommit.getBlockInfo());
           success) {
         // New vote
         auto weight_opt = voter_set_->voterWeight(signed_precommit.id);
@@ -779,8 +796,8 @@ namespace kagome::consensus::grandpa {
                    signed_precommit.id.toHex());
           continue;
         }
-        if (env_->hasAncestry(justification.block_info.hash,
-                              signed_precommit.getBlockHash())) {
+        if (has_ancestry(justification.block_info,
+                         signed_precommit.getBlockInfo())) {
           total_weight += weight_opt.value();
         } else {
           SL_DEBUG(logger_,
@@ -792,7 +809,7 @@ namespace kagome::consensus::grandpa {
 
       } else if (equivocators.emplace(signed_precommit.id).second) {
         // Detected equivocation
-        if (env_->hasAncestry(justification.block_info.hash, it->second)) {
+        if (has_ancestry(justification.block_info, it->second)) {
           auto weight = voter_set_->voterWeight(signed_precommit.id).value();
           total_weight -= weight;
           threshold -= weight;

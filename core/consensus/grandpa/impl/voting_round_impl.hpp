@@ -29,6 +29,7 @@ namespace kagome::consensus::grandpa {
    private:
     VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
                     const GrandpaConfig &config,
+                    std::shared_ptr<crypto::Hasher> hasher,
                     std::shared_ptr<Environment> env,
                     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
                     std::shared_ptr<VoteTracker> prevotes,
@@ -44,6 +45,7 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
         const GrandpaConfig &config,
+        std::shared_ptr<crypto::Hasher> hasher,
         const std::shared_ptr<Environment> &env,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
@@ -55,6 +57,7 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
         const GrandpaConfig &config,
+        std::shared_ptr<crypto::Hasher> hasher,
         const std::shared_ptr<Environment> &env,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
@@ -298,6 +301,7 @@ namespace kagome::consensus::grandpa {
     std::chrono::milliseconds start_time_;  // time of start round to play
 
     std::weak_ptr<Grandpa> grandpa_;
+    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<Environment> env_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
     std::shared_ptr<VoteGraph> graph_;
