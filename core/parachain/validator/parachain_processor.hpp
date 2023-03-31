@@ -19,6 +19,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "application/app_configuration.hpp"
+#include "authority_discovery/query/query.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
 #include "network/peer_manager.hpp"
@@ -92,7 +93,8 @@ namespace kagome::parachain {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         primitives::events::BabeStateSubscriptionEnginePtr
-            babe_status_observable);
+            babe_status_observable,
+        std::shared_ptr<authority_discovery::Query> query_audi);
     ~ParachainProcessorImpl() = default;
 
     bool start();
@@ -204,7 +206,7 @@ namespace kagome::parachain {
         primitives::BlockHash const &relay_parent,
         size_t n_validators);
     template <typename F>
-    void requestPoV(libp2p::peer::PeerId const &peer_id,
+    void requestPoV(libp2p::peer::PeerInfo const &peer_info,
                     CandidateHash const &candidate_hash,
                     F &&callback);
 
@@ -225,8 +227,8 @@ namespace kagome::parachain {
                               ValidateAndSecondResult &&result);
     void onAttestComplete(libp2p::peer::PeerId const &peer_id,
                           ValidateAndSecondResult &&result);
-    void onAttestNoPoVComplete(libp2p::peer::PeerId const &peer_id,
-                               ValidateAndSecondResult &&result);
+    void onAttestNoPoVComplete(network::RelayHash const &relay_parent,
+                               CandidateHash const &candidate_hash);
 
     template <ValidationTaskType kMode>
     void appendAsyncValidationTask(network::CandidateReceipt &&candidate,
@@ -237,9 +239,10 @@ namespace kagome::parachain {
                                    const primitives::BlockHash &candidate_hash,
                                    size_t n_validators);
     void kickOffValidationWork(RelayHash const &relay_parent,
-                               libp2p::peer::PeerId const &peer_id,
                                AttestingData &attesting_data,
                                RelayParentState &parachain_state);
+    std::optional<runtime::SessionInfo> retrieveSessionInfo(
+        RelayHash const &relay_parent);
     void handleFetchedCollation(network::CollationEvent &&pending_collation,
                                 network::CollationFetchingResponse &&response);
     template <StatementType kStatementType>
@@ -422,6 +425,9 @@ namespace kagome::parachain {
     const application::AppConfiguration &app_config_;
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
     primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
+    std::shared_ptr<authority_discovery::Query> query_audi_;
+
+    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
   };
 
 }  // namespace kagome::parachain

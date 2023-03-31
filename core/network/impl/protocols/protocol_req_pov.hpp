@@ -46,7 +46,7 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
-    void request(const PeerId &peer_id,
+    void request(const PeerInfo &peer_info,
                  RequestPov,
                  std::function<void(outcome::result<ResponsePov>)>
                      &&response_handler) override;
