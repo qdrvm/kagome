@@ -10,30 +10,33 @@ class TicToc {
   std::chrono::time_point<std::chrono::high_resolution_clock> t_;
 
  public:
+  TicToc(std::string &&) = delete;
+  TicToc(std::string const &) = delete;
   TicToc(std::string_view name, const kagome::log::Logger &log)
       : name_(name), log_(log) {
     t_ = std::chrono::high_resolution_clock::now();
   }
 
-  template <int32_t kLine = -1>
-  inline void toc(int line = -1) {
+  void toc() {
     auto prev = t_;
     t_ = std::chrono::high_resolution_clock::now();
-    if constexpr (kLine != -1) {
-      log_->info(
-          "{} at line {} lasted for {} sec",
-          name_,
-          std::to_string(kLine),
-          std::chrono::duration_cast<std::chrono::seconds>(t_ - prev).count());
-    } else {
-      log_->info(
-          "{} lasted for {} sec",
-          name_,
-          std::chrono::duration_cast<std::chrono::seconds>(t_ - prev).count());
-    }
+    log_->info(
+        "{} lasted for {} sec",
+        name_,
+        std::chrono::duration_cast<std::chrono::seconds>(t_ - prev).count());
+  }
+
+  void toc(int line) {
+    auto prev = t_;
+    t_ = std::chrono::high_resolution_clock::now();
+    log_->info(
+        "{} at line {} lasted for {} sec",
+        name_,
+        std::to_string(line),
+        std::chrono::duration_cast<std::chrono::seconds>(t_ - prev).count());
   }
 
   ~TicToc() {
-    toc<>();
+    toc();
   }
 };
