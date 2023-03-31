@@ -115,6 +115,23 @@ namespace kagome::storage {
     return space_ptr;
   }
 
+  void RocksDb::dropColumn(kagome::storage::Space space) {
+    auto space_name = spaceName(space);
+    auto column_it =
+        std::find_if(cf_handles_.begin(),
+                     cf_handles_.end(),
+                     [&space_name](const ColumnFamilyHandle &handle) {
+                       return handle.name == space_name;
+                     });
+    if (cf_handles_.end() == column_it) {
+      throw DatabaseError::INVALID_ARGUMENT;
+    }
+    auto &column = *column_it;
+    db_->DropColumnFamily(column.handle);
+    db_->DestroyColumnFamilyHandle(column.handle);
+    db_->CreateColumnFamily({}, column.name, &column.handle);
+  }
+
   RocksDbSpace::RocksDbSpace(std::weak_ptr<RocksDb> storage,
                              RocksDb::ColumnFamilyHandle column,
                              log::Logger logger)

@@ -250,6 +250,7 @@ int db_editor_main(int argc, const char **argv) {
     try {
       storage =
           storage::RocksDb::create(argv[DB_PATH], rocksdb::Options()).value();
+      storage->dropColumn(storage::Space::kBlockBody);
       buffer_storage = storage->getSpace(storage::Space::kDefault);
     } catch (std::system_error &e) {
       log->error("{}", e.what());
