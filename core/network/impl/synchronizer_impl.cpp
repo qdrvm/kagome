@@ -14,7 +14,6 @@
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
-#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
@@ -74,7 +73,6 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -89,7 +87,6 @@ namespace kagome::network {
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
-        trie_changes_tracker_(std::move(changes_tracker)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
         serializer_(std::move(serializer)),
@@ -104,7 +101,6 @@ namespace kagome::network {
         buffer_storage_(spaced_storage->getSpace(storage::Space::kDefault)) {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
-    BOOST_ASSERT(trie_changes_tracker_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(serializer_);
     BOOST_ASSERT(storage_);

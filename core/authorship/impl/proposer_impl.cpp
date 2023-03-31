@@ -40,9 +40,11 @@ namespace kagome::authorship {
   outcome::result<primitives::Block> ProposerImpl::propose(
       const primitives::BlockInfo &parent_block,
       const primitives::InherentData &inherent_data,
-      const primitives::Digest &inherent_digest) {
+      const primitives::Digest &inherent_digest,
+      TrieChangesTrackerOpt changes_tracker) {
     OUTCOME_TRY(block_builder,
-                block_builder_factory_->make(parent_block, inherent_digest));
+                block_builder_factory_->make(
+                    parent_block, inherent_digest, std::move(changes_tracker)));
 
     auto inherent_xts_res = block_builder->getInherentExtrinsics(inherent_data);
     if (not inherent_xts_res) {

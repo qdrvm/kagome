@@ -23,7 +23,6 @@
 #include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
-#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "runtime/common/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
@@ -73,7 +72,6 @@ using kagome::runtime::RuntimePropertiesCacheMock;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
 using kagome::runtime::wavm::ModuleParams;
-using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::PolkadotTrieImpl;
@@ -110,7 +108,7 @@ class WasmExecutorTest : public ::testing::Test {
 
     std::shared_ptr<TrieStorageImpl> trie_db =
         kagome::storage::trie::TrieStorageImpl::createEmpty(
-            trie_factory, codec, serializer, std::nullopt)
+            trie_factory, codec, serializer)
             .value();
 
     storage_provider_ =
@@ -135,8 +133,6 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<Sr25519Suite>(sr25519_provider),
         bip39_provider,
         KeyFileStorage::createAt(keystore_path).value());
-    auto changes_tracker =
-        std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
     auto offchain_persistent_storage =
         std::make_shared<kagome::offchain::OffchainPersistentStorageMock>();
     auto offchain_worker_pool =
@@ -180,7 +176,6 @@ class WasmExecutorTest : public ::testing::Test {
             intrinsic_module,
             host_api_factory,
             header_repo_,
-            changes_tracker,
             bogus_smc,
             cache_);
 
@@ -206,7 +201,6 @@ class WasmExecutorTest : public ::testing::Test {
             trie_db,
             header_repo_,
             instance_env_factory,
-            changes_tracker,
             std::make_shared<kagome::runtime::SingleModuleCache>(),
             cache_);
     auto host_api =

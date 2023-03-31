@@ -30,7 +30,6 @@
 #include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
@@ -91,8 +90,6 @@ class RuntimeTestBase : public ::testing::Test {
         std::make_shared<crypto::Sr25519Suite>(sr25519_provider),
         bip39_provider,
         crypto::KeyFileStorage::createAt(keystore_path).value());
-    changes_tracker_ =
-        std::make_shared<storage::changes_trie::ChangesTrackerMock>();
     offchain_storage_ =
         std::make_shared<offchain::OffchainPersistentStorageMock>();
     offchain_worker_pool_ =
@@ -173,8 +170,8 @@ class RuntimeTestBase : public ::testing::Test {
   }
 
   void preparePersistentStorageExpects() {
-    EXPECT_CALL(*trie_storage_, getPersistentBatchAt(_))
-        .WillOnce(testing::Invoke([this](auto &root) {
+    EXPECT_CALL(*trie_storage_, getPersistentBatchAt(_, _))
+        .WillOnce(testing::Invoke([this](auto &root, auto &&) {
           auto batch = std::make_unique<TrieBatchMock>();
           prepareStorageBatchExpectations(*batch);
           return batch;
@@ -250,7 +247,6 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<runtime::RuntimeEnvironmentFactory> runtime_env_factory_;
   std::shared_ptr<runtime::RuntimePropertiesCacheMock> cache_;
   std::shared_ptr<runtime::Executor> executor_;
-  std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_;
   std::shared_ptr<offchain::OffchainPersistentStorageMock> offchain_storage_;
   std::shared_ptr<offchain::OffchainWorkerPoolMock> offchain_worker_pool_;
   std::shared_ptr<crypto::Hasher> hasher_;

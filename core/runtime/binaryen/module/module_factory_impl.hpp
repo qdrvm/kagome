@@ -28,10 +28,6 @@ namespace kagome::blockchain {
   class BlockHeaderRepository;
 }
 
-namespace kagome::storage::changes_trie {
-  class ChangesTracker;
-}
-
 namespace kagome::runtime::binaryen {
 
   class InstanceEnvironmentFactory;

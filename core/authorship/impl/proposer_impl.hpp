@@ -39,7 +39,8 @@ namespace kagome::authorship {
     outcome::result<primitives::Block> propose(
         const primitives::BlockInfo &parent_block,
         const primitives::InherentData &inherent_data,
-        const primitives::Digest &inherent_digest) override;
+        const primitives::Digest &inherent_digest,
+        TrieChangesTrackerOpt changes_tracker) override;
 
    private:
     std::shared_ptr<BlockBuilderFactory> block_builder_factory_;

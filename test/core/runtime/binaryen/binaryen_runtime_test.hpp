@@ -32,7 +32,6 @@ class BinaryenRuntimeTest : public RuntimeTestBase {
             serializer_,
             host_api_factory_,
             header_repo_,
-            changes_tracker_,
             cache_);
 
     auto module_factory =

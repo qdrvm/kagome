@@ -148,6 +148,13 @@ namespace kagome::runtime {
     return *this;
   }
 
+  [[nodiscard]] RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate &
+  RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::withChangesTracker(
+      TrieChangesTrackerOpt changes_tracker) {
+    changes_tracker_ = std::move(changes_tracker);
+    return *this;
+  }
+
   outcome::result<std::unique_ptr<RuntimeEnvironment>>
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::make() {
     KAGOME_PROFILE_START(runtime_env_making);
@@ -177,7 +184,8 @@ namespace kagome::runtime {
       env.storage_provider->setTo(batch_);
 
     } else if (persistent_) {
-      if (auto res = env.storage_provider->setToPersistentAt(storage_state_);
+      if (auto res = env.storage_provider->setToPersistentAt(storage_state_,
+                                                             changes_tracker_);
           !res) {
         SL_DEBUG(
             parent_factory->logger_,

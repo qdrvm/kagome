@@ -11,6 +11,7 @@
 #include "primitives/common.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/inherent_data.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::authorship {
 
@@ -31,7 +32,8 @@ namespace kagome::authorship {
     virtual outcome::result<primitives::Block> propose(
         const primitives::BlockInfo &parent_block,
         const primitives::InherentData &inherent_data,
-        const primitives::Digest &inherent_digest) = 0;
+        const primitives::Digest &inherent_digest,
+        TrieChangesTrackerOpt changes_tracker) = 0;
   };
 
 }  // namespace kagome::authorship

@@ -17,7 +17,8 @@ namespace kagome::authorship {
                 propose,
                 (const primitives::BlockInfo &,
                  const primitives::InherentData &,
-                 const primitives::Digest &),
+                 const primitives::Digest &,
+                 TrieChangesTrackerOpt),
                 (override));
   };
 }  // namespace kagome::authorship

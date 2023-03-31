@@ -48,11 +48,14 @@ namespace kagome::runtime {
   }
 
   outcome::result<void> TrieStorageProviderImpl::setToPersistentAt(
-      const common::Hash256 &state_root) {
+      const common::Hash256 &state_root,
+      TrieChangesTrackerOpt changes_tracker) {
     SL_DEBUG(logger_,
              "Setting storage provider to new persistent batch with root {}",
              state_root);
-    OUTCOME_TRY(batch, trie_storage_->getPersistentBatchAt(state_root));
+    OUTCOME_TRY(batch,
+                trie_storage_->getPersistentBatchAt(
+                    state_root, std::move(changes_tracker)));
     setTo(std::move(batch));
     return outcome::success();
   }

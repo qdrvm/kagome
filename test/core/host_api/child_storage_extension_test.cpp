@@ -13,7 +13,6 @@
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/ptr_size.hpp"
@@ -37,9 +36,9 @@ using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::PolkadotTrieCursorMock;
 using kagome::storage::trie::RootHash;
+using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::TrieError;
 
 using ::testing::_;
@@ -59,11 +58,11 @@ class ChildStorageExtensionTest : public ::testing::Test {
     EXPECT_CALL(*storage_provider_, getCurrentBatch())
         .WillRepeatedly(Return(trie_batch_));
     EXPECT_CALL(*storage_provider_, getChildBatchAt(_))
-        .WillRepeatedly(Return(outcome::success(std::cref(
-            *trie_child_storage_batch_))));
+        .WillRepeatedly(
+            Return(outcome::success(std::cref(*trie_child_storage_batch_))));
     EXPECT_CALL(*storage_provider_, getMutableChildBatchAt(_))
-        .WillRepeatedly(Return(outcome::success(std::ref(
-            *trie_child_storage_batch_))));
+        .WillRepeatedly(
+            Return(outcome::success(std::ref(*trie_child_storage_batch_))));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())

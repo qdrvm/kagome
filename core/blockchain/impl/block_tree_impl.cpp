@@ -16,7 +16,6 @@
 #include "consensus/babe/is_primary.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
-#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/database_error.hpp"
 
 namespace {
@@ -116,7 +115,6 @@ namespace kagome::blockchain {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy) {
     BOOST_ASSERT(storage != nullptr);
@@ -213,7 +211,6 @@ namespace kagome::blockchain {
                           std::move(chain_events_engine),
                           std::move(extrinsic_events_engine),
                           std::move(extrinsic_event_key_repo),
-                          std::move(changes_tracker),
                           std::move(justification_storage_policy)));
 
     // Add non-finalized block to the block tree
@@ -344,7 +341,6 @@ namespace kagome::blockchain {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<const JustificationStoragePolicy>
           justification_storage_policy)
       : header_repo_{std::move(header_repo)},
@@ -355,7 +351,6 @@ namespace kagome::blockchain {
         chain_events_engine_(std::move(chain_events_engine)),
         extrinsic_events_engine_(std::move(extrinsic_events_engine)),
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
-        trie_changes_tracker_(std::move(changes_tracker)),
         justification_storage_policy_{std::move(justification_storage_policy)} {
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -365,7 +360,6 @@ namespace kagome::blockchain {
     BOOST_ASSERT(chain_events_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_event_key_repo_ != nullptr);
-    BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(justification_storage_policy_ != nullptr);
     BOOST_ASSERT(telemetry_ != nullptr);
 
@@ -470,7 +464,6 @@ namespace kagome::blockchain {
 
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
-    trie_changes_tracker_->onBlockAdded(block_hash);
     SL_DEBUG(log_, "Adding block {}", block_hash);
     for (const auto &ext : block.body) {
       auto hash = hasher_->blake2b_256(ext.data);
