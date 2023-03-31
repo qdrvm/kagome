@@ -14,6 +14,7 @@
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
+#include "consensus/grandpa/voting_round_error.hpp"
 #include "network/grandpa_transmitter.hpp"
 #include "primitives/common.hpp"
 #include "scale/scale.hpp"
@@ -59,7 +60,7 @@ namespace kagome::consensus::grandpa {
 
   bool EnvironmentImpl::hasAncestry(const BlockHash &base,
                                     const BlockHash &block) const {
-    return base == block || block_tree_->hasDirectChain(base, block);
+    return block_tree_->hasDirectChain(base, block);
   }
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
@@ -229,13 +230,16 @@ namespace kagome::consensus::grandpa {
     OUTCOME_TRY(justification,
                 scale::decode<GrandpaJustification>(raw_justification.data));
 
+    if (justification.block_info != block_info) {
+      return VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK;
+    }
+
     SL_DEBUG(logger_,
              "Trying to apply justification on round #{} for block {}",
              justification.round_number,
              justification.block_info);
 
-    OUTCOME_TRY(
-        justification_observer->applyJustification(block_info, justification));
+    OUTCOME_TRY(justification_observer->applyJustification(justification));
 
     return outcome::success();
   }

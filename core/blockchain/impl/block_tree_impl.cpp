@@ -931,6 +931,10 @@ namespace kagome::blockchain {
   bool BlockTreeImpl::hasDirectChain(
       const primitives::BlockHash &ancestor,
       const primitives::BlockHash &descendant) const {
+    if (ancestor == descendant) {
+      return true;
+    }
+
     auto ancestor_node_ptr = tree_->getRoot().findByHash(ancestor);
     auto descendant_node_ptr = tree_->getRoot().findByHash(descendant);
 

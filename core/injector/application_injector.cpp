@@ -765,7 +765,8 @@ namespace {
         libp2p::injector::makeHostInjector(
             libp2p::injector::useWssPem(config->nodeWssPem()),
             libp2p::injector::useSecurityAdaptors<
-                libp2p::security::Noise>()[di::override]),
+                libp2p::security::Noise,
+                libp2p::security::Plaintext>()[di::override]),
 
         // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(),
@@ -1140,7 +1141,6 @@ namespace {
         injector.template create<sptr<runtime::GrandpaApi>>(),
         session_keys->getGranKeyPair(),
         injector.template create<const application::ChainSpec &>(),
-        injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<consensus::grandpa::AuthorityManager>>(),
         injector.template create<sptr<network::Synchronizer>>(),

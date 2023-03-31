@@ -19,16 +19,18 @@ namespace kagome::consensus::grandpa {
   struct JustificationObserver {
     virtual ~JustificationObserver() = default;
 
+    virtual outcome::result<void> verifyJustification(
+        const GrandpaJustification &justification,
+        const primitives::AuthoritySet &authorities) = 0;
+
     /**
-     * Validate provided {@param justification} for finalization {@param block}.
-     * If it valid finalize {@param block} and save {@param justification} in
+     * Validate provided {@param justification} for finalization.
+     * If it valid finalize block and save {@param justification} in
      * storage.
-     * @param block is observed block info
-     * @param justification justification of finalization of provided block
+     * @param justification justification of finalization
      * @return nothing or on error
      */
     virtual outcome::result<void> applyJustification(
-        const primitives::BlockInfo &block_info,
         const GrandpaJustification &justification) = 0;
   };
 

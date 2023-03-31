@@ -68,7 +68,6 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<crypto::Ed25519Keypair> keypair,
       const application::ChainSpec &chain_spec,
-      std::shared_ptr<Clock> clock,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer,
@@ -80,7 +79,6 @@ namespace kagome::consensus::grandpa {
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
         keypair_{std::move(keypair)},
-        clock_{std::move(clock)},
         scheduler_{std::move(scheduler)},
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)),
@@ -90,7 +88,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
-    BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(synchronizer_ != nullptr);
@@ -143,17 +140,13 @@ namespace kagome::consensus::grandpa {
     }
     auto &authority_set = authorities_res.value();
 
-    auto voters = std::make_shared<VoterSet>(authority_set->id);
-    for (const auto &authority : authority_set->authorities) {
-      auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                                authority.weight);
-      if (res.has_error()) {
-        logger_->critical(
-            "Can't make voter set: {}. Stopping grandpa execution",
-            res.error());
-        return false;
-      }
+    auto voters_res = VoterSet::make(*authority_set);
+    if (not voters_res) {
+      logger_->critical("Can't make voter set: {}. Stopping grandpa execution",
+                        voters_res.error());
+      return false;
     }
+    auto &voters = voters_res.value();
 
     current_round_ = makeInitialRound(round_state, std::move(voters));
     BOOST_ASSERT(current_round_ != nullptr);
@@ -212,13 +205,11 @@ namespace kagome::consensus::grandpa {
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
-        authority_manager_,
         environment_,
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
-        clock_,
         scheduler_,
         round_state);
 
@@ -244,15 +235,12 @@ namespace kagome::consensus::grandpa {
     auto &authority_set = authorities_opt.value();
     BOOST_ASSERT(not authority_set->authorities.empty());
 
-    auto voters = std::make_shared<VoterSet>(authority_set->id);
-    for (const auto &authority : authority_set->authorities) {
-      auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                                authority.weight);
-      if (res.has_error()) {
-        SL_WARN(logger_, "Can't make voter set: {}", res.error());
-        return res.as_failure();
-      }
+    auto voters_res = VoterSet::make(*authority_set);
+    if (not voters_res) {
+      SL_WARN(logger_, "Can't make voter set: {}", voters_res.error());
+      return voters_res.error();
     }
+    auto &voters = voters_res.value();
 
     const auto new_round_number =
         round->voterSetId() == voters->id() ? (round->roundNumber() + 1) : 1;
@@ -273,13 +261,11 @@ namespace kagome::consensus::grandpa {
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
-        authority_manager_,
         environment_,
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
-        clock_,
         scheduler_,
         round);
     return new_round;
@@ -768,15 +754,12 @@ namespace kagome::consensus::grandpa {
       }
       auto &authority_set = authorities_opt.value();
 
-      auto voters = std::make_shared<VoterSet>(msg.voter_set_id);
-      for (const auto &authority : authority_set->authorities) {
-        auto res = voters->insert(
-            primitives::GrandpaSessionKey(authority.id.id), authority.weight);
-        if (res.has_error()) {
-          SL_WARN(logger_, "Can't make voter set: {}", res.error());
-          return;
-        }
+      auto voters_res = VoterSet::make(*authority_set);
+      if (not voters_res) {
+        SL_WARN(logger_, "Can't make voter set: {}", voters_res.error());
+        return;
       }
+      auto &voters = voters_res.value();
 
       auto round = makeInitialRound(round_state, std::move(voters));
 
@@ -1181,7 +1164,7 @@ namespace kagome::consensus::grandpa {
     auto has_direct_chain = block_tree_->hasDirectChain(
         block_tree_->getLastFinalized().hash, justification.block_info.hash);
     if (has_direct_chain) {
-      auto res = applyJustification(justification.block_info, justification);
+      auto res = applyJustification(justification);
       if (res.has_value()) {
         reputation_repository_->change(
             peer_id, network::reputation::benefit::BASIC_VALIDATED_COMMIT);
@@ -1214,8 +1197,30 @@ namespace kagome::consensus::grandpa {
     }
   }
 
+  outcome::result<void> GrandpaImpl::verifyJustification(
+      const GrandpaJustification &justification,
+      const primitives::AuthoritySet &authorities) {
+    auto voters = VoterSet::make(authorities).value();
+    MovableRoundState state;
+    state.round_number = justification.round_number;
+    VotingRoundImpl round{
+        shared_from_this(),
+        GrandpaConfig{voters, justification.round_number, {}, {}},
+        environment_,
+        std::make_shared<VoteCryptoProviderImpl>(
+            nullptr, crypto_provider_, justification.round_number, voters),
+        std::make_shared<VoteTrackerImpl>(),
+        std::make_shared<VoteTrackerImpl>(),
+        std::make_shared<VoteGraphImpl>(
+            primitives::BlockInfo{}, voters, environment_),
+        scheduler_,
+        state,
+    };
+    return round.validatePrecommitJustification(justification);
+  }
+
   outcome::result<void> GrandpaImpl::applyJustification(
-      const BlockInfo &block_info, const GrandpaJustification &justification) {
+      const GrandpaJustification &justification) {
     auto round_opt = selectRound(justification.round_number, std::nullopt);
     std::shared_ptr<VotingRound> round;
     bool need_to_make_round_current = false;
@@ -1223,12 +1228,13 @@ namespace kagome::consensus::grandpa {
       round = std::move(round_opt.value());
     } else {
       // This is justification for already finalized block
-      if (current_round_->lastFinalizedBlock().number > block_info.number) {
+      if (current_round_->lastFinalizedBlock().number
+          > justification.block_info.number) {
         return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
       }
 
-      auto authorities_opt =
-          authority_manager_->authorities(block_info, IsBlockFinalized{false});
+      auto authorities_opt = authority_manager_->authorities(
+          justification.block_info, IsBlockFinalized{false});
       if (!authorities_opt) {
         return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
       }
@@ -1258,7 +1264,8 @@ namespace kagome::consensus::grandpa {
             .round_number = justification.round_number,
             .last_finalized_block = current_round_->lastFinalizedBlock(),
             .votes = {},
-            .finalized = block_info};
+            .finalized = justification.block_info,
+        };
 
         // This is justification for non-actual round
         if (authority_set->id < current_round_->voterSetId()) {
@@ -1276,20 +1283,17 @@ namespace kagome::consensus::grandpa {
           SL_WARN(logger_,
                   "Authority set on block {} with justification has id {}, "
                   "while the current round set id is {} (difference must be 1)",
-                  block_info,
+                  justification.block_info,
                   authority_set->id,
                   current_round_->voterSetId());
         }
 
-        auto voters = std::make_shared<VoterSet>(authority_set->id);
-        for (const auto &authority : authority_set->authorities) {
-          auto res = voters->insert(
-              primitives::GrandpaSessionKey(authority.id.id), authority.weight);
-          if (res.has_error()) {
-            SL_CRITICAL(logger_, "Can't make voter set: {}", res.error());
-            return res.as_failure();
-          }
+        auto voters_res = VoterSet::make(*authority_set);
+        if (not voters_res) {
+          SL_CRITICAL(logger_, "Can't make voter set: {}", voters_res.error());
+          return voters_res.error();
         }
+        auto &voters = voters_res.value();
 
         round = makeInitialRound(round_state, std::move(voters));
         need_to_make_round_current = true;
@@ -1301,7 +1305,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    OUTCOME_TRY(round->applyJustification(block_info, justification));
+    OUTCOME_TRY(round->applyJustification(justification));
 
     if (need_to_make_round_current) {
       current_round_->end();

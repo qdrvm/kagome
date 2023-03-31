@@ -40,7 +40,7 @@ namespace kagome::consensus::babe {
 namespace kagome::consensus::grandpa {
   class ChangesTracker;
   class Environment;
-}
+}  // namespace kagome::consensus::grandpa
 
 namespace kagome::storage::trie {
   class PersistentTrieBatch;
@@ -174,12 +174,6 @@ namespace kagome::network {
                             primitives::BlockInfo target_block,
                             std::optional<uint32_t> limit,
                             SyncResultHandler &&handler);
-
-    /// Check if incomplete requests of state sync exists
-    bool hasIncompleteRequestOfStateSync() const override {
-      std::unique_lock lock{state_sync_mutex_};
-      return state_sync_.has_value();
-    }
 
    private:
     /// Subscribes handler for block with provided {@param block_info}

@@ -9,13 +9,11 @@
 
 #include <mock/libp2p/basic/scheduler_mock.hpp>
 
-#include "clock/impl/clock_impl.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "core/consensus/grandpa/literals.hpp"
-#include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
@@ -25,7 +23,6 @@
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::consensus::grandpa;
-using kagome::clock::SteadyClockImpl;
 using kagome::crypto::Ed25519Keypair;
 using kagome::crypto::Ed25519Signature;
 using kagome::crypto::HasherMock;
@@ -115,20 +112,7 @@ class VotingRoundTest : public testing::Test,
     authorities->authorities.emplace_back(Authority{{kBob}, kBobWeight});
     authorities->authorities.emplace_back(Authority{{kEve}, kEveWeight});
 
-    authority_manager_ = std::make_shared<AuthorityManagerMock>();
-    EXPECT_CALL(*authority_manager_, base())
-        .Times(AnyNumber())
-        .WillRepeatedly(Return(BlockInfo{2, "B"_H}));
-    EXPECT_CALL(*authority_manager_, authorities(_, _))
-        .Times(AnyNumber())
-        .WillRepeatedly(Return(authorities));
-
-    auto voters = std::make_shared<VoterSet>(authorities->id);
-    for (const auto &authority : *authorities) {
-      ASSERT_OUTCOME_SUCCESS_TRY(
-          voters->insert(kagome::primitives::GrandpaSessionKey(authority.id.id),
-                         authority.weight));
-    }
+    auto voters = VoterSet::make(*authorities).value();
 
     GrandpaConfig config{.voters = std::move(voters),
                          .round_number = round_number_,
@@ -145,6 +129,8 @@ class VotingRoundTest : public testing::Test,
     EXPECT_CALL(*env_, hasAncestry("C"_H, "FC"_H)).WillRepeatedly(Return(true));
     EXPECT_CALL(*env_, hasAncestry("E"_H, "ED"_H)).WillRepeatedly(Return(true));
     EXPECT_CALL(*env_, hasAncestry("E"_H, "FC"_H)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*env_, hasAncestry("EA"_H, "EA"_H))
+        .WillRepeatedly(Return(true));
     EXPECT_CALL(*env_, hasAncestry("EA"_H, "FC"_H))
         .WillRepeatedly(Return(false));
     EXPECT_CALL(*env_, hasAncestry("EA"_H, "ED"_H))
@@ -180,13 +166,11 @@ class VotingRoundTest : public testing::Test,
 
     round_ = std::make_shared<VotingRoundImpl>(grandpa_,
                                                config,
-                                               authority_manager_,
                                                env_,
                                                vote_crypto_provider_,
                                                prevotes_,
                                                precommits_,
                                                vote_graph_,
-                                               clock_,
                                                scheduler_,
                                                previous_round_);
   }
@@ -241,10 +225,8 @@ class VotingRoundTest : public testing::Test,
       std::make_shared<VoteTrackerImpl>();
 
   std::shared_ptr<GrandpaMock> grandpa_;
-  std::shared_ptr<AuthorityManagerMock> authority_manager_;
   std::shared_ptr<EnvironmentMock> env_;
   std::shared_ptr<VoteGraphImpl> vote_graph_;
-  std::shared_ptr<Clock> clock_ = std::make_shared<SteadyClockImpl>();
 
   std::shared_ptr<libp2p::basic::SchedulerMock> scheduler_;
 

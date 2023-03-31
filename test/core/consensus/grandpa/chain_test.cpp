@@ -159,7 +159,7 @@ TEST_F(ChainTest, HasAncestry) {
 TEST_F(ChainTest, HasAncestryOfItself) {
   auto h1 = "010101"_hash256;
 
-  EXPECT_CALL(*tree, hasDirectChain(_, _)).Times(0);
+  EXPECT_CALL(*tree, hasDirectChain(_, _)).WillOnce(Return(true));
   ASSERT_TRUE(chain->hasAncestry(h1, h1));
 }
 
@@ -191,11 +191,11 @@ TEST_F(ChainTest, IsEqualOrDescendantOf) {
   auto h1 = "010101"_hash256;
   auto h2 = "020202"_hash256;
   auto h3 = "030303"_hash256;
-  EXPECT_CALL(*tree, hasDirectChain(h2, h2)).Times(0);
+  EXPECT_CALL(*tree, hasDirectChain(h2, h2)).WillOnce(Return(true));
   EXPECT_CALL(*tree, hasDirectChain(h3, h1)).WillOnce(Return(false));
   EXPECT_CALL(*tree, hasDirectChain(h1, h3)).WillOnce(Return(true));
 
-  ASSERT_TRUE(chain->isEqualOrDescendOf(h2, h2));
-  ASSERT_FALSE(chain->isEqualOrDescendOf(h3, h1));
-  ASSERT_TRUE(chain->isEqualOrDescendOf(h1, h3));
+  ASSERT_TRUE(chain->hasAncestry(h2, h2));
+  ASSERT_FALSE(chain->hasAncestry(h3, h1));
+  ASSERT_TRUE(chain->hasAncestry(h1, h3));
 }

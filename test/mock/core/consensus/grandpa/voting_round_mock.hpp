@@ -83,7 +83,7 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(outcome::result<void>,
                 applyJustification,
-                (const BlockInfo &, const GrandpaJustification &),
+                (const GrandpaJustification &),
                 (override));
 
     MOCK_METHOD(void, attemptToFinalizeRound, (), (override));
