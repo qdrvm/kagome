@@ -75,8 +75,10 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, setBlockTreeLeaves(_))
         .WillRepeatedly(Return(outcome::success()));
 
-    EXPECT_CALL(*storage_, getBlockHash(kFirstBlockInfo.number))
-        .WillRepeatedly(Return(kFirstBlockInfo.hash));
+    for (kagome::primitives::BlockNumber i = 1; i < 100; ++i) {
+      EXPECT_CALL(*storage_, getBlockHash(i))
+          .WillRepeatedly(Return(kFirstBlockInfo.hash));
+    }
 
     EXPECT_CALL(*storage_, hasBlockHeader(kFirstBlockInfo.hash))
         .WillRepeatedly(Return(true));
