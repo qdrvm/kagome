@@ -17,10 +17,13 @@ namespace kagome::parachain {
                        std::shared_ptr<network::Router> router)
       : av_store_{std::move(av_store)},
         query_audi_{std::move(query_audi)},
-        router_{std::move(router)} {}
+        router_{std::move(router)} {
+    BOOST_ASSERT(av_store_ != nullptr);
+    BOOST_ASSERT(query_audi_ != nullptr);
+    BOOST_ASSERT(router_ != nullptr);
+  }
 
-  void FetchImpl::fetch(network::RelayHash const &relay_parent,
-                        ValidatorIndex chunk_index,
+  void FetchImpl::fetch(ValidatorIndex chunk_index,
                         const runtime::OccupiedCore &core,
                         const runtime::SessionInfo &session) {
     std::unique_lock lock{mutex_};
@@ -32,6 +35,7 @@ namespace kagome::parachain {
     }
     Active active;
     active.chunk_index = chunk_index;
+    active.relay_parent = core.candidate_descriptor.relay_parent;
     active.erasure_encoding_root =
         core.candidate_descriptor.erasure_encoding_root;
     for (auto &validator_index :
@@ -40,11 +44,10 @@ namespace kagome::parachain {
     }
     active_.emplace(core.candidate_hash, std::move(active));
     lock.unlock();
-    fetch(relay_parent, core.candidate_hash);
+    fetch(core.candidate_hash);
   }
 
-  void FetchImpl::fetch(network::RelayHash const &relay_parent,
-                        const CandidateHash &candidate_hash) {
+  void FetchImpl::fetch(const CandidateHash &candidate_hash) {
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
     if (it == active_.end()) {
@@ -60,11 +63,9 @@ namespace kagome::parachain {
             {candidate_hash, active.chunk_index},
             [=, weak{weak_from_this()}](
                 outcome::result<network::FetchChunkResponse> r) {
-              auto self = weak.lock();
-              if (not self) {
-                return;
+              if (auto self = weak.lock()) {
+                self->fetch(candidate_hash, std::move(r));
               }
-              self->fetch(relay_parent, candidate_hash, std::move(r));
             });
         return;
       }
@@ -76,8 +77,7 @@ namespace kagome::parachain {
     active_.erase(it);
   }
 
-  void FetchImpl::fetch(network::RelayHash const &relay_parent,
-                        const CandidateHash &candidate_hash,
+  void FetchImpl::fetch(const CandidateHash &candidate_hash,
                         outcome::result<network::FetchChunkResponse> _chunk) {
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
@@ -91,17 +91,18 @@ namespace kagome::parachain {
                                     active.chunk_index,
                                     std::move(chunk2->proof)};
         if (checkTrieProof(chunk, active.erasure_encoding_root)) {
+          av_store_->putChunk(
+              active.relay_parent, candidate_hash, std::move(chunk));
           SL_VERBOSE(log(),
                      "candidate={} chunk={} fetched",
                      candidate_hash,
                      active.chunk_index);
-          av_store_->putChunk(relay_parent, candidate_hash, std::move(chunk));
           active_.erase(it);
           return;
         }
       }
     }
     lock.unlock();
-    fetch(relay_parent, candidate_hash);
+    fetch(candidate_hash);
   }
 }  // namespace kagome::parachain

@@ -23,22 +23,20 @@ namespace kagome::parachain {
               std::shared_ptr<authority_discovery::Query> query_audi,
               std::shared_ptr<network::Router> router);
 
-    void fetch(network::RelayHash const &relay_parent,
-               ValidatorIndex chunk_index,
+    void fetch(ValidatorIndex chunk_index,
                const runtime::OccupiedCore &core,
                const runtime::SessionInfo &session) override;
 
    private:
     struct Active {
       ValidatorIndex chunk_index;
+      RelayHash relay_parent;
       std::vector<primitives::AuthorityDiscoveryId> validators;
       storage::trie::RootHash erasure_encoding_root;
     };
 
-    void fetch(network::RelayHash const &relay_parent,
-               const CandidateHash &candidate_hash);
-    void fetch(network::RelayHash const &relay_parent,
-               const CandidateHash &candidate_hash,
+    void fetch(const CandidateHash &candidate_hash);
+    void fetch(const CandidateHash &candidate_hash,
                outcome::result<network::FetchChunkResponse> _chunk);
 
     std::shared_ptr<AvailabilityStore> av_store_;

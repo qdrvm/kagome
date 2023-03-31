@@ -112,8 +112,7 @@ namespace kagome::parachain {
     for (auto &core : cores) {
       if (auto occupied = boost::get<runtime::OccupiedCore>(&core)) {
         candidates.emplace_back(occupied->candidate_hash);
-        fetch_->fetch(
-            relay_parent, signer->validatorIndex(), *occupied, *session);
+        fetch_->fetch(signer->validatorIndex(), *occupied, *session);
       } else {
         candidates.emplace_back(std::nullopt);
       }
