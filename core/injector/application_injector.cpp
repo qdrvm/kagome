@@ -112,6 +112,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
+#include "parachain/availability/fetch/fetch_impl.hpp"
 #include "parachain/availability/recovery/recovery_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
 #include "parachain/backing/store_impl.hpp"
@@ -505,7 +506,8 @@ namespace {
         injector
             .template create<std::shared_ptr<application::AppStateManager>>(),
         injector.template create<
-            primitives::events::BabeStateSubscriptionEnginePtr>());
+            primitives::events::BabeStateSubscriptionEnginePtr>(),
+        injector.template create<sptr<authority_discovery::Query>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -935,6 +937,7 @@ namespace {
         bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
         di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
+        di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
         di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
         di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
         di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),

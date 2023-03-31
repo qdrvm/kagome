@@ -526,6 +526,30 @@ namespace kagome::parachain {
           }
         });
 
+    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
+        peer_view_->intoChainEventsEngine());
+    chain_sub_->subscribe(
+        chain_sub_->generateSubscriptionSetId(),
+        primitives::events::ChainEventType::kDeactivateAfterFinalization);
+    chain_sub_->setCallback(
+        [wptr{weak_from_this()}](
+            auto /*set_id*/,
+            auto && /*internal_obj*/,
+            auto /*event_type*/,
+            const primitives::events::ChainEventParams &event) {
+          if (auto self = wptr.lock()) {
+            if (auto const value = if_type<
+                    const primitives::events::RemoveAfterFinalizationParams>(
+                    event)) {
+              for (auto const &lost : value->get()) {
+                self->logger_->trace(
+                    "Cleaning up stale pending messages.(block hash={})", lost);
+                self->pending_known_.erase(lost);
+              }
+            }
+          }
+        });
+
     return true;
   }
 
@@ -1071,16 +1095,6 @@ namespace kagome::parachain {
         [[maybe_unused]] auto &_ = pending_known_[result.value()];
       }
 
-      for (auto it = pending_known_.begin(); it != pending_known_.end();) {
-        if (updated.view.contains(it->first)) {
-          ++it;
-        } else {
-          logger_->trace("Cleaning up stale pending messages.(block hash={})",
-                         it->first);
-          it = pending_known_.erase(it);
-        }
-      }
-
       handle_new_head(
           result.value(),
           updated,
@@ -1397,7 +1411,31 @@ namespace kagome::parachain {
         source ? source->get().toBase58() : "our",
         block_hash,
         validator_index);
+
     auto &entry = opt_entry->get();
+    if (claimed_candidate_index >= entry.candidates.size()) {
+      logger_->warn(
+          "Unexpected candidate entry. (candidate index={}, block hash={})",
+          claimed_candidate_index,
+          block_hash);
+      return;
+    }
+
+    auto &candidate_entry = entry.candidates[claimed_candidate_index];
+    if (auto it = candidate_entry.messages.find(validator_index);
+        it != candidate_entry.messages.end()) {
+      if (auto state{boost::get<DistribApprovalStateApproved>(
+              &it->second.approval_state)}) {
+        logger_->warn(
+            "Already have approved state. (candidate index={}, "
+            "block hash={}, validator index={})",
+            claimed_candidate_index,
+            block_hash,
+            validator_index);
+        return;
+      }
+    }
+
     if (source) {
       /// TODO(iceseer): vector-clock for knowledge
       switch (
@@ -1430,15 +1468,6 @@ namespace kagome::parachain {
     }
 
     auto const local = !source;
-    if (claimed_candidate_index >= entry.candidates.size()) {
-      logger_->warn(
-          "Unexpected candidate entry. (candidate index={}, block hash={})",
-          claimed_candidate_index,
-          block_hash);
-      return;
-    }
-
-    auto &candidate_entry = entry.candidates[claimed_candidate_index];
     [[maybe_unused]] auto &message_state =
         candidate_entry.messages
             .emplace(validator_index,
@@ -1867,12 +1896,12 @@ namespace kagome::parachain {
     auto const block_number = block_entry.block_number;
     auto const tick_now = ::tickNow();
 
-    logger_->info(
-        "Advance approval state.(candidate {}, block {}, "
-        "validator {})",
-        candidate_hash,
-        block_hash,
-        validator_index);
+    SL_TRACE(logger_,
+             "Advance approval state.(candidate {}, block {}, "
+             "validator {})",
+             candidate_hash,
+             block_hash,
+             validator_index);
 
     auto result = approval_status(block_entry, candidate_entry);
     if (!result) {
@@ -1978,7 +2007,8 @@ namespace kagome::parachain {
       primitives::BlockNumber block_number,
       CandidateHash const &candidate_hash,
       Tick tick) {
-    logger_->info(
+    SL_TRACE(
+        logger_,
         "Scheduling wakeup. Block hash {}, candidate hash {}, block number {}, "
         "tick {}",
         block_hash,
