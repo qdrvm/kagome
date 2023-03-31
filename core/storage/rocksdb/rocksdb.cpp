@@ -127,9 +127,15 @@ namespace kagome::storage {
       throw DatabaseError::INVALID_ARGUMENT;
     }
     auto &column = *column_it;
-    db_->DropColumnFamily(column.handle);
-    db_->DestroyColumnFamilyHandle(column.handle);
-    db_->CreateColumnFamily({}, column.name, &column.handle);
+    auto e = [this](rocksdb::Status status) {
+      if (!status.ok()) {
+        logger_->error("DB operation failed: {}", status.ToString());
+        throw status_as_error(status);
+      }
+    };
+    e(db_->DropColumnFamily(column.handle));
+    e(db_->DestroyColumnFamilyHandle(column.handle));
+    e(db_->CreateColumnFamily({}, column.name, &column.handle));
   }
 
   RocksDbSpace::RocksDbSpace(std::weak_ptr<RocksDb> storage,
