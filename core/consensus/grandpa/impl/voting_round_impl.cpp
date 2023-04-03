@@ -803,8 +803,8 @@ namespace kagome::consensus::grandpa {
           SL_DEBUG(logger_,
                    "Vote does not have ancestry with target block: "
                    "vote={} target={}",
-                   justification.block_info.hash,
-                   signed_precommit.getBlockHash());
+                   justification.block_info,
+                   signed_precommit.getBlockInfo());
         }
 
       } else if (equivocators.emplace(signed_precommit.id).second) {
@@ -817,8 +817,8 @@ namespace kagome::consensus::grandpa {
           SL_DEBUG(logger_,
                    "Vote does not have ancestry with target block: "
                    "vote={} target={}",
-                   justification.block_info.hash.toHex(),
-                   signed_precommit.getBlockHash());
+                   justification.block_info,
+                   signed_precommit.getBlockInfo());
         }
 
       } else {
