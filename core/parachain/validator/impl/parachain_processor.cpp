@@ -75,8 +75,7 @@ namespace kagome::parachain {
       std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory,
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
-      std::shared_ptr<authority_discovery::Query> query_audi)
+      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable)
       : pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
@@ -93,8 +92,7 @@ namespace kagome::parachain {
         av_store_(std::move(av_store)),
         parachain_host_(std::move(parachain_host)),
         app_config_(app_config),
-        babe_status_observable_(std::move(babe_status_observable)),
-        query_audi_{std::move(query_audi)} {
+        babe_status_observable_(std::move(babe_status_observable)) {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
@@ -110,7 +108,6 @@ namespace kagome::parachain {
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(signer_factory_);
     BOOST_ASSERT(babe_status_observable_);
-    BOOST_ASSERT(query_audi_);
     app_state_manager->takeControl(*this);
   }
 
@@ -451,41 +448,26 @@ namespace kagome::parachain {
   }
 
   template <typename F>
-  void ParachainProcessorImpl::requestPoV(
-      libp2p::peer::PeerInfo const &peer_info,
-      CandidateHash const &candidate_hash,
-      F &&callback) {
+  void ParachainProcessorImpl::requestPoV(libp2p::peer::PeerId const &peer_id,
+                                          CandidateHash const &candidate_hash,
+                                          F &&callback) {
     /// TODO(iceseer): request PoV from validator, who seconded candidate
     /// But now we can assume, that if we received either `seconded` or `valid`
     /// from some peer, than we expect this peer has valid PoV, which we can
     /// request.
 
-    logger_->info("Requesting PoV.(candidate hash={}, peer={})",
-                  candidate_hash,
-                  peer_info.id);
+    logger_->info(
+        "Requesting PoV.(candidate hash={}, peer={})", candidate_hash, peer_id);
 
     auto protocol = router_->getReqPovProtocol();
     BOOST_ASSERT(protocol);
 
-    protocol->request(peer_info, candidate_hash, std::forward<F>(callback));
-  }
-
-  std::optional<runtime::SessionInfo>
-  ParachainProcessorImpl::retrieveSessionInfo(RelayHash const &relay_parent) {
-    if (auto session_index =
-            parachain_host_->session_index_for_child(relay_parent);
-        session_index.has_value()) {
-      if (auto session_info = parachain_host_->session_info(
-              relay_parent, session_index.value());
-          session_info.has_value()) {
-        return session_info.value();
-      }
-    }
-    return std::nullopt;
+    protocol->request(peer_id, candidate_hash, std::forward<F>(callback));
   }
 
   void ParachainProcessorImpl::kickOffValidationWork(
       RelayHash const &relay_parent,
+      libp2p::peer::PeerId const &peer_id,
       AttestingData &attesting_data,
       RelayParentState &parachain_state) {
     auto const candidate_hash{candidateHashFrom(attesting_data.candidate)};
@@ -501,72 +483,54 @@ namespace kagome::parachain {
       return;
     }
 
-    auto session_info = retrieveSessionInfo(relay_parent);
-    if (!session_info) {
-      SL_WARN(logger_, "No session info.(relay_parent={})", relay_parent);
-      return;
-    }
-
-    if (session_info->discovery_keys.size() >= attesting_data.from_validator) {
-      SL_ERROR(logger_,
-               "Invalid validator index.(relay_parent={}, validator_index={})",
-               relay_parent,
-               attesting_data.from_validator);
-      return;
-    }
-
-    auto const &authority_id =
-        session_info->discovery_keys[attesting_data.from_validator];
-    if (auto peer = query_audi_->get(authority_id)) {
-      requestPoV(
-          *peer,
-          candidate_hash,
-          [candidate{attesting_data.candidate},
-           candidate_hash,
-           wself{weak_from_this()},
-           relay_parent,
-           peer_id{peer->id}](auto &&pov_response_result) mutable {
-            if (auto self = wself.lock()) {
-              auto parachain_state =
-                  self->tryGetStateByRelayParent(relay_parent);
-              if (!parachain_state) {
-                self->logger_->warn(
-                    "After request pov no parachain state on relay_parent {}",
-                    relay_parent);
-                return;
-              }
-
-              if (!pov_response_result) {
-                self->logger_->warn("Request PoV on relay_parent {} failed {}",
-                                    relay_parent,
-                                    pov_response_result.error().message());
-                return;
-              }
-
-              network::ResponsePov &opt_pov = pov_response_result.value();
-              auto p{boost::get<network::ParachainBlock>(&opt_pov)};
-              if (!p) {
-                self->logger_->warn("No PoV.(candidate={})", candidate_hash);
-                self->onAttestNoPoVComplete(relay_parent, candidate_hash);
-                return;
-              }
-
-              self->logger_->info(
-                  "PoV received.(relay_parent={}, candidate hash={}, peer={})",
-                  relay_parent,
-                  candidate_hash,
-                  peer_id);
-              self->appendAsyncValidationTask<ValidationTaskType::kAttest>(
-                  std::move(candidate),
-                  std::move(*p),
-                  relay_parent,
-                  peer_id,
-                  parachain_state->get(),
-                  candidate_hash,
-                  parachain_state->get().table_context.validators.size());
+    requestPoV(
+        peer_id,
+        candidate_hash,
+        [candidate{attesting_data.candidate},
+         candidate_hash,
+         wself{weak_from_this()},
+         relay_parent,
+         peer_id](auto &&pov_response_result) mutable {
+          if (auto self = wself.lock()) {
+            auto parachain_state = self->tryGetStateByRelayParent(relay_parent);
+            if (!parachain_state) {
+              self->logger_->warn(
+                  "After request pov no parachain state on relay_parent {}",
+                  relay_parent);
+              return;
             }
-          });
-    }
+
+            if (!pov_response_result) {
+              self->logger_->warn("Request PoV on relay_parent {} failed {}",
+                                  relay_parent,
+                                  pov_response_result.error().message());
+              return;
+            }
+
+            network::ResponsePov &opt_pov = pov_response_result.value();
+            auto p{boost::get<network::ParachainBlock>(&opt_pov)};
+            if (!p) {
+              /// TODO(iceseer): Implement validators rotation to request PoV
+              self->logger_->warn(
+                  "No PoV relay_parent {}. Should request next validator. Not "
+                  "implemented.",
+                  relay_parent);
+              return;
+            }
+
+            self->logger_->info("PoV received.(candidate hash={}, peer={})",
+                                candidate_hash,
+                                peer_id);
+            self->appendAsyncValidationTask<ValidationTaskType::kAttest>(
+                std::move(candidate),
+                std::move(*p),
+                relay_parent,
+                peer_id,
+                parachain_state->get(),
+                candidate_hash,
+                parachain_state->get().table_context.validators.size());
+          }
+        });
   }
 
   outcome::result<network::FetchChunkResponse>
@@ -775,7 +739,7 @@ namespace kagome::parachain {
 
       if (attesting_ref) {
         kickOffValidationWork(
-            relay_parent, attesting_ref->get(), parachain_state);
+            relay_parent, peer_id, attesting_ref->get(), parachain_state);
       }
     }
   }
@@ -1398,19 +1362,18 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onAttestNoPoVComplete(
-      network::RelayHash const &relay_parent,
-      CandidateHash const &candidate_hash) {
-    auto parachain_state = tryGetStateByRelayParent(relay_parent);
+      libp2p::peer::PeerId const &peer_id, ValidateAndSecondResult &&result) {
+    auto parachain_state = tryGetStateByRelayParent(result.relay_parent);
     if (!parachain_state) {
       logger_->warn(
-          "onAttestNoPoVComplete result based on unexpected relay_parent. "
-          "(relay_parent={}, candidate={})",
-          relay_parent,
-          candidate_hash);
+          "onAttestNoPoVComplete result based on unexpected relay_parent {}",
+          result.relay_parent);
       return;
     }
 
+    auto const candidate_hash = candidateHashFrom(result.candidate);
     auto it = parachain_state->get().fallbacks.find(candidate_hash);
+
     if (it == parachain_state->get().fallbacks.end()) {
       logger_->error(
           "Internal error. Fallbacks doesn't contain candidate hash {}",
@@ -1423,7 +1386,8 @@ namespace kagome::parachain {
     if (!attesting.backing.empty()) {
       attesting.from_validator = attesting.backing.front();
       attesting.backing.pop();
-      kickOffValidationWork(relay_parent, attesting, *parachain_state);
+      kickOffValidationWork(
+          result.relay_parent, peer_id, attesting, *parachain_state);
     }
   }
 

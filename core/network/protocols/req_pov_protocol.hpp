@@ -17,7 +17,7 @@ namespace kagome::network {
 
   class IReqPovProtocol : public ProtocolBase {
    public:
-    virtual void request(const PeerInfo &peer_info,
+    virtual void request(const PeerId &peer_id,
                          RequestPov,
                          std::function<void(outcome::result<ResponsePov>)>
                              &&response_handler) = 0;

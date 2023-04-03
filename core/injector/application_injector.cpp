@@ -506,8 +506,7 @@ namespace {
         injector
             .template create<std::shared_ptr<application::AppStateManager>>(),
         injector.template create<
-            primitives::events::BabeStateSubscriptionEnginePtr>(),
-        injector.template create<sptr<authority_discovery::Query>>());
+            primitives::events::BabeStateSubscriptionEnginePtr>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
