@@ -214,7 +214,7 @@ namespace kagome::application {
         enable_offchain_indexing_{def_enable_offchain_indexing},
         subcommand_chain_info_{def_subcommand_chain_info},
         recovery_state_{def_block_to_recover},
-        should_prune_trie_{true} {
+        state_pruning_depth_{} {
     SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
   }
 
@@ -742,7 +742,7 @@ namespace kagome::application {
         ("database", po::value<std::string>()->default_value("rocksdb"), "Database backend to use [rocksdb]")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
-        ("prune", po::value<bool>(), "prunes obsolete runtime storage parts")
+        ("state-pruning", po::value<std::string>()->default_value("archive"), "state pruning policy. 'archive' or the number of finalized blocks to keep.")
         ;
 
     po::options_description network_desc("Network options");
@@ -1318,8 +1318,29 @@ namespace kagome::application {
       return false;
     }
 
-    find_argument<bool>(
-        vm, "prune", [&](bool val) { should_prune_trie_ = val; });
+    bool state_pruning_success = true;
+    find_argument<std::string>(
+        vm, "state-pruning", [&](std::string const &val) {
+          if (val == "archive") {
+            state_pruning_depth_ = std::nullopt;
+            return;
+          }
+          uint32_t depth{};
+          auto [_, err] = std::from_chars(&*val.begin(), &*val.end(), depth);
+          if (err == std::errc{}) {
+            state_pruning_depth_ = depth;
+            return;
+          } else {
+            SL_ERROR(logger_,
+                     "Failed to parse state-pruning param (which should be "
+                     "either 'archive' or an integer): {}",
+                     err);
+          }
+          state_pruning_success = false;
+        });
+    if (not state_pruning_success) {
+      return false;
+    }
 
     // if something wrong with config print help message
     if (not validate_config()) {

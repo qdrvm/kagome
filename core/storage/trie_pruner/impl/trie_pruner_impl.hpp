@@ -19,6 +19,10 @@
 #include "log/logger.hpp"
 #include "log/profiling_logger.hpp"
 
+namespace kagome::application {
+  class AppConfiguration;
+}
+
 namespace kagome::crypto {
   class Hasher;
 }
@@ -64,24 +68,24 @@ namespace kagome::storage::trie_pruner {
     outcome::result<void> init(const blockchain::BlockTree &block_tree);
 
     static outcome::result<std::unique_ptr<TriePrunerImpl>> create(
+        std::shared_ptr<const application::AppConfiguration> config,
         std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,
-        std::shared_ptr<storage::trie::TrieSerializer> serializer,
-        std::shared_ptr<storage::trie::Codec> codec,
+        std::shared_ptr<const storage::trie::TrieSerializer> serializer,
+        std::shared_ptr<const storage::trie::Codec> codec,
         std::shared_ptr<storage::SpacedStorage> storage,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<const crypto::Hasher> hasher);
 
     virtual outcome::result<void> addNewState(
         trie::PolkadotTrie const &new_trie,
         trie::StateVersion version) override;
 
     virtual outcome::result<void> addNewChildState(
-        storage::trie::RootHash const& parent_root,
+        storage::trie::RootHash const &parent_root,
         trie::PolkadotTrie const &new_trie,
         trie::StateVersion version) override;
 
-    virtual outcome::result<void> markAsChild(
-        Parent parent,
-        Child child) override;
+    virtual outcome::result<void> markAsChild(Parent parent,
+                                              Child child) override;
 
     virtual outcome::result<void> pruneFinalized(
         primitives::BlockHeader const &state,
@@ -90,7 +94,7 @@ namespace kagome::storage::trie_pruner {
     virtual outcome::result<void> pruneDiscarded(
         primitives::BlockHeader const &state) override;
 
-    primitives::BlockNumber getBaseBlock() const {
+    primitives::BlockNumber getBaseBlock() const override {
       return base_block_.number;
     }
 
@@ -118,18 +122,24 @@ namespace kagome::storage::trie_pruner {
       }
     }
 
+    std::optional<uint32_t> getPruningDepth() const override {
+      return pruning_depth_;
+    }
+
    private:
     TriePrunerImpl(
+        std::optional<uint32_t> pruning_depth,
         std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,
-        std::shared_ptr<storage::trie::TrieSerializer> serializer,
-        std::shared_ptr<storage::trie::Codec> codec,
+        std::shared_ptr<const storage::trie::TrieSerializer> serializer,
+        std::shared_ptr<const storage::trie::Codec> codec,
         std::shared_ptr<storage::SpacedStorage> storage,
-        std::shared_ptr<crypto::Hasher> hasher)
+        std::shared_ptr<const crypto::Hasher> hasher)
         : trie_storage_{trie_storage},
           serializer_{serializer},
           codec_{codec},
           storage_{storage},
-          hasher_{hasher} {
+          hasher_{hasher},
+          pruning_depth_{pruning_depth} {
       BOOST_ASSERT(trie_storage_ != nullptr);
       BOOST_ASSERT(serializer_ != nullptr);
       BOOST_ASSERT(codec_ != nullptr);
@@ -139,10 +149,18 @@ namespace kagome::storage::trie_pruner {
 
     outcome::result<void> prune(primitives::BlockHeader const &state);
 
+    // policy of adding a new trie to the pruner ref counters
     struct AddConfig {
       enum AddType {
+        // register only the nodes which are already loaded in memory with the
+        // pruner (these are the nodes that were modified between this trie and
+        // its parent)
         AddLoadedOnly,
+        // register only the nodes which are altered between this trie and its
+        // parent, loading dummy nodes when required
         AddNewLoadDummies,
+        // load the whole state into memory and register it with the pruner
+        // (this is a pretty expensive operation)
         AddWholeState,
       } type;
 
@@ -174,23 +192,27 @@ namespace kagome::storage::trie_pruner {
         trie::StateVersion version,
         AddConfig config);
 
+    // resets the pruner state and builds it from scratch from the state
+    // of the provided block
     outcome::result<void> restoreState(
         primitives::BlockHeader const &base_block,
         blockchain::BlockTree const &block_tree);
 
-    outcome::result<void> storeInfo() const;
+    // store the persistent pruner info to the database
+    outcome::result<void> savePersistentState() const;
 
     std::unordered_map<common::Buffer, size_t> ref_count_;
 
-    primitives::BlockInfo base_block_{};
+    primitives::BlockInfo base_block_{0, {}};
     std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage_;
-    std::shared_ptr<storage::trie::TrieSerializer> serializer_;
-    std::shared_ptr<storage::trie::Codec> codec_;
+    std::shared_ptr<const storage::trie::TrieSerializer> serializer_;
+    std::shared_ptr<const storage::trie::Codec> codec_;
     std::shared_ptr<storage::SpacedStorage> storage_;
-    std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<const crypto::Hasher> hasher_;
     std::unordered_map<storage::trie::RootHash,
                        std::vector<storage::trie::RootHash>>
         child_states_;
+    const std::optional<uint32_t> pruning_depth_{};
     log::Logger logger_ = log::createLogger("TriePruner", "trie_pruner");
   };
 

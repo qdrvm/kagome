@@ -185,8 +185,8 @@ namespace kagome::application {
     StorageBackend storageBackend() const override {
       return storage_backend_;
     }
-    bool enableTriePruning() const override {
-      return should_prune_trie_;
+    std::optional<size_t> statePruningDepth() const override {
+      return state_pruning_depth_;
     }
 
     std::optional<std::string_view> devMnemonicPhrase() const override {
@@ -336,7 +336,7 @@ namespace kagome::application {
     bool subcommand_chain_info_;
     std::optional<primitives::BlockId> recovery_state_;
     StorageBackend storage_backend_ = StorageBackend::RocksDB;
-    bool should_prune_trie_;
+    std::optional<size_t> state_pruning_depth_;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;
   };

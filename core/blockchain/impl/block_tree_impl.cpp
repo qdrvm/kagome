@@ -706,23 +706,6 @@ namespace kagome::blockchain {
 
       OUTCOME_TRY(prune(node));
 
-      auto *current_node = &tree_->getRoot();
-      BOOST_ASSERT(current_node->depth == last_finalized_block_info.number);
-      for (auto n = last_finalized_block_info.number; n < node->depth; n++) {
-        BOOST_ASSERT(current_node->children.size() == 1);
-        auto next_node = current_node->children[0].get();
-        OUTCOME_TRY(header_opt,
-                    storage_->getBlockHeader(current_node->block_hash));
-        if (!header_opt.has_value()) {
-          return BlockTreeError::HEADER_NOT_FOUND;
-        }
-        auto &header = header_opt.value();
-        OUTCOME_TRY(
-            state_pruner_->pruneFinalized(header,
-                                          next_node->getBlockInfo()));
-        current_node = next_node;
-      }
-
       tree_->updateTreeRoot(node, justification);
 
       OUTCOME_TRY(reorganize());
@@ -1234,8 +1217,7 @@ namespace kagome::blockchain {
           }
           extrinsics.emplace_back(std::move(ext));
         }
-        OUTCOME_TRY(state_pruner_->pruneDiscarded(
-            block_header_opt.value()));
+        OUTCOME_TRY(state_pruner_->pruneDiscarded(block_header_opt.value()));
       }
 
       tree_->removeFromMeta(node);
@@ -1252,6 +1234,32 @@ namespace kagome::blockchain {
       }
     }
 
+    return outcome::success();
+  }
+
+  outcome::result<void> BlockTreeImpl::pruneTrie(
+      const TreeNode &old_last_finalized, const TreeNode &new_last_finalized) {
+    auto last_finalized_number = old_last_finalized.depth;
+
+    auto *current_node = &tree_->getRoot();
+    BOOST_ASSERT(current_node->depth == last_finalized_number);
+
+    for (auto n = state_pruner_->getBaseBlock();
+         n < new_last_finalized.depth
+                 - state_pruner_->getPruningDepth().value_or(0);
+         n++) {
+      BOOST_ASSERT(current_node->children.size() == 1);
+      auto next_node = current_node->children[0].get();
+      OUTCOME_TRY(header_opt,
+                  storage_->getBlockHeader(current_node->block_hash));
+      if (!header_opt.has_value()) {
+        return BlockTreeError::HEADER_NOT_FOUND;
+      }
+      auto &header = header_opt.value();
+      OUTCOME_TRY(
+          state_pruner_->pruneFinalized(header, next_node->getBlockInfo()));
+      current_node = next_node;
+    }
     return outcome::success();
   }
 
