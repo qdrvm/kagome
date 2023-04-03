@@ -182,9 +182,8 @@ outcome::result<std::unique_ptr<TrieBatch>> persistent_batch(
   return std::move(batch);
 }
 
-void child_storage_root_hashes(
-    const std::unique_ptr<TrieBatch> &batch,
-    std::set<RootHash> &hashes) {
+void child_storage_root_hashes(const std::unique_ptr<TrieBatch> &batch,
+                               std::set<RootHash> &hashes) {
   auto log = log::createLogger("main", "kagome-db-editor");
 
   const auto &child_prefix = storage::kChildStorageDefaultPrefix;
@@ -357,7 +356,7 @@ int db_editor_main(int argc, const char **argv) {
                last_finalized_block_state_root);
 
     for (auto it = to_remove.rbegin(); it != to_remove.rend(); ++it) {
-      check(block_storage->removeBlock(*it)).value();
+      check(block_storage->removeBlock(it->hash)).value();
     }
 
     SL_TRACE(log, "Save {} as single leaf", last_finalized_block);

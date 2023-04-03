@@ -41,10 +41,6 @@ namespace kagome::runtime {
   class Executor;
 }  // namespace kagome::runtime
 
-namespace kagome::storage::trie {
-  class TrieStorage;
-}
-
 namespace kagome::consensus::grandpa {
 
   class AuthorityManagerImpl final
@@ -69,7 +65,6 @@ namespace kagome::consensus::grandpa {
         Config config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
         std::shared_ptr<crypto::Hasher> hash,
         std::shared_ptr<storage::SpacedStorage> persistent_storage,
@@ -153,7 +148,6 @@ namespace kagome::consensus::grandpa {
 
     Config config_;
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
-    std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<storage::BufferStorage> persistent_storage_;

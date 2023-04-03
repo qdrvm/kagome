@@ -10,6 +10,7 @@
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/grandpa/environment.hpp"
+#include "consensus/grandpa/has_authority_set_change.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
@@ -78,6 +79,7 @@ namespace kagome::network {
       std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<storage::trie::TrieStorage> storage,
+      std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -93,6 +95,7 @@ namespace kagome::network {
         block_executor_(std::move(block_executor)),
         serializer_(std::move(serializer)),
         storage_(std::move(storage)),
+        trie_pruner_(std::move(trie_pruner)),
         router_(std::move(router)),
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)),
@@ -107,6 +110,7 @@ namespace kagome::network {
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(serializer_);
     BOOST_ASSERT(storage_);
+    BOOST_ASSERT(trie_pruner_);
     BOOST_ASSERT(router_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
@@ -849,7 +853,7 @@ namespace kagome::network {
             std::make_tuple(peer_id, request_fingerprint),
             "load justifications");
         not r.second) {
-      SL_ERROR(log_,
+      SL_DEBUG(log_,
                "Can't load justification from {} for block {}: Duplicate '{}' "
                "request",
                peer_id,
@@ -875,7 +879,7 @@ namespace kagome::network {
       }
 
       if (response_res.has_error()) {
-        SL_ERROR(self->log_,
+        SL_DEBUG(self->log_,
                  "Can't load justification from {} for block {}: {}",
                  peer_id,
                  target_block,
@@ -994,7 +998,7 @@ namespace kagome::network {
     }
     auto &header = _header.value();
     state_sync_.emplace(StateSync{
-        StateSyncRequestFlow{block, header},
+        StateSyncRequestFlow{trie_pruner_, block, header},
         peer_id,
         std::move(handler),
     });
@@ -1194,9 +1198,11 @@ namespace kagome::network {
           static const BlockNumber kJustificationInterval = 512;
           static const BlockNumber kMaxJustificationLag = 5;
           auto last_finalized = block_tree_->getLastFinalized();
-          if ((block_info.number - kMaxJustificationLag)
-                  / kJustificationInterval
-              > last_finalized.number / kJustificationInterval) {
+          if (consensus::grandpa::HasAuthoritySetChange{*block_data.header}
+                  .scheduled
+              or (block_info.number - kMaxJustificationLag)
+                         / kJustificationInterval
+                     > last_finalized.number / kJustificationInterval) {
             //  Trying to substitute with justifications' request only
             for (const auto &peer_id : peers) {
               syncMissingJustifications(
@@ -1215,7 +1221,7 @@ namespace kagome::network {
                         return;
                       }
 
-                      SL_WARN(self->log_,
+                      SL_DEBUG(self->log_,
                               "Missing justifications between blocks {} and "
                               "{} was not loaded: {}",
                               last_finalized,

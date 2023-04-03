@@ -82,8 +82,8 @@ namespace {
   const std::optional<kagome::primitives::BlockId> def_block_to_recover =
       std::nullopt;
   const auto def_offchain_worker = "WhenValidating";
-  const uint32_t def_out_peers = 25;
-  const uint32_t def_in_peers = 25;
+  const uint32_t def_out_peers = 75;
+  const uint32_t def_in_peers = 75;
   const uint32_t def_in_peers_light = 100;
   const auto def_lucky_peers = 4;
   const uint32_t def_random_walk_interval = 15;
@@ -213,7 +213,8 @@ namespace kagome::application {
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         subcommand_chain_info_{def_subcommand_chain_info},
-        recovery_state_{def_block_to_recover} {
+        recovery_state_{def_block_to_recover},
+        should_prune_trie_{true} {
     SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
   }
 
@@ -741,6 +742,7 @@ namespace kagome::application {
         ("database", po::value<std::string>()->default_value("rocksdb"), "Database backend to use [rocksdb]")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
+        ("prune", po::value<bool>(), "prunes obsolete runtime storage parts")
         ;
 
     po::options_description network_desc("Network options");
@@ -1315,6 +1317,9 @@ namespace kagome::application {
     if (has_recovery and not recovery_state_.has_value()) {
       return false;
     }
+
+    find_argument<bool>(
+        vm, "prune", [&](bool val) { should_prune_trie_ = val; });
 
     // if something wrong with config print help message
     if (not validate_config()) {

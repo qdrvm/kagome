@@ -51,7 +51,7 @@ class MetadataTest : public BinaryenRuntimeTest {
  * @then successful result is returned
  */
 TEST_F(MetadataTest, metadata) {
-  EXPECT_CALL(*header_repo_, getBlockHeader(BlockId{"block_hash"_hash256}))
+  EXPECT_CALL(*header_repo_, getBlockHeader("block_hash"_hash256))
       .WillRepeatedly(Return(BlockHeader{.number = 42}));
   ASSERT_TRUE(api_->metadata("block_hash"_hash256));
 }

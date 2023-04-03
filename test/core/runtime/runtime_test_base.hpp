@@ -115,15 +115,12 @@ class RuntimeTestBase : public ::testing::Test {
 
     ON_CALL(*header_repo_, getHashByNumber(0))
         .WillByDefault(testing::Return("genesis_hash"_hash256));
-    EXPECT_CALL(*header_repo_,
-                getBlockHeader(testing::AnyOf(
-                    primitives::BlockId{0},
-                    primitives::BlockId{"genesis_hash"_hash256})))
+    EXPECT_CALL(*header_repo_, getBlockHeader("genesis_hash"_hash256))
         .WillRepeatedly(testing::Return(primitives::BlockHeader{
             .parent_hash = {},
             .number = 0,
-            .state_root = {"genesis state root"_hash256},
-            .extrinsics_root = {"genesis ext root"_hash256},
+            .state_root = "genesis state root"_hash256,
+            .extrinsics_root = "genesis ext root"_hash256,
             .digest = {}}));
   }
 
@@ -151,7 +148,7 @@ class RuntimeTestBase : public ::testing::Test {
     auto module_factory = createModuleFactory();
 
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
-                     + "/wasm/sub2dev.wasm";
+                   + "/wasm/sub2dev.wasm";
     wasm_provider_ = std::make_shared<runtime::BasicCodeProvider>(wasm_path);
 
     std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl> upgrade_tracker =
@@ -230,7 +227,7 @@ class RuntimeTestBase : public ::testing::Test {
 
     BlockHeader header{
         parent_hash, number, state_root, extrinsics_root, digest};
-    EXPECT_CALL(*header_repo_, getBlockHeader(testing::AnyOf(hash, number)))
+    EXPECT_CALL(*header_repo_, getBlockHeader(hash))
         .WillRepeatedly(testing::Return(header));
     return header;
   }

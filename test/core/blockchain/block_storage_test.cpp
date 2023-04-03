@@ -8,7 +8,6 @@
 #include <gtest/gtest.h>
 
 #include "blockchain/block_storage_error.hpp"
-#include "blockchain/impl/common.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
@@ -34,6 +33,7 @@ using kagome::storage::SpacedStorageMock;
 using kagome::storage::trie::RootHash;
 using scale::encode;
 using testing::_;
+using testing::Ref;
 using testing::Return;
 
 class BlockStorageTest : public testing::Test {
@@ -48,7 +48,7 @@ class BlockStorageTest : public testing::Test {
     std::set<Space> required_spaces = {Space::kDefault,
                                        Space::kHeader,
                                        Space::kJustification,
-                                       Space::kBlockData,
+                                       Space::kBlockBody,
                                        Space::kLookupKey};
 
     for (auto space : required_spaces) {
@@ -69,6 +69,7 @@ class BlockStorageTest : public testing::Test {
 
   BlockHash genesis_block_hash{{'g', 'e', 'n', 'e', 's', 'i', 's'}};
   BlockHash regular_block_hash{{'r', 'e', 'g', 'u', 'l', 'a', 'r'}};
+  BlockHash unhappy_block_hash{{'u', 'n', 'h', 'a', 'p', 'p', 'y'}};
   RootHash root_hash;
 
   std::shared_ptr<BlockStorageImpl> createWithGenesis() {
@@ -164,9 +165,6 @@ TEST_F(BlockStorageTest, PutBlock) {
 
   EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(regular_block_hash));
 
-  EXPECT_CALL(*(spaces[Space::kLookupKey]), tryGetMock(_))
-      .WillOnce(Return(std::nullopt));
-
   Block block;
   block.header.number = 1;
   block.header.parent_hash = genesis_block_hash;
@@ -182,15 +180,22 @@ TEST_F(BlockStorageTest, PutBlock) {
 TEST_F(BlockStorageTest, PutWithStorageError) {
   auto block_storage = createWithGenesis();
 
-  EXPECT_CALL(*(spaces[Space::kLookupKey]), tryGetMock(_))
-      .WillOnce(Return(Buffer{1, 1, 1, 1}));
-  EXPECT_CALL(*(spaces[Space::kBlockData]), tryGetMock(_))
+  Block block;
+  block.header.number = 666;
+  block.header.parent_hash = genesis_block_hash;
+
+  Buffer encoded_header{scale::encode(block.header).value()};
+
+  EXPECT_CALL(*hasher, blake2b_256(encoded_header.view()))
+      .WillOnce(Return(regular_block_hash));
+
+  Buffer key{regular_block_hash};
+
+  EXPECT_CALL(*(spaces[Space::kBlockBody]), put(key.view(), _))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
 
-  Block block;
-
-  EXPECT_OUTCOME_FALSE(res, block_storage->putBlock(block));
-  ASSERT_EQ(res, kagome::storage::DatabaseError::IO_ERROR);
+  ASSERT_OUTCOME_ERROR(block_storage->putBlock(block),
+                       kagome::storage::DatabaseError::IO_ERROR);
 }
 
 /**
@@ -199,28 +204,26 @@ TEST_F(BlockStorageTest, PutWithStorageError) {
  * @then block is successfully removed if no error occurs in the underlying
  * storage, an error is returned otherwise
  */
- TEST_F(BlockStorageTest, Remove) {
+TEST_F(BlockStorageTest, Remove) {
   auto block_storage = createWithGenesis();
 
-  EXPECT_CALL(*(spaces[Space::kLookupKey]), remove(_))
-      .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*(spaces[Space::kBlockData]), remove(_))
-      .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*(spaces[Space::kHeader]), remove(_))
-      .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*(spaces[Space::kJustification]), remove(_))
-      .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(block_storage->removeBlock({0, genesis_block_hash}));
+  BufferView hash(genesis_block_hash);
 
-  EXPECT_CALL(*(spaces[Space::kLookupKey]), remove(_))
-      .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
-  EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock({0, genesis_block_hash}));
+  Buffer encoded_header{scale::encode(BlockHeader{}).value()};
 
-  EXPECT_CALL(*(spaces[Space::kLookupKey]), remove(_))
+  EXPECT_CALL(*(spaces[Space::kHeader]), tryGetMock(hash))
+      .WillOnce(Return(encoded_header));
+  EXPECT_CALL(*(spaces[Space::kBlockBody]), remove(hash))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*(spaces[Space::kBlockData]), remove(_))
+  EXPECT_CALL(*(spaces[Space::kHeader]), remove(hash))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*(spaces[Space::kHeader]), remove(_))
-      .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
-  EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock({0, genesis_block_hash}));
+  EXPECT_CALL(*(spaces[Space::kJustification]), remove(hash))
+      .WillOnce(Return(outcome::success()));
+
+  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->removeBlock(genesis_block_hash));
+
+  EXPECT_CALL(*(spaces[Space::kHeader]), tryGetMock(hash))
+      .WillOnce(Return(std::nullopt));
+
+  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->removeBlock(genesis_block_hash));
 }

@@ -95,7 +95,7 @@ namespace kagome::consensus::babe {
              std::shared_ptr<network::BlockAnnounceTransmitter>
                  block_announce_transmitter,
              std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-             const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
+             std::shared_ptr<crypto::Sr25519Keypair> keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
              std::unique_ptr<clock::Timer> timer,
@@ -191,7 +191,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<network::BlockAnnounceTransmitter>
         block_announce_transmitter_;
-    const std::shared_ptr<crypto::Sr25519Keypair> &keypair_;
+    std::shared_ptr<crypto::Sr25519Keypair> keypair_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;

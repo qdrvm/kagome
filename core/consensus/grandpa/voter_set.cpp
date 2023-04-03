@@ -28,7 +28,7 @@ namespace kagome::consensus::grandpa {
       total_weight_ += weight;
       return outcome::success();
     }
-    auto r = map_.emplace(voter, map_.size());
+    auto r = map_.emplace(voter, list_.size());
     if (r.second) {
       list_.emplace_back(r.first->first, weight);
       total_weight_ += weight;

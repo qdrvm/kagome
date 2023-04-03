@@ -20,7 +20,7 @@ namespace kagome::network {
       : RequestResponseProtocolType{
           kName,
           host,
-          make_protocols(kLightProtocol, chain_spec, genesis),
+          make_protocols(kLightProtocol, genesis, chain_spec),
           log::createLogger(kName),
       },
       repository_{std::move(repository)},

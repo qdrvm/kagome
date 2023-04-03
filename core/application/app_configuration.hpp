@@ -247,6 +247,8 @@ namespace kagome::application {
      */
     virtual StorageBackend storageBackend() const = 0;
 
+    virtual bool enableTriePruning() const = 0;
+
     /**
      * Optional phrase to use dev account (e.g. Alice and Bob)
      */

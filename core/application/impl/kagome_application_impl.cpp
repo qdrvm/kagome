@@ -18,7 +18,7 @@
 namespace kagome::application {
 
   KagomeApplicationImpl::KagomeApplicationImpl(
-      const AppConfiguration &app_config)
+      std::shared_ptr<AppConfiguration> app_config)
       : app_config_(app_config),
         injector_{std::make_unique<injector::KagomeNodeInjector>(app_config)},
         logger_(log::createLogger("Application", "application")) {
@@ -60,12 +60,12 @@ namespace kagome::application {
     kagome::telemetry::setTelemetryService(telemetry_service_);
 
     logger_->info("Start as node version '{}' named as '{}' with PID {}",
-                  app_config_.nodeVersion(),
-                  app_config_.nodeName(),
+                  app_config_->nodeVersion(),
+                  app_config_->nodeName(),
                   getpid());
 
-    auto chain_path = app_config_.chainPath(chain_spec_->id());
-    auto storage_backend = app_config_.storageBackend()
+    auto chain_path = app_config_->chainPath(chain_spec_->id());
+    auto storage_backend = app_config_->storageBackend()
                                 == AppConfiguration::StorageBackend::RocksDB
                              ? "RocksDB"
                              : "Unknown";
@@ -103,7 +103,7 @@ namespace kagome::application {
                                             "The roles the node is running as");
       auto metric_node_roles =
           metrics_registry->registerGaugeMetric(nodeRolesMetricName);
-      metric_node_roles->set(app_config_.roles().value);
+      metric_node_roles->set(app_config_->roles().value);
 
       constexpr auto buildInfoMetricName = "kagome_build_info";
       metrics_registry->registerGaugeFamily(
@@ -111,8 +111,8 @@ namespace kagome::application {
           "A metric with a constant '1' value labeled by name, version");
       auto metric_build_info = metrics_registry->registerGaugeMetric(
           buildInfoMetricName,
-          {{"name", app_config_.nodeName()},
-           {"version", app_config_.nodeVersion()}});
+          {{"name", app_config_->nodeName()},
+           {"version", app_config_->nodeVersion()}});
       metric_build_info->set(1);
     }
 

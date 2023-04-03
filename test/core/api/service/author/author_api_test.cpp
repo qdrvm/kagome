@@ -18,6 +18,7 @@
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "mock/core/api/service/api_service_mock.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/crypto_store_mock.hpp"
 #include "mock/core/network/transactions_transmitter_mock.hpp"
@@ -40,6 +41,7 @@ using namespace kagome::crypto;
 using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
 
+using kagome::application::AppConfigurationMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::network::TransactionsTransmitterMock;
 using kagome::primitives::BlockId;
@@ -115,6 +117,8 @@ struct AuthorApiTest : public ::testing::Test {
   kagome::subscription::SubscriptionSetId sub_id;
   const kagome::primitives::events::SubscribedExtrinsicId ext_id = 42;
   sptr<ExtrinsicEventReceiverMock> event_receiver;
+  std::shared_ptr<AppConfigurationMock> config =
+      std::make_shared<AppConfigurationMock>();
 
   void SetUp() override {
     sub_engine = std::make_shared<ExtrinsicSubscriptionEngine>();
@@ -140,7 +144,8 @@ struct AuthorApiTest : public ::testing::Test {
         gsl::make_span(key_pair.public_key.data(), 32),
         gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1)));
     role.flags.authority = 1;
-    keys = std::make_shared<SessionKeys>(store, role);
+    EXPECT_CALL(*config, roles()).WillOnce(Return(role));
+    keys = std::make_shared<SessionKeys>(store, *config);
     key_api = std::make_shared<SessionKeysApiMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     block_tree = std::make_shared<BlockTreeMock>();

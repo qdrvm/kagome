@@ -28,11 +28,10 @@ namespace kagome::api {
    public:
     using SessionImpl = WsSession;
 
-    WsListenerImpl(
-        const std::shared_ptr<application::AppStateManager> &app_state_manager,
-        std::shared_ptr<Context> context,
-        Configuration listener_config,
-        SessionImpl::Configuration session_config);
+    WsListenerImpl(application::AppStateManager &app_state_manager,
+                   std::shared_ptr<Context> context,
+                   Configuration listener_config,
+                   SessionImpl::Configuration session_config);
 
     ~WsListenerImpl() override = default;
 

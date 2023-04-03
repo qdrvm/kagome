@@ -96,7 +96,7 @@ namespace kagome::network {
       stream->close([log{logger()}, wptr, stream](auto &&result) {
         if (auto self = wptr.lock()) {
           if (!result) {
-            SL_WARN(log,
+            SL_DEBUG(log,
                     "Stream {} was not closed successfully with {}",
                     self->protocolName(),
                     stream->remotePeerId().value());

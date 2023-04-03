@@ -34,13 +34,15 @@ namespace kagome::storage::trie {
     /**
      * @brief Encode node to byte representation and store children
      * @param node node in the trie
+     * @param version the version of trie encoding algorithm, preserve as is if
+     * nullopt
      * @param child_visitor function invoked for every child in a branch node
      * recursively
      * @return encoded representation of a {@param node}
      */
     virtual outcome::result<common::Buffer> encodeNode(
         const TrieNode &node,
-        StateVersion version,
+        std::optional<StateVersion> version,
         const ChildVisitor &child_visitor = NoopChildVisitor) const = 0;
 
     /**
@@ -58,7 +60,8 @@ namespace kagome::storage::trie {
      */
     virtual common::Buffer merkleValue(const common::BufferView &buf) const = 0;
     virtual outcome::result<common::Buffer> merkleValue(
-        const OpaqueTrieNode &node, StateVersion version) const = 0;
+        const OpaqueTrieNode &node,
+        std::optional<StateVersion> version) const = 0;
 
     /**
      * @brief is this a hash of value, or value itself

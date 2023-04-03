@@ -73,8 +73,8 @@ namespace {
                                             .parent_path()
                                             .parent_path()
                                             .parent_path()
-                                        / "examples" / "polkadot"
-                                        / "polkadot.json";
+                                      / "examples" / "polkadot"
+                                      / "polkadot.json";
     EXPECT_CALL(config_mock, chainSpecPath())
         .WillRepeatedly(testing::Return(chain_spec_path));
     EXPECT_CALL(config_mock, databasePath(_))
@@ -111,8 +111,6 @@ namespace {
     EXPECT_CALL(config_mock, runtimeExecMethod())
         .WillRepeatedly(testing::Return(kagome::application::AppConfiguration::
                                             RuntimeExecutionMethod::Interpret));
-    EXPECT_CALL(config_mock, recoverState())
-        .WillRepeatedly(testing::Return(kagome::primitives::BlockNumber{1}));
   }
 }  // namespace
 
@@ -128,8 +126,7 @@ class KagomeInjectorTest : public testing::Test {
   void SetUp() override {
     config_ = std::make_shared<kagome::application::AppConfigurationMock>();
     initConfig(db_path_, *config_);
-    injector_ =
-        std::make_unique<kagome::injector::KagomeNodeInjector>(*config_);
+    injector_ = std::make_unique<kagome::injector::KagomeNodeInjector>(config_);
   }
 
   static void TearDownTestCase() {
@@ -144,19 +141,18 @@ class KagomeInjectorTest : public testing::Test {
   std::unique_ptr<kagome::injector::KagomeNodeInjector> injector_;
 };
 
-#define TEST_KAGOME_INJECT(module)                   \
-  TEST_F(KagomeInjectorTest, Inject##module) {       \
-    ASSERT_NE(injector_->inject##module(), nullptr); \
-  }
-
-TEST_KAGOME_INJECT(ChainSpec)
-TEST_KAGOME_INJECT(AppStateManager)
-TEST_KAGOME_INJECT(IoContext)
-TEST_KAGOME_INJECT(OpenMetricsService)
-TEST_KAGOME_INJECT(Router)
-TEST_KAGOME_INJECT(PeerManager)
-TEST_KAGOME_INJECT(RpcApiService)
-TEST_KAGOME_INJECT(SystemClock)
-TEST_KAGOME_INJECT(SyncObserver)
-TEST_KAGOME_INJECT(Babe)
-TEST_KAGOME_INJECT(Grandpa)
+#define TEST_KAGOME_INJECT(module) \
+  ASSERT_NE(injector_->inject##module(), nullptr);
+TEST_F(KagomeInjectorTest, Inject) {
+  TEST_KAGOME_INJECT(ChainSpec)
+  TEST_KAGOME_INJECT(AppStateManager)
+  TEST_KAGOME_INJECT(IoContext)
+  TEST_KAGOME_INJECT(OpenMetricsService)
+  TEST_KAGOME_INJECT(Router)
+  TEST_KAGOME_INJECT(PeerManager)
+  TEST_KAGOME_INJECT(RpcApiService)
+  TEST_KAGOME_INJECT(SystemClock)
+  TEST_KAGOME_INJECT(SyncObserver)
+  TEST_KAGOME_INJECT(Babe)
+  TEST_KAGOME_INJECT(Grandpa)
+}

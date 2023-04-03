@@ -51,7 +51,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<network::BlockAnnounceTransmitter>
           block_announce_transmitter,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
+      std::shared_ptr<crypto::Sr25519Keypair> keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
@@ -73,7 +73,7 @@ namespace kagome::consensus::babe {
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         block_announce_transmitter_{std::move(block_announce_transmitter)},
-        keypair_{keypair},
+        keypair_{std::move(keypair)},
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
@@ -309,15 +309,25 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::adjustEpochDescriptor() {
     auto first_slot_number = babe_util_->syncEpoch([&]() {
-      auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
-      if (res.has_error()) {
+      auto hash_res = block_tree_->getBlockHash(primitives::BlockNumber(1));
+      if (hash_res.has_error() || !hash_res.value().has_value()) {
         SL_TRACE(log_,
                  "First block slot is {}: no first block (at adjusting)",
                  babe_util_->getCurrentSlot());
         return std::tuple(babe_util_->getCurrentSlot(), false);
       }
 
-      const auto &first_block_header = res.value();
+      auto first_block_header_res =
+          block_tree_->getBlockHeader(*hash_res.value());
+      if (first_block_header_res.has_error()) {
+        SL_CRITICAL(log_,
+                    "Database is not consistent: "
+                    "Not found block header for existing num-to-hash record");
+        throw std::runtime_error(
+            "Not found block header for existing num-to-hash record");
+      }
+
+      const auto &first_block_header = first_block_header_res.value();
       auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
@@ -477,6 +487,10 @@ namespace kagome::consensus::babe {
             // Synced
             if (self->current_state_ == Babe::State::SYNCHRONIZED) {
               self->onSynchronized();
+              // Set actual block status
+              announce.state = block == self->block_tree_->bestLeaf()
+                                 ? network::BlockState::Best
+                                 : network::BlockState::Normal;
               // Propagate announce
               self->block_announce_transmitter_->blockAnnounce(
                   std::move(announce));
@@ -1118,15 +1132,25 @@ namespace kagome::consensus::babe {
     current_epoch_.start_slot = current_slot_;
 
     babe_util_->syncEpoch([&]() {
-      auto res = block_tree_->getBlockHeader(primitives::BlockNumber(1));
-      if (res.has_error()) {
-        SL_WARN(log_,
-                "First block slot is {}: no first block (at start next epoch)",
-                babe_util_->getCurrentSlot());
+      auto hash_opt_res = block_tree_->getBlockHash(primitives::BlockNumber(1));
+      if (hash_opt_res.has_error() || !hash_opt_res.value().has_value()) {
+        SL_TRACE(log_,
+                 "First block slot is {}: no first block (at start next epoch)",
+                 babe_util_->getCurrentSlot());
         return std::tuple(babe_util_->getCurrentSlot(), false);
       }
 
-      const auto &first_block_header = res.value();
+      auto first_block_header_res =
+          block_tree_->getBlockHeader(*hash_opt_res.value());
+      if (first_block_header_res.has_error()) {
+        SL_CRITICAL(log_,
+                    "Database is not consistent: "
+                    "Not found block header for existing num-to-hash record");
+        throw std::runtime_error(
+            "Not found block header for existing num-to-hash record");
+      }
+
+      const auto &first_block_header = first_block_header_res.value();
       auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
                        "Any non genesis block must contain babe digest");
@@ -1136,8 +1160,8 @@ namespace kagome::consensus::babe {
           block_tree_->getLastFinalized().number > 0;
 
       SL_WARN(log_,
-              "First block slot is {}: by {}finalized first block (at start "
-              "next epoch)",
+              "First block slot is {}: "
+              "by {}finalized first block (at start next epoch)",
               first_slot_number,
               is_first_block_finalized ? "" : "non-");
       return std::tuple(first_slot_number, is_first_block_finalized);

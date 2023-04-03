@@ -9,6 +9,7 @@
 #include "parachain/availability/store/store.hpp"
 
 #include <unordered_map>
+#include <unordered_set>
 
 namespace kagome::parachain {
   class AvailabilityStoreImpl : public AvailabilityStore {
@@ -35,6 +36,9 @@ namespace kagome::parachain {
                 const ParachainBlock &pov) override;
     void putData(const CandidateHash &candidate_hash,
                  const PersistedValidationData &data) override;
+    void registerCandidate(network::RelayHash const &relay_parent,
+                           CandidateHash const &candidate_hash) override;
+    void remove(network::RelayHash const &relay_parent) override;
 
    private:
     struct PerCandidate {
@@ -44,6 +48,8 @@ namespace kagome::parachain {
     };
 
     std::unordered_map<CandidateHash, PerCandidate> per_candidate_;
+    std::unordered_map<network::RelayHash, std::unordered_set<CandidateHash>>
+        candidates_;
   };
 }  // namespace kagome::parachain
 

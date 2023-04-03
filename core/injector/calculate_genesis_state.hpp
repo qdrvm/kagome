@@ -38,21 +38,29 @@ namespace kagome::injector {
     OUTCOME_TRY(runtime_version, core_api.version(env));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     std::vector<storage::trie::PolkadotTrieImpl> child_tries;
-    std::vector<std::reference_wrapper<const storage::trie::PolkadotTrie>>
-        child_trie_refs;
+    std::vector<storage::trie::RootHash> child_hashes;
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
       child_tries.emplace_back(trie_from(kv));
-      child_trie_refs.push_back(std::cref(child_tries.back()));
       OUTCOME_TRY(root, trie_serializer.storeTrie(child_tries.back(), version));
+      child_hashes.push_back(root);
+      OUTCOME_TRY(pruner.addNewState(child_tries.back(), version));
+
       common::Buffer child2;
       child2 += storage::kChildStorageDefaultPrefix;
       child2 += child;
       top_trie.put(child2, common::BufferView{root}).value();
     }
 
-    OUTCOME_TRY(pruner.addNewState(
-        top_trie, child_trie_refs, storage::trie::StateVersion::V0));
-    return trie_serializer.storeTrie(top_trie, version);
+    OUTCOME_TRY(pruner.addNewState(top_trie, version));
+    OUTCOME_TRY(trie_hash, trie_serializer.storeTrie(top_trie, version));
+
+    for (auto& hash: child_hashes) {
+      using storage::trie_pruner::TriePruner;
+      using Child = TriePruner::Child;
+      using Parent = TriePruner::Parent;
+      OUTCOME_TRY(pruner.markAsChild(Parent{trie_hash}, Child{hash}));
+    }
+    return trie_hash;
   }
 }  // namespace kagome::injector
 

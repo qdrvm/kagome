@@ -744,8 +744,9 @@ namespace kagome::parachain {
       return outcome::success();
     };
     if (auto res = call(); res.has_error()) {
-      logger_->warn("Error while retrieve session index and info.(error={})",
-                    res.error().message());
+      SL_DEBUG(logger_,
+               "Error while retrieve session index and info.(error={})",
+               res.error().message());
     }
   }
 
@@ -771,9 +772,9 @@ namespace kagome::parachain {
       return outcome::success();
     };
     if (auto res = call(); res.has_error()) {
-      logger_->warn(
-          "Error while retrieve babe epoch and block header.(error={})",
-          res.error().message());
+      SL_DEBUG(logger_,
+               "Error while retrieve babe epoch and block header.(error={})",
+               res.error().message());
     }
   }
 
@@ -802,8 +803,9 @@ namespace kagome::parachain {
       return outcome::success();
     };
     if (auto res = call(); res.has_error()) {
-      logger_->warn("Error while retrieve included candidates.(error={})",
-                    res.error().message());
+      SL_DEBUG(logger_,
+               "Error while retrieve included candidates.(error={})",
+               res.error().message());
     }
   }
 
@@ -1472,6 +1474,31 @@ namespace kagome::parachain {
         validator_index);
 
     auto &entry = opt_entry->get();
+    if (candidate_index >= entry.candidates.size()) {
+      logger_->warn(
+          "Unexpected candidate entry in import approval. (candidate index={}, "
+          "block hash={}, validator index={})",
+          candidate_index,
+          block_hash,
+          validator_index);
+      return;
+    }
+
+    auto &candidate_entry = entry.candidates[candidate_index];
+    if (auto it = candidate_entry.messages.find(validator_index);
+        it != candidate_entry.messages.end()) {
+      if (auto state{boost::get<DistribApprovalStateApproved>(
+              &it->second.approval_state)}) {
+        logger_->warn(
+            "Duplicate message. (candidate index={}, "
+            "block hash={}, validator index={})",
+            candidate_index,
+            block_hash,
+            validator_index);
+        return;
+      }
+    }
+
     if (source) {
       /// TODO(iceseer): vector-clock for knowledge
       switch (check_and_import_approval(vote)) {
@@ -1488,17 +1515,6 @@ namespace kagome::parachain {
       /// TODO(iceseer): vector-clock for knowledge
     }
 
-    if (candidate_index >= entry.candidates.size()) {
-      logger_->warn(
-          "Unexpected candidate entry in import approval. (candidate index={}, "
-          "block hash={}, validator index={})",
-          candidate_index,
-          block_hash,
-          validator_index);
-      return;
-    }
-
-    auto &candidate_entry = entry.candidates[candidate_index];
     if (auto it = candidate_entry.messages.find(validator_index);
         it != candidate_entry.messages.end()) {
       auto cert{

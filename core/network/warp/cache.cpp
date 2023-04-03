@@ -5,6 +5,9 @@
 
 #include "network/warp/cache.hpp"
 
+#include <boost/endian/buffers.hpp>
+#include <boost/endian/conversion.hpp>
+
 #include "blockchain/impl/storage_util.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "storage/predefined_keys.hpp"
@@ -30,11 +33,13 @@ namespace kagome::network {
   constexpr size_t kMaxFragmentsSize = (8 << 20) + 50;
 
   inline common::Buffer toKey(primitives::BlockNumber i) {
-    return blockchain::numberToIndexKey(i);
+    common::Buffer res(sizeof(i));
+    boost::endian::store_big_u32(res.data(), i);
+    return res;
   }
 
   inline primitives::BlockNumber fromKey(common::BufferView key) {
-    return blockchain::lookupKeyToNumber(key).value();
+    return boost::endian::load_big_u32(key.data());
   }
 
   WarpSyncCache::WarpSyncCache(
@@ -50,12 +55,13 @@ namespace kagome::network {
             storage::kWarpSyncCacheBlocksPrefix,
             db->getSpace(storage::Space::kDefault),
         },
-        log_{log::createLogger("WarpSyncCache")} {
+        log_{log::createLogger("WarpSyncCache", "warp_sync_protocol")} {
     app_state_manager.atLaunch([=]() mutable {
       auto r = start(std::move(chain_sub_engine));
       if (not r) {
         SL_WARN(log_, "start error {}", r.error());
-        return false;
+        // TODO(turuslan): #1536 warp sync forced change
+        return true;
       }
       return true;
     });

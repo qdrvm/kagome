@@ -99,4 +99,19 @@ namespace kagome::parachain {
                                       const PersistedValidationData &data) {
     per_candidate_[candidate_hash].data = data;
   }
+
+  void AvailabilityStoreImpl::registerCandidate(
+      network::RelayHash const &relay_parent,
+      CandidateHash const &candidate_hash) {
+    candidates_[relay_parent].insert(candidate_hash);
+  }
+
+  void AvailabilityStoreImpl::remove(network::RelayHash const &relay_parent) {
+    if (auto it = candidates_.find(relay_parent); it != candidates_.end()) {
+      for (auto const &l : it->second) {
+        per_candidate_.erase(l);
+      }
+      candidates_.erase(it);
+    }
+  }
 }  // namespace kagome::parachain

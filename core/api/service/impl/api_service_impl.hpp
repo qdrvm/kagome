@@ -118,7 +118,7 @@ namespace kagome::api {
       std::vector<sptr<Listener>> listeners;
     };
     struct ProcessorSpan {
-      gsl::span<sptr<JRpcProcessor>> processors;
+      std::vector<sptr<JRpcProcessor>> processors;
     };
 
     /**
@@ -126,20 +126,19 @@ namespace kagome::api {
      * @param listener - a shared ptr to the endpoint listener instance
      * @param processors - shared ptrs to JSON processor instances
      */
-    ApiServiceImpl(
-        const std::shared_ptr<application::AppStateManager> &app_state_manager,
-        std::shared_ptr<api::RpcThreadPool> thread_pool,
-        ListenerList listeners,
-        std::shared_ptr<JRpcServer> server,
-        const ProcessorSpan &processors,
-        StorageSubscriptionEnginePtr storage_sub_engine,
-        ChainSubscriptionEnginePtr chain_sub_engine,
-        ExtrinsicSubscriptionEnginePtr ext_sub_engine,
-        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
-            extrinsic_event_key_repo,
-        std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-        std::shared_ptr<runtime::Core> core);
+    ApiServiceImpl(application::AppStateManager &app_state_manager,
+                   std::shared_ptr<api::RpcThreadPool> thread_pool,
+                   ListenerList listeners,
+                   std::shared_ptr<JRpcServer> server,
+                   const ProcessorSpan &processors,
+                   StorageSubscriptionEnginePtr storage_sub_engine,
+                   ChainSubscriptionEnginePtr chain_sub_engine,
+                   ExtrinsicSubscriptionEnginePtr ext_sub_engine,
+                   std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+                       extrinsic_event_key_repo,
+                   std::shared_ptr<blockchain::BlockTree> block_tree,
+                   std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+                   std::shared_ptr<runtime::Core> core);
 
     ~ApiServiceImpl() override = default;
 
@@ -186,8 +185,9 @@ namespace kagome::api {
         Session::SessionId id) {
       std::lock_guard guard(subscribed_sessions_cs_);
       if (auto it = subscribed_sessions_.find(id);
-          subscribed_sessions_.end() != it)
+          subscribed_sessions_.end() != it) {
         return it->second;
+      }
 
       return std::nullopt;
     }

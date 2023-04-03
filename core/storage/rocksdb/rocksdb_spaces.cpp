@@ -16,8 +16,8 @@ namespace kagome::storage {
     static constexpr std::array kNames{
         "lookup_key",
         "header",
+        "block_body",
         "justification",
-        "block_data",
         "trie_node",
         "trie_pruner",
     };

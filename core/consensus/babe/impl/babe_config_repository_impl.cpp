@@ -20,7 +20,7 @@
 namespace kagome::consensus::babe {
 
   BabeConfigRepositoryImpl::BabeConfigRepositoryImpl(
-      const std::shared_ptr<application::AppStateManager> &app_state_manager,
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<storage::SpacedStorage> persistent_storage,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
@@ -47,8 +47,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(babe_api_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
 
-    BOOST_ASSERT(app_state_manager != nullptr);
-    app_state_manager->atPrepare([this] { return prepare(); });
+    app_state_manager.atPrepare([this] { return prepare(); });
   }
 
   bool BabeConfigRepositoryImpl::prepare() {
@@ -92,7 +91,10 @@ namespace kagome::consensus::babe {
 
     // First, look up slot number of block number 1 sync epochs
     if (finalized_block.number > 0) {
-      OUTCOME_TRY(first_block_header, block_tree_->getBlockHeader(1));
+      OUTCOME_TRY(first_block_hash_opt, block_tree_->getBlockHash(1));
+
+      OUTCOME_TRY(first_block_header,
+                  block_tree_->getBlockHeader(first_block_hash_opt.value()));
 
       auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
@@ -203,7 +205,18 @@ namespace kagome::consensus::babe {
     for (auto block_number = root_->block.number + 1;
          block_number <= finalized_block.number;
          ++block_number) {
-      auto block_header_res = block_tree_->getBlockHeader(block_number);
+      auto block_hash_res = block_tree_->getBlockHash(block_number);
+      if (block_hash_res.has_error()) {
+        SL_WARN(logger_,
+                "Can't get hash of an already finalized block #{}: {}",
+                block_number,
+                block_hash_res.error());
+        return block_hash_res.as_failure();
+      }
+      // If no error occurred, hash of a finalized block should be present
+      const auto &block_hash = *block_hash_res.value();
+
+      auto block_header_res = block_tree_->getBlockHeader(block_hash);
       if (block_header_res.has_error()) {
         SL_WARN(logger_,
                 "Can't get header of an already finalized block #{}: {}",
@@ -212,11 +225,9 @@ namespace kagome::consensus::babe {
         return block_header_res.as_failure();
       }
       const auto &block_header = block_header_res.value();
-      // TODO(xDimon): Would be more efficient to take parent hash of next block
-      auto block_hash =
-          hasher_->blake2b_256(scale::encode(block_header).value());
 
-      primitives::BlockContext context{.block_info = {block_number, block_hash}};
+      primitives::BlockContext context{
+          .block_info = {block_number, block_hash}};
 
       for (auto &item : block_header.digest) {
         auto res = visit_in_place(
@@ -295,7 +306,8 @@ namespace kagome::consensus::babe {
           break;
         }
 
-        primitives::BlockContext context{.block_info = {block_header.number, hash}};
+        primitives::BlockContext context{
+            .block_info = {block_header.number, hash}};
 
         // This block was meet earlier
         if (digests.find(context) != digests.end()) {
@@ -400,8 +412,8 @@ namespace kagome::consensus::babe {
         auto ancestor_node = getNode({.block_info = savepoint_block});
         if (ancestor_node != nullptr) {
           auto node = ancestor_node->block == savepoint_block
-                          ? ancestor_node
-                          : ancestor_node->makeDescendant(savepoint_block);
+                        ? ancestor_node
+                        : ancestor_node->makeDescendant(savepoint_block);
           auto res = persistent_storage_->put(
               storage::kBabeConfigRepoStateLookupKey(new_savepoint),
               storage::Buffer(scale::encode(node).value()));

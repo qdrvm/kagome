@@ -19,27 +19,37 @@ namespace kagome::storage::trie {
 
 namespace kagome::storage::trie_pruner {
 
-  struct TrieStateUpdate {
-    // block that introduced this update
-    primitives::BlockNumber finalized_block;
-    storage::trie::RootHash old_storage_root;
-
-    std::vector<common::Buffer> inserted_keys;
-    std::vector<common::Buffer> removed_keys;
-  };
-
   class TriePruner {
    public:
     virtual ~TriePruner() = default;
 
     virtual outcome::result<void> addNewState(
+        trie::PolkadotTrie const &new_trie, trie::StateVersion version) = 0;
+
+    virtual outcome::result<void> addNewChildState(
+        storage::trie::RootHash const &parent_root,
         trie::PolkadotTrie const &new_trie,
-        std::vector<std::reference_wrapper<const trie::PolkadotTrie>> const
-            &child_states,
         trie::StateVersion version) = 0;
 
-    virtual outcome::result<void> prune(primitives::BlockHeader const &block,
-                                        trie::StateVersion version) = 0;
+    // to avoid confusing parameter order
+    struct Parent {
+      explicit Parent(storage::trie::RootHash const &hash): hash{hash} {}
+      storage::trie::RootHash const &hash;
+    };
+    struct Child {
+      explicit Child(storage::trie::RootHash const &hash): hash{hash} {}
+      storage::trie::RootHash const &hash;
+    };
+    virtual outcome::result<void> markAsChild(
+        Parent parent,
+        Child child) = 0;
+
+    virtual outcome::result<void> pruneFinalized(
+        primitives::BlockHeader const &state,
+        primitives::BlockInfo const &next_block) = 0;
+
+    virtual outcome::result<void> pruneDiscarded(
+        primitives::BlockHeader const &state) = 0;
   };
 
 }  // namespace kagome::storage::trie_pruner

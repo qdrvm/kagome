@@ -39,7 +39,12 @@ namespace kagome::storage::trie {
     return out;
   }
 
-  inline bool shouldBeHashed(const TrieNode &node, StateVersion version) {
+  inline bool shouldBeHashed(const TrieNode &node,
+                             std::optional<StateVersion> version_opt) {
+    if (!version_opt.has_value()) {
+      return false;
+    }
+    auto& version = *version_opt;
     if (node.getValue().hash || !node.getValue().value) {
       return false;
     }
@@ -88,14 +93,12 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<common::Buffer> PolkadotCodec::merkleValue(
-      const OpaqueTrieNode &node, StateVersion version) const {
+      const OpaqueTrieNode &node, std::optional<StateVersion> version) const {
     if (auto dummy = dynamic_cast<DummyNode const *>(&node); dummy != nullptr) {
       return dummy->db_key;
     }
     auto &trie_node = static_cast<TrieNode const &>(node);
-    OUTCOME_TRY(
-        enc,
-        encodeNode(trie_node, version));
+    OUTCOME_TRY(enc, encodeNode(trie_node, version));
     return merkleValue(enc);
   }
 
@@ -120,7 +123,7 @@ namespace kagome::storage::trie {
 
   outcome::result<common::Buffer> PolkadotCodec::encodeNode(
       const TrieNode &node,
-      StateVersion version,
+      std::optional<StateVersion> version,
       const ChildVisitor &child_visitor) const {
     auto *trie_node = dynamic_cast<const TrieNode *>(&node);
     if (trie_node == nullptr) {
@@ -136,7 +139,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeHeader(
-      const TrieNode &node, StateVersion version) const {
+      const TrieNode &node, std::optional<StateVersion> version) const {
     if (node.getKeyNibbles().size() > 0xffffu) {
       return Error::TOO_MANY_NIBBLES;
     }
@@ -214,7 +217,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotCodec::encodeValue(
       common::Buffer &out,
       const TrieNode &node,
-      StateVersion version,
+      std::optional<StateVersion> version,
       const ChildVisitor &child_visitor) const {
     auto hash = node.getValue().hash;
     if (shouldBeHashed(node, version)) {
@@ -235,7 +238,7 @@ namespace kagome::storage::trie {
 
   outcome::result<common::Buffer> PolkadotCodec::encodeBranch(
       const BranchNode &node,
-      StateVersion version,
+      std::optional<StateVersion> version,
       const ChildVisitor &child_visitor) const {
     // node header
     OUTCOME_TRY(encoding, encodeHeader(node, version));
@@ -275,7 +278,7 @@ namespace kagome::storage::trie {
 
   outcome::result<common::Buffer> PolkadotCodec::encodeLeaf(
       const LeafNode &node,
-      StateVersion version,
+      std::optional<StateVersion> version,
       const ChildVisitor &child_visitor) const {
     OUTCOME_TRY(encoding, encodeHeader(node, version));
 

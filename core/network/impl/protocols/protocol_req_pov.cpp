@@ -29,7 +29,7 @@ namespace kagome::network {
                                                    genesis_hash,
                                                    "polkadot"),
                                     log::createLogger(kReqPovProtocolName,
-                                                      "request_pov_protocol")},
+                                                      "req_pov_protocol")},
           observer_{std::move(observer)} {}
 
    protected:

@@ -33,7 +33,7 @@ namespace kagome::storage::trie {
 
     outcome::result<Buffer> encodeNode(
         const TrieNode &node,
-        StateVersion version,
+        std::optional<StateVersion> version,
         const ChildVisitor &child_visitor = NoopChildVisitor) const override;
 
     outcome::result<std::shared_ptr<TrieNode>> decodeNode(
@@ -41,7 +41,7 @@ namespace kagome::storage::trie {
 
     common::Buffer merkleValue(const BufferView &buf) const override;
     outcome::result<common::Buffer> merkleValue(
-        const OpaqueTrieNode &node, StateVersion version) const override;
+        const OpaqueTrieNode &node, std::optional<StateVersion> version) const override;
 
     bool isMerkleHash(const common::BufferView &buf) const override;
 
@@ -52,19 +52,19 @@ namespace kagome::storage::trie {
      * @see Algorithm 3: partial key length encoding
      */
     outcome::result<Buffer> encodeHeader(const TrieNode &node,
-                                         StateVersion version) const;
+                                         std::optional<StateVersion> version) const;
 
    private:
     outcome::result<void> encodeValue(common::Buffer &out,
                                       const TrieNode &node,
-                                      StateVersion version,
+                                      std::optional<StateVersion> version,
                                       const ChildVisitor &child_visitor) const;
     outcome::result<Buffer> encodeBranch(
         const BranchNode &node,
-        StateVersion version,
+        std::optional<StateVersion> version,
         const ChildVisitor &child_visitor) const;
     outcome::result<Buffer> encodeLeaf(const LeafNode &node,
-                                       StateVersion version,
+                                       std::optional<StateVersion> version,
                                        const ChildVisitor &child_visitor) const;
 
     outcome::result<std::pair<TrieNode::Type, size_t>> decodeHeader(

@@ -41,8 +41,9 @@ namespace {
 
   template <typename Func>
   auto withThisSession(Func &&f) {
-    if (auto session_id = threaded_info.fetchSessionId(); session_id)
+    if (auto session_id = threaded_info.fetchSessionId(); session_id) {
       return std::forward<Func>(f)(*session_id);
+    }
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. No session was bound to subscription.");
@@ -81,10 +82,11 @@ namespace {
     params.push_back(std::move(response));
 
     server->processJsonData(name.data(), params, [&](const auto &response) {
-      if (response.has_value())
+      if (response.has_value()) {
         std::forward<F>(f)(response.value());
-      else
+      } else {
         logger->error("process Json data failed => {}", response.error());
+      }
     });
   }
   inline void sendEvent(std::shared_ptr<JRpcServer> server,
@@ -120,7 +122,7 @@ namespace kagome::api {
   const std::string kRpcEventUpdateExtrinsic = "author_extrinsicUpdate";
 
   ApiServiceImpl::ApiServiceImpl(
-      const std::shared_ptr<application::AppStateManager> &app_state_manager,
+      application::AppStateManager &app_state_manager,
       std::shared_ptr<api::RpcThreadPool> thread_pool,
       ListenerList listeners,
       std::shared_ptr<JRpcServer> server,
@@ -157,8 +159,7 @@ namespace kagome::api {
       processor->registerHandlers();
     }
 
-    BOOST_ASSERT(app_state_manager);
-    app_state_manager->takeControl(*this);
+    app_state_manager.takeControl(*this);
 
     BOOST_ASSERT(subscription_engines_.chain);
     BOOST_ASSERT(subscription_engines_.storage);
@@ -478,7 +479,9 @@ namespace kagome::api {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.storage_sub;
-        for (auto id : subscription_ids) session->unsubscribe(id);
+        for (auto id : subscription_ids) {
+          session->unsubscribe(id);
+        }
         return true;
       });
     });
@@ -514,11 +517,12 @@ namespace kagome::api {
 
     try {
       withSession(session->id(), [&](SessionSubscriptions &session_context) {
-        if (session_context.messages)
+        if (session_context.messages) {
           for (auto &msg : *session_context.messages) {
             BOOST_ASSERT(msg);
             session->respond(*msg);
           }
+        }
 
         session_context.messages.reset();
       });

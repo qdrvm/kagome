@@ -41,7 +41,7 @@ namespace kagome::consensus::babe {
 
    public:
     BabeConfigRepositoryImpl(
-        const std::shared_ptr<application::AppStateManager> &app_state_manager,
+        application::AppStateManager &app_state_manager,
         std::shared_ptr<storage::SpacedStorage> persistent_storage,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,

@@ -55,7 +55,7 @@ namespace kagome::storage::trie_pruner {
     struct TriePrunerInfo {
       SCALE_TIE(2);
 
-      primitives::BlockNumber prune_base;
+      primitives::BlockInfo prune_base;
       std::vector<std::pair<primitives::BlockHash,
                             std::vector<storage::trie::RootHash>>>
           child_states;
@@ -72,15 +72,26 @@ namespace kagome::storage::trie_pruner {
 
     virtual outcome::result<void> addNewState(
         trie::PolkadotTrie const &new_trie,
-        std::vector<std::reference_wrapper<const trie::PolkadotTrie>> const
-            &child_states,
         trie::StateVersion version) override;
 
-    virtual outcome::result<void> prune(primitives::BlockHeader const &state,
-                                        trie::StateVersion version) override;
+    virtual outcome::result<void> addNewChildState(
+        storage::trie::RootHash const& parent_root,
+        trie::PolkadotTrie const &new_trie,
+        trie::StateVersion version) override;
+
+    virtual outcome::result<void> markAsChild(
+        Parent parent,
+        Child child) override;
+
+    virtual outcome::result<void> pruneFinalized(
+        primitives::BlockHeader const &state,
+        primitives::BlockInfo const &next_block) override;
+
+    virtual outcome::result<void> pruneDiscarded(
+        primitives::BlockHeader const &state) override;
 
     primitives::BlockNumber getBaseBlock() const {
-      return base_block_;
+      return base_block_.number;
     }
 
     size_t getTrackedNodesNum() const {
@@ -126,6 +137,8 @@ namespace kagome::storage::trie_pruner {
       BOOST_ASSERT(hasher_ != nullptr);
     }
 
+    outcome::result<void> prune(primitives::BlockHeader const &state);
+
     struct AddConfig {
       enum AddType {
         AddLoadedOnly,
@@ -169,7 +182,7 @@ namespace kagome::storage::trie_pruner {
 
     std::unordered_map<common::Buffer, size_t> ref_count_;
 
-    primitives::BlockNumber base_block_ = 0;
+    primitives::BlockInfo base_block_{};
     std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<storage::trie::Codec> codec_;
