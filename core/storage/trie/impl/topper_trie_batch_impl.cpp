@@ -166,14 +166,14 @@ namespace kagome::storage::trie {
 
   TopperTrieCursor::TopperTrieCursor(std::shared_ptr<TopperTrieBatchImpl> batch,
                                      std::unique_ptr<PolkadotTrieCursor> cursor)
-      : batch_{std::move(batch)},
-        cursor_{std::move(cursor)},
-        it_{batch_->cache_.end()} {}
+      : parent_batch_{std::move(batch)},
+        parent_cursor_{std::move(cursor)},
+        overlay_it_{parent_batch_->cache_.end()} {}
 
   outcome::result<bool> TopperTrieCursor::seekFirst() {
-    OUTCOME_TRY(cursor_->seekFirst());
-    cursor_key_ = cursor_->key();
-    it_ = batch_->cache_.begin();
+    OUTCOME_TRY(parent_cursor_->seekFirst());
+    cached_parent_key_ = parent_cursor_->key();
+    overlay_it_ = parent_batch_->cache_.begin();
     choose();
     OUTCOME_TRY(skipRemoved());
     return outcome::success();
@@ -189,7 +189,7 @@ namespace kagome::storage::trie {
   }
 
   bool TopperTrieCursor::isValid() const {
-    return is_it_eq_.has_value();
+    return choise_;
   }
 
   outcome::result<void> TopperTrieCursor::next() {
@@ -203,18 +203,19 @@ namespace kagome::storage::trie {
   }
 
   std::optional<Buffer> TopperTrieCursor::key() const {
-    return is_it_eq_ and *is_it_eq_ ? it_->first : cursor_key_;
+    return choise_.overlay ? overlay_it_->first : cached_parent_key_;
   }
 
   std::optional<BufferOrView> TopperTrieCursor::value() const {
-    return is_it_eq_ and *is_it_eq_ ? Buffer{*it_->second} : cursor_->value();
+    return choise_.overlay ? Buffer{*overlay_it_->second}
+                           : parent_cursor_->value();
   }
 
   outcome::result<void> TopperTrieCursor::seekLowerBound(
       const BufferView &key) {
-    OUTCOME_TRY(cursor_->seekLowerBound(key));
-    cursor_key_ = cursor_->key();
-    it_ = batch_->cache_.lower_bound(key);
+    OUTCOME_TRY(parent_cursor_->seekLowerBound(key));
+    cached_parent_key_ = parent_cursor_->key();
+    overlay_it_ = parent_batch_->cache_.lower_bound(key);
     choose();
     OUTCOME_TRY(skipRemoved());
     return outcome::success();
@@ -222,35 +223,36 @@ namespace kagome::storage::trie {
 
   outcome::result<void> TopperTrieCursor::seekUpperBound(
       const BufferView &key) {
-    OUTCOME_TRY(cursor_->seekUpperBound(key));
-    cursor_key_ = cursor_->key();
-    it_ = batch_->cache_.upper_bound(key);
+    OUTCOME_TRY(parent_cursor_->seekUpperBound(key));
+    cached_parent_key_ = parent_cursor_->key();
+    overlay_it_ = parent_batch_->cache_.upper_bound(key);
     choose();
     OUTCOME_TRY(skipRemoved());
     return outcome::success();
   }
 
   void TopperTrieCursor::choose() {
-    if (it_ != batch_->cache_.end()
-        and (not cursor_key_ or *cursor_key_ >= it_->first)) {
-      is_it_eq_ = cursor_key_ == it_->first;
+    if (overlay_it_ != parent_batch_->cache_.end()
+        and (not cached_parent_key_
+             or *cached_parent_key_ >= overlay_it_->first)) {
+      choise_ = Choise{cached_parent_key_ == overlay_it_->first, true};
       return;
     }
-    if (cursor_key_) {
-      is_it_eq_ = std::optional<bool>{};
+    if (cached_parent_key_) {
+      choise_ = Choise{true, false};
     } else {
-      is_it_eq_.reset();
+      choise_ = Choise{false, false};
     }
   }
 
   bool TopperTrieCursor::isRemoved() const {
-    if (not is_it_eq_) {
+    if (not choise_) {
       return false;
     }
-    if (*is_it_eq_) {
-      return not it_->second;
+    if (choise_.overlay) {
+      return not overlay_it_->second;
     }
-    return batch_->wasClearedByPrefix(*cursor_key_);
+    return parent_batch_->wasClearedByPrefix(*cached_parent_key_);
   }
 
   outcome::result<void> TopperTrieCursor::skipRemoved() {
@@ -261,15 +263,15 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieCursor::step() {
-    if (not is_it_eq_) {
+    if (not choise_) {
       return TopperTrieBatchImpl::Error::CURSOR_NEXT_INVALID;
     }
-    if (not *is_it_eq_ or **is_it_eq_) {
-      OUTCOME_TRY(cursor_->next());
-      cursor_key_ = cursor_->key();
+    if (choise_.parent) {
+      OUTCOME_TRY(parent_cursor_->next());
+      cached_parent_key_ = parent_cursor_->key();
     }
-    if (*is_it_eq_) {
-      ++it_;
+    if (choise_.overlay) {
+      ++overlay_it_;
     }
     choose();
     return outcome::success();

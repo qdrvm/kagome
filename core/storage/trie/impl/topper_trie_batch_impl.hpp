@@ -13,10 +13,6 @@
 #include "outcome/outcome.hpp"
 
 namespace kagome::storage::trie {
-  class PolkadotTrieCursor;
-}
-
-namespace kagome::storage::trie {
   class TopperTrieBatchImpl final
       : public TopperTrieBatch,
         public std::enable_shared_from_this<TopperTrieBatchImpl> {
@@ -60,7 +56,7 @@ namespace kagome::storage::trie {
     std::deque<Buffer> cleared_prefixes_;
     std::weak_ptr<TrieBatch> parent_;
 
-    friend struct TopperTrieCursor;
+    friend class TopperTrieCursor;
   };
 
   /**
@@ -68,7 +64,8 @@ namespace kagome::storage::trie {
    * - ext_storage_next_key_version_1
    * - ext_default_child_storage_next_key_version_1
    */
-  struct TopperTrieCursor : PolkadotTrieCursor {
+  class TopperTrieCursor : public PolkadotTrieCursor {
+   public:
     TopperTrieCursor(std::shared_ptr<TopperTrieBatchImpl> batch,
                      std::unique_ptr<PolkadotTrieCursor> cursor);
 
@@ -84,16 +81,28 @@ namespace kagome::storage::trie {
     outcome::result<void> seekLowerBound(const BufferView &key) override;
     outcome::result<void> seekUpperBound(const BufferView &key) override;
 
+   private:
     void choose();
     bool isRemoved() const;
     outcome::result<void> skipRemoved();
     outcome::result<void> step();
 
-    std::shared_ptr<TopperTrieBatchImpl> batch_;
-    std::unique_ptr<PolkadotTrieCursor> cursor_;
-    std::optional<Buffer> cursor_key_;
-    decltype(TopperTrieBatchImpl::cache_)::iterator it_;
-    std::optional<std::optional<bool>> is_it_eq_;
+    struct Choise {
+      Choise(bool parent, bool overlay) : parent{parent}, overlay{overlay} {}
+
+      operator bool() const {
+        return parent || overlay;
+      }
+
+      bool parent;
+      bool overlay;
+    };
+
+    std::shared_ptr<TopperTrieBatchImpl> parent_batch_;
+    std::unique_ptr<PolkadotTrieCursor> parent_cursor_;
+    std::optional<Buffer> cached_parent_key_;
+    decltype(TopperTrieBatchImpl::cache_)::iterator overlay_it_;
+    Choise choise_{false, false};
   };
 }  // namespace kagome::storage::trie
 
