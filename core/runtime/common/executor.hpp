@@ -59,9 +59,13 @@ namespace kagome::runtime {
      * The call will be done on the \param block_info state
      */
     outcome::result<std::unique_ptr<RuntimeEnvironment>> persistentAt(
-        primitives::BlockHash const &block_hash) {
+        primitives::BlockHash const &block_hash,
+        TrieChangesTrackerOpt changes_tracker) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
-      OUTCOME_TRY(env, env_template->persistent().make());
+      OUTCOME_TRY(env,
+                  env_template->persistent()
+                      .withChangesTracker(std::move(changes_tracker))
+                      .make());
       return std::move(env);
     }
 
@@ -77,8 +81,7 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
-      return callWithCache<Result>(
-          *env, name, std::forward<Args>(args)...);
+      return callWithCache<Result>(*env, name, std::forward<Args>(args)...);
     }
 
     /**
@@ -92,8 +95,7 @@ namespace kagome::runtime {
                                    Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->make());
-      return callWithCache<Result>(
-          *env, name, std::forward<Args>(args)...);
+      return callWithCache<Result>(*env, name, std::forward<Args>(args)...);
     }
 
     /**
@@ -106,8 +108,7 @@ namespace kagome::runtime {
                                           Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
       OUTCOME_TRY(env, env_template->make());
-      return callWithCache<Result>(
-          *env, name, std::forward<Args>(args)...);
+      return callWithCache<Result>(*env, name, std::forward<Args>(args)...);
     }
 
     outcome::result<common::Buffer> callAtRaw(
@@ -191,8 +192,8 @@ namespace kagome::runtime {
     // returns cached results for some common runtime calls
     template <typename Result, typename... Args>
     inline outcome::result<Result> callWithCache(RuntimeEnvironment &env,
-                                                       std::string_view name,
-                                                       Args &&...args) {
+                                                 std::string_view name,
+                                                 Args &&...args) {
       if constexpr (std::is_same_v<Result, primitives::Version>) {
         if (likely(name == "Core_version")) {
           return cache_->getVersion(env.module_instance->getCodeHash(), [&] {

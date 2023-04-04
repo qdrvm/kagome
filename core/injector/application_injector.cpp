@@ -112,6 +112,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
+#include "parachain/availability/fetch/fetch_impl.hpp"
 #include "parachain/availability/recovery/recovery_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
 #include "parachain/backing/store_impl.hpp"
@@ -152,7 +153,6 @@
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
-#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/spaces.hpp"
@@ -390,8 +390,6 @@ namespace {
     auto ext_events_key_repo = injector.template create<
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>();
 
-    auto changes_tracker = injector.template create<
-        std::shared_ptr<storage::changes_trie::ChangesTracker>>();
     auto justification_storage_policy = injector.template create<
         std::shared_ptr<blockchain::JustificationStoragePolicy>>();
 
@@ -403,7 +401,6 @@ namespace {
         chain_events_engine,
         std::move(ext_events_engine),
         std::move(ext_events_key_repo),
-        std::move(changes_tracker),
         std::move(justification_storage_policy));
 
     if (not block_tree_res.has_value()) {
@@ -935,10 +932,10 @@ namespace {
         makeRuntimeInjector(config->runtimeExecMethod()),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-        di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
         di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
+        di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
         di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
         di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
         di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
@@ -965,9 +962,7 @@ namespace {
                          sptr<storage::trie::PolkadotTrieFactory>>(),
                      injector.template create<sptr<storage::trie::Codec>>(),
                      injector.template create<
-                         sptr<storage::trie::TrieSerializer>>(),
-                     injector.template create<
-                         sptr<storage::changes_trie::ChangesTracker>>())
+                         sptr<storage::trie::TrieSerializer>>())
               .value();
         }),
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
@@ -1095,6 +1090,8 @@ namespace {
         injector.template create<sptr<consensus::babe::BabeUtil>>(),
         injector.template create<sptr<parachain::BitfieldStore>>(),
         injector.template create<sptr<parachain::BackingStore>>(),
+        injector.template create<
+            primitives::events::StorageSubscriptionEnginePtr>(),
         injector
             .template create<primitives::events::ChainSubscriptionEnginePtr>(),
         injector.template create<sptr<runtime::OffchainWorkerApi>>(),
@@ -1375,4 +1372,9 @@ namespace kagome::injector {
     return pimpl_->injector_.template create<sptr<storage::SpacedStorage>>();
   }
 
+  std::shared_ptr<authority_discovery::AddressPublisher>
+  KagomeNodeInjector::injectAddressPublisher() {
+    return pimpl_->injector_
+        .template create<sptr<authority_discovery::AddressPublisher>>();
+  }
 }  // namespace kagome::injector

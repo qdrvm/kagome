@@ -204,7 +204,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
 
   preparePersistentCall(block_info1, "state_hash1"_hash256, 2, 3, 5);
-  auto env = executor.persistentAt(block_info1.hash).value();
+  auto env = executor.persistentAt(block_info1.hash, std::nullopt).value();
   EXPECT_EQ(executor.call<int>(*env, "addTwo", 2, 3).value(), 5);
 
   prepareEphemeralCall(block_info1, "state_hash2"_hash256, 7, 10, 17);
@@ -214,7 +214,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   ASSERT_EQ(res2, 17);
 
   preparePersistentCall(block_info1, "state_hash2"_hash256, 0, 0, 0);
-  auto env3 = executor.persistentAt(block_info1.hash).value();
+  auto env3 = executor.persistentAt(block_info1.hash, std::nullopt).value();
   EXPECT_EQ(executor.call<int>(*env3, "addTwo", 0, 0).value(), 0);
 
   prepareEphemeralCall(block_info1, "state_hash3"_hash256, 7, 10, 17);
@@ -224,7 +224,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   ASSERT_EQ(res4, 17);
 
   preparePersistentCall(block_info2, "state_hash4"_hash256, -5, 5, 0);
-  auto env5 = executor.persistentAt(block_info2.hash).value();
+  auto env5 = executor.persistentAt(block_info2.hash, std::nullopt).value();
   EXPECT_EQ(executor.call<int>(*env5, "addTwo", -5, 5).value(), 0);
 
   prepareEphemeralCall(block_info2, "state_hash5"_hash256, 7, 10, 17);

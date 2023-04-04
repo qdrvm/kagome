@@ -11,11 +11,11 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
+#include "blockchain/impl/storage_util.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/is_primary.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
-#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/database_error.hpp"
 
 namespace {
@@ -115,7 +115,6 @@ namespace kagome::blockchain {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy) {
     BOOST_ASSERT(storage != nullptr);
@@ -212,7 +211,6 @@ namespace kagome::blockchain {
                           std::move(chain_events_engine),
                           std::move(extrinsic_events_engine),
                           std::move(extrinsic_event_key_repo),
-                          std::move(changes_tracker),
                           std::move(justification_storage_policy)));
 
     // Add non-finalized block to the block tree
@@ -343,7 +341,6 @@ namespace kagome::blockchain {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<const JustificationStoragePolicy>
           justification_storage_policy)
       : header_repo_{std::move(header_repo)},
@@ -354,7 +351,6 @@ namespace kagome::blockchain {
         chain_events_engine_(std::move(chain_events_engine)),
         extrinsic_events_engine_(std::move(extrinsic_events_engine)),
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
-        trie_changes_tracker_(std::move(changes_tracker)),
         justification_storage_policy_{std::move(justification_storage_policy)} {
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -364,7 +360,6 @@ namespace kagome::blockchain {
     BOOST_ASSERT(chain_events_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_event_key_repo_ != nullptr);
-    BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(justification_storage_policy_ != nullptr);
     BOOST_ASSERT(telemetry_ != nullptr);
 
@@ -469,7 +464,6 @@ namespace kagome::blockchain {
 
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
-    trie_changes_tracker_->onBlockAdded(block_hash);
     SL_DEBUG(log_, "Adding block {}", block_hash);
     for (const auto &ext : block.body) {
       auto hash = hasher_->blake2b_256(ext.data);
@@ -693,7 +687,19 @@ namespace kagome::blockchain {
       node->finalized = true;
       node->has_justification = true;
 
-      OUTCOME_TRY(prune(node));
+      OUTCOME_TRY(retired_hashes, prune(node));
+      for (primitives::BlockNumber n = last_finalized_block_info.number;
+           n < node->getBlockInfo().number;
+           ++n) {
+        if (auto result = storage_->getBlockHash(n);
+            result.has_value() && result.value()) {
+          retired_hashes.emplace_back(std::move(*result.value()));
+        }
+      }
+
+      chain_events_engine_->notify(
+          primitives::events::ChainEventType::kDeactivateAfterFinalization,
+          retired_hashes);
 
       tree_->updateTreeRoot(node, justification);
 
@@ -1159,7 +1165,7 @@ namespace kagome::blockchain {
     }
   }
 
-  outcome::result<void> BlockTreeImpl::prune(
+  outcome::result<std::vector<primitives::BlockHash>> BlockTreeImpl::prune(
       const std::shared_ptr<TreeNode> &lastFinalizedNode) {
     std::deque<std::shared_ptr<TreeNode>> to_remove;
 
@@ -1191,9 +1197,12 @@ namespace kagome::blockchain {
     }
 
     std::vector<primitives::Extrinsic> extrinsics;
+    std::vector<primitives::BlockHash> retired_hashes;
 
     // remove from storage
+    retired_hashes.reserve(to_remove.size());
     for (const auto &node : to_remove) {
+      retired_hashes.emplace_back(node->block_hash);
       OUTCOME_TRY(block_body_res, storage_->getBlockBody(node->block_hash));
       if (block_body_res.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
@@ -1223,7 +1232,7 @@ namespace kagome::blockchain {
       }
     }
 
-    return outcome::success();
+    return retired_hashes;
   }
 
   outcome::result<void> BlockTreeImpl::reorganize() {

@@ -58,11 +58,12 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
             rocks_db->getSpace(Space::kDefault)));
 
     auto storage =
-        TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
-            .value();
+        TrieStorageImpl::createEmpty(factory, codec, serializer).value();
 
     auto batch =
-        storage->getPersistentBatchAt(serializer->getEmptyRootHash()).value();
+        storage
+            ->getPersistentBatchAt(serializer->getEmptyRootHash(), std::nullopt)
+            .value();
     EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "abc"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("345"_buf, "def"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("678"_buf, "xyz"_buf));
@@ -76,10 +77,8 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
       codec,
       std::make_shared<TrieStorageBackendImpl>(
           new_rocks_db->getSpace(Space::kDefault)));
-  auto storage =
-      TrieStorageImpl::createFromStorage(codec, serializer, std::nullopt)
-          .value();
-  auto batch = storage->getPersistentBatchAt(root).value();
+  auto storage = TrieStorageImpl::createFromStorage(codec, serializer).value();
+  auto batch = storage->getPersistentBatchAt(root, std::nullopt).value();
   EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));
   ASSERT_EQ(v1, "abc"_buf);
   EXPECT_OUTCOME_TRUE(v2, batch->get("345"_buf));

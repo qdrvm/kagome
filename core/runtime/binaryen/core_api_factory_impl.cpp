@@ -65,15 +65,12 @@ namespace kagome::runtime::binaryen {
   CoreApiFactoryImpl::CoreApiFactoryImpl(
       std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<runtime::RuntimePropertiesCache> cache)
       : instance_env_factory_{std::move(instance_env_factory)},
         header_repo_{std::move(header_repo)},
-        changes_tracker_{std::move(changes_tracker)},
         cache_(std::move(cache)) {
     BOOST_ASSERT(instance_env_factory_ != nullptr);
     BOOST_ASSERT(header_repo_ != nullptr);
-    BOOST_ASSERT(changes_tracker_ != nullptr);
     BOOST_ASSERT(cache_ != nullptr);
   }
 
@@ -87,8 +84,7 @@ namespace kagome::runtime::binaryen {
             runtime_code, instance_env_factory_, code_hash),
         header_repo_);
     auto executor = std::make_unique<Executor>(env_factory, cache_);
-    return std::make_unique<CoreImpl>(
-        std::move(executor), changes_tracker_, header_repo_);
+    return std::make_unique<CoreImpl>(std::move(executor), header_repo_);
   }
 
 }  // namespace kagome::runtime::binaryen

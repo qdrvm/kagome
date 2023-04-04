@@ -24,7 +24,8 @@ namespace kagome::authorship {
 
     outcome::result<std::unique_ptr<BlockBuilder>> make(
         const kagome::primitives::BlockInfo &parent_block,
-        primitives::Digest inherent_digest) const override;
+        primitives::Digest inherent_digest,
+        TrieChangesTrackerOpt changes_tracker) const override;
 
    private:
     std::shared_ptr<runtime::Core> r_core_;
