@@ -7,6 +7,7 @@ add_library(validator_parachain
     availability/bitfield/signer.cpp
     availability/bitfield/store_impl.cpp
     availability/erasure_coding_error.cpp
+    availability/fetch/fetch_impl.cpp
     availability/recovery/recovery_impl.cpp
     availability/store/store_impl.cpp
     backing/store_impl.cpp

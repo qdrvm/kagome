@@ -24,7 +24,6 @@
 #include "crypto/hasher/hasher_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
-#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -166,7 +165,7 @@ Example:
 
 outcome::result<std::unique_ptr<TrieBatch>> persistent_batch(
     const std::unique_ptr<TrieStorageImpl> &trie, const RootHash &hash) {
-  OUTCOME_TRY(batch, trie->getPersistentBatchAt(hash));
+  OUTCOME_TRY(batch, trie->getPersistentBatchAt(hash, std::nullopt));
   auto cursor = batch->trieCursor();
   auto res = check(cursor->next());
   int count = 0;
@@ -272,7 +271,6 @@ int db_editor_main(int argc, const char **argv) {
         di::bind<TrieStorageBackend>.template to(trie_tracker),
         di::bind<storage::trie_pruner::TriePruner>.template to(
             (storage::trie_pruner::TriePruner *)nullptr),
-        di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
@@ -380,8 +378,6 @@ int db_editor_main(int argc, const char **argv) {
         TrieStorageImpl::createFromStorage(
             injector.template create<sptr<Codec>>(),
             injector.template create<sptr<TrieSerializer>>(),
-            injector
-                .template create<sptr<storage::changes_trie::ChangesTracker>>(),
             injector.template create<sptr<storage::trie_pruner::TriePruner>>())
             .value();
 

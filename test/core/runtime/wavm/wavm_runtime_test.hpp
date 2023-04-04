@@ -39,8 +39,6 @@ class WavmRuntimeTest : public RuntimeTestBase {
         intrinsic_module_instance = intrinsic_module->instantiate();
     resolver_ = std::make_shared<kagome::runtime::wavm::IntrinsicResolverImpl>(
         intrinsic_module_instance);
-    auto changes_tracker =
-        std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
 
     auto instance_env_factory =
         std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
@@ -51,7 +49,6 @@ class WavmRuntimeTest : public RuntimeTestBase {
             intrinsic_module,
             host_api_factory_,
             header_repo_,
-            changes_tracker,
             std::make_shared<kagome::runtime::SingleModuleCache>(),
             cache_);
 

@@ -28,10 +28,6 @@ namespace kagome::application {
   class AppConfiguration;
 }
 
-namespace kagome::storage::changes_trie {
-  class ChangesTracker;
-}
-
 namespace kagome::storage::trie_pruner {
   class TriePruner;
 }
@@ -42,7 +38,6 @@ namespace kagome::consensus::babe {
 }  // namespace kagome::consensus::babe
 
 namespace kagome::consensus::grandpa {
-  class ChangesTracker;
   class Environment;
 }  // namespace kagome::consensus::grandpa
 
@@ -95,7 +90,6 @@ namespace kagome::network {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
         std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -226,8 +220,6 @@ namespace kagome::network {
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<storage::changes_trie::ChangesTracker>
-        trie_changes_tracker_;
     std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender_;
     std::shared_ptr<consensus::babe::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;

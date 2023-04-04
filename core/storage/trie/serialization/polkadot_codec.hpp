@@ -41,7 +41,9 @@ namespace kagome::storage::trie {
 
     common::Buffer merkleValue(const BufferView &buf) const override;
     outcome::result<common::Buffer> merkleValue(
-        const OpaqueTrieNode &node, std::optional<StateVersion> version) const override;
+        const OpaqueTrieNode &node,
+        std::optional<StateVersion> version,
+        const ChildVisitor &child_visitor = NoopChildVisitor) const override;
 
     bool isMerkleHash(const common::BufferView &buf) const override;
 
@@ -51,8 +53,8 @@ namespace kagome::storage::trie {
      * Encodes a node header according to the specification
      * @see Algorithm 3: partial key length encoding
      */
-    outcome::result<Buffer> encodeHeader(const TrieNode &node,
-                                         std::optional<StateVersion> version) const;
+    outcome::result<Buffer> encodeHeader(
+        const TrieNode &node, std::optional<StateVersion> version) const;
 
    private:
     outcome::result<void> encodeValue(common::Buffer &out,

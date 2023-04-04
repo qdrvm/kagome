@@ -61,7 +61,8 @@ namespace kagome::storage::trie {
     virtual common::Buffer merkleValue(const common::BufferView &buf) const = 0;
     virtual outcome::result<common::Buffer> merkleValue(
         const OpaqueTrieNode &node,
-        std::optional<StateVersion> version) const = 0;
+        std::optional<StateVersion> version,
+        const ChildVisitor &child_visitor = NoopChildVisitor) const = 0;
 
     /**
      * @brief is this a hash of value, or value itself

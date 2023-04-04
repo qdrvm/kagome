@@ -35,10 +35,6 @@ namespace kagome::storage::trie_pruner {
   class TriePruner;
 }
 
-namespace kagome::storage::changes_trie {
-  class ChangesTracker;
-}
-
 namespace kagome::blockchain {
 
   class TreeNode;
@@ -58,7 +54,6 @@ namespace kagome::blockchain {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
@@ -156,7 +151,6 @@ namespace kagome::blockchain {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
@@ -174,11 +168,12 @@ namespace kagome::blockchain {
      */
     std::vector<primitives::BlockHash> getLeavesSorted() const;
 
-    outcome::result<void> prune(
+    outcome::result<std::vector<primitives::BlockHash>> prune(
         const std::shared_ptr<TreeNode> &lastFinalizedNode);
 
-    outcome::result<void> pruneTrie(const TreeNode &oldLastFinalized,
-                                    const TreeNode &newLastFinalized);
+    outcome::result<void> pruneTrie(
+        const primitives::BlockNumber &old_finalized,
+        const primitives::BlockNumber &new_finalized);
 
     outcome::result<void> reorganize();
 
@@ -195,8 +190,6 @@ namespace kagome::blockchain {
     primitives::events::ExtrinsicSubscriptionEnginePtr extrinsic_events_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         extrinsic_event_key_repo_;
-    std::shared_ptr<storage::changes_trie::ChangesTracker>
-        trie_changes_tracker_;
     std::shared_ptr<const class JustificationStoragePolicy>
         justification_storage_policy_;
 

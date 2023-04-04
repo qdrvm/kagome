@@ -29,7 +29,7 @@ namespace kagome::storage::trie {
   PersistentTrieBatchImpl::PersistentTrieBatchImpl(
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
-      std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+      TrieChangesTrackerOpt changes,
       std::shared_ptr<PolkadotTrie> trie,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner)
       : TrieBatchBase{std::move(codec), std::move(serializer), std::move(trie)},

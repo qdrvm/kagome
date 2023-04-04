@@ -317,8 +317,17 @@ namespace kagome::host_api {
     runtime::WasmSpan ext_default_child_storage_root_version_1(
         runtime::WasmSpan child_storage_key) const override;
 
+    runtime::WasmSpan ext_default_child_storage_root_version_2(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmI32 state_version) const override;
+
     void ext_default_child_storage_clear_prefix_version_1(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix) override;
+
+    runtime::WasmSpan ext_default_child_storage_clear_prefix_version_2(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan prefix,
+        runtime::WasmSpan limit) override;
 
     virtual runtime::WasmSpan ext_default_child_storage_read_version_1(
         runtime::WasmSpan child_storage_key,
@@ -332,6 +341,9 @@ namespace kagome::host_api {
 
     virtual void ext_default_child_storage_storage_kill_version_1(
         runtime::WasmSpan child_storage_key) override;
+
+    virtual runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) override;
 
    private:
     static constexpr uint64_t DEFAULT_CHAIN_ID = 42;

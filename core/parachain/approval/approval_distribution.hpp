@@ -619,6 +619,8 @@ namespace kagome::parachain {
     const ApprovalVotingSubsystem config_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
+    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+
     Store<StorePair<primitives::BlockNumber, std::unordered_set<Hash>>,
           StorePair<CandidateHash, CandidateEntry>,
           StorePair<RelayHash, BlockEntry>,

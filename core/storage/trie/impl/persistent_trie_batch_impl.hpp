@@ -32,7 +32,7 @@ namespace kagome::storage::trie {
     PersistentTrieBatchImpl(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+        TrieChangesTrackerOpt changes,
         std::shared_ptr<PolkadotTrie> trie,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
     ~PersistentTrieBatchImpl() override = default;
@@ -51,10 +51,8 @@ namespace kagome::storage::trie {
         const RootHash &trie_hash) override;
 
    private:
-    std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
+    TrieChangesTrackerOpt changes_;
     std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
-
-    log::Logger logger_ = log::createLogger("PersistentTrieBatch", "storage");
   };
 
 }  // namespace kagome::storage::trie

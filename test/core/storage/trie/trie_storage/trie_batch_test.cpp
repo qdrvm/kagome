@@ -55,7 +55,7 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
     empty_hash = serializer->getEmptyRootHash();
 
     trie = TrieStorageImpl::createEmpty(
-               factory, codec, serializer, std::nullopt, nullptr)
+               factory, codec, serializer, nullptr)
                .value();
   }
 
@@ -110,7 +110,7 @@ class MockDb : public kagome::storage::InMemoryStorage {
  * @then all inserted entries are accessible from the trie
  */
 TEST_F(TrieBatchTest, Put) {
-  auto batch = trie->getPersistentBatchAt(empty_hash).value();
+  auto batch = trie->getPersistentBatchAt(empty_hash, std::nullopt).value();
   FillSmallTrieWithBatch(*batch);
   // changes are not yet committed
   auto new_batch = trie->getEphemeralBatchAt(empty_hash).value();
@@ -142,7 +142,7 @@ TEST_F(TrieBatchTest, Put) {
  * @then removed entries are no longer in the trie, while the rest of them stays
  */
 TEST_F(TrieBatchTest, Remove) {
-  auto batch = trie->getPersistentBatchAt(empty_hash).value();
+  auto batch = trie->getPersistentBatchAt(empty_hash, std::nullopt).value();
   FillSmallTrieWithBatch(*batch);
 
   ASSERT_OUTCOME_SUCCESS_TRY(batch->remove(data[2].first));
@@ -166,7 +166,7 @@ TEST_F(TrieBatchTest, Remove) {
  * @then the value on the key is updated
  */
 TEST_F(TrieBatchTest, Replace) {
-  auto batch = trie->getPersistentBatchAt(empty_hash).value();
+  auto batch = trie->getPersistentBatchAt(empty_hash, std::nullopt).value();
   ASSERT_OUTCOME_SUCCESS_TRY(
       batch->put(data[1].first, BufferView{data[3].second}));
   ASSERT_OUTCOME_SUCCESS(root_hash, batch->commit(StateVersion::V0));
@@ -201,9 +201,9 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
       factory, codec, std::make_shared<TrieStorageBackendImpl>(std::move(db)));
   auto state_pruner = std::make_shared<TriePrunerMock>();
   auto trie = TrieStorageImpl::createEmpty(
-                  factory, codec, serializer, std::nullopt, state_pruner)
+                  factory, codec, serializer, state_pruner)
                   .value();
-  auto batch = trie->getPersistentBatchAt(empty_hash).value();
+  auto batch = trie->getPersistentBatchAt(empty_hash, std::nullopt).value();
 
   ASSERT_OUTCOME_SUCCESS_TRY(batch->put("123"_buf, "111"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(batch->commit(StateVersion::V0));
@@ -216,7 +216,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 
 TEST_F(TrieBatchTest, TopperBatchAtomic) {
   std::shared_ptr<TrieBatch> p_batch =
-      trie->getPersistentBatchAt(empty_hash).value();
+      trie->getPersistentBatchAt(empty_hash, std::nullopt).value();
   ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("123"_buf, "abc"_buf));
   ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("678"_buf, "abc"_buf));
 
@@ -249,7 +249,7 @@ TEST_F(TrieBatchTest, TopperBatchAtomic) {
  */
 TEST_F(TrieBatchTest, TopperBatchRemove) {
   std::shared_ptr<TrieBatch> p_batch =
-      trie->getPersistentBatchAt(empty_hash).value();
+      trie->getPersistentBatchAt(empty_hash, std::nullopt).value();
 
   ASSERT_OUTCOME_SUCCESS_TRY(p_batch->put("102030"_hex2buf, "010203"_hex2buf));
 

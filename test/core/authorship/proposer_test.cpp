@@ -69,8 +69,8 @@ class ProposerTest : public ::testing::Test {
 
     block_builder_ = new BlockBuilderMock;
     EXPECT_CALL(*block_builder_factory_,
-                make(expected_block_, inherent_digests_))
-        .WillOnce(Invoke([this](auto &&, auto &&) {
+                make(expected_block_, inherent_digests_, _))
+        .WillOnce(Invoke([this](auto &&, auto &&, auto &&) {
           return std::unique_ptr<BlockBuilderMock>{block_builder_};
         }));
   }
@@ -135,8 +135,8 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
   // when
-  auto block_res =
-      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
+  auto block_res = proposer_.propose(
+      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
 
   // then
   ASSERT_TRUE(block_res);
@@ -158,8 +158,8 @@ TEST_F(ProposerTest, CreateBlockFailsWhenXtNotPushed) {
       .WillOnce(Return(outcome::failure(BlockBuilderError::BAD_MANDATORY)));
 
   // when
-  auto block_res =
-      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
+  auto block_res = proposer_.propose(
+      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
 
   // then
   ASSERT_FALSE(block_res);
@@ -177,8 +177,8 @@ TEST_F(ProposerTest, CreateBlockFailsToGetInhetentExtr) {
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
 
   // when
-  auto block_res =
-      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
+  auto block_res = proposer_.propose(
+      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
 
   // then
   ASSERT_FALSE(block_res);
@@ -218,8 +218,8 @@ TEST_F(ProposerTest, PushFailed) {
       .WillOnce(Return(outcome::success()));
 
   // when
-  auto block_res =
-      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
+  auto block_res = proposer_.propose(
+      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
 
   // then
   ASSERT_TRUE(block_res);
@@ -264,8 +264,8 @@ TEST_F(ProposerTest, TrxSkippedDueToOverflow) {
       .WillRepeatedly(Return(outcome::success()));
 
   // when
-  auto block_res =
-      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
+  auto block_res = proposer_.propose(
+      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
 
   // then
   ASSERT_TRUE(block_res);
@@ -310,8 +310,8 @@ TEST_F(ProposerTest, TrxSkippedDueToResourceExhausted) {
       .WillRepeatedly(Return(outcome::success()));
 
   // when
-  auto block_res =
-      proposer_.propose(expected_block_, inherent_data_, inherent_digests_);
+  auto block_res = proposer_.propose(
+      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
 
   // then
   ASSERT_TRUE(block_res);

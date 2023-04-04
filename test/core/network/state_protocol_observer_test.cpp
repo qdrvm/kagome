@@ -46,7 +46,7 @@ std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
   auto state_pruner = std::make_shared<TriePrunerMock>();
 
   return kagome::storage::trie::TrieStorageImpl::createEmpty(
-             trie_factory, codec, serializer, std::nullopt, state_pruner)
+             trie_factory, codec, serializer, state_pruner)
       .value();
 }
 
@@ -69,10 +69,10 @@ BlockHeader makeBlockHeader(RootHash hash) {
 
 class StateProtocolObserverTest : public testing::Test {
  protected:
-  outcome::result<std::unique_ptr<TrieBatch>>
-  persistent_empty_batch() {
+  outcome::result<std::unique_ptr<TrieBatch>> persistent_empty_batch() {
     auto codec = std::make_shared<PolkadotCodec>();
-    OUTCOME_TRY(batch, trie_->getPersistentBatchAt(kEmptyRootHash));
+    OUTCOME_TRY(batch,
+                trie_->getPersistentBatchAt(kEmptyRootHash, std::nullopt));
     return std::move(batch);
   }
 

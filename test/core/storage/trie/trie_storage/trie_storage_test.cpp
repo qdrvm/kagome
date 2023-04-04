@@ -62,11 +62,13 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
     auto state_pruner = std::make_shared<TriePrunerMock>();
 
     auto storage = TrieStorageImpl::createEmpty(
-                       factory, codec, serializer, std::nullopt, state_pruner)
+                       factory, codec, serializer, state_pruner)
                        .value();
 
     auto batch =
-        storage->getPersistentBatchAt(serializer->getEmptyRootHash()).value();
+        storage
+            ->getPersistentBatchAt(serializer->getEmptyRootHash(), std::nullopt)
+            .value();
     EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "abc"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("345"_buf, "def"_buf));
     EXPECT_OUTCOME_TRUE_1(batch->put("678"_buf, "xyz"_buf));
@@ -82,7 +84,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
           new_rocks_db->getSpace(Space::kDefault)));
   auto state_pruner = std::make_shared<TriePrunerMock>();
   auto storage = TrieStorageImpl::createFromStorage(
-                     codec, serializer, std::nullopt, state_pruner)
+                     codec, serializer, state_pruner)
                      .value();
   auto batch = storage->getPersistentBatchAt(root).value();
   EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));

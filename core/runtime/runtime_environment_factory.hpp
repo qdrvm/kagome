@@ -116,6 +116,8 @@ namespace kagome::runtime {
     [[nodiscard]] virtual RuntimeEnvironmentTemplate &persistent();
     [[nodiscard]] virtual RuntimeEnvironmentTemplate &withStorageBatch(
         std::shared_ptr<storage::trie::TrieBatch> batch);
+    [[nodiscard]] virtual RuntimeEnvironmentTemplate &withChangesTracker(
+        TrieChangesTrackerOpt changes_tracker);
 
     [[nodiscard]] virtual outcome::result<std::unique_ptr<RuntimeEnvironment>>
     make();
@@ -132,6 +134,7 @@ namespace kagome::runtime {
     std::weak_ptr<const RuntimeEnvironmentFactory> parent_factory_;
     bool persistent_{false};
     std::shared_ptr<storage::trie::TrieBatch> batch_;
+    TrieChangesTrackerOpt changes_tracker_;
   };
 
 }  // namespace kagome::runtime

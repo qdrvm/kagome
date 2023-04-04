@@ -6,6 +6,8 @@
 #include "host_api/impl/child_storage_extension.hpp"
 
 #include "common/monadic_utils.hpp"
+#include "common/tagged.hpp"
+#include "host_api/impl/storage_util.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
@@ -207,6 +209,14 @@ namespace kagome::host_api {
   runtime::WasmSpan
   ChildStorageExtension::ext_default_child_storage_root_version_1(
       runtime::WasmSpan child_storage_key) const {
+    return ext_default_child_storage_root_version_2(child_storage_key,
+                                                    runtime::WasmI32(0));
+  }
+
+  runtime::WasmSpan
+  ChildStorageExtension::ext_default_child_storage_root_version_2(
+      runtime::WasmSpan child_storage_key,
+      runtime::WasmI32 state_version) const {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto child_key_buffer = loadBuffer(memory, child_storage_key);
     auto prefixed_child_key = make_prefixed_child_storage_key(child_key_buffer);
@@ -214,7 +224,8 @@ namespace kagome::host_api {
         storage_provider_->getMutableChildBatchAt(prefixed_child_key.value())
             .value();
 
-    auto res = child_batch.get().commit(storage::trie::StateVersion::V0);
+    auto version = detail::toStateVersion(state_version);
+    auto res = child_batch.get().commit(version);
 
     if (res.has_error()) {
       logger_->error(
@@ -222,7 +233,7 @@ namespace kagome::host_api {
           res.error());
     }
     const auto &root = res.value();
-    SL_TRACE_FUNC_CALL(logger_, root, child_key_buffer);
+    SL_TRACE_FUNC_CALL(logger_, root, child_key_buffer, state_version);
     return memory.storeBuffer(root);
   }
 
@@ -247,6 +258,63 @@ namespace kagome::host_api {
           "reason: {}",
           result.error());
     }
+  }
+
+  runtime::WasmSpan
+  ChildStorageExtension::ext_default_child_storage_clear_prefix_version_2(
+      runtime::WasmSpan child_storage_key,
+      runtime::WasmSpan prefix,
+      runtime::WasmSpan limit) {
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    auto [child_key_buffer, prefix_buffer] =
+        loadBuffer(memory, child_storage_key, prefix);
+
+    auto [limit_ptr, limit_size] = runtime::PtrSize(limit);
+    auto enc_limit = memory.loadN(limit_ptr, limit_size);
+    auto limit_res = scale::decode<std::optional<uint32_t>>(enc_limit);
+
+    if (!limit_res) {
+      auto msg = fmt::format(
+          "ext_default_child_storage_clear_prefix_version_2 failed at decoding "
+          "second argument: {}",
+          limit_res.error());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
+    }
+    auto limit_opt = std::move(limit_res.value());
+    auto exec_result = executeOnMutChildStorage<std::tuple<bool, uint32_t>>(
+        child_key_buffer,
+        [limit_opt](auto &child_batch, auto &prefix) {
+          return child_batch.clearPrefix(prefix, limit_opt);
+        },
+        prefix_buffer);
+    if (!exec_result) {
+      auto msg = fmt::format(
+          "ext_default_child_storage_clear_prefix_version_2 failed with "
+          "reason: {}",
+          exec_result.error());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
+    }
+
+    using AllRemoved = Tagged<uint32_t, struct AllRemovedTag>;
+    using SomeRemaining = Tagged<uint32_t, struct SomeRemainingTag>;
+    boost::variant<AllRemoved, SomeRemaining> result;
+    uint32_t rows = std::get<1>(exec_result.value());
+    if (std::get<0>(exec_result.value())) {
+      result = AllRemoved(rows);
+    } else {
+      result = SomeRemaining(rows);
+    }
+
+    if (limit_opt) {
+      SL_TRACE_FUNC_CALL(logger_, rows, child_key_buffer, limit_opt.value());
+    } else {
+      SL_TRACE_FUNC_CALL(
+          logger_, rows, child_key_buffer, std::string_view{"none"});
+    }
+
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
   runtime::WasmSpan
@@ -326,7 +394,6 @@ namespace kagome::host_api {
       runtime::WasmSpan child_storage_key) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto child_key_buffer = loadBuffer(memory, child_storage_key);
-
     SL_TRACE_VOID_FUNC_CALL(logger_, child_key_buffer);
 
     auto result = executeOnMutChildStorage<std::tuple<bool, uint32_t>>(
@@ -340,6 +407,55 @@ namespace kagome::host_api {
           "reason: {}",
           result.error());
     }
+  }
+
+  runtime::WasmSpan
+  ChildStorageExtension::ext_default_child_storage_storage_kill_version_3(
+      runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) {
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    auto child_key_buffer = loadBuffer(memory, child_storage_key);
+
+    auto [limit_ptr, limit_size] = runtime::PtrSize(limit);
+    auto enc_limit = memory.loadN(limit_ptr, limit_size);
+    auto limit_res = scale::decode<std::optional<uint32_t>>(enc_limit);
+
+    if (!limit_res) {
+      auto msg = fmt::format(
+          "ext_default_child_storage_storage_kill_version_3 failed at decoding "
+          "second argument: {}",
+          limit_res.error());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
+    }
+    auto limit_opt = std::move(limit_res.value());
+    auto exec_result = executeOnMutChildStorage<std::tuple<bool, uint32_t>>(
+        child_key_buffer, [limit_opt](auto &child_batch) {
+          return child_batch.clearPrefix({}, limit_opt);
+        });
+    if (!exec_result) {
+      auto msg = fmt::format(
+          "ext_default_child_storage_storage_kill_version_3 failed with "
+          "reason: {}",
+          exec_result.error());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
+    }
+    using AllRemoved = Tagged<uint32_t, struct AllRemovedTag>;
+    using SomeRemaining = Tagged<uint32_t, struct SomeRemainingTag>;
+    boost::variant<AllRemoved, SomeRemaining> result;
+    uint32_t rows = std::get<1>(exec_result.value());
+    if (std::get<0>(exec_result.value())) {
+      result = AllRemoved(rows);
+    } else {
+      result = SomeRemaining(rows);
+    }
+    if (limit_opt) {
+      SL_TRACE_FUNC_CALL(logger_, rows, child_key_buffer, limit_opt.value());
+    } else {
+      SL_TRACE_FUNC_CALL(
+          logger_, rows, child_key_buffer, std::string_view{"none"});
+    }
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
 }  // namespace kagome::host_api

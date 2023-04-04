@@ -42,8 +42,7 @@ class CoreTest : public WavmRuntimeTest {
   void SetUp() override {
     WavmRuntimeTest::SetUp();
 
-    core_ =
-        std::make_shared<CoreImpl>(executor_, changes_tracker_, header_repo_);
+    core_ = std::make_shared<CoreImpl>(executor_, header_repo_);
   }
 
  protected:
@@ -66,11 +65,8 @@ TEST_F(CoreTest, DISABLED_VersionTest) {
  */
 TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
   auto block = createBlock("block_hash"_hash256, 42);
-  EXPECT_CALL(*changes_tracker_,
-              onBlockExecutionStart(block.header.parent_hash))
-      .WillOnce(Return());
 
-  ASSERT_TRUE(core_->execute_block(block));
+  ASSERT_TRUE(core_->execute_block(block, std::nullopt));
 }
 
 /**
@@ -80,8 +76,6 @@ TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
  */
 TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
   auto header = createBlockHeader("block_hash"_hash256, 42);
-  EXPECT_CALL(*changes_tracker_, onBlockExecutionStart(header.parent_hash))
-      .WillOnce(Return());
 
-  ASSERT_TRUE(core_->initialize_block(header));
+  ASSERT_TRUE(core_->initialize_block(header, std::nullopt));
 }

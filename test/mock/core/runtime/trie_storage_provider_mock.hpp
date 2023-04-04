@@ -21,7 +21,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<void>,
                 setToPersistentAt,
-                (const storage::trie::RootHash &),
+                (const storage::trie::RootHash &, TrieChangesTrackerOpt),
                 (override));
 
     MOCK_METHOD(void,

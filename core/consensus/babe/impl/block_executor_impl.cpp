@@ -18,6 +18,7 @@
 #include "consensus/validation/block_validator.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
+#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
@@ -34,12 +35,16 @@ namespace kagome::consensus::babe {
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+      primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
         offchain_worker_api_(std::move(offchain_worker_api)),
+        storage_sub_engine_{std::move(storage_sub_engine)},
+        chain_subscription_engine_{std::move(chain_sub_engine)},
         appender_{std::move(appender)},
         logger_{log::createLogger("BlockExecutor", "block_executor")},
         telemetry_{telemetry::createTelemetryService()} {
@@ -123,7 +128,11 @@ namespace kagome::consensus::babe {
       // block should be applied without last digest which contains the seal
       block_without_seal_digest.header.digest.pop_back();
 
-      OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
+      auto changes_tracker =
+          std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
+
+      OUTCOME_TRY(
+          core_->execute_block(block_without_seal_digest, changes_tracker));
 
       auto exec_end = std::chrono::high_resolution_clock::now();
       auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -136,6 +145,9 @@ namespace kagome::consensus::babe {
 
       // add block header if it does not exist
       OUTCOME_TRY(block_tree_->addBlock(block));
+
+      changes_tracker->onBlockAdded(
+          block_info.hash, storage_sub_engine_, chain_subscription_engine_);
     }
 
     OUTCOME_TRY(appender_->applyJustifications(block_info, justification));
@@ -154,9 +166,8 @@ namespace kagome::consensus::babe {
     }
 
     OUTCOME_TRY(slot_info, appender_->getSlotInfo(block.header));
-    auto& [slot_start, slot_duration] = slot_info;
-    auto lag = std::chrono::system_clock::now()
-             - slot_start;
+    auto &[slot_start, slot_duration] = slot_info;
+    auto lag = std::chrono::system_clock::now() - slot_start;
     std::string lag_msg;
     if (lag > std::chrono::hours(99)) {
       lag_msg = fmt::format(

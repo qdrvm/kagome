@@ -28,12 +28,12 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<void>,
                 execute_block,
-                (const primitives::Block &),
+                (const primitives::Block &, TrieChangesTrackerOpt),
                 (override));
 
     MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeEnvironment>>,
                 initialize_block,
-                (const primitives::BlockHeader &),
+                (const primitives::BlockHeader &, TrieChangesTrackerOpt),
                 (override));
   };
 }  // namespace kagome::runtime

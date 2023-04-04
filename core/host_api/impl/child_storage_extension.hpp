@@ -63,10 +63,25 @@ namespace kagome::host_api {
         runtime::WasmSpan child_storage_key) const;
 
     /**
+     * @see HostApi::ext_default_child_storage_root_version_2
+     */
+    runtime::WasmSpan ext_default_child_storage_root_version_2(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmI32 state_version) const;
+
+    /**
      * @see HostApi::ext_default_child_storage_clear_prefix_version_1
      */
     void ext_default_child_storage_clear_prefix_version_1(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan prefix);
+
+    /**
+     * @see HostApi::ext_default_child_storage_clear_prefix_version_2
+     */
+    runtime::WasmSpan ext_default_child_storage_clear_prefix_version_2(
+        runtime::WasmSpan child_storage_key,
+        runtime::WasmSpan prefix,
+        runtime::WasmSpan limit);
 
     /**
      * @see HostApi::ext_default_child_storage_read_version_1
@@ -88,6 +103,12 @@ namespace kagome::host_api {
      */
     void ext_default_child_storage_storage_kill_version_1(
         runtime::WasmSpan child_storage_key);
+
+    /**
+     * @see HostApi::ext_default_child_storage_storage_kill_version_3
+     */
+    runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
+        runtime::WasmSpan child_storage_key, runtime::WasmSpan limit);
 
    private:
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;

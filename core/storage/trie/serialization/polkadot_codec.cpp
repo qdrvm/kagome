@@ -44,7 +44,7 @@ namespace kagome::storage::trie {
     if (!version_opt.has_value()) {
       return false;
     }
-    auto& version = *version_opt;
+    auto &version = *version_opt;
     if (node.getValue().hash || !node.getValue().value) {
       return false;
     }
@@ -93,12 +93,14 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<common::Buffer> PolkadotCodec::merkleValue(
-      const OpaqueTrieNode &node, std::optional<StateVersion> version) const {
+      const OpaqueTrieNode &node,
+      std::optional<StateVersion> version,
+      const ChildVisitor &child_visitor) const {
     if (auto dummy = dynamic_cast<DummyNode const *>(&node); dummy != nullptr) {
       return dummy->db_key;
     }
     auto &trie_node = static_cast<TrieNode const &>(node);
-    OUTCOME_TRY(enc, encodeNode(trie_node, version));
+    OUTCOME_TRY(enc, encodeNode(trie_node, version, child_visitor));
     return merkleValue(enc);
   }
 
