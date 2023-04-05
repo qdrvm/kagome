@@ -64,15 +64,18 @@ namespace {
   kagome::network::Tick slotNumberToTick(
       uint64_t slot_duration_millis,
       kagome::consensus::babe::BabeSlotNumber slot) {
-    auto ticks_per_slot = slot_duration_millis / kTickDurationMs;
+    auto const ticks_per_slot = slot_duration_millis / kTickDurationMs;
     return slot * ticks_per_slot;
   }
 
-  kagome::network::Tick tickNow() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
+  uint64_t msNow() {
+    return uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(
                std::chrono::system_clock::now().time_since_epoch())
-               .count()
-         / kTickDurationMs;
+               .count());
+  }
+
+  kagome::network::Tick tickNow() {
+    return msNow() / kTickDurationMs;
   }
 
   kagome::parachain::approval::DelayTranche trancheNow(
@@ -554,6 +557,18 @@ namespace kagome::parachain {
   }
 
   bool ApprovalDistribution::start() {
+    ttt_ = std::make_unique<clock::BasicWaitableTimer>(this_context_);
+    ttt_->expiresAfter(std::chrono::milliseconds(200));
+    auto const tick = uint32_t(55) + uint64_t(145);
+    SL_ERROR(logger_,
+              "TEST RUN =====> 1 after {}", tick);
+    ttt_->asyncWait([wself{weak_from_this()}](auto &&) {
+      if (auto self = wself.lock()) {
+        SL_ERROR(self->logger_,
+                  "TEST RUN =====> 2");
+        int  p =0; ++p;
+      }
+    });
     return true;
   }
 
@@ -1812,14 +1827,13 @@ namespace kagome::parachain {
           },
           [&tick_now](approval::ExactRequiredTranche const &e) {
             auto filter = [](Tick const &t, Tick const &ref) {
-              auto const v = t + kApprovalDelay;
-              return ((v > ref) ? std::optional<Tick>{v}
+              return ((t > ref) ? std::optional<Tick>{t}
                                 : std::optional<Tick>{});
             };
             return approval::min_or_some(
                 e.next_no_show,
                 (e.last_assignment_tick
-                     ? filter(*e.last_assignment_tick, tick_now)
+                     ? filter(*e.last_assignment_tick + kApprovalDelay, tick_now)
                      : std::optional<Tick>{}));
           },
           [&](approval::PendingRequiredTranche const &e) {
@@ -2007,17 +2021,20 @@ namespace kagome::parachain {
       primitives::BlockNumber block_number,
       CandidateHash const &candidate_hash,
       Tick tick) {
+    auto const ms_now = msNow();
+    auto const ms_wakeup = tick * kTickDurationMs;
+    auto const ms_wakeup_after = math::sat_sub_unsigned(ms_wakeup, ms_now);
+    
     SL_TRACE(
         logger_,
-        "Scheduling wakeup. Block hash {}, candidate hash {}, block number {}, "
-        "tick {}",
+        "Scheduling wakeup. (block_hash={}, candidate_hash={}, block_number={}, tick={}, after={})",
         block_hash,
         candidate_hash,
         block_number,
-        tick);
+        tick, ms_wakeup_after);
 
     auto t = std::make_unique<clock::BasicWaitableTimer>(this_context_);
-    t->expiresAfter(std::chrono::milliseconds(tick));
+    t->expiresAfter(std::chrono::milliseconds(ms_wakeup_after));
     t->asyncWait([wself{weak_from_this()},
                   id{uintptr_t(t.get())},
                   block_hash,
