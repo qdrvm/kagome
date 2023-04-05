@@ -114,7 +114,8 @@ namespace kagome::network {
         app_config_,
         chain_spec_,
         genesisBlockHash,
-        validation_observer_.lock(),
+        parachain_observer_.lock(),
+        // parachain_observer_.get(),
         kValidationProtocol,
         peer_view_,
         log::createLogger("ValidationProtocol", "validation_protocol"));
@@ -131,7 +132,8 @@ namespace kagome::network {
         app_config_,
         chain_spec_,
         genesisBlockHash,
-        collation_observer_.lock(),
+        parachain_observer_.lock(),
+        // parachain_observer_.get(),
         kCollationProtocol,
         peer_view_,
         log::createLogger("CollationProtocol", "collation_protocol"));
@@ -144,7 +146,9 @@ namespace kagome::network {
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
     return std::make_shared<ReqCollationProtocol>(
-        host_, chain_spec_, genesisBlockHash, req_collation_observer_.lock());
+        host_, chain_spec_, genesisBlockHash, parachain_observer_.lock()
+        // parachain_observer_.get()
+    );
   }
 
   std::shared_ptr<ReqPovProtocol> ProtocolFactory::makeReqPovProtocol() const {
@@ -153,7 +157,9 @@ namespace kagome::network {
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
     return std::make_shared<ReqPovProtocol>(
-        host_, chain_spec_, genesisBlockHash, req_pov_observer_.lock());
+        host_, chain_spec_, genesisBlockHash, parachain_observer_.lock()
+        // parachain_observer_.get()
+    );
   }
 
   std::shared_ptr<FetchChunkProtocol> ProtocolFactory::makeFetchChunkProtocol()
@@ -163,6 +169,7 @@ namespace kagome::network {
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
     auto pp = parachain_processor_.lock();
+    // auto pp = parachain_processor_.get();
     BOOST_ASSERT(pp);
 
     return std::make_shared<FetchChunkProtocol>(
@@ -176,6 +183,7 @@ namespace kagome::network {
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
     auto pp = parachain_processor_.lock();
+    // auto pp = parachain_processor_.get();
     BOOST_ASSERT(pp);
 
     return std::make_shared<FetchAvailableDataProtocol>(
@@ -189,6 +197,7 @@ namespace kagome::network {
     auto genesisBlockHash = block_tree->getGenesisBlockHash();
 
     auto pp = parachain_processor_.lock();
+    // auto pp = parachain_processor_.get();
     BOOST_ASSERT(pp);
 
     return std::make_shared<StatmentFetchingProtocol>(

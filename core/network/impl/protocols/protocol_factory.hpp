@@ -56,13 +56,10 @@ namespace kagome::network {
         //     grandpa_observer,
         ,lazy<std::shared_ptr<PeerManager>> peer_manage
         // ,lazy<std::shared_ptr<parachain::ParachainProcessorImpl>> pp
+        // ,lazy<std::shared_ptr<parachain::ParachainObserver>> parachain_observer
         ,lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer
-        // ,lazy<std::shared_ptr<CollationObserver>> collation_observer
-        // ,lazy<std::shared_ptr<ValidationObserver>> validation_observer
-        // ,lazy<std::shared_ptr<StateProtocolObserver>> state_observer
-        // ,lazy<std::shared_ptr<ReqCollationObserver>> req_collation_observer
-        // ,lazy<std::shared_ptr<ReqPovObserver>> observer
         // ,lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer
+        // ,lazy<std::shared_ptr<StateProtocolObserver>> state_observer
     );
 
     void setGrandpaObserver(
@@ -79,15 +76,6 @@ namespace kagome::network {
     void setStateObserver(
         const std::shared_ptr<StateProtocolObserver> &state_observer) {
       state_observer_ = state_observer;
-    }
-
-    void setReqCollationObserver(
-        std::shared_ptr<ReqCollationObserver> const &req_collation_observer) {
-      req_collation_observer_ = req_collation_observer;
-    }
-
-    void setReqPovObserver(std::shared_ptr<ReqPovObserver> const &observer) {
-      req_pov_observer_ = observer;
     }
 
     void setSyncObserver(
