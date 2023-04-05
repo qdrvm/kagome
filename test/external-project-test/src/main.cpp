@@ -5,6 +5,7 @@
 
 #include <filesystem>
 
+#include <kagome/application/impl/app_configuration_impl.hpp>
 #include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
@@ -95,6 +96,9 @@ int main() {
   auto code_substitutes = chain_spec->codeSubstitutes();
   auto storage = std::make_shared<kagome::storage::InMemoryStorage>();
 
+  auto config = std::make_shared<kagome::application::AppConfigurationImpl>(
+      kagome::log::createLogger("AppConfiguration"));
+
   auto trie_factory =
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<kagome::storage::trie::PolkadotCodec>();
@@ -104,8 +108,9 @@ int main() {
       trie_factory, codec, storage_backend);
 
   auto state_pruner =
-      std::make_shared<kagome::storage::trie_pruner::TriePrunerImpl>(
-          storage_backend, serializer, codec, database, hasher);
+      std::shared_ptr(kagome::storage::trie_pruner::TriePrunerImpl::create(
+          config, storage_backend, serializer, codec, database, hasher)
+          .value());
 
   std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =
       kagome::storage::trie::TrieStorageImpl::createEmpty(

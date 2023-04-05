@@ -86,7 +86,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
   auto storage = TrieStorageImpl::createFromStorage(
                      codec, serializer, state_pruner)
                      .value();
-  auto batch = storage->getPersistentBatchAt(root).value();
+  auto batch = storage->getPersistentBatchAt(root, std::nullopt).value();
   EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));
   ASSERT_EQ(v1, "abc"_buf);
   EXPECT_OUTCOME_TRUE(v2, batch->get("345"_buf));

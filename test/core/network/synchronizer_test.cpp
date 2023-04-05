@@ -20,6 +20,7 @@
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
@@ -80,6 +81,9 @@ class SynchronizerTest
     EXPECT_CALL(*spaced_storage, getSpace(kagome::storage::Space::kDefault))
         .WillRepeatedly(Return(buffer_storage));
 
+    auto state_pruner =
+        std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
+
     synchronizer =
         std::make_shared<network::SynchronizerImpl>(app_config,
                                                     app_state_manager,
@@ -88,6 +92,7 @@ class SynchronizerTest
                                                     block_executor,
                                                     serializer,
                                                     storage,
+                                                    state_pruner,
                                                     router,
                                                     scheduler,
                                                     hasher,
