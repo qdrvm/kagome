@@ -77,7 +77,7 @@ namespace kagome::api {
                   sptr<crypto::CryptoStore> store,
                   sptr<crypto::SessionKeys> keys,
                   sptr<crypto::KeyFileStorage> key_store,
-                  sptr<blockchain::BlockTree> block_tree,
+                  lazy<sptr<blockchain::BlockTree>> block_tree,
                   lazy<std::shared_ptr<api::ApiService>> api_service);
 
     ~AuthorApiImpl() override = default;
@@ -118,7 +118,7 @@ namespace kagome::api {
     sptr<crypto::SessionKeys> keys_;
     sptr<crypto::KeyFileStorage> key_store_;
     lazy<std::shared_ptr<api::ApiService>> api_service_;
-    sptr<blockchain::BlockTree> block_tree_;
+    lazy<sptr<blockchain::BlockTree>> block_tree_;
 
     log::Logger logger_;
   };

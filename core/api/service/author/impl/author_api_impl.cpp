@@ -37,7 +37,7 @@ namespace kagome::api {
       sptr<crypto::CryptoStore> store,
       sptr<crypto::SessionKeys> keys,
       sptr<crypto::KeyFileStorage> key_store,
-      sptr<blockchain::BlockTree> block_tree,
+      lazy<std::shared_ptr<blockchain::BlockTree>> block_tree,
       lazy<std::shared_ptr<api::ApiService>> api_service)
       : keys_api_(std::move(key_api)),
         pool_{std::move(pool)},
@@ -52,7 +52,6 @@ namespace kagome::api {
     BOOST_ASSERT_MSG(store_ != nullptr, "crypto store is nullptr");
     BOOST_ASSERT_MSG(keys_ != nullptr, "session keys store is nullptr");
     BOOST_ASSERT_MSG(key_store_ != nullptr, "key store is nullptr");
-    BOOST_ASSERT_MSG(block_tree_ != nullptr, "block tree is nullptr");
     BOOST_ASSERT_MSG(logger_ != nullptr, "logger is nullptr");
   }
 
@@ -122,8 +121,8 @@ namespace kagome::api {
 
   outcome::result<common::Buffer> AuthorApiImpl::rotateKeys() {
     OUTCOME_TRY(encoded_session_keys,
-                keys_api_->generate_session_keys(block_tree_->bestLeaf().hash,
-                                                 std::nullopt));
+                keys_api_->generate_session_keys(
+                    block_tree_.get()->bestLeaf().hash, std::nullopt));
     return std::move(encoded_session_keys);
   }
 

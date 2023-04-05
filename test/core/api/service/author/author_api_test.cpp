@@ -43,6 +43,7 @@ using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
 
 using kagome::application::AppConfigurationMock;
+using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::network::TransactionsTransmitterMock;
 using kagome::primitives::BlockId;
@@ -157,7 +158,7 @@ struct AuthorApiTest : public ::testing::Test {
         store,
         keys,
         key_store,
-        block_tree,
+        testutil::sptr_to_lazy<BlockTree>(block_tree),
         testutil::sptr_to_lazy<ApiService>(api_service_mock));
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
