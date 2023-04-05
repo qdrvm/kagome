@@ -107,8 +107,11 @@ namespace kagome::network {
     BOOST_ASSERT(router_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
-    BOOST_ASSERT(buffer_storage_);
+    BOOST_ASSERT(module_factory_);
+    BOOST_ASSERT(core_api_);
     BOOST_ASSERT(grandpa_environment_);
+    BOOST_ASSERT(chain_sub_engine_);
+    BOOST_ASSERT(buffer_storage_);
 
     sync_method_ = app_config.syncMethod();
 
