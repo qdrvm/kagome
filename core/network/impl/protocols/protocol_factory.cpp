@@ -30,13 +30,11 @@ namespace kagome::network {
       lazy<std::shared_ptr<PeerManager>> peer_manager
       // ,lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
       //     parachain_processor
-      // ,lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer
-      // ,lazy<std::shared_ptr<CollationObserver>> collation_observer
-      // ,lazy<std::shared_ptr<ValidationObserver>> validation_observer
-      // ,lazy<std::shared_ptr<StateProtocolObserver>> state_observer
-      // ,lazy<std::shared_ptr<ReqCollationObserver>> req_collation_observer
-      // ,lazy<std::shared_ptr<ReqPovObserver>> req_pov_observer
+      // ,lazy<std::shared_ptr<parachain::ParachainObserver>> parachain_observer
+      ,
+      lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer
       // ,lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer
+      // ,lazy<std::shared_ptr<StateProtocolObserver>> state_observer
       )
       : host_(host),
         app_config_(app_config),
@@ -52,16 +50,15 @@ namespace kagome::network {
         peer_view_(std::move(peer_view)),
         block_tree_(std::move(block_tree)),
         babe_(std::move(babe))
-  // ,grandpa_observer_(std::move(grandpa_observer))
-        ,peer_manager_(std::move(peer_manager))
-  // ,parachain_processor_(std::move(parachain_processor))
-  // ,extrinsic_observer_(std::move(extrinsic_observer))
-  // ,state_observer_(std::move(state_observer))
+        // ,grandpa_observer_(std::move(grandpa_observer))
+        ,
+        peer_manager_(std::move(peer_manager))
+        // ,parachain_processor_(std::move(parachain_processor))
+        // , parachain_observer_(std::move(parachain_observer))
+        ,
+        extrinsic_observer_(std::move(extrinsic_observer))
   // ,sync_observer_(std::move(sync_observer))
-  // ,collation_observer_(std::move(collation_observer))
-  // ,validation_observer_(std::move(validation_observer))
-  // ,req_collation_observer_(std::move(req_collation_observer))
-  // ,req_pov_observer_(std::move(req_pov_observer))
+  // ,state_observer_(std::move(state_observer))
   {
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
@@ -210,7 +207,7 @@ namespace kagome::network {
         chain_spec_,
         genesisBlockHash,
         babe_.get(),
-        extrinsic_observer_.lock(),
+        extrinsic_observer_.get(),
         stream_engine_,
         extrinsic_events_engine_,
         ext_event_key_repo_);

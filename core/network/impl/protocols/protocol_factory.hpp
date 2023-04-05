@@ -25,6 +25,7 @@
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/reputation_repository.hpp"
+#include "parachain/validator/parachain_observer.hpp"
 #include "primitives/event_types.hpp"
 
 namespace kagome::network {
@@ -55,7 +56,7 @@ namespace kagome::network {
         //     grandpa_observer,
         ,lazy<std::shared_ptr<PeerManager>> peer_manage
         // ,lazy<std::shared_ptr<parachain::ParachainProcessorImpl>> pp
-        // ,lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer
+        ,lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer
         // ,lazy<std::shared_ptr<CollationObserver>> collation_observer
         // ,lazy<std::shared_ptr<ValidationObserver>> validation_observer
         // ,lazy<std::shared_ptr<StateProtocolObserver>> state_observer
@@ -73,21 +74,6 @@ namespace kagome::network {
     void setParachainProcessor(
         const std::shared_ptr<parachain::ParachainProcessorImpl> &pp) {
       parachain_processor_ = pp;
-    }
-
-    void setExtrinsicObserver(
-        const std::shared_ptr<ExtrinsicObserver> &extrinsic_observer) {
-      extrinsic_observer_ = extrinsic_observer;
-    }
-
-    void setCollactionObserver(
-        std::shared_ptr<CollationObserver> const &collation_observer) {
-      collation_observer_ = collation_observer;
-    }
-
-    void setValidationObserver(
-        std::shared_ptr<ValidationObserver> const &validation_observer) {
-      validation_observer_ = validation_observer;
     }
 
     void setStateObserver(
@@ -152,23 +138,16 @@ namespace kagome::network {
     lazy<std::shared_ptr<PeerManager>> peer_manager_;
     // lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
     //     parachain_processor_;
-    // lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer_;
+    // lazy<std::shared_ptr<parachain::ParachainObserver>> parachain_observer_;
+    lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer_;
     // lazy<std::shared_ptr<StateProtocolObserver>> state_observer_;
     // lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer_;
-    // lazy<std::shared_ptr<CollationObserver>> collation_observer_;
-    // lazy<std::shared_ptr<ValidationObserver>> validation_observer_;
-    // lazy<std::shared_ptr<ReqCollationObserver>> req_collation_observer_;
-    // lazy<std::shared_ptr<ReqPovObserver>> req_pov_observer_;
 
     std::weak_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
-    std::weak_ptr<ExtrinsicObserver> extrinsic_observer_;
-    std::weak_ptr<StateProtocolObserver> state_observer_;
-    std::weak_ptr<SyncProtocolObserver> sync_observer_;
-    std::weak_ptr<CollationObserver> collation_observer_;
-    std::weak_ptr<ValidationObserver> validation_observer_;
-    std::weak_ptr<ReqCollationObserver> req_collation_observer_;
-    std::weak_ptr<ReqPovObserver> req_pov_observer_;
     std::weak_ptr<parachain::ParachainProcessorImpl> parachain_processor_;
+    std::weak_ptr<parachain::ParachainObserver> parachain_observer_;
+    std::weak_ptr<SyncProtocolObserver> sync_observer_;
+    std::weak_ptr<StateProtocolObserver> state_observer_;
   };
 
 }  // namespace kagome::network

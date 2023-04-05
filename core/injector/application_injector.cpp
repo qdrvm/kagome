@@ -778,9 +778,7 @@ namespace {
               injector.template create<application::AppConfiguration const &>();
           return get_chain_spec(config);
         }),
-        bind_by_lambda<network::ExtrinsicObserver>([](const auto &injector) {
-          return get_extrinsic_observer_impl(injector);
-        }),
+        di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
         di::bind<consensus::grandpa::GrandpaDigestObserver>.template to<consensus::grandpa::AuthorityManagerImpl>(),
         di::bind<consensus::grandpa::AuthorityManager>.template to<consensus::grandpa::AuthorityManagerImpl>(),
         di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
@@ -893,20 +891,6 @@ namespace {
         injector.template create<sptr<storage::trie::TrieStorage>>(),
         injector.template create<
             primitives::events::BabeStateSubscriptionEnginePtr>());
-
-    return ptr;
-  }
-
-  template <typename Injector>
-  sptr<network::ExtrinsicObserverImpl> get_extrinsic_observer_impl(
-      const Injector &injector) {
-    auto ptr = std::make_shared<network::ExtrinsicObserverImpl>(
-        injector.template create<sptr<transaction_pool::TransactionPool>>());
-
-    auto protocol_factory =
-        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
-    protocol_factory->setExtrinsicObserver(ptr);
 
     return ptr;
   }
