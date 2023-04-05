@@ -862,8 +862,6 @@ namespace {
 
   template <typename Injector>
   auto get_babe(const Injector &injector) {
-    auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
-
     auto ptr = std::make_shared<consensus::babe::BabeImpl>(
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<application::AppStateManager>>(),
@@ -873,7 +871,7 @@ namespace {
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<network::BlockAnnounceTransmitter>>(),
         injector.template create<sptr<crypto::Sr25519Provider>>(),
-        session_keys->getBabeKeyPair(),
+        injector.template create<sptr<crypto::SessionKeys>>(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),

@@ -20,6 +20,7 @@
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
+#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
@@ -52,7 +53,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<network::BlockAnnounceTransmitter>
           block_announce_transmitter,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<crypto::Sr25519Keypair> keypair,
+      std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
@@ -75,7 +76,10 @@ namespace kagome::consensus::babe {
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         block_announce_transmitter_{std::move(block_announce_transmitter)},
-        keypair_{std::move(keypair)},
+        keypair_([&] {
+          BOOST_ASSERT(session_keys != nullptr);
+          return session_keys->getBabeKeyPair();
+        }()),
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
