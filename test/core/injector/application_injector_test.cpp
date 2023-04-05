@@ -129,6 +129,10 @@ class KagomeInjectorTest : public testing::Test {
     injector_ = std::make_unique<kagome::injector::KagomeNodeInjector>(config_);
   }
 
+  void TearDown() override {
+    injector_.reset();
+  }
+
   static void TearDownTestCase() {
     fs::remove_all(db_path_);
   }
@@ -143,6 +147,7 @@ class KagomeInjectorTest : public testing::Test {
 
 #define TEST_KAGOME_INJECT(module) \
   ASSERT_NE(injector_->inject##module(), nullptr)
+
 TEST_F(KagomeInjectorTest, Inject) {
   // Order as in KagomeApplicationImpl::run()
   TEST_KAGOME_INJECT(ChainSpec);
