@@ -9,7 +9,7 @@ BUILD_DIR="${BUILD_DIR:-$(pwd)/build}"
 
 BUILD_TYPE="${BUILD_TYPE:?BUILD_TYPE variable is not defined}"
 
-if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ] && [ "$BUILD_TYPE" != "RelWithDebInfo" ]; then
+if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ] && [ "$BUILD_TYPE" != "RelWithDebInfo" ] && [ "$BUILD_TYPE" != "Custom" ]; then
   echo "Invalid build type $BUILD_TYPE, should be either Debug, Release or RelWithDebInfo"
   exit 1
 fi
@@ -31,7 +31,14 @@ if [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
   VERSION="${VERSION}-rel-with-deb-info"
 fi
 
-TAG="soramitsu/kagome:$VERSION"
+if [ "$BUILD_TYPE" = "Custom" ]; then
+  VERSION="${VERSION}-custom"
+  DOCKER_USERNAME="$(docker info | sed '/Username:/!d;s/.* //')"
+  COMMIT_HASH="$(git rev-parse --short HEAD)"
+  TAG="$DOCKER_USERNAME/kagome:$COMMIT_HASH"
+else
+  TAG="soramitsu/kagome:$VERSION"
+fi
 
 CTX_DIR="${BUILD_DIR}/docker_context"
 
@@ -42,7 +49,7 @@ mkdir -p ${CTX_DIR}
 # Copy binaries
 cp -a ${BUILD_DIR}/node/kagome ${CTX_DIR}/
 
-if [ "$BUILD_TYPE" = "Release" ]; then
+if [ "$BUILD_TYPE" = "Release" ] || [ "$BUILD_TYPE" = "Custom" ]; then
   strip ${CTX_DIR}/kagome
 
   docker build -t $TAG -f housekeeping/docker/kagome/minideb-release.Dockerfile ${CTX_DIR}
