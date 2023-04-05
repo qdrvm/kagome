@@ -147,7 +147,7 @@ struct AuthorApiTest : public ::testing::Test {
         gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1)));
     role.flags.authority = 1;
     EXPECT_CALL(*config, roles()).WillOnce(Return(role));
-    keys = std::make_shared<SessionKeys>(store, *config);
+    keys = std::make_shared<SessionKeysImpl>(store, *config);
     key_api = std::make_shared<SessionKeysApiMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     block_tree = std::make_shared<BlockTreeMock>();

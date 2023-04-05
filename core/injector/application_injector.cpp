@@ -812,6 +812,7 @@ namespace {
         di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
         di::bind<consensus::babe::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
         di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
+        di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
