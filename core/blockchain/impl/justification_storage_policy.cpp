@@ -12,18 +12,18 @@
 
 namespace kagome::blockchain {
 
+  JustificationStoragePolicyImpl::JustificationStoragePolicyImpl(
+      lazy<std::shared_ptr<const blockchain::BlockTree>> block_tree)
+      : block_tree_(std::move(block_tree)) {}
+
   outcome::result<bool> JustificationStoragePolicyImpl::shouldStoreFor(
       primitives::BlockHeader const &block_header) const {
     if (block_header.number == 0) {
       return true;
     }
 
-    BOOST_ASSERT_MSG(block_tree_ != nullptr,
-                     "Block tree must have been initialized with "
-                     "JustificationStoragePolicyImpl::initBlockchainInfo()");
-
     BOOST_ASSERT_MSG(
-        block_tree_->getLastFinalized().number >= block_header.number,
+        block_tree_.get()->getLastFinalized().number >= block_header.number,
         "Target block must be finalized");
 
     if (consensus::grandpa::HasAuthoritySetChange{block_header}) {
@@ -33,14 +33,6 @@ namespace kagome::blockchain {
       return true;
     }
     return false;
-  }
-
-  void JustificationStoragePolicyImpl::initBlockchainInfo(
-      std::shared_ptr<const blockchain::BlockTree> block_tree) {
-    BOOST_ASSERT_MSG(block_tree_ == nullptr,
-                     "Block tree should be initialized once");
-    BOOST_ASSERT(block_tree != nullptr);
-    block_tree_ = block_tree;
   }
 
 }  // namespace kagome::blockchain

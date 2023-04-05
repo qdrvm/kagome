@@ -782,17 +782,7 @@ namespace {
           return get_extrinsic_observer_impl(injector);
         }),
         di::bind<consensus::grandpa::GrandpaDigestObserver>.template to<consensus::grandpa::AuthorityManagerImpl>(),
-        bind_by_lambda<consensus::grandpa::AuthorityManager>(
-            [](auto const &injector) {
-              auto auth_manager_impl = injector.template create<
-                  sptr<consensus::grandpa::AuthorityManagerImpl>>();
-              auto block_tree_impl =
-                  injector.template create<sptr<blockchain::BlockTree>>();
-              auto justification_storage_policy = injector.template create<
-                  sptr<blockchain::JustificationStoragePolicyImpl>>();
-              justification_storage_policy->initBlockchainInfo(block_tree_impl);
-              return auth_manager_impl;
-            }),
+        di::bind<consensus::grandpa::AuthorityManager>.template to<consensus::grandpa::AuthorityManagerImpl>(),
         di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::babe::BlockHeaderAppender>.template to<consensus::babe::BlockHeaderAppenderImpl>(),
