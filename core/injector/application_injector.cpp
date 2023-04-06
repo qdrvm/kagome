@@ -792,47 +792,6 @@ namespace {
         std::forward<decltype(args)>(args)...);
   }
 
-  template <typename Injector>
-  sptr<network::OwnPeerInfo> get_own_peer_info(const Injector &injector) {
-    libp2p::crypto::PublicKey public_key;
-
-    const auto &config =
-        injector.template create<application::AppConfiguration const &>();
-
-    if (config.roles().flags.authority) {
-      auto local_pair =
-          injector.template create<sptr<libp2p::crypto::KeyPair>>();
-
-      public_key = local_pair->publicKey;
-    } else {
-      auto &&local_pair = injector.template create<libp2p::crypto::KeyPair>();
-      public_key = local_pair.publicKey;
-    }
-
-    auto &key_marshaller =
-        injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
-
-    libp2p::peer::PeerId peer_id =
-        libp2p::peer::PeerId::fromPublicKey(
-            key_marshaller.marshal(public_key).value())
-            .value();
-
-    std::vector<libp2p::multi::Multiaddress> listen_addrs =
-        config.listenAddresses();
-    std::vector<libp2p::multi::Multiaddress> public_addrs =
-        config.publicAddresses();
-
-    auto log = log::createLogger("Injector", "injector");
-    for (auto &addr : listen_addrs) {
-      SL_DEBUG(log, "Peer listening on multiaddr: {}", addr.getStringAddress());
-    }
-    for (auto &addr : public_addrs) {
-      SL_DEBUG(log, "Peer public multiaddr: {}", addr.getStringAddress());
-    }
-
-    return std::make_shared<network::OwnPeerInfo>(
-        std::move(peer_id), std::move(public_addrs), std::move(listen_addrs));
-  }
 
   template <typename Injector>
   auto get_babe(const Injector &injector) {
@@ -946,9 +905,6 @@ namespace {
                               Ts &&...args) {
     return di::make_injector<boost::di::extension::shared_config>(
         makeApplicationInjector(app_config),
-        // compose peer info
-        bind_by_lambda<network::OwnPeerInfo>(
-            [](const auto &injector) { return get_own_peer_info(injector); }),
         bind_by_lambda<consensus::babe::BabeImpl>(
             [](auto const &injector) { return get_babe(injector); }),
         bind_by_lambda<consensus::babe::Babe>([](auto &&injector) {
