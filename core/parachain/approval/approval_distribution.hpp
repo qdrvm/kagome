@@ -639,10 +639,12 @@ namespace kagome::parachain {
         Hash,
         std::vector<std::pair<libp2p::peer::PeerId, PendingMessage>>>
         pending_known_;
-    std::unique_ptr<clock::Timer> ttt_;
 
     /// thread_pool_ context access
-    std::unordered_map<uintptr_t, std::unique_ptr<clock::Timer>>
+    using ScheduledCandidateTimer =
+        std::unordered_map<CandidateHash,
+                           std::pair<Tick, std::unique_ptr<clock::Timer>>>;
+    std::unordered_map<network::BlockHash, ScheduledCandidateTimer>
         active_tranches_;
 
     log::Logger logger_ =

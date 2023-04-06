@@ -70,8 +70,8 @@ namespace {
 
   uint64_t msNow() {
     return uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(
-               std::chrono::system_clock::now().time_since_epoch())
-               .count());
+                        std::chrono::system_clock::now().time_since_epoch())
+                        .count());
   }
 
   kagome::network::Tick tickNow() {
@@ -506,13 +506,7 @@ namespace kagome::parachain {
     app_state_manager->takeControl(*this);
   }
 
-  ApprovalDistribution::~ApprovalDistribution() {
-    for (auto &it : active_tranches_) {
-      BOOST_ASSERT(it.second);
-    }
-    active_tranches_.clear();
-    BOOST_ASSERT(nullptr == this_context_);
-  }
+  ApprovalDistribution::~ApprovalDistribution() {}
 
   bool ApprovalDistribution::prepare() {
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
@@ -548,6 +542,7 @@ namespace kagome::parachain {
                 self->logger_->trace(
                     "Cleaning up stale pending messages.(block hash={})", lost);
                 self->pending_known_.erase(lost);
+                self->active_tranches_.erase(lost);
               }
             }
           }
@@ -557,18 +552,6 @@ namespace kagome::parachain {
   }
 
   bool ApprovalDistribution::start() {
-    ttt_ = std::make_unique<clock::BasicWaitableTimer>(this_context_);
-    ttt_->expiresAfter(std::chrono::milliseconds(200));
-    auto const tick = uint32_t(55) + uint64_t(145);
-    SL_ERROR(logger_,
-              "TEST RUN =====> 1 after {}", tick);
-    ttt_->asyncWait([wself{weak_from_this()}](auto &&) {
-      if (auto self = wself.lock()) {
-        SL_ERROR(self->logger_,
-                  "TEST RUN =====> 2");
-        int  p =0; ++p;
-      }
-    });
     return true;
   }
 
@@ -1832,9 +1815,9 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick
-                     ? filter(*e.last_assignment_tick + kApprovalDelay, tick_now)
-                     : std::optional<Tick>{}));
+                (e.last_assignment_tick ? filter(
+                     *e.last_assignment_tick + kApprovalDelay, tick_now)
+                                        : std::optional<Tick>{}));
           },
           [&](approval::PendingRequiredTranche const &e) {
             std::optional<DelayTranche> next_announced{};
@@ -2024,14 +2007,23 @@ namespace kagome::parachain {
     auto const ms_now = msNow();
     auto const ms_wakeup = tick * kTickDurationMs;
     auto const ms_wakeup_after = math::sat_sub_unsigned(ms_wakeup, ms_now);
-    
-    SL_TRACE(
-        logger_,
-        "Scheduling wakeup. (block_hash={}, candidate_hash={}, block_number={}, tick={}, after={})",
-        block_hash,
-        candidate_hash,
-        block_number,
-        tick, ms_wakeup_after);
+
+    auto &target_block = active_tranches_[block_hash];
+    auto target_candidate = target_block.find(candidate_hash);
+    if (target_candidate != target_block.end()) {
+      if (target_candidate->second.first <= tick) {
+        return;
+      }
+    }
+
+    SL_TRACE(logger_,
+             "Scheduling wakeup. (block_hash={}, candidate_hash={}, "
+             "block_number={}, tick={}, after={})",
+             block_hash,
+             candidate_hash,
+             block_number,
+             tick,
+             ms_wakeup_after);
 
     auto t = std::make_unique<clock::BasicWaitableTimer>(this_context_);
     t->expiresAfter(std::chrono::milliseconds(ms_wakeup_after));
@@ -2041,7 +2033,13 @@ namespace kagome::parachain {
                   block_number,
                   candidate_hash](auto &&ec) {
       if (auto self = wself.lock()) {
-        self->active_tranches_.erase(id);
+        auto &target_block = self->active_tranches_[block_hash];
+        auto target_candidate_it = target_block.find(candidate_hash);
+        BOOST_ASSERT(target_candidate_it != target_block.end());
+
+        auto t = std::move(target_candidate_it->second.second);
+        target_block.erase(target_candidate_it);
+
         if (ec) {
           SL_ERROR(self->logger_,
                    "error happened while waiting on tranche the "
@@ -2052,7 +2050,8 @@ namespace kagome::parachain {
         self->handleTranche(block_hash, block_number, candidate_hash);
       }
     });
-    active_tranches_[uintptr_t(t.get())] = std::move(t);
+    target_block.insert_or_assign(
+        target_candidate, candidate_hash, std::make_pair(tick, std::move(t)));
   }
 
   void ApprovalDistribution::handleTranche(
