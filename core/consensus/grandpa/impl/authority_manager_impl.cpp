@@ -634,35 +634,27 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> AuthorityManagerImpl::applyForcedChange(
       const primitives::BlockContext &context,
       const primitives::AuthorityList &authorities,
-      primitives::BlockNumber delay_start,
-      size_t delay) {
-    auto forced_number = delay_start + delay;
+      primitives::BlockNumber activate_at) {
     SL_DEBUG(logger_,
-             "Applying forced change (delay start: {}, delay: {}) on block {} "
-             "to activate at block {}",
-             delay_start,
-             delay,
+             "Applying forced change on block {} to activate at block {}",
              context.block_info,
-             forced_number);
-    if (forced_number < root_->block.number) {
-      SL_DEBUG(
-          logger_,
-          "Applying forced change on block {} is delayed {} blocks. "
-          "Normalized to (delay start: {}, delay: {}) to activate at block {}",
-          context.block_info,
-          root_->block.number - forced_number,
-          delay_start,
-          delay,
-          root_->block.number);
-      forced_number = root_->block.number;
+             activate_at);
+    if (activate_at < root_->block.number) {
+      SL_DEBUG(logger_,
+               "Applying forced change on block {} is delayed {} blocks. "
+               "Normalized to activate at block {}",
+               context.block_info,
+               root_->block.number - activate_at,
+               root_->block.number);
+      activate_at = root_->block.number;
     }
-    auto delay_start_hash_res = header_repo_->getHashByNumber(forced_number);
+    auto delay_start_hash_res = header_repo_->getHashByNumber(activate_at);
     if (delay_start_hash_res.has_error()) {
-      SL_ERROR(logger_, "Failed to obtain hash by number {}", forced_number);
+      SL_ERROR(logger_, "Failed to obtain hash by number {}", activate_at);
     }
     OUTCOME_TRY(delay_start_hash, delay_start_hash_res);
     auto ancestor_node =
-        getNode({.block_info = {forced_number, delay_start_hash}});
+        getNode({.block_info = {activate_at, delay_start_hash}});
 
     if (not ancestor_node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALIZED;
@@ -692,7 +684,7 @@ namespace kagome::consensus::grandpa {
       node->authorities = new_authorities;
       SL_VERBOSE(logger_,
                  "Change has been forced on block #{} (set id={})",
-                 forced_number,
+                 activate_at,
                  node->authorities->id);
 
       size_t index = 0;
@@ -709,7 +701,7 @@ namespace kagome::consensus::grandpa {
     };
 
     auto new_node =
-        ancestor_node->makeDescendant({forced_number, delay_start_hash}, true);
+        ancestor_node->makeDescendant({activate_at, delay_start_hash}, true);
 
     OUTCOME_TRY(force_change(new_node));
 
@@ -722,7 +714,8 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> AuthorityManagerImpl::applyOnDisabled(
-      const primitives::BlockContext &context, uint64_t authority_index) {
+      const primitives::BlockContext &context,
+      primitives::AuthorityIndex authority_index) {
     if (!config_.on_disable_enabled) {
       SL_TRACE(logger_, "Ignore 'on disabled' message due to config");
       return outcome::success();
@@ -887,7 +880,7 @@ namespace kagome::consensus::grandpa {
         },
         [this, &context](const primitives::ForcedChange &msg) {
           return applyForcedChange(
-              context, msg.authorities, msg.delay_start, msg.subchain_length);
+              context, msg.authorities, msg.delay_start + msg.subchain_length);
         },
         [this, &context](const primitives::OnDisabled &msg) {
           SL_DEBUG(logger_, "OnDisabled {}", msg.authority_index);
