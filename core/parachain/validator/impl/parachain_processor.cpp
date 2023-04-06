@@ -778,8 +778,8 @@ namespace kagome::parachain {
     validity_votes_out.reserve(validity_votes.size());
 
     for (auto &[validator_index, statement] : validity_votes) {
-      if (auto seconded = boost::get<network::CommittedCandidateReceipt>(
-              &statement.payload.payload.candidate_state)) {
+      if (is_type<network::CommittedCandidateReceipt>(
+              statement.payload.payload.candidate_state)) {
         validity_votes_out.emplace_back(
             validator_index,
             network::ValidityAttestation{
