@@ -897,15 +897,13 @@ namespace {
   template <typename Injector>
   sptr<consensus::grandpa::GrandpaImpl> get_grandpa_impl(
       const Injector &injector) {
-    auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
-
     auto ptr = std::make_shared<consensus::grandpa::GrandpaImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<crypto::Ed25519Provider>>(),
         injector.template create<sptr<runtime::GrandpaApi>>(),
-        session_keys->getGranKeyPair(),
+        injector.template create<sptr<crypto::SessionKeys>>(),
         injector.template create<const application::ChainSpec &>(),
         injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<consensus::grandpa::AuthorityManager>>(),
