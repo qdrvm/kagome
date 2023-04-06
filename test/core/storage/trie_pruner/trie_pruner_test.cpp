@@ -191,7 +191,7 @@ class TriePrunerTest : public testing::Test {
 
     pruner_space = std::make_shared<testing::NiceMock<BufferStorageMock>>();
     trie_pruner::TriePrunerImpl::TriePrunerInfo info{
-        .prune_base = {0, "genesis"_hash256}, .child_states{}};
+        .prune_base = {0, "genesis"_hash256}, .child_states = {}};
     auto info_enc = scale::encode(info).value();
     static auto key = ":trie_pruner:info"_buf;
     ON_CALL(*pruner_space, tryGetMock(key.view()))
@@ -218,7 +218,7 @@ class TriePrunerTest : public testing::Test {
         std::make_shared<kagome::application::AppConfigurationMock>();
     ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
     trie_pruner::TriePrunerImpl::TriePrunerInfo info{.prune_base = base_block,
-                                                     .child_states{}};
+                                                     .child_states = {}};
 
     auto info_enc = scale::encode(info).value();
     static auto key = ":trie_pruner:info"_buf;
@@ -621,7 +621,7 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
   mock_block(6);
 
   trie_pruner::TriePrunerImpl::TriePrunerInfo info{
-      .prune_base = {4, hash_from_header(headers.at(4))}, .child_states{}};
+      .prune_base = {4, hash_from_header(headers.at(4))}, .child_states = {}};
   auto info_enc = scale::encode(info).value();
   static auto key = ":trie_pruner:info"_buf;
   ON_CALL(*pruner_space, tryGetMock(key.view()))
