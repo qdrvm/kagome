@@ -6,8 +6,6 @@
 #ifndef KAGOME_NETWORK_PROTOCOLFACTORY
 #define KAGOME_NETWORK_PROTOCOLFACTORY
 
-#include <boost/di/extension/injections/lazy.hpp>
-
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_configuration.hpp"
@@ -29,9 +27,6 @@
 #include "primitives/event_types.hpp"
 
 namespace kagome::network {
-
-  template <typename T>
-  using lazy = boost::di::extension::lazy<T>;
 
   class ProtocolFactory final {
    public:

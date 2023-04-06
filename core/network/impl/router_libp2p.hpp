@@ -44,7 +44,7 @@ namespace kagome::network {
         std::shared_ptr<libp2p::protocol::Ping> ping_proto,
         boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol,
         std::shared_ptr<LightProtocol> light_protocol,
-        std::shared_ptr<network::ProtocolFactory> protocol_factory);
+        lazy<std::shared_ptr<network::ProtocolFactory>> protocol_factory);
 
     ~RouterLibp2p() override = default;
 
@@ -96,7 +96,7 @@ namespace kagome::network {
     std::shared_ptr<libp2p::protocol::Ping> ping_protocol_;
     boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol_;
     std::shared_ptr<LightProtocol> light_protocol_;
-    std::shared_ptr<network::ProtocolFactory> protocol_factory_;
+    lazy<std::shared_ptr<network::ProtocolFactory>> protocol_factory_;
 
     std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;
     std::shared_ptr<GrandpaProtocol> grandpa_protocol_;

@@ -15,7 +15,7 @@ namespace kagome::network {
       std::shared_ptr<libp2p::protocol::Ping> ping_proto,
       boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol,
       std::shared_ptr<LightProtocol> light_protocol,
-      std::shared_ptr<network::ProtocolFactory> protocol_factory)
+      lazy<std::shared_ptr<network::ProtocolFactory>> protocol_factory)
       : app_state_manager_{app_state_manager},
         host_{host},
         app_config_(app_config),
@@ -27,7 +27,6 @@ namespace kagome::network {
         protocol_factory_{std::move(protocol_factory)} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(ping_protocol_ != nullptr);
-    BOOST_ASSERT(protocol_factory_ != nullptr);
 
     SL_DEBUG(log_, "Own peer id: {}", own_info.id.toBase58());
     if (!bootstrap_nodes.empty()) {
@@ -66,64 +65,64 @@ namespace kagome::network {
 
     light_protocol_->start();
 
-    block_announce_protocol_ = protocol_factory_->makeBlockAnnounceProtocol();
+    block_announce_protocol_ = protocol_factory_.get()->makeBlockAnnounceProtocol();
     if (not block_announce_protocol_) {
       return false;
     }
 
-    collation_protocol_ = protocol_factory_->makeCollationProtocol();
+    collation_protocol_ = protocol_factory_.get()->makeCollationProtocol();
     if (not collation_protocol_) {
       return false;
     }
 
-    validation_protocol_ = protocol_factory_->makeValidationProtocol();
+    validation_protocol_ = protocol_factory_.get()->makeValidationProtocol();
     if (not validation_protocol_) {
       return false;
     }
 
-    req_collation_protocol_ = protocol_factory_->makeReqCollationProtocol();
+    req_collation_protocol_ = protocol_factory_.get()->makeReqCollationProtocol();
     if (not req_collation_protocol_) {
       return false;
     }
 
-    req_pov_protocol_ = protocol_factory_->makeReqPovProtocol();
+    req_pov_protocol_ = protocol_factory_.get()->makeReqPovProtocol();
     if (not req_pov_protocol_) {
       return false;
     }
 
-    fetch_chunk_protocol_ = protocol_factory_->makeFetchChunkProtocol();
+    fetch_chunk_protocol_ = protocol_factory_.get()->makeFetchChunkProtocol();
     if (!fetch_chunk_protocol_) {
       return false;
     }
 
     fetch_available_data_protocol_ =
-        protocol_factory_->makeFetchAvailableDataProtocol();
+        protocol_factory_.get()->makeFetchAvailableDataProtocol();
     if (!fetch_available_data_protocol_) {
       return false;
     }
 
-    fetch_statement_protocol_ = protocol_factory_->makeFetchStatementProtocol();
+    fetch_statement_protocol_ = protocol_factory_.get()->makeFetchStatementProtocol();
     if (!fetch_statement_protocol_) {
       return false;
     }
 
-    grandpa_protocol_ = protocol_factory_->makeGrandpaProtocol();
+    grandpa_protocol_ = protocol_factory_.get()->makeGrandpaProtocol();
     if (not grandpa_protocol_) {
       return false;
     }
 
     propagate_transaction_protocol_ =
-        protocol_factory_->makePropagateTransactionsProtocol();
+        protocol_factory_.get()->makePropagateTransactionsProtocol();
     if (not propagate_transaction_protocol_) {
       return false;
     }
 
-    state_protocol_ = protocol_factory_->makeStateProtocol();
+    state_protocol_ = protocol_factory_.get()->makeStateProtocol();
     if (not state_protocol_) {
       return false;
     }
 
-    sync_protocol_ = protocol_factory_->makeSyncProtocol();
+    sync_protocol_ = protocol_factory_.get()->makeSyncProtocol();
     if (not sync_protocol_) {
       return false;
     }
