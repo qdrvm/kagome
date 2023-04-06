@@ -13,6 +13,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <boost/assert.hpp>
+
 #include "scale/tie.hpp"
 
 #include "common/buffer.hpp"
@@ -173,6 +175,8 @@ namespace kagome::storage::trie_pruner {
           case AddWholeState:
             return true;
         }
+        BOOST_ASSERT_MSG(false, "Unreachable");
+        return false;
       }
 
       bool shouldAddAllNodes() const {
@@ -184,6 +188,8 @@ namespace kagome::storage::trie_pruner {
           case AddWholeState:
             return true;
         }
+        BOOST_ASSERT_MSG(false, "Unreachable");
+        return false;
       }
     };
 
