@@ -87,8 +87,8 @@ namespace kagome::storage::trie {
     outcome::result<void> skipRemoved();
     outcome::result<void> step();
 
-    struct Choise {
-      Choise(bool parent, bool overlay) : parent{parent}, overlay{overlay} {}
+    struct Choice {
+      Choice(bool parent, bool overlay) : parent{parent}, overlay{overlay} {}
 
       operator bool() const {
         return parent || overlay;
@@ -102,7 +102,7 @@ namespace kagome::storage::trie {
     std::unique_ptr<PolkadotTrieCursor> parent_cursor_;
     std::optional<Buffer> cached_parent_key_;
     decltype(TopperTrieBatchImpl::cache_)::iterator overlay_it_;
-    Choise choise_{false, false};
+    Choice choice_{false, false};
   };
 }  // namespace kagome::storage::trie
 

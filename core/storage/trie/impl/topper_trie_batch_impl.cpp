@@ -189,7 +189,7 @@ namespace kagome::storage::trie {
   }
 
   bool TopperTrieCursor::isValid() const {
-    return choise_;
+    return choice_;
   }
 
   outcome::result<void> TopperTrieCursor::next() {
@@ -203,11 +203,11 @@ namespace kagome::storage::trie {
   }
 
   std::optional<Buffer> TopperTrieCursor::key() const {
-    return choise_.overlay ? overlay_it_->first : cached_parent_key_;
+    return choice_.overlay ? overlay_it_->first : cached_parent_key_;
   }
 
   std::optional<BufferOrView> TopperTrieCursor::value() const {
-    return choise_.overlay ? Buffer{*overlay_it_->second}
+    return choice_.overlay ? Buffer{*overlay_it_->second}
                            : parent_cursor_->value();
   }
 
@@ -235,21 +235,21 @@ namespace kagome::storage::trie {
     if (overlay_it_ != parent_batch_->cache_.end()
         and (not cached_parent_key_
              or *cached_parent_key_ >= overlay_it_->first)) {
-      choise_ = Choise{cached_parent_key_ == overlay_it_->first, true};
+      choice_ = Choice{cached_parent_key_ == overlay_it_->first, true};
       return;
     }
     if (cached_parent_key_) {
-      choise_ = Choise{true, false};
+      choice_ = Choice{true, false};
     } else {
-      choise_ = Choise{false, false};
+      choice_ = Choice{false, false};
     }
   }
 
   bool TopperTrieCursor::isRemoved() const {
-    if (not choise_) {
+    if (not choice_) {
       return false;
     }
-    if (choise_.overlay) {
+    if (choice_.overlay) {
       return not overlay_it_->second;
     }
     return parent_batch_->wasClearedByPrefix(*cached_parent_key_);
@@ -263,14 +263,14 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieCursor::step() {
-    if (not choise_) {
+    if (not choice_) {
       return TopperTrieBatchImpl::Error::CURSOR_NEXT_INVALID;
     }
-    if (choise_.parent) {
+    if (choice_.parent) {
       OUTCOME_TRY(parent_cursor_->next());
       cached_parent_key_ = parent_cursor_->key();
     }
-    if (choise_.overlay) {
+    if (choice_.overlay) {
       ++overlay_it_;
     }
     choose();
