@@ -152,6 +152,7 @@
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
+#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/spaces.hpp"
@@ -567,21 +568,6 @@ namespace {
     host_api::OffchainExtensionConfig offchain_ext_config{
         config->isOffchainIndexingEnabled()};
 
-    auto get_state_observer_impl = [](auto const &injector) {
-      auto state_observer =
-          std::make_shared<network::StateProtocolObserverImpl>(
-              injector
-                  .template create<sptr<blockchain::BlockHeaderRepository>>(),
-              injector.template create<sptr<storage::trie::TrieStorage>>());
-
-      auto protocol_factory =
-          injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
-      protocol_factory->setStateObserver(state_observer);
-
-      return state_observer;
-    };
-
     auto get_sync_observer_impl = [](auto const &injector) {
       auto sync_observer = std::make_shared<network::SyncProtocolObserverImpl>(
           injector.template create<sptr<blockchain::BlockTree>>(),
@@ -735,7 +721,8 @@ namespace {
         makeRuntimeInjector(config->runtimeExecMethod()),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-        bind_by_lambda<network::StateProtocolObserver>(get_state_observer_impl),
+        di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
+        di::bind<network::StateProtocolObserver>.template to<network::StateProtocolObserverImpl>(),
         bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
         di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
         di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
@@ -1052,16 +1039,16 @@ namespace kagome::injector {
     return pimpl_->injector_.template create<sptr<clock::SystemClock>>();
   }
 
-  std::shared_ptr<network::StateProtocolObserver>
-  KagomeNodeInjector::injectStateObserver() {
-    return pimpl_->injector_
-        .template create<sptr<network::StateProtocolObserver>>();
-  }
-
   std::shared_ptr<network::SyncProtocolObserver>
   KagomeNodeInjector::injectSyncObserver() {
     return pimpl_->injector_
         .template create<sptr<network::SyncProtocolObserver>>();
+  }
+
+  std::shared_ptr<network::StateProtocolObserver>
+  KagomeNodeInjector::injectStateObserver() {
+    return pimpl_->injector_
+        .template create<sptr<network::StateProtocolObserver>>();
   }
 
   std::shared_ptr<parachain::ParachainObserver>
