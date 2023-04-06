@@ -508,7 +508,6 @@ namespace kagome::parachain {
       BOOST_ASSERT(it.second);
     }
     active_tranches_.clear();
-    BOOST_ASSERT(nullptr == this_context_);
   }
 
   bool ApprovalDistribution::prepare() {
