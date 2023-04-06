@@ -32,7 +32,6 @@ if [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
 fi
 
 if [ "$BUILD_TYPE" = "Custom" ]; then
-  VERSION="${VERSION}-custom"
   DOCKER_USERNAME="$(docker info | sed '/Username:/!d;s/.* //')"
   COMMIT_HASH="$(git rev-parse --short HEAD)"
   TAG="$DOCKER_USERNAME/kagome:$COMMIT_HASH"
