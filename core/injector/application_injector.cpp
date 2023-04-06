@@ -568,19 +568,6 @@ namespace {
     host_api::OffchainExtensionConfig offchain_ext_config{
         config->isOffchainIndexingEnabled()};
 
-    auto get_sync_observer_impl = [](auto const &injector) {
-      auto sync_observer = std::make_shared<network::SyncProtocolObserverImpl>(
-          injector.template create<sptr<blockchain::BlockTree>>(),
-          injector.template create<sptr<blockchain::BlockHeaderRepository>>());
-
-      auto protocol_factory =
-          injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
-      protocol_factory->setSyncObserver(sync_observer);
-
-      return sync_observer;
-    };
-
     return di::make_injector(
         // bind configs
         useConfig(rpc_thread_pool_config),
@@ -723,7 +710,7 @@ namespace {
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         di::bind<network::StateProtocolObserver>.template to<network::StateProtocolObserverImpl>(),
-        bind_by_lambda<network::SyncProtocolObserver>(get_sync_observer_impl),
+        di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
         di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
         di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
         di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
