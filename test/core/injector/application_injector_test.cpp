@@ -11,6 +11,7 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
+#include "network/impl/router_libp2p.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 namespace fs = boost::filesystem;
@@ -168,4 +169,25 @@ TEST_F(KagomeInjectorTest, Inject) {
   TEST_KAGOME_INJECT(ApprovalDistribution);
   TEST_KAGOME_INJECT(ParachainProcessor);
   TEST_KAGOME_INJECT(AddressPublisher);
+}
+
+TEST_F(KagomeInjectorTest, InjectProtocols) {
+  auto router = injector_->injectRouter();
+  ASSERT_NE(router, nullptr);
+
+  std::static_pointer_cast<kagome::network::RouterLibp2p>(router)->prepare();
+
+  EXPECT_NE(router->getBlockAnnounceProtocol(), nullptr);
+  EXPECT_NE(router->getPropagateTransactionsProtocol(), nullptr);
+  EXPECT_NE(router->getStateProtocol(), nullptr);
+  EXPECT_NE(router->getSyncProtocol(), nullptr);
+  EXPECT_NE(router->getGrandpaProtocol(), nullptr);
+  EXPECT_NE(router->getCollationProtocol(), nullptr);
+  EXPECT_NE(router->getValidationProtocol(), nullptr);
+  EXPECT_NE(router->getReqCollationProtocol(), nullptr);
+  EXPECT_NE(router->getReqPovProtocol(), nullptr);
+  EXPECT_NE(router->getFetchChunkProtocol(), nullptr);
+  EXPECT_NE(router->getFetchAvailableDataProtocol(), nullptr);
+  EXPECT_NE(router->getFetchStatementProtocol(), nullptr);
+  EXPECT_NE(router->getPingProtocol(), nullptr);
 }
