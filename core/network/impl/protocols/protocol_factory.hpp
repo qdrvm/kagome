@@ -26,6 +26,10 @@
 #include "parachain/validator/parachain_observer.hpp"
 #include "primitives/event_types.hpp"
 
+namespace kagome::blockchain {
+  class GenesisBlockHash;
+}
+
 namespace kagome::network {
 
   class ProtocolFactory final {
@@ -35,6 +39,7 @@ namespace kagome::network {
         const application::AppConfiguration &app_config,
         const application::ChainSpec &chain_spec,
         const OwnPeerInfo &own_info,
+        const blockchain::GenesisBlockHash &genesis_block_hash,
         std::shared_ptr<boost::asio::io_context> io_context,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<StreamEngine> stream_engine,
@@ -49,28 +54,12 @@ namespace kagome::network {
         lazy<std::shared_ptr<consensus::babe::Babe>> babe,
         lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
             grandpa_observer,
-        lazy<std::shared_ptr<PeerManager>> peer_manage
-        // ,lazy<std::shared_ptr<parachain::ParachainProcessorImpl>> pp
-        // ,lazy<std::shared_ptr<parachain::ParachainObserver>> parachain_observer
-        ,lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer
-        // ,lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer
-        // ,lazy<std::shared_ptr<StateProtocolObserver>> state_observer
-    );
-
-    void setParachainProcessor(
-        const std::shared_ptr<parachain::ParachainProcessorImpl> &pp) {
-      parachain_processor_ = pp;
-    }
-
-    void setStateObserver(
-        const std::shared_ptr<StateProtocolObserver> &state_observer) {
-      state_observer_ = state_observer;
-    }
-
-    void setSyncObserver(
-        const std::shared_ptr<SyncProtocolObserver> &sync_observer) {
-      sync_observer_ = sync_observer;
-    }
+        lazy<std::shared_ptr<PeerManager>> peer_manage,
+        lazy<std::shared_ptr<parachain::ParachainProcessorImpl>> pp,
+        lazy<std::shared_ptr<parachain::ParachainObserver>> parachain_observer,
+        lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer,
+        lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer,
+        lazy<std::shared_ptr<StateProtocolObserver>> state_observer);
 
     std::shared_ptr<BlockAnnounceProtocol> makeBlockAnnounceProtocol() const;
 
@@ -97,6 +86,8 @@ namespace kagome::network {
     const application::AppConfiguration &app_config_;
     const application::ChainSpec &chain_spec_;
     const OwnPeerInfo &own_info_;
+    const blockchain::GenesisBlockHash &genesis_block_hash_;
+
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<StreamEngine> stream_engine_;
@@ -113,17 +104,12 @@ namespace kagome::network {
     lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
         grandpa_observer_;
     lazy<std::shared_ptr<PeerManager>> peer_manager_;
-    // lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
-    //     parachain_processor_;
-    // lazy<std::shared_ptr<parachain::ParachainObserver>> parachain_observer_;
+    lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
+        parachain_processor_;
+    lazy<std::shared_ptr<parachain::ParachainObserver>> parachain_observer_;
     lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer_;
-    // lazy<std::shared_ptr<StateProtocolObserver>> state_observer_;
-    // lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer_;
-
-    std::weak_ptr<parachain::ParachainProcessorImpl> parachain_processor_;
-    std::weak_ptr<parachain::ParachainObserver> parachain_observer_;
-    std::weak_ptr<SyncProtocolObserver> sync_observer_;
-    std::weak_ptr<StateProtocolObserver> state_observer_;
+    lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer_;
+    lazy<std::shared_ptr<StateProtocolObserver>> state_observer_;
   };
 
 }  // namespace kagome::network

@@ -19,6 +19,10 @@
 #include "network/state_protocol_observer.hpp"
 #include "utils/non_copyable.hpp"
 
+namespace kagome::blockchain {
+  class GenesisBlockHash;
+}
+
 namespace kagome::network {
 
   using Stream = libp2p::connection::Stream;
@@ -34,7 +38,7 @@ namespace kagome::network {
    public:
     StateProtocolImpl(libp2p::Host &host,
                       const application::ChainSpec &chain_spec,
-                      const primitives::BlockHash &genesis_hash,
+                      const blockchain::GenesisBlockHash &genesis_hash,
                       std::shared_ptr<StateProtocolObserver> state_observer);
 
     bool start() override;

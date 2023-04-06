@@ -5,6 +5,7 @@
 
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 
+#include "blockchain/genesis_block_hash.hpp"
 #include "common/visitor.hpp"
 #include "network/adapters/protobuf_block_request.hpp"
 #include "network/adapters/protobuf_block_response.hpp"
@@ -127,7 +128,7 @@ namespace kagome::network {
   SyncProtocolImpl::SyncProtocolImpl(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
-      const primitives::BlockHash &genesis_hash,
+      const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
       std::shared_ptr<ReputationRepository> reputation_repository)
       : base_(kSyncProtocolName,

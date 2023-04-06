@@ -5,6 +5,7 @@
 
 #include "network/impl/protocols/protocol_req_collation.hpp"
 
+#include "blockchain/genesis_block_hash.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
 #include "utils/non_copyable.hpp"
@@ -19,7 +20,7 @@ namespace kagome::network {
         NonMovable {
     ReqCollationProtocolImpl(libp2p::Host &host,
                              application::ChainSpec const &chain_spec,
-                             const primitives::BlockHash &genesis_hash,
+                             const blockchain::GenesisBlockHash &genesis_hash,
                              std::shared_ptr<ReqCollationObserver> observer)
         : RequestResponseProtocol<
             CollationFetchingRequest,
@@ -56,7 +57,7 @@ namespace kagome::network {
   ReqCollationProtocol::ReqCollationProtocol(
       libp2p::Host &host,
       application::ChainSpec const &chain_spec,
-      const primitives::BlockHash &genesis_hash,
+      const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<ReqCollationObserver> observer)
       : impl_{std::make_shared<ReqCollationProtocolImpl>(
           host, chain_spec, genesis_hash, std::move(observer))} {}

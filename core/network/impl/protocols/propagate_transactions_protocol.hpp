@@ -29,6 +29,10 @@
 #include "subscription/subscription_engine.hpp"
 #include "utils/non_copyable.hpp"
 
+namespace kagome::blockchain {
+  class GenesisBlockHash;
+}
+
 namespace kagome::network {
 
   KAGOME_DECLARE_CACHE(PropagateTransactionsProtocol,
@@ -47,7 +51,7 @@ namespace kagome::network {
         libp2p::Host &host,
         const application::AppConfiguration &app_config,
         const application::ChainSpec &chain_spec,
-        const primitives::BlockHash &genesis_hash,
+        const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<consensus::babe::Babe> babe,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<StreamEngine> stream_engine,

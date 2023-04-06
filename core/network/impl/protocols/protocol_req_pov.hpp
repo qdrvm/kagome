@@ -21,6 +21,10 @@
 #include "network/protocols/req_pov_protocol.hpp"
 #include "utils/non_copyable.hpp"
 
+namespace kagome::blockchain {
+  class GenesisBlockHash;
+}
+
 namespace kagome::network {
 
   struct ReqPovProtocolImpl;
@@ -32,7 +36,7 @@ namespace kagome::network {
 
     ReqPovProtocol(libp2p::Host &host,
                    application::ChainSpec const &chain_spec,
-                   const primitives::BlockHash &genesis_hash,
+                   const blockchain::GenesisBlockHash &genesis_hash,
                    std::shared_ptr<ReqPovObserver> observer);
 
     const Protocol &protocolName() const override;

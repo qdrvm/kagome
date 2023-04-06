@@ -4,6 +4,7 @@
  */
 
 #include "network/impl/protocols/state_protocol_impl.hpp"
+#include "blockchain/genesis_block_hash.hpp"
 #include "network/adapters/protobuf_state_request.hpp"
 #include "network/adapters/protobuf_state_response.hpp"
 #include "network/common.hpp"
@@ -16,7 +17,7 @@ namespace kagome::network {
   StateProtocolImpl::StateProtocolImpl(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
-      const primitives::BlockHash &genesis_hash,
+      const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<StateProtocolObserver> state_observer)
       : base_(kStateProtocolName,
               host,

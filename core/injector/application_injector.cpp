@@ -357,10 +357,6 @@ namespace {
         injector.template create<
             primitives::events::BabeStateSubscriptionEnginePtr>());
 
-    auto protocol_factory =
-        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-    protocol_factory->setParachainProcessor(ptr);
-
     return ptr;
   }
 
@@ -791,7 +787,6 @@ namespace {
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }
-
 
   template <typename Injector>
   auto get_babe(const Injector &injector) {

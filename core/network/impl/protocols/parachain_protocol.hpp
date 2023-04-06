@@ -16,6 +16,7 @@
 
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
+#include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/collation_observer.hpp"
 #include "network/common.hpp"
@@ -51,7 +52,7 @@ namespace kagome::network {
     ParachainProtocol(libp2p::Host &host,
                       application::AppConfiguration const &app_config,
                       application::ChainSpec const &chain_spec,
-                      const primitives::BlockHash &genesis_hash,
+                      const blockchain::GenesisBlockHash &genesis_hash,
                       std::shared_ptr<ObserverType> observer,
                       Protocol const &protocol,
                       std::shared_ptr<network::PeerView> peer_view,

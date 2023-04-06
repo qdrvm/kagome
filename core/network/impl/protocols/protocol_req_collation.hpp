@@ -23,6 +23,10 @@
 #include "network/types/roles.hpp"
 #include "utils/non_copyable.hpp"
 
+namespace kagome::blockchain {
+  class GenesisBlockHash;
+}
+
 namespace kagome::network {
 
   struct ReqCollationProtocolImpl;
@@ -36,7 +40,7 @@ namespace kagome::network {
 
     ReqCollationProtocol(libp2p::Host &host,
                          application::ChainSpec const &chain_spec,
-                         const primitives::BlockHash &genesis_hash,
+                         const blockchain::GenesisBlockHash &genesis_hash,
                          std::shared_ptr<ReqCollationObserver> observer);
 
     const Protocol &protocolName() const override;
