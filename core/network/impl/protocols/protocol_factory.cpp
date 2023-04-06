@@ -25,8 +25,8 @@ namespace kagome::network {
       std::shared_ptr<ReputationRepository> reputation_repository,
       lazy<std::shared_ptr<blockchain::BlockTree>> block_tree,
       lazy<std::shared_ptr<consensus::babe::Babe>> babe,
-      // lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
-      //    grandpa_observer,
+      lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
+          grandpa_observer,
       lazy<std::shared_ptr<PeerManager>> peer_manager
       // ,lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
       //     parachain_processor
@@ -49,9 +49,8 @@ namespace kagome::network {
         scheduler_{std::move(scheduler)},
         peer_view_(std::move(peer_view)),
         block_tree_(std::move(block_tree)),
-        babe_(std::move(babe))
-        // ,grandpa_observer_(std::move(grandpa_observer))
-        ,
+        babe_(std::move(babe)),
+        grandpa_observer_(std::move(grandpa_observer)),
         peer_manager_(std::move(peer_manager))
         // ,parachain_processor_(std::move(parachain_processor))
         // , parachain_observer_(std::move(parachain_observer))
@@ -95,7 +94,7 @@ namespace kagome::network {
     return std::make_shared<GrandpaProtocol>(host_,
                                              io_context_,
                                              app_config_,
-                                             grandpa_observer_.lock(),
+                                             grandpa_observer_.get(),
                                              own_info_,
                                              stream_engine_,
                                              peer_manager_.get(),

@@ -51,22 +51,16 @@ namespace kagome::network {
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ReputationRepository> reputation_repository,
         lazy<std::shared_ptr<blockchain::BlockTree>> block_tree,
-        lazy<std::shared_ptr<consensus::babe::Babe>> babe
-        // ,lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
-        //     grandpa_observer,
-        ,lazy<std::shared_ptr<PeerManager>> peer_manage
+        lazy<std::shared_ptr<consensus::babe::Babe>> babe,
+        lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
+            grandpa_observer,
+        lazy<std::shared_ptr<PeerManager>> peer_manage
         // ,lazy<std::shared_ptr<parachain::ParachainProcessorImpl>> pp
         // ,lazy<std::shared_ptr<parachain::ParachainObserver>> parachain_observer
         ,lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer
         // ,lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer
         // ,lazy<std::shared_ptr<StateProtocolObserver>> state_observer
     );
-
-    void setGrandpaObserver(
-        const std::shared_ptr<consensus::grandpa::GrandpaObserver>
-            &grandpa_observer) {
-      grandpa_observer_ = grandpa_observer;
-    }
 
     void setParachainProcessor(
         const std::shared_ptr<parachain::ParachainProcessorImpl> &pp) {
@@ -121,8 +115,8 @@ namespace kagome::network {
 
     lazy<std::shared_ptr<blockchain::BlockTree>> block_tree_;
     lazy<std::shared_ptr<consensus::babe::Babe>> babe_;
-    // lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
-    //     grandpa_observer_;
+    lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
+        grandpa_observer_;
     lazy<std::shared_ptr<PeerManager>> peer_manager_;
     // lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
     //     parachain_processor_;
@@ -131,7 +125,6 @@ namespace kagome::network {
     // lazy<std::shared_ptr<StateProtocolObserver>> state_observer_;
     // lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer_;
 
-    std::weak_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::weak_ptr<parachain::ParachainProcessorImpl> parachain_processor_;
     std::weak_ptr<parachain::ParachainObserver> parachain_observer_;
     std::weak_ptr<SyncProtocolObserver> sync_observer_;

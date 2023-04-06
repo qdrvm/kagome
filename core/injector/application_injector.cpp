@@ -845,11 +845,6 @@ namespace {
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<network::ReputationRepository>>());
 
-    auto protocol_factory =
-        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
-    protocol_factory->setGrandpaObserver(ptr);
-
     return ptr;
   }
 
