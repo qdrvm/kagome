@@ -34,6 +34,9 @@ using namespace storage;
 using namespace trie;
 using namespace trie_pruner;
 
+using testing::_;
+using testing::Return;
+
 std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
   auto backend =
       std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
@@ -44,6 +47,8 @@ std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
   auto serializer =
       std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
   auto state_pruner = std::make_shared<TriePrunerMock>();
+  ON_CALL(*state_pruner, addNewState(_, _))
+      .WillByDefault(Return(outcome::success()));
 
   return kagome::storage::trie::TrieStorageImpl::createEmpty(
              trie_factory, codec, serializer, state_pruner)

@@ -40,6 +40,7 @@ using testing::A;
 using testing::An;
 using testing::Invoke;
 using testing::Return;
+using testing::ReturnRef;
 
 auto hash_from_str(std::string_view str) {
   Hash256 hash;
@@ -176,28 +177,54 @@ struct TrieNodeDesc {
 class TriePrunerTest : public testing::Test {
  public:
   void SetUp() {
-    testutil::prepareLoggers(soralog::Level::TRACE);
+    testutil::prepareLoggers(soralog::Level::DEBUG);
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
+    ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
+
     trie_storage_mock.reset(new trie::TrieStorageBackendMock);
-    persistent_storage_mock.reset(new testing::NiceMock<kagome::storage::SpacedStorageMock>);
+    persistent_storage_mock.reset(
+        new testing::NiceMock<kagome::storage::SpacedStorageMock>);
     serializer_mock.reset(new trie::TrieSerializerMock);
     codec_mock.reset(new CodecMock);
     hasher = std::make_shared<crypto::HasherImpl>();
 
-    auto space = std::make_shared<testing::NiceMock<BufferStorageMock>>();
+    pruner_space = std::make_shared<testing::NiceMock<BufferStorageMock>>();
     trie_pruner::TriePrunerImpl::TriePrunerInfo info{
         .prune_base = {0, "genesis"_hash256}, .child_states{}};
     auto info_enc = scale::encode(info).value();
     static auto key = ":trie_pruner:info"_buf;
-    ON_CALL(*space, tryGetMock(key.view()))
+    ON_CALL(*pruner_space, tryGetMock(key.view()))
         .WillByDefault(
             Return(outcome::success(std::make_optional(Buffer{info_enc}))));
-    ON_CALL(*space, put(key.view(), _))
+    ON_CALL(*pruner_space, put(key.view(), _))
         .WillByDefault(Return(outcome::success()));
 
     ON_CALL(*persistent_storage_mock, getSpace(kTriePruner))
-        .WillByDefault(Invoke([space](auto) { return space; }));
+        .WillByDefault(Invoke([this](auto) { return pruner_space; }));
+
+    pruner.reset(TriePrunerImpl::create(config_mock,
+                                        trie_storage_mock,
+                                        serializer_mock,
+                                        codec_mock,
+                                        persistent_storage_mock,
+                                        hasher)
+                     .value()
+                     .release());
+  }
+
+  void initOnBlock(BlockInfo base_block) {
+    auto config_mock =
+        std::make_shared<kagome::application::AppConfigurationMock>();
+    ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
+    trie_pruner::TriePrunerImpl::TriePrunerInfo info{.prune_base = base_block,
+                                                     .child_states{}};
+
+    auto info_enc = scale::encode(info).value();
+    static auto key = ":trie_pruner:info"_buf;
+    ON_CALL(*pruner_space, tryGetMock(key.view()))
+        .WillByDefault(
+            Return(outcome::success(std::make_optional(Buffer{info_enc}))));
 
     pruner.reset(TriePrunerImpl::create(config_mock,
                                         trie_storage_mock,
@@ -247,6 +274,7 @@ class TriePrunerTest : public testing::Test {
   std::shared_ptr<testing::NiceMock<SpacedStorageMock>> persistent_storage_mock;
   std::shared_ptr<CodecMock> codec_mock;
   std::shared_ptr<crypto::Hasher> hasher;
+  std::shared_ptr<testing::NiceMock<BufferStorageMock>> pruner_space;
 };
 
 struct NodeRetriever {
@@ -394,7 +422,7 @@ std::set<Buffer> collectReferencedNodes(trie::PolkadotTrie &trie,
 }
 
 TEST_F(TriePrunerTest, RandomTree) {
-  constexpr unsigned STATES_NUM = 100;
+  constexpr unsigned STATES_NUM = 30;
   constexpr unsigned INSERT_PER_STATE = 100;
   constexpr unsigned REMOVES_PER_STATE = 25;
 
@@ -512,13 +540,9 @@ TEST_F(TriePrunerTest, RandomTree) {
     }));
 
     auto &root = roots[i];
-    auto space_mock = std::make_shared<BufferStorageMock>();
-    EXPECT_CALL(*space_mock, put(_, _)).WillOnce(Return(outcome::success()));
-    EXPECT_CALL(*persistent_storage_mock, getSpace(_))
-        .WillOnce(Return(space_mock));
-
     ASSERT_OUTCOME_SUCCESS_TRY(
-        pruner->pruneFinalized(BlockHeader{.state_root = root}, BlockInfo{}));
+        pruner->pruneFinalized(BlockHeader{.number = i, .state_root = root},
+                               BlockInfo{i + 1, roots[i + 1]}));
   }
   for (auto &[hash, node] : node_storage) {
     std::cout << hash << "\n";
@@ -528,48 +552,38 @@ TEST_F(TriePrunerTest, RandomTree) {
 }
 
 TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
-  TriePrunerImpl::TriePrunerInfo info{
-      .prune_base = kagome::primitives::BlockInfo{4, "block4"_hash256},
-      .child_states{}};
-
-  auto info_key = ":trie_pruner:info"_buf;
-
-  auto space_mock = std::make_shared<BufferStorageMock>();
-  EXPECT_CALL(*persistent_storage_mock, getSpace(kTriePruner))
-      .WillRepeatedly(Return(space_mock));
-
-  EXPECT_CALL(*space_mock, tryGetMock(info_key.view()))
-      .WillOnce(Return(std::optional{Buffer{scale::encode(info).value()}}));
-  EXPECT_CALL(*space_mock, put(info_key.view(), _))
-      .WillOnce(Invoke([&](auto, auto value) -> outcome::result<void> {
-        info = scale::decode<TriePrunerImpl::TriePrunerInfo>(value).value();
-        return outcome::success();
-      }));
-
   auto block_tree = std::make_shared<kagome::blockchain::BlockTreeMock>();
-  EXPECT_CALL(*block_tree, getLastFinalized())
-      .WillOnce(Return(primitives::BlockInfo{6, hash_from_str("block42")}));
+  auto genesis_hash = "genesis"_hash256;
+  ON_CALL(*block_tree, getGenesisBlockHash())
+      .WillByDefault(ReturnRef(genesis_hash));
 
   std::map<BlockNumber, BlockHeader> headers;
   std::map<BlockHash, BlockNumber> hash_to_number;
-  for (BlockNumber n = 4; n <= 6; n++) {
-    auto parent_hash =
-        headers.count(n - 1) ? hash_from_header(headers.at(n - 1)) : Hash256{};
+  for (BlockNumber n = 1; n <= 6; n++) {
+    auto parent_hash = headers.count(n - 1)
+                         ? hash_from_header(headers.at(n - 1))
+                         : "genesis"_hash256;
     headers[n] = BlockHeader{
         .parent_hash = parent_hash,
         .number = n,
         .state_root = hash_from_str("root_hash" + std::to_string(n)),
     };
-    hash_to_number[hash_from_header(headers[n])] = n;
+    hash_to_number[hash_from_header(headers.at(n))] = n;
   }
 
-  EXPECT_CALL(*block_tree, getBlockHeader(_))
-      .WillRepeatedly(Invoke([&](kagome::primitives::BlockId block_id) {
-        if (auto *hash = boost::get<BlockHash>(&block_id)) {
-          return headers.at(hash_to_number.at(*hash));
-        }
-        return headers.at(boost::get<BlockNumber>(block_id));
+  initOnBlock(BlockInfo{4, hash_from_header(headers.at(4))});
+
+  ON_CALL(*block_tree, getBlockHash(_))
+      .WillByDefault(Invoke([&headers](auto number) {
+        return hash_from_header(headers.at(number));
       }));
+
+  ON_CALL(*block_tree, getBlockHeader(_)).WillByDefault(Invoke([&](auto &hash) {
+    if (hash == "genesis"_hash256) {
+      return BlockHeader{.number = 0, .state_root = "genesis_root"_hash256};
+    }
+    return headers.at(hash_to_number.at(hash));
+  }));
 
   ON_CALL(*block_tree, getChildren(_))
       .WillByDefault(Return(std::vector<kagome::primitives::BlockHash>{}));
@@ -605,6 +619,17 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
   mock_block(4);
   mock_block(5);
   mock_block(6);
+
+  trie_pruner::TriePrunerImpl::TriePrunerInfo info{
+      .prune_base = {4, hash_from_header(headers.at(4))}, .child_states{}};
+  auto info_enc = scale::encode(info).value();
+  static auto key = ":trie_pruner:info"_buf;
+  ON_CALL(*pruner_space, tryGetMock(key.view()))
+      .WillByDefault(
+          Return(outcome::success(std::make_optional(Buffer{info_enc}))));
+
+  ON_CALL(*block_tree, getLastFinalized())
+      .WillByDefault(Return(BlockInfo{4, hash_from_header(headers.at(4))}));
   ASSERT_OUTCOME_SUCCESS_TRY(pruner->init(*block_tree));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 }

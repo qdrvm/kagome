@@ -136,6 +136,12 @@ struct BlockTreeTest : public testing::Test {
           return outcome::success();
         }));
 
+    ON_CALL(*state_pruner_, pruneDiscarded(_))
+        .WillByDefault(Return(outcome::success()));
+
+    ON_CALL(*state_pruner_, pruneFinalized(_, _))
+        .WillByDefault(Return(outcome::success()));
+
     putNumToHash(kGenesisBlockInfo);
     putNumToHash(kFinalizedBlockInfo);
 
@@ -246,9 +252,8 @@ struct BlockTreeTest : public testing::Test {
       justification_storage_policy_ =
           std::make_shared<StrictMock<JustificationStoragePolicyMock>>();
 
-  std::shared_ptr<storage::trie_pruner::TriePruner>
-      state_pruner_ =
-          std::make_shared<storage::trie_pruner::TriePrunerMock>();
+  std::shared_ptr<storage::trie_pruner::TriePrunerMock> state_pruner_ =
+      std::make_shared<storage::trie_pruner::TriePrunerMock>();
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager_ =
       std::make_shared<application::AppStateManagerMock>();
