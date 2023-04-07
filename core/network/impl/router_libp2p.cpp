@@ -12,21 +12,44 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       const OwnPeerInfo &own_info,
       const BootstrapNodes &bootstrap_nodes,
-      std::shared_ptr<libp2p::protocol::Ping> ping_proto,
+      LazySPtr<BlockAnnounceProtocol> block_announce_protocol,
+      LazySPtr<GrandpaProtocol> grandpa_protocol,
+      LazySPtr<SyncProtocol> sync_protocol,
+      LazySPtr<StateProtocol> state_protocol,
       LazySPtr<WarpProtocol> warp_protocol,
-      std::shared_ptr<LightProtocol> light_protocol,
-      LazySPtr<network::ProtocolFactory> protocol_factory)
+      LazySPtr<LightProtocol> light_protocol,
+      LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
+      LazySPtr<ValidationProtocol> validation_protocol,
+      LazySPtr<CollationProtocol> collation_protocol,
+      LazySPtr<ReqCollationProtocol> req_collation_protocol,
+      LazySPtr<ReqPovProtocol> req_pov_protocol,
+      LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
+      LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
+      LazySPtr<StatmentFetchingProtocol> statement_fetching_protocol,
+      LazySPtr<libp2p::protocol::Ping> ping_protocol)
       : app_state_manager_{app_state_manager},
         host_{host},
         app_config_(app_config),
         own_info_{own_info},
-        log_{log::createLogger("RouterLibp2p", "network")},
-        ping_protocol_{std::move(ping_proto)},
+        block_announce_protocol_(std::move(block_announce_protocol)),
+        grandpa_protocol_(std::move(grandpa_protocol)),
+        sync_protocol_(std::move(sync_protocol)),
+        state_protocol_(std::move(state_protocol)),
         warp_protocol_{std::move(warp_protocol)},
         light_protocol_{std::move(light_protocol)},
-        protocol_factory_{std::move(protocol_factory)} {
+        propagate_transactions_protocol_(
+            std::move(propagate_transactions_protocol)),
+        validation_protocol_(std::move(validation_protocol)),
+        collation_protocol_(std::move(collation_protocol)),
+        req_collation_protocol_(std::move(req_collation_protocol)),
+        req_pov_protocol_(std::move(req_pov_protocol)),
+        fetch_chunk_protocol_(std::move(fetch_chunk_protocol)),
+        fetch_available_data_protocol_(
+            std::move(fetch_available_data_protocol)),
+        statement_fetching_protocol_(std::move(statement_fetching_protocol)),
+        ping_protocol_{std::move(ping_protocol)},
+        log_{log::createLogger("RouterLibp2p", "network")} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
-    BOOST_ASSERT(ping_protocol_ != nullptr);
 
     SL_DEBUG(log_, "Own peer id: {}", own_info.id.toBase58());
     if (!bootstrap_nodes.empty()) {
@@ -45,103 +68,39 @@ namespace kagome::network {
   }
 
   bool RouterLibp2p::prepare() {
+    block_announce_protocol_.get()->start();
+    grandpa_protocol_.get()->start();
+
+    sync_protocol_.get()->start();
+    state_protocol_.get()->start();
+    warp_protocol_.get()->start();
+    light_protocol_.get()->start();
+
+    propagate_transactions_protocol_.get()->start();
+
+    collation_protocol_.get()->start();
+    validation_protocol_.get()->start();
+    req_collation_protocol_.get()->start();
+    req_pov_protocol_.get()->start();
+    fetch_chunk_protocol_.get()->start();
+    fetch_available_data_protocol_.get()->start();
+    statement_fetching_protocol_.get()->start();
+
     host_.setProtocolHandler(
-        {ping_protocol_->getProtocolId()},
+        {ping_protocol_.get()->getProtocolId()},
         [wp = weak_from_this()](auto &&stream_and_proto) {
           if (auto self = wp.lock()) {
             auto &stream = stream_and_proto.stream;
             if (auto peer_id = stream->remotePeerId()) {
               SL_TRACE(self->log_,
                        "Handled {} protocol stream from: {}",
-                       self->ping_protocol_->getProtocolId(),
+                       self->ping_protocol_.get()->getProtocolId(),
                        peer_id.value().toBase58());
-              self->ping_protocol_->handle(
+              self->ping_protocol_.get()->handle(
                   std::forward<decltype(stream_and_proto)>(stream_and_proto));
             }
           }
         });
-
-    warp_protocol_.get()->start();
-
-    light_protocol_->start();
-
-    block_announce_protocol_ =
-        protocol_factory_.get()->makeBlockAnnounceProtocol();
-    if (not block_announce_protocol_) {
-      return false;
-    }
-
-    collation_protocol_ = protocol_factory_.get()->makeCollationProtocol();
-    if (not collation_protocol_) {
-      return false;
-    }
-
-    validation_protocol_ = protocol_factory_.get()->makeValidationProtocol();
-    if (not validation_protocol_) {
-      return false;
-    }
-
-    req_collation_protocol_ =
-        protocol_factory_.get()->makeReqCollationProtocol();
-    if (not req_collation_protocol_) {
-      return false;
-    }
-
-    req_pov_protocol_ = protocol_factory_.get()->makeReqPovProtocol();
-    if (not req_pov_protocol_) {
-      return false;
-    }
-
-    fetch_chunk_protocol_ = protocol_factory_.get()->makeFetchChunkProtocol();
-    if (!fetch_chunk_protocol_) {
-      return false;
-    }
-
-    fetch_available_data_protocol_ =
-        protocol_factory_.get()->makeFetchAvailableDataProtocol();
-    if (!fetch_available_data_protocol_) {
-      return false;
-    }
-
-    fetch_statement_protocol_ =
-        protocol_factory_.get()->makeFetchStatementProtocol();
-    if (!fetch_statement_protocol_) {
-      return false;
-    }
-
-    grandpa_protocol_ = protocol_factory_.get()->makeGrandpaProtocol();
-    if (not grandpa_protocol_) {
-      return false;
-    }
-
-    propagate_transaction_protocol_ =
-        protocol_factory_.get()->makePropagateTransactionsProtocol();
-    if (not propagate_transaction_protocol_) {
-      return false;
-    }
-
-    state_protocol_ = protocol_factory_.get()->makeStateProtocol();
-    if (not state_protocol_) {
-      return false;
-    }
-
-    sync_protocol_ = protocol_factory_.get()->makeSyncProtocol();
-    if (not sync_protocol_) {
-      return false;
-    }
-
-    block_announce_protocol_->start();
-    grandpa_protocol_->start();
-    propagate_transaction_protocol_->start();
-    state_protocol_->start();
-    sync_protocol_->start();
-    collation_protocol_->start();
-    validation_protocol_->start();
-    req_collation_protocol_->start();
-    req_pov_protocol_->start();
-    fetch_chunk_protocol_->start();
-    fetch_available_data_protocol_->start();
-    fetch_statement_protocol_->start();
 
     return true;
   }
@@ -198,63 +157,63 @@ namespace kagome::network {
 
   std::shared_ptr<BlockAnnounceProtocol>
   RouterLibp2p::getBlockAnnounceProtocol() const {
-    return block_announce_protocol_;
+    return block_announce_protocol_.get();
   }
 
-  std::shared_ptr<CollationProtocol> RouterLibp2p::getCollationProtocol()
-      const {
-    return collation_protocol_;
+  std::shared_ptr<GrandpaProtocol> RouterLibp2p::getGrandpaProtocol() const {
+    return grandpa_protocol_.get();
   }
 
-  std::shared_ptr<ValidationProtocol> RouterLibp2p::getValidationProtocol()
-      const {
-    return validation_protocol_;
+  std::shared_ptr<SyncProtocol> RouterLibp2p::getSyncProtocol() const {
+    return sync_protocol_.get();
   }
 
-  std::shared_ptr<ReqCollationProtocol> RouterLibp2p::getReqCollationProtocol()
-      const {
-    return req_collation_protocol_;
-  }
-
-  std::shared_ptr<ReqPovProtocol> RouterLibp2p::getReqPovProtocol() const {
-    return req_pov_protocol_;
-  }
-
-  std::shared_ptr<FetchChunkProtocol> RouterLibp2p::getFetchChunkProtocol()
-      const {
-    return fetch_chunk_protocol_;
-  }
-
-  std::shared_ptr<FetchAvailableDataProtocol>
-  RouterLibp2p::getFetchAvailableDataProtocol() const {
-    return fetch_available_data_protocol_;
-  }
-
-  std::shared_ptr<StatmentFetchingProtocol>
-  RouterLibp2p::getFetchStatementProtocol() const {
-    return fetch_statement_protocol_;
+  std::shared_ptr<StateProtocol> RouterLibp2p::getStateProtocol() const {
+    return state_protocol_.get();
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>
   RouterLibp2p::getPropagateTransactionsProtocol() const {
-    return propagate_transaction_protocol_;
+    return propagate_transactions_protocol_.get();
   }
 
-  std::shared_ptr<StateProtocol> RouterLibp2p::getStateProtocol() const {
-    return state_protocol_;
+  std::shared_ptr<CollationProtocol> RouterLibp2p::getCollationProtocol()
+      const {
+    return collation_protocol_.get();
   }
 
-  std::shared_ptr<SyncProtocol> RouterLibp2p::getSyncProtocol() const {
-    return sync_protocol_;
+  std::shared_ptr<ValidationProtocol> RouterLibp2p::getValidationProtocol()
+      const {
+    return validation_protocol_.get();
   }
 
-  std::shared_ptr<GrandpaProtocol> RouterLibp2p::getGrandpaProtocol() const {
-    return grandpa_protocol_;
+  std::shared_ptr<ReqCollationProtocol> RouterLibp2p::getReqCollationProtocol()
+      const {
+    return req_collation_protocol_.get();
+  }
+
+  std::shared_ptr<ReqPovProtocol> RouterLibp2p::getReqPovProtocol() const {
+    return req_pov_protocol_.get();
+  }
+
+  std::shared_ptr<FetchChunkProtocol> RouterLibp2p::getFetchChunkProtocol()
+      const {
+    return fetch_chunk_protocol_.get();
+  }
+
+  std::shared_ptr<FetchAvailableDataProtocol>
+  RouterLibp2p::getFetchAvailableDataProtocol() const {
+    return fetch_available_data_protocol_.get();
+  }
+
+  std::shared_ptr<StatmentFetchingProtocol>
+  RouterLibp2p::getFetchStatementProtocol() const {
+    return statement_fetching_protocol_.get();
   }
 
   std::shared_ptr<libp2p::protocol::Ping> RouterLibp2p::getPingProtocol()
       const {
-    return ping_protocol_;
+    return ping_protocol_.get();
   }
 
   outcome::result<void> RouterLibp2p::appendPeerIdToAddress(

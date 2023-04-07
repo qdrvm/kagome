@@ -96,6 +96,8 @@
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/peer_manager_impl.hpp"
+#include "network/impl/protocols/state_protocol_impl.hpp"
+#include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/reputation_repository_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/state_protocol_observer_impl.hpp"
