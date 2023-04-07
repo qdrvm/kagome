@@ -1415,8 +1415,7 @@ namespace kagome::parachain {
     auto &candidate_entry = entry.candidates[claimed_candidate_index];
     if (auto it = candidate_entry.messages.find(validator_index);
         it != candidate_entry.messages.end()) {
-      if (auto state{boost::get<DistribApprovalStateApproved>(
-              &it->second.approval_state)}) {
+      if (is_type<DistribApprovalStateApproved>(it->second.approval_state)) {
         logger_->warn(
             "Already have approved state. (candidate index={}, "
             "block hash={}, validator index={})",
