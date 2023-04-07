@@ -35,21 +35,18 @@ namespace kagome::network {
   class ProtocolFactory final {
    public:
     ProtocolFactory(
-        lazy<std::shared_ptr<BlockAnnounceProtocol>> block_announce_protocol,
-        lazy<std::shared_ptr<GrandpaProtocol>> grandpa_protocol,
-        lazy<std::shared_ptr<SyncProtocol>> sync_protocol,
-        lazy<std::shared_ptr<StateProtocol>> state_protocol,
-        lazy<std::shared_ptr<PropagateTransactionsProtocol>>
-            propagate_transactions_protocol,
-        lazy<std::shared_ptr<ValidationProtocol>> validation_protocol,
-        lazy<std::shared_ptr<CollationProtocol>> collation_protocol,
-        lazy<std::shared_ptr<ReqCollationProtocol>> req_collation_protocol,
-        lazy<std::shared_ptr<ReqPovProtocol>> req_pov_protocol,
-        lazy<std::shared_ptr<FetchChunkProtocol>> fetch_chunk_protocol,
-        lazy<std::shared_ptr<FetchAvailableDataProtocol>>
-            fetch_available_data_protocol,
-        lazy<std::shared_ptr<StatmentFetchingProtocol>>
-            statement_fetching_protocol);
+        LazySPtr<BlockAnnounceProtocol> block_announce_protocol,
+        LazySPtr<GrandpaProtocol> grandpa_protocol,
+        LazySPtr<SyncProtocol> sync_protocol,
+        LazySPtr<StateProtocol> state_protocol,
+        LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
+        LazySPtr<ValidationProtocol> validation_protocol,
+        LazySPtr<CollationProtocol> collation_protocol,
+        LazySPtr<ReqCollationProtocol> req_collation_protocol,
+        LazySPtr<ReqPovProtocol> req_pov_protocol,
+        LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
+        LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
+        LazySPtr<StatmentFetchingProtocol> statement_fetching_protocol);
 
     std::shared_ptr<BlockAnnounceProtocol> makeBlockAnnounceProtocol() const;
 
@@ -72,21 +69,18 @@ namespace kagome::network {
         const;
 
    private:
-    lazy<std::shared_ptr<BlockAnnounceProtocol>> block_announce_protocol_;
-    lazy<std::shared_ptr<GrandpaProtocol>> grandpa_protocol_;
-    lazy<std::shared_ptr<SyncProtocol>> sync_protocol_;
-    lazy<std::shared_ptr<StateProtocol>> state_protocol_;
-    lazy<std::shared_ptr<PropagateTransactionsProtocol>>
-        propagate_transactions_protocol_;
-    lazy<std::shared_ptr<ValidationProtocol>> validation_protocol_;
-    lazy<std::shared_ptr<CollationProtocol>> collation_protocol_;
-    lazy<std::shared_ptr<ReqCollationProtocol>> req_collation_protocol_;
-    lazy<std::shared_ptr<ReqPovProtocol>> req_pov_protocol_;
-    lazy<std::shared_ptr<FetchChunkProtocol>> fetch_chunk_protocol_;
-    lazy<std::shared_ptr<FetchAvailableDataProtocol>>
-        fetch_available_data_protocol_;
-    lazy<std::shared_ptr<StatmentFetchingProtocol>>
-        statement_fetching_protocol_;
+    LazySPtr<BlockAnnounceProtocol> block_announce_protocol_;
+    LazySPtr<GrandpaProtocol> grandpa_protocol_;
+    LazySPtr<SyncProtocol> sync_protocol_;
+    LazySPtr<StateProtocol> state_protocol_;
+    LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol_;
+    LazySPtr<ValidationProtocol> validation_protocol_;
+    LazySPtr<CollationProtocol> collation_protocol_;
+    LazySPtr<ReqCollationProtocol> req_collation_protocol_;
+    LazySPtr<ReqPovProtocol> req_pov_protocol_;
+    LazySPtr<FetchChunkProtocol> fetch_chunk_protocol_;
+    LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol_;
+    LazySPtr<StatmentFetchingProtocol> statement_fetching_protocol_;
   };
 
 }  // namespace kagome::network

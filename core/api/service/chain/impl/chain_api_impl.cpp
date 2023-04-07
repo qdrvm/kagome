@@ -30,7 +30,7 @@ namespace kagome::api {
       std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockStorage> block_storage,
-      lazy<std::shared_ptr<api::ApiService>> api_service)
+      LazySPtr<api::ApiService> api_service)
       : header_repo_{std::move(block_repo)},
         block_tree_{std::move(block_tree)},
         api_service_{std::move(api_service)},

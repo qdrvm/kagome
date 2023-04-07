@@ -12,7 +12,7 @@ namespace kagome::runtime {
 
   TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
       std::shared_ptr<Executor> executor,
-      lazy<std::shared_ptr<blockchain::BlockTree>> block_tree)
+      LazySPtr<blockchain::BlockTree> block_tree)
       : executor_{std::move(executor)},
         block_tree_(std::move(block_tree)),
         logger_{log::createLogger("TaggedTransactionQueue", "runtime")} {

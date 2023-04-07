@@ -43,7 +43,7 @@ namespace kagome::api {
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<runtime::Metadata> metadata,
       std::shared_ptr<runtime::RawExecutor> executor,
-      lazy<std::shared_ptr<api::ApiService>> api_service)
+      LazySPtr<api::ApiService> api_service)
       : header_repo_{std::move(block_repo)},
         storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},

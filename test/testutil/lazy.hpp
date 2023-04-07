@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#include <boost/di/extension/injections/lazy.hpp>
+#include "injector/lazy.hpp"
 
 namespace testutil {
 
@@ -23,7 +23,7 @@ namespace testutil {
 
   template <typename T, typename A = T>
   auto sptr_to_lazy(std::shared_ptr<A> &arg) {
-    return boost::di::extension::lazy<std::shared_ptr<T>>(
+    return kagome::LazySPtr<T>(
         reinterpret_cast<CreatorSptr<std::shared_ptr<A>> &>(arg));
   }
 

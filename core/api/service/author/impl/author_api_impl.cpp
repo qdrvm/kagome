@@ -31,14 +31,13 @@ namespace kagome::api {
       crypto::KEY_TYPE_AUDI,
   };
 
-  AuthorApiImpl::AuthorApiImpl(
-      sptr<runtime::SessionKeysApi> key_api,
-      sptr<transaction_pool::TransactionPool> pool,
-      sptr<crypto::CryptoStore> store,
-      sptr<crypto::SessionKeys> keys,
-      sptr<crypto::KeyFileStorage> key_store,
-      lazy<std::shared_ptr<blockchain::BlockTree>> block_tree,
-      lazy<std::shared_ptr<api::ApiService>> api_service)
+  AuthorApiImpl::AuthorApiImpl(sptr<runtime::SessionKeysApi> key_api,
+                               sptr<transaction_pool::TransactionPool> pool,
+                               sptr<crypto::CryptoStore> store,
+                               sptr<crypto::SessionKeys> keys,
+                               sptr<crypto::KeyFileStorage> key_store,
+                               LazySPtr<blockchain::BlockTree> block_tree,
+                               LazySPtr<api::ApiService> api_service)
       : keys_api_(std::move(key_api)),
         pool_{std::move(pool)},
         store_{std::move(store)},

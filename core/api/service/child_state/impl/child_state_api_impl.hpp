@@ -8,18 +8,14 @@
 
 #include "api/service/child_state/child_state_api.hpp"
 
-#include <boost/di/extension/injections/lazy.hpp>
-
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
+#include "injector/lazy.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/metadata.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 namespace kagome::api {
-
-  template <typename T>
-  using lazy = boost::di::extension::lazy<T>;
 
   class ChildStateApiImpl final : public ChildStateApi {
    public:

@@ -6,8 +6,7 @@
 #ifndef KAGOME_JUSTIFICATION_STORAGE_POLICY_HPP
 #define KAGOME_JUSTIFICATION_STORAGE_POLICY_HPP
 
-#include <boost/di/extension/injections/lazy.hpp>
-
+#include "injector/lazy.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_header.hpp"
 
@@ -16,9 +15,6 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::blockchain {
-
-  template <typename T>
-  using lazy = boost::di::extension::lazy<T>;
 
   class JustificationStoragePolicy {
    public:
@@ -32,13 +28,13 @@ namespace kagome::blockchain {
       : public JustificationStoragePolicy {
    public:
     JustificationStoragePolicyImpl(
-        lazy<std::shared_ptr<const blockchain::BlockTree>> block_tree);
+        LazySPtr<const blockchain::BlockTree> block_tree);
 
     outcome::result<bool> shouldStoreFor(
         const primitives::BlockHeader &block) const override;
 
    private:
-    lazy<std::shared_ptr<const blockchain::BlockTree>> block_tree_;
+    LazySPtr<const blockchain::BlockTree> block_tree_;
   };
 
 }  // namespace kagome::blockchain

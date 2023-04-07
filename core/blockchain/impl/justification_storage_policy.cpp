@@ -13,7 +13,7 @@
 namespace kagome::blockchain {
 
   JustificationStoragePolicyImpl::JustificationStoragePolicyImpl(
-      lazy<std::shared_ptr<const blockchain::BlockTree>> block_tree)
+      LazySPtr<const blockchain::BlockTree> block_tree)
       : block_tree_(std::move(block_tree)) {}
 
   outcome::result<bool> JustificationStoragePolicyImpl::shouldStoreFor(

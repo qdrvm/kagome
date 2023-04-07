@@ -8,10 +8,9 @@
 
 #include "network/router.hpp"
 
-#include <boost/di/extension/injections/lazy.hpp>
-
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
+#include "injector/lazy.hpp"
 #include "libp2p/connection/loopback_stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/multi/multiaddress.hpp"
@@ -42,9 +41,9 @@ namespace kagome::network {
         const OwnPeerInfo &own_info,
         const BootstrapNodes &bootstrap_nodes,
         std::shared_ptr<libp2p::protocol::Ping> ping_proto,
-        boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol,
+        LazySPtr<WarpProtocol> warp_protocol,
         std::shared_ptr<LightProtocol> light_protocol,
-        lazy<std::shared_ptr<network::ProtocolFactory>> protocol_factory);
+        LazySPtr<network::ProtocolFactory> protocol_factory);
 
     ~RouterLibp2p() override = default;
 
@@ -94,9 +93,9 @@ namespace kagome::network {
     const OwnPeerInfo &own_info_;
     log::Logger log_;
     std::shared_ptr<libp2p::protocol::Ping> ping_protocol_;
-    boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol_;
+    LazySPtr<WarpProtocol> warp_protocol_;
     std::shared_ptr<LightProtocol> light_protocol_;
-    lazy<std::shared_ptr<network::ProtocolFactory>> protocol_factory_;
+    LazySPtr<network::ProtocolFactory> protocol_factory_;
 
     std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;
     std::shared_ptr<GrandpaProtocol> grandpa_protocol_;

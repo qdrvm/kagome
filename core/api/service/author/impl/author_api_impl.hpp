@@ -17,9 +17,8 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
-#include <boost/di/extension/injections/lazy.hpp>
-
 #include "common/blob.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "primitives/author_api_primitives.hpp"
 #include "primitives/transaction.hpp"
@@ -55,9 +54,6 @@ namespace kagome::subscription {
 
 namespace kagome::api {
 
-  template <typename T>
-  using lazy = boost::di::extension::lazy<T>;
-
   class AuthorApiImpl : public AuthorApi {
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -77,8 +73,8 @@ namespace kagome::api {
                   sptr<crypto::CryptoStore> store,
                   sptr<crypto::SessionKeys> keys,
                   sptr<crypto::KeyFileStorage> key_store,
-                  lazy<sptr<blockchain::BlockTree>> block_tree,
-                  lazy<std::shared_ptr<api::ApiService>> api_service);
+                  LazySPtr<blockchain::BlockTree> block_tree,
+                  LazySPtr<api::ApiService> api_service);
 
     ~AuthorApiImpl() override = default;
 
@@ -117,8 +113,8 @@ namespace kagome::api {
     sptr<crypto::CryptoStore> store_;
     sptr<crypto::SessionKeys> keys_;
     sptr<crypto::KeyFileStorage> key_store_;
-    lazy<std::shared_ptr<api::ApiService>> api_service_;
-    lazy<sptr<blockchain::BlockTree>> block_tree_;
+    LazySPtr<api::ApiService> api_service_;
+    LazySPtr<blockchain::BlockTree> block_tree_;
 
     log::Logger logger_;
   };

@@ -13,9 +13,9 @@ namespace kagome::network {
       const OwnPeerInfo &own_info,
       const BootstrapNodes &bootstrap_nodes,
       std::shared_ptr<libp2p::protocol::Ping> ping_proto,
-      boost::di::extension::lazy<std::shared_ptr<WarpProtocol>> warp_protocol,
+      LazySPtr<WarpProtocol> warp_protocol,
       std::shared_ptr<LightProtocol> light_protocol,
-      lazy<std::shared_ptr<network::ProtocolFactory>> protocol_factory)
+      LazySPtr<network::ProtocolFactory> protocol_factory)
       : app_state_manager_{app_state_manager},
         host_{host},
         app_config_(app_config),
@@ -65,7 +65,8 @@ namespace kagome::network {
 
     light_protocol_->start();
 
-    block_announce_protocol_ = protocol_factory_.get()->makeBlockAnnounceProtocol();
+    block_announce_protocol_ =
+        protocol_factory_.get()->makeBlockAnnounceProtocol();
     if (not block_announce_protocol_) {
       return false;
     }
@@ -80,7 +81,8 @@ namespace kagome::network {
       return false;
     }
 
-    req_collation_protocol_ = protocol_factory_.get()->makeReqCollationProtocol();
+    req_collation_protocol_ =
+        protocol_factory_.get()->makeReqCollationProtocol();
     if (not req_collation_protocol_) {
       return false;
     }
@@ -101,7 +103,8 @@ namespace kagome::network {
       return false;
     }
 
-    fetch_statement_protocol_ = protocol_factory_.get()->makeFetchStatementProtocol();
+    fetch_statement_protocol_ =
+        protocol_factory_.get()->makeFetchStatementProtocol();
     if (!fetch_statement_protocol_) {
       return false;
     }

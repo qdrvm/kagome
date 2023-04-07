@@ -12,7 +12,7 @@ namespace kagome::network {
   PeerView::PeerView(
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      lazy<std::shared_ptr<blockchain::BlockTree>> block_tree)
+      LazySPtr<blockchain::BlockTree> block_tree)
       : chain_events_engine_{chain_events_engine},
         my_view_update_observable_{
             std::make_shared<MyViewSubscriptionEngine>()},
