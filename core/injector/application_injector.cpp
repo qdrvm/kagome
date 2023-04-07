@@ -783,6 +783,8 @@ namespace {
         di::bind<consensus::babe::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
         di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
         di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
+        di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
+        di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

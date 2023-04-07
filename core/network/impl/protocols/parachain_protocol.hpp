@@ -36,7 +36,7 @@
 namespace kagome::network {
 
   template <typename Observer, typename Message, bool kCollation>
-  class ParachainProtocol final
+  class ParachainProtocol
       : public ProtocolBase,
         public std::enable_shared_from_this<
             ParachainProtocol<Observer, Message, kCollation>>,

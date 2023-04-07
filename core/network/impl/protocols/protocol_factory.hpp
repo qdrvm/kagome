@@ -35,31 +35,21 @@ namespace kagome::network {
   class ProtocolFactory final {
    public:
     ProtocolFactory(
-        libp2p::Host &host,
-        const application::AppConfiguration &app_config,
-        const application::ChainSpec &chain_spec,
-        const OwnPeerInfo &own_info,
-        const blockchain::GenesisBlockHash &genesis_block_hash,
-        std::shared_ptr<boost::asio::io_context> io_context,
-        std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<StreamEngine> stream_engine,
-        std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
-            extrinsic_events_engine,
-        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
-            ext_event_key_repo,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-        std::shared_ptr<network::PeerView> peer_view,
-        std::shared_ptr<ReputationRepository> reputation_repository,
-        lazy<std::shared_ptr<blockchain::BlockTree>> block_tree,
-        lazy<std::shared_ptr<consensus::babe::Babe>> babe,
-        lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
-            grandpa_observer,
-        lazy<std::shared_ptr<PeerManager>> peer_manage,
-        lazy<std::shared_ptr<parachain::ParachainProcessorImpl>> pp,
-        lazy<std::shared_ptr<parachain::ParachainObserver>> parachain_observer,
-        lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer,
-        lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer,
-        lazy<std::shared_ptr<StateProtocolObserver>> state_observer);
+        lazy<std::shared_ptr<BlockAnnounceProtocol>> block_announce_protocol,
+        lazy<std::shared_ptr<GrandpaProtocol>> grandpa_protocol,
+        lazy<std::shared_ptr<SyncProtocol>> sync_protocol,
+        lazy<std::shared_ptr<StateProtocol>> state_protocol,
+        lazy<std::shared_ptr<PropagateTransactionsProtocol>>
+            propagate_transactions_protocol,
+        lazy<std::shared_ptr<ValidationProtocol>> validation_protocol,
+        lazy<std::shared_ptr<CollationProtocol>> collation_protocol,
+        lazy<std::shared_ptr<ReqCollationProtocol>> req_collation_protocol,
+        lazy<std::shared_ptr<ReqPovProtocol>> req_pov_protocol,
+        lazy<std::shared_ptr<FetchChunkProtocol>> fetch_chunk_protocol,
+        lazy<std::shared_ptr<FetchAvailableDataProtocol>>
+            fetch_available_data_protocol,
+        lazy<std::shared_ptr<StatmentFetchingProtocol>>
+            statement_fetching_protocol);
 
     std::shared_ptr<BlockAnnounceProtocol> makeBlockAnnounceProtocol() const;
 
@@ -82,34 +72,21 @@ namespace kagome::network {
         const;
 
    private:
-    libp2p::Host &host_;
-    const application::AppConfiguration &app_config_;
-    const application::ChainSpec &chain_spec_;
-    const OwnPeerInfo &own_info_;
-    const blockchain::GenesisBlockHash &genesis_block_hash_;
-
-    std::shared_ptr<boost::asio::io_context> io_context_;
-    std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<StreamEngine> stream_engine_;
-    std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
-        extrinsic_events_engine_;
-    std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
-        ext_event_key_repo_;
-    std::shared_ptr<ReputationRepository> reputation_repository_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
-    std::shared_ptr<network::PeerView> peer_view_;
-
-    lazy<std::shared_ptr<blockchain::BlockTree>> block_tree_;
-    lazy<std::shared_ptr<consensus::babe::Babe>> babe_;
-    lazy<std::shared_ptr<consensus::grandpa::GrandpaObserver>>
-        grandpa_observer_;
-    lazy<std::shared_ptr<PeerManager>> peer_manager_;
-    lazy<std::shared_ptr<parachain::ParachainProcessorImpl>>
-        parachain_processor_;
-    lazy<std::shared_ptr<parachain::ParachainObserver>> parachain_observer_;
-    lazy<std::shared_ptr<ExtrinsicObserver>> extrinsic_observer_;
-    lazy<std::shared_ptr<SyncProtocolObserver>> sync_observer_;
-    lazy<std::shared_ptr<StateProtocolObserver>> state_observer_;
+    lazy<std::shared_ptr<BlockAnnounceProtocol>> block_announce_protocol_;
+    lazy<std::shared_ptr<GrandpaProtocol>> grandpa_protocol_;
+    lazy<std::shared_ptr<SyncProtocol>> sync_protocol_;
+    lazy<std::shared_ptr<StateProtocol>> state_protocol_;
+    lazy<std::shared_ptr<PropagateTransactionsProtocol>>
+        propagate_transactions_protocol_;
+    lazy<std::shared_ptr<ValidationProtocol>> validation_protocol_;
+    lazy<std::shared_ptr<CollationProtocol>> collation_protocol_;
+    lazy<std::shared_ptr<ReqCollationProtocol>> req_collation_protocol_;
+    lazy<std::shared_ptr<ReqPovProtocol>> req_pov_protocol_;
+    lazy<std::shared_ptr<FetchChunkProtocol>> fetch_chunk_protocol_;
+    lazy<std::shared_ptr<FetchAvailableDataProtocol>>
+        fetch_available_data_protocol_;
+    lazy<std::shared_ptr<StatmentFetchingProtocol>>
+        statement_fetching_protocol_;
   };
 
 }  // namespace kagome::network
