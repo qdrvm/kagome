@@ -946,7 +946,7 @@ namespace kagome::consensus::babe {
           bitfield_store_->getBitfields(relay_parent);
 
       paras_inherent_data.backed_candidates = backing_store_->get(relay_parent);
-      SL_TRACE(log_,
+      SL_INFO(log_,
                "Get backed candidates from store.(count={}, relay_parent={})",
                paras_inherent_data.backed_candidates.size(),
                relay_parent);

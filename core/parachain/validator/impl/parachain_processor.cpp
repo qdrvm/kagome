@@ -434,7 +434,7 @@ namespace kagome::parachain {
       BOOST_ASSERT_MSG(
           bd, "BitfieldDistribution is not present. Check message format.");
 
-      logger_->info(
+      SL_TRACE(logger_,
           "Imported bitfield {} {}", bd->data.payload.ix, bd->relay_parent);
       bitfield_store_->putBitfield(bd->relay_parent, bd->data);
       return;
@@ -442,7 +442,7 @@ namespace kagome::parachain {
 
     if (auto msg{boost::get<network::StatementDistributionMessage>(&message)}) {
       if (auto statement_msg{boost::get<network::Seconded>(msg)}) {
-        logger_->info("Imported statement on {}", statement_msg->relay_parent);
+        SL_TRACE(logger_, "Imported statement on {}", statement_msg->relay_parent);
         handleStatement(
             peer_id, statement_msg->relay_parent, statement_msg->statement);
       }
@@ -491,7 +491,9 @@ namespace kagome::parachain {
     auto const candidate_hash{candidateHashFrom(attesting_data.candidate)};
 
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
-    parachain_state.awaiting_validation.insert(candidate_hash);
+    if (!parachain_state.awaiting_validation.insert(candidate_hash).second) {
+      return;
+    }
 
     auto const &collator_id =
         collatorIdFromDescriptor(attesting_data.candidate.descriptor);
@@ -507,7 +509,7 @@ namespace kagome::parachain {
       return;
     }
 
-    if (session_info->discovery_keys.size() >= attesting_data.from_validator) {
+    if (session_info->discovery_keys.size() <= attesting_data.from_validator) {
       SL_ERROR(logger_,
                "Invalid validator index.(relay_parent={}, validator_index={})",
                relay_parent,
@@ -715,14 +717,14 @@ namespace kagome::parachain {
     if (auto result =
             importStatement(relay_parent, statement, parachain_state)) {
       if (result->imported.group_id != assignment) {
-        logger_->warn(
+        SL_TRACE(logger_,
             "Registered statement from not our group(our: {}, registered: {}).",
             assignment,
             result->imported.group_id);
         return;
       }
 
-      logger_->trace(
+      SL_TRACE(logger_,
           "Registered incoming statement.(relay_parent={}, peer={}).",
           relay_parent,
           peer_id);
@@ -785,7 +787,7 @@ namespace kagome::parachain {
       ParachainProcessorImpl::RelayParentState &relayParentState,
       primitives::BlockHash const &candidate_hash,
       network::SignedStatement const &statement) {
-    logger_->info("Import statement into table.(candidate={})", candidate_hash);
+    SL_TRACE(logger_, "Import statement into table.(candidate={})", candidate_hash);
 
     if (auto r = backing_store_->put(relayParentState.table_context.groups,
                                      statement)) {
@@ -930,7 +932,7 @@ namespace kagome::parachain {
         statement);
 
     if (import_result) {
-      logger_->info(
+      SL_TRACE(logger_,
           "Import result.(candidate={}, group id={}, validity votes={})",
           import_result->imported.candidate,
           import_result->imported.group_id,
@@ -940,7 +942,7 @@ namespace kagome::parachain {
                                              relayParentState.table_context)) {
         if (auto backed = table_attested_to_backed(
                 std::move(*attested), relayParentState.table_context)) {
-          SL_TRACE(
+          SL_INFO(
               logger_,
               "Candidate backed.(candidate={}, para id={}, relay_parent={})",
               import_result->imported.candidate,

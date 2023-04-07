@@ -122,7 +122,7 @@ namespace kagome::network {
         const PeerInfo &peer_info,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override {
-      SL_INFO(base_.logger(),
+      SL_TRACE(base_.logger(),
               "Connect for {} stream with {}",
               protocolName(),
               peer_info.id);
