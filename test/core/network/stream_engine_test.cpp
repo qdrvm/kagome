@@ -52,7 +52,7 @@ namespace kagome::network {
 
     result_type operator()() {
       static result_type value{9};
-      value = ++value % 10;
+      value = (value + 1) % 10;
       return value;
     }
 
