@@ -93,9 +93,9 @@ class SynchronizerTest
                                                     router,
                                                     scheduler,
                                                     hasher,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
+                                                    module_factory,
+                                                    core_api,
+                                                    chain_sub_engine,
                                                     spaced_storage,
                                                     grandpa_environment);
   }
