@@ -11,6 +11,7 @@
 
 #include <erasure_coding/erasure_coding.h>
 
+#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/common.hpp"
@@ -62,7 +63,7 @@ namespace kagome::parachain {
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<boost::asio::io_context> this_context,
-      std::shared_ptr<crypto::Sr25519Keypair> keypair,
+      std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ThreadPool> thread_pool,
@@ -80,7 +81,10 @@ namespace kagome::parachain {
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
         this_context_(std::move(this_context)),
-        keypair_(std::move(keypair)),
+        keypair_([&] {
+          BOOST_ASSERT(session_keys != nullptr);
+          return session_keys->getBabeKeyPair();
+        }()),
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
         thread_pool_(std::move(thread_pool)),

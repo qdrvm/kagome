@@ -334,13 +334,12 @@ namespace {
   template <typename Injector>
   sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
       const Injector &injector) {
-    auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
     auto ptr = std::make_shared<parachain::ParachainProcessorImpl>(
         injector.template create<std::shared_ptr<network::PeerManager>>(),
         injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
         injector.template create<std::shared_ptr<network::Router>>(),
         injector.template create<std::shared_ptr<::boost::asio::io_context>>(),
-        session_keys->getBabeKeyPair(),
+        injector.template create<sptr<crypto::SessionKeys>>(),
         injector.template create<std::shared_ptr<crypto::Hasher>>(),
         injector.template create<std::shared_ptr<network::PeerView>>(),
         injector.template create<std::shared_ptr<ThreadPool>>(),
