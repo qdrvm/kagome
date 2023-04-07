@@ -180,8 +180,7 @@ namespace kagome::blockchain {
             SL_WARN(log,
                     "Can't get header of existing block {}: "
                     "not found in block storage",
-                    hash,
-                    header_res.error());
+                    hash);
             break;
           }
 
