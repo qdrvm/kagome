@@ -746,43 +746,12 @@ namespace {
         di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
         di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
         di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
+        di::bind<consensus::babe::Babe>.template to<consensus::babe::BabeImpl>(),
+        di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
+        di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
-  }
-
-  template <typename Injector>
-  auto get_babe(const Injector &injector) {
-    auto ptr = std::make_shared<consensus::babe::BabeImpl>(
-        injector.template create<const application::AppConfiguration &>(),
-        injector.template create<sptr<application::AppStateManager>>(),
-        injector.template create<sptr<consensus::babe::BabeLottery>>(),
-        injector.template create<sptr<consensus::babe::BabeConfigRepository>>(),
-        injector.template create<sptr<authorship::Proposer>>(),
-        injector.template create<sptr<blockchain::BlockTree>>(),
-        injector.template create<sptr<network::BlockAnnounceTransmitter>>(),
-        injector.template create<sptr<crypto::Sr25519Provider>>(),
-        injector.template create<sptr<crypto::SessionKeys>>(),
-        injector.template create<sptr<clock::SystemClock>>(),
-        injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<uptr<clock::Timer>>(),
-        injector.template create<sptr<blockchain::DigestTracker>>(),
-        injector.template create<sptr<network::Synchronizer>>(),
-        injector.template create<sptr<consensus::babe::BabeUtil>>(),
-        injector.template create<sptr<parachain::BitfieldStore>>(),
-        injector.template create<sptr<parachain::BackingStore>>(),
-        injector.template create<
-            primitives::events::StorageSubscriptionEnginePtr>(),
-        injector
-            .template create<primitives::events::ChainSubscriptionEnginePtr>(),
-        injector.template create<sptr<runtime::OffchainWorkerApi>>(),
-        injector.template create<sptr<runtime::Core>>(),
-        injector.template create<sptr<consensus::babe::ConsistencyKeeper>>(),
-        injector.template create<sptr<storage::trie::TrieStorage>>(),
-        injector.template create<
-            primitives::events::BabeStateSubscriptionEnginePtr>());
-
-    return ptr;
   }
 
   template <typename... Ts>
@@ -790,13 +759,6 @@ namespace {
                               Ts &&...args) {
     return di::make_injector<boost::di::extension::shared_config>(
         makeApplicationInjector(app_config),
-        bind_by_lambda<consensus::babe::BabeImpl>(
-            [](auto const &injector) { return get_babe(injector); }),
-        bind_by_lambda<consensus::babe::Babe>([](auto &&injector) {
-          return injector.template create<sptr<consensus::babe::BabeImpl>>();
-        }),
-        di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
-        di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
