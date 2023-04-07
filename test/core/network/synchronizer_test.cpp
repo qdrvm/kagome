@@ -18,6 +18,8 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
+#include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
@@ -119,6 +121,12 @@ class SynchronizerTest
       std::make_shared<libp2p::basic::SchedulerMock>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
+  std::shared_ptr<runtime::ModuleFactoryMock> module_factory =
+      std::make_shared<runtime::ModuleFactoryMock>();
+  std::shared_ptr<runtime::CoreMock> core_api =
+      std::make_shared<runtime::CoreMock>();
+  primitives::events::ChainSubscriptionEnginePtr chain_sub_engine =
+      std::make_shared<primitives::events::ChainSubscriptionEngine>();
   std::shared_ptr<SpacedStorageMock> spaced_storage =
       std::make_shared<SpacedStorageMock>();
   std::shared_ptr<BufferStorageMock> buffer_storage =
