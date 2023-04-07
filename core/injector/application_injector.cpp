@@ -331,34 +331,6 @@ namespace {
     return std::make_shared<ThreadPool>(5ull);
   }
 
-  template <typename Injector>
-  sptr<parachain::ParachainProcessorImpl> get_parachain_processor_impl(
-      const Injector &injector) {
-    auto ptr = std::make_shared<parachain::ParachainProcessorImpl>(
-        injector.template create<std::shared_ptr<network::PeerManager>>(),
-        injector.template create<std::shared_ptr<crypto::Sr25519Provider>>(),
-        injector.template create<std::shared_ptr<network::Router>>(),
-        injector.template create<std::shared_ptr<::boost::asio::io_context>>(),
-        injector.template create<sptr<crypto::SessionKeys>>(),
-        injector.template create<std::shared_ptr<crypto::Hasher>>(),
-        injector.template create<std::shared_ptr<network::PeerView>>(),
-        injector.template create<std::shared_ptr<ThreadPool>>(),
-        injector.template create<std::shared_ptr<parachain::BitfieldSigner>>(),
-        injector.template create<sptr<parachain::BitfieldStore>>(),
-        injector.template create<sptr<parachain::BackingStore>>(),
-        injector.template create<sptr<parachain::Pvf>>(),
-        injector.template create<sptr<parachain::AvailabilityStore>>(),
-        injector.template create<sptr<runtime::ParachainHost>>(),
-        injector.template create<sptr<parachain::ValidatorSignerFactory>>(),
-        injector.template create<const application::AppConfiguration &>(),
-        injector
-            .template create<std::shared_ptr<application::AppStateManager>>(),
-        injector.template create<
-            primitives::events::BabeStateSubscriptionEnginePtr>());
-
-    return ptr;
-  }
-
   template <typename... Ts>
   auto makeWavmInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
@@ -717,10 +689,6 @@ namespace {
         di::bind<network::ReqCollationObserver>.template to<parachain::ParachainObserverImpl>(),
         di::bind<network::ReqPovObserver>.template to<parachain::ParachainObserverImpl>(),
         di::bind<parachain::ParachainObserver>.template to<parachain::ParachainObserverImpl>(),
-        bind_by_lambda<parachain::ParachainProcessorImpl>(
-            [](auto const &injector) {
-              return get_parachain_processor_impl(injector);
-            }),
         bind_by_lambda<ThreadPool>(
             [](auto const &injector) { return get_thread_pool(injector); }),
         bind_by_lambda<storage::trie::TrieStorageBackend>(
