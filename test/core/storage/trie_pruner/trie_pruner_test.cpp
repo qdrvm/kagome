@@ -481,8 +481,8 @@ TEST_F(TriePrunerTest, RandomTree) {
       auto it = inserted_keys.begin();
       std::advance(it, rand() % inserted_keys.size());
       auto &k = *it;
-      inserted_keys.erase(k);
       ASSERT_OUTCOME_SUCCESS_TRY(trie.remove(k));
+      inserted_keys.erase(k);
     }
     ASSERT_OUTCOME_SUCCESS_TRY(
         trie.clearPrefix(Buffer{{static_cast<uint8_t>(rand() % 256)}},
