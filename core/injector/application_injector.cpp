@@ -755,12 +755,7 @@ namespace {
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::babe::BlockHeaderAppender>.template to<consensus::babe::BlockHeaderAppenderImpl>(),
         di::bind<consensus::babe::BlockExecutor>.template to<consensus::babe::BlockExecutorImpl>(),
-        bind_by_lambda<consensus::grandpa::GrandpaImpl>(
-            [](auto &&injector) { return get_grandpa_impl(injector); }),
-        bind_by_lambda<consensus::grandpa::Grandpa>([](auto const &injector) {
-          return injector
-              .template create<sptr<consensus::grandpa::GrandpaImpl>>();
-        }),
+        di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::grandpa::NeighborObserver>.template to<consensus::grandpa::GrandpaImpl>(),
@@ -820,27 +815,6 @@ namespace {
         injector.template create<sptr<storage::trie::TrieStorage>>(),
         injector.template create<
             primitives::events::BabeStateSubscriptionEnginePtr>());
-
-    return ptr;
-  }
-
-  template <typename Injector>
-  sptr<consensus::grandpa::GrandpaImpl> get_grandpa_impl(
-      const Injector &injector) {
-    auto ptr = std::make_shared<consensus::grandpa::GrandpaImpl>(
-        injector.template create<sptr<application::AppStateManager>>(),
-        injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<consensus::grandpa::Environment>>(),
-        injector.template create<sptr<crypto::Ed25519Provider>>(),
-        injector.template create<sptr<runtime::GrandpaApi>>(),
-        injector.template create<sptr<crypto::SessionKeys>>(),
-        injector.template create<const application::ChainSpec &>(),
-        injector.template create<sptr<libp2p::basic::Scheduler>>(),
-        injector.template create<sptr<consensus::grandpa::AuthorityManager>>(),
-        injector.template create<sptr<network::Synchronizer>>(),
-        injector.template create<sptr<network::PeerManager>>(),
-        injector.template create<sptr<blockchain::BlockTree>>(),
-        injector.template create<sptr<network::ReputationRepository>>());
 
     return ptr;
   }
