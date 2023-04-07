@@ -65,6 +65,13 @@ target_link_libraries(print_chain_info_mode
     RapidJSON::rapidjson
     )
 
+add_library(recovery_mode
+    modes/recovery_mode.cpp
+    )
+target_link_libraries(recovery_mode
+    logger
+    )
+
 add_library(kagome_application
     impl/kagome_application_impl.cpp
     )

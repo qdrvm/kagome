@@ -102,7 +102,6 @@
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
-#include "network/peer_view.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "offchain/impl/offchain_persistent_storage.hpp"
 #include "offchain/impl/offchain_worker_factory_impl.hpp"
@@ -735,8 +734,6 @@ namespace {
             [](auto const &injector) {
               return get_genesis_block_header(injector);
             }),
-        bind_by_lambda<application::mode::RecoveryMode>(
-            [](auto const &injector) { return get_recovery_mode(injector); }),
         di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
         di::bind<consensus::babe::ConsistencyKeeper>.template to<consensus::babe::ConsistencyKeeperImpl>(),
         di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
@@ -784,53 +781,6 @@ namespace {
             primitives::events::BabeStateSubscriptionEnginePtr>());
 
     return ptr;
-  }
-
-  template <typename Injector>
-  sptr<application::mode::RecoveryMode> get_recovery_mode(
-      const Injector &injector) {
-    const auto &app_config =
-        injector.template create<const application::AppConfiguration &>();
-    auto spaced_storage =
-        injector.template create<sptr<storage::SpacedStorage>>();
-    auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
-    auto header_repo =
-        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
-    auto trie_storage =
-        injector.template create<sptr<const storage::trie::TrieStorage>>();
-    auto authority_manager =
-        injector.template create<sptr<consensus::grandpa::AuthorityManager>>();
-    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
-
-    return std::make_shared<application::mode::RecoveryMode>(
-        [&app_config,
-         spaced_storage = std::move(spaced_storage),
-         authority_manager,
-         storage = std::move(storage),
-         header_repo = std::move(header_repo),
-         trie_storage = std::move(trie_storage),
-         block_tree = std::move(block_tree)] {
-          BOOST_ASSERT(app_config.recoverState().has_value());
-          auto res = blockchain::BlockTreeImpl::recover(
-              app_config.recoverState().value(),
-              storage,
-              header_repo,
-              trie_storage,
-              block_tree);
-
-          auto log = log::createLogger("RecoveryMode", "main");
-
-          spaced_storage->getSpace(storage::Space::kDefault)
-              ->remove(storage::kAuthorityManagerStateLookupKey("last"))
-              .value();
-          if (res.has_error()) {
-            SL_ERROR(log, "Recovery mode has failed: {}", res.error());
-            log->flush();
-            return EXIT_FAILURE;
-          }
-
-          return EXIT_SUCCESS;
-        });
   }
 
   template <typename... Ts>
