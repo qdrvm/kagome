@@ -78,7 +78,7 @@ namespace kagome::application {
 
   void AppStateManagerImpl::atPrepare(OnPrepare &&cb) {
     std::lock_guard lg(mutex_);
-    if (state_ > State::Injected) {
+    if (state_ > State::Prepare) {
       throw AppStateException("adding callback for stage 'prepare'");
     }
     prepare_.emplace(std::move(cb));
@@ -86,7 +86,7 @@ namespace kagome::application {
 
   void AppStateManagerImpl::atLaunch(OnLaunch &&cb) {
     std::lock_guard lg(mutex_);
-    if (state_ > State::ReadyToStart) {
+    if (state_ > State::Starting) {
       throw AppStateException("adding callback for stage 'launch'");
     }
     launch_.emplace(std::move(cb));
@@ -94,7 +94,7 @@ namespace kagome::application {
 
   void AppStateManagerImpl::atShutdown(OnShutdown &&cb) {
     std::lock_guard lg(mutex_);
-    if (state_ > State::Works) {
+    if (state_ > State::ShuttingDown) {
       throw AppStateException("adding callback for stage 'shutdown'");
     }
     shutdown_.emplace(std::move(cb));

@@ -58,7 +58,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(header_repo_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
-    app_state_manager->atPrepare([&] { return prepare(); });
+    app_state_manager->takeControl(*this);
   }
 
   AuthorityManagerImpl::~AuthorityManagerImpl() {}
