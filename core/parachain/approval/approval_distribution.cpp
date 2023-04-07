@@ -2050,8 +2050,7 @@ namespace kagome::parachain {
         self->handleTranche(block_hash, block_number, candidate_hash);
       }
     });
-    target_block.insert_or_assign(
-        target_candidate, candidate_hash, std::make_pair(tick, std::move(t)));
+    target_block.insert_or_assign(candidate_hash, std::make_pair(tick, std::move(t)));
   }
 
   void ApprovalDistribution::handleTranche(
