@@ -65,6 +65,17 @@ namespace kagome::primitives {
 }  // namespace kagome::primitives
 
 template <typename Tag>
+struct std::hash<kagome::primitives::detail::BlockInfoT<Tag>> {
+  size_t operator()(
+      const kagome::primitives::detail::BlockInfoT<Tag> &x) const {
+    size_t hash = 0;
+    boost::hash_combine(hash, x.number);
+    boost::hash_combine(hash, x.hash);
+    return hash;
+  }
+};
+
+template <typename Tag>
 struct fmt::formatter<kagome::primitives::detail::BlockInfoT<Tag>> {
   // Presentation format: 's' - short, 'l' - long.
   char presentation = 's';
