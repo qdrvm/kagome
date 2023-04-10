@@ -23,6 +23,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
     case E::COMMIT_NOT_SUPPORTED:
       return "Topper trie batches do not support committing changes, use "
              "writeBack instead";
+    case E::CURSOR_NEXT_INVALID:
+      return "TopperTrieCursor::next() called on invalid cursor";
+    case E::CURSOR_SEEK_LAST_NOT_IMPLEMENTED:
+      return "TopperTrieCursor::seekLast() not implemented";
+    case E::CURSOR_PREV_NOT_IMPLEMENTED:
+      return "TopperTrieCursor::prev() not implemented";
   }
   return "Unknown error";
 }
@@ -61,7 +67,8 @@ namespace kagome::storage::trie {
 
   std::unique_ptr<PolkadotTrieCursor> TopperTrieBatchImpl::trieCursor() {
     if (auto p = parent_.lock(); p != nullptr) {
-      return p->trieCursor();
+      return std::make_unique<TopperTrieCursor>(shared_from_this(),
+                                                p->trieCursor());
     }
     return nullptr;
   }
@@ -157,4 +164,116 @@ namespace kagome::storage::trie {
     return false;
   }
 
+  TopperTrieCursor::TopperTrieCursor(std::shared_ptr<TopperTrieBatchImpl> batch,
+                                     std::unique_ptr<PolkadotTrieCursor> cursor)
+      : parent_batch_{std::move(batch)},
+        parent_cursor_{std::move(cursor)},
+        overlay_it_{parent_batch_->cache_.end()} {}
+
+  outcome::result<bool> TopperTrieCursor::seekFirst() {
+    OUTCOME_TRY(parent_cursor_->seekFirst());
+    cached_parent_key_ = parent_cursor_->key();
+    overlay_it_ = parent_batch_->cache_.begin();
+    choose();
+    OUTCOME_TRY(skipRemoved());
+    return outcome::success();
+  }
+
+  outcome::result<bool> TopperTrieCursor::seek(const BufferView &key) {
+    OUTCOME_TRY(seekLowerBound(key));
+    return isValid();
+  }
+
+  outcome::result<bool> TopperTrieCursor::seekLast() {
+    return TopperTrieBatchImpl::Error::CURSOR_SEEK_LAST_NOT_IMPLEMENTED;
+  }
+
+  bool TopperTrieCursor::isValid() const {
+    return choice_;
+  }
+
+  outcome::result<void> TopperTrieCursor::next() {
+    OUTCOME_TRY(step());
+    OUTCOME_TRY(skipRemoved());
+    return outcome::success();
+  }
+
+  outcome::result<void> TopperTrieCursor::prev() {
+    return TopperTrieBatchImpl::Error::CURSOR_PREV_NOT_IMPLEMENTED;
+  }
+
+  std::optional<Buffer> TopperTrieCursor::key() const {
+    return choice_.overlay ? overlay_it_->first : cached_parent_key_;
+  }
+
+  std::optional<BufferOrView> TopperTrieCursor::value() const {
+    return choice_.overlay ? Buffer{*overlay_it_->second}
+                           : parent_cursor_->value();
+  }
+
+  outcome::result<void> TopperTrieCursor::seekLowerBound(
+      const BufferView &key) {
+    OUTCOME_TRY(parent_cursor_->seekLowerBound(key));
+    cached_parent_key_ = parent_cursor_->key();
+    overlay_it_ = parent_batch_->cache_.lower_bound(key);
+    choose();
+    OUTCOME_TRY(skipRemoved());
+    return outcome::success();
+  }
+
+  outcome::result<void> TopperTrieCursor::seekUpperBound(
+      const BufferView &key) {
+    OUTCOME_TRY(parent_cursor_->seekUpperBound(key));
+    cached_parent_key_ = parent_cursor_->key();
+    overlay_it_ = parent_batch_->cache_.upper_bound(key);
+    choose();
+    OUTCOME_TRY(skipRemoved());
+    return outcome::success();
+  }
+
+  void TopperTrieCursor::choose() {
+    if (overlay_it_ != parent_batch_->cache_.end()
+        and (not cached_parent_key_
+             or *cached_parent_key_ >= overlay_it_->first)) {
+      choice_ = Choice{cached_parent_key_ == overlay_it_->first, true};
+      return;
+    }
+    if (cached_parent_key_) {
+      choice_ = Choice{true, false};
+    } else {
+      choice_ = Choice{false, false};
+    }
+  }
+
+  bool TopperTrieCursor::isRemoved() const {
+    if (not choice_) {
+      return false;
+    }
+    if (choice_.overlay) {
+      return not overlay_it_->second;
+    }
+    return parent_batch_->wasClearedByPrefix(*cached_parent_key_);
+  }
+
+  outcome::result<void> TopperTrieCursor::skipRemoved() {
+    while (isRemoved()) {
+      OUTCOME_TRY(step());
+    }
+    return outcome::success();
+  }
+
+  outcome::result<void> TopperTrieCursor::step() {
+    if (not choice_) {
+      return TopperTrieBatchImpl::Error::CURSOR_NEXT_INVALID;
+    }
+    if (choice_.parent) {
+      OUTCOME_TRY(parent_cursor_->next());
+      cached_parent_key_ = parent_cursor_->key();
+    }
+    if (choice_.overlay) {
+      ++overlay_it_;
+    }
+    choose();
+    return outcome::success();
+  }
 }  // namespace kagome::storage::trie

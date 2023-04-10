@@ -113,7 +113,6 @@ namespace kagome::consensus::grandpa {
     virtual void forgetPreviousRound() = 0;
 
     virtual outcome::result<void> applyJustification(
-        const BlockInfo &block_info,
         const GrandpaJustification &justification) = 0;
 
     /// executes algorithm Attempt-To-Finalize-Round

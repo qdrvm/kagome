@@ -21,11 +21,17 @@ namespace kagome::consensus::grandpa {
           continue;
         }
         auto &decoded = decoded_res.value();
-        if (decoded.isGrandpaDigestOf<primitives::ScheduledChange>()) {
-          scheduled = true;
+        auto grandpa = boost::get<primitives::GrandpaDigest>(&decoded.digest);
+        if (not grandpa) {
+          continue;
         }
-        if (decoded.isGrandpaDigestOf<primitives::ForcedChange>()) {
-          forced = true;
+        if (auto change = boost::get<primitives::ScheduledChange>(grandpa)) {
+          scheduled = std::move(*change);
+          continue;
+        }
+        if (auto change = boost::get<primitives::ForcedChange>(grandpa)) {
+          forced = std::move(*change);
+          continue;
         }
       }
     }
@@ -34,8 +40,8 @@ namespace kagome::consensus::grandpa {
       return scheduled || forced;
     }
 
-    bool scheduled = false;
-    bool forced = false;
+    std::optional<primitives::ScheduledChange> scheduled;
+    std::optional<primitives::ForcedChange> forced;
   };
 }  // namespace kagome::consensus::grandpa
 
