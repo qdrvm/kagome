@@ -940,6 +940,7 @@ namespace kagome::parachain {
 
       if (auto attested = attested_candidate(import_result->imported.candidate,
                                              relayParentState.table_context)) {
+        if (relayParentState.backed_hashes.insert(candidateHash(*hasher_, attested->candidate)).second) {
         if (auto backed = table_attested_to_backed(
                 std::move(*attested), relayParentState.table_context)) {
           SL_INFO(
@@ -949,6 +950,7 @@ namespace kagome::parachain {
               import_result->imported.group_id,
               relay_parent);
           backing_store_->add(relay_parent, std::move(*backed));
+        }
         }
       }
     }
@@ -1370,7 +1372,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onAttestComplete(
-      libp2p::peer::PeerId const &peer_id, ValidateAndSecondResult &&result) {
+      libp2p::peer::PeerId const &, ValidateAndSecondResult &&result) {
     auto parachain_state = tryGetStateByRelayParent(result.relay_parent);
     if (!parachain_state) {
       logger_->warn(
