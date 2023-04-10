@@ -708,7 +708,7 @@ namespace kagome::consensus::babe {
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(finish_time);
-    timer_->asyncWait([this](auto &&ec) {
+    timer_->asyncWait([&](auto &&ec) {
       if (ec) {
         log_->error("error happened while waiting on the timer: {}", ec);
         return;
@@ -771,7 +771,8 @@ namespace kagome::consensus::babe {
         if (slot_leadership.has_value()) {
           const auto &vrf_result = slot_leadership.value();
           SL_DEBUG(log_,
-                   "Babe author {} is leader (vrfOutput: {}, proof: {})",
+                   "Babe author {} is primary slot-leader "
+                   "(vrfOutput: {}, proof: {})",
                    keypair_->public_key,
                    common::Buffer(vrf_result.output),
                    common::Buffer(vrf_result.proof));
@@ -792,12 +793,28 @@ namespace kagome::consensus::babe {
             if (babe_config.allowed_slots
                 == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
               auto vrf = lottery_->slotVrfSignature(current_slot_);
+              SL_DEBUG(log_,
+                       "Babe author {} is secondary slot-leader "
+                       "(vrfOutput: {}, proof: {})",
+                       keypair_->public_key,
+                       common::Buffer(vrf.output),
+                       common::Buffer(vrf.proof));
+
               processSlotLeadership(
                   SlotType::SecondaryVRF, std::cref(vrf), authority_index);
             } else {  // plain secondary slots mode
+              SL_DEBUG(
+                  log_,
+                  "Babe author {} is block producer in secondary plain slot",
+                  keypair_->public_key);
+
               processSlotLeadership(
                   SlotType::SecondaryPlain, std::nullopt, authority_index);
             }
+          } else {
+            SL_TRACE(log_,
+                     "Babe author {} is not block producer in current slot",
+                     keypair_->public_key);
           }
         }
       }
@@ -831,7 +848,7 @@ namespace kagome::consensus::babe {
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(start_time);
-    timer_->asyncWait([this](auto &&ec) {
+    timer_->asyncWait([&](auto &&ec) {
       if (ec) {
         log_->error("error happened while waiting on the timer: {}", ec);
         return;
@@ -929,9 +946,6 @@ namespace kagome::consensus::babe {
     }
 
     ParachainInherentData paras_inherent_data;
-
-    // TODO: research of filling of bitfield, backed candidates, disputes
-    //  issue https://github.com/soramitsu/kagome/issues/1209
 
     {
       auto &relay_parent = best_block_.hash;
