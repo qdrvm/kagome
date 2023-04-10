@@ -5,6 +5,8 @@
 
 #include "crypto/crypto_store/key_file_storage.hpp"
 
+#include <fstream>
+
 #include "common/hexutil.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 
