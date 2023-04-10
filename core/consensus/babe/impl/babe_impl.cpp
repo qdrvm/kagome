@@ -947,9 +947,9 @@ namespace kagome::consensus::babe {
 
       paras_inherent_data.backed_candidates = backing_store_->get(relay_parent);
       SL_INFO(log_,
-               "Get backed candidates from store.(count={}, relay_parent={})",
-               paras_inherent_data.backed_candidates.size(),
-               relay_parent);
+              "Get backed candidates from store.(count={}, relay_parent={})",
+              paras_inherent_data.backed_candidates.size(),
+              relay_parent);
 
       auto best_block_header_res =
           block_tree_->getBlockHeader(best_block_.hash);

@@ -435,14 +435,17 @@ namespace kagome::parachain {
           bd, "BitfieldDistribution is not present. Check message format.");
 
       SL_TRACE(logger_,
-          "Imported bitfield {} {}", bd->data.payload.ix, bd->relay_parent);
+               "Imported bitfield {} {}",
+               bd->data.payload.ix,
+               bd->relay_parent);
       bitfield_store_->putBitfield(bd->relay_parent, bd->data);
       return;
     }
 
     if (auto msg{boost::get<network::StatementDistributionMessage>(&message)}) {
       if (auto statement_msg{boost::get<network::Seconded>(msg)}) {
-        SL_TRACE(logger_, "Imported statement on {}", statement_msg->relay_parent);
+        SL_TRACE(
+            logger_, "Imported statement on {}", statement_msg->relay_parent);
         handleStatement(
             peer_id, statement_msg->relay_parent, statement_msg->statement);
       }
@@ -717,7 +720,8 @@ namespace kagome::parachain {
     if (auto result =
             importStatement(relay_parent, statement, parachain_state)) {
       if (result->imported.group_id != assignment) {
-        SL_TRACE(logger_,
+        SL_TRACE(
+            logger_,
             "Registered statement from not our group(our: {}, registered: {}).",
             assignment,
             result->imported.group_id);
@@ -725,9 +729,9 @@ namespace kagome::parachain {
       }
 
       SL_TRACE(logger_,
-          "Registered incoming statement.(relay_parent={}, peer={}).",
-          relay_parent,
-          peer_id);
+               "Registered incoming statement.(relay_parent={}, peer={}).",
+               relay_parent,
+               peer_id);
       std::optional<std::reference_wrapper<AttestingData>> attesting_ref =
           visit_in_place(
               parachain::getPayload(statement).candidate_state,
@@ -787,7 +791,8 @@ namespace kagome::parachain {
       ParachainProcessorImpl::RelayParentState &relayParentState,
       primitives::BlockHash const &candidate_hash,
       network::SignedStatement const &statement) {
-    SL_TRACE(logger_, "Import statement into table.(candidate={})", candidate_hash);
+    SL_TRACE(
+        logger_, "Import statement into table.(candidate={})", candidate_hash);
 
     if (auto r = backing_store_->put(relayParentState.table_context.groups,
                                      statement)) {
@@ -933,24 +938,26 @@ namespace kagome::parachain {
 
     if (import_result) {
       SL_TRACE(logger_,
-          "Import result.(candidate={}, group id={}, validity votes={})",
-          import_result->imported.candidate,
-          import_result->imported.group_id,
-          import_result->imported.validity_votes);
+               "Import result.(candidate={}, group id={}, validity votes={})",
+               import_result->imported.candidate,
+               import_result->imported.group_id,
+               import_result->imported.validity_votes);
 
       if (auto attested = attested_candidate(import_result->imported.candidate,
                                              relayParentState.table_context)) {
-        if (relayParentState.backed_hashes.insert(candidateHash(*hasher_, attested->candidate)).second) {
-        if (auto backed = table_attested_to_backed(
-                std::move(*attested), relayParentState.table_context)) {
-          SL_INFO(
-              logger_,
-              "Candidate backed.(candidate={}, para id={}, relay_parent={})",
-              import_result->imported.candidate,
-              import_result->imported.group_id,
-              relay_parent);
-          backing_store_->add(relay_parent, std::move(*backed));
-        }
+        if (relayParentState.backed_hashes
+                .insert(candidateHash(*hasher_, attested->candidate))
+                .second) {
+          if (auto backed = table_attested_to_backed(
+                  std::move(*attested), relayParentState.table_context)) {
+            SL_INFO(
+                logger_,
+                "Candidate backed.(candidate={}, para id={}, relay_parent={})",
+                import_result->imported.candidate,
+                import_result->imported.group_id,
+                relay_parent);
+            backing_store_->add(relay_parent, std::move(*backed));
+          }
         }
       }
     }

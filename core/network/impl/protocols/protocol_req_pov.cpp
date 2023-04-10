@@ -54,7 +54,8 @@ namespace kagome::network {
     }
 
     void onTxRequest(RequestPov const &request) override {
-      base().logger()->trace("Transmit PoV request(candidate hash={})", request);
+      base().logger()->trace("Transmit PoV request(candidate hash={})",
+                             request);
     }
 
    private:
