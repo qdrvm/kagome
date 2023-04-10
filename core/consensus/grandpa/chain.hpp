@@ -59,15 +59,6 @@ namespace kagome::consensus::grandpa {
     virtual outcome::result<primitives::BlockInfo> bestChainContaining(
         const primitives::BlockHash &base,
         std::optional<VoterSetId> voter_set_id) const = 0;
-
-    /**
-     * @returns true if {@param block} is a descendant of or equal to the
-     * given {@param base}.
-     */
-    inline bool isEqualOrDescendOf(const primitives::BlockHash &base,
-                                   const primitives::BlockHash &block) const {
-      return base == block ? true : hasAncestry(base, block);
-    }
   };
 
 }  // namespace kagome::consensus::grandpa

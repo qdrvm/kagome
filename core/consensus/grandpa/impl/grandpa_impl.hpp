@@ -89,12 +89,12 @@ namespace kagome::consensus::grandpa {
 
     GrandpaImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
         std::shared_ptr<crypto::Ed25519Keypair> keypair,
         const application::ChainSpec &chain_spec,
-        std::shared_ptr<Clock> clock,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<AuthorityManager> authority_manager,
         std::shared_ptr<network::Synchronizer> synchronizer,
@@ -200,17 +200,22 @@ namespace kagome::consensus::grandpa {
                          const network::FullCommitMessage &msg) override;
 
     /**
+     * Check justification votes signatures, ancestry and threshold.
+     */
+    outcome::result<void> verifyJustification(
+        const GrandpaJustification &justification,
+        const primitives::AuthoritySet &authorities) override;
+
+    /**
      * Selects round that corresponds for justification, checks justification,
      * finalizes corresponding block and stores justification in storage
      *
      * If there is no corresponding round, it will be created
-     * @param block_info block being finalized by justification
      * @param justification justification containing precommit votes and
      * signatures for block info
      * @return nothing or an error
      */
     outcome::result<void> applyJustification(
-        const BlockInfo &block_info,
         const GrandpaJustification &justification) override;
 
     // Round processing method
@@ -277,11 +282,11 @@ namespace kagome::consensus::grandpa {
 
     const Clock::Duration round_time_factor_;
 
+    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Ed25519Keypair> keypair_;
-    std::shared_ptr<Clock> clock_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;

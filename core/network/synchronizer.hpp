@@ -53,8 +53,6 @@ namespace kagome::network {
     virtual void syncState(const libp2p::peer::PeerId &peer_id,
                            const primitives::BlockInfo &block,
                            SyncResultHandler &&handler) = 0;
-
-    virtual bool hasIncompleteRequestOfStateSync() const = 0;
   };
 
 }  // namespace kagome::network

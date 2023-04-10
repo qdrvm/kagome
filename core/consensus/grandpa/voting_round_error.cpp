@@ -14,6 +14,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
       return "Redundant equivocation";
     case E::NOT_ENOUGH_WEIGHT:
       return "Non enough weigh of votes";
+    case E::JUSTIFICATION_FOR_WRONG_BLOCK:
+      return "Justification for wrong block";
     case E::JUSTIFICATION_FOR_ROUND_IN_PAST:
       return "Justification for passed round";
     case E::JUSTIFICATION_FOR_BLOCK_IN_PAST:

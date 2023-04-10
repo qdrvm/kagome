@@ -241,15 +241,6 @@ namespace kagome::consensus::babe {
         break;
 
       case SyncMethod::Fast:
-        if (synchronizer_->hasIncompleteRequestOfStateSync()) {
-          // Has incomplete downloading state; continue loading of state
-          current_state_ = State::STATE_LOADING;
-        } else {
-          // No incomplete downloading state; load headers first
-          current_state_ = State::HEADERS_LOADING;
-        }
-        break;
-
       case SyncMethod::FastWithoutState:
         current_state_ = State::HEADERS_LOADING;
         break;
