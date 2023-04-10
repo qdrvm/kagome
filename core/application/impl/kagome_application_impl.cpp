@@ -22,7 +22,7 @@ namespace kagome::application {
       : app_config_(app_config),
         injector_{std::make_unique<injector::KagomeNodeInjector>(app_config)},
         logger_(log::createLogger("Application", "application")) {
-    // keep important instances, the must exist when injector destroyed
+    // keep important instances, they must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     chain_spec_ = injector_->injectChainSpec();
     BOOST_ASSERT(chain_spec_ != nullptr);
@@ -41,23 +41,12 @@ namespace kagome::application {
   }
 
   void KagomeApplicationImpl::run() {
-    app_state_manager_ = injector_->injectAppStateManager();
-    io_context_ = injector_->injectIoContext();
-    clock_ = injector_->injectSystemClock();
-    babe_ = injector_->injectBabe();
-    exposer_ = injector_->injectOpenMetricsService();
-    grandpa_ = injector_->injectGrandpa();
-    router_ = injector_->injectRouter();
-    peer_manager_ = injector_->injectPeerManager();
-    jrpc_api_service_ = injector_->injectRpcApiService();
-    state_observer_ = injector_->injectStateObserver();
-    sync_observer_ = injector_->injectSyncObserver();
-    parachain_observer_ = injector_->injectParachainObserver();
-    metrics_watcher_ = injector_->injectMetricsWatcher();
-    telemetry_service_ = injector_->injectTelemetryService();
-    approval_distribution_ = injector_->injectApprovalDistribution();
-    parachain_processor_ = injector_->injectParachainProcessor();
-    kagome::telemetry::setTelemetryService(telemetry_service_);
+    auto app_state_manager = injector_->injectAppStateManager();
+    auto io_context = injector_->injectIoContext();
+    auto clock = injector_->injectSystemClock();
+
+    kagome::telemetry::setTelemetryService(injector_->injectTelemetryService());
+
     injector_->injectAddressPublisher();
 
     logger_->info("Start as node version '{}' named as '{}' with PID {}",
@@ -80,13 +69,13 @@ namespace kagome::application {
       exit(EXIT_FAILURE);
     }
 
-    app_state_manager_->atLaunch([ctx{io_context_}] {
-      std::thread asio_runner([ctx{ctx}] { ctx->run(); });
+    app_state_manager->atLaunch([ctx{io_context}, log{logger_}] {
+      std::thread asio_runner([&, ctx{ctx}, log{log}] { ctx->run(); });
       asio_runner.detach();
       return true;
     });
 
-    app_state_manager_->atShutdown([ctx{io_context_}] { ctx->stop(); });
+    app_state_manager->atShutdown([ctx{io_context}] { ctx->stop(); });
 
     {  // Metrics
       auto metrics_registry = metrics::createRegistry();
@@ -97,7 +86,7 @@ namespace kagome::application {
           "UNIX timestamp of the moment the process started");
       auto metric_start_time =
           metrics_registry->registerGaugeMetric(startTimeMetricName);
-      metric_start_time->set(clock_->nowUint64());
+      metric_start_time->set(clock->nowUint64());
 
       constexpr auto nodeRolesMetricName = "kagome_node_roles";
       metrics_registry->registerGaugeFamily(nodeRolesMetricName,
@@ -117,7 +106,7 @@ namespace kagome::application {
       metric_build_info->set(1);
     }
 
-    app_state_manager_->run();
+    app_state_manager->run();
   }
 
 }  // namespace kagome::application
