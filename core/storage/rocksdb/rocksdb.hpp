@@ -35,6 +35,13 @@ namespace kagome::storage {
 
     std::shared_ptr<BufferStorage> getSpace(Space space) override;
 
+    /**
+     * Implementation specific way to erase the whole space data.
+     * Not exposed at SpacedStorage level as only used in pruner.
+     * @param space - storage space identifier to clear
+     */
+    void dropColumn(Space space);
+
     friend class RocksDbSpace;
     friend class RocksDbBatch;
 
