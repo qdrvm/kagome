@@ -6,6 +6,7 @@
 #include "consensus/babe/impl/block_executor_impl.hpp"
 
 #include <gtest/gtest.h>
+#include <iostream>
 
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/block_appender_base.hpp"
@@ -76,6 +77,26 @@ using testing::ReturnRef;
 namespace kagome::primitives {
   std::ostream &operator<<(std::ostream &s,
                            const detail::DigestItemCommon &dic) {
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const ScheduledChange &) {
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const ForcedChange &) {
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const OnDisabled &) {
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const Pause &) {
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const Resume &) {
     return s;
   }
 }  // namespace kagome::primitives
