@@ -24,13 +24,13 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.10
+    VERSION 0.1.11
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     rocksdb
-    VERSION 7.2.2
+    VERSION 8.0.0
     CMAKE_ARGS WITH_GFLAGS=OFF
 )
 
