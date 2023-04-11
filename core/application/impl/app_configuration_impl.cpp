@@ -5,6 +5,7 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
+#include <fstream>
 #include <limits>
 #include <regex>
 #include <string>
