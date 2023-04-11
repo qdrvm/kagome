@@ -154,7 +154,6 @@
 #include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
-#include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/spaces.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
