@@ -506,7 +506,8 @@ namespace {
         injector
             .template create<std::shared_ptr<application::AppStateManager>>(),
         injector.template create<
-            primitives::events::BabeStateSubscriptionEnginePtr>());
+            primitives::events::BabeStateSubscriptionEnginePtr>(),
+        injector.template create<sptr<authority_discovery::Query>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -1130,12 +1131,12 @@ namespace {
 
     auto ptr = std::make_shared<consensus::grandpa::GrandpaImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
+        injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<crypto::Ed25519Provider>>(),
         injector.template create<sptr<runtime::GrandpaApi>>(),
         session_keys->getGranKeyPair(),
         injector.template create<const application::ChainSpec &>(),
-        injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<consensus::grandpa::AuthorityManager>>(),
         injector.template create<sptr<network::Synchronizer>>(),

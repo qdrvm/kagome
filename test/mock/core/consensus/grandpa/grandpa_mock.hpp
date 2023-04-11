@@ -36,9 +36,14 @@ namespace kagome::consensus::grandpa {
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
+                verifyJustification,
+                (const GrandpaJustification &,
+                 const primitives::AuthoritySet &),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
                 applyJustification,
-                (const primitives::BlockInfo &block_info,
-                 const GrandpaJustification &justification),
+                (const GrandpaJustification &),
                 (override));
 
     MOCK_METHOD(void,
