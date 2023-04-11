@@ -786,6 +786,8 @@ namespace kagome::application {
         ("purge-wavm-cache", "purge WAVM runtime cache")
         ;
 
+    po::options_description db_editor_desc("kagome db-editor - to view help message for db editor");
+
     // clang-format on
 
     for (auto &[flag, name, dev] : devAccounts()) {
@@ -805,7 +807,8 @@ namespace kagome::application {
     desc.add(blockhain_desc)
         .add(storage_desc)
         .add(network_desc)
-        .add(development_desc);
+        .add(development_desc)
+        .add(db_editor_desc);
 
     if (vm.count("help") > 0) {
       std::cout << desc << std::endl;
