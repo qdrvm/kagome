@@ -84,7 +84,7 @@ namespace kagome::parachain {
         this_context_(std::move(this_context)),
         keypair_([&] {
           BOOST_ASSERT(session_keys != nullptr);
-          return session_keys->getBabeKeyPair();
+          return session_keys->getBabeKeyPair();  // bake key used in substrate
         }()),
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
