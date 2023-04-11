@@ -55,7 +55,8 @@ namespace kagome::network {
     }
 
     void onTxRequest(RequestPov const &request) override {
-      base().logger()->info("Transmit PoV request(candidate hash={})", request);
+      base().logger()->trace("Transmit PoV request(candidate hash={})",
+                             request);
     }
 
    private:
@@ -91,12 +92,12 @@ namespace kagome::network {
   }
 
   void ReqPovProtocol::request(
-      const PeerId &peer_id,
+      const PeerInfo &peer_info,
       RequestPov request,
       std::function<void(outcome::result<ResponsePov>)> &&response_handler) {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");
     return impl_->doRequest(
-        peer_id, std::move(request), std::move(response_handler));
+        peer_info, std::move(request), std::move(response_handler));
   }
 
 }  // namespace kagome::network

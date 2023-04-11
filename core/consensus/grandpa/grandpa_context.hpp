@@ -9,6 +9,8 @@
 #include "consensus/grandpa/structs.hpp"
 #include "network/types/grandpa_message.hpp"
 
+#include <set>
+
 #include <libp2p/peer/peer_id.hpp>
 
 namespace kagome::consensus::grandpa {

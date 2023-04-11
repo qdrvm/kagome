@@ -6,6 +6,7 @@
 #include "injector/application_injector.hpp"
 
 #include <gtest/gtest.h>
+#include <fstream>
 
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
