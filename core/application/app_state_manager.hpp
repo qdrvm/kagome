@@ -56,31 +56,25 @@ namespace kagome::application {
     virtual void atShutdown(OnShutdown &&cb) = 0;
 
    private:
-    template <typename T>
-    class _Helper {
-      // clang-format off
-      struct Y { char _; };
-      struct N { char _[2]; };
+    template <typename C, typename = int>
+    struct HasMethodInject : std::false_type {};
+    template <typename C>
+    struct HasMethodInject<C, decltype(&C::inject, 0)> : std::true_type {};
 
-      template <typename C> static Y test_inject(decltype(&C::inject));
-      template <typename C> static N test_inject(...);
+    template <typename C, typename = int>
+    struct HasMethodPrepare : std::false_type {};
+    template <typename C>
+    struct HasMethodPrepare<C, decltype(&C::prepare, 0)> : std::true_type {};
 
-      template <typename C> static Y test_prepare(decltype(&C::prepare));
-      template <typename C> static N test_prepare(...);
+    template <typename C, typename = int>
+    struct HasMethodStart : std::false_type {};
+    template <typename C>
+    struct HasMethodStart<C, decltype(&C::start, 0)> : std::true_type {};
 
-      template <typename C> static Y test_start(decltype(&C::start));
-      template <typename C> static N test_start(...);
-
-      template <typename C> static Y test_stop(decltype(&C::stop));
-      template <typename C> static N test_stop(...);
-
-     public:
-      enum { has_inject = sizeof(test_inject<T>(nullptr)) == sizeof(Y) };
-      enum { has_prepare = sizeof(test_prepare<T>(nullptr)) == sizeof(Y) };
-      enum { has_start = sizeof(test_start<T>(nullptr)) == sizeof(Y) };
-      enum { has_stop = sizeof(test_stop<T>(nullptr)) == sizeof(Y) };
-      // clang-format on
-    };
+    template <typename C, typename = int>
+    struct HasMethodStop : std::false_type {};
+    template <typename C>
+    struct HasMethodStop<C, decltype(&C::stop, 0)> : std::true_type {};
 
    public:
     /**
@@ -90,16 +84,16 @@ namespace kagome::application {
      */
     template <typename Controlled>
     void takeControl(Controlled &entity) {
-      if constexpr (_Helper<Controlled>::has_inject) {
+      if constexpr (HasMethodInject<Controlled>::value) {
         atInject([&entity]() -> bool { return entity.inject(); });
       }
-      if constexpr (_Helper<Controlled>::has_prepare) {
+      if constexpr (HasMethodPrepare<Controlled>::value) {
         atPrepare([&entity]() -> bool { return entity.prepare(); });
       }
-      if constexpr (_Helper<Controlled>::has_start) {
+      if constexpr (HasMethodStart<Controlled>::value) {
         atLaunch([&entity]() -> bool { return entity.start(); });
       }
-      if constexpr (_Helper<Controlled>::has_stop) {
+      if constexpr (HasMethodStop<Controlled>::value) {
         atShutdown([&entity]() -> void { return entity.stop(); });
       }
     }
