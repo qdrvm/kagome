@@ -609,7 +609,7 @@ namespace kagome::parachain {
     }
 
     ApprovingContextMap approving_context_map_;
-    // std::shared_ptr<ThreadPool> int_pool_;
+    std::shared_ptr<ThreadPool> int_pool_;
     std::shared_ptr<ThreadPool> thread_pool_;
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     std::shared_ptr<consensus::babe::BabeUtil> babe_util_;

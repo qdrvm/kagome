@@ -20,6 +20,7 @@
 #include "primitives/authority.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/async_sequence.hpp"
+#include "utils/weak_from_shared.hpp"
 
 #define _STRINGIZE(s) #s
 
@@ -472,7 +473,8 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::Recovery> recovery)
-      : thread_pool_{std::move(thread_pool)},
+      : int_pool_{std::make_shared<ThreadPool>(1ull)},
+        thread_pool_{std::move(thread_pool)},
         parachain_host_(std::move(parachain_host)),
         babe_util_(std::move(babe_util)),
         keystore_(std::move(keystore)),
@@ -514,12 +516,17 @@ namespace kagome::parachain {
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
                             network::PeerView::EventType::kViewUpdated);
     my_view_sub_->setCallback(
-        [wptr{weak_from_this()}](auto /*set_id*/,
-                                 auto && /*internal_obj*/,
-                                 auto /*event_type*/,
-                                 const network::ExView &event) {
-          if (auto self = wptr.lock()) {
-            self->on_active_leaves_update(event);
+        [wptr{weak_from_this()}, wint_thread{weak_from_shared(int_pool_)}](
+            auto /*set_id*/,
+            auto && /*internal_obj*/,
+            auto /*event_type*/,
+            const network::ExView &event) {
+          if (auto internal_handler = wint_thread.lock()) {
+            internal_handler->io_context()->post([wptr, event]() {
+              if (auto self = wptr.lock()) {
+                self->on_active_leaves_update(event);
+              }
+            });
           }
         });
 
@@ -528,12 +535,15 @@ namespace kagome::parachain {
     chain_sub_->subscribe(
         chain_sub_->generateSubscriptionSetId(),
         primitives::events::ChainEventType::kDeactivateAfterFinalization);
-    chain_sub_->setCallback(
-        [wptr{weak_from_this()}](
-            auto /*set_id*/,
-            auto && /*internal_obj*/,
-            auto /*event_type*/,
-            const primitives::events::ChainEventParams &event) {
+    chain_sub_->setCallback([wptr{weak_from_this()},
+                             wint_thread{weak_from_shared(int_pool_)}](
+                                auto /*set_id*/,
+                                auto && /*internal_obj*/,
+                                auto /*event_type*/,
+                                const primitives::events::ChainEventParams
+                                    &event) {
+      if (auto internal_handler = wint_thread.lock()) {
+        internal_handler->io_context()->post([wptr, event]() {
           if (auto self = wptr.lock()) {
             if (auto const value = if_type<
                     const primitives::events::RemoveAfterFinalizationParams>(
@@ -547,6 +557,8 @@ namespace kagome::parachain {
             }
           }
         });
+      }
+    });
 
     return true;
   }
@@ -1084,12 +1096,6 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::on_active_leaves_update(
       const network::ExView &updated) {
-    /*
-     * THIS CODE DISABLED TO PREVENT EXTRA CPU USAGE BECAUSE OF INFINITE TASKS
-     * IN MAIN THREAD.
-     */
-    return;
-
     if (!parachain_processor_->canProcessParachains()) {
       return;
     }
@@ -1573,69 +1579,72 @@ namespace kagome::parachain {
   void ApprovalDistribution::onValidationProtocolMsg(
       libp2p::peer::PeerId const &peer_id,
       network::ValidatorProtocolMessage const &message) {
-    /*
-     * THIS CODE DISABLED TO PREVENT EXTRA CPU USAGE BECAUSE OF INFINITE TASKS
-     * IN MAIN THREAD.
-     */
-    return;
+    int_pool_->io_context()->post([wptr{weak_from_this()}, peer_id, message]() {
+      if (auto self = wptr.lock()) {
+        if (!self->parachain_processor_->canProcessParachains()) {
+          return;
+        }
+        if (auto m{
+                boost::get<network::ApprovalDistributionMessage>(&message)}) {
+          visit_in_place(
+              *m,
+              [&](network::Assignments const &assignments) {
+                SL_TRACE(self->logger_,
+                         "Received assignments.(peer_id={}, count={})",
+                         peer_id,
+                         assignments.assignments.size());
+                for (auto const &assignment : assignments.assignments) {
+                  if (auto it = self->pending_known_.find(
+                          assignment.indirect_assignment_cert.block_hash);
+                      it != self->pending_known_.end()) {
+                    SL_TRACE(
+                        self->logger_,
+                        "Pending assignment.(block hash={}, claimed index={}, "
+                        "validator={}, peer={})",
+                        assignment.indirect_assignment_cert.block_hash,
+                        assignment.candidate_ix,
+                        assignment.indirect_assignment_cert.validator,
+                        peer_id);
+                    it->second.emplace_back(
+                        std::make_pair(peer_id, PendingMessage{assignment}));
+                    continue;
+                  }
 
-    if (!parachain_processor_->canProcessParachains()) {
-      return;
-    }
-    if (auto m{boost::get<network::ApprovalDistributionMessage>(&message)}) {
-      visit_in_place(
-          *m,
-          [&](network::Assignments const &assignments) {
-            logger_->info("Received assignments.(peer_id={}, count={})",
-                          peer_id,
-                          assignments.assignments.size());
-            for (auto const &assignment : assignments.assignments) {
-              if (auto it = pending_known_.find(
-                      assignment.indirect_assignment_cert.block_hash);
-                  it != pending_known_.end()) {
-                logger_->trace(
-                    "Pending assignment.(block hash={}, claimed index={}, "
-                    "validator={}, peer={})",
-                    assignment.indirect_assignment_cert.block_hash,
-                    assignment.candidate_ix,
-                    assignment.indirect_assignment_cert.validator,
-                    peer_id);
-                it->second.emplace_back(
-                    std::make_pair(peer_id, PendingMessage{assignment}));
-                continue;
-              }
+                  self->import_and_circulate_assignment(
+                      peer_id,
+                      assignment.indirect_assignment_cert,
+                      assignment.candidate_ix);
+                }
+              },
+              [&](network::Approvals const &approvals) {
+                SL_TRACE(self->logger_,
+                         "Received approvals.(peer_id={}, count={})",
+                         peer_id,
+                         approvals.approvals.size());
+                for (auto const &approval_vote : approvals.approvals) {
+                  if (auto it = self->pending_known_.find(
+                          approval_vote.payload.payload.block_hash);
+                      it != self->pending_known_.end()) {
+                    SL_TRACE(
+                        self->logger_,
+                        "Pending approval.(block hash={}, candidate index={}, "
+                        "validator={}, peer={})",
+                        approval_vote.payload.payload.block_hash,
+                        approval_vote.payload.payload.candidate_index,
+                        approval_vote.payload.ix,
+                        peer_id);
+                    it->second.emplace_back(
+                        std::make_pair(peer_id, PendingMessage{approval_vote}));
+                    continue;
+                  }
 
-              import_and_circulate_assignment(
-                  peer_id,
-                  assignment.indirect_assignment_cert,
-                  assignment.candidate_ix);
-            }
-          },
-          [&](network::Approvals const &approvals) {
-            logger_->info("Received approvals.(peer_id={}, count={})",
-                          peer_id,
-                          approvals.approvals.size());
-            for (auto const &approval_vote : approvals.approvals) {
-              if (auto it = pending_known_.find(
-                      approval_vote.payload.payload.block_hash);
-                  it != pending_known_.end()) {
-                logger_->trace(
-                    "Pending approval.(block hash={}, candidate index={}, "
-                    "validator={}, peer={})",
-                    approval_vote.payload.payload.block_hash,
-                    approval_vote.payload.payload.candidate_index,
-                    approval_vote.payload.ix,
-                    peer_id);
-                it->second.emplace_back(
-                    std::make_pair(peer_id, PendingMessage{approval_vote}));
-                continue;
-              }
-
-              import_and_circulate_approval(peer_id, approval_vote);
-            }
-          },
-          [&](auto const &) { UNREACHABLE; });
-    }
+                  self->import_and_circulate_approval(peer_id, approval_vote);
+                }
+              },
+              [&](auto const &) { UNREACHABLE; });
+        }
+      }
+    });
   }
 
   void ApprovalDistribution::runDistributeAssignment(
@@ -2065,7 +2074,8 @@ namespace kagome::parachain {
         self->handleTranche(block_hash, block_number, candidate_hash);
       }
     });
-    target_block.insert_or_assign(candidate_hash, std::make_pair(tick, std::move(t)));
+    target_block.insert_or_assign(candidate_hash,
+                                  std::make_pair(tick, std::move(t)));
   }
 
   void ApprovalDistribution::handleTranche(
