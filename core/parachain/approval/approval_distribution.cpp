@@ -1086,7 +1086,13 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::on_active_leaves_update(
       const network::ExView &updated) {
-    if (!parachain_processor_->canProcessParachains() || true) {
+    /*
+     * THIS CODE DISABLED TO PREVENT EXTRA CPU USAGE BECAUSE OF INFINITE TASKS
+     * IN MAIN THREAD.
+     */
+    return;
+
+    if (!parachain_processor_->canProcessParachains()) {
       return;
     }
     if (auto result =
@@ -1569,7 +1575,13 @@ namespace kagome::parachain {
   void ApprovalDistribution::onValidationProtocolMsg(
       libp2p::peer::PeerId const &peer_id,
       network::ValidatorProtocolMessage const &message) {
-    if (!parachain_processor_->canProcessParachains() || true) {
+    /*
+     * THIS CODE DISABLED TO PREVENT EXTRA CPU USAGE BECAUSE OF INFINITE TASKS
+     * IN MAIN THREAD.
+     */
+    return;
+
+    if (!parachain_processor_->canProcessParachains()) {
       return;
     }
     if (auto m{boost::get<network::ApprovalDistributionMessage>(&message)}) {
