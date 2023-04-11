@@ -26,10 +26,6 @@ namespace kagome::storage {
    */
   class InMemorySpacedStorage : public storage::SpacedStorage {
    public:
-    ~InMemorySpacedStorage() override {
-      std::cerr << "~InMemorySpacedStorage()" << std::endl;
-    };
-
     std::shared_ptr<BufferStorage> getSpace(Space space) override {
       auto it = spaces.find(space);
       if (it != spaces.end()) {
