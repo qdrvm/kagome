@@ -7,11 +7,10 @@
 
 #include <thread>
 
+#include "application/app_state_manager.hpp"
 #include "application/impl/util.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
-#include "consensus/babe/babe.hpp"
-#include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/metrics.hpp"
 #include "telemetry/service.hpp"
 

@@ -8,10 +8,7 @@
 
 #include "application/kagome_application.hpp"
 
-#include <libp2p/host/host.hpp>
-
 #include "application/app_configuration.hpp"
-#include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
 #include "injector/application_injector.hpp"
 
