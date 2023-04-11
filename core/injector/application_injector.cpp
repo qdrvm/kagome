@@ -231,9 +231,9 @@ namespace {
                     db_res.error());
       exit(EXIT_FAILURE);
     }
-    auto &db = db_res.value();
+    auto db = std::move(db_res.value());
 
-    return std::move(db);
+    return db;
   }
 
   std::shared_ptr<application::ChainSpec> get_chain_spec(
