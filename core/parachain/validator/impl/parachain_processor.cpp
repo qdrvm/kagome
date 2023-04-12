@@ -250,6 +250,7 @@ namespace kagome::parachain {
   }
 
   bool ParachainProcessorImpl::start() {
+    thread_pool_->handler().start();
     return true;
   }
 
@@ -607,7 +608,7 @@ namespace kagome::parachain {
         peer_id);
 
     sequenceIgnore(
-        thread_pool_->io_context()->wrap(
+        thread_pool_->handler().io_context()->wrap(
             asAsync([wself{weak_from_this()},
                      candidate{std::move(candidate)},
                      pov{std::move(pov)},
