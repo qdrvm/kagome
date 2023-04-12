@@ -124,10 +124,10 @@ namespace kagome::storage {
   }
 
   RocksDbSpace::RocksDbSpace(std::weak_ptr<RocksDb> storage,
-                             RocksDb::ColumnFamilyHandlePtr column,
+                             const RocksDb::ColumnFamilyHandlePtr &column,
                              log::Logger logger)
       : storage_{std::move(storage)},
-        column_{std::move(column)},
+        column_{column},
         logger_{std::move(logger)} {}
 
   std::unique_ptr<BufferBatch> RocksDbSpace::batch() {

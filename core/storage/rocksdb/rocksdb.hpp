@@ -69,7 +69,7 @@ namespace kagome::storage {
     ~RocksDbSpace() override = default;
 
     RocksDbSpace(std::weak_ptr<RocksDb> storage,
-                 RocksDb::ColumnFamilyHandlePtr column,
+                 const RocksDb::ColumnFamilyHandlePtr &column,
                  log::Logger logger);
 
     std::unique_ptr<BufferBatch> batch() override;
@@ -101,7 +101,7 @@ namespace kagome::storage {
     outcome::result<std::shared_ptr<RocksDb>> use() const;
 
     std::weak_ptr<RocksDb> storage_;
-    RocksDb::ColumnFamilyHandlePtr column_;
+    const RocksDb::ColumnFamilyHandlePtr &column_;
     log::Logger logger_;
   };
 }  // namespace kagome::storage
