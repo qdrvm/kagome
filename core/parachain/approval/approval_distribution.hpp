@@ -259,7 +259,6 @@ namespace kagome::parachain {
         std::shared_ptr<consensus::babe::BabeUtil> babe_util,
         std::shared_ptr<crypto::CryptoStore> keystore,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<boost::asio::io_context> this_context,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ParachainProcessorImpl> parachain_processor,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
@@ -615,7 +614,6 @@ namespace kagome::parachain {
     std::shared_ptr<consensus::babe::BabeUtil> babe_util_;
     std::shared_ptr<crypto::CryptoStore> keystore_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<boost::asio::io_context> this_context_;
     const ApprovalVotingSubsystem config_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;

@@ -464,7 +464,6 @@ namespace kagome::parachain {
       std::shared_ptr<consensus::babe::BabeUtil> babe_util,
       std::shared_ptr<crypto::CryptoStore> keystore,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<boost::asio::io_context> this_context,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ParachainProcessorImpl> parachain_processor,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
@@ -479,7 +478,6 @@ namespace kagome::parachain {
         babe_util_(std::move(babe_util)),
         keystore_(std::move(keystore)),
         hasher_(std::move(hasher)),
-        this_context_(std::move(this_context)),
         config_(ApprovalVotingSubsystem{.slot_duration_millis = 6'000}),
         peer_view_(std::move(peer_view)),
         parachain_processor_(std::move(parachain_processor)),
@@ -494,7 +492,6 @@ namespace kagome::parachain {
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(babe_util_);
     BOOST_ASSERT(keystore_);
-    BOOST_ASSERT(this_context_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(parachain_processor_);
@@ -642,7 +639,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash,
       const primitives::BlockHeader &block_header,
       const std::shared_ptr<boost::asio::io_context> &callback_exec_context) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(int_pool_->io_context()->get_executor().running_in_this_thread());
     request_included_candidates(block_hash);
     request_session_index_and_info(block_hash, block_header.parent_hash);
     request_babe_epoch_and_block_header(
@@ -652,7 +649,7 @@ namespace kagome::parachain {
   template <typename Func>
   void ApprovalDistribution::for_ACU(const primitives::BlockHash &block_hash,
                                      Func &&func) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(int_pool_->io_context()->get_executor().running_in_this_thread());
     if (auto it = approving_context_map_.find(block_hash);
         it != approving_context_map_.end()) {
       std::forward<Func>(func)(*it);
@@ -791,9 +788,15 @@ namespace kagome::parachain {
       const std::shared_ptr<boost::asio::io_context> &exec_context,
       const primitives::BlockHeader &block_header,
       const primitives::BlockHash &block_hash) {
+    sequenceIgnore(
+      thread_pool_->io_context()->wrap(asAsync([]() mutable -> outcome::result<std::pair<>> {
+        OUTCOME_TRY(babe_digests, consensus::babe::getBabeDigests(block_header));
+        OUTCOME_TRY(babe_config, babe_api_->configuration(block_hash));
+      }))
+    );
+
+
     auto call = [&]() -> outcome::result<void> {
-      OUTCOME_TRY(babe_digests, consensus::babe::getBabeDigests(block_header));
-      OUTCOME_TRY(babe_config, babe_api_->configuration(block_hash));
       const consensus::babe::EpochNumber epoch_number =
           babe_util_->slotToEpoch(babe_digests.second.slot_number);
 
@@ -1041,7 +1044,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::handle_new_head(const primitives::BlockHash &head,
                                              const network::ExView &updated,
                                              Func &&func) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(int_pool_->io_context()->get_executor().running_in_this_thread());
 
     /// clear unuseful heads
     for (auto const &l_head : updated.lost) {
@@ -1064,7 +1067,7 @@ namespace kagome::parachain {
             .babe_block_header = std::nullopt,
             .babe_epoch = std::nullopt,
             .session_info = std::nullopt,
-            .complete_callback_context = this_context_,
+            .complete_callback_context = int_pool_->io_context(),
             .complete_callback =
                 [wself{weak_from_this()},
                  block_hash{head},
@@ -1091,7 +1094,7 @@ namespace kagome::parachain {
                       std::move(block_info.value())));
                 }});
 
-    imported_block_info(head, std::move(updated.new_head), this_context_);
+    imported_block_info(head, std::move(updated.new_head), int_pool_->io_context());
   }
 
   void ApprovalDistribution::on_active_leaves_update(
@@ -1120,7 +1123,7 @@ namespace kagome::parachain {
               }
 
               BOOST_ASSERT(
-                  self->this_context_->get_executor().running_in_this_thread());
+                  self->int_pool_->io_context()->get_executor().running_in_this_thread());
               self->scheduleTranche(head,
                                     std::move(possible_candidate.value()));
             }
@@ -1176,7 +1179,7 @@ namespace kagome::parachain {
           }
           auto &available_data = opt_result->value();
           BOOST_ASSERT(
-              self->this_context_->get_executor().running_in_this_thread());
+              self->int_pool_->io_context()->get_executor().running_in_this_thread());
           [[maybe_unused]] auto const para_id = candidate.descriptor.para_id;
 
           auto result = self->parachain_host_->validation_code_by_hash(
@@ -1205,7 +1208,7 @@ namespace kagome::parachain {
                   available_data.pov,
                   candidate,
                   validation_code)) {
-            self->this_context_->wrap(  /// IssueApproval
+            self->int_pool_->io_context()->wrap(  /// IssueApproval
                 [wself, candidate_hash, validator_index, relay_block_hash]() {
                   if (auto self = wself.lock()) {
                     self->issue_approval(
@@ -1250,7 +1253,7 @@ namespace kagome::parachain {
   ApprovalDistribution::check_and_import_assignment(
       approval::IndirectAssignmentCert const &assignment,
       CandidateIndex candidate_index) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(int_pool_->io_context()->get_executor().running_in_this_thread());
     auto const tick_now = ::tickNow();
 
     GET_OPT_VALUE_OR_EXIT(block_entry,
@@ -1401,7 +1404,7 @@ namespace kagome::parachain {
       MessageSource const &source,
       approval::IndirectAssignmentCert const &assignment,
       CandidateIndex claimed_candidate_index) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(int_pool_->io_context()->get_executor().running_in_this_thread());
     auto const &block_hash = assignment.block_hash;
     auto const validator_index = assignment.validator;
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
@@ -1493,7 +1496,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::import_and_circulate_approval(
       MessageSource const &source,
       network::IndirectSignedApprovalVote const &vote) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(int_pool_->io_context()->get_executor().running_in_this_thread());
     auto const &block_hash = vote.payload.payload.block_hash;
     auto const validator_index = vote.payload.ix;
     auto const candidate_index = vote.payload.payload.candidate_index;
@@ -1994,7 +1997,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::scheduleTranche(
       primitives::BlockHash const &head, BlockImportedCandidates &&candidate) {
     /// this_thread_ context execution.
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(int_pool_->io_context()->get_executor().running_in_this_thread());
     SL_TRACE(logger_,
              "Imported new block {}:{} with candidates count {}",
              candidate.block_number,
@@ -2049,7 +2052,7 @@ namespace kagome::parachain {
              tick,
              ms_wakeup_after);
 
-    auto t = std::make_unique<clock::BasicWaitableTimer>(this_context_);
+    auto t = std::make_unique<clock::BasicWaitableTimer>(int_pool_->io_context());
     t->expiresAfter(std::chrono::milliseconds(ms_wakeup_after));
     t->asyncWait([wself{weak_from_this()},
                   id{uintptr_t(t.get())},
@@ -2082,7 +2085,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash,
       primitives::BlockNumber block_number,
       const CandidateHash &candidate_hash) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(int_pool_->io_context()->get_executor().running_in_this_thread());
 
     auto opt_block_entry = storedBlockEntries().get(block_hash);
     auto opt_candidate_entry = storedCandidateEntries().get(candidate_hash);
