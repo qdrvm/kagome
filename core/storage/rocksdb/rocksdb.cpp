@@ -120,7 +120,7 @@ namespace kagome::storage {
     };
     e(db_->DropColumnFamily(handle));
     e(db_->DestroyColumnFamilyHandle(handle));
-    e(db_->CreateColumnFamily({}, handle->GetName(), &handle));
+    e(db_->CreateColumnFamily({}, space_name, &handle));
   }
 
   RocksDbSpace::RocksDbSpace(std::weak_ptr<RocksDb> storage,
