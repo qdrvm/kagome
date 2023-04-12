@@ -142,10 +142,11 @@ namespace kagome::parachain {
                                            bool &synchronized,
                                            auto /*event_type*/,
                                            const primitives::events::
-                                               BabeStateEventParams
-                                                   & /*event*/) {
+                                               BabeStateEventParams &event) {
       if (auto self = wself.lock()) {
-        if (!synchronized) {
+        if (event != Babe::State::SYNCHRONIZED) {
+          synchronized = false;
+        } else if (!synchronized) {
           synchronized = true;
           auto my_view = self->peer_view_->getMyView();
           if (!my_view) {
@@ -429,6 +430,10 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onValidationProtocolMsg(
       libp2p::peer::PeerId const &peer_id,
       network::ValidatorProtocolMessage const &message) {
+    if (auto r = canProcessParachains(); r.has_error()) {
+      return;
+    }
+
     if (auto m{boost::get<network::BitfieldDistributionMessage>(&message)}) {
       auto bd{boost::get<network::BitfieldDistribution>(m)};
       BOOST_ASSERT_MSG(

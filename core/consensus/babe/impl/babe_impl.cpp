@@ -241,9 +241,12 @@ namespace kagome::consensus::babe {
         break;
 
       case SyncMethod::Fast:
-      case SyncMethod::FastWithoutState:
+      case SyncMethod::FastWithoutState: {
         current_state_ = State::HEADERS_LOADING;
-        break;
+        babe_status_observable_->notify(
+            primitives::events::BabeStateEventType::kSynchronized,
+            current_state_);
+      } break;
     }
 
     return true;
@@ -401,6 +404,9 @@ namespace kagome::consensus::babe {
     if (current_best_block == handshake.best_block) {
       if (current_state_ == Babe::State::HEADERS_LOADING) {
         current_state_ = Babe::State::HEADERS_LOADED;
+        babe_status_observable_->notify(
+            primitives::events::BabeStateEventType::kSynchronized,
+            current_state_);
         startStateSyncing(peer_id);
       } else if (current_state_ == Babe::State::CATCHING_UP
                  or current_state_ == Babe::State::WAIT_REMOTE_STATUS) {
@@ -466,6 +472,9 @@ namespace kagome::consensus::babe {
             // Headers are loaded; Start sync of state
             if (self->current_state_ == Babe::State::HEADERS_LOADING) {
               self->current_state_ = Babe::State::HEADERS_LOADED;
+              self->babe_status_observable_->notify(
+                  primitives::events::BabeStateEventType::kSynchronized,
+                  self->current_state_);
               self->startStateSyncing(peer_id);
               return;
             }
@@ -476,6 +485,9 @@ namespace kagome::consensus::babe {
               self->current_state_ = Babe::State::SYNCHRONIZED;
               self->was_synchronized_ = true;
               self->telemetry_->notifyWasSynchronized();
+              self->babe_status_observable_->notify(
+                  primitives::events::BabeStateEventType::kSynchronized,
+                  self->current_state_);
             }
 
             // Synced
@@ -528,10 +540,16 @@ namespace kagome::consensus::babe {
           log_, "Catching up {} to block {} is ran", peer_id, target_block);
       if (current_state_ == State::HEADERS_LOADED) {
         current_state_ = State::HEADERS_LOADING;
+        babe_status_observable_->notify(
+            primitives::events::BabeStateEventType::kSynchronized,
+            current_state_);
       } else if (current_state_ == State::WAIT_BLOCK_ANNOUNCE
                  or current_state_ == State::WAIT_REMOTE_STATUS
                  or current_state_ == State::SYNCHRONIZED) {
         current_state_ = State::CATCHING_UP;
+        babe_status_observable_->notify(
+            primitives::events::BabeStateEventType::kSynchronized,
+            current_state_);
       }
     }
   }
@@ -546,6 +564,8 @@ namespace kagome::consensus::babe {
     }
 
     current_state_ = Babe::State::STATE_LOADING;
+    babe_status_observable_->notify(
+        primitives::events::BabeStateEventType::kSynchronized, current_state_);
 
     if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
       if (app_state_manager_->state()
@@ -624,6 +644,9 @@ namespace kagome::consensus::babe {
                     "State on block {} is synced successfully",
                     block_at_state);
             self->current_state_ = Babe::State::CATCHING_UP;
+            self->babe_status_observable_->notify(
+                primitives::events::BabeStateEventType::kSynchronized,
+                self->current_state_);
           }
         });
   }
@@ -632,24 +655,22 @@ namespace kagome::consensus::babe {
     // won't start block production without keypair
     if (not keypair_) {
       current_state_ = State::WAIT_BLOCK_ANNOUNCE;
+      babe_status_observable_->notify(
+          primitives::events::BabeStateEventType::kSynchronized,
+          current_state_);
       return;
     }
 
     current_state_ = State::SYNCHRONIZED;
     was_synchronized_ = true;
     telemetry_->notifyWasSynchronized();
+    babe_status_observable_->notify(
+        primitives::events::BabeStateEventType::kSynchronized, current_state_);
 
     if (not active_) {
       best_block_ = block_tree_->bestLeaf();
-
       SL_DEBUG(log_, "Babe is synchronized on block {}", best_block_);
-
       runEpoch(current_epoch_);
-      babe_status_observable_->notify(
-          primitives::events::BabeStateEventType::kSynchronized,
-          primitives::events::BabeStateEventParams{
-              .best_block = best_block_,
-          });
     }
   }
 

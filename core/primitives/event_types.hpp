@@ -55,9 +55,7 @@ namespace kagome::primitives::events {
                                           NewRuntimeEventParams,
                                           RemoveAfterFinalizationParams>;
 
-  struct BabeStateEventParams {
-    primitives::BlockInfo best_block;
-  };
+  using BabeStateEventParams = Babe::State;
 
   /**
    * - "future" - Transaction is part of the future queue.
