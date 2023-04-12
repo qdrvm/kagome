@@ -14,6 +14,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "common/buffer.hpp"
+#include "consensus/babe/babe.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/version.hpp"
@@ -55,7 +56,7 @@ namespace kagome::primitives::events {
                                           NewRuntimeEventParams,
                                           RemoveAfterFinalizationParams>;
 
-  using BabeStateEventParams = Babe::State;
+  using BabeStateEventParams = consensus::babe::Babe::State;
 
   /**
    * - "future" - Transaction is part of the future queue.
