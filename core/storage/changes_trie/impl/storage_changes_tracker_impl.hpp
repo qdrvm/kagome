@@ -3,6 +3,8 @@
 
 #include "storage/changes_trie/changes_tracker.hpp"
 
+#include <set>
+
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
 

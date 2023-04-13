@@ -7,6 +7,7 @@
 #define KAGOME_CHAIN_SPEC_HPP
 
 #include <libp2p/peer/peer_info.hpp>
+#include <set>
 
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"

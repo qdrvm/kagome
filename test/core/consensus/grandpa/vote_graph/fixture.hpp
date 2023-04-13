@@ -31,27 +31,27 @@ struct VoteGraphFixture : public testing::Test {
   std::shared_ptr<VoterSet> voter_set = [] {
     auto vs = std::make_shared<VoterSet>();
 
-    std::ignore = vs->insert("w0_a"_ID, 0);
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w0_a"_ID, 0));
 
-    std::ignore = vs->insert("w1_a"_ID, 1);
-    std::ignore = vs->insert("w1_b"_ID, 1);
-    std::ignore = vs->insert("w1_c"_ID, 1);
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w1_a"_ID, 1));
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w1_b"_ID, 1));
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w1_c"_ID, 1));
 
-    std::ignore = vs->insert("w3_a"_ID, 3);
-    std::ignore = vs->insert("w3_b"_ID, 3);
-    std::ignore = vs->insert("w3_c"_ID, 3);
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w3_a"_ID, 3));
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w3_b"_ID, 3));
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w3_c"_ID, 3));
 
-    std::ignore = vs->insert("w5_a"_ID, 5);
-    std::ignore = vs->insert("w5_b"_ID, 5);
-    std::ignore = vs->insert("w5_c"_ID, 5);
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w5_a"_ID, 5));
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w5_b"_ID, 5));
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w5_c"_ID, 5));
 
-    std::ignore = vs->insert("w7_a"_ID, 7);
-    std::ignore = vs->insert("w7_b"_ID, 7);
-    std::ignore = vs->insert("w7_c"_ID, 7);
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w7_a"_ID, 7));
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w7_b"_ID, 7));
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w7_c"_ID, 7));
 
-    std::ignore = vs->insert("w10_a"_ID, 10);
-    std::ignore = vs->insert("w10_b"_ID, 10);
-    std::ignore = vs->insert("w10_c"_ID, 10);
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w10_a"_ID, 10));
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w10_b"_ID, 10));
+    EXPECT_OUTCOME_TRUE_1(vs->insert("w10_c"_ID, 10));
 
     return vs;
   }();
@@ -210,10 +210,10 @@ inline void AssertGraphCorrect(VoteGraphImpl &graph, std::string json) {
         }
 
         return g.first == j.first && g.second.number == j.second.number
-               && g.second.ancestors == j.second.ancestors
-               && g.second.descendants == j.second.descendants
-               && g.second.cumulative_vote.sum(vt)
-                      == j.second.cumulative_vote.sum(vt);
+            && g.second.ancestors == j.second.ancestors
+            && g.second.descendants == j.second.descendants
+            && g.second.cumulative_vote.sum(vt)
+                   == j.second.cumulative_vote.sum(vt);
       });
 
   EXPECT_TRUE(is_equal) << "entries are incorrect";
