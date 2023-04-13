@@ -119,6 +119,9 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockContext &context,
         primitives::BlockNumber activate_at) = 0;
 
+    /**
+     * Warp synced to `block` with `authorities`.
+     */
     virtual void warp(const primitives::BlockInfo &block,
                       const primitives::BlockHeader &header,
                       const primitives::AuthoritySet &authorities) = 0;

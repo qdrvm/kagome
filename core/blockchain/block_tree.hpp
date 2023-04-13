@@ -233,8 +233,14 @@ namespace kagome::blockchain {
      */
     virtual primitives::BlockInfo getLastFinalized() const = 0;
 
+    /**
+     * Warp synced to block.
+     */
     virtual void warp(const primitives::BlockInfo &block) = 0;
 
+    /**
+     * Notify best and finalized block to subscriptions.
+     */
     virtual void notifyBestAndFinalized() = 0;
   };
 

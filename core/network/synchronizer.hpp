@@ -55,6 +55,10 @@ namespace kagome::network {
                            const primitives::BlockInfo &block,
                            SyncResultHandler &&handler) = 0;
 
+    /**
+     * Sync block at height 1 for babe genesis slot.
+     * Sync block with latest babe consensus digest.
+     */
     virtual void syncBabeDigest(const libp2p::peer::PeerId &peer_id,
                                 const primitives::BlockInfo &block,
                                 CbResultVoid &&cb) = 0;

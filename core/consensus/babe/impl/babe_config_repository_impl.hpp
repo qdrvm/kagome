@@ -129,6 +129,9 @@ namespace kagome::consensus::babe {
 
     BabeSlotNumber getFirstBlockSlotNumber();
 
+    outcome::result<void> readFromStateOutcome(
+        const primitives::BlockInfo &block);
+
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     std::shared_ptr<application::AppConfiguration> app_config_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

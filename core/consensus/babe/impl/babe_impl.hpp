@@ -148,6 +148,10 @@ namespace kagome::consensus::babe {
     bool wasSynchronized() const override;
 
    private:
+    /**
+     * Warp sync from `peer_id` if `block_number`.
+     * @return false if can't warp sync
+     */
     bool warpSync(const libp2p::peer::PeerId &peer_id,
                   primitives::BlockNumber block_number);
 

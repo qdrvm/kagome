@@ -844,26 +844,33 @@ namespace kagome::consensus::babe {
 
   void BabeConfigRepositoryImpl::readFromState(
       const primitives::BlockInfo &block) {
-    auto header1 =
-        block_tree_->getBlockHeader(block_tree_->getBlockHash(1).value())
-            .value();
-    auto header = block_tree_->getBlockHeader(block.hash).value();
+    if (auto r = readFromStateOutcome(block); not r) {
+      logger_->error("readFromState {}, error {}", block, r.error());
+    }
+  }
+
+  outcome::result<void> BabeConfigRepositoryImpl::readFromStateOutcome(
+      const primitives::BlockInfo &block) {
+    OUTCOME_TRY(hash1, block_tree_->getBlockHash(1));
+    OUTCOME_TRY(header1, block_tree_->getBlockHeader(hash1));
+    OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
+    auto parent = header;
     std::optional<EpochDigest> next_epoch;
-    while (header.number != 0) {
-      if (auto _digest = getNextEpochDigest(header)) {
+    while (parent.number != 0) {
+      if (auto _digest = getNextEpochDigest(parent)) {
         next_epoch = std::move(_digest.value());
         break;
       }
-      header = block_tree_->getBlockHeader(header.parent_hash).value();
+      OUTCOME_TRY(header, block_tree_->getBlockHeader(parent.parent_hash));
+      parent = std::move(header);
     }
-    header = block_tree_->getBlockHeader(block.hash).value();
+    OUTCOME_TRY(config, babe_api_->configuration(block.hash));
     root_ = BabeConfigNode::createAsRoot(
         block,
-        std::make_shared<primitives::BabeConfiguration>(
-            babe_api_->configuration(block.hash).value()));
+        std::make_shared<primitives::BabeConfiguration>(std::move(config)));
     if (block.number != 0) {
-      root_->epoch =
-          slotToEpoch(getBabeDigests(header).value().second.slot_number);
+      OUTCOME_TRY(digests, getBabeDigests(header));
+      root_->epoch = slotToEpoch(digests.second.slot_number);
     }
     if (next_epoch) {
       auto config =
@@ -872,10 +879,10 @@ namespace kagome::consensus::babe {
       config->randomness = next_epoch->randomness;
       root_->next_config = config;
     }
-    persistent_storage_
-        ->put(storage::kBabeConfigRepoStateLookupKey("last"),
-              scale::encode(root_).value())
-        .value();
+    OUTCOME_TRY(
+        persistent_storage_->put(storage::kBabeConfigRepoStateLookupKey("last"),
+                                 scale::encode(root_).value()));
     SL_INFO(logger_, "Read state at {}", block);
+    return outcome::success();
   }
 }  // namespace kagome::consensus::babe

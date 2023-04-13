@@ -36,6 +36,10 @@ namespace kagome::storage {
 }  // namespace kagome::storage
 
 namespace kagome::network {
+  /**
+   * Applies warp sync changes to other components.
+   * Recovers when process was restarted.
+   */
   class WarpSync {
    public:
     struct Op {
@@ -57,10 +61,19 @@ namespace kagome::network {
         std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree);
 
+    /**
+     * `AppStateManager::atLaunch` hook
+     */
     void start();
 
+    /**
+     * @return next request to send
+     */
     std::optional<primitives::BlockInfo> request() const;
 
+    /**
+     * Process response
+     */
     void onResponse(const WarpSyncProof &res);
 
    private:
