@@ -236,12 +236,12 @@ namespace kagome::network {
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
     struct StateSync {
-      StateSyncRequestFlow flow;
       libp2p::peer::PeerId peer;
       SyncResultHandler cb;
     };
 
     mutable std::mutex state_sync_mutex_;
+    std::optional<StateSyncRequestFlow> state_sync_flow_;
     std::optional<StateSync> state_sync_;
 
     bool node_is_shutting_down_ = false;

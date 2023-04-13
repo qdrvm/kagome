@@ -1109,8 +1109,10 @@ namespace kagome::network {
       handler(block);
       return;
     }
+    if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
+      state_sync_flow_.emplace(block, header);
+    }
     state_sync_.emplace(StateSync{
-        StateSyncRequestFlow{block, header},
         peer_id,
         std::move(handler),
     });
@@ -1123,9 +1125,9 @@ namespace kagome::network {
     SL_TRACE(log_,
              "State sync request has sent to {} for block {}",
              state_sync_->peer,
-             state_sync_->flow.blockInfo());
+             state_sync_flow_->blockInfo());
 
-    auto request = state_sync_->flow.nextRequest();
+    auto request = state_sync_flow_->nextRequest();
 
     auto protocol = router_->getStateProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide state protocol");
@@ -1154,16 +1156,17 @@ namespace kagome::network {
       std::unique_lock<std::mutex> &lock,
       outcome::result<StateResponse> &&_res) {
     OUTCOME_TRY(res, _res);
-    OUTCOME_TRY(state_sync_->flow.onResponse(res));
+    OUTCOME_TRY(state_sync_flow_->onResponse(res));
     entries_ += res.entries[0].entries.size();
-    if (not state_sync_->flow.complete()) {
+    if (not state_sync_flow_->complete()) {
       SL_TRACE(log_, "State syncing continues. {} entries loaded", entries_);
       syncState();
       return outcome::success();
     }
     OUTCOME_TRY(
-        state_sync_->flow.commit(*module_factory_, *core_api_, *serializer_));
-    auto block = state_sync_->flow.blockInfo();
+        state_sync_flow_->commit(*module_factory_, *core_api_, *serializer_));
+    auto block = state_sync_flow_->blockInfo();
+    state_sync_flow_.reset();
     SL_INFO(log_, "State syncing block {} has finished.", block);
     chain_sub_engine_->notify(primitives::events::ChainEventType::kNewRuntime,
                               block.hash);
