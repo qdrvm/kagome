@@ -8,6 +8,8 @@
 
 #include "consensus/babe/babe.hpp"
 
+#include <boost/di/extension/injections/lazy.hpp>
+
 #include "clock/timer.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
@@ -50,6 +52,8 @@ namespace kagome::crypto {
 namespace kagome::network {
   class Synchronizer;
   class BlockAnnounceTransmitter;
+  class WarpSync;
+  class WarpProtocol;
 }  // namespace kagome::network
 
 namespace kagome::runtime {
@@ -101,6 +105,9 @@ namespace kagome::consensus::babe {
         std::shared_ptr<crypto::Hasher> hasher,
         std::unique_ptr<clock::Timer> timer,
         std::shared_ptr<blockchain::DigestTracker> digest_tracker,
+        std::shared_ptr<network::WarpSync> warp_sync,
+        boost::di::extension::lazy<std::shared_ptr<network::WarpProtocol>>
+            warp_protocol,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<BabeUtil> babe_util,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -141,6 +148,9 @@ namespace kagome::consensus::babe {
     bool wasSynchronized() const override;
 
    private:
+    bool warpSync(const libp2p::peer::PeerId &peer_id,
+                  primitives::BlockNumber block_number);
+
     outcome::result<EpochDescriptor> getInitialEpochDescriptor();
 
     void adjustEpochDescriptor();
@@ -199,6 +209,9 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::unique_ptr<clock::Timer> timer_;
     std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
+    std::shared_ptr<network::WarpSync> warp_sync_;
+    boost::di::extension::lazy<std::shared_ptr<network::WarpProtocol>>
+        warp_protocol_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
@@ -212,6 +225,8 @@ namespace kagome::consensus::babe {
     std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+
+    bool warp_sync_busy_ = false;
 
     State current_state_{State::WAIT_REMOTE_STATUS};
 

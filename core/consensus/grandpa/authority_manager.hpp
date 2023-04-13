@@ -118,6 +118,10 @@ namespace kagome::consensus::grandpa {
     virtual outcome::result<void> applyResume(
         const primitives::BlockContext &context,
         primitives::BlockNumber activate_at) = 0;
+
+    virtual void warp(const primitives::BlockInfo &block,
+                      const primitives::BlockHeader &header,
+                      const primitives::AuthoritySet &authorities) = 0;
   };
 }  // namespace kagome::consensus::grandpa
 

@@ -5,6 +5,7 @@
 
 #include "babe_config_repository_impl.hpp"
 
+#include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "babe_digests_util.hpp"
 #include "blockchain/block_header_repository.hpp"
@@ -16,24 +17,29 @@
 #include "runtime/runtime_api/babe_api.hpp"
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::consensus::babe {
 
   BabeConfigRepositoryImpl::BabeConfigRepositoryImpl(
       application::AppStateManager &app_state_manager,
       std::shared_ptr<storage::SpacedStorage> persistent_storage,
+      std::shared_ptr<application::AppConfiguration> app_config,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<runtime::BabeApi> babe_api,
       std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       const BabeClock &clock)
       : persistent_storage_(
           persistent_storage->getSpace(storage::Space::kDefault)),
+        app_config_{std::move(app_config)},
         block_tree_(std::move(block_tree)),
         header_repo_(std::move(header_repo)),
         babe_api_(std::move(babe_api)),
         hasher_(std::move(hasher)),
+        trie_storage_(std::move(trie_storage)),
         chain_sub_([&] {
           BOOST_ASSERT(chain_events_engine != nullptr);
           return std::make_shared<primitives::events::ChainEventSubscriber>(
@@ -52,8 +58,19 @@ namespace kagome::consensus::babe {
 
   bool BabeConfigRepositoryImpl::prepare() {
     auto load_res = load();
+    auto best_info = block_tree_->bestLeaf();
+    auto best_block = block_tree_->getBlockHeader(best_info.hash).value();
+    if ((not load_res or not config({best_info}, 0))
+        and trie_storage_->getEphemeralBatchAt(best_block.state_root)) {
+      readFromState(best_info);
+      load_res = outcome::success();
+    }
     if (load_res.has_error()) {
       SL_VERBOSE(logger_, "Can not load state: {}", load_res.error());
+      if (app_config_->syncMethod()
+          == application::AppConfiguration::SyncMethod::Warp) {
+        return true;
+      }
       return false;
     }
 
@@ -825,4 +842,40 @@ namespace kagome::consensus::babe {
     return 0;
   }
 
+  void BabeConfigRepositoryImpl::readFromState(
+      const primitives::BlockInfo &block) {
+    auto header1 =
+        block_tree_->getBlockHeader(block_tree_->getBlockHash(1).value())
+            .value();
+    auto header = block_tree_->getBlockHeader(block.hash).value();
+    std::optional<EpochDigest> next_epoch;
+    while (header.number != 0) {
+      if (auto _digest = getNextEpochDigest(header)) {
+        next_epoch = std::move(_digest.value());
+        break;
+      }
+      header = block_tree_->getBlockHeader(header.parent_hash).value();
+    }
+    header = block_tree_->getBlockHeader(block.hash).value();
+    root_ = BabeConfigNode::createAsRoot(
+        block,
+        std::make_shared<primitives::BabeConfiguration>(
+            babe_api_->configuration(block.hash).value()));
+    if (block.number != 0) {
+      root_->epoch =
+          slotToEpoch(getBabeDigests(header).value().second.slot_number);
+    }
+    if (next_epoch) {
+      auto config =
+          std::make_shared<primitives::BabeConfiguration>(*root_->config);
+      config->authorities = std::move(next_epoch->authorities);
+      config->randomness = next_epoch->randomness;
+      root_->next_config = config;
+    }
+    persistent_storage_
+        ->put(storage::kBabeConfigRepoStateLookupKey("last"),
+              scale::encode(root_).value())
+        .value();
+    SL_INFO(logger_, "Read state at {}", block);
+  }
 }  // namespace kagome::consensus::babe

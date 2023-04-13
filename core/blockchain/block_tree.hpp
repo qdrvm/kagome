@@ -232,6 +232,10 @@ namespace kagome::blockchain {
      * @return hash of the block
      */
     virtual primitives::BlockInfo getLastFinalized() const = 0;
+
+    virtual void warp(const primitives::BlockInfo &block) = 0;
+
+    virtual void notifyBestAndFinalized() = 0;
   };
 
 }  // namespace kagome::blockchain

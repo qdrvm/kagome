@@ -9,6 +9,7 @@
 
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
@@ -51,6 +52,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
 namespace {
   constexpr const char *kImportQueueLength =
       "kagome_import_queue_blocks_submitted";
+  constexpr uint32_t kBabeDigestBatch = 100;
 
   kagome::network::BlockAttributes attributesForSync(
       kagome::application::AppConfiguration::SyncMethod method) {
@@ -60,6 +62,7 @@ namespace {
         return kagome::network::BlocksRequest::kBasicAttributes;
       case SM::Fast:
       case SM::FastWithoutState:
+      case SM::Warp:
         return kagome::network::BlockAttribute::HEADER
              | kagome::network::BlockAttribute::JUSTIFICATION;
     }
@@ -73,6 +76,7 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<blockchain::BlockStorage> block_storage,
       std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -83,10 +87,10 @@ namespace kagome::network {
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::Core> core_api,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      std::shared_ptr<storage::SpacedStorage> spaced_storage,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
+        block_storage_{std::move(block_storage)},
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
         serializer_(std::move(serializer)),
@@ -97,8 +101,7 @@ namespace kagome::network {
         module_factory_(std::move(module_factory)),
         core_api_(std::move(core_api)),
         grandpa_environment_{std::move(grandpa_environment)},
-        chain_sub_engine_(std::move(chain_sub_engine)),
-        buffer_storage_(spaced_storage->getSpace(storage::Space::kDefault)) {
+        chain_sub_engine_(std::move(chain_sub_engine)) {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
@@ -107,7 +110,6 @@ namespace kagome::network {
     BOOST_ASSERT(router_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
-    BOOST_ASSERT(buffer_storage_);
     BOOST_ASSERT(grandpa_environment_);
 
     sync_method_ = app_config.syncMethod();
@@ -972,6 +974,119 @@ namespace kagome::network {
     protocol->request(peer_id, std::move(request), std::move(response_handler));
   }
 
+  void SynchronizerImpl::syncBabeDigest(const libp2p::peer::PeerId &peer_id,
+                                        const primitives::BlockInfo &_block,
+                                        CbResultVoid &&cb) {
+    auto block = _block;
+    // BabeConfigRepositoryImpl first block slot
+    if (auto hash = block_tree_->getBlockHash(1);
+        not hash or not block_tree_->getBlockHeader(hash.value())) {
+      auto cb2 = [=, cb{std::move(cb)}, weak{weak_from_this()}](
+                     outcome::result<BlocksResponse> _res) mutable {
+        auto self = weak.lock();
+        if (not self) {
+          return;
+        }
+        if (not _res) {
+          cb(_res.error());
+          return;
+        }
+        auto &res = _res.value();
+        if (res.blocks.empty()) {
+          cb(Error::EMPTY_RESPONSE);
+          return;
+        }
+        auto &header = res.blocks[0].header;
+        if (not header) {
+          cb(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+          return;
+        }
+        if (header->number != 1) {
+          cb(Error::INVALID_HASH);
+          return;
+        }
+        if (header->parent_hash != block_tree_->getGenesisBlockHash()) {
+          cb(Error::INVALID_HASH);
+          return;
+        }
+        auto hash = self->block_storage_->putBlockHeader(*header).value();
+        if (header->number < self->block_tree_->getLastFinalized().number) {
+          self->block_storage_->assignNumberToHash({header->number, hash})
+              .value();
+        }
+        self->syncBabeDigest(peer_id, block, std::move(cb));
+      };
+      router_->getSyncProtocol()->request(
+          peer_id,
+          {BlockAttribute::HEADER, 1, Direction::DESCENDING, 1},
+          std::move(cb2));
+      return;
+    }
+    // BabeConfigRepositoryImpl NextEpoch
+    while (block.number != 0) {
+      if (auto _header = block_tree_->getBlockHeader(block.hash)) {
+        auto &header = _header.value();
+        if (consensus::babe::getNextEpochDigest(header)) {
+          break;
+        }
+        block = {header.number - 1, header.parent_hash};
+        continue;
+      }
+      auto cb2 = [=, weak{weak_from_this()}, cb{std::move(cb)}](
+                     outcome::result<BlocksResponse> _res) mutable {
+        auto self = weak.lock();
+        if (not self) {
+          return;
+        }
+        if (not _res) {
+          cb(_res.error());
+          return;
+        }
+        auto &res = _res.value();
+        if (res.blocks.empty()) {
+          cb(Error::EMPTY_RESPONSE);
+          return;
+        }
+        for (auto &item : res.blocks) {
+          auto &header = item.header;
+          if (not header) {
+            cb(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+            return;
+          }
+          primitives::BlockInfo info{
+              header->number,
+              self->hasher_->blake2b_256(scale::encode(*header).value())};
+          if (info != block) {
+            cb(Error::INVALID_HASH);
+            return;
+          }
+          self->block_storage_->putBlockHeader(*header).value();
+          if (block.number < self->block_tree_->getLastFinalized().number) {
+            self->block_storage_->assignNumberToHash(block).value();
+          }
+          if (consensus::babe::getNextEpochDigest(*header)) {
+            cb(outcome::success());
+            return;
+          }
+          if (block.number != 0) {
+            block = {header->number - 1, header->parent_hash};
+          }
+        }
+        self->syncBabeDigest(peer_id, block, std::move(cb));
+      };
+      router_->getSyncProtocol()->request(peer_id,
+                                          {
+                                              BlockAttribute::HEADER,
+                                              block.hash,
+                                              Direction::DESCENDING,
+                                              kBabeDigestBatch,
+                                          },
+                                          std::move(cb2));
+      return;
+    }
+    cb(outcome::success());
+  }
+
   void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
                                    const primitives::BlockInfo &block,
                                    SyncResultHandler &&handler) {
@@ -990,6 +1105,10 @@ namespace kagome::network {
       return;
     }
     auto &header = _header.value();
+    if (storage_->getEphemeralBatchAt(header.state_root)) {
+      handler(block);
+      return;
+    }
     state_sync_.emplace(StateSync{
         StateSyncRequestFlow{block, header},
         peer_id,

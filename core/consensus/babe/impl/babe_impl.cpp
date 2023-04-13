@@ -25,6 +25,8 @@
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
 #include "network/types/collator_messages.hpp"
+#include "network/warp/protocol.hpp"
+#include "network/warp/sync.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -57,6 +59,9 @@ namespace kagome::consensus::babe {
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
       std::shared_ptr<blockchain::DigestTracker> digest_tracker,
+      std::shared_ptr<network::WarpSync> warp_sync,
+      boost::di::extension::lazy<std::shared_ptr<network::WarpProtocol>>
+          warp_protocol,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -81,6 +86,8 @@ namespace kagome::consensus::babe {
         sr25519_provider_{std::move(sr25519_provider)},
         timer_{std::move(timer)},
         digest_tracker_(std::move(digest_tracker)),
+        warp_sync_{std::move(warp_sync)},
+        warp_protocol_{std::move(warp_protocol)},
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         bitfield_store_{std::move(bitfield_store)},
@@ -242,6 +249,7 @@ namespace kagome::consensus::babe {
 
       case SyncMethod::Fast:
       case SyncMethod::FastWithoutState:
+      case SyncMethod::Warp:
         current_state_ = State::HEADERS_LOADING;
         break;
     }
@@ -391,6 +399,10 @@ namespace kagome::consensus::babe {
       return;
     }
 
+    if (warpSync(peer_id, handshake.best_block.number)) {
+      return;
+    }
+
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
     auto current_best_block_res =
@@ -422,6 +434,10 @@ namespace kagome::consensus::babe {
     // If state is loading, just to ping of loading
     if (current_state_ == Babe::State::STATE_LOADING) {
       startStateSyncing(peer_id);
+      return;
+    }
+
+    if (warpSync(peer_id, announce.header.number)) {
       return;
     }
 
@@ -494,6 +510,46 @@ namespace kagome::consensus::babe {
         });
   }
 
+  bool BabeImpl::warpSync(const libp2p::peer::PeerId &peer_id,
+                          primitives::BlockNumber block_number) {
+    if (current_state_ != State::HEADERS_LOADING) {
+      return false;
+    }
+    if (app_config_.syncMethod() != SyncMethod::Warp) {
+      return false;
+    }
+    auto target = warp_sync_->request();
+    if (not target) {
+      current_state_ = State::HEADERS_LOADED;
+      startStateSyncing(peer_id);
+      return true;
+    }
+    if (block_number <= target->number) {
+      return true;
+    }
+    if (warp_sync_busy_) {
+      return true;
+    }
+    warp_sync_busy_ = true;
+    auto cb = [=, weak{weak_from_this()}](
+                  outcome::result<network::WarpSyncProof> _res) {
+      auto self = weak.lock();
+      if (not self) {
+        return;
+      }
+      if (not _res) {
+        self->warp_sync_busy_ = false;
+        return;
+      }
+      auto &res = _res.value();
+      self->warp_sync_->onResponse(res);
+      self->warp_sync_busy_ = false;
+      self->warpSync(peer_id, block_number);
+    };
+    warp_protocol_.get()->doRequest(peer_id, target->hash, std::move(cb));
+    return true;
+  }
+
   void BabeImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,
                               const primitives::BlockInfo &target_block) {
     BOOST_ASSERT(current_state_ != Babe::State::STATE_LOADING);
@@ -546,6 +602,13 @@ namespace kagome::consensus::babe {
     }
 
     current_state_ = Babe::State::STATE_LOADING;
+
+    auto best_block =
+        block_tree_->getBlockHeader(block_tree_->bestLeaf().hash).value();
+    if (trie_storage_->getEphemeralBatchAt(best_block.state_root)) {
+      current_state_ = Babe::State::CATCHING_UP;
+      return;
+    }
 
     if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
       if (app_state_manager_->state()
@@ -606,25 +669,48 @@ namespace kagome::consensus::babe {
              block_at_state,
              peer_id);
 
-    synchronizer_->syncState(
+    synchronizer_->syncBabeDigest(
         peer_id,
         block_at_state,
-        [wp = weak_from_this(), block_at_state, peer_id](auto res) mutable {
-          if (auto self = wp.lock()) {
-            if (res.has_error()) {
-              SL_WARN(self->log_,
-                      "Syncing of state with {} on block {} is failed: {}",
-                      peer_id,
-                      block_at_state,
-                      res.error());
-              return;
-            }
-
-            SL_INFO(self->log_,
-                    "State on block {} is synced successfully",
-                    block_at_state);
-            self->current_state_ = Babe::State::CATCHING_UP;
+        [=, weak{weak_from_this()}](outcome::result<void> res) {
+          auto self = weak.lock();
+          if (not self) {
+            return;
           }
+          if (not res) {
+            SL_WARN(self->log_,
+                    "Syncing of babe digests with {} on block {} is failed: {}",
+                    peer_id,
+                    block_at_state,
+                    res.error());
+            return;
+          }
+          synchronizer_->syncState(
+              peer_id,
+              block_at_state,
+              [wp = weak_from_this(), block_at_state, peer_id](
+                  auto res) mutable {
+                if (auto self = wp.lock()) {
+                  if (res.has_error()) {
+                    SL_WARN(
+                        self->log_,
+                        "Syncing of state with {} on block {} is failed: {}",
+                        peer_id,
+                        block_at_state,
+                        res.error());
+                    return;
+                  }
+
+                  self->adjustEpochDescriptor();
+                  self->babe_config_repo_->readFromState(block_at_state);
+                  self->block_tree_->notifyBestAndFinalized();
+
+                  SL_INFO(self->log_,
+                          "State on block {} is synced successfully",
+                          block_at_state);
+                  self->current_state_ = Babe::State::CATCHING_UP;
+                }
+              });
         });
   }
 

@@ -104,6 +104,7 @@
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
 #include "network/peer_view.hpp"
+#include "network/warp/sync.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "offchain/impl/offchain_persistent_storage.hpp"
 #include "offchain/impl/offchain_worker_factory_impl.hpp"
@@ -183,6 +184,12 @@ namespace {
   }
 
   using injector::bind_by_lambda;
+
+  template <typename T, typename Impl>
+  auto bind_to() {
+    return bind_by_lambda<T>(
+        [](auto &&injector) { return injector.template create<sptr<Impl>>(); });
+  }
 
   sptr<api::HttpListenerImpl> get_jrpc_api_http_listener(
       application::AppConfiguration const &config,
@@ -997,14 +1004,11 @@ namespace {
         di::bind<consensus::babe::BlockExecutor>.template to<consensus::babe::BlockExecutorImpl>(),
         bind_by_lambda<consensus::grandpa::GrandpaImpl>(
             [](auto &&injector) { return get_grandpa_impl(injector); }),
-        bind_by_lambda<consensus::grandpa::Grandpa>([](auto const &injector) {
-          return injector
-              .template create<sptr<consensus::grandpa::GrandpaImpl>>();
-        }),
-        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::NeighborObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+        bind_to<consensus::grandpa::Grandpa, consensus::grandpa::GrandpaImpl>(),
+        bind_to<consensus::grandpa::JustificationObserver,
+                consensus::grandpa::GrandpaImpl>(),
+        bind_to<consensus::grandpa::GrandpaObserver,
+                consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::babe::BabeUtil>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
         di::bind<network::BlockAnnounceTransmitter>.template to<network::BlockAnnounceTransmitterImpl>(),
         di::bind<network::GrandpaTransmitter>.template to<network::GrandpaTransmitterImpl>(),
@@ -1087,6 +1091,9 @@ namespace {
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
         injector.template create<sptr<blockchain::DigestTracker>>(),
+        injector.template create<sptr<network::WarpSync>>(),
+        injector.template create<
+            boost::di::extension::lazy<sptr<network::WarpProtocol>>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<consensus::babe::BabeUtil>>(),
         injector.template create<sptr<parachain::BitfieldStore>>(),
@@ -1209,9 +1216,7 @@ namespace {
             [](const auto &injector) { return get_own_peer_info(injector); }),
         bind_by_lambda<consensus::babe::BabeImpl>(
             [](auto const &injector) { return get_babe(injector); }),
-        bind_by_lambda<consensus::babe::Babe>([](auto &&injector) {
-          return injector.template create<sptr<consensus::babe::BabeImpl>>();
-        }),
+        bind_to<consensus::babe::Babe, consensus::babe::BabeImpl>(),
         di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
         di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
 

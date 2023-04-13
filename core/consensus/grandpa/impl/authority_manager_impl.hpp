@@ -120,6 +120,10 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockContext &context,
         primitives::BlockNumber activate_at) override;
 
+    void warp(const primitives::BlockInfo &block,
+              const primitives::BlockHeader &header,
+              const primitives::AuthoritySet &authorities) override;
+
    private:
     void prune(const primitives::BlockInfo &block);
 

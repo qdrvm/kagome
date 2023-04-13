@@ -18,7 +18,8 @@
 
 namespace kagome::application {
   class AppStateManager;
-}
+  class AppConfiguration;
+}  // namespace kagome::application
 namespace kagome::blockchain {
   class BlockTree;
   class BlockHeaderRepository;
@@ -29,6 +30,9 @@ namespace kagome::crypto {
 namespace kagome::runtime {
   class BabeApi;
 }
+namespace kagome::storage::trie {
+  class TrieStorage;
+}  // namespace kagome::storage::trie
 
 namespace kagome::consensus::babe {
 
@@ -43,10 +47,12 @@ namespace kagome::consensus::babe {
     BabeConfigRepositoryImpl(
         application::AppStateManager &app_state_manager,
         std::shared_ptr<storage::SpacedStorage> persistent_storage,
+        std::shared_ptr<application::AppConfiguration> app_config,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
         const BabeClock &clock);
 
@@ -72,6 +78,8 @@ namespace kagome::consensus::babe {
     std::optional<std::reference_wrapper<const primitives::BabeConfiguration>>
     config(const primitives::BlockContext &context,
            EpochNumber epoch_number) const override;
+
+    void readFromState(const primitives::BlockInfo &block) override;
 
     // BabeUtil
 
@@ -122,10 +130,12 @@ namespace kagome::consensus::babe {
     BabeSlotNumber getFirstBlockSlotNumber();
 
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
+    std::shared_ptr<application::AppConfiguration> app_config_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<runtime::BabeApi> babe_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
     const BabeDuration slot_duration_{};
