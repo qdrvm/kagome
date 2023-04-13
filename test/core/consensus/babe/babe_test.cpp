@@ -34,6 +34,7 @@
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
@@ -161,30 +162,33 @@ class BabeTest : public testing::Test {
     babe_status_observable_ =
         std::make_shared<primitives::events::BabeStateSubscriptionEngine>();
 
-    babe_ = std::make_shared<babe::BabeImpl>(app_config_,
-                                             app_state_manager_,
-                                             lottery_,
-                                             babe_config_repo_,
-                                             proposer_,
-                                             block_tree_,
-                                             block_announce_transmitter_,
-                                             sr25519_provider,
-                                             keypair_,
-                                             clock_,
-                                             hasher_,
-                                             std::move(timer_mock_),
-                                             digest_tracker_,
-                                             synchronizer_,
-                                             babe_util_,
-                                             bitfield_store_,
-                                             backing_store_,
-                                             storage_sub_engine_,
-                                             chain_events_engine_,
-                                             offchain_worker_api_,
-                                             core_,
-                                             consistency_keeper_,
-                                             trie_storage_,
-                                             babe_status_observable_);
+    babe_ = std::make_shared<babe::BabeImpl>(
+        app_config_,
+        app_state_manager_,
+        lottery_,
+        babe_config_repo_,
+        proposer_,
+        block_tree_,
+        block_announce_transmitter_,
+        sr25519_provider,
+        keypair_,
+        clock_,
+        hasher_,
+        std::move(timer_mock_),
+        digest_tracker_,
+        nullptr,
+        testutil::sptr_to_lazy<network::WarpProtocol>(warp_protocol_),
+        synchronizer_,
+        babe_util_,
+        bitfield_store_,
+        backing_store_,
+        storage_sub_engine_,
+        chain_events_engine_,
+        offchain_worker_api_,
+        core_,
+        consistency_keeper_,
+        trie_storage_,
+        babe_status_observable_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -220,6 +224,7 @@ class BabeTest : public testing::Test {
   std::unique_ptr<testutil::TimerMock> timer_mock_;
   testutil::TimerMock *timer_;
   std::shared_ptr<DigestTrackerMock> digest_tracker_;
+  std::shared_ptr<network::WarpProtocol> warp_protocol_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;

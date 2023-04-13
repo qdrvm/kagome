@@ -85,10 +85,12 @@ class BabeConfigRepositoryTest : public testing::Test {
     babe_config_repo_ =
         std::make_shared<BabeConfigRepositoryImpl>(*app_state_manager,
                                                    spaced_storage,
+                                                   nullptr,
                                                    block_tree,
                                                    header_repo,
                                                    babe_api,
                                                    hasher,
+                                                   nullptr,
                                                    chain_events_engine,
                                                    *clock);
   }
@@ -114,6 +116,8 @@ class BabeConfigRepositoryTest : public testing::Test {
  * @then compare slot estimations
  */
 TEST_F(BabeConfigRepositoryTest, getCurrentSlot) {
+  EXPECT_CALL(*block_tree, getBlockHeader(_))
+      .WillOnce(Return(outcome::success()));
   babe_config_repo_->prepare();
   auto time = std::chrono::system_clock::now();
   EXPECT_CALL(*clock, now()).Times(1).WillOnce(Return(time));

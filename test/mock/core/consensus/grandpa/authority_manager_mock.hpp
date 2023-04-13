@@ -49,6 +49,13 @@ namespace kagome::consensus::grandpa {
                 applyResume,
                 (const primitives::BlockContext &, primitives::BlockNumber),
                 (override));
+
+    MOCK_METHOD(void,
+                warp,
+                (const primitives::BlockInfo &,
+                 const primitives::BlockHeader &,
+                 const primitives::AuthoritySet &),
+                (override));
   };
 }  // namespace kagome::consensus::grandpa
 

@@ -18,8 +18,6 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
-#include "mock/core/storage/persistent_map_mock.hpp"
-#include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
@@ -40,8 +38,6 @@ using primitives::BlockHash;
 using primitives::BlockHeader;
 using primitives::BlockInfo;
 using primitives::BlockNumber;
-using storage::BufferStorageMock;
-using storage::SpacedStorageMock;
 
 using ::testing::_;
 using ::testing::AnyNumber;
@@ -77,13 +73,11 @@ class SynchronizerTest
     EXPECT_CALL(app_config, syncMethod())
         .WillOnce(Return(application::AppConfiguration::SyncMethod::Full));
 
-    EXPECT_CALL(*spaced_storage, getSpace(kagome::storage::Space::kDefault))
-        .WillRepeatedly(Return(buffer_storage));
-
     synchronizer =
         std::make_shared<network::SynchronizerImpl>(app_config,
                                                     app_state_manager,
                                                     block_tree,
+                                                    nullptr,
                                                     block_appender,
                                                     block_executor,
                                                     serializer,
@@ -94,7 +88,6 @@ class SynchronizerTest
                                                     nullptr,
                                                     nullptr,
                                                     nullptr,
-                                                    spaced_storage,
                                                     grandpa_environment);
   }
 
@@ -119,10 +112,6 @@ class SynchronizerTest
       std::make_shared<libp2p::basic::SchedulerMock>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
-  std::shared_ptr<SpacedStorageMock> spaced_storage =
-      std::make_shared<SpacedStorageMock>();
-  std::shared_ptr<BufferStorageMock> buffer_storage =
-      std::make_shared<BufferStorageMock>();
   std::shared_ptr<EnvironmentMock> grandpa_environment =
       std::make_shared<EnvironmentMock>();
 
