@@ -553,7 +553,7 @@ int storage_explorer_main(int argc, const char **argv) {
   }
 
   kagome::injector::KagomeNodeInjector injector{configuration};
-  auto block_storage = injector.injectBlockStorage();
+  /*auto block_storage = injector.injectBlockStorage();
   auto trie_storage = injector.injectTrieStorage();
   auto app_state_manager = injector.injectAppStateManager();
   auto block_tree = injector.injectBlockTree();
@@ -585,7 +585,7 @@ int storage_explorer_main(int argc, const char **argv) {
   parser.addCommand(std::make_unique<SearchChainCommand>(
       block_storage, trie_storage, authority_manager, hasher));
 
-  parser.invoke(args.subspan(0, kagome_args_start));
+  parser.invoke(args.subspan(0, kagome_args_start));*/
 
   return 0;
 }

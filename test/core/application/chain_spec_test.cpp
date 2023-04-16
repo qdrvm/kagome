@@ -42,7 +42,7 @@ class ConfigurationStorageTest : public ::testing::Test {
   }
 
   std::string path_ =
-      boost::filesystem::path(__FILE__).parent_path().string()
+      std::filesystem::path(__FILE__).parent_path().string()
       + "/genesis.json";  // < Path to file containing the following configs:
   std::vector<libp2p::multi::Multiaddress> expected_boot_nodes_;
   GenesisRawData expected_genesis_config_;

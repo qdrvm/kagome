@@ -15,10 +15,11 @@ target_link_libraries(application_injector
     app_config
     app_state_manager
     authority_discovery_api
-    print_chain_info_mode
+    application_modes
     assets
     storage
     babe_api
+    kagome_benchmarks
     binaryen_executor_factory
     binaryen_runtime_external_interface
     binaryen_wasm_memory

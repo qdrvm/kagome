@@ -27,6 +27,7 @@ namespace kagome {
   namespace application::mode {
     class PrintChainInfoMode;
     class RecoveryMode;
+    class BenchmarkMode;
   }  // namespace application::mode
 
   namespace authority_discovery {
@@ -124,6 +125,7 @@ namespace kagome::injector {
     std::shared_ptr<application::mode::PrintChainInfoMode>
     injectPrintChainInfoMode();
     std::shared_ptr<application::mode::RecoveryMode> injectRecoveryMode();
+    std::shared_ptr<application::mode::BenchmarkMode> injectBenchmarkMode();
 
    protected:
     std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;

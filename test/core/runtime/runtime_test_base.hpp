@@ -82,8 +82,8 @@ class RuntimeTestBase : public ::testing::Test {
     auto bip39_provider =
         std::make_shared<crypto::Bip39ProviderImpl>(pbkdf2_provider);
     auto keystore_path =
-        boost::filesystem::temp_directory_path()
-        / boost::filesystem::unique_path("kagome_keystore_test_dir");
+        std::filesystem::temp_directory_path()
+        / std::string(std::tmpnam(nullptr));
     auto crypto_store = std::make_shared<crypto::CryptoStoreImpl>(
         std::make_shared<crypto::EcdsaSuite>(ecdsa_provider),
         std::make_shared<crypto::Ed25519Suite>(ed25519_provider),
@@ -144,7 +144,7 @@ class RuntimeTestBase : public ::testing::Test {
 
     auto module_factory = createModuleFactory();
 
-    auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
+    auto wasm_path = std::filesystem::path(__FILE__).parent_path().string()
                    + "/wasm/sub2dev.wasm";
     wasm_provider_ = std::make_shared<runtime::BasicCodeProvider>(wasm_path);
 

@@ -16,29 +16,29 @@ namespace kagome::application {
    public:
     MOCK_METHOD(network::Roles, roles, (), (const, override));
 
-    MOCK_METHOD(boost::filesystem::path, chainSpecPath, (), (const, override));
+    MOCK_METHOD(std::filesystem::path, chainSpecPath, (), (const, override));
 
-    MOCK_METHOD(boost::filesystem::path,
+    MOCK_METHOD(std::filesystem::path,
                 runtimeCacheDirPath,
                 (),
                 (const, override));
 
-    MOCK_METHOD(boost::filesystem::path,
+    MOCK_METHOD(std::filesystem::path,
                 runtimeCachePath,
                 (std::string runtime_hash),
                 (const, override));
 
-    MOCK_METHOD(boost::filesystem::path,
+    MOCK_METHOD(std::filesystem::path,
                 chainPath,
                 (std::string chain_id),
                 (const, override));
 
-    MOCK_METHOD(boost::filesystem::path,
+    MOCK_METHOD(std::filesystem::path,
                 databasePath,
                 (std::string chain_id),
                 (const, override));
 
-    MOCK_METHOD(boost::filesystem::path,
+    MOCK_METHOD(std::filesystem::path,
                 keystorePath,
                 (std::string chain_id),
                 (const, override));
@@ -135,7 +135,7 @@ namespace kagome::application {
 
     MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));
 
-    MOCK_METHOD(bool, subcommandChainInfo, (), (const, override));
+    MOCK_METHOD(std::optional<Subcommand>, subcommand, (), (const, override));
 
     MOCK_METHOD(std::optional<primitives::BlockId>,
                 recoverState,
@@ -160,6 +160,11 @@ namespace kagome::application {
                 (const, override));
 
     MOCK_METHOD(std::string, nodeWssPem, (), (const, override));
+
+    MOCK_METHOD(std::optional<BenchmarkConfigSection>,
+                getBenchmarkConfig,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::application

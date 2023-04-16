@@ -15,7 +15,7 @@
 
 namespace kagome::application {
 
-  class KagomeApplicationImpl : public KagomeApplication {
+  class KagomeApplicationImpl final : public KagomeApplication {
     template <class T>
     using sptr = std::shared_ptr<T>;
 
@@ -28,6 +28,8 @@ namespace kagome::application {
     explicit KagomeApplicationImpl(std::shared_ptr<AppConfiguration> config);
 
     int chainInfo() override;
+
+    int benchmark() override;
 
     int recovery() override;
 

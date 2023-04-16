@@ -23,13 +23,13 @@ class AppConfigurationTest : public testing::Test {
     testutil::prepareLoggers();
   }
 
-  boost::filesystem::path tmp_dir = boost::filesystem::temp_directory_path()
-                                    / boost::filesystem::unique_path();
+  std::filesystem::path tmp_dir = std::filesystem::temp_directory_path()
+                                    / std::string(std::tmpnam(nullptr));
   std::string config_path = (tmp_dir / "config.json").native();
   std::string invalid_config_path = (tmp_dir / "invalid_config.json").native();
   std::string damaged_config_path = (tmp_dir / "damaged_config.json").native();
-  boost::filesystem::path base_path = tmp_dir / "base_path";
-  boost::filesystem::path chain_path = tmp_dir / "genesis.json";
+  std::filesystem::path base_path = tmp_dir / "base_path";
+  std::filesystem::path chain_path = tmp_dir / "genesis.json";
 
   static constexpr char const *file_content =
       R"({
@@ -112,8 +112,8 @@ class AppConfigurationTest : public testing::Test {
   }
 
   void SetUp() override {
-    boost::filesystem::create_directory(tmp_dir);
-    ASSERT_TRUE(boost::filesystem::exists(tmp_dir));
+    std::filesystem::create_directory(tmp_dir);
+    ASSERT_TRUE(std::filesystem::exists(tmp_dir));
 
     auto spawn_file = [](std::string const &path,
                          std::string const &file_content) {
@@ -128,7 +128,7 @@ class AppConfigurationTest : public testing::Test {
     spawn_file(invalid_config_path, invalid_file_content);
     spawn_file(damaged_config_path, damaged_file_content);
     spawn_file(chain_path.native(), "");
-    ASSERT_TRUE(boost::filesystem::create_directory(base_path));
+    ASSERT_TRUE(std::filesystem::create_directory(base_path));
 
     auto logger = kagome::log::createLogger("AppConfigTest", "testing");
     app_config_ = std::make_shared<AppConfigurationImpl>(logger);

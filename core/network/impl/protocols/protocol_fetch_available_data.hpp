@@ -85,12 +85,13 @@ namespace kagome::network {
           "hash={})",
           req.relay_parent,
           req.candidate_hash);
+
       if (auto res = backing_store_->get_candidate(req.candidate_hash)) {
         return std::move(*res);
       }
 
       base().logger()->error("No fetch statement response.");
-      return outcome::failure(boost::system::error_code{});
+      return ProtocolError::NO_RESPONSE;
     }
 
     void onTxRequest(const RequestType &) override {}

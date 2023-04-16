@@ -6,10 +6,12 @@
 #ifndef KAGOME_FILESYSTEM_COMMON_HPP
 #define KAGOME_FILESYSTEM_COMMON_HPP
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 namespace kagome::filesystem {
-  using namespace boost::filesystem;
+  using namespace std::filesystem;
+
+
 }
 
 #endif  // KAGOME_FILESYSTEM_COMMON_HPP

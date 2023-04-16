@@ -70,8 +70,14 @@ int main(int argc, const char **argv) {
     auto app = std::make_shared<kagome::application::KagomeApplicationImpl>(
         configuration);
 
-    if (configuration->subcommandChainInfo()) {
-      return app->chainInfo();
+    if (configuration->subcommand().has_value()) {
+      switch (*configuration->subcommand()) {
+        using kagome::application::Subcommand;
+        case Subcommand::ChainInfo:
+          return app->chainInfo();
+        case Subcommand::Benchmark:
+          return app->benchmark();
+      }
     }
 
     // Recovery mode

@@ -17,7 +17,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::storage;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 struct RocksDb_Integration_Test : public test::BaseRocksDB_Test {
   static void SetUpTestCase() {

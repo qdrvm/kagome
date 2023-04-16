@@ -13,7 +13,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 // intentionally here, so users can use fs shortcut
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace test {
 

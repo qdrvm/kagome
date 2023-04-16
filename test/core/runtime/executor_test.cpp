@@ -60,7 +60,7 @@ class ExecutorTest : public testing::Test {
     header_repo_ = std::make_shared<BlockHeaderRepositoryMock>();
 
     auto code_provider = std::make_shared<BasicCodeProvider>(
-        boost::filesystem::path(__FILE__).parent_path().string()
+        std::filesystem::path(__FILE__).parent_path().string()
         + "/wasm/sumtwo.wasm");
     auto module_repo = std::make_shared<ModuleRepositoryMock>();
     env_factory_ =

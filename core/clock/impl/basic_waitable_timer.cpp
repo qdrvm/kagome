@@ -5,6 +5,8 @@
 
 #include "clock/impl/basic_waitable_timer.hpp"
 
+#include <boost/system/error_code.hpp>
+
 namespace kagome::clock {
   BasicWaitableTimer::BasicWaitableTimer(
       std::shared_ptr<boost::asio::io_context> io_context)
@@ -28,7 +30,7 @@ namespace kagome::clock {
   }
 
   void BasicWaitableTimer::asyncWait(
-      const std::function<void(const std::error_code &)> &h) {
+      const std::function<void(const boost::system::error_code &)> &h) {
     timer_.async_wait(h);
   }
 }  // namespace kagome::clock

@@ -14,7 +14,7 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 using testing::_;
 
 namespace {
@@ -136,7 +136,7 @@ class KagomeInjectorTest : public testing::Test {
 
  protected:
   static inline const auto db_path_ =
-      fs::temp_directory_path() / fs::unique_path();
+      fs::temp_directory_path() / std::string(std::tmpnam(nullptr));
 
   std::shared_ptr<kagome::application::AppConfigurationMock> config_;
   std::unique_ptr<kagome::injector::KagomeNodeInjector> injector_;

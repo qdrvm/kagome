@@ -57,12 +57,14 @@ target_link_libraries(app_state_manager
     )
 kagome_install(app_state_manager)
 
-add_library(print_chain_info_mode
+add_library(application_modes
     modes/print_chain_info_mode.cpp
+    modes/benchmark_mode.cpp
     )
-target_link_libraries(print_chain_info_mode
+target_link_libraries(application_modes
     hexutil
     RapidJSON::rapidjson
+    benchmark::benchmark
     )
 
 add_library(kagome_application

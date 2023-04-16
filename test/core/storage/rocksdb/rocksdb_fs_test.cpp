@@ -13,7 +13,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::storage;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 struct RocksDb_Open : public test::BaseFS_Test {
   static void SetUpTestCase() {
@@ -49,6 +49,6 @@ TEST_F(RocksDb_Open, OpenExistingDB) {
   EXPECT_OUTCOME_TRUE_2(db, RocksDb::create(getPathString(), options));
   EXPECT_TRUE(db) << "db is nullptr";
 
-  boost::filesystem::path p(getPathString());
+  std::filesystem::path p(getPathString());
   EXPECT_TRUE(fs::exists(p));
 }

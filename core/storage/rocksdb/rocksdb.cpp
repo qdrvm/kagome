@@ -15,7 +15,7 @@
 #include "storage/rocksdb/rocksdb_util.hpp"
 
 namespace kagome::storage {
-  namespace fs = boost::filesystem;
+  namespace fs = std::filesystem;
 
   RocksDb::RocksDb(bool prevent_destruction,
                    std::vector<ColumnFamilyHandle> columns)
@@ -47,9 +47,9 @@ namespace kagome::storage {
     rocksdb::DB *db = nullptr;
 
     auto log = log::createLogger("RocksDB", "storage");
-    auto absolute_path = fs::absolute(path, fs::current_path());
+    auto absolute_path = fs::absolute(path);
 
-    boost::system::error_code ec;
+    std::error_code ec;
     if (not fs::create_directory(absolute_path.native(), ec) and ec.value()) {
       log->error("Can't create directory {} for database: {}",
                  absolute_path.native(),

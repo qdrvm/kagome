@@ -6,7 +6,7 @@
 #ifndef KAGOME_APPLICATION_UTIL_HPP
 #define KAGOME_APPLICATION_UTIL_HPP
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include "outcome/outcome.hpp"
 
@@ -17,7 +17,7 @@ namespace kagome::application::util {
     NOT_A_DIR,
   };
 
-  outcome::result<void> init_directory(const boost::filesystem::path &path);
+  outcome::result<void> init_directory(const std::filesystem::path &path);
 
 }  // namespace kagome::application::util
 

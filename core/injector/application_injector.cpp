@@ -44,6 +44,7 @@
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
+#include "application/modes/benchmark_mode.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
 #include "authority_discovery/publisher/address_publisher.hpp"
@@ -51,6 +52,7 @@
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
+#include "benchmark/block_execution_benchmark.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
@@ -173,7 +175,7 @@ namespace {
   using uptr = std::unique_ptr<T>;
 
   namespace di = boost::di;
-  namespace fs = boost::filesystem;
+  namespace fs = std::filesystem;
   using namespace kagome;  // NOLINT
 
   template <typename C>
@@ -259,8 +261,7 @@ namespace {
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
       log->critical("Can't create RocksDB in {}: {}",
-                    fs::absolute(app_config.databasePath(chain_spec->id()),
-                                 fs::current_path())
+                    fs::absolute(app_config.databasePath(chain_spec->id()))
                         .native(),
                     db_res.error());
       exit(EXIT_FAILURE);
@@ -280,7 +281,7 @@ namespace {
       auto log = log::createLogger("Injector", "injector");
       log->critical(
           "Can't load chain spec from {}: {}",
-          fs::absolute(chainspec_path.native(), fs::current_path()).native(),
+          fs::absolute(chainspec_path.native()).native(),
           chain_spec_res.error());
       exit(EXIT_FAILURE);
     }
@@ -1378,4 +1379,11 @@ namespace kagome::injector {
     return pimpl_->injector_
         .template create<sptr<authority_discovery::AddressPublisher>>();
   }
+
+  std::shared_ptr<application::mode::BenchmarkMode>
+  KagomeNodeInjector::injectBenchmarkMode() {
+    return pimpl_->injector_
+        .template create<sptr<application::mode::BenchmarkMode>>();
+  }
+
 }  // namespace kagome::injector

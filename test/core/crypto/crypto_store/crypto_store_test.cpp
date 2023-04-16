@@ -52,7 +52,7 @@ using kagome::crypto::Sr25519Seed;
 using kagome::crypto::Sr25519Suite;
 
 static CryptoStoreImpl::Path crypto_store_test_directory =
-    boost::filesystem::temp_directory_path() / "crypto_store_test";
+    std::filesystem::temp_directory_path() / "crypto_store_test";
 
 struct CryptoStoreTest : public test::BaseFS_Test {
   static void SetUpTestCase() {
@@ -115,7 +115,7 @@ struct CryptoStoreTest : public test::BaseFS_Test {
     auto file_name =
         kagome::crypto::encodeKeyTypeIdToStr(kt) + public_key.toHex();
     auto file_path = crypto_store_test_directory / file_name;
-    return boost::filesystem::exists(file_path);
+    return std::filesystem::exists(file_path);
   }
 
   std::shared_ptr<Bip39Provider> bip39_provider;
@@ -353,7 +353,7 @@ TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
   auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
   auto bip39_provider =
       std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider));
-  auto keystore_path = boost::filesystem::path(__FILE__).parent_path()
+  auto keystore_path = std::filesystem::path(__FILE__).parent_path()
                        / "subkey_keys" / "keystore";
   auto crypto_store = std::make_shared<CryptoStoreImpl>(
       std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),

@@ -7,10 +7,10 @@
 #define KAGOME_CRYPTO_STORE_HPP
 
 #include <memory>
-
-#include <boost/filesystem.hpp>
-#include <libp2p/crypto/key.hpp>
+#include <filesystem>
 #include <optional>
+
+#include <libp2p/crypto/key.hpp>
 
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/crypto_store/key_type.hpp"
@@ -22,9 +22,7 @@
 namespace kagome::crypto {
   class CryptoStore {
    public:
-    // currently std::filesystem::path is missing required methods in macos SDK
-    // so we have to use boost's filesystem primitives
-    using Path = boost::filesystem::path;
+    using Path = std::filesystem::path;
 
     virtual ~CryptoStore() = default;
 

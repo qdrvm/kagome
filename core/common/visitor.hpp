@@ -9,6 +9,7 @@
 #include <optional>
 #include <type_traits>  // for std::decay
 #include <utility>      // for std::forward
+#include <variant>
 
 #include <boost/variant.hpp>
 #include <boost/variant/apply_visitor.hpp>  // for boost::apply_visitor
@@ -64,6 +65,12 @@ namespace kagome {
     return visitor_type(std::forward<Fs>(fs)...);
   }
 
+  template <typename... Ts>
+  struct is_std_variant : std::false_type {};
+
+  template <typename... Ts>
+  struct is_std_variant<std::variant<Ts...>> : std::true_type {};
+
   /**
    * @brief Inplace visitor for boost::variant.
    * @code
@@ -77,9 +84,12 @@ namespace kagome {
    *
    * @param variant
    * @param lambdas
-   * @param lambdas
    */
-  template <typename TVariant, typename... TVisitors>
+  template <
+      typename TVariant,
+      std::enable_if_t<is_std_variant<std::decay_t<TVariant>>::value == false,
+                       bool> = true,
+      typename... TVisitors>
   constexpr decltype(auto) visit_in_place(TVariant &&variant,
                                           TVisitors &&...visitors) {
     return boost::apply_visitor(
@@ -87,10 +97,37 @@ namespace kagome {
         std::forward<TVariant>(variant));
   }
 
+  /**
+   * @brief Inplace visitor for std::variant.
+   * @code
+   *   std::variant<int, std::string> value = "1234";
+   *   ...
+   *   visit_in_place(value,
+   *                  [](int v) { std::cout << "(int)" << v; },
+   *                  [](std::string v) { std::cout << "(string)" << v;}
+   *                  );
+   * @nocode
+   *
+   * @param variant
+   * @param lambdas
+   */
+  template <
+      typename TVariant,
+      std::enable_if_t<is_std_variant<std::decay_t<TVariant>>::value == true,
+                       bool> = true,
+      typename... TVisitors>
+  constexpr decltype(auto) visit_in_place(TVariant &&variant,
+                                          TVisitors &&...visitors) {
+    return std::visit(make_visitor(std::forward<TVisitors>(visitors)...),
+                      std::forward<TVariant>(variant));
+  }
+
   template <typename TReturn, typename TVariant>
   constexpr std::optional<std::reference_wrapper<TReturn>> if_type(
       TVariant &&variant) {
-    if (auto ptr = boost::get<TReturn>(&variant)) return *ptr;
+    if (auto ptr = boost::get<TReturn>(&variant)) {
+      return *ptr;
+    }
     return std::nullopt;
   }
 

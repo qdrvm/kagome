@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <optional>
 
 #include "common/buffer.hpp"
@@ -34,7 +34,7 @@ namespace kagome::crypto {
     };
 
     using Buffer = common::Buffer;
-    using Path = boost::filesystem::path;
+    using Path = std::filesystem::path;
 
     /**
      * Initializes key storage at the given \param keystore_path. Creates its
