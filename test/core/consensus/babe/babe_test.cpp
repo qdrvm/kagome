@@ -176,6 +176,7 @@ class BabeTest : public testing::Test {
         hasher_,
         std::move(timer_mock_),
         digest_tracker_,
+        // safe null, because object is not used during test
         nullptr,
         testutil::sptr_to_lazy<network::WarpProtocol>(warp_protocol_),
         synchronizer_,
