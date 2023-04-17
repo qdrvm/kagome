@@ -347,7 +347,6 @@ namespace kagome::storage::trie_pruner {
     OUTCOME_TRY(root_hash, calcHash(*codec_, *new_trie.getRoot(), version));
 
     ref_count_[root_value] += 1;
-    logger_->info("Add: Merkle value of state {} is {}", root_hash, root_value);
 
     size_t referenced_nodes_num = 0;
 
@@ -423,10 +422,19 @@ namespace kagome::storage::trie_pruner {
       auto block_hash = block_queue.front();
       OUTCOME_TRY(header, block_tree.getBlockHeader(block_hash));
       SL_DEBUG(logger_,
-               "Restore state - register #{} ()",
+               "Restore state - register #{} ({})",
                header.number,
                block_hash);
-      OUTCOME_TRY(tree, serializer_->retrieveTrie(header.state_root));
+      auto tree_res = serializer_->retrieveTrie(header.state_root);
+      if (tree_res.has_error()
+          && tree_res.error() == DatabaseError::NOT_FOUND) {
+        SL_WARN(logger_,
+                "State for block #{} is not found in the database",
+                header.number);
+        block_queue.pop();
+        continue;
+      }
+      OUTCOME_TRY(tree, tree_res);
       OUTCOME_TRY(
           addNewStateWith(*tree,
                           trie::StateVersion::V0,
