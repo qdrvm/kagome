@@ -257,10 +257,10 @@ namespace kagome::consensus::babe {
    * @param authority_key authority
    * @return index of authority in list of authorities
    */
-  std::optional<uint64_t> getAuthorityIndex(
+  std::optional<primitives::AuthorityIndex> getAuthorityIndex(
       const primitives::AuthorityList &authorities,
       const primitives::BabeSessionKey &authority_key) {
-    uint64_t n = 0;
+    primitives::AuthorityIndex n = 0;
     for (auto &authority : authorities) {
       if (authority.id.id == authority_key) {
         return n;
@@ -761,7 +761,7 @@ namespace kagome::consensus::babe {
         const auto &authority_index = authority_index_res.value();
 
         if (lottery_->getEpoch() != current_epoch_) {
-          changeLotteryEpoch(current_epoch_, babe_config);
+          changeLotteryEpoch(current_epoch_, authority_index, babe_config);
         }
 
         auto slot_leadership = lottery_->getSlotLeadership(current_slot_);
@@ -1112,22 +1112,12 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::changeLotteryEpoch(
       const EpochDescriptor &epoch,
+      primitives::AuthorityIndex authority_index,
       const primitives::BabeConfiguration &babe_config) const {
     BOOST_ASSERT(keypair_ != nullptr);
 
-    auto authority_index_res =
-        getAuthorityIndex(babe_config.authorities, keypair_->public_key);
-    if (not authority_index_res) {
-      SL_CRITICAL(log_,
-                  "Block production failed: This node is not in the list of "
-                  "authorities. (public key: {})",
-                  keypair_->public_key);
-      return;
-    }
-
-    auto threshold = calculateThreshold(babe_config.leadership_rate,
-                                        babe_config.authorities,
-                                        authority_index_res.value());
+    auto threshold = calculateThreshold(
+        babe_config.leadership_rate, babe_config.authorities, authority_index);
 
     lottery_->changeEpoch(epoch, babe_config.randomness, threshold, *keypair_);
   }

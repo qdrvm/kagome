@@ -176,6 +176,7 @@ namespace kagome::consensus::babe {
 
     void changeLotteryEpoch(
         const EpochDescriptor &epoch,
+        primitives::AuthorityIndex authority_index,
         const primitives::BabeConfiguration &babe_config) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(
