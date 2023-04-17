@@ -94,7 +94,8 @@ namespace kagome::parachain {
         parachain_host_(std::move(parachain_host)),
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
-        query_audi_{std::move(query_audi)} {
+        query_audi_{std::move(query_audi)},
+        thread_handler_{thread_pool_->handler()} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
@@ -250,7 +251,7 @@ namespace kagome::parachain {
   }
 
   bool ParachainProcessorImpl::start() {
-    thread_pool_->handler().start();
+    thread_handler_->start();
     return true;
   }
 
@@ -608,7 +609,7 @@ namespace kagome::parachain {
         peer_id);
 
     sequenceIgnore(
-        thread_pool_->handler().io_context()->wrap(
+        thread_handler_->io_context()->wrap(
             asAsync([wself{weak_from_this()},
                      candidate{std::move(candidate)},
                      pov{std::move(pov)},

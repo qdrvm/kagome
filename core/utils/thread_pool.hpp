@@ -26,21 +26,9 @@ namespace kagome {
     ThreadHandler &operator=(ThreadHandler &&) = delete;
     ThreadHandler &operator=(ThreadHandler const &) = delete;
 
-    ThreadHandler()
-        : execution_state_{State::kStopped},
-          ioc_{std::make_shared<boost::asio::io_context>()},
-          work_guard_{ioc_->get_executor()} {}
-
     explicit ThreadHandler(std::shared_ptr<boost::asio::io_context> io_context)
-        : execution_state_{State::kStopped},
-          ioc_{std::move(io_context)},
-          work_guard_{} {}
-
-    ~ThreadHandler() {
-      if (work_guard_) {
-        ioc_->stop();
-      }
-    }
+        : execution_state_{State::kStopped}, ioc_{std::move(io_context)} {}
+    ~ThreadHandler() = default;
 
     void start() {
       execution_state_.store(State::kStarted, std::memory_order_release);
@@ -85,9 +73,6 @@ namespace kagome {
    private:
     std::atomic<State> execution_state_;
     std::shared_ptr<boost::asio::io_context> ioc_;
-    std::optional<boost::asio::executor_work_guard<
-        boost::asio::io_context::executor_type>>
-        work_guard_;
   };
 
   /**
@@ -104,52 +89,34 @@ namespace kagome {
     ThreadPool &operator=(ThreadPool const &) = delete;
 
     explicit ThreadPool(size_t thread_count)
-        : handler_{std::make_optional<ThreadHandler>()} {
-      BOOST_ASSERT(handler_);
+        : ioc_{std::make_shared<boost::asio::io_context>()},
+          work_guard_{ioc_->get_executor()} {
+      BOOST_ASSERT(ioc_);
       BOOST_ASSERT(thread_count > 0);
-      threads_.reserve(thread_count);
 
+      threads_.reserve(thread_count);
       for (size_t i = 0; i < thread_count; ++i) {
-        threads_.emplace_back([io{handler_->io_context()}] { io->run(); });
+        threads_.emplace_back([io{ioc_}] { io->run(); });
       }
     }
 
     ~ThreadPool() {
-      BOOST_ASSERT(handler_);
-      handler_ = std::nullopt;
-
-      BOOST_ASSERT(!threads_.empty());
+      ioc_->stop();
       for (auto &thread : threads_) {
         thread.join();
       }
     }
 
-    template <typename F>
-    void execute(F &&func) {
-      BOOST_ASSERT(handler_);
-      handler_->execute(std::forward<F>(func));
-    }
-
-    template <typename F, typename... Args>
-    auto reinvoke(F &&func, Args &&...args)
-        -> std::optional<std::tuple<Args...>> {
-      BOOST_ASSERT(handler_);
-      return handler_->reinvoke(std::forward<F>(func),
-                                std::forward<Args>(args)...);
-    }
-
-    bool isInCurrentThread() const {
-      BOOST_ASSERT(handler_);
-      return handler_->isInCurrentThread();
-    }
-
-    ThreadHandler &handler() {
-      BOOST_ASSERT(handler_);
-      return *handler_;
+    std::shared_ptr<ThreadHandler> handler() {
+      BOOST_ASSERT(ioc_);
+      return std::make_shared<ThreadHandler>(ioc_);
     }
 
    private:
-    std::optional<ThreadHandler> handler_;
+    std::shared_ptr<boost::asio::io_context> ioc_;
+    std::optional<boost::asio::executor_work_guard<
+        boost::asio::io_context::executor_type>>
+        work_guard_;
     std::vector<std::thread> threads_;
   };
 }  // namespace kagome

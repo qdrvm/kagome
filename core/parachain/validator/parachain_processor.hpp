@@ -429,6 +429,7 @@ namespace kagome::parachain {
     std::shared_ptr<authority_discovery::Query> query_audi_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    std::shared_ptr<ThreadHandler> thread_handler_;
   };
 
 }  // namespace kagome::parachain
