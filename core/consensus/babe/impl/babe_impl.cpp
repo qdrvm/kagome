@@ -663,11 +663,11 @@ namespace kagome::consensus::babe {
     bool rewind_slots;  // NOLINT
     auto slot = current_slot_;
 
+    auto now = clock_->now();
     do {
       // check that we are really in the middle of the slot, as expected; we
       // can cooperate with a relatively little (kMaxLatency) latency, as our
       // node will be able to retrieve
-      auto now = clock_->now();
 
       auto finish_time = babe_util_->slotFinishTime(current_slot_);
 
@@ -706,16 +706,16 @@ namespace kagome::consensus::babe {
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(finish_time);
-    timer_->asyncWait([this](auto &&ec) {
+    timer_->asyncWait([this, now](auto &&ec) {
       if (ec) {
         log_->error("error happened while waiting on the timer: {}", ec);
         return;
       }
-      processSlot();
+      processSlot(now);
     });
   }
 
-  void BabeImpl::processSlot() {
+  void BabeImpl::processSlot(clock::SystemClock::TimePoint clock_now) {
     BOOST_ASSERT(keypair_ != nullptr);
 
     best_block_ = block_tree_->bestLeaf();
@@ -774,8 +774,10 @@ namespace kagome::consensus::babe {
                    common::Buffer(vrf_result.output),
                    common::Buffer(vrf_result.proof));
 
-          processSlotLeadership(
-              SlotType::Primary, std::cref(vrf_result), authority_index);
+          processSlotLeadership(SlotType::Primary,
+                                clock_now,
+                                std::cref(vrf_result),
+                                authority_index);
         } else if (babe_config.allowed_slots
                        == primitives::AllowedSlots::PrimaryAndSecondaryPlain
                    or babe_config.allowed_slots
@@ -790,11 +792,15 @@ namespace kagome::consensus::babe {
             if (babe_config.allowed_slots
                 == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
               auto vrf = lottery_->slotVrfSignature(current_slot_);
-              processSlotLeadership(
-                  SlotType::SecondaryVRF, std::cref(vrf), authority_index);
+              processSlotLeadership(SlotType::SecondaryVRF,
+                                    clock_now,
+                                    std::cref(vrf),
+                                    authority_index);
             } else {  // plain secondary slots mode
-              processSlotLeadership(
-                  SlotType::SecondaryPlain, std::nullopt, authority_index);
+              processSlotLeadership(SlotType::SecondaryPlain,
+                                    clock_now,
+                                    std::nullopt,
+                                    authority_index);
             }
           }
         }
@@ -893,6 +899,7 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::processSlotLeadership(
       SlotType slot_type,
+      clock::SystemClock::TimePoint clock_now,
       std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
       primitives::AuthorityIndex authority_index) {
     BOOST_ASSERT(keypair_ != nullptr);
@@ -911,7 +918,7 @@ namespace kagome::consensus::babe {
 
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                   clock_->now().time_since_epoch())
+                   clock_now.time_since_epoch())
                    .count();
 
     if (auto res = inherent_data.putData<uint64_t>(kTimestampId, now);
