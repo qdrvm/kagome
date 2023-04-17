@@ -28,7 +28,9 @@ namespace kagome::api {
      * @param name rpc method name
      * @param method handler functor
      */
-    void registerHandler(const std::string &name, Method method) override;
+    void registerHandler(const std::string &name,
+                         Method method,
+                         bool unsafe) override;
 
     /**
      * @return name of handlers
@@ -41,6 +43,7 @@ namespace kagome::api {
      * @param cb callback
      */
     void processData(std::string_view request,
+                     bool allow_unsafe,
                      const ResponseHandler &cb) override;
 
     /**
@@ -55,6 +58,8 @@ namespace kagome::api {
    private:
     /// json rpc server instance
     jsonrpc::Server jsonrpc_handler_{};
+    /// json rpc server instance for subset of safe methods
+    jsonrpc::Server jsonrpc_handler_safe_{};
     /// format handler instance
     jsonrpc::JsonFormatHandler format_handler_{};
 

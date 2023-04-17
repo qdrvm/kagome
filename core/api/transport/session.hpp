@@ -91,7 +91,9 @@ namespace kagome::api {
      * @param type type of the closed session
      */
     void notifyOnClose(SessionId id, SessionType type) {
-      if (nullptr != on_close_) on_close_(id, type);
+      if (nullptr != on_close_) {
+        on_close_(id, type);
+      }
     }
 
     /**
@@ -114,6 +116,11 @@ namespace kagome::api {
      * queued writes will complete.
      */
     virtual void post(std::function<void()> cb) = 0;
+
+    /**
+     * Can call unsafe methods
+     */
+    virtual bool allowUnsafe() const = 0;
 
    private:
     std::function<OnRequestSignature> on_request_;  ///< `on request` callback

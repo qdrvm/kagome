@@ -253,6 +253,8 @@ namespace kagome::application {
     virtual std::optional<std::string_view> devMnemonicPhrase() const = 0;
 
     virtual std::string nodeWssPem() const = 0;
+
+    virtual std::optional<bool> allowUnsafeRpc() const = 0;
   };
 
 }  // namespace kagome::application

@@ -11,8 +11,11 @@
 
 namespace kagome::api {
 
-  HttpSession::HttpSession(Context &context, Configuration config)
+  HttpSession::HttpSession(Context &context,
+                           AllowUnsafe allow_unsafe,
+                           Configuration config)
       : strand_(boost::asio::make_strand(context)),
+        allow_unsafe_{allow_unsafe},
         config_{config},
         stream_(boost::asio::ip::tcp::socket(strand_)) {}
 
@@ -132,5 +135,9 @@ namespace kagome::api {
 
   void HttpSession::post(std::function<void()> cb) {
     boost::asio::post(strand_, std::move(cb));
+  }
+
+  bool HttpSession::allowUnsafe() const {
+    return allow_unsafe_.allow(stream_.socket().remote_endpoint());
   }
 }  // namespace kagome::api

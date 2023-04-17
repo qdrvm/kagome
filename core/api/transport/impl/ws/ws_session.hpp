@@ -16,6 +16,7 @@
 #include <boost/beast/core/tcp_stream.hpp>
 #include <boost/beast/websocket.hpp>
 
+#include "api/allow_unsafe.hpp"
 #include "api/transport/session.hpp"
 #include "log/logger.hpp"
 
@@ -43,7 +44,10 @@ namespace kagome::api {
      * @param config session configuration
      * @param id session id
      */
-    WsSession(Context &context, Configuration config, SessionId id);
+    WsSession(Context &context,
+              AllowUnsafe allow_unsafe,
+              Configuration config,
+              SessionId id);
 
     Socket &socket() override {
       return socket_;
@@ -75,6 +79,8 @@ namespace kagome::api {
     void respond(std::string_view response) override;
 
     void post(std::function<void()> cb) override;
+
+    bool allowUnsafe() const override;
 
     /**
      * @brief Closes the incoming connection with "try again later" response
@@ -150,6 +156,7 @@ namespace kagome::api {
     /// Socket for the connection.
     boost::asio::ip::tcp::socket socket_;
 
+    AllowUnsafe allow_unsafe_;
     Configuration config_;  ///< session configuration
     boost::beast::websocket::stream<boost::asio::ip::tcp::socket &> stream_;
     boost::beast::flat_buffer rbuffer_;  ///< read buffer
@@ -159,7 +166,7 @@ namespace kagome::api {
     bool writing_in_progress_ = false;
     std::atomic_bool stopped_ = false;
 
-    SessionId const id_;
+    const SessionId id_;
     OnWsSessionCloseHandler on_ws_close_;
     log::Logger logger_ = log::createLogger("WsSession", "rpc_transport");
   };

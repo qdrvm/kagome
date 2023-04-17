@@ -12,9 +12,13 @@
 
 namespace kagome::api {
 
-  WsSession::WsSession(Context &context, Configuration config, SessionId id)
+  WsSession::WsSession(Context &context,
+                       AllowUnsafe allow_unsafe,
+                       Configuration config,
+                       SessionId id)
       : strand_(boost::asio::make_strand(context)),
         socket_(strand_),
+        allow_unsafe_{allow_unsafe},
         config_{config},
         stream_(socket_),
         id_(id) {}
@@ -164,5 +168,9 @@ namespace kagome::api {
 
   void WsSession::post(std::function<void()> cb) {
     boost::asio::post(strand_, std::move(cb));
+  }
+
+  bool WsSession::allowUnsafe() const {
+    return allow_unsafe_.allow(socket_.remote_endpoint());
   }
 }  // namespace kagome::api

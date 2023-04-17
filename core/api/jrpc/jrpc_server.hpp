@@ -31,7 +31,9 @@ namespace kagome::api {
      * @param name rpc method name
      * @param method handler functor
      */
-    virtual void registerHandler(const std::string &name, Method method) = 0;
+    virtual void registerHandler(const std::string &name,
+                                 Method method,
+                                 bool unsafe = false) = 0;
 
     /**
      * @return name of handlers
@@ -61,6 +63,7 @@ namespace kagome::api {
      * @param cb callback
      */
     virtual void processData(std::string_view request,
+                             bool allow_unsafe,
                              const ResponseHandler &cb) = 0;
   };
 

@@ -56,78 +56,79 @@ class StateJrpcProcessorTest : public testing::Test {
 
   void registerHandlers() {
     call_contexts_.clear();
-    EXPECT_CALL(*server, registerHandler("state_call", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_call", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_Call,
                                                 CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_getRuntimeVersion", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_getRuntimeVersion", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_GetRuntimeVersion,
                              CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("chain_getRuntimeVersion", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("chain_getRuntimeVersion", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_SubscribeRuntimeVersion,
                              CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_subscribeRuntimeVersion", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_subscribeRuntimeVersion", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_SubscribeRuntimeVersion,
                              CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_unsubscribeRuntimeVersion", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server,
+                registerHandler("state_unsubscribeRuntimeVersion", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_UnsubscribeRuntimeVersion,
                              CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_getKeysPaged", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_getKeysPaged", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_GetKeysPaged, CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_getStorage", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_getStorage", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetStorage,
                                                 CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_getStorageAt", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_getStorageAt", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetStorage,
                                                 CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_queryStorage", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_queryStorage", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_QueryStorage, CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_queryStorageAt", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_queryStorageAt", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_QueryStorageAt, CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_getReadProof", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_getReadProof", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_GetReadProof, CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_subscribeStorage", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_subscribeStorage", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_StorageSubscribe, CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_unsubscribeStorage", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_unsubscribeStorage", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_StorageUnsubscribe,
                              CallContext{.handler = f}));
         }));
-    EXPECT_CALL(*server, registerHandler("state_getMetadata", _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+    EXPECT_CALL(*server, registerHandler("state_getMetadata", _, _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetMetadata,
                                                 CallContext{.handler = f}));
         }));

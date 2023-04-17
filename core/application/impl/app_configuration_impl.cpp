@@ -123,6 +123,19 @@ namespace {
     return std::nullopt;
   }
 
+  std::optional<std::optional<bool>> parseAllowUnsafeRpc(std::string_view str) {
+    if (str == "unsafe") {
+      return true;
+    }
+    if (str == "safe") {
+      return false;
+    }
+    if (str == "auto") {
+      return std::optional<bool>{};
+    }
+    return std::nullopt;
+  }
+
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
     using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
@@ -772,6 +785,12 @@ namespace kagome::application {
                           "e.g. --telemetry-url 'wss://foo/bar 0'")
         ("random-walk-interval", po::value<uint32_t>()->default_value(def_random_walk_interval), "Kademlia random walk interval")
         ("node-wss-pem", po::value<std::string>(), "Path to pem file with SSL certificate for libp2p wss")
+        ("rpc-cors", po::value<std::string>(), "(unused, zombienet stub)")
+        ("unsafe-rpc-external", po::bool_switch())
+        ("rpc-methods", po::value<std::string>(), "\"auto\" (default), \"unsafe\", \"safe\"")
+        ("unsafe-ws-external", po::bool_switch())
+        ("no-mdns", po::bool_switch(), "(unused, zombienet stub)")
+        ("prometheus-external", po::bool_switch())
         ;
 
     po::options_description development_desc("Additional options");
@@ -1164,6 +1183,22 @@ namespace kagome::application {
           openmetrics_http_host_ = val;
         });
 
+    find_argument<bool>(vm, "unsafe-rpc-external", [&](bool flag) {
+      if (flag) {
+        rpc_http_host_ = "0.0.0.0";
+      }
+    });
+    find_argument<bool>(vm, "unsafe-ws-external", [&](bool flag) {
+      if (flag) {
+        rpc_ws_host_ = "0.0.0.0";
+      }
+    });
+    find_argument<bool>(vm, "prometheus-external", [&](bool flag) {
+      if (flag) {
+        openmetrics_http_host_ = "0.0.0.0";
+      }
+    });
+
     find_argument<uint16_t>(
         vm, "rpc-port", [&](uint16_t val) { rpc_http_port_ = val; });
 
@@ -1173,6 +1208,19 @@ namespace kagome::application {
     find_argument<uint16_t>(vm, "prometheus-port", [&](uint16_t val) {
       openmetrics_http_port_ = val;
     });
+
+    bool allow_unsafe_rpc_error = false;
+    find_argument<std::string>(vm, "rpc-methods", [&](const std::string &str) {
+      if (auto value = parseAllowUnsafeRpc(str)) {
+        allow_unsafe_rpc_ = *value;
+      } else {
+        allow_unsafe_rpc_error = true;
+        SL_ERROR(logger_, "Invalid --rpc-methods: \"{}\"", str);
+      }
+    });
+    if (allow_unsafe_rpc_error) {
+      return false;
+    }
 
     find_argument<uint32_t>(
         vm, "out-peers", [&](uint32_t val) { out_peers_ = val; });
