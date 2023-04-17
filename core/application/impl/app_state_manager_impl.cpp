@@ -52,18 +52,19 @@ namespace kagome::application {
 
   void AppStateManagerImpl::reset() {
     std::lock_guard lg(mutex_);
-    while (!inject_.empty()) {
-      inject_.pop();
-    }
-    while (!prepare_.empty()) {
-      prepare_.pop();
-    }
-    while (!launch_.empty()) {
-      launch_.pop();
-    }
-    while (!shutdown_.empty()) {
-      shutdown_.pop();
-    }
+
+    std::queue<OnInject> empty_inject;
+    std::swap(inject_, empty_inject);
+
+    std::queue<OnPrepare> empty_prepare;
+    std::swap(prepare_, empty_prepare);
+
+    std::queue<OnLaunch> empty_launch;
+    std::swap(launch_, empty_launch);
+
+    std::queue<OnShutdown> empty_shutdown;
+    std::swap(shutdown_, empty_shutdown);
+
     state_ = State::Init;
     shutdown_requested_ = false;
   }
@@ -181,17 +182,14 @@ namespace kagome::application {
       return;
     }
 
-    while (!inject_.empty()) {
-      inject_.pop();
-    }
+    std::queue<OnInject> empty_inject;
+    std::swap(inject_, empty_inject);
 
-    while (!prepare_.empty()) {
-      prepare_.pop();
-    }
+    std::queue<OnPrepare> empty_prepare;
+    std::swap(prepare_, empty_prepare);
 
-    while (!launch_.empty()) {
-      launch_.pop();
-    }
+    std::queue<OnLaunch> empty_launch;
+    std::swap(launch_, empty_launch);
 
     state_ = State::ShuttingDown;
 

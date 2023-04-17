@@ -70,7 +70,7 @@ namespace kagome::authority_discovery {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     ExpIncInterval interval_;
 
-    mutable std::recursive_mutex mutex_;
+    mutable std::mutex mutex_;
     std::default_random_engine random_;
     std::unordered_map<primitives::AuthorityDiscoveryId, libp2p::peer::PeerInfo>
         cache_;
