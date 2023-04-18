@@ -8,6 +8,8 @@
 
 #include "dispute_coordinator/storage.hpp"
 
+#include "utils/tuple_hash.hpp"
+
 namespace kagome::dispute {
 
   class StorageImpl final : public Storage {

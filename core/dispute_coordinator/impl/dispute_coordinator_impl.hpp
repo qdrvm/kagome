@@ -8,13 +8,19 @@
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
 
-#include "dispute_coordinator/chain_scrapper.hpp"
+#include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/candidate_vote_state.hpp"
 #include "dispute_coordinator/rolling_session_window.hpp"
 #include "dispute_coordinator/spam_slots.hpp"
 #include "dispute_coordinator/storage.hpp"
 #include "log/logger.hpp"
 #include "parachain/types.hpp"
+
+namespace kagome::dispute {
+  class ChainScraper;
+  class LocalKeystore;
+  class Participation;
+}  // namespace kagome::dispute
 
 namespace kagome::dispute {
 
@@ -25,7 +31,7 @@ namespace kagome::dispute {
     using Indexed = parachain::Indexed<T>;
 
     template <typename T>
-    using IndexedIndexedAndSigned = parachain::IndexedAndSigned<T>;
+    using IndexedAndSigned = parachain::IndexedAndSigned<T>;
 
    public:
     /// Import a statement by a validator about a candidate.
@@ -128,6 +134,7 @@ namespace kagome::dispute {
 
     std::shared_ptr<ChainScraper> scraper_;
     std::shared_ptr<SpamSlots> spam_slots_;
+    std::shared_ptr<Participation> participation_;
 
     std::shared_ptr<RollingSessionWindow> rolling_session_window_;
 

@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "dispute_coordinator/chain_scrapper.hpp"
+#include "dispute_coordinator/chain_scraper.hpp"
 
-#ifndef KAGOME_DISPUTE_CHAINSCRAPPERIMPL
-#define KAGOME_DISPUTE_CHAINSCRAPPERIMPL
+#ifndef KAGOME_DISPUTE_CHAINSCRAPERIMPL
+#define KAGOME_DISPUTE_CHAINSCRAPERIMPL
 
 namespace kagome::dispute {
 
-  class ChainScrapperImpl final : public ChainScrapper {
+  class ChainScraperImpl final : public ChainScraper {
    public:
-    ChainScrapperImpl() {}
+    ChainScraperImpl() {}
 
     /// Check whether we have seen a candidate included on any chain.
     bool is_candidate_included(const CandidateHash &candidate_hash) override;

@@ -6,6 +6,8 @@
 #ifndef KAGOME_DISPUTE_CANDIDATEVOTESTATE
 #define KAGOME_DISPUTE_CANDIDATEVOTESTATE
 
+#include "dispute_coordinator/types.hpp"
+
 namespace kagome::dispute {
 
   /// Complete state of votes for a candidate.
@@ -18,6 +20,8 @@ namespace kagome::dispute {
                                      CandidateEnvironment &env,
                                      Timestamp now);
 
+    CandidateVoteState() = default;
+
     /// Votes already existing for the candidate + receipt.
     CandidateVotes votes;
 
@@ -26,8 +30,6 @@ namespace kagome::dispute {
 
     /// Current dispute status, if there is any.
     std::optional<DisputeStatus> dispute_status;
-
-    CandidateVoteState();
   };
 
 }  // namespace kagome::dispute

@@ -131,9 +131,15 @@ namespace kagome {
     return std::nullopt;
   }
 
-  template <typename T, typename TVariant>
+  template <typename Type, typename TVariant>
   constexpr bool is_type(TVariant &&variant) {
-    return boost::get<T>(&variant) != nullptr;
+    return boost::get<Type>(&variant) != nullptr;
+  }
+
+  template <typename Tag, typename TVariant, typename T>
+  constexpr bool is_tagged_by(TVariant &&variant) {
+    return boost::get<Tagged<T, Tag>>(&variant) != nullptr;
+//    return is_type<Tagged<T, Tag>>(&variant);
   }
 
   /// apply Matcher to optional T

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_CHAINSCRAPPER
-#define KAGOME_DISPUTE_CHAINSCRAPPER
+#ifndef KAGOME_DISPUTE_CHAINSCRAPER
+#define KAGOME_DISPUTE_CHAINSCRAPER
 
 #include "network/types/collator_messages.hpp"
 #include "parachain/types.hpp"
@@ -42,17 +42,17 @@ namespace kagome::dispute {
   /// Scraped candidates are available
   /// `DISPUTE_CANDIDATE_LIFETIME_AFTER_FINALIZATION` more blocks after
   /// finalization as a precaution not to prune them prematurely.
-  class ChainScrapper {
+  class ChainScraper {
    public:
-    virtual ~ChainScrapper() = default;
+    virtual ~ChainScraper() = default;
 
     /// Check whether we have seen a candidate included on any chain.
     virtual bool is_candidate_included(const CandidateHash &candidate_hash) = 0;
 
     /// Check whether the candidate is backed
     virtual bool is_candidate_backed(const CandidateHash &candidate_hash) = 0;
-  }
+  };
 
 }  // namespace kagome::dispute
 
-#endif  // KAGOME_DISPUTE_CHAINSCRAPPER
+#endif  // KAGOME_DISPUTE_CHAINSCRAPER

@@ -77,8 +77,7 @@ namespace kagome::dispute {
                                : 0;
     // .saturating_add(1)
     sessions_missing_count +=
-        (sessions_missing_count
-         < std::numeric_limits<decltype(session_index)>::max())
+        (sessions_missing_count < std::numeric_limits<SessionIndex>::max())
             ? sessions_missing_count + 1
             : sessions_missing_count;
     // .saturating_sub(stored_sessions.len() as u32);
@@ -89,25 +88,28 @@ namespace kagome::dispute {
 
     // Extend from chain state.
     if (sessions_missing_count > 0) {
-      auto sessions_res = extend_sessions_from_chain_state(stored_sessions,
-                                                           &mut sender,
-                                                           block_hash,
-                                                           &mut window_start,
-                                                           session_index, );
-
-      if (sessions_res.has_error()) {
-        // todo generate error 'SessionsUnavailable'
-        // Err(kind) => Err(SessionsUnavailable {
-        //	kind,
-        //	info: Some(SessionsUnavailableInfo {
-        //		window_start,
-        //		window_end: session_index,
-        //		block_hash,
-        //	}),
-        //}),
-      }
-
-      session_info_ = std::move(sessions_res.value());
+      //      auto sessions_res =
+      //      extend_sessions_from_chain_state(stored_sessions,
+      //                                                           &mut sender,
+      //                                                           block_hash,
+      //                                                           &mut
+      //                                                           window_start,
+      //                                                           session_index,
+      //                                                           );
+      //
+      //      if (sessions_res.has_error()) {
+      //        // todo generate error 'SessionsUnavailable'
+      //        // Err(kind) => Err(SessionsUnavailable {
+      //        //	kind,
+      //        //	info: Some(SessionsUnavailableInfo {
+      //        //		window_start,
+      //        //		window_end: session_index,
+      //        //		block_hash,
+      //        //	}),
+      //        //}),
+      //      }
+      //
+      //      session_info_ = std::move(sessions_res.value());
     }
 
     earliest_session_ = window_start;
@@ -129,7 +131,7 @@ namespace kagome::dispute {
   }
 
   SessionIndex RollingSessionWindowImpl::latest_session() const {
-    return earliest_session_ + session_info.size() - 1;
+    return earliest_session_ + session_info_.size() - 1;
   }
 
   bool RollingSessionWindowImpl::contains(SessionIndex session_index) const {
@@ -139,11 +141,11 @@ namespace kagome::dispute {
 
   outcome::result<std::optional<StoredWindow>>
   RollingSessionWindowImpl::load() {
-    //
+    return boost::system::error_code{};  // FIXME
   }
   outcome::result<void> RollingSessionWindowImpl::save(
       StoredWindow stored_window) {
-    //
+    return boost::system::error_code{};  // FIXME
   }
 
 }  // namespace kagome::dispute

@@ -34,7 +34,6 @@ namespace kagome::network {
         std::shared_ptr<ReputationRepository> reputation_repository);
 
     bool start() override;
-    bool stop() override;
 
     const std::string &protocolName() const override {
       return kDisputeProtocolName;

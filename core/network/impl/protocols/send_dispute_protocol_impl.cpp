@@ -34,10 +34,6 @@ namespace kagome::network {
     return base_.start(weak_from_this());
   }
 
-  bool SendDisputeProtocolImpl::stop() {
-    return base_.stop();
-  }
-
   void SendDisputeProtocolImpl::onIncomingStream(
       std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());

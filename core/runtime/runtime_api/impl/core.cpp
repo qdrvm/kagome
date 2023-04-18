@@ -72,7 +72,7 @@ namespace kagome::runtime {
                 executor_->persistentAt(header.parent_hash,
                                         std::move(changes_tracker)));
     OUTCOME_TRY(executor_->call<void>(*env, "Core_initialize_block", header));
-    return std::move(env);
+    return env;
   }
 
 }  // namespace kagome::runtime

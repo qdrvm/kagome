@@ -35,7 +35,7 @@ namespace kagome::dispute {
       SessionIndex session, const CandidateHash &candidate_hash) {
     auto it = candidate_votes_.find(std::tie(session, candidate_hash));
     if (it != candidate_votes_.end()) {
-      return it.second;
+      return it->second;
     }
     // load from base
     // see: {polkadot}/node/core/dispute-coordinator/src/backend.rs:123

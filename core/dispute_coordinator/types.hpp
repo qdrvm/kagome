@@ -8,6 +8,8 @@
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
 
+#include <unordered_set>
+
 #include "parachain/types.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
@@ -23,21 +25,21 @@ namespace kagome::dispute {
     std::vector<SessionInfo> session_info;
   };
 
-  /// Different kinds of statements of validity on  a candidate.
-  using ValidDisputeStatementKind = boost::variant<
-      /// An explicit statement issued as part of a dispute.
-      Tagged<Empty, struct Explicit>,
-      /// A seconded statement on a candidate from the backing phase.
-      Tagged<CandidateHash, struct BackingSeconded>,
-      /// A valid statement on a candidate from the backing phase.
-      Tagged<CandidateHash, struct BackingValid>,
-      /// An approval vote from the approval checking phase.
-      Tagged<Empty, struct ApprovalChecking>>;
+  /// An explicit statement issued as part of a dispute.
+  using Explicit = Tagged<Empty, struct ExplicitTag>;
+  /// A seconded statement on a candidate from the backing phase.
+  using BackingSeconded = Tagged<CandidateHash, struct BackingSecondedTag>;
+  /// A valid statement on a candidate from the backing phase.
+  using BackingValid = Tagged<CandidateHash, struct BackingValidTag>;
+  /// An approval vote from the approval checking phase.
+  using ApprovalChecking = Tagged<Empty, struct ApprovalCheckingTag>;
+
+  /// Different kinds of statements of validity on a candidate.
+  using ValidDisputeStatementKind =
+      boost::variant<Explicit, BackingSeconded, BackingValid, ApprovalChecking>;
 
   /// Different kinds of statements of invalidity on a candidate.
-  using InvalidDisputeStatementKind = boost::variant<
-      /// An explicit statement issued as part of a dispute.
-      Tagged<Empty, struct Explicit>>;
+  using InvalidDisputeStatementKind = boost::variant<Explicit>;
 
   struct ValidDisputeStatement {
     ValidDisputeStatementKind kind;
@@ -133,6 +135,15 @@ namespace kagome::dispute {
       ///
       /// Hence we cannot vote.
       CannotVote>;
+
+  struct CandidateEnvironment {
+    /// The session the candidate appeared in.
+    SessionIndex session_index;
+    /// Session for above index.
+    SessionInfo &session;
+    /// Validator indices controlled by this node.
+    std::unordered_set<ValidatorIndex> controlled_indices;
+  };
 
 }  // namespace kagome::dispute
 
