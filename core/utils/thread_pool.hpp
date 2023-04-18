@@ -21,10 +21,10 @@ namespace kagome {
 
    public:
     ThreadHandler(ThreadHandler &&) = delete;
-    ThreadHandler(ThreadHandler const &) = delete;
+    ThreadHandler(const ThreadHandler &) = delete;
 
     ThreadHandler &operator=(ThreadHandler &&) = delete;
-    ThreadHandler &operator=(ThreadHandler const &) = delete;
+    ThreadHandler &operator=(const ThreadHandler &) = delete;
 
     explicit ThreadHandler(std::shared_ptr<boost::asio::io_context> io_context)
         : execution_state_{State::kStopped}, ioc_{std::move(io_context)} {}
@@ -83,10 +83,10 @@ namespace kagome {
 
    public:
     ThreadPool(ThreadPool &&) = delete;
-    ThreadPool(ThreadPool const &) = delete;
+    ThreadPool(const ThreadPool &) = delete;
 
     ThreadPool &operator=(ThreadPool &&) = delete;
-    ThreadPool &operator=(ThreadPool const &) = delete;
+    ThreadPool &operator=(const ThreadPool &) = delete;
 
     explicit ThreadPool(size_t thread_count)
         : ioc_{std::make_shared<boost::asio::io_context>()},
