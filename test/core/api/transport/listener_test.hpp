@@ -19,6 +19,7 @@
 #include "core/api/client/http_client.hpp"
 #include "mock/core/api/transport/api_stub.hpp"
 #include "mock/core/api/transport/jrpc_processor_stub.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
@@ -35,6 +36,7 @@ using namespace kagome::api;
 using namespace kagome::common;
 using namespace kagome::subscription;
 using namespace kagome::primitives;
+using kagome::application::AppConfigurationMock;
 using kagome::application::AppStateManager;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
@@ -48,6 +50,8 @@ using kagome::runtime::CoreMock;
 using kagome::storage::trie::TrieStorage;
 using kagome::storage::trie::TrieStorageMock;
 using kagome::subscription::ExtrinsicEventKeyRepository;
+using testing::Return;
+using testing::ReturnRef;
 
 template <typename ListenerImpl,
           typename =
@@ -81,6 +85,29 @@ struct ListenerTest : public ::testing::Test {
             + std::to_string(payload) + "]}";
     response =
         R"({"jsonrpc":"2.0","id":0,"result":)" + std::to_string(payload) + "}";
+
+    endpoint.address(boost::asio::ip::address::from_string("127.0.0.1"));
+    endpoint.port(4321);
+    ON_CALL(app_config, rpcHttpEndpoint()).WillByDefault(ReturnRef(endpoint));
+    ON_CALL(app_config, rpcWsEndpoint()).WillByDefault(ReturnRef(endpoint));
+    ON_CALL(app_config, maxWsConnections()).WillByDefault(Return(100));
+
+    listener = std::make_shared<ListenerImpl>(
+        *app_state_manager, main_context, app_config, session_config);
+
+    service = std::make_shared<ApiServiceImpl>(
+        *app_state_manager,
+        thread_pool,
+        std::vector<std::shared_ptr<Listener>>({listener}),
+        server,
+        std::vector<std::shared_ptr<JRpcProcessor>>(processors),
+        storage_events_engine,
+        chain_events_engine,
+        ext_events_engine,
+        ext_event_key_repo,
+        block_tree,
+        trie_storage,
+        core);
   }
 
   void TearDown() override {
@@ -90,15 +117,10 @@ struct ListenerTest : public ::testing::Test {
     service.reset();
   }
 
-  typename ListenerImpl::Configuration listener_config = [] {
-    typename ListenerImpl::Configuration config{};
-    config.endpoint.address(boost::asio::ip::address::from_string("127.0.0.1"));
-    config.endpoint.port(4321);
-    config.ws_max_connections = 100;
-    return config;
-  }();
-
   typename ListenerImpl::SessionImpl::Configuration session_config{};
+
+  Endpoint endpoint;
+  kagome::application::AppConfigurationMock app_config;
 
   sptr<kagome::application::AppStateManager> app_state_manager =
       std::make_shared<kagome::application::AppStateManagerImpl>();
@@ -115,8 +137,7 @@ struct ListenerTest : public ::testing::Test {
   std::vector<std::shared_ptr<JRpcProcessor>> processors{
       std::make_shared<JrpcProcessorStub>(server, api)};
 
-  std::shared_ptr<Listener> listener = std::make_shared<ListenerImpl>(
-      *app_state_manager, main_context, listener_config, session_config);
+  std::shared_ptr<Listener> listener;
 
   StorageSubscriptionEnginePtr storage_events_engine =
       std::make_shared<StorageSubscriptionEngine>();
@@ -133,19 +154,7 @@ struct ListenerTest : public ::testing::Test {
       std::make_shared<TrieStorageMock>();
   std::shared_ptr<CoreMock> core = std::make_shared<CoreMock>();
 
-  sptr<ApiService> service = std::make_shared<ApiServiceImpl>(
-      *app_state_manager,
-      thread_pool,
-      ApiServiceImpl::ListenerList{{listener}},
-      server,
-      ApiServiceImpl::ProcessorSpan{processors},
-      storage_events_engine,
-      chain_events_engine,
-      ext_events_engine,
-      ext_event_key_repo,
-      block_tree,
-      trie_storage,
-      core);
+  sptr<ApiService> service;
 };
 
 #endif  // KAGOME_TEST_CORE_API_TRANSPORT_LISTENER_TEST_HPP

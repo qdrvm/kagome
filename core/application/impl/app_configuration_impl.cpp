@@ -34,7 +34,7 @@ namespace {
 
   template <typename T, typename Func>
   inline void find_argument(boost::program_options::variables_map &vm,
-                            char const *name,
+                            const char *name,
                             Func &&f) {
     assert(nullptr != name);
     if (auto it = vm.find(name); it != vm.end()) {
@@ -141,7 +141,7 @@ namespace {
     if (str == "Always") {
       return Mode::Always;
     }
-    if (str == "Newer") {
+    if (str == "Never") {
       return Mode::Never;
     }
     if (str == "WhenValidating") {
@@ -255,7 +255,7 @@ namespace kagome::application {
   }
 
   bool AppConfigurationImpl::load_ms(const rapidjson::Value &val,
-                                     char const *name,
+                                     const char *name,
                                      std::vector<std::string> &target) {
     for (auto it = val.FindMember(name); it != val.MemberEnd(); ++it) {
       auto &value = it->value;
@@ -266,7 +266,7 @@ namespace kagome::application {
 
   bool AppConfigurationImpl::load_ma(
       const rapidjson::Value &val,
-      char const *name,
+      const char *name,
       std::vector<libp2p::multi::Multiaddress> &target) {
     for (auto it = val.FindMember(name); it != val.MemberEnd(); ++it) {
       auto &value = it->value;
@@ -282,7 +282,7 @@ namespace kagome::application {
 
   bool AppConfigurationImpl::load_telemetry_uris(
       const rapidjson::Value &val,
-      char const *name,
+      const char *name,
       std::vector<telemetry::TelemetryEndpoint> &target) {
     auto it = val.FindMember(name);
     if (it != val.MemberEnd() and it->value.IsArray()) {
@@ -301,7 +301,7 @@ namespace kagome::application {
   }
 
   bool AppConfigurationImpl::load_str(const rapidjson::Value &val,
-                                      char const *name,
+                                      const char *name,
                                       std::string &target) {
     auto m = val.FindMember(name);
     if (val.MemberEnd() != m && m->value.IsString()) {
@@ -312,7 +312,7 @@ namespace kagome::application {
   }
 
   bool AppConfigurationImpl::load_bool(const rapidjson::Value &val,
-                                       char const *name,
+                                       const char *name,
                                        bool &target) {
     auto m = val.FindMember(name);
     if (val.MemberEnd() != m && m->value.IsBool()) {
@@ -323,7 +323,7 @@ namespace kagome::application {
   }
 
   bool AppConfigurationImpl::load_u16(const rapidjson::Value &val,
-                                      char const *name,
+                                      const char *name,
                                       uint16_t &target) {
     uint32_t i;
     if (load_u32(val, name, i)
@@ -335,7 +335,7 @@ namespace kagome::application {
   }
 
   bool AppConfigurationImpl::load_u32(const rapidjson::Value &val,
-                                      char const *name,
+                                      const char *name,
                                       uint32_t &target) {
     if (auto m = val.FindMember(name);
         val.MemberEnd() != m && m->value.IsInt()) {
@@ -349,7 +349,7 @@ namespace kagome::application {
   }
 
   bool AppConfigurationImpl::load_i32(const rapidjson::Value &val,
-                                      char const *name,
+                                      const char *name,
                                       int32_t &target) {
     if (auto m = val.FindMember(name);
         val.MemberEnd() != m && m->value.IsInt()) {
@@ -522,7 +522,7 @@ namespace kagome::application {
   }
 
   boost::asio::ip::tcp::endpoint AppConfigurationImpl::getEndpointFrom(
-      std::string const &host, uint16_t port) const {
+      const std::string &host, uint16_t port) const {
     boost::asio::ip::tcp::endpoint endpoint;
     boost::system::error_code err;
 
@@ -647,7 +647,7 @@ namespace kagome::application {
         throw std::out_of_range("verbosity level value is out of range");
       }
       verbosity_level = static_cast<uint8_t>(verbosity_level_parsed);
-    } catch (std::invalid_argument const &e) {
+    } catch (const std::invalid_argument &e) {
       SL_ERROR(logger_,
                "record '{}' could not be parsed as a valid telemetry endpoint. "
                "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
@@ -655,7 +655,7 @@ namespace kagome::application {
                record,
                e.what());
       return std::nullopt;
-    } catch (std::out_of_range const &e) {
+    } catch (const std::out_of_range &e) {
       SL_ERROR(logger_,
                "record '{}' could not be parsed as a valid telemetry endpoint. "
                "The desired format is '<endpoint uri> <verbosity: 0-9>'. "
@@ -937,7 +937,7 @@ namespace kagome::application {
           }
         });
 
-    find_argument<std::string>(vm, "config-file", [&](std::string const &path) {
+    find_argument<std::string>(vm, "config-file", [&](const std::string &path) {
       if (dev_mode_) {
         std::cerr << "Warning: config file has ignored because dev mode"
                   << std::endl;
@@ -1154,13 +1154,13 @@ namespace kagome::application {
         });
 
     find_argument<std::string>(
-        vm, "rpc-host", [&](std::string const &val) { rpc_http_host_ = val; });
+        vm, "rpc-host", [&](const std::string &val) { rpc_http_host_ = val; });
 
     find_argument<std::string>(
-        vm, "ws-host", [&](std::string const &val) { rpc_ws_host_ = val; });
+        vm, "ws-host", [&](const std::string &val) { rpc_ws_host_ = val; });
 
     find_argument<std::string>(
-        vm, "prometheus-host", [&](std::string const &val) {
+        vm, "prometheus-host", [&](const std::string &val) {
           openmetrics_http_host_ = val;
         });
 
@@ -1200,7 +1200,7 @@ namespace kagome::application {
         getEndpointFrom(openmetrics_http_host_, openmetrics_http_port_);
 
     find_argument<std::string>(
-        vm, "name", [&](std::string const &val) { node_name_ = val; });
+        vm, "name", [&](const std::string &val) { node_name_ = val; });
 
     auto parse_telemetry_urls =
         [&](const std::string &param_name,
@@ -1232,7 +1232,7 @@ namespace kagome::application {
 
     bool sync_method_value_error = false;
     find_argument<std::string>(
-        vm, "sync", [this, &sync_method_value_error](std::string const &val) {
+        vm, "sync", [this, &sync_method_value_error](const std::string &val) {
           auto sync_method_opt = str_to_sync_method(val);
           if (not sync_method_opt) {
             sync_method_value_error = true;
@@ -1249,7 +1249,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm,
         "wasm-execution",
-        [this, &exec_method_value_error](std::string const &val) {
+        [this, &exec_method_value_error](const std::string &val) {
           auto runtime_exec_method_opt = str_to_runtime_exec_method(val);
           if (not runtime_exec_method_opt) {
             exec_method_value_error = true;
@@ -1286,7 +1286,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm,
         "offchain-worker",
-        [this, &offchain_worker_value_error](std::string const &val) {
+        [this, &offchain_worker_value_error](const std::string &val) {
           auto offchain_worker_mode_opt = str_to_offchain_worker_mode(val);
           if (offchain_worker_mode_opt) {
             offchain_worker_mode_ = offchain_worker_mode_opt.value();

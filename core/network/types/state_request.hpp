@@ -22,7 +22,7 @@ namespace kagome::network {
 
     /// Start from this key.
     /// Multiple keys used for nested state start.
-    std::vector<common::Buffer> start;
+    std::vector<common::Buffer> start{};
 
     /// if 'true' indicates that response should contain raw key-values, rather
     /// than proof.

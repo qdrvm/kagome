@@ -26,7 +26,8 @@
 
 namespace kagome::blockchain {
   class BlockTree;
-}
+  class GenesisBlockHash;
+}  // namespace kagome::blockchain
 
 namespace kagome::network {
 
@@ -49,7 +50,7 @@ namespace kagome::network {
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<PeerManager> peer_manager,
-        const primitives::BlockHash &genesis_hash,
+        const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
     /**
@@ -57,7 +58,6 @@ namespace kagome::network {
      * @return true if handler set successfully
      */
     bool start() override;
-    bool stop() override;
 
     const std::string &protocolName() const override;
 

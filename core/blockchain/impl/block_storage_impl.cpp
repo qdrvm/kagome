@@ -324,7 +324,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(justification_opt, getJustification(block_hash));
     block_data.justification = std::move(justification_opt);
 
-    return std::move(block_data);
+    return block_data;
   }
 
   outcome::result<void> BlockStorageImpl::removeBlock(

@@ -16,11 +16,6 @@ namespace kagome::api {
    public:
     ~AuthorApiMock() override = default;
 
-    MOCK_METHOD(void,
-                setApiService,
-                (const std::shared_ptr<api::ApiService> &),
-                (override));
-
     MOCK_METHOD(outcome::result<common::Hash256>,
                 submitExtrinsic,
                 (TransactionSource, const Extrinsic &),

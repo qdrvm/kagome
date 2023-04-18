@@ -46,6 +46,7 @@ namespace kagome::network {
 namespace kagome::crypto {
   class Sr25519Provider;
   class Hasher;
+  class SessionKeys;
 }  // namespace kagome::crypto
 
 namespace kagome::parachain {
@@ -79,7 +80,7 @@ namespace kagome::parachain {
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<boost::asio::io_context> this_context,
-        std::shared_ptr<crypto::Sr25519Keypair> keypair,
+        std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ThreadPool> thread_pool,
@@ -97,8 +98,6 @@ namespace kagome::parachain {
         std::shared_ptr<authority_discovery::Query> query_audi);
     ~ParachainProcessorImpl() = default;
 
-    bool start();
-    void stop();
     bool prepare();
     void requestCollations(network::CollationEvent const &pending_collation);
     outcome::result<void> canProcessParachains() const;
