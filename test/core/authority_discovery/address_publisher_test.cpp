@@ -28,7 +28,7 @@ using kagome::crypto::CryptoStoreMock;
 using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519ProviderMock;
 using kagome::crypto::Ed25519PublicKey;
-using kagome::crypto::SessionKeys;
+using kagome::crypto::SessionKeysImpl;
 using kagome::crypto::Sr25519ProviderMock;
 using kagome::crypto::Sr25519PublicKey;
 using kagome::network::Roles;
@@ -49,7 +49,7 @@ struct AddressPublisherTest : public testing::Test {
   void SetUp() override {
     roles_.flags.authority = 1;
     EXPECT_CALL(*config_, roles()).WillOnce(Return(roles_));
-    session_keys_ = std::make_shared<SessionKeys>(crypto_store_, *config_);
+    session_keys_ = std::make_shared<SessionKeysImpl>(crypto_store_, *config_);
     libp2p_key_.privateKey.type = libp2p::crypto::Key::Type::Ed25519;
     libp2p_key_.privateKey.data.resize(Ed25519PrivateKey::size());
     libp2p_key_.publicKey.data.resize(Ed25519PublicKey::size());
@@ -82,7 +82,7 @@ struct AddressPublisherTest : public testing::Test {
       std::make_shared<AppStateManagerMock>();
   std::shared_ptr<BlockTreeMock> block_tree_ =
       std::make_shared<BlockTreeMock>();
-  std::shared_ptr<SessionKeys> session_keys_;
+  std::shared_ptr<SessionKeysImpl> session_keys_;
   libp2p::crypto::KeyPair libp2p_key_;
   std::shared_ptr<KeyMarshallerMock> key_marshaller_ =
       std::make_shared<KeyMarshallerMock>();

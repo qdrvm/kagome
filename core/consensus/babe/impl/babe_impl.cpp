@@ -20,6 +20,7 @@
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
+#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
@@ -52,7 +53,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<network::BlockAnnounceTransmitter>
           block_announce_transmitter,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<crypto::Sr25519Keypair> keypair,
+      std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
@@ -75,7 +76,10 @@ namespace kagome::consensus::babe {
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         block_announce_transmitter_{std::move(block_announce_transmitter)},
-        keypair_{std::move(keypair)},
+        keypair_([&] {
+          BOOST_ASSERT(session_keys != nullptr);
+          return session_keys->getBabeKeyPair();
+        }()),
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
@@ -251,8 +255,6 @@ namespace kagome::consensus::babe {
 
     return true;
   }
-
-  void BabeImpl::stop() {}
 
   /**
    * @brief Get index of authority
@@ -727,7 +729,7 @@ namespace kagome::consensus::babe {
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(finish_time);
-    timer_->asyncWait([this](auto &&ec) {
+    timer_->asyncWait([&](auto &&ec) {
       if (ec) {
         log_->error("error happened while waiting on the timer: {}", ec);
         return;
@@ -790,7 +792,8 @@ namespace kagome::consensus::babe {
         if (slot_leadership.has_value()) {
           const auto &vrf_result = slot_leadership.value();
           SL_DEBUG(log_,
-                   "Babe author {} is leader (vrfOutput: {}, proof: {})",
+                   "Babe author {} is primary slot-leader "
+                   "(vrfOutput: {}, proof: {})",
                    keypair_->public_key,
                    common::Buffer(vrf_result.output),
                    common::Buffer(vrf_result.proof));
@@ -811,12 +814,28 @@ namespace kagome::consensus::babe {
             if (babe_config.allowed_slots
                 == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
               auto vrf = lottery_->slotVrfSignature(current_slot_);
+              SL_DEBUG(log_,
+                       "Babe author {} is secondary slot-leader "
+                       "(vrfOutput: {}, proof: {})",
+                       keypair_->public_key,
+                       common::Buffer(vrf.output),
+                       common::Buffer(vrf.proof));
+
               processSlotLeadership(
                   SlotType::SecondaryVRF, std::cref(vrf), authority_index);
             } else {  // plain secondary slots mode
+              SL_DEBUG(
+                  log_,
+                  "Babe author {} is block producer in secondary plain slot",
+                  keypair_->public_key);
+
               processSlotLeadership(
                   SlotType::SecondaryPlain, std::nullopt, authority_index);
             }
+          } else {
+            SL_TRACE(log_,
+                     "Babe author {} is not block producer in current slot",
+                     keypair_->public_key);
           }
         }
       }
@@ -850,7 +869,7 @@ namespace kagome::consensus::babe {
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(start_time);
-    timer_->asyncWait([this](auto &&ec) {
+    timer_->asyncWait([&](auto &&ec) {
       if (ec) {
         log_->error("error happened while waiting on the timer: {}", ec);
         return;
@@ -948,9 +967,6 @@ namespace kagome::consensus::babe {
     }
 
     ParachainInherentData paras_inherent_data;
-
-    // TODO: research of filling of bitfield, backed candidates, disputes
-    //  issue https://github.com/soramitsu/kagome/issues/1209
 
     {
       auto &relay_parent = best_block_.hash;

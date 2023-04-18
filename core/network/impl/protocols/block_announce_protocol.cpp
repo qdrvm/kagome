@@ -6,6 +6,7 @@
 #include "network/impl/protocols/block_announce_protocol.hpp"
 
 #include "application/app_configuration.hpp"
+#include "blockchain/genesis_block_hash.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
@@ -19,7 +20,7 @@ namespace kagome::network {
       libp2p::Host &host,
       const application::AppConfiguration &app_config,
       const application::ChainSpec &chain_spec,
-      const primitives::BlockHash &genesis_hash,
+      const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<BlockAnnounceObserver> observer,
@@ -42,10 +43,6 @@ namespace kagome::network {
 
   bool BlockAnnounceProtocol::start() {
     return base_.start(weak_from_this());
-  }
-
-  bool BlockAnnounceProtocol::stop() {
-    return base_.stop();
   }
 
   const ProtocolName &BlockAnnounceProtocol::protocolName() const {

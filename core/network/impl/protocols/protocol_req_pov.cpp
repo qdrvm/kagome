@@ -5,6 +5,7 @@
 
 #include "network/impl/protocols/protocol_req_pov.hpp"
 
+#include "blockchain/genesis_block_hash.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
 #include "utils/non_copyable.hpp"
@@ -18,7 +19,7 @@ namespace kagome::network {
                               NonMovable {
     ReqPovProtocolImpl(libp2p::Host &host,
                        application::ChainSpec const &chain_spec,
-                       const primitives::BlockHash &genesis_hash,
+                       const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<ReqPovObserver> observer)
         : RequestResponseProtocol<
             RequestPov,
@@ -65,7 +66,7 @@ namespace kagome::network {
 
   ReqPovProtocol::ReqPovProtocol(libp2p::Host &host,
                                  application::ChainSpec const &chain_spec,
-                                 const primitives::BlockHash &genesis_hash,
+                                 const blockchain::GenesisBlockHash &genesis_hash,
                                  std::shared_ptr<ReqPovObserver> observer)
       : impl_{std::make_shared<ReqPovProtocolImpl>(
           host, chain_spec, genesis_hash, std::move(observer))} {}
@@ -78,11 +79,6 @@ namespace kagome::network {
   bool ReqPovProtocol::start() {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");
     return impl_->start();
-  }
-
-  bool ReqPovProtocol::stop() {
-    BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");
-    return impl_->stop();
   }
 
   void ReqPovProtocol::onIncomingStream(std::shared_ptr<Stream>) {

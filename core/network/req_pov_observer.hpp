@@ -6,17 +6,14 @@
 #ifndef KAGOME_REQ_POV_OBSERVER_HPP
 #define KAGOME_REQ_POV_OBSERVER_HPP
 
-#include <libp2p/peer/peer_id.hpp>
-
-#include "consensus/grandpa/common.hpp"
-#include "network/types/collator_messages.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::network {
   /**
    * Reacts to messages, related to request PoV protocol
    */
-  struct ReqPovObserver {
+  class ReqPovObserver {
+   public:
     virtual ~ReqPovObserver() = default;
 
     /**
