@@ -44,6 +44,9 @@ namespace kagome::application {
     auto io_context = injector_->injectIoContext();
     auto clock = injector_->injectSystemClock();
 
+    injector_->injectOpenMetricsService();
+    injector_->injectRpcApiService();
+
     kagome::telemetry::setTelemetryService(injector_->injectTelemetryService());
 
     injector_->injectAddressPublisher();
