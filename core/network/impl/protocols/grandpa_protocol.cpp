@@ -8,6 +8,7 @@
 #include <libp2p/connection/loopback_stream.hpp>
 
 #include "blockchain/block_tree.hpp"
+#include "blockchain/genesis_block_hash.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
@@ -28,7 +29,7 @@ namespace kagome::network {
       const OwnPeerInfo &own_info,
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<PeerManager> peer_manager,
-      const primitives::BlockHash &genesis_hash,
+      const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : base_(kGrandpaProtocolName,
               host,
@@ -50,10 +51,6 @@ namespace kagome::network {
     }
     read(std::move(stream));
     return base_.start(weak_from_this());
-  }
-
-  bool GrandpaProtocol::stop() {
-    return base_.stop();
   }
 
   const ProtocolName &GrandpaProtocol::protocolName() const {

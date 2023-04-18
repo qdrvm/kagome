@@ -31,13 +31,12 @@ namespace kagome::consensus::grandpa {
                 applyForcedChange,
                 (const primitives::BlockContext &,
                  const primitives::AuthorityList &,
-                 primitives::BlockNumber,
-                 size_t),
+                 primitives::BlockNumber),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 applyOnDisabled,
-                (const primitives::BlockContext &, uint64_t),
+                (const primitives::BlockContext &, primitives::BlockNumber),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,

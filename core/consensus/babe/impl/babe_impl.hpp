@@ -45,6 +45,7 @@ namespace kagome::consensus::grandpa {
 namespace kagome::crypto {
   class Hasher;
   class Sr25519Provider;
+  class SessionKeys;
 }  // namespace kagome::crypto
 
 namespace kagome::network {
@@ -96,7 +97,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<network::BlockAnnounceTransmitter>
             block_announce_transmitter,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-        std::shared_ptr<crypto::Sr25519Keypair> keypair,
+        std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<clock::SystemClock> clock,
         std::shared_ptr<crypto::Hasher> hasher,
         std::unique_ptr<clock::Timer> timer,
@@ -121,9 +122,6 @@ namespace kagome::consensus::babe {
 
     /** @see AppStateManager::takeControl */
     bool start();
-
-    /** @see AppStateManager::takeControl */
-    void stop();
 
     void runEpoch(EpochDescriptor epoch) override;
 

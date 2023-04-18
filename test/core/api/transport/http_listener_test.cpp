@@ -61,7 +61,7 @@ TEST_F(HttpListenerTest, EchoSuccess) {
                       == AppStateManager::State::Works);
           app_state_manager->shutdown();
         },
-        listener_config.endpoint,
+        endpoint,
         request,
         response)
         .detach();

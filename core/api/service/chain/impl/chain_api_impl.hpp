@@ -6,12 +6,14 @@
 #ifndef KAGOME_CHAIN_API_IMPL_HPP
 #define KAGOME_CHAIN_API_IMPL_HPP
 
+#include "api/service/chain/chain_api.hpp"
+
 #include <memory>
 
-#include "api/service/chain/chain_api.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
+#include "injector/lazy.hpp"
 
 namespace kagome::api {
 
@@ -26,10 +28,8 @@ namespace kagome::api {
 
     ChainApiImpl(std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
                  std::shared_ptr<blockchain::BlockTree> block_tree,
-                 std::shared_ptr<blockchain::BlockStorage> block_storage);
-
-    void setApiService(
-        std::shared_ptr<api::ApiService> const &api_service) override;
+                 std::shared_ptr<blockchain::BlockStorage> block_storage,
+                 LazySPtr<api::ApiService> api_service);
 
     outcome::result<BlockHash> getBlockHash() const override;
 
@@ -69,7 +69,7 @@ namespace kagome::api {
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::weak_ptr<api::ApiService> api_service_;
+    LazySPtr<api::ApiService> api_service_;
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
   };
 }  // namespace kagome::api

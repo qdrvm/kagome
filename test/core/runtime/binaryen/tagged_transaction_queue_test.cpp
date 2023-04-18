@@ -8,12 +8,15 @@
 #include <gtest/gtest.h>
 
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
-#include "testutil/literals.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
 
 using namespace testing;
 
+using kagome::blockchain::BlockTree;
+using kagome::blockchain::BlockTreeMock;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::TransactionSource;
@@ -24,10 +27,15 @@ class TTQTest : public BinaryenRuntimeTest {
  public:
   void SetUp() override {
     BinaryenRuntimeTest::SetUp();
-    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(executor_);
+
+    block_tree_ = std::make_shared<BlockTreeMock>();
+
+    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(
+        executor_, testutil::sptr_to_lazy<BlockTree>(block_tree_));
   }
 
  protected:
+  std::shared_ptr<BlockTreeMock> block_tree_;
   std::unique_ptr<TaggedTransactionQueue> ttq_;
 };
 

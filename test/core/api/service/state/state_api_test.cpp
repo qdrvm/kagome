@@ -19,6 +19,7 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block_header.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -44,12 +45,14 @@ namespace kagome::api {
   class StateApiTest : public ::testing::Test {
    public:
     void SetUp() override {
-      api_ = std::make_unique<api::StateApiImpl>(block_header_repo_,
-                                                 storage_,
-                                                 block_tree_,
-                                                 runtime_core_,
-                                                 metadata_,
-                                                 executor_);
+      api_ = std::make_unique<api::StateApiImpl>(
+          block_header_repo_,
+          storage_,
+          block_tree_,
+          runtime_core_,
+          metadata_,
+          executor_,
+          testutil::sptr_to_lazy<ApiService>(api_service_));
     }
 
    protected:
@@ -106,16 +109,20 @@ namespace kagome::api {
       auto storage = std::make_shared<TrieStorageMock>();
       block_header_repo_ = std::make_shared<BlockHeaderRepositoryMock>();
       block_tree_ = std::make_shared<BlockTreeMock>();
+      api_service_ = std::make_shared<ApiServiceMock>();
+
       auto runtime_core = std::make_shared<CoreMock>();
       auto metadata = std::make_shared<MetadataMock>();
       auto executor = std::make_shared<RawExecutorMock>();
 
-      api_ = std::make_shared<api::StateApiImpl>(block_header_repo_,
-                                                 storage,
-                                                 block_tree_,
-                                                 runtime_core,
-                                                 metadata,
-                                                 executor);
+      api_ = std::make_shared<api::StateApiImpl>(
+          block_header_repo_,
+          storage,
+          block_tree_,
+          runtime_core,
+          metadata,
+          executor,
+          testutil::sptr_to_lazy<ApiService>(api_service_));
 
       EXPECT_CALL(*block_tree_, getLastFinalized())
           .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));
@@ -138,6 +145,8 @@ namespace kagome::api {
    protected:
     std::shared_ptr<BlockHeaderRepositoryMock> block_header_repo_;
     std::shared_ptr<BlockTreeMock> block_tree_;
+    std::shared_ptr<ApiServiceMock> api_service_;
+
     std::shared_ptr<api::StateApiImpl> api_;
 
     const std::map<Buffer, Buffer, std::less<>> lex_sorted_vals{
@@ -480,7 +489,6 @@ namespace kagome::api {
     EXPECT_CALL(*api_service_, unsubscribeSessionFromIds(subscription_id))
         .WillOnce(Return(expected_return));
 
-    api_->setApiService(api_service_);
     ASSERT_OUTCOME_SUCCESS(result, api_->unsubscribeStorage(subscription_id));
     ASSERT_EQ(expected_return, result);
   }
@@ -496,7 +504,6 @@ namespace kagome::api {
     EXPECT_CALL(*api_service_, subscribeRuntimeVersion())
         .WillOnce(Return(expected_return));
 
-    api_->setApiService(api_service_);
     ASSERT_OUTCOME_SUCCESS(result, api_->subscribeRuntimeVersion());
     ASSERT_EQ(expected_return, result);
   }
@@ -513,7 +520,6 @@ namespace kagome::api {
     EXPECT_CALL(*api_service_, unsubscribeRuntimeVersion(subscription_id))
         .WillOnce(Return(expected_return));
 
-    api_->setApiService(api_service_);
     EXPECT_OUTCOME_ERROR(result,
                          api_->unsubscribeRuntimeVersion(subscription_id),
                          expected_return);
