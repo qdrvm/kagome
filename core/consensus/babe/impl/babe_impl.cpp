@@ -978,8 +978,13 @@ namespace kagome::consensus::babe {
         std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
     // create new block
-    auto pre_seal_block_res = proposer_->propose(
-        best_block_, inherent_data, {babe_pre_digest}, changes_tracker);
+    auto pre_seal_block_res =
+        proposer_->propose(best_block_,
+                           babe_util_->slotFinishTime(current_slot_)
+                               - babe_config_repo_->slotDuration() / 3,
+                           inherent_data,
+                           {babe_pre_digest},
+                           changes_tracker);
     if (!pre_seal_block_res) {
       SL_ERROR(log_, "Cannot propose a block: {}", pre_seal_block_res.error());
       return;
