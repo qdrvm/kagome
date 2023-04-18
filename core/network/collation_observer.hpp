@@ -15,7 +15,8 @@ namespace kagome::network {
   /**
    * Reacts to messages, related to collation protocol
    */
-  struct CollationObserver {
+  class CollationObserver {
+   public:
     virtual ~CollationObserver() = default;
 
     /// Handle incoming collation stream.

@@ -11,22 +11,18 @@
 namespace kagome::runtime {
 
   TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
-      std::shared_ptr<Executor> executor)
+      std::shared_ptr<Executor> executor,
+      LazySPtr<blockchain::BlockTree> block_tree)
       : executor_{std::move(executor)},
+        block_tree_(std::move(block_tree)),
         logger_{log::createLogger("TaggedTransactionQueue", "runtime")} {
     BOOST_ASSERT(executor_);
-  }
-
-  void TaggedTransactionQueueImpl::setBlockTree(
-      std::shared_ptr<blockchain::BlockTree> block_tree) {
-    block_tree_ = std::move(block_tree);
   }
 
   outcome::result<TaggedTransactionQueue::TransactionValidityAt>
   TaggedTransactionQueueImpl::validate_transaction(
       primitives::TransactionSource source, const primitives::Extrinsic &ext) {
-    BOOST_ASSERT(block_tree_);
-    auto block = block_tree_->bestLeaf();
+    auto block = block_tree_.get()->bestLeaf();
     SL_TRACE(logger_, "Validate transaction called at block {}", block);
     OUTCOME_TRY(result,
                 executor_->callAt<primitives::TransactionValidity>(

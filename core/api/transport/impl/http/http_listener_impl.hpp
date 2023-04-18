@@ -13,7 +13,8 @@
 
 namespace kagome::application {
   class AppStateManager;
-}
+  class AppConfiguration;
+}  // namespace kagome::application
 
 namespace kagome::api {
   /**
@@ -28,7 +29,7 @@ namespace kagome::api {
 
     HttpListenerImpl(application::AppStateManager &app_state_manager,
                      std::shared_ptr<Context> context,
-                     Configuration listener_config,
+                     const application::AppConfiguration &app_config,
                      SessionImpl::Configuration session_config);
 
     ~HttpListenerImpl() override = default;
@@ -48,7 +49,7 @@ namespace kagome::api {
     void acceptOnce() override;
 
     std::shared_ptr<Context> context_;
-    const Configuration config_;
+    const Endpoint endpoint_;
     const SessionImpl::Configuration session_config_;
 
     std::unique_ptr<Acceptor> acceptor_;

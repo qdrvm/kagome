@@ -30,10 +30,6 @@ namespace kagome::metrics {
     app_state_manager->takeControl(*this);
   }
 
-  bool MetricsWatcher::prepare() {
-    return true;
-  }
-
   bool MetricsWatcher::start() {
     thread_ = std::thread([this] {
       while (not shutdown_requested_) {

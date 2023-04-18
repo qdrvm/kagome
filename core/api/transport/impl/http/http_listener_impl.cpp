@@ -8,17 +8,19 @@
 #include <utility>
 
 #include <boost/asio.hpp>
+
 #include "api/transport/tuner.hpp"
+#include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 
 namespace kagome::api {
   HttpListenerImpl::HttpListenerImpl(
       application::AppStateManager &app_state_manager,
       std::shared_ptr<Context> context,
-      Configuration listener_config,
+      const application::AppConfiguration &app_config,
       SessionImpl::Configuration session_config)
       : context_{std::move(context)},
-        config_{std::move(listener_config)},
+        endpoint_(app_config.rpcHttpEndpoint()),
         session_config_{session_config},
         logger_{log::createLogger("RpcHttpListener", "rpc_transport")} {
     app_state_manager.takeControl(*this);
@@ -26,8 +28,8 @@ namespace kagome::api {
 
   bool HttpListenerImpl::prepare() {
     try {
-      acceptor_ = acceptOnFreePort(
-          context_, config_.endpoint, kDefaultPortTolerance, logger_);
+      acceptor_ =
+          acceptOnFreePort(context_, endpoint_, kDefaultPortTolerance, logger_);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
       logger_->critical("Failed to prepare a listener: {}", exception.what());
       return false;
@@ -56,7 +58,7 @@ namespace kagome::api {
 
     SL_INFO(logger_,
             "Listening for new connections on {}:{}",
-            config_.endpoint.address(),
+            endpoint_.address(),
             acceptor_->local_endpoint().port());
     acceptOnce();
     return true;

@@ -33,9 +33,6 @@ namespace kagome::api {
    public:
     virtual ~AuthorApi() = default;
 
-    virtual void setApiService(
-        std::shared_ptr<api::ApiService> const &api_service) = 0;
-
     /**
      * @brief validates and sends extrinsic to transaction pool
      * @param source how extrinsic was received (for example external or

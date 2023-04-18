@@ -90,8 +90,15 @@ namespace kagome {
   template <typename TReturn, typename TVariant>
   constexpr std::optional<std::reference_wrapper<TReturn>> if_type(
       TVariant &&variant) {
-    if (auto ptr = boost::get<TReturn>(&variant)) return *ptr;
+    if (auto ptr = boost::get<TReturn>(&variant)) {
+      return *ptr;
+    }
     return std::nullopt;
+  }
+
+  template <typename T, typename TVariant>
+  constexpr bool is_type(TVariant &&variant) {
+    return boost::get<T>(&variant) != nullptr;
   }
 
   /// apply Matcher to optional T

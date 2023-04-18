@@ -22,9 +22,6 @@ namespace kagome::api {
    public:
     virtual ~StateApi() = default;
 
-    virtual void setApiService(
-        const std::shared_ptr<api::ApiService> &api_service) = 0;
-
     virtual outcome::result<common::Buffer> call(
         std::string_view method,
         common::Buffer data,
