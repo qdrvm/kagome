@@ -25,6 +25,12 @@ namespace kagome::parachain {
         query_audi_{std::move(query_audi)},
         router_{std::move(router)} {}
 
+  void RecoveryImpl::remove(const CandidateHash &candidate) {
+    std::unique_lock lock{mutex_};
+    active_.erase(candidate);
+    cached_.erase(candidate);
+  }
+
   void RecoveryImpl::recover(CandidateReceipt receipt,
                              SessionIndex session_index,
                              std::optional<GroupIndex> backing_group,
