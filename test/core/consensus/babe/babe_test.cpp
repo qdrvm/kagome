@@ -21,7 +21,7 @@
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
-#include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
@@ -99,7 +99,7 @@ class BabeTest : public testing::Test {
     lottery_ = std::make_shared<BabeLotteryMock>();
     synchronizer_ = std::make_shared<network::SynchronizerMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
-    grandpa_environment_ = std::make_shared<grandpa::EnvironmentMock>();
+    grandpa_ = std::make_shared<GrandpaMock>();
     tx_pool_ = std::make_shared<transaction_pool::TransactionPoolMock>();
     core_ = std::make_shared<runtime::CoreMock>();
     proposer_ = std::make_shared<ProposerMock>();
@@ -184,6 +184,7 @@ class BabeTest : public testing::Test {
         // safe null, because object is not used during test
         nullptr,
         testutil::sptr_to_lazy<network::WarpProtocol>(warp_protocol_),
+        grandpa_,
         synchronizer_,
         babe_util_,
         bitfield_store_,
@@ -217,7 +218,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BabeLotteryMock> lottery_;
   std::shared_ptr<Synchronizer> synchronizer_;
   std::shared_ptr<BlockValidator> babe_block_validator_;
-  std::shared_ptr<grandpa::EnvironmentMock> grandpa_environment_;
+  std::shared_ptr<GrandpaMock> grandpa_;
   std::shared_ptr<runtime::CoreMock> core_;
   std::shared_ptr<ProposerMock> proposer_;
   std::shared_ptr<BlockTreeMock> block_tree_;
