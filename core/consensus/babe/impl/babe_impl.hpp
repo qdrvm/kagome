@@ -42,7 +42,8 @@ namespace kagome::consensus::babe {
 
 namespace kagome::consensus::grandpa {
   class GrandpaDigestObserver;
-}
+  struct JustificationObserver;
+}  // namespace kagome::consensus::grandpa
 
 namespace kagome::crypto {
   class Hasher;
@@ -108,6 +109,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<network::WarpSync> warp_sync,
         boost::di::extension::lazy<std::shared_ptr<network::WarpProtocol>>
             warp_protocol,
+        std::shared_ptr<consensus::grandpa::JustificationObserver> grandpa,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<BabeUtil> babe_util,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -216,6 +218,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<network::WarpSync> warp_sync_;
     boost::di::extension::lazy<std::shared_ptr<network::WarpProtocol>>
         warp_protocol_;
+    std::shared_ptr<consensus::grandpa::JustificationObserver> grandpa_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;

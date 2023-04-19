@@ -20,6 +20,7 @@
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
+#include "consensus/grandpa/justification_observer.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
@@ -62,6 +63,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<network::WarpSync> warp_sync,
       boost::di::extension::lazy<std::shared_ptr<network::WarpProtocol>>
           warp_protocol,
+      std::shared_ptr<consensus::grandpa::JustificationObserver> grandpa,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -88,6 +90,7 @@ namespace kagome::consensus::babe {
         digest_tracker_(std::move(digest_tracker)),
         warp_sync_{std::move(warp_sync)},
         warp_protocol_{std::move(warp_protocol)},
+        grandpa_{std::move(grandpa)},
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         bitfield_store_{std::move(bitfield_store)},
@@ -703,6 +706,7 @@ namespace kagome::consensus::babe {
 
                   self->adjustEpochDescriptor();
                   self->babe_config_repo_->readFromState(block_at_state);
+                  self->grandpa_->reload();
                   self->block_tree_->notifyBestAndFinalized();
 
                   SL_INFO(self->log_,

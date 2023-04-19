@@ -1094,6 +1094,8 @@ namespace {
         injector.template create<sptr<network::WarpSync>>(),
         injector.template create<
             boost::di::extension::lazy<sptr<network::WarpProtocol>>>(),
+        injector
+            .template create<sptr<consensus::grandpa::JustificationObserver>>(),
         injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<consensus::babe::BabeUtil>>(),
         injector.template create<sptr<parachain::BitfieldStore>>(),

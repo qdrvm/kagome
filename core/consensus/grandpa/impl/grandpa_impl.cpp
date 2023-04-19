@@ -1324,6 +1324,12 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
+  void GrandpaImpl::reload() {
+    if (not start()) {
+      SL_ERROR(logger_, "reload: start failed");
+    }
+  }
+
   void GrandpaImpl::loadMissingBlocks() {
     auto ctx = GrandpaContext::get().value();
     BOOST_ASSERT(ctx);
