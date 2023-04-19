@@ -28,6 +28,7 @@
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction.hpp"
 #include "subscription/subscription_engine.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -42,6 +43,7 @@ using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
 
 using kagome::application::AppConfigurationMock;
+using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::network::TransactionsTransmitterMock;
 using kagome::primitives::BlockId;
@@ -145,14 +147,19 @@ struct AuthorApiTest : public ::testing::Test {
         gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1)));
     role.flags.authority = 1;
     EXPECT_CALL(*config, roles()).WillOnce(Return(role));
-    keys = std::make_shared<SessionKeys>(store, *config);
+    keys = std::make_shared<SessionKeysImpl>(store, *config);
     key_api = std::make_shared<SessionKeysApiMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     block_tree = std::make_shared<BlockTreeMock>();
     api_service_mock = std::make_shared<ApiServiceMock>();
     author_api = std::make_shared<AuthorApiImpl>(
-        key_api, transaction_pool, store, keys, key_store, block_tree);
-    author_api->setApiService(api_service_mock);
+        key_api,
+        transaction_pool,
+        store,
+        keys,
+        key_store,
+        testutil::sptr_to_lazy<BlockTree>(block_tree),
+        testutil::sptr_to_lazy<ApiService>(api_service_mock));
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
   }

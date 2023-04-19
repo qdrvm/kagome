@@ -19,6 +19,9 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
+#include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/runtime/module_factory_mock.hpp"
+#include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
@@ -86,9 +89,9 @@ class SynchronizerTest
                                                     router,
                                                     scheduler,
                                                     hasher,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
+                                                    module_factory,
+                                                    core_api,
+                                                    chain_sub_engine,
                                                     grandpa_environment);
   }
 
@@ -115,6 +118,14 @@ class SynchronizerTest
       std::make_shared<libp2p::basic::SchedulerMock>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
+  std::shared_ptr<runtime::ModuleFactoryMock> module_factory =
+      std::make_shared<runtime::ModuleFactoryMock>();
+  std::shared_ptr<runtime::CoreMock> core_api =
+      std::make_shared<runtime::CoreMock>();
+  primitives::events::ChainSubscriptionEnginePtr chain_sub_engine =
+      std::make_shared<primitives::events::ChainSubscriptionEngine>();
+  std::shared_ptr<BufferStorageMock> buffer_storage =
+      std::make_shared<BufferStorageMock>();
   std::shared_ptr<EnvironmentMock> grandpa_environment =
       std::make_shared<EnvironmentMock>();
 

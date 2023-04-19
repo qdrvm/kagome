@@ -32,7 +32,8 @@ namespace kagome::consensus::grandpa {
 
 namespace kagome::crypto {
   class Ed25519Provider;
-}
+  class SessionKeys;
+}  // namespace kagome::crypto
 
 namespace kagome::network {
   class PeerManager;
@@ -93,7 +94,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-        std::shared_ptr<crypto::Ed25519Keypair> keypair,
+        std::shared_ptr<crypto::SessionKeys> session_keys,
         const application::ChainSpec &chain_spec,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<AuthorityManager> authority_manager,

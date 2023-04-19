@@ -79,5 +79,6 @@ target_link_libraries(application_injector
     session_keys_api
     validator_parachain
     fd_limit
+    recovery_mode
     )
 kagome_clear_objects(application_injector)

@@ -18,6 +18,7 @@
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
+#include "crypto/crypto_store/session_keys.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
@@ -67,7 +68,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-      std::shared_ptr<crypto::Ed25519Keypair> keypair,
+      std::shared_ptr<crypto::SessionKeys> session_keys,
       const application::ChainSpec &chain_spec,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<AuthorityManager> authority_manager,
@@ -80,7 +81,10 @@ namespace kagome::consensus::grandpa {
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
-        keypair_{std::move(keypair)},
+        keypair_([&] {
+          BOOST_ASSERT(session_keys != nullptr);
+          return session_keys->getGranKeyPair();
+        }()),
         scheduler_{std::move(scheduler)},
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)),

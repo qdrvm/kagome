@@ -110,7 +110,11 @@ namespace kagome::network {
     BOOST_ASSERT(router_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
+    BOOST_ASSERT(module_factory_);
+    BOOST_ASSERT(core_api_);
     BOOST_ASSERT(grandpa_environment_);
+    BOOST_ASSERT(chain_sub_engine_);
+    BOOST_ASSERT(buffer_storage_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -122,16 +126,6 @@ namespace kagome::network {
     metric_import_queue_length_->set(0);
 
     app_state_manager_->takeControl(*this);
-  }
-
-  /** @see AppStateManager::takeControl */
-  bool SynchronizerImpl::prepare() {
-    return true;
-  }
-
-  /** @see AppStateManager::takeControl */
-  bool SynchronizerImpl::start() {
-    return true;
   }
 
   /** @see AppStateManager::takeControl */

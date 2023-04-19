@@ -26,4 +26,5 @@ namespace kagome {
   using LazyUPtr = boost::di::extension::lazy<std::unique_ptr<T>>;
 
 }  // namespace kagome
+
 #endif  // KAGOME_CORE_INJECTOR_LAZY_HPP

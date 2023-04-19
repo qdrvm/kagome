@@ -12,6 +12,7 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
+#include "network/impl/router_libp2p.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 namespace fs = boost::filesystem;
@@ -130,6 +131,10 @@ class KagomeInjectorTest : public testing::Test {
     injector_ = std::make_unique<kagome::injector::KagomeNodeInjector>(config_);
   }
 
+  void TearDown() override {
+    injector_.reset();
+  }
+
   static void TearDownTestCase() {
     fs::remove_all(db_path_);
   }
@@ -143,17 +148,47 @@ class KagomeInjectorTest : public testing::Test {
 };
 
 #define TEST_KAGOME_INJECT(module) \
-  ASSERT_NE(injector_->inject##module(), nullptr);
+  ASSERT_NE(injector_->inject##module(), nullptr)
+
 TEST_F(KagomeInjectorTest, Inject) {
-  TEST_KAGOME_INJECT(ChainSpec)
-  TEST_KAGOME_INJECT(AppStateManager)
-  TEST_KAGOME_INJECT(IoContext)
-  TEST_KAGOME_INJECT(OpenMetricsService)
-  TEST_KAGOME_INJECT(Router)
-  TEST_KAGOME_INJECT(PeerManager)
-  TEST_KAGOME_INJECT(RpcApiService)
-  TEST_KAGOME_INJECT(SystemClock)
-  TEST_KAGOME_INJECT(SyncObserver)
-  TEST_KAGOME_INJECT(Babe)
-  TEST_KAGOME_INJECT(Grandpa)
+  // Order as in KagomeApplicationImpl::run()
+  TEST_KAGOME_INJECT(ChainSpec);
+  TEST_KAGOME_INJECT(AppStateManager);
+  TEST_KAGOME_INJECT(IoContext);
+  TEST_KAGOME_INJECT(SystemClock);
+  TEST_KAGOME_INJECT(Babe);
+  TEST_KAGOME_INJECT(OpenMetricsService);
+  TEST_KAGOME_INJECT(Grandpa);
+  TEST_KAGOME_INJECT(Router);
+  TEST_KAGOME_INJECT(PeerManager);
+  TEST_KAGOME_INJECT(RpcApiService);
+  TEST_KAGOME_INJECT(StateObserver);
+  TEST_KAGOME_INJECT(SyncObserver);
+  TEST_KAGOME_INJECT(ParachainObserver);
+  TEST_KAGOME_INJECT(MetricsWatcher);
+  TEST_KAGOME_INJECT(TelemetryService);
+  TEST_KAGOME_INJECT(ApprovalDistribution);
+  TEST_KAGOME_INJECT(ParachainProcessor);
+  TEST_KAGOME_INJECT(AddressPublisher);
+}
+
+TEST_F(KagomeInjectorTest, InjectProtocols) {
+  auto router = injector_->injectRouter();
+  ASSERT_NE(router, nullptr);
+
+  std::static_pointer_cast<kagome::network::RouterLibp2p>(router)->prepare();
+
+  EXPECT_NE(router->getBlockAnnounceProtocol(), nullptr);
+  EXPECT_NE(router->getPropagateTransactionsProtocol(), nullptr);
+  EXPECT_NE(router->getStateProtocol(), nullptr);
+  EXPECT_NE(router->getSyncProtocol(), nullptr);
+  EXPECT_NE(router->getGrandpaProtocol(), nullptr);
+  EXPECT_NE(router->getCollationProtocol(), nullptr);
+  EXPECT_NE(router->getValidationProtocol(), nullptr);
+  EXPECT_NE(router->getReqCollationProtocol(), nullptr);
+  EXPECT_NE(router->getReqPovProtocol(), nullptr);
+  EXPECT_NE(router->getFetchChunkProtocol(), nullptr);
+  EXPECT_NE(router->getFetchAvailableDataProtocol(), nullptr);
+  EXPECT_NE(router->getFetchStatementProtocol(), nullptr);
+  EXPECT_NE(router->getPingProtocol(), nullptr);
 }

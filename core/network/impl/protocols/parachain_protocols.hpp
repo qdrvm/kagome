@@ -32,11 +32,47 @@
 
 namespace kagome::network {
 
-  using CollationProtocol =
-      ParachainProtocol<CollationObserver, CollationProtocolMessage, true>;
+  class CollationProtocol : public ParachainProtocol<CollationObserver,
+                                                     CollationProtocolMessage,
+                                                     true> {
+   public:
+    CollationProtocol(libp2p::Host &host,
+                      const application::AppConfiguration &app_config,
+                      const application::ChainSpec &chain_spec,
+                      const blockchain::GenesisBlockHash &genesis_hash,
+                      std::shared_ptr<ObserverType> observer,
+                      std::shared_ptr<network::PeerView> peer_view)
+        : ParachainProtocol(
+            host,
+            app_config,
+            chain_spec,
+            genesis_hash,
+            std::move(observer),
+            kCollationProtocol,
+            std::move(peer_view),
+            log::createLogger("CollationProtocol", "collation_protocol")){};
+  };
 
-  using ValidationProtocol =
-      ParachainProtocol<ValidationObserver, ValidatorProtocolMessage, false>;
+  class ValidationProtocol : public ParachainProtocol<ValidationObserver,
+                                                      ValidatorProtocolMessage,
+                                                      false> {
+   public:
+    ValidationProtocol(libp2p::Host &host,
+                       const application::AppConfiguration &app_config,
+                       const application::ChainSpec &chain_spec,
+                       const blockchain::GenesisBlockHash &genesis_hash,
+                       std::shared_ptr<ObserverType> observer,
+                       std::shared_ptr<network::PeerView> peer_view)
+        : ParachainProtocol(
+            host,
+            app_config,
+            chain_spec,
+            genesis_hash,
+            std::move(observer),
+            kValidationProtocol,
+            std::move(peer_view),
+            log::createLogger("ValidationProtocol", "validation_protocol")){};
+  };
 
 }  // namespace kagome::network
 
