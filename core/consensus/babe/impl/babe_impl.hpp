@@ -8,9 +8,8 @@
 
 #include "consensus/babe/babe.hpp"
 
-#include <boost/di/extension/injections/lazy.hpp>
-
 #include "clock/timer.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "parachain/availability/bitfield/store.hpp"
@@ -108,8 +107,7 @@ namespace kagome::consensus::babe {
         std::unique_ptr<clock::Timer> timer,
         std::shared_ptr<blockchain::DigestTracker> digest_tracker,
         std::shared_ptr<network::WarpSync> warp_sync,
-        boost::di::extension::lazy<std::shared_ptr<network::WarpProtocol>>
-            warp_protocol,
+        LazySPtr<network::WarpProtocol> warp_protocol,
         std::shared_ptr<consensus::grandpa::JustificationObserver> grandpa,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<BabeUtil> babe_util,
@@ -214,8 +212,7 @@ namespace kagome::consensus::babe {
     std::unique_ptr<clock::Timer> timer_;
     std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
     std::shared_ptr<network::WarpSync> warp_sync_;
-    boost::di::extension::lazy<std::shared_ptr<network::WarpProtocol>>
-        warp_protocol_;
+    LazySPtr<network::WarpProtocol> warp_protocol_;
     std::shared_ptr<consensus::grandpa::JustificationObserver> grandpa_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;

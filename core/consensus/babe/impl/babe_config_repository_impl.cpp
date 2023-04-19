@@ -24,7 +24,7 @@ namespace kagome::consensus::babe {
   BabeConfigRepositoryImpl::BabeConfigRepositoryImpl(
       application::AppStateManager &app_state_manager,
       std::shared_ptr<storage::SpacedStorage> persistent_storage,
-      std::shared_ptr<application::AppConfiguration> app_config,
+      const application::AppConfiguration &app_config,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<runtime::BabeApi> babe_api,
@@ -34,7 +34,8 @@ namespace kagome::consensus::babe {
       const BabeClock &clock)
       : persistent_storage_(
           persistent_storage->getSpace(storage::Space::kDefault)),
-        app_config_{std::move(app_config)},
+        config_warp_sync_{app_config.syncMethod()
+                          == application::AppConfiguration::SyncMethod::Warp},
         block_tree_(std::move(block_tree)),
         header_repo_(std::move(header_repo)),
         babe_api_(std::move(babe_api)),
@@ -67,11 +68,7 @@ namespace kagome::consensus::babe {
     }
     if (load_res.has_error()) {
       SL_VERBOSE(logger_, "Can not load state: {}", load_res.error());
-      if (app_config_->syncMethod()
-          == application::AppConfiguration::SyncMethod::Warp) {
-        return true;
-      }
-      return false;
+      return config_warp_sync_;
     }
 
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),

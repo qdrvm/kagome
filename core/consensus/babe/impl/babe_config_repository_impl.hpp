@@ -47,7 +47,7 @@ namespace kagome::consensus::babe {
     BabeConfigRepositoryImpl(
         application::AppStateManager &app_state_manager,
         std::shared_ptr<storage::SpacedStorage> persistent_storage,
-        std::shared_ptr<application::AppConfiguration> app_config,
+        const application::AppConfiguration &app_config,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<runtime::BabeApi> babe_api,
@@ -133,7 +133,7 @@ namespace kagome::consensus::babe {
         const primitives::BlockInfo &block);
 
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
-    std::shared_ptr<application::AppConfiguration> app_config_;
+    bool config_warp_sync_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<runtime::BabeApi> babe_api_;

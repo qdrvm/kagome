@@ -62,8 +62,7 @@ namespace kagome::consensus::babe {
       std::unique_ptr<clock::Timer> timer,
       std::shared_ptr<blockchain::DigestTracker> digest_tracker,
       std::shared_ptr<network::WarpSync> warp_sync,
-      boost::di::extension::lazy<std::shared_ptr<network::WarpProtocol>>
-          warp_protocol,
+      LazySPtr<network::WarpProtocol> warp_protocol,
       std::shared_ptr<consensus::grandpa::JustificationObserver> grandpa,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
