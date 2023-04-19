@@ -8,6 +8,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <vector>
 
 #include <optional>
 
@@ -15,6 +16,8 @@
 #include "log/logger.hpp"
 #include "primitives/math.hpp"
 #include "runtime/types.hpp"
+#include <unistd.h>
+#include "runtime/memory.hpp"
 
 namespace kagome::runtime {
 
@@ -101,6 +104,127 @@ namespace kagome::runtime {
     size_t offset_;
 
     log::Logger logger_;
+  };
+
+  #define BSF(val) __builtin_clzll(val)
+
+  template<size_t Align = 8ull>
+  struct MemoryAllocatorNew {
+    static constexpr size_t kSegmentInBits = 64ull;
+    static constexpr size_t kAlignment = Align;
+    static constexpr size_t kSegmentSize = kAlignment * kSegmentInBits;
+    static constexpr size_t kPageSize = kSegmentSize * 4ull;
+
+    static_assert((kAlignment & (kAlignment - 1)) == 0, "Power of 2!");
+    static_assert((kSegmentSize & (kSegmentSize - 1)) == 0, "Power of 2!");
+    static_assert((kPageSize & (kPageSize - 1)) == 0, "Power of 2!");
+
+    const size_t kAllocationSize{[] {
+      const auto page_size = (size_t)sysconf(_SC_PAGE_SIZE);
+      if (page_size == size_t(-1)) {
+        throw std::runtime_error("System page size not detected.");
+      }
+      if ((page_size & (kSegmentSize - 1)) != 0ull) {
+        throw std::runtime_error("Page size must be multiple of segment size.");
+      }
+      return math::roundUpRuntime(kPageSize, page_size);
+    }()};
+
+    std::optional<size_t> allocate(size_t size) {
+      const auto allocation_size = math::roundUp<kAlignment>(size);
+      const auto bits_len = bitsPackLenFromSize(allocation_size);
+
+
+      return std::nullopt;
+    }
+
+    std::optional<size_t> deallocate(size_t ptr) {
+      return std::nullopt;
+    }
+
+    MemoryAllocatorNew(size_t preallocated = 1'073'741'824ull) {
+      storageAdjust(preallocated);
+      storageAdjust(preallocated);
+      [[maybe_unused]] int p = 0; ++p;
+    }
+
+    ~MemoryAllocatorNew() {
+      free(storage_);
+    }
+
+  private:
+    auto bitsPackLenFromSize(size_t size) {
+      return size / kAlignment;
+    }
+
+    auto segmentsToSize(size_t val) {
+      return val * kSegmentSize;
+    }
+
+    auto sizeToSegments(size_t size) {
+      assert((size & (kSegmentSize - 1)) == 0ull);
+      return size / kSegmentSize;
+    }
+
+    /// @brief  Search for contiguous bits of the present length
+    /// @param count of bits pack
+    /// @param remains number of bits outside the range
+    /// @return index of the pack begins, -1 otherwise
+    size_t searchContiguousBitPack(const size_t count, size_t &remains) {
+      assert(!table_.empty());
+      const auto *const begin = table_.data();
+      const auto *const end = table_.data() + table_.size();
+      const auto *segment = begin;
+      auto remains = count;
+      do {
+        const auto position = kSegmentInBits - BSF(*segment) - 1ull;
+        if (position != size_t(-1)) {
+          const auto leading_mask = getLeadingMask(position, count == remains);
+          const auto ending_mask = getEndingMask(position, remains);
+          const auto segment_mask = (leading_mask & ending_mask);
+
+          if ((*segment & segment_mask) == segment_mask) {
+            //remains -= position + 1ull;
+          } else {
+            remains = count;
+            /// не увеличивать сегмент...просто сбрасывать 2 бита
+            continue;  
+          }
+        } else {
+          remains = count;
+        }
+        ++segment;
+      } while(remains > 0 && end != segment);
+    }
+
+    uint64_t getLeadingMask(const size_t position, bool is_starting) {
+      if (is_starting) {
+        return ((1ull << position) - 1ull) | (1ull << position);
+      }
+      return std::numeric_limits<uint64_t>::max();
+    }
+
+    uint64_t getEndingMask(const size_t position, const size_t count) {
+      const auto marker_position = count + position + 1ull;
+      if (marker_position <= kSegmentInBits) {
+        return ~((1ull << marker_position) - 1ull);
+      }
+      return std::numeric_limits<uint64_t>::max();
+    }
+
+    void storageAdjust(size_t size) {
+      const auto was_allocated = segmentsToSize(table_.size());
+      const auto added_size = math::roundUpRuntime(size, kAllocationSize);
+      const auto new_size = added_size + was_allocated;
+
+      if (__builtin_expect(new_size <= Memory::kMaxMemorySize, 1)) {
+        storage_ = (uint8_t*)std::realloc(storage_, new_size);
+        table_.resize(table_.size() + sizeToSegments(added_size), std::numeric_limits<uint64_t>::max());
+      }
+    }
+
+    std::vector<uint64_t> table_{};
+    uint8_t *storage_ = nullptr;
   };
 
 }  // namespace kagome::runtime

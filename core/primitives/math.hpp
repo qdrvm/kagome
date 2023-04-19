@@ -8,6 +8,7 @@
 
 #include <common/blob.hpp>
 #include <type_traits>
+#include <assert.h>
 
 namespace kagome::math {
 
@@ -23,6 +24,13 @@ namespace kagome::math {
     static_assert((X & (X - 1)) == 0, "Must be POW 2!");
     static_assert(X != 0, "Must not be 0!");
     return (t + (X - 1)) & ~(X - 1);
+  }
+
+  template <typename T>
+  inline T roundUpRuntime(T t, size_t alignment) {
+    assert(alignment != 0);
+    assert((alignment & (alignment - 1)) == 0);
+    return (t + (alignment - 1)) & ~(alignment - 1);
   }
 
   template <typename T>
