@@ -174,7 +174,7 @@ namespace kagome::authorship {
       }
     }
 
-    return std::move(block);
+    return block;
   }
 
 }  // namespace kagome::authorship

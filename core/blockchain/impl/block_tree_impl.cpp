@@ -942,11 +942,12 @@ namespace kagome::blockchain {
 
       OUTCOME_TRY(chain,
                   getDescendingChainToBlockNoLock(p, finish_block_hash, count));
+
       if (chain.back() != block) {
         return std::vector{block};
       }
       std::reverse(chain.begin(), chain.end());
-      return std::move(chain);
+      return chain;
     });
   }
 
@@ -1018,7 +1019,7 @@ namespace kagome::blockchain {
             return BlockTreeError::BLOCK_ON_DEAD_END;
           }
           std::reverse(chain.begin(), chain.end());
-          return std::move(chain);
+          return chain;
         });
   }
 

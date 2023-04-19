@@ -59,7 +59,7 @@ namespace kagome::consensus::grandpa {
 
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
     std::reverse(chain.begin(), chain.end());
-    return std::move(chain);
+    return chain;
   }
 
   bool EnvironmentImpl::hasAncestry(const BlockHash &base,
@@ -104,7 +104,7 @@ namespace kagome::consensus::grandpa {
     }
 
     SL_DEBUG(logger_, "Found best chain: {}", best_block);
-    return std::move(best_block);
+    return best_block;
   }
 
   void EnvironmentImpl::onCatchUpRequested(const libp2p::peer::PeerId &_peer_id,
