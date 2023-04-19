@@ -170,7 +170,7 @@ outcome::result<std::unique_ptr<TrieBatch>> persistent_batch(
     }
   }
   log->trace("{} keys were processed at the state.", ++count);
-  return std::move(batch);
+  return batch;
 }
 
 void child_storage_root_hashes(const std::unique_ptr<TrieBatch> &batch,
