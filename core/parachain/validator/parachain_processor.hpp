@@ -287,18 +287,18 @@ namespace kagome::parachain {
           });
     }
 
-    std::optional<std::reference_wrapper<network::const CandidateDescriptor>>
+    std::optional<std::reference_wrapper<const network::CandidateDescriptor>>
     candidateDescriptorFrom(const network::Statement &statement) {
       return visit_in_place(
           statement.candidate_state,
           [](const network::CommittedCandidateReceipt &receipt)
               -> std::optional<
-                  std::reference_wrapper<network::const CandidateDescriptor>> {
+                  std::reference_wrapper<const network::CandidateDescriptor>> {
             return receipt.descriptor;
           },
           [](...)
               -> std::optional<
-                  std::reference_wrapper<network::const CandidateDescriptor>> {
+                  std::reference_wrapper<const network::CandidateDescriptor>> {
             BOOST_ASSERT(false);
             return std::nullopt;
           });
