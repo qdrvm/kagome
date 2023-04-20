@@ -27,8 +27,12 @@ namespace kagome::dispute {
     /// right away.
     ///
     /// Returns: false, if queues are already full.
-    outcome::result<void> queue_participation(ParticipationPriority priority,
-                                              ParticipationRequest request) = 0;
+    virtual outcome::result<void> queue_participation(
+        ParticipationPriority priority, ParticipationRequest request) = 0;
+
+    /// Fork a participation task in the background.
+    virtual outcome::result<void> fork_participation(
+        ParticipationRequest request, primitives::BlockHash recent_head) = 0;
   };
 
 }  // namespace kagome::dispute

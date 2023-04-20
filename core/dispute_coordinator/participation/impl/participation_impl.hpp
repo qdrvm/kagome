@@ -11,17 +11,26 @@
 #include <unordered_set>
 
 namespace kagome::dispute {
+  class Queues;
+}
+
+namespace kagome::dispute {
 
   class ParticipationImpl final : Participation {
+    static const size_t kMaxParallelParticipations = 3;
+
     outcome::result<void> queue_participation(
         ParticipationPriority priority, ParticipationRequest request) override;
-    static const size_t kMaxParallelParticipations = 3;
+
+    outcome::result<void> fork_participation(
+        ParticipationRequest request,
+        primitives::BlockHash recent_head) override;
 
    public:
     /// Participations currently being processed.
     std::unordered_set<CandidateHash> running_participations_;
     /// Priority and best effort queues.
-    Queues queue_;
+    std::unique_ptr<Queues> queue_;
     /// Sender to be passed to worker tasks.
     WorkerMessageSender worker_sender_;
     /// Some recent block for retrieving validation code from chain.

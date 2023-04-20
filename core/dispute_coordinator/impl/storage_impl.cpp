@@ -43,4 +43,12 @@ namespace kagome::dispute {
     return std::nullopt;
   }
 
+  void StorageImpl::write_recent_disputes(RecentDisputes recent_disputes) {
+    recent_disputes_ = std::move(recent_disputes);
+
+    // save to base
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/backend.rs#L136
+    throw std::runtime_error("need to implement");
+  }
+
 }  // namespace kagome::dispute

@@ -14,6 +14,8 @@
 #include <boost/variant.hpp>
 #include <boost/variant/apply_visitor.hpp>  // for boost::apply_visitor
 
+#include "common/tagged.hpp"
+
 namespace kagome {
 
   template <typename... Lambdas>

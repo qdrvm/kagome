@@ -30,6 +30,11 @@ namespace kagome::dispute {
 
     /// Load the recent disputes, if any.
     virtual std::optional<RecentDisputes> load_recent_disputes() = 0;
+
+    /// Prepare a write to the recent disputes stored in the DB.
+    ///
+    /// Later calls to this function will override earlier ones.
+    virtual void write_recent_disputes(RecentDisputes recent_disputes) = 0;
   };
 
 }  // namespace kagome::dispute

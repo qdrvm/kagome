@@ -8,6 +8,7 @@
 
 #include "dispute_coordinator/spam_slots.hpp"
 
+#include <set>
 #include <tuple>
 #include <unordered_map>
 

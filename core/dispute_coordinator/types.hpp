@@ -6,17 +6,24 @@
 #ifndef KAGOME_DISPUTE_TYPES_HPP
 #define KAGOME_DISPUTE_TYPES_HPP
 
-#include "dispute_coordinator/dispute_coordinator.hpp"
-
 #include <unordered_set>
 
+#include "common/visitor.hpp"
 #include "parachain/types.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
+// #include "network/types/collator_messages.hpp"
 
 namespace kagome::dispute {
 
+  using network::CandidateReceipt;
+  using network::SessionIndex;
+  using network::ValidatorIndex;
+  using parachain::CandidateHash;
   using parachain::ValidatorId;
+  using parachain::ValidatorSignature;
   using runtime::SessionInfo;
+  template <typename T>
+  using Indexed = parachain::Indexed<T>;
 
   struct StoredWindow {
     SCALE_TIE(2);
@@ -63,6 +70,52 @@ namespace kagome::dispute {
       /// An invalid statement, of the given kind.
       InvalidDisputeStatement>;  // Invalid
 
+  common::Buffer getPayload(const DisputeStatement_ &statement,
+                            CandidateHash candidate_hash,
+                            SessionIndex session) {
+    common::Buffer res;
+    visit_in_place(
+        statement,
+        [&](const ValidDisputeStatement &statement) {
+          visit_in_place(
+              statement.kind,
+              [&](const Explicit &) -> void {
+                res.put("DISP")   // magic
+                    .putUint8(1)  // valid = true
+                    .put(candidate_hash)
+                    .putUint32(session);
+              },
+              [&](const BackingSeconded &inclusion_parent) {
+                res.put("BKNG")   // magic
+                    .putUint8(1)  // discriminant (BackingSeconded)
+                    .put(candidate_hash)
+                    .putUint32(session)      // signing context
+                    .put(inclusion_parent);  // -//-
+              },
+              [&](const BackingValid &inclusion_parent) {
+                res.put("BKNG")   // magic
+                    .putUint8(1)  // discriminant (BackingSeconded)
+                    .put(candidate_hash)
+                    .putUint32(session)      // signing context
+                    .put(inclusion_parent);  // -//-
+              },
+              [&](const ApprovalChecking &statement) {
+                res.put("APPR")  // magic
+                    .put(candidate_hash)
+                    .putUint32(session);
+              });
+        },
+        [&](const InvalidDisputeStatement &statement) {
+          visit_in_place(statement.kind, [&](const Explicit &) {
+            res.put("DISP")   // magic
+                .putUint8(0)  // valid = false
+                .put(candidate_hash)
+                .putUint32(session);
+          });
+        });
+    return res;
+  }
+
   /// Tracked votes on candidates, for the purposes of dispute resolution.
   struct CandidateVotes {
     SCALE_TIE(3);
@@ -70,39 +123,42 @@ namespace kagome::dispute {
     /// The receipt of the candidate itself.
     CandidateReceipt candidate_receipt;
     /// Votes of validity, sorted by validator index.
-    std::map<ValidatorIndex, ValidDisputeStatement> valid;
+    std::map<ValidatorIndex, ValidDisputeStatement> valid{};
     /// Votes of invalidity, sorted by validator index.
-    std::map<ValidatorIndex, InvalidDisputeStatement> invalid;
+    std::map<ValidatorIndex, InvalidDisputeStatement> invalid{};
   };
 
   /// Timestamp based on the 1 Jan 1970 UNIX base, which is persistent across
   /// node restarts and OS reboots.
   using Timestamp = uint64_t;
 
+  /// The dispute is active and unconcluded.
+  using Active = Tagged<Empty, struct ActiveTag>;
+
+  /// The dispute has been concluded in favor of the candidate since the given
+  /// timestamp.
+  using ConcludedFor = Tagged<Timestamp, struct ConcludedForTag>;
+
+  /// The dispute has been concluded against the candidate since the given
+  /// timestamp.
+  ///
+  /// This takes precedence over `ConcludedFor` in the case that both are true,
+  /// which is impossible unless a large amount of validators are participating
+  /// on both sides.
+  using ConcludedAgainst = Tagged<Timestamp, struct ConcludedAgainstTag>;
+
+  /// Dispute has been confirmed (more than `byzantine_threshold` have already
+  /// participated/ or we have seen the candidate included already/participated
+  /// successfully ourselves).
+  using Confirmed = Tagged<Empty, struct ConfirmedTag>;
+
   /// The status of dispute.
   /// NOTE: This status is persisted to the database
-  using DisputeStatus = boost::variant<
-      /// The dispute is active and unconcluded.
-      Tagged<Empty, struct Active>,
+  using DisputeStatus =
+      boost::variant<Active, ConcludedFor, ConcludedAgainst, Confirmed>;
 
-      /// The dispute has been concluded in favor of the candidate
-      /// since the given timestamp.
-      Tagged<Timestamp, struct ConcludedFor>,
-      /// The dispute has been concluded against the candidate
-      /// since the given timestamp.
-      ///
-      /// This takes precedence over `ConcludedFor` in the case that
-      /// both are true, which is impossible unless a large amount of
-      /// validators are participating on both sides.
-      Tagged<Timestamp, struct ConcludedAgainst>,
-
-      /// Dispute has been confirmed (more than `byzantine_threshold` have
-      /// already participated/ or we have seen the candidate included
-      /// already/participated successfully ourselves).
-      Tagged<Empty, struct Confirmed>>;
-
-  /// The mapping for recent disputes; any which have not yet been pruned for
-  /// being ancient.
+  /// The mapping for recent disputes; any which have not
+  /// yet been pruned for being ancient.
   using RecentDisputes =
       std::map<std::tuple<SessionIndex, CandidateHash>, DisputeStatus>;
 
@@ -122,7 +178,7 @@ namespace kagome::dispute {
   };
 
   using Voted = std::vector<
-      std::tuple<ValidatorIndex, DisputeStatement, ValidatorSignature>>;
+      std::tuple<ValidatorIndex, DisputeStatement_, ValidatorSignature>>;
 
   struct CannotVote : public Empty {};
 

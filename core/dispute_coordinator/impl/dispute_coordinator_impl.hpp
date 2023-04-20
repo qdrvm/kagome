@@ -8,11 +8,15 @@
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
 
+#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
+#include "dispute_coordinator/dispute_message.hpp"
 #include "dispute_coordinator/impl/candidate_vote_state.hpp"
 #include "dispute_coordinator/rolling_session_window.hpp"
 #include "dispute_coordinator/spam_slots.hpp"
 #include "dispute_coordinator/storage.hpp"
+#include "dispute_coordinator/types.hpp"
 #include "log/logger.hpp"
 #include "parachain/types.hpp"
 
@@ -25,54 +29,13 @@ namespace kagome::dispute {
 namespace kagome::dispute {
 
   class DisputeCoordinatorImpl final : public DisputeCoordinator {
-    using ValidatorId = network::ValidatorId;
-
-    template <typename T>
-    using Indexed = parachain::Indexed<T>;
-
-    template <typename T>
-    using IndexedAndSigned = parachain::IndexedAndSigned<T>;
-
    public:
-    /// Import a statement by a validator about a candidate.
-    ///
-    /// The subsystem will silently discard ancient statements or sets of only
-    /// dispute-specific statements for candidates that are previously unknown
-    /// to the subsystem. The former is simply because ancient data is not
-    /// relevant and the latter is as a DoS prevention mechanism. Both backing
-    /// and approval statements already undergo anti-DoS procedures in their
-    /// respective subsystems, but statements cast specifically for disputes are
-    /// not necessarily relevant to any candidate the system is already aware of
-    /// and thus present a DoS vector. Our expectation is that nodes will notify
-    /// each other of disputes over the network by providing (at least) 2
-    /// conflicting statements, of which one is either a backing or validation
-    /// statement.
-    ///
-    /// This does not do any checking of the message signature.
     outcome::result<void> onImportStatements(
-        /// The hash of the candidate.
-        CandidateHash candidate_hash,
-        /// The candidate receipt itself.
         CandidateReceipt candidate_receipt,
-        /// The session the candidate appears in.
         SessionIndex session,
-        /// Triples containing the following:
-        /// - A statement, either indicating validity or invalidity of the
-        /// candidate.
-        /// - The validator index (within the session of the candidate) of the
-        /// validator casting the vote.
-        /// - The signature of the validator casting the vote.
-        std::vector<Vote  // std::tuple<DisputeStatement, ValidatorIndex,
-                          // ValidatorSignature>
-                    > statements
-
-        /// Inform the requester once we finished importing.
-        ///
-        /// This is, we either discarded the votes, just record them because we
-        /// casted our vote already or recovered availability for the candidate
-        /// successfully.
-        //, oneshot::Sender<ImportStatementsResult> pending_confirmation
-        ) override;
+        std::vector<Indexed<SignedDisputeStatement>> statements,
+        std::optional<std::function<void(outcome::result<void>)>>
+            pending_confirmation) override;
 
     /* clang-format off
 
@@ -116,11 +79,18 @@ namespace kagome::dispute {
     clang-format on */
 
    private:
-    outcome::result<bool> handle_statements(
-        CandidateHash candidate_hash,
+    outcome::result<bool> handle_import_statements(
         MaybeCandidateReceipt candidate_receipt,
-        SessionIndex session,
+        const SessionIndex session,
         std::vector<Indexed<SignedDisputeStatement>> statements);
+
+    /// Create a `DisputeMessage` to be sent to `DisputeDistribution`.
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/lib.rs#L510
+    outcome::result<DisputeMessage> make_dispute_message(
+        SessionInfo info,
+        CandidateVotes votes,
+        SignedDisputeStatement our_vote,
+        ValidatorIndex our_index);
 
     void find_controlled_validator_indices(
         Indexed<std::vector<ValidatorId>> validators);
@@ -130,7 +100,9 @@ namespace kagome::dispute {
 
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<LocalKeystore> keystore_;
+    std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<Storage> storage_;
+    std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider_;
 
     std::shared_ptr<ChainScraper> scraper_;
     std::shared_ptr<SpamSlots> spam_slots_;

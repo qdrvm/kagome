@@ -6,18 +6,9 @@
 #ifndef KAGOME_DISPUTE_DISPUTECOORDINATOR
 #define KAGOME_DISPUTE_DISPUTECOORDINATOR
 
-#include "network/types/collator_messages.hpp"
-#include "parachain/types.hpp"
+#include "dispute_coordinator/types.hpp"
 
 namespace kagome::dispute {
-
-  using network::CandidateReceipt;
-  using network::DisputeStatement;
-  using network::SessionIndex;
-  using network::ValidatorIndex;
-  using network::Vote;
-  using parachain::CandidateHash;
-  using parachain::ValidatorSignature;
 
   class DisputeCoordinator {
    public:
@@ -39,29 +30,38 @@ namespace kagome::dispute {
     ///
     /// This does not do any checking of the message signature.
     virtual outcome::result<void> onImportStatements(
-        /// The hash of the candidate.
-        CandidateHash candidate_hash,
         /// The candidate receipt itself.
         CandidateReceipt candidate_receipt,
+
         /// The session the candidate appears in.
         SessionIndex session,
-        /// Triples containing the following:
-        /// - A statement, either indicating validity or invalidity of the
-        /// candidate.
-        /// - The validator index (within the session of the candidate) of the
-        /// validator casting the vote.
-        /// - The signature of the validator casting the vote.
-        std::vector<Vote  // std::tuple<DisputeStatement, ValidatorIndex,
-                          // ValidatorSignature>
-                    > statements
-        /// Inform the requester once we finished importing.
-        ///
-        /// This is, we either discarded the votes, just record them because we
-        /// casted our vote already or recovered availability for the candidate
-        /// successfully.
 
-        //, oneshot::Sender<ImportStatementsResult> pending_confirmation
-        ) = 0;
+        /// Statements, with signatures checked, by validators participating in
+        /// disputes.
+        ///
+        /// The validator index passed alongside each statement should
+        /// correspond to the index of the validator in the set.
+        std::vector<Indexed<SignedDisputeStatement>> statements,
+
+        /// Inform the requester once we finished importing (if a sender was
+        /// provided).
+        ///
+        /// This is:
+        /// - we discarded the votes because
+        ///   - they were ancient or otherwise invalid (result: `InvalidImport`)
+        ///   - or we were not able to recover availability for an unknown
+        ///   candidate (result: `InvalidImport`)
+        ///   - or were known already (in that case the result will still be
+        ///   `ValidImport`)
+        /// - or we recorded them because (`ValidImport`)
+        ///   - we cast our own vote already on that dispute
+        ///   - or we have approval votes on that candidate
+        ///   - or other explicit votes on that candidate already recorded
+        ///   - or recovered availability for the candidate
+        ///   - or the imported statements are backing/approval votes, which are
+        ///   always accepted.
+        std::optional<std::function<void(outcome::result<void>)>>
+            pending_confirmation) = 0;
   };
 
 }  // namespace kagome::dispute

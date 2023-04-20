@@ -13,6 +13,7 @@ add_library(dispute_coordinator
     impl/scraped_candidates.cpp
     impl/spam_slots_impl.cpp
     impl/candidate_vote_state.cpp
+    impl/errors.cpp
     )
 
 target_link_libraries(dispute_coordinator

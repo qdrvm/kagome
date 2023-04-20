@@ -23,6 +23,8 @@ namespace kagome::dispute {
     std::optional<CandidateVotes> load_candidate_votes(
         SessionIndex session, const CandidateHash &candidate_hash) override;
 
+    void write_recent_disputes(RecentDisputes recent_disputes) override;
+
    private:
     // `nullopt` means unchanged.
     std::optional<SessionIndex> earliest_session_{};

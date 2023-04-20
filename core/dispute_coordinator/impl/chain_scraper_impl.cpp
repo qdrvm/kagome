@@ -17,4 +17,11 @@ namespace kagome::dispute {
     return backed_candidates_.contains(candidate_hash);
   }
 
+  std::vector<primitives::BlockInfo> ChainScraperImpl::get_blocks_including_candidate(
+      const CandidateHash &candidate_hash) {
+    std::vector<primitives::BlockInfo> res;
+
+    return res;
+  }
+
 }  // namespace kagome::dispute

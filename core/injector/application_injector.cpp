@@ -81,6 +81,7 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
+#include "dispute_coordinator/impl/dispute_coordinator_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "injector/bind_by_lambda.hpp"
 #include "injector/calculate_genesis_state.hpp"
@@ -96,6 +97,7 @@
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/peer_manager_impl.hpp"
+#include "network/impl/protocols/send_dispute_protocol_impl.hpp"
 #include "network/impl/protocols/state_protocol_impl.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/reputation_repository_impl.hpp"
@@ -766,6 +768,8 @@ namespace {
             di::bind<consensus::babe::Babe>.template to<consensus::babe::BabeImpl>(),
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
             di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
+            di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),
+            di::bind<network::SendDisputeProtocol>.template to<network::SendDisputeProtocolImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);

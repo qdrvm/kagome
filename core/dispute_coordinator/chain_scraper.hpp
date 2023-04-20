@@ -51,6 +51,9 @@ namespace kagome::dispute {
 
     /// Check whether the candidate is backed
     virtual bool is_candidate_backed(const CandidateHash &candidate_hash) = 0;
+
+    virtual std::vector<primitives::BlockInfo> get_blocks_including_candidate(
+        const CandidateHash &candidate_hash) = 0;
   };
 
 }  // namespace kagome::dispute
