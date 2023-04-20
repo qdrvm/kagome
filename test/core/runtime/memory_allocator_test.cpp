@@ -65,3 +65,23 @@ TEST_F(MemoryAllocatorTest, SegmentFilter) {
     allocator_->updateSegmentFilter(filter, 0ull);
     ASSERT_EQ(0x3fffffffffffff3e, filter);
 }
+
+TEST_F(MemoryAllocatorTest, SearchContBits0) {
+    size_t remains;
+    ASSERT_EQ(0ull, allocator_->searchContiguousBitPack(5, remains));
+    ASSERT_EQ(0ull, remains);
+}
+
+TEST_F(MemoryAllocatorTest, SearchContBits1) {
+    size_t remains;
+    allocator_->table_[0] &= ~(1ull << 63ull);
+    ASSERT_EQ(1ull, allocator_->searchContiguousBitPack(5, remains));
+    ASSERT_EQ(0ull, remains);
+}
+
+TEST_F(MemoryAllocatorTest, SearchContBitsNoMem) {
+    size_t remains;
+    memset(&allocator_->table_[0], 0, sizeof(allocator_->table_[0]) * allocator_->table_.size());
+    ASSERT_EQ(allocator_->end(), allocator_->searchContiguousBitPack(5, remains));
+    ASSERT_EQ(5ull, remains);
+}

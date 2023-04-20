@@ -170,7 +170,7 @@ namespace kagome::runtime {
     /// @param count of bits pack
     /// @param remains number of bits outside the range
     /// @return index of the pack begins, -1 otherwise
-    size_t searchContiguousBitPack(const size_t count, size_t &remains) {
+    size_t searchContiguousBitPack(const size_t count, size_t &remains) const {
       assert(!table_.empty());
       const auto *const begin = table_.data();
       const auto *const end = table_.data() + table_.size();
@@ -181,7 +181,7 @@ namespace kagome::runtime {
       size_t position;
       do {
         const auto preprocessed_segment = (*segment & segment_filter);
-        position = kSegmentInBits - BSF(preprocessed_segment) - 1ull;
+        position = preprocessed_segment ? kSegmentInBits - BSF(preprocessed_segment) - 1ull : size_t(-1);
         if (position != size_t(-1)) {
           const auto leading_mask = getLeadingMask(position, count == remains);
           const auto ending_mask = getEndingMask(position, remains, count == remains);
@@ -203,20 +203,22 @@ namespace kagome::runtime {
       return (segment - begin) * kSegmentInBits - position - 1ull;
     }
 
+    size_t end() const {
+      return table_.size() * kSegmentInBits;
+    }
 
-
-    void updateSegmentFilter(uint64_t &filter, const size_t position) {
+    void updateSegmentFilter(uint64_t &filter, const size_t position) const {
       filter &= ~((1ull << position) | ((1ull << position) >> 1ull));
     }
 
-    uint64_t getLeadingMask(const size_t position, bool is_starting) {
+    uint64_t getLeadingMask(const size_t position, bool is_starting) const {
       if (is_starting) {
         return ((1ull << position) - 1ull) | (1ull << position);
       }
       return std::numeric_limits<uint64_t>::max();
     }
 
-    uint64_t getEndingMask(const size_t position, const size_t count, bool is_starting) {
+    uint64_t getEndingMask(const size_t position, const size_t count, bool is_starting) const {
       const auto marker_position = is_starting ? position + 1ull - count : kSegmentInBits - count;//kSegmentInBits - (count + kSegmentInBits - position - 1ull);
       if (marker_position <= kSegmentInBits) {
         return ~((1ull << marker_position) - 1ull);
