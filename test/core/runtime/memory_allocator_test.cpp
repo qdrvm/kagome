@@ -85,3 +85,18 @@ TEST_F(MemoryAllocatorTest, SearchContBitsNoMem) {
     ASSERT_EQ(allocator_->end(), allocator_->searchContiguousBitPack(5, remains));
     ASSERT_EQ(5ull, remains);
 }
+
+TEST_F(MemoryAllocatorTest, SearchContBitsPart) {
+    size_t remains;
+    memset(&allocator_->table_[0], 0, sizeof(allocator_->table_[0]) * allocator_->table_.size());
+    allocator_->table_[7] |= 3;
+    ASSERT_EQ(510, allocator_->searchContiguousBitPack(5, remains));
+    ASSERT_EQ(3ull, remains);
+}
+
+TEST_F(MemoryAllocatorTest, SearchContBitsPart1) {
+    size_t remains;
+    allocator_->table_[0] = 0ull;
+    ASSERT_EQ(64ull, allocator_->searchContiguousBitPack(5, remains));
+    ASSERT_EQ(0ull, remains);
+}

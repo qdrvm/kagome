@@ -130,12 +130,18 @@ namespace kagome::runtime {
       return math::roundUpRuntime(kPageSize, page_size);
     }()};
 
-    std::optional<size_t> allocate(size_t size) {
+    size_t allocate(size_t size) {
       const auto allocation_size = math::roundUp<kAlignment>(size);
       const auto bits_len = bitsPackLenFromSize(allocation_size);
 
+      size_t remains;
+      const auto position = searchContiguousBitPack(bits_len, remains);
+      if (remains != 0ull) {
+        storageAdjust(remains * kAlignment);
+      }
 
-      return std::nullopt;
+      //markUsed()
+      return position;
     }
 
     std::optional<size_t> deallocate(size_t ptr) {
@@ -205,6 +211,28 @@ namespace kagome::runtime {
 
     size_t end() const {
       return table_.size() * kSegmentInBits;
+    }
+
+    template<size_t kValue>
+    void setContiguousBits(size_t position, size_t count) {
+      const auto segment_ix = position / kSegmentInBits;
+
+      auto *segment = &table_[segment_ix];
+      while (count > 0ull) {
+        const auto shr_in_segment = position % kSegmentInBits;//kSegmentInBits - (position % kSegmentInBits) - 1ull;
+        const auto shl_in_segment = ((shr_in_segment + count) >= kSegmentInBits) ? 0ull : kSegmentInBits - shr_in_segment - count;
+        const auto mask = (std::numeric_limits<uint64_t>::max() >> shr_in_segment) & (std::numeric_limits<uint64_t>::max() >> shl_in_segment);
+
+        if constexpr (kValue == 0ull) {
+          *segment &= ~mask;
+        } else {
+          *segment |= mask;
+        }
+
+        ++segment;
+        count -= std::min(count, size_t(kSegmentInBits - shr_in_segment - 1ull));
+        position = 0ull;
+      }
     }
 
     void updateSegmentFilter(uint64_t &filter, const size_t position) const {
