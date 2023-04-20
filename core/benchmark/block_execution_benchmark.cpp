@@ -89,8 +89,7 @@ namespace kagome::benchmark {
 
   template <typename Measure>
   struct Stats {
-    primitives::BlockInfo block;
-    std::vector<Measure> measures;
+    Stats(primitives::BlockInfo block) : block{block} {}
 
     Measure min() const {
       BOOST_ASSERT(!measures.empty());
@@ -111,10 +110,19 @@ namespace kagome::benchmark {
       return avg();
     }
 
+    Measure median() const {
+      if (!cached_median) {
+        std::vector<Measure> sorted_measures(measures);
+        std::sort(sorted_measures.begin(), sorted_measures.end());
+        cached_median = sorted_measures[sorted_measures.size() / 2];
+      }
+      return *cached_median;
+    }
+
     Measure variance() const {
       Measure square_sum;
       const auto mean_value = mean();
-      for (auto& measure: measures) {
+      for (auto &measure : measures) {
         const auto diff = measure - mean_value;
         square_sum += diff * diff;
       }
@@ -124,6 +132,20 @@ namespace kagome::benchmark {
     Measure std_deviation() const {
       return std::sqrt(variance());
     }
+
+    void add(Measure measure) {
+      measures.emplace_back(std::move(measure));
+      cached_median.reset();
+    }
+
+    primitives::BlockInfo getBlock() const {
+      return block;
+    }
+
+   private:
+    primitives::BlockInfo block;
+    std::vector<Measure> measures;
+    mutable std::optional<Measure> cached_median;
   };
 
   template <typename T>
@@ -176,9 +198,8 @@ namespace kagome::benchmark {
     ConsumedWeight block_weight;
     try {
       stream >> block_weight;
-    } catch (std::exception& e) {
-      logger_->error(
-          "Error decoding encoded block weight: {}", e.what());
+    } catch (std::exception &e) {
+      logger_->error("Error decoding encoded block weight: {}", e.what());
       return BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED;
     }
     if (stream.hasMore(1)) {
@@ -226,7 +247,7 @@ namespace kagome::benchmark {
     std::vector<Stats<std::chrono::nanoseconds>> duration_stats;
     for (auto &[hash, block] : blocks) {
       duration_stats.emplace_back(Stats<std::chrono::nanoseconds>{
-          primitives::BlockInfo{hash, block.header.number}, {}});
+          primitives::BlockInfo{hash, block.header.number}});
     }
     for (uint16_t i = 0; i < config.times; i++) {
       auto duration_stat_it = duration_stats.begin();
@@ -236,30 +257,32 @@ namespace kagome::benchmark {
                              "execution of block {}",
                              hash);
         auto end = clock.now();
-        duration_stat_it->measures.push_back(
-            std::chrono::duration_cast<std::chrono::nanoseconds>(end - start));
+        auto duration_ns =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        duration_stat_it->add(duration_ns);
         SL_INFO(logger_,
                 "Block #{}, {} ns",
                 block.header.number,
-                duration_stat_it->measures.back().count());
+                duration_ns.count());
         duration_stat_it++;
       }
     }
     for (auto &stat : duration_stats) {
       SL_INFO(logger_,
-              "Block #{}, min {} ns, avg {} ns, max {} ns",
-              stat.block.number,
+              "Block #{}, min {} ns, avg {} ns, median {} ns, max {} ns",
+              stat.getBlock().number,
               stat.min().count(),
               stat.avg().count(),
+              stat.median().count(),
               stat.max().count());
       OUTCOME_TRY(
           block_weight_ns,
           getBlockWeightAsNanoseconds(
-              *trie_storage_, blocks[stat.block.hash].header.state_root));
+              *trie_storage_, blocks[stat.getBlock().hash].header.state_root));
       SL_INFO(
           logger_,
           "Block {}: consumed {} ns out of declared {} ns on average. ({} %)",
-          stat.block,
+          stat.getBlock(),
           stat.avg().count(),
           block_weight_ns.count(),
           (static_cast<double>(stat.avg().count())
