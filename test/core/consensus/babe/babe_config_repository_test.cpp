@@ -91,7 +91,7 @@ class BabeConfigRepositoryTest : public testing::Test {
     babe_config_repo_ =
         std::make_shared<BabeConfigRepositoryImpl>(*app_state_manager,
                                                    spaced_storage,
-                                                   app_config,
+                                                   *app_config,
                                                    block_tree,
                                                    header_repo,
                                                    babe_api,
