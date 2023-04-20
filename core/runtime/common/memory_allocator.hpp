@@ -9,8 +9,8 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
-
 #include <optional>
+#include <algorithm>
 
 #include "common/literals.hpp"
 #include "log/logger.hpp"
@@ -144,10 +144,6 @@ namespace kagome::runtime {
 
     MemoryAllocatorNew(size_t preallocated = 1'073'741'824ull) {
       storageAdjust(preallocated);
-
-      auto q1 = getLeadingMask()
-
-      [[maybe_unused]] int p = 0; ++p;
     }
 
     ~MemoryAllocatorNew() {
@@ -181,7 +177,7 @@ namespace kagome::runtime {
 
       const auto *segment = begin;
       uint64_t segment_filter = std::numeric_limits<uint64_t>::max();
-      auto remains = count;
+      remains = count;
       size_t position;
       do {
         const auto preprocessed_segment = (*segment & segment_filter);
@@ -192,7 +188,7 @@ namespace kagome::runtime {
           const auto segment_mask = (leading_mask & ending_mask);
 
           if ((preprocessed_segment & segment_mask) == segment_mask) {
-            remains -= std::min(position + 1ull, remains);
+            remains -= std::min(position + size_t(1ull), remains);
           } else {
             remains = count;
             updateSegmentFilter(segment_filter, position);
@@ -204,9 +200,10 @@ namespace kagome::runtime {
         ++segment;
         segment_filter = std::numeric_limits<uint64_t>::max();
       } while(remains > 0 && end != segment);
-
-      return ((segment - begin) * kSegmentInBits - position - 1ull) * kAlignment;
+      return (segment - begin) * kSegmentInBits - position - 1ull;
     }
+
+
 
     void updateSegmentFilter(uint64_t &filter, const size_t position) {
       filter &= ~((1ull << position) | ((1ull << position) >> 1ull));

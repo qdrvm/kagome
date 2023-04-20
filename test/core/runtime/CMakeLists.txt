@@ -10,6 +10,12 @@ addtest(wasm_result_test
     wasm_result_test.cpp
     )
 
+addtest(memory_allocator_test
+    memory_allocator_test.cpp
+    )
+target_link_libraries(memory_allocator_test
+    )
+
 addtest(storage_code_provider_test
     storage_code_provider_test.cpp
     )
