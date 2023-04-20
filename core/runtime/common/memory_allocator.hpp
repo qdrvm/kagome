@@ -144,7 +144,9 @@ namespace kagome::runtime {
 
     MemoryAllocatorNew(size_t preallocated = 1'073'741'824ull) {
       storageAdjust(preallocated);
-      storageAdjust(preallocated);
+
+      auto q1 = getLeadingMask()
+
       [[maybe_unused]] int p = 0; ++p;
     }
 
@@ -152,7 +154,9 @@ namespace kagome::runtime {
       free(storage_);
     }
 
+#ifndef TEST_MODE
   private:
+#endif//TEST_MODE
     auto bitsPackLenFromSize(size_t size) {
       return size / kAlignment;
     }
@@ -174,27 +178,38 @@ namespace kagome::runtime {
       assert(!table_.empty());
       const auto *const begin = table_.data();
       const auto *const end = table_.data() + table_.size();
+
       const auto *segment = begin;
+      uint64_t segment_filter = std::numeric_limits<uint64_t>::max();
       auto remains = count;
+      size_t position;
       do {
-        const auto position = kSegmentInBits - BSF(*segment) - 1ull;
+        const auto preprocessed_segment = (*segment & segment_filter);
+        position = kSegmentInBits - BSF(preprocessed_segment) - 1ull;
         if (position != size_t(-1)) {
           const auto leading_mask = getLeadingMask(position, count == remains);
-          const auto ending_mask = getEndingMask(position, remains);
+          const auto ending_mask = getEndingMask(position, remains, count == remains);
           const auto segment_mask = (leading_mask & ending_mask);
 
-          if ((*segment & segment_mask) == segment_mask) {
-            //remains -= position + 1ull;
+          if ((preprocessed_segment & segment_mask) == segment_mask) {
+            remains -= std::min(position + 1ull, remains);
           } else {
             remains = count;
-            /// не увеличивать сегмент...просто сбрасывать 2 бита
+            updateSegmentFilter(segment_filter, position);
             continue;  
           }
         } else {
           remains = count;
         }
         ++segment;
+        segment_filter = std::numeric_limits<uint64_t>::max();
       } while(remains > 0 && end != segment);
+
+      return ((segment - begin) * kSegmentInBits - position - 1ull) * kAlignment;
+    }
+
+    void updateSegmentFilter(uint64_t &filter, const size_t position) {
+      filter &= ~((1ull << position) | ((1ull << position) >> 1ull));
     }
 
     uint64_t getLeadingMask(const size_t position, bool is_starting) {
@@ -204,8 +219,8 @@ namespace kagome::runtime {
       return std::numeric_limits<uint64_t>::max();
     }
 
-    uint64_t getEndingMask(const size_t position, const size_t count) {
-      const auto marker_position = count + position + 1ull;
+    uint64_t getEndingMask(const size_t position, const size_t count, bool is_starting) {
+      const auto marker_position = is_starting ? position + 1ull - count : kSegmentInBits - count;//kSegmentInBits - (count + kSegmentInBits - position - 1ull);
       if (marker_position <= kSegmentInBits) {
         return ~((1ull << marker_position) - 1ull);
       }
