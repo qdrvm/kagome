@@ -153,7 +153,7 @@ namespace kagome::consensus::babe {
     /**
      * Process the current Babe slot
      */
-    void processSlot();
+    void processSlot(clock::SystemClock::TimePoint slot_timestamp);
 
     /**
      * Gather block and broadcast it
@@ -163,6 +163,7 @@ namespace kagome::consensus::babe {
      */
     void processSlotLeadership(
         SlotType slot_type,
+        clock::SystemClock::TimePoint slot_timestamp,
         std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
         primitives::AuthorityIndex authority_index);
 
@@ -173,6 +174,7 @@ namespace kagome::consensus::babe {
 
     void changeLotteryEpoch(
         const EpochDescriptor &epoch,
+        primitives::AuthorityIndex authority_index,
         const primitives::BabeConfiguration &babe_config) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(

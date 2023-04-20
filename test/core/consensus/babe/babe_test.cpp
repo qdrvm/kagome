@@ -341,7 +341,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*block_tree_, getBlockHeader(created_block_hash_))
       .WillRepeatedly(Return(outcome::success(block_header_)));
 
-  EXPECT_CALL(*proposer_, propose(best_leaf, _, _, _))
+  EXPECT_CALL(*proposer_, propose(best_leaf, _, _, _, _))
       .WillOnce(Return(created_block_));
 
   EXPECT_CALL(*hasher_, blake2b_256(_))

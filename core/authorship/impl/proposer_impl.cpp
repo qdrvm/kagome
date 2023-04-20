@@ -16,12 +16,14 @@ namespace kagome::authorship {
 
   ProposerImpl::ProposerImpl(
       std::shared_ptr<BlockBuilderFactory> block_builder_factory,
+      std::shared_ptr<Clock> clock,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
       std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
           ext_sub_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo)
       : block_builder_factory_{std::move(block_builder_factory)},
+        clock_{std::move(clock)},
         transaction_pool_{std::move(transaction_pool)},
         ext_sub_engine_{std::move(ext_sub_engine)},
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)} {
@@ -39,6 +41,7 @@ namespace kagome::authorship {
 
   outcome::result<primitives::Block> ProposerImpl::propose(
       const primitives::BlockInfo &parent_block,
+      std::optional<Clock::TimePoint> deadline,
       const primitives::InherentData &inherent_data,
       const primitives::Digest &inherent_digest,
       TrieChangesTrackerOpt changes_tracker) {
@@ -100,10 +103,14 @@ namespace kagome::authorship {
     // number of transactions to be pushed to the block
 
     size_t included_tx_count = 0;
+    std::vector<primitives::Transaction::Hash> included_hashes;
     for (const auto &[hash, tx] : ready_txs) {
-      const auto &tx_ref = tx;
+      if (deadline && clock_->now() >= deadline) {
+        break;
+      }
+
       scale::ScaleEncoderStream s(true);
-      s << tx_ref->ext;
+      s << tx->ext;
       auto estimate_tx_size = s.size();
 
       if (block_size + estimate_tx_size > block_size_limit) {
@@ -121,7 +128,7 @@ namespace kagome::authorship {
         break;
       }
 
-      SL_DEBUG(logger_, "Adding extrinsic: {}", tx_ref->ext.data);
+      SL_DEBUG(logger_, "Adding extrinsic: {}", tx->ext.data);
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
         if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
@@ -144,6 +151,7 @@ namespace kagome::authorship {
         block_size += estimate_tx_size;
         transaction_pushed = true;
         ++included_tx_count;
+        included_hashes.emplace_back(hash);
       }
     }
     metric_tx_included_in_block_->set(included_tx_count);
@@ -156,7 +164,7 @@ namespace kagome::authorship {
 
     OUTCOME_TRY(block, block_builder->bake());
 
-    for (const auto &[hash, tx] : ready_txs) {
+    for (const auto &hash : included_hashes) {
       auto removed_res = transaction_pool_->removeOne(hash);
       if (not removed_res) {
         logger_->error(
