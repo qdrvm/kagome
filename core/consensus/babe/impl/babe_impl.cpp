@@ -19,6 +19,7 @@
 #include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/babe/impl/backoff.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -922,6 +923,20 @@ namespace kagome::consensus::babe {
       clock::SystemClock::TimePoint slot_timestamp,
       std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
       primitives::AuthorityIndex authority_index) {
+    auto best_header_res = block_tree_->getBlockHeader(best_block_.hash);
+    BOOST_ASSERT_MSG(best_header_res.has_value(),
+                     "The best block is always known");
+    auto &best_header = best_header_res.value();
+
+    if (backoff(best_header,
+                block_tree_->getLastFinalized().number,
+                current_slot_)) {
+      SL_INFO(log_,
+              "Backing off claiming new slot for block authorship: finality is "
+              "lagging.");
+      return;
+    }
+
     BOOST_ASSERT(keypair_ != nullptr);
 
     // build a block to be announced
@@ -966,12 +981,7 @@ namespace kagome::consensus::babe {
                paras_inherent_data.backed_candidates.size(),
                relay_parent);
 
-      auto best_block_header_res =
-          block_tree_->getBlockHeader(best_block_.hash);
-      BOOST_ASSERT_MSG(best_block_header_res.has_value(),
-                       "The best block is always known");
-      paras_inherent_data.parent_header =
-          std::move(best_block_header_res.value());
+      paras_inherent_data.parent_header = best_header;
     }
 
     if (auto res = inherent_data.putData(kParachainId, paras_inherent_data);
