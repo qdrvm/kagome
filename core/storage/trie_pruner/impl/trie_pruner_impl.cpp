@@ -306,6 +306,7 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::addNewChildState(
       storage::trie::RootHash const &parent_root,
+      common::Buffer const &key,
       trie::PolkadotTrie const &new_trie,
       trie::StateVersion version) {
     OUTCOME_TRY(child_root_hash,
@@ -314,13 +315,14 @@ namespace kagome::storage::trie_pruner {
                                 AddConfig{
                                     .type = AddConfig::AddLoadedOnly,
                                 }));
-    OUTCOME_TRY(markAsChild(Parent{parent_root}, Child{child_root_hash}));
+    OUTCOME_TRY(markAsChild(Parent{parent_root}, key, Child{child_root_hash}));
     return outcome::success();
   }
 
   outcome::result<void> TriePrunerImpl::markAsChild(Parent parent,
+                                                    common::Buffer const &key,
                                                     Child child) {
-    child_states_[parent.hash].emplace_back(child.hash);
+    child_states_[parent.hash].emplace_back(ChildStorageInfo{key, child.hash});
     OUTCOME_TRY(savePersistentState());
     return outcome::success();
   }
@@ -452,8 +454,7 @@ namespace kagome::storage::trie_pruner {
   }
 
   outcome::result<void> TriePrunerImpl::savePersistentState() const {
-    std::vector<
-        std::pair<primitives::BlockHash, std::vector<storage::trie::RootHash>>>
+    std::vector<std::pair<primitives::BlockHash, std::vector<ChildStorageInfo>>>
         child_states;
     std::copy(child_states_.begin(),
               child_states_.end(),

@@ -45,15 +45,16 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(commitChildren(version));
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     OUTCOME_TRY(state_pruner_->addNewState(*trie_, version));
-    for (auto child_trie : getChildTries()) {
-      OUTCOME_TRY(state_pruner_->addNewChildState(root, *child_trie, version));
+    for (auto [child_key, child_trie] : getChildTries()) {
+      OUTCOME_TRY(state_pruner_->addNewChildState(
+          root, child_key, *child_trie, version));
     }
     SL_TRACE_FUNC_CALL(logger_, root);
     auto &stats = serializer_->getLatestStats();
     SL_DEBUG(logger_,
-            "Written {} new nodes and {} values",
-            stats.new_nodes_written,
-            stats.values_written);
+             "Written {} new nodes and {} values",
+             stats.new_nodes_written,
+             stats.values_written);
     return std::move(root);
   }
 

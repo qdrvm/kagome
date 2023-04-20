@@ -76,6 +76,8 @@ namespace kagome::storage::trie {
     virtual outcome::result<ConstNodePtr> getNode(
         ConstNodePtr parent, const NibblesView &key_nibbles) const = 0;
 
+    using BranchVisitor = std::function<outcome::result<void>(
+        BranchNode const &, uint8_t idx, TrieNode const &child)>;
     /**
      * Invokes callback on each node starting from \arg parent and ending on the
      * node corresponding to the \arg path
@@ -84,9 +86,7 @@ namespace kagome::storage::trie {
     virtual outcome::result<void> forNodeInPath(
         ConstNodePtr parent,
         const NibblesView &path,
-        const std::function<outcome::result<void>(
-            BranchNode const &, uint8_t idx, TrieNode const &node)> &callback)
-        const = 0;
+        const BranchVisitor &callback) const = 0;
 
     virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() const = 0;
 

@@ -1250,8 +1250,8 @@ namespace kagome::blockchain {
   }
 
   outcome::result<void> BlockTreeImpl::pruneTrie(
-      const primitives::BlockNumber &old_finalized,
-      const primitives::BlockNumber &new_finalized) {
+      primitives::BlockNumber old_finalized,
+      primitives::BlockNumber new_finalized) {
     // pruning is disabled
     if (!state_pruner_->getPruningDepth().has_value()) {
       return outcome::success();
@@ -1295,7 +1295,7 @@ namespace kagome::blockchain {
   outcome::result<void> BlockTreeImpl::reorganize() {
     auto block = BlockTreeImpl::bestLeaf();
 
-    // Remove assigning of obsoleted best upper blocks chain
+    // Remove assigning of obsolete best upper blocks chain
     auto prev_max_best_block_number = block.number;
     for (;;) {
       auto hash_res =

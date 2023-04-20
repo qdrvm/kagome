@@ -120,8 +120,6 @@ namespace kagome::storage::trie {
     TrieNode(KeyNibbles key_nibbles, ValueAndHash value)
         : key_nibbles_{std::move(key_nibbles)}, value_{std::move(value)} {}
 
-    inline ~TrieNode() override = default;
-
     enum class Type {
       Special,                    // -
       Leaf,                       // 01
@@ -139,7 +137,7 @@ namespace kagome::storage::trie {
       return key_nibbles_;
     }
 
-    KeyNibbles &modifyKeyNibbles() {
+    KeyNibbles &getMutKeyNibbles() {
       return key_nibbles_;
     }
 
@@ -227,12 +225,6 @@ namespace kagome::storage::trie {
      */
     explicit DummyNode(common::Buffer key) : db_key{std::move(key)} {}
 
-    std::optional<common::Buffer> getCachedHash() const {
-      return db_key;
-    }
-
-    void setCachedHash(common::Buffer const &) const {}
-
     common::Buffer db_key;
   };
 
@@ -244,12 +236,6 @@ namespace kagome::storage::trie {
    */
   struct DummyValue : OpaqueTrieNode {
     DummyValue(ValueAndHash &value) : value{value} {}
-
-    std::optional<common::Buffer> getCachedHash() const {
-      return std::nullopt;
-    }
-
-    void setCachedHash(common::Buffer const &) const {}
 
     ValueAndHash &value;
   };

@@ -172,8 +172,8 @@ namespace kagome::blockchain {
         const std::shared_ptr<TreeNode> &lastFinalizedNode);
 
     outcome::result<void> pruneTrie(
-        const primitives::BlockNumber &old_finalized,
-        const primitives::BlockNumber &new_finalized);
+        primitives::BlockNumber old_finalized,
+        primitives::BlockNumber new_finalized);
 
     outcome::result<void> reorganize();
 

@@ -45,9 +45,9 @@ namespace kagome::storage::trie {
         const RootHash &trie_hash) = 0;
 
     auto getChildTries() const {
-      return child_batches_ | boost::adaptors::map_values
-           | boost::adaptors::transformed(
-                 [](auto &batch) { return batch->trie_; });
+      return child_batches_ | boost::adaptors::transformed([](auto &key_value) {
+               return std::make_pair(key_value.first, key_value.second->trie_);
+             });
     }
 
     outcome::result<void> commitChildren(StateVersion version);

@@ -494,14 +494,16 @@ TEST_F(TriePrunerTest, RandomTree) {
     total_set.merge(new_set);
     ASSERT_OUTCOME_SUCCESS_TRY(
         pruner->addNewState(trie, trie::StateVersion::V0));
-    auto tracked_set = pruner->generateTrackedNodeSet();
+    std::set<Buffer> tracked_set;
+    pruner->forRefCounts([&](auto& node, auto count) {
+      tracked_set.insert(node);
+    });
     std::set<Buffer> diff;
     std::set_symmetric_difference(total_set.begin(),
                                   total_set.end(),
                                   tracked_set.begin(),
                                   tracked_set.end(),
                                   std::inserter(diff, diff.begin()));
-    // ASSERT_EQ(diff.size(), 0);
     ASSERT_OUTCOME_SUCCESS(root,
                            serializer.storeTrie(trie, trie::StateVersion::V0));
     roots.push_back(root);
@@ -610,11 +612,6 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
         .WillOnce(Return(enc));
     EXPECT_CALL(*codec_mock, hash256(testing::ElementsAreArray(enc)))
         .WillOnce(Return(root_hash));
-    //    EXPECT_CALL(*trie_storage_mock, batch()).WillOnce(Invoke([]() {
-    //      auto batch = std::make_unique<face::WriteBatchMock<Buffer,
-    //      Buffer>>(); EXPECT_CALL(*batch,
-    //      commit()).WillOnce(Return(outcome::success())); return batch;
-    //    }));
   };
   mock_block(4);
   mock_block(5);

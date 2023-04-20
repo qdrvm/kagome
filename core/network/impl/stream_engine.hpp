@@ -281,22 +281,6 @@ namespace kagome::network {
       std::deque<std::function<void(std::shared_ptr<Stream>)>>
           deferred_messages;
 
-      void bt() {
-        backward::StackTrace trace;
-        trace.load_here(128);
-
-        backward::TraceResolver tr; tr.load_stacktrace(trace);
-        for (size_t i = 0; i < trace.size(); ++i) {
-          backward::ResolvedTrace resolved_trace = tr.resolve(trace[i]);
-          std::cout << "#" << i
-                    << " " << resolved_trace.object_filename
-                    << " " << resolved_trace.object_function
-                    << ":" << resolved_trace.source.line
-                    << " [" << resolved_trace.addr << "]"
-                    << std::endl;
-        }
-      }
-
      public:
       explicit ProtocolDescr(std::shared_ptr<ProtocolBase> proto)
           : protocol{std::move(proto)} {}

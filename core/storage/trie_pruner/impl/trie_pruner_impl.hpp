@@ -58,12 +58,19 @@ namespace kagome::storage::trie_pruner {
     static inline const common::Buffer TRIE_PRUNER_INFO_KEY =
         ":trie_pruner:info"_buf;
 
+    struct ChildStorageInfo {
+      SCALE_TIE(2);
+
+      common::Buffer key;
+      storage::trie::RootHash root;
+    };
+
     struct TriePrunerInfo {
       SCALE_TIE(2);
 
       primitives::BlockInfo prune_base;
       std::vector<std::pair<primitives::BlockHash,
-                            std::vector<storage::trie::RootHash>>>
+                            std::vector<ChildStorageInfo>>>
           child_states;
     };
 
@@ -83,10 +90,12 @@ namespace kagome::storage::trie_pruner {
 
     virtual outcome::result<void> addNewChildState(
         storage::trie::RootHash const &parent_root,
+        common::Buffer const& key,
         trie::PolkadotTrie const &new_trie,
         trie::StateVersion version) override;
 
     virtual outcome::result<void> markAsChild(Parent parent,
+                                              common::Buffer const& key,
                                               Child child) override;
 
     virtual outcome::result<void> pruneFinalized(
@@ -104,15 +113,7 @@ namespace kagome::storage::trie_pruner {
       return ref_count_.size();
     }
 
-    std::set<common::Buffer> generateTrackedNodeSet() const {
-      std::set<common::Buffer> set;
-      for (auto &[node, count] : ref_count_) {
-        set.insert(node);
-      }
-      return set;
-    }
-
-    size_t getRefCountOf(common::Buffer const &node) const {
+    size_t getRefCountOf(common::Hash256 const &node) const {
       auto it = ref_count_.find(node);
       return it == ref_count_.end() ? 0 : it->second;
     }
@@ -208,6 +209,7 @@ namespace kagome::storage::trie_pruner {
     outcome::result<void> savePersistentState() const;
 
     std::unordered_map<common::Buffer, size_t> ref_count_;
+    std::unordered_map<common::Hash256, size_t> value_ref_count_;
 
     primitives::BlockInfo base_block_{0, {}};
     std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage_;
@@ -215,8 +217,9 @@ namespace kagome::storage::trie_pruner {
     std::shared_ptr<const storage::trie::Codec> codec_;
     std::shared_ptr<storage::SpacedStorage> storage_;
     std::shared_ptr<const crypto::Hasher> hasher_;
+
     std::unordered_map<storage::trie::RootHash,
-                       std::vector<storage::trie::RootHash>>
+                       std::vector<ChildStorageInfo>>
         child_states_;
     const std::optional<uint32_t> pruning_depth_{};
     log::Logger logger_ = log::createLogger("TriePruner", "trie_pruner");

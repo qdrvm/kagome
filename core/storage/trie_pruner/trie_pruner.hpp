@@ -29,7 +29,8 @@ namespace kagome::storage::trie_pruner {
 
     /**
      * Register a new trie with the trie pruner so that the trie nodes
-     * this trie references are kept until the block this trie belongs to is pruned.
+     * this trie references are kept until the block this trie belongs to is
+     * pruned.
      * @param version trie version used by runtime when creating this trie.
      */
     virtual outcome::result<void> addNewState(
@@ -37,11 +38,13 @@ namespace kagome::storage::trie_pruner {
 
     /**
      * Register a new child trie with the trie pruner so that the trie nodes
-     * this trie references are kept until the block this trie belongs to is pruned.
+     * this trie references are kept until the block this trie belongs to is
+     * pruned.
      * @param version trie version used by runtime when creating this trie.
      */
-     virtual outcome::result<void> addNewChildState(
+    virtual outcome::result<void> addNewChildState(
         storage::trie::RootHash const &parent_root,
+        common::Buffer const &key,
         trie::PolkadotTrie const &new_trie,
         trie::StateVersion version) = 0;
 
@@ -58,13 +61,17 @@ namespace kagome::storage::trie_pruner {
     };
 
     /**
-     * Mark \param child as the child trie of \param parent for pruning purposes.
+     * Mark \param child as the child trie of \param parent for pruning
+     * purposes.
      */
-    virtual outcome::result<void> markAsChild(Parent parent, Child child) = 0;
+    virtual outcome::result<void> markAsChild(Parent parent,
+                                              common::Buffer const &key,
+                                              Child child) = 0;
 
     /**
      * Prune the trie of a finalized block \param state.
-     * Nodes belonging to this trie are deleted if no other trie references them.
+     * Nodes belonging to this trie are deleted if no other trie references
+     * them.
      * @param state header of the block which state should be pruned.
      * @param next_block the next finalized block after the pruned one
      * (required for pruner state persistency purposes).
@@ -75,11 +82,12 @@ namespace kagome::storage::trie_pruner {
 
     /**
      * Prune the trie of a discarded block \param state.
-     * Nodes belonging to this trie are deleted if no other trie references them.
+     * Nodes belonging to this trie are deleted if no other trie references
+     * them.
      * @param state header of the block which state should be pruned.
      * (required for pruner state persistency purposes).
      */
-     virtual outcome::result<void> pruneDiscarded(
+    virtual outcome::result<void> pruneDiscarded(
         primitives::BlockHeader const &state) = 0;
 
     /**

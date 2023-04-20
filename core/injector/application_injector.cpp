@@ -433,8 +433,8 @@ namespace {
         injector.template create<sptr<storage::trie_pruner::TriePruner>>();
 
     // there's also IdlePruner declared in this file, which does nothing
-    auto* pruner_impl =
-        dynamic_cast<storage::trie_pruner::TriePrunerImpl*>(pruner.get());
+    auto *pruner_impl =
+        dynamic_cast<storage::trie_pruner::TriePrunerImpl *>(pruner.get());
     if (pruner_impl) {
       pruner_impl->init(*block_tree).value();
     }
@@ -991,71 +991,78 @@ namespace {
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
-        bind_by_lambda<storage::trie_pruner::TriePruner>([](auto const
-                                                                &injector) {
-          auto app_config =
-              injector.template create<sptr<application::AppConfiguration>>();
-          if (!app_config->statePruningDepth().has_value()) {
-            class IdlePruner final : public storage::trie_pruner::TriePruner {
-             public:
-              virtual outcome::result<void> addNewState(
-                  storage::trie::PolkadotTrie const &,
-                  storage::trie::StateVersion) override {
-                return outcome::success();
+        bind_by_lambda<storage::trie_pruner::TriePruner>(
+            [](auto const &injector)
+                -> std::shared_ptr<storage::trie_pruner::TriePruner> {
+              auto app_config =
+                  injector
+                      .template create<sptr<application::AppConfiguration>>();
+              if (!app_config->statePruningDepth().has_value()) {
+                class IdlePruner final
+                    : public storage::trie_pruner::TriePruner {
+                 public:
+                  virtual outcome::result<void> addNewState(
+                      storage::trie::PolkadotTrie const &,
+                      storage::trie::StateVersion) override {
+                    return outcome::success();
+                  }
+
+                  virtual outcome::result<void> addNewChildState(
+                      storage::trie::RootHash const &,
+                      common::Buffer const &,
+                      storage::trie::PolkadotTrie const &,
+                      storage::trie::StateVersion) override {
+                    return outcome::success();
+                  }
+
+                  virtual outcome::result<void> markAsChild(
+                      Parent, common::Buffer const &, Child) override {
+                    return outcome::success();
+                  }
+
+                  virtual outcome::result<void> pruneFinalized(
+                      primitives::BlockHeader const &,
+                      primitives::BlockInfo const &) override {
+                    return outcome::success();
+                  }
+
+                  virtual outcome::result<void> pruneDiscarded(
+                      primitives::BlockHeader const &) override {
+                    return outcome::success();
+                  }
+
+                  virtual primitives::BlockNumber getBaseBlock()
+                      const override {
+                    return 0;
+                  }
+
+                  virtual std::optional<uint32_t> getPruningDepth()
+                      const override {
+                    return {};
+                  }
+                };
+                return std::make_shared<IdlePruner>();
               }
 
-              virtual outcome::result<void> addNewChildState(
-                  storage::trie::RootHash const &,
-                  storage::trie::PolkadotTrie const &,
-                  storage::trie::StateVersion) override {
-                return outcome::success();
-              }
-
-              virtual outcome::result<void> markAsChild(Parent,
-                                                        Child) override {
-                return outcome::success();
-              }
-
-              virtual outcome::result<void> pruneFinalized(
-                  primitives::BlockHeader const &,
-                  primitives::BlockInfo const &) override {
-                return outcome::success();
-              }
-
-              virtual outcome::result<void> pruneDiscarded(
-                  primitives::BlockHeader const &) override {
-                return outcome::success();
-              }
-
-              virtual primitives::BlockNumber getBaseBlock() const override {
-                return 0;
-              }
-
-              virtual std::optional<uint32_t> getPruningDepth() const override {
-                return {};
-              }
-            };
-            return std::shared_ptr<storage::trie_pruner::TriePruner>(
-                new IdlePruner{});
-          }
-
-          auto config =
-              injector.template create<sptr<application::AppConfiguration>>();
-          auto hasher = injector.template create<sptr<crypto::Hasher>>();
-          auto serializer =
-              injector.template create<sptr<storage::trie::TrieSerializer>>();
-          auto codec =
-              injector.template create<sptr<storage::trie::PolkadotCodec>>();
-          auto trie_storage =
-              injector
-                  .template create<sptr<storage::trie::TrieStorageBackend>>();
-          auto storage =
-              injector.template create<sptr<storage::SpacedStorage>>();
-          return std::shared_ptr<storage::trie_pruner::TriePruner>{
-              storage::trie_pruner::TriePrunerImpl::create(
-                  config, trie_storage, serializer, codec, storage, hasher)
-                  .value()};
-        }),
+              auto config =
+                  injector
+                      .template create<sptr<application::AppConfiguration>>();
+              auto hasher = injector.template create<sptr<crypto::Hasher>>();
+              auto serializer =
+                  injector
+                      .template create<sptr<storage::trie::TrieSerializer>>();
+              auto codec =
+                  injector
+                      .template create<sptr<storage::trie::PolkadotCodec>>();
+              auto trie_storage = injector.template create<
+                  sptr<storage::trie::TrieStorageBackend>>();
+              auto storage =
+                  injector.template create<sptr<storage::SpacedStorage>>();
+              return std::shared_ptr<storage::trie_pruner::TriePruner>{
+                  storage::trie_pruner::TriePrunerImpl::create(
+                      config, trie_storage, serializer, codec, storage, hasher)
+                      .value()};
+            }),
         di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
         bind_by_lambda<application::ChainSpec>([](const auto &injector) {
           const application::AppConfiguration &config =

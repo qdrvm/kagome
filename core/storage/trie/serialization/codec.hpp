@@ -6,10 +6,10 @@
 #ifndef KAGOME_TRIE_CODEC_HPP
 #define KAGOME_TRIE_CODEC_HPP
 
-#include "../../../common/blob.hpp"
-#include "../../../common/buffer.hpp"
-#include "../polkadot_trie/trie_node.hpp"
-#include "../types.hpp"
+#include "common/blob.hpp"
+#include "common/buffer.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
   struct TrieNode;
@@ -25,9 +25,8 @@ namespace kagome::storage::trie {
         common::Buffer && /* the encoded node */)>;
 
     static constexpr auto NoopChildVisitor =
-        [](auto const &, auto, auto &&) -> outcome::result<void> {
-      return outcome::success();
-    };
+        [](TrieNode const &, common::BufferView, common::Buffer &&)
+        -> outcome::result<void> { return outcome::success(); };
 
     virtual ~Codec() = default;
 

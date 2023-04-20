@@ -138,7 +138,7 @@ namespace kagome::host_api {
       SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
     } else {
       auto msg = fmt::format(error_message, key_buffer.toHex(), result.error());
-      logger_->error(msg);
+      SL_DEBUG(logger_, "{}", msg);
       throw std::runtime_error(msg);
     }
 

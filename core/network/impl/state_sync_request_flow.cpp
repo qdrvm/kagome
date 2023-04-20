@@ -95,7 +95,8 @@ namespace kagome::network {
                 runtime::RuntimeEnvironment::fromCode(module_factory, code));
     OUTCOME_TRY(runtime_version, core_api.version(env));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
-    std::vector<storage::trie::RootHash> child_hashes;
+    std::vector<std::pair<common::Buffer, storage::trie::RootHash>>
+        child_hashes;
     for (auto &[expected, root] : roots_) {
       if (not expected) {
         continue;
@@ -106,7 +107,7 @@ namespace kagome::network {
         return Error::HASH_MISMATCH;
       }
       for (auto &child : root.children) {
-        child_hashes.push_back(actual);
+        child_hashes.emplace_back(child, actual);
         top.trie.put(child, common::BufferView{actual}).value();
       }
     }
@@ -115,10 +116,11 @@ namespace kagome::network {
     if (actual != block_.state_root) {
       return Error::HASH_MISMATCH;
     }
-    for (auto &child : child_hashes) {
+    for (auto &[child_key, child_hash] : child_hashes) {
       using Parent = storage::trie_pruner::TriePruner::Parent;
       using Child = storage::trie_pruner::TriePruner::Child;
-      OUTCOME_TRY(state_pruner_->markAsChild(Parent{actual}, Child{child}));
+      OUTCOME_TRY(state_pruner_->markAsChild(
+          Parent{actual}, child_key, Child{child_hash}));
     }
     return outcome::success();
   }

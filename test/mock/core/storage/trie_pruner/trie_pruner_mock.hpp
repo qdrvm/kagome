@@ -23,13 +23,14 @@ namespace kagome::storage::trie_pruner {
     MOCK_METHOD(outcome::result<void>,
                 addNewChildState,
                 (storage::trie::RootHash const &parent_root,
+                 common::Buffer const& key,
                  trie::PolkadotTrie const &new_trie,
                  trie::StateVersion version),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 markAsChild,
-                (Parent parent, Child child),
+                (Parent parent, common::Buffer const& key, Child child),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,

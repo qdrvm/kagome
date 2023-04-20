@@ -49,8 +49,7 @@ namespace kagome::storage::trie {
     outcome::result<void> forNodeInPath(
         ConstNodePtr parent,
         const NibblesView &path,
-        const std::function<outcome::result<void>(
-            BranchNode const &, uint8_t idx, TrieNode const &node)> &callback)
+        const BranchVisitor &callback)
         const override;
 
     /**

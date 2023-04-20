@@ -135,7 +135,7 @@ namespace {
                  "handleDeletion: turn a branch with single branch child into "
                  "its child");
       }
-      parent->modifyKeyNibbles().putUint8(idx).put(child->getKeyNibbles());
+      parent->getMutKeyNibbles().putUint8(idx).put(child->getKeyNibbles());
     }
     return outcome::success();
   }
@@ -509,8 +509,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieImpl::forNodeInPath(
       ConstNodePtr parent,
       const NibblesView &path,
-      const std::function<outcome::result<void>(
-          BranchNode const &, uint8_t idx, TrieNode const &node)> &callback)
+      const BranchVisitor &callback)
       const {
     if (parent == nullptr) {
       return TrieError::NO_VALUE;
