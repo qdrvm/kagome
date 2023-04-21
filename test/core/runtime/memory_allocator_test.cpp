@@ -149,11 +149,18 @@ TEST_F(MemoryAllocatorTest, SearchContBits_1) {
     ASSERT_EQ(0ull, remains);
 }
 
-TEST_F(MemoryAllocatorTest, SearchContBits_NoMem) {
+TEST_F(MemoryAllocatorTest, SearchContBits_NoMem_0) {
     size_t remains;
     memset(&allocator_->table_[0], 0, sizeof(allocator_->table_[0]) * allocator_->table_.size());
     ASSERT_EQ(allocator_->end(), allocator_->searchContiguousBitPack(5, remains));
     ASSERT_EQ(5ull, remains);
+}
+
+TEST_F(MemoryAllocatorTest, SearchContBits_NoMem_1) {
+    size_t remains;
+    memset(&allocator_->table_[0], 0, sizeof(allocator_->table_[0]) * allocator_->table_.size());
+    ASSERT_EQ(allocator_->end(), allocator_->searchContiguousBitPack(64, remains));
+    ASSERT_EQ(64, remains);
 }
 
 TEST_F(MemoryAllocatorTest, SearchContBits_Part0) {
@@ -169,4 +176,35 @@ TEST_F(MemoryAllocatorTest, SearchContBits_Part1) {
     allocator_->table_[0] = 0ull;
     ASSERT_EQ(64ull, allocator_->searchContiguousBitPack(5, remains));
     ASSERT_EQ(0ull, remains);
+}
+
+TEST_F(MemoryAllocatorTest, SearchContBits_Part3) {
+    size_t remains;
+    allocator_->table_[0] = 0x8000000000000000;
+    ASSERT_EQ(63ull, allocator_->searchContiguousBitPack(64, remains));
+    ASSERT_EQ(0ull, remains);
+}
+
+TEST_F(MemoryAllocatorTest, SearchContBits_Part4) {
+    size_t remains;
+    allocator_->table_[0] = 0x0000000000000000;
+    ASSERT_EQ(64ull, allocator_->searchContiguousBitPack(64, remains));
+    ASSERT_EQ(0ull, remains);
+}
+
+TEST_F(MemoryAllocatorTest, SearchContBits_Part5) {
+    size_t remains;
+    allocator_->table_[0] = 0x0000000000000000;
+    allocator_->table_[1] = 0x0000000000000000;
+    ASSERT_EQ(128ull, allocator_->searchContiguousBitPack(64, remains));
+    ASSERT_EQ(0ull, remains);
+}
+
+TEST_F(MemoryAllocatorTest, SearchContBits_Part6) {
+    size_t remains;
+    allocator_->table_[0] = 0x0000000000000000;
+    allocator_->table_[1] = 0x0000000000000000;
+    allocator_->table_[2] = 0xfffffffffffffffe;
+    ASSERT_EQ(129ull, allocator_->searchContiguousBitPack(64, remains));
+    ASSERT_EQ(1ull, remains);
 }

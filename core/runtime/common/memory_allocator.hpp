@@ -188,6 +188,9 @@ namespace kagome::runtime {
           const auto segment_0_filter = (preprocessed_segment & segment_mask_0) ^ segment_mask_0;
           const auto segment_1_filter = (next_segment & segment_mask_1) ^ segment_mask_1;
           if (__builtin_expect((segment_0_filter | segment_1_filter) == 0ull, 0)) {
+            if ((segment + 1ull) != end) {
+              remains = 0ull;
+            }
             break;
           }
           updateSegmentFilter(segment, preprocessed_segment_filter, segment_0_filter, segment_1_filter);
