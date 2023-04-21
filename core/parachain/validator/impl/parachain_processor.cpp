@@ -141,16 +141,19 @@ namespace kagome::parachain {
             babe_status_observable_, false);
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSynchronized);
+        primitives::events::BabeStateEventType::kSyncState);
     babe_status_observer_->setCallback([wself{weak_from_this()}](
                                            auto /*set_id*/,
                                            bool &synchronized,
                                            auto /*event_type*/,
                                            const primitives::events::
-                                               BabeStateEventParams
-                                                   & /*event*/) {
+                                               BabeStateEventParams &event) {
       if (auto self = wself.lock()) {
-        if (!synchronized) {
+        if (event != consensus::babe::Babe::State::SYNCHRONIZED) {
+          SL_INFO(self->logger_, "Parachains engine turned-off");
+          synchronized = false;
+        } else if (!synchronized) {
+          SL_INFO(self->logger_, "Parachains engine turned-on");
           synchronized = true;
           auto my_view = self->peer_view_->getMyView();
           if (!my_view) {
@@ -433,6 +436,10 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
       const network::ValidatorProtocolMessage &message) {
+    if (auto r = canProcessParachains(); r.has_error()) {
+      return;
+    }
+
     if (auto m{boost::get<network::BitfieldDistributionMessage>(&message)}) {
       auto bd{boost::get<network::BitfieldDistribution>(m)};
       BOOST_ASSERT_MSG(
