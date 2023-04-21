@@ -70,7 +70,7 @@ class StateProtocolObserverTest : public testing::Test {
     auto codec = std::make_shared<PolkadotCodec>();
     OUTCOME_TRY(batch,
                 trie_->getPersistentBatchAt(kEmptyRootHash, std::nullopt));
-    return std::move(batch);
+    return batch;
   }
 
  public:
@@ -124,7 +124,7 @@ TEST_F(StateProtocolObserverTest, Simple) {
   StateRequest request{
       .hash = "1"_hash256,
       .start = {},
-      .no_proof = false
+      .no_proof = false,
   };
 
   EXPECT_OUTCOME_TRUE(response,

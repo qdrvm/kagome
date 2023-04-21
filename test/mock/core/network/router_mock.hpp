@@ -78,6 +78,11 @@ namespace kagome::network {
                 (),
                 (const, override));
 
+    MOCK_METHOD(std::shared_ptr<SendDisputeProtocol>,
+                getSendDisputeProtocol,
+                (),
+                (const, override));
+
     MOCK_METHOD(std::shared_ptr<libp2p::protocol::Ping>,
                 getPingProtocol,
                 (),
