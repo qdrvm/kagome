@@ -7,7 +7,8 @@
 
 #include <unordered_set>
 
-#include <boost/endian/arithmetic.hpp>
+#include "common/blob.hpp"
+#include "common/bytestr.hpp"
 
 namespace kagome::crypto {
 
@@ -20,7 +21,6 @@ namespace kagome::crypto {
         KEY_TYPE_ASGN,
         KEY_TYPE_AUDI,
         KEY_TYPE_ACCO,
-        KEY_TYPE_LP2P,
     };
 
     return supported_types.count(k) > 0;
@@ -38,7 +38,8 @@ namespace kagome::crypto {
     if (str.size() == sizeof(KeyTypeId)) {
       // string's data is aligned as KeyTypeId
       if (reinterpret_cast<uintptr_t>(str.data())
-              % std::alignment_of_v<KeyTypeId> == 0) {
+              % std::alignment_of_v<KeyTypeId>
+          == 0) {
         res = *reinterpret_cast<const kagome::crypto::KeyTypeId *>(str.data());
       } else {
         memcpy(&res, str.data(), sizeof(KeyTypeId));
@@ -48,6 +49,24 @@ namespace kagome::crypto {
     return res;
   }
 
+  std::string encodeKeyFileName(KeyTypeId type, common::BufferView key) {
+    return common::hex_lower(str2byte(encodeKeyTypeIdToStr(type)))
+         + key.toHex();
+  }
+
+  outcome::result<std::pair<KeyTypeId, common::Buffer>> decodeKeyFileName(
+      std::string_view name) {
+    std::string_view type_str = name;
+    std::string_view key_str;
+    if (name.size() > 8) {
+      type_str = name.substr(0, 8);
+      key_str = name.substr(8);
+    }
+    OUTCOME_TRY(type_raw, common::Blob<4>::fromHex(type_str));
+    OUTCOME_TRY(key, common::Buffer::fromHex(key_str));
+    return std::make_pair(decodeKeyTypeIdFromStr(byte2str(type_raw)),
+                          std::move(key));
+  }
 }  // namespace kagome::crypto
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyTypeError, e) {

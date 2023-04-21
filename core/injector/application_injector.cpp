@@ -194,7 +194,7 @@ namespace {
   }
 
   sptr<storage::SpacedStorage> get_rocks_db(
-      application::AppConfiguration const &app_config,
+      const application::AppConfiguration &app_config,
       sptr<application::ChainSpec> chain_spec) {
     // hack for recovery mode (otherwise - fails due to rocksdb bug)
     bool prevent_destruction = app_config.recoverState().has_value();
@@ -237,8 +237,8 @@ namespace {
   }
 
   std::shared_ptr<application::ChainSpec> get_chain_spec(
-      application::AppConfiguration const &config) {
-    auto const &chainspec_path = config.chainSpecPath();
+      const application::AppConfiguration &config) {
+    const auto &chainspec_path = config.chainSpecPath();
 
     auto chain_spec_res =
         application::ChainSpecImpl::loadFrom(chainspec_path.native());
@@ -256,7 +256,7 @@ namespace {
   }
 
   sptr<crypto::KeyFileStorage> get_key_file_storage(
-      application::AppConfiguration const &config,
+      const application::AppConfiguration &config,
       sptr<application::ChainSpec> chain_spec) {
     auto path = config.keystorePath(chain_spec->id());
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
@@ -387,7 +387,7 @@ namespace {
             typename WavmType,
             typename Injector>
   auto choose_runtime_implementation(
-      Injector const &injector,
+      const Injector &injector,
       application::AppConfiguration::RuntimeExecutionMethod method) {
     using RuntimeExecutionMethod =
         application::AppConfiguration::RuntimeExecutionMethod;
@@ -433,11 +433,11 @@ namespace {
       Ts &&...args) {
     return di::make_injector(
         bind_by_lambda<runtime::RuntimeUpgradeTrackerImpl>(
-            [](auto const &injector) {
+            [](const auto &injector) {
               return get_runtime_upgrade_tracker(injector);
             }),
         bind_by_lambda<runtime::RuntimeUpgradeTracker>(
-            [](auto const &injector) {
+            [](const auto &injector) {
               return injector
                   .template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
             }),
@@ -555,7 +555,7 @@ namespace {
         libp2p::injector::makeKademliaInjector(),
         bind_by_lambda<libp2p::protocol::kademlia::Config>(
             [random_walk{config->getRandomWalkInterval()}](
-                auto const &injector) {
+                const auto &injector) {
               auto &chain_spec =
                   injector.template create<application::ChainSpec &>();
               return get_kademlia_config(chain_spec, random_walk);
@@ -570,15 +570,17 @@ namespace {
         }),
 
         // compose peer keypair
-        bind_by_lambda<libp2p::crypto::KeyPair>([](auto const &injector) {
+        bind_by_lambda<libp2p::crypto::KeyPair>([](const auto &injector) {
           auto &app_config =
               injector.template create<const application::AppConfiguration &>();
+          auto &chain =
+              injector.template create<const application::ChainSpec &>();
           auto &crypto_provider =
               injector.template create<const crypto::Ed25519Provider &>();
           auto &crypto_store =
               injector.template create<crypto::CryptoStore &>();
           return injector::get_peer_keypair(
-              app_config, crypto_provider, crypto_store);
+              app_config, chain, crypto_provider, crypto_store);
         })[boost::di::override],
 
         di::bind<api::Listener *[]>()  // NOLINT
@@ -644,7 +646,7 @@ namespace {
         }),
         di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
         bind_by_lambda<blockchain::BlockTree>(
-            [](auto const &injector) { return get_block_tree(injector); }),
+            [](const auto &injector) { return get_block_tree(injector); }),
         di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
@@ -662,7 +664,7 @@ namespace {
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
-        bind_by_lambda<crypto::KeyFileStorage>([](auto const &injector) {
+        bind_by_lambda<crypto::KeyFileStorage>([](const auto &injector) {
           const application::AppConfiguration &config =
               injector.template create<application::AppConfiguration const &>();
           auto chain_spec =
@@ -690,14 +692,14 @@ namespace {
         di::bind<network::ReqPovObserver>.template to<parachain::ParachainObserverImpl>(),
         di::bind<parachain::ParachainObserver>.template to<parachain::ParachainObserverImpl>(),
         bind_by_lambda<ThreadPool>(
-            [](auto const &injector) { return get_thread_pool(injector); }),
+            [](const auto &injector) { return get_thread_pool(injector); }),
         bind_by_lambda<storage::trie::TrieStorageBackend>(
-            [](auto const &injector) {
+            [](const auto &injector) {
               auto storage =
                   injector.template create<sptr<storage::SpacedStorage>>();
               return get_trie_storage_backend(storage);
             }),
-        bind_by_lambda<storage::trie::TrieStorage>([](auto const &injector) {
+        bind_by_lambda<storage::trie::TrieStorage>([](const auto &injector) {
           return storage::trie::TrieStorageImpl::createEmpty(
                      injector.template create<
                          sptr<storage::trie::PolkadotTrieFactory>>(),
@@ -732,7 +734,7 @@ namespace {
         di::bind<network::GrandpaTransmitter>.template to<network::GrandpaTransmitterImpl>(),
         di::bind<network::TransactionsTransmitter>.template to<network::TransactionsTransmitterImpl>(),
         bind_by_lambda<primitives::GenesisBlockHeader>(
-            [](auto const &injector) {
+            [](const auto &injector) {
               return get_genesis_block_header(injector);
             }),
         di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),

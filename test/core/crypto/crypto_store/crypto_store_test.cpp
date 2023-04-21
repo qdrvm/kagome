@@ -112,8 +112,7 @@ struct CryptoStoreTest : public test::BaseFS_Test {
   }
 
   bool isStoredOnDisk(KeyTypeId kt, const Blob<32> &public_key) {
-    auto file_name =
-        kagome::crypto::encodeKeyTypeIdToStr(kt) + public_key.toHex();
+    auto file_name = kagome::crypto::encodeKeyFileName(kt, public_key);
     auto file_path = crypto_store_test_directory / file_name;
     return boost::filesystem::exists(file_path);
   }
@@ -267,9 +266,6 @@ TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
   EXPECT_OUTCOME_TRUE(pair2,
                       crypto_store->generateEd25519KeypairOnDisk(
                           KnownKeyTypeId::KEY_TYPE_BABE));
-  EXPECT_OUTCOME_SUCCESS(pair3,
-                         crypto_store->generateEd25519KeypairOnDisk(
-                             KnownKeyTypeId::KEY_TYPE_LP2P));
   EXPECT_OUTCOME_SUCCESS(pair4,
                          crypto_store->generateSr25519KeypairOnDisk(
                              KnownKeyTypeId::KEY_TYPE_BABE));
@@ -298,9 +294,6 @@ TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
   EXPECT_OUTCOME_TRUE(pair2,
                       crypto_store->generateSr25519KeypairOnDisk(
                           KnownKeyTypeId::KEY_TYPE_BABE));
-  EXPECT_OUTCOME_SUCCESS(pair3,
-                         crypto_store->generateSr25519KeypairOnDisk(
-                             KnownKeyTypeId::KEY_TYPE_LP2P));
   EXPECT_OUTCOME_SUCCESS(pair4,
                          crypto_store->generateEd25519KeypairOnDisk(
                              KnownKeyTypeId::KEY_TYPE_BABE));
@@ -319,28 +312,6 @@ TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
 }
 
 /**
- * @given an empty crypto storage
- * @when having inserted keys into it
- * @then session keys are initialized with inserted keys of the corresponding
- * types
- */
-TEST_F(CryptoStoreTest, SessionKeys) {
-  // GIVEN
-  ASSERT_FALSE(crypto_store->getLibp2pKeypair());
-
-  // WHEN
-  EXPECT_OUTCOME_TRUE(
-      pair,
-      crypto_store->generateEd25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_LP2P))
-
-  // THEN
-  ASSERT_TRUE(crypto_store->getLibp2pKeypair());
-  ASSERT_THAT(pair.secret_key,
-              testing::ElementsAreArray(
-                  crypto_store->getLibp2pKeypair().value().privateKey.data));
-}
-
-/**
  * Currently incompatible with subkey because subkey doesn't append key type to
  * filename
  */
@@ -354,7 +325,7 @@ TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
   auto bip39_provider =
       std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider));
   auto keystore_path = boost::filesystem::path(__FILE__).parent_path()
-                       / "subkey_keys" / "keystore";
+                     / "subkey_keys" / "keystore";
   auto crypto_store = std::make_shared<CryptoStoreImpl>(
       std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
       std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),

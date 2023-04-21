@@ -233,7 +233,7 @@ namespace kagome::application {
 
   boost::filesystem::path AppConfigurationImpl::chainPath(
       std::string chain_id) const {
-    return base_path_ / chain_id;
+    return base_path_ / "chains" / chain_id;
   }
 
   fs::path AppConfigurationImpl::databasePath(std::string chain_id) const {

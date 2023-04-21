@@ -50,31 +50,20 @@ namespace kagome::crypto {
 
   outcome::result<std::pair<KeyTypeId, Buffer>>
   KeyFileStorage::parseKeyFileName(std::string_view file_name) const {
-    if (file_name.size() < 4) {
-      return Error::WRONG_KEYFILE_NAME;
-    }
-
-    auto key_type_str = file_name.substr(0, 4);
-    auto key_type = decodeKeyTypeIdFromStr(key_type_str);
-    if (!isSupportedKeyType(key_type)) {
+    OUTCOME_TRY(info, decodeKeyFileName(file_name));
+    auto key_type_str = file_name.substr(0, 8);
+    if (not isSupportedKeyType(info.first)) {
       logger_->warn(
           "key type <ascii: {}, hex: {:08x}> is not officially supported",
           key_type_str,
-          key_type);
+          info.first);
     }
-    auto public_key_hex = file_name.substr(4);
-
-    OUTCOME_TRY(public_key, Buffer::fromHex(public_key_hex));
-
-    return {key_type, public_key};
+    return std::move(info);
   }
 
   KeyFileStorage::Path KeyFileStorage::composeKeyPath(
       KeyTypeId key_type, gsl::span<const uint8_t> public_key) const {
-    auto &&key_type_str = encodeKeyTypeIdToStr(key_type);
-    auto &&public_key_hex = common::hex_lower(public_key);
-
-    return keystore_path_ / (key_type_str + public_key_hex);
+    return keystore_path_ / encodeKeyFileName(key_type, public_key);
   }
 
   outcome::result<void> KeyFileStorage::saveKeyPair(

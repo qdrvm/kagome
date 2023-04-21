@@ -9,6 +9,7 @@
 
 #include <gsl/span>
 
+#include "common/bytestr.hpp"
 #include "common/visitor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
@@ -188,44 +189,14 @@ namespace kagome::crypto {
         key_type, getCache(sr_suite_, sr_caches_, key_type), *sr_suite_);
   }
 
-  std::optional<libp2p::crypto::KeyPair> CryptoStoreImpl::getLibp2pKeypair()
-      const {
-    auto keys = getEd25519PublicKeys(KEY_TYPE_LP2P);
-    if (not keys or keys.value().empty()) {
-      return std::nullopt;
-    }
-    auto kp = findEd25519Keypair(KEY_TYPE_LP2P, keys.value().at(0));
-    if (kp) {
-      return ed25519KeyToLibp2pKeypair(kp.value());
-    }
-    return std::nullopt;
-  }
-
   outcome::result<libp2p::crypto::KeyPair> CryptoStoreImpl::loadLibp2pKeypair(
       const CryptoStore::Path &key_path) const {
-    auto lookup_res = file_storage_->loadFileContent(key_path);
-    if (lookup_res.has_error()
-        and lookup_res.error() == KeyFileStorage::Error::FILE_DOESNT_EXIST) {
-      OUTCOME_TRY(kp, ed_suite_->generateRandomKeypair());
-      getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P)
-          .insert(kp.public_key, kp.secret_key);
-      OUTCOME_TRY(file_storage_->saveKeyHexAtPath(kp.secret_key, key_path));
-      return ed25519KeyToLibp2pKeypair(kp);
-    }
-    // propagate any other error
-    if (lookup_res.has_error()) {
-      return lookup_res.error();
-    }
-    const auto &contents = lookup_res.value();
+    OUTCOME_TRY(contents, file_storage_->loadFileContent(key_path));
     BOOST_ASSERT(ED25519_SEED_LENGTH == contents.size()
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
     Ed25519Seed seed;
     if (ED25519_SEED_LENGTH == contents.size()) {
-      OUTCOME_TRY(
-          _seed,
-          Ed25519Seed::fromSpan(gsl::span(
-              reinterpret_cast<const uint8_t *>(contents.data()),  // NOLINT
-              ED25519_SEED_LENGTH)));
+      OUTCOME_TRY(_seed, Ed25519Seed::fromSpan(str2byte(contents)));
       seed = _seed;
     } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
       OUTCOME_TRY(_seed, Ed25519Seed::fromHexWithPrefix(contents));
@@ -234,9 +205,6 @@ namespace kagome::crypto {
       return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
     }
     OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed));
-
-    getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P)
-        .insert(kp.public_key, kp.secret_key);
     return ed25519KeyToLibp2pKeypair(kp);
   }
 
