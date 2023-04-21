@@ -64,10 +64,8 @@ TEST_F(MemoryAllocatorTest, EndingMaskSecondSegment) {
     size_t remains;
 
     ASSERT_EQ(0x000000000000001f, allocator_->getEndingMask<false>(1, 5, remains));
-    ASSERT_EQ(remains, 0ull);
-
-    ASSERT_EQ(0xffffffffffffffff, allocator_->getEndingMask<false>(10, 64, remains));
-    ASSERT_EQ(remains, 0ull);
+    ASSERT_EQ(0x000000000000001f, allocator_->getEndingMask<false>(1, 5, remains));
+    ASSERT_EQ(0x0000000000000000, allocator_->getEndingMask<false>(10, 0, remains));
 }
 
 TEST_F(MemoryAllocatorTest, SegmentMaskFirstSegment) {
@@ -95,6 +93,7 @@ TEST_F(MemoryAllocatorTest, SegmentMaskSecondSegment) {
     ASSERT_EQ(0x0000000000000001, allocator_->getSegmentMask<false>(10, 1, remains));
     ASSERT_EQ(0x7fffffffffffffff, allocator_->getSegmentMask<false>(10, 63, remains));
     ASSERT_EQ(0xffffffffffffffff, allocator_->getSegmentMask<false>(10, 64, remains));
+    ASSERT_EQ(0x0000000000000000, allocator_->getSegmentMask<false>(10, 0, remains));
 }
 
 TEST_F(MemoryAllocatorTest, SegmentFilter_0) {
@@ -157,7 +156,7 @@ TEST_F(MemoryAllocatorTest, SearchContBits_NoMem) {
     ASSERT_EQ(5ull, remains);
 }
 
-TEST_F(MemoryAllocatorTest, SearchContBits_Part1) {
+TEST_F(MemoryAllocatorTest, SearchContBits_Part0) {
     size_t remains;
     memset(&allocator_->table_[0], 0, sizeof(allocator_->table_[0]) * allocator_->table_.size());
     allocator_->table_[2] |= 0xc000000000000000;
@@ -165,9 +164,9 @@ TEST_F(MemoryAllocatorTest, SearchContBits_Part1) {
     ASSERT_EQ(3ull, remains);
 }
 
-/*TEST_F(MemoryAllocatorTest, SearchContBitsPart1) {
+TEST_F(MemoryAllocatorTest, SearchContBits_Part1) {
     size_t remains;
     allocator_->table_[0] = 0ull;
     ASSERT_EQ(64ull, allocator_->searchContiguousBitPack(5, remains));
     ASSERT_EQ(0ull, remains);
-}*/
+}

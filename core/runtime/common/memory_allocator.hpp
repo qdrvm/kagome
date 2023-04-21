@@ -183,7 +183,8 @@ namespace kagome::runtime {
           const auto segment_mask_0 = getSegmentMask<true>(position, count, remains);
           const auto segment_mask_1 = getSegmentMask<false>(0ull, remains, remains);
           
-          auto next_segment = (segment + 1ull) != end ? *(segment + 1ull) : 0ull;
+          /// unexisted last segment always correct for all part
+          const auto next_segment = (segment + 1ull) != end ? *(segment + 1ull) : std::numeric_limits<uint64_t>::max();
           const auto segment_0_filter = (preprocessed_segment & segment_mask_0) ^ segment_mask_0;
           const auto segment_1_filter = (next_segment & segment_mask_1) ^ segment_mask_1;
           if (__builtin_expect((segment_0_filter | segment_1_filter) == 0ull, 0)) {
@@ -261,7 +262,7 @@ namespace kagome::runtime {
           return (std::numeric_limits<uint64_t>::max() >> (kSegmentInBits - position - count));
         }
       } else {
-        return (std::numeric_limits<uint64_t>::max() >> (kSegmentInBits - count));
+        return count == 0ull ? 0ull : (std::numeric_limits<uint64_t>::max() >> (kSegmentInBits - count));
       }
     }
 
