@@ -248,8 +248,7 @@ namespace kagome::consensus::babe {
       case SyncMethod::FastWithoutState: {
         current_state_ = State::HEADERS_LOADING;
         babe_status_observable_->notify(
-            primitives::events::BabeStateEventType::kSynchronized,
-            current_state_);
+            primitives::events::BabeStateEventType::kSyncState, current_state_);
       } break;
     }
 
@@ -407,8 +406,7 @@ namespace kagome::consensus::babe {
       if (current_state_ == Babe::State::HEADERS_LOADING) {
         current_state_ = Babe::State::HEADERS_LOADED;
         babe_status_observable_->notify(
-            primitives::events::BabeStateEventType::kSynchronized,
-            current_state_);
+            primitives::events::BabeStateEventType::kSyncState, current_state_);
         startStateSyncing(peer_id);
       } else if (current_state_ == Babe::State::CATCHING_UP
                  or current_state_ == Babe::State::WAIT_REMOTE_STATUS) {
@@ -475,7 +473,7 @@ namespace kagome::consensus::babe {
             if (self->current_state_ == Babe::State::HEADERS_LOADING) {
               self->current_state_ = Babe::State::HEADERS_LOADED;
               self->babe_status_observable_->notify(
-                  primitives::events::BabeStateEventType::kSynchronized,
+                  primitives::events::BabeStateEventType::kSyncState,
                   self->current_state_);
               self->startStateSyncing(peer_id);
               return;
@@ -488,7 +486,7 @@ namespace kagome::consensus::babe {
               self->was_synchronized_ = true;
               self->telemetry_->notifyWasSynchronized();
               self->babe_status_observable_->notify(
-                  primitives::events::BabeStateEventType::kSynchronized,
+                  primitives::events::BabeStateEventType::kSyncState,
                   self->current_state_);
             }
 
@@ -543,15 +541,13 @@ namespace kagome::consensus::babe {
       if (current_state_ == State::HEADERS_LOADED) {
         current_state_ = State::HEADERS_LOADING;
         babe_status_observable_->notify(
-            primitives::events::BabeStateEventType::kSynchronized,
-            current_state_);
+            primitives::events::BabeStateEventType::kSyncState, current_state_);
       } else if (current_state_ == State::WAIT_BLOCK_ANNOUNCE
                  or current_state_ == State::WAIT_REMOTE_STATUS
                  or current_state_ == State::SYNCHRONIZED) {
         current_state_ = State::CATCHING_UP;
         babe_status_observable_->notify(
-            primitives::events::BabeStateEventType::kSynchronized,
-            current_state_);
+            primitives::events::BabeStateEventType::kSyncState, current_state_);
       }
     }
   }
@@ -567,7 +563,7 @@ namespace kagome::consensus::babe {
 
     current_state_ = Babe::State::STATE_LOADING;
     babe_status_observable_->notify(
-        primitives::events::BabeStateEventType::kSynchronized, current_state_);
+        primitives::events::BabeStateEventType::kSyncState, current_state_);
 
     if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
       if (app_state_manager_->state()
@@ -647,7 +643,7 @@ namespace kagome::consensus::babe {
                     block_at_state);
             self->current_state_ = Babe::State::CATCHING_UP;
             self->babe_status_observable_->notify(
-                primitives::events::BabeStateEventType::kSynchronized,
+                primitives::events::BabeStateEventType::kSyncState,
                 self->current_state_);
           }
         });
@@ -658,8 +654,7 @@ namespace kagome::consensus::babe {
     if (not keypair_) {
       current_state_ = State::WAIT_BLOCK_ANNOUNCE;
       babe_status_observable_->notify(
-          primitives::events::BabeStateEventType::kSynchronized,
-          current_state_);
+          primitives::events::BabeStateEventType::kSyncState, current_state_);
       return;
     }
 
@@ -667,7 +662,7 @@ namespace kagome::consensus::babe {
     was_synchronized_ = true;
     telemetry_->notifyWasSynchronized();
     babe_status_observable_->notify(
-        primitives::events::BabeStateEventType::kSynchronized, current_state_);
+        primitives::events::BabeStateEventType::kSyncState, current_state_);
 
     if (not active_) {
       best_block_ = block_tree_->bestLeaf();

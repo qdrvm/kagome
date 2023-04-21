@@ -141,7 +141,7 @@ namespace kagome::parachain {
             babe_status_observable_, false);
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSynchronized);
+        primitives::events::BabeStateEventType::kSyncState);
     babe_status_observer_->setCallback([wself{weak_from_this()}](
                                            auto /*set_id*/,
                                            bool &synchronized,

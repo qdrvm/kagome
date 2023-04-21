@@ -43,7 +43,7 @@ namespace kagome::primitives::events {
     kDeactivateAfterFinalization = 6,
   };
 
-  enum struct BabeStateEventType : uint32_t { kSynchronized = 1 };
+  enum struct BabeStateEventType : uint32_t { kSyncState = 1 };
 
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
