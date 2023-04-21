@@ -129,6 +129,15 @@ namespace kagome::runtime {
         storageAdjust(remains * kAlignment);
       }
 
+      const auto segment_ix = position / kSegmentInBits;
+      const auto bit_ix = position % kSegmentInBits;
+
+      const auto segment_mask_0 = getSegmentMask<true>(bit_ix, bits_len, remains);
+      const auto segment_mask_1 = remains == 0ull ? 0ull : getSegmentMask<false>(0ull, remains, remains);
+
+      table_[segment_ix] &= ~segment_mask_0;
+      table_[segment_ix + 1] &= ~segment_mask_1;
+
       //markUsed()
       return position;
     }
@@ -184,11 +193,12 @@ namespace kagome::runtime {
           const auto segment_mask_1 = getSegmentMask<false>(0ull, remains, remains);
           
           /// unexisted last segment always correct for all part
-          const auto next_segment = (segment + 1ull) != end ? *(segment + 1ull) : std::numeric_limits<uint64_t>::max();
+          const auto n_last_segment = (segment + 1ull) != end;
+          const auto next_segment = n_last_segment ? *(segment + 1ull) : std::numeric_limits<uint64_t>::max();
           const auto segment_0_filter = (preprocessed_segment & segment_mask_0) ^ segment_mask_0;
           const auto segment_1_filter = (next_segment & segment_mask_1) ^ segment_mask_1;
           if (__builtin_expect((segment_0_filter | segment_1_filter) == 0ull, 0)) {
-            if ((segment + 1ull) != end) {
+            if (n_last_segment) {
               remains = 0ull;
             }
             break;
