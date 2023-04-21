@@ -6,9 +6,9 @@
 #ifndef KAGOME_MATH_HPP
 #define KAGOME_MATH_HPP
 
+#include <assert.h>
 #include <common/blob.hpp>
 #include <type_traits>
-#include <assert.h>
 
 namespace kagome::math {
 

@@ -30,7 +30,7 @@
 #ifdef __has_builtin
 #if __has_builtin(__builtin_expect)
 #define likely(x) __builtin_expect(!!(x), 1)
-#define unlikely(x)    __builtin_expect(!!(x), 0)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 #endif
 #endif
 #ifndef likely
@@ -61,7 +61,7 @@ namespace kagome::runtime {
      * The call will be done on the \param block_info state
      */
     outcome::result<std::unique_ptr<RuntimeEnvironment>> persistentAt(
-        primitives::BlockHash const &block_hash,
+        const primitives::BlockHash &block_hash,
         TrieChangesTrackerOpt changes_tracker) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env,
@@ -78,8 +78,8 @@ namespace kagome::runtime {
      * on \param storage_state storage state
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> callAt(primitives::BlockInfo const &block_info,
-                                   storage::trie::RootHash const &storage_state,
+    outcome::result<Result> callAt(const primitives::BlockInfo &block_info,
+                                   const storage::trie::RootHash &storage_state,
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
@@ -92,7 +92,7 @@ namespace kagome::runtime {
      * The call will be done on the \param block_hash state
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> callAt(primitives::BlockHash const &block_hash,
+    outcome::result<Result> callAt(const primitives::BlockHash &block_hash,
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
