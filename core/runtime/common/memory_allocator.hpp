@@ -106,29 +106,18 @@ namespace kagome::runtime {
     log::Logger logger_;
   };
 
+  #define BSR(val) __builtin_ctzll(val)
   #define BSF(val) __builtin_clzll(val)
 
-  template<size_t Align = 8ull>
+  template<size_t kGranularity>
   struct MemoryAllocatorNew {
     static constexpr size_t kSegmentInBits = 64ull;
-    static constexpr size_t kAlignment = Align;
-    static constexpr size_t kSegmentSize = kAlignment * kSegmentInBits;
-    static constexpr size_t kPageSize = kSegmentSize * 4ull;
+    static constexpr size_t kAlignment = kGranularity;
+    static constexpr size_t kSegmentSize = kGranularity * kSegmentInBits;
+    static constexpr size_t kAllocationSize = kSegmentSize;
 
     static_assert((kAlignment & (kAlignment - 1)) == 0, "Power of 2!");
     static_assert((kSegmentSize & (kSegmentSize - 1)) == 0, "Power of 2!");
-    static_assert((kPageSize & (kPageSize - 1)) == 0, "Power of 2!");
-
-    const size_t kAllocationSize{[] {
-      const auto page_size = (size_t)sysconf(_SC_PAGE_SIZE);
-      if (page_size == size_t(-1)) {
-        throw std::runtime_error("System page size not detected.");
-      }
-      if ((page_size & (kSegmentSize - 1)) != 0ull) {
-        throw std::runtime_error("Page size must be multiple of segment size.");
-      }
-      return math::roundUpRuntime(kPageSize, page_size);
-    }()};
 
     size_t allocate(size_t size) {
       const auto allocation_size = math::roundUp<kAlignment>(size);
@@ -182,31 +171,38 @@ namespace kagome::runtime {
       const auto *const end = table_.data() + table_.size();
 
       const auto *segment = begin;
-      uint64_t segment_filter = std::numeric_limits<uint64_t>::max();
-      remains = count;
+      uint64_t preprocessed_segment_filter = std::numeric_limits<uint64_t>::max();
       size_t position;
-      do {
-        const auto preprocessed_segment = (*segment & segment_filter);
-        position = preprocessed_segment ? kSegmentInBits - BSF(preprocessed_segment) - 1ull : size_t(-1);
-        if (position != size_t(-1)) {
-          const auto leading_mask = getLeadingMask(position, count == remains);
-          const auto ending_mask = getEndingMask(position, remains, count == remains);
-          const auto segment_mask = (leading_mask & ending_mask);
 
-          if ((preprocessed_segment & segment_mask) == segment_mask) {
-            remains -= std::min(position + size_t(1ull), remains);
-          } else {
-            remains = count;
-            updateSegmentFilter(segment_filter, position);
-            continue;  
+      do {
+        remains = count;
+        const auto preprocessed_segment = (*segment & preprocessed_segment_filter);
+        position = BSR(preprocessed_segment);
+
+        if (position != kSegmentInBits) {
+          const auto leading_mask_0 = getLeadingMask<true>(position);
+          const auto ending_mask_0 = getEndingMask<true>(position, count, remains);
+          const auto segment_mask_0 = (leading_mask_0 & ending_mask_0);
+
+          auto next_segment = (segment + 1ull) != end ? *(segment + 1ull) : 0ull;
+
+          const auto leading_mask_1 = getLeadingMask<false>(0ull);
+          const auto ending_mask_1 = getEndingMask<false>(0ull, remains, remains);
+          const auto segment_mask_1 = (leading_mask_1 & ending_mask_1);
+          
+          const auto segment_0_filter = (preprocessed_segment & segment_mask_0) ^ segment_mask_0;
+          const auto segment_1_filter = (next_segment & segment_mask_1) ^ segment_mask_1;
+          if ((segment_0_filter | segment_1_filter) == 0ull) {
+            break;
           }
+          updateSegmentFilter(segment, preprocessed_segment_filter, segment_0_filter, segment_1_filter);
         } else {
-          remains = count;
+          ++segment;
+          preprocessed_segment_filter = std::numeric_limits<uint64_t>::max();
         }
-        ++segment;
-        segment_filter = std::numeric_limits<uint64_t>::max();
-      } while(remains > 0 && end != segment);
-      return (segment - begin) * kSegmentInBits - position - 1ull;
+      } while(end != segment);
+
+      return (segment - begin) * kSegmentInBits + position;
     }
 
     size_t end() const {
@@ -235,23 +231,36 @@ namespace kagome::runtime {
       }
     }
 
-    void updateSegmentFilter(uint64_t &filter, const size_t position) const {
-      filter &= ~((1ull << position) | ((1ull << position) >> 1ull));
+    void updateSegmentFilter(uint64_t *&segment, uint64_t &preprocessed_filter, uint64_t segment_filter_0, uint64_t segment_filter_1) const {
+      if (segment_filter_1 != 0ull) {
+        preprocessed_filter = std::numeric_limits<uint64_t>::max() << (kSegmentInBits - BSF(segment_filter_1));
+        ++segment;
+      } else {
+        preprocessed_filter = std::numeric_limits<uint64_t>::max() << (kSegmentInBits - BSF(segment_filter_0));
+      }
     }
 
-    uint64_t getLeadingMask(const size_t position, bool is_starting) const {
-      if (is_starting) {
-        return ((1ull << position) - 1ull) | (1ull << position);
+    template<bool first_segment>
+    uint64_t getLeadingMask(const size_t position) const {
+      if constexpr (first_segment) {
+        return (std::numeric_limits<uint64_t>::max() << position);
       }
       return std::numeric_limits<uint64_t>::max();
     }
 
-    uint64_t getEndingMask(const size_t position, const size_t count, bool is_starting) const {
-      const auto marker_position = is_starting ? position + 1ull - count : kSegmentInBits - count;//kSegmentInBits - (count + kSegmentInBits - position - 1ull);
-      if (marker_position <= kSegmentInBits) {
-        return ~((1ull << marker_position) - 1ull);
+    template<bool first_segment>
+    uint64_t getEndingMask(const size_t position, const size_t count, size_t &remains) const {
+      if constexpr (first_segment) {
+        if (position + count >= kSegmentInBits) {
+          remains = count - (kSegmentInBits - position);
+          return std::numeric_limits<uint64_t>::max(); 
+        } else {
+          remains = 0ull;
+          return (std::numeric_limits<uint64_t>::max() >> (kSegmentInBits - position - count));
+        }
+      } else {
+        return (std::numeric_limits<uint64_t>::max() >> (kSegmentInBits - count));
       }
-      return std::numeric_limits<uint64_t>::max();
     }
 
     void storageAdjust(size_t size) {
