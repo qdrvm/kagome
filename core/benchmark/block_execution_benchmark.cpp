@@ -213,14 +213,15 @@ namespace kagome::benchmark {
         / static_cast<double>(WEIGHT_REF_TIME_PER_NANOS)))};
   }
 
-  outcome::result<void> BlockExecutionBenchmark::run(Config config) {
+  outcome::result<void> BlockExecutionBenchmark::run(const Config config) {
     OUTCOME_TRY_MSG(current_hash,
                     block_tree_->getBlockHash(config.start),
                     "retrieving hash of block {}",
                     config.start);
 
     primitives::BlockInfo current_block_info = {config.start, current_hash};
-    std::unordered_map<primitives::BlockHash, primitives::Block> blocks;
+    std::vector<primitives::BlockHash> block_hashes;
+    std::vector<primitives::Block> blocks;
     while (current_block_info.number <= config.end) {
       OUTCOME_TRY_MSG(current_block_header,
                       block_tree_->getBlockHeader(current_block_info.hash),
@@ -233,7 +234,8 @@ namespace kagome::benchmark {
       primitives::Block current_block{std::move(current_block_header),
                                       std::move(current_block_body)};
       current_block.header.digest.pop_back();
-      blocks.emplace(current_block_info.hash, std::move(current_block));
+      block_hashes.emplace_back(current_block_info.hash);
+      blocks.emplace_back(std::move(current_block));
       OUTCOME_TRY_MSG(next_hash,
                       block_tree_->getBlockHash(current_block_info.number + 1),
                       "retrieving hash of block {}",
@@ -245,24 +247,24 @@ namespace kagome::benchmark {
     std::chrono::steady_clock clock;
 
     std::vector<Stats<std::chrono::nanoseconds>> duration_stats;
-    for (auto &[hash, block] : blocks) {
+    for (size_t i = 0; i < blocks.size(); i++) {
       duration_stats.emplace_back(Stats<std::chrono::nanoseconds>{
-          primitives::BlockInfo{hash, block.header.number}});
+          primitives::BlockInfo{block_hashes[i], blocks[i].header.number}});
     }
     for (uint16_t i = 0; i < config.times; i++) {
       auto duration_stat_it = duration_stats.begin();
-      for (auto &[hash, block] : blocks) {
+      for (size_t block_i = 0; block_i < blocks.size(); block_i++) {
         auto start = clock.now();
-        OUTCOME_TRY_MSG_VOID(core_api_->execute_block(block, std::nullopt),
+        OUTCOME_TRY_MSG_VOID(core_api_->execute_block(blocks[block_i], std::nullopt),
                              "execution of block {}",
-                             hash);
+                             block_hashes[i]);
         auto end = clock.now();
         auto duration_ns =
             std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
         duration_stat_it->add(duration_ns);
         SL_INFO(logger_,
                 "Block #{}, {} ns",
-                block.header.number,
+                blocks[block_i].header.number,
                 duration_ns.count());
         duration_stat_it++;
       }
@@ -278,7 +280,7 @@ namespace kagome::benchmark {
       OUTCOME_TRY(
           block_weight_ns,
           getBlockWeightAsNanoseconds(
-              *trie_storage_, blocks[stat.getBlock().hash].header.state_root));
+              *trie_storage_, blocks[stat.getBlock().number - config.start].header.state_root));
       SL_INFO(
           logger_,
           "Block {}: consumed {} ns out of declared {} ns on average. ({} %)",
