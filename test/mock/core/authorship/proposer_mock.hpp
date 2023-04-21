@@ -16,6 +16,7 @@ namespace kagome::authorship {
     MOCK_METHOD(outcome::result<primitives::Block>,
                 propose,
                 (const primitives::BlockInfo &,
+                 std::optional<Clock::TimePoint>,
                  const primitives::InherentData &,
                  const primitives::Digest &,
                  TrieChangesTrackerOpt),
