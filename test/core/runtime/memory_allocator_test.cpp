@@ -235,3 +235,24 @@ TEST_F(MemoryAllocatorTest, SearchContBits_Part6) {
   ASSERT_EQ(129ull, allocator_->searchContiguousBitPack(64, remains));
   ASSERT_EQ(1ull, remains);
 }
+
+TEST_F(MemoryAllocatorTest, AllocateTest_0) {
+  ASSERT_EQ(0ull, allocator_->allocate(allocator_->kAlignment));
+  ASSERT_EQ(0xfffffffffffffffe, allocator_->table_[0]);
+}
+
+TEST_F(MemoryAllocatorTest, AllocateTest_1) {
+  allocator_->table_[0] = 0x0000000000000000;
+  allocator_->table_[1] = 0x0000000000000000;
+  ASSERT_EQ(allocator_->kSegmentInBits * allocator_->kAlignment * 2ull, allocator_->allocate(allocator_->kAlignment));
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xfffffffffffffffe, allocator_->table_[2]);
+}
+
+TEST_F(MemoryAllocatorTest, AllocateTest_2) {
+  ASSERT_EQ(0ull, allocator_->allocate(allocator_->kSegmentSize));
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+}

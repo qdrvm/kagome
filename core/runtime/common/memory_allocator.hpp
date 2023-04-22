@@ -134,14 +134,15 @@ namespace kagome::runtime {
 
       const auto segment_mask_0 =
           getSegmentMask<true>(bit_ix, bits_len, remains);
-      const auto segment_mask_1 =
-          remains == 0ull ? 0ull
-                          : getSegmentMask<false>(0ull, remains, remains);
-
       table_[segment_ix] &= ~segment_mask_0;
-      table_[segment_ix + 1] &= ~segment_mask_1;
 
-      // markAsUsed()
+      if (table_.size() > segment_ix + 1) {
+        const auto segment_mask_1 =
+            remains == 0ull ? 0ull
+                            : getSegmentMask<false>(0ull, remains, remains);
+        table_[segment_ix + 1] &= ~segment_mask_1;
+      }
+
       return position * kAlignment;
     }
 
@@ -232,6 +233,10 @@ namespace kagome::runtime {
 
     size_t end() const {
       return table_.size() * kSegmentInBits;
+    }
+
+    void const *startAddr() const {
+      return storage_;
     }
 
     /*template<size_t kValue>
