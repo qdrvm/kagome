@@ -141,8 +141,8 @@ namespace kagome::runtime {
       table_[segment_ix] &= ~segment_mask_0;
       table_[segment_ix + 1] &= ~segment_mask_1;
 
-      // markUsed()
-      return position;
+      // markAsUsed()
+      return position * kAlignment;
     }
 
     std::optional<size_t> deallocate(size_t ptr) {
