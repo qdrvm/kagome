@@ -29,8 +29,6 @@ namespace kagome::application {
 
     int chainInfo() override;
 
-    int benchmark() override;
-
     int recovery() override;
 
     void run() override;

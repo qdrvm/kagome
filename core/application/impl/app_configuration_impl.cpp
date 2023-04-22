@@ -719,7 +719,9 @@ namespace kagome::application {
     return telemetry::TelemetryEndpoint{std::move(uri), verbosity_level};
   }
 
-  bool AppConfigurationImpl::initializeFromArgs(int argc, const char **argv) {
+  bool AppConfigurationImpl::initializeFromArgs(int argc,
+                                                const char **argv,
+                                                Command command) {
     namespace po = boost::program_options;
 
     // clang-format off
@@ -796,8 +798,6 @@ namespace kagome::application {
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
-      ("benchmark", "run kagome in benchmark mode")
-      ("block", "run block execution benchmark")
       ("from", po::value<uint32_t>(), "set the initial block for block execution benchmark")
       ("to", po::value<uint32_t>(), "set the final block for block execution benchmark")
       ("repeat", po::value<uint16_t>(), "set the repetition number for block execution benchmark")
@@ -1326,61 +1326,53 @@ namespace kagome::application {
       subcommand_ = Subcommand::ChainInfo;
     });
 
-    auto is_benchmark = find_argument(vm, "benchmark");
-    if (is_benchmark) {
-      subcommand_ = Subcommand::Benchmark;
-
-      uint16_t found_num = 0;
-
-      auto is_block = find_argument(vm, "block");
-      if (is_block) {
-        found_num++;
-        auto from_opt = find_argument<uint32_t>(vm, "from");
-        if (!from_opt) {
-          SL_ERROR(logger_, "Required argument --from is not provided");
-          return false;
-        }
-        auto to_opt = find_argument<uint32_t>(vm, "to");
-        if (!to_opt) {
-          SL_ERROR(logger_, "Required argument --to is not provided");
-          return false;
-        }
-        auto repeat_opt = find_argument<uint16_t>(vm, "repeat");
-        if (!to_opt) {
-          SL_ERROR(logger_, "Required argument --repeat is not provided");
-          return false;
-        }
-        benchmark_config_ = BlockBenchmarkConfig{
-            .from = *from_opt, .to = *to_opt, .times = *repeat_opt};
-      }
-      if (found_num == 0) {
-        SL_ERROR(logger_, "Found no benchmark options, one must be chosen.");
+    if (command == Command::Benchmark) {
+      auto from_opt = find_argument<uint32_t>(vm, "from");
+      if (!from_opt) {
+        SL_ERROR(logger_, "Required argument --from is not provided");
         return false;
       }
-      if (found_num > 1) {
-        SL_ERROR(logger_,
-                 "Found several benchmark options, only one must be chosen.");
+      auto to_opt = find_argument<uint32_t>(vm, "to");
+      if (!to_opt) {
+        SL_ERROR(logger_, "Required argument --to is not provided");
         return false;
       }
-    }
-
-    bool has_recovery = false;
-    find_argument<std::string>(vm, "recovery", [&](const std::string &val) {
-      has_recovery = true;
-      recovery_state_ = str_to_recovery_state(val);
-      if (not recovery_state_) {
-        SL_ERROR(logger_, "Invalid recovery state specified: '{}'", val);
+      auto repeat_opt = find_argument<uint16_t>(vm, "repeat");
+      if (!to_opt) {
+        SL_ERROR(logger_, "Required argument --repeat is not provided");
+        return false;
       }
-    });
-    if (has_recovery and not recovery_state_.has_value()) {
+      benchmark_config_ = BlockBenchmarkConfig{
+          .from = *from_opt, .to = *to_opt, .times = *repeat_opt};
+    }
+    if (found_num == 0) {
+      SL_ERROR(logger_, "Found no benchmark options, one must be chosen.");
       return false;
     }
-
-    // if something wrong with config print help message
-    if (not validate_config()) {
-      std::cout << desc << std::endl;
+    if (found_num > 1) {
+      SL_ERROR(logger_,
+               "Found several benchmark options, only one must be chosen.");
       return false;
     }
-    return true;
   }
+
+  bool has_recovery = false;
+  find_argument<std::string>(vm, "recovery", [&](const std::string &val) {
+    has_recovery = true;
+    recovery_state_ = str_to_recovery_state(val);
+    if (not recovery_state_) {
+      SL_ERROR(logger_, "Invalid recovery state specified: '{}'", val);
+    }
+  });
+  if (has_recovery and not recovery_state_.has_value()) {
+    return false;
+  }
+
+  // if something wrong with config print help message
+  if (not validate_config()) {
+    std::cout << desc << std::endl;
+    return false;
+  }
+  return true;
+}
 }  // namespace kagome::application

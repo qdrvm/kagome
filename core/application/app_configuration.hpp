@@ -23,7 +23,7 @@
 
 namespace kagome::application {
 
-  enum class Subcommand { ChainInfo, Benchmark };
+  enum class Subcommand { ChainInfo };
 
   struct BlockBenchmarkConfig {
     primitives::BlockNumber from;

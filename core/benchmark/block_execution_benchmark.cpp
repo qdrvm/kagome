@@ -270,8 +270,8 @@ namespace kagome::benchmark {
       }
     }
     for (auto &stat : duration_stats) {
-      SL_INFO(logger_,
-              "Block #{}, min {} ns, avg {} ns, median {} ns, max {} ns",
+      logger_->info(
+              "Block #{}, min {:L} ns, avg {:L} ns, median {:L} ns, max {:L} ns",
               stat.getBlock().number,
               stat.min().count(),
               stat.avg().count(),
@@ -281,10 +281,9 @@ namespace kagome::benchmark {
           block_weight_ns,
           getBlockWeightAsNanoseconds(
               *trie_storage_, blocks[stat.getBlock().number - config.start].header.state_root));
-      SL_INFO(
-          logger_,
-          "Block {}: consumed {} ns out of declared {} ns on average. ({} %)",
-          stat.getBlock(),
+      logger_->info(
+          "Block {:L}: consumed {:L} ns out of declared {:L} ns on average. ({} %)",
+          stat.getBlock().number,
           stat.avg().count(),
           block_weight_ns.count(),
           (static_cast<double>(stat.avg().count())

@@ -34,6 +34,10 @@ namespace kagome {
     class AddressPublisher;
   }  // namespace authority_discovery
 
+  namespace benchmark {
+    class BlockExecutionBenchmark;
+  }
+
   namespace metrics {
     class Exposer;
     class MetricsWatcher;
@@ -125,7 +129,7 @@ namespace kagome::injector {
     std::shared_ptr<application::mode::PrintChainInfoMode>
     injectPrintChainInfoMode();
     std::shared_ptr<application::mode::RecoveryMode> injectRecoveryMode();
-    std::shared_ptr<application::mode::BenchmarkMode> injectBenchmarkMode();
+    std::shared_ptr<benchmark::BlockExecutionBenchmark> injectBlockBenchmark();
 
    protected:
     std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;

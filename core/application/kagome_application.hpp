@@ -21,9 +21,6 @@ namespace kagome::application {
     /// Runs recovery mode
     virtual int recovery() = 0;
 
-    /// runs a benchmark
-    virtual int benchmark() = 0;
-
     /// Runs node
     virtual void run() = 0;
   };

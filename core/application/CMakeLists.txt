@@ -59,7 +59,6 @@ kagome_install(app_state_manager)
 
 add_library(application_modes
     modes/print_chain_info_mode.cpp
-    modes/benchmark_mode.cpp
     )
 target_link_libraries(application_modes
     hexutil

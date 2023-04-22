@@ -260,10 +260,10 @@ namespace {
                                  prevent_destruction);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
-      log->critical("Can't create RocksDB in {}: {}",
-                    fs::absolute(app_config.databasePath(chain_spec->id()))
-                        .native(),
-                    db_res.error());
+      log->critical(
+          "Can't create RocksDB in {}: {}",
+          fs::absolute(app_config.databasePath(chain_spec->id())).native(),
+          db_res.error());
       exit(EXIT_FAILURE);
     }
     auto &db = db_res.value();
@@ -279,10 +279,9 @@ namespace {
         application::ChainSpecImpl::loadFrom(chainspec_path.native());
     if (not chain_spec_res.has_value()) {
       auto log = log::createLogger("Injector", "injector");
-      log->critical(
-          "Can't load chain spec from {}: {}",
-          fs::absolute(chainspec_path.native()).native(),
-          chain_spec_res.error());
+      log->critical("Can't load chain spec from {}: {}",
+                    fs::absolute(chainspec_path.native()).native(),
+                    chain_spec_res.error());
       exit(EXIT_FAILURE);
     }
     auto &chain_spec = chain_spec_res.value();
@@ -1380,10 +1379,11 @@ namespace kagome::injector {
         .template create<sptr<authority_discovery::AddressPublisher>>();
   }
 
-  std::shared_ptr<application::mode::BenchmarkMode>
-  KagomeNodeInjector::injectBenchmarkMode() {
+  std::shared_ptr<benchmark::BlockExecutionBenchmark>
+  KagomeNodeInjector::injectBlockBenchmark();
+  {
     return pimpl_->injector_
-        .template create<sptr<application::mode::BenchmarkMode>>();
+        .template create<sptr<benchmark::BlockExecutionBenchmark>>();
   }
 
 }  // namespace kagome::injector

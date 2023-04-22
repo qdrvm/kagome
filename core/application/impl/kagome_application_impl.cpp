@@ -10,7 +10,6 @@
 #include "application/impl/util.hpp"
 #include "application/modes/print_chain_info_mode.hpp"
 #include "application/modes/recovery_mode.hpp"
-#include "application/modes/benchmark_mode.hpp"
 #include "consensus/babe/babe.hpp"
 #include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/metrics.hpp"
@@ -38,12 +37,6 @@ namespace kagome::application {
     logger_->info("Start in recovery mode with PID {}", getpid());
 
     auto mode = injector_->injectRecoveryMode();
-    return mode->run();
-  }
-
-  int KagomeApplicationImpl::benchmark() {
-    auto mode = injector_->injectBenchmarkMode();
-    BOOST_ASSERT(mode);
     return mode->run();
   }
 

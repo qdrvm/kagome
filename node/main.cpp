@@ -26,6 +26,10 @@ using kagome::application::AppConfigurationImpl;
 int storage_explorer_main(int argc, const char **argv);
 int db_editor_main(int argc, const char **argv);
 
+namespace kagome {
+  int benchmark_main(int argc, const char **argv);
+}
+
 int main(int argc, const char **argv) {
   if (argc > 1) {
     std::string_view name{argv[1]};
@@ -34,6 +38,9 @@ int main(int argc, const char **argv) {
     }
     if (name == "db-editor") {
       return db_editor_main(argc - 1, argv + 1);
+    }
+    if (name == "benchmark") {
+      return kagome::benchmark_main(argc - 1, argv + 1);
     }
   }
 
@@ -75,8 +82,6 @@ int main(int argc, const char **argv) {
         using kagome::application::Subcommand;
         case Subcommand::ChainInfo:
           return app->chainInfo();
-        case Subcommand::Benchmark:
-          return app->benchmark();
       }
     }
 
