@@ -50,7 +50,7 @@ namespace kagome::consensus::babe {
   }
 
   primitives::BlockContext BlockAppenderBase::makeBlockContext(
-      primitives::BlockHeader const &header) const {
+      const primitives::BlockHeader &header) const {
     auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
     return primitives::BlockContext{
         .block_info = {header.number, block_hash},
@@ -60,7 +60,7 @@ namespace kagome::consensus::babe {
 
   void BlockAppenderBase::applyJustifications(
       const primitives::BlockInfo &block_info,
-      std::optional<primitives::Justification> const &opt_justification,
+      const std::optional<primitives::Justification> &opt_justification,
       ApplyJustificationCb &&callback) {
     // try to apply postponed justifications first if any
     if (not postponed_justifications_->empty()) {
@@ -146,7 +146,7 @@ namespace kagome::consensus::babe {
 
   outcome::result<ConsistencyGuard>
   BlockAppenderBase::observeDigestsAndValidateHeader(
-      primitives::Block const &block, primitives::BlockContext const &context) {
+      const primitives::Block &block, const primitives::BlockContext &context) {
     OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
 
     const auto &babe_header = babe_digests.second;
@@ -248,7 +248,7 @@ namespace kagome::consensus::babe {
   }
 
   outcome::result<BlockAppenderBase::SlotInfo> BlockAppenderBase::getSlotInfo(
-      primitives::BlockHeader const &header) const {
+      const primitives::BlockHeader &header) const {
     OUTCOME_TRY(babe_digests, getBabeDigests(header));
 
     const auto &babe_header = babe_digests.second;

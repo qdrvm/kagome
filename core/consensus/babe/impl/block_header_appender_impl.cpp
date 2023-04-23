@@ -34,7 +34,7 @@ namespace kagome::consensus::babe {
 
   void BlockHeaderAppenderImpl::appendHeader(
       primitives::BlockHeader &&block_header,
-      std::optional<primitives::Justification> const &justification,
+      const std::optional<primitives::Justification> &justification,
       ApplyJustificationCb &&callback) {
     auto block_context = appender_->makeBlockContext(block_header);
     auto &block_info = block_context.block_info;
@@ -71,7 +71,7 @@ namespace kagome::consensus::babe {
     }
 
     // get current time to measure performance if block execution
-    auto const t_start = std::chrono::high_resolution_clock::now();
+    const auto t_start = std::chrono::high_resolution_clock::now();
 
     primitives::Block block{.header = std::move(block_header)};
 

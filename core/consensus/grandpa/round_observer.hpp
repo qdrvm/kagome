@@ -37,7 +37,7 @@ namespace kagome::consensus::grandpa {
     virtual void onVoteMessage(
         std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
         const libp2p::peer::PeerId &peer_id,
-        VoteMessage const &msg) = 0;
+        const VoteMessage &msg) = 0;
 
     /**
      * Handler of grandpa finalization messages
@@ -47,7 +47,7 @@ namespace kagome::consensus::grandpa {
     virtual void onCommitMessage(
         std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
         const libp2p::peer::PeerId &peer_id,
-        network::FullCommitMessage const &msg) = 0;
+        const network::FullCommitMessage &msg) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

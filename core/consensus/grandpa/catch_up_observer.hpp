@@ -34,7 +34,7 @@ namespace kagome::consensus::grandpa {
     virtual void onCatchUpResponse(
         std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
         const libp2p::peer::PeerId &peer_id,
-        network::CatchUpResponse const &msg) = 0;
+        const network::CatchUpResponse &msg) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

@@ -357,7 +357,7 @@ namespace kagome::blockchain {
               std::move(justification_storage_policy),
       }},
         main_thread_{std::move(io_context)} {
-    block_tree_data_.sharedAccess([&](BlockTreeData const &p) {
+    block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
       BOOST_ASSERT(p.header_repo_ != nullptr);
       BOOST_ASSERT(p.storage_ != nullptr);
       BOOST_ASSERT(p.tree_ != nullptr);
@@ -404,8 +404,8 @@ namespace kagome::blockchain {
   const primitives::BlockHash &BlockTreeImpl::getGenesisBlockHash() const {
     return block_tree_data_
         .sharedAccess(
-            [&](auto const &p)
-                -> std::reference_wrapper<primitives::BlockHash const> {
+            [&](const auto &p)
+                -> std::reference_wrapper<primitives::const BlockHash> {
               if (p.genesis_block_hash_.has_value()) {
                 return p.genesis_block_hash_.value();
               }
@@ -849,7 +849,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHash> BlockTreeImpl::getBlockHash(
       primitives::BlockNumber block_number) const {
     return block_tree_data_.sharedAccess(
-        [&](auto const &p) -> outcome::result<primitives::BlockHash> {
+        [&](const auto &p) -> outcome::result<primitives::BlockHash> {
           OUTCOME_TRY(hash_opt, p.storage_->getBlockHash(block_number));
           if (hash_opt.has_value()) {
             return hash_opt.value();
@@ -861,11 +861,11 @@ namespace kagome::blockchain {
   outcome::result<bool> BlockTreeImpl::hasBlockHeader(
       const primitives::BlockHash &block_hash) const {
     return block_tree_data_.sharedAccess(
-        [&](auto const &p) { return p.storage_->hasBlockHeader(block_hash); });
+        [&](const auto &p) { return p.storage_->hasBlockHeader(block_hash); });
   }
 
   outcome::result<primitives::BlockHeader> BlockTreeImpl::getBlockHeaderNoLock(
-      BlockTreeData const &p, const primitives::BlockHash &block_hash) const {
+      const BlockTreeData &p, const primitives::BlockHash &block_hash) const {
     OUTCOME_TRY(header, p.storage_->getBlockHeader(block_hash));
     if (header.has_value()) {
       return header.value();
@@ -876,7 +876,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHeader> BlockTreeImpl::getBlockHeader(
       const primitives::BlockHash &block_hash) const {
     return block_tree_data_.sharedAccess(
-        [&](auto const &p) -> outcome::result<primitives::BlockHeader> {
+        [&](const auto &p) -> outcome::result<primitives::BlockHeader> {
           return getBlockHeaderNoLock(p, block_hash);
         });
   }
@@ -884,7 +884,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(
       const primitives::BlockHash &block_hash) const {
     return block_tree_data_.sharedAccess(
-        [&](auto const &p) -> outcome::result<primitives::BlockBody> {
+        [&](const auto &p) -> outcome::result<primitives::BlockBody> {
           OUTCOME_TRY(body, p.storage_->getBlockBody(block_hash));
           if (body.has_value()) {
             return body.value();
@@ -897,7 +897,7 @@ namespace kagome::blockchain {
   BlockTreeImpl::getBlockJustification(
       const primitives::BlockHash &block_hash) const {
     return block_tree_data_.sharedAccess(
-        [&](auto const &p) -> outcome::result<primitives::Justification> {
+        [&](const auto &p) -> outcome::result<primitives::Justification> {
           OUTCOME_TRY(justification, p.storage_->getJustification(block_hash));
           if (justification.has_value()) {
             return justification.value();
@@ -908,7 +908,7 @@ namespace kagome::blockchain {
 
   BlockTree::BlockHashVecRes BlockTreeImpl::getBestChainFromBlock(
       const primitives::BlockHash &block, uint64_t maximum) const {
-    return block_tree_data_.sharedAccess([&](auto const &p)
+    return block_tree_data_.sharedAccess([&](const auto &p)
                                              -> BlockTree::BlockHashVecRes {
       auto block_number_res = p.header_repo_->getNumberByHash(block);
       if (block_number_res.has_error()) {
@@ -957,7 +957,7 @@ namespace kagome::blockchain {
   }
 
   BlockTree::BlockHashVecRes BlockTreeImpl::getDescendingChainToBlockNoLock(
-      BlockTreeData const &p,
+      const BlockTreeData &p,
       const primitives::BlockHash &to_block,
       uint64_t maximum) const {
     std::vector<primitives::BlockHash> chain;
@@ -1001,7 +1001,7 @@ namespace kagome::blockchain {
 
   BlockTree::BlockHashVecRes BlockTreeImpl::getDescendingChainToBlock(
       const primitives::BlockHash &to_block, uint64_t maximum) const {
-    return block_tree_data_.sharedAccess([&](auto const &p) {
+    return block_tree_data_.sharedAccess([&](const auto &p) {
       return getDescendingChainToBlockNoLock(p, to_block, maximum);
     });
   }
@@ -1010,7 +1010,7 @@ namespace kagome::blockchain {
       const primitives::BlockHash &ancestor,
       const primitives::BlockHash &descendant) const {
     return block_tree_data_.sharedAccess(
-        [&](auto const &p) -> BlockTreeImpl::BlockHashVecRes {
+        [&](const auto &p) -> BlockTreeImpl::BlockHashVecRes {
           OUTCOME_TRY(from, p.header_repo_->getNumberByHash(ancestor));
           OUTCOME_TRY(to, p.header_repo_->getNumberByHash(descendant));
           if (to < from) {
@@ -1029,7 +1029,7 @@ namespace kagome::blockchain {
   }
 
   bool BlockTreeImpl::hasDirectChainNoLock(
-      BlockTreeData const &p,
+      const BlockTreeData &p,
       const primitives::BlockHash &ancestor,
       const primitives::BlockHash &descendant) const {
     auto ancestor_node_ptr = p.tree_->getRoot().findByHash(ancestor);
@@ -1131,13 +1131,13 @@ namespace kagome::blockchain {
   bool BlockTreeImpl::hasDirectChain(
       const primitives::BlockHash &ancestor,
       const primitives::BlockHash &descendant) const {
-    return block_tree_data_.sharedAccess([&](auto const &p) {
+    return block_tree_data_.sharedAccess([&](const auto &p) {
       return hasDirectChainNoLock(p, ancestor, descendant);
     });
   }
 
   primitives::BlockInfo BlockTreeImpl::bestLeafNoLock(
-      BlockTreeData const &p) const {
+      const BlockTreeData &p) const {
     auto leaf = p.tree_->getMetadata().best_leaf.lock();
     BOOST_ASSERT(leaf != nullptr);
     return {leaf->depth, leaf->block_hash};
@@ -1145,13 +1145,13 @@ namespace kagome::blockchain {
 
   primitives::BlockInfo BlockTreeImpl::bestLeaf() const {
     return block_tree_data_.sharedAccess(
-        [&](auto const &p) { return bestLeafNoLock(p); });
+        [&](const auto &p) { return bestLeafNoLock(p); });
   }
 
   outcome::result<primitives::BlockInfo> BlockTreeImpl::getBestContaining(
       const primitives::BlockHash &target_hash,
       const std::optional<primitives::BlockNumber> &max_number) const {
-    return block_tree_data_.sharedAccess([&](auto const &p)
+    return block_tree_data_.sharedAccess([&](const auto &p)
                                              -> outcome::result<
                                                  primitives::BlockInfo> {
       OUTCOME_TRY(target_header, p.header_repo_->getBlockHeader(target_hash));
@@ -1211,7 +1211,7 @@ namespace kagome::blockchain {
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesNoLock(
-      BlockTreeData const &p) const {
+      const BlockTreeData &p) const {
     std::vector<primitives::BlockHash> result;
     result.reserve(p.tree_->getMetadata().leaves.size());
     std::transform(p.tree_->getMetadata().leaves.begin(),
@@ -1223,12 +1223,12 @@ namespace kagome::blockchain {
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeaves() const {
     return block_tree_data_.sharedAccess(
-        [&](auto const &p) { return getLeavesNoLock(p); });
+        [&](const auto &p) { return getLeavesNoLock(p); });
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChildren(
       const primitives::BlockHash &block) const {
-    return block_tree_data_.sharedAccess([&](auto const &p)
+    return block_tree_data_.sharedAccess([&](const auto &p)
                                              -> BlockTreeImpl::BlockHashVecRes {
       if (auto node = p.tree_->getRoot().findByHash(block); node != nullptr) {
         std::vector<primitives::BlockHash> result;
@@ -1251,7 +1251,7 @@ namespace kagome::blockchain {
   }
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalizedNoLock(
-      BlockTreeData const &p) const {
+      const BlockTreeData &p) const {
     const auto &last = p.tree_->getMetadata().last_finalized.lock();
     BOOST_ASSERT(last != nullptr);
     return last->getBlockInfo();
@@ -1259,11 +1259,11 @@ namespace kagome::blockchain {
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalized() const {
     return block_tree_data_.sharedAccess(
-        [&](auto const &p) { return getLastFinalizedNoLock(p); });
+        [&](const auto &p) { return getLastFinalizedNoLock(p); });
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSortedNoLock(
-      BlockTreeData const &p) const {
+      const BlockTreeData &p) const {
     std::vector<primitives::BlockInfo> leaf_depths;
     auto leaves = getLeavesNoLock(p);
     leaf_depths.reserve(leaves.size());
@@ -1275,7 +1275,7 @@ namespace kagome::blockchain {
     std::sort(
         leaf_depths.begin(),
         leaf_depths.end(),
-        [](auto const &p1, auto const &p2) { return p1.number > p2.number; });
+        [](const auto &p1, const auto &p2) { return p1.number > p2.number; });
     std::vector<primitives::BlockHash> leaf_hashes;
     leaf_hashes.reserve(leaf_depths.size());
     std::transform(leaf_depths.begin(),
@@ -1286,7 +1286,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<primitives::BlockHash> BlockTreeImpl::walkBackUntilLessNoLock(
-      BlockTreeData const &p,
+      const BlockTreeData &p,
       const primitives::BlockHash &start,
       const primitives::BlockNumber &limit) const {
     auto current_hash = start;
@@ -1356,18 +1356,19 @@ namespace kagome::blockchain {
     }
 
     auto last_finalized_block_info = getLastFinalizedNoLock(p);
-        for (primitives::BlockNumber n = last_finalized_block_info.number;
-            n < lastFinalizedNode->getBlockInfo().number;
-            ++n) {
-          if (auto result = p.storage_->getBlockHash(n);
-              result.has_value() && result.value()) {
-            retired_hashes.emplace_back(std::move(*result.value()));
-          }
-        }
+    for (primitives::BlockNumber n = last_finalized_block_info.number;
+         n < lastFinalizedNode->getBlockInfo().number;
+         ++n) {
+      if (auto result = p.storage_->getBlockHash(n);
+          result.has_value() && result.value()) {
+        retired_hashes.emplace_back(std::move(*result.value()));
+      }
+    }
 
     // trying to return extrinsics back to transaction pool
     main_thread_.execute([extrinsics{std::move(extrinsics)},
-                          wself{weak_from_this()}, retired_hashes{std::move(retired_hashes)}]() mutable {
+                          wself{weak_from_this()},
+                          retired_hashes{std::move(retired_hashes)}]() mutable {
       if (auto self = wself.lock()) {
         auto eo = self->block_tree_data_.sharedAccess(
             [&](auto const &p) { return p.extrinsic_observer_; });

@@ -164,10 +164,10 @@ namespace kagome::network {
                             SyncResultHandler &&handler);
 
    private:
-    void postApplyBlock(primitives::BlockHash const &hash);
+    void postApplyBlock(const primitives::BlockHash &hash);
     void processBlockAdditionResult(
         outcome::result<void> &&block_addition_result,
-        primitives::BlockHash const &hash,
+        const primitives::BlockHash &hash,
         SyncResultHandler &&handler);
     /// Subscribes handler for block with provided {@param block_info}
     /// {@param handler} will be called When block is received or discarded

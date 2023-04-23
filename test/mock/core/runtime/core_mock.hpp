@@ -23,7 +23,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<primitives::Version>,
                 version,
-                (primitives::BlockHash const &block),
+                (const primitives::BlockHash &block),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,

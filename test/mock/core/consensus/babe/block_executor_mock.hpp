@@ -17,13 +17,14 @@ namespace kagome::consensus::babe {
     MOCK_METHOD(void,
                 applyBlock,
                 (const primitives::Block &block,
-                 std::optional<primitives::Justification> const &justification, ApplyJustificationCb &&callback),
+                 const std::optional<primitives::Justification> &justification,
+                 ApplyJustificationCb &&callback),
                 ());
 
     void applyBlock(
         primitives::Block &&block,
-        std::optional<primitives::Justification> const &justification, ApplyJustificationCb &&callback)
-        override {
+        const std::optional<primitives::Justification> &justification,
+        ApplyJustificationCb &&callback) override {
       return applyBlock(block, justification, std::move(callback));
     }
   };

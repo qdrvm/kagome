@@ -146,15 +146,17 @@ struct BlockTreeTest : public testing::Test {
     auto extrinsic_event_key_repo =
         std::make_shared<subscription::ExtrinsicEventKeyRepository>();
 
-    block_tree_ = BlockTreeImpl::create(header_repo_,
-                                        storage_,
-                                        extrinsic_observer_,
-                                        hasher_,
-                                        chain_events_engine,
-                                        ext_events_engine,
-                                        extrinsic_event_key_repo,
-                                        justification_storage_policy_, std::make_shared<::boost::asio::io_context>())
-                      .value();
+    block_tree_ =
+        BlockTreeImpl::create(header_repo_,
+                              storage_,
+                              extrinsic_observer_,
+                              hasher_,
+                              chain_events_engine,
+                              ext_events_engine,
+                              extrinsic_event_key_repo,
+                              justification_storage_policy_,
+                              std::make_shared<::boost::asio::io_context>())
+            .value();
   }
 
   /**
@@ -572,7 +574,7 @@ std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
 }
 
 struct NodeProcessor {
-  MOCK_METHOD(void, foo, (TreeNode const &), (const));
+  MOCK_METHOD(void, foo, (const TreeNode &), (const));
 };
 
 /**

@@ -16,7 +16,8 @@ namespace kagome::blockchain {
    public:
     MOCK_METHOD(outcome::result<bool>,
                 shouldStoreFor,
-                (primitives::BlockHeader const &header, primitives::BlockNumber last_finalized_number),
+                (const primitives::BlockHeader &header,
+                 primitives::BlockNumber last_finalized_number),
                 (const));
 
    private:

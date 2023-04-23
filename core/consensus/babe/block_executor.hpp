@@ -19,7 +19,7 @@ namespace kagome::consensus::babe {
 
     virtual void applyBlock(
         primitives::Block &&block,
-        std::optional<primitives::Justification> const &justification,
+        const std::optional<primitives::Justification> &justification,
         ApplyJustificationCb &&callback) = 0;
   };
 

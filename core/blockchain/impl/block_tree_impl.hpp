@@ -173,7 +173,7 @@ namespace kagome::blockchain {
      * block number is less or equal than \param limit
      */
     outcome::result<primitives::BlockHash> walkBackUntilLessNoLock(
-        BlockTreeData const &p,
+        const BlockTreeData &p,
         const primitives::BlockHash &start,
         const primitives::BlockNumber &limit) const;
 
@@ -181,27 +181,27 @@ namespace kagome::blockchain {
      * @returns the tree leaves sorted by their depth
      */
     std::vector<primitives::BlockHash> getLeavesSortedNoLock(
-        BlockTreeData const &p) const;
+        const BlockTreeData &p) const;
 
     outcome::result<void> pruneNoLock(
         BlockTreeData &p, const std::shared_ptr<TreeNode> &lastFinalizedNode);
 
     outcome::result<primitives::BlockHeader> getBlockHeaderNoLock(
-        BlockTreeData const &p, const primitives::BlockHash &block_hash) const;
+        const BlockTreeData &p, const primitives::BlockHash &block_hash) const;
 
     outcome::result<void> reorganizeNoLock(BlockTreeData &p);
 
-    primitives::BlockInfo getLastFinalizedNoLock(BlockTreeData const &p) const;
-    primitives::BlockInfo bestLeafNoLock(BlockTreeData const &p) const;
+    primitives::BlockInfo getLastFinalizedNoLock(const BlockTreeData &p) const;
+    primitives::BlockInfo bestLeafNoLock(const BlockTreeData &p) const;
 
-    bool hasDirectChainNoLock(BlockTreeData const &p,
+    bool hasDirectChainNoLock(const BlockTreeData &p,
                               const primitives::BlockHash &ancestor,
                               const primitives::BlockHash &descendant) const;
     std::vector<primitives::BlockHash> getLeavesNoLock(
-        BlockTreeData const &p) const;
+        const BlockTreeData &p) const;
 
     BlockTree::BlockHashVecRes getDescendingChainToBlockNoLock(
-        BlockTreeData const &p,
+        const BlockTreeData &p,
         const primitives::BlockHash &to_block,
         uint64_t maximum) const;
 

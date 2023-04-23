@@ -69,7 +69,7 @@ namespace kagome::consensus::babe {
 
   void BlockExecutorImpl::applyBlock(
       primitives::Block &&block,
-      std::optional<primitives::Justification> const &justification,
+      const std::optional<primitives::Justification> &justification,
       ApplyJustificationCb &&callback) {
     auto block_context = appender_->makeBlockContext(block.header);
     auto &block_info = block_context.block_info;
@@ -141,19 +141,21 @@ namespace kagome::consensus::babe {
       auto changes_tracker =
           std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
-      if (auto res = core_->execute_block_ref(primitives::BlockReflection{
-              .header =
-                  primitives::BlockHeaderReflection{
-                      .parent_hash = block.header.parent_hash,
-                      .number = block.header.number,
-                      .state_root = block.header.state_root,
-                      .extrinsics_root = block.header.extrinsics_root,
-                      .digest = gsl::span<primitives::DigestItem const>(
-                          block.header.digest.data(),
-                          block.header.digest.size() - 1ull),
-                  },
-              .body = block.body,
-          }, changes_tracker);
+      if (auto res = core_->execute_block_ref(
+              primitives::BlockReflection{
+                  .header =
+                      primitives::BlockHeaderReflection{
+                          .parent_hash = block.header.parent_hash,
+                          .number = block.header.number,
+                          .state_root = block.header.state_root,
+                          .extrinsics_root = block.header.extrinsics_root,
+                          .digest = gsl::span<primitives::const DigestItem>(
+                              block.header.digest.data(),
+                              block.header.digest.size() - 1ull),
+                      },
+                  .body = block.body,
+              },
+              changes_tracker);
           res.has_error()) {
         callback(res.as_failure());
         return;

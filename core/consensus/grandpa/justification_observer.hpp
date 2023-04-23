@@ -25,7 +25,8 @@ namespace kagome::consensus::grandpa {
      */
     virtual void verifyJustification(
         const GrandpaJustification &justification,
-        const primitives::AuthoritySet &authorities, ApplyJustificationCb &&callback) = 0;
+        const primitives::AuthoritySet &authorities,
+        ApplyJustificationCb &&callback) = 0;
 
     /**
      * Validate provided {@param justification} for finalization.

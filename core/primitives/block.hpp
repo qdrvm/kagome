@@ -27,7 +27,7 @@ namespace kagome::primitives {
     SCALE_TIE(2);
 
     BlockHeaderReflection header;  ///< block header
-    BlockBody const &body;         ///< extrinsics collection
+    const BlockBody &body;         ///< extrinsics collection
   };
 
 }  // namespace kagome::primitives

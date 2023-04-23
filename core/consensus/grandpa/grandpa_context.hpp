@@ -29,10 +29,10 @@ namespace kagome::consensus::grandpa {
     size_t unknown_voter_counter = 0;
 
     GrandpaContext() = default;
-    GrandpaContext(GrandpaContext const &) = default;
+    GrandpaContext(const GrandpaContext &) = default;
     GrandpaContext(GrandpaContext &&) = default;
 
-    GrandpaContext &operator=(GrandpaContext const &) = default;
+    GrandpaContext &operator=(const GrandpaContext &) = default;
     GrandpaContext &operator=(GrandpaContext &&) = default;
   };
 

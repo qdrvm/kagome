@@ -44,11 +44,11 @@ namespace kagome::primitives {
   };
 
   struct BlockHeaderReflection {
-    BlockHash const &parent_hash;
-    BlockNumber const &number;
-    storage::trie::RootHash const &state_root;
-    common::Hash256 const &extrinsics_root;
-    gsl::span<DigestItem const> digest;
+    const BlockHash &parent_hash;
+    const BlockNumber &number;
+    const storage::trie::RootHash &state_root;
+    const common::Hash256 &extrinsics_root;
+    gsl::span<const DigestItem> digest;
   };
 
   struct GenesisBlockHeader {
@@ -94,8 +94,8 @@ namespace kagome::primitives {
     return s;
   }
 
-  outcome::result<BlockHash> calculateBlockHash(BlockHeader const &header,
-                                                crypto::Hasher const &hasher);
+  outcome::result<BlockHash> calculateBlockHash(const BlockHeader &header,
+                                                const crypto::Hasher &hasher);
 
 }  // namespace kagome::primitives
 

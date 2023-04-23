@@ -13,7 +13,7 @@
 namespace kagome::blockchain {
 
   outcome::result<bool> JustificationStoragePolicyImpl::shouldStoreFor(
-      primitives::BlockHeader const &block_header,
+      const primitives::BlockHeader &block_header,
       primitives::BlockNumber last_finalized_number) const {
     if (block_header.number == 0) {
       return true;

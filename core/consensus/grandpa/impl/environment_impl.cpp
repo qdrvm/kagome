@@ -245,8 +245,7 @@ namespace kagome::consensus::grandpa {
              justification.round_number,
              justification.block_info);
 
-    justification_observer->applyJustification(
-        justification, std::move(cb));
+    justification_observer->applyJustification(justification, std::move(cb));
   }
 
   outcome::result<void> EnvironmentImpl::finalize(

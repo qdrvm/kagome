@@ -1169,7 +1169,7 @@ namespace kagome::network {
 
   void SynchronizerImpl::processBlockAdditionResult(
       outcome::result<void> &&block_addition_result,
-      primitives::BlockHash const &hash,
+      const primitives::BlockHash &hash,
       SyncResultHandler &&handler) {
     auto node = known_blocks_.extract(hash);
     if (node) {
@@ -1246,7 +1246,7 @@ namespace kagome::network {
     }
   }
 
-  void SynchronizerImpl::postApplyBlock(primitives::BlockHash const &hash) {
+  void SynchronizerImpl::postApplyBlock(const primitives::BlockHash &hash) {
     ancestry_.erase(hash);
 
     auto minPreloadedBlockAmount =

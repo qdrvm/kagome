@@ -44,7 +44,7 @@ namespace kagome::consensus::babe {
                       std::shared_ptr<crypto::Hasher> hasher);
 
     primitives::BlockContext makeBlockContext(
-        primitives::BlockHeader const &header) const;
+        const primitives::BlockHeader &header) const;
 
     void applyJustifications(
         const primitives::BlockInfo &block_info,
@@ -52,8 +52,8 @@ namespace kagome::consensus::babe {
         ApplyJustificationCb &&callback);
 
     outcome::result<ConsistencyGuard> observeDigestsAndValidateHeader(
-        primitives::Block const &block,
-        primitives::BlockContext const &context);
+        const primitives::Block &block,
+        const primitives::BlockContext &context);
 
     struct SlotInfo {
       BabeTimePoint start;
@@ -61,7 +61,7 @@ namespace kagome::consensus::babe {
     };
 
     outcome::result<SlotInfo> getSlotInfo(
-        primitives::BlockHeader const &header) const;
+        const primitives::BlockHeader &header) const;
 
    private:
     log::Logger logger_ = log::createLogger("BlockAppender", "babe");

@@ -652,7 +652,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onCatchUpResponse(
       std::optional<std::shared_ptr<GrandpaContext>> &&e_,
       const libp2p::peer::PeerId &p_,
-      network::CatchUpResponse const &m_) {
+      const network::CatchUpResponse &m_) {
     REINVOKE_3(*internal_thread_context_,
                onCatchUpResponse,
                e_,
@@ -905,7 +905,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onVoteMessage(
       std::optional<std::shared_ptr<GrandpaContext>> &&e_,
       const libp2p::peer::PeerId &p_,
-      VoteMessage const &m_) {
+      const VoteMessage &m_) {
     REINVOKE_3(*internal_thread_context_,
                onVoteMessage,
                e_,
@@ -1123,7 +1123,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onCommitMessage(
       std::optional<std::shared_ptr<GrandpaContext>> &&e_,
       const libp2p::peer::PeerId &p_,
-      network::FullCommitMessage const &m_) {
+      const network::FullCommitMessage &m_) {
     REINVOKE_3(*internal_thread_context_,
                onCommitMessage,
                e_,
@@ -1309,12 +1309,13 @@ namespace kagome::consensus::grandpa {
         });
   }
 
-  void GrandpaImpl::verifyJustification(
-      const GrandpaJustification &jst,
-      const primitives::AuthoritySet &auth, ApplyJustificationCb &&cb) {
+  void GrandpaImpl::verifyJustification(const GrandpaJustification &jst,
+                                        const primitives::AuthoritySet &auth,
+                                        ApplyJustificationCb &&cb) {
     REINVOKE_3(*internal_thread_context_,
                verifyJustification,
-               jst, auth,
+               jst,
+               auth,
                cb,
                justification,
                authorities,
@@ -1337,10 +1338,10 @@ namespace kagome::consensus::grandpa {
         scheduler_,
         state,
     };
-                callbackCall(std::move(callback),
-                         round.validatePrecommitJustification(justification));
+    callbackCall(std::move(callback),
+                 round.validatePrecommitJustification(justification));
   }
-  
+
   void GrandpaImpl::applyJustification(const GrandpaJustification &j,
                                        ApplyJustificationCb &&cb) {
     REINVOKE_2(*internal_thread_context_,
@@ -1356,14 +1357,15 @@ namespace kagome::consensus::grandpa {
       round = std::move(round_opt.value());
     } else {
       // This is justification for already finalized block
-      if (current_round_->lastFinalizedBlock().number > justification.block_info.number) {
+      if (current_round_->lastFinalizedBlock().number
+          > justification.block_info.number) {
         callbackCall(std::move(callback),
                      VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST);
         return;
       }
 
-      auto authorities_opt =
-          authority_manager_->authorities(justification.block_info, IsBlockFinalized{false});
+      auto authorities_opt = authority_manager_->authorities(
+          justification.block_info, IsBlockFinalized{false});
       if (!authorities_opt) {
         callbackCall(std::move(callback),
                      VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK);
@@ -1428,8 +1430,7 @@ namespace kagome::consensus::grandpa {
         auto voters_res = VoterSet::make(*authority_set);
         if (not voters_res) {
           SL_CRITICAL(logger_, "Can't make voter set: {}", voters_res.error());
-          callbackCall(std::move(callback),
-                        voters_res.error());
+          callbackCall(std::move(callback), voters_res.error());
           return;
         }
         auto &voters = voters_res.value();
@@ -1444,8 +1445,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    if (auto r = round->applyJustification(justification);
-        r.has_error()) {
+    if (auto r = round->applyJustification(justification); r.has_error()) {
       callbackCall(std::move(callback), r.as_failure());
       return;
     }

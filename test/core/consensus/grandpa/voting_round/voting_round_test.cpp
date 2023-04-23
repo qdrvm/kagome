@@ -385,7 +385,8 @@ TEST_F(VotingRoundTest, Finalization) {
 
   // when 5.
   // Eve prevotes
-  round_->onPrevote(empty_context, preparePrevote(kEve, kEveSignature, {6, "EA"_H}),
+  round_->onPrevote(empty_context,
+                    preparePrevote(kEve, kEveSignature, {6, "EA"_H}),
                     Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
                  VotingRound::IsPrevotesChanged{true},
@@ -395,7 +396,8 @@ TEST_F(VotingRoundTest, Finalization) {
 
   // when 6.
   // Eve precommits
-  round_->onPrecommit(empty_context, preparePrecommit(kEve, kEveSignature, {6, "EA"_H}),
+  round_->onPrecommit(empty_context,
+                      preparePrecommit(kEve, kEveSignature, {6, "EA"_H}),
                       Propagation::NEEDLESS);
   round_->update(VotingRound::IsPreviousRoundChanged{false},
                  VotingRound::IsPrevotesChanged{false},
@@ -420,13 +422,15 @@ ACTION_P(onPrevoted, test_fixture) {
   std::optional<GrandpaContext> empty{};
   test_fixture->round_->onPrevote(empty, signed_prevote, Propagation::NEEDLESS);
   // send Bob's prevote
-  test_fixture->round_->onPrevote(empty, 
+  test_fixture->round_->onPrevote(
+      empty,
       SignedMessage{.message = signed_prevote.message,
                     .signature = test_fixture->kBobSignature,
                     .id = test_fixture->kBob},
       Propagation::NEEDLESS);
   // send Eve's prevote
-  test_fixture->round_->onPrevote(empty, 
+  test_fixture->round_->onPrevote(
+      empty,
       SignedMessage{.message = signed_prevote.message,
                     .signature = test_fixture->kEveSignature,
                     .id = test_fixture->kEve},
@@ -443,9 +447,11 @@ ACTION_P(onPrecommitted, test_fixture) {
   std::optional<GrandpaContext> empty{};
 
   // send Alice's precommit
-  test_fixture->round_->onPrecommit(empty, signed_precommit, Propagation::NEEDLESS);
+  test_fixture->round_->onPrecommit(
+      empty, signed_precommit, Propagation::NEEDLESS);
   // send Bob's precommit
-  test_fixture->round_->onPrecommit(empty, 
+  test_fixture->round_->onPrecommit(
+      empty,
       SignedMessage{.message = signed_precommit.message,
                     .signature = test_fixture->kBobSignature,
                     .id = test_fixture->kBob},

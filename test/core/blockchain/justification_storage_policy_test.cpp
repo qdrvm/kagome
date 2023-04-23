@@ -9,9 +9,9 @@
 
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
+#include "primitives/common.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "primitives/common.hpp"
 
 using testing::Return;
 
@@ -49,11 +49,21 @@ class JustificationStoragePolicyTest : public testing::Test {
   JustificationStoragePolicyImpl policy_{};
 };
 TEST_F(JustificationStoragePolicyTest, ShouldStore512Multiples) {
-  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(0), last_finalized_number).value(), true);
-  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(1), last_finalized_number).value(), false);
-  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(2), last_finalized_number).value(), false);
-  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(512), last_finalized_number).value(), true);
-  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(1024), last_finalized_number).value(), true);
+  ASSERT_EQ(
+      policy_.shouldStoreFor(makeBlockHeader(0), last_finalized_number).value(),
+      true);
+  ASSERT_EQ(
+      policy_.shouldStoreFor(makeBlockHeader(1), last_finalized_number).value(),
+      false);
+  ASSERT_EQ(
+      policy_.shouldStoreFor(makeBlockHeader(2), last_finalized_number).value(),
+      false);
+  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(512), last_finalized_number)
+                .value(),
+            true);
+  ASSERT_EQ(policy_.shouldStoreFor(makeBlockHeader(1024), last_finalized_number)
+                .value(),
+            true);
 }
 
 /**
@@ -65,7 +75,8 @@ TEST_F(JustificationStoragePolicyTest, ShouldStoreOnScheduledChange) {
   auto header = makeBlockHeader(13);
   header.digest.emplace_back(
       kagome::primitives::Consensus{kagome::primitives::ScheduledChange{}});
-  ASSERT_EQ(policy_.shouldStoreFor(header, last_finalized_number).value(), true);
+  ASSERT_EQ(policy_.shouldStoreFor(header, last_finalized_number).value(),
+            true);
 }
 
 /**
@@ -77,7 +88,8 @@ TEST_F(JustificationStoragePolicyTest, ShouldStoreOnForcedChange) {
   auto header = makeBlockHeader(13);
   header.digest.emplace_back(
       kagome::primitives::Consensus{kagome::primitives::ForcedChange{}});
-  ASSERT_EQ(policy_.shouldStoreFor(header, last_finalized_number).value(), true);
+  ASSERT_EQ(policy_.shouldStoreFor(header, last_finalized_number).value(),
+            true);
 }
 
 /**
@@ -89,5 +101,6 @@ TEST_F(JustificationStoragePolicyTest, ShouldStoreOnDisabledChange) {
   auto header = makeBlockHeader(13);
   header.digest.emplace_back(
       kagome::primitives::Consensus{kagome::primitives::OnDisabled{}});
-  ASSERT_EQ(policy_.shouldStoreFor(header, last_finalized_number).value(), false);
+  ASSERT_EQ(policy_.shouldStoreFor(header, last_finalized_number).value(),
+            false);
 }

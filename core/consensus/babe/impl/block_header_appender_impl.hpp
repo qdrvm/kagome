@@ -36,7 +36,7 @@ namespace kagome::consensus::babe {
 
     void appendHeader(
         primitives::BlockHeader &&block_header,
-        std::optional<primitives::Justification> const &justification,
+        const std::optional<primitives::Justification> &justification,
         ApplyJustificationCb &&callback) override;
 
    private:

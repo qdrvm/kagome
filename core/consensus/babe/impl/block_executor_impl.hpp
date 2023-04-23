@@ -56,7 +56,7 @@ namespace kagome::consensus::babe {
 
     void applyBlock(
         primitives::Block &&block,
-        std::optional<primitives::Justification> const &justification,
+        const std::optional<primitives::Justification> &justification,
         ApplyJustificationCb &&callback) override;
 
    private:

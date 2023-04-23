@@ -40,7 +40,7 @@ namespace kagome::runtime {
      * @return runtime version
      */
     virtual outcome::result<primitives::Version> version(
-        primitives::BlockHash const &block) = 0;
+        const primitives::BlockHash &block) = 0;
 
     /**
      * @brief Returns the version of the runtime - version for nested calls,

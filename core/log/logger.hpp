@@ -49,12 +49,12 @@ namespace kagome::log {
   bool resetLevelOfLogger(const std::string &logger_name);
 
   template <typename T, typename Ret>
-  Ret format_arg(T const &t) {
+  Ret format_arg(const T &t) {
     return static_cast<Ret>(t);
   }
 
   template <typename T>
-  auto format_arg(T const *t) {
+  auto format_arg(const T *t) {
     return fmt::ptr(t);
   }
   inline std::string_view format_arg(std::string_view s) {
@@ -62,7 +62,7 @@ namespace kagome::log {
   }
 
   template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-  T const &format_arg(T const &arg) {
+  const T &format_arg(const T &arg) {
     return arg;
   }
 
@@ -94,7 +94,7 @@ namespace kagome::log {
   }
 
   template <typename Ret, typename... Args>
-  void trace_function_call(Logger const &logger,
+  void trace_function_call(const Logger &logger,
                            std::string_view func_name,
                            Ret &&ret,
                            Args &&...args) {
@@ -116,7 +116,7 @@ namespace kagome::log {
   }
 
   template <typename... Args>
-  void trace_void_function_call(Logger const &logger,
+  void trace_void_function_call(const Logger &logger,
                                 std::string_view func_name,
                                 Args &&...args) {
     if (sizeof...(args) > 0) {

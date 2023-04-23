@@ -17,8 +17,8 @@ namespace kagome::consensus::babe {
     MOCK_METHOD(void,
                 appendHeader,
                 (primitives::BlockHeader && block_header,
-                 std::optional<primitives::Justification> const &justification,
-        ApplyJustificationCb &&callback),
+                 const std::optional<primitives::Justification> &justification,
+                 ApplyJustificationCb &&callback),
                 (override));
   };
 

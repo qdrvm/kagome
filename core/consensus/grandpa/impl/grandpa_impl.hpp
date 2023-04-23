@@ -178,7 +178,7 @@ namespace kagome::consensus::grandpa {
     void onCatchUpResponse(
         std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
         const libp2p::peer::PeerId &peer_id,
-        network::CatchUpResponse const &msg) override;
+        const network::CatchUpResponse &msg) override;
 
     // Voting methods
 
@@ -195,7 +195,7 @@ namespace kagome::consensus::grandpa {
     void onVoteMessage(
         std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
         const libp2p::peer::PeerId &peer_id,
-        network::VoteMessage const &msg) override;
+        const network::VoteMessage &msg) override;
 
     /**
      * Processing of commit message
@@ -209,14 +209,14 @@ namespace kagome::consensus::grandpa {
     void onCommitMessage(
         std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
         const libp2p::peer::PeerId &peer_id,
-        network::FullCommitMessage const &msg) override;
+        const network::FullCommitMessage &msg) override;
 
     /**
      * Check justification votes signatures, ancestry and threshold.
      */
-    void verifyJustification(
-        const GrandpaJustification &justification,
-        const primitives::AuthoritySet &authorities, ApplyJustificationCb &&callback) override;
+    void verifyJustification(const GrandpaJustification &justification,
+                             const primitives::AuthoritySet &authorities,
+                             ApplyJustificationCb &&callback) override;
 
     /**
      * Selects round that corresponds for justification, checks justification,

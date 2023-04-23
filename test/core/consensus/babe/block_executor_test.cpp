@@ -264,9 +264,8 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*consistency_keeper_, rollback(block_info))
       .WillRepeatedly(Return());
 
-block_executor_->applyBlock(
-      Block{block_data.header.value(), block_data.body.value()}, justification, [](auto &&result) {
-  EXPECT_OUTCOME_TRUE_1(result)      ;
-      });
-  
+  block_executor_->applyBlock(
+      Block{block_data.header.value(), block_data.body.value()},
+      justification,
+      [](auto &&result) { EXPECT_OUTCOME_TRUE_1(result); });
 }
