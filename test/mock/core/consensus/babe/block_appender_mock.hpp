@@ -14,10 +14,11 @@ namespace kagome::consensus::babe {
 
   class BlockHeaderAppenderMock : public BlockHeaderAppender {
    public:
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 appendHeader,
                 (primitives::BlockHeader && block_header,
-                 std::optional<primitives::Justification> const &justification),
+                 std::optional<primitives::Justification> const &justification,
+        ApplyJustificationCb &&callback),
                 (override));
   };
 

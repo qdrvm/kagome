@@ -18,13 +18,14 @@ namespace kagome::consensus::grandpa {
    */
   struct JustificationObserver {
     virtual ~JustificationObserver() = default;
+    using ApplyJustificationCb = std::function<void(outcome::result<void> &&)>;
 
     /**
      * Validate {@param justification} with {@param authorities}.
      */
-    virtual outcome::result<void> verifyJustification(
+    virtual void verifyJustification(
         const GrandpaJustification &justification,
-        const primitives::AuthoritySet &authorities) = 0;
+        const primitives::AuthoritySet &authorities, ApplyJustificationCb &&callback) = 0;
 
     /**
      * Validate provided {@param justification} for finalization.
@@ -33,8 +34,8 @@ namespace kagome::consensus::grandpa {
      * @param justification justification of finalization
      * @return nothing or on error
      */
-    virtual outcome::result<void> applyJustification(
-        const GrandpaJustification &justification) = 0;
+    virtual void applyJustification(const GrandpaJustification &justification,
+                                    ApplyJustificationCb &&callback) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

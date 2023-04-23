@@ -32,8 +32,8 @@ namespace kagome::runtime {
     return executor_->callAtGenesis<primitives::Version>("Core_version");
   }
 
-  outcome::result<void> CoreImpl::execute_block(
-      const primitives::Block &block, TrieChangesTrackerOpt changes_tracker) {
+  outcome::result<void> CoreImpl::execute_block_ref(
+      const primitives::BlockReflection &block, TrieChangesTrackerOpt changes_tracker) {
     BOOST_ASSERT([&] {
       auto parent_res = header_repo_->getBlockHeader(block.header.parent_hash);
       return parent_res.has_value()
@@ -44,6 +44,23 @@ namespace kagome::runtime {
                                         std::move(changes_tracker)));
     OUTCOME_TRY(executor_->call<void>(*env, "Core_execute_block", block));
     return outcome::success();
+  }
+
+  outcome::result<void> CoreImpl::execute_block(
+      const primitives::Block &block, TrieChangesTrackerOpt changes_tracker) {
+    return execute_block_ref(primitives::BlockReflection{
+        .header =
+            primitives::BlockHeaderReflection{
+                .parent_hash = block.header.parent_hash,
+                .number = block.header.number,
+                .state_root = block.header.state_root,
+                .extrinsics_root = block.header.extrinsics_root,
+                .digest = gsl::span<primitives::DigestItem const>(
+                    block.header.digest.data(), block.header.digest.size()),
+            },
+        .body = block.body,
+    },
+                                        std::move(changes_tracker));
   }
 
   outcome::result<std::unique_ptr<RuntimeEnvironment>>

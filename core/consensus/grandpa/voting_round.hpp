@@ -76,13 +76,16 @@ namespace kagome::consensus::grandpa {
 
     enum class Propagation : bool { NEEDLESS = false, REQUESTED = true };
 
-    virtual void onProposal(const SignedMessage &primary_propose,
+    virtual void onProposal(std::optional<GrandpaContext> &grandpa_context,
+                            const SignedMessage &primary_propose,
                             Propagation propagation) = 0;
 
-    virtual bool onPrevote(const SignedMessage &prevote,
+    virtual bool onPrevote(std::optional<GrandpaContext> &grandpa_context,
+                           const SignedMessage &prevote,
                            Propagation propagation) = 0;
 
-    virtual bool onPrecommit(const SignedMessage &precommit,
+    virtual bool onPrecommit(std::optional<GrandpaContext> &grandpa_context,
+                             const SignedMessage &precommit,
                              Propagation propagation) = 0;
 
     using IsPreviousRoundChanged = Tagged<bool, struct IsPreviousRoundChanged>;

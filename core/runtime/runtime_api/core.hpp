@@ -57,6 +57,9 @@ namespace kagome::runtime {
     virtual outcome::result<void> execute_block(
         const primitives::Block &block,
         TrieChangesTrackerOpt changes_tracker) = 0;
+    virtual outcome::result<void> execute_block_ref(
+        const primitives::BlockReflection &block,
+        TrieChangesTrackerOpt changes_tracker) = 0;
 
     /**
      * @brief Initialize a block with the given header.

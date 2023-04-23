@@ -9,10 +9,13 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 
+#include <boost/asio/io_context.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
+#include "utils/safe_object.hpp"
+#include "utils/thread_pool.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -101,7 +104,9 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<network::ReputationRepository> reputation_repository);
+        std::shared_ptr<network::ReputationRepository> reputation_repository,
+        std::shared_ptr<boost::asio::io_context> main_thread_context,
+        std::shared_ptr<ThreadPool> execution_thread_pool);
 
     /**
      * Prepares for grandpa round execution: e.g. sets justification observer
@@ -140,7 +145,7 @@ namespace kagome::consensus::grandpa {
      * @param msg received grandpa neighbour message
      */
     void onNeighborMessage(const libp2p::peer::PeerId &peer_id,
-                           const network::GrandpaNeighborMessage &msg) override;
+                           network::GrandpaNeighborMessage &&msg) override;
 
     // Catch-up methods
 
@@ -155,7 +160,7 @@ namespace kagome::consensus::grandpa {
      * @param msg network message containing catch up request
      */
     void onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
-                          const network::CatchUpRequest &msg) override;
+                          network::CatchUpRequest &&msg) override;
 
     /**
      * Catch up response processing according to
@@ -170,8 +175,10 @@ namespace kagome::consensus::grandpa {
      * @param peer_id id of remote peer that sent catch up response
      * @param msg message containing catch up response
      */
-    void onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
-                           const network::CatchUpResponse &msg) override;
+    void onCatchUpResponse(
+        std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
+        const libp2p::peer::PeerId &peer_id,
+        network::CatchUpResponse const &msg) override;
 
     // Voting methods
 
@@ -185,8 +192,10 @@ namespace kagome::consensus::grandpa {
      * @param msg vote message that could be either primary propose, prevote, or
      * precommit message
      */
-    void onVoteMessage(const libp2p::peer::PeerId &peer_id,
-                       const network::VoteMessage &msg) override;
+    void onVoteMessage(
+        std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
+        const libp2p::peer::PeerId &peer_id,
+        network::VoteMessage const &msg) override;
 
     /**
      * Processing of commit message
@@ -197,15 +206,17 @@ namespace kagome::consensus::grandpa {
      * @param peer_id id of remote peer
      * @param msg message containing commit message with justification
      */
-    void onCommitMessage(const libp2p::peer::PeerId &peer_id,
-                         const network::FullCommitMessage &msg) override;
+    void onCommitMessage(
+        std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
+        const libp2p::peer::PeerId &peer_id,
+        network::FullCommitMessage const &msg) override;
 
     /**
      * Check justification votes signatures, ancestry and threshold.
      */
-    outcome::result<void> verifyJustification(
+    void verifyJustification(
         const GrandpaJustification &justification,
-        const primitives::AuthoritySet &authorities) override;
+        const primitives::AuthoritySet &authorities, ApplyJustificationCb &&callback) override;
 
     /**
      * Selects round that corresponds for justification, checks justification,
@@ -216,8 +227,8 @@ namespace kagome::consensus::grandpa {
      * signatures for block info
      * @return nothing or an error
      */
-    outcome::result<void> applyJustification(
-        const GrandpaJustification &justification) override;
+    void applyJustification(const GrandpaJustification &justification,
+                            ApplyJustificationCb &&callback) override;
 
     // Round processing method
 
@@ -241,6 +252,8 @@ namespace kagome::consensus::grandpa {
     void updateNextRound(RoundNumber round_number) override;
 
    private:
+    void callbackCall(ApplyJustificationCb &&callback,
+                      outcome::result<void> &&result);
     /**
      * Selects round by provided number and voter set id
      * @param round_number number of round to be selected
@@ -279,7 +292,7 @@ namespace kagome::consensus::grandpa {
      * Request blocks that are missing to run consensus (for example when we
      * cannot accept precommit when there is no corresponding block)
      */
-    void loadMissingBlocks();
+    void loadMissingBlocks(GrandpaContext &&grandpa_context);
 
     const Clock::Duration round_time_factor_;
 
@@ -294,6 +307,10 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<network::ReputationRepository> reputation_repository_;
+
+    std::shared_ptr<ThreadPool> execution_thread_pool_;
+    std::shared_ptr<ThreadHandler> internal_thread_context_;
+    ThreadHandler main_thread_context_;
 
     std::shared_ptr<VotingRound> current_round_;
     std::optional<

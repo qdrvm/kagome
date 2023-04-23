@@ -93,9 +93,9 @@ namespace kagome::consensus::grandpa {
         VoterSetId set_id,
         BlockNumber last_finalized) override;
 
-    outcome::result<void> applyJustification(
-        const BlockInfo &block_info,
-        const primitives::Justification &justification) override;
+    void applyJustification(const BlockInfo &block_info,
+                            const primitives::Justification &justification,
+                            ApplyJustificationCb &&cb) override;
 
     outcome::result<void> finalize(
         VoterSetId id, const GrandpaJustification &justification) override;

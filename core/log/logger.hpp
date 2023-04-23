@@ -21,6 +21,7 @@ namespace kagome::log {
 
   using Level = soralog::Level;
   using Logger = std::shared_ptr<soralog::Logger>;
+  using WLogger = std::weak_ptr<soralog::Logger>;
 
   enum class Error : uint8_t { WRONG_LEVEL = 1, WRONG_GROUP, WRONG_LOGGER };
 
@@ -66,7 +67,9 @@ namespace kagome::log {
   }
 
   inline std::string format_arg(gsl::span<const uint8_t> buffer) {
-    if (buffer.size() == 0) return "";
+    if (buffer.size() == 0) {
+      return "";
+    }
     std::string res;
     if (std::all_of(buffer.begin(), buffer.end(), isalnum)) {
       res.resize(buffer.size());

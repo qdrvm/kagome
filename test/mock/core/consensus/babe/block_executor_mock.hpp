@@ -14,17 +14,17 @@ namespace kagome::consensus::babe {
 
   class BlockExecutorMock : public BlockExecutor {
    public:
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 applyBlock,
                 (const primitives::Block &block,
-                 std::optional<primitives::Justification> const &justification),
+                 std::optional<primitives::Justification> const &justification, ApplyJustificationCb &&callback),
                 ());
 
-    outcome::result<void> applyBlock(
+    void applyBlock(
         primitives::Block &&block,
-        std::optional<primitives::Justification> const &justification)
+        std::optional<primitives::Justification> const &justification, ApplyJustificationCb &&callback)
         override {
-      return applyBlock(block, justification);
+      return applyBlock(block, justification, std::move(callback));
     }
   };
 

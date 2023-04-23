@@ -54,9 +54,10 @@ namespace kagome::consensus::babe {
 
     ~BlockExecutorImpl();
 
-    outcome::result<void> applyBlock(
+    void applyBlock(
         primitives::Block &&block,
-        std::optional<primitives::Justification> const &justification) override;
+        std::optional<primitives::Justification> const &justification,
+        ApplyJustificationCb &&callback) override;
 
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;

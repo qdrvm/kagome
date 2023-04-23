@@ -221,17 +221,23 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  outcome::result<void> EnvironmentImpl::applyJustification(
+  void EnvironmentImpl::applyJustification(
       const BlockInfo &block_info,
-      const primitives::Justification &raw_justification) {
+      const primitives::Justification &raw_justification,
+      ApplyJustificationCb &&cb) {
     auto justification_observer = justification_observer_.lock();
     BOOST_ASSERT(justification_observer);
 
-    OUTCOME_TRY(justification,
-                scale::decode<GrandpaJustification>(raw_justification.data));
+    auto res = scale::decode<GrandpaJustification>(raw_justification.data);
+    if (res.has_error()) {
+      cb(res.as_failure());
+      return;
+    }
+    auto &&justification = std::move(res.value());
 
     if (justification.block_info != block_info) {
-      return VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK;
+      cb(VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK);
+      return;
     }
 
     SL_DEBUG(logger_,
@@ -239,9 +245,8 @@ namespace kagome::consensus::grandpa {
              justification.round_number,
              justification.block_info);
 
-    OUTCOME_TRY(justification_observer->applyJustification(justification));
-
-    return outcome::success();
+    justification_observer->applyJustification(
+        justification, std::move(cb));
   }
 
   outcome::result<void> EnvironmentImpl::finalize(

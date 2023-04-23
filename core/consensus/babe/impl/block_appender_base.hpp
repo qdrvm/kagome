@@ -6,6 +6,7 @@
 #ifndef KAGOME_BLOCK_APPENDER_BASE_HPP
 #define KAGOME_BLOCK_APPENDER_BASE_HPP
 
+#include "consensus/grandpa/environment.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
@@ -17,10 +18,6 @@ namespace kagome::blockchain {
 
 namespace kagome::crypto {
   class Hasher;
-}
-
-namespace kagome::consensus::grandpa {
-  class Environment;
 }
 
 namespace kagome::consensus::babe {
@@ -36,6 +33,7 @@ namespace kagome::consensus::babe {
    */
   class BlockAppenderBase {
    public:
+    using ApplyJustificationCb = grandpa::Environment::ApplyJustificationCb;
     BlockAppenderBase(std::shared_ptr<ConsistencyKeeper> consistency_keeper,
                       std::shared_ptr<blockchain::BlockTree> block_tree,
                       std::shared_ptr<blockchain::DigestTracker> digest_tracker,
@@ -48,9 +46,10 @@ namespace kagome::consensus::babe {
     primitives::BlockContext makeBlockContext(
         primitives::BlockHeader const &header) const;
 
-    outcome::result<void> applyJustifications(
+    void applyJustifications(
         const primitives::BlockInfo &block_info,
-        const std::optional<primitives::Justification> &new_justification);
+        const std::optional<primitives::Justification> &new_justification,
+        ApplyJustificationCb &&callback);
 
     outcome::result<ConsistencyGuard> observeDigestsAndValidateHeader(
         primitives::Block const &block,
@@ -61,15 +60,17 @@ namespace kagome::consensus::babe {
       BabeDuration duration;
     };
 
-    outcome::result<SlotInfo> getSlotInfo(primitives::BlockHeader const &header) const;
+    outcome::result<SlotInfo> getSlotInfo(
+        primitives::BlockHeader const &header) const;
 
    private:
     log::Logger logger_ = log::createLogger("BlockAppender", "babe");
 
-    // Justifications stored for future application (because a justification may contain 
-    // votes for higher blocks, which we have not received yet)
-    std::map<primitives::BlockInfo, primitives::Justification>
-        postponed_justifications_;
+    // Justifications stored for future application (because a justification may
+    // contain votes for higher blocks, which we have not received yet)
+    using PostponedJustifications =
+        std::map<primitives::BlockInfo, primitives::Justification>;
+    std::shared_ptr<PostponedJustifications> postponed_justifications_;
 
     std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

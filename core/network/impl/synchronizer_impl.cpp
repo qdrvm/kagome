@@ -1089,7 +1089,6 @@ namespace kagome::network {
     auto node = known_blocks_.extract(hash);
     if (node) {
       auto &block_data = node.mapped().data;
-      auto &peers = node.mapped().peers;
       BOOST_ASSERT(block_data.header.has_value());
       const BlockInfo block_info(block_data.header->number, block_data.hash);
 
@@ -1120,7 +1119,15 @@ namespace kagome::network {
         }
 
       } else {
-        outcome::result<void> block_addition_result = outcome::success();
+        auto callback =
+            [wself{weak_from_this()}, hash, handler{std::move(handler)}](
+                auto &&block_addition_result) mutable {
+              if (auto self = wself.lock()) {
+                self->processBlockAdditionResult(
+                    std::move(block_addition_result), hash, std::move(handler));
+                self->postApplyBlock(hash);
+              }
+            };
 
         if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
           // Regular syncing
@@ -1128,15 +1135,16 @@ namespace kagome::network {
               .header = std::move(block_data.header.value()),
               .body = std::move(block_data.body.value()),
           };
-          block_addition_result = block_executor_->applyBlock(
-              std::move(block), block_data.justification);
+          block_executor_->applyBlock(
+              std::move(block), block_data.justification, std::move(callback));
 
         } else {
           // Fast syncing
           if (not state_sync_) {
             // Headers loading
-            block_addition_result = block_appender_->appendHeader(
-                std::move(block_data.header.value()), block_data.justification);
+            block_appender_->appendHeader(std::move(block_data.header.value()),
+                                          block_data.justification,
+                                          std::move(callback));
 
           } else {
             // State syncing in progress; Temporary discard all new blocks
@@ -1153,76 +1161,92 @@ namespace kagome::network {
             return;
           }
         }
+        return;
+      }
+    }
+    postApplyBlock(hash);
+  }
 
-        notifySubscribers(block_info, block_addition_result);
+  void SynchronizerImpl::processBlockAdditionResult(
+      outcome::result<void> &&block_addition_result,
+      primitives::BlockHash const &hash,
+      SyncResultHandler &&handler) {
+    auto node = known_blocks_.extract(hash);
+    if (node) {
+      auto &block_data = node.mapped().data;
+      auto &peers = node.mapped().peers;
+      BOOST_ASSERT(block_data.header.has_value());
+      const BlockInfo block_info(block_data.header->number, block_data.hash);
 
-        if (not block_addition_result.has_value()) {
-          if (block_addition_result
-              != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
-            notifySubscribers(block_info, block_addition_result.as_failure());
-            auto n = discardBlock(block_data.hash);
-            SL_WARN(
-                log_,
-                "Block {} {} been discarded: {}",
-                block_info,
-                n ? fmt::format("and {} others have", n) : fmt::format("has"),
-                block_addition_result.error());
-            if (handler) {
-              handler(Error::DISCARDED_BLOCK);
-            }
-          } else {
-            SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
-            if (handler) {
-              handler(block_info);
-            }
+      notifySubscribers(block_info, block_addition_result);
+
+      if (not block_addition_result.has_value()) {
+        if (block_addition_result
+            != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
+          notifySubscribers(block_info, block_addition_result.as_failure());
+          auto n = discardBlock(block_data.hash);
+          SL_WARN(log_,
+                  "Block {} {} been discarded: {}",
+                  block_info,
+                  n ? fmt::format("and {} others have", n) : fmt::format("has"),
+                  block_addition_result.error());
+          if (handler) {
+            handler(Error::DISCARDED_BLOCK);
           }
         } else {
-          telemetry_->notifyBlockImported(
-              block_info, telemetry::BlockOrigin::kNetworkInitialSync);
+          SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
           if (handler) {
             handler(block_info);
           }
+        }
+      } else {
+        telemetry_->notifyBlockImported(
+            block_info, telemetry::BlockOrigin::kNetworkInitialSync);
+        if (handler) {
+          handler(block_info);
+        }
 
-          // Check if finality lag greater than justification saving interval
-          static const BlockNumber kJustificationInterval = 512;
-          static const BlockNumber kMaxJustificationLag = 5;
-          auto last_finalized = block_tree_->getLastFinalized();
-          if (consensus::grandpa::HasAuthoritySetChange{*block_data.header}
-                  .scheduled
-              or (block_info.number - kMaxJustificationLag)
-                         / kJustificationInterval
-                     > last_finalized.number / kJustificationInterval) {
-            //  Trying to substitute with justifications' request only
-            for (const auto &peer_id : peers) {
-              syncMissingJustifications(
-                  peer_id,
-                  last_finalized,
-                  kJustificationInterval * 2,
-                  [wp = weak_from_this(), last_finalized, block_info](
-                      auto res) {
-                    if (auto self = wp.lock()) {
-                      if (res.has_value()) {
-                        SL_DEBUG(
-                            self->log_,
-                            "Loaded justifications for blocks in range {} - {}",
-                            last_finalized,
-                            res.value());
-                        return;
-                      }
-
-                      SL_WARN(self->log_,
-                              "Missing justifications between blocks {} and "
-                              "{} was not loaded: {}",
-                              last_finalized,
-                              block_info.number,
-                              res.error());
+        // Check if finality lag greater than justification saving interval
+        static const BlockNumber kJustificationInterval = 512;
+        static const BlockNumber kMaxJustificationLag = 5;
+        auto last_finalized = block_tree_->getLastFinalized();
+        if (consensus::grandpa::HasAuthoritySetChange{*block_data.header}
+                .scheduled
+            or (block_info.number - kMaxJustificationLag)
+                       / kJustificationInterval
+                   > last_finalized.number / kJustificationInterval) {
+          //  Trying to substitute with justifications' request only
+          for (const auto &peer_id : peers) {
+            syncMissingJustifications(
+                peer_id,
+                last_finalized,
+                kJustificationInterval * 2,
+                [wp = weak_from_this(), last_finalized, block_info](auto res) {
+                  if (auto self = wp.lock()) {
+                    if (res.has_value()) {
+                      SL_DEBUG(
+                          self->log_,
+                          "Loaded justifications for blocks in range {} - {}",
+                          last_finalized,
+                          res.value());
+                      return;
                     }
-                  });
-            }
+
+                    SL_WARN(self->log_,
+                            "Missing justifications between blocks {} and "
+                            "{} was not loaded: {}",
+                            last_finalized,
+                            block_info.number,
+                            res.error());
+                  }
+                });
           }
         }
       }
     }
+  }
+
+  void SynchronizerImpl::postApplyBlock(primitives::BlockHash const &hash) {
     ancestry_.erase(hash);
 
     auto minPreloadedBlockAmount =
@@ -1269,16 +1293,17 @@ namespace kagome::network {
       auto [block_info, justification] = std::move(justifications.front());
       const auto &block = block_info;  // SL_WARN compilation WA
       justifications.pop();
-      auto res =
-          grandpa_environment_->applyJustification(block_info, justification);
-      if (res.has_error()) {
-        SL_WARN(log_,
-                "Justification for block {} was not applied: {}",
-                block,
-                res.error());
-      } else {
-        SL_TRACE(log_, "Applied justification for block {}", block);
-      }
+      grandpa_environment_->applyJustification(
+          block_info, justification, [block, log{log_}](auto &&res) mutable {
+            if (res.has_error()) {
+              SL_WARN(log,
+                      "Justification for block {} was not applied: {}",
+                      block,
+                      res.error());
+            } else {
+              SL_TRACE(log, "Applied justification for block {}", block);
+            }
+          });
     }
   }
 

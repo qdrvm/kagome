@@ -12,19 +12,15 @@
 
 namespace kagome::blockchain {
 
-  JustificationStoragePolicyImpl::JustificationStoragePolicyImpl(
-      LazySPtr<const blockchain::BlockTree> block_tree)
-      : block_tree_(std::move(block_tree)) {}
-
   outcome::result<bool> JustificationStoragePolicyImpl::shouldStoreFor(
-      primitives::BlockHeader const &block_header) const {
+      primitives::BlockHeader const &block_header,
+      primitives::BlockNumber last_finalized_number) const {
     if (block_header.number == 0) {
       return true;
     }
 
-    BOOST_ASSERT_MSG(
-        block_tree_.get()->getLastFinalized().number >= block_header.number,
-        "Target block must be finalized");
+    BOOST_ASSERT_MSG(last_finalized_number >= block_header.number,
+                     "Target block must be finalized");
 
     if (consensus::grandpa::HasAuthoritySetChange{block_header}) {
       return true;
@@ -34,5 +30,7 @@ namespace kagome::blockchain {
     }
     return false;
   }
+
+  void JustificationStoragePolicyImpl::initBlockchainInfo() {}
 
 }  // namespace kagome::blockchain

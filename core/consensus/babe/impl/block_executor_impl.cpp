@@ -67,18 +67,21 @@ namespace kagome::consensus::babe {
 
   BlockExecutorImpl::~BlockExecutorImpl() = default;
 
-  outcome::result<void> BlockExecutorImpl::applyBlock(
+  void BlockExecutorImpl::applyBlock(
       primitives::Block &&block,
-      std::optional<primitives::Justification> const &justification) {
+      std::optional<primitives::Justification> const &justification,
+      ApplyJustificationCb &&callback) {
     auto block_context = appender_->makeBlockContext(block.header);
     auto &block_info = block_context.block_info;
     if (auto header_res = block_tree_->getBlockHeader(block.header.parent_hash);
         header_res.has_error()
         && header_res.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
       logger_->warn("Skipping a block {} with unknown parent", block_info);
-      return BlockAdditionError::PARENT_NOT_FOUND;
+      callback(BlockAdditionError::PARENT_NOT_FOUND);
+      return;
     } else if (header_res.has_error()) {
-      return header_res.as_failure();
+      callback(header_res.as_failure());
+      return;
     }
 
     // get current time to measure performance if block execution
@@ -92,16 +95,27 @@ namespace kagome::consensus::babe {
         body_res.has_value()) {
       SL_DEBUG(logger_, "Skip existing block: {}", block_info);
 
-      OUTCOME_TRY(block_tree_->addExistingBlock(block_context.block_info.hash,
-                                                block.header));
+      if (auto res = block_tree_->addExistingBlock(
+              block_context.block_info.hash, block.header);
+          res.has_error()) {
+        callback(res.as_failure());
+        return;
+      }
       block_was_applied_earlier = true;
     } else if (body_res.error() != blockchain::BlockTreeError::BODY_NOT_FOUND) {
-      return body_res.as_failure();
+      callback(body_res.as_failure());
+      return;
     }
 
-    OUTCOME_TRY(
-        consistency_guard,
-        appender_->observeDigestsAndValidateHeader(block, block_context));
+    std::optional<ConsistencyGuard> consistency_guard{};
+    if (auto res =
+            appender_->observeDigestsAndValidateHeader(block, block_context);
+        res.has_value()) {
+      consistency_guard.emplace(std::move(res.value()));
+    } else {
+      callback(res.as_failure());
+      return;
+    }
 
     // Calculate best block before new one will be applied
     auto last_finalized_block = block_tree_->getLastFinalized();
@@ -123,16 +137,27 @@ namespace kagome::consensus::babe {
                primitives::BlockInfo(parent.number, block.header.parent_hash),
                parent.state_root);
 
-      auto block_without_seal_digest = block;
-
       // block should be applied without last digest which contains the seal
-      block_without_seal_digest.header.digest.pop_back();
-
       auto changes_tracker =
           std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
-      OUTCOME_TRY(
-          core_->execute_block(block_without_seal_digest, changes_tracker));
+      if (auto res = core_->execute_block_ref(primitives::BlockReflection{
+              .header =
+                  primitives::BlockHeaderReflection{
+                      .parent_hash = block.header.parent_hash,
+                      .number = block.header.number,
+                      .state_root = block.header.state_root,
+                      .extrinsics_root = block.header.extrinsics_root,
+                      .digest = gsl::span<primitives::DigestItem const>(
+                          block.header.digest.data(),
+                          block.header.digest.size() - 1ull),
+                  },
+              .body = block.body,
+          }, changes_tracker);
+          res.has_error()) {
+        callback(res.as_failure());
+        return;
+      }
 
       auto exec_end = std::chrono::high_resolution_clock::now();
       auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -144,79 +169,117 @@ namespace kagome::consensus::babe {
                                             / 1000);
 
       // add block header if it does not exist
-      OUTCOME_TRY(block_tree_->addBlock(block));
+      if (auto res = block_tree_->addBlock(block); res.has_error()) {
+        callback(res.as_failure());
+        return;
+      }
 
       changes_tracker->onBlockAdded(
           block_info.hash, storage_sub_engine_, chain_subscription_engine_);
     }
 
-    OUTCOME_TRY(appender_->applyJustifications(block_info, justification));
+    /// TODO(iceseer): in a case we change the authority set, we can get an
+    /// error with the following behavior: the finalisation will commit the
+    /// authority change and the step of the next block processing will be
+    /// failed because of VRF error
+    BOOST_ASSERT(consistency_guard);
+    consistency_guard->commit();
 
-    // remove block's extrinsics from tx pool
-    for (const auto &extrinsic : block.body) {
-      auto hash = hasher_->blake2b_256(extrinsic.data);
-      SL_DEBUG(logger_, "Contains extrinsic with hash: {}", hash);
-      auto res = tx_pool_->removeOne(hash);
-      if (res.has_error()
-          && res
-                 != outcome::failure(
-                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
-        return res.as_failure();
-      }
-    }
-
-    OUTCOME_TRY(slot_info, appender_->getSlotInfo(block.header));
-    auto &[slot_start, slot_duration] = slot_info;
-    auto lag = std::chrono::system_clock::now() - slot_start;
-    std::string lag_msg;
-    if (lag > std::chrono::hours(99)) {
-      lag_msg = fmt::format(
-          " (lag {} days)",
-          std::chrono::duration_cast<std::chrono::hours>(lag).count() / 24);
-    } else if (lag > std::chrono::minutes(99)) {
-      lag_msg = fmt::format(
-          " (lag {} hr.)",
-          std::chrono::duration_cast<std::chrono::hours>(lag).count());
-    } else if (lag >= std::chrono::minutes(1)) {
-      lag_msg = fmt::format(
-          " (lag {} min.)",
-          std::chrono::duration_cast<std::chrono::minutes>(lag).count());
-    } else if (lag > slot_duration * 2) {
-      lag_msg = " (lag <1 min.)";
-    }
-
-    auto now = std::chrono::high_resolution_clock::now();
-
-    logger_->info(
-        "Imported block {} within {} ms.{}",
+    appender_->applyJustifications(
         block_info,
-        std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time)
-            .count(),
-        lag_msg);
+        justification,
+        [callback{std::move(callback)},
+         wself{weak_from_this()},
+         start_time,
+         block{std::move(block)},
+         previous_best_block_number{previous_best_block.number},
+         block_info](auto &&result) mutable {
+          auto self = wself.lock();
+          if (result.has_error() || !self) {
+            /// no processing, just forward call info callback to be able to
+            /// release internal resources
+            callback(std::move(result));
+            return;
+          }
 
-    last_finalized_block = block_tree_->getLastFinalized();
-    telemetry_->notifyBlockFinalized(last_finalized_block);
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
-    telemetry_->notifyBlockImported(
-        current_best_block, telemetry::BlockOrigin::kNetworkInitialSync);
+          // remove block's extrinsics from tx pool
+          for (const auto &extrinsic : block.body) {
+            auto hash = self->hasher_->blake2b_256(extrinsic.data);
+            SL_DEBUG(self->logger_, "Contains extrinsic with hash: {}", hash);
+            auto res = self->tx_pool_->removeOne(hash);
+            if (res.has_error()
+                && res
+                       != outcome::failure(
+                           transaction_pool::TransactionPoolError::
+                               TX_NOT_FOUND)) {
+              callback(res.as_failure());
+              return;
+            }
+          }
 
-    // Create new offchain worker for block if it is best only
-    if (current_best_block.number > previous_best_block.number) {
-      auto ocw_res = offchain_worker_api_->offchain_worker(
-          block.header.parent_hash, block.header);
-      if (ocw_res.has_failure()) {
-        logger_->error("Can't spawn offchain worker for block {}: {}",
-                       block_info,
-                       ocw_res.error());
-      }
-    }
+          BlockAppenderBase::SlotInfo slot_info;
+          if (auto res = self->appender_->getSlotInfo(block.header);
+              res.has_error()) {
+            callback(res.as_failure());
+            return;
+          } else {
+            slot_info = res.value();
+          }
 
-    consistency_guard.commit();
+          auto &[slot_start, slot_duration] = slot_info;
+          auto lag = std::chrono::system_clock::now() - slot_start;
+          std::string lag_msg;
+          if (lag > std::chrono::hours(99)) {
+            lag_msg = fmt::format(
+                " (lag {} days)",
+                std::chrono::duration_cast<std::chrono::hours>(lag).count()
+                    / 24);
+          } else if (lag > std::chrono::minutes(99)) {
+            lag_msg = fmt::format(
+                " (lag {} hr.)",
+                std::chrono::duration_cast<std::chrono::hours>(lag).count());
+          } else if (lag >= std::chrono::minutes(1)) {
+            lag_msg = fmt::format(
+                " (lag {} min.)",
+                std::chrono::duration_cast<std::chrono::minutes>(lag).count());
+          } else if (lag > slot_duration * 2) {
+            lag_msg = " (lag <1 min.)";
+          }
 
-    return outcome::success();
+          auto now = std::chrono::high_resolution_clock::now();
+
+          self->logger_->info(
+              "Imported block {} within {} ms.{}",
+              block_info,
+              std::chrono::duration_cast<std::chrono::milliseconds>(
+                  now - start_time)
+                  .count(),
+              lag_msg);
+
+          auto const last_finalized_block =
+              self->block_tree_->getLastFinalized();
+          self->telemetry_->notifyBlockFinalized(last_finalized_block);
+          auto current_best_block_res = self->block_tree_->getBestContaining(
+              last_finalized_block.hash, std::nullopt);
+          BOOST_ASSERT(current_best_block_res.has_value());
+          const auto &current_best_block = current_best_block_res.value();
+          self->telemetry_->notifyBlockImported(
+              current_best_block, telemetry::BlockOrigin::kNetworkInitialSync);
+
+          // Create new offchain worker for block if it is best only
+          if (current_best_block.number > previous_best_block_number) {
+            auto ocw_res = self->offchain_worker_api_->offchain_worker(
+                block.header.parent_hash, block.header);
+            if (ocw_res.has_failure()) {
+              self->logger_->error(
+                  "Can't spawn offchain worker for block {}: {}",
+                  block_info,
+                  ocw_res.error());
+            }
+          }
+
+          callback(outcome::success());
+        });
   }
 
 }  // namespace kagome::consensus::babe
