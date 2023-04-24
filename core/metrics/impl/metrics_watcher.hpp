@@ -24,7 +24,6 @@ namespace kagome::metrics {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::ChainSpec> chain_spec);
 
-    bool prepare();
     bool start();
     void stop();
 

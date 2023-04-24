@@ -121,7 +121,11 @@ class BlockValidatorTest : public testing::Test {
   primitives::AuthorityList authorities_;
 
   primitives::BabeConfiguration config_{
-      .randomness = Randomness{uint256_to_le_bytes(475995757021)}};
+      .leadership_rate = {3,4},
+      .authorities = {},
+      .randomness = Randomness{uint256_to_le_bytes(475995757021)},
+      .allowed_slots = {}
+  };
 };
 
 /**

@@ -124,9 +124,9 @@ namespace kagome::api {
   ApiServiceImpl::ApiServiceImpl(
       application::AppStateManager &app_state_manager,
       std::shared_ptr<api::RpcThreadPool> thread_pool,
-      ListenerList listeners,
+      std::vector<std::shared_ptr<Listener>> listeners,
       std::shared_ptr<JRpcServer> server,
-      const ProcessorSpan &processors,
+      std::vector<std::shared_ptr<JRpcProcessor>> processors,
       StorageSubscriptionEnginePtr storage_sub_engine,
       ChainSubscriptionEnginePtr chain_sub_engine,
       ExtrinsicSubscriptionEnginePtr ext_sub_engine,
@@ -136,7 +136,7 @@ namespace kagome::api {
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<runtime::Core> core)
       : thread_pool_(std::move(thread_pool)),
-        listeners_(std::move(listeners.listeners)),
+        listeners_(std::move(listeners)),
         server_(std::move(server)),
         logger_{log::createLogger("ApiService", "api")},
         block_tree_{std::move(block_tree)},
@@ -154,7 +154,8 @@ namespace kagome::api {
         std::all_of(listeners_.cbegin(), listeners_.cend(), [](auto &listener) {
           return listener != nullptr;
         }));
-    for (auto &processor : processors.processors) {
+    BOOST_ASSERT(server_);
+    for (auto &processor : processors) {
       BOOST_ASSERT(processor != nullptr);
       processor->registerHandlers();
     }
@@ -172,11 +173,10 @@ namespace kagome::api {
           std::pair<common::Buffer, std::optional<common::Buffer>>>
           &key_value_pairs,
       const primitives::BlockHash &block) {
-    /// TODO(iceseer): PRE-475 make event notification depending
-    /// in packs blocks, to batch them in a single message Because
-    /// of a spec, we can send an array of changes in a single
-    /// message. We can receive here a pack of events and format
-    /// them in a single json message.
+    /// TODO(iceseer): PRE-475 make event notification depending in packs
+    /// blocks, to batch them in a single message Because of a spec, we can send
+    /// an array of changes in a single message. We can receive here a pack of
+    /// events and format them in a single json message.
 
     jsonrpc::Value::Array changes;
     changes.reserve(key_value_pairs.size());

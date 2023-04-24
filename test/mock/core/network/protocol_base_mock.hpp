@@ -18,8 +18,6 @@ namespace kagome::network {
 
     MOCK_METHOD(bool, start, (), (override));
 
-    MOCK_METHOD(bool, stop, (), (override));
-
     MOCK_METHOD(void, onIncomingStream, (std::shared_ptr<Stream>), (override));
 
     MOCK_METHOD(

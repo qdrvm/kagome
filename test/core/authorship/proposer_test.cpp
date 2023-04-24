@@ -10,6 +10,7 @@
 #include "authorship/impl/block_builder_error.hpp"
 #include "mock/core/authorship/block_builder_factory_mock.hpp"
 #include "mock/core/authorship/block_builder_mock.hpp"
+#include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/event_types.hpp"
@@ -29,6 +30,7 @@ using kagome::authorship::BlockBuilderError;
 using kagome::authorship::BlockBuilderFactoryMock;
 using kagome::authorship::BlockBuilderMock;
 using kagome::authorship::ProposerImpl;
+using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::primitives::Block;
 using kagome::primitives::BlockId;
@@ -78,6 +80,7 @@ class ProposerTest : public ::testing::Test {
  protected:
   std::shared_ptr<BlockBuilderFactoryMock> block_builder_factory_ =
       std::make_shared<BlockBuilderFactoryMock>();
+  std::shared_ptr<SystemClockMock> clock_ = std::make_shared<SystemClockMock>();
   std::shared_ptr<TransactionPoolMock> transaction_pool_ =
       std::make_shared<TransactionPoolMock>();
   std::shared_ptr<ExtrinsicSubscriptionEngine> extrinsic_sub_engine_ =
@@ -88,6 +91,7 @@ class ProposerTest : public ::testing::Test {
   BlockBuilderMock *block_builder_;
 
   ProposerImpl proposer_{block_builder_factory_,
+                         clock_,
                          transaction_pool_,
                          extrinsic_sub_engine_,
                          extrinsic_event_key_repo_};
@@ -135,8 +139,11 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
   // when
-  auto block_res = proposer_.propose(
-      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
+  auto block_res = proposer_.propose(expected_block_,
+                                     std::nullopt,
+                                     inherent_data_,
+                                     inherent_digests_,
+                                     std::nullopt);
 
   // then
   ASSERT_TRUE(block_res);
@@ -158,8 +165,11 @@ TEST_F(ProposerTest, CreateBlockFailsWhenXtNotPushed) {
       .WillOnce(Return(outcome::failure(BlockBuilderError::BAD_MANDATORY)));
 
   // when
-  auto block_res = proposer_.propose(
-      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
+  auto block_res = proposer_.propose(expected_block_,
+                                     std::nullopt,
+                                     inherent_data_,
+                                     inherent_digests_,
+                                     std::nullopt);
 
   // then
   ASSERT_FALSE(block_res);
@@ -177,8 +187,11 @@ TEST_F(ProposerTest, CreateBlockFailsToGetInhetentExtr) {
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
 
   // when
-  auto block_res = proposer_.propose(
-      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
+  auto block_res = proposer_.propose(expected_block_,
+                                     std::nullopt,
+                                     inherent_data_,
+                                     inherent_digests_,
+                                     std::nullopt);
 
   // then
   ASSERT_FALSE(block_res);
@@ -210,16 +223,17 @@ TEST_F(ProposerTest, PushFailed) {
   std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
       std::make_pair("fakeHash"_hash256, std::make_shared<Transaction>())};
 
-  EXPECT_CALL(*transaction_pool_, removeOne("fakeHash"_hash256))
-      .WillOnce(Return(Transaction{}));
   EXPECT_CALL(*transaction_pool_, getReadyTransactions())
       .WillOnce(Return(ready_transactions));
   EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
       .WillOnce(Return(outcome::success()));
 
   // when
-  auto block_res = proposer_.propose(
-      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
+  auto block_res = proposer_.propose(expected_block_,
+                                     std::nullopt,
+                                     inherent_data_,
+                                     inherent_digests_,
+                                     std::nullopt);
 
   // then
   ASSERT_TRUE(block_res);
@@ -264,8 +278,11 @@ TEST_F(ProposerTest, TrxSkippedDueToOverflow) {
       .WillRepeatedly(Return(outcome::success()));
 
   // when
-  auto block_res = proposer_.propose(
-      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
+  auto block_res = proposer_.propose(expected_block_,
+                                     std::nullopt,
+                                     inherent_data_,
+                                     inherent_digests_,
+                                     std::nullopt);
 
   // then
   ASSERT_TRUE(block_res);
@@ -310,8 +327,11 @@ TEST_F(ProposerTest, TrxSkippedDueToResourceExhausted) {
       .WillRepeatedly(Return(outcome::success()));
 
   // when
-  auto block_res = proposer_.propose(
-      expected_block_, inherent_data_, inherent_digests_, std::nullopt);
+  auto block_res = proposer_.propose(expected_block_,
+                                     std::nullopt,
+                                     inherent_data_,
+                                     inherent_digests_,
+                                     std::nullopt);
 
   // then
   ASSERT_TRUE(block_res);

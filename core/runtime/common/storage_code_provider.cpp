@@ -58,6 +58,6 @@ namespace kagome::runtime {
     OUTCOME_TRY(code, batch.get(storage::kRuntimeCodeKey));
     common::Buffer uncompressed;
     OUTCOME_TRY(uncompressCodeIfNeeded(code, uncompressed));
-    return std::move(uncompressed);
+    return uncompressed;
   }
 }  // namespace kagome::runtime

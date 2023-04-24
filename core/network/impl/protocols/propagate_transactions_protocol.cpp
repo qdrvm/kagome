@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "application/app_configuration.hpp"
+#include "blockchain/genesis_block_hash.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/types/no_data_message.hpp"
@@ -25,7 +26,7 @@ namespace kagome::network {
       libp2p::Host &host,
       const application::AppConfiguration &app_config,
       const application::ChainSpec &chain_spec,
-      const primitives::BlockHash &genesis_hash,
+      const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<consensus::babe::Babe> babe,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<StreamEngine> stream_engine,
@@ -60,10 +61,6 @@ namespace kagome::network {
 
   bool PropagateTransactionsProtocol::start() {
     return base_.start(weak_from_this());
-  }
-
-  bool PropagateTransactionsProtocol::stop() {
-    return base_.stop();
   }
 
   const ProtocolName &PropagateTransactionsProtocol::protocolName() const {

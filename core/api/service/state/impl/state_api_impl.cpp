@@ -42,11 +42,13 @@ namespace kagome::api {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<runtime::Metadata> metadata,
-      std::shared_ptr<runtime::RawExecutor> executor)
+      std::shared_ptr<runtime::RawExecutor> executor,
+      LazySPtr<api::ApiService> api_service)
       : header_repo_{std::move(block_repo)},
         storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},
         runtime_core_{std::move(runtime_core)},
+        api_service_{std::move(api_service)},
         metadata_{std::move(metadata)},
         executor_{std::move(executor)} {
     BOOST_ASSERT(nullptr != header_repo_);
@@ -55,12 +57,6 @@ namespace kagome::api {
     BOOST_ASSERT(nullptr != runtime_core_);
     BOOST_ASSERT(nullptr != metadata_);
     BOOST_ASSERT(nullptr != executor_);
-  }
-
-  void StateApiImpl::setApiService(
-      std::shared_ptr<api::ApiService> const &api_service) {
-    BOOST_ASSERT(api_service != nullptr);
-    api_service_ = api_service;
   }
 
   outcome::result<common::Buffer> StateApiImpl::call(
@@ -217,7 +213,7 @@ namespace kagome::api {
 
   outcome::result<uint32_t> StateApiImpl::subscribeStorage(
       const std::vector<common::Buffer> &keys) {
-    if (auto api_service = api_service_.lock()) {
+    if (auto api_service = api_service_.get()) {
       return api_service->subscribeSessionToKeys(keys);
     }
 
@@ -227,7 +223,7 @@ namespace kagome::api {
 
   outcome::result<bool> StateApiImpl::unsubscribeStorage(
       const std::vector<uint32_t> &subscription_id) {
-    if (auto api_service = api_service_.lock()) {
+    if (auto api_service = api_service_.get()) {
       return api_service->unsubscribeSessionFromIds(subscription_id);
     }
 
@@ -236,7 +232,7 @@ namespace kagome::api {
   }
 
   outcome::result<uint32_t> StateApiImpl::subscribeRuntimeVersion() {
-    if (auto api_service = api_service_.lock()) {
+    if (auto api_service = api_service_.get()) {
       return api_service->subscribeRuntimeVersion();
     }
 
@@ -246,7 +242,7 @@ namespace kagome::api {
 
   outcome::result<void> StateApiImpl::unsubscribeRuntimeVersion(
       uint32_t subscription_id) {
-    if (auto api_service = api_service_.lock()) {
+    if (auto api_service = api_service_.get()) {
       OUTCOME_TRY(api_service->unsubscribeRuntimeVersion(subscription_id));
       return outcome::success();
     }

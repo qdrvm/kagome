@@ -131,6 +131,11 @@ namespace kagome {
     return std::nullopt;
   }
 
+  template <typename T, typename TVariant>
+  constexpr bool is_type(TVariant &&variant) {
+    return boost::get<T>(&variant) != nullptr;
+  }
+
   /// apply Matcher to optional T
   template <typename T, typename Matcher>
   constexpr decltype(auto) match(T &&t, Matcher &&m) {

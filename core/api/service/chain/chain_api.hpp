@@ -27,9 +27,6 @@ namespace kagome::api {
     using BlockHash = kagome::primitives::BlockHash;
     using ValueType = boost::variant<BlockNumber, std::string>;
 
-    virtual void setApiService(
-        const std::shared_ptr<api::ApiService> &api_service) = 0;
-
     /**
      * @return last finalized block hash
      */

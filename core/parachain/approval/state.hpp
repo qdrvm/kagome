@@ -68,13 +68,13 @@ namespace kagome::parachain::approval {
   /// Whether the candidate is approved and all relevant assignments
   /// have at most the given assignment tick.
   inline bool is_approved(Check const &self, Tick const max_assignment_tick) {
-    if (auto v{boost::get<Unapproved>(&self)}) {
+    if (is_type<Unapproved>(self)) {
       return false;
     }
     if (auto v{boost::get<Approved>(&self)}) {
       return (v->second ? (*v->second <= max_assignment_tick) : true);
     }
-    if (auto v{boost::get<ApprovedOneThird>(&self)}) {
+    if (is_type<ApprovedOneThird>(self)) {
       return true;
     }
     UNREACHABLE;

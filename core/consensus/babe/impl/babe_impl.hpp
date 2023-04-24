@@ -45,6 +45,7 @@ namespace kagome::consensus::grandpa {
 namespace kagome::crypto {
   class Hasher;
   class Sr25519Provider;
+  class SessionKeys;
 }  // namespace kagome::crypto
 
 namespace kagome::network {
@@ -96,7 +97,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<network::BlockAnnounceTransmitter>
             block_announce_transmitter,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-        std::shared_ptr<crypto::Sr25519Keypair> keypair,
+        std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<clock::SystemClock> clock,
         std::shared_ptr<crypto::Hasher> hasher,
         std::unique_ptr<clock::Timer> timer,
@@ -121,9 +122,6 @@ namespace kagome::consensus::babe {
 
     /** @see AppStateManager::takeControl */
     bool start();
-
-    /** @see AppStateManager::takeControl */
-    void stop();
 
     void runEpoch(EpochDescriptor epoch) override;
 
@@ -155,7 +153,7 @@ namespace kagome::consensus::babe {
     /**
      * Process the current Babe slot
      */
-    void processSlot();
+    void processSlot(clock::SystemClock::TimePoint slot_timestamp);
 
     /**
      * Gather block and broadcast it
@@ -165,6 +163,7 @@ namespace kagome::consensus::babe {
      */
     void processSlotLeadership(
         SlotType slot_type,
+        clock::SystemClock::TimePoint slot_timestamp,
         std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
         primitives::AuthorityIndex authority_index);
 
@@ -175,6 +174,7 @@ namespace kagome::consensus::babe {
 
     void changeLotteryEpoch(
         const EpochDescriptor &epoch,
+        primitives::AuthorityIndex authority_index,
         const primitives::BabeConfiguration &babe_config) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(

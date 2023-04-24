@@ -14,12 +14,12 @@ namespace kagome::storage {
 
   outcome::result<void> RocksDbBatch::put(const BufferView &key,
                                           BufferOrView &&value) {
-    batch_.Put(db_.column_.handle, make_slice(key), make_slice(value));
+    batch_.Put(db_.column_, make_slice(key), make_slice(value));
     return outcome::success();
   }
 
   outcome::result<void> RocksDbBatch::remove(const BufferView &key) {
-    batch_.Delete(db_.column_.handle, make_slice(key));
+    batch_.Delete(db_.column_, make_slice(key));
     return outcome::success();
   }
 

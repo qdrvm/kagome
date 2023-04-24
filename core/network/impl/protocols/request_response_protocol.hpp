@@ -38,9 +38,6 @@ namespace kagome::network {
     bool start() override {
       return base_.start(this->weak_from_this());
     }
-    bool stop() override {
-      return base_.stop();
-    }
 
     const ProtocolName &protocolName() const override {
       return base_.protocolName();
