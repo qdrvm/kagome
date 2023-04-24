@@ -6,8 +6,7 @@
 #ifndef KAGOME_DISPUTE_PARTICIPATION_TYPES_HPP
 #define KAGOME_DISPUTE_PARTICIPATION_TYPES_HPP
 
-#include "network/types/collator_messages.hpp"
-#include "parachain/types.hpp"
+#include "dispute_coordinator/types.hpp"
 
 namespace kagome::dispute {
 

@@ -12,7 +12,8 @@
 
 namespace kagome::dispute {
   class Queues;
-}
+  class WorkerMessageSender;
+}  // namespace kagome::dispute
 
 namespace kagome::dispute {
 
@@ -32,7 +33,7 @@ namespace kagome::dispute {
     /// Priority and best effort queues.
     std::unique_ptr<Queues> queue_;
     /// Sender to be passed to worker tasks.
-    WorkerMessageSender worker_sender_;
+    // std::unique_ptr<WorkerMessageSender> worker_sender_;
     /// Some recent block for retrieving validation code from chain.
     std::optional<primitives::BlockInfo> recent_block_;
   };
