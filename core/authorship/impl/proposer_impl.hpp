@@ -30,6 +30,7 @@ namespace kagome::authorship {
 
     ProposerImpl(
         std::shared_ptr<BlockBuilderFactory> block_builder_factory,
+        std::shared_ptr<Clock> clock,
         std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
             ext_sub_engine,
@@ -38,12 +39,14 @@ namespace kagome::authorship {
 
     outcome::result<primitives::Block> propose(
         const primitives::BlockInfo &parent_block,
+        std::optional<Clock::TimePoint> deadline,
         const primitives::InherentData &inherent_data,
         const primitives::Digest &inherent_digest,
         TrieChangesTrackerOpt changes_tracker) override;
 
    private:
     std::shared_ptr<BlockBuilderFactory> block_builder_factory_;
+    std::shared_ptr<Clock> clock_;
     std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
         ext_sub_engine_;
