@@ -109,24 +109,26 @@ namespace kagome::runtime {
 #define BSR(val) __builtin_ctzll(val)
 #define BSF(val) __builtin_clzll(val)
 
-  template <size_t kGranularity>
+  template <size_t G, size_t A = 8ull>
   struct MemoryAllocatorNew {
     static constexpr size_t kSegmentInBits = 64ull;
-    static constexpr size_t kAlignment = kGranularity;
+    static constexpr size_t kAlignment = A;
+    static constexpr size_t kGranularity = G;
     static constexpr size_t kSegmentSize = kGranularity * kSegmentInBits;
     static constexpr size_t kAllocationSize = kSegmentSize;
 
     static_assert((kAlignment & (kAlignment - 1)) == 0, "Power of 2!");
+    static_assert((kGranularity % kAlignment) == 0, "Granularity is multiple of Alignment");
     static_assert((kSegmentSize & (kSegmentSize - 1)) == 0, "Power of 2!");
 
     size_t allocate(size_t size) {
-      const auto allocation_size = math::roundUp<kAlignment>(size);
+      const auto allocation_size = math::roundUp<kGranularity>(size);
       const auto bits_len = bitsPackLenFromSize(allocation_size);
 
       size_t remains;
       const auto position = searchContiguousBitPack(bits_len, remains);
       if (remains != 0ull) {
-        storageAdjust(remains * kAlignment);
+        storageAdjust(remains * kGranularity);
       }
 
       const auto segment_ix = position / kSegmentInBits;
@@ -143,7 +145,7 @@ namespace kagome::runtime {
         table_[segment_ix + 1] &= ~segment_mask_1;
       }
 
-      return position * kAlignment;
+      return position * kGranularity;
     }
 
     std::optional<size_t> deallocate(size_t ptr) {
@@ -162,7 +164,7 @@ namespace kagome::runtime {
    private:
 #endif  // TEST_MODE
     auto bitsPackLenFromSize(size_t size) {
-      return size / kAlignment;
+      return size / kGranularity;
     }
 
     auto segmentsToSize(size_t val) {
