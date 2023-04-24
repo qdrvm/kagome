@@ -53,11 +53,8 @@ namespace kagome::network {
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
-    /**
-     * Sets handler for `parytytech/grandpa/1` protocol
-     * @return true if handler set successfully
-     */
     bool start() override;
+    void stop();
 
     const std::string &protocolName() const override;
 
@@ -78,7 +75,7 @@ namespace kagome::network {
                          CatchUpResponse &&catch_up_response);
 
    private:
-    const static inline auto kGrandpaProtocolName = "GrandpaProtocol"s;
+    inline static const auto kGrandpaProtocolName = "GrandpaProtocol"s;
     enum class Direction { INCOMING, OUTGOING };
     void readHandshake(std::shared_ptr<Stream> stream,
                        Direction direction,
