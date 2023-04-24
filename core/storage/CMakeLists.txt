@@ -31,7 +31,7 @@ target_link_libraries(storage
     Boost::boost
     outcome
     RocksDB::rocksdb
-    Boost::filesystem
+    filesystem
     fmt::fmt
     logger
     blake2

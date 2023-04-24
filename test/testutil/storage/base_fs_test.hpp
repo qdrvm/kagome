@@ -7,7 +7,7 @@
 #define KAGOME_BASE_FS_TEST_HPP
 
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 
 #include "log/logger.hpp"
 #include "testutil/prepare_loggers.hpp"

@@ -25,7 +25,7 @@ using kagome::primitives::BlockInfo;
 using kagome::runtime::Metadata;
 using kagome::runtime::MetadataImpl;
 
-namespace fs = boost::filesystem;
+namespace fs = kagome::filesystem;
 
 class MetadataTest : public BinaryenRuntimeTest {
  public:

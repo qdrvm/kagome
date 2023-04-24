@@ -6,8 +6,9 @@
 #ifndef KAGOME_LOG_CONFIGURATOR
 #define KAGOME_LOG_CONFIGURATOR
 
-#include <boost/filesystem.hpp>
 #include <soralog/impl/configurator_from_yaml.hpp>
+
+#include "filesystem/common.hpp"
 
 namespace kagome::log {
 

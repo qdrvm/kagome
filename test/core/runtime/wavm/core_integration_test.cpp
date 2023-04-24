@@ -31,7 +31,7 @@ using kagome::runtime::wavm::MemoryImpl;
 using ::testing::_;
 using ::testing::Return;
 
-namespace fs = boost::filesystem;
+namespace fs = kagome::filesystem;
 
 class CoreTest : public WavmRuntimeTest {
  public:

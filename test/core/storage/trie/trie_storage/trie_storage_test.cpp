@@ -6,8 +6,8 @@
 #include "storage/trie/impl/trie_storage_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
 
+#include "filesystem/common.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -86,5 +86,5 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
   EXPECT_OUTCOME_TRUE(v3, batch->get("678"_buf));
   ASSERT_EQ(v3, "xyz"_buf);
 
-  boost::filesystem::remove_all("/tmp/kagome_rocksdb_persistency_test");
+  kagome::filesystem::remove_all("/tmp/kagome_rocksdb_persistency_test");
 }

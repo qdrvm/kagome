@@ -24,7 +24,7 @@ using kagome::runtime::GrandpaApiImpl;
 using ::testing::_;
 using ::testing::Return;
 
-namespace fs = boost::filesystem;
+namespace fs = kagome::filesystem;
 
 class GrandpaTest : public BinaryenRuntimeTest {
  public:

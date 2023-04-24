@@ -5,7 +5,7 @@
 
 #include "storage/rocksdb/rocksdb.hpp"
 
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 
 #include "filesystem/directories.hpp"
 #include "storage/database_error.hpp"

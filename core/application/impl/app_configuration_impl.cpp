@@ -13,7 +13,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -999,7 +999,7 @@ namespace kagome::application {
     }
 
     if (vm.end() != vm.find("tmp")) {
-      std::string unique_name = std::tmpnam(nullptr);
+      auto unique_name = filesystem::unique_path();
       base_path_ = (std::filesystem::temp_directory_path() / unique_name);
     } else {
       find_argument<std::string>(

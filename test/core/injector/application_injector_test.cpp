@@ -11,10 +11,11 @@
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "filesystem/common.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
 
-namespace fs = std::filesystem;
+namespace fs = kagome::filesystem;
 using testing::_;
 
 namespace {
@@ -136,7 +137,7 @@ class KagomeInjectorTest : public testing::Test {
 
  protected:
   static inline const auto db_path_ =
-      fs::temp_directory_path() / std::string(std::tmpnam(nullptr));
+      fs::temp_directory_path() / fs::unique_path();
 
   std::shared_ptr<kagome::application::AppConfigurationMock> config_;
   std::unique_ptr<kagome::injector::KagomeNodeInjector> injector_;

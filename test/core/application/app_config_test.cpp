@@ -6,16 +6,17 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <boost/assert.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <fstream>
 
 #include "application/impl/app_configuration_impl.hpp"
+#include "filesystem/common.hpp"
 #include "log/logger.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
+namespace filesystem = kagome::filesystem;
 
 class AppConfigurationTest : public testing::Test {
  public:
@@ -23,13 +24,13 @@ class AppConfigurationTest : public testing::Test {
     testutil::prepareLoggers();
   }
 
-  std::filesystem::path tmp_dir = std::filesystem::temp_directory_path()
-                                    / std::string(std::tmpnam(nullptr));
+  filesystem::path tmp_dir = filesystem::temp_directory_path()
+                                    / filesystem::unique_path();
   std::string config_path = (tmp_dir / "config.json").native();
   std::string invalid_config_path = (tmp_dir / "invalid_config.json").native();
   std::string damaged_config_path = (tmp_dir / "damaged_config.json").native();
-  std::filesystem::path base_path = tmp_dir / "base_path";
-  std::filesystem::path chain_path = tmp_dir / "genesis.json";
+  filesystem::path base_path = tmp_dir / "base_path";
+  filesystem::path chain_path = tmp_dir / "genesis.json";
 
   static constexpr char const *file_content =
       R"({
@@ -112,8 +113,8 @@ class AppConfigurationTest : public testing::Test {
   }
 
   void SetUp() override {
-    std::filesystem::create_directory(tmp_dir);
-    ASSERT_TRUE(std::filesystem::exists(tmp_dir));
+    filesystem::create_directory(tmp_dir);
+    ASSERT_TRUE(filesystem::exists(tmp_dir));
 
     auto spawn_file = [](std::string const &path,
                          std::string const &file_content) {
@@ -128,7 +129,7 @@ class AppConfigurationTest : public testing::Test {
     spawn_file(invalid_config_path, invalid_file_content);
     spawn_file(damaged_config_path, damaged_file_content);
     spawn_file(chain_path.native(), "");
-    ASSERT_TRUE(std::filesystem::create_directory(base_path));
+    ASSERT_TRUE(filesystem::create_directory(base_path));
 
     auto logger = kagome::log::createLogger("AppConfigTest", "testing");
     app_config_ = std::make_shared<AppConfigurationImpl>(logger);

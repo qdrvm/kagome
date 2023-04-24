@@ -9,7 +9,7 @@
 #include <exception>
 
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 
 #include "storage/database_error.hpp"
 #include "storage/rocksdb/rocksdb.hpp"

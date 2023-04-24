@@ -6,7 +6,7 @@
 #include "runtime/common/executor.hpp"
 
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"

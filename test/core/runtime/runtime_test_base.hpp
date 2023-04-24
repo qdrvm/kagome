@@ -21,6 +21,7 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "filesystem/common.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
@@ -82,8 +83,7 @@ class RuntimeTestBase : public ::testing::Test {
     auto bip39_provider =
         std::make_shared<crypto::Bip39ProviderImpl>(pbkdf2_provider);
     auto keystore_path =
-        std::filesystem::temp_directory_path()
-        / std::string(std::tmpnam(nullptr));
+        filesystem::temp_directory_path() / filesystem::unique_path();
     auto crypto_store = std::make_shared<crypto::CryptoStoreImpl>(
         std::make_shared<crypto::EcdsaSuite>(ecdsa_provider),
         std::make_shared<crypto::Ed25519Suite>(ed25519_provider),

@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
@@ -82,7 +82,7 @@ using testing::_;
 using testing::Invoke;
 using testing::Return;
 
-namespace fs = boost::filesystem;
+namespace fs = kagome::filesystem;
 
 class WasmExecutorTest : public ::testing::Test {
  public:

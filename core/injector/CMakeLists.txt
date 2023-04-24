@@ -37,6 +37,7 @@ target_link_libraries(application_injector
     crypto_store
     ecdsa_provider
     ed25519_provider
+    filesystem
     transaction_pool
     host_api_factory
     key_file_storage
