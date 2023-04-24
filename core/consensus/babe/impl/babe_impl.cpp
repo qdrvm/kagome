@@ -63,7 +63,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<blockchain::DigestTracker> digest_tracker,
       std::shared_ptr<network::WarpSync> warp_sync,
       LazySPtr<network::WarpProtocol> warp_protocol,
-      std::shared_ptr<consensus::grandpa::JustificationObserver> grandpa,
+      std::shared_ptr<consensus::grandpa::JustificationObserver>
+          justification_observer,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -93,7 +94,7 @@ namespace kagome::consensus::babe {
         digest_tracker_(std::move(digest_tracker)),
         warp_sync_{std::move(warp_sync)},
         warp_protocol_{std::move(warp_protocol)},
-        grandpa_{std::move(grandpa)},
+        justification_observer_{std::move(justification_observer)},
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         bitfield_store_{std::move(bitfield_store)},
@@ -707,7 +708,7 @@ namespace kagome::consensus::babe {
 
                   self->adjustEpochDescriptor();
                   self->babe_config_repo_->readFromState(block_at_state);
-                  self->grandpa_->reload();
+                  self->justification_observer_->reload();
                   self->block_tree_->notifyBestAndFinalized();
 
                   SL_INFO(self->log_,

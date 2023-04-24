@@ -108,7 +108,8 @@ namespace kagome::consensus::babe {
         std::shared_ptr<blockchain::DigestTracker> digest_tracker,
         std::shared_ptr<network::WarpSync> warp_sync,
         LazySPtr<network::WarpProtocol> warp_protocol,
-        std::shared_ptr<consensus::grandpa::JustificationObserver> grandpa,
+        std::shared_ptr<consensus::grandpa::JustificationObserver>
+            justification_observer,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<BabeUtil> babe_util,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -213,7 +214,8 @@ namespace kagome::consensus::babe {
     std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
     std::shared_ptr<network::WarpSync> warp_sync_;
     LazySPtr<network::WarpProtocol> warp_protocol_;
-    std::shared_ptr<consensus::grandpa::JustificationObserver> grandpa_;
+    std::shared_ptr<consensus::grandpa::JustificationObserver>
+        justification_observer_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
