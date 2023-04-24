@@ -63,11 +63,8 @@ namespace kagome::application {
     AppConfigurationImpl(AppConfigurationImpl &&) = default;
     AppConfigurationImpl &operator=(AppConfigurationImpl &&) = default;
 
-    enum class Command { Kagome, Benchmark, DbEditor };
-
     [[nodiscard]] bool initializeFromArgs(int argc,
-                                          const char **argv,
-                                          Command command = Command::Kagome);
+                                          const char **argv);
 
     network::Roles roles() const override {
       return roles_;

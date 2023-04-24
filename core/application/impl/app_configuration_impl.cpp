@@ -719,10 +719,29 @@ namespace kagome::application {
     return telemetry::TelemetryEndpoint{std::move(uri), verbosity_level};
   }
 
-  bool AppConfigurationImpl::initializeFromArgs(int argc,
-                                                const char **argv,
-                                                Command command) {
+  bool AppConfigurationImpl::initializeFromArgs(int argc, const char **argv) {
     namespace po = boost::program_options;
+
+    std::optional<std::string> command;
+    std::optional<std::string> subcommand;
+
+    using std::string_view_literals::operator""sv;
+
+    if (argc > 0 && argv[0] == "benchmark"sv) {
+      command = "benchmark";
+
+      if (argc > 1 && argv[1] == "block"sv) {
+        subcommand = "block";
+      } else {
+        SL_ERROR(logger_, "Usage: kagome benchmark BENCHMARK_TYPE");
+        SL_ERROR(logger_, "The only supported BENCHMARK_TYPE is 'block'");
+        return false;
+      }
+    }
+    if (subcommand) {
+      argc--;
+      argv++;
+    }
 
     // clang-format off
     po::options_description desc("General options");
@@ -824,9 +843,12 @@ namespace kagome::application {
     desc.add(blockhain_desc)
         .add(storage_desc)
         .add(network_desc)
-        .add(development_desc)
-        .add(db_editor_desc)
-        .add(benchmark_desc);
+        .add(development_desc);
+    if (command == "db-editor") {
+      desc.add(db_editor_desc);
+    } else if (command == "benchmark") {
+      desc.add(benchmark_desc);
+    }
 
     if (vm.count("help") > 0) {
       std::cout << desc << std::endl;
@@ -1326,7 +1348,7 @@ namespace kagome::application {
       subcommand_ = Subcommand::ChainInfo;
     });
 
-    if (command == Command::Benchmark) {
+    if (command == "benchmark" && subcommand == "block") {
       auto from_opt = find_argument<uint32_t>(vm, "from");
       if (!from_opt) {
         SL_ERROR(logger_, "Required argument --from is not provided");
@@ -1345,34 +1367,24 @@ namespace kagome::application {
       benchmark_config_ = BlockBenchmarkConfig{
           .from = *from_opt, .to = *to_opt, .times = *repeat_opt};
     }
-    if (found_num == 0) {
-      SL_ERROR(logger_, "Found no benchmark options, one must be chosen.");
+
+    bool has_recovery = false;
+    find_argument<std::string>(vm, "recovery", [&](const std::string &val) {
+      has_recovery = true;
+      recovery_state_ = str_to_recovery_state(val);
+      if (not recovery_state_) {
+        SL_ERROR(logger_, "Invalid recovery state specified: '{}'", val);
+      }
+    });
+    if (has_recovery and not recovery_state_.has_value()) {
       return false;
     }
-    if (found_num > 1) {
-      SL_ERROR(logger_,
-               "Found several benchmark options, only one must be chosen.");
+
+    // if something wrong with config print help message
+    if (not validate_config()) {
+      std::cout << desc << std::endl;
       return false;
     }
+    return true;
   }
-
-  bool has_recovery = false;
-  find_argument<std::string>(vm, "recovery", [&](const std::string &val) {
-    has_recovery = true;
-    recovery_state_ = str_to_recovery_state(val);
-    if (not recovery_state_) {
-      SL_ERROR(logger_, "Invalid recovery state specified: '{}'", val);
-    }
-  });
-  if (has_recovery and not recovery_state_.has_value()) {
-    return false;
-  }
-
-  // if something wrong with config print help message
-  if (not validate_config()) {
-    std::cout << desc << std::endl;
-    return false;
-  }
-  return true;
-}
 }  // namespace kagome::application

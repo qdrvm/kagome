@@ -65,13 +65,19 @@ namespace kagome::benchmark {
   BlockExecutionBenchmark::BlockExecutionBenchmark(
       std::shared_ptr<runtime::Core> core_api,
       std::shared_ptr<const blockchain::BlockTree> block_tree,
+      std::shared_ptr<runtime::ModuleRepository> module_repo,
+      std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage)
       : logger_{log::createLogger("BlockExecutionBenchmark", "benchmark")},
         core_api_{core_api},
         block_tree_{block_tree},
+        module_repo_{module_repo},
+        code_provider_{code_provider},
         trie_storage_{trie_storage} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_api_ != nullptr);
+    BOOST_ASSERT(module_repo_ != nullptr);
+    BOOST_ASSERT(code_provider_ != nullptr);
     BOOST_ASSERT(trie_storage_ != nullptr);
   }
 
@@ -192,19 +198,14 @@ namespace kagome::benchmark {
     OUTCOME_TRY(batch, storage.getEphemeralBatchAt(state));
 
     OUTCOME_TRY(enc_block_weight, batch->get(BLOCK_WEIGHT_KEY));
-    auto logger_ = log::createLogger("TEST");
-    logger_->info("Encoded weight: {}", enc_block_weight.view().toHex());
     scale::ScaleDecoderStream stream{enc_block_weight};
     ConsumedWeight block_weight;
     try {
       stream >> block_weight;
     } catch (std::exception &e) {
-      logger_->error("Error decoding encoded block weight: {}", e.what());
       return BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED;
     }
     if (stream.hasMore(1)) {
-      logger_->error(
-          "Encoded block weight contains more data than were decoded.");
       return BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED;
     }
 
@@ -251,27 +252,33 @@ namespace kagome::benchmark {
       duration_stats.emplace_back(Stats<std::chrono::nanoseconds>{
           primitives::BlockInfo{block_hashes[i], blocks[i].header.number}});
     }
-    for (uint16_t i = 0; i < config.times; i++) {
-      auto duration_stat_it = duration_stats.begin();
-      for (size_t block_i = 0; block_i < blocks.size(); block_i++) {
+    auto duration_stat_it = duration_stats.begin();
+    for (size_t block_i = 0; block_i < blocks.size(); block_i++) {
+      OUTCOME_TRY(module_repo_->getInstanceAt(
+          code_provider_,
+          primitives::BlockInfo{block_hashes[block_i],
+                                blocks[block_i].header.number},
+          blocks[block_i].header));
+      for (uint16_t i = 0; i < config.times; i++) {
         auto start = clock.now();
-        OUTCOME_TRY_MSG_VOID(core_api_->execute_block(blocks[block_i], std::nullopt),
-                             "execution of block {}",
-                             block_hashes[i]);
+        OUTCOME_TRY_MSG_VOID(
+            core_api_->execute_block(blocks[block_i], std::nullopt),
+            "execution of block {}",
+            block_hashes[i]);
         auto end = clock.now();
         auto duration_ns =
             std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
         duration_stat_it->add(duration_ns);
-        SL_INFO(logger_,
-                "Block #{}, {} ns",
-                blocks[block_i].header.number,
-                duration_ns.count());
-        duration_stat_it++;
+        SL_VERBOSE(logger_,
+                   "Block #{}, {} ns",
+                   blocks[block_i].header.number,
+                   duration_ns.count());
       }
+      duration_stat_it++;
     }
     for (auto &stat : duration_stats) {
-      logger_->info(
-              "Block #{}, min {:L} ns, avg {:L} ns, median {:L} ns, max {:L} ns",
+      SL_INFO(logger_,
+              "Block #{}, min {} ns, avg {} ns, median {} ns, max {} ns",
               stat.getBlock().number,
               stat.min().count(),
               stat.avg().count(),
@@ -280,9 +287,11 @@ namespace kagome::benchmark {
       OUTCOME_TRY(
           block_weight_ns,
           getBlockWeightAsNanoseconds(
-              *trie_storage_, blocks[stat.getBlock().number - config.start].header.state_root));
-      logger_->info(
-          "Block {:L}: consumed {:L} ns out of declared {:L} ns on average. ({} %)",
+              *trie_storage_,
+              blocks[stat.getBlock().number - config.start].header.state_root));
+      SL_INFO(
+          logger_,
+          "Block {}: consumed {} ns out of declared {} ns on average. ({} %)",
           stat.getBlock().number,
           stat.avg().count(),
           block_weight_ns.count(),

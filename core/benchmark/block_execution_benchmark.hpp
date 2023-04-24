@@ -8,9 +8,9 @@
 
 #include <memory>
 
-#include "primitives/common.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::blockchain {
   class BlockTree;
@@ -18,7 +18,9 @@ namespace kagome::blockchain {
 
 namespace kagome::runtime {
   class Core;
-}
+  class ModuleRepository;
+  class RuntimeCodeProvider;
+}  // namespace kagome::runtime
 
 namespace kagome::storage::trie {
   class TrieStorage;
@@ -41,6 +43,8 @@ namespace kagome::benchmark {
     BlockExecutionBenchmark(
         std::shared_ptr<runtime::Core> core_api,
         std::shared_ptr<const blockchain::BlockTree> block_tree,
+        std::shared_ptr<runtime::ModuleRepository> module_repo,
+        std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider,
         std::shared_ptr<const storage::trie::TrieStorage> trie_storage);
 
     outcome::result<void> run(Config config);
@@ -49,6 +53,8 @@ namespace kagome::benchmark {
     log::Logger logger_;
     std::shared_ptr<runtime::Core> core_api_;
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
+    std::shared_ptr<runtime::ModuleRepository> module_repo_;
+    std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider_;
     std::shared_ptr<const storage::trie::TrieStorage> trie_storage_;
   };
 

@@ -12,20 +12,16 @@ namespace kagome {
 
   int benchmark_main(int argc, const char **argv) {
     log::Logger config_logger = log::createLogger("Configuration");
-    if (argc == 0) {
+    if (argc == 1) {
       SL_ERROR(config_logger,
                "Usage: kagome benchmark BENCHMARK-TYPE BENCHMARK-OPTIONS\n"
                "Available benchmark types are: block");
       return -1;
     }
 
-    const char *benchmark_type = argv[0];
-    argc--, argv++;
-
     auto config =
         std::make_shared<application::AppConfigurationImpl>(config_logger);
-    if (!config->initializeFromArgs(
-            argc, argv, application::AppConfiguration::Command::Benchmark)) {
+    if (!config->initializeFromArgs(argc, argv)) {
       SL_ERROR(config_logger, "Failed to initialize kagome!");
       return -1;
     }

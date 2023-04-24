@@ -31,19 +31,6 @@ namespace kagome {
 }
 
 int main(int argc, const char **argv) {
-  if (argc > 1) {
-    std::string_view name{argv[1]};
-    if (name == "storage-explorer") {
-      return storage_explorer_main(argc - 1, argv + 1);
-    }
-    if (name == "db-editor") {
-      return db_editor_main(argc - 1, argv + 1);
-    }
-    if (name == "benchmark") {
-      return kagome::benchmark_main(argc - 1, argv + 1);
-    }
-  }
-
 #if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
 #endif
@@ -63,6 +50,18 @@ int main(int argc, const char **argv) {
     }
 
     kagome::log::setLoggingSystem(logging_system);
+  }
+  if (argc > 1) {
+    std::string_view name{argv[1]};
+    if (name == "storage-explorer") {
+      return storage_explorer_main(argc - 1, argv + 1);
+    }
+    if (name == "db-editor") {
+      return db_editor_main(argc - 1, argv + 1);
+    }
+    if (name == "benchmark") {
+      return kagome::benchmark_main(argc - 1, argv + 1);
+    }
   }
 
   auto logger = kagome::log::createLogger("AppConfiguration",

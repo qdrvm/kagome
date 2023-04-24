@@ -21,6 +21,7 @@ namespace kagome::storage {
         "justification",
         "trie_node",
         "block_data",
+        "trie_pruner"
     };
     assert(names.size() == Space::kTotal);
     assert(space < Space::kTotal);
