@@ -112,9 +112,7 @@ namespace kagome::blockchain {
     };
     using Weight = std::pair<WeightInfo, primitives::BlockNumber>;
 
-    explicit TreeMeta(
-        const std::shared_ptr<TreeNode> &subtree_root_node,
-        std::optional<primitives::Justification> last_finalized_justification);
+    explicit TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node);
 
     Weight getWeight(std::shared_ptr<TreeNode> node) const;
 
@@ -128,7 +126,6 @@ namespace kagome::blockchain {
     std::weak_ptr<TreeNode> best_leaf;
 
     std::weak_ptr<TreeNode> last_finalized;
-    std::optional<primitives::Justification> last_finalized_justification;
   };
 
   /**
@@ -148,8 +145,7 @@ namespace kagome::blockchain {
      * the stack.
      * @return new tree root
      */
-    void updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root,
-                        primitives::Justification justification);
+    void updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root);
 
     void updateMeta(const std::shared_ptr<TreeNode> &new_node);
 

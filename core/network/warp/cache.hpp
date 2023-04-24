@@ -38,6 +38,8 @@ namespace kagome::network {
     outcome::result<WarpSyncProof> getProof(
         const primitives::BlockHash &after_hash) const;
 
+    void warp(const primitives::BlockInfo &block);
+
    private:
     outcome::result<void> cacheMore(primitives::BlockNumber finalized);
     outcome::result<void> start(

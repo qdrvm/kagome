@@ -130,6 +130,10 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
+    void warp(const primitives::BlockInfo &block_info) override;
+
+    void notifyBestAndFinalized() override;
+
    private:
     /**
      * Private constructor, so that instances are created only through the

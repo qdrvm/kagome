@@ -479,7 +479,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (info->get().last_finalized <= block_tree_->bestLeaf().number) {
+    if (info->get().last_finalized > block_tree_->getLastFinalized().number) {
       //  Trying to substitute with justifications' request only
       auto last_finalized = block_tree_->getLastFinalized();
       synchronizer_->syncMissingJustifications(
@@ -1326,6 +1326,12 @@ namespace kagome::consensus::grandpa {
     // if round == current round, then execution of the next round will be
     // elsewhere
     return outcome::success();
+  }
+
+  void GrandpaImpl::reload() {
+    if (not start()) {
+      SL_ERROR(logger_, "reload: start failed");
+    }
   }
 
   void GrandpaImpl::loadMissingBlocks() {

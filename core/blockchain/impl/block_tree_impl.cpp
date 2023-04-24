@@ -143,8 +143,7 @@ namespace kagome::blockchain {
         primitives::events::ChainEventType::kFinalizedHeads,
         finalized_block_header);
 
-    OUTCOME_TRY(last_finalized_justification,
-                storage->getJustification(last_finalized_block_info.hash));
+    OUTCOME_TRY(storage->getJustification(last_finalized_block_info.hash));
     SL_INFO(log,
             "Best block: {}, Last finalized: {}",
             best_leaf,
@@ -198,9 +197,9 @@ namespace kagome::blockchain {
                                            last_finalized_block_info.number,
                                            nullptr,
                                            true,
-                                           isPrimary(finalized_block_header));
+                                           false);
     SL_DEBUG(log, "Last finalized block #{}", tree->depth);
-    auto meta = std::make_shared<TreeMeta>(tree, last_finalized_justification);
+    auto meta = std::make_shared<TreeMeta>(tree);
 
     std::shared_ptr<BlockTreeImpl> block_tree(
         new BlockTreeImpl(std::move(header_repo),
@@ -512,14 +511,9 @@ namespace kagome::blockchain {
 
       primitives::BlockInfo block{node->depth - 1, hash_opt.value()};
 
-      OUTCOME_TRY(header_opt, storage_->getBlockHeader(block.hash));
-      BOOST_ASSERT_MSG(header_opt.has_value(),
-                       "Non genesis block must have parent");
-
-      auto &header = header_opt.value();
       auto tree = std::make_shared<TreeNode>(
-          block.hash, block.number, nullptr, true, isPrimary(header));
-      auto meta = std::make_shared<TreeMeta>(tree, std::nullopt);
+          block.hash, block.number, nullptr, true, false);
+      auto meta = std::make_shared<TreeMeta>(tree);
       tree_ = std::make_unique<CachedTree>(std::move(tree), std::move(meta));
     }
 
@@ -701,7 +695,7 @@ namespace kagome::blockchain {
           primitives::events::ChainEventType::kDeactivateAfterFinalization,
           retired_hashes);
 
-      tree_->updateTreeRoot(node, justification);
+      tree_->updateTreeRoot(node);
 
       OUTCOME_TRY(reorganize());
 
@@ -1297,4 +1291,25 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  void BlockTreeImpl::warp(const primitives::BlockInfo &block_info) {
+    auto node = std::make_shared<TreeNode>(
+        block_info.hash, block_info.number, nullptr, true, false);
+    auto meta = std::make_shared<TreeMeta>(node);
+    tree_ = std::make_unique<CachedTree>(std::move(node), std::move(meta));
+    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+    metric_best_block_height_->set(block_info.number);
+    telemetry_->notifyBlockFinalized(block_info);
+    metric_finalized_block_height_->set(block_info.number);
+  }
+
+  void BlockTreeImpl::notifyBestAndFinalized() {
+    auto best_info = bestLeaf();
+    auto best_header = getBlockHeader(best_info.hash).value();
+    chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
+                                 best_header);
+    auto finalized_info = getLastFinalized();
+    auto finalized_header = getBlockHeader(finalized_info.hash).value();
+    chain_events_engine_->notify(
+        primitives::events::ChainEventType::kFinalizedHeads, finalized_header);
+  }
 }  // namespace kagome::blockchain

@@ -14,6 +14,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "common/buffer.hpp"
+#include "consensus/babe/babe.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/version.hpp"
@@ -42,7 +43,7 @@ namespace kagome::primitives::events {
     kDeactivateAfterFinalization = 6,
   };
 
-  enum struct BabeStateEventType : uint32_t { kSynchronized = 1 };
+  enum struct BabeStateEventType : uint32_t { kSyncState = 1 };
 
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
@@ -55,9 +56,7 @@ namespace kagome::primitives::events {
                                           NewRuntimeEventParams,
                                           RemoveAfterFinalizationParams>;
 
-  struct BabeStateEventParams {
-    primitives::BlockInfo best_block;
-  };
+  using BabeStateEventParams = consensus::babe::Babe::State;
 
   /**
    * - "future" - Transaction is part of the future queue.

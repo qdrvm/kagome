@@ -8,6 +8,7 @@ addtest(babe_test
     )
 target_link_libraries(babe_test
     consensus
+    network
     clock
     waitable_timer
     sr25519_types
