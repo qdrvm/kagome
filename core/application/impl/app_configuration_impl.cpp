@@ -120,6 +120,9 @@ namespace {
     if (str == "FastWithoutState") {
       return SM::FastWithoutState;
     }
+    if (str == "Warp") {
+      return SM::Warp;
+    }
     return std::nullopt;
   }
 

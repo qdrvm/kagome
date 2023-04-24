@@ -118,6 +118,10 @@ namespace kagome::blockchain {
                 (const, override));
 
     MOCK_METHOD(primitives::BlockInfo, getLastFinalized, (), (const, override));
+
+    MOCK_METHOD(void, warp, (const primitives::BlockInfo &), (override));
+
+    MOCK_METHOD(void, notifyBestAndFinalized, (), (override));
   };
 }  // namespace kagome::blockchain
 
